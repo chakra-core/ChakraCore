@@ -14,24 +14,24 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("typeof (x)", typeof (x), "object");
-    ttdTestReport("typeof (z)", typeof (z), "object");
+    telemetryLog(`typeof (x): ${typeof (x)}`, true); //object
+    telemetryLog(`typeof (z): ${typeof (z)}`, true); //object;
 
-    ttdTestReport("x === y", x === y, true);
-    ttdTestReport("x !== z", x !== z, true);
+    telemetryLog(`x === y: ${x === y}`, true); //true
+    telemetryLog(`x !== z: ${x !== z}`, true); //true
 
-    ttdTestReport("y.foo", y.foo, 3);
-    ttdTestReport("z.foo", z.foo, 3);
-    ttdTestReport("z[1]", z[1], "bob");
-    ttdTestReport("z[2]", z[2], "bob2");
+    telemetryLog(`y.foo: ${y.foo}`, true); //3
+    telemetryLog(`z.foo: ${z.foo}`, true); //3
+    telemetryLog(`z[1]: ${z[1]}`, true); //bob
+    telemetryLog(`z[2]: ${z[2]}`, true); //bob2
 
-    ttdTestReport("x.foo", x.foo, 3);
-    ttdTestReport("x.bar", x.bar, null);
-    ttdTestReport("x.baz", x.baz, "new prop");
+    telemetryLog(`x.foo: ${x.foo}`, true); //3
+    telemetryLog(`x.bar: ${x.bar}`, true); //null
+    telemetryLog(`x.baz: ${x.baz}`, true); //new prop"
 
-    ttdTestReport("x.notPresent", x.notPresent, undefined);
-    ttdTestReport("z[0]", z[0], undefined);
-    ttdTestReport("z[5]", z[5], undefined);
+    telemetryLog(`x.notPresent: ${x.notPresent}`, true); //undefined
+    telemetryLog(`z[0]: ${z[0]}`, true); //undefined
+    telemetryLog(`z[5]: ${z[5]}`, true); //undefined
 
     ////
     z.foo = 0;
@@ -41,22 +41,13 @@ function testFunction()
     y.bar = 3;
     ////
 
-    ttdTestReport("post update -- z[0]", z[0], undefined);
-    ttdTestReport("post update -- z.foo", z.foo, 0);
-    ttdTestReport("post update -- x.foo", x.foo, 10);
-    ttdTestReport("post update -- x.foo2", x.foo2, "ten");
-    ttdTestReport("post update -- x[0]", x[0], undefined);
-    ttdTestReport("post update -- x[10]", x[10], "foo");
+    telemetryLog(`post update -- z[0]: ${z[0]}`, true); //undefined
+    telemetryLog(`post update -- z.foo: ${z.foo}`, true); //0
+    telemetryLog(`post update -- x.foo: ${x.foo}`, true); //10
+    telemetryLog(`post update -- x.foo2: ${x.foo2}`, true); //ten
+    telemetryLog(`post update -- x[0]: ${x[0]}`, true); //undefined
+    telemetryLog(`post update -- x[10]: ${x[10]}`, true); //foo
 
-    ttdTestReport("post update -- y.bar", y.bar, 3);
-    ttdTestReport("post update -- x.bar", x.bar, 3);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`post update -- y.bar: ${y.bar}`, true); //3
+    telemetryLog(`post update -- x.bar: ${x.bar}`, true); //3
 }

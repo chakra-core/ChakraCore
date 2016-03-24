@@ -395,7 +395,7 @@ JsDiagResume(
 #endif
         else if (resumeType == JsDiagResumeTypeStepOut)
         {
-#if ENABLE_TTD_OUT_SAME_AS_BACK
+#if TTD_VSCODE_WORK_AROUNDS
             ThreadContext* threadContext = runtime->GetThreadContext();
 
             TTD::TTDebuggerSourceLocation bpLocation;

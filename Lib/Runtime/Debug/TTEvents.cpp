@@ -473,8 +473,8 @@ namespace TTD
 
     //////////////////
 
-    TelemetryEventLogEntry::TelemetryEventLogEntry(int64 eTime, const TTString& infoString, bool shouldPrint, int64 optUserEventId, bool shouldBreak, const TTDebuggerSourceLocation& sourceLocation)
-        : EventLogEntry(EventKind::TelemetryLogEntry, eTime), m_infoString(infoString), m_shouldPrint(shouldPrint), m_optUserEventId(optUserEventId), m_shouldBreak(shouldBreak), m_sourceLocation(sourceLocation)
+    TelemetryEventLogEntry::TelemetryEventLogEntry(int64 eTime, const TTString& infoString, bool doPrint)
+        : EventLogEntry(EventKind::TelemetryLogEntry, eTime), m_infoString(infoString), m_doPrint(doPrint)
     {
         ;
     }
@@ -482,10 +482,6 @@ namespace TTD
     void TelemetryEventLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
     {
         alloc.UnlinkString(this->m_infoString);
-        if(this->m_shouldBreak)
-        {
-            this->m_sourceLocation.Clear();
-        }
     }
 
     TelemetryEventLogEntry* TelemetryEventLogEntry::As(EventLogEntry* e)
@@ -500,26 +496,9 @@ namespace TTD
         return this->m_infoString;
     }
 
-    bool TelemetryEventLogEntry::ShouldPrint() const
+    bool TelemetryEventLogEntry::GetDoPrint() const
     {
-        return this->m_shouldPrint;
-    }
-
-    int64 TelemetryEventLogEntry::GetOptUserEventId() const
-    {
-        return this->m_optUserEventId;
-    }
-
-    bool TelemetryEventLogEntry::ShouldBreak() const
-    {
-        return this->m_shouldBreak;
-    }
-
-    void TelemetryEventLogEntry::GetBreakSourceLocation(TTDebuggerSourceLocation& sourceLocation) const
-    {
-        AssertMsg(this->m_shouldBreak, "Need to check this first");
-
-        sourceLocation.SetLocation(this->m_sourceLocation);
+        return this->m_doPrint;
     }
 
     void TelemetryEventLogEntry::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
@@ -527,12 +506,7 @@ namespace TTD
         this->BaseStdEmit(writer, separator);
 
         writer->WriteString(NSTokens::Key::stringVal, this->m_infoString, NSTokens::Separator::CommaSeparator);
-        writer->WriteBool(NSTokens::Key::boolVal, this->m_shouldPrint, NSTokens::Separator::CommaSeparator);
-
-        writer->WriteInt64(NSTokens::Key::i64Val, this->m_optUserEventId, NSTokens::Separator::CommaSeparator);
-
-        writer->WriteBool(NSTokens::Key::boolVal, this->m_shouldBreak, NSTokens::Separator::CommaSeparator);
-        this->m_sourceLocation.Emit(writer, NSTokens::Separator::CommaSeparator);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_doPrint, NSTokens::Separator::CommaSeparator);
 
         writer->WriteRecordEnd();
     }
@@ -540,17 +514,11 @@ namespace TTD
     TelemetryEventLogEntry* TelemetryEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
     {
         TTString infoString;
-        TTDebuggerSourceLocation sourceLocation;
 
         reader->ReadString(NSTokens::Key::stringVal, alloc, infoString, true);
-        bool shouldPrint = reader->ReadBool(NSTokens::Key::boolVal, true);
+        bool doPrint = reader->ReadBool(NSTokens::Key::boolVal, true);
 
-        int64 optUserEventId = reader->ReadInt64(NSTokens::Key::i64Val, true);
-
-        bool shouldBreak = reader->ReadBool(NSTokens::Key::boolVal, true);
-        TTDebuggerSourceLocation::ParseInto(sourceLocation, reader, true);
-
-        return alloc.SlabNew<TelemetryEventLogEntry>(eTime, infoString, shouldPrint, optUserEventId, shouldBreak, sourceLocation);
+        return alloc.SlabNew<TelemetryEventLogEntry>(eTime, infoString, doPrint);
     }
 
     //////////////////

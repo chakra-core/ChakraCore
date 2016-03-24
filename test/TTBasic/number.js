@@ -12,29 +12,20 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("x", x, 3);
-    ttdTestReport("y", y, 5);
-    ttdTestReport("xd", xd, 4.6);
-    ttdTestReport("yd", yd, 9.2);
+    telemetryLog(`x: ${x}`, true); //3
+    telemetryLog(`y: ${y}`, true); //5
+    telemetryLog(`xd: ${xd}`, true); //4.6
+    telemetryLog(`yd: ${yd}`, true); //9.2
 
-    ttdTestReport("x + y", x + y, 8);
-    ttdTestReport("x - y", x - y, -2);
-    ttdTestReport("x * y", x * y, 15);
-    ttdTestReport("x / y", x / y, 0.6);
+    telemetryLog(`x + y: ${x + y}`, true); //8
+    telemetryLog(`x - y: ${x - y}`, true); //-2
+    telemetryLog(`x * y: ${x * y}`, true); //15
+    telemetryLog(`x / y: ${x / y}`, true); //0.6
 
-    ttdTestReport("isFinite(xd)", isFinite(xd), true);
-    ttdTestReport("isFinite(myInf)", isFinite(myInf), false);
-    ttdTestReport("isFinite(Infinity)", isFinite(Infinity), false);
+    telemetryLog(`isFinite(xd): ${isFinite(xd)}`, true); //true
+    telemetryLog(`isFinite(myInf): ${isFinite(myInf)}`, true); //false
+    telemetryLog(`isFinite(Infinity): ${isFinite(Infinity)}`, true); //false
 
-    ttdTestReport("Math.abs(-2)", Math.abs(-2), 2);
-    ttdTestReport("Math.floor(1.5)", Math.floor(1.5), 1.0);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`Math.abs(-2): ${Math.abs(-2)}`, true); //2
+    telemetryLog(`Math.floor(1.5): ${Math.floor(1.5)}`, true); //1.0
 }

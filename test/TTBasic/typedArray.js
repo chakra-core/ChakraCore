@@ -24,48 +24,39 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("viewx.length", viewx.length, 4);
-    ttdTestReport("viewy.length", viewy.length, 12);
-    ttdTestReport("bx === by", bx === by, true);
-    ttdTestReport("viewx.buffer === viewy.buffer", viewx.buffer === viewy.buffer, true);
+    telemetryLog(`viewx.length: ${viewx.length}`, true); //4
+    telemetryLog(`viewy.length: ${viewy.length}`, true); //12
+    telemetryLog(`bx === by: ${bx === by}`, true); //true
+    telemetryLog(`viewx.buffer === viewy.buffer: ${viewx.buffer === viewy.buffer}`, true); //true
 
     var allokx = true;
     for(var i = 0; i < viewx.length; ++i) 
     {
         allokx = allokx && (viewx[i] === i + 1);
     }
-    ttdTestReport("allokx", allokx, true);
+    telemetryLog(`allokx: ${allokx}`, true); //true
 
-    ttdTestReport("viewz.length", viewz.length, 4);
+    telemetryLog(`viewz.length: ${viewz.length}`, true); //4
 
     var allokz = true;
     for(var i = 0; i < viewz.length; ++i) 
     {
         allokz = allokz && (viewz[i] === i / 2.0);
     }
-    ttdTestReport("allokz", allokz, true);
+    telemetryLog(`allokz: ${allokz}`, true); //true
 
     ////
     viewx[1] = 0;
     ////
 
-    ttdTestReport("viewy[0]", viewy[0], 0);
-    ttdTestReport("viewy[1]", viewy[1], 0);
-    ttdTestReport("viewy[2]", viewy[2], 0);
-    ttdTestReport("viewy[3]", viewy[3], 0);
+    telemetryLog(`viewy[0]: ${viewy[0]}`, true); //0
+    telemetryLog(`viewy[1]: ${viewy[1]}`, true); //0
+    telemetryLog(`viewy[2]: ${viewy[2]}`, true); //0
+    telemetryLog(`viewy[3]: ${viewy[3]}`, true); //0
 
     ////
     viewz[0] = 0.5;
     ////
 
-    ttdTestReport("viewz[0]", viewz[0], 0.5);
-        
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`viewz[0]: ${viewz[0]}`, true); //0.5
 }

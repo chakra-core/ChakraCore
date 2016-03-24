@@ -298,12 +298,15 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
             HostScriptContextCallbackFunctor callbackFunctor(context, &JsrtContext::OnScriptLoad_TTDCallback);
             threadContext->BeginCtxTimeTravel(context->GetScriptContext(), callbackFunctor);
 
-#if TTD_FORCE_DEBUG_MODE_IN_RECORD
             if(threadContext->IsTTRecordRequested)
             {
+                //
+                //TODO: We currently force this into debug mode in record as well to make sure parsing/bytecode generation is same as during replay.
+                //      Later we will want to be clever during inflate and not do this.
+                //
                 context->GetScriptContext()->GetDebugContext()->SetInDebugMode();
             }
-#endif
+
             context->GetScriptContext()->InitializeCoreImage_TTD();
         }
 #endif
@@ -3697,16 +3700,7 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
     //a special indicator to use the time from the argument flag or log diagnostic report
     if(targetEventTime == -2)
     {
-        TTD::TTDebuggerSourceLocation bpLocation;
-        bool foundTelementryBreak = scriptContext->GetThreadContext()->TTDLog->TryGetFirstTelemetryBreakLocation(bpLocation);
-        if(foundTelementryBreak)
-        {
-            targetEventTime = bpLocation.GetRootEventTime();
-        }
-        else
-        {
-            targetEventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
-        }
+        targetEventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
     }
 
     bool createFreshCtxs = false;
@@ -3780,17 +3774,7 @@ STDAPI_(JsErrorCode) JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTim
     //a special indicator to use the time from the argument flag
     if(eventTime == -2)
     {
-        TTD::TTDebuggerSourceLocation bpLocation;
-        bool foundTelementryBreak = scriptContext->GetThreadContext()->TTDLog->TryGetFirstTelemetryBreakLocation(bpLocation);
-        if(foundTelementryBreak)
-        {
-            eventTime = bpLocation.GetRootEventTime();
-            scriptContext->GetThreadContext()->TTDLog->SetPendingTTDBPInfo(bpLocation);
-        }
-        else
-        {
-            eventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
-        }
+        eventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
     }
 
     try

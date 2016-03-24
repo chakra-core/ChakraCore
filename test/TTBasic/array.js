@@ -8,14 +8,14 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("Array.isArray(x)", Array.isArray(x), true);
-    ttdTestReport("x.length", x.length, 3);
+    telemetryLog(`Array.isArray(x): ${Array.isArray(x)}`, true);  //true
+    telemetryLog(`x.length: ${x.length}`, true); //3
 
-    ttdTestReport("x === y", x === y, true);
-    ttdTestReport("x.baz", x.baz, 5);
-    ttdTestReport("x[0]", x[0], 3);
-    ttdTestReport("y[1]", y[1], null);
-    ttdTestReport("x[5]", x[5], undefined);
+    telemetryLog(`x === y: ${x === y}`, true); //true
+    telemetryLog(`x.baz: ${x.baz}`, true); //5
+    telemetryLog(`x[0]: ${x[0]}`, true); //3
+    telemetryLog(`y[1]: ${y[1]}`, true); //null
+    telemetryLog(`x[5]: ${x[5]}`, true); //undefined
 
     ////
     x[1] = "non-null";
@@ -23,17 +23,8 @@ function testFunction()
     x.push(10);
     ////
 
-    ttdTestReport("post update -- y[1]", y[1], "non-null");
-    ttdTestReport("post update -- x[5] !== null", x[5] !== null, true);
-    ttdTestReport("post update -- x[5].bar", x[5].bar, 3);
-    ttdTestReport("post update -- y[6]", y[6], 10);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`post update -- y[1]: ${y[1]}`, true); //non-null
+    telemetryLog(`post update -- x[5] !== null: ${x[5] !== null}`, true); //true
+    telemetryLog(`post update -- x[5].bar: ${x[5].bar}`, true); //3
+    telemetryLog(`post update -- y[6]: ${y[6]}`, true); //10
 }

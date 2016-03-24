@@ -272,22 +272,16 @@
 #define ENABLE_TTD_DEBUGGING 1
 
 //A workaround for VSCode getting angry with timing (adds a Sleep before sending msgs)
-#define TTD_VSCODE_WORK_AROUND 1
-
-//Set to make step out behave the same as step back
-#define ENABLE_TTD_OUT_SAME_AS_BACK 1
-
-//We need to put the system in debug mode during record as well otherwise we get weird mismatches in how script is parsed 
-//This needs to be fixed later
-#define TTD_FORCE_DEBUG_MODE_IN_RECORD 1
+//Also makes step out behave the same as step back
+#define TTD_VSCODE_WORK_AROUNDS 1
 
 //Enable various sanity checking features and asserts
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
 #define ENABLE_SNAPSHOT_COMPARE 1
-#define ENABLE_BASIC_TRACE 1
-#define ENABLE_FULL_BC_TRACE 1
+#define ENABLE_BASIC_TRACE 0
+#define ENABLE_FULL_BC_TRACE 0
 #else
 #define ENABLE_SNAPSHOT_COMPARE 0
 #define ENABLE_BASIC_TRACE 0

@@ -470,8 +470,9 @@ namespace TTD
 
         void WriteVar(Js::Var var);
 
-        void WriteCall(Js::FunctionBody* body, bool isExternal, uint32 argc, Js::Var* argv);
-        void WriteReturn(Js::FunctionBody* body, Js::Var res);
+        void WriteCall(Js::JavascriptFunction* function, bool isExternal, uint32 argc, Js::Var* argv);
+        void WriteReturn(Js::JavascriptFunction* function, Js::Var res);
+        void WriteReturnException(Js::JavascriptFunction* function);
 
         void WriteStmtIndex(uint32 line, uint32 column);
     };

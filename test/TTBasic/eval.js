@@ -21,18 +21,9 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("evalCode1", evalCode1(), "function () { return evalCode1 + ' ' + captured; } ok");
-    ttdTestReport("evalCode2", evalCode2(), "function () { return evalCode2 + ' ' + captured; } bob in setCode2");
+    telemetryLog(`evalCode1: ${evalCode1()}`, true); //function () { return evalCode1 + ' ' + captured; } ok"
+    telemetryLog(`evalCode2: ${evalCode2()}`, true); //function () { return evalCode2 + ' ' + captured; } bob in setCode2"
     
-    ttdTestReport("evalCode3", evalCode3(), "function () { return evalCode3 + ' ' + captured; } ok");
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`evalCode3: ${evalCode3()}`, true); //function () { return evalCode3 + ' ' + captured; } ok"
 }
 

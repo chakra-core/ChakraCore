@@ -7,23 +7,23 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("Array.isArray(xi)", Array.isArray(xi), true);
-    ttdTestReport("xi.length", xi.length, 3);
-    ttdTestReport("xi[1]", xi[1], 1);
+    telemetryLog(`Array.isArray(xi): ${Array.isArray(xi)}`, true); //true
+    telemetryLog(`xi.length: ${xi.length}`, true); //3
+    telemetryLog(`xi[1]: ${xi[1]}`, true); //1
 
     ////
     xi[1] = 5;
     xi.push(10);
     ////
 
-    ttdTestReport("post update -- xi[1]", xi[1], 5);
-    ttdTestReport("post update -- xi.length", xi.length, 4);
-    ttdTestReport("post update -- xi[3]", xi[3], 10);
-    ttdTestReport("post update -- xi[5]", xi[5], undefined);
+    telemetryLog(`post update -- xi[1]: ${xi[1]}`, true); //5
+    telemetryLog(`post update -- xi.length: ${xi.length}`, true); //4
+    telemetryLog(`post update -- xi[3]: ${xi[3]}`, true); //10
+    telemetryLog(`post update -- xi[5]: ${xi[5]}`, true); //undefined
 
-    ttdTestReport("Array.isArray(xd)", Array.isArray(xd), true);
-    ttdTestReport("xd.length", xd.length, 3);
-    ttdTestReport("xd[1]", xd[1], 1.5);
+    telemetryLog(`Array.isArray(xd): ${Array.isArray(xd)}`, true); //true
+    telemetryLog(`xd.length: ${xd.length}`, true); //3
+    telemetryLog(`xd[1]: ${xd[1]}`, true); //1.5
 
     ////
     xd[1] = 5.0;
@@ -31,18 +31,9 @@ function testFunction()
     xd[10] = 10.0;
     ////
 
-    ttdTestReport("post update -- xd[1]", xd[1], 5.0);
-    ttdTestReport("post update -- xd.length", xd.length, 11);
-    ttdTestReport("post update -- xd[3]", xd[3], 10.0);
-    ttdTestReport("post update -- xd[5]", xd[5], undefined);
-    ttdTestReport("post update -- xd[10]", xd[10], 10.0);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`post update -- xd[1]: ${xd[1]}`, true); //5.0
+    telemetryLog(`post update -- xd.length: ${xd.length}`, true); //11
+    telemetryLog(`post update -- xd[3]: ${xd[3]}`, true); //10.0
+    telemetryLog(`post update -- xd[5]: ${xd[5]}`, true); //undefined
+    telemetryLog(`post update -- xd[10]: ${xd[10]}`, true); //10.0
 }

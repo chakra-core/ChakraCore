@@ -13,21 +13,12 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("x === y", x === y, true);
-    ttdTestReport("w !== z", w !== z.valueOf(), true);
+    telemetryLog(`x === y: ${x === y}`, true); //true
+    telemetryLog(`w !== z: ${w !== z.valueOf()}`, true); //true
 
-    ttdTestReport("y.foo", y.foo, 3);
-    ttdTestReport("x.foo", x.foo, 3);
+    telemetryLog(`y.foo: ${y.foo}`, true); //3
+    telemetryLog(`x.foo: ${x.foo}`, true); //3
 
-    ttdTestReport("w - z > 0", w - z.valueOf() > 0, true);
-    ttdTestReport("x - y", x.valueOf() - y.valueOf(), 0);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`w - z > 0: ${w - z.valueOf() > 0}`, true); //true
+    telemetryLog(`x - y: ${x.valueOf() - y.valueOf()}`, true); //0
 }

@@ -12,19 +12,10 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("f !== null", f !== null, true);
-    ttdTestReport("f === g", f === g, true);
-    ttdTestReport("g.foo", g.foo, 3);
+    telemetryLog(`f !== null: ${f !== null}`, true); //true
+    telemetryLog(`f === g: ${f === g}`, true); //true
+    telemetryLog(`g.foo: ${g.foo}`, true); //3
 
-    ttdTestReport("f()", f(), "called f");
-    ttdTestReport("g()", g(), "called f");
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`f(): ${f()}`, true); //called f
+    telemetryLog(`g(): ${g()}`, true); //called f
 }

@@ -32,22 +32,13 @@ WScript.SetTimeout(testFunction, 20);
 
 function testFunction()
 {
-    ttdTestReport("xlength", x.length(), 3);
-    ttdTestReport("xnamed", x.named(), 2);
-    ttdTestReport("xposition", x.position(), 2);
+    telemetryLog(`xlength: ${x.length()}`, true); //3
+    telemetryLog(`xnamed: ${x.named()}`, true); //2
+    telemetryLog(`xposition: ${x.position()}`, true); //2
     
-    ttdTestReport("ylength", y.length(), 3);
-    ttdTestReport("ynamed", y.named(), 2);
-    ttdTestReport("yposition", y.position(), undefined);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`ylength: ${y.length()}`, true); //3
+    telemetryLog(`ynamed: ${y.named()}`, true); //2
+    telemetryLog(`yposition: ${y.position()}`, true); //undefined
 }
 
 

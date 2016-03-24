@@ -7,20 +7,11 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("x", x, true);
-    ttdTestReport("y", y, false);
+    telemetryLog(`x: ${x}`, true); //true
+    telemetryLog(`y: ${y}`, true); //false
 
-    ttdTestReport("x === y", x === y, false);
+    telemetryLog(`x === y: ${x === y}`, true); //false
 
-    ttdTestReport("x && y", x && y, false);
-    ttdTestReport("x || y", x || y, true);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`x && y: ${x && y}`, true); //false
+    telemetryLog(`x || y: ${x || y}`, true); //true
 }

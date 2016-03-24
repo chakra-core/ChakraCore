@@ -31,8 +31,8 @@ function testFunction()
 {
     var threw = false;
         
-    ttdTestReport("p.a", p.a, 1);
-    ttdTestReport("p.b", p.b, 'Not Found');
+    telemetryLog(`p.a: ${p.a}`, true); //1);
+    telemetryLog(`p.b: ${p.b}`, true); //Not Found
 
     try
     {
@@ -42,9 +42,9 @@ function testFunction()
     {
         threw = true;
     }
-    ttdTestReport("proxyDone.foo", threw, true);
+    telemetryLog(`proxyDone.foo: ${threw}`, true); //true
 
-    ttdTestReport("proxy.foo", proxy.foo, '[[foo]]');
+    telemetryLog(`proxy.foo: ${proxy.foo}`, true); //[[foo]]
 
     revocable.revoke();
     try
@@ -55,14 +55,5 @@ function testFunction()
     {
         threw = true;
     }
-    ttdTestReport("proxy.foo (after revoke)", threw, true);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`proxy.foo (after revoke): ${threw}`, true); //true
 }

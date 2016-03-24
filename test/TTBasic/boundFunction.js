@@ -13,16 +13,7 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("getX(1)", getX(1), 10);
-    ttdTestReport("module.getX(1)", module.getX(1), 82);
-    ttdTestReport("boundGetX()", boundGetX(), 84);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`getX(1): ${getX(1)}`, true); //10
+    telemetryLog(`module.getX(1): ${module.getX(1)}`, true); //82
+    telemetryLog(`boundGetX(): ${boundGetX()}`, true); //84
 }

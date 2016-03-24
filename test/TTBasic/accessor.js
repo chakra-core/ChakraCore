@@ -15,26 +15,17 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("typeof (x)", typeof (x), "object");
+    telemetryLog(`typeof (x): ${typeof (x)}`, true); //object
 
-    ttdTestReport("x.foo", x.foo, 3);
-    ttdTestReport("x.b", x.b, 4);
+    telemetryLog(`x.foo: ${x.foo}`, true); //3
+    telemetryLog(`x.b: ${x.b}`, true); //4
 
-    ttdTestReport("x.onlyone", x.onlyone, null);
+    telemetryLog(`x.onlyone: ${x.onlyone}`, true); //null
 
     ////
     x.b = 12;
     ////
 
-    ttdTestReport("x.foo", x.foo, 6);
-    ttdTestReport("x.b", x.b, 7);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`x.foo: ${x.foo}`, true); //6
+    telemetryLog(`x.b: ${x.b}`, true); //7
 }

@@ -39,30 +39,21 @@ function testFunction()
     idx = 0;
     for(var xname in x)
     {
-        ttdTestReport("xname", xname, xo[idx]);
+        telemetryLog(`xname: ${xname}`, true); //xo[idx]
         idx++;    
     }
     
     idx = 0;
     for(var yname in y)
     {
-        ttdTestReport("yname", yname, yo[idx]);
+        telemetryLog(`yname: ${yname}`, true); //yo[idx]
         idx++;    
     }
     
     idx = 0;
     for(var zname in z)
     {
-        ttdTestReport("zname", zname, zo[idx]);
+        telemetryLog(`zname: ${zname}`, true); //zo[idx]
         idx++;    
-    }
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
     }
 }

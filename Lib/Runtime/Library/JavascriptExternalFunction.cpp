@@ -292,16 +292,16 @@ namespace Js
             {
                 scriptContext->TTDRootNestingCount++;
 
-                elog->ReplayExternalCallEvent(scriptContext, &result);
+                elog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
 
                 scriptContext->TTDRootNestingCount--;
             }
             else if(elog->ShouldPerformRecordAction())
             {
-                TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, scriptContext);
+                TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, externalFunction);
 
                 scriptContext->TTDRootNestingCount++;
-                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, logPopper.GetStartTime());
+                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values, logPopper.GetStartTime());
                 logPopper.SetCallAction(beginEvent); //wil lalso decrement the nesting count as needed
 
                 Var result = nullptr;
@@ -410,16 +410,16 @@ namespace Js
             {
                 scriptContext->TTDRootNestingCount++;
 
-                elog->ReplayExternalCallEvent(scriptContext, &result);
+                elog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
 
                 scriptContext->TTDRootNestingCount--;
             }
             else if(elog->ShouldPerformRecordAction())
             {
-                TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, scriptContext);
+                TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, externalFunction);
 
                 scriptContext->TTDRootNestingCount++;
-                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, logPopper.GetStartTime());
+                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values, logPopper.GetStartTime());
                 logPopper.SetCallAction(beginEvent);
 
                 BEGIN_LEAVE_SCRIPT(scriptContext)

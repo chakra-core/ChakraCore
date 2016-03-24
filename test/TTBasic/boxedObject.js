@@ -22,33 +22,24 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("typeof (xb)", typeof (xb), "object");
-    ttdTestReport("xb === yb", xb === yb, true)
-    ttdTestReport("xb !== zb", xb !== zb, true);
-    ttdTestReport("xb == true", xb == true, true);
-    ttdTestReport("xb === true", xb === true, false);
-    ttdTestReport("xb.foob", xb.foob, 3);
+    telemetryLog(`typeof (xb): ${typeof (xb)}`, true); //object"
+    telemetryLog(`xb === yb: ${xb === yb}`, true); //true
+    telemetryLog(`xb !== zb: ${xb !== zb}`, true); //true
+    telemetryLog(`xb == true: ${xb == true}`, true); //true
+    telemetryLog(`xb === true: ${xb === true}`, true); //false
+    telemetryLog(`xb.foob: ${xb.foob}`, true); //3
 
-    ttdTestReport("typeof (xn)", typeof (xn), "object");
-    ttdTestReport("xn === yn", xn === yn, true);
-    ttdTestReport("xn !== zn", xn !== zn, true);
-    ttdTestReport("xn == 5", xn == 5, true);
-    ttdTestReport("xn === 5", xn === 5, false);
-    ttdTestReport("xn.foon", xn.foon, 3);
+    telemetryLog(`typeof (xn): ${typeof (xn)}`, true); //object"
+    telemetryLog(`xn === yn: ${xn === yn}`, true); //true
+    telemetryLog(`xn !== zn: ${xn !== zn}`, true); //true
+    telemetryLog(`xn == 5: ${xn == 5}`, true); //true
+    telemetryLog(`xn === 5: ${xn === 5}`, true); //false
+    telemetryLog(`xn.foon: ${xn.foon}`, true); //3
 
-    ttdTestReport("typeof (xs)", typeof (xs), "object");
-    ttdTestReport("xs === ys", xs === ys, true);
-    ttdTestReport("xs !== zs", xs !== zs, true);
-    ttdTestReport("xs == \'bob\'", xs == "bob", true);
-    ttdTestReport("xs === \'bob\'", xs === "bob", false);
-    ttdTestReport("xs.foos", xs.foos, 3);
-
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`typeof (xs): ${typeof (xs)}`, true); //object"
+    telemetryLog(`xs === ys: ${xs === ys}`, true); //true
+    telemetryLog(`xs !== zs: ${xs !== zs}`, true); //true
+    telemetryLog(`xs == \'bob\': ${xs == "bob"}`, true); //true
+    telemetryLog(`xs === \'bob\': ${xs === "bob"}`, true); //false
+    telemetryLog(`xs.foos: ${xs.foos}`, true); //3
 }

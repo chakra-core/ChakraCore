@@ -21,18 +21,9 @@ WScript.SetTimeout(doIt, 50);
 
 function testFunction()
 {            
-    ttdTestReport("v1", v1, 5);
-    ttdTestReport("v2", v2, 6);
-    ttdTestReport("v3", v3, 10);
-            
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`v1: ${v1}`, true); //5
+    telemetryLog(`v2: ${v2}`, true); //6
+    telemetryLog(`v3: ${v3}`, true); //10
 }
 
 

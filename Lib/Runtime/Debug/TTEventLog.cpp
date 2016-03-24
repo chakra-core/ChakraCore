@@ -9,7 +9,7 @@
 namespace TTD
 {
     TTDExceptionFramePopper::TTDExceptionFramePopper()
-        : m_log(nullptr)
+        : m_log(nullptr), m_function(nullptr)
     {
         ;
     }
@@ -21,14 +21,15 @@ namespace TTD
         if(this->m_log != nullptr)
         {
             //if it doesn't have an exception frame then this is the frame where the exception was thrown so record our info
-            this->m_log->PopCallEventException(!this->m_log->HasImmediateExceptionFrame());
+            this->m_log->PopCallEventException(this->m_function, !this->m_log->HasImmediateExceptionFrame());
         }
 #endif
     }
 
-    void TTDExceptionFramePopper::PushInfo(EventLog* log)
+    void TTDExceptionFramePopper::PushInfo(EventLog* log, Js::JavascriptFunction* function)
     {
         this->m_log = log; //set the log info so if the pop isn't called the destructor will record propagation
+        this->m_function = function;
     }
 
     void TTDExceptionFramePopper::PopInfo()
@@ -36,8 +37,8 @@ namespace TTD
         this->m_log = nullptr; //normal pop (no exception) just clear so destructor nops
     }
 
-    TTDRecordExternalFunctionCallActionPopper::TTDRecordExternalFunctionCallActionPopper(EventLog* log, Js::ScriptContext* scriptContext)
-        : m_log(log), m_scriptContext(scriptContext), m_timer(), m_callAction(nullptr)
+    TTDRecordExternalFunctionCallActionPopper::TTDRecordExternalFunctionCallActionPopper(EventLog* log, Js::JavascriptFunction* function)
+        : m_log(log), m_function(function), m_timer(), m_callAction(nullptr)
     {
         ;
     }
@@ -48,15 +49,17 @@ namespace TTD
         {
             double endTime = this->m_timer.Now();
 
+            Js::ScriptContext* ctx = this->m_function->GetScriptContext();
+
             //
             //TODO: we will want to be a bit more detailed on this later
             //
-            bool hasScriptException = this->m_scriptContext->HasRecordedException();
+            bool hasScriptException = ctx->HasRecordedException();
             bool hasTerminalException = false;
 
-            this->m_log->RecordExternalCallEndEvent(this->m_callAction->GetEventTime(), this->m_callAction->GetRootNestingDepth(), hasScriptException, hasTerminalException, endTime, this->m_scriptContext->GetLibrary()->GetUndefined());
+            this->m_log->RecordExternalCallEndEvent(this->m_function, this->m_callAction->GetEventTime(), this->m_callAction->GetRootNestingDepth(), hasScriptException, hasTerminalException, endTime, ctx->GetLibrary()->GetUndefined());
 
-            this->m_scriptContext->TTDRootNestingCount--;
+            ctx->TTDRootNestingCount--;
         }
     }
 
@@ -66,16 +69,18 @@ namespace TTD
 
         double endTime = this->m_timer.Now();
 
+        Js::ScriptContext* ctx = this->m_function->GetScriptContext();
+
         //
         //TODO: we will want to be a bit more detailed on this later
         //
-        bool hasScriptException = checkException ? this->m_scriptContext->HasRecordedException() : false;
+        bool hasScriptException = checkException ? ctx->HasRecordedException() : false;
         bool hasTerminalException = false;
 
-        this->m_log->RecordExternalCallEndEvent(this->m_callAction->GetEventTime(), this->m_callAction->GetRootNestingDepth(), hasScriptException, hasTerminalException, endTime, returnValue);
+        this->m_log->RecordExternalCallEndEvent(this->m_function, this->m_callAction->GetEventTime(), this->m_callAction->GetRootNestingDepth(), hasScriptException, hasTerminalException, endTime, returnValue);
 
         this->m_callAction = nullptr;
-        this->m_scriptContext->TTDRootNestingCount--;
+        ctx->TTDRootNestingCount--;
     }
 
     void TTDRecordExternalFunctionCallActionPopper::SetCallAction(ExternalCallEventBeginLogEntry* action)
@@ -513,6 +518,9 @@ namespace TTD
 #if ENABLE_TTD_DEBUGGING
         m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(), m_pendingTTDBP(), m_activeBPId(-1), m_activeTTDBP(),
 #endif
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+        m_diagnosticLogger(),
+#endif
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
@@ -683,40 +691,16 @@ namespace TTD
         this->m_propertyRecordPinSet->AddNew(const_cast<Js::PropertyRecord*>(record));
     }
 
-    void EventLog::RecordTelemetryLogEvent(Js::JavascriptString* infoStringJs, bool shouldPrint, int64 optUserEventId, bool shouldBreak)
+    void EventLog::RecordTelemetryLogEvent(Js::JavascriptString* infoStringJs, bool doPrint)
     {
-#if TTD_FORCE_DEBUG_MODE_IN_RECORD
         AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
 
         TTString infoString;
         this->m_eventSlabAllocator.CopyStringIntoWLength(infoStringJs->GetSz(), infoStringJs->GetLength(), infoString);
 
-        //find the first frame that is not /telemetry.js
-        int32 fpos = this->m_callStack.Count() - 1;
-        AssertMsg(fpos >= 0, "Someone has to have called this!!!");
-
-        LPCWSTR telemetrySrcFile = this->m_callStack.Item(fpos).Function->GetSourceContextInfo()->url;
-        while(fpos >= 0 && wcscmp(telemetrySrcFile, this->m_callStack.Item(fpos).Function->GetSourceContextInfo()->url) == 0)
-        {
-            fpos--;
-        }
-        AssertMsg(fpos >= 0, "Someone has to have called this!!!");
-
-        const SingleCallCounter& clientFrame = this->m_callStack.Item(fpos);
-
-
-        ULONG srcLine = 0;
-        LONG srcColumn = -1;
-        uint32 startOffset = clientFrame.Function->GetStatementStartOffset(clientFrame.CurrentStatementIndex);
-        clientFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
-
-        TTDebuggerSourceLocation sourceLocation;
-        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, clientFrame.FunctionTime, clientFrame.LoopTime, clientFrame.Function, srcLine, srcColumn);
-
-        TelemetryEventLogEntry* tevent = this->m_eventSlabAllocator.SlabNew<TelemetryEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), infoString, shouldPrint, optUserEventId, shouldBreak, sourceLocation);
+        TelemetryEventLogEntry* tevent = this->m_eventSlabAllocator.SlabNew<TelemetryEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), infoString, doPrint);
 
         this->InsertEventAtHead(tevent);
-#endif
     }
 
     void EventLog::ReplayTelemetryLogEvent(Js::JavascriptString* infoStringJs)
@@ -733,16 +717,22 @@ namespace TTD
         TelemetryEventLogEntry* tevent = TelemetryEventLogEntry::As(this->m_currentReplayEventIterator.Current());
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        AssertMsg(wcscmp(tevent->GetInfoString().Contents, infoStringJs->GetSz()) == 0, "Telemetry messages differ??");
-#endif
+        const TTString& msg = tevent->GetInfoString();
+        uint32 infoStrLength = (uint32)infoStringJs->GetLength();
+        LPCWSTR infoStr = infoStringJs->GetSz();
 
-        if(tevent->ShouldPrint())
+        if(msg.Length != infoStrLength)
         {
-            //
-            //TODO: the host should give us a print callback which we can use here
-            //
-            wprintf(L"%ls", tevent->GetInfoString().Contents);
+            AssertMsg(false, "Telemetry messages differ??");
         }
+        else
+        {
+            for(uint32 i = 0; i < infoStrLength; ++i)
+            {
+                AssertMsg(msg.Contents[i] == infoStr[i], "Telemetry messages differ??");
+            }
+        }
+#endif
 
         this->AdvanceTimeAndPositionForReplay();
     }
@@ -910,7 +900,7 @@ namespace TTD
         this->AdvanceTimeAndPositionForReplay();
     }
 
-    ExternalCallEventBeginLogEntry* EventLog::RecordExternalCallBeginEvent(Js::JavascriptFunction* func, int32 rootDepth, double beginTime)
+    ExternalCallEventBeginLogEntry* EventLog::RecordExternalCallBeginEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv, double beginTime)
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
@@ -926,10 +916,14 @@ namespace TTD
 
         this->InsertEventAtHead(eevent);
 
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+        this->m_diagnosticLogger.WriteCall(func, true, argc, argv);
+#endif
+
         return eevent;
     }
 
-    void EventLog::RecordExternalCallEndEvent(int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, Js::Var value)
+    void EventLog::RecordExternalCallEndEvent(Js::JavascriptFunction* func, int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, Js::Var value)
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
@@ -939,9 +933,13 @@ namespace TTD
         ExternalCallEventEndLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), matchingBeginTime, rootNestingDepth, hasScriptException, hasTerminatingException, endTime, retVal);
 
         this->InsertEventAtHead(eevent);
+
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+        this->m_diagnosticLogger.WriteReturn(func, value);
+#endif
     }
 
-    ExternalCallEventBeginLogEntry* EventLog::RecordPromiseRegisterBeginEvent(int32 rootDepth, double beginTime)
+    ExternalCallEventBeginLogEntry* EventLog::RecordEnqueueTaskBeginEvent(int32 rootDepth, double beginTime)
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
@@ -959,7 +957,7 @@ namespace TTD
         return eevent;
     }
 
-    void EventLog::RecordPromiseRegisterEndEvent(int64 matchingBeginTime, int32 rootDepth, double endTime, Js::Var value)
+    void EventLog::RecordEnqueueTaskEndEvent(int64 matchingBeginTime, int32 rootDepth, double endTime, Js::Var value)
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
@@ -971,7 +969,66 @@ namespace TTD
         this->InsertEventAtHead(eevent);
     }
 
-    void EventLog::ReplayExternalCallEvent(Js::ScriptContext* ctx, Js::Var* result)
+    void EventLog::ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result)
+    {
+        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
+
+        if(!this->m_currentReplayEventIterator.IsValid())
+        {
+            this->AbortReplayReturnToHost();
+        }
+
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+
+        //advance the begin event item off the event list
+        ExternalCallEventBeginLogEntry* eeventBegin = ExternalCallEventBeginLogEntry::As(this->m_currentReplayEventIterator.Current());
+        this->AdvanceTimeAndPositionForReplay();
+
+        Js::ScriptContext* ctx = function->GetScriptContext();
+
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+        this->m_diagnosticLogger.WriteCall(function, true, argc, argv);
+#endif
+
+        //replay anything that happens when we are out of the call
+        if(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag)
+        {
+            if(!ctx->GetThreadContext()->IsScriptActive())
+            {
+                this->ReplayActionLoopStep();
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
+                {
+                    this->ReplayActionLoopStep();
+                }
+                END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
+            }
+        }
+
+        //May have exited inside the external call without anything else
+        if(!this->m_currentReplayEventIterator.IsValid())
+        {
+            this->AbortReplayReturnToHost();
+        }
+
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+
+        //advance the end event item off the event list and get the return value
+        ExternalCallEventEndLogEntry* eeventEnd = ExternalCallEventEndLogEntry::As(this->m_currentReplayEventIterator.Current());
+        this->AdvanceTimeAndPositionForReplay();
+
+        AssertMsg(eeventBegin->GetRootNestingDepth() == eeventEnd->GetRootNestingDepth(), "These should always match!!!");
+
+        *result = NSLogValue::InflateArgRetValueIntoVar(eeventEnd->GetReturnValue(), ctx);
+
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+        this->m_diagnosticLogger.WriteReturn(function, *result);
+#endif
+    }
+
+    void EventLog::ReplayEnqueueTaskEvent(Js::ScriptContext* ctx, Js::Var* result)
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
 
@@ -1020,79 +1077,82 @@ namespace TTD
         *result = NSLogValue::InflateArgRetValueIntoVar(eeventEnd->GetReturnValue(), ctx);
     }
 
-    void EventLog::PushCallEvent(Js::FunctionBody* fbody, bool isInFinally)
+    void EventLog::PushCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool isInFinally)
     {
         AssertMsg(this->IsTTDActive(), "Should check this first.");
 
-        if(this->ShouldPerformRecordAction() | this->ShouldPerformDebugAction())
-        {
 #if ENABLE_TTD_DEBUGGING
-            //Clear any previous last return frame info
-            this->ClearReturnFrame();
+        //Clear any previous last return frame info
+        this->ClearReturnFrame();
 #endif
 
-            this->m_runningFunctionTimeCtr++;
+        this->m_runningFunctionTimeCtr++;
 
-            SingleCallCounter cfinfo;
-            cfinfo.Function = fbody;
+        SingleCallCounter cfinfo;
+        cfinfo.Function = function->GetFunctionBody();
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            cfinfo.Name = fbody->GetExternalDisplayName();
+        cfinfo.Name = cfinfo.Function->GetExternalDisplayName();
 #endif
 
-            cfinfo.EventTime = this->m_eventTimeCtr; //don't need to advance just note what the event time was when this is called
-            cfinfo.FunctionTime = this->m_runningFunctionTimeCtr;
-            cfinfo.LoopTime = 0;
+        cfinfo.EventTime = this->m_eventTimeCtr; //don't need to advance just note what the event time was when this is called
+        cfinfo.FunctionTime = this->m_runningFunctionTimeCtr;
+        cfinfo.LoopTime = 0;
 
-#if ENABLE_TTD_DEBUGGING
-            cfinfo.CurrentStatementIndex = -1;
-            cfinfo.CurrentStatementLoopTime = 0;
+#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE
+        cfinfo.CurrentStatementIndex = -1;
+        cfinfo.CurrentStatementLoopTime = 0;
 
-            cfinfo.LastStatementIndex = -1;
-            cfinfo.LastStatementLoopTime = 0;
+        cfinfo.LastStatementIndex = -1;
+        cfinfo.LastStatementLoopTime = 0;
 
-            cfinfo.CurrentStatementBytecodeMin = UINT32_MAX;
-            cfinfo.CurrentStatementBytecodeMax = UINT32_MAX;
+        cfinfo.CurrentStatementBytecodeMin = UINT32_MAX;
+        cfinfo.CurrentStatementBytecodeMax = UINT32_MAX;
 #endif
 
-            this->m_callStack.Add(cfinfo);
-        }
+        this->m_callStack.Add(cfinfo);
+
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+        this->m_diagnosticLogger.WriteCall(function, false, argc, argv);
+#endif
     }
 
-    void EventLog::PopCallEvent(Js::FunctionBody* fbody, Js::Var result)
+    void EventLog::PopCallEvent(Js::JavascriptFunction* function, Js::Var result)
     {
         AssertMsg(this->IsTTDActive(), "Should check this first.");
 
-        if(this->ShouldPerformRecordAction() | this->ShouldPerformDebugAction())
-        {
 #if ENABLE_TTD_DEBUGGING
-            if(!this->HasImmediateExceptionFrame())
-            {
-                this->SetReturnAndExceptionFramesFromCurrent(true, false);
-            }
+        if(!this->HasImmediateExceptionFrame())
+        {
+            this->SetReturnAndExceptionFramesFromCurrent(true, false);
+        }
 #endif
 
-            this->m_runningFunctionTimeCtr++;
-            this->m_callStack.RemoveAtEnd();
-        }
+        this->m_runningFunctionTimeCtr++;
+        this->m_callStack.RemoveAtEnd();
+
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+        this->m_diagnosticLogger.WriteReturn(function, result);
+#endif
     }
 
-    void EventLog::PopCallEventException(bool isFirstException)
+    void EventLog::PopCallEventException(Js::JavascriptFunction* function, bool isFirstException)
     {
         AssertMsg(this->IsTTDActive(), "Should check this first.");
 
-        if(this->ShouldPerformRecordAction() | this->ShouldPerformDebugAction())
-        {
 #if ENABLE_TTD_DEBUGGING
-            if(isFirstException)
-            {
-                this->SetReturnAndExceptionFramesFromCurrent(false, true);
-            }
+        if(isFirstException)
+        {
+            this->SetReturnAndExceptionFramesFromCurrent(false, true);
+        }
 #endif
 
-            this->m_runningFunctionTimeCtr++;
-            this->m_callStack.RemoveAtEnd();
-        }
+        this->m_runningFunctionTimeCtr++;
+        this->m_callStack.RemoveAtEnd();
+
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+        this->m_diagnosticLogger.WriteReturnException(function);
+#endif
     }
 
 #if ENABLE_TTD_DEBUGGING
@@ -1248,14 +1308,11 @@ namespace TTD
     {
         AssertMsg(this->IsTTDActive(), "Should check this first.");
 
-        if(this->ShouldPerformRecordAction() | this->ShouldPerformDebugAction())
-        {
-            SingleCallCounter& cfinfo = this->m_callStack.Last();
-            cfinfo.LoopTime++;
-        }
+        SingleCallCounter& cfinfo = this->m_callStack.Last();
+        cfinfo.LoopTime++;
     }
 
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE
     void EventLog::UpdateCurrentStatementInfo(uint bytecodeOffset)
     {
         SingleCallCounter& cfinfo = this->GetTopCallCounter();
@@ -1283,6 +1340,15 @@ namespace TTD
 
                 cfinfo.CurrentStatementBytecodeMin = (uint32)pstmt->byteCodeSpan.begin;
                 cfinfo.CurrentStatementBytecodeMax = (uint32)pstmt->byteCodeSpan.end;
+
+#if ENABLE_FULL_BC_TRACE
+                ULONG srcLine = 0;
+                LONG srcColumn = -1;
+                uint32 startOffset = cfinfo.Function->GetFunctionBody()->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
+                cfinfo.Function->GetFunctionBody()->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
+
+                this->m_diagnosticLogger.WriteStmtIndex((uint32)srcLine, (uint32)srcColumn);
+#endif
             }
         }
     }
@@ -1298,7 +1364,9 @@ namespace TTD
 
         sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime, cfinfo.Function, srcLine, srcColumn);
     }
+#endif
 
+#if ENABLE_TTD_DEBUGGING
     bool EventLog::GetPreviousTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
         const SingleCallCounter& cfinfo = this->GetTopCallCounter();
@@ -1434,25 +1502,6 @@ namespace TTD
 
         AssertMsg(false, "Bad event index!!!");
         return -1;
-    }
-
-    bool EventLog::TryGetFirstTelemetryBreakLocation(TTDebuggerSourceLocation& sourceLocation) const
-    {
-        for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
-        {
-            if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::TelemetryLogEntry)
-            {
-                TelemetryEventLogEntry* tevent = TelemetryEventLogEntry::As(iter.Current());
-                if(tevent->ShouldBreak())
-                {
-                    tevent->GetBreakSourceLocation(sourceLocation);
-                    return true;
-                }
-            }
-        }
-
-        sourceLocation.Clear();
-        return false;
     }
 #endif
 

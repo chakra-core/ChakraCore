@@ -8,19 +8,10 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("x", x, "Hello");
-    ttdTestReport("y", y, "World");
+    telemetryLog(`x: ${x}`, true); //Hello
+    telemetryLog(`y: ${y}`, true); //World
 
-    ttdTestReport("empty.length", empty.length, 0);
-    ttdTestReport("x.length", x.length, 5);
-    ttdTestReport("x + \' \' + y", x + ' ' + y, "Hello World");
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`empty.length: ${empty.length}`, true); //0
+    telemetryLog(`x.length: ${x.length}`, true); //5
+    telemetryLog(`x + \' \' + y: ${x + ' ' + y}`, true); //Hello World
 }

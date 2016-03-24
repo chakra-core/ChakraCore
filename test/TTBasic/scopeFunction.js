@@ -30,30 +30,21 @@ function testFunction()
     fouter();
     ////
 
-    ttdTestReport("fouter()", fouter(), 5);
-    ttdTestReport("gouter()", gouter(), 6);
+    telemetryLog(`fouter(): ${fouter()}`, true); //5
+    telemetryLog(`gouter(): ${gouter()}`, true); //6
 
     ////
     fctr.inc();
     ////
 
-    ttdTestReport("fctr.inc()", fctr.inc(), 4);
-    ttdTestReport("gctr.inc()", gctr.inc(), 5);
+    telemetryLog(`fctr.inc(): ${fctr.inc()}`, true); //4
+    telemetryLog(`gctr.inc(): ${gctr.inc()}`, true); //5
 
     ////
     fctr2.dec();
     fctr2.dec();
     ////
 
-    ttdTestReport("post decrement -- fctr.inc()", fctr.inc(), 3);
-    ttdTestReport("post decrement -- gctr.inc()", gctr.inc(), 6);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`post decrement -- fctr.inc(): ${fctr.inc()}`, true); //3
+    telemetryLog(`post decrement -- gctr.inc(): ${gctr.inc()}`, true); //6
 }

@@ -1609,9 +1609,10 @@ LHexError:
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         ARGUMENTS(args, callInfo);
 
-        AssertMsg(args.Info.Count == 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+        AssertMsg(args.Info.Count >= 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
 
         Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
+        bool doPrint = (args.Info.Count == 3) && Js::JavascriptBoolean::Is(args[2]) && (Js::JavascriptBoolean::FromVar(args[2])->GetValue());
 
         TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
         if(elog != nullptr)
@@ -1620,143 +1621,22 @@ LHexError:
             {
                 elog->ReplayTelemetryLogEvent(jsString);
             }
-            else
-            {
-                //
-                //TODO: the host should give us a print callback which we can use here
-                //
-                wprintf(L"%ls\n", jsString->GetSz());
 
-                if(elog->ShouldPerformRecordAction())
-                {
-                    elog->RecordTelemetryLogEvent(jsString, true, -1, false);
-                }
-            }
-        }
-        else
-        {
-            //
-            //TODO: the host should give us a print callback which we can use here
-            //
-            wprintf(L"%ls\n", jsString->GetSz());
-        }
-
-        return function->GetScriptContext()->GetLibrary()->GetUndefined();
-    }
-
-    //Report an issue, take action with the TTD log, and optionally run a report handler?
-    Var GlobalObject::EntryTelemetryErrorRecord(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        AssertMsg(args.Info.Count == 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
-
-        Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
-
-        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
-        if(elog != nullptr)
-        {
-            if(elog->ShouldPerformDebugAction())
-            {
-                elog->ReplayTelemetryLogEvent(jsString);
-            }
-            else
-            {
-                //
-                //TODO: the host should give us a print callback which we can use here
-                //
-                wprintf(L"%ls\n", jsString->GetSz());
-
-                if(elog->ShouldPerformRecordAction())
-                {
-                    elog->RecordTelemetryLogEvent(jsString, true, -1, true);
-                }
-            }
-        }
-        else
-        {
-            //
-            //TODO: the host should give us a print callback which we can use here
-            //
-            wprintf(L"%ls\n", jsString->GetSz());
-        }
-
-        return function->GetScriptContext()->GetLibrary()->GetUndefined();
-    }
-
-    Var GlobalObject::EntryTelemetryNotify(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        AssertMsg(args.Info.Count == 1, "Bad arguments!!!");
-
-        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
-        if(elog != nullptr)
-        {
             if(elog->ShouldPerformRecordAction())
             {
-                LPCWSTR logLocation = elog->EmitLogIfNeeded();
-                wprintf(L"Log written: %ls\n", logLocation);
+                elog->RecordTelemetryLogEvent(jsString, doPrint);
             }
         }
 
-        return function->GetScriptContext()->GetLibrary()->GetUndefined();
-    }
-
-    //Write a string to the console for TTD testing.
-    Var GlobalObject::EntryTTDTestWrite(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        AssertMsg(args.Info.Count <= 3 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
-
-        LPCWSTR str = Js::JavascriptString::FromVar(args[1])->GetSz();
-        bool suppressOutputFlag = (args.Info.Count == 3 && Js::JavascriptBoolean::Is(args[2]) && Js::JavascriptBoolean::FromVar(args[2])->GetValue());
-
-        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
-
-        if(elog == nullptr || !suppressOutputFlag)
+        if(doPrint)
         {
-            wprintf(L"%ls\n", str);
+            //
+            //TODO: the host should give us a print callback which we can use here
+            //
+            wprintf(L"%ls\n", jsString->GetSz());
         }
 
         return function->GetScriptContext()->GetLibrary()->GetUndefined();
-    }
-
-    //Do a test & print for comparing values during test runs.
-    Var GlobalObject::EntryTTDTestReport(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        AssertMsg(args.Info.Count == 4 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
-
-        ScriptContext* ctx = function->GetScriptContext();
-        LPCWSTR testName = Js::JavascriptString::FromVar(args[1])->GetSz();
-        Js::Var actual = args[2];
-        Js::Var expected = args[3];
-
-        BOOL pass = JavascriptOperators::StrictEqual(actual, expected, ctx);
-        if(!pass)
-        {
-            //
-            //this may mess up any replay ordering (such as object identities) so later things may fail spuriously but whatever -- we have a bug so fix it
-            //
-            Js::JavascriptString* actualString = JavascriptConversion::ToPrimitiveString(actual, ctx);
-            Js::JavascriptString* expectedString = JavascriptConversion::ToPrimitiveString(expected, ctx);
-
-            Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(L"ttdTestsFailed", (charcount_t)wcslen(L"ttdTestsFailed")));
-            LPCWSTR cascadeWarning = Js::JavascriptOperators::HasOwnProperty(ctx->GetGlobalObject(), propertyId, ctx) ? L" (previous failures may cascade)" : L"";
-
-            wprintf(L"Test Failed%ls: %ls\nactual:   %ls\nexpected: %ls\n\n", cascadeWarning, testName, actualString->GetSz(), expectedString->GetSz());
-
-            Js::JavascriptOperators::SetProperty(ctx->GetGlobalObject(), ctx->GetGlobalObject(), propertyId, ctx->GetLibrary()->GetTrue(), ctx, Js::PropertyOperationFlags::PropertyOperation_Force);
-        }
-
-        return ctx->GetLibrary()->GetUndefined();
     }
 #endif
 

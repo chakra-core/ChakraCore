@@ -183,19 +183,14 @@ namespace TTD
     class TelemetryEventLogEntry : public EventLogEntry
     {
     private:
-        //A string that contains all of the info that is logged and if we should print it
+        //A string that contains all of the info that is logged
         const TTString m_infoString;
-        const bool m_shouldPrint;
 
-        //An id the user can provide for this event so we can vector clock with whatever is being logged in the code
-        const int64 m_optUserEventId;
-
-        //if we should break at this point during replay and the source line info
-        const bool m_shouldBreak;
-        TTDebuggerSourceLocation m_sourceLocation;
+        //Do we want to print the msg or just record it internally
+        const bool m_doPrint;
 
     public:
-        TelemetryEventLogEntry(int64 eTime, const TTString& infoString, bool shouldPrint, int64 optUserEventId, bool shouldBreak, const TTDebuggerSourceLocation& sourceLocation);
+        TelemetryEventLogEntry(int64 eTime, const TTString& infoString, bool doPrint);
         virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         //Get the event as a snapshot event (and do tag checking for consistency)
@@ -203,12 +198,7 @@ namespace TTD
 
         //Get the info about the event
         const TTString& GetInfoString() const;
-        bool ShouldPrint() const;
-        int64 GetOptUserEventId() const;
-
-        //Get info about associated breakpoints
-        bool ShouldBreak() const;
-        void GetBreakSourceLocation(TTDebuggerSourceLocation& sourceLocation) const;
+        bool GetDoPrint() const;
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static TelemetryEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);

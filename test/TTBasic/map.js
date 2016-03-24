@@ -17,19 +17,19 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("x === y", x === y, true);
-    ttdTestReport("x.baz", x.baz, 5);
-    ttdTestReport("z.has(five)", z.has(five), true);
-    ttdTestReport("z.get(five)", z.get(five), 5);
+    telemetryLog(`x === y: ${x === y}`, true); //true
+    telemetryLog(`x.baz: ${x.baz}`, true); //5
+    telemetryLog(`z.has(five): ${z.has(five)}`, true); //true
+    telemetryLog(`z.get(five): ${z.get(five)}`, true); //5
 
     ////
     x.set(three, 3);
     z.delete(five);
     ////
 
-    ttdTestReport("post update 1 -- y.has(three)", y.has(three), true);
-    ttdTestReport("post update 1 -- y.get(three)", y.get(three), 3);
-    ttdTestReport("post update 1 -- z.has(five)", z.has(five), false);
+    telemetryLog(`post update 1 -- y.has(three): ${y.has(three)}`, true); //true
+    telemetryLog(`post update 1 -- y.get(three): ${y.get(three)}`, true); //3
+    telemetryLog(`post update 1 -- z.has(five): ${z.has(five)}`, true); //false
 
     ////
     z.set(six, 6);
@@ -39,16 +39,7 @@ function testFunction()
     y.set(five, 5);
     ////
 
-    ttdTestReport("post update 2 -- x.has(five)", x.has(five), true);
-    ttdTestReport("post update 2 -- x.get(five)", x.get(five), 5);
-    ttdTestReport("post update 2 -- x.get(three)", x.get(three), 4);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`post update 2 -- x.has(five): ${x.has(five)}`, true); //true
+    telemetryLog(`post update 2 -- x.get(five): ${x.get(five)}`, true); //5
+    telemetryLog(`post update 2 -- x.get(three): ${x.get(three)}`, true); //4
 }

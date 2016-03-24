@@ -18,27 +18,18 @@ WScript.SetTimeout(testFunction, 50);
 
 function testFunction()
 {
-    ttdTestReport("typeof zs", typeof(zs), 'symbol');
-    ttdTestReport("typeof symObj", typeof(symObj), 'object');
+    telemetryLog(`typeof zs: ${typeof(zs)}`, true); //symbol
+    telemetryLog(`typeof symObj: ${typeof(symObj)}`, true); //object
     
-    ttdTestReport("xs == ys", xs == ys, true);
-    ttdTestReport("xs == zs", xs == zs, false);
+    telemetryLog(`xs == ys: ${xs == ys}`, true); //true
+    telemetryLog(`xs == zs: ${xs == zs}`, true); //false
 
-    ttdTestReport("obj[x]", obj[x], 1);
-    ttdTestReport("obj.Hello", obj.Hello, 1);
+    telemetryLog(`obj[x]: ${obj[x]}`, true); //1
+    telemetryLog(`obj.Hello: ${obj.Hello}`, true); //1
 
-    ttdTestReport("obj[xs]", obj[xs], 2);
-    ttdTestReport("obj[ys]", obj[ys], 2);
+    telemetryLog(`obj[xs]: ${obj[xs]}`, true); //2
+    telemetryLog(`obj[ys]: ${obj[ys]}`, true); //2
 
-    ttdTestReport("obj[zs]", obj[zs], 3);
-    ttdTestReport("obj[symObj]", obj[symObj], 3);
-    
-    if(this.ttdTestsFailed)
-    {
-        ttdTestWrite("Failures!");
-    }
-    else
-    {
-        ttdTestWrite("All tests passed!");   
-    }
+    telemetryLog(`obj[zs]: ${obj[zs]}`, true); //3
+    telemetryLog(`obj[symObj]: ${obj[symObj]}`, true); //3
 }

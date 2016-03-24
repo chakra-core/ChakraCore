@@ -83,7 +83,7 @@ wchar_t* DebuggerCh::PopMessage()
 
 void DebuggerCh::SendMsg(const wchar_t* msg, size_t msgLen)
 {
-#if TTD_VSCODE_WORK_AROUND
+#if TTD_VSCODE_WORK_AROUNDS
     ////
     //
     Sleep(10); //<------------------------------------------------------- Add a delay to response to keep VSCode from getting angry when running in debug build
@@ -93,7 +93,7 @@ void DebuggerCh::SendMsg(const wchar_t* msg, size_t msgLen)
 
     this->SendMsgWHeader(nullptr, msg, msgLen);
 
-#if TTD_VSCODE_WORK_AROUND
+#if TTD_VSCODE_WORK_AROUNDS
     ////
     //
     Sleep(10); //<------------------------------------------------------- Add a delay to response to keep VSCode from getting angry when running in debug build

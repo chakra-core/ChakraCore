@@ -1214,12 +1214,7 @@ namespace Js
         }
 
 #if ENABLE_TTD
-        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"telemetryLog", &GlobalObject::EntryInfo::TelemetryLog, 2);
-        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"telemetryErrorRecord", &GlobalObject::EntryInfo::TelemetryErrorRecord, 1);
-        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"telemetryNotify", &GlobalObject::EntryInfo::TelemetryNotify, 2);
-
-        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"ttdTestWrite", &GlobalObject::EntryInfo::TTDTestWrite, 2);
-        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"ttdTestReport", &GlobalObject::EntryInfo::TTDTestReport, 3);
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"telemetryLog", &GlobalObject::EntryInfo::TelemetryLog, 3);
 #endif
 
 #ifdef IR_VIEWER
@@ -4597,7 +4592,7 @@ namespace Js
                     scriptContext->TTDRootNestingCount++;
                     BEGIN_LEAVE_SCRIPT(scriptContext)
                     {
-                        elog->ReplayExternalCallEvent(scriptContext, &result);
+                        elog->ReplayEnqueueTaskEvent(scriptContext, &result);
                     }
                     END_LEAVE_SCRIPT(scriptContext);
                     scriptContext->TTDRootNestingCount--;
@@ -4609,7 +4604,7 @@ namespace Js
                     double startTime = timer.Now();
 
                     scriptContext->TTDRootNestingCount++;
-                    TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordPromiseRegisterBeginEvent(scriptContext->TTDRootNestingCount, startTime);
+                    TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordEnqueueTaskBeginEvent(scriptContext->TTDRootNestingCount, startTime);
 
                     BEGIN_LEAVE_SCRIPT(scriptContext);
                     try
@@ -4627,7 +4622,7 @@ namespace Js
 
                     double endTime = timer.Now();
 
-                    elog->RecordPromiseRegisterEndEvent(beginEvent->GetEventTime(), scriptContext->TTDRootNestingCount, endTime, result);
+                    elog->RecordEnqueueTaskEndEvent(beginEvent->GetEventTime(), scriptContext->TTDRootNestingCount, endTime, result);
                     scriptContext->TTDRootNestingCount--;
                 }
             }
