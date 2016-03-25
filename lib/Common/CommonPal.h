@@ -31,7 +31,6 @@ typedef wchar_t char16;
 #else // !_WIN32
 
 #define USING_PAL_STDLIB 1
-
 #include "inc/pal.h"
 #include "inc/rt/palrt.h"
 #include "inc/rt/no_sal2.h"
@@ -296,8 +295,9 @@ BOOL WINAPI GetModuleHandleEx(
 // and then use the stack size to calculate the stack base
 int GetCurrentThreadStackBounds(char** stackBase, char** stackEnd);
 
-// xplat-todo: cryptographically secure PRNG?
 errno_t rand_s(unsigned int* randomValue);
+errno_t __cdecl _ultow_s(unsigned _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix);
+errno_t __cdecl _ui64tow_s(unsigned __int64 _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix);
 
 #define MAXUINT32   ((uint32_t)~((uint32_t)0))
 #define MAXINT32    ((int32_t)(MAXUINT32 >> 1))
@@ -335,6 +335,13 @@ errno_t rand_s(unsigned int* randomValue);
 #define _NOEXCEPT_ throw()
 #else
 #define _NOEXCEPT_ noexcept
+#endif
+
+#ifdef _MSC_VER
+extern "C" PVOID _ReturnAddress(VOID);
+#pragma intrinsic(_ReturnAddress)
+#else
+#define _ReturnAddress() __builtin_return_address(0)
 #endif
 
 // xplat-todo: can we get rid of this for clang?
