@@ -45,9 +45,9 @@ namespace Js
         uint32 Get(CountT typeEnum) const
         {
 #if DBG
-            if (!bgThreadCallStarted && ThreadContext::GetContextForCurrentThread() == nullptr)
+            if (ThreadContext::GetContextForCurrentThread() == nullptr)
             {
-                bgThreadCallStarted = true;
+                Assert(bgThreadCallStarted == true);
             }
 #endif
             uint8 type = static_cast<uint8>(typeEnum);
@@ -76,9 +76,9 @@ namespace Js
         int32 GetSigned(CountT typeEnum) const
         {
 #if DBG
-            if (!bgThreadCallStarted && ThreadContext::GetContextForCurrentThread() == nullptr)
+            if (ThreadContext::GetContextForCurrentThread() == nullptr)
             {
-                bgThreadCallStarted = true;
+                Assert(bgThreadCallStarted == true);
             }
 #endif
 

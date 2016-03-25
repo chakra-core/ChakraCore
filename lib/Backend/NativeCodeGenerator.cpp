@@ -796,6 +796,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         PROBE_STACK(scriptContext, Js::Constants::MinStackJITCompile);
     }
 
+#if DBG
+    Js::FunctionBody::AutoResetThreadState autoReset(workItem->GetFunctionBody());
+#endif
+
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (!foreground && Js::Configuration::Global.flags.IsEnabled(Js::InduceCodeGenFailureFlag))
     {
