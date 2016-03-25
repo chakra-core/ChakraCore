@@ -153,100 +153,175 @@ CompileAssert(sizeof(SIMDValue) == 16);
 class ValueType;
 
 namespace Js {
-
-    bool IsSimdType(Var aVar);
-    int32 SIMDCheckTypedArrayIndex(ScriptContext* scriptContext, Var index);
-    int32 SIMDCheckLaneIndex(ScriptContext* scriptContext, Var lane, const int32 range = 4);
-
-    template <int laneCount = 4>
-    SIMDValue SIMD128InnerShuffle(SIMDValue src1, SIMDValue src2, int32 lane0, int32 lane1, int32 lane2, int32 lane3);
-    template <int laneCount = 8>
-    SIMDValue SIMD128InnerShuffle(SIMDValue src1, SIMDValue src2, const int32* lanes = nullptr);
-
-    template <class SIMDType, int laneCount = 4>
-    Var SIMD128SlowShuffle(Var src1, Var src2, Var lane0, Var lane1, Var lane2, Var lane3, int range, ScriptContext* scriptContext);
-    template <class SIMDType, int laneCount = 8>
-    Var SIMD128SlowShuffle(Var src1, Var src2, Var *lanes, const uint range, ScriptContext* scriptContext);
-
-    //TypeConvert
-    template<class SIMDType1, class SIMDType2>
-    Var SIMDConvertTypeFromBits(SIMDType1 &instance, ScriptContext& requestContext);
-
-    //Lane Access
-    template<class SIMDType, int laneCount, typename T>
-    inline T SIMD128ExtractLane(Var src, Var lane, ScriptContext* scriptContext);
-    template<class SIMDType, int laneCount, typename T>
-    inline SIMDValue SIMD128ReplaceLane(Var src, Var lane, T value, ScriptContext* scriptContext);
-
-    SIMDValue SIMD128InnerReplaceLaneF4(const SIMDValue& src1, const int32 lane, const float value);
-    float SIMD128InnerExtractLaneF4(const SIMDValue& src1, const int32 lane);
-
-    SIMDValue SIMD128InnerReplaceLaneI4(const SIMDValue& src1, const int32 lane, const int value);
-    int SIMD128InnerExtractLaneI4(const SIMDValue& src1, const int32 lane);
-
-    SIMDValue SIMD128InnerReplaceLaneI8(const SIMDValue& src1, const int32 lane, const int16 value);
-    int16 SIMD128InnerExtractLaneI8(const SIMDValue& src1, const int32 lane);
-
-    SIMDValue SIMD128InnerReplaceLaneI16(const SIMDValue& src1, const int32 lane, const int8 value);
-    int8 SIMD128InnerExtractLaneI16(const SIMDValue& src1, const int32 lane);
-
-    int32 SIMDCheckInt32Number(ScriptContext* scriptContext, Var value);
-    bool        SIMDIsSupportedTypedArray(Var value);
-    SIMDValue*  SIMDCheckTypedArrayAccess(Var arg1, Var arg2, TypedArrayBase **tarray, int32 *index, uint32 dataWidth, ScriptContext *scriptContext);
-    SIMDValue SIMDLdData(SIMDValue *data, uint8 dataWidth);
-    void SIMDStData(SIMDValue *data, SIMDValue simdValue, uint8 dataWidth);
-
-    template <class SIMDType>
-    Var SIMD128TypedArrayLoad(Var arg1, Var arg2, uint32 dataWidth, ScriptContext *scriptContext)
-    {
-        Assert(dataWidth >= 4 && dataWidth <= 16);
-
-        TypedArrayBase *tarray = NULL;
-        int32 index = -1;
-        SIMDValue* data = NULL;
-
-        data = SIMDCheckTypedArrayAccess(arg1, arg2, &tarray, &index, dataWidth, scriptContext);
-
-        Assert(tarray != NULL);
-        Assert(index >= 0);
-        Assert(data != NULL);
-
-        SIMDValue result = SIMDLdData(data, (uint8)dataWidth);
-
-        return SIMDType::New(&result, scriptContext);
-
-    }
-
-    template <class SIMDType>
-    void SIMD128TypedArrayStore(Var arg1, Var arg2, Var simdVar, uint32 dataWidth, ScriptContext *scriptContext)
-    {
-        Assert(dataWidth >= 4 && dataWidth <= 16);
-
-        TypedArrayBase *tarray = NULL;
-        int32 index = -1;
-        SIMDValue* data = NULL;
-
-        data = SIMDCheckTypedArrayAccess(arg1, arg2, &tarray, &index, dataWidth, scriptContext);
-
-        Assert(tarray != NULL);
-        Assert(index >= 0);
-        Assert(data != NULL);
-
-        SIMDValue simdValue = SIMDType::FromVar(simdVar)->GetValue();
-        SIMDStData(data, simdValue, (uint8)dataWidth);
-    }
-
-    //SIMD Type conversion
-    SIMDValue FromSimdBits(SIMDValue value);
-
-    template<class SIMDType1, class SIMDType2>
-    Var SIMDConvertTypeFromBits(SIMDType1* instance, ScriptContext* requestContext)
-    {
-        SIMDValue result = FromSimdBits(instance->GetValue());
-        return SIMDType2::New(&result, requestContext);
-    }
-
     enum class OpCode : ushort;
-    uint32 SimdOpcodeAsIndex(Js::OpCode op);
+    ///////////////////////////////////////////////////////////////
+    //Class with static helper methods for manipulating SIMD Data.
+    ///////////////////////////////////////////////////////////////
+    class SIMDUtils
+    {
+    private:
+        template<typename SIMDType, typename T>
+        static SIMDValue SIMD128SetLaneValue(const Var aVar, const int laneValue, const T value)
+        {
+            Assert(IsSimdType(aVar));
+            SIMDType *jsVal = SIMDType::FromVar(aVar);
+            SIMDValue simdValue = jsVal->GetValue();
 
+            switch (GetSIMDLaneCount(aVar))
+            {
+            case 4:
+                return (JavascriptSIMDFloat32x4::Is(aVar)) ?
+                       SIMD128InnerReplaceLaneF4(simdValue, laneValue, static_cast<float>(value)):
+                       SIMD128InnerReplaceLaneI4(simdValue, laneValue, static_cast<int32>(value));
+            case 8:
+                return SIMD128InnerReplaceLaneI8(simdValue, laneValue, static_cast<int16>(value));
+            case 16:
+                return SIMD128InnerReplaceLaneI16(simdValue, laneValue, static_cast<int8>(value));
+            default:
+                Assert(UNREACHED);
+            }
+            return simdValue; //Unreached
+        };
+
+        template<typename SIMDType, int laneCount, typename T>
+        static T SIMD128GetLaneValue(const Var aVar, const int laneValue)
+        {
+            Assert(IsSimdType(aVar));
+            SIMDType *jsVal = SIMDType::FromVar(aVar);
+
+            switch (laneCount)
+            {
+            case 4:
+                return (JavascriptSIMDFloat32x4::Is(aVar)) ?
+                       static_cast<T>(SIMD128InnerExtractLaneF4(jsVal->GetValue(), laneValue)):
+                       static_cast<T>(SIMD128InnerExtractLaneI4(jsVal->GetValue(), laneValue));
+            case 8:
+                return static_cast<T>(SIMD128InnerExtractLaneI8(jsVal->GetValue(), laneValue));
+            case 16:
+                return static_cast<T>(SIMD128InnerExtractLaneI16(jsVal->GetValue(), laneValue));
+            default:
+                Assert(UNREACHED);
+            }
+            return 0; //unreached
+        };
+
+    public:
+        static bool IsSimdType(const Var aVar);
+        static uint GetSIMDLaneCount(const Var aVar);
+        static inline int32 SIMDCheckTypedArrayIndex(ScriptContext* scriptContext, const Var index);
+        static int32 SIMDCheckLaneIndex(ScriptContext* scriptContext, const Var lane, const int32 range = 4);
+
+        ////////////////////////////////////////////
+        //SIMD Extract Lane / Replace Lane Helpers
+        ////////////////////////////////////////////
+        static inline SIMDValue SIMD128InnerReplaceLaneF4(SIMDValue simdVal, const int32 lane, const float value)
+        {
+            simdVal.f32[lane] = value;
+            return simdVal;
+        };
+        static inline SIMDValue SIMD128InnerReplaceLaneI4(SIMDValue simdVal, const int32 lane, const int32 value)
+        {
+            simdVal.i32[lane] = value;
+            return simdVal;
+        };
+        static inline SIMDValue SIMD128InnerReplaceLaneI8(SIMDValue simdVal, const int32 lane, const int16 value)
+        {
+            simdVal.i16[lane] = value;
+            return simdVal;
+        };
+        static inline SIMDValue SIMD128InnerReplaceLaneI16(SIMDValue simdVal, const int32 lane, const int8 value)
+        {
+            simdVal.i8[lane] = value;
+            return simdVal;
+        };
+
+        static inline float SIMD128InnerExtractLaneF4(const SIMDValue src1, const int32 lane) { return src1.f32[lane]; };
+        static inline int32 SIMD128InnerExtractLaneI4(const SIMDValue src1, const int32 lane) { return src1.i32[lane]; };
+        static inline int16 SIMD128InnerExtractLaneI8(const SIMDValue src1, const int32 lane) { return src1.i16[lane]; };
+        static inline int8 SIMD128InnerExtractLaneI16(const SIMDValue src1, const int32 lane) { return src1.i8[lane];  };
+
+        template<class SIMDType, int laneCount, typename T>
+        static inline T SIMD128ExtractLane(const Var src, const Var lane, ScriptContext* scriptContext)
+        {
+            int32 laneValue = SIMDUtils::SIMDCheckLaneIndex(scriptContext, lane, laneCount);
+            Assert(laneValue >= 0 && laneValue < laneCount);
+            return SIMD128GetLaneValue<SIMDType, laneCount, T>(src, laneValue);
+        }
+
+        template<class SIMDType, int laneCount, typename T>
+        static inline SIMDValue SIMD128ReplaceLane(const Var src, const Var lane, const T value, ScriptContext* scriptContext)
+        {
+            int32 laneValue = SIMDUtils::SIMDCheckLaneIndex(scriptContext, lane, laneCount);
+            Assert(laneValue >= 0 && laneValue < laneCount);
+            return SIMD128SetLaneValue<SIMDType, T>(src, laneValue, value);
+        }
+
+        ////////////////////////////////////////////
+        // SIMD Shuffle Swizzle helpers
+        ////////////////////////////////////////////
+        template <int laneCount = 4>
+        static SIMDValue SIMD128InnerShuffle(const SIMDValue src1, const SIMDValue src2, int32 lane0, int32 lane1, int32 lane2, int32 lane3);
+        template <int laneCount = 8>
+        static SIMDValue SIMD128InnerShuffle(const SIMDValue src1, const SIMDValue src2, const int32* lanes = nullptr);
+
+        template <class SIMDType, int laneCount = 4>
+        static Var SIMD128SlowShuffle(Var src1, Var src2, Var lane0, Var lane1, Var lane2, Var lane3, int range, ScriptContext* scriptContext);
+        template <class SIMDType, int laneCount = 8>
+        static Var SIMD128SlowShuffle(Var src1, Var src2, Var *lanes, const uint range, ScriptContext* scriptContext);
+
+        ///////////////////////////////////////////
+        // SIMD Type conversion
+        ///////////////////////////////////////////
+        template<class SIMDType1, class SIMDType2>
+        static inline Var SIMDConvertTypeFromBits(SIMDType1 &instance, ScriptContext& requestContext)
+        {
+            SIMDValue result = FromSimdBits(instance.GetValue());
+            return SIMDType2::New(&result, &requestContext);
+        }
+        static SIMDValue FromSimdBits(const SIMDValue value);
+
+        ///////////////////////////////////////////
+        // SIMD Data load/store
+        ///////////////////////////////////////////
+        static SIMDValue SIMDLdData(const SIMDValue *data, uint8 dataWidth);
+        static void SIMDStData(SIMDValue *data, const SIMDValue simdValue, uint8 dataWidth);
+        static int32 SIMDCheckInt32Number(ScriptContext* scriptContext, const Var value);
+        static bool SIMDIsSupportedTypedArray(Var value);
+        static SIMDValue*  SIMDCheckTypedArrayAccess(Var arg1, Var arg2, TypedArrayBase **tarray, int32 *index, uint32 dataWidth, ScriptContext *scriptContext);
+
+        template <class SIMDType>
+        static Var SIMD128TypedArrayLoad(Var arg1, Var arg2, uint32 dataWidth, ScriptContext *scriptContext)
+        {
+            Assert(dataWidth >= 4 && dataWidth <= 16);
+            TypedArrayBase *tarray = NULL;
+            int32 index = -1;
+            SIMDValue* data = NULL;
+
+            data = SIMDUtils::SIMDCheckTypedArrayAccess(arg1, arg2, &tarray, &index, dataWidth, scriptContext);
+            Assert(tarray != NULL);
+            Assert(index >= 0);
+            Assert(data != NULL);
+
+            SIMDValue result = SIMDUtils::SIMDLdData(data, (uint8)dataWidth);
+            return SIMDType::New(&result, scriptContext);
+        }
+
+        template <class SIMDType>
+        static void SIMD128TypedArrayStore(Var arg1, Var arg2, Var simdVar, uint32 dataWidth, ScriptContext *scriptContext)
+        {
+            Assert(dataWidth >= 4 && dataWidth <= 16);
+            TypedArrayBase *tarray = NULL;
+            int32 index = -1;
+            SIMDValue* data = NULL;
+
+            data = SIMDUtils::SIMDCheckTypedArrayAccess(arg1, arg2, &tarray, &index, dataWidth, scriptContext);
+            Assert(tarray != NULL);
+            Assert(index >= 0);
+            Assert(data != NULL);
+
+            SIMDValue simdValue = SIMDType::FromVar(simdVar)->GetValue();
+            SIMDUtils::SIMDStData(data, simdValue, (uint8)dataWidth);
+        }
+        static uint32 SimdOpcodeAsIndex(Js::OpCode op);
+    };
 }

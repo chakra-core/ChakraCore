@@ -7480,7 +7480,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
 
-        value = SIMDLdData(data, dataWidth);
+        value = SIMDUtils::SIMDLdData(data, dataWidth);
         SetRegRawSimd(dstReg, value);
     }
 
@@ -7501,7 +7501,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
 
-        value = SIMDLdData(data, dataWidth);
+        value = SIMDUtils::SIMDLdData(data, dataWidth);
         SetRegRawSimd(dstReg, value);
     }
 
@@ -7521,7 +7521,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
-        SIMDStData(data, value, dataWidth);
+        SIMDUtils::SIMDStData(data, value, dataWidth);
     }
 
     template <class T>
@@ -7540,7 +7540,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
-        SIMDStData(data, value, dataWidth);
+        SIMDUtils::SIMDStData(data, value, dataWidth);
 
     }
 
