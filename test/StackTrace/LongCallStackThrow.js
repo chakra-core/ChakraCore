@@ -23,7 +23,7 @@ function throwExceptionWithCatch()
     }
     catch(e)
     {
-        Dump(TrimStackTracePath(e.stack) || e);
+        Dump(TrimStackTracePath(e.stack));
     }
 }
 

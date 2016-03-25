@@ -260,7 +260,7 @@ Error: this is my error
 
 --Throw in getter
 ** Custom stackTraceLimit getter Called, throw
-My error in custom stackTraceLimit getter
+undefined
 
 --Throw new Error() in getter
 Error: Out of stack space
