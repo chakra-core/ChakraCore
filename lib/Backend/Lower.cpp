@@ -583,7 +583,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::InlineMathPow:
-            m_lowererMD.GenerateFastInlineBuiltInCall(instr, IR::HelperDirectMath_Pow);
+            m_lowererMD.GenerateFastInlineBuiltInMathPow(instr);
             break;
 
         case Js::OpCode::InlineMathSin:
