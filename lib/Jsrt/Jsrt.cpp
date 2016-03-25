@@ -2456,7 +2456,7 @@ STDAPI_(JsErrorCode) JsParseScript(_In_z_ const wchar_t * script, _In_ JsSourceC
     return RunScriptCore(script, sourceContext, sourceUrl, true, JsParseScriptAttributeNone, false, result);
 }
 
-STDAPI_(JsErrorCode) JsParseScriptWithFlags(
+STDAPI_(JsErrorCode) JsParseScriptWithAttributes(
     _In_z_ const wchar_t *script,
     _In_ JsSourceContext sourceContext,
     _In_z_ const wchar_t *sourceUrl,
