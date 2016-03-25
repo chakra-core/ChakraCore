@@ -301,6 +301,8 @@ enum Forms : BYTE
 #define OPBYTE_PXOR     {0xef}                  // modrm
 
 #define OPBYTE_RET      {0xc2}                  // special
+#define OPBYTE_ROL      {0xc0, 0xd2}            // shift, byte2=0
+#define OPBYTE_ROR      {0xc0, 0xd2}            // shift, byte2=1
 #define OPBYTE_ROUNDSD  {0x0B}                  // modrm
 #define OPBYTE_ROUNDSS  {0x0A}                  // modrm
 #define OPBYTE_SAR      {0xc0, 0xd2}            // shift, byte2=7

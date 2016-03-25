@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -400,7 +400,7 @@ WasmBinaryReader::ASTNode()
 #include "WasmBinaryOpcodes.h"
 
     default:
-        ThrowDecodingError(_u("Unknown opcode %u"), op);
+        ThrowDecodingError(_u("Unknown opcode 0x%X"), op);
     }
 
 #if DBG_DUMP

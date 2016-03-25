@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -238,6 +238,9 @@ WASM_SIMPLE_OPCODE(F64ConvertF32,       0xb2, PROMOTE_F32_F64,  D_F)
 WASM_SIMPLE_OPCODE(F64ReinterpretI64,   0xb3, LIMIT,            D_L)
 WASM_SIMPLE_OPCODE(I32ReinterpretF32,   0xb4, REINTERPRET_F32_I32, I_F)
 WASM_SIMPLE_OPCODE(I64ReinterpretF64,   0xb5, LIMIT,            L_D)
+WASM_SIMPLE_OPCODE(I32Ror,              0xb6, ROR_I32,          I_II)
+WASM_SIMPLE_OPCODE(I32Rol,              0xb7, ROL_I32,          I_II)
+
 
 #undef WASM_SIMPLE_OPCODE
 #undef WASM_MEM_OPCODE

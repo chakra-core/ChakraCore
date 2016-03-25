@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 namespace Js
@@ -125,6 +125,16 @@ namespace Js
     __inline int AsmJsMath::ShrU( int aLeft, int aRight )
     {
         return (unsigned int)aLeft >> (unsigned int)aRight;
+    }
+
+    __inline int AsmJsMath::Rol( int aLeft, int aRight )
+    {
+        return _rotl(aLeft, aRight);
+    }
+
+    __inline int AsmJsMath::Ror( int aLeft, int aRight )
+    {
+        return _rotr(aLeft, aRight);
     }
 
     template<typename T>
