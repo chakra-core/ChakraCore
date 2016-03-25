@@ -182,11 +182,7 @@ namespace Js
             }
         }
 
-#if _M_IX86
-        return JavascriptNumber::DirectPow(x, static_cast<double>(y));
-#else
         return ::pow(x, y);
-#endif
     }
 
 #if _M_IX86
