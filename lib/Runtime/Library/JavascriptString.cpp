@@ -1389,6 +1389,8 @@ case_2:
 
     Var JavascriptString::EntryNormalize(RecyclableObject* function, CallInfo callInfo, ...)
     {
+        using namespace PlatformAgnostic;
+
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
         ARGUMENTS(args, callInfo);
@@ -1399,7 +1401,7 @@ case_2:
         JavascriptString *pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.normalize"), &pThis);
 
-        NORM_FORM form = NORM_FORM::NormalizationC;
+        UnicodeText::NormalizationForm form = UnicodeText::NormalizationForm::C;
 
         if (args.Info.Count >= 2 && !(JavascriptOperators::IsUndefinedObject(args.Values[1])))
         {
@@ -1415,15 +1417,15 @@ case_2:
 
             if (formStr->BufferEquals(_u("NFD"), 3))
             {
-                form = NORM_FORM::NormalizationD;
+                form = UnicodeText::NormalizationForm::D;
             }
             else if (formStr->BufferEquals(_u("NFKC"), 4))
             {
-                form = NORM_FORM::NormalizationKC;
+                form = UnicodeText::NormalizationForm::KC;
             }
             else if (formStr->BufferEquals(_u("NFKD"), 4))
             {
-                form = NORM_FORM::NormalizationKD;
+                form = UnicodeText::NormalizationForm::KD;
             }
             else if (!formStr->BufferEquals(_u("NFC"), 3))
             {
@@ -1431,7 +1433,7 @@ case_2:
             }
         }
 
-        if (IsNormalizedString(form, pThis->GetSz(), pThis->GetLength()))
+        if (UnicodeText::IsNormalizedString(form, pThis->GetSz(), pThis->GetLength()))
         {
             return JavascriptString::NewWithSz(pThis->GetSz(), scriptContext);
         }
@@ -3234,6 +3236,8 @@ case_2:
     }
     Var JavascriptString::ToLocaleCaseHelper(Var thisObj, bool toUpper, ScriptContext *scriptContext)
     {
+        using namespace PlatformAgnostic::UnicodeText;
+
         JavascriptString * pThis;
 
         if (JavascriptString::Is(thisObj))
@@ -3245,35 +3249,32 @@ case_2:
             pThis = JavascriptConversion::ToString(thisObj, scriptContext);
         }
 
-        if (pThis->GetLength() == 0)
+        uint32 strLength = pThis->GetLength();
+        if (strLength == 0)
         {
             return pThis;
         }
 
-        DWORD dwFlags = toUpper ? LCMAP_UPPERCASE : LCMAP_LOWERCASE;
-        dwFlags |= LCMAP_LINGUISTIC_CASING;
-
-        LCID lcid = GetUserDefaultLCID();
-
+        // Get the number of chars in the mapped string.       
+        CaseFlags caseFlags = (toUpper ? CaseFlags::CaseFlagsUpper : CaseFlags::CaseFlagsLower);
         const char16* str = pThis->GetString();
+        ApiError err = ApiError::NoError;
+        uint32 count = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, strLength, nullptr, 0, &err);
 
-        // Get the number of chars in the mapped string.
-        int count = LCMapStringW(lcid, dwFlags, str, pThis->GetLength(), NULL, 0);
-
-        if (0 == count)
+        if (count == 0)
         {
-            AssertMsg(FALSE, "LCMapString failed");
+            AssertMsg(err != ApiError::NoError, "LCMapString failed");
             Throw::InternalError();
         }
 
         BufferStringBuilder builder(count, scriptContext);
-        char16 * stringBuffer = builder.DangerousGetWritableBuffer();
+        char16* stringBuffer = builder.DangerousGetWritableBuffer();
 
-        int count1 = LCMapStringW(lcid, dwFlags, str, count, stringBuffer, count);
+        int count1 = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, count, stringBuffer, count, &err);
 
-        if( 0 == count1 )
+        if (count1 == 0)
         {
-            AssertMsg(FALSE, "LCMapString failed");
+            AssertMsg(err != ApiError::NoError, "LCMapString failed");
             Throw::InternalError();
         }
 
@@ -3561,8 +3562,10 @@ case_2:
         return NumberUtilities::LwFromDblNearest(JavascriptConversion::ToInteger(varIndex, scriptContext));
     }
 
-    char16* JavascriptString::GetNormalizedString(_NORM_FORM form, ArenaAllocator* tempAllocator, charcount_t& sizeOfNormalizedStringWithoutNullTerminator)
+    char16* JavascriptString::GetNormalizedString(PlatformAgnostic::UnicodeText::NormalizationForm form, ArenaAllocator* tempAllocator, charcount_t& sizeOfNormalizedStringWithoutNullTerminator)
     {
+        using namespace PlatformAgnostic;
+
         ScriptContext* scriptContext = this->GetScriptContext();
         if (this->GetLength() == 0)
         {
@@ -3580,17 +3583,17 @@ case_2:
         //  - When creating the JS string, use the positive return value and copy the buffer across.
         // Design choice for "guesses" comes from data Windows collected; and in most cases the loop will not iterate more than 2 times.
 
-        Assert(!IsNormalizedString(form, this->GetSz(), this->GetLength()));
+        Assert(!UnicodeText::IsNormalizedString(form, this->GetSz(), this->GetLength()));
 
         //Get the first size estimate
-        int sizeEstimate = NormalizeString(form, this->GetSz(), this->GetLength() + 1, nullptr, 0);
+        UnicodeText::ApiError error;
+        int32 sizeEstimate = UnicodeText::NormalizeString(form, this->GetSz(), this->GetLength() + 1, nullptr, 0, &error);
         char16 *tmpBuffer = nullptr;
-        DWORD lastError = ERROR_INSUFFICIENT_BUFFER;
         //Loop while the size estimate is bigger than 0
-        while (lastError == ERROR_INSUFFICIENT_BUFFER)
+        while (error == UnicodeText::ApiError::InsufficientBuffer)
         {
             tmpBuffer = AnewArray(tempAllocator, char16, sizeEstimate);
-            sizeEstimate = NormalizeString(form, this->GetSz(), this->GetLength() + 1, tmpBuffer, sizeEstimate);
+            sizeEstimate = UnicodeText::NormalizeString(form, this->GetSz(), this->GetLength() + 1, tmpBuffer, sizeEstimate, &error);
 
             // Success, sizeEstimate is the exact size including the null terminator
             if (sizeEstimate > 0)
@@ -3599,35 +3602,33 @@ case_2:
                 return tmpBuffer;
             }
 
-            //Anything less than 0, we have an error, flip sizeEstimate now. As both times we need to use it, we need positive anyways.
-            lastError = GetLastError();
+            // Anything less than 0, we have an error, flip sizeEstimate now. As both times we need to use it, we need positive anyways.
             sizeEstimate *= -1;
 
         }
 
-        switch ((long)lastError)
+        switch (error)
         {
-        case ERROR_INVALID_PARAMETER:
-            //some invalid parameter, coding error
-            AssertMsg(false, "ERROR_INVALID_PARAMETER check pointers passed to NormalizeString");
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_FailedToNormalize);
-            break;
-        case ERROR_NO_UNICODE_TRANSLATION:
-            //the value returned is the negative index of an invalid unicode character
-            JavascriptError::ThrowRangeErrorVar(scriptContext, JSERR_InvalidUnicodeCharacter, sizeEstimate);
-            break;
-        case ERROR_SUCCESS:
-            //The actual size of the output string is zero.
-            //Theoretically only empty input string should produce this, which is handled above, thus the code path should not be hit.
-            AssertMsg(false, "This code path should not be hit, empty string case is handled above. Perhaps a false error (sizeEstimate <= 0; but lastError == 0; ERROR_SUCCESS and NO_ERRROR == 0)");
-            sizeOfNormalizedStringWithoutNullTerminator = 0;
-            return nullptr; // scriptContext->GetLibrary()->GetEmptyString();
-
-            break;
-        default:
-            AssertMsg(false, "Unknown error. MSDN documentation didn't specify any additional errors.");
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_FailedToNormalize);
-            break;
+            case UnicodeText::ApiError::InvalidParameter:
+                //some invalid parameter, coding error
+                AssertMsg(false, "Invalid Parameter- check pointers passed to NormalizeString");
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_FailedToNormalize);
+                break;
+            case UnicodeText::ApiError::InvalidUnicodeText:
+                //the value returned is the negative index of an invalid unicode character
+                JavascriptError::ThrowRangeErrorVar(scriptContext, JSERR_InvalidUnicodeCharacter, sizeEstimate);
+                break;
+            case UnicodeText::ApiError::NoError:
+                //The actual size of the output string is zero.
+                //Theoretically only empty input string should produce this, which is handled above, thus the code path should not be hit.
+                AssertMsg(false, "This code path should not be hit, empty string case is handled above. Perhaps a false error (sizeEstimate <= 0; but lastError == 0; ERROR_SUCCESS and NO_ERRROR == 0)");
+                sizeOfNormalizedStringWithoutNullTerminator = 0;
+                return nullptr; // scriptContext->GetLibrary()->GetEmptyString();
+                break;
+            default:
+                AssertMsg(false, "Unknown error");
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_FailedToNormalize);
+                break;
         }
     }
 

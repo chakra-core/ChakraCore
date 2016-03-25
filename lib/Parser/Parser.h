@@ -15,6 +15,16 @@ namespace Js
     class JavascriptString;
 }
 
+// TODO: Get rid of this once we can move PlatformAgnostic back to Common
+namespace PlatformAgnostic
+{
+    namespace UnicodeText
+    {
+        enum class CharacterClassificationType;
+        enum CharacterTypeFlags: byte;
+    }
+}
+
 namespace UnifiedRegex {
     struct RegexPattern;
     struct Program;
