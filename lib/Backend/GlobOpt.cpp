@@ -8988,7 +8988,11 @@ GlobOpt::OptConstFoldUnary(
     case Js::OpCode::Ld_A:
         if (instr->HasBailOutInfo())
         {
-            Assert(instr->GetBailOutKind() == IR::BailOutExpectingInteger);
+            //The profile data for switch expr can be string and in GlobOpt we realize it is an int.
+            if(instr->GetBailOutKind() == IR::BailOutExpectingString)
+            {
+                throw Js::RejitException(RejitReason::DisableSwitchOptExpectingString);
+            }
             instr->ClearBailOutInfo();
         }
         value = intConstantValue;
