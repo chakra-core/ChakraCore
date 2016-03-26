@@ -10,5 +10,10 @@
 // Parser Includes
 #include "WasmReader.h"
 
+#ifdef ENABLE_WASM
+// AsmJsFunctionMemory::RequiredVarConstants
+#include "../Language/AsmJsModule.h"
+#endif
+
 // Runtime includes
 #include "../Runtime/runtime.h"

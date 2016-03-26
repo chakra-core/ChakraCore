@@ -302,6 +302,14 @@ WasmBytecodeGenerator::GenerateFunction()
     info->SetFloatConstCount(ReservedRegisterCount);
     info->SetDoubleConstCount(ReservedRegisterCount);
 
+    int nbConst =
+        ((info->GetDoubleConstCount() + 1) * sizeof(double)) // space required
+        + (int)((info->GetFloatConstCount() + 1)* sizeof(float) + 0.5 /*ceil*/)
+        + (int)((info->GetIntConstCount() + 1) * sizeof(int) + 0.5/*ceil*/) //
+        + Js::AsmJsFunctionMemory::RequiredVarConstants;
+
+    m_func->body->CheckAndSetConstantCount(nbConst);
+
     info->SetReturnType(GetAsmJsReturnType(m_funcInfo->GetResultType()));
 
     // REVIEW: overflow checks?

@@ -1859,6 +1859,39 @@ namespace Js
 
             Var* localModuleFunctions = moduleMemoryPtr + wasmModule->funcOffset;
 
+            if (wasmModule->info->GetMemory()->minSize != 0)
+            {
+                const uint64 maxSize = wasmModule->info->GetMemory()->maxSize;
+                if (maxSize > ArrayBuffer::MaxArrayBufferLength)
+                {
+                    Js::Throw::OutOfMemory();
+                }
+                // TODO: create new type array buffer that is non detachable
+                *heap = JavascriptArrayBuffer::Create((uint32)maxSize, GetLibrary()->arrayBufferType);
+                BYTE* buffer = ((JavascriptArrayBuffer*)*heap)->GetBuffer();
+                for (uint32 iSeg = 0; iSeg < wasmModule->info->GetDataSegCount(); ++iSeg)
+                {
+                    Wasm::WasmDataSegment* segment = wasmModule->info->GetDataSeg(iSeg);
+                    Assert(segment != nullptr);
+                    const uint32 offset = segment->getDestAddr();
+                    const uint32 size = segment->getSourceSize();
+                    if (offset > maxSize || UInt32Math::Add(offset, size) > maxSize)
+                    {
+                        throw Wasm::WasmCompilationException(_u("Data segment #%u is out of bound"), iSeg);
+                    }
+
+                    if (size > 0)
+                    {
+                        js_memcpy_s(buffer + offset, (uint32)maxSize - offset, segment->getData(), size);
+                    }
+                }
+
+            }
+            else
+            {
+                *heap = nullptr;
+            }
+
             FrameDisplay * frameDisplay = RecyclerNewPlus(GetRecycler(), sizeof(void*), FrameDisplay, 1);
             frameDisplay->SetItem(0, moduleMemoryPtr);
             bool hasAnyLazyTraps = false;
@@ -1870,6 +1903,8 @@ namespace Js
                 pError->SetJavascriptExceptionObject(exceptionObject);
                 return library->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)WasmLazyTrapCallback, 0, pError);
             };
+
+
             for (uint i = 0; i < wasmModule->funcCount; ++i)
             {
                 if (functionArray[i] == nullptr) 
@@ -1920,6 +1955,13 @@ namespace Js
                 exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(this);
             }
 
+            if (wasmModule->info->GetMemory()->minSize != 0 && wasmModule->info->GetMemory()->exported)
+            {
+                PropertyRecord const * propertyRecord = nullptr;
+                GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
+                JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *heap, this);
+            }
+
             PropertyRecord const * exportsPropertyRecord = nullptr;
             GetOrAddPropertyRecord(_u("exports"), lstrlen(_u("exports")), &exportsPropertyRecord);
             JavascriptOperators::OP_SetProperty(exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, this);
@@ -1930,43 +1972,7 @@ namespace Js
                 JavascriptOperators::OP_SetProperty(exportsNamespace, hasErrorsPropertyRecord->GetPropertyId(), JavascriptBoolean::OP_LdTrue(this), this);
             }
 
-            if (wasmModule->info->GetMemory()->minSize != 0)
-            {
-                const uint64 maxSize = wasmModule->info->GetMemory()->maxSize;
-                if (maxSize > ArrayBuffer::MaxArrayBufferLength)
-                {
-                    Js::Throw::OutOfMemory();
-                }
-                // TODO: create new type array buffer that is non detachable
-                *heap = JavascriptArrayBuffer::Create((uint32)maxSize, GetLibrary()->arrayBufferType);
-                BYTE* buffer = ((JavascriptArrayBuffer*)*heap)->GetBuffer();
-                for (uint32 iSeg = 0; iSeg < wasmModule->info->GetDataSegCount(); ++iSeg)
-                {
-                    Wasm::WasmDataSegment* segment = wasmModule->info->GetDataSeg(iSeg);
-                    Assert(segment != nullptr);
-                    const uint32 offset = segment->getDestAddr();
-                    const uint32 size = segment->getSourceSize();
-                    if (offset > maxSize || UInt32Math::Add(offset, size) > maxSize)
-                    {
-                        throw Wasm::WasmCompilationException(_u("Data segment #%u is out of bound"), iSeg);
-                    }
 
-                    if (size > 0) 
-                    {
-                        js_memcpy_s(buffer + offset, (uint32)maxSize - offset, segment->getData(), size);
-                    }
-                }
-                if (wasmModule->info->GetMemory()->exported)
-                {
-                    PropertyRecord const * propertyRecord = nullptr;
-                    GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
-                    JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *heap, this);
-                }
-            }
-            else
-            {
-                *heap = nullptr;
-            }
 
             for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
             {
