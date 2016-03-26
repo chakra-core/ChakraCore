@@ -1870,6 +1870,14 @@ STDAPI_(JsErrorCode) JsCreateSymbol(_In_ JsValueRef description, _Out_ JsValueRe
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            threadContext->TTDLog->RecordJsRTCreateSymbol(scriptContext, description);
+        }
+#endif
+
         Js::JavascriptString* descriptionString;
 
         if (description != JS_INVALID_REFERENCE)

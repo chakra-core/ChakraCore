@@ -15,6 +15,7 @@ namespace TTD
     {
         Invalid = 0x0,
         VarConvertToObject,
+        CreateSymbol,
         AllocateObject,
         AllocateArray,
         AllocateArrayBuffer,
@@ -92,6 +93,22 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static JsRTVarConvertToObjectAction* CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for creating symbols
+    class JsRTCreateSymbol : public JsRTActionLogEntry
+    {
+    private:
+        const NSLogValue::ArgRetValue m_var;
+
+    public:
+        JsRTCreateSymbol(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTCreateSymbol* CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
     //A class for creating regular and external objects

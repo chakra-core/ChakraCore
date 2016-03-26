@@ -1811,6 +1811,19 @@ namespace TTD
         this->InsertEventAtHead(convertEvent);
     }
 
+    void EventLog::RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var)
+    {
+        uint64 etime = this->GetCurrentEventTimeAndAdvance();
+        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+
+        NSLogValue::ArgRetValue vval;
+        NSLogValue::ExtractArgRetValueFromVar(var, vval, this->m_eventSlabAllocator);
+
+        JsRTCreateSymbol* createEvent = this->m_eventSlabAllocator.SlabNew<JsRTCreateSymbol>(etime, ctxTag, vval);
+
+        this->InsertEventAtHead(createEvent);
+    }
+
     void EventLog::RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, bool isRegularObject)
     {
         uint64 etime = this->GetCurrentEventTimeAndAdvance();

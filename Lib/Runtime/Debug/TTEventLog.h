@@ -487,8 +487,9 @@ namespace TTD
         ////////////////////////////////
         //Host API record & replay support
 
-        //Record conversions
+        //Record conversions and symbol creation
         void RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var);
+        void RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var);
 
         //Record object allocate operations
         void RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, bool isRegularObject);

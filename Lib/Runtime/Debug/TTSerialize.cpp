@@ -649,7 +649,7 @@ namespace TTD
     void FileReader::ReadRecordStart_WDefaultKey(bool readSeparator)
     {
         this->ReadKey(NSTokens::Key::entry, readSeparator);
-        this->ReadSequenceStart();
+        this->ReadRecordStart();
     }
 
     void FileReader::ReadNull(NSTokens::Key keyCheck, bool readSeparator)

@@ -70,6 +70,9 @@ namespace TTD
         case JsRTActionType::VarConvertToObject:
             res = JsRTVarConvertToObjectAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
+        case JsRTActionType::CreateSymbol:
+            res = JsRTCreateSymbol::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
         case JsRTActionType::AllocateObject:
             res = JsRTObjectAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
@@ -179,6 +182,56 @@ namespace TTD
         NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         return alloc.SlabNew<JsRTVarConvertToObjectAction>(eTime, ctxTag, var);
+    }
+
+    JsRTCreateSymbol::JsRTCreateSymbol(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CreateSymbol), m_var(var)
+    {
+        ;
+    }
+
+    void JsRTCreateSymbol::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_var, alloc);
+    }
+
+    void JsRTCreateSymbol::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+        Js::Var description = NSLogValue::InflateArgRetValueIntoVar(this->m_var, execContext);
+
+        Js::JavascriptString* descriptionString;
+        if(description != nullptr)
+        {
+            descriptionString = Js::JavascriptConversion::ToString(description, execContext);
+        }
+        else
+        {
+            descriptionString = execContext->GetLibrary()->GetEmptyString();
+        }
+
+        execContext->GetLibrary()->CreateSymbol(descriptionString);
+    }
+
+    void JsRTCreateSymbol::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTCreateSymbol* JsRTCreateSymbol::CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        NSLogValue::ArgRetValue var;
+
+        reader->ReadKey(NSTokens::Key::entry, true);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
+
+        return alloc.SlabNew<JsRTCreateSymbol>(eTime, ctxTag, var);
     }
 
     JsRTObjectAllocateAction::JsRTObjectAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isRegularObject)
@@ -298,7 +351,7 @@ namespace TTD
         this->JsRTBaseEmit(writer);
 
         writer->WriteLengthValue(this->m_bufferSize, NSTokens::Separator::CommaSeparator);
-        writer->WriteRecordStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+        writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
         for(uint32 i = 0; i < this->m_bufferSize; ++i)
         {
             writer->WriteNakedByte(this->m_bufferData[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
@@ -312,7 +365,7 @@ namespace TTD
     {
         uint32 bufferSize = reader->ReadLengthValue(true);
         byte* bufferData = alloc.SlabAllocateArray<byte>(bufferSize);
-        reader->ReadRecordStart_WDefaultKey(true);
+        reader->ReadSequenceStart_WDefaultKey(true);
         for(uint32 i = 0; i < bufferSize; ++i)
         {
             bufferData[i] = reader->ReadNakedByte(i != 0);
