@@ -796,10 +796,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         PROBE_STACK(scriptContext, Js::Constants::MinStackJITCompile);
     }
 
-#if DBG
-    Js::FunctionBody::AutoResetThreadState autoReset(workItem->GetFunctionBody());
-#endif
-
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (!foreground && Js::Configuration::Global.flags.IsEnabled(Js::InduceCodeGenFailureFlag))
     {
@@ -1366,6 +1362,10 @@ NativeCodeGenerator::Process(JsUtil::Job *const job, JsUtil::ParallelThreadData 
 
     CodeGenWorkItem *const codeGenWork = static_cast<CodeGenWorkItem *>(job);
 
+#if DBG
+    Js::FunctionBody::AutoResetThreadState autoSet(codeGenWork->GetFunctionBody());
+#endif
+
     switch (codeGenWork->Type())
     {
     case JsLoopBodyWorkItemType:
@@ -1503,6 +1503,10 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
     Assert(job);
 
     CodeGenWorkItem *workItem = static_cast<CodeGenWorkItem *>(job);
+
+#if DBG
+    Js::FunctionBody::AutoResetThreadState autoReset(workItem->GetFunctionBody());
+#endif
 
     class AutoCleanup
     {
