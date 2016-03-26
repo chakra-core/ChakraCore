@@ -4209,55 +4209,6 @@ namespace Js
         return startOffset;
     }
 
-#if ENABLE_TTD_DEBUGGING
-    void FunctionBody::GetSourceLineFromStartOffset_TTD(const uint startOffset, LPCUTF8 *sourceBegin, LPCUTF8 *sourceEnd, ULONG * line, LONG * col)
-    {
-        //
-        // get source info
-        //
-
-        LPCUTF8 source = GetStartOfDocument(L"IR Viewer FunctionBody::GetSourceLineFromStartOffset");
-        Utf8SourceInfo* sourceInfo = this->GetUtf8SourceInfo();
-        Assert(sourceInfo != nullptr);
-        LPCUTF8 sourceInfoSrc = sourceInfo->GetSource(L"IR Viewer FunctionBody::GetSourceLineFromStartOffset");
-        if(!sourceInfoSrc)
-        {
-            Assert(sourceInfo->GetIsLibraryCode());
-            return;
-        }
-        if(source != sourceInfoSrc)
-        {
-            Output::Print(L"\nDETECTED MISMATCH:\n");
-            Output::Print(L"GetUtf8SourceInfo()->GetSource(): 0x%08X: %.*s ...\n", sourceInfo, 16, sourceInfo);
-            Output::Print(L"GetStartOfDocument():             0x%08X: %.*s ...\n", source, 16, source);
-
-            AssertMsg(false, "Non-matching start of document");
-        }
-
-        //
-        // calculate source line info
-        //
-
-        size_t cbStartOffset = utf8::CharacterIndexToByteIndex(source, sourceInfo->GetCbLength(), (const charcount_t)startOffset, (size_t)this->m_cbStartOffset, (charcount_t)this->m_cchStartOffset);
-        GetLineCharOffsetFromStartChar(startOffset, line, col);
-
-        size_t lastOffset = StartOffset() + LengthInBytes();
-        size_t i = 0;
-        for(i = cbStartOffset; i < lastOffset && source[i] != '\n' && source[i] != '\r'; i++)
-        {
-            // do nothing; scan until end of statement
-        }
-        size_t cbEndOffset = i;
-
-        //
-        // return
-        //
-
-        *sourceBegin = &source[cbStartOffset];
-        *sourceEnd = &source[cbEndOffset];
-    }
-#endif
-
 #ifdef IR_VIEWER
 /* BEGIN potentially reusable code */
 

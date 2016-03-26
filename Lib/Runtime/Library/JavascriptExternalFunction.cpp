@@ -290,6 +290,10 @@ namespace Js
 
             if(elog->ShouldPerformDebugAction())
             {
+                //
+                //TODO: should we move these ++/-- operations into an auto managed class like in the record case below
+                //
+
                 scriptContext->TTDRootNestingCount++;
 
                 elog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
@@ -298,9 +302,9 @@ namespace Js
             }
             else if(elog->ShouldPerformRecordAction())
             {
+                //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths
                 TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, externalFunction);
 
-                scriptContext->TTDRootNestingCount++;
                 TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values, logPopper.GetStartTime());
                 logPopper.SetCallAction(beginEvent); //wil lalso decrement the nesting count as needed
 
@@ -408,6 +412,10 @@ namespace Js
 
             if(elog->ShouldPerformDebugAction())
             {
+                //
+                //TODO: should we move these ++/-- operations into an auto managed class like in the record case below
+                //
+
                 scriptContext->TTDRootNestingCount++;
 
                 elog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
@@ -416,9 +424,9 @@ namespace Js
             }
             else if(elog->ShouldPerformRecordAction())
             {
+                //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths
                 TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, externalFunction);
 
-                scriptContext->TTDRootNestingCount++;
                 TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values, logPopper.GetStartTime());
                 logPopper.SetCallAction(beginEvent);
 

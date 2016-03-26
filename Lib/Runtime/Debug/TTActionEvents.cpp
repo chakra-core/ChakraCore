@@ -1557,12 +1557,10 @@ namespace TTD
         this->m_lastExecuted_ftime = lastFrame.FunctionTime;
         this->m_lastExecuted_ltime = lastFrame.LoopTime;
 
-        LPCUTF8 srcBegin = nullptr;
-        LPCUTF8 srcEnd = nullptr;
         ULONG srcLine = 0;
         LONG srcColumn = -1;
         uint32 startOffset = lastFrame.Function->GetStatementStartOffset(lastFrame.CurrentStatementIndex);
-        lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcBegin, &srcEnd, &srcLine, &srcColumn);
+        lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
         this->m_lastExecuted_line = (uint32)srcLine;
         this->m_lastExecuted_column = (uint32)srcColumn;

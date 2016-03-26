@@ -13,48 +13,6 @@ namespace TTD
         //////////////////
         //We basically build a fake vtable here and use it to fake class behavior without needing a virtual type features we don't need
 
-        //An enumeration of tags for the SnapObjects (to support dispatch when parsing)
-        //IMPORTANT: When adding a new SnapObject subclass you need to add a corresponding typeid here
-        enum class SnapObjectType : int //need to change forwarde decls in runtime/runtimecore if you change this
-        {
-            Invalid = 0x0,
-
-            SnapUnhandledObject,
-            SnapDynamicObject,
-            SnapScriptFunctionObject,
-            SnapRuntimeFunctionObject,
-            SnapExternalFunctionObject,
-            SnapRuntimeRevokerFunctionObject,
-            SnapBoundFunctionObject,
-            SnapActivationObject,
-            SnapBlockActivationObject,
-            SnapPseudoActivationObject,
-            SnapConsoleScopeActivationObject,
-            SnapActivationObjectEx,
-            SnapHeapArgumentsObject,
-            SnapBoxedValueObject,
-            SnapDateObject,
-            SnapRegexObject,
-            SnapErrorObject,
-            SnapArrayObject,
-            SnapNativeIntArrayObject,
-            SnapNativeFloatArrayObject,
-            SnapArrayBufferObject,
-            SnapTypedArrayObject,
-            SnapSetObject,
-            SnapMapObject,
-            SnapProxyObject,
-            SnapPromiseObject,
-            SnapPromiseResolveOrRejectFunctionObject,
-            SnapPromiseReactionTaskFunctionObject,
-
-            //objects that should always be well known but which may have other info we want to restore
-            SnapWellKnownObject,
-
-            Limit
-        };
-        DEFINE_ENUM_FLAG_OPERATORS(SnapObjectType);
-
         typedef Js::RecyclableObject*(*fPtr_DoObjectInflation)(const SnapObject* snpObject, InflateMap* inflator);
         typedef void(*fPtr_DoAddtlValueInstantiation)(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator);
         typedef void(*fPtr_EmitAddtlInfo)(const SnapObject* snpObject, FileWriter* writer);

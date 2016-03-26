@@ -2639,7 +2639,7 @@
     typedef bool (CALLBACK *JsTTDDbgCallback)(INT64* optEventTimeRequest, wchar_t** optStaticRequestMessage);
 
     //Create any container needed for a log/snapshot and return the stream handle for writing the core-contents data
-    typedef void (CALLBACK *JsTTDInitializeTTDUriCallback)(const wchar_t* uri, wchar_t** fullTTDUri);
+    typedef void (CALLBACK *JsTTDInitializeUriCallback)(const wchar_t* uri, wchar_t** fullTTDUri);
     typedef void (CALLBACK *JsTTDInitializeForWriteLogStreamCallback)(const wchar_t* uri);
     typedef HANDLE (CALLBACK *JsTTDGetLogStreamCallback)(const wchar_t* uri, bool read, bool write);
     typedef HANDLE (CALLBACK *JsTTDGetSnapshotStreamCallback)(const wchar_t* logRootUri, const wchar_t* snapId, bool read, bool write, wchar_t** snapContainerUri);
@@ -2700,7 +2700,7 @@
     STDAPI_(JsErrorCode)
         JsTTDSetIOCallbacks(
             _In_ JsRuntimeHandle runtime,
-            _In_ JsTTDInitializeTTDUriCallback ttdInitializeTTDUriFunction,
+            _In_ JsTTDInitializeUriCallback ttdInitializeTTDUriFunction,
             _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction,
             _In_ JsTTDGetLogStreamCallback getLogStreamInfo,
             _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo,
@@ -2746,7 +2746,7 @@
         JsTTDReStartTimeTravelAfterRuntimeOperation();
 
     /// <summary>
-    ///     Notify the Js runtime that the host as created/canceled a callback with hte given function and id
+    ///     Notify the Js runtime that the host as created/canceled a callback with the given function and id
     /// </summary>
     STDAPI_(JsErrorCode) 
         JsTTDNotifyHostCallbackCreatedOrCanceled(

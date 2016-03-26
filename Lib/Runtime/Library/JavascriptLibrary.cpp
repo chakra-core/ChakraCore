@@ -131,90 +131,90 @@ namespace Js
         // The prototype property of the object prototype is null.
         objectPrototype = ObjectPrototypeObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr,
-            DeferredTypeHandler<InitializeObjectPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeObjectPrototype>::GetDefaultInstance()));
 
         constructorPrototypeObjectType = DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
             &SharedPrototypeTypeHandler, true, true);
 
         constructorPrototypeObjectType->SetHasNoEnumerableProperties(true);
 
-        if (scriptContext->GetConfig()->IsTypedArrayEnabled())
+        if(scriptContext->GetConfig()->IsTypedArrayEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled())
+            if(scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled())
             {
                 arrayBufferPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeArrayBufferPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeArrayBufferPrototype>::GetDefaultInstance()));
 
                 arrayBufferType = DynamicType::New(scriptContext, TypeIds_ArrayBuffer, arrayBufferPrototype, nullptr,
                     SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
                 dataViewPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeDataViewPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeDataViewPrototype>::GetDefaultInstance()));
 
                 typedArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeTypedArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeTypedArrayPrototype>::GetDefaultInstance()));
 
                 Int8ArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt8ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeInt8ArrayPrototype>::GetDefaultInstance()));
 
                 Uint8ArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint8ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeUint8ArrayPrototype>::GetDefaultInstance()));
 
                 // If ES6 TypedArrays are enabled, we have Khronos Interop mode enabled
                 Uint8ClampedArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint8ClampedArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeUint8ClampedArrayPrototype>::GetDefaultInstance()));
 
                 Int16ArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt16ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeInt16ArrayPrototype>::GetDefaultInstance()));
 
                 Uint16ArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint16ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeUint16ArrayPrototype>::GetDefaultInstance()));
 
                 Int32ArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt32ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeInt32ArrayPrototype>::GetDefaultInstance()));
 
                 Uint32ArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint32ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeUint32ArrayPrototype>::GetDefaultInstance()));
 
                 Float32ArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeFloat32ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeFloat32ArrayPrototype>::GetDefaultInstance()));
 
                 Float64ArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeFloat64ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeFloat64ArrayPrototype>::GetDefaultInstance()));
 
                 Int64ArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt64ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeInt64ArrayPrototype>::GetDefaultInstance()));
 
                 Uint64ArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint64ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeUint64ArrayPrototype>::GetDefaultInstance()));
 
                 BoolArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeBoolArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeBoolArrayPrototype>::GetDefaultInstance()));
 
                 CharArrayPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, typedArrayPrototype, nullptr,
-                    DeferredTypeHandler<InitializeCharArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeCharArrayPrototype>::GetDefaultInstance()));
             }
             else
             {
                 arrayBufferPrototype = JavascriptArrayBuffer::Create(0,
                     DynamicType::New(scriptContext, TypeIds_ArrayBuffer, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeArrayBufferPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeArrayBufferPrototype>::GetDefaultInstance()));
 
                 arrayBufferType = DynamicType::New(scriptContext, TypeIds_ArrayBuffer, arrayBufferPrototype, nullptr,
                     SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
@@ -222,71 +222,71 @@ namespace Js
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Int8ArrayPrototype = RecyclerNew(recycler, Int8Array, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Int8Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt8ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeInt8ArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Uint8ArrayPrototype = RecyclerNew(recycler, Uint8Array, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Uint8Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint8ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeUint8ArrayPrototype>::GetDefaultInstance()));
 
                 dataViewPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeDataViewPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeDataViewPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Uint8ClampedArrayPrototype = RecyclerNew(recycler, Uint8ClampedArray, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Uint8ClampedArray, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint8ClampedArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeUint8ClampedArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Int16ArrayPrototype = RecyclerNew(recycler, Int16Array, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Int16Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt16ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeInt16ArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Uint16ArrayPrototype = RecyclerNew(recycler, Uint16Array, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Uint16Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint16ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeUint16ArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Int32ArrayPrototype = RecyclerNew(recycler, Int32Array, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Int32Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt32ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeInt32ArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Uint32ArrayPrototype = RecyclerNew(recycler, Uint32Array, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Uint32Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint32ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeUint32ArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Float32ArrayPrototype = RecyclerNew(recycler, Float32Array, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Float32Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeFloat32ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeFloat32ArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Float64ArrayPrototype = RecyclerNew(recycler, Float64Array, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Float64Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeFloat64ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeFloat64ArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Int64ArrayPrototype = RecyclerNew(recycler, Int64Array, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Int64Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt64ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeInt64ArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 Uint64ArrayPrototype = RecyclerNew(recycler, Uint64Array, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_Uint64Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint64ArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeUint64ArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 BoolArrayPrototype = RecyclerNew(recycler, BoolArray, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_BoolArray, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeBoolArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeBoolArrayPrototype>::GetDefaultInstance()));
 
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
                 CharArrayPrototype = RecyclerNew(recycler, CharArray, baseArrayBuffer, 0, 0,
                     DynamicType::New(scriptContext, TypeIds_CharArray, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeCharArrayPrototype>::GetDefaultInstance()));
+                        DeferredTypeHandler<InitializeCharArrayPrototype>::GetDefaultInstance()));
             }
         }
         else
@@ -312,29 +312,29 @@ namespace Js
 
         arrayPrototype = JavascriptArray::New<Var, JavascriptArray, 0>(0,
             DynamicType::New(scriptContext, TypeIds_Array, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeArrayPrototype>::GetDefaultInstance()), recycler);
+                DeferredTypeHandler<InitializeArrayPrototype>::GetDefaultInstance()), recycler);
 
         booleanPrototype = RecyclerNew(recycler, JavascriptBooleanObject, nullptr,
             DynamicType::New(scriptContext, TypeIds_BooleanObject, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeBooleanPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeBooleanPrototype>::GetDefaultInstance()));
 
         numberPrototype = RecyclerNew(recycler, JavascriptNumberObject, TaggedInt::ToVarUnchecked(0),
             DynamicType::New(scriptContext, TypeIds_NumberObject, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeNumberPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeNumberPrototype>::GetDefaultInstance()));
 
         stringPrototype = RecyclerNew(recycler, JavascriptStringObject, nullptr,
             DynamicType::New(scriptContext, TypeIds_StringObject, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeStringPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeStringPrototype>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6PrototypeChain())
+        if(scriptContext->GetConfig()->IsES6PrototypeChain())
         {
             datePrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeDatePrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeDatePrototype>::GetDefaultInstance()));
 
             regexPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeRegexPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeRegexPrototype>::GetDefaultInstance()));
         }
         else
         {
@@ -342,80 +342,80 @@ namespace Js
 
             datePrototype = RecyclerNewZ(recycler, JavascriptDate, initDateValue,
                 DynamicType::New(scriptContext, TypeIds_Date, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeDatePrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeDatePrototype>::GetDefaultInstance()));
         }
 
-        if (scriptContext->GetConfig()->IsES6PrototypeChain())
+        if(scriptContext->GetConfig()->IsES6PrototypeChain())
         {
             errorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeErrorPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeErrorPrototype>::GetDefaultInstance()));
 
             evalErrorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeEvalErrorPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeEvalErrorPrototype>::GetDefaultInstance()));
 
             rangeErrorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeRangeErrorPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeRangeErrorPrototype>::GetDefaultInstance()));
 
             referenceErrorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeReferenceErrorPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeReferenceErrorPrototype>::GetDefaultInstance()));
 
             syntaxErrorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeSyntaxErrorPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeSyntaxErrorPrototype>::GetDefaultInstance()));
 
             typeErrorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeTypeErrorPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeTypeErrorPrototype>::GetDefaultInstance()));
 
             uriErrorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeURIErrorPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeURIErrorPrototype>::GetDefaultInstance()));
         }
         else
         {
             errorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
                 DynamicType::New(scriptContext, TypeIds_Error, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeErrorPrototype>::GetDefaultInstance()),
+                    DeferredTypeHandler<InitializeErrorPrototype>::GetDefaultInstance()),
                 /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
             evalErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
                 DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeEvalErrorPrototype>::GetDefaultInstance()),
+                    DeferredTypeHandler<InitializeEvalErrorPrototype>::GetDefaultInstance()),
                 /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
             rangeErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
                 DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeRangeErrorPrototype>::GetDefaultInstance()),
+                    DeferredTypeHandler<InitializeRangeErrorPrototype>::GetDefaultInstance()),
                 /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
             referenceErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
                 DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeReferenceErrorPrototype>::GetDefaultInstance()),
+                    DeferredTypeHandler<InitializeReferenceErrorPrototype>::GetDefaultInstance()),
                 /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
             syntaxErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
                 DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeSyntaxErrorPrototype>::GetDefaultInstance()),
+                    DeferredTypeHandler<InitializeSyntaxErrorPrototype>::GetDefaultInstance()),
                 /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
             typeErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
                 DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeTypeErrorPrototype>::GetDefaultInstance()),
+                    DeferredTypeHandler<InitializeTypeErrorPrototype>::GetDefaultInstance()),
                 /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
             uriErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
                 DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeURIErrorPrototype>::GetDefaultInstance()),
+                    DeferredTypeHandler<InitializeURIErrorPrototype>::GetDefaultInstance()),
                 /*isExternalError*/FALSE, /*isPrototype*/TRUE);
         }
 
         functionPrototype = RecyclerNew(recycler, JavascriptFunction,
             DynamicType::New(scriptContext, TypeIds_Function, objectPrototype, JavascriptFunction::PrototypeEntryPoint,
-            DeferredTypeHandler<InitializeFunctionPrototype>::GetDefaultInstance()), &JavascriptFunction::EntryInfo::PrototypeEntryPoint);
+                DeferredTypeHandler<InitializeFunctionPrototype>::GetDefaultInstance()), &JavascriptFunction::EntryInfo::PrototypeEntryPoint);
 
         promisePrototype = nullptr;
         javascriptEnumeratorIteratorPrototype = nullptr;
@@ -425,72 +425,72 @@ namespace Js
 
         symbolPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeSymbolPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeSymbolPrototype>::GetDefaultInstance()));
 
         mapPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeMapPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeMapPrototype>::GetDefaultInstance()));
 
         setPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeSetPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeSetPrototype>::GetDefaultInstance()));
 
         weakMapPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeWeakMapPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeWeakMapPrototype>::GetDefaultInstance()));
 
         weakSetPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeWeakSetPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeWeakSetPrototype>::GetDefaultInstance()));
 
         iteratorPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeIteratorPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeIteratorPrototype>::GetDefaultInstance()));
 
         arrayIteratorPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-            DeferredTypeHandler<InitializeArrayIteratorPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeArrayIteratorPrototype>::GetDefaultInstance()));
         mapIteratorPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-            DeferredTypeHandler<InitializeMapIteratorPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeMapIteratorPrototype>::GetDefaultInstance()));
         setIteratorPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-            DeferredTypeHandler<InitializeSetIteratorPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeSetIteratorPrototype>::GetDefaultInstance()));
         stringIteratorPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-            DeferredTypeHandler<InitializeStringIteratorPrototype>::GetDefaultInstance()));
+                DeferredTypeHandler<InitializeStringIteratorPrototype>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6PromiseEnabled())
+        if(scriptContext->GetConfig()->IsES6PromiseEnabled())
         {
             promisePrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializePromisePrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializePromisePrototype>::GetDefaultInstance()));
         }
 
-        if (scriptContext->GetConfig()->IsES6ProxyEnabled())
+        if(scriptContext->GetConfig()->IsES6ProxyEnabled())
         {
             javascriptEnumeratorIteratorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-                DeferredTypeHandler<InitializeJavascriptEnumeratorIteratorPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeJavascriptEnumeratorIteratorPrototype>::GetDefaultInstance()));
         }
 
-        if (scriptContext->GetConfig()->IsES6GeneratorsEnabled())
+        if(scriptContext->GetConfig()->IsES6GeneratorsEnabled())
         {
             generatorFunctionPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, functionPrototype, nullptr,
-                DeferredTypeHandler<InitializeGeneratorFunctionPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeGeneratorFunctionPrototype>::GetDefaultInstance()));
 
             generatorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-                DeferredTypeHandler<InitializeGeneratorPrototype>::GetDefaultInstance()));
+                    DeferredTypeHandler<InitializeGeneratorPrototype>::GetDefaultInstance()));
         }
 
-        if (scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if(scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             asyncFunctionPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, functionPrototype, nullptr,
-                DeferredTypeHandler<InitializeAsyncFunctionPrototype>::GetDefaultInstance()));
-    }
+                    DeferredTypeHandler<InitializeAsyncFunctionPrototype>::GetDefaultInstance()));
+        }
     }
 
     void JavascriptLibrary::InitializeTypes()

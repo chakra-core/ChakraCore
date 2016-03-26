@@ -192,6 +192,9 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , TTDContextAllocator(L"TTDContextAllocator", &this->pageAllocator, nullptr)
     , TTDLog(nullptr)
     , TTDInfo(nullptr)
+    , TTDInitializeTTDUriFunction(nullptr)
+    , TTDWriteInitializeFunction(nullptr)
+    , TTDStreamFunctions({ 0 })
 #endif
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
     , directCallTelemetry(this)
@@ -938,8 +941,11 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
             Js::PropertyId propertyId = Js::Constants::NoProperty;
             this->TTDLog->ReplaySymbolCreationEvent(&propertyId);
 
-            //Don't recrate the symbol below, instead return the known symbol by looking up on the pid
-            return this->GetPropertyName(propertyId);
+            //Don't recreate the symbol below, instead return the known symbol by looking up on the pid
+            const Js::PropertyRecord* res = this->GetPropertyName(propertyId);
+            AssertMsg(res != nullptr, "This should never happen!!!");
+
+            return res;
         }
     }
 #endif

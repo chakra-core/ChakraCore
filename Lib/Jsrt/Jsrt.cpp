@@ -275,22 +275,6 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
             threadContext->InitTimeTravel(ttdlogStr, threadContext->IsTTRecordRequested, threadContext->IsTTDebugRequested, threadContext->TTSnapInterval, threadContext->TTSnapHistoryLength);
 
             CoTaskMemFree(ttdlogStr);
-
-            if(threadContext->IsTTDebugRequested && Js::Configuration::Global.flags.TTDCmdsFromFile != nullptr)
-            {
-                uint32 cmdFileLen = (uint32)wcslen(Js::Configuration::Global.flags.TTDCmdsFromFile) + 1;
-                char* cmdFile = HeapNewArrayZ(char, cmdFileLen);
-
-                for(uint32 i = 0; i < cmdFileLen; ++i)
-                {
-                    cmdFile[i] = (char)Js::Configuration::Global.flags.TTDCmdsFromFile[i];
-                }
-
-                FILE* stream;
-                freopen_s(&stream, cmdFile, "r", stdin);
-
-                HeapDeleteArray(cmdFileLen, cmdFile);
-            }
         }
 
         if(createUnderTT)
@@ -3459,7 +3443,7 @@ STDAPI_(JsErrorCode) JsTTDSetDebuggerForReplay()
 #endif
 }
 
-STDAPI_(JsErrorCode) JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime, _In_ JsTTDInitializeTTDUriCallback ttdInitializeUriFunction, _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, _In_ JsTTDGetLogStreamCallback getLogStreamInfo, _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream)
+STDAPI_(JsErrorCode) JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime, _In_ JsTTDInitializeUriCallback ttdInitializeUriFunction, _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, _In_ JsTTDGetLogStreamCallback getLogStreamInfo, _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream)
 {
 #if !ENABLE_TTD
     return JsErrorCategoryUsage;

@@ -2819,10 +2819,6 @@ namespace Js
 
         uint GetStatementStartOffset(const uint statementIndex);
 
-#if ENABLE_TTD_DEBUGGING
-        void GetSourceLineFromStartOffset_TTD(const uint startOffset, LPCUTF8 *sourceBegin, LPCUTF8 *sourceEnd, ULONG * line, LONG * col);
-#endif
-
 #ifdef IR_VIEWER
         void GetSourceLineFromStartOffset(const uint startOffset, LPCUTF8 *sourceBegin, LPCUTF8 *sourceEnd,
             ULONG * line, LONG * col);

@@ -82,7 +82,13 @@ namespace Js
             propertyStringName = propertyString;
             propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
 
-#if DBG | ENABLE_TTD
+#if DBG || ENABLE_TTD
+            //
+            //TODO: We have code in GetCurrentAndMoveNextFromObject to record replay the order in which properties are enumerated. 
+            //      Since caching may happen differently at record/replay time we need to force this to ensure the log/order is consistent.
+            //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
+            //
+
             PropertyId tempPropertyId;
             /* JavascriptString * tempPropertyString = */ this->GetCurrentAndMoveNextFromObject(objectIndex, tempPropertyId, attributes);
 
@@ -113,7 +119,13 @@ namespace Js
         }
         else
         {
-#if DBG | ENABLE_TTD
+#if DBG || ENABLE_TTD
+            //
+            //TODO: We have code in GetCurrentAndMoveNextFromObject to record replay the order in which properties are enumerated. 
+            //      Since caching may happen differently at record/replay time we need to force this to ensure the log/order is consistent.
+            //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
+            //
+
             PropertyId tempPropertyId;
             JavascriptString* tempPropertyStringName = this->GetCurrentAndMoveNextFromObject(objectIndex, tempPropertyId, attributes);
             Assert(tempPropertyStringName == nullptr);

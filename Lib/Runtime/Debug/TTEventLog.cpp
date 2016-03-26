@@ -40,7 +40,8 @@ namespace TTD
     TTDRecordExternalFunctionCallActionPopper::TTDRecordExternalFunctionCallActionPopper(EventLog* log, Js::JavascriptFunction* function)
         : m_log(log), m_function(function), m_timer(), m_callAction(nullptr)
     {
-        ;
+        Js::ScriptContext* ctx = this->m_function->GetScriptContext();
+        ctx->TTDRootNestingCount++;
     }
 
     TTDRecordExternalFunctionCallActionPopper::~TTDRecordExternalFunctionCallActionPopper()
@@ -723,9 +724,9 @@ namespace TTD
 
         AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
 
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         TelemetryEventLogEntry* tevent = TelemetryEventLogEntry::As(this->m_currentReplayEventIterator.Current());
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         const TTString& msg = tevent->GetInfoString();
         uint32 infoStrLength = (uint32)infoStringJs->GetLength();
         LPCWSTR infoStr = infoStringJs->GetSz();

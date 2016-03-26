@@ -9,6 +9,44 @@
 
 #if ENABLE_TTD
 
+////////
+//The default number of elements per arrayblock, the size of "small" arrays and the block size we use when extracting
+#define TTD_ARRAY_BLOCK_SIZE 0x200
+#define TTD_ARRAY_SMALL_ARRAY 0x100
+
+//The ids for objects in a snapshot
+typedef uint64 TTD_PTR_ID;
+#define TTD_INVALID_PTR_ID 0ul
+
+#define TTD_CONVERT_VAR_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_TYPEINFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_ENV_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_SLOTARRAY_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_SCOPE_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+
+//Promises have a wide range of heap allocated bits -- we define He-Man casts for all of them -- ugly but so is having a bunch of specific functions
+#define TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_PROMISE_INFO_TO_SPECIFIC_TYPE(T, X) static_cast<T*>(X)
+
+#define TTD_EXTRACT_CTX_LOG_TAG(X) ((X)->ScriptContextLogTag)
+
+#define TTD_COERCE_PTR_ID_TO_VAR(X) (reinterpret_cast<Js::Var>(X))
+#define TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(X) (reinterpret_cast<Js::FunctionBody*>(X))
+
+typedef uint64 TTD_LOG_TAG;
+#define TTD_INVALID_LOG_TAG 0l
+#define TTD_INITIAL_LOG_TAG 1l
+
+#define TTD_INCREMENT_LOG_TAG(X) ((X)++)
+
+//The representation of an identifier (currently access path) for a well known object/primitive/function body/etc. in the JS engine or HOST
+typedef LPCWSTR TTD_WELLKNOWN_TOKEN;
+#define TTD_INVALID_WELLKNOWN_TOKEN nullptr
+#define TTD_DIAGNOSTIC_COMPARE_WELLKNOWN_TOKENS(T1, T2) ((T1 == T2) || ((T1 != TTD_INVALID_WELLKNOWN_TOKEN) && (T2 != TTD_INVALID_WELLKNOWN_TOKEN) && wcscmp(T1, T2) == 0))
+
+////////
+
 //2MB slabs in allocator with a threshold of 4Kb to allocate a single block in our large space
 #define TTD_SLAB_BLOCK_ALLOCATION_SIZE_LARGE 2097152
 #define TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID 262144
@@ -47,6 +85,66 @@
 
 namespace TTD
 {
+    //Mode of the time-travel debugger
+    enum class TTDMode
+    {
+        Invalid = 0x0,
+        Pending = 0x1,  //The TTD system has been setup but not yet put into record or replay mode
+        Detached = 0x2,  //The system has completed running (e.g. contexts have been detached) and we are done
+        RecordEnabled = 0x4,     //The system is being run in Record mode
+        DebuggingEnabled = 0x8,  //The system is being run in Debug Replay mode
+        TTDActive = (RecordEnabled | DebuggingEnabled),
+
+        ExcludedExecution = 0x20,  //Set when the system is executing code on behalf of the TTD/debugger (so we don't want to record/replay things for it)
+        TTDTagActive = (RecordEnabled | DebuggingEnabled) & (~ExcludedExecution)
+    };
+    DEFINE_ENUM_FLAG_OPERATORS(TTDMode)
+
+    namespace NSSnapObjects
+    {
+        //An enumeration of tags for the SnapObjects (to support dispatch when parsing)
+        //IMPORTANT: When adding a new SnapObject subclass you need to add a corresponding typeid here
+        enum class SnapObjectType : int
+        {
+            Invalid = 0x0,
+
+            SnapUnhandledObject,
+            SnapDynamicObject,
+            SnapScriptFunctionObject,
+            SnapRuntimeFunctionObject,
+            SnapExternalFunctionObject,
+            SnapRuntimeRevokerFunctionObject,
+            SnapBoundFunctionObject,
+            SnapActivationObject,
+            SnapBlockActivationObject,
+            SnapPseudoActivationObject,
+            SnapConsoleScopeActivationObject,
+            SnapActivationObjectEx,
+            SnapHeapArgumentsObject,
+            SnapBoxedValueObject,
+            SnapDateObject,
+            SnapRegexObject,
+            SnapErrorObject,
+            SnapArrayObject,
+            SnapNativeIntArrayObject,
+            SnapNativeFloatArrayObject,
+            SnapArrayBufferObject,
+            SnapTypedArrayObject,
+            SnapSetObject,
+            SnapMapObject,
+            SnapProxyObject,
+            SnapPromiseObject,
+            SnapPromiseResolveOrRejectFunctionObject,
+            SnapPromiseReactionTaskFunctionObject,
+
+            //objects that should always be well known but which may have other info we want to restore
+            SnapWellKnownObject,
+
+            Limit
+        };
+        DEFINE_ENUM_FLAG_OPERATORS(SnapObjectType);
+    }
+
     //Function pointer definitions and a struct for writing data out of memory (presumably to stable storage)
     typedef bool(CALLBACK *TTDDbgCallback)(INT64* optEventTimeRequest, wchar_t** optStaticRequestMessage);
 
