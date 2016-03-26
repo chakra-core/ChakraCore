@@ -4434,7 +4434,7 @@ namespace Js
         JavascriptLibrary* library = arrayIteratorPrototype->GetLibrary();
         ScriptContext* scriptContext = library->GetScriptContext();
 
-        library->AddFunctionToLibraryObject(arrayIteratorPrototype, PropertyIds::next, &JavascriptArrayIterator::EntryInfo::Next, 0);
+        library->arrayIteratorPrototypeBuiltinNextFunction = library->AddFunctionToLibraryObject(arrayIteratorPrototype, PropertyIds::next, &JavascriptArrayIterator::EntryInfo::Next, 0);
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {

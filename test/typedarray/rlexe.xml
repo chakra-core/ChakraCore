@@ -26,9 +26,8 @@
   <test>
     <default>
       <files>TypedArrayBuiltins.js</files>
-      <baseline>TypedArrayBuiltins.baseline</baseline>
       <tags>typedarray</tags>
-      <compile-flags>-ES6TypedArrayExtensions</compile-flags>
+      <compile-flags>-ES6TypedArrayExtensions -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

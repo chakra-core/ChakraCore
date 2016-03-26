@@ -94,6 +94,15 @@ namespace Js
         return newArr;
     }
 
+    bool TypedArrayBase::ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext)
+    {
+        Var arrayIteratorPrototypeNext = nullptr;
+        ImplicitCallFlags flags = scriptContext->GetThreadContext()->TryWithDisabledImplicitCall(
+            [&] () { arrayIteratorPrototypeNext = JavascriptOperators::GetProperty(scriptContext->GetLibrary()->GetArrayIteratorPrototype(), PropertyIds::next, scriptContext); });
+
+        return (flags != ImplicitCall_None) || arrayIteratorPrototypeNext != scriptContext->GetLibrary()->GetArrayIteratorPrototypeBuiltinNextFunction();
+    }
+
     Var TypedArrayBase::CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray)
     {
         uint32 byteLength = 0;
@@ -147,7 +156,7 @@ namespace Js
 
                     if (!JavascriptOperators::IsUndefinedObject(iterator) &&
                         (iterator != scriptContext->GetLibrary()->GetArrayPrototypeValuesFunction() ||
-                        !JavascriptArray::Is(firstArgument)))
+                            !JavascriptArray::Is(firstArgument) || ArrayIteratorPrototypeHasUserDefinedNext(scriptContext) ))
                     {
                         return CreateNewInstanceFromIterableObj(RecyclableObject::FromVar(firstArgument), scriptContext, elementSize, pfnCreateTypedArray);
                     }
