@@ -1374,8 +1374,7 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                     {
                         Js::RegSlot reg = funcInfo->AcquireTmpRegister();
                         this->m_writer.Reg1(Js::OpCode::LdUndef, reg);
-                        EnsureSymbolModuleSlots(sym, funcInfo);
-                        this->m_writer.SlotI2(Js::OpCode::StModuleSlot, reg, sym->GetModuleIndex(), sym->GetScopeSlot());
+                        EmitModuleExportAccess(sym, Js::OpCode::StModuleSlot, reg, funcInfo);
                         funcInfo->ReleaseTmpRegister(reg);
                     }
                     else
@@ -2720,11 +2719,6 @@ void ByteCodeGenerator::EmitProgram(ParseNode *pnodeProg)
 
     Assert(pnodeProg && pnodeProg->nop == knopProg);
 
-    if (IsModuleCode())
-    {
-        EnsureImportBindingScopeSlots(pnodeProg, pnodeProg->sxFnc.funcInfo);
-    }
-
     if (this->parentScopeInfo)
     {
         // Scope stack is already set up the way we want it, so don't visit the global scope.
@@ -4005,23 +3999,30 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
     }
 }
 
-void ByteCodeGenerator::EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo, IdentPtr exportName, IdentPtr moduleSpecifier)
+void ByteCodeGenerator::EmitModuleExportAccess(Symbol* sym, Js::OpCode opcode, Js::RegSlot location, FuncInfo* funcInfo)
+{
+    if (EnsureSymbolModuleSlots(sym, funcInfo))
+    {
+        this->Writer()->SlotI2(opcode, location, sym->GetModuleIndex(), sym->GetScopeSlot());
+    }
+    else
+    {
+        this->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(ERRInvalidExportName));
+
+        if (opcode == Js::OpCode::LdModuleSlot)
+        {
+            this->Writer()->Reg1(Js::OpCode::LdUndef, location);
+        }
+    }
+}
+
+bool ByteCodeGenerator::EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo)
 {
     Assert(sym->GetIsModuleExportStorage());
 
     if (sym->GetModuleIndex() != Js::Constants::NoProperty && sym->GetScopeSlot() != Js::Constants::NoProperty)
     {
-        return;
-    }
-
-    Js::PropertyId exportNameId;
-    if (exportName != nullptr)
-    {
-        exportNameId = scriptContext->GetOrAddPropertyIdTracked(exportName->Psz(), exportName->Cch());
-    }
-    else
-    {
-        exportNameId = sym->EnsurePosition(funcInfo);
+        return true;
     }
 
     Js::JavascriptLibrary* library = this->GetScriptContext()->GetLibrary();
@@ -4030,19 +4031,13 @@ void ByteCodeGenerator::EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo,
     uint moduleSlotIndex;
     Js::SourceTextModuleRecord* moduleRecord = library->GetModuleRecord(moduleIndex);
 
-    // The module specifier indicates that the storage for this symbol is in another module.
-    if (moduleSpecifier != nullptr)
+    if (sym->GetIsModuleImport())
     {
-        Js::SourceTextModuleRecord* childModuleRecord = moduleRecord->GetChildModuleRecord(moduleSpecifier->Psz());
-
-        AssertMsg(childModuleRecord != nullptr, "We somehow tried to resolve an import from a module we didn't resolve.");
-
+        Js::PropertyId localImportNameId = sym->EnsurePosition(funcInfo);
         Js::ModuleNameRecord* moduleNameRecord = nullptr;
-        if (!childModuleRecord->ResolveExport(exportNameId, nullptr, nullptr, &moduleNameRecord) ||
-            moduleNameRecord == nullptr)
+        if (!moduleRecord->ResolveImport(localImportNameId, &moduleNameRecord))
         {
-            this->m_writer.W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(ERRInvalidExportName));
-            return;
+            return false;
         }
 
         AnalysisAssert(moduleNameRecord != nullptr);
@@ -4054,11 +4049,14 @@ void ByteCodeGenerator::EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo,
     }
     else
     {
+        Js::PropertyId exportNameId = sym->EnsurePosition(funcInfo);
         moduleSlotIndex = moduleRecord->GetLocalExportSlotIndexByLocalName(exportNameId);
     }
 
     sym->SetModuleIndex(moduleIndex);
     sym->SetScopeSlot(moduleSlotIndex);
+
+    return true;
 }
 
 void ByteCodeGenerator::EmitAssignmentToDefaultModuleExport(ParseNode* pnode, FuncInfo* funcInfo)
@@ -4072,28 +4070,6 @@ void ByteCodeGenerator::EmitAssignmentToDefaultModuleExport(ParseNode* pnode, Fu
     uint moduleSlotIndex = moduleRecord->GetLocalExportSlotIndexByExportName(Js::PropertyIds::default_);
 
     this->Writer()->SlotI2(Js::OpCode::StModuleSlot, pnode->location, moduleIndex, moduleSlotIndex);
-}
-
-void ByteCodeGenerator::EnsureImportBindingScopeSlots(ParseNode* pnode, FuncInfo* funcInfo)
-{
-    Assert(IsModuleCode());
-    Assert(pnode && pnode->nop == knopProg);
-
-    if (pnode->sxModule.importEntries == nullptr)
-    {
-        return;
-    }
-
-    pnode->sxModule.importEntries->Map([this, funcInfo](ModuleImportEntry& importEntry) {
-        Symbol* sym = importEntry.varDecl->sxVar.sym;
-
-        Assert(sym->GetIsModuleExportStorage());
-        Assert(importEntry.moduleRequest != nullptr);
-
-        sym->SetNeedDeclaration(false);
-
-        this->EnsureSymbolModuleSlots(sym, funcInfo, importEntry.importName, importEntry.moduleRequest);
-    });
 }
 
 void ByteCodeGenerator::EnsureLetConstScopeSlots(ParseNode *pnodeBlock, FuncInfo *funcInfo)
@@ -4745,8 +4721,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
             this->m_writer.W1(Js::OpCode::RuntimeTypeError, SCODE_CODE(ERRAssignmentToConst));
         }
 
-        EnsureSymbolModuleSlots(sym, funcInfo);
-        this->Writer()->SlotI2(Js::OpCode::StModuleSlot, rhsLocation, sym->GetModuleIndex(), sym->GetScopeSlot());
+        EmitModuleExportAccess(sym, Js::OpCode::StModuleSlot, rhsLocation, funcInfo);
         return;
     }
 
@@ -5041,8 +5016,7 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
 
     if (sym && sym->GetIsModuleExportStorage())
     {
-        EnsureSymbolModuleSlots(sym, funcInfo);
-        this->Writer()->SlotI2(Js::OpCode::LdModuleSlot, lhsLocation, sym->GetModuleIndex(), sym->GetScopeSlot());
+        EmitModuleExportAccess(sym, Js::OpCode::LdModuleSlot, lhsLocation, funcInfo);
         return;
     }
 
@@ -5445,6 +5419,15 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
     Scope *scope = nullptr;
     Scope *symScope = sym ? sym->GetScope() : this->globalScope;
     Assert(symScope);
+
+    if (sym && sym->GetIsModuleExportStorage())
+    {
+        Js::RegSlot tmpLocation = funcInfo->AcquireTmpRegister();
+        EmitModuleExportAccess(sym, Js::OpCode::LdModuleSlot, tmpLocation, funcInfo);
+        this->m_writer.Reg2(Js::OpCode::Typeof, lhsLocation, tmpLocation);
+        funcInfo->ReleaseTmpRegister(tmpLocation);
+        return;
+    }
 
     for (;;)
     {
@@ -8858,7 +8841,7 @@ bool EmitUseBeforeDeclaration(ParseNode *pnode, ByteCodeGenerator *byteCodeGener
 
     // Don't emit static use-before-declaration error in a closure or dynamic scope case. We detect such cases with dynamic checks,
     // if necessary.
-    if (sym != nullptr && sym->GetNeedDeclaration() && byteCodeGenerator->GetCurrentScope()->HasStaticPathToAncestor(sym->GetScope()) && sym->GetScope()->GetFunc() == funcInfo)
+    if (sym != nullptr && !sym->GetIsModuleExportStorage() && sym->GetNeedDeclaration() && byteCodeGenerator->GetCurrentScope()->HasStaticPathToAncestor(sym->GetScope()) && sym->GetScope()->GetFunc() == funcInfo)
     {
         if (fAcquireLoc)
         {
