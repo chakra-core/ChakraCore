@@ -387,6 +387,25 @@ public:
     void SetStackProber(StackProber * stackProber);
     PBYTE GetScriptStackLimit() const;
     static DWORD GetStackLimitForCurrentThreadOffset() { return offsetof(ThreadContext, stackLimitForCurrentThread); }
+
+    template <class Fn>
+    Js::ImplicitCallFlags TryWithDisabledImplicitCall(Fn fn)
+    {
+        DisableImplicitFlags prevDisableImplicitFlags = this->GetDisableImplicitFlags();
+        Js::ImplicitCallFlags savedImplicitCallFlags = this->GetImplicitCallFlags();
+
+        this->DisableImplicitCall();
+        this->SetImplicitCallFlags(Js::ImplicitCallFlags::ImplicitCall_None);
+        fn();
+
+        Js::ImplicitCallFlags curImplicitCallFlags = this->GetImplicitCallFlags();
+
+        this->SetDisableImplicitFlags(prevDisableImplicitFlags);
+        this->SetImplicitCallFlags(savedImplicitCallFlags);
+
+        return curImplicitCallFlags;
+    }
+
     void * GetAddressOfStackLimitForCurrentThread()
     {
         FAULTINJECT_SCRIPT_TERMINATION
