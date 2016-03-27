@@ -200,16 +200,9 @@ namespace Js
         virtual BigDictionaryTypeHandler* NewBigDictionaryTypeHandler(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) override;
 
 #if ENABLE_TTD
-    public:
-        virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override
-        {
-            ;
-        }
-
-        virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override
-        {
-            return 0;
-        }
+        //
+        //We let the handler processing fall through -- the snap object extraction will take care of visiting/copying the info from this type into the object representation.
+        //
 #endif
     };
 }

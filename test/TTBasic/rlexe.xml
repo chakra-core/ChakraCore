@@ -122,6 +122,22 @@
   </test>
   <test>
     <default>
+      <files>es5Array.js</files>
+      <compile-flags>-TTRecord:!es5ArrayTest -TTSnapInterval:0</compile-flags>
+      <baseline>es5ArrayRecord.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!es5ArrayTest -TTDStartEvent:2</compile-flags>
+      <baseline>es5ArrayReplay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>eval.js</files>
       <compile-flags>-TTRecord:!evalTest -TTSnapInterval:0</compile-flags>
       <baseline>evalRecord.baseline</baseline>

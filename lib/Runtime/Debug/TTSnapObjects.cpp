@@ -1445,6 +1445,139 @@ namespace TTD
 
         //////////////////
 
+        Js::RecyclableObject* DoObjectInflation_SnapES5ArrayInfo(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+
+            //Just return a basic array which will get auto converted to es5 when we assign getter/setter/attribute values in addtlValueInstantiation
+            return ctx->GetLibrary()->CreateArray();
+        }
+
+        void DoAddtlValueInstantiation_SnapES5ArrayInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
+        {
+            SnapES5ArrayInfo* es5Info = SnapObjectGetAddtlInfoAs<SnapES5ArrayInfo*, SnapObjectType::SnapES5ArrayObject>(snpObject);
+
+            Js::JavascriptArray* arrayObj = static_cast<Js::JavascriptArray*>(obj);
+            DoAddtlValueInstantiation_SnapArrayInfoCore<TTDVar, Js::Var>(es5Info->BasicArrayData, arrayObj, inflator);
+
+            for(uint32 i = 0; i < es5Info->GetterSetterCount; ++i)
+            {
+                const SnapES5ArrayGetterSetterEntry* entry = es5Info->GetterSetterEntries + i;
+
+                Js::Var getter = nullptr;
+                if(entry->Getter != nullptr)
+                {
+                    getter = inflator->InflateTTDVar(entry->Getter);
+                }
+
+                Js::Var setter = nullptr;
+                if(entry->Setter != nullptr)
+                {
+                    setter = inflator->InflateTTDVar(entry->Setter);
+                }
+
+                if(getter != nullptr || setter != nullptr)
+                {
+                    arrayObj->SetItemAccessors(entry->Index, getter, setter);
+                }
+
+                arrayObj->SetItemAttributes(entry->Index, entry->Attributes);
+            }
+        }
+
+        void EmitAddtlInfo_SnapES5ArrayInfo(const SnapObject* snpObject, FileWriter* writer)
+        {
+            SnapES5ArrayInfo* es5Info = SnapObjectGetAddtlInfoAs<SnapES5ArrayInfo*, SnapObjectType::SnapES5ArrayObject>(snpObject);
+
+            writer->WriteLengthValue(es5Info->GetterSetterCount, NSTokens::Separator::CommaSeparator);
+            writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+            for(uint32 i = 0; i < es5Info->GetterSetterCount; ++i)
+            {
+                NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
+                const SnapES5ArrayGetterSetterEntry* entry = es5Info->GetterSetterEntries + i;
+
+                writer->WriteRecordStart(sep);
+
+                writer->WriteUInt32(NSTokens::Key::index, entry->Index);
+                writer->WriteUInt32(NSTokens::Key::attributeFlags, entry->Attributes, NSTokens::Separator::CommaSeparator);
+
+                writer->WriteKey(NSTokens::Key::getterEntry, NSTokens::Separator::CommaSeparator);
+                NSSnapValues::EmitTTDVar(entry->Getter, writer, NSTokens::Separator::NoSeparator);
+
+                writer->WriteKey(NSTokens::Key::setterEntry, NSTokens::Separator::CommaSeparator);
+                NSSnapValues::EmitTTDVar(entry->Setter, writer, NSTokens::Separator::NoSeparator);
+
+                writer->WriteRecordEnd();
+            }
+            writer->WriteSequenceEnd();
+
+            EmitAddtlInfo_SnapArrayInfoCore<TTDVar>(es5Info->BasicArrayData, writer);
+        }
+
+        void ParseAddtlInfo_SnapES5ArrayInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        {
+            SnapES5ArrayInfo* es5Info = alloc.SlabAllocateStruct<SnapES5ArrayInfo>();
+
+            es5Info->GetterSetterCount = reader->ReadLengthValue(true);
+            if(es5Info->GetterSetterCount == 0)
+            {
+                es5Info->GetterSetterEntries = nullptr;
+            }
+            else
+            {
+                es5Info->GetterSetterEntries = alloc.SlabAllocateArray<SnapES5ArrayGetterSetterEntry>(es5Info->GetterSetterCount);
+            }
+
+            reader->ReadSequenceStart_WDefaultKey(true);
+            for(uint32 i = 0; i < es5Info->GetterSetterCount; ++i)
+            {
+                SnapES5ArrayGetterSetterEntry* entry = es5Info->GetterSetterEntries + i;
+
+                reader->ReadRecordStart(i != 0);
+
+                entry->Index = reader->ReadUInt32(NSTokens::Key::index);
+                entry->Attributes = (Js::PropertyAttributes)reader->ReadUInt32(NSTokens::Key::attributeFlags, true);
+
+                reader->ReadKey(NSTokens::Key::getterEntry, true);
+                entry->Getter = NSSnapValues::ParseTTDVar(false, reader);
+
+                reader->ReadKey(NSTokens::Key::setterEntry, true);
+                entry->Setter = NSSnapValues::ParseTTDVar(false, reader);
+
+                reader->ReadRecordEnd();
+            }
+            reader->ReadSequenceEnd();
+
+            es5Info->BasicArrayData = ParseAddtlInfo_SnapArrayInfoCore<TTDVar>(reader, alloc);
+
+            SnapObjectSetAddtlInfoAs<SnapES5ArrayInfo*, SnapObjectType::SnapES5ArrayObject>(snpObject, es5Info);
+        }
+
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapES5ArrayInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            SnapES5ArrayInfo* es5Info1 = SnapObjectGetAddtlInfoAs<SnapES5ArrayInfo*, SnapObjectType::SnapES5ArrayObject>(sobj1);
+            SnapES5ArrayInfo* es5Info2 = SnapObjectGetAddtlInfoAs<SnapES5ArrayInfo*, SnapObjectType::SnapES5ArrayObject>(sobj2);
+
+            compareMap.DiagnosticAssert(es5Info1->GetterSetterCount == es5Info2->GetterSetterCount);
+            for(uint32 i = 0; i < es5Info1->GetterSetterCount; ++i)
+            {
+                const SnapES5ArrayGetterSetterEntry* entry1 = es5Info1->GetterSetterEntries + i;
+                const SnapES5ArrayGetterSetterEntry* entry2 = es5Info2->GetterSetterEntries + i;
+
+                compareMap.DiagnosticAssert(entry1->Index == entry2->Index);
+                compareMap.DiagnosticAssert(entry1->Attributes == entry2->Attributes);
+
+                NSSnapValues::AssertSnapEquivTTDVar_SpecialArray(entry1->Getter, entry2->Getter, compareMap, L"es5Getter", entry1->Index);
+                NSSnapValues::AssertSnapEquivTTDVar_SpecialArray(entry1->Setter, entry2->Setter, compareMap, L"es5Setter", entry1->Index);
+            }
+
+            AssertSnapEquiv_SnapArrayInfoCore<TTDVar>(es5Info1->BasicArrayData, es5Info2->BasicArrayData, compareMap);
+        }
+#endif
+
+        //////////////////
+
         Js::RecyclableObject* DoObjectInflation_SnapArrayBufferInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
             //ArrayBuffers can change on us so seems easiest to always re-create them.

@@ -128,6 +128,7 @@ namespace TTD
             SnapArrayObject,
             SnapNativeIntArrayObject,
             SnapNativeFloatArrayObject,
+            SnapES5ArrayObject,
             SnapArrayBufferObject,
             SnapTypedArrayObject,
             SnapSetObject,

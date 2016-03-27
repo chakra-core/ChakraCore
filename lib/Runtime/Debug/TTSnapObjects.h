@@ -450,8 +450,8 @@ namespace TTD
             return sai;
         }
 
-        template<typename T, SnapObjectType tag>
-        SnapArrayInfo<T>* ExtractArrayValues(Js::JavascriptArray* arrayObject, SnapObject* objData, SlabAllocator& alloc)
+        template<typename T>
+        SnapArrayInfo<T>* ExtractArrayValues(Js::JavascriptArray* arrayObject, SlabAllocator& alloc)
         {
             SnapArrayInfo<T>* sai = nullptr;
 
@@ -490,8 +490,6 @@ namespace TTD
                 }
             }
 
-            StdExtractSetKindSpecificInfo<SnapArrayInfo<T>*, tag>(objData, sai);
-
             return sai;
         }
 
@@ -518,12 +516,9 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapArrayInfo(const SnapObject* snpObject, InflateMap* inflator);
 
-        template<typename T, typename U, SnapObjectType snapArrayKind>
-        void DoAddtlValueInstantiation_SnapArrayInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
+        template<typename T, typename U>
+        void DoAddtlValueInstantiation_SnapArrayInfoCore(SnapArrayInfo<T>* arrayInfo, Js::JavascriptArray* arrayObj, InflateMap* inflator)
         {
-            SnapArrayInfo<T>* arrayInfo = SnapObjectGetAddtlInfoAs<SnapArrayInfo<T>*, snapArrayKind>(snpObject);
-            Js::JavascriptArray* arrayObj = static_cast<Js::JavascriptArray*>(obj);
-
             while(arrayInfo != nullptr)
             {
                 for(uint32 i = 0; i < (arrayInfo->LastIndex - arrayInfo->FirstIndex); ++i)
@@ -540,11 +535,18 @@ namespace TTD
             }
         }
 
-        template<typename T, SnapObjectType snapArrayKind>
-        void EmitAddtlInfo_SnapArrayInfo(const SnapObject* snpObject, FileWriter* writer)
+        template<typename T, typename U, SnapObjectType snapArrayKind>
+        void DoAddtlValueInstantiation_SnapArrayInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
         {
             SnapArrayInfo<T>* arrayInfo = SnapObjectGetAddtlInfoAs<SnapArrayInfo<T>*, snapArrayKind>(snpObject);
+            Js::JavascriptArray* arrayObj = static_cast<Js::JavascriptArray*>(obj);
 
+            DoAddtlValueInstantiation_SnapArrayInfoCore<T, U>(arrayInfo, arrayObj, inflator);
+        }
+
+        template<typename T>
+        void EmitAddtlInfo_SnapArrayInfoCore(SnapArrayInfo<T>* arrayInfo, FileWriter* writer)
+        {
             uint32 blockCount = 0;
             for(SnapArrayInfo<T>* currInfo = arrayInfo; currInfo != nullptr; currInfo = currInfo->Next)
             {
@@ -581,7 +583,15 @@ namespace TTD
         }
 
         template<typename T, SnapObjectType snapArrayKind>
-        void ParseAddtlInfo_SnapArrayInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        void EmitAddtlInfo_SnapArrayInfo(const SnapObject* snpObject, FileWriter* writer)
+        {
+            SnapArrayInfo<T>* arrayInfo = SnapObjectGetAddtlInfoAs<SnapArrayInfo<T>*, snapArrayKind>(snpObject);
+
+            EmitAddtlInfo_SnapArrayInfoCore<T>(arrayInfo, writer);
+        }
+
+        template<typename T>
+        SnapArrayInfo<T>* ParseAddtlInfo_SnapArrayInfoCore(FileReader* reader, SlabAllocator& alloc)
         {
             SnapArrayInfo<T>* arrayInfo = nullptr;
             SnapArrayInfo<T>* curr = nullptr;
@@ -629,6 +639,14 @@ namespace TTD
             }
             reader->ReadSequenceEnd();
 
+            return arrayInfo;
+        }
+
+        template<typename T, SnapObjectType snapArrayKind>
+        void ParseAddtlInfo_SnapArrayInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        {
+            SnapArrayInfo<T>* arrayInfo = ParseAddtlInfo_SnapArrayInfoCore<T>(reader, alloc);
+
             SnapObjectSetAddtlInfoAs<SnapArrayInfo<T>*, snapArrayKind>(snpObject, arrayInfo);
         }
 
@@ -652,12 +670,9 @@ namespace TTD
             }
         }
 
-        template<typename T, SnapObjectType snapArrayKind>
-        void AssertSnapEquiv_SnapArrayInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        template<typename T>
+        void AssertSnapEquiv_SnapArrayInfoCore(const SnapArrayInfo<T>* arrayInfo1, const SnapArrayInfo<T>* arrayInfo2, TTDCompareMap& compareMap)
         {
-            const SnapArrayInfo<T>* arrayInfo1 = SnapObjectGetAddtlInfoAs<SnapArrayInfo<T>*, snapArrayKind>(sobj1);
-            const SnapArrayInfo<T>* arrayInfo2 = SnapObjectGetAddtlInfoAs<SnapArrayInfo<T>*, snapArrayKind>(sobj2);
-
             if(arrayInfo1 == nullptr || arrayInfo2 == nullptr)
             {
                 compareMap.DiagnosticAssert(arrayInfo1 == nullptr && arrayInfo2 == nullptr);
@@ -709,6 +724,51 @@ namespace TTD
                 }
             }
         }
+
+        template<typename T, SnapObjectType snapArrayKind>
+        void AssertSnapEquiv_SnapArrayInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            const SnapArrayInfo<T>* arrayInfo1 = SnapObjectGetAddtlInfoAs<SnapArrayInfo<T>*, snapArrayKind>(sobj1);
+            const SnapArrayInfo<T>* arrayInfo2 = SnapObjectGetAddtlInfoAs<SnapArrayInfo<T>*, snapArrayKind>(sobj2);
+
+            AssertSnapEquiv_SnapArrayInfoCore<T>(arrayInfo1, arrayInfo2, compareMap);
+        }
+#endif
+
+        //////////////////
+
+        //A struct that represents a single getter/setter value in an ES5 array
+        struct SnapES5ArrayGetterSetterEntry
+        {
+            uint32 Index;
+            Js::PropertyAttributes Attributes;
+
+            TTDVar Getter;
+            TTDVar Setter;
+        };
+
+        //A struct that represents Javascript ES5 arrays
+        struct SnapES5ArrayInfo
+        {
+            //
+            //TODO: lengthWritable and dataItemAttributes should get reset based on the overall object sealed/frozen settings but we should check this carefully
+            //
+
+            //Values copied from the ES5ArrayTypeHandler indexed data map
+            uint32 GetterSetterCount;
+            SnapES5ArrayGetterSetterEntry* GetterSetterEntries;
+
+            //Values that are copied from the underlying data array
+            SnapArrayInfo<TTDVar>* BasicArrayData;
+        };
+
+        Js::RecyclableObject* DoObjectInflation_SnapES5ArrayInfo(const SnapObject* snpObject, InflateMap* inflator);
+        void DoAddtlValueInstantiation_SnapES5ArrayInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator);
+        void EmitAddtlInfo_SnapES5ArrayInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapES5ArrayInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapES5ArrayInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
 #endif
 
         //////////////////

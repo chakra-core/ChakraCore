@@ -109,6 +109,8 @@ namespace Js
         }
         else
         {
+            AssertMsg(objData->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN, "This function is unknown but we didn't think that was possible -- did we miss something in core rundown?");
+
             TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapRuntimeFunctionObject>(objData, nullptr);
         }
     }
