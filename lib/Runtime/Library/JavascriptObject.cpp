@@ -376,6 +376,12 @@ namespace Js
                     return library->CreateStringFromCppLiteral(_u("[object Boolean]"));
                 }
                 break;
+            case TypeIds_DataView:
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("DataView")) == 0)
+                {
+                    return library->CreateStringFromCppLiteral(_u("[object DataView]"));
+                }
+                break;
             case TypeIds_Date:
             case TypeIds_WinRTDate:
                 if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Date")) == 0)
@@ -404,6 +410,12 @@ namespace Js
                 if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Number")) == 0)
                 {
                     return library->CreateStringFromCppLiteral(_u("[object Number]"));
+                }
+                break;
+            case TypeIds_Promise:
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Promise")) == 0)
+                {
+                    return library->CreateStringFromCppLiteral(_u("[object Promise]"));
                 }
                 break;
             case TypeIds_SIMDObject:
