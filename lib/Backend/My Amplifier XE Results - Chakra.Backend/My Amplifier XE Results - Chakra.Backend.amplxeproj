@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+ <rdmgr>
+  <timestamp type="u64_t">1466189053</timestamp>
+  <hostname>bgekua0.redmond.corp.microsoft.com</hostname>
+  <os>windows</os>
+  <product>Intel® VTune™ Amplifier XE 2016 Update 1</product>
+  <buildNumber type="s32_t">434111</buildNumber>
+  <logicalCPUCount type="s32_t">16</logicalCPUCount>
+  <CPUFrequency type="s64_t">3000000000</CPUFrequency>
+ </rdmgr>
+</root>

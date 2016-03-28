@@ -190,9 +190,10 @@ EXDEF3    ( CUSTOM     , NopEx             , OP_Empty                , Empty    
   DEF3_WMS( CALLDOUBLE2, Abs_Db            , Math::Abs               , false         )
   DEF3_WMS( CALLFLOAT2 , Abs_Flt           , ::fabsf                 , _CRT_HAS_CDECL)
   DEF3_WMS( CALLDOUBLE3, Atan2_Db          , Math::Atan2             , false         )
-  DEF3_WMS( CALLDOUBLE3, Min_Db            , AsmJsMath::Min<double>  , false         )
-  DEF3_WMS( CALLDOUBLE3, Max_Db            , AsmJsMath::Max<double>  , false         )
-
+#if 0
+      DEF3_WMS( CALLDOUBLE3, Min_Db            , ::min  , false         )
+  DEF3_WMS( CALLDOUBLE3, Max_Db            , ::max  , false         )
+#endif
   DEF3_WMS( CUSTOM     , Fround_Flt        , OP_SetFroundFlt         , Float2        )
   DEF3_WMS( CUSTOM     , Fround_Db         , OP_SetFroundDb          , Float1Double1 )
   DEF3_WMS( CUSTOM     , Fround_Int        , OP_SetFroundInt         , Float1Int1    )
