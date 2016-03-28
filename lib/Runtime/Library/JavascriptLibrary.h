@@ -1042,6 +1042,8 @@ namespace Js
         void TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type);
         void NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
 
+        static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
+
         HRESULT EnsureReadyIfHybridDebugging(bool isScriptEngineReady = true);
 
         CharStringCache& GetCharStringCache() { return charStringCache;  }

@@ -93,15 +93,6 @@ namespace Js
         return newArr;
     }
 
-    bool TypedArrayBase::ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext)
-    {
-        Var arrayIteratorPrototypeNext = nullptr;
-        ImplicitCallFlags flags = scriptContext->GetThreadContext()->TryWithDisabledImplicitCall(
-            [&] () { arrayIteratorPrototypeNext = JavascriptOperators::GetProperty(scriptContext->GetLibrary()->GetArrayIteratorPrototype(), PropertyIds::next, scriptContext); });
-
-        return (flags != ImplicitCall_None) || arrayIteratorPrototypeNext != scriptContext->GetLibrary()->GetArrayIteratorPrototypeBuiltinNextFunction();
-    }
-
     Var TypedArrayBase::CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray)
     {
         uint32 byteLength = 0;
@@ -155,7 +146,7 @@ namespace Js
                     RecyclableObject* iteratorFn = JavascriptOperators::GetIteratorFunction(firstArgument, scriptContext, true /* optional */);
                     if (iteratorFn != nullptr &&
                         (iteratorFn != scriptContext->GetLibrary()->GetArrayPrototypeValuesFunction() ||
-                            !JavascriptArray::Is(firstArgument) || ArrayIteratorPrototypeHasUserDefinedNext(scriptContext) ))
+                            !JavascriptArray::Is(firstArgument) || JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext)))
                     {
                         Var iterator = iteratorFn->GetEntryPoint()(iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
 
