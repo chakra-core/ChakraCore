@@ -225,6 +225,11 @@ namespace UnifiedRegex
             return true;
         }
 
+        // This class is instantiated as a global const instance
+        // C++ requires that a default constructor be provided in that case
+        // See http://stackoverflow.com/questions/7411515/why-does-c-require-a-user-provided-default-constructor-to-default-construct-a
+        TrivialCaseMapper() {}
+
         static const TrivialCaseMapper Instance;
     };
 
