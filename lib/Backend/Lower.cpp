@@ -13557,9 +13557,9 @@ IR::BranchInstr *Lowerer::InsertCompareBranch(
 
     Func *const func = insertBeforeInstr->m_func;
 
-    if(compareSrc1->IsFloat64())
+    if(compareSrc1->IsFloat())
     {
-        Assert(compareSrc2->IsFloat64());
+        Assert(compareSrc2->IsFloat());
         Assert(!isUnsigned);
         IR::BranchInstr *const instr = IR::BranchInstr::New(branchOpCode, target, compareSrc1, compareSrc2, func);
         insertBeforeInstr->InsertBefore(instr);

@@ -48,7 +48,7 @@ namespace Js
         static bool TryToVarFast(int32 nValue, Var* result);
         static bool TryToVarFastWithCheck(double value, Var* result);
 
-        inline static bool IsNan(double value) { return NumberUtilities::IsNan(value); }
+        inline static BOOL IsNan(double value) { return NumberUtilities::IsNan(value); }
         static bool IsZero(double value);
         static BOOL IsNegZero(double value);
         static bool IsPosInf(double value);

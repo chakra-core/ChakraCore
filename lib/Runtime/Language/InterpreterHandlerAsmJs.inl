@@ -164,13 +164,15 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( F1toF1Mem        , Abs_Flt      , ::fabsf                                            )
   DEF2_WMS( D2toD1Mem        , Atan2_Db     , Math::Atan2                                        )
   DEF2_WMS( D2toD1Mem        , Min_Db       , AsmJsMath::Min<double>                             )
+  DEF2_WMS( F2toF1Mem        , Min_Flt      , AsmJsMath::Min<float>                              )
   DEF2_WMS( D2toD1Mem        , Max_Db       , AsmJsMath::Max<double>                             )
+  DEF2_WMS( F2toF1Mem        , Max_Flt      , AsmJsMath::Max<float>                              )
 
   DEF2_WMS( F1toF1Mem        , Fround_Flt   , (float)                                            )
   DEF2_WMS( D1toF1Mem        , Fround_Db    , (float)                                            )
   DEF2_WMS( I1toF1Mem        , Fround_Int   , (float)                                            )
-  DEF2_WMS( F2toF1Mem        , Copysign_Flt , Wasm::WasmMath::Copysign<float>                    )
-  DEF2_WMS( D2toD1Mem        , Copysign_Db  , Wasm::WasmMath::Copysign<double>                   )
+  EXDEF2_WMS( F2toF1Mem        , Copysign_Flt , Wasm::WasmMath::Copysign<float>                    )
+  EXDEF2_WMS( D2toD1Mem        , Copysign_Db  , Wasm::WasmMath::Copysign<double>                   )
 
   EXDEF2_WMS( F1toF1Mem      , Trunc_Flt    , Wasm::WasmMath::Trunc<float>                       )
   EXDEF2_WMS( F1toF1Mem      , Nearest_Flt  , Wasm::WasmMath::Nearest<float>                     )

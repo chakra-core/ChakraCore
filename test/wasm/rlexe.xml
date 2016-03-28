@@ -21,4 +21,11 @@
     <compile-flags>-on:wasm</compile-flags>
   </default>
 </test>
+<test>
+    <default>
+       <files>f32.js</files>
+       <baseline>f32.baseline</baseline>
+       <compile-flags>-on:Wasm</compile-flags>
+    </default>
+</test>
 </regress-exe>
