@@ -9597,8 +9597,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
                 IR::Opnd* src2 = instr->GetSrc2();
                 this->ToInt32(instr, src2, this->currentBlock, src2Val, nullptr, lossy);
 
-                IR::Opnd* dst = instr->GetDst();
-                this->ToFloat64Dst(instr, dst->AsRegOpnd(), this->currentBlock);
+                TypeSpecializeFloatDst(instr, nullptr, src1Val, src2Val, pDstVal);
             }
             else
             {
