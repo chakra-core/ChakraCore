@@ -230,7 +230,7 @@ namespace Js
 
                     if (hr != S_OK)
                     {
-                        break;
+                        return true;
                     }
                 }
 
@@ -260,7 +260,7 @@ namespace Js
             return false;
         });
 
-        if (this->scriptContext != nullptr && !this->scriptContext->IsClosed())
+        if (SUCCEEDED(hr) && this->scriptContext != nullptr && !this->scriptContext->IsClosed())
         {
             if (shouldPerformSourceRundown && this->scriptContext->HaveCalleeSources())
             {
