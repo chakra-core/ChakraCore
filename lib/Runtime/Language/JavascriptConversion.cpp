@@ -472,29 +472,27 @@ CommonNumber:
         RecyclableObject *const recyclableObject = RecyclableObject::FromVar(aValue);
         ScriptContext *const scriptContext = recyclableObject->GetScriptContext();
 
-        /*7.3.7 GetMethod (O, P)
-        The abstract operation GetMethod is used to get the value of a specific property of an object when the value of the property is expected to be a function.
-        The operation is called with arguments O and P where O is the object, P is the property key. This abstract operation performs the following steps:
-
-        Assert: Type(O) is Object.
-        Assert: IsPropertyKey(P) is true.
-        Let func be the result of calling the [[Get]] internal method of O passing P and O as the arguments.
-        ReturnIfAbrupt(func).
-        If func is undefined, then return undefined.
-        If IsCallable(func) is false, then throw a TypeError exception.
-        Return func.*/
+        //7.3.9 GetMethod(V, P)
+        //  The abstract operation GetMethod is used to get the value of a specific property of an ECMAScript language value when the value of the
+        //  property is expected to be a function. The operation is called with arguments V and P where V is the ECMAScript language value, P is the
+        //  property key. This abstract operation performs the following steps:
+        //  1. Assert: IsPropertyKey(P) is true.
+        //  2. Let func be ? GetV(V, P).
+        //  3. If func is either undefined or null, return undefined.
+        //  4. If IsCallable(func) is false, throw a TypeError exception.
+        //  5. Return func.
         Var varMethod;
 
         if (!(requestContext->GetConfig()->IsES6ToPrimitiveEnabled()
             && JavascriptOperators::GetPropertyReference(recyclableObject, PropertyIds::_symbolToPrimitive, &varMethod, requestContext)
-            && !JavascriptOperators::IsUndefinedObject(varMethod)))
+            && !JavascriptOperators::IsUndefinedOrNull(varMethod)))
         {
             return OrdinaryToPrimitive(aValue, hint, requestContext);
         }
         if (!JavascriptFunction::Is(varMethod))
         {
             // Don't error if we disabled implicit calls
-            JavascriptError::TryThrowTypeError(scriptContext, requestContext, JSERR_NeedFunction, requestContext->GetPropertyName(PropertyIds::_symbolToPrimitive)->GetBuffer());
+            JavascriptError::TryThrowTypeError(scriptContext, requestContext, JSERR_Property_NeedFunction, requestContext->GetPropertyName(PropertyIds::_symbolToPrimitive)->GetBuffer());
             return requestContext->GetLibrary()->GetNull();
         }
 
