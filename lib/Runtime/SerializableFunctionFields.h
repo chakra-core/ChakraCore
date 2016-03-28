@@ -80,6 +80,7 @@ PRIVATE_FIELDS
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LiteralRegexCount, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, InnerScopeCount, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalClosureRegister, RegSlot);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ParamClosureRegister, RegSlot);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalFrameDisplayRegister, RegSlot);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, EnvRegister, RegSlot);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ThisRegisterForEventHandler, RegSlot);
