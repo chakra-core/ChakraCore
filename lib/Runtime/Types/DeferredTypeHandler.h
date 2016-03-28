@@ -258,10 +258,12 @@ namespace Js
     {
         if (DeferredTypeFilter::HasFilter() && !DeferredTypeFilter::HasProperty(propertyId))
         {
+            *value = requestContext->GetMissingPropertyResult();
             return false;
         }
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
+            *value = requestContext->GetMissingPropertyResult();
             return FALSE;
         }
         return GetCurrentTypeHandler(instance)->GetProperty(instance, originalInstance, propertyId, value, info, requestContext);
@@ -273,6 +275,7 @@ namespace Js
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
+            *value = requestContext->GetMissingPropertyResult();
             return FALSE;
         }
         return GetCurrentTypeHandler(instance)->GetProperty(instance, originalInstance, propertyNameString, value, info, requestContext);
@@ -393,6 +396,7 @@ namespace Js
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
+            *value = requestContext->GetMissingItemResult();
             return FALSE;
         }
         return GetCurrentTypeHandler(instance)->GetItem(instance, originalInstance, index, value, requestContext);

@@ -415,6 +415,7 @@ namespace Js
         {
             return TRUE;
         }
+        *value = requestContext->GetMissingItemResult();
         return FALSE;
     }
 
@@ -442,6 +443,7 @@ namespace Js
         {
             return TRUE;
         }
+        *value = requestContext->GetMissingItemResult();
         return FALSE;
     }
 

@@ -3687,27 +3687,30 @@ case_2:
 
     BOOL JavascriptString::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return GetPropertyBuiltIns(propertyId, value);
+        return GetPropertyBuiltIns(propertyId, value, requestContext);
     }
     BOOL JavascriptString::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyRecord const* propertyRecord;
         this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
 
-        if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value))
+        if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
         {
-            return true;
-        }
-        return false;
-    }
-    bool JavascriptString::GetPropertyBuiltIns(PropertyId propertyId, Var* value)
-    {
-        if (propertyId == PropertyIds::length)
-        {
-            *value = JavascriptNumber::ToVar(this->GetLength(), this->GetScriptContext());
             return true;
         }
 
+        *value = requestContext->GetMissingPropertyResult();
+        return false;
+    }
+    bool JavascriptString::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
+    {
+        if (propertyId == PropertyIds::length)
+        {
+            *value = JavascriptNumber::ToVar(this->GetLength(), requestContext);
+            return true;
+        }
+
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
     BOOL JavascriptString::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
