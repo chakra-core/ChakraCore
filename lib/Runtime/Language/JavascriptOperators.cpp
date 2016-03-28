@@ -1596,6 +1596,7 @@ CommonNumber:
                 }
             }
 #endif
+            *value = requestContext->GetLibrary()->GetUndefined();
             return FALSE;
         }
     }
@@ -1636,6 +1637,7 @@ CommonNumber:
             }
             object = JavascriptOperators::GetPrototypeNoTrap(object);
         }
+        *value = requestContext->GetLibrary()->GetUndefined();
         return FALSE;
     }
 
@@ -1870,6 +1872,7 @@ CommonNumber:
                 }
             }
 #endif
+            *value = requestContext->GetLibrary()->GetUndefined();
             return foundProperty;
         }
 
@@ -2898,6 +2901,7 @@ CommonNumber:
             }
             object = JavascriptOperators::GetPrototypeNoTrap(object);
         }
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 
@@ -2916,6 +2920,7 @@ CommonNumber:
             }
             object = JavascriptOperators::GetPrototypeNoTrap(object);
         }
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 
@@ -9243,13 +9248,8 @@ CommonNumber:
             }
         }
 
-        if (superRef == nullptr)
-        {
-            // We didn't find a super reference. Emit a reference error.
-            JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference, L"super");
-        }
-
-        return superRef;
+        // We didn't find a super reference. Emit a reference error.
+        JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference, L"super");
     }
 
     Var JavascriptOperators::OP_ScopedLdSuper(Var scriptFunction, ScriptContext * scriptContext)

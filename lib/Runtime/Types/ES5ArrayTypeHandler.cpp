@@ -674,6 +674,7 @@ namespace Js
         {
             if (descriptor->Attributes & PropertyDeleted)
             {
+                *value = requestContext->GetLibrary()->GetUndefined();
                 return false;
             }
 
@@ -684,11 +685,12 @@ namespace Js
             }
             else
             {
-                *value = instance->GetLibrary()->GetUndefined();
+                *value = requestContext->GetLibrary()->GetUndefined();
             }
             return true;
         }
 
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 

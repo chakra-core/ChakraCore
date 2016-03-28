@@ -685,8 +685,12 @@
   </test>
   <test>
     <default>
+      <files>proxybug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>proxyenumbug.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
