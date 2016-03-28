@@ -647,6 +647,8 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = LowerReinterpretPrimitive(instr);
             break;
 
+        case Js::OpCode::MinNaN:
+        case Js::OpCode::MaxNaN:
         case Js::OpCode::InlineMathMin:
         case Js::OpCode::InlineMathMax:
             m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);

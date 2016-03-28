@@ -180,6 +180,7 @@ public:
             void            GenerateFastInlineBuiltInMathAbs(IR::Instr* instr);
             void            GenerateFastInlineBuiltInMathPow(IR::Instr* instr);
             IR::Opnd*       IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
+            IR::Opnd*       IsOpndNaN(IR::Opnd* opnd, IR::Instr* instr);
             IR::Instr *     CloneSlowPath(IR::Instr * instrEndFloatRange, IR::Instr * instrInsert);
             bool            IsCloneDone(IR::Instr * instr, BVSparse<JitArenaAllocator> *bvTmps);
             IR::Instr *     EnsureAdjacentArgs(IR::Instr * instrArg);
