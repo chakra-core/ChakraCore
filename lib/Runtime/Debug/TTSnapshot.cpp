@@ -189,8 +189,15 @@ namespace TTD
         {
             //lookup the inflator function for this object and call it
             NSSnapObjects::fPtr_DoObjectInflation inflateFPtr = this->m_snapObjectVTableArray[(uint32)snpObject->SnapObjectTag].InflationFunc;
-            AssertMsg(inflateFPtr != nullptr, "We probably forgot to update the vtable with a tag we added.");
 
+#if TTD_ERROR_INFO_WORK_AROUND
+            if(inflateFPtr == nullptr)
+            {
+                inflateFPtr = &NSSnapObjects::DoObjectInflation_SnapDynamicObject;
+            }
+#endif
+
+            AssertMsg(inflateFPtr != nullptr, "We probably forgot to update the vtable with a tag we added.");
             res = inflateFPtr(snpObject, inflator);
         }
 

@@ -1460,28 +1460,36 @@ namespace TTD
             Js::JavascriptArray* arrayObj = static_cast<Js::JavascriptArray*>(obj);
             DoAddtlValueInstantiation_SnapArrayInfoCore<TTDVar, Js::Var>(es5Info->BasicArrayData, arrayObj, inflator);
 
-            for(uint32 i = 0; i < es5Info->GetterSetterCount; ++i)
+            if(es5Info->GetterSetterCount == 0)
             {
-                const SnapES5ArrayGetterSetterEntry* entry = es5Info->GetterSetterEntries + i;
-
-                Js::Var getter = nullptr;
-                if(entry->Getter != nullptr)
+                //force it to an es5 array representation
+                arrayObj->SetItemAttributes(0, PropertyDynamicTypeDefaults);
+            }
+            else
+            {
+                for(uint32 i = 0; i < es5Info->GetterSetterCount; ++i)
                 {
-                    getter = inflator->InflateTTDVar(entry->Getter);
-                }
+                    const SnapES5ArrayGetterSetterEntry* entry = es5Info->GetterSetterEntries + i;
 
-                Js::Var setter = nullptr;
-                if(entry->Setter != nullptr)
-                {
-                    setter = inflator->InflateTTDVar(entry->Setter);
-                }
+                    Js::Var getter = nullptr;
+                    if(entry->Getter != nullptr)
+                    {
+                        getter = inflator->InflateTTDVar(entry->Getter);
+                    }
 
-                if(getter != nullptr || setter != nullptr)
-                {
-                    arrayObj->SetItemAccessors(entry->Index, getter, setter);
-                }
+                    Js::Var setter = nullptr;
+                    if(entry->Setter != nullptr)
+                    {
+                        setter = inflator->InflateTTDVar(entry->Setter);
+                    }
 
-                arrayObj->SetItemAttributes(entry->Index, entry->Attributes);
+                    if(getter != nullptr || setter != nullptr)
+                    {
+                        arrayObj->SetItemAccessors(entry->Index, getter, setter);
+                    }
+
+                    arrayObj->SetItemAttributes(entry->Index, entry->Attributes);
+                }
             }
         }
 

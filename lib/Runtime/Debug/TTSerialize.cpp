@@ -1693,6 +1693,12 @@ namespace TTD
 
         this->EnsureSpace(128);
         this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "(l:%I32u, c:%I32u)\n", line + 1, column);
+
+        ////
+        //Temp debugging help if needed 
+        this->ForceFlush();
+        //
+        ////
     }
 #endif
 }

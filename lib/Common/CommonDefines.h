@@ -275,11 +275,14 @@
 //Also makes step out behave the same as step back
 #define TTD_VSCODE_WORK_AROUNDS 1
 
+//A temp workaround to avoid snapshotting additional properties getter/setter properties on error objects 
+#define TTD_ERROR_INFO_WORK_AROUND  1
+
 //Enable various sanity checking features and asserts
-#define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1
+#define ENABLE_TTD_INTERNAL_DIAGNOSTICS 0
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-#define ENABLE_SNAPSHOT_COMPARE 1
+#define ENABLE_SNAPSHOT_COMPARE 0
 #define ENABLE_BASIC_TRACE 0
 #define ENABLE_FULL_BC_TRACE 0
 #else
