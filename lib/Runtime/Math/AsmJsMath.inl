@@ -5,19 +5,12 @@
 namespace Js
 {
 
-#if 0
-    template<typename T>
-    inline T AsmJsMath::Min(T aLeft, T aRight)
-    {
-        return aLeft < aRight ? aLeft : aRight;
-    }
-
     template<typename T>
     __inline T minCheckNan(T aLeft, T aRight)
     {
         if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
         {
-            return NumberConstants::NaN;
+            return (T)NumberConstants::NaN;
         }
         return aLeft < aRight ? aLeft : aRight;
     }
@@ -25,19 +18,13 @@ namespace Js
     template<>
     __inline double AsmJsMath::Min<double>(double aLeft, double aRight)
     {
-        return minCheckNan<double>(aLeft, aRight);
+        return minCheckNan(aLeft, aRight);
     }
 
     template<>
     __inline float AsmJsMath::Min<float>(float aLeft, float aRight)
     {
-        return minCheckNan<float>(aLeft, aRight);
-    }
-
-    template<typename T>
-    inline T AsmJsMath::Max(T aLeft, T aRight)
-    {
-        return aLeft > aRight ? aLeft : aRight;
+        return minCheckNan(aLeft, aRight);
     }
 
     template<typename T>
@@ -45,7 +32,7 @@ namespace Js
     {
         if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
         {
-            return NumberConstants::NaN;
+            return (T)NumberConstants::NaN;
         }
         return aLeft > aRight ? aLeft : aRight;
     }
@@ -53,15 +40,14 @@ namespace Js
     template<>
     __inline double AsmJsMath::Max<double>(double aLeft, double aRight)
     {
-        maxCheckNan<double>(aLeft, aRight);
+        return maxCheckNan(aLeft, aRight);
     }
 
     template<>
-    __inline float AsmJsMath::Min<float>(float aLeft, float aRight)
+    __inline float AsmJsMath::Max<float>(float aLeft, float aRight)
     {
-        maxCheckNan<float>(aLeft, aRight);
+        return maxCheckNan(aLeft, aRight);
     }
-#endif
 
     template<typename T>
     inline T AsmJsMath::Add( T aLeft, T aRight )

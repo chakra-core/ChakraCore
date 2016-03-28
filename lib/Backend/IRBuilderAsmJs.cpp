@@ -2919,6 +2919,13 @@ IRBuilderAsmJs::BuildFloat3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlo
 
     case Js::OpCodeAsmJs::Copysign_Flt:
         instr = IR::Instr::New(Js::OpCode::Copysign_A, dstOpnd, src1Opnd, src2Opnd, m_func);
+
+    case Js::OpCodeAsmJs::Min_Flt:
+        instr = IR::Instr::New(Js::OpCode::InlineMathMin, dstOpnd, src1Opnd, src2Opnd, m_func);
+        break;
+
+    case Js::OpCodeAsmJs::Max_Flt:
+        instr = IR::Instr::New(Js::OpCode::InlineMathMax, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
 
     default:
