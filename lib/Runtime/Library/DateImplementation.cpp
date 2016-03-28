@@ -1004,7 +1004,7 @@ Error:
         return true;
     }
 
-    boolean DateImplementation::UtcTimeFromStrCore(
+    bool DateImplementation::UtcTimeFromStrCore(
         __in_ecount_z(ulength) const char16 *psz,
         unsigned int ulength,
         double &retVal,

@@ -1287,7 +1287,7 @@ namespace Js
             return;
         }
         AnalysisAssert(convertBuffer == localConvertBuffer);
-        AppendGeneric(localConvertBuffer, appendCharLength, toString, appendChars);
+        AppendGeneric(static_cast<const char16* const>(localConvertBuffer), appendCharLength, toString, appendChars);
     }
 
     template<CharCount AppendCharLengthPlusOne>

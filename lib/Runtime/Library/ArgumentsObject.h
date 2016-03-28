@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    class ArgumentsObject abstract : public DynamicObject
+    class ArgumentsObject _ABSTRACT : public DynamicObject
     {
     private:
         static PropertyId specialPropertyIds[];

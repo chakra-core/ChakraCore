@@ -741,8 +741,8 @@ private:
 #ifdef ENABLE_GLOBALIZATION
         TIME_ZONE_INFORMATION timeZoneInfo;
         uint lastTimeZoneUpdateTickCount;
-        DaylightTimeHelper daylightTimeHelper;
 #endif // ENABLE_GLOBALIZATION
+        DaylightTimeHelper daylightTimeHelper;
 
         HostScriptContext * hostScriptContext;
         HaltCallback* scriptEngineHaltCallback;
@@ -860,9 +860,7 @@ private:
         bool isRootTrackerScriptContext;
 #endif
 
-#ifdef ENABLE_GLOBALIZATION
         DaylightTimeHelper *GetDaylightTimeHelper() { return &daylightTimeHelper; }
-#endif // ENABLE_GLOBALIZATION
 
         bool IsClosed() const { return isClosed; }
         bool IsActuallyClosed() const { return isScriptContextActuallyClosed; }

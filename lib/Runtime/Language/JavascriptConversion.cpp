@@ -9,9 +9,6 @@
 #include "Library/DateImplementation.h"
 #include "Library/JavascriptDate.h"
 
-extern "C" PVOID _ReturnAddress(VOID);
-#pragma intrinsic(_ReturnAddress)
-
 namespace Js
 {
     static const double k_2to16 = 65536.0;
