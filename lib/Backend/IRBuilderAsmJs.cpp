@@ -2553,6 +2553,10 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         }
 
         break;
+    
+    case Js::OpCodeAsmJs::CmEqz_Int:
+        instr = IR::Instr::New(Js::OpCode::CmEqz_I4, dstOpnd, srcOpnd, m_func);
+        break;
 
     default:
         Assume(UNREACHED);
@@ -2825,6 +2829,10 @@ IRBuilderAsmJs::BuildFloat2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlo
         break;
     case Js::OpCodeAsmJs::I_Conv_VTF:
         instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
+        break;
+    case Js::OpCodeAsmJs::Copysign_Flt:
+    case Js::OpCodeAsmJs::Trunc_Flt:
+    case Js::OpCodeAsmJs::Nearest_Flt:
         break;
     default:
         Assume(UNREACHED);

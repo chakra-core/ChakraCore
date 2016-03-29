@@ -253,6 +253,7 @@ MACRO_BACKEND_ONLY(     CmUnLe_I4,          Reg3,           OpTempNumberSources|
 MACRO_BACKEND_ONLY(     CmUnGt_I4,          Reg3,           OpTempNumberSources|OpCanCSE)                                   // Unsigned I4 Compare if '>'
 MACRO_BACKEND_ONLY(     CmUnGe_I4,          Reg3,           OpTempNumberSources|OpCanCSE)                                   // Unsigned I4 Compare if '>='
 
+MACRO_BACKEND_ONLY(CmEqz_I4, Reg2, OpTempNumberSources | OpCanCSE)                                   // I4 Compare if == 0
 
 // Conversions
 MACRO_WMS(              Conv_Num,           Reg2,           OpSideEffect|OpTempNumberProducing|OpTempNumberTransfer|OpTempObjectSources|OpCallsValueOf|OpProducesNumber) // Convert to Number. [[ToNumber()]]

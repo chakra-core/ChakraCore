@@ -69,6 +69,8 @@ WASM_KEYWORD_UNARY_FD(CEIL,   ceil, Ceil)
 WASM_KEYWORD_UNARY_FD(FLOOR,  floor, Floor)
 
 WASM_KEYWORD_UNARY_FD(SQRT, sqrt, Sqrt)
+WASM_KEYWORD_UNARY_FD(TRUNC, trunc, Trunc)
+WASM_KEYWORD_UNARY_FD(NEAREST, nearest, Nearest)
 
 // TODO: michhol, new ops
 // WASM_KEYWORD_UNARY_FD(TRUNC, trunc, Trunc)

@@ -429,7 +429,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 #include "WasmKeywords.h"
 
     default:
-        throw WasmCompilationException(_u("Unknown expression's op %u"), op);
+        throw WasmCompilationException(_u("Unknown expression's op 0x%X"), op);
     }
 }
 
