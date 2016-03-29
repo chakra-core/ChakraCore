@@ -1629,8 +1629,6 @@ ThreadContext::LeaveScriptStart(void * frameAddress)
     }
 #endif
 
-    JS_ETW(EventWriteJSCRIPT_CALL_OUT_START(this,0));
-
     Js::ScriptEntryExitRecord * entryExitRecord = this->GetScriptEntryExit();
 
     AssertMsg(entryExitRecord && entryExitRecord->frameIdOfScriptExitFunction == nullptr,
@@ -1689,7 +1687,6 @@ ThreadContext::LeaveScriptEnd(void * frameAddress)
     }
 #endif
 
-    JS_ETW(EventWriteJSCRIPT_CALL_OUT_STOP(this,0));
     Js::ScriptEntryExitRecord * entryExitRecord = this->GetScriptEntryExit();
 
     AssertMsg(entryExitRecord && entryExitRecord->frameIdOfScriptExitFunction,
