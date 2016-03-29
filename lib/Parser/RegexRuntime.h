@@ -703,7 +703,7 @@ namespace UnifiedRegex
         inline JumpIfNotSetInst() : Inst(JumpIfNotSet), JumpMixin() {}
 
         INST_BODY
-        INST_BODY_FREE(SetMixin)
+        INST_BODY_FREE(SetMixin<false>)
     };
 
     struct MatchSetOrJumpInst : Inst, SetMixin<false>, JumpMixin
@@ -713,7 +713,7 @@ namespace UnifiedRegex
         inline MatchSetOrJumpInst() : Inst(MatchSetOrJump), JumpMixin() {}
 
         INST_BODY
-        INST_BODY_FREE(SetMixin)
+        INST_BODY_FREE(SetMixin<false>)
     };
 
     struct Switch10Inst : Inst, SwitchMixin<10>
@@ -829,7 +829,7 @@ namespace UnifiedRegex
         inline MatchSetInst() : Inst(IsNegation ? MatchNegatedSet : MatchSet) {}
 
         INST_BODY
-        INST_BODY_FREE(SetMixin)
+        INST_BODY_FREE(SetMixin<IsNegation>)
     };
 
     struct MatchLiteralInst : Inst, LiteralMixin
@@ -870,7 +870,7 @@ namespace UnifiedRegex
         inline OptMatchSetInst() : Inst(OptMatchSet) {}
 
         INST_BODY
-        INST_BODY_FREE(SetMixin)
+        INST_BODY_FREE(SetMixin<false>)
     };
 
     //
@@ -899,7 +899,7 @@ namespace UnifiedRegex
         inline SyncToSetAndContinueInst() : Inst(IsNegation ? SyncToNegatedSetAndContinue : SyncToSetAndContinue) {}
 
         INST_BODY
-        INST_BODY_FREE(SetMixin)
+        INST_BODY_FREE(SetMixin<IsNegation>)
     };
 
     template <typename ScannerT>
@@ -974,7 +974,7 @@ namespace UnifiedRegex
         inline SyncToSetAndConsumeInst() : Inst(IsNegation ? SyncToNegatedSetAndConsume : SyncToSetAndConsume) {}
 
         INST_BODY
-        INST_BODY_FREE(SetMixin)
+        INST_BODY_FREE(SetMixin<IsNegation>)
     };
 
     template <typename ScannerT>
@@ -1042,7 +1042,7 @@ namespace UnifiedRegex
         inline SyncToSetAndBackupInst(const CountDomain& backup) : Inst(IsNegation ? SyncToNegatedSetAndBackup : SyncToSetAndBackup), BackupMixin(backup) {}
 
         INST_BODY
-        INST_BODY_FREE(SetMixin)
+        INST_BODY_FREE(SetMixin<IsNegation>)
     };
 
     template <typename ScannerT>

@@ -2,22 +2,22 @@ add_library (Chakra.Parser
     Alloc.cpp
     BackgroundParser.cpp
     CaseInsensitive.cpp
-    # CharClassifier.cpp
-    # CharSet.cpp
+    CharClassifier.cpp
+    CharSet.cpp
     CharTrie.cpp
     DebugWriter.cpp
     Hash.cpp
     OctoquadIdentifier.cpp
-    # Parse.cpp
+    Parse.cpp
     ParserPch.cpp
     RegexCompileTime.cpp
-    # RegexParser.cpp
-    # RegexPattern.cpp
-    # RegexRuntime.cpp
+    RegexParser.cpp
+    RegexPattern.cpp
+    RegexRuntime.cpp
     RegexStats.cpp
-    # Scan.cpp
-    # StandardChars.cpp
-    # TextbookBoyerMoore.cpp
+    Scan.cpp
+    StandardChars.cpp
+    TextbookBoyerMoore.cpp
     cmperr.cpp
     errstr.cpp
     globals.cpp

@@ -1076,6 +1076,33 @@ errno_t __cdecl _itow_s(int _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix
 
 #endif
 
+_SAFECRT__EXTERN_C
+errno_t __cdecl _ltow_s(long _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix);
+
+#if defined(__cplusplus) && _SAFECRT_USE_CPP_OVERLOADS
+template <size_t _SizeInWords>
+inline
+errno_t __cdecl _ltow_s(long _Value, WCHAR (&_Dst)[_SizeInWords], int _Radix)
+{
+    return _ltow_s(_Value, _Dst, _SizeInWords, _Radix);
+}
+#endif
+
+#if _SAFECRT_USE_INLINES
+
+__inline
+errno_t __cdecl _ltow_s(long _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix)
+{
+    /* validation section */
+    _SAFECRT__VALIDATE_STRING(_Dst, _SizeInWords);
+
+    /* TODO: do not write past buffer size */
+    _ltow(_Value, _Dst, _Radix);
+    return 0;
+}
+
+#endif
+    
 /* _i64tow_s */
 _SAFECRT__EXTERN_C
 errno_t __cdecl _i64tow_s(__int64 _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix);

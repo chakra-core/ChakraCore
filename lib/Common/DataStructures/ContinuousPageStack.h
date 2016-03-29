@@ -320,8 +320,8 @@ template<class T, const size_t InitialPageCount>
 __inline T &ContinuousPageStackOfFixedElements<T, InitialPageCount>::Iterator::operator *() const
 {
     Assert(*this);
-    Assert(nextTop <= stack.nextTop);
-    return *reinterpret_cast<T *>(&stack.Buffer()[nextTop - sizeof(T)]);
+    Assert(this->nextTop <= stack.nextTop);
+    return *reinterpret_cast<T *>(&stack.Buffer()[this->nextTop - sizeof(T)]);
 }
 
 template<class T, const size_t InitialPageCount>
@@ -334,7 +334,7 @@ template<class T, const size_t InitialPageCount>
 __inline typename ContinuousPageStackOfFixedElements<T, InitialPageCount>::Iterator &ContinuousPageStackOfFixedElements<T, InitialPageCount>::Iterator::operator ++() // pre-increment
 {
     Assert(*this);
-    nextTop -= sizeof(T);
+    this->nextTop -= sizeof(T);
     return *this;
 }
 
@@ -361,31 +361,31 @@ __inline ContinuousPageStackOfFixedElements<T, InitialPageCount>::ContinuousPage
 template<class T, const size_t InitialPageCount>
 __inline char* ContinuousPageStackOfFixedElements<T, InitialPageCount>::Push()
 {
-    return ContinuousPageStack::Push(sizeof(T));
+    return ContinuousPageStack<InitialPageCount>::Push(sizeof(T));
 }
 
 template<class T, const size_t InitialPageCount>
 __inline T* ContinuousPageStackOfFixedElements<T, InitialPageCount>::Top() const
 {
-    return reinterpret_cast<T*>(ContinuousPageStack::Top(sizeof(T)));
+    return reinterpret_cast<T*>(ContinuousPageStack<InitialPageCount>::Top(sizeof(T)));
 }
 
 template<class T, const size_t InitialPageCount>
 __inline T* ContinuousPageStackOfFixedElements<T, InitialPageCount>::Pop()
 {
-    return reinterpret_cast<T*>(ContinuousPageStack::Pop(sizeof(T)));
+    return reinterpret_cast<T*>(ContinuousPageStack<InitialPageCount>::Pop(sizeof(T)));
 }
 
 template<class T, const size_t InitialPageCount>
 __inline void ContinuousPageStackOfFixedElements<T, InitialPageCount>::UnPop()
 {
-    return ContinuousPageStack::UnPop(sizeof(T));
+    return ContinuousPageStack<InitialPageCount>::UnPop(sizeof(T));
 }
 
 template<class T, const size_t InitialPageCount>
 __inline void ContinuousPageStackOfFixedElements<T, InitialPageCount>::PopTo(const size_t position)
 {
-    ContinuousPageStack::PopTo(position);
+    ContinuousPageStack<InitialPageCount>::PopTo(position);
 }
 
 // -----------------------------------------------------------------------------------------------------------------------------
@@ -407,8 +407,8 @@ template<class T, const size_t InitialPageCount>
 __inline T &ContinuousPageStackOfVariableElements<T, InitialPageCount>::Iterator::operator *() const
 {
     Assert(*this);
-    Assert(nextTop <= stack.nextTop);
-    return *reinterpret_cast<T*>(reinterpret_cast<VariableElement *>(&stack.Buffer()[nextTop - topElementSize])->Data());
+    Assert(this->nextTop <= stack.nextTop);
+    return *reinterpret_cast<T*>(reinterpret_cast<VariableElement *>(&stack.Buffer()[this->nextTop - this->topElementSize])->Data());
 }
 
 template<class T, const size_t InitialPageCount>
@@ -421,8 +421,8 @@ template<class T, const size_t InitialPageCount>
 __inline typename ContinuousPageStackOfVariableElements<T, InitialPageCount>::Iterator &ContinuousPageStackOfVariableElements<T, InitialPageCount>::Iterator::operator ++() // pre-increment
 {
     Assert(*this);
-    Assert(nextTop <= stack.nextTop);
-    topElementSize = reinterpret_cast<VariableElement *>(&stack.Buffer()[nextTop -= topElementSize])->PreviousElementSize();
+    Assert(this->nextTop <= stack.nextTop);
+    topElementSize = reinterpret_cast<VariableElement *>(&stack.Buffer()[this->nextTop -= this->topElementSize])->PreviousElementSize();
     return *this;
 }
 
@@ -482,22 +482,23 @@ __inline char* ContinuousPageStackOfVariableElements<T, InitialPageCount>::Push(
 {
     TemplateParameter::SameOrDerivedFrom<ActualT, T>(); // ActualT must be the same type as, or a type derived from, T
     VariableElement *const element =
-        new(ContinuousPageStack::Push(VariableElement::Size<ActualT>())) VariableElement(topElementSize);
-    topElementSize = VariableElement::Size<ActualT>();
+        new(ContinuousPageStack<InitialPageCount>::Push(VariableElement::template
+        Size<ActualT>())) VariableElement(topElementSize);
+    topElementSize = VariableElement::template Size<ActualT>();
     return element->Data();
 }
 
 template<class T, const size_t InitialPageCount>
 __inline T* ContinuousPageStackOfVariableElements<T, InitialPageCount>::Top() const
 {
-    VariableElement* const element = reinterpret_cast<VariableElement*>(ContinuousPageStack::Top(topElementSize));
+    VariableElement* const element = reinterpret_cast<VariableElement*>(ContinuousPageStack<InitialPageCount>::Top(topElementSize));
     return element == 0 ? 0 : reinterpret_cast<T*>(element->Data());
 }
 
 template<class T, const size_t InitialPageCount>
 __inline T* ContinuousPageStackOfVariableElements<T, InitialPageCount>::Pop()
 {
-    VariableElement *const element = reinterpret_cast<VariableElement*>(ContinuousPageStack::Pop(topElementSize));
+    VariableElement *const element = reinterpret_cast<VariableElement*>(ContinuousPageStack<InitialPageCount>::Pop(topElementSize));
     if (element == 0)
         return 0;
     else
@@ -512,19 +513,21 @@ template<class ActualT>
 __inline void ContinuousPageStackOfVariableElements<T, InitialPageCount>::UnPop()
 {
     TemplateParameter::SameOrDerivedFrom<ActualT, T>(); // ActualT must be the same type as, or a type derived from, T
-    ContinuousPageStack::UnPop(VariableElement::Size<ActualT>());
-    Assert(reinterpret_cast<VariableElement*>(ContinuousPageStack::Top(VariableElement::Size<ActualT>()))->PreviousElementSize() == topElementSize);
-    topElementSize = VariableElement::Size<ActualT>();
+    ContinuousPageStack<InitialPageCount>::UnPop(VariableElement::template
+    Size<ActualT>());
+    Assert(reinterpret_cast<VariableElement*>(ContinuousPageStack<InitialPageCount>::Top(VariableElement::template
+    Size<ActualT>()))->PreviousElementSize() == topElementSize);
+    topElementSize = VariableElement::template Size<ActualT>();
 }
 
 template<class T, const size_t InitialPageCount>
 __inline void ContinuousPageStackOfVariableElements<T, InitialPageCount>::PopTo(const size_t position)
 {
-    Assert(position <= nextTop);
-    if(position != nextTop)
+    Assert(position <= this->nextTop);
+    if(position != this->nextTop)
     {
-        Assert(position + sizeof(VariableElement) <= nextTop);
-        topElementSize = reinterpret_cast<VariableElement *>(&Buffer()[position])->PreviousElementSize();
+        Assert(position + sizeof(VariableElement) <= this->nextTop);
+        topElementSize = reinterpret_cast<VariableElement *>(&this->Buffer()[position])->PreviousElementSize();
     }
-    ContinuousPageStack::PopTo(position);
+    ContinuousPageStack<InitialPageCount>::PopTo(position);
 }

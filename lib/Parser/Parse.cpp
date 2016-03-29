@@ -7254,7 +7254,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
 
         // We are not able to pass more than a ushort worth of arguments to the tag
         // so use that as a logical limit on the number of string constant pieces.
-        if (stringConstantCount >= USHORT_MAX)
+        if (stringConstantCount >= USHRT_MAX)
         {
             Error(ERRnoMemory);
         }
@@ -7802,7 +7802,7 @@ LPCOLESTR Parser::AppendNameHints(LPCOLESTR left, IdentPtr right, ulong *pNameLe
 
     Assert(leftLen <= ULONG_MAX); // name hints should not exceed ULONG_MAX characters
 
-    if (left == nullptr || leftLen == 0 && !wrapInBrackets)
+    if (left == nullptr || (leftLen == 0 && !wrapInBrackets))
     {
         if (right != nullptr)
         {
@@ -8498,11 +8498,11 @@ PidRefStack* Parser::PushPidRef(IdentPtr pid)
     Assert(GetCurrentBlock() != nullptr);
     AssertMsg(pid != nullptr, "PID should be created");
     PidRefStack *ref = pid->GetTopRef();
-    if (!ref || (ref->GetScopeId() < GetCurrentBlock()->sxBlock.blockId)
+    if (!ref || ((ref->GetScopeId() < GetCurrentBlock()->sxBlock.blockId)
                 // We could have the ref from the parameter scope if it is merged with body scope. In that case we can skip creating a new one.
                 && !(m_currentBlockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.blockId == ref->GetScopeId()
                     && m_currentBlockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter
-                    && m_currentBlockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.scope->GetCanMergeWithBodyScope()))
+                    && m_currentBlockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.scope->GetCanMergeWithBodyScope())))
     {
         ref = Anew(&m_nodeAllocator, PidRefStack);
         if (ref == nullptr)
@@ -10137,7 +10137,7 @@ LNeedTerminator:
             pCatch->sxCatch.pnodeNext = nullptr;
 
             // create a fake name for the catch var.
-            WCHAR *uniqueNameStr = _u("__ehobj");
+            const WCHAR *uniqueNameStr = _u("__ehobj");
             IdentPtr uniqueName = m_phtbl->PidHashNameLen(uniqueNameStr, static_cast<long>(wcslen(uniqueNameStr)));
 
             pCatch->sxCatch.pnodeParam = CreateNameNode(uniqueName);
@@ -10868,7 +10868,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 
     m_scriptContext->AddSourceSize(m_length);
 
-    if(!m_parseType != ParseType_Deferred)
+    if (m_parseType != ParseType_Deferred)
     {
         JS_ETW(EventWriteJSCRIPT_PARSE_METHOD_STOP(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), pnodeProg->sxFnc.functionId, *m_pCurrentAstSize, false, Js::Constants::GlobalFunction));
     }
@@ -11656,7 +11656,7 @@ inline bool Parser::IsNaNOrInfinityLiteral(LPCOLESTR str)
     return str &&
            (wcscmp(_u("NaN"), str) == 0 ||
            wcscmp(_u("Infinity"), str) == 0 ||
-           CheckForNegativeInfinity && wcscmp(_u("-Infinity"), str) == 0);
+               (CheckForNegativeInfinity && wcscmp(_u("-Infinity"), str) == 0));
 }
 
 template <bool buildAST>

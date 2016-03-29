@@ -177,7 +177,7 @@ namespace UnifiedRegex
                 {
                     if (v == defv)
                         return;
-                    children[i] = For(allocator, level, defv);
+                    children[i] = Node::For(allocator, level, defv);
                 }
                 children[i]->Set(allocator, defv, level, k, v);
             }

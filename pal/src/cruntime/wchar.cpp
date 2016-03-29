@@ -188,6 +188,34 @@ _itow(
 
 /*--
 Function:
+  _itow
+
+16-bit wide character version of the ANSI ltow() function.
+
+  --*/
+wchar_16 *
+__cdecl
+_ltow(
+    long value,
+    wchar_16 *string,
+    int radix)
+{
+    wchar_16 *ret;
+
+    PERF_ENTRY(_ltow);
+    ENTRY("_ltow (value=%d, string=%p, radix=%d)\n",
+          value, string, radix);
+
+    ret = Internal_i64tow(value, string, radix, FALSE);
+
+    LOGEXIT("_ltow returns wchar_t* %p\n", ret);
+    PERF_EXIT(_ltow);
+
+    return ret;
+}
+
+/*--
+Function:
   _i64tow
 
 See MSDN doc

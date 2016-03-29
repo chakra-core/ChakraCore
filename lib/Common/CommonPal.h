@@ -391,3 +391,7 @@ void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
 
     finallyFunc(hasException);
 }
+
+__inline
+HRESULT ULongMult(ULONG ulMultiplicand, ULONG ulMultiplier, ULONG* pulResult);
+    

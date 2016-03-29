@@ -512,7 +512,7 @@ namespace UnifiedRegex
     ScannerMixinT<ScannerT>::Match(Matcher& matcher, const char16 * const input, const CharCount inputLength, CharCount& inputOffset) const
     {
         Assert(length <= matcher.program->rep.insts.litbufLen - offset);
-        return scanner.Match<1>
+        return scanner.template Match<1>
             ( input
             , inputLength
             , inputOffset
@@ -534,8 +534,8 @@ namespace UnifiedRegex
 #endif
 
     // explicit instantiation
-    template ScannerMixinT<TextbookBoyerMoore<char16>>;
-    template ScannerMixinT<TextbookBoyerMooreWithLinearMap<char16>>;
+    template struct ScannerMixinT<TextbookBoyerMoore<char16>>;
+    template struct ScannerMixinT<TextbookBoyerMooreWithLinearMap<char16>>;
 
     // ----------------------------------------------------------------------
     // EquivScannerMixinT
@@ -1424,7 +1424,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
 #endif
-        if (inputOffset >= inputLength || set.Get(input[inputOffset]) == IsNegation)
+        if (inputOffset >= inputLength || this->set.Get(input[inputOffset]) == IsNegation)
             return matcher.Fail(FAIL_PARAMETERS);
 
         inputOffset++;
@@ -1437,7 +1437,7 @@ namespace UnifiedRegex
     int MatchSetInst<IsNegation>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
         w->Print(_u("L%04x: MatchSet("), label);
-        SetMixin::Print(w, litbuf);
+        SetMixin<IsNegation>::Print(w, litbuf);
         w->PrintEOL(_u(")"));
         return sizeof(*this);
     }
@@ -1708,7 +1708,7 @@ namespace UnifiedRegex
     template<bool IsNegation>
     __inline bool SyncToSetAndContinueInst<IsNegation>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
-        const RuntimeCharSet<Char>& matchSet = set;
+        const RuntimeCharSet<Char>& matchSet = this->set;
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
 #endif
@@ -1731,7 +1731,7 @@ namespace UnifiedRegex
     int SyncToSetAndContinueInst<IsNegation>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
         w->Print(_u("L%04x: SyncToSetAndContinue("), label);
-        SetMixin::Print(w, litbuf);
+        SetMixin<IsNegation>::Print(w, litbuf);
         w->PrintEOL(_u(")"));
         return sizeof(*this);
     }
@@ -1744,7 +1744,7 @@ namespace UnifiedRegex
     template <typename ScannerT>
     __inline bool SyncToLiteralAndContinueInstT<ScannerT>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
-        if (!Match(matcher, input, inputLength, inputOffset))
+        if (!this->Match(matcher, input, inputLength, inputOffset))
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
 
         matchStart = inputOffset;
@@ -1850,7 +1850,7 @@ namespace UnifiedRegex
     template<bool IsNegation>
     __inline bool SyncToSetAndConsumeInst<IsNegation>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
-        const RuntimeCharSet<Char>& matchSet = set;
+        const RuntimeCharSet<Char>& matchSet = this->set;
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
 #endif
@@ -1875,7 +1875,7 @@ namespace UnifiedRegex
     int SyncToSetAndConsumeInst<IsNegation>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
         w->Print(_u("L%04x: SyncToSetAndConsume("), label);
-        SetMixin::Print(w, litbuf);
+        SetMixin<IsNegation>::Print(w, litbuf);
         w->PrintEOL(_u(")"));
         return sizeof(*this);
     }
@@ -1888,7 +1888,7 @@ namespace UnifiedRegex
     template <typename ScannerT>
     __inline bool SyncToLiteralAndConsumeInstT<ScannerT>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
-        if (!Match(matcher, input, inputLength, inputOffset))
+        if (!this->Match(matcher, input, inputLength, inputOffset))
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
 
         matchStart = inputOffset;
@@ -2000,7 +2000,7 @@ namespace UnifiedRegex
             // No use looking for match until minimum backup is possible
             inputOffset = matchStart + backup.lower;
 
-        const RuntimeCharSet<Char>& matchSet = set;
+        const RuntimeCharSet<Char>& matchSet = this->set;
         while (inputOffset < inputLength && matchSet.Get(input[inputOffset]) == IsNegation)
         {
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -2033,7 +2033,7 @@ namespace UnifiedRegex
     int SyncToSetAndBackupInst<IsNegation>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
         w->Print(_u("L%04x: SyncToSetAndBackup("), label);
-        SetMixin::Print(w, litbuf);
+        SetMixin<IsNegation>::Print(w, litbuf);
         w->Print(_u(", "));
         BackupMixin::Print(w, litbuf);
         w->PrintEOL(_u(")"));
@@ -2063,7 +2063,7 @@ namespace UnifiedRegex
             // No use looking for match until minimum backup is possible
             inputOffset = matchStart + backup.lower;
 
-        if (!Match(matcher, input, inputLength, inputOffset))
+        if (!this->Match(matcher, input, inputLength, inputOffset))
             return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
 
         nextSyncInputOffset = inputOffset + 1;
@@ -2964,7 +2964,7 @@ namespace UnifiedRegex
         loopInfo->startInputOffset = inputOffset;
 
         // Consume as many elements of set as possible
-        const RuntimeCharSet<Char>& matchSet = set;
+        const RuntimeCharSet<Char>& matchSet = this->set;
         const CharCount loopMatchStart = inputOffset;
         const CharCountOrFlag repeatsUpper = repeats.upper;
         const CharCount inputEndOffset =
@@ -3227,7 +3227,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
 #endif
-        if(Mode == ChompMode::Star || inputOffset < inputLength && input[inputOffset] == matchC)
+        if(Mode == ChompMode::Star || (inputOffset < inputLength && input[inputOffset] == matchC))
         {
             while(true)
             {
@@ -3270,11 +3270,11 @@ namespace UnifiedRegex
     template<ChompMode Mode>
     __inline bool ChompSetInst<Mode>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
-        const RuntimeCharSet<Char>& matchSet = set;
+        const RuntimeCharSet<Char>& matchSet = this->set;
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
 #endif
-        if(Mode == ChompMode::Star || inputOffset < inputLength && matchSet.Get(input[inputOffset]))
+        if(Mode == ChompMode::Star || (inputOffset < inputLength && matchSet.Get(input[inputOffset])))
         {
             while(true)
             {
@@ -3324,7 +3324,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
 #endif
-        if(Mode == ChompMode::Star || inputOffset < inputLength && input[inputOffset] == matchC)
+        if(Mode == ChompMode::Star || (inputOffset < inputLength && input[inputOffset] == matchC))
         {
             while(true)
             {
@@ -3387,11 +3387,11 @@ namespace UnifiedRegex
         Assert(matcher.GroupIdToGroupInfo(groupId)->IsUndefined());
 
         const CharCount inputStartOffset = inputOffset;
-        const RuntimeCharSet<Char>& matchSet = set;
+        const RuntimeCharSet<Char>& matchSet = this->set;
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
 #endif
-        if(Mode == ChompMode::Star || inputOffset < inputLength && matchSet.Get(input[inputOffset]))
+        if(Mode == ChompMode::Star || (inputOffset < inputLength && matchSet.Get(input[inputOffset])))
         {
             while(true)
             {
@@ -3493,7 +3493,7 @@ namespace UnifiedRegex
 
     __inline bool ChompSetBoundedInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
-        const RuntimeCharSet<Char>& matchSet = set;
+        const RuntimeCharSet<Char>& matchSet = this->set;
         const CharCount loopMatchStart = inputOffset;
         const CharCountOrFlag repeatsUpper = repeats.upper;
         const CharCount inputEndOffset =
@@ -3538,7 +3538,7 @@ namespace UnifiedRegex
     {
         Assert(matcher.GroupIdToGroupInfo(groupId)->IsUndefined());
 
-        const RuntimeCharSet<Char>& matchSet = set;
+        const RuntimeCharSet<Char>& matchSet = this->set;
         const CharCount loopMatchStart = inputOffset;
         const CharCountOrFlag repeatsUpper = repeats.upper;
         const CharCount inputEndOffset =
