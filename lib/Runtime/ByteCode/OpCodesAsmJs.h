@@ -31,6 +31,9 @@ MACRO       ( MediumLayoutPrefix        , Empty        , None            )
 MACRO       ( ExtendedMediumLayoutPrefix, Empty        , None            )
 MACRO       ( LargeLayoutPrefix         , Empty        , None            )
 MACRO       ( ExtendedLargeLayoutPrefix , Empty        , None            )
+MACRO       ( DblExtendedOpcodePrefix   , Empty        , None            )
+MACRO       ( DblExtendedMediumLayoutPrefix, Empty     , None            )
+MACRO       ( DblExtendedLargeLayoutPrefix, Empty      , None            )
 
 MACRO       ( Nop                       , Empty        , None            ) // No operation (Default value = 0)
 MACRO_EXTEND( NopEx                     , Empty        , None            ) // No operation (Default value = 0)
@@ -159,6 +162,7 @@ MACRO_WMS   ( CmGt_Int                  , Int3         , None            ) // in
 MACRO_WMS   ( CmGe_Int                  , Int3         , None            ) // int32 Comparison >=
 MACRO_WMS   ( CmEq_Int                  , Int3         , None            ) // int32 Comparison ==
 MACRO_WMS   ( CmNe_Int                  , Int3         , None            ) // int32 Comparison !=
+MACRO_WMS   ( Eqz_Int                 , Int2         , None            ) // int32 Comparison with 0
 
 // Unsigned int comparisons
 MACRO_WMS   ( CmLt_UnInt                , Int3         , None            ) // unsigned int32 Comparison <
@@ -216,6 +220,14 @@ MACRO_WMS   ( Max_Db                    , Double3       , None           )
 MACRO_WMS   ( Fround_Flt                , Float2        , None           )
 MACRO_WMS   ( Fround_Db                 , Float1Double1 , None           )
 MACRO_WMS   ( Fround_Int                , Float1Int1    , None           )
+
+MACRO_WMS(Copysign_Db, Double3, None)
+MACRO_WMS(Copysign_Flt, Float3, None)
+
+MACRO_EXTEND_WMS(Trunc_Db, Double2, None)
+MACRO_EXTEND_WMS(Trunc_Flt, Float2, None)
+MACRO_EXTEND_WMS(Nearest_Db, Double2, None)
+MACRO_EXTEND_WMS(Nearest_Flt, Float2, None)
 
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO(opcode, asmjsLayout, opCodeAttrAsmJs)
 #define MACRO_SIMD_WMS(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_WMS(opcode, asmjsLayout, opCodeAttrAsmJs)

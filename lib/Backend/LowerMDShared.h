@@ -190,6 +190,11 @@ public:
 #ifdef _CONTROL_FLOW_GUARD
             void            GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeInstr);
 #endif
+
+            void            GenerateCopysign(IR::Instr * instr);
+            void            GenerateTrunc(IR::Instr * instr);
+            void            GenerateNearest(IR::Instr * instr);
+
             static IR::Instr *LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert);
             static IR::Instr *LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrInsert);
             IR::Instr *     LoadStackAddress(StackSym *sym, IR::RegOpnd *optionalDstOpnd = nullptr);

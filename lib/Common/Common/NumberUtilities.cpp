@@ -27,6 +27,12 @@ namespace Js
       0xFF, 0xFF, 0xFF, 0x7F,
       0xFF, 0xFF, 0xFF, 0x7F };
 
+    __declspec(align(16)) const BYTE NumberConstants::SgnBitCst[] =
+    { 0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x80 };
+
     __declspec(align(16)) double const NumberConstants::UIntConvertConst[2] = { 0, 4294967296.000000 };
     __declspec(align(16)) float const NumberConstants::MaskNegFloat[] = { -0.0f, -0.0f, -0.0f, -0.0f };
     __declspec(align(16)) double const NumberConstants::MaskNegDouble[] = { -0.0, -0.0 };

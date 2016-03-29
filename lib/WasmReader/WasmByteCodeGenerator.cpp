@@ -119,7 +119,7 @@ WasmBytecodeGenerator::GenerateModule()
     }
 
 #if DBG_DUMP
-    if (PHASE_TRACE(Js::WasmReaderPhase, m_func->body))
+    if (m_func != nullptr && PHASE_TRACE(Js::WasmReaderPhase, m_func->body))
     {
         ((Binary::WasmBinaryReader*)m_reader)->PrintOps();
     }
@@ -437,7 +437,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 #include "WasmKeywords.h"
 
     default:
-        throw WasmCompilationException(_u("Unknown expression's op %u"), op);
+        throw WasmCompilationException(_u("Unknown expression's op 0x%X"), op);
     }
 }
 
