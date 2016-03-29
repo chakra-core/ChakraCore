@@ -495,6 +495,20 @@
   </test>
   <test>
     <default>
+      <files>nanbug.js</files>
+      <baseline>nanbug.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>nanbug.js</files>
+      <baseline>nanbug.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>switchbug.js</files>
       <baseline>switchbug.baseline</baseline>
       <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
@@ -755,6 +769,20 @@
       <files>qmarkbug.js</files>
       <baseline>qmarkbug.baseline</baseline>
       <compile-flags>-forcedeferparse -testtrace:asmjs -simdjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>asmjscctx.js</files>
+      <baseline>asmjscctx.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>constloads.js</files>
+      <baseline>constloads.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
     </default>
   </test>
 </regress-exe>

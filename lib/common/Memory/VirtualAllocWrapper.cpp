@@ -19,7 +19,16 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
     {
         //We do the allocation in two steps - CFG Bitmap in kernel will be created only on allocation with EXECUTE flag.
         //We again call VirtualProtect to set to the requested protectFlags.
-        address = VirtualAlloc(lpAddress, dwSize, allocationType, PAGE_EXECUTE_READWRITE | PAGE_TARGETS_INVALID);
+        DWORD allocProtectFlags = 0;
+        if (AutoSystemInfo::Data.IsCFGEnabled())
+        {
+            allocProtectFlags = PAGE_EXECUTE_RW_TARGETS_INVALID;
+        }
+        else
+        {
+            allocProtectFlags = PAGE_EXECUTE_READWRITE;
+        }
+        address = VirtualAlloc(lpAddress, dwSize, allocationType, allocProtectFlags);
         VirtualProtect(address, dwSize, protectFlags, &oldProtectFlags);
     }
     else
@@ -239,8 +248,20 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
 #if defined(_CONTROL_FLOW_GUARD)
         if (AutoSystemInfo::Data.IsCFGEnabled())
         {
-            DWORD oldProtect;
-            commitedAddress = (char *) VirtualAlloc(addressToCommit, dwSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE | PAGE_TARGETS_INVALID);
+            DWORD oldProtect = 0;
+            DWORD allocProtectFlags = 0;
+
+            if (AutoSystemInfo::Data.IsCFGEnabled())
+            {
+                allocProtectFlags = PAGE_EXECUTE_RW_TARGETS_INVALID;
+            }
+            else
+            {
+                allocProtectFlags = PAGE_EXECUTE_READWRITE;
+            }
+
+            commitedAddress = (char *)VirtualAlloc(addressToCommit, dwSize, MEM_COMMIT, allocProtectFlags);
+
             AssertMsg(commitedAddress != nullptr, "If no space to allocate, then how did we fetch this address from the tracking bit vector?");
             VirtualProtect(commitedAddress, dwSize, protectFlags, &oldProtect);
             AssertMsg(oldProtect == (PAGE_EXECUTE_READWRITE), "CFG Bitmap gets allocated and bits will be set to invalid only upon passing these flags.");

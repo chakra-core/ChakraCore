@@ -8126,14 +8126,7 @@ Lowerer::LowerStElemI(IR::Instr * instr, Js::PropertyOperationFlags flags, bool 
 
     if (srcType == TyFloat64)
     {
-        // We don't support the X64 floating-point calling convention. So put this parameter on the end
-        // and save directly to the stack slot.
-#if _M_X64
-        IR::Opnd *argOpnd = IR::SymOpnd::New(m_func->m_symTable->GetArgSlotSym(5), TyFloat64, m_func);
-        m_lowererMD.CreateAssign(argOpnd, src1, instr);
-#else
         m_lowererMD.LoadDoubleHelperArgument(instr, src1);
-#endif
     }
     m_lowererMD.LoadHelperArgument(instr,
         IR::IntConstOpnd::New(static_cast<IntConstType>(flags), IRType::TyInt32, m_func, true));
@@ -8344,7 +8337,7 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
     IR::Opnd * src2 = instr->GetSrc2();
 
     IR::Instr * done;
-    if (indexOpnd || (uint32)src1->AsIndirOpnd()->GetOffset() >= 0x1000000)
+    if (indexOpnd || m_func->GetJnFunction()->GetAsmJsFunctionInfo()->AccessNeedsBoundCheck((uint32)src1->AsIndirOpnd()->GetOffset()))
     {
         // CMP indexOpnd, src2(arrSize)
         // JA $helper
@@ -8362,7 +8355,7 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
     }
     else
     {
-        // any access below 0x1000000 is safe
+        // any access below 0x10000 is safe
         instr->UnlinkDst();
         instr->UnlinkSrc1();
         if (src2)
@@ -8540,7 +8533,7 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
     Assert(!dst->IsFloat64() || src1->IsFloat64());
 
     IR::Instr * done;
-    if (indexOpnd || (uint32)dst->AsIndirOpnd()->GetOffset() >= 0x1000000)
+    if (indexOpnd || m_func->GetJnFunction()->GetAsmJsFunctionInfo()->AccessNeedsBoundCheck((uint32)dst->AsIndirOpnd()->GetOffset()))
     {
         // CMP indexOpnd, src2(arrSize)
         // JA $helper
@@ -8555,7 +8548,7 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
     }
     else
     {
-        // any constant access below 0x1000000 is safe, as that is the min heap size
+        // any constant access below 0x10000 is safe, as that is the min heap size
         instr->UnlinkDst();
         instr->UnlinkSrc1();
         done = instr;
@@ -10327,17 +10320,7 @@ Lowerer::GenerateHelperToArrayPushFastPath(IR::Instr * instr, IR::LabelInstr * b
         Assert(arrayHelperOpnd->GetValueType().IsLikelyNativeFloatArray());
         helperMethod = IR::HelperArray_NativeFloatPush;
 
-    //Currently, X64 floating-point calling convention is not supported. Hence store the
-    // float value explicitly in RegXMM2 (RegXMM0 and RegXMM1 will be filled with ScriptContext and Var respectively)
-#if _M_X64
-        IR::RegOpnd* regXMM2 = IR::RegOpnd::New(nullptr, (RegNum)RegXMM2, TyMachDouble, this->m_func);
-        regXMM2->m_isCallArg = true;
-        IR::Instr * movInstr = IR::Instr::New(Js::OpCode::MOVSD, regXMM2, elementHelperOpnd, this->m_func);
-        instr->InsertBefore(movInstr);
-#else
         m_lowererMD.LoadDoubleHelperArgument(instr, elementHelperOpnd);
-#endif
-
     }
     else
     {
