@@ -119,7 +119,7 @@ WasmBytecodeGenerator::GenerateModule()
     }
 
 #if DBG_DUMP
-    if (PHASE_TRACE(Js::WasmReaderPhase, m_func->body))
+    if (m_func != nullptr && PHASE_TRACE(Js::WasmReaderPhase, m_func->body))
     {
         ((Binary::WasmBinaryReader*)m_reader)->PrintOps();
     }

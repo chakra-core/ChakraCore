@@ -23,10 +23,10 @@
                     goto LKeyword;
                     }
                     break;
-                case 'l':
-                    if (p[3] == 'o' && p[4] == 'c' && p[5] == 'a' && p[6] == 'l')
+                case '_':
+                    if (p[3] == 'l' && p[4] == 'o' && p[5] == 'c' && p[6] == 'a' && p[7] == 'l')
                     {
-                    p += 7;
+                    p += 8;
                     token = wtkGETLOCAL;
                     goto LKeyword;
                     }
@@ -43,9 +43,9 @@
             switch(p[1])
             {
             case 't':
-                if (p[2] == 'l' && p[3] == 'o' && p[4] == 'c' && p[5] == 'a' && p[6] == 'l')
+                if (p[2] == '_' && p[3] == 'l' && p[4] == 'o' && p[5] == 'c' && p[6] == 'a' && p[7] == 'l')
                 {
-                p += 7;
+                p += 8;
                 token = wtkSETLOCAL;
                 goto LKeyword;
                 }
@@ -267,11 +267,36 @@
                         }
                         break;
                     case 'r':
-                        if (p[4] == 'e' && p[5] == 'i' && p[6] == 'n' && p[7] == 't' && p[8] == 'e' && p[9] == 'r' && p[10] == 'p' && p[11] == 'r' && p[12] == 'e' && p[13] == 't' && p[14] == '/' && p[15] == 'f' && p[16] == '3' && p[17] == '2')
+                        switch(p[4])
                         {
-                        p += 18;
-                        token = wtkREINTERPRET_F32_I32;
-                        goto LKeyword;
+                        case 'e':
+                            if (p[5] == 'i' && p[6] == 'n' && p[7] == 't' && p[8] == 'e' && p[9] == 'r' && p[10] == 'p' && p[11] == 'r' && p[12] == 'e' && p[13] == 't' && p[14] == '/' && p[15] == 'f' && p[16] == '3' && p[17] == '2')
+                            {
+                            p += 18;
+                            token = wtkREINTERPRET_F32_I32;
+                            goto LKeyword;
+                            }
+                            break;
+                        case 'o':
+                            switch(p[5])
+                            {
+                            case 't':
+                                switch(p[6])
+                                {
+                                case 'r':
+                                    p += 7;
+                                    token = wtkROR_I32;
+                                    goto LKeyword;
+                                    break;
+                                case 'l':
+                                    p += 7;
+                                    token = wtkROL_I32;
+                                    goto LKeyword;
+                                    break;
+                                }
+                                break;
+                            }
+                            break;
                         }
                         break;
                     case 'l':
@@ -566,11 +591,21 @@
                         }
                         break;
                     case 'e':
-                        if (p[4] == 'q')
+                        switch(p[4])
                         {
-                        p += 5;
-                        token = wtkEQ_I32;
-                        goto LKeyword;
+                        case 'q':
+                            switch(p[5])
+                            {
+                            case 'z':
+                                p += 6;
+                                token = wtkEQZ_I32;
+                                goto LKeyword;
+                                break;
+                            }
+                            p += 5;
+                            token = wtkEQ_I32;
+                            goto LKeyword;
+                            break;
                         }
                         break;
                     }
@@ -728,6 +763,14 @@
                                     break;
                                 }
                                 break;
+                            case 'p':
+                                if (p[6] == 'y' && p[7] == 's' && p[8] == 'i' && p[9] == 'g' && p[10] == 'n')
+                                {
+                                p += 11;
+                                token = wtkCOPYSIGN_F32;
+                                goto LKeyword;
+                                }
+                                break;
                             }
                             break;
                         case 'e':
@@ -818,6 +861,35 @@
                         goto LKeyword;
                         }
                         break;
+                    case 's':
+                        switch(p[4])
+                        {
+                        case 'q':
+                            if (p[5] == 'r' && p[6] == 't')
+                            {
+                            p += 7;
+                            token = wtkSQRT_F32;
+                            goto LKeyword;
+                            }
+                            break;
+                        case 't':
+                            if (p[5] == 'o' && p[6] == 'r' && p[7] == 'e')
+                            {
+                            p += 8;
+                            token = wtkSTORE_F32;
+                            goto LKeyword;
+                            }
+                            break;
+                        case 'u':
+                            if (p[5] == 'b')
+                            {
+                            p += 6;
+                            token = wtkSUB_F32;
+                            goto LKeyword;
+                            }
+                            break;
+                        }
+                        break;
                     case 'l':
                         switch(p[4])
                         {
@@ -853,27 +925,6 @@
                             p += 5;
                             token = wtkGE_F32;
                             goto LKeyword;
-                            break;
-                        }
-                        break;
-                    case 's':
-                        switch(p[4])
-                        {
-                        case 't':
-                            if (p[5] == 'o' && p[6] == 'r' && p[7] == 'e')
-                            {
-                            p += 8;
-                            token = wtkSTORE_F32;
-                            goto LKeyword;
-                            }
-                            break;
-                        case 'u':
-                            if (p[5] == 'b')
-                            {
-                            p += 6;
-                            token = wtkSUB_F32;
-                            goto LKeyword;
-                            }
                             break;
                         }
                         break;
@@ -959,6 +1010,14 @@
                                     break;
                                 }
                                 break;
+                            case 'p':
+                                if (p[6] == 'y' && p[7] == 's' && p[8] == 'i' && p[9] == 'g' && p[10] == 'n')
+                                {
+                                p += 11;
+                                token = wtkCOPYSIGN_F64;
+                                goto LKeyword;
+                                }
+                                break;
                             }
                             break;
                         case 'e':
@@ -977,35 +1036,6 @@
                         p += 14;
                         token = wtkPROMOTE_F32_F64;
                         goto LKeyword;
-                        }
-                        break;
-                    case 's':
-                        switch(p[4])
-                        {
-                        case 'q':
-                            if (p[5] == 'r' && p[6] == 't')
-                            {
-                            p += 7;
-                            token = wtkSQRT_F64;
-                            goto LKeyword;
-                            }
-                            break;
-                        case 't':
-                            if (p[5] == 'o' && p[6] == 'r' && p[7] == 'e')
-                            {
-                            p += 8;
-                            token = wtkSTORE_F64;
-                            goto LKeyword;
-                            }
-                            break;
-                        case 'u':
-                            if (p[5] == 'b')
-                            {
-                            p += 6;
-                            token = wtkSUB_F64;
-                            goto LKeyword;
-                            }
-                            break;
                         }
                         break;
                     case 'm':
@@ -1092,6 +1122,35 @@
                         p += 8;
                         token = wtkFLOOR_F64;
                         goto LKeyword;
+                        }
+                        break;
+                    case 's':
+                        switch(p[4])
+                        {
+                        case 'q':
+                            if (p[5] == 'r' && p[6] == 't')
+                            {
+                            p += 7;
+                            token = wtkSQRT_F64;
+                            goto LKeyword;
+                            }
+                            break;
+                        case 't':
+                            if (p[5] == 'o' && p[6] == 'r' && p[7] == 'e')
+                            {
+                            p += 8;
+                            token = wtkSTORE_F64;
+                            goto LKeyword;
+                            }
+                            break;
+                        case 'u':
+                            if (p[5] == 'b')
+                            {
+                            p += 6;
+                            token = wtkSUB_F64;
+                            goto LKeyword;
+                            }
+                            break;
                         }
                         break;
                     case 'd':

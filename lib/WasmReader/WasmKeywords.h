@@ -16,8 +16,8 @@ WASM_MEMSTORE_I(STORE8,    store8)
 WASM_MEMSTORE_I(STORE16,   store16)
 
 WASM_KEYWORD(GETPARAM,               getparam)
-WASM_KEYWORD(GETLOCAL,               getlocal)
-WASM_KEYWORD(SETLOCAL,               setlocal)
+WASM_KEYWORD(GETLOCAL,               get_local)
+WASM_KEYWORD(SETLOCAL,               set_local)
 
 // types
 WASM_MEMTYPE(I8,     i8)
