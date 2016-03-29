@@ -3064,7 +3064,7 @@ public:
         Assert(constant == magicStartOfPropertyIdsForScopeSlotArray);
 #endif
 
-        function->SetPropertyIdsForScopeSlotArray(RecyclerNewArrayLeaf(scriptContext->GetRecycler(), Js::PropertyId, function->scopeSlotArraySize), function->scopeSlotArraySize);
+        function->SetPropertyIdsForScopeSlotArray(RecyclerNewArrayLeaf(scriptContext->GetRecycler(), Js::PropertyId, function->scopeSlotArraySize), function->scopeSlotArraySize, function->paramScopeSlotArraySize);
 
         for (uint i = 0; i < function->scopeSlotArraySize; i++)
         {
@@ -3743,6 +3743,10 @@ public:
             (*functionBody)->m_isAsmjsMode = (bitflags & ffIsAsmJsMode) ? true : false;
 #endif
 
+            if ((*functionBody)->paramScopeSlotArraySize > 0)
+            {
+                (*functionBody)->SetParamAndBodyScopeNotMerged();
+            }
             byte loopHeaderExists;
             current = ReadByte(current, &loopHeaderExists);
             if (loopHeaderExists)

@@ -6707,9 +6707,9 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
             this->AddInstr(
                 IR::Instr::New(
                     Js::OpCode::LdFrameDisplay,
-                    this->BuildDstOpnd(this->m_func->GetJnFunction()->GetFrameDisplayRegister()),
+                    this->BuildDstOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister()),
                     this->BuildSrcOpnd(this->m_func->GetJnFunction()->GetLocalClosureRegister()),
-                    this->BuildSrcOpnd(this->m_func->GetJnFunction()->GetFrameDisplayRegister()),
+                    this->BuildSrcOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister()),
                     m_func),
                 Js::Constants::NoByteCodeOffset);
         }
