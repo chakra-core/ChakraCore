@@ -6,14 +6,6 @@
 @echo off
 setlocal
 
-REM set TEMP and TMP to a new temp folder under the WORKSPACE and create it
-set TEMP=%WORKSPACE%\TEMP
-set TMP=%TEMP%
-REM create the TMP folder if it doesn't exist
-if not exist %TEMP% (
-    mkdir %TEMP%
-)
-
 if "%_ENTRY_SCRIPT_NAME%"=="" (
     set _ENTRY_SCRIPT_NAME=%0
 )
@@ -32,7 +24,7 @@ if "%2"=="" (
 :main
 
     set JENKINS_BUILD=True
-    call test\jenkins.buildone.cmd %*
+    call %~dp0..\test\jenkins.testone.cmd %*
 
     goto :end
 
@@ -46,11 +38,9 @@ if "%2"=="" (
     echo.
     echo     %_ENTRY_SCRIPT_NAME% x86 debug
     echo     %_ENTRY_SCRIPT_NAME% x86 test
-    echo     %_ENTRY_SCRIPT_NAME% x86 release
     echo.
     echo     %_ENTRY_SCRIPT_NAME% x64 debug
     echo     %_ENTRY_SCRIPT_NAME% x64 test
-    echo     %_ENTRY_SCRIPT_NAME% x64 release
 
     goto :end
 
