@@ -58,42 +58,45 @@ HeapBlock::SetNeedOOMRescan(Recycler * recycler)
 void
 HeapBlock::CapturePageHeapAllocStack()
 {
-    Assert(this->InPageHeapMode());
-
-    // These asserts are true because explicit free is disallowed in
-    // page heap mode. If they weren't, we'd have to modify the asserts
-    Assert(this->pageHeapFreeStack == nullptr);
-    Assert(this->pageHeapAllocStack == nullptr);
-
-    // Note: NoCheckHeapAllocator will fail fast if we can't allocate the stack to capture
-    // REVIEW: Should we have a flag to configure the number of frames captured?
-    if (pageHeapAllocStack != nullptr)
+    if (this->InPageHeapMode()) // pageheap can be enabled only for some of the buckets
     {
-        this->pageHeapAllocStack->Capture(Recycler::s_numFramesToSkipForPageHeapAlloc);
-    }
-    else
-    {
-        this->pageHeapAllocStack = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance, Recycler::s_numFramesToSkipForPageHeapAlloc, Recycler::s_numFramesToCaptureForPageHeap);
+
+        // These asserts are true because explicit free is disallowed in
+        // page heap mode. If they weren't, we'd have to modify the asserts
+        Assert(this->pageHeapFreeStack == nullptr);
+        Assert(this->pageHeapAllocStack == nullptr);
+
+        // Note: NoCheckHeapAllocator will fail fast if we can't allocate the stack to capture
+        // REVIEW: Should we have a flag to configure the number of frames captured?
+        if (pageHeapAllocStack != nullptr)
+        {
+            this->pageHeapAllocStack->Capture(Recycler::s_numFramesToSkipForPageHeapAlloc);
+        }
+        else
+        {
+            this->pageHeapAllocStack = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance, Recycler::s_numFramesToSkipForPageHeapAlloc, Recycler::s_numFramesToCaptureForPageHeap);
+        }
     }
 }
 
 void
 HeapBlock::CapturePageHeapFreeStack()
 {
-    Assert(this->InPageHeapMode());
-
-    // These asserts are true because explicit free is disallowed in
-    // page heap mode. If they weren't, we'd have to modify the asserts
-    Assert(this->pageHeapFreeStack == nullptr);
-    Assert(this->pageHeapAllocStack != nullptr);
-
-    if (this->pageHeapFreeStack != nullptr)
+    if (this->InPageHeapMode()) // pageheap can be enabled only for some of the buckets
     {
-        this->pageHeapFreeStack->Capture(Recycler::s_numFramesToSkipForPageHeapFree);
-    }
-    else
-    {
-        this->pageHeapFreeStack = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance, Recycler::s_numFramesToSkipForPageHeapFree, Recycler::s_numFramesToCaptureForPageHeap);
+        // These asserts are true because explicit free is disallowed in
+        // page heap mode. If they weren't, we'd have to modify the asserts
+        Assert(this->pageHeapFreeStack == nullptr);
+        Assert(this->pageHeapAllocStack != nullptr);
+
+        if (this->pageHeapFreeStack != nullptr)
+        {
+            this->pageHeapFreeStack->Capture(Recycler::s_numFramesToSkipForPageHeapFree);
+        }
+        else
+        {
+            this->pageHeapFreeStack = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance, Recycler::s_numFramesToSkipForPageHeapFree, Recycler::s_numFramesToCaptureForPageHeap);
+        }
     }
 }
 #endif
@@ -350,7 +353,9 @@ SmallHeapBlockT<TBlockAttributes>::ReassignPages(Recycler * recycler)
     const PageHeapMode pageHeapModeLocal = PageHeapModeOff;
 #endif
 
-    char * address = this->GetPageAllocator(recycler)->AllocPagesPageAligned(this->GetPageHeapModePageCount<pageheap>(), &segment, pageHeapModeLocal);
+    auto pageAllocator = this->GetPageAllocator(recycler);
+    uint pagecount = this->GetPageHeapModePageCount<pageheap>();
+    char * address = pageAllocator->AllocPagesPageAligned(pagecount, &segment, pageHeapModeLocal);
 
     if (address == NULL)
     {
@@ -441,8 +446,10 @@ SmallHeapBlockT<TBlockAttributes>::SetPage(__in_ecount_pagesize char * baseAddre
     }
 #endif
 
+#if DBG
     uint l2Id = HeapBlockMap32::GetLevel2Id(address);
     Assert(l2Id + (TBlockAttributes::PageCount - 1) < 256);
+#endif
 
     this->segment = pageSegment;
     this->address = address;
