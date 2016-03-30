@@ -2554,7 +2554,7 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
 
         break;
     
-    case Js::OpCodeAsmJs::CmEqz_Int:
+    case Js::OpCodeAsmJs::Eqz_Int:
         instr = IR::Instr::New(Js::OpCode::CmEqz_I4, dstOpnd, srcOpnd, m_func);
         break;
 

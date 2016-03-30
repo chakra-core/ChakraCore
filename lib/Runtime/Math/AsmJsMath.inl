@@ -167,4 +167,27 @@ namespace Js
         }
         return 32;
     }
+
+    inline int AsmJsMath::Eqz(int value)
+    {
+        return value == 0;
+    }
+
+    template<typename T>
+    inline T AsmJsMath::Copysign(T aLeft, T aRight)
+    {
+        return aLeft;
+    }
+
+    template<typename T>
+    inline T AsmJsMath::Trunc(T value)
+    {
+        return value;
+    }
+
+    template<typename T>
+    inline T AsmJsMath::Nearest(T value)
+    {
+        return value;
+    }
 }

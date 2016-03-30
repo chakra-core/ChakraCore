@@ -63,7 +63,7 @@ WASM_KEYWORD(TYPE,       type)
 // unary ops
 WASM_KEYWORD_UNARY_I(NOT,    not, Not)
 WASM_KEYWORD_UNARY_I(CLZ,    clz, Clz32)
-WASM_KEYWORD_UNARY_I(EQZ,    eqz, CmEqz)
+WASM_KEYWORD_UNARY_I(EQZ,    eqz, Eqz)
 WASM_KEYWORD_UNARY_FD(NEG,    neg, Neg)
 WASM_KEYWORD_UNARY_FD(ABS,    abs, Abs)
 WASM_KEYWORD_UNARY_FD(CEIL,   ceil, Ceil)
