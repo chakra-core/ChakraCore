@@ -90,7 +90,7 @@ namespace TTD
                 int64 u_int64Value;
                 uint64 u_uint64Value;
                 double u_doubleValue;
-                Js::PropertyId u_propertyIdValue; //for a symbol or propertyString pid
+                Js::PropertyId u_propertyIdValue; //for a symbol
             };
 
             //If this is a string then a ptr to the actual string contents
