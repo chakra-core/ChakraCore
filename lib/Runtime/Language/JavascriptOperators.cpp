@@ -743,7 +743,7 @@ namespace Js
                 aLeft = JavascriptConversion::ToPrimitive(aLeft, JavascriptHint::HintNumber, scriptContext);
             }
             //BugFix: When @@ToPrimitive of an object is overridden with a function that returns null/undefined
-            //this helper will fall into a inescapable goto loop as the checks for null/undefined were outside of the path 
+            //this helper will fall into a inescapable goto loop as the checks for null/undefined were outside of the path
             return RelationalComparisonHelper(aLeft, aRight, scriptContext, leftFirst, undefinedAs);
         }
 
@@ -10175,55 +10175,47 @@ CommonNumber:
         return TypeIds_FirstNumberType <= typeId && typeId <= TypeIds_LastNumberType;
     }
 
-    BOOL JavascriptOperators::IsIterable(RecyclableObject* instance, ScriptContext* scriptContext)
-    {
-        if (JavascriptProxy::Is(instance))
-        {
-            Var func = JavascriptOperators::GetProperty(instance, PropertyIds::_symbolIterator, scriptContext);
-            if (JavascriptOperators::IsUndefinedObject(func))
-            {
-                return FALSE;
-            }
-            else
-            {
-                return TRUE;
-            }
-        }
-        else
-        {
-            return JavascriptOperators::HasProperty(instance, PropertyIds::_symbolIterator);
-        }
-    }
-
     // GetIterator as described in ES6.0 (draft 22) Section 7.4.1
-    RecyclableObject* JavascriptOperators::GetIterator(Var iterable, ScriptContext* scriptContext)
+    RecyclableObject* JavascriptOperators::GetIterator(Var iterable, ScriptContext* scriptContext, bool optional)
     {
         RecyclableObject* iterableObj = RecyclableObject::FromVar(JavascriptOperators::ToObject(iterable, scriptContext));
-        return JavascriptOperators::GetIterator(iterableObj, scriptContext);
+        return JavascriptOperators::GetIterator(iterableObj, scriptContext, optional);
     }
 
-    RecyclableObject* JavascriptOperators::GetIteratorFunction(Var iterable, ScriptContext* scriptContext)
+    RecyclableObject* JavascriptOperators::GetIteratorFunction(Var iterable, ScriptContext* scriptContext, bool optional)
     {
         RecyclableObject* iterableObj = RecyclableObject::FromVar(JavascriptOperators::ToObject(iterable, scriptContext));
-        return JavascriptOperators::GetIteratorFunction(iterableObj, scriptContext);
+        return JavascriptOperators::GetIteratorFunction(iterableObj, scriptContext, optional);
     }
 
-    RecyclableObject* JavascriptOperators::GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext)
+    RecyclableObject* JavascriptOperators::GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext, bool optional)
     {
         Var func = JavascriptOperators::GetProperty(instance, PropertyIds::_symbolIterator, scriptContext);
 
+        if (optional && JavascriptOperators::IsUndefinedOrNull(func))
+        {
+            return nullptr;
+        }
+
         if (!JavascriptConversion::IsCallable(func))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction);
         }
 
         RecyclableObject* function = RecyclableObject::FromVar(func);
         return function;
     }
 
-    RecyclableObject* JavascriptOperators::GetIterator(RecyclableObject* instance, ScriptContext * scriptContext)
+    RecyclableObject* JavascriptOperators::GetIterator(RecyclableObject* instance, ScriptContext * scriptContext, bool optional)
     {
-        RecyclableObject* function = GetIteratorFunction(instance, scriptContext);
+        RecyclableObject* function = GetIteratorFunction(instance, scriptContext, optional);
+
+        if (function == nullptr)
+        {
+            Assert(optional);
+            return nullptr;
+        }
+
         Var iterator = function->GetEntryPoint()(function, CallInfo(Js::CallFlags_Value, 1), instance);
 
         if (!JavascriptOperators::IsObject(iterator))

@@ -9659,7 +9659,9 @@ Case0:
         RecyclableObject* newObj = nullptr;
         JavascriptArray* newArr = nullptr;
 
-        if (JavascriptOperators::IsIterable(items, scriptContext))
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext, true /* optional */);
+
+        if (iterator != nullptr)
         {
             if (constructor)
             {
@@ -9679,7 +9681,6 @@ Case0:
                 newObj = newArr;
             }
 
-            RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext);
             Var nextValue;
             uint32 k = 0;
 
