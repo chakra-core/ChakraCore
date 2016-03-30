@@ -2,6 +2,9 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+#include "RuntimeMathPch.h"
+
 namespace Js
 {
 #ifdef SSE2MATH
@@ -198,10 +201,23 @@ namespace Js
 
         __inline Var JavascriptMath::Multiply(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-            return
-                TaggedInt::IsPair(aLeft,aRight) ?
-                TaggedInt::Multiply(aLeft, aRight, scriptContext) :
-                Multiply_Full(aLeft, aRight, scriptContext);
+            if (TaggedInt::IsPair(aLeft, aRight))
+            {
+                return TaggedInt::Multiply(aLeft, aRight, scriptContext);
+            }
+            else
+            {
+#if defined(_M_IX86) && !defined(SSE2MATH)
+                if (AutoSystemInfo::Data.SSE2Available())
+                {
+                    return SSE2::JavascriptMath::Multiply_Full(aLeft, aRight, scriptContext);
+                }
+                else
+#endif
+                {
+                    return Multiply_Full(aLeft, aRight, scriptContext);
+                }
+            }
         }
 
         __inline Var JavascriptMath::Exponentiation(Var aLeft, Var aRight, ScriptContext* scriptContext)
@@ -222,8 +238,17 @@ namespace Js
 
         __inline Var JavascriptMath::Divide(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-            // The TaggedInt,TaggedInt case is handled within Divide_Full
-            return Divide_Full(aLeft, aRight,scriptContext);
+#if defined(_M_IX86) && !defined(SSE2MATH)
+            if (AutoSystemInfo::Data.SSE2Available())
+            {
+                return SSE2::JavascriptMath::Divide_Full(aLeft, aRight, scriptContext);
+            }
+            else
+#endif
+            {
+                // The TaggedInt,TaggedInt case is handled within Divide_Full
+                return Divide_Full(aLeft, aRight, scriptContext);
+            }
         }
 
         __inline double JavascriptMath::Divide_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
