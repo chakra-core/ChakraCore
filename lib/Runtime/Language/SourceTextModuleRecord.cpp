@@ -62,15 +62,18 @@ namespace Js
         starExportRecordList = nullptr;
         childrenModuleSet = nullptr;
         parentModuleList = nullptr;
-        if (parser != nullptr)
+        if (!isShutdown)
         {
-            AllocatorDelete(ArenaAllocator, tempAllocatorObject->GetAllocator(), parser);
-            parser = nullptr;
-        }
-        if (tempAllocatorObject != nullptr)
-        {
-            GetScriptContext()->GetThreadContext()->ReleaseTemporaryAllocator(tempAllocatorObject);
-            tempAllocatorObject = nullptr;
+            if (parser != nullptr)
+            {
+                AllocatorDelete(ArenaAllocator, tempAllocatorObject->GetAllocator(), parser);
+                parser = nullptr;
+            }
+            if (tempAllocatorObject != nullptr)
+            {
+                GetScriptContext()->GetThreadContext()->ReleaseTemporaryAllocator(tempAllocatorObject);
+                tempAllocatorObject = nullptr;
+            }
         }
     }
 
@@ -177,9 +180,12 @@ namespace Js
         HRESULT hr = NOERROR;
         SetWasParsed();
         ImportModuleListsFromParser();
-        ResolveExternalModuleDependencies();
+        hr = ResolveExternalModuleDependencies();
 
-        hr = PrepareForModuleDeclarationInitialization();
+        if (SUCCEEDED(hr))
+        {
+            hr = PrepareForModuleDeclarationInitialization();
+        }
         return hr;
     }
 
@@ -214,7 +220,19 @@ namespace Js
             return NOERROR; // this is only in case of recursive module reference. Let the higher stack frame handle this module.
         }
         numUnParsedChildrenModule--;
-        hr = PrepareForModuleDeclarationInitialization();
+        if (childException != nullptr)
+        {
+            // propagate the error up as needed.
+            if (this->errorObject == nullptr)
+            {
+                this->errorObject = childException;
+            }
+            NotifyParentsAsNeeded();
+        }
+        else
+        {
+            hr = PrepareForModuleDeclarationInitialization();
+        }
         return hr;
     }
 
@@ -467,7 +485,7 @@ namespace Js
         return !ambiguousResolution;
     }
 
-    void SourceTextModuleRecord::ResolveExternalModuleDependencies()
+    HRESULT SourceTextModuleRecord::ResolveExternalModuleDependencies()
     {
         ScriptContext* scriptContext = GetScriptContext();
         Recycler* recycler = scriptContext->GetRecycler();
@@ -513,6 +531,7 @@ namespace Js
                 NotifyParentsAsNeeded();
             }
         }
+        return hr;
     }
 
     void SourceTextModuleRecord::CleanupBeforeExecution()
@@ -591,6 +610,13 @@ namespace Js
             return nullptr;
         }
         SetWasEvaluated();
+        Assert(this->errorObject == nullptr);
+        // we shouldn't evaluate if there are existing failure. This is defense in depth as the host shouldn't 
+        // call into evaluation if there was previous fialure on the module.
+        if (this->errorObject)
+        {
+            return this->errorObject;
+        }
         if (childrenModuleSet != nullptr)
         {
             childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)

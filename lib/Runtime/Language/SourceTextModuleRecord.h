@@ -37,7 +37,7 @@ namespace Js
         void Dispose(bool isShutdown) override { return; }
         void Mark(Recycler * recycler) override { return; }
 
-        void ResolveExternalModuleDependencies();
+        HRESULT ResolveExternalModuleDependencies();
 
         void* GetHostDefined() const { return hostDefined; }
         void SetHostDefined(void* hostObj) { hostDefined = hostObj; }
