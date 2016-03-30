@@ -353,7 +353,9 @@ SmallHeapBlockT<TBlockAttributes>::ReassignPages(Recycler * recycler)
     const PageHeapMode pageHeapModeLocal = PageHeapModeOff;
 #endif
 
-    char * address = this->GetPageAllocator(recycler)->AllocPagesPageAligned(this->GetPageHeapModePageCount<pageheap>(), &segment, pageHeapModeLocal);
+    auto pageAllocator = this->GetPageAllocator(recycler);
+    uint pagecount = this->GetPageHeapModePageCount<pageheap>();
+    char * address = pageAllocator->AllocPagesPageAligned(pagecount, &segment, pageHeapModeLocal);
 
     if (address == NULL)
     {
@@ -444,8 +446,10 @@ SmallHeapBlockT<TBlockAttributes>::SetPage(__in_ecount_pagesize char * baseAddre
     }
 #endif
 
+#if DBG
     uint l2Id = HeapBlockMap32::GetLevel2Id(address);
     Assert(l2Id + (TBlockAttributes::PageCount - 1) < 256);
+#endif
 
     this->segment = pageSegment;
     this->address = address;

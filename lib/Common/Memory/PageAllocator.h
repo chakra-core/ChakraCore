@@ -491,7 +491,7 @@ protected:
 
     template <bool notPageAligned>
     char * TryAllocFreePages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
-    char * TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, SLIST_HEADER& zeroPagesList, bool isPendingZeroList);
+    char * TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, SLIST_HEADER& zeroPagesList, bool isPendingZeroList, PageHeapMode pageHeapFlags);
     char * TryAllocFromZeroPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
 
     template <bool notPageAligned>
