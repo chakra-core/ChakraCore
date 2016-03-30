@@ -369,23 +369,29 @@ void ConfigParser::ProcessConfiguration(HANDLE hmod)
         fd = _open_osfhandle((intptr_t)GetStdHandle(STD_OUTPUT_HANDLE), O_TEXT);
         fp = _wfdopen(fd, _u("w"));
 
-        *stdout = *fp;
-        setvbuf(stdout, nullptr, _IONBF, 0);
-
-        fd = _open_osfhandle((intptr_t)GetStdHandle(STD_ERROR_HANDLE), O_TEXT);
-        fp = _wfdopen(fd, _u("w"));
-
-        *stderr = *fp;
-        setvbuf(stderr, nullptr, _IONBF, 0);
-
-        char16 buffer[_MAX_PATH + 70];
-
-        if (ConfigParserAPI::FillConsoleTitle(buffer, _MAX_PATH + 20, modulename))
+        if (fp != nullptr)
         {
-            SetConsoleTitle(buffer);
-        }
+            *stdout = *fp;
+            setvbuf(stdout, nullptr, _IONBF, 0);
 
-        hasOutput = true;
+            fd = _open_osfhandle((intptr_t)GetStdHandle(STD_ERROR_HANDLE), O_TEXT);
+            fp = _wfdopen(fd, _u("w"));
+
+            if (fp != nullptr)
+            {
+                *stderr = *fp;
+                setvbuf(stderr, nullptr, _IONBF, 0);
+
+                char16 buffer[_MAX_PATH + 70];
+
+                if (ConfigParserAPI::FillConsoleTitle(buffer, _MAX_PATH + 20, modulename))
+                {
+                    SetConsoleTitle(buffer);
+                }
+
+                hasOutput = true;
+            }
+        }
     }
 
     if (Js::Configuration::Global.flags.IsEnabled(Js::OutputFileFlag)

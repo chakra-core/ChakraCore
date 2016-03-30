@@ -1840,6 +1840,9 @@ ThreadContext::DisposeObjects(Recycler * recycler)
         return;
     }
 
+    // we shouldn't dispose in noscriptscope as it might lead to script execution.
+    Assert(!this->IsNoScriptScope());
+
     if (!this->IsScriptActive())
     {
         __super::DisposeObjects(recycler);
