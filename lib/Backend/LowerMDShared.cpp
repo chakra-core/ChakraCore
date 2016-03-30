@@ -1474,6 +1474,41 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             break;
         }
 
+        case Js::OpCode::CMOVA:
+        case Js::OpCode::CMOVAE:
+        case Js::OpCode::CMOVB:
+        case Js::OpCode::CMOVBE:
+        case Js::OpCode::CMOVE:
+        case Js::OpCode::CMOVG:
+        case Js::OpCode::CMOVGE:
+        case Js::OpCode::CMOVL:
+        case Js::OpCode::CMOVLE:
+        case Js::OpCode::CMOVNE:
+        case Js::OpCode::CMOVNO:
+        case Js::OpCode::CMOVNP:
+        case Js::OpCode::CMOVNS:
+        case Js::OpCode::CMOVO:
+        case Js::OpCode::CMOVP:
+        case Js::OpCode::CMOVS:
+            if (instr->GetSrc2())
+            {
+                // sometimes we have fake src1 to help reg alloc
+                LegalizeOpnds<verify>(
+                    instr,
+                    L_Reg,
+                    L_Reg,
+                    L_Reg | L_Mem);
+            }
+            else
+            {
+                LegalizeOpnds<verify>(
+                    instr,
+                    L_Reg,
+                    L_Reg | L_Mem,
+                    L_None);
+            }
+            break;
+
         case Js::OpCode::MOVSD:
             Assert(AutoSystemInfo::Data.SSE2Available());
         case Js::OpCode::MOVSS:
@@ -1679,6 +1714,16 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::LZCNT:
             Assert(AutoSystemInfo::Data.LZCntAvailable());
         case Js::OpCode::BSR:
+            LegalizeOpnds<verify>(
+                instr,
+                L_Reg,
+                L_Reg | L_Mem,
+                L_None);
+            break;
+
+        case Js::OpCode::TZCNT:
+            Assert(AutoSystemInfo::Data.TZCntAvailable());
+        case Js::OpCode::BSF:
             LegalizeOpnds<verify>(
                 instr,
                 L_Reg,
@@ -5782,6 +5827,30 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
         insertInstr->InsertBefore(instr);
     }
     return true;
+}
+
+void
+LowererMD::GenerateCtz(IR::Instr * instr)
+{
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
+    Assert(IRType_IsNativeInt(instr->GetDst()->GetType()));
+    if (AutoSystemInfo::Data.TZCntAvailable())
+    {
+        instr->m_opcode = Js::OpCode::TZCNT;
+        Legalize(instr);
+    }
+    else
+    {
+        // dst = BSF src
+        // dst = CMOVE dst, 32 // dst is src1 to help reg alloc
+        instr->m_opcode = Js::OpCode::BSF;
+        Legalize(instr);
+
+        IR::IntConstOpnd * const32 = IR::IntConstOpnd::New(32, TyInt8, m_func);
+        IR::Instr* cmove = IR::Instr::New(Js::OpCode::CMOVE, instr->GetDst(), instr->GetDst(), const32, this->m_func);
+        instr->InsertAfter(cmove);
+        Legalize(cmove);
+    }
 }
 
 void

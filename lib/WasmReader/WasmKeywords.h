@@ -63,6 +63,7 @@ WASM_KEYWORD(TYPE,       type)
 // unary ops
 WASM_KEYWORD_UNARY_I(NOT,    not, Not)
 WASM_KEYWORD_UNARY_I(CLZ,    clz, Clz32)
+WASM_KEYWORD_UNARY_I(CTZ,    ctz, Ctz)
 WASM_KEYWORD_UNARY_FD(NEG,    neg, Neg)
 WASM_KEYWORD_UNARY_FD(ABS,    abs, Abs)
 WASM_KEYWORD_UNARY_FD(CEIL,   ceil, Ceil)
@@ -72,7 +73,6 @@ WASM_KEYWORD_UNARY_FD(SQRT, sqrt, Sqrt)
 
 // TODO: michhol, new ops
 // WASM_KEYWORD_UNARY_FD(TRUNC, trunc, Trunc)
-// WASM_KEYWORD_UNARY_I(CTZ,    ctz, Ctz)
 // WASM_KEYWORD_UNARY_I(POPCNT, popcnt, PopCnt)
 // WASM_KEYWORD_UNARY_FD(ROUND,  round, Round)
 

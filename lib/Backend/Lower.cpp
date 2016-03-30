@@ -632,6 +632,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             GenerateFastInlineMathImul(instr);
             break;
 
+        case Js::OpCode::Ctz:
+            GenerateCtz(instr);
+            break;
+
         case Js::OpCode::InlineMathClz32:
             GenerateFastInlineMathClz32(instr);
             break;
@@ -17221,6 +17225,14 @@ Lowerer::GenerateFastInlineStringCharCodeAt(IR::Instr * instr, Js::BuiltinFuncti
     RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
 
     return true;
+}
+
+void
+Lowerer::GenerateCtz(IR::Instr* instr)
+{
+    Assert(instr->GetDst()->IsInt32());
+    Assert(instr->GetSrc1()->IsInt32());
+    m_lowererMD.GenerateCtz(instr);
 }
 
 void

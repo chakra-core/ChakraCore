@@ -188,6 +188,7 @@ MACRO_WMS   ( Min_Int                   , Int3         , None            )
 MACRO_WMS   ( Max_Int                   , Int3         , None            )
 MACRO_WMS   ( Imul_Int                  , Int3         , None            )
 MACRO_WMS   ( Clz32_Int                 , Int2         , None            )
+MACRO_WMS   ( Ctz_Int                   , Int2         , None            )
 
 // Math builtin functions for doubles & floats
 MACRO_WMS   ( Sin_Db                    , Double2       , None           )

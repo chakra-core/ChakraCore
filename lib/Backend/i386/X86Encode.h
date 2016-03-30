@@ -141,6 +141,7 @@ enum Forms : BYTE
 
 #define OPBYTE_ANDPD    {0x54}                  // modrm
 #define OPBYTE_ANDPS    {0x54}                  // modrm
+#define OPBYTE_BSF      {0xbc}                  // modrm
 #define OPBYTE_BSR      {0xbd}                  // modrm
 #define OPBYTE_BT       {0xba, 0xa3}            // special, modrm
 #define OPBYTE_BTR      {0xba, 0xb3}            // special, modrm
@@ -211,6 +212,7 @@ enum Forms : BYTE
 #define OPBYTE_MINPD    {0x5d}                  // modrm
 #define OPBYTE_MINPS    {0x5d}                  // modrm
 
+#define OPBYTE_TZCNT    {0xbc}                  // modrm
 #define OPBYTE_LZCNT    {0xbd}                  // modrm
 
 #define OPBYTE_MOV      {0xa0, 0xb0, 0xc6, 0x88} // mov, byte2=0
