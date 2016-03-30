@@ -6027,6 +6027,10 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                         Assert(lexNode->IsVarLetOrConst());
                         UpdateOrCheckForDuplicateInFormals(lexNode->sxVar.pid, &formals);
                         lexNode->sxVar.sym->SetSymbolType(STFormal);
+                        if (m_currentNodeFunc != nullptr && lexNode->sxVar.pid == wellKnownPropertyPids.arguments)
+                        {
+                            m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
+                        }
                     }
 
                     m_ppnodeVar = ppnodeVarSave;
