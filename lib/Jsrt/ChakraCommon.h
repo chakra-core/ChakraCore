@@ -23,8 +23,31 @@
 #ifndef _CHAKRACOMMON_H_
 #define _CHAKRACOMMON_H_
 
+// Platform specific code
+#if defined(_WIN32) && defined(_MSC_VER)
 #include <oaidl.h>
 
+// Header macros
+#define CHAKRA_CALLBACK CALLBACK
+#define CHAKRA_API STDAPI_(JsErrorCode)
+
+typedef DWORD_PTR ChakraCookie;
+#else
+#include <cstdint>
+
+// SAL compat
+#define _Return_type_success_(x)
+#define _In_
+#define _In_opt_
+#define _Out_
+#define _Out_opt_
+
+// Header macros
+#define CHAKRA_CALLBACK __attribute__((stdcall))
+#define CHAKRA_API extern "C" JsErrorCode 
+
+typedef uintptr_t ChakraCookie;
+#endif
 
 
     /// <summary>
@@ -210,7 +233,7 @@
     /// <summary>
     ///     An invalid runtime handle.
     /// </summary>
-    const JsRuntimeHandle JS_INVALID_RUNTIME_HANDLE = NULL;
+    const JsRuntimeHandle JS_INVALID_RUNTIME_HANDLE = nullptr;
 
     /// <summary>
     ///     A reference to an object owned by the Chakra garbage collector.
@@ -227,7 +250,7 @@
     /// <summary>
     ///     An invalid reference.
     /// </summary>
-    const JsRef JS_INVALID_REFERENCE = NULL;
+    const JsRef JS_INVALID_REFERENCE = nullptr;
 
     /// <summary>
     ///     A reference to a script context.
@@ -257,7 +280,7 @@
     /// <summary>
     ///     A cookie that identifies a script for debugging purposes.
     /// </summary>
-    typedef DWORD_PTR JsSourceContext;
+    typedef ChakraCookie JsSourceContext;
 
     /// <summary>
     ///     An empty source context.
@@ -408,7 +431,7 @@
     ///     with the allocation. Returning false indicates the allocation request is rejected. The
     ///     return value is ignored for other allocation events.
     /// </returns>
-    typedef bool (CALLBACK * JsMemoryAllocationCallback)(_In_opt_ void *callbackState, _In_ JsMemoryEventType allocationEvent, _In_ size_t allocationSize);
+    typedef bool (CHAKRA_CALLBACK * JsMemoryAllocationCallback)(_In_opt_ void *callbackState, _In_ JsMemoryEventType allocationEvent, _In_ size_t allocationSize);
 
     /// <summary>
     ///     A callback called before collection.
@@ -417,7 +440,7 @@
     ///     Use <c>JsSetBeforeCollectCallback</c> to register this callback.
     /// </remarks>
     /// <param name="callbackState">The state passed to <c>JsSetBeforeCollectCallback</c>.</param>
-    typedef void (CALLBACK *JsBeforeCollectCallback)(_In_opt_ void *callbackState);
+    typedef void (CHAKRA_CALLBACK *JsBeforeCollectCallback)(_In_opt_ void *callbackState);
 
     /// <summary>
     ///     A callback called before collecting an object.
@@ -427,7 +450,7 @@
     /// </remarks>
     /// <param name="ref">The object to be collected.</param>
     /// <param name="callbackState">The state passed to <c>JsSetObjectBeforeCollectCallback</c>.</param>
-    typedef void (CALLBACK *JsObjectBeforeCollectCallback)(_In_ JsRef ref, _In_opt_ void *callbackState);
+    typedef void (CHAKRA_CALLBACK *JsObjectBeforeCollectCallback)(_In_ JsRef ref, _In_opt_ void *callbackState);
 
     /// <summary>
     ///     A background work item callback.
@@ -437,7 +460,7 @@
     ///     invoke the work item callback on the background thread of its choice.
     /// </remarks>
     /// <param name="callbackState">Data argument passed to the thread service.</param>
-    typedef void (CALLBACK *JsBackgroundWorkItemCallback)(_In_opt_ void *callbackState);
+    typedef void (CHAKRA_CALLBACK *JsBackgroundWorkItemCallback)(_In_opt_ void *callbackState);
 
     /// <summary>
     ///     A thread service callback.
@@ -450,7 +473,37 @@
     /// </remarks>
     /// <param name="callback">The callback for the background work item.</param>
     /// <param name="callbackState">The data argument to be passed to the callback.</param>
-    typedef bool (CALLBACK *JsThreadServiceCallback)(_In_ JsBackgroundWorkItemCallback callback, _In_opt_ void *callbackState);
+    typedef bool (CHAKRA_CALLBACK *JsThreadServiceCallback)(_In_ JsBackgroundWorkItemCallback callback, _In_opt_ void *callbackState);
+
+    /// <summary>
+    ///     Called by the runtime to load the source code of the serialized script.
+    ///     The caller must keep the script buffer valid until the JsSerializedScriptUnloadCallback.
+    /// </summary>
+    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
+    /// <param name="scriptBuffer">The script returned.</param>
+    /// <returns>
+    ///     true if the operation succeeded, false otherwise.
+    /// </returns>
+    typedef bool (CHAKRA_CALLBACK * JsSerializedScriptLoadSourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const wchar_t** scriptBuffer);
+
+    /// <summary>
+    ///     Called by the runtime when it is finished with all resources related to the script execution.
+    ///     The caller should free the source if loaded, the byte code, and the context at this time.
+    /// </summary>
+    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
+    typedef void (CHAKRA_CALLBACK * JsSerializedScriptUnloadCallback)(_In_ JsSourceContext sourceContext);
+
+    /// <summary>
+    ///     Called by the runtime to load the source code of the serialized script.
+    ///     The caller must keep the script buffer valid until the JsSerializedScriptUnloadCallback.
+    /// </summary>
+    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
+    /// <param name="scriptBuffer">The script returned, encoded as utf8.</param>
+    /// <returns>
+    ///     true if the operation succeeded, false otherwise.
+    /// </returns>
+    typedef bool (CHAKRA_CALLBACK * JsSerializedScriptLoadUtf8SourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const char** scriptBuffer);
+
 
     /// <summary>
     ///     Creates a new runtime.
@@ -463,7 +516,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateRuntime(
             _In_ JsRuntimeAttributes attributes,
             _In_opt_ JsThreadServiceCallback threadService,
@@ -476,7 +529,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCollectGarbage(
             _In_ JsRuntimeHandle runtime);
 
@@ -492,7 +545,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsDisposeRuntime(
             _In_ JsRuntimeHandle runtime);
 
@@ -508,7 +561,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetRuntimeMemoryUsage(
             _In_ JsRuntimeHandle runtime,
             _Out_ size_t *memoryUsage);
@@ -527,7 +580,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetRuntimeMemoryLimit(
             _In_ JsRuntimeHandle runtime,
             _Out_ size_t *memoryLimit);
@@ -555,7 +608,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetRuntimeMemoryLimit(
             _In_ JsRuntimeHandle runtime,
             _In_ size_t memoryLimit);
@@ -590,7 +643,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetRuntimeMemoryAllocationCallback(
             _In_ JsRuntimeHandle runtime,
             _In_opt_ void *callbackState,
@@ -617,7 +670,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetRuntimeBeforeCollectCallback(
             _In_ JsRuntimeHandle runtime,
             _In_opt_ void *callbackState,
@@ -636,7 +689,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsAddRef(
             _In_ JsRef ref,
             _Out_opt_ unsigned int *count);
@@ -652,7 +705,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsRelease(
             _In_ JsRef ref,
             _Out_opt_ unsigned int *count);
@@ -676,7 +729,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetObjectBeforeCollectCallback(
             _In_ JsRef ref,
             _In_opt_ void *callbackState,
@@ -694,7 +747,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateContext(
             _In_ JsRuntimeHandle runtime,
             _Out_ JsContextRef *newContext);
@@ -708,7 +761,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetCurrentContext(
             _Out_ JsContextRef *currentContext);
 
@@ -719,7 +772,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetCurrentContext(
             _In_ JsContextRef context);
 
@@ -731,7 +784,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetContextOfObject(
             _In_ JsValueRef object,
             _Out_ JsContextRef *context);
@@ -744,7 +797,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetContextData(
             _In_ JsContextRef context,
             _Out_ void **data);
@@ -757,7 +810,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetContextData(
             _In_ JsContextRef context,
             _In_ void *data);
@@ -770,7 +823,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetRuntime(
             _In_ JsContextRef context,
             _Out_ JsRuntimeHandle *runtime);
@@ -800,10 +853,11 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsIdle(
             _Out_opt_ unsigned int *nextIdleTick);
 
+#ifdef _WIN32
     /// <summary>
     ///     Parses a script and returns a function representing the script.
     /// </summary>
@@ -819,13 +873,13 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsParseScript(
             _In_z_ const wchar_t *script,
             _In_ JsSourceContext sourceContext,
             _In_z_ const wchar_t *sourceUrl,
             _Out_ JsValueRef *result);
-
+    
     /// <summary>
     ///     Parses a script and returns a function representing the script.
     /// </summary>
@@ -842,7 +896,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsParseScriptWithFlags(
             _In_z_ const wchar_t *script,
             _In_ JsSourceContext sourceContext,
@@ -865,7 +919,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsRunScript(
             _In_z_ const wchar_t *script,
             _In_ JsSourceContext sourceContext,
@@ -887,7 +941,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsExperimentalApiRunModule(
             _In_z_ const wchar_t *script,
             _In_ JsSourceContext sourceContext,
@@ -916,29 +970,11 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSerializeScript(
             _In_z_ const wchar_t *script,
             _Out_writes_to_opt_(*bufferSize, *bufferSize) BYTE *buffer,
-            _Inout_ unsigned long *bufferSize);
-
-    /// <summary>
-    ///     Called by the runtime to load the source code of the serialized script.
-    ///     The caller must keep the script buffer valid until the JsSerializedScriptUnloadCallback.
-    /// </summary>
-    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
-    /// <param name="scriptBuffer">The script returned.</param>
-    /// <returns>
-    ///     true if the operation succeeded, false otherwise.
-    /// </returns>
-    typedef bool (CALLBACK * JsSerializedScriptLoadSourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const wchar_t** scriptBuffer);
-
-    /// <summary>
-    ///     Called by the runtime when it is finished with all resources related to the script execution.
-    ///     The caller should free the source if loaded, the byte code, and the context at this time.
-    /// </summary>
-    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
-    typedef void (CALLBACK * JsSerializedScriptUnloadCallback)(_In_ JsSourceContext sourceContext);
+            _Inout_ unsigned int *bufferSize);
 
     /// <summary>
     ///     Parses a serialized script and returns a function representing the script.
@@ -966,7 +1002,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsParseSerializedScriptWithCallback(
             _In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
             _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
@@ -1003,7 +1039,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsRunSerializedScriptWithCallback(
             _In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
             _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
@@ -1034,7 +1070,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsParseSerializedScript(
             _In_z_ const wchar_t *script,
             _In_ BYTE *buffer,
@@ -1066,7 +1102,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsRunSerializedScript(
             _In_z_ const wchar_t *script,
             _In_ BYTE *buffer,
@@ -1092,7 +1128,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetPropertyIdFromName(
             _In_z_ const wchar_t *name,
             _Out_ JsPropertyIdRef *propertyId);
@@ -1114,10 +1150,247 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetPropertyNameFromId(
             _In_ JsPropertyIdRef propertyId,
             _Outptr_result_z_ const wchar_t **name);
+#endif
+
+    /// <summary>
+    ///     Parses a script and returns a function representing the script.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="script">The script to parse, encoded as utf8.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
+    /// <param name="result">A function representing the script code.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsParseScriptUtf8(
+            _In_z_ const char *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Parses a script and returns a function representing the script.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="script">The script to parse, encoded as utf8.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
+    /// <param name="parseAttributes">Attribute mask for parsing the script</param>
+    /// <param name="result">A function representing the script code.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsParseScriptWithAttributesUtf8(
+            _In_z_ const char *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _In_ JsParseScriptAttributes parseAttributes,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Executes a script.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="script">The script to run, encoded as utf8.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
+    /// <param name="result">The result of the script, if any. This parameter can be null.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsRunScriptUtf8(
+            _In_z_ const char *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Executes a module.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="script">The module script to parse and execute, encoded as utf8.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the module script came from, encoded as utf8.</param>
+    /// <param name="result">The result of executing the module script, if any. This parameter can be null.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsExperimentalApiRunModuleUtf8(
+            _In_z_ const char *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Serializes a parsed script to a buffer than can be reused.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     <c>JsSerializeScript</c> parses a script and then stores the parsed form of the script in a
+    ///     runtime-independent format. The serialized script then can be deserialized in any
+    ///     runtime without requiring the script to be re-parsed.
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="script">The script to serialize, encoded as utf8.</param>
+    /// <param name="buffer">The buffer to put the serialized script into. Can be null.</param>
+    /// <param name="bufferSize">
+    ///     On entry, the size of the buffer, in bytes; on exit, the size of the buffer, in bytes,
+    ///     required to hold the serialized script.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSerializeScriptUtf8(
+            _In_z_ const char *script,
+            _Out_writes_to_opt_(*bufferSize, *bufferSize) BYTE *buffer,
+            _Inout_ unsigned int *bufferSize);
+
+    /// <summary>
+    ///     Parses a serialized script and returns a function representing the script.
+    ///     Provides the ability to lazy load the script source only if/when it is needed.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The runtime will hold on to the buffer until all instances of any functions created from
+    ///     the buffer are garbage collected.  It will then call scriptUnloadCallback to inform the
+    ///     caller it is safe to release.
+    ///     </para>
+    /// </remarks>
+    /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded. This is an optional parameter, set to null if not needed.</param>
+    /// <param name="scriptUnloadCallback">Callback called when the serialized script and source code are no longer needed. This is an optional parameter, set to null if not needed.</param>
+    /// <param name="buffer">The serialized script.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    ///     This context will passed into scriptLoadCallback and scriptUnloadCallback.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
+    /// <param name="result">A function representing the script code.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsParseSerializedScriptUtf8(
+            _In_ JsSerializedScriptLoadUtf8SourceCallback scriptLoadCallback,
+            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
+            _In_ BYTE *buffer,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _Out_ JsValueRef * result);
+
+    /// <summary>
+    ///     Runs a serialized script.
+    ///     Provides the ability to lazy load the script source only if/when it is needed.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The runtime will hold on to the buffer until all instances of any functions created from
+    ///     the buffer are garbage collected.  It will then call scriptUnloadCallback to inform the
+    ///     caller it is safe to release.
+    ///     </para>
+    /// </remarks>
+    /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded. This is an optional parameter, set to null if not needed.</param>
+    /// <param name="scriptUnloadCallback">Callback called when the serialized script and source code are no longer needed. This is an optional parameter, set to null if not needed.</param>
+    /// <param name="buffer">The serialized script.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    ///     This context will passed into scriptLoadCallback and scriptUnloadCallback.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
+    /// <param name="result">
+    ///     The result of running the script, if any. This parameter can be null.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsRunSerializedScriptUtf8(
+            _In_ JsSerializedScriptLoadUtf8SourceCallback scriptLoadCallback,
+            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
+            _In_ BYTE *buffer,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _Out_opt_ JsValueRef * result);
+
+    /// <summary>
+    ///     Gets the property ID associated with the name.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Property IDs are specific to a context and cannot be used across contexts.
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="name">
+    ///     The name of the property ID to get or create. The name may consist of only digits.
+    ///     The string is expected to be encoded as utf8.
+    /// </param>
+    /// <param name="propertyId">The property ID in this runtime for the given name.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetPropertyIdFromNameUtf8(
+            _In_z_ const char *name,
+            _Out_ JsPropertyIdRef *propertyId);
+
+    /// <summary>
+    ///     Gets the name associated with the property ID.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The returned buffer is valid as long as the runtime is alive and cannot be used
+    ///     once the runtime has been disposed.
+    ///     </para>
+    /// </remarks>
+    /// <param name="propertyId">The property ID to get the name of.</param>
+    /// <param name="name">The name associated with the property ID, encoded as utf8.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetPropertyNameFromIdUtf8(
+            _In_ JsPropertyIdRef propertyId,
+            _Outptr_result_z_ const char *name);
 
     /// <summary>
     ///     Gets the symbol associated with the property ID.
@@ -1132,7 +1405,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetSymbolFromPropertyId(
             _In_ JsPropertyIdRef propertyId,
             _Out_ JsValueRef *symbol);
@@ -1164,7 +1437,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetPropertyIdType(
             _In_ JsPropertyIdRef propertyId,
             _Out_ JsPropertyIdType* propertyIdType);
@@ -1188,7 +1461,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetPropertyIdFromSymbol(
             _In_ JsValueRef symbol,
             _Out_ JsPropertyIdRef *propertyId);
@@ -1204,7 +1477,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateSymbol(
             _In_ JsValueRef description,
             _Out_ JsValueRef *result);
@@ -1220,7 +1493,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetOwnPropertySymbols(
             _In_ JsValueRef object,
             _Out_ JsValueRef *propertySymbols);
@@ -1235,7 +1508,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetUndefinedValue(
             _Out_ JsValueRef *undefinedValue);
 
@@ -1249,7 +1522,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetNullValue(
             _Out_ JsValueRef *nullValue);
 
@@ -1263,7 +1536,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetTrueValue(
             _Out_ JsValueRef *trueValue);
 
@@ -1277,7 +1550,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetFalseValue(
             _Out_ JsValueRef *falseValue);
 
@@ -1292,7 +1565,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsBoolToBoolean(
             _In_ bool value,
             _Out_ JsValueRef *booleanValue);
@@ -1305,7 +1578,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsBooleanToBool(
             _In_ JsValueRef value,
             _Out_ bool *boolValue);
@@ -1321,7 +1594,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsConvertValueToBoolean(
             _In_ JsValueRef value,
             _Out_ JsValueRef *booleanValue);
@@ -1393,7 +1666,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetValueType(
             _In_ JsValueRef value,
             _Out_ JsValueType *type);
@@ -1409,7 +1682,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsDoubleToNumber(
             _In_ double doubleValue,
             _Out_ JsValueRef *value);
@@ -1425,7 +1698,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsIntToNumber(
             _In_ int intValue,
             _Out_ JsValueRef *value);
@@ -1442,7 +1715,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsNumberToDouble(
             _In_ JsValueRef value,
             _Out_ double *doubleValue);
@@ -1459,7 +1732,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsNumberToInt(
             _In_ JsValueRef value,
             _Out_ int *intValue);
@@ -1475,7 +1748,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsConvertValueToNumber(
             _In_ JsValueRef value,
             _Out_ JsValueRef *numberValue);
@@ -1488,11 +1761,12 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetStringLength(
             _In_ JsValueRef stringValue,
             _Out_ int *length);
 
+#ifdef _WIN32
     /// <summary>
     ///     Creates a string value from a string pointer.
     /// </summary>
@@ -1505,7 +1779,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsPointerToString(
             _In_reads_(stringLength) const wchar_t *stringValue,
             _In_ size_t stringLength,
@@ -1532,10 +1806,56 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsStringToPointer(
             _In_ JsValueRef value,
             _Outptr_result_buffer_(*stringLength) const wchar_t **stringValue,
+            _Out_ size_t *stringLength);
+#endif
+
+    /// <summary>
+    ///     Creates a string value from a string pointer.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="stringValue">The string pointer to convert to a string value, encoded as Utf8.</param>
+    /// <param name="stringLength">The length of the string to convert.</param>
+    /// <param name="value">The new string value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsPointerToStringUtf8(
+            _In_reads_(stringLength) const char *stringValue,
+            _In_ size_t stringLength,
+            _Out_ JsValueRef *value);
+
+    /// <summary>
+    ///     Retrieves the string pointer of a string value.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     This function retrieves the string pointer of a string value. It will fail with
+    ///     <c>JsErrorInvalidArgument</c> if the type of the value is not string. The lifetime
+    ///     of the string returned will be the same as the lifetime of the value it came from, however
+    ///     the string pointer is not considered a reference to the value (and so will not keep it
+    ///     from being collected).
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="value">The string value to convert to a string pointer.</param>
+    /// <param name="stringValue">The string pointer, encoded as utf8.</param>
+    /// <param name="stringLength">The length of the string.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsStringToPointerUtf8(
+            _In_ JsValueRef value,
+            _Outptr_result_buffer_(*stringLength) const char **stringValue,
             _Out_ size_t *stringLength);
 
     /// <summary>
@@ -1549,7 +1869,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsConvertValueToString(
             _In_ JsValueRef value,
             _Out_ JsValueRef *stringValue);
@@ -1564,7 +1884,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetGlobalObject(
             _Out_ JsValueRef *globalObject);
 
@@ -1578,7 +1898,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateObject(
             _Out_ JsValueRef *object);
 
@@ -1588,7 +1908,7 @@
     /// <param name="data">
     ///     The external data that was passed in when creating the object being finalized.
     /// </param>
-    typedef void (CALLBACK *JsFinalizeCallback)(_In_opt_ void *data);
+    typedef void (CHAKRA_CALLBACK *JsFinalizeCallback)(_In_opt_ void *data);
 
     /// <summary>
     ///     Creates a new object that stores some external data.
@@ -1604,7 +1924,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateExternalObject(
             _In_opt_ void *data,
             _In_opt_ JsFinalizeCallback finalizeCallback,
@@ -1621,7 +1941,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsConvertValueToObject(
             _In_ JsValueRef value,
             _Out_ JsValueRef *object);
@@ -1637,7 +1957,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetPrototype(
             _In_ JsValueRef object,
             _Out_ JsValueRef *prototypeObject);
@@ -1653,7 +1973,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetPrototype(
             _In_ JsValueRef object,
             _In_ JsValueRef prototypeObject);
@@ -1670,7 +1990,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsInstanceOf(
             _In_ JsValueRef object,
             _In_ JsValueRef constructor,
@@ -1687,7 +2007,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetExtensionAllowed(
             _In_ JsValueRef object,
             _Out_ bool *value);
@@ -1702,7 +2022,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsPreventExtension(
             _In_ JsValueRef object);
 
@@ -1718,7 +2038,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetProperty(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1736,7 +2056,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetOwnPropertyDescriptor(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1753,7 +2073,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetOwnPropertyNames(
             _In_ JsValueRef object,
             _Out_ JsValueRef *propertyNames);
@@ -1771,7 +2091,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetProperty(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1790,7 +2110,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsHasProperty(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1809,7 +2129,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsDeleteProperty(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1829,7 +2149,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsDefineProperty(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1848,7 +2168,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsHasIndexedProperty(
             _In_ JsValueRef object,
             _In_ JsValueRef index,
@@ -1866,7 +2186,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetIndexedProperty(
             _In_ JsValueRef object,
             _In_ JsValueRef index,
@@ -1884,7 +2204,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetIndexedProperty(
             _In_ JsValueRef object,
             _In_ JsValueRef index,
@@ -1901,7 +2221,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsDeleteIndexedProperty(
             _In_ JsValueRef object,
             _In_ JsValueRef index);
@@ -1914,7 +2234,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsHasIndexedPropertiesExternalData(
             _In_ JsValueRef object,
             _Out_ bool* value);
@@ -1929,7 +2249,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetIndexedPropertiesExternalData(
             _In_ JsValueRef object,
             _Out_ void** data,
@@ -1950,7 +2270,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetIndexedPropertiesToExternalData(
             _In_ JsValueRef object,
             _In_ void* data,
@@ -1974,7 +2294,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsEquals(
             _In_ JsValueRef object1,
             _In_ JsValueRef object2,
@@ -1997,7 +2317,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsStrictEquals(
             _In_ JsValueRef object1,
             _In_ JsValueRef object2,
@@ -2011,7 +2331,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsHasExternalData(
             _In_ JsValueRef object,
             _Out_ bool *value);
@@ -2027,7 +2347,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetExternalData(
             _In_ JsValueRef object,
             _Out_ void **externalData);
@@ -2043,7 +2363,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetExternalData(
             _In_ JsValueRef object,
             _In_opt_ void *externalData);
@@ -2059,7 +2379,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateArray(
             _In_ unsigned int length,
             _Out_ JsValueRef *result);
@@ -2077,7 +2397,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateArrayBuffer(
             _In_ unsigned int byteLength,
             _Out_ JsValueRef *result);
@@ -2094,7 +2414,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateExternalArrayBuffer(
             _Pre_maybenull_ _Pre_writable_byte_size_(byteLength) void *data,
             _In_ unsigned int byteLength,
@@ -2132,7 +2452,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateTypedArray(
             _In_ JsTypedArrayType arrayType,
             _In_ JsValueRef baseArray,
@@ -2159,7 +2479,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateDataView(
             _In_ JsValueRef arrayBuffer,
             _In_ unsigned int byteOffset,
@@ -2177,7 +2497,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetTypedArrayInfo(
             _In_ JsValueRef typedArray,
             _Out_opt_ JsTypedArrayType *arrayType,
@@ -2198,7 +2518,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetArrayBufferStorage(
             _In_ JsValueRef arrayBuffer,
             _Outptr_result_bytebuffer_(*bufferLength) BYTE **buffer,
@@ -2221,7 +2541,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetTypedArrayStorage(
             _In_ JsValueRef typedArray,
             _Outptr_result_bytebuffer_(*bufferLength) BYTE **buffer,
@@ -2242,7 +2562,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetDataViewStorage(
             _In_ JsValueRef dataView,
             _Outptr_result_bytebuffer_(*bufferLength) BYTE **buffer,
@@ -2262,7 +2582,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCallFunction(
             _In_ JsValueRef function,
             _In_reads_(argumentCount) JsValueRef *arguments,
@@ -2282,7 +2602,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsConstructObject(
             _In_ JsValueRef function,
             _In_reads_(argumentCount) JsValueRef *arguments,
@@ -2302,7 +2622,7 @@
     ///     The state passed to <c>JsCreateFunction</c>.
     /// </param>
     /// <returns>The result of the call, if any.</returns>
-    typedef _Ret_maybenull_ JsValueRef(CALLBACK * JsNativeFunction)(_In_ JsValueRef callee, _In_ bool isConstructCall, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_opt_ void *callbackState);
+    typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsNativeFunction)(_In_ JsValueRef callee, _In_ bool isConstructCall, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_opt_ void *callbackState);
 
     /// <summary>
     ///     Creates a new JavaScript function.
@@ -2318,7 +2638,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateFunction(
             _In_ JsNativeFunction nativeFunction,
             _In_opt_ void *callbackState,
@@ -2339,7 +2659,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateNamedFunction(
             _In_ JsValueRef name,
             _In_ JsNativeFunction nativeFunction,
@@ -2357,7 +2677,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2373,7 +2693,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateRangeError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2389,7 +2709,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateReferenceError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2405,7 +2725,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateSyntaxError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2421,7 +2741,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateTypeError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2437,7 +2757,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateURIError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2467,7 +2787,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsHasException(
             _Out_ bool *hasException);
 
@@ -2491,7 +2811,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetAndClearException(
             _Out_ JsValueRef *exception);
 
@@ -2513,7 +2833,7 @@
     /// <returns>
     ///     JsNoError if the engine was set into an exception state, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetException(
             _In_ JsValueRef exception);
 
@@ -2538,7 +2858,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsDisableRuntimeExecution(
             _In_ JsRuntimeHandle runtime);
 
@@ -2553,7 +2873,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsEnableRuntimeExecution(
             _In_ JsRuntimeHandle runtime);
 
@@ -2565,7 +2885,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsIsRuntimeExecutionDisabled(
             _In_ JsRuntimeHandle runtime,
             _Out_ bool *isDisabled);
@@ -2582,7 +2902,7 @@
     /// </remarks>
     /// <param name="task">The task, represented as a JavaScript function.</param>
     /// <param name="callbackState">The data argument to be passed to the callback.</param>
-    typedef void (CALLBACK *JsPromiseContinuationCallback)(_In_ JsValueRef task, _In_opt_ void *callbackState);
+    typedef void (CHAKRA_CALLBACK *JsPromiseContinuationCallback)(_In_ JsValueRef task, _In_opt_ void *callbackState);
 
     /// <summary>
     ///     Sets a promise continuation callback function that is called by the context when a task
@@ -2600,7 +2920,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetPromiseContinuationCallback(
             _In_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
