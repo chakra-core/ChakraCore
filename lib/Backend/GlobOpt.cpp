@@ -250,6 +250,9 @@ GlobOpt::GlobOpt(Func * func)
         doBoundCheckHoist &&
         !PHASE_OFF(Js::Phase::LoopCountBasedBoundCheckHoistPhase, func) &&
         !func->GetProfileInfo()->IsLoopCountBasedBoundCheckHoistDisabled(func->IsLoopBody())),
+    doPowIntIntTypeSpec(
+        doAggressiveIntTypeSpec &&
+        !func->GetProfileInfo()->IsPowIntIntTypeSpecDisabled()),
     isAsmJSFunc(func->m_workItem->GetFunctionBody()->GetIsAsmjsMode())
 {
 }
@@ -9591,13 +9594,29 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             {
                 bool lossy = false;
 
+                this->ToInt32(instr, instr->GetSrc2(), this->currentBlock, src2Val, nullptr, lossy);
+
                 IR::Opnd* src1 = instr->GetSrc1();
-                this->ToFloat64(instr, src1, this->currentBlock, src1Val, nullptr, IR::BailOutPrimitiveButString);
+                int32 valueMin, valueMax;
+                if (src1Val->GetValueInfo()->IsLikelyInt() &&
+                    this->DoPowIntIntTypeSpec() &&
+                    src2Val->GetValueInfo()->GetIntValMinMax(&valueMin, &valueMax, this->DoAggressiveIntTypeSpec()) &&
+                    valueMax >= 0)
 
-                IR::Opnd* src2 = instr->GetSrc2();
-                this->ToInt32(instr, src2, this->currentBlock, src2Val, nullptr, lossy);
+                {
+                    this->ToInt32(instr, src1, this->currentBlock, src1Val, nullptr, lossy);
+                    this->TypeSpecializeIntDst(instr, instr->m_opcode, nullptr, src1Val, src2Val, IR::BailOutInvalid, INT32_MIN, INT32_MAX, pDstVal);
 
-                TypeSpecializeFloatDst(instr, nullptr, src1Val, src2Val, pDstVal);
+                    if(!this->IsLoopPrePass())
+                    {
+                        GenerateBailAtOperation(&instr, IR::BailOutOnPowIntIntOverflow);
+                    }
+                }
+                else
+                {
+                    this->ToFloat64(instr, src1, this->currentBlock, src1Val, nullptr, IR::BailOutPrimitiveButString);
+                    TypeSpecializeFloatDst(instr, nullptr, src1Val, src2Val, pDstVal);
+                }
             }
             else
             {
@@ -19360,6 +19379,12 @@ bool
 GlobOpt::DoLoopCountBasedBoundCheckHoist() const
 {
     return doLoopCountBasedBoundCheckHoist;
+}
+
+bool
+GlobOpt::DoPowIntIntTypeSpec() const
+{
+    return doPowIntIntTypeSpec;
 }
 
 bool

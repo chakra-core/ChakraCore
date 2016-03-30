@@ -2135,6 +2135,18 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 }
                 break;
             }
+            case IR::BailOutOnPowIntIntOverflow:
+            {
+                if (profileInfo->IsPowIntIntTypeSpecDisabled())
+                {
+                    reThunk = true;
+                }
+                else
+                {
+                    profileInfo->DisablePowIntIntTypeSpec();
+                    rejitReason = RejitReason::PowIntIntTypeSpecDisabled;
+                }
+            }
         }
 
         Assert(!(rejitReason != RejitReason::None && reThunk));
