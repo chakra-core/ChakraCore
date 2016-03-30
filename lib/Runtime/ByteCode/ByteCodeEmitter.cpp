@@ -2520,7 +2520,7 @@ void ByteCodeGenerator::GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &
         {
             envIndex++;
         }
-        if ((scope == scope->GetFunc()->GetBodyScope() && !scope->GetFunc()->IsLambda()) || scope->IsGlobalEvalBlockScope())
+        if (((scope == scope->GetFunc()->GetBodyScope() || scope == scope->GetFunc()->GetParamScope()) && !scope->GetFunc()->IsLambda()) || scope->IsGlobalEvalBlockScope())
         {
             break;
         }
@@ -3895,7 +3895,14 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 MapFormalsFromPattern(pnodeFnc, [&](ParseNode *pnode) { pnode->sxVar.sym->EnsureScopeSlot(funcInfo); });
             }
 
-            this->EnsureSpecialScopeSlots(funcInfo, bodyScope);
+            if (paramScope->GetCanMergeWithBodyScope())
+            {
+                this->EnsureSpecialScopeSlots(funcInfo, bodyScope);
+            }
+            else
+            {
+                this->EnsureSpecialScopeSlots(funcInfo, paramScope);
+            }
 
             auto ensureFncDeclScopeSlots = [&](ParseNode *pnodeScope)
             {
@@ -3951,7 +3958,14 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             ParseNode *pnode;
             Symbol *sym;
 
-            this->EnsureSpecialScopeSlots(funcInfo, bodyScope);
+            if (paramScope->GetCanMergeWithBodyScope())
+            {
+                this->EnsureSpecialScopeSlots(funcInfo, bodyScope);
+            }
+            else
+            {
+                this->EnsureSpecialScopeSlots(funcInfo, paramScope);
+            }
 
             pnodeFnc->sxFnc.MapContainerScopes([&](ParseNode *pnodeScope) { this->EnsureFncScopeSlots(pnodeScope, funcInfo); });
 
