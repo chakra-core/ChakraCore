@@ -302,14 +302,12 @@ namespace TTD
 
         //////////////////
 
-        void ExtractSnapPrimitiveValue(SnapPrimitiveValue* snapValue, Js::RecyclableObject* jsValue, bool isWellKnown, bool isLogged, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc)
+        void ExtractSnapPrimitiveValue(SnapPrimitiveValue* snapValue, Js::RecyclableObject* jsValue, bool isWellKnown, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc)
         {
             snapValue->PrimitiveValueId = TTD_CONVERT_VAR_TO_PTR_ID(jsValue);
 
             Js::Type* objType = jsValue->GetType();
             snapValue->SnapType = idToTypeMap.LookupKnownItem(TTD_CONVERT_TYPEINFO_TO_PTR_ID(objType));
-
-            snapValue->ValueLogTag = isLogged ? jsValue->GetScriptContext()->GetThreadContext()->TTDInfo->LookupTagForObject(jsValue) : TTD_INVALID_LOG_TAG;
 
             snapValue->OptWellKnownToken = alloc.CopyRawNullTerminatedStringInto(isWellKnown ? jsValue->GetScriptContext()->ResolveKnownTokenForPrimitive_TTD(jsValue) : TTD_INVALID_WELLKNOWN_TOKEN);
 
@@ -335,8 +333,8 @@ namespace TTD
                     snapValue->u_uint64Value = Js::JavascriptUInt64Number::FromVar(jsValue)->GetValue();
                     break;
                 case Js::TypeIds_String:
-                    snapValue->m_optStringValue = alloc.SlabAllocateStruct<TTString>();
-                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(jsValue)->GetSz(), Js::JavascriptString::FromVar(jsValue)->GetLength(), *(snapValue->m_optStringValue));
+                    snapValue->u_stringValue = alloc.SlabAllocateStruct<TTString>();
+                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(jsValue)->GetSz(), Js::JavascriptString::FromVar(jsValue)->GetLength(), *(snapValue->u_stringValue));
                     break;
                 case Js::TypeIds_Symbol:
                     snapValue->u_propertyIdValue = jslib->ExtractPrimitveSymbolId_TTD(jsValue);
@@ -388,7 +386,7 @@ namespace TTD
                         res = Js::JavascriptUInt64Number::ToVar(snapValue->u_uint64Value, ctx);
                         break;
                     case Js::TypeIds_String:
-                        res = Js::JavascriptString::NewCopyBuffer(snapValue->m_optStringValue->Contents, snapValue->m_optStringValue->Length, ctx);
+                        res = Js::JavascriptString::NewCopyBuffer(snapValue->u_stringValue->Contents, snapValue->u_stringValue->Length, ctx);
                         break;
                     case Js::TypeIds_Symbol:
                         res = jslib->CreatePrimitveSymbol_TTD(snapValue->u_propertyIdValue);
@@ -400,11 +398,7 @@ namespace TTD
                 }
             }
 
-            Js::RecyclableObject* resObj = Js::RecyclableObject::FromVar(res);
-
-            ctx->GetThreadContext()->TTDInfo->SetObjectTrackingTagSnapAndInflate_TTD(snapValue->ValueLogTag, resObj);
-
-            inflator->AddObject(snapValue->PrimitiveValueId, resObj);
+            inflator->AddObject(snapValue->PrimitiveValueId, Js::RecyclableObject::FromVar(res));
         }
 
         void EmitSnapPrimitiveValue(const SnapPrimitiveValue* snapValue, FileWriter* writer, NSTokens::Separator separator)
@@ -412,7 +406,6 @@ namespace TTD
             writer->WriteRecordStart(separator);
             writer->WriteAddr(NSTokens::Key::primitiveId, snapValue->PrimitiveValueId);
             writer->WriteAddr(NSTokens::Key::typeId, snapValue->SnapType->TypePtrId, NSTokens::Separator::CommaSeparator);
-            writer->WriteLogTag(NSTokens::Key::logTag, snapValue->ValueLogTag, NSTokens::Separator::CommaSeparator);
 
             writer->WriteBool(NSTokens::Key::isWellKnownToken, snapValue->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN, NSTokens::Separator::CommaSeparator);
             if(snapValue->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN)
@@ -439,7 +432,7 @@ namespace TTD
                     writer->WriteUInt64(NSTokens::Key::u64Val, snapValue->u_uint64Value, NSTokens::Separator::CommaSeparator);
                     break;
                 case Js::TypeIds_String:
-                    writer->WriteString(NSTokens::Key::stringVal, *(snapValue->m_optStringValue), NSTokens::Separator::CommaSeparator);
+                    writer->WriteString(NSTokens::Key::stringVal, *(snapValue->u_stringValue), NSTokens::Separator::CommaSeparator);
                     break;
                 case Js::TypeIds_Symbol:
                     writer->WriteInt32(NSTokens::Key::propertyId, snapValue->u_propertyIdValue, NSTokens::Separator::CommaSeparator);
@@ -459,8 +452,6 @@ namespace TTD
 
             TTD_PTR_ID snapTypeId = reader->ReadAddr(NSTokens::Key::typeId, true);
             snapValue->SnapType = ptrIdToTypeMap.LookupKnownItem(snapTypeId);
-
-            snapValue->ValueLogTag = reader->ReadLogTag(NSTokens::Key::logTag, true);
 
             bool isWellKnown = reader->ReadBool(NSTokens::Key::isWellKnownToken, true);
             if(isWellKnown)
@@ -492,8 +483,8 @@ namespace TTD
                     snapValue->u_uint64Value = reader->ReadUInt64(NSTokens::Key::u64Val, true);
                     break;
                 case Js::TypeIds_String:
-                    snapValue->m_optStringValue = alloc.SlabAllocateStruct<TTString>();
-                    reader->ReadString(NSTokens::Key::stringVal, alloc, *(snapValue->m_optStringValue), true);
+                    snapValue->u_stringValue = alloc.SlabAllocateStruct<TTString>();
+                    reader->ReadString(NSTokens::Key::stringVal, alloc, *(snapValue->u_stringValue), true);
                     break;
                 case Js::TypeIds_Symbol:
                     snapValue->u_propertyIdValue = (Js::PropertyId)reader->ReadInt32(NSTokens::Key::propertyId, true);
@@ -511,7 +502,6 @@ namespace TTD
         void AssertSnapEquiv(const SnapPrimitiveValue* v1, const SnapPrimitiveValue* v2, TTDCompareMap& compareMap)
         {
             compareMap.DiagnosticAssert(v1->SnapType->JsTypeId == v2->SnapType->JsTypeId);
-            compareMap.DiagnosticAssert(v1->ValueLogTag == v2->ValueLogTag);
 
             NSSnapType::AssertSnapEquiv(v1->SnapType, v2->SnapType, compareMap);
 
@@ -540,7 +530,7 @@ namespace TTD
                     compareMap.DiagnosticAssert(v1->u_uint64Value == v2->u_uint64Value);
                     break;
                 case Js::TypeIds_String:
-                    compareMap.DiagnosticAssert(TTStringEQForDiagnostics(*(v1->m_optStringValue), *(v2->m_optStringValue)));
+                    compareMap.DiagnosticAssert(TTStringEQForDiagnostics(*(v1->u_stringValue), *(v2->u_stringValue)));
                     break;
                 case Js::TypeIds_Symbol:
                     compareMap.DiagnosticAssert(v1->u_propertyIdValue == v2->u_propertyIdValue);

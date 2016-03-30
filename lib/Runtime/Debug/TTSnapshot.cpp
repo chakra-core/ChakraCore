@@ -548,23 +548,11 @@ namespace TTD
         for(auto iter = snap1->m_primitiveObjectList.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             compareMap.H1ValueMap.AddNew(iter.Current()->PrimitiveValueId, iter.Current());
-
-            //do log tag check
-            if(iter.Current()->ValueLogTag != TTD_INVALID_LOG_TAG)
-            {
-                compareMap.H1TagMap.AddNew(iter.Current()->PrimitiveValueId, iter.Current()->ValueLogTag);
-            }
         }
 
         for(auto iter = snap2->m_primitiveObjectList.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             compareMap.H2ValueMap.AddNew(iter.Current()->PrimitiveValueId, iter.Current());
-
-            //do log tag check
-            if(iter.Current()->ValueLogTag != TTD_INVALID_LOG_TAG)
-            {
-                compareMap.H2TagMap.AddNew(iter.Current()->PrimitiveValueId, iter.Current()->ValueLogTag);
-            }
         }
 
         for(auto iter = snap1->m_slotArrayEntries.GetIterator(); iter.IsValid(); iter.MoveNext())

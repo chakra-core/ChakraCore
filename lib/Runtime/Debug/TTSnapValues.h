@@ -78,9 +78,6 @@ namespace TTD
             //The type of the primitive value
             NSSnapType::SnapType* SnapType;
 
-            //The tag given to uniquely identify this object accross time (for logging and callback uses)
-            TTD_LOG_TAG ValueLogTag;
-
             //The optional well known token for this object (or INVALID)
             TTD_WELLKNOWN_TOKEN OptWellKnownToken;
 
@@ -90,14 +87,12 @@ namespace TTD
                 int64 u_int64Value;
                 uint64 u_uint64Value;
                 double u_doubleValue;
-                Js::PropertyId u_propertyIdValue; //for a symbol
+                TTString* u_stringValue;
+                Js::PropertyId u_propertyIdValue;
             };
-
-            //If this is a string then a ptr to the actual string contents
-            TTString* m_optStringValue;
         };
 
-        void ExtractSnapPrimitiveValue(SnapPrimitiveValue* snapValue, Js::RecyclableObject* jsValue, bool isWellKnown, bool isLogged, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc);
+        void ExtractSnapPrimitiveValue(SnapPrimitiveValue* snapValue, Js::RecyclableObject* jsValue, bool isWellKnown, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc);
         void InflateSnapPrimitiveValue(const SnapPrimitiveValue* snapValue, InflateMap* inflator);
 
         void EmitSnapPrimitiveValue(const SnapPrimitiveValue* snapValue, FileWriter* writer, NSTokens::Separator separator);
