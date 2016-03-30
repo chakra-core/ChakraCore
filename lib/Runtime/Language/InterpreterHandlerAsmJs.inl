@@ -105,12 +105,18 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( D2toD1Mem        , Mul_Db       , AsmJsMath::Mul<double>                             )
   DEF2_WMS( D2toD1Mem        , Div_Db       , AsmJsMath::Div<double>                             )
   DEF2_WMS( D2toD1Mem        , Rem_Db       , AsmJsMath::Rem<double>                             )
+  DEF2_WMS( D2toD1Mem      , Copysign_Db  , AsmJsMath::Copysign<double>                        )
+  EXDEF2_WMS( D1toD1Mem      , Trunc_Db     , AsmJsMath::Trunc<double>)
+  EXDEF2_WMS( D1toD1Mem      , Nearest_Db   , AsmJsMath::Nearest<double>)
 
   DEF2_WMS( F1toF1Mem        , Neg_Flt      , AsmJsMath::Neg<float>                              ) // float unary '-'
   DEF2_WMS( F2toF1Mem        , Add_Flt      , AsmJsMath::Add<float>                              )
   DEF2_WMS( F2toF1Mem        , Sub_Flt      , AsmJsMath::Sub<float>                              )
   DEF2_WMS( F2toF1Mem        , Mul_Flt      , AsmJsMath::Mul<float>                              )
   DEF2_WMS( F2toF1Mem        , Div_Flt      , AsmJsMath::Div<float>                              )
+  DEF2_WMS( F2toF1Mem        , Copysign_Flt , AsmJsMath::Copysign<float>)
+  EXDEF2_WMS( F1toF1Mem        , Trunc_Flt    , AsmJsMath::Trunc<float>)
+  EXDEF2_WMS( F1toF1Mem        , Nearest_Flt  , AsmJsMath::Nearest<float>)
 
   DEF2_WMS( I2toI1Mem        , CmLt_Int     , AsmJsMath::CmpLt<int>                              )
   DEF2_WMS( I2toI1Mem        , CmLe_Int     , AsmJsMath::CmpLe<int>                              )
@@ -127,7 +133,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( I2toI1Mem        , Max_Int      , max                                                )
   DEF2_WMS( I2toI1Mem        , Imul_Int     , AsmJsMath::Mul<int>                                )
   DEF2_WMS( I1toI1Mem        , Clz32_Int    , AsmJsMath::Clz32                                   )
-
+  DEF2_WMS( I1toI1Mem        , Eqz_Int      , AsmJsMath::Eqz)
 
   DEF2_WMS( D2toI1Mem        , CmLt_Db      , AsmJsMath::CmpLt<double>                           )
   DEF2_WMS( D2toI1Mem        , CmLe_Db      , AsmJsMath::CmpLe<double>                           )

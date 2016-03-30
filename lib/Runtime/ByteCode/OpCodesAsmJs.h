@@ -159,6 +159,7 @@ MACRO_WMS   ( CmGt_Int                  , Int3         , None            ) // in
 MACRO_WMS   ( CmGe_Int                  , Int3         , None            ) // int32 Comparison >=
 MACRO_WMS   ( CmEq_Int                  , Int3         , None            ) // int32 Comparison ==
 MACRO_WMS   ( CmNe_Int                  , Int3         , None            ) // int32 Comparison !=
+MACRO_WMS   ( Eqz_Int                 , Int2         , None            ) // int32 Comparison with 0
 
 // Unsigned int comparisons
 MACRO_WMS   ( CmLt_UnInt                , Int3         , None            ) // unsigned int32 Comparison <
@@ -210,7 +211,12 @@ MACRO_WMS   ( Abs_Flt                   , Float2        , None           )
 MACRO_WMS   ( Atan2_Db                  , Double3       , None           )
 MACRO_WMS   ( Min_Db                    , Double3       , None           )
 MACRO_WMS   ( Max_Db                    , Double3       , None           )
-
+MACRO_WMS   ( Copysign_Db               , Double3       , None           )
+MACRO_WMS   ( Copysign_Flt              , Float3        , None           )
+MACRO_EXTEND_WMS   ( Trunc_Db                  , Double2       , None           )
+MACRO_EXTEND_WMS   ( Trunc_Flt                 , Float2        , None           )
+MACRO_EXTEND_WMS   ( Nearest_Db                , Double2       , None           )
+MACRO_EXTEND_WMS   ( Nearest_Flt               , Float2        , None           )
 // Fround
 MACRO_WMS   ( Fround_Flt                , Float2        , None           )
 MACRO_WMS   ( Fround_Db                 , Float1Double1 , None           )

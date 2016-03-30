@@ -5,5 +5,11 @@
       <files>rot.js</files>
       <baseline>rot.baseline</baseline>
     </default>
-  </test>
+</test>
+<test>
+     <default>
+       <files>misc.js</files>
+       <baseline>misc.baseline</baseline>
+     </default>
+</test>
 </regress-exe>

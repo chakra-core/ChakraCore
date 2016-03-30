@@ -16,8 +16,8 @@ WASM_MEMSTORE_I(STORE8,    store8)
 WASM_MEMSTORE_I(STORE16,   store16)
 
 WASM_KEYWORD(GETPARAM,               getparam)
-WASM_KEYWORD(GETLOCAL,               getlocal)
-WASM_KEYWORD(SETLOCAL,               setlocal)
+WASM_KEYWORD(GETLOCAL,               get_local)
+WASM_KEYWORD(SETLOCAL,               set_local)
 
 // types
 WASM_MEMTYPE(I8,     i8)
@@ -63,12 +63,15 @@ WASM_KEYWORD(TYPE,       type)
 // unary ops
 WASM_KEYWORD_UNARY_I(NOT,    not, Not)
 WASM_KEYWORD_UNARY_I(CLZ,    clz, Clz32)
+WASM_KEYWORD_UNARY_I(EQZ,    eqz, Eqz)
 WASM_KEYWORD_UNARY_FD(NEG,    neg, Neg)
 WASM_KEYWORD_UNARY_FD(ABS,    abs, Abs)
 WASM_KEYWORD_UNARY_FD(CEIL,   ceil, Ceil)
 WASM_KEYWORD_UNARY_FD(FLOOR,  floor, Floor)
 
 WASM_KEYWORD_UNARY_FD(SQRT, sqrt, Sqrt)
+WASM_KEYWORD_UNARY_FD(TRUNC, trunc, Trunc)
+WASM_KEYWORD_UNARY_FD(NEAREST, nearest, Nearest)
 
 // TODO: michhol, new ops
 // WASM_KEYWORD_UNARY_FD(TRUNC, trunc, Trunc)
@@ -109,6 +112,7 @@ WASM_KEYWORD_BIN_MATH_I(ROR, rotr, Ror_Int)
 WASM_KEYWORD_BIN_MATH_I(ROL, rotl, Rol_Int)
 
 WASM_KEYWORD_BIN_MATH_FD(DIV, div, Div)
+WASM_KEYWORD_BIN_MATH_FD(COPYSIGN, copysign, Copysign)
 
 WASM_KEYWORD_BIN_MATH_D(MOD, mod, Rem_Db)
 WASM_KEYWORD_BIN_MATH_D(MIN, min, Min_Db)
