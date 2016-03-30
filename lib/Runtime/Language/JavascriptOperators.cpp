@@ -9090,7 +9090,9 @@ CommonNumber:
             // Stack numbers are ok, as we will call ToObject to wrap it in a number object anyway
             // See JavascriptOperators::GetThisHelper
             Assert(JavascriptOperators::GetTypeId(object) == TypeIds_Integer ||
-                JavascriptOperators::GetTypeId(object) == TypeIds_Number || !ThreadContext::IsOnStack(object));
+                JavascriptOperators::GetTypeId(object) == TypeIds_Number ||
+                threadContext->HasNoSideEffect(function) ||
+                !ThreadContext::IsOnStack(object));
 
             // Verify that the scriptcontext is alive before firing getter/setter
             if (!scriptContext->VerifyAlive(!function->IsExternal(), requestContext))
