@@ -1362,6 +1362,10 @@ NativeCodeGenerator::Process(JsUtil::Job *const job, JsUtil::ParallelThreadData 
 
     CodeGenWorkItem *const codeGenWork = static_cast<CodeGenWorkItem *>(job);
 
+#if DBG
+    Js::FunctionBody::AutoResetThreadState autoSet(codeGenWork->GetFunctionBody());
+#endif
+
     switch (codeGenWork->Type())
     {
     case JsLoopBodyWorkItemType:
@@ -1499,6 +1503,10 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
     Assert(job);
 
     CodeGenWorkItem *workItem = static_cast<CodeGenWorkItem *>(job);
+
+#if DBG
+    Js::FunctionBody::AutoResetThreadState autoReset(workItem->GetFunctionBody());
+#endif
 
     class AutoCleanup
     {
