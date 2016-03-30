@@ -207,12 +207,19 @@ var tests = [
         } 
         assert.areEqual(30, f2.call({y : 10}), "Properties are accessed from the right this object"); 
 
-        var thisObj = {x : 1, y: 20};             
-        function f3(b = () => { this.x = 10; return this.y; }) { 
+        var thisObj = {x : 1, y : 20 };
+        function f3(a, b = () => { a; this.x = 10; return this.y; }) {
+            assert.areEqual(1, this.x, "Assignment from the param scope has not happened yet");
+            assert.areEqual(20, this.y, "y property of the this object is not affected");
             return b; 
         } 
         assert.areEqual(20, f3.call(thisObj)(), "Lambda defined in the param scope returns the right property value from thisObj"); 
         assert.areEqual(10, thisObj.x, "Assignment from the param scope method updates thisObj's property"); 
+
+        function f4(a, b = () => { a; return this; }) {
+            return b;
+        }
+        assert.areEqual(thisObj, f4.call(thisObj)(), "Lambda defined in the param scope returns the right this object"); 
     } 
   },
   { 
