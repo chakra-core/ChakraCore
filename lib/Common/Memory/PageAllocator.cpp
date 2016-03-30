@@ -746,7 +746,8 @@ PageAllocatorBase<T>::AddPageSegment(DListBase<PageSegmentBase<T>>& segmentList)
 
 template<typename T>
 char *
-PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<T> ** pageSegment, SLIST_HEADER& zeroPagesList, bool isPendingZeroList)
+PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<T> ** pageSegment, SLIST_HEADER& zeroPagesList, 
+    bool isPendingZeroList, PageHeapMode pageHeapFlags)
 {
     FAULTINJECT_MEMORY_NOTHROW(this->debugName, pageCount*AutoSystemInfo::PageSize);
 
@@ -760,32 +761,43 @@ PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<
             break;
         }
 
+        if (!PageSegmentBase<T>::IsAllocationPageAligned((char*)freePage, pageCount, pageHeapFlags))
+        {
+            freePage->Next = localList;
+            localList = freePage;
+            continue;
+        }        
+
         if (freePage->pageCount == pageCount)
         {
             *pageSegment = freePage->segment;
             pages = (char *)freePage;
-            memset(pages, 0, isPendingZeroList ? (pageCount*AutoSystemInfo::PageSize) : sizeof(FreePageEntry));
-            this->FillAllocPages(pages, pageCount);
-            break;
         }
         else
         {
-            if (isPendingZeroList)
-            {
-                memset((char *)freePage + sizeof(FreePageEntry), 0, (freePage->pageCount*AutoSystemInfo::PageSize) - sizeof(FreePageEntry));
-            }
-
-            freePage->Next = localList;
-            localList = (FreePageEntry*)freePage;
-
             if (freePage->pageCount > pageCount)
             {
                 *pageSegment = freePage->segment;
+                pages = (char *)freePage;
                 freePage->pageCount -= pageCount;
-                pages = (char *)freePage + freePage->pageCount * AutoSystemInfo::PageSize;
-                this->FillAllocPages(pages, pageCount);
-                break;
+                freePage = (FreePageEntry*)((char *)freePage + pageCount* AutoSystemInfo::PageSize);
+                memcpy(freePage, pages, sizeof(FreePageEntry));
+                if (isPendingZeroList)
+                {
+                    memset((char *)freePage + sizeof(FreePageEntry), 0, (freePage->pageCount*AutoSystemInfo::PageSize) - sizeof(FreePageEntry));
+                }
             }
+
+            freePage->Next = localList;
+            localList = freePage;
+
+        }
+
+        if (pages)
+        {
+            memset(pages, 0, isPendingZeroList ? (pageCount*AutoSystemInfo::PageSize) : sizeof(FreePageEntry));
+            this->FillAllocPages(pages, pageCount);
+            break;
         }
     }
 
@@ -829,13 +841,13 @@ PageAllocatorBase<T>::TryAllocFromZeroPages(uint pageCount, PageSegmentBase<T> *
 {
     if (backgroundPageQueue != nullptr) 
     {
-        return TryAllocFromZeroPagesList(pageCount, pageSegment, backgroundPageQueue->freePageList, false);
+        return TryAllocFromZeroPagesList(pageCount, pageSegment, backgroundPageQueue->freePageList, false, pageHeapFlags);
     }
 
     if (this->hasZeroQueuedPages) 
     {
         __analysis_assume(backgroundPageQueue != nullptr);
-        return TryAllocFromZeroPagesList(pageCount, pageSegment, (((ZeroPageQueue *)backgroundPageQueue)->pendingZeroPageList), true);
+        return TryAllocFromZeroPagesList(pageCount, pageSegment, (((ZeroPageQueue *)backgroundPageQueue)->pendingZeroPageList), true, pageHeapFlags);
     }
 
     return nullptr;
@@ -1174,6 +1186,11 @@ PageAllocatorBase<T>::AllocPagesInternal(uint pageCount, PageSegmentBase<T> ** p
     ResumeIdleDecommit();
 
     PageTracking::ReportAllocation((PageAllocator*)this, allocation, AutoSystemInfo::PageSize * pageCount);
+    
+    if (!notPageAligned) 
+    {
+        Assert(PageSegmentBase<T>::IsAllocationPageAligned(allocation, pageCount, pageHeapModeFlags));
+    }
 
     return allocation;
 }
