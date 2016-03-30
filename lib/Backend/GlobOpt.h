@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 class BackwardPass;
@@ -1615,6 +1615,7 @@ private:
 
     static BOOL             IsInt32TypeSpecialized(Sym *sym, BasicBlock *block);
     static BOOL             IsInt32TypeSpecialized(Sym *sym, GlobOptBlockData *data);
+    static BOOL             IsLossyInt32TypeSpecialized(Sym *sym, GlobOptBlockData *data);
     static BOOL             IsSwitchInt32TypeSpecialized(IR::Instr * instr, BasicBlock * block);
     static BOOL             IsFloat64TypeSpecialized(Sym *sym, BasicBlock *block);
     static BOOL             IsFloat64TypeSpecialized(Sym *sym, GlobOptBlockData *data);

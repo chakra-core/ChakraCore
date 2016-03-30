@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #ifndef HELPERCALL
@@ -338,17 +338,11 @@ HELPERCALL(AllocUninitializedNumber, Js::JavascriptOperators::AllocUninitialized
 #endif
 
 // SIMD_JS
-#define SIMD_HELPER(_NAME_,_TAG_) HELPERCALL(AllocUninitializedSimd##_TAG_##, Js::JavascriptSIMD##_NAME_##::AllocUninitialized, 0)
-SIMD_HELPER(Float32x4,      F4)
-SIMD_HELPER(Int32x4,        I4)
-SIMD_HELPER(Int16x8,        I8)
-SIMD_HELPER(Int8x16,        I16)
-SIMD_HELPER(Uint32x4,       U4)
-SIMD_HELPER(Uint16x8,       U8)
-SIMD_HELPER(Uint8x16,       U16)
-SIMD_HELPER(Bool32x4,       B4)
-SIMD_HELPER(Bool16x8,       B8)
-SIMD_HELPER(Bool8x16,       B16)
+#define SIMD_HELPER(_NAME_,_TAG_)\
+HELPERCALL(AllocUninitializedSimd##_TAG_##, Js::JavascriptSIMD##_NAME_##::AllocUninitialized, 0)
+
+SIMD_EXPAND_W_NAME(SIMD_HELPER)
+
 #undef SIMD_HELPER
 
 HELPERCALL(Op_TryCatch, nullptr, 0)

@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -54,7 +54,7 @@ namespace Js {
     inline bool IsSimd128Opcode(OpCode o) { return (o > Js::OpCode::Simd128_Start && o < Js::OpCode::Simd128_End) || (o > Js::OpCode::Simd128_Start_Extend && o < Js::OpCode::Simd128_End_Extend); }
     inline uint Simd128OpcodeCount() { return (uint)(Js::OpCode::Simd128_End - Js::OpCode::Simd128_Start) + 1 + (uint)(Js::OpCode::Simd128_End_Extend - Js::OpCode::Simd128_Start_Extend) + 1; }
     inline bool IsSimd128Load(OpCode o)
-    { 
+    {
         return
             o == Js::OpCode::Simd128_LdArr_F4 ||
             o == Js::OpCode::Simd128_LdArr_I4 ||

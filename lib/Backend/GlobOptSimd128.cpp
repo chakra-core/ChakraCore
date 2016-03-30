@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // SIMD_JS
@@ -264,11 +264,10 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
                     {
                         return false;
                     }
-
                 }
                 else if (expectedType.IsInt())
                 {
-                    if ((sym && !IsInt32TypeSpecialized(sym, &currentBlock->globOptData) && !currentBlock->globOptData.liveLossyInt32Syms->Test(sym->m_id)) ||
+                    if ((sym && !IsInt32TypeSpecialized(sym, &currentBlock->globOptData) && !IsLossyInt32TypeSpecialized(sym, &currentBlock->globOptData)) ||
                         !sym && opnd->GetType() != TyInt32)
                     {
                         return false;
