@@ -201,10 +201,23 @@ namespace Js
 
         __inline Var JavascriptMath::Multiply(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-            return
-                TaggedInt::IsPair(aLeft,aRight) ?
-                TaggedInt::Multiply(aLeft, aRight, scriptContext) :
-                Multiply_Full(aLeft, aRight, scriptContext);
+            if (TaggedInt::IsPair(aLeft, aRight))
+            {
+                return TaggedInt::Multiply(aLeft, aRight, scriptContext);
+            }
+            else
+            {
+#if defined(_M_IX86) && !defined(SSE2MATH)
+                if (AutoSystemInfo::Data.SSE2Available())
+                {
+                    return SSE2::JavascriptMath::Multiply_Full(aLeft, aRight, scriptContext);
+                }
+                else
+#endif
+                {
+                    return Multiply_Full(aLeft, aRight, scriptContext);
+                }
+            }
         }
 
         __inline Var JavascriptMath::Exponentiation(Var aLeft, Var aRight, ScriptContext* scriptContext)
