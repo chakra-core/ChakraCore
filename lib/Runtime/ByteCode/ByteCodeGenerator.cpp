@@ -1410,6 +1410,13 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         paramScope->SetMustInstantiate(true);
     }
 
+    if (pnode->sxFnc.IsAsync())
+    {
+        // For async methods we use the same parameter symbols in the inner function too.
+        // So mark them as having non local reference here.
+        funcInfo->paramScope->ForceAllSymbolNonLocalReference(this);
+    }
+
     PushFuncInfo(_u("StartBindFunction"), funcInfo);
 
     if (funcExprScope)
