@@ -13,6 +13,7 @@
 #include "Language/InterpreterStackFrame.h"
 #include "Library/JavascriptGeneratorFunction.h"
 
+#include "Math/RuntimeMathPch.h"
 
 ///----------------------------------------------------------------------------
 ///
@@ -4532,7 +4533,17 @@ namespace Js
     template <bool doProfile>
     Var InterpreterStackFrame::ProfiledDivide(Var aLeft, Var aRight, ScriptContext* scriptContext, ProfileId profileId)
     {
-        Var result = JavascriptMath::Divide(aLeft, aRight,scriptContext);
+        Var result;
+#ifdef _M_IX86
+        if (AutoSystemInfo::Data.SSE2Available())
+        {
+            result = SSE2::JavascriptMath::Divide(aLeft, aRight, scriptContext);
+        }
+        else
+#endif
+        {
+            result = JavascriptMath::Divide(aLeft, aRight, scriptContext);
+        }
 
         if (doProfile)
         {
@@ -4567,7 +4578,7 @@ namespace Js
             body->GetDynamicProfileInfo()->RecordModulusOpType(body, profileId, /*isModByPowerOf2*/ false);
         }
 
-        return JavascriptMath::Modulus(aLeft, aRight,scriptContext);
+        return JavascriptMath::Modulus(aLeft, aRight, scriptContext);
     }
 
     template <bool doProfile>
@@ -4586,7 +4597,16 @@ namespace Js
     Var InterpreterStackFrame::ProfiledDivide(Var aLeft, Var aRight, ScriptContext* scriptContext, ProfileId profileId)
     {
         Assert(!doProfile);
-        return JavascriptMath::Divide(aLeft, aRight, scriptContext);
+#ifdef _M_IX86
+        if (AutoSystemInfo::Data.SSE2Available())
+        {
+            return SSE2::JavascriptMath::Divide(aLeft, aRight, scriptContext);
+        }
+        else
+#endif
+        {
+            return JavascriptMath::Divide(aLeft, aRight, scriptContext);
+        }
     }
 
     template <bool doProfile>
