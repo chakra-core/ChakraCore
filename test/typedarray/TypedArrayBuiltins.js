@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-// Verifies TypedArray builtin properties 
+// Verifies TypedArray builtin properties
 
 if (this.WScript && this.WScript.LoadScriptFile) { // Check for running in ch
     this.WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
@@ -23,11 +23,11 @@ var tests = [
         body: function () {
             var arr = new ArrayBuffer(100);
             var u8 = new Uint8Array(arr, 90);
-            
+
             for (var i = 0; i < u8.length; i++) {
                 u8[i] = i;
             }
-            
+
             mangle(u8);
 
             assert.areEqual(10, u8.length, "Writing to length has no effect");
@@ -165,6 +165,52 @@ var tests = [
                 testAllTypedArrayConstructorsWithIterableArray(a, overrideBuiltinArrayIteratorNext, "%ArrayIteratorPrototype%.next overriden by getter");
                 Object.defineProperty(arrayIteratorProto, "next", builtinArrayPrototypeIteratorNextDesc);
             })();
+        }
+    },
+    {
+        name: "TypedArray constructor and TypedArray.from don't get @@iterator twice",
+        body: function () {
+            let count = 0;
+            new Uint8Array({
+                get [Symbol.iterator]() {
+                    count++;
+                    return [][Symbol.iterator];
+                }
+            });
+            assert.areEqual(count, 1, "TypedArray constructor calls @@iterator getter once");
+
+            count = 0;
+            new Uint8Array(new Proxy({}, {
+                get(target, property) {
+                    if (property === Symbol.iterator) {
+                        count++;
+                        return [][Symbol.iterator];
+                    }
+                    return Reflect.get(target, property);
+                }
+            }));
+            assert.areEqual(count, 1, "TypedArray constructor calls proxy's getter with @@iterator as parameter only once");
+
+            count = 0;
+            Uint8Array.from({
+                get [Symbol.iterator]() {
+                    count++;
+                    return [][Symbol.iterator];
+                }
+            });
+            assert.areEqual(count, 1, "TypedArray.from calls @@iterator getter once");
+
+            count = 0;
+            Uint8Array.from(new Proxy({}, {
+                get(target, property) {
+                    if (property === Symbol.iterator) {
+                        count++;
+                        return [][Symbol.iterator];
+                    }
+                    return Reflect.get(target, property);
+                }
+            }));
+            assert.areEqual(count, 1, "TypedArray.from calls proxy's getter with @@iterator as parameter only once");
         }
     }
 ];

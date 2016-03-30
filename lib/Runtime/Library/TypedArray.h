@@ -167,7 +167,7 @@ namespace Js
 
     protected:
         inline BOOL IsBuiltinProperty(PropertyId);
-        static Var CreateNewInstanceFromIterableObj(RecyclableObject *object, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray);
+        static Var CreateNewInstanceFromIterator(RecyclableObject *iterator, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray);
         static Var CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray );
         static int32 ToLengthChecked(Var lengthVar, uint32 elementSize, ScriptContext* scriptContext);
         static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
