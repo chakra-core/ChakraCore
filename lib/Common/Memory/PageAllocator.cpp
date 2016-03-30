@@ -1158,6 +1158,11 @@ PageAllocatorBase<T>::AllocPagesInternal(uint pageCount, PageSegmentBase<T> ** p
 
     PageTracking::ReportAllocation((PageAllocator*)this, allocation, AutoSystemInfo::PageSize * pageCount);
 
+    if (!notPageAligned) 
+    {
+        Assert(PageSegmentBase<T>::IsAllocationPageAligned(allocation, pageCount));
+    } 
+
     return allocation;
 }
 

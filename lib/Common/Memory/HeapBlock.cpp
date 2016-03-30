@@ -272,8 +272,7 @@ SmallHeapBlockT<TBlockAttributes>::SetPage(__in_ecount_pagesize char * baseAddre
 {
     char* address = baseAddress;
 
-    uint l2Id = HeapBlockMap32::GetLevel2Id(address);
-    Assert(l2Id + (TBlockAttributes::PageCount - 1) < 256);
+    Assert(HeapBlockMap32::GetLevel2Id(address) + (TBlockAttributes::PageCount - 1) < 256);
 
     this->segment = pageSegment;
     this->address = address;
