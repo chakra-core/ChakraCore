@@ -606,7 +606,12 @@ void WScriptJsrt::AddMessageQueue(MessageQueue *_messageQueue)
 
 WScriptJsrt::CallbackMessage::CallbackMessage(unsigned int time, JsValueRef function) : MessageBase(time), m_function(function)
 {
-    ChakraRTInterface::JsAddRef(m_function, nullptr);
+    JsErrorCode error = ChakraRTInterface::JsAddRef(m_function, nullptr);
+    if (error != JsNoError)
+    {
+        AssertMsg(false, "FATAL ERROR: ChakraRTInterface::JsAddRef failed in WScriptJsrt::CallbackMessage::`ctor`.");
+        RaiseFailFastException(NULL, NULL, 0);
+    }
 }
 
 WScriptJsrt::CallbackMessage::~CallbackMessage()
