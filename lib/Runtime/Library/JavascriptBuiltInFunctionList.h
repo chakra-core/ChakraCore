@@ -192,7 +192,7 @@ BUILTIN(JavascriptRegExp, SymbolSearch, EntrySymbolSearch, FunctionInfo::ErrorOn
 BUILTIN(JavascriptRegExp, SymbolSplit, EntrySymbolSplit, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, Compile, EntryCompile, FunctionInfo::None)
-BUILTIN(JavascriptRegExp, GetterFlags, EntryGetterFlags, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptRegExp, GetterFlags, EntryGetterFlags, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, GetterGlobal, EntryGetterGlobal, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptRegExp, GetterIgnoreCase, EntryGetterIgnoreCase, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptRegExp, GetterMultiline, EntryGetterMultiline, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
