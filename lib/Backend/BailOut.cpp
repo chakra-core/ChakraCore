@@ -2456,6 +2456,12 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
             case IR::BailOutOnTaggedValue:
                 rejitReason = RejitReason::FailedTagCheck;
                 break;
+
+            case IR::BailOutOnPowIntIntOverflow:
+                profileInfo->DisablePowIntIntTypeSpec();
+                executeFunction->SetDontRethunkAfterBailout();
+                rejitReason = RejitReason::PowIntIntTypeSpecDisabled;
+                break;
         }
 
         if(PHASE_FORCE(Js::ReJITPhase, executeFunction) && rejitReason == RejitReason::None)

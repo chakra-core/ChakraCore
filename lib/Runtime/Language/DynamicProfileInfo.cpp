@@ -2296,6 +2296,12 @@ const char* GetBailOutKindName(IR::BailOutKind kind)
         position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
     }
     ++offset;
+    if (kind & BailOutOnPowIntIntOverflow)
+    {
+        kind ^= BailOutOnPowIntIntOverflow;
+        position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
+    }
+    ++offset;
     // BailOutOnResultConditions
 
     ++offset;

@@ -9601,7 +9601,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
                 if (src1Val->GetValueInfo()->IsLikelyInt() &&
                     this->DoPowIntIntTypeSpec() &&
                     src2Val->GetValueInfo()->GetIntValMinMax(&valueMin, &valueMax, this->DoAggressiveIntTypeSpec()) &&
-                    valueMax >= 0)
+                    valueMin >= 0)
 
                 {
                     this->ToInt32(instr, src1, this->currentBlock, src1Val, nullptr, lossy);
