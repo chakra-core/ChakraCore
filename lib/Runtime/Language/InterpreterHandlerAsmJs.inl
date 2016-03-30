@@ -105,6 +105,9 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( D2toD1Mem        , Mul_Db       , AsmJsMath::Mul<double>                             )
   DEF2_WMS( D2toD1Mem        , Div_Db       , AsmJsMath::Div<double>                             )
   DEF2_WMS( D2toD1Mem        , Rem_Db       , AsmJsMath::Rem<double>                             )
+  DEF2_WMS( D2toD1Mem      , Copysign_Db  , AsmJsMath::Copysign<double>                        )
+  EXDEF2_WMS( D1toD1Mem      , Trunc_Db     , AsmJsMath::Trunc<double>)
+  EXDEF2_WMS( D1toD1Mem      , Nearest_Db   , AsmJsMath::Nearest<double>)
 
   DEF2_WMS( F1toF1Mem        , Neg_Flt      , AsmJsMath::Neg<float>                              ) // float unary '-'
   DEF2_WMS( F2toF1Mem        , Add_Flt      , AsmJsMath::Add<float>                              )

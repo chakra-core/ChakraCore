@@ -176,7 +176,7 @@ namespace Js
     template<typename T>
     inline T AsmJsMath::Copysign(T aLeft, T aRight)
     {
-        return aLeft;
+        return copysign(aLeft, aRight);
     }
 
     template<typename T>
