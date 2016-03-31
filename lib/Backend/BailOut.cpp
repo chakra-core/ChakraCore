@@ -1984,10 +1984,12 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 break;
 
             case IR::BailOutExpectingInteger:
+                profileInfo->DisableSwitchOpt();
                 rejitReason = RejitReason::DisableSwitchOptExpectingInteger;
                 break;
 
             case IR::BailOutExpectingString:
+                profileInfo->DisableSwitchOpt();
                 rejitReason = RejitReason::DisableSwitchOptExpectingString;
                 break;
 

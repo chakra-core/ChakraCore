@@ -8993,6 +8993,7 @@ GlobOpt::OptConstFoldUnary(
             {
                 throw Js::RejitException(RejitReason::DisableSwitchOptExpectingString);
             }
+            Assert(instr->GetBailOutKind() == IR::BailOutExpectingInteger);
             instr->ClearBailOutInfo();
         }
         value = intConstantValue;
