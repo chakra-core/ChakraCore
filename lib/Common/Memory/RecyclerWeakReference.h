@@ -347,7 +347,7 @@ private:
         Assert(entry->strongRefHeapBlock != nullptr);
 
         HeapBlock * weakRefHeapBlock = recycler->FindHeapBlock(entry);
-        Assert(!weakRefHeapBlock->IsLargeHeapBlock());
+        Assert(!weakRefHeapBlock->IsLargeHeapBlock() || ((LargeHeapBlock*)weakRefHeapBlock)->InPageHeapMode());
         entry->weakRefHeapBlock = (SmallHeapBlock *)weakRefHeapBlock;
 
 #ifdef RECYCLER_TRACE_WEAKREF
