@@ -4868,6 +4868,14 @@ namespace Js
         return this->CreateError();
     }
 
+    Js::RecyclableObject* JavascriptLibrary::CreateES5Array_TTD()
+    {
+        Js::JavascriptArray* arrayObj = this->CreateArray();
+        arrayObj->GetTypeHandler()->ConvertToTypeWithItemAttributes(arrayObj);
+
+        return arrayObj;
+    }
+
     Js::RecyclableObject* JavascriptLibrary::CreateSet_TTD()
     {
         return JavascriptSet::CreateForSnapshotRestore(this->scriptContext);

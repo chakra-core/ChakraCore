@@ -602,6 +602,8 @@ namespace Js
         Js::RecyclableObject* CreateRegex_TTD(const wchar_t* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex);
         Js::RecyclableObject* CreateError_TTD();
 
+        Js::RecyclableObject* CreateES5Array_TTD();
+
         Js::RecyclableObject* CreateSet_TTD();
         Js::RecyclableObject* CreateWeakSet_TTD();
         static void AddSetElementInflate_TTD(Js::JavascriptSet* set, Var value);
