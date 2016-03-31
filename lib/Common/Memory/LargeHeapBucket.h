@@ -51,7 +51,6 @@ public:
     void ScanInitialImplicitRoots(Recycler * recycler);
     void ScanNewImplicitRoots(Recycler * recycler);
 
-    template<bool pageheap>
     void Sweep(RecyclerSweep& recyclerSweep);
     void ReinsertLargeHeapBlock(LargeHeapBlock * heapBlock);
 
@@ -103,7 +102,6 @@ private:
     template <class Fn> void ForEachLargeHeapBlock(Fn fn);
     template <class Fn> void ForEachEditingLargeHeapBlock(Fn fn);
     void Finalize(Recycler* recycler, LargeHeapBlock* heapBlock);
-    template<bool pageheap>
     void SweepLargeHeapBlockList(RecyclerSweep& recyclerSweep, LargeHeapBlock * heapBlockList);
 
     void ConstructFreelist(LargeHeapBlock * heapBlock);

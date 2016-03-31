@@ -93,21 +93,16 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::AggregateBucketStats(HeapBucketStat
 }
 #endif
 
-template void SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
-template void SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
+template void SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
+template void SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
 
 #ifdef RECYCLER_WRITE_BARRIER
-template void SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
-template void SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
+template void SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
+template void SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
 #endif
 
 
 template<class TBlockType>
-template<bool pageheap>
 void
 SmallFinalizableHeapBucketBaseT<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)
 {
@@ -121,7 +116,7 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)
     TBlockType * currentDisposeList = pendingDisposeList;
     this->pendingDisposeList = nullptr;
 
-    BaseT::SweepBucket<pageheap>(recyclerSweep, [=](RecyclerSweep& recyclerSweep)
+    BaseT::SweepBucket(recyclerSweep, [=](RecyclerSweep& recyclerSweep)
     {
 #if DBG
         if (TBlockType::HeapBlockAttributes::IsSmallBlock)
@@ -138,7 +133,7 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)
         }
 #endif
 
-        HeapBucketT<TBlockType>::SweepHeapBlockList<pageheap>(recyclerSweep, currentDisposeList, false);
+        HeapBucketT<TBlockType>::SweepHeapBlockList(recyclerSweep, currentDisposeList, false);
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
         Assert(this->tempPendingDisposeList == currentDisposeList);

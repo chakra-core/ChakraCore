@@ -433,7 +433,7 @@ Recycler::AddMark(void * candidate, size_t byteCount) throw()
 }
 
 
-template <bool pageheap, typename T>
+template <typename T>
 void
 Recycler::NotifyFree(T * heapBlock)
 {
@@ -445,7 +445,7 @@ Recycler::NotifyFree(T * heapBlock)
         this->isForceSweeping = true;
         heapBlock->isForceSweeping = true;
 #endif
-        heapBlock->SweepObjects<pageheap, SweepMode_InThread>(this);
+        heapBlock->SweepObjects<SweepMode_InThread>(this);
 #if DBG || defined(RECYCLER_STATS)
         heapBlock->isForceSweeping = false;
         this->isForceSweeping = false;
