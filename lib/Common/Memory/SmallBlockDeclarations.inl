@@ -11,10 +11,7 @@ template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePages(Recycler * rec
 template void SmallHeapBlockT<TBlockTypeAttributes>::BackgroundReleasePagesSweep(Recycler* recycler);
 template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePagesSweep(Recycler * recycler);
 template BOOL SmallHeapBlockT<TBlockTypeAttributes>::ReassignPages(Recycler * recycler);
-template BOOL SmallHeapBlockT<TBlockTypeAttributes>::SetPage(__in_ecount_pagesize char * baseAddress, PageSegment * pageSegment, Recycler * recycler);
 template SweepState SmallHeapBlockT<TBlockTypeAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount, bool hasPendingDispose);
-
-
 
 template SmallNormalHeapBlockT<TBlockTypeAttributes>* HeapBlock::AsNormalBlock<TBlockTypeAttributes>();
 template SmallLeafHeapBlockT<TBlockTypeAttributes>* HeapBlock::AsLeafBlock<TBlockTypeAttributes>();

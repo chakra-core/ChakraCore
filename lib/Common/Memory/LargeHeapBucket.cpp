@@ -152,6 +152,7 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t size, ObjectInfoBits 
         AnalysisAssert(false);
     }
 
+    #pragma prefast(suppress:6250, "This method decommits memory")
     if (::VirtualFree(guardPageAddress, AutoSystemInfo::PageSize, MEM_DECOMMIT) == FALSE)
     {
         AssertMsg(false, "Unable to decommit guard page.");
