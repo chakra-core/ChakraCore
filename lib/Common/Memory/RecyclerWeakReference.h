@@ -37,7 +37,7 @@ protected:
 
     char* strongRef;
     HeapBlock * strongRefHeapBlock;
-    SmallHeapBlock * weakRefHeapBlock;
+    HeapBlock * weakRefHeapBlock;
     RecyclerWeakReferenceBase* next;
 #if DBG
     type_info const * typeInfo;
@@ -348,7 +348,7 @@ private:
 
         HeapBlock * weakRefHeapBlock = recycler->FindHeapBlock(entry);
         Assert(!weakRefHeapBlock->IsLargeHeapBlock() || ((LargeHeapBlock*)weakRefHeapBlock)->InPageHeapMode());
-        entry->weakRefHeapBlock = (SmallHeapBlock *)weakRefHeapBlock;
+        entry->weakRefHeapBlock = weakRefHeapBlock;
 
 #ifdef RECYCLER_TRACE_WEAKREF
         Output::Print(_u("Add 0x%08x to bucket %d\n"), entry, targetBucket);
