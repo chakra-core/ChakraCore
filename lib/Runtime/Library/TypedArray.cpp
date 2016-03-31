@@ -46,12 +46,11 @@ namespace Js
     {
     }
 
-    inline JsUtil::List<Var, ArenaAllocator>* IterableToList(RecyclableObject *object, ScriptContext *scriptContext, ArenaAllocator *alloc)
+    inline JsUtil::List<Var, ArenaAllocator>* IteratorToList(RecyclableObject *iterator, ScriptContext *scriptContext, ArenaAllocator *alloc)
     {
-        Assert(JavascriptOperators::IsIterable(object, scriptContext));
+        Assert(iterator != nullptr);
 
         Var nextValue;
-        RecyclableObject* iterator = JavascriptOperators::GetIterator(object, scriptContext);
         JsUtil::List<Var, ArenaAllocator>* retList = JsUtil::List<Var, ArenaAllocator>::New(alloc);
 
         while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextValue))
@@ -62,7 +61,7 @@ namespace Js
         return retList;
     }
 
-    Var TypedArrayBase::CreateNewInstanceFromIterableObj(RecyclableObject *object, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray)
+    Var TypedArrayBase::CreateNewInstanceFromIterator(RecyclableObject *iterator, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray)
     {
         TypedArrayBase *newArr = nullptr;
 
@@ -70,7 +69,7 @@ namespace Js
 
         ACQUIRE_TEMP_GUEST_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"));
         {
-            JsUtil::List<Var, ArenaAllocator>* tempList = IterableToList(object, scriptContext, tempAlloc);
+            JsUtil::List<Var, ArenaAllocator>* tempList = IteratorToList(iterator, scriptContext, tempAlloc);
 
             uint32 len = tempList->Count();
             uint32 byteLen;
@@ -152,13 +151,19 @@ namespace Js
             {
                 if (JavascriptOperators::IsObject(firstArgument))
                 {
-                    Var iterator = JavascriptOperators::GetProperty(RecyclableObject::FromVar(firstArgument), PropertyIds::_symbolIterator, scriptContext);
-
-                    if (!JavascriptOperators::IsUndefinedObject(iterator) &&
-                        (iterator != scriptContext->GetLibrary()->GetArrayPrototypeValuesFunction() ||
+                    // Use GetIteratorFunction instead of GetIterator to check if it is the built-in array iterator
+                    RecyclableObject* iteratorFn = JavascriptOperators::GetIteratorFunction(firstArgument, scriptContext, true /* optional */);
+                    if (iteratorFn != nullptr &&
+                        (iteratorFn != scriptContext->GetLibrary()->GetArrayPrototypeValuesFunction() ||
                             !JavascriptArray::Is(firstArgument) || ArrayIteratorPrototypeHasUserDefinedNext(scriptContext) ))
                     {
-                        return CreateNewInstanceFromIterableObj(RecyclableObject::FromVar(firstArgument), scriptContext, elementSize, pfnCreateTypedArray);
+                        Var iterator = iteratorFn->GetEntryPoint()(iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
+
+                        if (!JavascriptOperators::IsObject(iterator))
+                        {
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
+                        }
+                        return CreateNewInstanceFromIterator(RecyclableObject::FromVar(iterator), scriptContext, elementSize, pfnCreateTypedArray);
                     }
                     else if (JavascriptConversion::ToObject(firstArgument, scriptContext, &jsArraySource))
                     {
@@ -1429,8 +1434,9 @@ namespace Js
         }
 
         Var newObj;
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext, true /* optional */);
 
-        if (JavascriptOperators::IsIterable(items, scriptContext))
+        if (iterator != nullptr)
         {
             DECLARE_TEMP_GUEST_ALLOCATOR(tempAlloc);
 
@@ -1445,7 +1451,7 @@ namespace Js
                 //       for types we know such as TypedArray. We know the length of a TypedArray but we still
                 //       have to be careful in case there is a proxy which could return anything from [[Get]]
                 //       or the built-in @@iterator has been replaced.
-                JsUtil::List<Var, ArenaAllocator>* tempList = IterableToList(items, scriptContext, tempAlloc);
+                JsUtil::List<Var, ArenaAllocator>* tempList = IteratorToList(iterator, scriptContext, tempAlloc);
 
                 uint32 len = tempList->Count();
 
