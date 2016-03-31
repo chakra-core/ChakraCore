@@ -25,7 +25,7 @@ namespace Js
 
     private:
         DynamicObjectSnapshotEnumeratorWPCache(ScriptContext* scriptContext)
-            : DynamicObjectSnapshotEnumerator(scriptContext)
+            : DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>(scriptContext)
         {
         }
 

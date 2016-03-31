@@ -118,7 +118,7 @@ namespace Js
         Assert(prototypeObjectWithProperty);
 
         const TypePropertyCacheElement &element = elements[ElementIndex(id)];
-        if(element.Id() != id || !checkMissing && element.IsMissing())
+        if(element.Id() != id || (!checkMissing && element.IsMissing()))
             return false;
 
         *index = element.Index();

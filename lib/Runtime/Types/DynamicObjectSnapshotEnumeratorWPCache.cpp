@@ -23,34 +23,34 @@ namespace Js
 
         if (!allowUnlockedType)
         {
-            Assert(initialType->GetIsLocked());
+            Assert(this->initialType->GetIsLocked());
         }
-        else if (initialType->GetIsLocked())
+        else if (this->initialType->GetIsLocked())
         {
             VirtualTableInfo<DynamicObjectSnapshotEnumeratorWPCache>::SetVirtualTable(this); // Fix vtable which could have been downgraded
         }
         else
         {
-            VirtualTableInfo<DynamicObjectSnapshotEnumerator>::SetVirtualTable(this); // Downgrade to normal snapshot enumerator
+            VirtualTableInfo<DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>>::SetVirtualTable(this); // Downgrade to normal snapshot enumerator
             return;
         }
 
         ScriptContext* scriptContext = this->GetScriptContext();
         ThreadContext * threadContext = scriptContext->GetThreadContext();
-        CachedData * data = (CachedData *)threadContext->GetDynamicObjectEnumeratorCache(initialType);
+        CachedData * data = (CachedData *)threadContext->GetDynamicObjectEnumeratorCache(this->initialType);
 
         if (data == nullptr || data->enumNonEnumerable != enumNonEnumerable || data->enumSymbols != enumSymbols)
         {
             data = RecyclerNewStructPlus(scriptContext->GetRecycler(),
-                initialPropertyCount * sizeof(PropertyString *) + initialPropertyCount * sizeof(T) + initialPropertyCount * sizeof(PropertyAttributes), CachedData);
+                this->initialPropertyCount * sizeof(PropertyString *) + this->initialPropertyCount * sizeof(T) + this->initialPropertyCount * sizeof(PropertyAttributes), CachedData);
             data->cachedCount = 0;
             data->strings = (PropertyString **)(data + 1);
-            data->indexes = (T *)(data->strings + initialPropertyCount);
-            data->attributes = (PropertyAttributes*)(data->indexes + initialPropertyCount);
+            data->indexes = (T *)(data->strings + this->initialPropertyCount);
+            data->attributes = (PropertyAttributes*)(data->indexes + this->initialPropertyCount);
             data->completed = false;
             data->enumNonEnumerable = enumNonEnumerable;
             data->enumSymbols = enumSymbols;
-            threadContext->AddDynamicObjectEnumeratorCache(initialType, data);
+            threadContext->AddDynamicObjectEnumeratorCache(this->initialType, data);
         }
         this->cachedData = data;
     }
@@ -59,19 +59,19 @@ namespace Js
     JavascriptString *
         DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::GetCurrentAndMoveNextFromObjectWPCache(T& index, PropertyId& propertyId, PropertyAttributes* attributes)
     {
-        if (initialType != object->GetDynamicType())
+        if (this->initialType != this->object->GetDynamicType())
         {
             if (this->IsCrossSiteEnumerator())
             {
                 // downgrade back to the normal snapshot enumerator
-                VirtualTableInfo<CrossSiteEnumerator<DynamicObjectSnapshotEnumerator>>::SetVirtualTable(this);
+                VirtualTableInfo<CrossSiteEnumerator<DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>>>::SetVirtualTable(this);
             }
             else
             {
                 // downgrade back to the normal snapshot enumerator
-                VirtualTableInfo<DynamicObjectSnapshotEnumerator>::SetVirtualTable(this);
+                VirtualTableInfo<DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>>::SetVirtualTable(this);
             }
-            return this->GetCurrentAndMoveNextFromObject(objectIndex, propertyId, attributes);
+            return this->GetCurrentAndMoveNextFromObject(this->objectIndex, propertyId, attributes);
         }
         Assert(enumeratedCount <= cachedData->cachedCount);
         JavascriptString* propertyStringName;
@@ -84,25 +84,25 @@ namespace Js
 
 #if DBG
             PropertyId tempPropertyId;
-            /* JavascriptString * tempPropertyString = */ this->GetCurrentAndMoveNextFromObject(objectIndex, tempPropertyId, attributes);
+            /* JavascriptString * tempPropertyString = */ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
 
             Assert(tempPropertyId == propertyId);
-            Assert(objectIndex == cachedData->indexes[enumeratedCount]);
+            Assert(this->objectIndex == cachedData->indexes[enumeratedCount]);
 #endif
-            objectIndex = cachedData->indexes[enumeratedCount];
+            this->objectIndex = cachedData->indexes[enumeratedCount];
             propertyAttributes = cachedData->attributes[enumeratedCount];
 
             enumeratedCount++;
         }
         else if (!cachedData->completed)
         {
-            propertyStringName = this->GetCurrentAndMoveNextFromObject(objectIndex, propertyId, &propertyAttributes);
+            propertyStringName = this->GetCurrentAndMoveNextFromObject(this->objectIndex, propertyId, &propertyAttributes);
 
             if (propertyStringName && VirtualTableInfo<PropertyString>::HasVirtualTable(propertyStringName))
             {
-                Assert(enumeratedCount < initialPropertyCount);
+                Assert(enumeratedCount < this->initialPropertyCount);
                 cachedData->strings[enumeratedCount] = (PropertyString*)propertyStringName;
-                cachedData->indexes[enumeratedCount] = objectIndex;
+                cachedData->indexes[enumeratedCount] = this->objectIndex;
                 cachedData->attributes[enumeratedCount] = propertyAttributes;
                 cachedData->cachedCount = ++enumeratedCount;
             }
@@ -115,7 +115,7 @@ namespace Js
         {
 #if DBG
             PropertyId tempPropertyId;
-            Assert(this->GetCurrentAndMoveNextFromObject(objectIndex, tempPropertyId, attributes) == nullptr);
+            Assert(this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes) == nullptr);
 #endif
             propertyStringName = nullptr;
         }
@@ -131,11 +131,11 @@ namespace Js
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
     Var DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
-        Var currentIndex = GetCurrentAndMoveNextFromArray(propertyId, attributes);
+        Var currentIndex = this->GetCurrentAndMoveNextFromArray(propertyId, attributes);
 
         if (currentIndex == nullptr)
         {
-            currentIndex = this->GetCurrentAndMoveNextFromObjectWPCache(objectIndex, propertyId, attributes);
+            currentIndex = this->GetCurrentAndMoveNextFromObjectWPCache(this->objectIndex, propertyId, attributes);
         }
 
         return currentIndex;
@@ -145,8 +145,8 @@ namespace Js
     void DynamicObjectSnapshotEnumeratorWPCache<T, enumNonEnumerable, enumSymbols>::Reset()
     {
         // If we are reusing the enumerator the object type should be the same
-        Assert(object->GetDynamicType() == initialType);
-        Assert(initialPropertyCount == object->GetPropertyCount());
+        Assert(this->object->GetDynamicType() == this->initialType);
+        Assert(this->initialPropertyCount == this->object->GetPropertyCount());
 
         __super::Reset();
 

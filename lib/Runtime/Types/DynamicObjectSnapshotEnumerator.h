@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-
 namespace Js
 {
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
@@ -15,7 +14,7 @@ namespace Js
         int initialPropertyCount;
 
         DynamicObjectSnapshotEnumerator(ScriptContext* scriptContext)
-            : DynamicObjectEnumerator(scriptContext)
+            : DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true>(scriptContext)
         {
         }
 
