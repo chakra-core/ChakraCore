@@ -878,20 +878,19 @@ HeapInfo::AddLargeHeapBlock(size_t size)
     return largeObjectBucket.AddLargeHeapBlock(size, /* nothrow = */ true);
 }
 
-template<bool pageheap>
-void HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
+void HeapInfo::SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent)
 {
     Recycler * recycler = recyclerSweep.GetRecycler();
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
-        heapBuckets[i].SweepFinalizableObjects<pageheap>(recyclerSweep);
+        heapBuckets[i].SweepFinalizableObjects(recyclerSweep);
     }
 
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
     // CONCURRENT-TODO: Allow this in the background as well
     for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
     {
-        mediumHeapBuckets[i].SweepFinalizableObjects<pageheap>(recyclerSweep);
+        mediumHeapBuckets[i].SweepFinalizableObjects(recyclerSweep);
     }
 #endif
 
@@ -910,7 +909,7 @@ void HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
     else
 #endif
     {
-        this->SweepSmallNonFinalizable<pageheap>(recyclerSweep);
+        this->SweepSmallNonFinalizable(recyclerSweep);
     }
 
     RECYCLER_PROFILE_EXEC_CHANGE(recycler, Js::SweepSmallPhase, Js::SweepLargePhase);
@@ -919,10 +918,10 @@ void HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
     // CONCURRENT-TODO: Allow this in the background as well
     for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
     {
-        mediumHeapBuckets[i].Sweep<pageheap>(recyclerSweep);
+        mediumHeapBuckets[i].Sweep(recyclerSweep);
     }
 #endif
-    largeObjectBucket.Sweep<pageheap>(recyclerSweep);
+    largeObjectBucket.Sweep(recyclerSweep);
 }
 
 void
@@ -964,14 +963,7 @@ HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
 #endif
 #endif
 
-    if (IsPageHeapEnabled())
-    {
-        Sweep<true>(recyclerSweep, concurrent);
-    }
-    else
-    {
-        Sweep<false>(recyclerSweep, concurrent);
-    }
+    SweepBuckets(recyclerSweep, concurrent);
 
     RECYCLER_PROFILE_EXEC_END(recycler, Js::SweepLargePhase);
     RECYCLER_SLOW_CHECK(VerifyLargeHeapBlockCount());
@@ -996,7 +988,6 @@ HeapInfo::SetupBackgroundSweep(RecyclerSweep& recyclerSweep)
 }
 #endif
 
-template<bool pageheap>
 void
 HeapInfo::SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep)
 {
@@ -1021,13 +1012,13 @@ HeapInfo::SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep)
     }
     for (uint i=0; i<HeapConstants::BucketCount; i++)
     {
-        heapBuckets[i].Sweep<pageheap>(recyclerSweep);
+        heapBuckets[i].Sweep(recyclerSweep);
     }
 
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
     for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
     {
-        mediumHeapBuckets[i].Sweep<pageheap>(recyclerSweep);
+        mediumHeapBuckets[i].Sweep(recyclerSweep);
     }
 #endif
 

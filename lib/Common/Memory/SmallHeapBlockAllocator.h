@@ -25,10 +25,6 @@ public:
     template <bool canFaultInject>
     __inline char* InlinedAllocImpl(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
 
-#ifdef RECYCLER_PAGE_HEAP
-    __inline char *PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode);
-#endif
-
     TBlockType * GetHeapBlock() const { return heapBlock; }
     SmallHeapBlockAllocator * GetNext() const { return next; }
 
@@ -100,80 +96,6 @@ private:
     void (*pfnTrackNativeAllocatedObjectCallBack)(Recycler * recycler, void *, size_t sizeCat);
 #endif
 };
-
-#ifdef RECYCLER_PAGE_HEAP
-template <typename TBlockType>
-__inline
-char *
-SmallHeapBlockAllocator<TBlockType>::PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode)
-{
-    if (this->heapBlock == nullptr)
-    {
-        return nullptr;
-    }
-
-    // In integrated page, we can get a heapBlock is not pageheap enabled
-    if (!heapBlock->InPageHeapMode())
-    {
-        return nullptr;
-    }
-
-    TBlockType* smallBlock = (TBlockType*) this->heapBlock;
-
-    // Free list allocation not supported in page heap mode
-    // since if we sweep, the block should be empty
-    Assert(this->endAddress != nullptr);
-
-
-    // We do one of two things:
-    //  1) Either bump allocate
-    //  2) Allocate from the explicit free list
-    // Explicit free list will already be at the right point in the heap block
-    if ((char*)freeObjectList == smallBlock->address && !IsExplicitFreeObjectListAllocMode())
-    {
-        if (mode == PageHeapMode::PageHeapModeBlockEnd)
-        {
-            // Allocate at the last valid object
-            // This could cause some extra padding at the end
-            // e.g. For a Heap block with the range 0x1000 to 0x2000, and sizeCat 48
-            // This can fit 85 objects in it, the last object at 0x1FC0, causing the
-            // last 16 bytes to be wasted. So if there is a buffer overflow of <= 16 bytes,
-            // PageHeap as implemented today will not catch it.
-            char* objectAddress = smallBlock->GetAddress() + ((smallBlock->GetObjectCount() - 1) * sizeCat);
-            Assert(objectAddress <= this->endAddress - sizeCat);
-            freeObjectList = (FreeObject*)objectAddress;
-        }
-    }
-
-    char* memBlock = InlinedAllocImpl<true/* allow fault injection */>(recycler, sizeCat, (ObjectInfoBits)attributes);
-
-    if (memBlock)
-    {
-#if DBG
-        HeapBlock* block = recycler->FindHeapBlock(memBlock);
-        Assert(!block->IsLargeHeapBlock());
-        ((TBlockType*)block)->VerifyPageHeapAllocation(memBlock, mode);
-#endif
-
-        PageHeapVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Allocated from block 0x%p\n"), smallBlock);
-
-        // Close off allocation from this block
-        this->freeObjectList = (FreeObject*) this->endAddress;
-
-#ifdef RECYCLER_TRACK_NATIVE_ALLOCATED_OBJECTS
-        this->lastNonNativeBumpAllocatedBlock = (char*) this->freeObjectList - sizeCat;
-#endif
-
-        if (recycler->ShouldCapturePageHeapAllocStack())
-        {
-            smallBlock->CapturePageHeapAllocStack();
-        }
-    }
-
-    return memBlock;
-}
-
-#endif
 
 template <typename TBlockType>
 template <bool canFaultInject>

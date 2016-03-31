@@ -1720,7 +1720,7 @@ private:
 
     bool ForceSweepObject();
     void NotifyFree(__in char * address, size_t size);
-    template <bool pageheap, typename T>
+    template <typename T>
     void NotifyFree(T * heapBlock);
 
     void CleanupPendingUnroot();
@@ -2088,8 +2088,9 @@ public:
         if (recycler->ShouldCapturePageHeapFreeStack())
         {
             Assert(recycler->IsPageHeapEnabled());
+            Assert(this->m_heapBlock->IsLargeHeapBlock());
 
-            this->m_heapBlock->CapturePageHeapFreeStack();
+            ((LargeHeapBlock*)this->m_heapBlock)->CapturePageHeapFreeStack();
         }
 #endif
 

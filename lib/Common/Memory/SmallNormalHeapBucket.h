@@ -39,7 +39,6 @@ protected:
     template <SweepMode mode>
     static TBlockType * SweepPendingObjects(Recycler * recycler, TBlockType * list);
 #endif
-    template<bool pageheap>
     void Sweep(RecyclerSweep& recyclerSweep);
 #if ENABLE_PARTIAL_GC
     ~SmallNormalHeapBucketBase();
