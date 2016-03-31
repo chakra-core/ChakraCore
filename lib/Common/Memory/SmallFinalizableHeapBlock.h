@@ -32,7 +32,6 @@ public:
     static bool RescanObject(SmallFinalizableHeapBlockT<TBlockAttributes> * block, __in_ecount(localObjectSize) char * objectAddress, uint localObjectSize, uint objectIndex, Recycler * recycler);
     bool RescanTrackedObject(FinalizableObject * object, uint objectIndex,  Recycler * recycler);
 #endif
-    template<bool pageheap>
     SweepState Sweep(RecyclerSweep& sweepeData, bool queuePendingSweep, bool allocable);
     void DisposeObjects();
     void TransferDisposedObjects();

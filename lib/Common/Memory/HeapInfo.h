@@ -171,8 +171,7 @@ private:
     template <ObjectInfoBits attributes>
     typename SmallHeapBlockType<attributes, SmallAllocationBlockAttributes>::BucketType& GetBucket(size_t sizeCat);
 
-    template<bool pageheap>
-    void Sweep(RecyclerSweep& recyclerSweep, bool concurrent);
+    void SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent);
 
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
 #if SMALLBLOCK_MEDIUM_ALLOC
@@ -268,7 +267,6 @@ private:
     }
 #endif
  
-    template<bool pageheap>
     void SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep);
     void SweepLargeNonFinalizable(RecyclerSweep& recyclerSweep);
 

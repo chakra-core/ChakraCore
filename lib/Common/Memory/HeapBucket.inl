@@ -18,14 +18,6 @@ HeapBucketT<TBlockType>::RealAlloc(Recycler * recycler, size_t sizeCat)
         memBlock = SnailAlloc(recycler, &allocatorHead, sizeCat, attributes, nothrow);
         Assert(memBlock != nullptr || nothrow);
     }
-    else
-    {
-#ifdef RECYCLER_PAGE_HEAP
-        Assert(allocatorHead.heapBlock == nullptr || !allocatorHead.heapBlock->InPageHeapMode());
-#else
-        Assert(allocatorHead.heapBlock == nullptr);
-#endif
-    }
 
     // If this API is called and throwing is not allowed,
     // check if we actually allocated a block before verifying

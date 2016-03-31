@@ -1091,9 +1091,19 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 
     Assert(heapBlock != nullptr);
 #ifdef RECYCLER_PAGE_HEAP
-    if (this->IsPageHeapEnabled() && this->ShouldCapturePageHeapFreeStack())
+    if (this->IsPageHeapEnabled() )
     {
-        heapBlock->CapturePageHeapFreeStack();
+        if (this->ShouldCapturePageHeapFreeStack())
+        {
+            if (heapBlock->IsLargeHeapBlock()) 
+            {
+                LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
+                if (largeHeapBlock->InPageHeapMode())
+                {
+                    largeHeapBlock->CapturePageHeapFreeStack();
+                }
+            }
+        }
 
         // Don't do actual explicit free in page heap mode
         return false;
