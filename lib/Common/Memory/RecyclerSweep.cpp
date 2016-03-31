@@ -269,16 +269,8 @@ RecyclerSweep::BackgroundSweep()
 {
     this->BeginBackground(forceForeground);
 
-    if (GetRecycler()->IsPageHeapEnabled())
-    {
-        // Finish the concurrent part of the first pass
-        this->recycler->autoHeap.SweepSmallNonFinalizable<true>(*this);
-    }
-    else
-    {
-        // Finish the concurrent part of the first pass
-        this->recycler->autoHeap.SweepSmallNonFinalizable<false>(*this);
-    }
+    // Finish the concurrent part of the first pass
+    this->recycler->autoHeap.SweepSmallNonFinalizable(*this);
 
     // Finish the rest of the sweep
     this->FinishSweep();

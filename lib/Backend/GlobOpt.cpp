@@ -9571,7 +9571,6 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
     switch(instr->m_opcode)
     {
         case Js::OpCode::InlineMathAtan2:
-        case Js::OpCode::InlineMathPow:
         {
             Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInInlineCandidateId(instr->m_opcode);   // From actual instr, not profile based.
             Js::BuiltInFlags builtInFlags = Js::JavascriptLibrary::GetFlagsForBuiltIn(builtInId);
@@ -9586,6 +9585,31 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             bool retVal = this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
             AssertMsg(retVal, "For pow and atnan2 the args have to be type-specialized to float, but something failed during the process.");
 
+            break;
+        }
+
+        case Js::OpCode::InlineMathPow:
+        {
+#ifndef _M_ARM
+            if (src2Val->GetValueInfo()->IsLikelyInt())
+            {
+                bool lossy = false;
+
+                IR::Opnd* src1 = instr->GetSrc1();
+                this->ToFloat64(instr, src1, this->currentBlock, src1Val, nullptr, IR::BailOutPrimitiveButString);
+
+                IR::Opnd* src2 = instr->GetSrc2();
+                this->ToInt32(instr, src2, this->currentBlock, src2Val, nullptr, lossy);
+
+                TypeSpecializeFloatDst(instr, nullptr, src1Val, src2Val, pDstVal);
+            }
+            else
+            {
+#endif
+                this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
+#ifndef _M_ARM
+            }
+#endif
             break;
         }
 

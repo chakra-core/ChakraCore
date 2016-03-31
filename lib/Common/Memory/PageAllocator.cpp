@@ -222,25 +222,8 @@ PageSegmentBase<T>::Prime()
 
 template<typename T>
 bool
-PageSegmentBase<T>::IsAllocationPageAligned(__in char* address, size_t pageCount, PageHeapMode pageHeapFlags)
+PageSegmentBase<T>::IsAllocationPageAligned(__in char* address, size_t pageCount)
 {
-#ifdef RECYCLER_PAGE_HEAP
-    if (pageHeapFlags != PageHeapMode::PageHeapModeOff)
-    {
-        // In PageHeap mode, we should ensure that if the guard page
-        // is in the front, the page after the guard page is aligned
-        if ((pageHeapFlags == PageHeapMode::PageHeapModeBlockStart))
-        {
-            address += AutoSystemInfo::PageSize;
-        }
-
-        // We don't care about whether the guard pages themselves are aligned
-        // or fit in the chunk, so don't count the guard page for the purposes
-        // of alignment
-        pageCount--;
-    }
-#endif
-
     // Require that allocations are aligned at a boundary
     // corresponding to the page count
     // REVIEW: This might actually lead to additional address space fragmentation
@@ -260,7 +243,7 @@ PageSegmentBase<T>::IsAllocationPageAligned(__in char* address, size_t pageCount
 template<typename T>
 template <bool notPageAligned>
 char *
-PageSegmentBase<T>::AllocPages(uint pageCount, PageHeapMode pageHeapFlags)
+PageSegmentBase<T>::AllocPages(uint pageCount)
 {
     Assert(freePageCount != 0);
     Assert(freePageCount == (uint)this->GetCountOfFreePages());
@@ -287,7 +270,7 @@ PageSegmentBase<T>::AllocPages(uint pageCount, PageHeapMode pageHeapFlags)
 
             if (pageCount > 1 && !notPageAligned)
             {
-                if (!IsAllocationPageAligned(allocAddress, pageCount, pageHeapFlags))
+                if (!IsAllocationPageAligned(allocAddress, pageCount))
                 {
                     index = this->freePages.GetNextBit(index + 1);
                     continue;
@@ -316,7 +299,7 @@ PageSegmentBase<T>::AllocPages(uint pageCount, PageHeapMode pageHeapFlags)
 template<typename TVirtualAlloc>
 template<typename T, bool notPageAligned>
 char *
-PageSegmentBase<TVirtualAlloc>::AllocDecommitPages(uint pageCount, T freePages, T decommitPages, PageHeapMode pageHeapFlags)
+PageSegmentBase<TVirtualAlloc>::AllocDecommitPages(uint pageCount, T freePages, T decommitPages)
 {
     Assert(freePageCount == (uint)this->GetCountOfFreePages());
     Assert(decommitPageCount ==  (uint)this->GetCountOfDecommitPages());
@@ -347,7 +330,7 @@ PageSegmentBase<TVirtualAlloc>::AllocDecommitPages(uint pageCount, T freePages, 
 
             if (!notPageAligned)
             {
-                if (!IsAllocationPageAligned(pages, pageCount, pageHeapFlags))
+                if (!IsAllocationPageAligned(pages, pageCount))
                 {
                     index = freeAndDecommitPages.GetNextBit(index + 1);
                     continue;
@@ -825,7 +808,7 @@ PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<
 
 template<typename T>
 char *
-PageAllocatorBase<T>::TryAllocFromZeroPages(uint pageCount, PageSegmentBase<T> ** pageSegment, PageHeapMode pageHeapFlags)
+PageAllocatorBase<T>::TryAllocFromZeroPages(uint pageCount, PageSegmentBase<T> ** pageSegment)
 {
     if (backgroundPageQueue != nullptr) 
     {
@@ -844,7 +827,7 @@ PageAllocatorBase<T>::TryAllocFromZeroPages(uint pageCount, PageSegmentBase<T> *
 template<typename T>
 template <bool notPageAligned>
 char *
-PageAllocatorBase<T>::TryAllocFreePages(uint pageCount, PageSegmentBase<T> ** pageSegment, PageHeapMode pageHeapFlags)
+PageAllocatorBase<T>::TryAllocFreePages(uint pageCount, PageSegmentBase<T> ** pageSegment)
 {
     Assert(!HasMultiThreadAccess());
     char* pages = nullptr;
@@ -858,7 +841,7 @@ PageAllocatorBase<T>::TryAllocFreePages(uint pageCount, PageSegmentBase<T> ** pa
         {
             PageSegmentBase<T> * freeSegment = &i.Data();
 
-            pages = freeSegment->AllocPages<notPageAligned>(pageCount, pageHeapFlags);
+            pages = freeSegment->AllocPages<notPageAligned>(pageCount);
             if (pages != nullptr)
             {
                 LogAllocPages(pageCount);
@@ -879,7 +862,7 @@ PageAllocatorBase<T>::TryAllocFreePages(uint pageCount, PageSegmentBase<T> ** pa
         }
     }
 
-    pages = TryAllocFromZeroPages(pageCount, pageSegment, pageHeapFlags);
+    pages = TryAllocFromZeroPages(pageCount, pageSegment);
 
     return pages;
 }
@@ -940,7 +923,7 @@ PageAllocatorBase<T>::FillFreePages(__in void * address, uint pageCount)
 template<typename T>
 template <bool notPageAligned>
 char *
-PageAllocatorBase<T>::TryAllocDecommittedPages(uint pageCount, PageSegmentBase<T> ** pageSegment, PageHeapMode pageHeapFlags)
+PageAllocatorBase<T>::TryAllocDecommittedPages(uint pageCount, PageSegmentBase<T> ** pageSegment)
 {
     Assert(!HasMultiThreadAccess());
 
@@ -951,7 +934,7 @@ PageAllocatorBase<T>::TryAllocDecommittedPages(uint pageCount, PageSegmentBase<T
         PageSegmentBase<T> * freeSegment = &i.Data();
         uint oldFreePageCount = freeSegment->GetFreePageCount();
         uint oldDecommitPageCount = freeSegment->GetDecommitPageCount();
-        char * pages = freeSegment->DoAllocDecommitPages<notPageAligned>(pageCount, pageHeapFlags);
+        char * pages = freeSegment->DoAllocDecommitPages<notPageAligned>(pageCount);
         if (pages != nullptr)
         {
             this->freePageCount = this->freePageCount - oldFreePageCount + freeSegment->GetFreePageCount();
@@ -1091,7 +1074,7 @@ PageAllocatorBase<T>::AllocInternal(size_t * pageCount, SegmentBase<T> ** segmen
         if (doPageAlign)
         {
             // TODO: Remove this entire codepath since doPageAlign is not being used anymore
-            addr = this->AllocPagesPageAligned((uint)*pageCount, &pageSegment, PageHeapMode::PageHeapModeOff);
+            addr = this->AllocPagesPageAligned((uint)*pageCount, &pageSegment);
         }
         else
         {
@@ -1149,15 +1132,15 @@ PageAllocatorBase<PreReservedVirtualAllocWrapper>::AllocPages(uint pageCount, Pa
 
 template<typename T>
 char *
-PageAllocatorBase<T>::AllocPagesPageAligned(uint pageCount, PageSegmentBase<T> ** pageSegment, PageHeapMode pageHeapFlags)
+PageAllocatorBase<T>::AllocPagesPageAligned(uint pageCount, PageSegmentBase<T> ** pageSegment)
 {
-    return AllocPagesInternal<false /* noPageAligned */>(pageCount, pageSegment, pageHeapFlags);
+    return AllocPagesInternal<false /* noPageAligned */>(pageCount, pageSegment);
 }
 
 template<typename T>
 template <bool notPageAligned>
 char *
-PageAllocatorBase<T>::AllocPagesInternal(uint pageCount, PageSegmentBase<T> ** pageSegment, PageHeapMode pageHeapModeFlags)
+PageAllocatorBase<T>::AllocPagesInternal(uint pageCount, PageSegmentBase<T> ** pageSegment)
 {
     Assert(!isClosed);
     ASSERT_THREAD();
@@ -1166,14 +1149,19 @@ PageAllocatorBase<T>::AllocPagesInternal(uint pageCount, PageSegmentBase<T> ** p
     this->isUsed = true;
 
     SuspendIdleDecommit();
-    char * allocation = TryAllocFreePages<notPageAligned>(pageCount, pageSegment, pageHeapModeFlags);
+    char * allocation = TryAllocFreePages<notPageAligned>(pageCount, pageSegment);
     if (allocation == nullptr)
     {
-        allocation = SnailAllocPages<notPageAligned>(pageCount, pageSegment, pageHeapModeFlags);
+        allocation = SnailAllocPages<notPageAligned>(pageCount, pageSegment);
     }
     ResumeIdleDecommit();
 
     PageTracking::ReportAllocation((PageAllocator*)this, allocation, AutoSystemInfo::PageSize * pageCount);
+
+    if (!notPageAligned) 
+    {
+        Assert(PageSegmentBase<T>::IsAllocationPageAligned(allocation, pageCount));
+    } 
 
     return allocation;
 }
@@ -1198,7 +1186,7 @@ PageAllocatorBase<T>::OnAllocFromNewSegment(uint pageCount, __in void* pages, Se
 template<typename T>
 template <bool notPageAligned>
 char *
-PageAllocatorBase<T>::SnailAllocPages(uint pageCount, PageSegmentBase<T> ** pageSegment, PageHeapMode pageHeapFlags)
+PageAllocatorBase<T>::SnailAllocPages(uint pageCount, PageSegmentBase<T> ** pageSegment)
 {
     Assert(!HasMultiThreadAccess());
 
@@ -1209,14 +1197,14 @@ PageAllocatorBase<T>::SnailAllocPages(uint pageCount, PageSegmentBase<T> ** page
     {
         newSegment = &emptySegments.Head();
 
-        if (!notPageAligned && !PageSegmentBase<T>::IsAllocationPageAligned(newSegment->GetAddress(), pageCount, pageHeapFlags))
+        if (!notPageAligned && !PageSegmentBase<T>::IsAllocationPageAligned(newSegment->GetAddress(), pageCount))
         {
             newSegment = nullptr;
 
             // Scan through the empty segments for a segment that can fit this allocation
             FOREACH_DLISTBASE_ENTRY_EDITING(PageSegmentBase<T>, emptySegment, &this->emptySegments, iter)
             {
-                if (PageSegmentBase<T>::IsAllocationPageAligned(emptySegment.GetAddress(), pageCount, pageHeapFlags))
+                if (PageSegmentBase<T>::IsAllocationPageAligned(emptySegment.GetAddress(), pageCount))
                 {
                     iter.MoveCurrentTo(&this->emptySegments);
                     newSegment = &emptySegment;
@@ -1228,7 +1216,7 @@ PageAllocatorBase<T>::SnailAllocPages(uint pageCount, PageSegmentBase<T> ** page
 
         if (newSegment != nullptr)
         {
-            pages = newSegment->AllocPages<notPageAligned>(pageCount, pageHeapFlags);
+            pages = newSegment->AllocPages<notPageAligned>(pageCount);
             if (pages != nullptr)
             {
                 OnAllocFromNewSegment(pageCount, pages, newSegment);
@@ -1238,7 +1226,7 @@ PageAllocatorBase<T>::SnailAllocPages(uint pageCount, PageSegmentBase<T> ** page
         }
     }
 
-    pages = TryAllocDecommittedPages<notPageAligned>(pageCount, pageSegment, pageHeapFlags);
+    pages = TryAllocDecommittedPages<notPageAligned>(pageCount, pageSegment);
     if (pages != nullptr)
     {
         // TryAllocDecommittedPages may give out a mix of free pages and decommitted pages.
@@ -1260,7 +1248,7 @@ PageAllocatorBase<T>::SnailAllocPages(uint pageCount, PageSegmentBase<T> ** page
             return nullptr;
         }
 
-        pages = decommitSegment->DoAllocDecommitPages<notPageAligned>(pageCount, pageHeapFlags);
+        pages = decommitSegment->DoAllocDecommitPages<notPageAligned>(pageCount);
         if (pages != nullptr)
         {
 #if DBG_DUMP
@@ -1288,7 +1276,7 @@ PageAllocatorBase<T>::SnailAllocPages(uint pageCount, PageSegmentBase<T> ** page
         return nullptr;
     }
 
-    pages = newSegment->AllocPages<notPageAligned>(pageCount, pageHeapFlags);
+    pages = newSegment->AllocPages<notPageAligned>(pageCount);
     if (notPageAligned)
     {
         // REVIEW: Is this true for single-chunk allocations too? Are new segments guaranteed to
@@ -2610,9 +2598,9 @@ void PageSegmentBase<T>::SetBitInDecommitPagesBitVector(uint index)
 
 template<typename T>
 template <bool noPageAligned>
-char * PageSegmentBase<T>::DoAllocDecommitPages(uint pageCount, PageHeapMode pageHeapFlags)
+char * PageSegmentBase<T>::DoAllocDecommitPages(uint pageCount)
 {
-    return this->AllocDecommitPages<PageSegmentBase<T>::PageBitVector, noPageAligned>(pageCount, this->freePages, this->decommitPages, pageHeapFlags);
+    return this->AllocDecommitPages<PageSegmentBase<T>::PageBitVector, noPageAligned>(pageCount, this->freePages, this->decommitPages);
 }
 
 template<typename T>

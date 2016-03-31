@@ -18,7 +18,8 @@ enum ErrorReason
     Fatal_Version_Inconsistency = 10,
     MarkStack_OUTOFMEMORY = 11,
     EnterScript_FromDOM_NoScriptScope = 12,
-    Fatal_FailedToBox_OUTOFMEMORY = 13
+    Fatal_FailedToBox_OUTOFMEMORY = 13,
+    Fatal_Recycler_MemoryCorruption = 14
 };
 
 extern "C" void ReportFatalException(
