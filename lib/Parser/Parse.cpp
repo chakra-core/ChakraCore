@@ -11874,6 +11874,11 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
     // AST related information before the validation parsing and later they will be restored.
 
     ParseNodePtr pnodeFncSave = m_currentNodeFunc;
+    ParseNodePtr pnodeDeferredFncSave = m_currentNodeDeferredFunc;
+    if (m_currentNodeDeferredFunc == nullptr)
+    {
+        m_currentNodeDeferredFunc = m_currentNodeFunc;
+    }
     long *pAstSizeSave = m_pCurrentAstSize;
     uint *pNestedCountSave = m_pnestedCount;
     ParseNodePtr *ppnodeScopeSave = m_ppnodeScope;
@@ -11899,6 +11904,7 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
     ParseDestructuredLiteral<false>(declarationType, isDecl, topLevel, initializerContext, allowIn);
 
     m_currentNodeFunc = pnodeFncSave;
+    m_currentNodeDeferredFunc = pnodeDeferredFncSave;
     m_pCurrentAstSize = pAstSizeSave;
     m_pnestedCount = pNestedCountSave;
     m_ppnodeScope = ppnodeScopeSave;
