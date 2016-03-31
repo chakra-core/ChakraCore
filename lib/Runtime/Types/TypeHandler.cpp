@@ -735,7 +735,14 @@ namespace Js
 
     void DynamicTypeHandler::SetExtensibleFlag_TTD(byte extensibleFlag)
     {
-        this->flags |= extensibleFlag;
+        if(extensibleFlag == IsExtensibleFlag)
+        {
+            this->flags |= extensibleFlag;
+        }
+        else
+        {
+            this->flags = (this->flags & ~IsExtensibleFlag);
+        }
     }
 #endif
 }
