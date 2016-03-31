@@ -1623,7 +1623,6 @@ namespace Js
         ULONG m_columnNumber;
         WriteBarrierPtr<const char16> m_displayName;  // Optional name
         uint m_displayNameLength;
-        uint m_displayShortNameOffset;
         WriteBarrierPtr<PropertyRecordList> m_boundPropertyRecords;
         WriteBarrierPtr<NestedArray> nestedArray;
 
