@@ -1392,23 +1392,13 @@ ParseNodePtr Parser::AddVarDeclNode(IdentPtr pid, ParseNodePtr pnodeFnc)
     return pnode;
 }
 
-Js::PropertyId Parser::EnsurePropertyId(IdentPtr pid)
-{
-    Js::PropertyId propertyId = pid->GetPropertyId();
-    if (propertyId == Js::Constants::NoProperty)
-    {
-        propertyId = m_scriptContext->GetOrAddPropertyIdTracked(pid->Psz(), pid->Cch());
-        pid->SetPropertyId(propertyId);
-    }
-    return propertyId;
-}
-
 ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr localName)
 {
     ParseNodePtr declNode = CreateBlockScopedDeclNode(localName, knopConstDecl);
     Symbol* sym = declNode->sxVar.sym;
     
     sym->SetIsModuleExportStorage(true);
+    sym->SetIsModuleImport(true);
 
     return declNode;
 }
@@ -2102,11 +2092,10 @@ ParseNodePtr Parser::ParseMetaProperty(tokens metaParentKeyword, charcount_t ich
 }
 
 template<bool buildAST> 
-void Parser::ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryList, ModuleExportEntryList* exportEntryList, bool isExportClause)
+void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* importOrExportEntryList, bool isExportClause)
 {
     Assert(m_token.tk == tkLCurly);
-    Assert(importEntryList == nullptr || exportEntryList == nullptr);
-    Assert((isExportClause && exportEntryList != nullptr) || (!isExportClause && importEntryList != nullptr));
+    Assert(importOrExportEntryList != nullptr);
 
     m_pscan->Scan();
 
@@ -2168,15 +2157,13 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryLi
             // The name we will use 'as' this import/export is a binding identifier in import statements.
             if (!isExportClause)
             {
-                ParseNodePtr declNode = CreateModuleImportDeclNode(identifierAs);
-
-                AddModuleImportEntry(importEntryList, identifierName, identifierAs, nullptr, declNode);
+                CreateModuleImportDeclNode(identifierAs);
+                AddModuleImportOrExportEntry(importOrExportEntryList, identifierName, identifierAs, nullptr, nullptr);
             }
             else
             {
                 MarkIdentifierReferenceIsModuleExport(identifierName);
-
-                AddModuleExportEntry(exportEntryList, nullptr, identifierName, identifierAs, nullptr);
+                AddModuleImportOrExportEntry(importOrExportEntryList, nullptr, identifierName, identifierAs, nullptr);
             }
         }
     }
@@ -2190,22 +2177,22 @@ IdentPtrList* Parser::GetRequestedModulesList()
     return m_currentNodeProg->sxModule.requestedModules;
 }
 
-ModuleImportEntryList* Parser::GetModuleImportEntryList()
+ModuleImportOrExportEntryList* Parser::GetModuleImportEntryList()
 {
     return m_currentNodeProg->sxModule.importEntries;
 }
 
-ModuleExportEntryList* Parser::GetModuleLocalExportEntryList()
+ModuleImportOrExportEntryList* Parser::GetModuleLocalExportEntryList()
 {
     return m_currentNodeProg->sxModule.localExportEntries;
 }
 
-ModuleExportEntryList* Parser::GetModuleIndirectExportEntryList()
+ModuleImportOrExportEntryList* Parser::GetModuleIndirectExportEntryList()
 {
     return m_currentNodeProg->sxModule.indirectExportEntries;
 }
 
-ModuleExportEntryList* Parser::GetModuleStarExportEntryList()
+ModuleImportOrExportEntryList* Parser::GetModuleStarExportEntryList()
 {
     return m_currentNodeProg->sxModule.starExportEntries;
 }
@@ -2219,38 +2206,38 @@ IdentPtrList* Parser::EnsureRequestedModulesList()
     return m_currentNodeProg->sxModule.requestedModules;
 }
 
-ModuleImportEntryList* Parser::EnsureModuleImportEntryList()
+ModuleImportOrExportEntryList* Parser::EnsureModuleImportEntryList()
 {
     if (m_currentNodeProg->sxModule.importEntries == nullptr)
     {
-        m_currentNodeProg->sxModule.importEntries = Anew(&m_nodeAllocator, ModuleImportEntryList, &m_nodeAllocator);
+        m_currentNodeProg->sxModule.importEntries = Anew(&m_nodeAllocator, ModuleImportOrExportEntryList, &m_nodeAllocator);
     }
     return m_currentNodeProg->sxModule.importEntries;
 }
 
-ModuleExportEntryList* Parser::EnsureModuleLocalExportEntryList()
+ModuleImportOrExportEntryList* Parser::EnsureModuleLocalExportEntryList()
 {
     if (m_currentNodeProg->sxModule.localExportEntries == nullptr)
     {
-        m_currentNodeProg->sxModule.localExportEntries = Anew(&m_nodeAllocator, ModuleExportEntryList, &m_nodeAllocator);
+        m_currentNodeProg->sxModule.localExportEntries = Anew(&m_nodeAllocator, ModuleImportOrExportEntryList, &m_nodeAllocator);
     }
     return m_currentNodeProg->sxModule.localExportEntries;
 }
 
-ModuleExportEntryList* Parser::EnsureModuleIndirectExportEntryList()
+ModuleImportOrExportEntryList* Parser::EnsureModuleIndirectExportEntryList()
 {
     if (m_currentNodeProg->sxModule.indirectExportEntries == nullptr)
     {
-        m_currentNodeProg->sxModule.indirectExportEntries = Anew(&m_nodeAllocator, ModuleExportEntryList, &m_nodeAllocator);
+        m_currentNodeProg->sxModule.indirectExportEntries = Anew(&m_nodeAllocator, ModuleImportOrExportEntryList, &m_nodeAllocator);
     }
     return m_currentNodeProg->sxModule.indirectExportEntries;
 }
 
-ModuleExportEntryList* Parser::EnsureModuleStarExportEntryList()
+ModuleImportOrExportEntryList* Parser::EnsureModuleStarExportEntryList()
 {
     if (m_currentNodeProg->sxModule.starExportEntries == nullptr)
     {
-        m_currentNodeProg->sxModule.starExportEntries = Anew(&m_nodeAllocator, ModuleExportEntryList, &m_nodeAllocator);
+        m_currentNodeProg->sxModule.starExportEntries = Anew(&m_nodeAllocator, ModuleImportOrExportEntryList, &m_nodeAllocator);
     }
     return m_currentNodeProg->sxModule.starExportEntries;
 }
@@ -2265,21 +2252,43 @@ void Parser::AddModuleSpecifier(IdentPtr moduleRequest)
     }
 }
 
-void Parser::AddModuleImportEntry(ModuleImportEntryList* importEntryList, IdentPtr importName, IdentPtr localName, IdentPtr moduleRequest, ParseNodePtr declNode)
+ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, ModuleImportOrExportEntry* importOrExportEntry)
 {
-    ModuleImportEntry* importEntry = Anew(&m_nodeAllocator, ModuleImportEntry);
+    if (importOrExportEntry->exportName != nullptr)
+    {
+        CheckForDuplicateExportEntry(importOrExportEntryList, importOrExportEntry->exportName);
+    }
 
-    importEntry->importName = importName;
-    importEntry->localName = localName;
-    importEntry->moduleRequest = moduleRequest;
-    importEntry->varDecl = declNode;
+    importOrExportEntryList->Prepend(*importOrExportEntry);
 
-    importEntryList->Prepend(*importEntry);
+    return importOrExportEntry;
 }
 
-void Parser::CheckForDuplicateExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr exportName)
+ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest)
 {
-    ModuleExportEntry* findResult = exportEntryList->Find([&](ModuleExportEntry exportEntry)
+    ModuleImportOrExportEntry* importOrExportEntry = Anew(&m_nodeAllocator, ModuleImportOrExportEntry);
+
+    importOrExportEntry->importName = importName;
+    importOrExportEntry->localName = localName;
+    importOrExportEntry->exportName = exportName;
+    importOrExportEntry->moduleRequest = moduleRequest;
+
+    return AddModuleImportOrExportEntry(importOrExportEntryList, importOrExportEntry);
+}
+
+void Parser::AddModuleLocalExportEntry(ParseNodePtr varDeclNode)
+{
+    Assert(varDeclNode->nop == knopVarDecl || varDeclNode->nop == knopLetDecl || varDeclNode->nop == knopConstDecl);
+
+    IdentPtr localName = varDeclNode->sxVar.pid;
+    varDeclNode->sxVar.sym->SetIsModuleExportStorage(true);
+
+    AddModuleImportOrExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, localName, nullptr);
+}
+
+void Parser::CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportEntryList, IdentPtr exportName)
+{
+    ModuleImportOrExportEntry* findResult = exportEntryList->Find([&](ModuleImportOrExportEntry exportEntry)
     {
         if (exportName == exportEntry.exportName)
         {
@@ -2294,37 +2303,8 @@ void Parser::CheckForDuplicateExportEntry(ModuleExportEntryList* exportEntryList
     }
 }
 
-void Parser::AddModuleExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest)
-{
-    ModuleExportEntry* exportEntry = Anew(&m_nodeAllocator, ModuleExportEntry);
-
-    exportEntry->importName = importName;
-    exportEntry->localName = localName;
-    exportEntry->exportName = exportName;
-    exportEntry->moduleRequest = moduleRequest;
-
-    return AddModuleExportEntry(exportEntryList, exportEntry);
-}
-
-void Parser::AddModuleExportEntry(ModuleExportEntryList* exportEntryList, ModuleExportEntry* exportEntry)
-{
-    CheckForDuplicateExportEntry(exportEntryList, exportEntry->exportName);
-
-    exportEntryList->Prepend(*exportEntry);
-}
-
-void Parser::AddModuleLocalExportEntry(ParseNodePtr varDeclNode)
-{
-    Assert(varDeclNode->nop == knopVarDecl || varDeclNode->nop == knopLetDecl || varDeclNode->nop == knopConstDecl);
-
-    IdentPtr localName = varDeclNode->sxVar.pid;
-    varDeclNode->sxVar.sym->SetIsModuleExportStorage(true);
-
-    AddModuleExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, localName, nullptr);
-}
-
 template<bool buildAST>
-void Parser::ParseImportClause(ModuleImportEntryList* importEntryList, bool parsingAfterComma)
+void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma)
 {
     bool parsedNamespaceOrNamedImport = false;
 
@@ -2343,16 +2323,16 @@ void Parser::ParseImportClause(ModuleImportEntryList* importEntryList, bool pars
         {
             IdentPtr localName = m_token.GetIdentifier(m_phtbl);
             IdentPtr importName = wellKnownPropertyPids.default;
-            ParseNodePtr declNode = CreateModuleImportDeclNode(localName);
 
-            AddModuleImportEntry(importEntryList, importName, localName, nullptr, declNode);
+            CreateModuleImportDeclNode(localName);
+            AddModuleImportOrExportEntry(importEntryList, importName, localName, nullptr, nullptr);
         }
         
         break;
     
     case tkLCurly:
         // This begins a list of named imports.
-        ParseNamedImportOrExportClause<buildAST>(importEntryList, nullptr, false);
+        ParseNamedImportOrExportClause<buildAST>(importEntryList, false);
 
         parsedNamespaceOrNamedImport = true;
         break;
@@ -2376,9 +2356,9 @@ void Parser::ParseImportClause(ModuleImportEntryList* importEntryList, bool pars
         {
             IdentPtr localName = m_token.GetIdentifier(m_phtbl);
             IdentPtr importName = wellKnownPropertyPids._star;
-            ParseNodePtr declNode = CreateModuleImportDeclNode(localName);
 
-            AddModuleImportEntry(importEntryList, importName, localName, nullptr, declNode);
+            CreateModuleImportDeclNode(localName);
+            AddModuleImportOrExportEntry(importEntryList, importName, localName, nullptr, nullptr);
         }
 
         parsedNamespaceOrNamedImport = true;
@@ -2442,7 +2422,7 @@ ParseNodePtr Parser::ParseImportDeclaration()
     }
     else
     {
-        ModuleImportEntryList importEntryList(&m_nodeAllocator);
+        ModuleImportOrExportEntryList importEntryList(&m_nodeAllocator);
 
         // Parse the import clause (default binding can only exist before the comma).
         ParseImportClause<buildAST>(&importEntryList);
@@ -2456,9 +2436,9 @@ ParseNodePtr Parser::ParseImportDeclaration()
 
             AddModuleSpecifier(moduleSpecifier);
 
-            importEntryList.Map([this, moduleSpecifier](ModuleImportEntry& importEntry) {
+            importEntryList.Map([this, moduleSpecifier](ModuleImportOrExportEntry& importEntry) {
                 importEntry.moduleRequest = moduleSpecifier;
-                EnsureModuleImportEntryList()->Prepend(importEntry);
+                AddModuleImportOrExportEntry(EnsureModuleImportEntryList(), &importEntry);
             });
         }
 
@@ -2631,7 +2611,7 @@ LDefault:
 
     IdentPtr exportName = wellKnownPropertyPids.default;
     IdentPtr localName = wellKnownPropertyPids._starDefaultStar;
-    AddModuleExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, exportName, nullptr);
+    AddModuleImportOrExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, exportName, nullptr);
 
     return pnode;
 }
@@ -2669,16 +2649,16 @@ ParseNodePtr Parser::ParseExportDeclaration()
             AddModuleSpecifier(moduleIdentifier);
             IdentPtr importName = wellKnownPropertyPids._star;
 
-            AddModuleExportEntry(EnsureModuleStarExportEntryList(), importName, nullptr, nullptr, moduleIdentifier);
+            AddModuleImportOrExportEntry(EnsureModuleStarExportEntryList(), importName, nullptr, nullptr, moduleIdentifier);
         }
 
         break;
 
     case tkLCurly:
         {
-            ModuleExportEntryList exportEntryList(&m_nodeAllocator);
+            ModuleImportOrExportEntryList exportEntryList(&m_nodeAllocator);
 
-            ParseNamedImportOrExportClause<buildAST>(nullptr, &exportEntryList, true);
+            ParseNamedImportOrExportClause<buildAST>(&exportEntryList, true);
 
             m_pscan->Scan();
 
@@ -2692,7 +2672,7 @@ ParseNodePtr Parser::ParseExportDeclaration()
                     AddModuleSpecifier(moduleIdentifier);
                 }
 
-                exportEntryList.Map([this, moduleIdentifier](ModuleExportEntry& exportEntry) {
+                exportEntryList.Map([this, moduleIdentifier](ModuleImportOrExportEntry& exportEntry) {
                     if (moduleIdentifier != nullptr)
                     {
                         exportEntry.moduleRequest = moduleIdentifier;
@@ -2701,11 +2681,11 @@ ParseNodePtr Parser::ParseExportDeclaration()
                         exportEntry.importName = exportEntry.localName;
                         exportEntry.localName = nullptr;
 
-                        AddModuleExportEntry(EnsureModuleIndirectExportEntryList(), &exportEntry);
+                        AddModuleImportOrExportEntry(EnsureModuleIndirectExportEntryList(), &exportEntry);
                     }
                     else
                     {
-                        AddModuleExportEntry(EnsureModuleLocalExportEntryList(), &exportEntry);
+                        AddModuleImportOrExportEntry(EnsureModuleLocalExportEntryList(), &exportEntry);
                     }
                 });
 
@@ -2790,7 +2770,7 @@ ParseFunctionDecl:
                 }
                 Assert(localName != nullptr);
 
-                AddModuleExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, localName, nullptr);
+                AddModuleImportOrExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, localName, nullptr);
             }
         }
         break;

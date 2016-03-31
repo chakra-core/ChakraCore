@@ -232,10 +232,9 @@ public:
     void EndEmitWith(ParseNode *pnodeWith);
     void EnsureFncScopeSlots(ParseNode *pnode, FuncInfo *funcInfo);
     void EnsureLetConstScopeSlots(ParseNode *pnodeBlock, FuncInfo *funcInfo);
-    void EnsureImportBindingScopeSlots(ParseNode* pnode, FuncInfo* funcInfo);
-    void EnsureExportBindingScopeSlots(ParseNode* pnode, FuncInfo* funcInfo);
-    void EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo, IdentPtr exportName = nullptr, IdentPtr moduleSpecifier = nullptr);
+    bool EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo);
     void EmitAssignmentToDefaultModuleExport(ParseNode* pnode, FuncInfo* funcInfo);
+    void EmitModuleExportAccess(Symbol* sym, Js::OpCode opcode, Js::RegSlot location, FuncInfo* funcInfo);
 
     void PushScope(Scope *innerScope);
     void PopScope();

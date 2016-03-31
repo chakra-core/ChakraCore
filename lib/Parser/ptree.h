@@ -401,10 +401,10 @@ struct PnProg : PnFnc
 
 struct PnModule : PnProg
 {
-    ModuleExportEntryList* localExportEntries;
-    ModuleExportEntryList* indirectExportEntries;
-    ModuleExportEntryList* starExportEntries;
-    ModuleImportEntryList* importEntries;
+    ModuleImportOrExportEntryList* localExportEntries;
+    ModuleImportOrExportEntryList* indirectExportEntries;
+    ModuleImportOrExportEntryList* starExportEntries;
+    ModuleImportOrExportEntryList* importEntries;
     IdentPtrList* requestedModules;
 };
 
