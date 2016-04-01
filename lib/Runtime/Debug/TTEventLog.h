@@ -4,6 +4,19 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+////
+//Define compact macros for use in the JSRT API's
+#if ENABLE_TTD
+#define PERFORM_JSRT_TTD_RECORD_ACTION(ACTION_CODE) if(scriptContext->GetThreadContext()->TTDLog != nullptr && scriptContext->GetThreadContext()->TTDLog->ShouldPerformRecordAction()) { (ACTION_CODE); }
+#define PERFORM_JSRT_TTD_TAG_ACTION(VAL_PTR) if(VAL_PTR != nullptr ) { TTD::RuntimeThreadInfo::JsRTTagObject(scriptContext->GetThreadContext(), *(VAL_PTR)); }
+#else
+#define PERFORM_JSRT_TTD_RECORD_ACTION(ACTION_CODE)
+#define PERFORM_JSRT_TTD_TAG_ACTION(VAL)
+#endif
+
+////
+//Begin the regular TTD code
+
 #if ENABLE_TTD
 
 #define TTD_EVENTLOG_LIST_BLOCK_SIZE 512

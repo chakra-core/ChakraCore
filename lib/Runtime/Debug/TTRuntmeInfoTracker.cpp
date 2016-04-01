@@ -117,7 +117,7 @@ namespace TTD
     void RuntimeThreadInfo::JsRTTagObject(ThreadContext* threadContext, Js::Var value)
     {
         //TTD is completely disabled so we aren't doing anything
-        if(threadContext->TTDInfo == nullptr || !TTD::JsSupport::IsVarComplexKind(value))
+        if(threadContext->TTDInfo == nullptr || value == nullptr || !TTD::JsSupport::IsVarComplexKind(value))
         {
             return;
         }
