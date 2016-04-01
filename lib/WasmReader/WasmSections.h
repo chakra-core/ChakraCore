@@ -10,7 +10,7 @@ WASM_SECTION(FunctionSignatures   , "function_signatures", fSectNone  , Signatur
 WASM_SECTION(IndirectFunctionTable, "function_table"     , fSectNone  , FunctionSignatures)
 WASM_SECTION(Memory               , "memory"             , fSectNone  , Invalid           )
 WASM_SECTION(ExportTable          , "export_table"       , fSectNone  , FunctionSignatures)
-WASM_SECTION(StartFunction        , "start_function"     , fSectIgnore, FunctionSignatures)
+WASM_SECTION(StartFunction        , "start_function"     , fSectNone  , FunctionSignatures)
 WASM_SECTION(FunctionBodies       , "function_bodies"    , fSectNone  , FunctionSignatures)
 WASM_SECTION(DataSegments         , "data_segments"      , fSectNone  , Memory            )
 WASM_SECTION(Names                , "names"              , fSectNone,   Signatures        )

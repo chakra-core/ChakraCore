@@ -139,24 +139,27 @@ WasmBinaryReader::ProcessCurrentSection()
     case bSectSignatures:
         ReadSignatures();
         break;
-    case bSectDataSegments:
-        ReadDataSegments();
+    case bSectImportTable:
+        ReadImportEntries();
         break;
     case bSectFunctionSignatures:
         ReadFunctionsSignatures();
-        break;
-    case bSectExportTable:
-        ReadExportTable();
         break;
     case bSectFunctionBodies:
         // The function bodies cannot be read fully by the binary reader alone. Call ReadFunctionBodies() instead
         Assert(UNREACHED);
         break;
+    case bSectExportTable:
+        ReadExportTable();
+        break;
+    case bSectStartFunction:
+        ReadStartFunction();
+        break;
+    case bSectDataSegments:
+        ReadDataSegments();
+        break;
     case bSectIndirectFunctionTable:
         ReadIndirectFunctionTable();
-        break;
-    case bSectImportTable:
-        ReadImportEntries();
         break;
     case bSectNames:
         ReadNamesSection();
@@ -763,6 +766,18 @@ WasmBinaryReader::ReadImportEntries()
         TRACE_WASM_DECODER(_u("Import #%u: \"%s\".\"%s\""), i, modName, fnName);
         m_moduleInfo->SetFunctionImport(i, sigId, modName, modNameLen, fnName, fnNameLen);
     }
+}
+
+void
+WasmBinaryReader::ReadStartFunction()
+{
+    uint32 len = 0;
+    uint32 id = LEB128(len);
+    m_moduleInfo->SetStartFunction(id);
+
+    // TODO: Validate
+    // 1. Valid function id
+    // 2. Function should be void and nullary
 }
 
 const char *
