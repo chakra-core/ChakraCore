@@ -107,14 +107,16 @@ var tests = [
        }
     },
     {
-       name: "Object toPrimitive must be Function else Throws typeError",
+       name: "Object toPrimitive must be Function or null else Throws typeError",
        body: function ()
        {
             var o = { toString : function () {return "o"}, valueOf : function() { return 0;}};
 
             o[Symbol.toPrimitive]  = {}; // can only be a  function else type error
-            assert.throws(function() {var a = o+1;}, TypeError, "o[Symbol.toPrimitive] must be a function");
+            assert.throws(function() {var a = o+1;}, TypeError, "o[Symbol.toPrimitive] must be a function", "The value of the property 'Symbol.toPrimitive' is not a Function object");
 
+            o[Symbol.toPrimitive] = null;
+            assert.doesNotThrow(function() {var a = o+1;}, "If o[Symbol.toPrimitive] is null it is ignored");
         }
     },
 // In ScriptLanguageVersion6 the ActiveXObject constructor is removed and is unable to be used for this test. Disabling until different object type can be found
