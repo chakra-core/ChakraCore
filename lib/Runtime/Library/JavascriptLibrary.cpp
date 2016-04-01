@@ -4810,18 +4810,23 @@ namespace Js
         // For Intl builtins, we need to make sure the Intl object has been initialized before fetching the
         // builtins from the EngineInterfaceObject. This is because the builtins are actually created via
         // Intl.js and are registered into the EngineInterfaceObject as part of Intl object initialization.
+        JavascriptExceptionObject * caughtExceptionObject = nullptr;
         try
         {
             this->IntlObject->GetTypeHandler()->EnsureObjectReady(this->IntlObject);
-        } catch (JavascriptExceptionObject *e)
+        } 
+        catch (JavascriptExceptionObject *e)
         {
-            // Propagate the OOM and SOE exceptions only
-            if (e == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() ||
-                e == ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
-            {
-                e = e->CloneIfStaticExceptionObject(scriptContext);
-                throw e;
-            }
+            caughtExceptionObject = e;
+        }
+
+        // Propagate the OOM and SOE exceptions only
+        if (caughtExceptionObject != nullptr &&
+            (caughtExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() ||
+            caughtExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject()))
+        {
+            caughtExceptionObject = caughtExceptionObject->CloneIfStaticExceptionObject(scriptContext);
+            throw caughtExceptionObject;
         }
     }
 
