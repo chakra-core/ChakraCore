@@ -162,6 +162,42 @@ namespace Js
         return Is_NoTaggedIntCheck(object) && TryGetInt32Value(GetValue(object), &i) ? i : 0;
     }
 
+    int32 JavascriptNumber::DirectPowIntInt(bool* isOverflow, int32 x, int32 y)
+    {
+        if (y < 0)
+        {
+            *isOverflow = true;
+            return 0;
+        }
+
+        uint32 uexp = static_cast<uint32>(y);
+        int32 result = 1;
+        
+        while (true)
+        {
+            if ((uexp & 1) != 0)
+            {
+                if (Int32Math::Mul(result, x, &result))
+                {
+                    *isOverflow = true;
+                    break;
+                }
+            }
+            if ((uexp >>= 1) == 0)
+            {
+                *isOverflow = false;
+                break;
+            }
+            if (Int32Math::Mul(x, x, &x))
+            {
+                *isOverflow = true;
+                break;
+            }
+        }
+
+        return *isOverflow ? 0 : result;
+    }
+
     double JavascriptNumber::DirectPowDoubleInt(double x, int32 y)
     {
         // For exponent in [-8, 8], aggregate the product according to binary representation
