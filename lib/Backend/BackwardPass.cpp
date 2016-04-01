@@ -2317,11 +2317,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
             {\
                 StackSym * stackSym = this->func->m_symTable->FindStackSym(symId);\
                 Assert(stackSym->GetType() == TyVar);\
-                StackSym * simd128Sym = nullptr;\
-                if (bailOutInfo->liveSimd128##_TAG_##Syms->Test(symId))\
-                {\
-                    simd128Sym = stackSym->GetSimd128##_TAG_##EquivSym(nullptr);\
-                }\
+                StackSym * simd128Sym = stackSym->GetSimd128##_TAG_##EquivSym(nullptr);\
                 byteCodeUpwardExposedUsed->Set(simd128Sym->m_id);\
             }\
             NEXT_BITSET_IN_SPARSEBV;
