@@ -250,6 +250,7 @@ var tests = [
         
         assert.doesNotThrow(function (a = eval) { }, "An assignment of eval does not cause syntax error");
         assert.doesNotThrow(function (a = eval()) { }, "If no arguments are passed to eval then it won't cause syntax error");
+        assert.doesNotThrow(function () { eval("function f( x = function y() { function z() { x; }; }) { }"); }, "Split scope functions inside eval shouldn't throw");
     }
   },
   {
