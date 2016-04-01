@@ -971,6 +971,7 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
     BVSparse<JitArenaAllocator> symsRequiringCompensation(tempAlloc);
     {
         BVSparse<JitArenaAllocator> symsCreatedForMerge(tempAlloc);
+        bool forceTypeSpecOnLoopHeader = true;
         FOREACH_PREDECESSOR_BLOCK(pred, block)
         {
             if (pred->globOptData.callSequence && pred->globOptData.callSequence->Empty())
@@ -1019,7 +1020,9 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
                     block,
                     pred,
                     isLoopPrePass ? nullptr : &symsRequiringCompensation,
-                    isLoopPrePass ? nullptr : &symsCreatedForMerge);
+                    isLoopPrePass ? nullptr : &symsCreatedForMerge,
+                    forceTypeSpecOnLoopHeader);
+                forceTypeSpecOnLoopHeader = false; // can force type-spec on the loop header only for the first back edge.
             }
 
             // Restore the value for the next edge
@@ -1809,7 +1812,8 @@ GlobOpt::MergeBlockData(
     BasicBlock *toBlock,
     BasicBlock *fromBlock,
     BVSparse<JitArenaAllocator> *const symsRequiringCompensation,
-    BVSparse<JitArenaAllocator> *const symsCreatedForMerge)
+    BVSparse<JitArenaAllocator> *const symsCreatedForMerge,
+    bool forceTypeSpecOnLoopHeader)
 {
     GlobOptBlockData *fromData = &(fromBlock->globOptData);
 
@@ -1881,7 +1885,7 @@ GlobOpt::MergeBlockData(
         BVSparse<JitArenaAllocator> tempBv1(this->tempAlloc);
         BVSparse<JitArenaAllocator> tempBv2(this->tempAlloc);
 
-        if (isLoopBackEdge)
+        if (isLoopBackEdge && forceTypeSpecOnLoopHeader)
         {
             Loop *const loop = toBlock->loop;
 
