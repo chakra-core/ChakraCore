@@ -927,6 +927,11 @@ varDeclEnd:
         }
 
         ParseNode* objNode = node->sxReturn.pnodeExpr;
+        if ( !objNode )
+        {
+            return m.Fail( node, _u( "Module return must be an object or 1 function" ) );
+        }
+
         if( objNode->nop != knopObject )
         {
             if( ParserWrapper::IsNameDeclaration( objNode ) )
