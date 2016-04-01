@@ -1092,6 +1092,13 @@
       <baseline>LossyLosslessInt32.baseline</baseline>
     </default>
   </test>
+    <test>
+    <default>
+      <files>LossyLosslessInt32.js</files>
+      <compile-flags>-off:simplejit</compile-flags>
+      <baseline>LossyLosslessInt32.baseline</baseline>
+    </default>
+  </test>
   <test>
     <default>
       <files>AggressiveIntTypeSpec.js</files>

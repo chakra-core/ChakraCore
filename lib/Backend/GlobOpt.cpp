@@ -10966,7 +10966,14 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
 
             // Try to type specialize to int32
 
-            lossy = false;
+            // If one of the values is a float constant with a value that fits in a uint32 but not an int32, 
+            // and the instruction can ignore int overflow, the source value for the purposes of int specialization 
+            // would have been changed to an int constant value by ignoring overflow. But, the conversion is still lossy.
+            if (!(src1OriginalVal && src1OriginalVal->GetValueInfo()->IsFloatConstant() && src1Val && src1Val->GetValueInfo()->HasIntConstantValue()) &&
+                !(src2OriginalVal && src2OriginalVal->GetValueInfo()->IsFloatConstant() && src2Val && src2Val->GetValueInfo()->HasIntConstantValue()))
+            {
+                lossy = false;
+            }
 
             switch(instr->m_opcode)
             {
