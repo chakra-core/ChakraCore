@@ -1127,8 +1127,8 @@ namespace TTD
         return alloc.SlabNew<JsRTConstructCallAction>(eTime, ctxTag, ftag, argc, args, execArgs);
     }
 
-    JsRTCallbackAction::JsRTCallbackAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isCancel, bool isRepeating, int64 currentCallbackId, TTD_LOG_TAG callbackFunctionTag, int64 createdCallbackId)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CallbackOp), m_isCancel(isCancel), m_isRepeating(isRepeating), m_currentCallbackId(currentCallbackId), m_callbackFunctionTag(callbackFunctionTag), m_createdCallbackId(createdCallbackId)
+    JsRTCallbackAction::JsRTCallbackAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isCancel, bool isRepeating, int64 currentCallbackId, TTD_LOG_TAG callbackFunctionTag, int64 callbackId)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CallbackOp), m_isCancel(isCancel), m_isRepeating(isRepeating), m_currentCallbackId(currentCallbackId), m_callbackFunctionTag(callbackFunctionTag), m_callbackId(callbackId)
 #if ENABLE_TTD_DEBUGGING
         , m_registerLocation()
 #endif
@@ -1152,7 +1152,7 @@ namespace TTD
 
     int64 JsRTCallbackAction::GetAssociatedHostCallbackId() const
     {
-        return this->m_createdCallbackId;
+        return this->m_callbackId;
     }
 
     bool JsRTCallbackAction::IsRepeatingOp() const
@@ -1208,7 +1208,7 @@ namespace TTD
 
         writer->WriteInt64(NSTokens::Key::hostCallbackId, this->m_currentCallbackId, NSTokens::Separator::CommaSeparator);
         writer->WriteLogTag(NSTokens::Key::logTag, this->m_callbackFunctionTag, NSTokens::Separator::CommaSeparator);
-        writer->WriteInt64(NSTokens::Key::newCallbackId, this->m_createdCallbackId, NSTokens::Separator::CommaSeparator);
+        writer->WriteInt64(NSTokens::Key::newCallbackId, this->m_callbackId, NSTokens::Separator::CommaSeparator);
 
         writer->WriteRecordEnd();
     }
@@ -1220,9 +1220,9 @@ namespace TTD
 
         int64 currentCallbackId = reader->ReadInt64(NSTokens::Key::hostCallbackId, true);
         TTD_LOG_TAG callbackFunctionTag = reader->ReadLogTag(NSTokens::Key::logTag, true);
-        int64 createdCallbackId = reader->ReadInt64(NSTokens::Key::newCallbackId, true);
+        int64 callbackId = reader->ReadInt64(NSTokens::Key::newCallbackId, true);
 
-        return alloc.SlabNew<JsRTCallbackAction>(eTime, ctxTag, isCancel, isRepeating, currentCallbackId, callbackFunctionTag, createdCallbackId);
+        return alloc.SlabNew<JsRTCallbackAction>(eTime, ctxTag, isCancel, isRepeating, currentCallbackId, callbackFunctionTag, callbackId);
     }
 
     JsRTCodeParseAction::JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, const TTString& sourceCode, LoadScriptFlag loadFlag, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile)

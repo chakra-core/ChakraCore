@@ -2636,42 +2636,152 @@
 
     /////////////////////
 
-    typedef bool (CALLBACK *JsTTDDbgCallback)(INT64* optEventTimeRequest, wchar_t** optStaticRequestMessage);
-
-    //Create any container needed for a log/snapshot and return the stream handle for writing the core-contents data
-    typedef void (CALLBACK *JsTTDInitializeUriCallback)(const wchar_t* uri, wchar_t** fullTTDUri);
-    typedef void (CALLBACK *JsTTDInitializeForWriteLogStreamCallback)(const wchar_t* uri);
-    typedef HANDLE (CALLBACK *JsTTDGetLogStreamCallback)(const wchar_t* uri, bool read, bool write);
-    typedef HANDLE (CALLBACK *JsTTDGetSnapshotStreamCallback)(const wchar_t* logRootUri, const wchar_t* snapId, bool read, bool write, wchar_t** snapContainerUri);
-    typedef HANDLE (CALLBACK *JsTTDGetSrcCodeStreamCallback)(const wchar_t* snapContainerUri, const wchar_t* documentid, const wchar_t* srcFileName, bool read, bool write);
-
-    typedef BOOL(CALLBACK *JsTTDReadBytesFromStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount);
-    typedef BOOL(CALLBACK *JsTTDWriteBytesToStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* writtenCount);
-    typedef void (CALLBACK *JsTTDFlushAndCloseStreamCallback)(HANDLE strm, bool read, bool write);
-
 #if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
 
+    /// <summary>
+    ///     Given the the uri location specified for the TTD output data, which may be relative or contain other implcit information, 
+    ///     convert it into a fully normalized location descriptor. This fiully resolved location will be passed to the later callbacks 
+    ///     such as JsTTDInitializeForWriteLogStreamCallback, JsTTDGetLogStreamCallback, and JsTTDGetSnapshotStreamCallback.
+    /// </summary>
+    /// <param name="uri">The uri the user provided for the output location of the TTD data.</param>
+    /// <param name="fullTTDUri">The fully resolved location for the TTD data output.</param>
+    typedef void (CALLBACK *JsTTDInitializeUriCallback)(_In_z_ const wchar_t* uri, _Out_ wchar_t** fullTTDUri);
+
+    /// <summary>
+    ///     Ensure that the location specified for outputting the TTD data is clean. Specifically, ensure that any previous TTD 
+    ///     in the location has been removed.
+    /// </summary>
+    /// <param name="fullTTDUri">The fully resolved location for the TTD data output as provied by JsTTDInitializeUriCallback.</param>
+    typedef void (CALLBACK *JsTTDInitializeForWriteLogStreamCallback)(_In_z_ const wchar_t* uri);
+
+    /// <summary>
+    ///     Construct a HANDLE that will be used to read/write the event log portion of the TTD data based on the uri 
+    ///     provided by JsTTDInitializeUriCallback.
+    /// </summary>
+    /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
+    /// <param name="uri">The fully resolved location for the TTD data as provied by JsTTDInitializeUriCallback.</param>
+    /// <param name="read">If the handle should be opened for reading.</param>
+    /// <param name="write">If the handle should be opened for writing.</param>
+    /// <returns>A HANDLE opened in read/write mode as specified.</returns>
+    typedef HANDLE (CALLBACK *JsTTDGetLogStreamCallback)(_In_z_ const wchar_t* uri, _In_ bool read, _In_ bool write);
+
+    /// <summary>
+    ///     Construct a HANDLE that will be used to read/write a snapshot and generate a unique uri that is associated with this snapshot.
+    /// </summary>
+    /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
+    /// <param name="logRootUri">The fully resolved root location for the TTD data as provied by JsTTDInitializeUriCallback.</param>
+    /// <param name="snapId">A unique string identifier for this snapshot.</param>
+    /// <param name="read">If the handle should be opened for reading.</param>
+    /// <param name="write">If the handle should be opened for writing.</param>
+    /// <param name="containerUri">A unique uri which can be extended for storing source code data associated with this snapshot -- marked for deprecation.</param>
+    /// <returns>A HANDLE opened in read/write mode as specified.</returns>
+    typedef HANDLE (CALLBACK *JsTTDGetSnapshotStreamCallback)(_In_z_ const wchar_t* logRootUri, _In_z_ const wchar_t* snapId, _In_z_ bool read, _In_ bool write, _Out_ wchar_t** containerUri);
+
+    /// <summary>
+    ///     Construct a HANDLE that will be used to read/write information on source code loaded by the program.
+    /// </summary>
+    /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
+    /// <param name="containerUri">The fully resolved root location for the TTD source code data.</param>
+    /// <param name="documentid">A unique string identifier for this source file.</param>
+    /// <param name="documentid">The base filename for this source code.</param>
+    /// <param name="read">If the handle should be opened for reading.</param>
+    /// <param name="write">If the handle should be opened for writing.</param>
+    /// <returns>A HANDLE opened in read/write mode as specified.</returns>
+    typedef HANDLE (CALLBACK *JsTTDGetSrcCodeStreamCallback)(_In_z_ const wchar_t* containerUri, _In_z_ const wchar_t* documentid, _In_z_ const wchar_t* srcFileName, _In_ bool read, _In_ bool write);
+
+    /// <summary>
+    ///     A callback for reading data from a handle.
+    /// </summary>
+    /// <param name="strm">The HANDLE to read the data from.</param>
+    /// <param name="buff">The buffer to place the data into.</param>
+    /// <param name="size">The max number of bytes that should be read.</param>
+    /// <param name="readCount">The actual number of bytes read and placed in the buffer.</param>
+    /// <returns>TRUE if the read was successful FALSE otherwise.</returns>
+    typedef BOOL(CALLBACK *JsTTDReadBytesFromStreamCallback)(_In_ HANDLE strm, _Out_writes_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* readCount);
+
+    /// <summary>
+    ///     A callback for writing data to a handle.
+    /// </summary>
+    /// <param name="strm">The HANDLE to write the data to.</param>
+    /// <param name="buff">The buffer to copy the data from.</param>
+    /// <param name="size">The max number of bytes that should be written.</param>
+    /// <param name="readCount">The actual number of bytes written to the HANDLE.</param>
+    /// <returns>TRUE if the write was successful FALSE otherwise.</returns>
+    typedef BOOL(CALLBACK *JsTTDWriteBytesToStreamCallback)(_In_ HANDLE strm, _In_reads_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* writtenCount);
+
+    /// <summary>
+    ///     Flush and close the stream represented by the HANDLE as needed.
+    /// </summary>
+    /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
+    /// <param name="read">If the handle was opened for reading.</param>
+    /// <param name="write">If the handle was opened for writing.</param>
+    typedef void (CALLBACK *JsTTDFlushAndCloseStreamCallback)(_In_ HANDLE strm, _In_ bool read, _In_ bool write);
+
+    /// <summary>
+    ///     Creates a new runtime in Record Mode.
+    /// </summary>
+    /// <param name="attributes">The attributes of the runtime to be created.</param>
+    /// <param name="infoUri">The uri where the recorded Time-Travel data should be stored.</param>
+    /// <param name="snapInterval">The interval to wait between snapshots (measured in millis).</param>
+    /// <param name="snapHistoryLength">The length of time to maintain before discadring (measured in number of snapshots).</param>
+    /// <param name="threadService">The thread service for the runtime. Can be null.</param>
+    /// <param name="runtime">The runtime created.</param>
+    /// <remarks>See <c>JsCreateRuntime</c> for additional information.</remarks>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
     STDAPI_(JsErrorCode)
         JsTTDCreateRecordRuntime(
             _In_ JsRuntimeAttributes attributes,
-            _In_ wchar_t* infoUri,
+            _In_z_ wchar_t* infoUri,
             _In_ UINT32 snapInterval, 
             _In_ UINT32 snapHistoryLength,
             _In_opt_ JsThreadServiceCallback threadService,
             _Out_ JsRuntimeHandle *runtime);
 
+    /// <summary>
+    ///     Creates a new runtime in Debug Mode.
+    /// </summary>
+    /// <param name="attributes">The attributes of the runtime to be created.</param>
+    /// <param name="infoUri">The uri where the recorded Time-Travel data should be loaded from.</param>
+    /// <param name="threadService">The thread service for the runtime. Can be null.</param>
+    /// <param name="runtime">The runtime created.</param>
+    /// <remarks>See <c>JsCreateRuntime</c> for additional information.</remarks>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
     STDAPI_(JsErrorCode)
         JsTTDCreateDebugRuntime(
             _In_ JsRuntimeAttributes attributes,
-            _In_ wchar_t* infoUri,
+            _In_z_ wchar_t* infoUri,
             _In_opt_ JsThreadServiceCallback threadService,
             _Out_ JsRuntimeHandle *runtime);
 
+    /// <summary>
+    ///     Creates a script context in Time Travel mode for running scripts.
+    /// </summary>
+    /// <remarks>See <c>JsCreateContext</c> for more information.</remarks>
+    /// <param name="runtime">The runtime the script context is being created in.</param>
+    /// <param name="newContext">The created script context.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDCreateContext(
             _In_ JsRuntimeHandle runtime,
             _Out_ JsContextRef *newContext);
 
+    /// <summary>
+    ///     Executes a script with additional Time-Travel causality tracking via the <c>hostCallbackId</c>.
+    /// </summary>
+    /// <remarks>See <c>JsRunScript</c> for more information.</remarks>
+    /// <param name="hostCallbackId">
+    ///     A unique id that specifies which callback execution caused this code to be registered for execution (e.g., the timeoutId from setTimeout).
+    ///     If there is no applicable causual event then -1.
+    ///</param>
+    /// <param name="script">The script to run.</param>
+    /// <param name="sourceContext">A cookie identifying the script that can be used by debuggable script contexts.</param>
+    /// <param name="sourceUrl">The location the script came from.</param>
+    /// <param name="result">The result of the script, if any. This parameter can be null.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDRunScript(
             _In_ INT64 hostCallbackId,
@@ -2680,6 +2790,22 @@
             _In_z_ const wchar_t *sourceUrl,
             _Out_ JsValueRef *result);
 
+    /// <summary>
+    ///     Invokes a function with additional Time-Travel causality tracking via the <c>hostCallbackId</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Requires thisArg as first argument of arguments. 
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="hostCallbackId">
+    ///     A unique id that specifies which callback execution caused this code to be registered for execution (e.g., the timeoutId from setTimeout).
+    ///     If there is no applicable causual event then -1.
+    ///</param>
+    /// <param name="function">The function to invoke.</param>
+    /// <param name="arguments">The arguments to the call.</param>
+    /// <param name="argumentCount">The number of arguments being passed in to the function.</param>
+    /// <param name="result">The value returned from the function invocation, if any.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDCallFunction(
             _In_ INT64 hostCallbackId,
@@ -2691,12 +2817,22 @@
     /// <summary>
     ///     Set the current script context into debug/replay mode for replay without debugger attach.
     /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDSetDebuggerForReplay();
 
     /// <summary>
     ///     Set the functions that the TTD system uses to write info out of main memory when needed.
     /// </summary>
+    /// <param name="runtime">The runtime to set the functions for (must be created in debug mode).</param>
+    /// <param name="ttdInitializeTTDUriFunction">The <c>JsTTDInitializeUriCallback</c> function for converting the user provided location into an absolute location for reading/writing time travel recording data.</param>
+    /// <param name="writeInitializeFunction">The <c>JsTTDInitializeForWriteLogStreamCallback</c> function for performing any initializtion needed prepare uri for storing time travel recording data.</param>
+    /// <param name="getLogStreamInfo">The <c>JsTTDGetLogStreamCallback</c> function for generating a HANDLE to read/write time travel recording log data from.</param>
+    /// <param name="getSnapshotStreamInfo">The <c>JsTTDGetSnapshotStreamCallback</c> function for generating a HANDLE to read/write snapshot data from.</param>
+    /// <param name="getSrcCodeStreamInfo">The <c>JsTTDGetSrcCodeStreamCallback</c> function for generating a HANDLE to read/write source code data.</param>
+    /// <param name="readBytesFromStream">The <c>JsTTDReadBytesFromStreamCallback</c> function for reading bytes from a HANDLE.</param>
+    /// <param name="writeBytesToStream">The <c>JsTTDWriteBytesToStreamCallback</c> function for writing bytes to a HANDLE.</param>
+    /// <param name="flushAndCloseStream">The <c>JsTTDFlushAndCloseStreamCallback</c> function for flushing and closing a HANDLE as needed.</param>
     STDAPI_(JsErrorCode)
         JsTTDSetIOCallbacks(
             _In_ JsRuntimeHandle runtime,
@@ -2712,71 +2848,97 @@
     /// <summary>
     ///     Start Time-Travel Recording.
     /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDStartTimeTravelRecording();
 
     /// <summary>
     ///     Stop Time-Travel Recording.
     /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDStopTimeTravelRecording();
 
     /// <summary>
     ///     Emit Time-Travel Recording.
     /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDEmitTimeTravelRecording();
 
     /// <summary>
     ///     Start Time-Travel Debugging.
     /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDStartTimeTravelDebugging();
 
     /// <summary>
     ///     Pause Time-Travel recording gefor executing code on behalf of debugger or other diagnostic/telemetry.
     /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDPauseTimeTravelBeforeRuntimeOperation();
 
     /// <summary>
     ///     ReStart Time-Travel recording after executing code on behalf of debugger or other diagnostic/telemetry.
     /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDReStartTimeTravelAfterRuntimeOperation();
 
     /// <summary>
-    ///     Notify the Js runtime that the host as created/canceled a callback with the given function and id
+    ///     Notify the Js runtime that the host as created/canceled a callback with the given function and id.
     /// </summary>
+    /// <param name="isCancel">True if the action is to cancel the callback with the callbackId.</param>
+    /// <param name="isRepeating">True if the action is to create a repeating callback (e.g., setInterval).</param>
+    /// <param name="function">The function associated with the callbackId.</param>
+    /// <param name="callbackId">The callbackId that is being created/canceled.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode) 
         JsTTDNotifyHostCallbackCreatedOrCanceled(
-            _In_ bool isCancel, _In_ bool isRepeating, 
-            _In_ JsValueRef function, _In_ INT64 createdCallbackId);
+            _In_ bool isCancel, 
+            _In_ bool isRepeating, 
+            _In_ JsValueRef function, 
+            _In_ INT64 callbackId);
 
     /// <summary>
     ///     Before calling JsTTDMoveToTopLevelEvent (which inflates a snapshot and replays) check to see if we want to reset the script context.
     ///     We reset the script context if the move will require inflating from a different snapshot that the last one.
     /// </summary>
+    /// <param name="runtimeHandle">The runtime handle that the script is executing in.</param>
+    /// <param name="targetEventTime">The event that we are planning to move to.</param>
+    /// <param name="targetStartSnapTime">Gets the event time that we will start executing from to move to the given target time.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDPrepContextsForTopLevelEventMove(
-            _In_ JsRuntimeHandle runtimeHandle, _In_ INT64 targetEventTime, _Out_ INT64* targetStartSnapTime);
+            _In_ JsRuntimeHandle runtimeHandle, 
+            _In_ INT64 targetEventTime, 
+            _Out_ INT64* targetStartSnapTime);
 
     /// <summary>
-    ///     Move to the given top-level call event time (assuming JsTTDPrepContextsForTopLevelEventMove) was called to reset any script contexts.
+    ///     Move to the given top-level call event time (assuming JsTTDPrepContextsForTopLevelEventMove) was called previously to reset any script contexts.
     ///     This also computes the ready-to-run snapshot if needed.
     /// </summary>
+    /// <param name="targetEventTime">The event that we want to move to.</param>
+    /// <param name="targetStartSnapTime">The event time that we will start executing from to move to the given target time.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode)
         JsTTDMoveToTopLevelEvent(
-            _In_ INT64 snapshotTime, _In_ INT64 eventTime);
+            _In_ INT64 snapshotTime, 
+            _In_ INT64 eventTime);
 
     /// <summary>
     ///     Execute from the current point in the log to the end returning the error code.
-    ///     If the debugger requested an abort the code is JsNoError -- rootEventTime is the target event time to reset to.
+    ///     If the debugger requested an abort the code is JsNoError -- rootEventTime is the target event time we need to move to and re-execute from.
     ///     If we aborted at the end of the replay log the code is JsNoError -- rootEventTime is -1.
-    ///     If there was an unhandled script exception the code is JsErrorCategoryScript -- exception time info can be accessed via JsTTDGetLastExceptionThrowTimeInfo.
+    ///     If there was an unhandled script exception the code is JsErrorCategoryScript.
     /// </summary>
+    /// <param name="rootEventTime">The event time that we should move to next or notification (-1) that replay has ended.</param>
+    /// <returns>See summary.</returns>
     STDAPI_(JsErrorCode)
-        JsTTDReplayExecution(INT64* rootEventTime);
+        JsTTDReplayExecution(
+            _Out_ INT64* rootEventTime);
 
 #endif //ENABLE_TTD
 

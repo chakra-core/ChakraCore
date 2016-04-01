@@ -524,7 +524,7 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const wchar_t* uri, bool read, boo
     return res;
 }
 
-static HANDLE CALLBACK TTGetSnapshotStreamCallback(const wchar_t* logRootUri, const wchar_t* snapId, bool read, bool write, wchar_t** snapContainerUri)
+static HANDLE CALLBACK TTGetSnapshotStreamCallback(const wchar_t* logRootUri, const wchar_t* snapId, bool read, bool write, wchar_t** containerUri)
 {
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
@@ -534,8 +534,8 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const wchar_t* logRootUri, co
     snapDir.append(L"\\");
 
     int resUriCount = (int)(wcslen(snapDir.c_str()) + 1);
-    *snapContainerUri = (wchar_t*)CoTaskMemAlloc(resUriCount * sizeof(wchar_t));
-    memcpy(*snapContainerUri, snapDir.c_str(), resUriCount * sizeof(wchar_t));
+    *containerUri = (wchar_t*)CoTaskMemAlloc(resUriCount * sizeof(wchar_t));
+    memcpy(*containerUri, snapDir.c_str(), resUriCount * sizeof(wchar_t));
 
     std::wstring snapFile(snapDir);
     snapFile.append(L"snapshot.json");
@@ -567,14 +567,14 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const wchar_t* logRootUri, co
     return res;
 }
 
-static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const wchar_t* snapContainerUri, const wchar_t* documentid, const wchar_t* srcFileName, bool read, bool write)
+static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const wchar_t* containerUri, const wchar_t* documentid, const wchar_t* srcFileName, bool read, bool write)
 {
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     std::wstring sFile;
     GetFileFromURI(srcFileName, sFile);
 
-    std::wstring srcPath(snapContainerUri);
+    std::wstring srcPath(containerUri);
     srcPath.append(documentid);
     srcPath.append(L"_");
     srcPath.append(sFile.c_str());

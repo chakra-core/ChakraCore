@@ -404,7 +404,7 @@ namespace TTD
 
         //the function tag and name for the callback function and the id that we are associating it with
         const TTD_LOG_TAG m_callbackFunctionTag;
-        const int64 m_createdCallbackId;
+        const int64 m_callbackId;
 
 #if ENABLE_TTD_DEBUGGING
         //Info on the time that this registration occours
@@ -412,7 +412,7 @@ namespace TTD
 #endif
 
     public:
-        JsRTCallbackAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isCancel, bool isRepeating, int64 currentCallbackId, TTD_LOG_TAG callbackFunctionTag, int64 createdCallbackId);
+        JsRTCallbackAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isCancel, bool isRepeating, int64 currentCallbackId, TTD_LOG_TAG callbackFunctionTag, int64 callbackId);
         virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         static JsRTCallbackAction* As(JsRTActionLogEntry* action);

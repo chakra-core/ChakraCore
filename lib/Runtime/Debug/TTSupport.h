@@ -152,8 +152,8 @@ namespace TTD
     typedef void(CALLBACK *TTDInitializeTTDUriCallback)(const wchar_t* uri, wchar_t** fullTTDUri);
     typedef void(CALLBACK *TTDInitializeForWriteLogStreamCallback)(const wchar_t* uri);
     typedef HANDLE(CALLBACK *TTDGetLogStreamCallback)(const wchar_t* uri, bool read, bool write);
-    typedef HANDLE(CALLBACK *TTDGetSnapshotStreamCallback)(const wchar_t* logRootUri, const wchar_t* snapId, bool read, bool write, wchar_t** snapContainerUri);
-    typedef HANDLE(CALLBACK *TTDGetSrcCodeStreamCallback)(const wchar_t* snapContainerUri, const wchar_t* documentid, const wchar_t* srcFileName, bool read, bool write);
+    typedef HANDLE(CALLBACK *TTDGetSnapshotStreamCallback)(const wchar_t* logRootUri, const wchar_t* snapId, bool read, bool write, wchar_t** containerUri);
+    typedef HANDLE(CALLBACK *TTDGetSrcCodeStreamCallback)(const wchar_t* containerUri, const wchar_t* documentid, const wchar_t* srcFileName, bool read, bool write);
 
     typedef BOOL(CALLBACK *TTDReadBytesFromStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount);
     typedef BOOL(CALLBACK *TTDWriteBytesToStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* writtenCount);
