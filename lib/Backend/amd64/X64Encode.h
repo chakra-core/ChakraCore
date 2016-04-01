@@ -37,9 +37,10 @@
 #define DDST    0x800    /* get the first operand from the DST list */
 #define DCOMMOP 0x1000   /* opcode is commutative */
 #define D66EX   0x2000   // Optional 0x66 for WNI/MNI 128-bit extended MMX opcodes
-#define DSSE    0x4000  /* Instruction operates on XMM registers but not AVX */
-#define D66     0x100000 // 0x66 0x0F style WNI form (usually 128-bit DP FP)
+#define DSSE    0x4000   /* Instruction operates on XMM registers but not AVX */
 #define DF3     0x8000   /* the 0xF3 0x0F style KNI opcodes */
+#define DMOV    0x10000  /* Instruction is a MOV or a synonym for MOV (e.g., MOV_TRUNC) */
+#define D66     0x100000 // 0x66 0x0F style WNI form (usually 128-bit DP FP)
 #define DF2     0x200000 /* 0xF2 0x0F style WNI form (usually 64-bit DP FP) */
 
 // 2nd 3 bits is options

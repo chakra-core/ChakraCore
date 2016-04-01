@@ -815,7 +815,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
             if (opr2->IsImmediateOpnd())
             {
-                Assert(instr->m_opcode == Js::OpCode::MOV);
+                Assert(EncoderMD::IsMOVEncoding(instr));
                 if (instrSize == 8 && !instr->isInlineeEntryInstr && Math::FitsInDWord(opr2->GetImmediateValue()))
                 {
                     // Better off using the C7 encoding as it will sign extend
@@ -1672,7 +1672,7 @@ bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
 
     bool isNotLargeConstant = Math::FitsInDWord(regOpnd->m_sym->GetLiteralConstValue_PostGlobOpt());
 
-    if (!isNotLargeConstant && (instr->m_opcode != Js::OpCode::MOV || !instr->GetDst()->IsRegOpnd()))
+    if (!isNotLargeConstant && (!EncoderMD::IsMOVEncoding(instr) || !instr->GetDst()->IsRegOpnd()))
     {
         return false;
     }
@@ -1875,6 +1875,11 @@ bool EncoderMD::UsesConditionCode(IR::Instr *instr)
 bool EncoderMD::IsOPEQ(IR::Instr *instr)
 {
     return instr->IsLowered() && (EncoderMD::GetOpdope(instr) & DOPEQ);
+}
+
+bool EncoderMD::IsMOVEncoding(IR::Instr *instr)
+{
+    return instr->IsLowered() && (EncoderMD::GetOpdope(instr) & DMOV);
 }
 
 void EncoderMD::UpdateRelocListWithNewBuffer(RelocList * relocList, BYTE * newBuffer, BYTE * oldBufferStart, BYTE * oldBufferEnd)
