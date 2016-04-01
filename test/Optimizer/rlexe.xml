@@ -1327,4 +1327,9 @@
       <compile-flags>-force:rejit -off:ArrayCheckHoist -off:aggressiveinttypespec -off:bailonnoprofile -off:nativearray</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>forcedTypeSpecOnLoopHeader.js</files>
+    </default>
+  </test>
 </regress-exe>
