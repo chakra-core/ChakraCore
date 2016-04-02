@@ -80,11 +80,9 @@ namespace Js
         {
             // 10. If completion is an abrupt completion, then
             //    a. Perform ? Call(resolvingFunctions.[[Reject]], undefined, « completion.[[Value]] »).
-            reject->GetEntryPoint()(reject, CallInfo(CallFlags_Value, 2),
-                library->GetUndefined(),
-                e->GetThrownObject(scriptContext));
+            TryRejectWithExceptionObject(e, reject, scriptContext);
         }
-
+        
         // 11. Return promise. 
         return promise;
     }
@@ -247,7 +245,7 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            TryRejectWithExceptionObject(e, promiseCapability->GetReject(), scriptContext);
 
             // We need to explicitly return here to make sure we don't resolve in case index == 0 here.
             // That would happen if GetIterator or IteratorValue throws an exception in the first iteration.
@@ -395,7 +393,7 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            TryRejectWithExceptionObject(e, promiseCapability->GetReject(), scriptContext);
         }
 
         return promiseCapability->GetPromise();
@@ -627,6 +625,12 @@ namespace Js
                 catch (JavascriptExceptionObject* e)
                 {
                     resolution = e->GetThrownObject(scriptContext);
+
+                    if (resolution == nullptr)
+                    {
+                        resolution = undefinedVar;
+                    }
+
                     rejecting = true;
                 }
             }
@@ -646,6 +650,8 @@ namespace Js
             reactions = promise->GetResolveReactions();
             newStatus = PromiseStatusCode_HasResolution;
         }
+
+        Assert(resolution != nullptr);
 
         promise->result = resolution;
         promise->resolveReactions = nullptr;
@@ -716,7 +722,7 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            return TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            return TryRejectWithExceptionObject(e, promiseCapability->GetReject(), scriptContext);
         }
 
         return TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), handlerResult, scriptContext);
@@ -736,6 +742,18 @@ namespace Js
         return handlerFunc->GetEntryPoint()(handlerFunc, CallInfo(CallFlags_Value, 2),
             undefinedVar,
             value);
+    }
+
+    Var JavascriptPromise::TryRejectWithExceptionObject(JavascriptExceptionObject* exceptionObject, Var handler, ScriptContext* scriptContext)
+    {
+        Var thrownObject = exceptionObject->GetThrownObject(scriptContext);
+
+        if (thrownObject == nullptr)
+        {
+            thrownObject = scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        return TryCallResolveOrRejectHandler(handler, thrownObject, scriptContext);
     }
 
     // Promise Resolve Thenable Job as described in ES 2015 Section 25.4.2.2
@@ -768,9 +786,7 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            return reject->GetEntryPoint()(reject, Js::CallInfo(Js::CallFlags::CallFlags_Value, 2),
-                library->GetUndefined(),
-                e->GetThrownObject(scriptContext));
+            return TryRejectWithExceptionObject(e, reject, scriptContext);
         }
     }
 
@@ -856,7 +872,7 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            return TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            return TryRejectWithExceptionObject(e, promiseCapability->GetReject(), scriptContext);
         }
 
         if (allResolveElementFunction->DecrementRemainingElements() == 0)
@@ -976,7 +992,7 @@ namespace Js
         if (e != nullptr)
         {
             // finished with failure, reject the promise
-            reject->GetEntryPoint()(reject, CallInfo(CallFlags_Value, 2), undefinedVar, e->GetThrownObject(scriptContext));
+            TryRejectWithExceptionObject(e, reject, scriptContext);
             return;
         }
 
@@ -1059,8 +1075,7 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
-
+            TryRejectWithExceptionObject(e, promiseCapability->GetReject(), scriptContext);
             return true;
         }
 
@@ -1080,7 +1095,7 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            TryRejectWithExceptionObject(e, promiseCapability->GetReject(), scriptContext);
         }
 
         return true;
