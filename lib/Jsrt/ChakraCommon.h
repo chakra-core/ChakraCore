@@ -32,21 +32,39 @@
 #define CHAKRA_API STDAPI_(JsErrorCode)
 
 typedef DWORD_PTR ChakraCookie;
+typedef BYTE* ChakraBytePtr;
 #else
 #include <cstdint>
 
 // SAL compat
 #define _Return_type_success_(x)
 #define _In_
+#define _In_z_
 #define _In_opt_
+#define _Inout_
 #define _Out_
 #define _Out_opt_
+#define _In_reads_(x)
+#define _Pre_maybenull_
+#define _Pre_writable_byte_size_(byteLength)
+#define _Outptr_result_buffer_(byteLength)
+#define _Outptr_result_bytebuffer_(byteLength)
+#define _Outptr_result_z_
+#define _Ret_maybenull_
+#define _Out_writes_to_opt_(byteLength, byteLength2)
 
 // Header macros
-#define CHAKRA_CALLBACK __attribute__((stdcall))
+// REVIEW: What should we do here??
+#ifdef __i386___
+#define CHAKRA_CALLBACK __attribute__((cdecl))
+#else
+#define CHAKRA_CALLBACK
+#endif
+
 #define CHAKRA_API extern "C" JsErrorCode 
 
 typedef uintptr_t ChakraCookie;
+typedef unsigned char* ChakraBytePtr;
 #endif
 
 
@@ -1271,7 +1289,7 @@ typedef uintptr_t ChakraCookie;
     CHAKRA_API
         JsSerializeScriptUtf8(
             _In_z_ const char *script,
-            _Out_writes_to_opt_(*bufferSize, *bufferSize) BYTE *buffer,
+            _Out_writes_to_opt_(*bufferSize, *bufferSize) ChakraBytePtr buffer,
             _Inout_ unsigned int *bufferSize);
 
     /// <summary>
@@ -1304,7 +1322,7 @@ typedef uintptr_t ChakraCookie;
         JsParseSerializedScriptUtf8(
             _In_ JsSerializedScriptLoadUtf8SourceCallback scriptLoadCallback,
             _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
-            _In_ BYTE *buffer,
+            _In_ ChakraBytePtr buffer,
             _In_ JsSourceContext sourceContext,
             _In_z_ const char *sourceUrl,
             _Out_ JsValueRef * result);
@@ -1341,7 +1359,7 @@ typedef uintptr_t ChakraCookie;
         JsRunSerializedScriptUtf8(
             _In_ JsSerializedScriptLoadUtf8SourceCallback scriptLoadCallback,
             _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
-            _In_ BYTE *buffer,
+            _In_ ChakraBytePtr buffer,
             _In_ JsSourceContext sourceContext,
             _In_z_ const char *sourceUrl,
             _Out_opt_ JsValueRef * result);
@@ -2521,7 +2539,7 @@ typedef uintptr_t ChakraCookie;
     CHAKRA_API
         JsGetArrayBufferStorage(
             _In_ JsValueRef arrayBuffer,
-            _Outptr_result_bytebuffer_(*bufferLength) BYTE **buffer,
+            _Outptr_result_bytebuffer_(*bufferLength) ChakraBytePtr *buffer,
             _Out_ unsigned int *bufferLength);
 
     /// <summary>
@@ -2544,7 +2562,7 @@ typedef uintptr_t ChakraCookie;
     CHAKRA_API
         JsGetTypedArrayStorage(
             _In_ JsValueRef typedArray,
-            _Outptr_result_bytebuffer_(*bufferLength) BYTE **buffer,
+            _Outptr_result_bytebuffer_(*bufferLength) ChakraBytePtr *buffer,
             _Out_ unsigned int *bufferLength,
             _Out_opt_ JsTypedArrayType *arrayType,
             _Out_opt_ int *elementSize);
@@ -2565,7 +2583,7 @@ typedef uintptr_t ChakraCookie;
     CHAKRA_API
         JsGetDataViewStorage(
             _In_ JsValueRef dataView,
-            _Outptr_result_bytebuffer_(*bufferLength) BYTE **buffer,
+            _Outptr_result_bytebuffer_(*bufferLength) ChakraBytePtr *buffer,
             _Out_ unsigned int *bufferLength);
 
     /// <summary>
