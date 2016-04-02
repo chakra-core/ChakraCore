@@ -333,16 +333,16 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
 
 #if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK_ONLY(scriptContext))
         {
-            TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(threadContext->TTDLog, scriptContext);
-            TTD::JsRTCallFunctionBeginAction* callAction = threadContext->TTDLog->RecordJsRTCallFunctionBegin(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, actionPopper.GetStartTime(), jsFunction, cargs, jsArgs.Values);
+            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+            TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(elog, scriptContext);
+            TTD::JsRTCallFunctionBeginAction* callAction = elog->RecordJsRTCallFunctionBegin(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, actionPopper.GetStartTime(), jsFunction, cargs, jsArgs.Values);
             actionPopper.SetCallAction(callAction);
 
             if(scriptContext->TTDRootNestingCount == 0)
             {
-                threadContext->TTDLog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
+                elog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
             }
 
             Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
@@ -364,18 +364,19 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
             }
         }
 
-        PERFORM_JSRT_TTD_TAG_ACTION(result);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
         //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
         //May want to look into more sophisticated means for making this decision later
-        if(threadContext->TTDLog != nullptr && scriptContext->TTDRootNestingCount == 0 && threadContext->TTDLog->ShouldPerformRecordAction())
+        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK_ONLY(scriptContext) && scriptContext->TTDRootNestingCount == 0)
         {
-            if(threadContext->TTDLog->IsTimeForSnapshot())
+            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+            if(elog->IsTimeForSnapshot())
             {
-                threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
-                threadContext->TTDLog->DoSnapshotExtract();
-                threadContext->TTDLog->PruneLogLength();
-                threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+                elog->PushMode(TTD::TTDMode::ExcludedExecution);
+                elog->DoSnapshotExtract();
+                elog->PruneLogLength();
+                elog->PopMode(TTD::TTDMode::ExcludedExecution);
             }
         }
 #else
@@ -1102,11 +1103,11 @@ STDAPI_(JsErrorCode) JsCreateObject(_Out_ JsValueRef *object)
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(object);
 
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateBasicObject(scriptContext, true));
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateBasicObject(scriptContext, true));
 
         *object = scriptContext->GetLibrary()->CreateObject();
 
-        PERFORM_JSRT_TTD_TAG_ACTION(object);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, object);
 
         return JsNoError;
     });
@@ -1127,7 +1128,7 @@ STDAPI_(JsErrorCode) JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFina
 
         *object = RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, RecyclerNew(scriptContext->GetRecycler(), JsrtExternalType, scriptContext, finalizeCallback), data);
 
-        PERFORM_JSRT_TTD_TAG_ACTION(object);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, object);
 
         return JsNoError;
     });
@@ -1150,7 +1151,7 @@ STDAPI_(JsErrorCode) JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValue
         *result = (JsValueRef)Js::JavascriptOperators::ToObject((Js::Var)value, scriptContext);
         Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
 
-        PERFORM_JSRT_TTD_TAG_ACTION(result);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
         return JsNoError;
     });
@@ -1173,7 +1174,7 @@ STDAPI_(JsErrorCode) JsGetPrototype(_In_ JsValueRef object, _Out_ JsValueRef *pr
         *prototypeObject = (JsValueRef)Js::JavascriptOperators::OP_GetPrototype(object, scriptContext);
         Assert(*prototypeObject == nullptr || !Js::CrossSite::NeedMarshalVar(*prototypeObject, scriptContext));
 
-        PERFORM_JSRT_TTD_TAG_ACTION(prototypeObject);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, prototypeObject);
 
         return JsNoError;
     });
@@ -1268,7 +1269,7 @@ STDAPI_(JsErrorCode) JsGetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef 
         *value = Js::JavascriptOperators::OP_GetProperty((Js::Var)object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext);
         Assert(*value == nullptr || !Js::CrossSite::NeedMarshalVar(*value, scriptContext));
 
-        PERFORM_JSRT_TTD_TAG_ACTION(value);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, value);
 
         return JsNoError;
     });
@@ -1301,7 +1302,7 @@ STDAPI_(JsErrorCode) JsGetOwnPropertyDescriptor(_In_ JsValueRef object, _In_ JsP
         }
         Assert(*propertyDescriptor == nullptr || !Js::CrossSite::NeedMarshalVar(*propertyDescriptor, scriptContext));
 
-        PERFORM_JSRT_TTD_TAG_ACTION(propertyDescriptor);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, propertyDescriptor);
 
         return JsNoError;
     });
@@ -1325,7 +1326,7 @@ STDAPI_(JsErrorCode) JsGetOwnPropertyNames(_In_ JsValueRef object, _Out_ JsValue
         *propertyNames = Js::JavascriptOperators::GetOwnPropertyNames(object, scriptContext);
         Assert(*propertyNames == nullptr || !Js::CrossSite::NeedMarshalVar(*propertyNames, scriptContext));
 
-        PERFORM_JSRT_TTD_TAG_ACTION(propertyNames);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, propertyNames);
 
         return JsNoError;
     });
@@ -1348,7 +1349,7 @@ STDAPI_(JsErrorCode) JsGetOwnPropertySymbols(_In_ JsValueRef object, _Out_ JsVal
         *propertySymbols = Js::JavascriptOperators::GetOwnPropertySymbols(object, scriptContext);
         Assert(*propertySymbols == nullptr || !Js::CrossSite::NeedMarshalVar(*propertySymbols, scriptContext));
 
-        PERFORM_JSRT_TTD_TAG_ACTION(propertySymbols);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, propertySymbols);
 
         return JsNoError;
     });
@@ -1410,7 +1411,7 @@ STDAPI_(JsErrorCode) JsDeleteProperty(_In_ JsValueRef object, _In_ JsPropertyIdR
             scriptContext, useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
         Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
 
-        PERFORM_JSRT_TTD_TAG_ACTION(result);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
         return JsNoError;
     });
@@ -1463,7 +1464,7 @@ STDAPI_(JsErrorCode) JsCreateArray(_In_ unsigned int length, _Out_ JsValueRef *r
 
         *result = scriptContext->GetLibrary()->CreateArray(length);
 
-        PERFORM_JSRT_TTD_TAG_ACTION(result);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
         return JsNoError;
     });
@@ -1485,7 +1486,7 @@ STDAPI_(JsErrorCode) JsCreateArrayBuffer(_In_ unsigned int byteLength, _Out_ JsV
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
         *result = library->CreateArrayBuffer(byteLength);
 
-        PERFORM_JSRT_TTD_TAG_ACTION(result);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
         return JsNoError;
@@ -1519,7 +1520,7 @@ STDAPI_(JsErrorCode) JsCreateExternalArrayBuffer(_Pre_maybenull_ _Pre_writable_b
             callbackState,
             library->GetArrayBufferType());
 
-        PERFORM_JSRT_TTD_TAG_ACTION(result);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
         return JsNoError;
@@ -1608,7 +1609,7 @@ STDAPI_(JsErrorCode) JsCreateTypedArray(_In_ JsTypedArrayType arrayType, _In_ Js
 
         *result = Js::JavascriptFunction::CallAsConstructor(constructorFunc, /* overridingNewTarget = */nullptr, args, scriptContext);
 
-        PERFORM_JSRT_TTD_TAG_ACTION(result);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
         return JsNoError;
@@ -1637,7 +1638,7 @@ STDAPI_(JsErrorCode) JsCreateDataView(_In_ JsValueRef arrayBuffer, _In_ unsigned
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
         *result = library->CreateDataView(Js::ArrayBuffer::FromVar(arrayBuffer), byteOffset, byteLength);
 
-        PERFORM_JSRT_TTD_TAG_ACTION(result);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
         return JsNoError;
@@ -1676,10 +1677,7 @@ STDAPI_(JsErrorCode) JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ J
 
 #if ENABLE_TTD
         Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-#endif
-
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        ThreadContext* threadContext =  scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
             threadContext->TTDLog->RecordJsRTGetTypedArrayInfo(scriptContext, arrayBuffer != nullptr, typedArray);
@@ -1703,7 +1701,7 @@ STDAPI_(JsErrorCode) JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ J
             *byteLength = typedArrayBase->GetByteLength();
         }
 
-        PERFORM_JSRT_TTD_TAG_ACTION(arrayBuffer);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, arrayBuffer);
     }
     END_JSRT_NO_EXCEPTION
 }
@@ -1878,7 +1876,7 @@ STDAPI_(JsErrorCode) JsGetIndexedProperty(_In_ JsValueRef object, _In_ JsValueRe
 
         *result = (JsValueRef)Js::JavascriptOperators::OP_GetElementI((Js::Var)object, (Js::Var)index, scriptContext);
 
-        PERFORM_JSRT_TTD_TAG_ACTION(result);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
         return JsNoError;
     });
@@ -2231,7 +2229,7 @@ STDAPI_(JsErrorCode) JsConstructObject(_In_ JsValueRef function, _In_reads_(carg
         *result = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, scriptContext);
         Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
 
-        PERFORM_JSRT_TTD_TAG_ACTION(result);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
         return JsNoError;
     });
@@ -2255,7 +2253,7 @@ STDAPI_(JsErrorCode) JsCreateFunction(_In_ JsNativeFunction nativeFunction, _In_
         Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)nativeFunction, 0, callbackState);
         *function = (JsValueRef)externalFunction;
 
-        PERFORM_JSRT_TTD_TAG_ACTION(function);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, function);
 
         return JsNoError;
     });
@@ -2290,7 +2288,7 @@ STDAPI_(JsErrorCode) JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFu
         Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)nativeFunction, Js::JavascriptString::FromVar(name), callbackState);
         *function = (JsValueRef)externalFunction;
 
-        PERFORM_JSRT_TTD_TAG_ACTION(function);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, function);
 
         return JsNoError;
     });
@@ -2320,7 +2318,7 @@ STDAPI_(JsErrorCode) JsCreateError(_In_ JsValueRef message, _Out_ JsValueRef *er
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
-        PERFORM_JSRT_TTD_TAG_ACTION(error);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, error);
 
         return JsNoError;
     });
@@ -2347,7 +2345,7 @@ STDAPI_(JsErrorCode) JsCreateRangeError(_In_ JsValueRef message, _Out_ JsValueRe
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
-        PERFORM_JSRT_TTD_TAG_ACTION(error);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, error);
 
         return JsNoError;
     });
@@ -2374,7 +2372,7 @@ STDAPI_(JsErrorCode) JsCreateReferenceError(_In_ JsValueRef message, _Out_ JsVal
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
-        PERFORM_JSRT_TTD_TAG_ACTION(error);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, error);
 
         return JsNoError;
     });
@@ -2401,7 +2399,7 @@ STDAPI_(JsErrorCode) JsCreateSyntaxError(_In_ JsValueRef message, _Out_ JsValueR
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
-        PERFORM_JSRT_TTD_TAG_ACTION(error);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, error);
 
         return JsNoError;
     });
@@ -2428,7 +2426,7 @@ STDAPI_(JsErrorCode) JsCreateTypeError(_In_ JsValueRef message, _Out_ JsValueRef
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
-        PERFORM_JSRT_TTD_TAG_ACTION(error);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, error);
 
         return JsNoError;
     });
@@ -2455,7 +2453,7 @@ STDAPI_(JsErrorCode) JsCreateURIError(_In_ JsValueRef message, _Out_ JsValueRef 
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
-        PERFORM_JSRT_TTD_TAG_ACTION(error);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, error);
 
         return JsNoError;
     });
@@ -2557,7 +2555,7 @@ STDAPI_(JsErrorCode) JsGetAndClearException(_Out_ JsValueRef *exception)
 #if ENABLE_TTD
     BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(currentContext->GetScriptContext())
     {
-        PERFORM_JSRT_TTD_TAG_ACTION(exception);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, exception);
     }
     END_JS_RUNTIME_CALL(currentContext->GetScriptContext())
 #endif
@@ -2993,7 +2991,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         }
 #endif
 
-        PERFORM_JSRT_TTD_TAG_ACTION(&scriptFunction);
+        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, &scriptFunction);
 
         if (parseOnly)
         {
@@ -3045,7 +3043,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
                 }
             }
 
-            PERFORM_JSRT_TTD_TAG_ACTION(result);
+            PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
             //Put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
             //May want to look into more sophisticated means for making this decision later
