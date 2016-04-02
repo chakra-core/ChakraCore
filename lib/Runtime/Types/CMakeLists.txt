@@ -1,6 +1,3 @@
-# xplat-todo: This is a skeleton make file and not used in build yet.
-# Please add this to build and fix issues.
-
 add_library (Chakra.Runtime.Types
     ActivationObject.cpp
     ArrayObject.cpp
@@ -11,17 +8,17 @@ add_library (Chakra.Runtime.Types
     DynamicObjectSnapshotEnumerator.cpp
     DynamicObjectSnapshotEnumeratorWPCache.cpp
     DynamicType.cpp
-    ES5ArrayTypeHandler.cpp
+    #ES5ArrayTypeHandler.cpp
     JavascriptEnumerator.cpp
     MissingPropertyTypeHandler.cpp
     NullTypeHandler.cpp
-    PathTypeHandler.cpp
+    #PathTypeHandler.cpp
     PropertyDescriptor.cpp
     RecyclableObject.cpp
     RuntimeTypePch.cpp
     ScriptFunctionType.cpp
-    SimpleDictionaryTypeHandler.cpp
-    SimpleDictionaryUnorderedTypeHandler.cpp
+    #SimpleDictionaryTypeHandler.cpp
+    #SimpleDictionaryUnorderedTypeHandler.cpp
     SimpleTypeHandler.cpp
     SpreadArgument.cpp
     StaticType.cpp
