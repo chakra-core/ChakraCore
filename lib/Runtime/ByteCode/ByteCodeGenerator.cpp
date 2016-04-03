@@ -2724,14 +2724,19 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                                 top->sameNameArgsPlaceHolderSlotCount++; // Same name args appeared before
                             }
                             sym->SetScopeSlot(i);
-                            i++;
                         }
+                        i++;
                     };
 
-                    // We don't need to process the rest parameter here because it may not need a scope slot.
+                    // We need to include the rest as well -as it will get slot assigned.
                     if (ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode))
                     {
-                        MapFormalsWithoutRest(pnode, setArgScopeSlot);
+                        MapFormals(pnode, setArgScopeSlot);
+                        if (argSym->NeedsSlotAlloc(top))
+                        {
+                            Assert(argSym->GetScopeSlot() == Js::Constants::NoProperty);
+                            argSym->SetScopeSlot(i++);
+                        }
                         MapFormalsFromPattern(pnode, setArgScopeSlot);
                     }
 
@@ -4545,6 +4550,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         CheckMaybeEscapedUse(pnode->sxParamPattern.pnode1, byteCodeGenerator);
         break;
 
+    case knopObjectPattern:
     case knopArrayPattern:
         byteCodeGenerator->AssignUndefinedConstRegister();
         CheckMaybeEscapedUse(pnode->sxUni.pnode1, byteCodeGenerator);

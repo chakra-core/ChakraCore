@@ -1577,15 +1577,20 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
                     Assert(sym->GetScopeSlot() != Js::Constants::NoProperty && sym->GetScopeSlot() > slot);
                     propIds->elements[slot] = Js::Constants::NoProperty;
                 }
-                slot++;
             }
+            else
+            {
+                // This is for patterns
+                propIds->elements[slot] = Js::Constants::NoProperty;
+            }
+            slot++;
         };
         MapFormalsWithoutRest(pnodeFnc, initArg);
 
-        // initArg assumes the sym is in a slot, but this may not be true for the rest parameter.
+        // If the rest is in the slot - we need to keep that slot.
         if (pnodeFnc->sxFnc.pnodeRest != nullptr && pnodeFnc->sxFnc.pnodeRest->sxVar.sym->IsInSlot(funcInfo))
         {
-            initArg(pnodeFnc->sxFnc.pnodeRest);
+            Symbol::SaveToPropIdArray(pnodeFnc->sxFnc.pnodeRest->sxVar.sym, propIds, this);
         }
     }
     else
