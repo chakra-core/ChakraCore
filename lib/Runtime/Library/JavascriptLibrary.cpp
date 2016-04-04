@@ -3716,6 +3716,15 @@ namespace Js
         typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain->ClearAndZero();
     }
 
+    bool JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext)
+    {
+        Var arrayIteratorPrototypeNext = nullptr;
+        ImplicitCallFlags flags = scriptContext->GetThreadContext()->TryWithDisabledImplicitCall(
+            [&]() { arrayIteratorPrototypeNext = JavascriptOperators::GetProperty(scriptContext->GetLibrary()->GetArrayIteratorPrototype(), PropertyIds::next, scriptContext); });
+
+        return (flags != ImplicitCall_None) || arrayIteratorPrototypeNext != scriptContext->GetLibrary()->GetArrayIteratorPrototypeBuiltinNextFunction();
+    }
+
     void JavascriptLibrary::InitializeNumberConstructor(DynamicObject* numberConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(numberConstructor, mode, 17);
