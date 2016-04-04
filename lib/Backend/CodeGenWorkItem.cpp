@@ -206,12 +206,7 @@ void CodeGenWorkItem::RecordNativeCodeSize(Func *func, size_t bytes, ushort pdat
     bool canAllocInPreReservedHeapPageSegment = func->CanAllocInPreReservedHeapPageSegment();
 #endif
     EmitBufferAllocation *allocation = func->GetEmitBufferManager()->AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, true);
-
-#if DBG
-    MEMORY_BASIC_INFORMATION memBasicInfo;
-    size_t resultBytes = VirtualQuery(allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
-    Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
-#endif
+    Assert(func->GetEmitBufferManager()->IsBufferExecuteReadOnly(allocation));
 
     Assert(allocation != nullptr);
     if (buffer == nullptr)
