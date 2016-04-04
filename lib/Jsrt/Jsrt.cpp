@@ -269,6 +269,12 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
             threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
 #endif
 
+            if(threadContext->TTDInitializeTTDUriFunction == nullptr)
+            {
+                AssertMsg(false, "Must set this callback function first!!!");
+                return JsErrorCategoryUsage;
+            }
+
             wchar_t* ttdlogStr = nullptr;
             threadContext->TTDInitializeTTDUriFunction(threadContext->TTDUri, &ttdlogStr);
 
@@ -333,7 +339,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
 
 #if ENABLE_TTD
-        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK_ONLY(scriptContext))
+        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
         {
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
             TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(elog, scriptContext);
@@ -368,7 +374,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
 
         //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
         //May want to look into more sophisticated means for making this decision later
-        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK_ONLY(scriptContext) && scriptContext->TTDRootNestingCount == 0)
+        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && scriptContext->TTDRootNestingCount == 0)
         {
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
             if(elog->IsTimeForSnapshot())
@@ -752,13 +758,7 @@ void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptEx
         Js::Throw::OutOfMemory();
     }
 
-#if ENABLE_TTD
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
-    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-    {
-        AssertMsg(false, "Need to implement support here!!!");
-    }
-#endif
+    PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
     Js::JavascriptError* error = Js::JavascriptError::CreateFromCompileScriptException(scriptContext, se);
 
@@ -1118,13 +1118,7 @@ STDAPI_(JsErrorCode) JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFina
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(object);
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTAllocateBasicObject(scriptContext, false);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateBasicObject(scriptContext, false));
 
         *object = RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, RecyclerNew(scriptContext->GetRecycler(), JsrtExternalType, scriptContext, finalizeCallback), data);
 
@@ -1140,13 +1134,7 @@ STDAPI_(JsErrorCode) JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValue
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
         PARAM_NOT_NULL(result);
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTVarToObjectConversion(scriptContext, (Js::Var)value);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTVarToObjectConversion(scriptContext, (Js::Var)value));
 
         *result = (JsValueRef)Js::JavascriptOperators::ToObject((Js::Var)value, scriptContext);
         Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
@@ -1163,13 +1151,7 @@ STDAPI_(JsErrorCode) JsGetPrototype(_In_ JsValueRef object, _Out_ JsValueRef *pr
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         PARAM_NOT_NULL(prototypeObject);
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         *prototypeObject = (JsValueRef)Js::JavascriptOperators::OP_GetPrototype(object, scriptContext);
         Assert(*prototypeObject == nullptr || !Js::CrossSite::NeedMarshalVar(*prototypeObject, scriptContext));
@@ -1192,13 +1174,7 @@ STDAPI_(JsErrorCode) JsSetPrototype(_In_ JsValueRef object, _In_ JsValueRef prot
             return JsErrorInvalidArgument;
         }
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTSetPrototype(scriptContext, object, prototypeObject);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTSetPrototype(scriptContext, object, prototypeObject));
 
         Js::JavascriptObject::ChangePrototype(Js::RecyclableObject::FromVar(object), Js::RecyclableObject::FromVar(prototypeObject), true, scriptContext);
 
@@ -1236,13 +1212,7 @@ STDAPI_(JsErrorCode) JsPreventExtension(_In_ JsValueRef object)
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         Js::RecyclableObject::FromVar(object)->PreventExtensions();
 
@@ -1258,13 +1228,7 @@ STDAPI_(JsErrorCode) JsGetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef 
         PARAM_NOT_NULL(value);
         *value = nullptr;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTGetProperty(scriptContext, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), object);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetProperty(scriptContext, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), object));
 
         *value = Js::JavascriptOperators::OP_GetProperty((Js::Var)object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext);
         Assert(*value == nullptr || !Js::CrossSite::NeedMarshalVar(*value, scriptContext));
@@ -1283,13 +1247,7 @@ STDAPI_(JsErrorCode) JsGetOwnPropertyDescriptor(_In_ JsValueRef object, _In_ JsP
         PARAM_NOT_NULL(propertyDescriptor);
         *propertyDescriptor = nullptr;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTGetOwnPropertyInfo(scriptContext, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), object);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetOwnPropertyInfo(scriptContext, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), object));
 
         Js::PropertyDescriptor propertyDescriptorValue;
         if (Js::JavascriptOperators::GetOwnPropertyDescriptor(Js::RecyclableObject::FromVar(object), ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext, &propertyDescriptorValue))
@@ -1315,13 +1273,7 @@ STDAPI_(JsErrorCode) JsGetOwnPropertyNames(_In_ JsValueRef object, _Out_ JsValue
         PARAM_NOT_NULL(propertyNames);
         *propertyNames = nullptr;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTGetOwnPropertiesInfo(scriptContext, true, object);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetOwnPropertiesInfo(scriptContext, true, object));
 
         *propertyNames = Js::JavascriptOperators::GetOwnPropertyNames(object, scriptContext);
         Assert(*propertyNames == nullptr || !Js::CrossSite::NeedMarshalVar(*propertyNames, scriptContext));
@@ -1338,13 +1290,7 @@ STDAPI_(JsErrorCode) JsGetOwnPropertySymbols(_In_ JsValueRef object, _Out_ JsVal
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         PARAM_NOT_NULL(propertySymbols);
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTGetOwnPropertiesInfo(scriptContext, false, object);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetOwnPropertiesInfo(scriptContext, false, object));
 
         *propertySymbols = Js::JavascriptOperators::GetOwnPropertySymbols(object, scriptContext);
         Assert(*propertySymbols == nullptr || !Js::CrossSite::NeedMarshalVar(*propertySymbols, scriptContext));
@@ -1362,13 +1308,7 @@ STDAPI_(JsErrorCode) JsSetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef 
         VALIDATE_INCOMING_PROPERTYID(propertyId);
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTSetProperty(scriptContext, object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), value, useStrictRules);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTSetProperty(scriptContext, object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), value, useStrictRules));
 
         Js::JavascriptOperators::OP_SetProperty(object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), value, scriptContext,
             nullptr, useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
@@ -1399,13 +1339,7 @@ STDAPI_(JsErrorCode) JsDeleteProperty(_In_ JsValueRef object, _In_ JsPropertyIdR
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTDeleteProperty(scriptContext, object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), useStrictRules);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTDeleteProperty(scriptContext, object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), useStrictRules));
 
         *result = Js::JavascriptOperators::OP_DeleteProperty((Js::Var)object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(),
             scriptContext, useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
@@ -1432,13 +1366,7 @@ STDAPI_(JsErrorCode) JsDefineProperty(_In_ JsValueRef object, _In_ JsPropertyIdR
             return JsErrorInvalidArgument;
         }
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTDefineProperty(scriptContext, object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), propertyDescriptor);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTDefineProperty(scriptContext, object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), propertyDescriptor));
 
         *result = Js::JavascriptOperators::DefineOwnPropertyDescriptor(
             Js::RecyclableObject::FromVar(object), ((Js::PropertyRecord *)propertyId)->GetPropertyId(), propertyDescriptorValue,
@@ -1454,13 +1382,7 @@ STDAPI_(JsErrorCode) JsCreateArray(_In_ unsigned int length, _Out_ JsValueRef *r
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTAllocateBasicClearArray(scriptContext, Js::TypeIds_Array, length);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateBasicClearArray(scriptContext, Js::TypeIds_Array, length));
 
         *result = scriptContext->GetLibrary()->CreateArray(length);
 
@@ -1475,13 +1397,7 @@ STDAPI_(JsErrorCode) JsCreateArrayBuffer(_In_ unsigned int byteLength, _Out_ JsV
     return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(result);
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
         *result = library->CreateArrayBuffer(byteLength);
@@ -1504,13 +1420,7 @@ STDAPI_(JsErrorCode) JsCreateExternalArrayBuffer(_Pre_maybenull_ _Pre_writable_b
             return JsErrorInvalidArgument;
         }
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTAllocateArrayBuffer(scriptContext, reinterpret_cast<BYTE*>(data), byteLength);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateArrayBuffer(scriptContext, reinterpret_cast<BYTE*>(data), byteLength));
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
         *result = Js::JsrtExternalArrayBuffer::New(
@@ -1551,13 +1461,7 @@ STDAPI_(JsErrorCode) JsCreateTypedArray(_In_ JsTypedArrayType arrayType, _In_ Js
             return JsErrorInvalidArgument;
         }
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         Js::JavascriptFunction* constructorFunc = nullptr;
         Js::Var values[4] =
@@ -1627,13 +1531,7 @@ STDAPI_(JsErrorCode) JsCreateDataView(_In_ JsValueRef arrayBuffer, _In_ unsigned
             return JsErrorInvalidArgument;
         }
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
         *result = library->CreateDataView(Js::ArrayBuffer::FromVar(arrayBuffer), byteOffset, byteLength);
@@ -1675,14 +1573,7 @@ STDAPI_(JsErrorCode) JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ J
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
-#if ENABLE_TTD
-        Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-        ThreadContext* threadContext =  scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTGetTypedArrayInfo(scriptContext, arrayBuffer != nullptr, typedArray);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(JsrtContext::GetCurrent()->GetScriptContext(), JsrtContext::GetCurrent()->GetScriptContext()->GetThreadContext()->TTDLog->RecordJsRTGetTypedArrayInfo(JsrtContext::GetCurrent()->GetScriptContext(), arrayBuffer != nullptr, typedArray));
 
         if (arrayType != nullptr) {
             *arrayType = GetTypedArrayType(typeId);
@@ -1701,7 +1592,7 @@ STDAPI_(JsErrorCode) JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ J
             *byteLength = typedArrayBase->GetByteLength();
         }
 
-        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, arrayBuffer);
+        PERFORM_JSRT_TTD_TAG_ACTION(JsrtContext::GetCurrent()->GetScriptContext(), arrayBuffer);
     }
     END_JSRT_NO_EXCEPTION
 }
@@ -1819,13 +1710,7 @@ STDAPI_(JsErrorCode) JsCreateSymbol(_In_ JsValueRef description, _Out_ JsValueRe
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTCreateSymbol(scriptContext, description);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateSymbol(scriptContext, description));
 
         Js::JavascriptString* descriptionString;
 
@@ -1866,13 +1751,7 @@ STDAPI_(JsErrorCode) JsGetIndexedProperty(_In_ JsValueRef object, _In_ JsValueRe
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTGetIndex(scriptContext, index, object);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetIndex(scriptContext, index, object));
 
         *result = (JsValueRef)Js::JavascriptOperators::OP_GetElementI((Js::Var)object, (Js::Var)index, scriptContext);
 
@@ -1889,13 +1768,7 @@ STDAPI_(JsErrorCode) JsSetIndexedProperty(_In_ JsValueRef object, _In_ JsValueRe
         VALIDATE_INCOMING_REFERENCE(index, scriptContext);
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTSetIndex(scriptContext, object, index, value);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTSetIndex(scriptContext, object, index, value));
 
         Js::JavascriptOperators::OP_SetElementI((Js::Var)object, (Js::Var)index, (Js::Var)value, scriptContext);
 
@@ -1909,13 +1782,7 @@ STDAPI_(JsErrorCode) JsDeleteIndexedProperty(_In_ JsValueRef object, _In_ JsValu
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         VALIDATE_INCOMING_REFERENCE(index, scriptContext);
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         Js::JavascriptOperators::OP_DeleteElementI((Js::Var)object, (Js::Var)index, scriptContext);
 
@@ -1985,13 +1852,7 @@ STDAPI_(JsErrorCode) JsSetIndexedPropertiesToExternalData(
             return JsErrorInvalidArgument;
         }
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         Js::ArrayObject* newTypedArray = nullptr;
         switch (arrayType)
@@ -2218,13 +2079,7 @@ STDAPI_(JsErrorCode) JsConstructObject(_In_ JsValueRef function, _In_reads_(carg
         Js::CallInfo callInfo(Js::CallFlags::CallFlags_New, cargs);
         Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTConstructCall(scriptContext, jsFunction, cargs, args);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTConstructCall(scriptContext, jsFunction, cargs, args));
 
         *result = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, scriptContext);
         Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
@@ -2242,13 +2097,7 @@ STDAPI_(JsErrorCode) JsCreateFunction(_In_ JsNativeFunction nativeFunction, _In_
         PARAM_NOT_NULL(function);
         *function = nullptr;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTAllocateFunction(scriptContext, false, nullptr);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateFunction(scriptContext, false, nullptr));
 
         Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)nativeFunction, 0, callbackState);
         *function = (JsValueRef)externalFunction;
@@ -2267,14 +2116,7 @@ STDAPI_(JsErrorCode) JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFu
         PARAM_NOT_NULL(function);
         *function = nullptr;
 
-
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDLog->RecordJsRTAllocateFunction(scriptContext, true, name);
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateFunction(scriptContext, true, name));
 
         if (name != JS_INVALID_REFERENCE)
         {
@@ -2306,13 +2148,7 @@ STDAPI_(JsErrorCode) JsCreateError(_In_ JsValueRef message, _Out_ JsValueRef *er
         PARAM_NOT_NULL(error);
         *error = nullptr;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         JsValueRef newError = scriptContext->GetLibrary()->CreateError();
         SetErrorMessage(scriptContext, newError, message);
@@ -2333,13 +2169,7 @@ STDAPI_(JsErrorCode) JsCreateRangeError(_In_ JsValueRef message, _Out_ JsValueRe
 
         JsValueRef newError;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         newError = scriptContext->GetLibrary()->CreateRangeError();
         SetErrorMessage(scriptContext, newError, message);
@@ -2360,13 +2190,7 @@ STDAPI_(JsErrorCode) JsCreateReferenceError(_In_ JsValueRef message, _Out_ JsVal
 
         JsValueRef newError;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         newError = scriptContext->GetLibrary()->CreateReferenceError();
         SetErrorMessage(scriptContext, newError, message);
@@ -2387,13 +2211,7 @@ STDAPI_(JsErrorCode) JsCreateSyntaxError(_In_ JsValueRef message, _Out_ JsValueR
 
         JsValueRef newError;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         newError = scriptContext->GetLibrary()->CreateSyntaxError();
         SetErrorMessage(scriptContext, newError, message);
@@ -2414,13 +2232,7 @@ STDAPI_(JsErrorCode) JsCreateTypeError(_In_ JsValueRef message, _Out_ JsValueRef
 
         JsValueRef newError;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         newError = scriptContext->GetLibrary()->CreateTypeError();
         SetErrorMessage(scriptContext, newError, message);
@@ -2441,13 +2253,7 @@ STDAPI_(JsErrorCode) JsCreateURIError(_In_ JsValueRef message, _Out_ JsValueRef 
 
         JsValueRef newError;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         newError = scriptContext->GetLibrary()->CreateURIError();
         SetErrorMessage(scriptContext, newError, message);
@@ -2526,11 +2332,11 @@ STDAPI_(JsErrorCode) JsGetAndClearException(_Out_ JsValueRef *exception)
     Js::JavascriptExceptionObject *recordedException = nullptr;
 
 #if ENABLE_TTD
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
-    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+    BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(currentContext->GetScriptContext())
     {
-        threadContext->TTDLog->RecordJsRTGetAndClearException(scriptContext);
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetAndClearException(scriptContext));
     }
+    END_JS_RUNTIME_CALL(currentContext->GetScriptContext())
 #endif
 
     BEGIN_TRANSLATE_OOM_TO_HRESULT
@@ -2570,13 +2376,7 @@ STDAPI_(JsErrorCode) JsSetException(_In_ JsValueRef exception)
 
         Js::JavascriptExceptionObject *exceptionObject;
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         exceptionObject = RecyclerNew(scriptContext->GetRecycler(), Js::JavascriptExceptionObject, exception, scriptContext, nullptr);
 
@@ -2877,13 +2677,7 @@ STDAPI_(JsErrorCode) JsSetPromiseContinuationCallback(_In_ JsPromiseContinuation
     return ContextAPINoScriptWrapper([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(promiseContinuationCallback);
 
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         scriptContext->GetLibrary()->SetNativeHostPromiseContinuationFunction((Js::JavascriptLibrary::PromiseContinuationCallback)promiseContinuationCallback, callbackState);
         return JsNoError;
@@ -2980,7 +2774,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
         {
             //
             //TODO: Module support not implemented yet
@@ -3013,16 +2807,15 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 #endif
 
 #if ENABLE_TTD
-            ThreadContext* threadContext = scriptContext->GetThreadContext();
-            if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+            if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
             {
-                TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(threadContext->TTDLog, scriptContext);
-                TTD::JsRTCallFunctionBeginAction* callAction = threadContext->TTDLog->RecordJsRTCallFunctionBegin(scriptContext, scriptContext->TTDRootNestingCount, -1, actionPopper.GetStartTime(), scriptFunction, args.Info.Count, args.Values);
+                TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext->GetThreadContext()->TTDLog, scriptContext);
+                TTD::JsRTCallFunctionBeginAction* callAction = scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallFunctionBegin(scriptContext, scriptContext->TTDRootNestingCount, -1, actionPopper.GetStartTime(), scriptFunction, args.Info.Count, args.Values);
                 actionPopper.SetCallAction(callAction);
 
                 if(scriptContext->TTDRootNestingCount == 0)
                 {
-                    threadContext->TTDLog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
+                    scriptContext->GetThreadContext()->TTDLog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
                 }
 
                 Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
@@ -3047,7 +2840,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 
             //Put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
             //May want to look into more sophisticated means for making this decision later
-            if(threadContext->TTDLog != nullptr && scriptContext->TTDRootNestingCount == 0 && threadContext->TTDLog->ShouldPerformRecordAction())
+            if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && scriptContext->TTDRootNestingCount == 0)
             {
                 if(threadContext->TTDLog->IsTimeForSnapshot())
                 {
@@ -3370,7 +3163,10 @@ STDAPI_(JsErrorCode) JsTTDSetDebuggerForReplay()
         return JsErrorCategoryUsage;
     }
 
-    currentContext->GetScriptContext()->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
+    if(!currentContext->GetScriptContext()->GetDebugContext()->IsInDebugMode())
+    {
+        currentContext->GetScriptContext()->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
+    }
 
     return JsNoError;
 #endif
@@ -3558,6 +3354,7 @@ STDAPI_(JsErrorCode) JsTTDPauseTimeTravelBeforeRuntimeOperation()
     return JsErrorCategoryUsage;
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
+
     if(currentContext->GetRuntime()->GetThreadContext()->TTDLog != nullptr)
     {
         currentContext->GetRuntime()->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
@@ -3589,13 +3386,12 @@ STDAPI_(JsErrorCode) JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCancel, boo
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
 
-    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
     {
         Js::JavascriptFunction *jsFunction = (function != nullptr) ? Js::JavascriptFunction::FromVar(function) : nullptr;
 
-        threadContext->TTDLog->RecordJsRTCallbackOperation(scriptContext, isCancel, isRepeating, jsFunction, callbackId);
+        scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallbackOperation(scriptContext, isCancel, isRepeating, jsFunction, callbackId);
     }
 
     return JsNoError;
@@ -3711,6 +3507,45 @@ STDAPI_(JsErrorCode) JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTim
         END_JS_RUNTIME_CALL(scriptContext);
         elog->PopMode(TTD::TTDMode::ExcludedExecution);
 
+        //If the log has a BP requested then we should set the actual bp here
+        if(scriptContext->GetThreadContext()->TTDLog->HasPendingTTDBP())
+        {
+            TTD::TTDebuggerSourceLocation bpLocation;
+            scriptContext->GetThreadContext()->TTDLog->GetPendingTTDBPInfo(bpLocation);
+
+            Js::FunctionBody* body = bpLocation.ResolveAssociatedSourceInfo(scriptContext);
+            Js::Utf8SourceInfo* utf8SourceInfo = body->GetUtf8SourceInfo();
+
+            charcount_t charPosition;
+            charcount_t byteOffset;
+            utf8SourceInfo->GetCharPositionForLineInfo((charcount_t)bpLocation.GetLine(), &charPosition, &byteOffset);
+            long ibos = charPosition + bpLocation.GetColumn() + 1;
+
+            Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
+
+            Js::StatementLocation statement;
+            BOOL stmtok = debugDocument->GetStatementLocation(ibos, &statement);
+            AssertMsg(stmtok, "We have a bad line for setting a breakpoint.");
+
+            // Don't see a use case for supporting multiple breakpoints at same location.
+            // If a breakpoint already exists, just return that
+            Js::BreakpointProbe* probe = debugDocument->FindBreakpointId(statement);
+            if(probe == nullptr)
+            {
+                BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
+                {
+                    probe = debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
+                    AssertMsg(probe != nullptr, "We have a bad line or something for setting a breakpoint.");
+                }
+                END_JS_RUNTIME_CALL(scriptContext);
+            }
+
+            scriptContext->GetThreadContext()->TTDLog->SetActiveBP(probe->GetId(), bpLocation);
+
+            //Finally clear the pending BP info so we don't get confused later
+            scriptContext->GetThreadContext()->TTDLog->ClearPendingTTDBPInfo();
+        }
+
         elog->ReplayToTime(eventTime);
 
         elog->PushMode(TTD::TTDMode::ExcludedExecution);
@@ -3742,45 +3577,6 @@ STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
     {
         AssertMsg(false, "Should only happen in TT debugging mode.");
         return JsErrorCategoryUsage;
-    }
-
-    //If the log has a BP requested then we should set the actual bp here
-    if(scriptContext->GetThreadContext()->TTDLog->HasPendingTTDBP())
-    {
-        TTD::TTDebuggerSourceLocation bpLocation; 
-        scriptContext->GetThreadContext()->TTDLog->GetPendingTTDBPInfo(bpLocation);
-
-        Js::FunctionBody* body = bpLocation.ResolveAssociatedSourceInfo(scriptContext);
-        Js::Utf8SourceInfo* utf8SourceInfo = body->GetUtf8SourceInfo();
-
-        charcount_t charPosition;
-        charcount_t byteOffset;
-        utf8SourceInfo->GetCharPositionForLineInfo((charcount_t)bpLocation.GetLine(), &charPosition, &byteOffset);
-        long ibos = charPosition + bpLocation.GetColumn() + 1;
-
-        Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
-
-        Js::StatementLocation statement;
-        BOOL stmtok = debugDocument->GetStatementLocation(ibos, &statement);
-        AssertMsg(stmtok, "We have a bad line for setting a breakpoint.");
-
-        // Don't see a use case for supporting multiple breakpoints at same location.
-        // If a breakpoint already exists, just return that
-        Js::BreakpointProbe* probe = debugDocument->FindBreakpointId(statement);
-        if(probe == nullptr)
-        {
-            BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
-            {
-                probe = debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
-                AssertMsg(probe != nullptr, "We have a bad line or something for setting a breakpoint.");
-            }
-            END_JS_RUNTIME_CALL(scriptContext);
-        }
-
-        scriptContext->GetThreadContext()->TTDLog->SetActiveBP(probe->GetId(), bpLocation);
-
-        //Finally clear the pending BP info so we don't get confused later
-        scriptContext->GetThreadContext()->TTDLog->ClearPendingTTDBPInfo();
     }
 
     JsErrorCode res = JsNoError;

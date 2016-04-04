@@ -7,17 +7,17 @@
 ////
 //Define compact macros for use in the JSRT API's
 #if ENABLE_TTD
-#define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK_ONLY(CTX) (CTX)->GetThreadContext()->TTDLog != nullptr && (CTX)->GetThreadContext()->TTDLog->ShouldPerformRecordAction()
-#define PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(CTX, ACTION_CODE) if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK_ONLY(CTX)) { (ACTION_CODE); }
+#define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) (CTX)->GetThreadContext()->TTDLog != nullptr && (CTX)->GetThreadContext()->TTDLog->ShouldPerformRecordAction()
+#define PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(CTX, ACTION_CODE) if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) { (ACTION_CODE); }
 
 //TODO: find and replace all of the occourences of this in jsrt.cpp
-#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED() if(scriptContext->GetThreadContext()->TTDLog != nullptr && scriptContext->GetThreadContext()->TTDLog->ShouldPerformRecordAction()) { (ASSERT_CODE); }
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) { AssertMsg(false, "Need to implement support here!!!"); }
 
 #define PERFORM_JSRT_TTD_TAG_ACTION(CTX, VAL_PTR) if(VAL_PTR != nullptr ) { TTD::RuntimeThreadInfo::JsRTTagObject((CTX)->GetThreadContext(), *(VAL_PTR)); }
 #else
-#define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK_ONLY(CTX) false
+#define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) false
 #define PERFORM_JSRT_TTD_RECORD_ACTION(ACTION_CODE)
-#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED()
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX)
 
 #define PERFORM_JSRT_TTD_TAG_ACTION(CTX, VAL)
 #endif
