@@ -22,6 +22,14 @@
 #include "TestHooksRt.h"
 #endif
 
+#if !ENABLE_TTD
+#define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) false
+#define PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(CTX, ACTION_CODE)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX)
+
+#define PERFORM_JSRT_TTD_TAG_ACTION(CTX, VAL)
+#endif
+
 JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, bool allowInObjectBeforeCollectCallback)
 {
     if (currentContext == nullptr)
