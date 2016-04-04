@@ -78,7 +78,7 @@ namespace Js
 #define ENTRY_SYMBOL(n, d) n,
 #define ENTRY(n) n,
 #define ENTRY2(n, s) n,
-#include "Base\JnDirectFields.h"
+#include "Base/JnDirectFields.h"
         _countJSOnlyProperty,
     END_ENUM_UINT()
 
@@ -222,5 +222,5 @@ namespace JSON
 #define JS_DIAG_VALUE_JavascriptRegExpConstructor   L"{...}"
 #define JS_DIAG_TYPE_JavascriptRegExpConstructor    L"Object, (RegExp constructor)"
 
-#include "Language\SIMDUtils.h"
+#include "Language/SimdUtils.h"
 

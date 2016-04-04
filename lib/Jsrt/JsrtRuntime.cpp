@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include <JsrtPch.h>
 #include "JsrtRuntime.h"
-#include "Base\ThreadContextTLSEntry.h"
-#include "Base\ThreadBoundThreadContextManager.h"
+#include "Base/ThreadContextTlsEntry.h"
+#include "Base/ThreadBoundThreadContextManager.h"
 JsrtRuntime::JsrtRuntime(ThreadContext * threadContext, bool useIdle, bool dispatchExceptions)
 {
     Assert(threadContext != NULL);

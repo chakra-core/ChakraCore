@@ -22,7 +22,7 @@ namespace Js {
 #include "ExtendedOpCodeList.h"
         ByteCodeLast,
 #if ENABLE_NATIVE_CODEGEN
-#include "BackEndOpCodeList.h"
+#include "BackendOpCodeList.h"
 #endif
 #undef DEF_OP
         Count  // Number of operations

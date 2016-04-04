@@ -29,17 +29,17 @@ namespace UnifiedRegex {
 }
 
 #include "ParserCommon.h"
-#include "alloc.h"
+#include "Alloc.h"
 #include "cmperr.h"
 #include "idiom.h"
 #include "popcode.h"
 #include "ptree.h"
 #include "tokens.h"
-#include "hash.h"
+#include "Hash.h"
 #include "CharClassifier.h"
-#include "scan.h"
+#include "Scan.h"
 #include "screrror.h"
 #include "rterror.h"
-#include "parse.h"
+#include "Parse.h"
 
 #include "BackgroundParser.h"

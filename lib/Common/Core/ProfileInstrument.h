@@ -5,8 +5,8 @@
 #pragma once
 
 #ifdef PROFILE_EXEC
-#include "DataStructures\FixedStack.h"
-#include "DataStructures\Tree.h"
+#include "DataStructures/FixedStack.h"
+#include "DataStructures/Tree.h"
 namespace Js
 {
 

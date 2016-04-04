@@ -5,7 +5,7 @@
 #include "RuntimeLanguagePch.h"
 
 #if DBG
-#include "Types\PathTypeHandler.h"
+#include "Types/PathTypeHandler.h"
 #endif
 
 namespace Js

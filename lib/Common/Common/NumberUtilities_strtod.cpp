@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include <CommonCommonPch.h>
-#include "DataStructures\BigInt.h"
+#include "DataStructures/BigInt.h"
 
 namespace Js
 {

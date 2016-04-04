@@ -3,33 +3,33 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
-#include "ByteCode\ByteCodeAPI.h"
-#include "ByteCode\ByteCodeDumper.h"
-#include "Language\AsmJsTypes.h"
-#include "Language\AsmJsModule.h"
-#include "ByteCode\ByteCodeSerializer.h"
-#include "Language\FunctionCodeGenRuntimeData.h"
+#include "ByteCode/ByteCodeApi.h"
+#include "ByteCode/ByteCodeDumper.h"
+#include "Language/AsmJsTypes.h"
+#include "Language/AsmJsModule.h"
+#include "ByteCode/ByteCodeSerializer.h"
+#include "Language/FunctionCodeGenRuntimeData.h"
 
-#include "ByteCode\ScopeInfo.h"
-#include "Base\EtwTrace.h"
+#include "ByteCode/ScopeInfo.h"
+#include "Base/EtwTrace.h"
 
 #ifdef DYNAMIC_PROFILE_MUTATOR
-#include "Language\DynamicProfileMutator.h"
+#include "Language/DynamicProfileMutator.h"
 #endif
-#include "Language\SourceDynamicProfileManager.h"
+#include "Language/SourceDynamicProfileManager.h"
 
-#include "Debug\ProbeContainer.h"
-#include "Debug\DebugContext.h"
+#include "Debug/ProbeContainer.h"
+#include "Debug/DebugContext.h"
 
 #include "Parser.h"
 #include "RegexCommon.h"
 #include "RegexPattern.h"
-#include "Library\RegexHelper.h"
+#include "Library/RegexHelper.h"
 
-#include "Language\InterpreterStackFrame.h"
-#include "Library\ModuleRoot.h"
-#include "Types\PathTypeHandler.h"
-#include "Common\MathUtil.h"
+#include "Language/InterpreterStackFrame.h"
+#include "Library/ModuleRoot.h"
+#include "Types/PathTypeHandler.h"
+#include "Common/MathUtil.h"
 
 namespace Js
 {

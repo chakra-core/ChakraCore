@@ -3,18 +3,18 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)AgenPeeps.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IRBuilderAsmJs.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)BackEndOpcodeAttrAsmJs.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BackendOpCodeAttrAsmJs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BailOut.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CaseNode.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CodeGenWorkItem.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)CodegenAllocators.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)CodegenNumberAllocator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CodeGenAllocators.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CodeGenNumberAllocator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DbCheckPostLower.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBailout.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBailOut.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptExpr.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptFields.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptIntBounds.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)BackEnd.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Backend.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BackwardPass.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Debug.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EmitBuffer.cpp" />
@@ -46,7 +46,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)PrologEncoder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)QueuedFullJitWorkItem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Region.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SCCLiveness.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SccLiveness.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Security.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimpleJitProfilingHelpers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimpleLayout.cpp" />
@@ -110,10 +110,10 @@
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
     <ClInclude Include="IRBuilderAsmJs.h" />
-    <ClInclude Include="BackEndOpcodeAttrAsmJs.h" />
-    <ClInclude Include="BackEndOpCodeList.h" />
+    <ClInclude Include="BackendOpCodeAttrAsmJs.h" />
+    <ClInclude Include="BackendOpCodeList.h" />
     <ClInclude Include="GlobOptIntBounds.h" />
-    <ClInclude Include="BackEnd.h" />
+    <ClInclude Include="Backend.h" />
     <ClInclude Include="BackwardPass.h" />
     <ClInclude Include="BailOut.h" />
     <ClInclude Include="BailOutKind.h" />
@@ -121,7 +121,7 @@
     <ClInclude Include="CodeGenAllocators.h" />
     <ClInclude Include="CodeGenNumberAllocator.h" />
     <ClInclude Include="CodeGenWorkItemType.h" />
-    <ClInclude Include="codegenworkitem.h" />
+    <ClInclude Include="CodeGenWorkItem.h" />
     <ClInclude Include="DbCheckPostLower.h" />
     <ClInclude Include="EmitBuffer.h" />
     <ClInclude Include="Encoder.h" />
@@ -158,7 +158,7 @@
     <ClInclude Include="Peeps.h" />
     <ClInclude Include="QueuedFullJitWorkItem.h" />
     <ClInclude Include="Region.h" />
-    <ClInclude Include="SCCLiveness.h" />
+    <ClInclude Include="SccLiveness.h" />
     <ClInclude Include="Security.h" />
     <ClInclude Include="SimpleJitProfilingHelpers.h" />
     <ClInclude Include="SimpleLayout.h" />
@@ -190,7 +190,7 @@
     <ClInclude Include="arm\LegalizeMD.h">
       <Filter>arm</Filter>
     </ClInclude>
-    <ClInclude Include="amd64\MdOpcodes.h">
+    <ClInclude Include="amd64\MdOpCodes.h">
       <Filter>amd64</Filter>
     </ClInclude>
     <ClInclude Include="amd64\X64Encode.h">
@@ -226,7 +226,7 @@
     <ClInclude Include="amd64\LowererMDArch.h">
       <Filter>amd64</Filter>
     </ClInclude>
-    <ClInclude Include="arm64\MdOpcodes.h">
+    <ClInclude Include="arm64\MdOpCodes.h">
       <Filter>arm64</Filter>
     </ClInclude>
     <ClInclude Include="arm\LowerMD.h">
@@ -238,7 +238,7 @@
     <ClInclude Include="arm64\md.h">
       <Filter>arm64</Filter>
     </ClInclude>
-    <ClInclude Include="i386\MdOpcodes.h">
+    <ClInclude Include="i386\MdOpCodes.h">
       <Filter>i386</Filter>
     </ClInclude>
     <ClInclude Include="i386\md.h">
@@ -259,7 +259,7 @@
     <ClInclude Include="i386\X86Encode.h">
       <Filter>i386</Filter>
     </ClInclude>
-    <ClInclude Include="arm\MdOpcodes.h">
+    <ClInclude Include="arm\MdOpCodes.h">
       <Filter>arm</Filter>
     </ClInclude>
     <ClInclude Include="arm\PeepsMD.h">

@@ -38,42 +38,42 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)i386\stackframe.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)i386\StackFrame.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32'">true</ExcludedFromBuild>
       <ObjectFileName Condition="'$(Platform)'!='Win32'">$(IntDir)\i386</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)amd64\stackframe.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)amd64\StackFrame.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
       <ObjectFileName Condition="'$(Platform)'!='x64'">$(IntDir)\amd64</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)arm\stackframe.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm\StackFrame.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM'">true</ExcludedFromBuild>
       <ObjectFileName Condition="'$(Platform)'!='ARM'">$(IntDir)\arm</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\stackframe.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\StackFrame.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Arm64'">true</ExcludedFromBuild>
       <ObjectFileName Condition="'$(Platform)'!='Arm64'">$(IntDir)\arm64</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)i386\AsmJSJitTemplate.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)i386\AsmJsJitTemplate.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32'">true</ExcludedFromBuild>
       <ObjectFileName Condition="'$(Platform)'!='Win32'">$(IntDir)\i386</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)amd64\AsmJSJitTemplate.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)amd64\AsmJsJitTemplate.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
       <ObjectFileName Condition="'$(Platform)'!='x64'">$(IntDir)\amd64</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJSCodeGenerator.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsCodeGenerator.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJSEncoder.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsEncoder.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJS.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJSBytecodeGenerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJSLink.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJSModule.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJSTypes.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJSUtils.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJs.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsByteCodeGenerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsLink.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsModule.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsTypes.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CacheOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CodeGenRecyclableData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DynamicProfileInfo.cpp" />
@@ -88,74 +88,74 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptMathOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ProfilingHelpers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ReadOnlyDynamicProfileInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDFloat32x4Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat32x4Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDfloat32x4OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat32x4OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDFloat64x2Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat64x2Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDfloat64x2OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat64x2OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt32x4Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt32x4Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt32x4OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt32x4OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt16x8Operation.cpp">
         <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt16x8OperationX86X64.cpp">
         <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt8x16Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt8x16Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt8x16OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt8x16OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUInt32x4Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint32x4Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUInt32x4OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint32x4OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint16x8Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint16x8Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint16x8OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint16x8OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint8x16Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint8x16Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint8x16OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint8x16OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool32x4Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool32x4Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool32x4OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool32x4OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool16x8Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool16x8Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool16x8OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool16x8OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16Operation.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16OperationX86X64.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
 
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUtils.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceDynamicProfileManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StackTraceArguments.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TaggedInt.cpp" />
@@ -171,24 +171,24 @@
     <ClCompile Include="SourceTextModuleRecord.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="amd64\stackframe.h">
+    <ClInclude Include="amd64\StackFrame.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="arm\stackframe.h">
+    <ClInclude Include="arm\StackFrame.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="AsmJS.h" />
-    <ClInclude Include="AsmJSBytecodeGenerator.h" />
-    <ClInclude Include="AsmJSCodeGenerator.h" />
-    <ClInclude Include="AsmJSEncoder.h">
+    <ClInclude Include="AsmJs.h" />
+    <ClInclude Include="AsmJsByteCodeGenerator.h" />
+    <ClInclude Include="AsmJsCodeGenerator.h" />
+    <ClInclude Include="AsmJsEncoder.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="AsmJSJitTemplate.h" />
-    <ClInclude Include="AsmJSLink.h" />
-    <ClInclude Include="AsmJSModule.h" />
-    <ClInclude Include="AsmJsBuiltinNames.h" />
-    <ClInclude Include="AsmJSTypes.h" />
-    <ClInclude Include="AsmJSUtils.h" />
+    <ClInclude Include="AsmJsJitTemplate.h" />
+    <ClInclude Include="AsmJsLink.h" />
+    <ClInclude Include="AsmJsModule.h" />
+    <ClInclude Include="AsmJsBuiltInNames.h" />
+    <ClInclude Include="AsmJsTypes.h" />
+    <ClInclude Include="AsmJsUtils.h" />
     <ClInclude Include="CacheOperators.h" />
     <ClInclude Include="i386\AsmJsInstructionTemplate.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32'">true</ExcludedFromBuild>
@@ -203,7 +203,7 @@
     <ClInclude Include="ExecutionModes.h" />
     <ClInclude Include="FunctionCodeGenJitTimeData.h" />
     <ClInclude Include="FunctionCodeGenRuntimeData.h" />
-    <ClInclude Include="i386\stackframe.h">
+    <ClInclude Include="i386\StackFrame.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="InlineCache.h" />
@@ -226,19 +226,19 @@
     <ClInclude Include="JavascriptOperators.h" />
     <ClInclude Include="JavascriptFunctionArgIndex.h" />
     <ClInclude Include="JavascriptStackWalker.h" />
-    <ClInclude Include="SIMDFloat32x4Operation.h" />
-    <ClInclude Include="SIMDFloat64x2Operation.h" />
-    <ClInclude Include="SIMDInt32x4Operation.h" />
-    <ClInclude Include="SIMDInt16x8Operation.h" />
-    <ClInclude Include="SIMDInt8x16Operation.h" />
-    <ClInclude Include="SIMDUInt32x4Operation.h" />
-    <ClInclude Include="SIMDUint16x8Operation.h" />
-    <ClInclude Include="SIMDUint8x16Operation.h" />
-    <ClInclude Include="SIMDBool32x4Operation.h" />
-    <ClInclude Include="SIMDBool16x8Operation.h" />
-    <ClInclude Include="SIMDBool8x16Operation.h" />
+    <ClInclude Include="SimdFloat32x4Operation.h" />
+    <ClInclude Include="SimdFloat64x2Operation.h" />
+    <ClInclude Include="SimdInt32x4Operation.h" />
+    <ClInclude Include="SimdInt16x8Operation.h" />
+    <ClInclude Include="SimdInt8x16Operation.h" />
+    <ClInclude Include="SimdUint32x4Operation.h" />
+    <ClInclude Include="SimdUint16x8Operation.h" />
+    <ClInclude Include="SimdUint8x16Operation.h" />
+    <ClInclude Include="SimdBool32x4Operation.h" />
+    <ClInclude Include="SimdBool16x8Operation.h" />
+    <ClInclude Include="SimdBool8x16Operation.h" />
     <ClInclude Include="SimdOps.h" />
-    <ClInclude Include="SIMDUtils.h" />
+    <ClInclude Include="SimdUtils.h" />
     <ClInclude Include="TaggedInt.h" />
     <ClInclude Include="RuntimeLanguagePch.h" />
   </ItemGroup>
@@ -262,9 +262,9 @@
     <ARMASM Include="$(MSBuildThisFileDirectory)arm64\arm64_CallEhFrame.asm">
       <ExcludedFromBuild Condition="'$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ARMASM>
-    <None Include="amd64\stackframe.inl" />
-    <None Include="AsmJSEncoder.inl" />
-    <None Include="AsmJSEncoderHandler.inl" />
+    <None Include="amd64\StackFrame.inl" />
+    <None Include="AsmJsEncoder.inl" />
+    <None Include="AsmJsEncoderHandler.inl" />
     <None Include="CacheOperators.inl" />
     <None Include="i386\AsmJsInstructionTemplate.inl" />
     <None Include="InlineCache.inl" />

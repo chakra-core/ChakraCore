@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
-#include "core\BinaryFeatureControl.h"
+#include "Core/BinaryFeatureControl.h"
 
 //For making direct call in release binaries.
 #if !defined(DELAYLOAD_SET_CFG_TARGET)

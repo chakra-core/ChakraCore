@@ -3,14 +3,14 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "BackEndAPI.h"
-#include "Library\StackScriptFunction.h"
-#include "Types\SpreadArgument.h"
+#include "BackendApi.h"
+#include "Library/StackScriptFunction.h"
+#include "Types/SpreadArgument.h"
 
 #ifdef _M_X64
-#include "ByteCode\PropertyIdArray.h"
-#include "Language\AsmJsTypes.h"
-#include "Language\AsmJsModule.h"
+#include "ByteCode/PropertyIdArray.h"
+#include "Language/AsmJsTypes.h"
+#include "Language/AsmJsModule.h"
 #endif
 
 extern "C" PVOID _ReturnAddress(VOID);

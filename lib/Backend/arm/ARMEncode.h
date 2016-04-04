@@ -89,7 +89,7 @@ typedef unsigned char ENCODE_8;
 static const uint32 Opdope[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, opbyte, dope, ...) dope,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 

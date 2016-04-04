@@ -7,13 +7,13 @@
 // Parser includes
 #include "RegexCommon.h"
 
-#include "Library\RegexHelper.h"
+#include "Library/RegexHelper.h"
 
-#include "Debug\DiagHelperMethodWrapper.h"
-#include "Math\JavascriptSSE2MathOperators.h"
-#include "Math\JavascriptSSE2MathOperators.inl"
-#include "Math\CrtSSE2Math.h"
-#include "Library\JavascriptGeneratorFunction.h"
+#include "Debug/DiagHelperMethodWrapper.h"
+#include "Math/JavascriptSSE2MathOperators.h"
+#include "Math/JavascriptSSE2MathOperators.inl"
+#include "Math/CrtSSE2Math.h"
+#include "Library/JavascriptGeneratorFunction.h"
 
 namespace IR
 {

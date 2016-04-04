@@ -6,16 +6,16 @@
 
 #include "RegexCommon.h"
 #include "RegexPattern.h"
-#include "Library\RegexHelper.h"
+#include "Library/RegexHelper.h"
 
-#include "DataStructures\Option.h"
-#include "DataStructures\ImmutableList.h"
-#include "DataStructures\BufferBuilder.h"
-#include "ByteCode\OpCodeUtilAsmJs.h"
-#include "ByteCode\ByteCodeSerializer.h"
+#include "DataStructures/Option.h"
+#include "DataStructures/ImmutableList.h"
+#include "DataStructures/BufferBuilder.h"
+#include "ByteCode/OpCodeUtilAsmJs.h"
+#include "ByteCode/ByteCodeSerializer.h"
 
-#include "Language\AsmJSModule.h"
-#include "Library\ES5Array.h"
+#include "Language/AsmJsModule.h"
+#include "Library/ES5Array.h"
 
 void ChakraBinaryBuildDateTimeHash(DWORD * buildDateHash, DWORD * buildTimeHash);
 
@@ -113,7 +113,7 @@ enum FileVersionScheme : byte
 
 
 // it should be in separate file for testing
-#include "byteCodeCacheReleaseFileVersion.h"
+#include "ByteCodeCacheReleaseFileVersion.h"
 
 // Used for selective serialization of Function Body fields to make the representation compact
 #define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) bool has_##name : 1

@@ -396,7 +396,7 @@ bool HashTbl::Contains(_In_reads_(cch) LPCOLESTR prgch, long cch)
     return false;
 }
 
-#include "hashfunc.cpp"
+#include "HashFunc.cpp"
 
 
 

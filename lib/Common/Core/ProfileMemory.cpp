@@ -5,9 +5,9 @@
 #include "CommonCorePch.h"
 
 #ifdef PROFILE_MEM
-#include "DataStructures\QuickSort.h"
-#include "Memory\AutoPtr.h"
-#include "core\ProfileMemory.h"
+#include "DataStructures/quicksort.h"
+#include "Memory/AutoPtr.h"
+#include "Core/ProfileMemory.h"
 
 __declspec(thread) MemoryProfiler * MemoryProfiler::Instance = nullptr;
 

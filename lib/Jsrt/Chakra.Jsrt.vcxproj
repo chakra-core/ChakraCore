@@ -53,7 +53,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtSourceHolder.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="chakracommon.h" />
+    <ClInclude Include="ChakraCommon.h" />
     <ClInclude Include="ChakraCore.h" />
     <ClInclude Include="chakrartdebug.h" />
     <ClInclude Include="JsrtContext.h" />

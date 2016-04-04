@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
-#include "Debug\DiagProbe.h"
-#include "Debug\BreakpointProbe.h"
-#include "Debug\DebugDocument.h"
+#include "Debug/DiagProbe.h"
+#include "Debug/BreakpointProbe.h"
+#include "Debug/DebugDocument.h"
 
 namespace Js
 {

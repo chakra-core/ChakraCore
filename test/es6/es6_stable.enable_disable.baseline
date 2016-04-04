@@ -9,8 +9,10 @@ FLAG ES6 = 1 - setting child flag ES6Classes = 1
 FLAG ES6Classes = 1
 FLAG ES6 = 1 - setting child flag ES6DateParseFix = 1
 FLAG ES6DateParseFix = 1
-FLAG ES6 = 1 - setting child flag ES6DefaultArgs = 0
-FLAG ES6DefaultArgs = 0
+FLAG ES6 = 1 - setting child flag ES6DefaultArgs = 1
+FLAG ES6DefaultArgs = 1
+FLAG ES6 = 1 - setting child flag ES6DefaultArgsSplitScope = 0
+FLAG ES6DefaultArgsSplitScope = 0
 FLAG ES6 = 1 - setting child flag ES6Destructuring = 1
 FLAG ES6Destructuring = 1
 FLAG ES6 = 1 - setting child flag ES6ForLoopSemantics = 1
@@ -92,6 +94,8 @@ FLAG ES6 = 0 - setting child flag ES6DateParseFix = 0
 FLAG ES6DateParseFix = 0
 FLAG ES6 = 0 - setting child flag ES6DefaultArgs = 0
 FLAG ES6DefaultArgs = 0
+FLAG ES6 = 0 - setting child flag ES6DefaultArgsSplitScope = 0
+FLAG ES6DefaultArgsSplitScope = 0
 FLAG ES6 = 0 - setting child flag ES6Destructuring = 0
 FLAG ES6Destructuring = 0
 FLAG ES6 = 0 - setting child flag ES6ForLoopSemantics = 0

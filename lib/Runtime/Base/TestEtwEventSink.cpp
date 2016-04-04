@@ -5,7 +5,7 @@
 #include "RuntimeBasePch.h"
 
 #ifdef TEST_ETW_EVENTS
-#include "Base\EtwTrace.h"
+#include "Base/EtwTrace.h"
 
 char const * const TestEtwEventSink::CreateEventSinkProcName = STRINGIZE(CREATE_EVENTSINK_PROC_NAME);
 TestEtwEventSink* TestEtwEventSink::Instance = NULL;

@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 #include "shlwapi.h"
-#include "Language\InterpreterStackFrame.h"
+#include "Language/InterpreterStackFrame.h"
 
 #ifdef _M_IX86
 #ifdef _CONTROL_FLOW_GUARD
@@ -1159,8 +1159,8 @@ namespace Js
                 }
             }
 
-            // Try to create the string object even if we did OOM, but if can't, just return what we've got. We catch and ignore OOM so it doesn’t propagate up.
-            // With all the stack trace functionality, we do best effort to produce the stack trace in the case of OOM, but don’t want it to trigger an OOM. Idea is if do take
+            // Try to create the string object even if we did OOM, but if can't, just return what we've got. We catch and ignore OOM so it doesn't propagate up.
+            // With all the stack trace functionality, we do best effort to produce the stack trace in the case of OOM, but don't want it to trigger an OOM. Idea is if do take
             // an OOM, have some chance of producing a stack trace to see where it happened.
             stringMessage = stringBuilder;
         }

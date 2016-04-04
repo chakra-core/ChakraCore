@@ -6,12 +6,12 @@
 
 #if ENABLE_NATIVE_CODEGEN
 
-#include "..\BackEnd\i386\Reg.h"
+#include "../Backend/i386/Reg.h"
 
 static const BYTE RegEncode[] =
 {
 #define REGDAT(Name, Listing, Encoding, ...) Encoding,
-#include "..\BackEnd\i386\RegList.h"
+#include "../Backend/i386/RegList.h"
 #undef REGDAT
 };
 

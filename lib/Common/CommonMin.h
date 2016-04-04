@@ -14,46 +14,46 @@
 #include <intrin.h>
 
 // === Core Header Files ===
-#include "Core\CommonMinMax.h"
+#include "Core/CommonMinMax.h"
 
 #include "EnumHelp.h"
-#include "core\Assertions.h"
-#include "core\SysInfo.h"
+#include "Core/Assertions.h"
+#include "Core/SysInfo.h"
 
-#include "core\PerfCounter.h"
-#include "core\PerfCounterSet.h"
+#include "Core/PerfCounter.h"
+#include "Core/PerfCounterSet.h"
 
-#include "Common\MathUtil.h"
-#include "Core\AllocSizeMath.h"
-#include "core\FaultInjection.h"
+#include "Common/MathUtil.h"
+#include "Core/AllocSizeMath.h"
+#include "Core/FaultInjection.h"
 
-#include "core\BasePtr.h"
-#include "core\AutoFILE.h"
-#include "core\Output.h"
+#include "Core/BasePtr.h"
+#include "Core/AutoFile.h"
+#include "Core/Output.h"
 
 // === Basic Memory Header Files ===
 namespace Memory {}
 using namespace Memory;
-#include "Memory\Allocator.h"
-#include "Memory\HeapAllocator.h"
+#include "Memory/Allocator.h"
+#include "Memory/HeapAllocator.h"
 
 // === Data structures Header Files ===
-#include "DataStructures\Comparer.h"
-#include "DataStructures\SizePolicy.h"
-#include "DataStructures\BitVector.h"
-#include "DataStructures\SList.h"
-#include "DataStructures\DList.h"
-#include "DataStructures\KeyValuePair.h"
-#include "DataStructures\BaseDictionary.h"
-#include "DataStructures\DictionaryEntry.h"
+#include "DataStructures/Comparer.h"
+#include "DataStructures/SizePolicy.h"
+#include "DataStructures/BitVector.h"
+#include "DataStructures/SList.h"
+#include "DataStructures/DList.h"
+#include "DataStructures/KeyValuePair.h"
+#include "DataStructures/BaseDictionary.h"
+#include "DataStructures/DictionaryEntry.h"
 
 // === Configurations Header ===
-#include "core\ConfigFlagsTable.h"
+#include "Core/ConfigFlagsTable.h"
 
 // === Page/Arena Memory Header Files ===
-#include "Memory\VirtualAllocWrapper.h"
-#include "Memory\MemoryTracking.h"
-#include "Memory\AllocationPolicyManager.h"
-#include "Memory\PageAllocator.h"
-#include "Memory\ArenaAllocator.h"
+#include "Memory/VirtualAllocWrapper.h"
+#include "Memory/MemoryTracking.h"
+#include "Memory/AllocationPolicyManager.h"
+#include "Memory/PageAllocator.h"
+#include "Memory/ArenaAllocator.h"
 

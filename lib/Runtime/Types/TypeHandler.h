@@ -435,7 +435,7 @@ namespace Js
         //
         virtual PropertyIndex GetRootPropertyIndex(PropertyRecord const* propertyRecord) { Throw::FatalInternalError(); }
 
-        virtual BOOL HasRootProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *pNoRedecl = nullptr, __out_opt bool *pDeclaredProperty = nullptr) { Throw::FatalInternalError(); }
+        virtual BOOL HasRootProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *pNoRedecl = nullptr, __out_opt bool *pDeclaredProperty = nullptr, __out_opt bool *pNonconfigurableProperty = nullptr) { Throw::FatalInternalError(); }
         virtual BOOL GetRootProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) { Throw::FatalInternalError(); }
         virtual BOOL SetRootProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) { Throw::FatalInternalError(); }
         virtual DescriptorFlags GetRootSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) { Throw::FatalInternalError(); }

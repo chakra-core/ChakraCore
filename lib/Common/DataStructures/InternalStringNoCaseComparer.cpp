@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonDataStructuresPch.h"
-#include "DataStructures\CharacterBuffer.h"
-#include "DataStructures\InternalStringNoCaseComparer.h"
+#include "DataStructures/CharacterBuffer.h"
+#include "DataStructures/InternalStringNoCaseComparer.h"
 
 namespace JsUtil
 {

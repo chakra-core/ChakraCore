@@ -98,7 +98,7 @@ private:
 #define LAYOUT_TYPE_WMS(layout) \
     template <typename SizePolicy> void Build##layout(Js::OpCodeAsmJs newOpcode, uint32 offset);
 #define EXCLUDE_FRONTEND_LAYOUT
-#include "ByteCode\LayoutTypesAsmJs.h"
+#include "ByteCode/LayoutTypesAsmJs.h"
 
     void                    BuildElementSlot(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 slotIndex, Js::RegSlot value, Js::RegSlot instance);
     void                    BuildAsmUnsigned1(Js::OpCodeAsmJs newOpcode, uint value);

@@ -4360,7 +4360,7 @@ namespace UnifiedRegex
     const uint32 instTags[] = {
 #define M(TagName) Inst::TagName,
 #define MTemplate(TagName, ...) M(TagName)
-#include "RegexOpcodes.h"
+#include "RegexOpCodes.h"
 #undef M
 #undef MTemplate
     };
@@ -4396,7 +4396,7 @@ namespace UnifiedRegex
                     break;
 #define M(TagName) MBase(TagName, TagName##Inst)
 #define MTemplate(TagName, TemplateDeclaration, GenericClassName, SpecializedClassName) MBase(TagName, SpecializedClassName)
-#include "RegexOpcodes.h"
+#include "RegexOpCodes.h"
 #undef MBase
 #undef M
 #undef MTemplate
@@ -4961,7 +4961,7 @@ namespace UnifiedRegex
                 }
 #define M(TagName) MBase(TagName, TagName##Inst)
 #define MTemplate(TagName, TemplateDeclaration, GenericClassName, SpecializedClassName) MBase(TagName, SpecializedClassName)
-#include "RegexOpcodes.h"
+#include "RegexOpCodes.h"
 #undef MBase
 #undef M
 #undef MTemplate
@@ -5037,7 +5037,7 @@ namespace UnifiedRegex
 
 #define M(...)
 #define MTemplate(TagName, TemplateDeclaration, GenericClassName, SpecializedClassName) template struct SpecializedClassName;
-#include "RegexOpcodes.h"
+#include "RegexOpCodes.h"
 #undef M
 #undef MTemplate
 }

@@ -2,14 +2,14 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 #include "X86Encode.h"
 
 
 static const BYTE OpcodeByte2[]={
 #define MACRO(name, jnLayout, attrib, byte2, ...) byte2,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 
@@ -19,7 +19,7 @@ struct FormTemplate{ BYTE form[6]; };
 static const struct FormTemplate OpcodeFormTemplate[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, ...) form ,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 #undef f
@@ -29,14 +29,14 @@ struct OpbyteTemplate { byte opbyte[6]; };
 static const struct OpbyteTemplate Opbyte[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, opbyte, ...) opbyte,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 
 static const uint32 Opdope[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, opbyte, dope, ...) dope,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 
@@ -50,14 +50,14 @@ static const BYTE RegEncode[] =
 static const enum Forms OpcodeForms[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, ...) form,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 
 static const uint32 OpcodeLeadIn[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, opByte, dope, leadIn, ...) leadIn,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 

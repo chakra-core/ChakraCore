@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "Common\Int32Math.h"
+#include "Common/Int32Math.h"
 
 bool
 Int32Math::Add(int32 left, int32 right, int32 *pResult)

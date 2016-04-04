@@ -4,9 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#include "DataStructures\BigInt.h"
-#include "Library\EngineInterfaceObject.h"
-#include "Library\IntlEngineInterfaceExtensionObject.h"
+#include "DataStructures/BigInt.h"
+#include "Library/EngineInterfaceObject.h"
+#include "Library/IntlEngineInterfaceExtensionObject.h"
 
 namespace Js
 {
@@ -1328,7 +1328,6 @@ case_2:
                     {
                         return func->CallFunction(args);
                     }
-                    AssertMsg(false, "Intl code didn't initialized String.prototype.toLocaleCompare method.");
                 }
             }
         }

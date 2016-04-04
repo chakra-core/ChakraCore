@@ -6,8 +6,8 @@
 
 #include <time.h>
 
-#include "Common\DaylightTimeHelper.h"
-#include "Common\DateUtilities.h"
+#include "Common/DaylightTimeHelper.h"
+#include "Common/DateUtilities.h"
 
 namespace Js {
 

@@ -5,13 +5,13 @@
 #include "RuntimeLanguagePch.h"
 
 #ifndef TEMP_DISABLE_ASMJS
-#include "ByteCode\Symbol.h"
-#include "ByteCode\FuncInfo.h"
-#include "ByteCode\ByteCodeAPI.h"
-#include "ByteCode\ByteCodeWriter.h"
-#include "ByteCode\ByteCodeGenerator.h"
-#include "ByteCode\AsmJsByteCodeWriter.h"
-#include "Language\AsmJsByteCodeGenerator.h"
+#include "ByteCode/Symbol.h"
+#include "ByteCode/FuncInfo.h"
+#include "ByteCode/ByteCodeApi.h"
+#include "ByteCode/ByteCodeWriter.h"
+#include "ByteCode/ByteCodeGenerator.h"
+#include "ByteCode/AsmJsByteCodeWriter.h"
+#include "Language/AsmJsByteCodeGenerator.h"
 
 namespace Js
 {
@@ -2327,7 +2327,7 @@ namespace Js
                         case AsmJSMathBuiltin_##name: \
                             value = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::##propertyName, scriptContext); \
                             break;
-#include "AsmJsBuiltinNames.h"
+#include "AsmJsBuiltInNames.h"
                 default:
                     Assume(UNREACHED);
                 }
@@ -2340,7 +2340,7 @@ namespace Js
                         case AsmJSTypedArrayBuiltin_##name: \
                             value = JavascriptOperators::OP_GetProperty(stdLibObj, PropertyIds::##propertyName, scriptContext); \
                             break;
-#include "AsmJsBuiltinNames.h"
+#include "AsmJsBuiltInNames.h"
                 default:
                     Assume(UNREACHED);
                 }
@@ -2353,7 +2353,7 @@ namespace Js
                         case AsmJsSIMDBuiltin_##name: \
                             value = JavascriptOperators::OP_GetProperty(stdLibObj, PropertyIds::##propertyName, scriptContext); \
                             break;
-#include "AsmJsBuiltinNames.h"
+#include "AsmJsBuiltInNames.h"
                 default:
                     Assume(UNREACHED);
                 }

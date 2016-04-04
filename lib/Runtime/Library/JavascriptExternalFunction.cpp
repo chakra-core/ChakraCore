@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Types\DeferredTypeHandler.h"
+#include "Types/DeferredTypeHandler.h"
 namespace Js
 {
     // This is a wrapper class for javascript functions that are added directly to the JS engine via BuildDirectFunction

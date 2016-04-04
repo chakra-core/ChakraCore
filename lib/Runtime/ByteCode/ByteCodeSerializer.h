@@ -7,7 +7,7 @@
 // Turn this on to enable magic constants in byte code (useful for debugging)
 //#define BYTE_CODE_MAGIC_CONSTANTS
 
-#include "ByteCode\ByteCodeSerializeFlags.h"
+#include "ByteCode/ByteCodeSerializeFlags.h"
 
 namespace Js
 {

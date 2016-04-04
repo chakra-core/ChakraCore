@@ -2,13 +2,13 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 #include "ARMEncode.h"
-#include "Language\JavascriptFunctionArgIndex.h"
+#include "Language/JavascriptFunctionArgIndex.h"
 
 const FormTable * InstrEncode[]={
 #define MACRO(name, jnLayout, attrib, byte2, form, opbyte, ...) opbyte,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef ASMDAT
 };
 
