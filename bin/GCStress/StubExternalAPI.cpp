@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Common.h"
-#include "commoninl.h" // TODO: Try to remove this later
+#include "CommonInl.h" // TODO: Try to remove this later
 
-#include "core\ConfigParser.h"
+#include "Core/ConfigParser.h"
 
 // TODO: REMOVE
 __forceinline void js_memcpy_s(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_bcount(count) const void *src, size_t count)
@@ -13,7 +13,7 @@ __forceinline void js_memcpy_s(__bcount(sizeInBytes) void *dst, size_t sizeInByt
     Assert((count) <= (sizeInBytes));
     if ((count) <= (sizeInBytes))
         memcpy((dst), (src), (count));
-    else                              
+    else
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, 2);
 }
 

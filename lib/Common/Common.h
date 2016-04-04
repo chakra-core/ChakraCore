@@ -125,9 +125,9 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "Common/Event.h"
 #include "Common/Jobs.h"
 
-#include "common\vtregistry.h" // Depends on SimpleHashTable.h
-#include "DataStructures\Cache.h" // Depends on config flags
-#include "DataStructures\MruDictionary.h" // Depends on DoublyLinkedListElement
+#include "Common/vtregistry.h" // Depends on SimpleHashTable.h
+#include "DataStructures/Cache.h" // Depends on config flags
+#include "DataStructures/MruDictionary.h" // Depends on DoublyLinkedListElement
 
 #include "Common/SmartFpuControl.h"
 

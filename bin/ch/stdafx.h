@@ -76,7 +76,7 @@ typedef void * Var;
 #define IfJsrtErrorRetErrorCode(expr) do { JsErrorCode errorCode = (expr); if (errorCode != JsNoError) { return errorCode; } } while (0)
 
 #include "TestHooks.h"
-#include "chakrartinterface.h"
+#include "ChakraRtInterface.h"
 #include "Helpers.h"
 #include "HostConfigFlags.h"
 #include "MessageQueue.h"
