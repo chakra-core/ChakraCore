@@ -650,7 +650,19 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedNumber, L"Number.prototype.toLocaleString");
         }
+        return JavascriptNumber::ToLocaleStringIntl(args, callInfo, scriptContext);
+    }
+    
+    JavascriptString* JavascriptNumber::ToLocaleStringIntl(Var* values, CallInfo callInfo, ScriptContext* scriptContext)
+    {
+        Assert(values);
+        ArgumentReader args(&callInfo, values);
+        return JavascriptNumber::ToLocaleStringIntl(args, callInfo, scriptContext);
+    }
 
+    JavascriptString* JavascriptNumber::ToLocaleStringIntl(ArgumentReader& args, CallInfo callInfo, ScriptContext* scriptContext)
+    {
+       Assert(scriptContext);
 #ifdef ENABLE_INTL_OBJECT
         if(CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
 
@@ -661,14 +673,14 @@ namespace Js
                 JavascriptFunction* func = intlExtensionObject->GetNumberToLocaleString();
                 if (func)
                 {
-                    return func->CallFunction(args);
+                    return JavascriptString::FromVar(func->CallFunction(args));
                 }
                 // Initialize Number.prototype.toLocaleString
                 scriptContext->GetLibrary()->InitializeIntlForNumberPrototype();
                 func = intlExtensionObject->GetNumberToLocaleString();
                 if (func)
                 {
-                    return func->CallFunction(args);
+                    return JavascriptString::FromVar(func->CallFunction(args));
                 }
             }
         }
@@ -682,7 +694,7 @@ namespace Js
                 Var result;
                 if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToLocaleString, args, &result))
                 {
-                    return result;
+                    return JavascriptString::FromVar(result);
                 }
             }
 

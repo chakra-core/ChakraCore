@@ -141,6 +141,7 @@ namespace Js
         static BOOL StrictEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
         static BOOL StrictEqualString(Var aLeft, Var aRight);
         static BOOL StrictEqualEmptyString(Var aLeft);
+        static BOOL StrictEqualSIMD(Var aLeft, Var aRight, ScriptContext* scriptContext);
         static BOOL NotStrictEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
 
         static BOOL HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext * requestContext);
@@ -203,6 +204,7 @@ namespace Js
         static BOOL IsObjectOrNull(Var instance);
         static BOOL IsUndefinedOrNullType(TypeId);
         static BOOL IsUndefinedOrNull(Var instance);
+        static BOOL IsNull(Var instance);
         static BOOL IsSpecialObjectType(TypeId typeId);
         static BOOL IsJsNativeObject(Var instance);
         static BOOL IsUndefinedObject(Var instance);
@@ -217,6 +219,7 @@ namespace Js
         static BOOL HasItem(RecyclableObject* instance, uint32 index);
         static BOOL HasItem(RecyclableObject* instance, uint64 index);
         static BOOL GetOwnItem(RecyclableObject* instance, uint32 index, Var* value, ScriptContext* requestContext);
+        static Var GetItem(RecyclableObject* instance, uint64 index, ScriptContext* requestContext);
         static BOOL GetItem(RecyclableObject* instance, uint64 index, Var* value, ScriptContext* requestContext);
         static BOOL GetItem(RecyclableObject* instance, uint32 index, Var* value, ScriptContext* requestContext);
         static BOOL GetItem(Var instance, RecyclableObject* propertyObject, uint32 index, Var* value, ScriptContext* requestContext);

@@ -726,6 +726,7 @@ namespace Js
         BOOL DirectGetItemAt(const BigIndex& index, Var* outVal) { return index.GetItem(this, outVal); }
         void DirectSetItemAt(const BigIndex& index, Var newValue) { index.SetItem(this, newValue); }
         void DirectSetItemIfNotExist(const BigIndex& index, Var newValue) { index.SetItemIfNotExist(this, newValue); }
+        void DirectAppendItem(Var newValue) { BigIndex(this->GetLength()).SetItem(this, newValue); }
         void TruncateToProperties(const BigIndex& index, uint32 start);
 
         template<typename T>

@@ -418,6 +418,7 @@ namespace Js
 #endif
         ) :
         ParseableFunctionInfo(scriptContext->CurrentThunk, nestedCount, functionId, utf8SourceInfo, scriptContext, uFunctionNumber, displayName, displayNameLength, displayShortNameOffset, attributes, boundPropertyRecords),
+        counters(this),
         m_uScriptId(uScriptId),
         cleanedUp(false),
         sourceInfoCleanedUp(false),
@@ -1142,7 +1143,7 @@ namespace Js
         if (nestedCount > 0)
         {
             nestedArray = RecyclerNewPlusZ(m_scriptContext->GetRecycler(),
-                nestedCount*sizeof(FunctionProxy), NestedArray, nestedCount);
+                nestedCount*sizeof(FunctionProxy*), NestedArray, nestedCount);
         }
         else
         {
@@ -4672,6 +4673,10 @@ namespace Js
 
     void FunctionBody::CleanupToReparse()
     {
+#if DBG
+        bool isCleaningUpOldValue = this->counters.isCleaningUp;
+        this->counters.isCleaningUp = true;
+#endif
         // The current function is already compiled. In order to prep this function to ready for debug mode, most of the previous information need to be thrown away.
         // Clean up the nested functions
         this->ForEachNestedFunc([&](FunctionProxy* proxy, uint32 index)
@@ -4806,6 +4811,10 @@ namespace Js
             Assert(m_scriptContext->GetRecycler()->IsValidObject(m_sourceInfo.m_auxStatementData));
             m_sourceInfo.m_auxStatementData = nullptr;
         }
+
+#if DBG
+        this->counters.isCleaningUp = isCleaningUpOldValue;
+#endif
     }
 
     void FunctionBody::SetEntryToDeferParseForDebugger()

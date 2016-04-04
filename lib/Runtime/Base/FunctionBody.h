@@ -1370,7 +1370,7 @@ namespace Js
         {
             NestedArray(uint32 count) :nestedCount(count) {}
             uint32 nestedCount;
-            FunctionProxy* functionProxyArray[1];
+            FunctionProxy* functionProxyArray[0];
         };
         template<typename Fn>
         void ForEachNestedFunc(Fn fn)

@@ -18,14 +18,20 @@ const allSimdTypes = Object.getOwnPropertyNames(SIMD)
         for(let i = 0; i < nLanes; ++i) {
           args[i] = Math.random() * (1 << 62);
         }
-        return SIMD[simdType](...args);
+        if (simdType != 'Float64x2') //Type is not part of spec. Will be removed as part of cleanup.
+        {
+            return SIMD[simdType](...args);
+        }
       },
       makeStringValue() {
         const args = new Array(nLanes);
         for(let i = 0; i < nLanes; ++i) {
           args[i] = Math.random() * (1 << 62);
         }
-        return `SIMD.${simdType}(${args.join(",")})`;
+        if (simdType != 'Float64x2') //Type is not part of spec. Will be removed as part of cleanup.
+        {
+            return `SIMD.${simdType}(${args.join(",")})`;
+        }
       },
       nLanes,
       simdType

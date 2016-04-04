@@ -2029,7 +2029,7 @@ BackwardPass::DeadStoreImplicitCallBailOut(IR::Instr * instr, bool hasLiveFields
     // Currently only try to eliminate these bailout kinds. The others are required in cases
     // where we don't necessarily have live/hoisted fields.
     const bool mayNeedBailOnImplicitCall = BailOutInfo::IsBailOutOnImplicitCalls(kind);
-    if (!mayNeedBailOnImplicitCall && kind != IR::BailOutExpectingObject)
+    if (!mayNeedBailOnImplicitCall)
     {
         if (kind & IR::BailOutMarkTempObject)
         {
@@ -4015,28 +4015,32 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
             Assert(guardedPropertyOps != nullptr);
             opnd->EnsureGuardedPropOps(this->func->m_alloc);
             opnd->AddGuardedPropOps(guardedPropertyOps);
-            if (bucket->NeedsMonoCheck() && !opnd->IsTypeAvailable())
+            if (!opnd->IsTypeAvailable())
             {
-                if (this->currentInstr->HasEquivalentTypeCheckBailOut())
+                if (bucket->NeedsMonoCheck())
                 {
-                    // Some instr protected by this one requires a monomorphic type check. (E.g., final type opt,
-                    // fixed field not loaded from prototype.) Note the IsTypeAvailable test above: only do this at
-                    // the initial type check that protects this path.
-                    opnd->SetMonoGuardType(bucket->GetMonoGuardType());
-                    this->currentInstr->ChangeEquivalentToMonoTypeCheckBailOut();
+                    if (this->currentInstr->HasEquivalentTypeCheckBailOut())
+                    {
+                        // Some instr protected by this one requires a monomorphic type check. (E.g., final type opt,
+                        // fixed field not loaded from prototype.) Note the IsTypeAvailable test above: only do this at
+                        // the initial type check that protects this path.
+                        opnd->SetMonoGuardType(bucket->GetMonoGuardType());
+                        this->currentInstr->ChangeEquivalentToMonoTypeCheckBailOut();
+                    }
+                    bucket->SetMonoGuardType(nullptr);
                 }
-                bucket->SetMonoGuardType(nullptr);
+
+                bucket->SetGuardedPropertyOps(nullptr);
+                JitAdelete(this->tempAlloc, guardedPropertyOps);
+                block->stackSymToGuardedProperties->Clear(objSym->m_id);
             }
-
-            bucket->SetGuardedPropertyOps(nullptr);
-            JitAdelete(this->tempAlloc, guardedPropertyOps);
-            block->stackSymToGuardedProperties->Clear(objSym->m_id);
-
 #if DBG
-            // If there is no upstream type check that is live and could protect guarded properties, we better
-            // not have any properties remaining.
-            ObjTypeGuardBucket* bucket = block->stackSymToGuardedProperties->Get(opnd->GetObjectSym()->m_id);
-            Assert(opnd->IsTypeAvailable() || bucket == nullptr || bucket->GetGuardedPropertyOps()->IsEmpty());
+            {
+                // If there is no upstream type check that is live and could protect guarded properties, we better
+                // not have any properties remaining.
+                ObjTypeGuardBucket* bucket = block->stackSymToGuardedProperties->Get(opnd->GetObjectSym()->m_id);
+                Assert(opnd->IsTypeAvailable() || bucket == nullptr || bucket->GetGuardedPropertyOps()->IsEmpty());
+            }
 #endif
         }
     }

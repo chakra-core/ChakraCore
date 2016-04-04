@@ -319,6 +319,12 @@ var tests = [
         f3(undefined, undefined, 30);
 
     }
+  },
+  {
+    name: "Param of lambda has default as function",
+    body: function () {
+        assert.doesNotThrow(function () { eval("[ (a = function () { }) => {} ];"); }, "Lambda defined, inside an array literal, has a default as a function should not assert");
+    }
   }
 ];
 

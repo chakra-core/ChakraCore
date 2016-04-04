@@ -21,6 +21,9 @@ namespace Js
         {
         public:
             static FunctionInfo ToString;
+            static FunctionInfo ToLocaleString;
+            static FunctionInfo ValueOf;
+            static FunctionInfo SymbolToPrimitive;
         };
 
         JavascriptSIMDFloat64x2(SIMDValue *val, StaticType *type);
@@ -45,6 +48,9 @@ namespace Js
         It will also be a property of SIMD.float64x2.prototype for SIMD dynamic objects.
         */
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryToLocaleString(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryValueOf(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntrySymbolToPrimitive(RecyclableObject* function, CallInfo callInfo, ...);
         // End Entry Points
 
         static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)

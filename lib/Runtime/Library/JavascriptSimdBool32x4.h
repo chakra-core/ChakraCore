@@ -6,57 +6,44 @@
 
 namespace Js
 {
-    class JavascriptSIMDBool32x4 sealed : public RecyclableObject
+    class JavascriptSIMDBool32x4 sealed : public JavascriptSIMDType
     {
     private:
-        SIMDValue value;
-
-        DEFINE_VTABLE_CTOR(JavascriptSIMDBool32x4, RecyclableObject);
-
-
+        DEFINE_VTABLE_CTOR(JavascriptSIMDBool32x4, JavascriptSIMDType);
     public:
         class EntryInfo
         {
         public:
+            static FunctionInfo ValueOf;
             static FunctionInfo ToString;
-
+            static FunctionInfo ToLocaleString;
+            static FunctionInfo SymbolToPrimitive;
         };
 
-        JavascriptSIMDBool32x4(StaticType *type);
-        JavascriptSIMDBool32x4(SIMDValue *val, StaticType *type);
-
-        static JavascriptSIMDBool32x4* AllocUninitialized(ScriptContext* requestContext);
-        static JavascriptSIMDBool32x4* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDBool32x4* FromVar(Var aValue);
-
-        __inline SIMDValue GetValue() { return value; }
-
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
-
+        static const wchar_t* GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name);
+        static JavascriptSIMDBool32x4* AllocUninitialized(ScriptContext* requestContext);
+        static JavascriptSIMDBool32x4* New(SIMDValue *val, ScriptContext* requestContext);
         static size_t GetOffsetOfValue() { return offsetof(JavascriptSIMDBool32x4, value); }
-
-        // Entry Points
-        /*
-        There is one toString per SIMD type. The code is entrant from value objects (e.g. a.toString()) or on arithmetic operations.
-        It will also be a property of SIMD.*.prototype for SIMD dynamic objects.
-        */
-        static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
-        // End Entry Points
-
+        static Var CallToLocaleString(RecyclableObject&, ScriptContext&, SIMDValue, const Var, uint, CallInfo) 
+        {
+            Assert(UNREACHED);
+            return nullptr;
+        };
         static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
         {
             swprintf_s(stringBuffer, countBuffer, L"SIMD.Bool32x4(%s, %s, %s, %s)", value.i32[SIMD_X] ? L"true" : L"false",
                 value.i32[SIMD_Y] ? L"true" : L"false", value.i32[SIMD_Z] ? L"true" : L"false", value.i32[SIMD_W] ? L"true" : L"false");
         }
 
-        Var  Copy(ScriptContext* requestContext);
+        JavascriptSIMDBool32x4(StaticType *type);
+        JavascriptSIMDBool32x4(SIMDValue *val, StaticType *type);
 
-    private:
-        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext);
+        Var Copy(ScriptContext* requestContext);
+        __inline SIMDValue GetValue() { return value; }
+        virtual RecyclableObject* CloneToScriptContext(ScriptContext* requestContext) override;
+
     };
 }
 

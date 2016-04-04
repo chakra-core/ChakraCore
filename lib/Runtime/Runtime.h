@@ -203,6 +203,7 @@ namespace Js
     class NullEnumerator;
 //SIMD_JS
     // SIMD
+    class JavascriptSIMDObject;
     class SIMDFloat32x4Lib;
     class JavascriptSIMDFloat32x4;
     class SIMDFloat64x2Lib;
@@ -536,9 +537,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/TypedArray.h"
 #include "Library/JavascriptBoolean.h"
 
-#include "Language/ModuleNamespace.h"
 #include "Language/ModuleRecordBase.h"
 #include "Language/SourceTextModuleRecord.h"
+#include "Language/ModuleNamespace.h"
 #include "Types/ScriptFunctionType.h"
 #include "Library/ScriptFunction.h"
 

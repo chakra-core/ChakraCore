@@ -59,6 +59,7 @@ namespace Js
         friend class JavascriptLibrary;  // for ReplaceType
         friend class ScriptFunction; // for ReplaceType;
         friend class JSON::JSONParser; //for ReplaceType
+        friend class ModuleNamespace; // for slot setting.
 
     private:
         Var* auxSlots;

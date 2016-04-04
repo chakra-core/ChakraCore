@@ -87,6 +87,22 @@ namespace Js
         this->splitPattern = splitPattern;
     }
 
+    CharCount JavascriptRegExp::GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        int64 lastIndex = JavascriptConversion::ToLength(
+            JavascriptOperators::GetProperty(instance, PropertyIds::lastIndex, scriptContext),
+            scriptContext);
+        return GetIndexOrMax(lastIndex);
+    }
+
+    void JavascriptRegExp::SetLastIndexProperty(Var instance, CharCount lastIndex, ScriptContext* scriptContext)
+    {
+        SetLastIndexProperty(
+            instance,
+            JavascriptNumber::ToVar(lastIndex, scriptContext),
+            scriptContext);
+    }
+
     void JavascriptRegExp::SetLastIndexProperty(Var instance, Var lastIndex, ScriptContext* scriptContext)
     {
         JavascriptOperators::SetProperty(
@@ -96,6 +112,13 @@ namespace Js
             lastIndex,
             scriptContext,
             static_cast<PropertyOperationFlags>(PropertyOperation_ThrowIfNotExtensible | PropertyOperation_ThrowIfNonWritable));
+    }
+
+    CharCount JavascriptRegExp::GetIndexOrMax(int64 index)
+    {
+        return (index > SIZE_MAX || IsValidCharCount((size_t) index))
+            ? (CharCount) index
+            : MaxCharCount;
     }
 
     InternalString JavascriptRegExp::GetSource() const
@@ -619,19 +642,31 @@ namespace Js
             RegexHelper::IsResultNotUsed(callInfo.Flags));
     }
 
+    bool JavascriptRegExp::HasObservableConstructor(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        return HasObservableValue(
+            instance,
+            PropertyIds::constructor,
+            scriptContext->GetLibrary()->GetRegExpConstructor(),
+            scriptContext);
+    }
+
     bool JavascriptRegExp::HasObservableExec(RecyclableObject* instance, ScriptContext* scriptContext)
     {
-        PropertyDescriptor descriptor;
-        if (GetNonProxyDescriptor(instance, PropertyIds::exec, scriptContext, &descriptor))
-        {
-            JavascriptFunction *builtinExec = scriptContext->GetLibrary()->GetRegexExecFunction();
-            Assert(builtinExec != nullptr);
-            return (descriptor.GetValue() != builtinExec);
-        }
-        else
-        {
-            return true;
-        }
+        return HasObservableValue(
+            instance,
+            PropertyIds::exec,
+            scriptContext->GetLibrary()->GetRegexExecFunction(),
+            scriptContext);
+    }
+
+    bool JavascriptRegExp::HasObservableFlags(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        return HasObservableGetter(
+            instance,
+            PropertyIds::flags,
+            scriptContext->GetLibrary()->GetRegexFlagsGetterFunction(),
+            scriptContext);
     }
 
     bool JavascriptRegExp::HasObservableGlobalFlag(RecyclableObject* instance, ScriptContext* scriptContext)
@@ -676,69 +711,86 @@ namespace Js
         Assert(!scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled()
                || builtinGetter != nullptr);
 
-        PropertyDescriptor descriptor;
-        RecyclableObject* descriptorInstance;
-        if (GetNonProxyDescriptor(instance, propertyId, scriptContext, &descriptor, &descriptorInstance))
+        if (scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled())
-            {
-                return (descriptor.GetGetter() != builtinGetter);
-            }
-            else
-            {
-                Assert(descriptor.IsDataDescriptor());
-                return descriptorInstance != instance;
-            }
+            return HasObservableGetter(instance, propertyId, builtinGetter, scriptContext);
         }
         else
         {
-            return true;
+            // Flags are unwritable when they're on the RegExp instance.
+            return !JavascriptRegExp::Is(instance);
         }
     }
 
     bool JavascriptRegExp::HasObservableLastIndex(RecyclableObject* instance, ScriptContext* scriptContext)
     {
-        PropertyDescriptor descriptor;
-        RecyclableObject* descriptorInstance;
-        if (GetNonProxyDescriptor(instance, PropertyIds::lastIndex, scriptContext, &descriptor, &descriptorInstance))
+        auto isObservable = [&](RecyclableObject* propertyInstance)
         {
-            return !descriptor.IsWritable() || descriptorInstance != instance;
-        }
-        else
-        {
-            return true;
-        }
+            return !propertyInstance->IsWritable(PropertyIds::lastIndex)
+                || propertyInstance != instance;
+        };
+        return HasObservableProperty(instance, PropertyIds::lastIndex, isObservable, scriptContext);
     }
 
-    BOOL JavascriptRegExp::GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor)
+    bool JavascriptRegExp::HasObservableGetter(RecyclableObject* instance, PropertyId propertyId, Var builtinGetter, ScriptContext* scriptContext)
     {
-        RecyclableObject* descriptorInstance;
-        return GetNonProxyDescriptor(instance, propertyId, scriptContext, descriptor, &descriptorInstance);
+        auto isObservable = [&](RecyclableObject* propertyInstance)
+        {
+            Var getter, setter;
+            if (propertyInstance->GetAccessors(propertyId, &getter, &setter, scriptContext))
+            {
+                return getter != builtinGetter;
+            }
+
+            Var value;
+            propertyInstance->GetProperty(propertyInstance, propertyId, &value, nullptr, scriptContext);
+            // Getting a value property, by itself, isn't observable. If the value is the same as the built-in one,
+            // there won't be any observable effects.
+            return value != builtinGetter;
+        };
+        return HasObservableProperty(instance, propertyId, isObservable, scriptContext);
     }
 
-    BOOL JavascriptRegExp::GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor, RecyclableObject** descriptorInstance)
+    bool JavascriptRegExp::HasObservableValue(RecyclableObject* instance, PropertyId propertyId, Var builtinValue, ScriptContext* scriptContext)
     {
-        BOOL foundDescriptor = FALSE;
+        auto isObservable = [&](RecyclableObject* propertyInstance)
+        {
+            Var getter, setter;
+            if (propertyInstance->GetAccessors(propertyId, &getter, &setter, scriptContext))
+            {
+                // The getter could update the instance, so assume it's observable.
+                return true;
+            }
 
-        *descriptorInstance = instance;
-        while (!foundDescriptor && JavascriptOperators::GetTypeId(*descriptorInstance) != TypeIds_Null)
+            Var value;
+            propertyInstance->GetProperty(propertyInstance, propertyId, &value, nullptr, scriptContext);
+            return value != builtinValue;
+        };
+        return HasObservableProperty(instance, propertyId, isObservable, scriptContext);
+    }
+
+    template<typename ObservableFn>
+    bool JavascriptRegExp::HasObservableProperty(RecyclableObject* instance, PropertyId propertyId, ObservableFn isObservable, ScriptContext* scriptContext)
+    {
+        RecyclableObject *propertyInstance = instance;
+        while (!JavascriptOperators::IsNull(propertyInstance))
         {
             // We can't guarantee that the proxy won't return a different value
             // each time we "get" a property, so assume it does.
-            if (JavascriptProxy::Is(*descriptorInstance))
+            if (JavascriptProxy::Is(propertyInstance))
             {
-                break;
+                return true;
             }
 
-            foundDescriptor = JavascriptOperators::GetOwnPropertyDescriptor(*descriptorInstance, propertyId, scriptContext, descriptor);
-
-            if (!foundDescriptor)
+            if (JavascriptOperators::HasOwnProperty(propertyInstance, propertyId, scriptContext))
             {
-                *descriptorInstance = JavascriptOperators::GetPrototype(*descriptorInstance);
+                return isObservable(propertyInstance);
             }
+
+            propertyInstance = JavascriptOperators::GetPrototype(propertyInstance);
         }
 
-        return foundDescriptor;
+        return true;
     }
 
     Var JavascriptRegExp::EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...)
@@ -765,9 +817,44 @@ namespace Js
 
         SetLastIndexProperty(regEx, previousLastIndex, scriptContext);
 
-        return (JavascriptOperators::GetTypeId(result) == TypeIds_Null)
+        return JavascriptOperators::IsNull(result)
             ? TaggedInt::ToVarUnchecked(-1)
             : JavascriptOperators::GetProperty(RecyclableObject::FromVar(result), PropertyIds::index, scriptContext);
+    }
+
+    Var JavascriptRegExp::EntrySymbolSplit(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolSplitCount);
+
+        RecyclableObject *thisObj = GetThisObject(args, L"RegExp.prototype[Symbol.match]", scriptContext);
+        JavascriptString* string = GetFirstStringArg(args, scriptContext);
+
+        // TODO: SPEC DEVIATION
+        //
+        // In RegexHelper::RegexSplit, we check if RegExp properties are overridden in order to determine
+        // if the algorithm is observable. If it is, we go through the new ES6 algorithm, but otherwise, we
+        // run the faster ES5 version.
+        //
+        // According to the spec, we're supposed to process "limit" after we use some of the RegExp properties.
+        // However, there doesn't seem to be any reason why "limit" processing can't be pulled above the rest
+        // in the spec. Therefore, we should see if such a spec update is OK. If not, this would have to be
+        // moved to its correct place in the code.
+        uint32 limit = (args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+            ? UINT_MAX
+            : JavascriptConversion::ToUInt32(args[2], scriptContext);
+
+        return RegexHelper::RegexSplit(
+            scriptContext,
+            thisObj,
+            string,
+            limit,
+            RegexHelper::IsResultNotUsed(callInfo.Flags));
     }
 
     Var JavascriptRegExp::CallExec(RecyclableObject* thisObj, JavascriptString* string, PCWSTR varName, ScriptContext* scriptContext)

@@ -5,6 +5,8 @@
 
 #pragma once
 // SIMD types
+#include "Library/JavascriptSimdObject.h"
+#include "Library/JavascriptSimdType.h"
 #include "Library/JavascriptSimdFloat32x4.h"
 #include "Library/JavascriptSimdFloat64x2.h"
 #include "Library/JavascriptSimdInt32x4.h"

@@ -152,3 +152,14 @@ LIBRARY_FUNCTION(SIMD_Int32x4,    Store,             3, BIF_IgnoreDst           
 LIBRARY_FUNCTION(SIMD_Int32x4,    Store1,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store1)
 LIBRARY_FUNCTION(SIMD_Int32x4,    Store2,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store2)
 LIBRARY_FUNCTION(SIMD_Int32x4,    Store3,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store3)
+
+LIBRARY_FUNCTION(SIMD_Int16x8,    Int16x8,           8, BIF_IgnoreDst                                                 , SIMDInt16x8Lib::EntryInfo::Int16x8)
+LIBRARY_FUNCTION(SIMD_Int8x16,    Int8x16,          16, BIF_IgnoreDst                                                 , SIMDInt8x16Lib::EntryInfo::Int8x16)
+
+LIBRARY_FUNCTION(SIMD_Uint32x4,    Uint32x4,         4, BIF_IgnoreDst                                                 , SIMDUint32x4Lib::EntryInfo::Uint32x4)
+LIBRARY_FUNCTION(SIMD_Uint16x8,    Uint16x8,         8, BIF_IgnoreDst                                                 , SIMDUint16x8Lib::EntryInfo::Uint16x8)
+LIBRARY_FUNCTION(SIMD_Uint8x16,    Uint8x16,        16, BIF_IgnoreDst                                                 , SIMDUint8x16Lib::EntryInfo::Uint8x16)
+
+LIBRARY_FUNCTION(SIMD_Bool32x4,    Bool32x4,         4, BIF_IgnoreDst                                                 , SIMDBool32x4Lib::EntryInfo::Bool32x4)
+LIBRARY_FUNCTION(SIMD_Bool16x8,    Bool16x8,         8, BIF_IgnoreDst                                                 , SIMDBool16x8Lib::EntryInfo::Bool16x8)
+LIBRARY_FUNCTION(SIMD_Bool8x16,    Bool8x16,        16, BIF_IgnoreDst                                                 , SIMDBool8x16Lib::EntryInfo::Bool8x16)
