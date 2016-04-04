@@ -202,12 +202,6 @@ namespace Js
         return this->GetType()->SkipsPrototype();
     }
 
-    uint32
-    RecyclableObject::GetOffsetOfType()
-    {
-        return offsetof(RecyclableObject, type);
-    }
-
     RecyclableObject * RecyclableObject::CloneToScriptContext(ScriptContext* requestContext)
     {
         switch (JavascriptOperators::GetTypeId(this))

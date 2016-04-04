@@ -255,7 +255,7 @@ namespace Js
             {
                 if (IsDisplayCaller(jsFunction))
                 {
-                    bool needToPass = (!onlyOnDebugMode || jsFunction->GetScriptContext()->IsInDebugMode())
+                    bool needToPass = (!onlyOnDebugMode || jsFunction->GetScriptContext()->IsScriptContextInDebugMode())
                         && (!filterDiagnosticsOM || !jsFunction->GetScriptContext()->IsDiagnosticsScriptContext());
 
                     if (needToPass)

@@ -18,7 +18,7 @@ namespace Js
         ThrowErrorObject* throwErrorObject = ThrowErrorObject::FromVar(function);
 
         bool useExceptionWrapper =
-            scriptContext->IsInDebugMode() &&
+            scriptContext->IsScriptContextInDebugMode() /* Check for script context is intentional as library code also uses exception wrapper */ &&
             (ScriptContext::IsExceptionWrapperForBuiltInsEnabled(scriptContext) || ScriptContext::IsExceptionWrapperForHelpersEnabled(scriptContext)) &&
             !AutoRegisterIgnoreExceptionWrapper::IsRegistered(scriptContext->GetThreadContext());
 

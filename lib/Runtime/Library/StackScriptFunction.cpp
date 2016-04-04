@@ -276,6 +276,26 @@ namespace Js
                     {
                         hasInlineeToBox = false;
 
+                        if (callerFunctionBody->DoStackFrameDisplay())
+                        {
+                            Js::FrameDisplay *stackFrameDisplay = 
+                                this->GetFrameDisplayFromNativeFrame(walker, callerFunctionBody);
+                            // Local frame display may be null if bailout didn't restore it, which means we don't need it.
+                            if (stackFrameDisplay)
+                            {
+                                this->BoxFrameDisplay(stackFrameDisplay);
+                            }
+                        }
+                        if (callerFunctionBody->DoStackScopeSlots())
+                        {
+                            Var* stackScopeSlots = this->GetScopeSlotsFromNativeFrame(walker, callerFunctionBody);
+                            if (stackScopeSlots)
+                            {
+                                // Scope slot pointer may be null if bailout didn't restore it, which means we don't need it.
+                                this->BoxScopeSlots(stackScopeSlots, ScopeSlots(stackScopeSlots).GetCount());
+                            }
+                        }
+
                         // walk native frame
                         this->BoxNativeFrame(walker, callerFunctionBody);
 
@@ -405,6 +425,62 @@ namespace Js
         }
     }
 
+    uintptr_t StackScriptFunction::BoxState::GetNativeFrameDisplayIndex(FunctionBody * functionBody)
+    {
+#if _M_IX86 || _M_AMD64
+        if (functionBody->GetInParamsCount() == 0)
+        {
+            return (uintptr_t)JavascriptFunctionArgIndex_StackFrameDisplayNoArg;
+        }
+        else
+#endif
+        {
+            return (uintptr_t)JavascriptFunctionArgIndex_StackFrameDisplay;
+        }
+    }
+
+    uintptr_t StackScriptFunction::BoxState::GetNativeScopeSlotsIndex(FunctionBody * functionBody)
+    {
+#if _M_IX86 || _M_AMD64
+        if (functionBody->GetInParamsCount() == 0)
+        {
+            return (uintptr_t)JavascriptFunctionArgIndex_StackScopeSlotsNoArg;
+        }
+        else
+#endif
+        {
+            return (uintptr_t)JavascriptFunctionArgIndex_StackScopeSlots;
+        }
+    }
+
+    FrameDisplay * StackScriptFunction::BoxState::GetFrameDisplayFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody)
+    {
+        uintptr_t frameDisplayIndex = GetNativeFrameDisplayIndex(callerFunctionBody);
+        void **argv = walker.GetCurrentArgv();
+        return (Js::FrameDisplay*)argv[frameDisplayIndex];
+    }
+
+    Var * StackScriptFunction::BoxState::GetScopeSlotsFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody)
+    {
+        uintptr_t scopeSlotsIndex = GetNativeScopeSlotsIndex(callerFunctionBody);
+        void **argv = walker.GetCurrentArgv();
+        return (Var*)argv[scopeSlotsIndex];
+    }
+
+    void StackScriptFunction::BoxState::SetFrameDisplayFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody, FrameDisplay * frameDisplay)
+    {
+        uintptr_t frameDisplayIndex = GetNativeFrameDisplayIndex(callerFunctionBody);
+        void **argv = walker.GetCurrentArgv();
+        ((FrameDisplay**)argv)[frameDisplayIndex] = frameDisplay;
+    }
+
+    void StackScriptFunction::BoxState::SetScopeSlotsFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody, Var * scopeSlots)
+    {
+        uintptr_t scopeSlotsIndex = GetNativeScopeSlotsIndex(callerFunctionBody);
+        void **argv = walker.GetCurrentArgv();
+        ((Var**)argv)[scopeSlotsIndex] = scopeSlots;
+    }
+
     void StackScriptFunction::BoxState::BoxNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody)
     {
         this->ForEachStackNestedFunctionNative(walker, callerFunctionBody, [&](ScriptFunction *curr)
@@ -422,41 +498,24 @@ namespace Js
         });
 
         // Write back the boxed stack closure pointers at the designated stack locations.
-        uintptr_t             frameDisplayIndex;
-        uintptr_t             scopeSlotsIndex;
-#if _M_IX86 || _M_AMD64
-        if (callerFunctionBody->GetInParamsCount() == 0)
-        {
-            frameDisplayIndex = (uintptr_t)JavascriptFunctionArgIndex_StackFrameDisplayNoArg;
-            scopeSlotsIndex = (uintptr_t)JavascriptFunctionArgIndex_StackScopeSlotsNoArg;
-        }
-        else
-#endif
-        {
-            frameDisplayIndex = (uintptr_t)JavascriptFunctionArgIndex_StackFrameDisplay;
-            scopeSlotsIndex = (uintptr_t)JavascriptFunctionArgIndex_StackScopeSlots;
-        }
-
-        void **argv = walker.GetCurrentArgv();
-        Js::FrameDisplay *stackFrameDisplay = (Js::FrameDisplay*)argv[frameDisplayIndex];
-
+        Js::FrameDisplay *stackFrameDisplay = this->GetFrameDisplayFromNativeFrame(walker, callerFunctionBody);
         if (ThreadContext::IsOnStack(stackFrameDisplay))
         {
             Js::FrameDisplay *boxedFrameDisplay;
             if (boxedValues.TryGetValue(stackFrameDisplay, (void**)&boxedFrameDisplay))
             {
-                argv[frameDisplayIndex] = boxedFrameDisplay;
+                this->SetFrameDisplayFromNativeFrame(walker, callerFunctionBody, boxedFrameDisplay);
                 callerFunctionBody->GetScriptContext()->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
             }
         }
 
-        Var              *stackScopeSlots = (Var*)argv[scopeSlotsIndex];
+        Var              *stackScopeSlots = this->GetScopeSlotsFromNativeFrame(walker, callerFunctionBody);
         if (ThreadContext::IsOnStack(stackScopeSlots))
         {
             Var              *boxedScopeSlots;
             if (boxedValues.TryGetValue(stackScopeSlots, (void**)&boxedScopeSlots))
             {
-                argv[scopeSlotsIndex] = boxedScopeSlots;
+                this->SetScopeSlotsFromNativeFrame(walker, callerFunctionBody, boxedScopeSlots);
                 callerFunctionBody->GetScriptContext()->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
             }
         }
@@ -468,6 +527,10 @@ namespace Js
         FunctionBody *callerFunctionBody,
         Fn fn)
     {
+        if (!callerFunctionBody->DoStackNestedFunc())
+        {
+            return;
+        }
         InterpreterStackFrame *interpreterFrame = walker.GetCurrentInterpreterFrame();
         if (interpreterFrame)
         {

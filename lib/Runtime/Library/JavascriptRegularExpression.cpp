@@ -87,6 +87,17 @@ namespace Js
         this->splitPattern = splitPattern;
     }
 
+    void JavascriptRegExp::SetLastIndexProperty(Var instance, Var lastIndex, ScriptContext* scriptContext)
+    {
+        JavascriptOperators::SetProperty(
+            instance,
+            RecyclableObject::FromVar(instance),
+            PropertyIds::lastIndex,
+            lastIndex,
+            scriptContext,
+            static_cast<PropertyOperationFlags>(PropertyOperation_ThrowIfNotExtensible | PropertyOperation_ThrowIfNonWritable));
+    }
+
     InternalString JavascriptRegExp::GetSource() const
     {
         return GetPattern()->GetSource();
@@ -104,7 +115,11 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, propertyName);
         }
 
-        Var var = args[0];
+        return ToRegExp(args[0], propertyName, scriptContext);
+    }
+
+    JavascriptRegExp* JavascriptRegExp::ToRegExp(Var var, PCWSTR varName, ScriptContext* scriptContext)
+    {
         if (JavascriptRegExp::Is(var))
         {
             return JavascriptRegExp::FromVar(var);
@@ -121,7 +136,18 @@ namespace Js
             }
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, propertyName);
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, varName);
+    }
+
+
+    RecyclableObject* JavascriptRegExp::GetThisObject(Arguments& args, PCWSTR varName, ScriptContext* scriptContext)
+    {
+        if (args.Info.Count == 0 || !JavascriptOperators::IsObject(args[0]))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, varName);
+        }
+
+        return RecyclableObject::FromVar(args[0]);
     }
 
     JavascriptString* JavascriptRegExp::GetFirstStringArg(Arguments& args, ScriptContext* scriptContext)
@@ -582,13 +608,137 @@ namespace Js
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolMatchCount);
 
-        JavascriptRegExp* regExObj = GetJavascriptRegExp(args, L"RegExp.prototype[Symbol.match]", scriptContext);
+        PCWSTR const varName = L"RegExp.prototype[Symbol.match]";
+
+        RecyclableObject *thisObj = GetThisObject(args, varName, scriptContext);
         JavascriptString* string = GetFirstStringArg(args, scriptContext);
         return RegexHelper::RegexMatch(
             scriptContext,
-            regExObj,
+            thisObj,
             string,
             RegexHelper::IsResultNotUsed(callInfo.Flags));
+    }
+
+    bool JavascriptRegExp::HasObservableExec(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        PropertyDescriptor descriptor;
+        if (GetNonProxyDescriptor(instance, PropertyIds::exec, scriptContext, &descriptor))
+        {
+            JavascriptFunction *builtinExec = scriptContext->GetLibrary()->GetRegexExecFunction();
+            Assert(builtinExec != nullptr);
+            return (descriptor.GetValue() != builtinExec);
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    bool JavascriptRegExp::HasObservableGlobalFlag(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        return HasObservableFlag(
+            instance,
+            PropertyIds::global,
+            scriptContext->GetLibrary()->GetRegexGlobalGetterFunction(),
+            scriptContext);
+    }
+
+    bool JavascriptRegExp::HasObservableStickyFlag(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        if (!scriptContext->GetConfig()->IsES6RegExStickyEnabled())
+        {
+            return false;
+        }
+
+        return HasObservableFlag(
+            instance,
+            PropertyIds::sticky,
+            scriptContext->GetLibrary()->GetRegexStickyGetterFunction(),
+            scriptContext);
+    }
+
+    bool JavascriptRegExp::HasObservableUnicodeFlag(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        if (!scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled())
+        {
+            return false;
+        }
+
+        return HasObservableFlag(
+            instance,
+            PropertyIds::unicode,
+            scriptContext->GetLibrary()->GetRegexUnicodeGetterFunction(),
+            scriptContext);
+    }
+
+    bool JavascriptRegExp::HasObservableFlag(RecyclableObject* instance, PropertyId propertyId, JavascriptFunction* builtinGetter, ScriptContext* scriptContext)
+    {
+        Assert(!scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled()
+               || builtinGetter != nullptr);
+
+        PropertyDescriptor descriptor;
+        RecyclableObject* descriptorInstance;
+        if (GetNonProxyDescriptor(instance, propertyId, scriptContext, &descriptor, &descriptorInstance))
+        {
+            if (scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled())
+            {
+                return (descriptor.GetGetter() != builtinGetter);
+            }
+            else
+            {
+                Assert(descriptor.IsDataDescriptor());
+                return descriptorInstance != instance;
+            }
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    bool JavascriptRegExp::HasObservableLastIndex(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        PropertyDescriptor descriptor;
+        RecyclableObject* descriptorInstance;
+        if (GetNonProxyDescriptor(instance, PropertyIds::lastIndex, scriptContext, &descriptor, &descriptorInstance))
+        {
+            return !descriptor.IsWritable() || descriptorInstance != instance;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    BOOL JavascriptRegExp::GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor)
+    {
+        RecyclableObject* descriptorInstance;
+        return GetNonProxyDescriptor(instance, propertyId, scriptContext, descriptor, &descriptorInstance);
+    }
+
+    BOOL JavascriptRegExp::GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor, RecyclableObject** descriptorInstance)
+    {
+        BOOL foundDescriptor = FALSE;
+
+        *descriptorInstance = instance;
+        while (!foundDescriptor && JavascriptOperators::GetTypeId(*descriptorInstance) != TypeIds_Null)
+        {
+            // We can't guarantee that the proxy won't return a different value
+            // each time we "get" a property, so assume it does.
+            if (JavascriptProxy::Is(*descriptorInstance))
+            {
+                break;
+            }
+
+            foundDescriptor = JavascriptOperators::GetOwnPropertyDescriptor(*descriptorInstance, propertyId, scriptContext, descriptor);
+
+            if (!foundDescriptor)
+            {
+                *descriptorInstance = JavascriptOperators::GetPrototype(*descriptorInstance);
+            }
+        }
+
+        return foundDescriptor;
     }
 
     Var JavascriptRegExp::EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...)
@@ -603,26 +753,39 @@ namespace Js
 
         PCWSTR const varName = L"RegExp.prototype[Symbol.search]";
 
-        if (args.Info.Count == 0 || !JavascriptOperators::IsObject(args[0]))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, varName);;
-        }
+        RecyclableObject *thisObj = GetThisObject(args, varName, scriptContext);
         Var regEx = args[0];
-        RecyclableObject *thisObj = RecyclableObject::FromVar(regEx);
 
         JavascriptString* string = GetFirstStringArg(args, scriptContext);
 
-        PropertyOperationFlags lastIndexOperationFlags =
-            static_cast<PropertyOperationFlags>(PropertyOperation_ThrowIfNotExtensible | PropertyOperation_ThrowIfNonWritable);
-
         Var previousLastIndex = JavascriptOperators::GetProperty(thisObj, PropertyIds::lastIndex, scriptContext);
-        JavascriptOperators::SetProperty(
-            regEx,
-            thisObj,
-            PropertyIds::lastIndex,
-            TaggedInt::ToVarUnchecked(0),
-            scriptContext,
-            lastIndexOperationFlags);
+        SetLastIndexProperty(regEx, TaggedInt::ToVarUnchecked(0), scriptContext);
+
+        Var result = CallExec(thisObj, string, varName, scriptContext);
+
+        SetLastIndexProperty(regEx, previousLastIndex, scriptContext);
+
+        return (JavascriptOperators::GetTypeId(result) == TypeIds_Null)
+            ? TaggedInt::ToVarUnchecked(-1)
+            : JavascriptOperators::GetProperty(RecyclableObject::FromVar(result), PropertyIds::index, scriptContext);
+    }
+
+    Var JavascriptRegExp::CallExec(RecyclableObject* thisObj, JavascriptString* string, PCWSTR varName, ScriptContext* scriptContext)
+    {
+        JavascriptRegExp* regExObj = nullptr;
+
+        // TODO: The built-in "exec" in ES6 is supposed to access the RegExp flags. Since the flags
+        // can be overridden and return a different value than what's passed to the constructor,
+        // the pattern needs to be recompiled. However, the way the observability check is currently
+        // implemented, it reduces the perf quite a lot.
+        //
+        // Therefore, we recompile the pattern here before calling "exec" for the time being, but
+        // this will be moved to "exec".
+        if (JavascriptRegExp::Is(thisObj))
+        {
+            regExObj = JavascriptRegExp::FromVar(thisObj);
+            regExObj->RecompilePatternForExecIfNeeded(scriptContext);
+        }
 
         Var exec = JavascriptOperators::GetProperty(thisObj, PropertyIds::exec, scriptContext);
         if (JavascriptConversion::IsCallable(exec))
@@ -635,21 +798,63 @@ namespace Js
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_RegExpExecInvalidReturnType, varName);
             }
 
-            JavascriptOperators::SetProperty(
-                regEx,
-                thisObj,
-                PropertyIds::lastIndex,
-                previousLastIndex,
-                scriptContext,
-                lastIndexOperationFlags);
-
-            return (JavascriptOperators::GetTypeId(result) == TypeIds_Null)
-                ? TaggedInt::ToVarUnchecked(-1)
-                : JavascriptOperators::GetProperty(RecyclableObject::FromVar(result), PropertyIds::index, scriptContext);
+            return result;
         }
 
-        JavascriptRegExp * regExObj = GetJavascriptRegExp(args, varName, scriptContext);
-        return RegexHelper::RegexSearch(scriptContext, regExObj, string);
+        if (regExObj == nullptr)
+        {
+            regExObj = ToRegExp(thisObj, varName, scriptContext);
+        }
+        return RegexHelper::RegexExec(scriptContext, regExObj, string, false);
+    }
+
+    void JavascriptRegExp::RecompilePatternForExecIfNeeded(ScriptContext* scriptContext)
+    {
+        if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+        {
+            return;
+        }
+
+        bool isObservable =
+            JavascriptRegExp::HasObservableGlobalFlag(this, scriptContext)
+            || JavascriptRegExp::HasObservableStickyFlag(this, scriptContext);
+        if (!isObservable)
+        {
+            return;
+        }
+
+        UnifiedRegex::RegexPattern* pattern = this->GetPattern();
+
+        UnifiedRegex::RegexFlags newFlags = pattern->GetFlags();
+        newFlags = SetRegexFlag(PropertyIds::global, newFlags, UnifiedRegex::GlobalRegexFlag, scriptContext);
+        newFlags = SetRegexFlag(PropertyIds::sticky, newFlags, UnifiedRegex::StickyRegexFlag, scriptContext);
+
+        if (newFlags != pattern->GetFlags())
+        {
+            InternalString source = pattern->GetSource();
+            UnifiedRegex::RegexPattern* newPattern = RegexHelper::CompileDynamic(
+                scriptContext,
+                source.GetBuffer(),
+                source.GetLength(),
+                newFlags,
+                pattern->IsLiteral());
+            this->SetPattern(newPattern);
+            this->SetSplitPattern(nullptr);
+        }
+    }
+
+    UnifiedRegex::RegexFlags JavascriptRegExp::SetRegexFlag(
+        PropertyId propertyId,
+        UnifiedRegex::RegexFlags flags,
+        UnifiedRegex::RegexFlags flag,
+        ScriptContext* scriptContext)
+    {
+        bool isEnabled = JavascriptConversion::ToBool(
+            JavascriptOperators::GetProperty(this, propertyId, scriptContext),
+            scriptContext);
+        return isEnabled
+            ? static_cast<UnifiedRegex::RegexFlags>(flags | flag)
+            : static_cast<UnifiedRegex::RegexFlags>(flags & ~flag);
     }
 
     Var JavascriptRegExp::EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...)
@@ -669,12 +874,7 @@ namespace Js
 
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (args.Info.Count == 0 || !JavascriptOperators::IsObject(args[0]))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, L"RegExp.prototype.flags");
-        }
-
-        RecyclableObject *thisObj = JavascriptObject::FromVar(args[0]);
+        RecyclableObject *thisObj = GetThisObject(args, L"RegExp.prototype.flags", scriptContext);
         Var flags;
 
         BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"JavascriptRegExp")

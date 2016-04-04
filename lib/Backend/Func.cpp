@@ -956,7 +956,7 @@ void Func::InitLocalClosureSyms()
     // Allocate stack space for closure pointers. Do this only if we're jitting for stack closures, and
     // tell bailout that these are not byte code symbols so that we don't try to encode them in the bailout record,
     // as they don't have normal lifetimes.
-    Js::RegSlot regSlot = this->GetJnFunction()->GetLocalClosureReg();
+    Js::RegSlot regSlot = this->GetJnFunction()->GetLocalClosureRegister();
     if (regSlot != Js::Constants::NoRegister)
     {
         this->m_localClosureSym =
@@ -964,7 +964,7 @@ void Func::InitLocalClosureSyms()
                                    this->DoStackFrameDisplay() ? (Js::RegSlot)-1 : regSlot,
                                    this);
     }
-    regSlot = this->GetJnFunction()->GetLocalFrameDisplayReg();
+    regSlot = this->GetJnFunction()->GetLocalFrameDisplayRegister();
     if (regSlot != Js::Constants::NoRegister)
     {
         this->m_localFrameDisplaySym =
@@ -978,7 +978,7 @@ bool Func::CanAllocInPreReservedHeapPageSegment ()
 {
 #ifdef _CONTROL_FLOW_GUARD
     return PHASE_FORCE1(Js::PreReservedHeapAllocPhase) || (!PHASE_OFF1(Js::PreReservedHeapAllocPhase) &&
-        !IsJitInDebugMode() && !GetScriptContext()->IsInDebugMode() && GetScriptContext()->GetThreadContext()->IsCFGEnabled()
+        !IsJitInDebugMode() && !this->m_workItem->GetFunctionBody()->IsInDebugMode() && GetScriptContext()->GetThreadContext()->IsCFGEnabled()
 #if _M_IX86
         && m_workItem->GetJitMode() == ExecutionMode::FullJit && GetCodeGenAllocators()->canCreatePreReservedSegment);
 #elif _M_X64

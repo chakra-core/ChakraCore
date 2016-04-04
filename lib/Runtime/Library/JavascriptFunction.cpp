@@ -732,7 +732,7 @@ namespace Js
         Assert(scriptContext != nullptr);
         Assert(function != nullptr);
 
-        if (scriptContext->IsInDebugMode()
+        if (scriptContext->IsScriptContextInDebugMode()
             && !scriptContext->IsInterpreted() && !CONFIG_FLAG(ForceDiagnosticsMode)    // Does not work nicely if we change the default settings.
             && function->GetEntryPoint() != scriptContext->CurrentThunk
             && function->GetEntryPoint() != scriptContext->CurrentCrossSiteThunk
@@ -844,7 +844,7 @@ namespace Js
         }
 
 #if DBG
-        if (scriptContext->IsInDebugMode())
+        if (scriptContext->IsScriptContextInDebugMode())
         {
             CheckValidDebugThunk(scriptContext, functionObj);
         }

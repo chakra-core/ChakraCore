@@ -162,7 +162,7 @@ public:
         return GetScriptContext()->GetLibrary()->GetThrowerFunction();
     }
 
-    HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, Js::JavascriptString* specifier, Js::ModuleRecordBase** dependentModuleRecord) override
+    HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) override
     {
         AssertMsg(false, "not implemented");
         return S_FALSE;

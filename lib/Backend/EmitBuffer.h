@@ -30,7 +30,7 @@ template <class SyncObject = FakeCriticalSection>
 class EmitBufferManager
 {
 public:
-    EmitBufferManager(AllocationPolicyManager * policyManager, ArenaAllocator * allocator, Js::ScriptContext * scriptContext, LPCWSTR name, bool allocXdata);
+    EmitBufferManager(ArenaAllocator * allocator, CustomHeap::CodePageAllocators * codePageAllocators, Js::ScriptContext * scriptContext, LPCWSTR name);
     ~EmitBufferManager();
 
     // All the following methods are guarded with the SyncObject
@@ -45,58 +45,7 @@ public:
     bool FreeAllocation(void* address);
     //Ends here
 
-    bool IsInRange(void* address)
-    {
-        return this->allocationHeap.IsInRange(address);
-    }
-
-    HeapPageAllocator<VirtualAllocWrapper>* GetHeapPageAllocator()
-    {
-        return this->allocationHeap.GetHeapPageAllocator();
-    }
-
-    HeapPageAllocator<PreReservedVirtualAllocWrapper>* GetPreReservedHeapPageAllocator()
-    {
-        return this->allocationHeap.GetPreReservedHeapPageAllocator();
-    }
-
-    char * EnsurePreReservedPageAllocation(PreReservedVirtualAllocWrapper * preReservedVirtualAllocator)
-    {
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
-        bool canPreReserveSegmentForCustomHeap = scriptContext && scriptContext->GetThreadContext()->CanPreReserveSegmentForCustomHeap();
-#endif
-        AssertMsg(preReservedVirtualAllocator, "Virtual Allocator for pre reserved Segment should not be null when EnsurePreReservedPageAllocation is called");
-
-        if (this->GetPreReservedHeapPageAllocator()->GetVirtualAllocator() == nullptr)
-        {
-            this->GetPreReservedHeapPageAllocator()->SetVirtualAllocator(preReservedVirtualAllocator);
-        }
-
-        if (preReservedVirtualAllocator->IsPreReservedRegionPresent())
-        {
-            return (char*) preReservedVirtualAllocator->GetPreReservedStartAddress();
-        }
-
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
-        if (!canPreReserveSegmentForCustomHeap)
-        {
-            VerboseHeapTrace(L"PRE-RESERVE: Upper Cap for PreReservedSegment reached.\n");
-            return nullptr;
-        }
-#endif
-        char * startAddressOfPreReservedRegion = this->allocationHeap.EnsurePreReservedPageAllocation(preReservedVirtualAllocator);
-
-        //We have newly reserved a segment at this point
-        if (startAddressOfPreReservedRegion != nullptr)
-        {
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
-            Assert(canPreReserveSegmentForCustomHeap);
-            this->scriptContext->GetThreadContext()->IncrementThreadContextsWithPreReservedSegment();
-#endif
-        }
-
-        return startAddressOfPreReservedRegion;
-    }
+    bool IsInHeap(void* address);
 
 #if DBG_DUMP
     void DumpAndResetStats(wchar_t const * source);

@@ -1069,10 +1069,17 @@ BackwardPass::MergeGuardedProperties(ObjTypeGuardBucket bucket1, ObjTypeGuardBuc
 
     ObjTypeGuardBucket bucket;
     bucket.SetGuardedPropertyOps(mergedPropertyOps);
-    if (bucket1.NeedsMonoCheck() || bucket2.NeedsMonoCheck())
+    Js::Type *monoGuardType = bucket1.GetMonoGuardType();
+    if (monoGuardType != nullptr)
     {
-        bucket.SetNeedsMonoCheck(true);
+        Assert(!bucket2.NeedsMonoCheck() || monoGuardType == bucket2.GetMonoGuardType());
     }
+    else
+    {
+        monoGuardType = bucket2.GetMonoGuardType();
+    }
+    bucket.SetMonoGuardType(monoGuardType);
+
     return bucket;
 }
 
@@ -3988,7 +3995,8 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
         if (opnd->NeedsMonoCheck())
         {
             Assert(opnd->IsMono());
-            bucket->SetNeedsMonoCheck(true);
+            Js::Type *monoGuardType = opnd->IsInitialTypeChecked() ? opnd->GetInitialType() : opnd->GetType();
+            bucket->SetMonoGuardType(monoGuardType);
         }
 
         if (opnd->NeedsPrimaryTypeCheck())
@@ -4007,17 +4015,17 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
             Assert(guardedPropertyOps != nullptr);
             opnd->EnsureGuardedPropOps(this->func->m_alloc);
             opnd->AddGuardedPropOps(guardedPropertyOps);
-            if (bucket->NeedsMonoCheck())
+            if (bucket->NeedsMonoCheck() && !opnd->IsTypeAvailable())
             {
                 if (this->currentInstr->HasEquivalentTypeCheckBailOut())
                 {
                     // Some instr protected by this one requires a monomorphic type check. (E.g., final type opt,
-                    // fixed field not loaded from prototype.)
-                    Assert(opnd->IsMono());
-                    opnd->SetMustDoMonoCheck(true);
+                    // fixed field not loaded from prototype.) Note the IsTypeAvailable test above: only do this at
+                    // the initial type check that protects this path.
+                    opnd->SetMonoGuardType(bucket->GetMonoGuardType());
                     this->currentInstr->ChangeEquivalentToMonoTypeCheckBailOut();
                 }
-                bucket->SetNeedsMonoCheck(false);
+                bucket->SetMonoGuardType(nullptr);
             }
 
             bucket->SetGuardedPropertyOps(nullptr);

@@ -5,23 +5,23 @@
 #include "Backend.h"
 
 CodeGenAllocators::CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext)
-: pageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
-                (AutoSystemInfo::Data.IsLowMemoryProcess() ?
-                 PageAllocator::DefaultLowMaxFreePageCount :
-                 PageAllocator::DefaultMaxFreePageCount))
+: pageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT, 0)
 , allocator(L"NativeCode", &pageAllocator, Js::Throw::OutOfMemory)
-, emitBufferManager(policyManager, &allocator, scriptContext, L"JIT code buffer", ALLOC_XDATA)
+, emitBufferManager(&allocator, scriptContext->GetThreadContext()->GetCodePageAllocators(), scriptContext, L"JIT code buffer")
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
 , canCreatePreReservedSegment(false)
-#endif
-#ifdef PERF_COUNTERS
-, staticNativeCodeData(0)
 #endif
 {
 }
 
 CodeGenAllocators::~CodeGenAllocators()
 {
-    PERF_COUNTER_SUB(Code, StaticNativeCodeDataSize, staticNativeCodeData);
-    PERF_COUNTER_SUB(Code, TotalNativeCodeDataSize, staticNativeCodeData);
 }
+
+#if DBG
+void
+CodeGenAllocators::ClearConcurrentThreadId()
+{    
+    this->pageAllocator.ClearConcurrentThreadId();
+}
+#endif

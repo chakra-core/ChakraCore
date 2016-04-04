@@ -5895,7 +5895,7 @@ CommonNumber:
                             requestContext->RegisterConstructorCache(typeHandler->GetPropertyId(requestContext, pi), constructorCache);
                         }
 
-                        Assert(constructorBody->GetUtf8SourceInfo()->GetIsLibraryCode() || !constructor->GetScriptContext()->IsInDebugMode());
+                        Assert(constructorBody->GetUtf8SourceInfo()->GetIsLibraryCode() || !constructor->GetScriptContext()->IsScriptContextInDebugMode());
 
                         if (constructorCache->TryUpdateAfterConstructor(type, constructor->GetScriptContext()))
                         {
@@ -10129,6 +10129,7 @@ CommonNumber:
 
     bool JavascriptOperators::IteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, Var* resultValue)
     {
+        // CONSIDER: Fast-pathing for iterators that are built-ins?
         RecyclableObject* result = JavascriptOperators::IteratorNext(iterator, scriptContext);
 
         if (!JavascriptOperators::IteratorComplete(result, scriptContext))

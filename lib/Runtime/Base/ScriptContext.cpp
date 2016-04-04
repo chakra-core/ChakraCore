@@ -659,7 +659,7 @@ namespace Js
                 // because otherwise ETW events might not get fired if a GC doesn't happen
                 // and the thread context isn't shut down cleanly (process detach case)
                 this->MapFunction([this](Js::FunctionBody* functionBody) {
-                    Assert(functionBody->GetScriptContext() == this);
+                    Assert(functionBody->GetScriptContext() == nullptr || functionBody->GetScriptContext() == this);
                     functionBody->Cleanup(/* isScriptContextClosing */ true);
                 });
             }
@@ -1251,13 +1251,13 @@ namespace Js
         }
 
 #if DYNAMIC_INTERPRETER_THUNK
-        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, this->GetThreadContext()->GetAllocationPolicyManager(),
-            SourceCodeAllocator(), Js::InterpreterStackFrame::InterpreterThunk);
+        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(), 
+            Js::InterpreterStackFrame::InterpreterThunk);
 #endif
 
 #ifdef ASMJS_PLAT
-        asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, this->GetThreadContext()->GetAllocationPolicyManager(),
-            SourceCodeAllocator(), Js::InterpreterStackFrame::InterpreterAsmThunk);
+        asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
+            Js::InterpreterStackFrame::InterpreterAsmThunk);
 #endif
 
         JS_ETW(EtwTrace::LogScriptContextLoadEvent(this));
@@ -1674,7 +1674,10 @@ namespace Js
         LPUTF8 utf8Script = nullptr;
         size_t length = cb;
         size_t cbNeeded = 0;
-        if((loadScriptFlag & LoadScriptFlag_Utf8Source) != LoadScriptFlag_Utf8Source)
+
+        bool isLibraryCode = ((loadScriptFlag & LoadScriptFlag_LibraryCode) == LoadScriptFlag_LibraryCode);
+
+        if ((loadScriptFlag & LoadScriptFlag_Utf8Source) != LoadScriptFlag_Utf8Source)
         {
             // Convert to UTF8 and then load that
             length = cb / sizeof(wchar_t);
@@ -1707,14 +1710,14 @@ namespace Js
 
             // Free unused bytes
             Assert(cbNeeded + 1 <= cbUtf8Buffer);
-            *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo);
+            *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo, isLibraryCode);
         }
         else
         {
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             if(*ppSourceInfo == nullptr)
             {
-                *ppSourceInfo = Utf8SourceInfo::New(this, script, parser->GetSourceIchLim(), cb, pSrcInfo);
+                *ppSourceInfo = Utf8SourceInfo::New(this, script, parser->GetSourceIchLim(), cb, pSrcInfo, isLibraryCode);
             }
         }
         //
@@ -1756,10 +1759,9 @@ namespace Js
             grfscr |= fscrIsModuleCode;
         }
 
-        if((loadScriptFlag & LoadScriptFlag_LibraryCode) == LoadScriptFlag_LibraryCode)
+        if (isLibraryCode)
         {
             grfscr |= fscrIsLibraryCode;
-            (*ppSourceInfo)->SetIsLibraryCode();
         }
 
         ParseNodePtr parseTree;
@@ -2040,7 +2042,8 @@ namespace Js
     uint ScriptContext::SaveSourceNoCopy(Utf8SourceInfo* sourceInfo, int cchLength, bool isCesu8)
     {
         Assert(sourceInfo->GetScriptContext() == this);
-        if (this->IsInDebugMode() && sourceInfo->debugModeSource == nullptr && !sourceInfo->debugModeSourceIsEmpty)
+
+        if (this->IsScriptContextInDebugMode() && !sourceInfo->GetIsLibraryCode() && !sourceInfo->IsInDebugMode())
         {
             sourceInfo->SetInDebugMode(true);
         }
@@ -2900,7 +2903,7 @@ namespace Js
             this->globalObject->EvalHelper = &Js::GlobalObject::DefaultEvalHelper;
 
             // In Debug mode/Fast F12 library is still needed for built-in wrappers.
-            if (!(this->IsInDebugMode() && this->IsExceptionWrapperForBuiltInsEnabled()))
+            if (!(this->IsScriptContextInDebugMode() && this->IsExceptionWrapperForBuiltInsEnabled()))
             {
                 this->javascriptLibrary->SetProfileMode(FALSE);
             }
@@ -3004,12 +3007,12 @@ namespace Js
         }
 
         bool shouldPerformSourceRundown = false;
-        if (this->IsInNonDebugMode())
+        if (this->IsScriptContextInNonDebugMode())
         {
             // Today we do source rundown as a part of attach to support VS attaching without
             // first calling PerformSourceRundown.  PerformSourceRundown will be called once
             // by debugger host prior to attaching.
-            this->GetDebugContext()->SetInSourceRundownMode();
+            this->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::SourceRundown);
 
             // Need to perform rundown only once.
             shouldPerformSourceRundown = true;
@@ -3118,7 +3121,7 @@ namespace Js
         if (SUCCEEDED(hr))
         {
             // Move the debugger into source rundown mode.
-            this->GetDebugContext()->SetInSourceRundownMode();
+            this->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::SourceRundown);
 
             // Disable QC while functions are re-parsed as this can be time consuming
             AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
@@ -3207,7 +3210,7 @@ namespace Js
             {
                 // We need to transition to debug mode after the NativeCodeGenerator is cleared/closed. Since the NativeCodeGenerator will be working on a different thread - it may
                 // be checking on the DebuggerState (from ScriptContext) while emitting code.
-                this->GetDebugContext()->SetInDebugMode();
+                this->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
 #if ENABLE_NATIVE_CODEGEN
                 UpdateNativeCodeGeneratorForDebugMode(this->nativeCodeGen);
 #endif
@@ -3215,7 +3218,7 @@ namespace Js
         }
         else if (attach)
         {
-            this->GetDebugContext()->SetInDebugMode();
+            this->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
         }
 
         BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
@@ -3223,11 +3226,13 @@ namespace Js
             // Remap all the function entry point thunks.
             this->sourceList->Map([=](uint i, RecyclerWeakReference<Js::Utf8SourceInfo>* sourceInfoWeakRef) {
                 Js::Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
-                if (sourceInfo) {
-                    sourceInfo->SetInDebugMode(attach);
 
+                if (sourceInfo != nullptr)
+                {
                     if (!sourceInfo->GetIsLibraryCode())
                     {
+                        sourceInfo->SetInDebugMode(attach);
+
                         sourceInfo->MapFunction([](Js::FunctionBody* functionBody) {
                             functionBody->SetEntryToDeferParseForDebugger();
                         });
@@ -3239,7 +3244,6 @@ namespace Js
                         });
                     }
                 }
-
             });
         }
         END_TRANSLATE_OOM_TO_HRESULT(hr);
@@ -3370,7 +3374,8 @@ namespace Js
 #ifdef ASMJS_PLAT
     void ScriptContext::TransitionEnvironmentForDebugger(ScriptFunction * scriptFunction)
     {
-        if (scriptFunction->GetScriptContext()->IsInDebugMode() &&
+        if (scriptFunction->GetScriptContext()->IsScriptContextInDebugMode() &&
+            scriptFunction->GetFunctionBody()->IsInDebugMode() &&
             scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo() != nullptr &&
             scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo()->GetModuleFunctionBody() != nullptr)
         {
@@ -3423,7 +3428,7 @@ namespace Js
             // Replace entry points for built-ins/external/winrt functions so that we can wrap them with try-catch for "continue after exception".
             if (!pFunction->IsScriptFunction() && IsExceptionWrapperForBuiltInsEnabled(scriptContext))
             {
-                if (scriptContext->IsInDebugMode())
+                if (scriptContext->IsScriptContextInDebugMode())
                 {
                     // We are attaching.
                     // For built-ins, WinRT and DOM functions which are already in recycler, change entry points to route to debug/profile thunk.
@@ -3468,14 +3473,11 @@ namespace Js
         FunctionBody * pBody = proxy->GetFunctionBody();
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        if (scriptContext->IsInDebugMode())
+        if (scriptContext->IsScriptContextInDebugMode() && !proxy->GetUtf8SourceInfo()->GetIsLibraryCode() && !pBody->IsInDebugMode())
         {
-            if (!(proxy->GetUtf8SourceInfo()->GetIsLibraryCode() || pBody->IsByteCodeDebugMode()))
-            {
                 // Identifying if any function escaped for not being in debug mode. (This can be removed as a part of TFS : 935011)
                 Throw::FatalInternalError();
             }
-        }
 #endif
 
         ScriptFunction * scriptFunction = ScriptFunction::FromVar(pFunction);
@@ -3789,7 +3791,7 @@ namespace Js
     bool ScriptContext::IsForceNoNative()
     {
         bool forceNoNative = false;
-        if (!this->IsInNonDebugMode())
+        if (this->IsScriptContextInSourceRundownOrDebugMode())
         {
             forceNoNative = this->IsInterpreted();
         }
@@ -3803,10 +3805,10 @@ namespace Js
 
     void ScriptContext::InitializeDebugging()
     {
-        if (!this->IsInDebugMode()) // If we already in debug mode, we would have done below changes already.
+        if (!this->IsScriptContextInDebugMode()) // If we already in debug mode, we would have done below changes already.
         {
-            this->GetDebugContext()->SetInDebugMode();
-            if (this->IsInDebugMode())
+            this->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
+            if (this->IsScriptContextInDebugMode())
             {
                 // Note: for this we need final IsInDebugMode and NativeCodeGen initialized,
                 //       and inside EnsureScriptContext, which seems appropriate as well,
@@ -3927,7 +3929,7 @@ namespace Js
             // No need to wrap script functions, also can't if the wrapper is already on the stack.
             // Treat "library code" script functions, such as Intl, as built-ins:
             // use the wrapper when calling them, and do not reset the wrapper when calling them.
-            bool isDebugWrapperEnabled = scriptContext->IsInDebugMode() && IsExceptionWrapperForBuiltInsEnabled(scriptContext);
+            bool isDebugWrapperEnabled = scriptContext->IsScriptContextInDebugMode() && IsExceptionWrapperForBuiltInsEnabled(scriptContext);
             bool useDebugWrapper =
                 isDebugWrapperEnabled &&
                 function->IsLibraryCode() &&
@@ -3936,7 +3938,7 @@ namespace Js
             OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, L"DebugProfileProbeThunk: calling function: %s isWrapperRegistered=%d useDebugWrapper=%d\n",
                 function->GetFunctionInfo()->HasBody() ? function->GetFunctionBody()->GetDisplayName() : L"built-in/library", AutoRegisterIgnoreExceptionWrapper::IsRegistered(scriptContext->GetThreadContext()), useDebugWrapper);
 
-            if (scriptContext->IsInDebugMode())
+            if (scriptContext->IsScriptContextInDebugMode())
             {
                 scriptContext->GetDebugContext()->GetProbeContainer()->StartRecordingCall();
             }
@@ -4006,7 +4008,7 @@ namespace Js
                 scriptContext->GetThreadContext()->SetIsProfilingUserCode(isProfilingUserCode); // Restore IsProfilingUserCode state
             }
 
-            if (scriptContext->IsInDebugMode())
+            if (scriptContext->IsScriptContextInDebugMode())
             {
                 scriptContext->GetDebugContext()->GetProbeContainer()->EndRecordingCall(aReturn, function);
             }
@@ -4419,7 +4421,7 @@ namespace Js
         {
             // The eval map is not re-entrant, so make sure it's not in the middle of adding an entry
             // Also, don't clean the eval map if the debugger is attached
-            if (!this->IsInDebugMode())
+            if (!this->IsScriptContextInDebugMode())
             {
                 if (this->cache->evalCacheDictionary != nullptr)
                 {
@@ -4560,23 +4562,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #if ENABLE_NATIVE_CODEGEN
     BOOL ScriptContext::IsNativeAddress(void * codeAddr)
     {
-        PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = this->threadContext->GetPreReservedVirtualAllocator();
-        if (preReservedVirtualAllocWrapper->IsPreReservedRegionPresent())
-        {
-            if (preReservedVirtualAllocWrapper->IsInRange(codeAddr))
-            {
-                Assert(!this->IsDynamicInterpreterThunk(codeAddr));
-                return true;
-            }
-            else if (this->threadContext->IsAllJITCodeInPreReservedRegion())
-            {
-                return false;
-            }
-        }
-
-        // Try locally first and then all script context on the thread
-        //Slow path
-        return IsNativeFunctionAddr(this, codeAddr) || this->threadContext->IsNativeAddress(codeAddr);
+        return this->GetThreadContext()->IsNativeAddress(codeAddr);
     }
 #endif
 
@@ -4712,7 +4698,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 newDynamicProfileInfo = functionBody->AllocateDynamicProfile();
                 *dynamicProfileInfo = newDynamicProfileInfo;
             }
-            Assert(functionBody->interpretedCount == 0);
+            Assert(functionBody->GetInterpretedCount() == 0);
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
             if (profileInfoList)
             {
@@ -4794,7 +4780,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     BOOL ScriptContext::IsDynamicInterpreterThunk(void* address)
     {
-        return this->interpreterThunkEmitter->IsInRange(address);
+        return this->interpreterThunkEmitter->IsInHeap(address);
     }
 
     void ScriptContext::ReleaseDynamicInterpreterThunk(BYTE* address, bool addtoFreeList)
@@ -4999,7 +4985,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                     bool isNativeCode = false;
 
                     // Filtering interpreted count lowers a lot of noise
-                    if (body->interpretedCount > 1 || Js::Configuration::Global.flags.IsEnabled(Js::ForceFlag))
+                    if (body->GetInterpretedCount() > 1 || Js::Configuration::Global.flags.IsEnabled(Js::ForceFlag))
                     {
                         body->MapEntryPoints([&](uint entryPointIndex, FunctionEntryPointInfo* entryPoint)
                         {
@@ -5010,7 +4996,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                                 body->GetExternalDisplayName(),
                                 body->GetDebugNumberSet(debugStringBuffer),
                                 rejit,
-                                body->interpretedCount,
+                                body->GetInterpretedCount(),
                                 body->GetByteCodeInLoopCount(),
                                 body->GetByteCodeCount(),
                                 entryPoint->IsNativeCode() ? L"Jitted" : L"Interpreted",
@@ -5018,7 +5004,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                                 entryPoint->IsNativeCode() ? entryPoint->GetCodeSize() : 0);
                         });
                     }
-                    if (body->interpretedCount == 0)
+                    if (body->GetInterpretedCount() == 0)
                     {
                         zeroInterpretedFunctions++;
                         if (body->GetByteCodeCount() > 0)
@@ -5026,7 +5012,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                             nonZeroBytecodeFunctions++;
                         }
                     }
-                    else if (body->interpretedCount == 1)
+                    else if (body->GetInterpretedCount() == 1)
                     {
                         oneInterpretedFunctions++;
                     }
@@ -5034,7 +5020,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
                     // Generate a histogram using interpreted counts.
                     uint bucket;
-                    uint intrpCount = body->interpretedCount;
+                    uint intrpCount = body->GetInterpretedCount();
                     if (intrpCount < 100)
                     {
                         bucket = intrpCount / bucketSize1;
@@ -5430,38 +5416,29 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     }
 #endif
 
-    bool ScriptContext::IsInNonDebugMode() const
+    bool ScriptContext::IsScriptContextInNonDebugMode() const
     {
         if (this->debugContext != nullptr)
         {
-            return this->GetDebugContext()->IsInNonDebugMode();
+            return this->GetDebugContext()->IsDebugContextInNonDebugMode();
         }
         return true;
     }
 
-    bool ScriptContext::IsInSourceRundownMode() const
+    bool ScriptContext::IsScriptContextInDebugMode() const
     {
         if (this->debugContext != nullptr)
         {
-            return this->GetDebugContext()->IsInSourceRundownMode();
+            return this->GetDebugContext()->IsDebugContextInDebugMode();
         }
         return false;
     }
 
-    bool ScriptContext::IsInDebugMode() const
+    bool ScriptContext::IsScriptContextInSourceRundownOrDebugMode() const
     {
         if (this->debugContext != nullptr)
         {
-            return this->GetDebugContext()->IsInDebugMode();
-        }
-        return false;
-    }
-
-    bool ScriptContext::IsInDebugOrSourceRundownMode() const
-    {
-        if (this->debugContext != nullptr)
-        {
-            return this->GetDebugContext()->IsInDebugOrSourceRundownMode();
+            return this->GetDebugContext()->IsDebugContextInSourceRundownOrDebugMode();
         }
         return false;
     }

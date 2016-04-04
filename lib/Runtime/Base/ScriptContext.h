@@ -112,7 +112,7 @@ public:
     virtual Js::JavascriptError* CreateWinRTError(IErrorInfo* perrinfo, Js::RestrictedErrorStrings * proerrstr) = 0;
     virtual Js::JavascriptFunction* InitializeHostPromiseContinuationFunction() = 0;
 
-    virtual HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, Js::JavascriptString* specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
+    virtual HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
     virtual HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) = 0;
 
     Js::ScriptContext* GetScriptContext() { return scriptContext; }
@@ -434,10 +434,9 @@ namespace Js
         void SetIsDiagnosticsScriptContext(bool set) { this->isDiagnosticsScriptContext = set; }
         bool IsDiagnosticsScriptContext() const { return this->isDiagnosticsScriptContext; }
 
-        bool IsInNonDebugMode() const;
-        bool IsInSourceRundownMode() const;
-        bool IsInDebugMode() const;
-        bool IsInDebugOrSourceRundownMode() const;
+        bool IsScriptContextInNonDebugMode() const;
+        bool IsScriptContextInDebugMode() const;
+        bool IsScriptContextInSourceRundownOrDebugMode() const;
         bool IsRunningScript() const { return this->threadContext->GetScriptEntryExit() != nullptr; }
 
         typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::WeakRefFreeListedRemovePolicy> CalleeSourceList;
@@ -737,8 +736,9 @@ private:
 
         // DisableJIT-TODO: Switch this to Dynamic thunk ifdef instead
 #if ENABLE_NATIVE_CODEGEN
+#if DYNAMIC_INTERPRETER_THUNK
         InterpreterThunkEmitter* interpreterThunkEmitter;
-
+#endif
         BackgroundParser *backgroundParser;
 #ifdef ASMJS_PLAT
         InterpreterThunkEmitter* asmJsInterpreterThunkEmitter;

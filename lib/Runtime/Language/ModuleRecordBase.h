@@ -12,12 +12,12 @@ namespace Js
     public: 
         const unsigned long ModuleMagicNumber = *(const unsigned long*)"Mode";
         typedef SList<PropertyId> ExportedNames;
-        typedef JsUtil::BaseDictionary<ModuleRecordBase, PropertyId, ArenaAllocator, PrimeSizePolicy> ResolutionDictionary;
+        typedef JsUtil::BaseDictionary<ModuleRecordBase*, PropertyId, ArenaAllocator, PrimeSizePolicy> ResolutionDictionary;
         typedef SList<ModuleRecordBase*> ResolveSet;
         typedef struct ModuleNameRecord 
         {
             ModuleRecordBase* module;
-            LiteralString* bindingName;
+            PropertyId bindingName;
         };
 
         ModuleRecordBase(JavascriptLibrary* library) : 
@@ -31,7 +31,7 @@ namespace Js
 
         virtual ExportedNames* GetExportedNames(ResolveSet* exportStarSet) = 0;
         // return false when "ambiguous". otherwise exportRecord.
-        virtual bool ResolveExport(PropertyId exportName, ResolutionDictionary* resolveSet, ResolveSet* exportStarSet, ModuleNameRecord* exportRecord) = 0;
+        virtual bool ResolveExport(PropertyId exportName, ResolutionDictionary* resolveSet, ResolveSet* exportStarSet, ModuleNameRecord** exportRecord) = 0;
         virtual void ModuleDeclarationInstantiation() = 0;
         virtual Var ModuleEvaluation() = 0;
 

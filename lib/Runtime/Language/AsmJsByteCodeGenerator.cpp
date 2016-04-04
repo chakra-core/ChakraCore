@@ -195,7 +195,7 @@ namespace Js
             nbConst += (int)((mFunction->GetRegisterSpace<AsmJsSIMDValue>().GetConstCount() + 1) * SIMD_SLOTS_SPACE); // Return register is already reserved in the register space.
         }
 
-        byteCodeFunction->SetConstantCount(nbConst);
+        byteCodeFunction->CheckAndSetConstantCount(nbConst);
 
         // add 3 for each of I0, F0, and D0
         RegSlot regCount = mInfo->RegCount() + 3 + AsmJsFunctionMemory::RequiredVarConstants;
@@ -272,7 +272,6 @@ namespace Js
             autoCleanup.FinishCompilation();
 
             functionBody->SetInitialDefaultEntryPoint();
-            functionBody->SetIsByteCodeDebugMode( byteCodeGen->IsInDebugMode() );
 
 #if DBG_DUMP
             if( PHASE_DUMP( ByteCodePhase, mInfo->byteCodeFunction ) && Configuration::Global.flags.Verbose )
@@ -664,7 +663,8 @@ namespace Js
         {
             CheckNodeLocation( lhsEmit, int );
             CheckNodeLocation( rhsEmit, int );
-            auto opType = lType.isUnsigned() ? BMOT_UInt : BMOT_Int;
+            // because fixnum can be either signed or unsigned, use both lhs and rhs to infer sign
+            auto opType = (lType.isSigned() && rType.isSigned()) ? BMOT_Int : BMOT_UInt;
             if (op == BMO_REM || op == BMO_DIV)
             {
                 // div and rem must have explicit sign
@@ -2741,7 +2741,7 @@ namespace Js
         const EmitExpressionInfo& rhsEmit = Emit( rhs );
         const AsmJsType& rType = rhsEmit.type;
         StartStatement(pnode);
-        EmitExpressionInfo emitInfo( AsmJsType::Signed );
+        EmitExpressionInfo emitInfo( AsmJsType::Int );
         if( rType.isInt() )
         {
             CheckNodeLocation( rhsEmit, int );

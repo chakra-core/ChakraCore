@@ -71,12 +71,12 @@ class ObjTypeGuardBucket
 {
 private:
     BVSparse<JitArenaAllocator>* guardedPropertyOps;
-    bool needsMonoCheck;
+    Js::Type *                   monoGuardType;
 
 public:
-    ObjTypeGuardBucket() : guardedPropertyOps(nullptr), needsMonoCheck(false) {}
+    ObjTypeGuardBucket() : guardedPropertyOps(nullptr), monoGuardType(nullptr) {}
 
-    ObjTypeGuardBucket(BVSparse<JitArenaAllocator>* guardedPropertyOps) : needsMonoCheck(false)
+    ObjTypeGuardBucket(BVSparse<JitArenaAllocator>* guardedPropertyOps) : monoGuardType(nullptr)
     {
         this->guardedPropertyOps = (guardedPropertyOps != nullptr ? guardedPropertyOps->CopyNew() : nullptr);
     }
@@ -84,15 +84,16 @@ public:
     void Copy(ObjTypeGuardBucket *pNew) const
     {
         pNew->guardedPropertyOps = this->guardedPropertyOps ? this->guardedPropertyOps->CopyNew() : nullptr;
-        pNew->needsMonoCheck = this->needsMonoCheck;
+        pNew->monoGuardType = this->monoGuardType;
     }
 
     BVSparse<JitArenaAllocator> *GetGuardedPropertyOps() const  { return this->guardedPropertyOps; }
     void SetGuardedPropertyOps(BVSparse<JitArenaAllocator> *guardedPropertyOps) { this->guardedPropertyOps = guardedPropertyOps; }
     void AddToGuardedPropertyOps(uint propertyOpId) { Assert(this->guardedPropertyOps != nullptr); this->guardedPropertyOps->Set(propertyOpId); }
 
-    bool NeedsMonoCheck() const { return this->needsMonoCheck; }
-    void SetNeedsMonoCheck(bool value) { this->needsMonoCheck = value; }
+    bool NeedsMonoCheck() const { return this->monoGuardType != nullptr; }
+    void SetMonoGuardType(Js::Type *type) { this->monoGuardType = type; }
+    Js::Type * GetMonoGuardType() const { return this->monoGuardType; }
 
 #if DBG_DUMP
     void Dump() const;

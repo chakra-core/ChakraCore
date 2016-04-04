@@ -40,6 +40,7 @@ namespace Js
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionBody* functionBodyImpl = NULL);
 
         static DWORD GetFunctionBodyImplOffset() { return offsetof(FunctionInfo, functionBodyImpl); }
+        static DWORD GetAttributesOffset() { return offsetof(FunctionInfo, attributes); }
 
         void VerifyOriginalEntryPoint() const;
         JavascriptMethod GetOriginalEntryPoint() const;

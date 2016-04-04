@@ -767,6 +767,16 @@
 
 #define PROCESS_GET_ELEM_LOCALSLOTNonVar(name, func, layout) PROCESS_GET_ELEM_LOCALSLOTNonVar_COMMON(name, func, layout,)
 
+#define PROCESS_GET_ELEM_PARAMSLOTNonVar_COMMON(name, func, layout, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, layout, suffix); \
+        SetNonVarReg(playout->Value, func((Var*)GetParamClosure(), playout)); \
+        break; \
+    }
+
+#define PROCESS_GET_ELEM_PARAMSLOTNonVar(name, func, layout) PROCESS_GET_ELEM_PARAMSLOTNonVar_COMMON(name, func, layout,)
+
 #define PROCESS_GET_ELEM_INNERSLOTNonVar_COMMON(name, func, layout, suffix) \
     case OpCode::name: \
     { \
@@ -946,7 +956,7 @@ namespace Js
 
     Var InterpreterStackFrame::InnerScopeFromRegSlot(RegSlot reg) const
     {
-        return InnerScopeFromIndex(reg - m_functionBody->FirstInnerScopeReg());
+        return InnerScopeFromIndex(reg - m_functionBody->GetFirstInnerScopeRegister());
     }
 
     Var InterpreterStackFrame::InnerScopeFromIndex(uint32 index) const
@@ -1010,7 +1020,7 @@ namespace Js
         }
 #endif
 
-        this->varAllocCount = k_stackFrameVarCount + localCount + this->executeFunction->GetOutParamsDepth() + extraVarCount + this->executeFunction->GetInnerScopeCount();
+        this->varAllocCount = k_stackFrameVarCount + localCount + this->executeFunction->GetOutParamMaxDepth() + extraVarCount + this->executeFunction->GetInnerScopeCount();
 
         if (this->executeFunction->DoStackNestedFunc() && this->executeFunction->GetNestedCount() != 0)
         {
@@ -1071,6 +1081,7 @@ namespace Js
         newInstance->currentLoopCounter = 0;
         newInstance->m_flags        = InterpreterStackFrameFlags_None;
         newInstance->closureInitDone = false;
+        newInstance->isParamScopeDone = false;
 #if ENABLE_PROFILE_INFO
         newInstance->switchProfileMode = false;
         newInstance->isAutoProfiling = false;
@@ -1083,6 +1094,7 @@ namespace Js
         newInstance->retOffset = 0;
         newInstance->localFrameDisplay = nullptr;
         newInstance->localClosure = nullptr;
+        newInstance->paramClosure = nullptr;
         newInstance->innerScopeArray = nullptr;
 
         bool doInterruptProbe = newInstance->scriptContext->GetThreadContext()->DoInterruptProbe(this->executeFunction);
@@ -1091,7 +1103,7 @@ namespace Js
             !this->executeFunction->GetScriptContext()->GetConfig()->IsNoNative() &&
             !(this->executeFunction->GetHasTry() && (PHASE_OFF((Js::JITLoopBodyInTryCatchPhase), this->executeFunction) || this->executeFunction->GetHasFinally())) &&
             (this->executeFunction->ForceJITLoopBody() || this->executeFunction->IsJitLoopBodyPhaseEnabled()) &&
-            !this->executeFunction->GetScriptContext()->IsInDebugMode();
+            !this->executeFunction->IsInDebugMode();
 #else
         const bool doJITLoopBody = false;
 #endif
@@ -1140,7 +1152,7 @@ namespace Js
         // the savedLoopImplicitCallFlags is allocated at the end of the out param array
         newInstance->savedLoopImplicitCallFlags = nullptr;
 #endif
-        char * nextAllocBytes = (char *)(newInstance->m_outParams + this->executeFunction->GetOutParamsDepth());
+        char * nextAllocBytes = (char *)(newInstance->m_outParams + this->executeFunction->GetOutParamMaxDepth());
 
         if (this->executeFunction->GetInnerScopeCount())
         {
@@ -1176,7 +1188,7 @@ namespace Js
         if (Js::DynamicProfileInfo::EnableImplicitCallFlags(this->executeFunction))
         {
             /*
-            __analysis_assume(varAllocCount == (k_stackFrameVarCount + localCount + executeFunction->GetOutParamsDepth()
+            __analysis_assume(varAllocCount == (k_stackFrameVarCount + localCount + executeFunction->GetOutParamMaxDepth()
                                                 + ((sizeof(ImplicitCallFlags) * executeFunction->GetLoopCount() + sizeof(Var) - 1) / sizeof(Var))));
            */
             newInstance->savedLoopImplicitCallFlags = (ImplicitCallFlags *)nextAllocBytes;
@@ -1203,7 +1215,7 @@ namespace Js
             memset(newInstance->m_localSlots, 0, sizeof(Js::Var) * localCount);
         }
 #else
-        if (newInstance->scriptContext->IsInDebugMode())
+        if (newInstance->m_functionBody->IsInDebugMode())
         {
             // In the debug mode zero out the local slot, so this could prevent locals being uninitialized in the case of setNextStatement.
             memset(newInstance->m_localSlots, 0, sizeof(Js::Var) * localCount);
@@ -1221,12 +1233,12 @@ namespace Js
         // That way we avoid trying to box these structures before they've been initialized in the byte code.
         if (this->executeFunction->DoStackFrameDisplay())
         {
-            newInstance->SetNonVarReg(executeFunction->GetLocalFrameDisplayReg(), nullptr);
+            newInstance->SetNonVarReg(executeFunction->GetLocalFrameDisplayRegister(), nullptr);
         }
         if (this->executeFunction->DoStackScopeSlots())
         {
             Assert(!executeFunction->HasScopeObject());
-            newInstance->SetNonVarReg(executeFunction->GetLocalClosureReg(), nullptr);
+            newInstance->SetNonVarReg(executeFunction->GetLocalClosureRegister(), nullptr);
         }
 
         Var *prestDest = &newInstance->m_localSlots[this->executeFunction->GetConstantCount()];
@@ -1259,10 +1271,10 @@ namespace Js
             InitializeRestParam(newInstance, prestDest);
         }
 
-        Js::RegSlot envReg = executeFunction->GetEnvReg();
+        Js::RegSlot envReg = executeFunction->GetEnvRegister();
         if (envReg != Js::Constants::NoRegister && envReg < executeFunction->GetConstantCount())
         {
-            Assert(this->executeFunction->GetThisRegForEventHandler() == Constants::NoRegister);
+            Assert(this->executeFunction->GetThisRegisterForEventHandler() == Constants::NoRegister);
             // The correct FD (possibly distinct from the one on the function) is passed in the constant table.
             this->function->SetEnvironment((Js::FrameDisplay*)newInstance->GetNonVarReg(envReg));
         }
@@ -1362,7 +1374,12 @@ namespace Js
         FunctionBody *executeFunction = this->function->GetFunctionBody();
         Var environment;
 
-        RegSlot thisRegForEventHandler = executeFunction->GetThisRegForEventHandler();
+        if (executeFunction->IsParamAndBodyScopeMerged())
+        {
+            this->SetIsParamScopeDone(true);
+        }
+
+        RegSlot thisRegForEventHandler = executeFunction->GetThisRegisterForEventHandler();
         if (thisRegForEventHandler != Constants::NoRegister)
         {
             Var varThis = OP_ArgIn0();
@@ -1370,18 +1387,25 @@ namespace Js
             environment = JavascriptOperators::OP_LdHandlerScope(varThis, GetScriptContext());
             this->SetEnv((FrameDisplay*)environment);
         }
+        else if (this->paramClosure != nullptr)
+        {
+            // When paramClosure is non-null we are calling this method to initialize the closure for body scope.
+            // In this case we have to use the param scope's closure as the parent for the body scope's frame display.
+            Assert(!executeFunction->IsParamAndBodyScopeMerged());
+            environment = this->GetLocalFrameDisplay();
+        }
         else
         {
             environment = this->LdEnv();
         }
 
-        RegSlot closureReg = executeFunction->GetLocalClosureReg();
+        RegSlot closureReg = executeFunction->GetLocalClosureRegister();
         if (closureReg != Js::Constants::NoRegister)
         {
             Assert(closureReg >= executeFunction->GetConstantCount());
             if (executeFunction->HasScopeObject())
             {
-                Js::RegSlot funcExprScopeReg = executeFunction->GetFuncExprScopeReg();
+                Js::RegSlot funcExprScopeReg = executeFunction->GetFuncExprScopeRegister();
                 if (funcExprScopeReg != Constants::NoRegister)
                 {
                     // t0 = NewPseudoScope
@@ -1401,7 +1425,7 @@ namespace Js
             this->SetNonVarReg(closureReg, nullptr);
         }
 
-        Js::RegSlot frameDisplayReg = executeFunction->GetLocalFrameDisplayReg();
+        Js::RegSlot frameDisplayReg = executeFunction->GetLocalFrameDisplayRegister();
         if (frameDisplayReg != Js::Constants::NoRegister && closureReg != Js::Constants::NoRegister)
         {
             Assert(frameDisplayReg >= executeFunction->GetConstantCount());
@@ -1688,11 +1712,11 @@ namespace Js
 
         FunctionBody* executeFunction = JavascriptFunction::FromVar(function)->GetFunctionBody();
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        if (!isAsmJs && executeFunction->IsByteCodeDebugMode() != functionScriptContext->IsInDebugMode()) // debug mode mismatch
+        if (!isAsmJs && executeFunction->IsInDebugMode() != functionScriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
         {
             if (executeFunction->GetUtf8SourceInfo()->GetIsLibraryCode())
             {
-                Assert(!executeFunction->IsByteCodeDebugMode()); // Library script byteCode is never in debug mode
+                Assert(!executeFunction->IsInDebugMode()); // Library script byteCode is never in debug mode
             }
             else
             {
@@ -1701,7 +1725,7 @@ namespace Js
         }
 #endif
 
-        if (executeFunction->interpretedCount == 0)
+        if (executeFunction->GetInterpretedCount() == 0)
         {
             executeFunction->TraceInterpreterExecutionMode();
         }
@@ -1733,7 +1757,7 @@ namespace Js
 #if ENABLE_PROFILE_INFO
         DynamicProfileInfo * dynamicProfileInfo = nullptr;
         const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
-                               functionScriptContext->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction);
+                               executeFunction->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction);
         if (doProfile)
         {
 #if !DYNAMIC_INTERPRETER_THUNK
@@ -1746,10 +1770,10 @@ namespace Js
         const bool doProfile = false;
 #endif
 
-        executeFunction->interpretedCount++;
+        executeFunction->IncreaseInterpretedCount();
 #ifdef BGJIT_STATS
         functionScriptContext->interpretedCount++;
-        functionScriptContext->maxFuncInterpret = max(functionScriptContext->maxFuncInterpret, executeFunction->interpretedCount);
+        functionScriptContext->maxFuncInterpret = max(functionScriptContext->maxFuncInterpret, executeFunction->GetInterpretedCount());
 #endif
 
         AssertMsg(!executeFunction->IsDeferredParseFunction(),
@@ -1899,7 +1923,7 @@ namespace Js
         Var aReturn = nullptr;
 
         {
-            if (!isAsmJs && functionScriptContext->IsInDebugMode())
+            if (!isAsmJs && executeFunction->IsInDebugMode())
             {
 #if DYNAMIC_INTERPRETER_THUNK
                 PushPopFrameHelper pushPopFrameHelper(newInstance, returnAddress, addressOfReturnAddress);
@@ -2173,7 +2197,7 @@ namespace Js
         m_outParams = (Var*)*m_outSp;
 
         AssertMsg(m_localSlots + this->m_functionBody->GetLocalsCount() <= m_outSp &&
-                  m_outSp < (m_localSlots + this->m_functionBody->GetLocalsCount() + this->m_functionBody->GetOutParamsDepth()),
+                  m_outSp < (m_localSlots + this->m_functionBody->GetLocalsCount() + this->m_functionBody->GetOutParamMaxDepth()),
                   "out args Stack pointer not in range after Pop");
     }
 
@@ -2667,7 +2691,7 @@ namespace Js
         ScriptFunction::ReparseAsmJsModule(&funcObj);
         const bool doProfile =
             funcObj->GetFunctionBody()->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
-            GetScriptContext()->IsInDebugMode() && DynamicProfileInfo::IsEnabled(funcObj->GetFunctionBody());
+            funcObj->GetFunctionBody()->IsInDebugMode() && DynamicProfileInfo::IsEnabled(funcObj->GetFunctionBody());
 
         DynamicProfileInfo * dynamicProfileInfo = nullptr;
         if (doProfile)
@@ -3480,7 +3504,7 @@ namespace Js
         m_outSp += outParamCount;
 
         AssertMsg(m_localSlots + this->m_functionBody->GetLocalsCount() < m_outSp &&
-            m_outSp <= (m_localSlots + this->m_functionBody->GetLocalsCount() + this->m_functionBody->GetOutParamsDepth()),
+            m_outSp <= (m_localSlots + this->m_functionBody->GetLocalsCount() + this->m_functionBody->GetOutParamMaxDepth()),
             "out args Stack pointer not in range after Push");
 
     }
@@ -3677,7 +3701,7 @@ namespace Js
         Js::ImplicitCallFlags savedImplicitCallFlags = threadContext->GetImplicitCallFlags();
 
 #if DBG
-        if (scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             JavascriptFunction::CheckValidDebugThunk(scriptContext, function);
         }
@@ -5760,14 +5784,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             entryPointInfo->EnsureIsReadyToCall();
 
-            RegSlot envReg = this->m_functionBody->GetEnvReg();
+            RegSlot envReg = this->m_functionBody->GetEnvRegister();
             if (envReg != Constants::NoRegister)
             {
                 this->SetNonVarReg(envReg, this->LdEnv());
             }
 
-            RegSlot localClosureReg = this->m_functionBody->GetLocalClosureReg();
-            RegSlot localFrameDisplayReg = this->m_functionBody->GetLocalFrameDisplayReg();
+            RegSlot localClosureReg = this->m_functionBody->GetLocalClosureRegister();
+            RegSlot localFrameDisplayReg = this->m_functionBody->GetLocalFrameDisplayRegister();
 
             if (entryPointInfo->HasJittedStackClosure())
             {
@@ -5804,7 +5828,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             {
                 // As with the function-level scope, transfer the inner scopes from the interpreter's side storage
                 // to their dedicated register slots.
-                SetNonVarReg(this->m_functionBody->FirstInnerScopeReg() + i, InnerScopeFromIndex(i));
+                SetNonVarReg(this->m_functionBody->GetFirstInnerScopeRegister() + i, InnerScopeFromIndex(i));
             }
 
             uint newOffset = 0;
@@ -5839,7 +5863,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 // Get the (possibly updated) scopes from their registers and put them back in side storage.
                 // (Getting the updated values may not be necessary, actually, but it can't hurt.)
                 // Then null out the registers.
-                RegSlot reg = this->m_functionBody->FirstInnerScopeReg() + i;
+                RegSlot reg = this->m_functionBody->GetFirstInnerScopeRegister() + i;
                 SetInnerScopeFromIndex(i, GetNonVarReg(reg));
                 SetNonVarReg(reg, nullptr);
             }
@@ -6332,7 +6356,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
 
-            if (scriptContext->IsInDebugMode())
+            if (this->IsInDebugMode())
             {
                 this->ProcessWithDebugging();
                 this->TrySetRetOffset();
@@ -6415,7 +6439,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
 #endif
 
-        if (this->scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             this->DebugProcess();
         }
@@ -6432,7 +6456,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
 
         int newOffset = 0;
-        if (scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->DebugProcess());
         }
@@ -6469,7 +6493,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
                 Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
 
-                if (scriptContext->IsInDebugMode())
+                if (this->IsInDebugMode())
                 {
                     this->ProcessWithDebugging();
                     this->TrySetRetOffset();
@@ -6579,11 +6603,30 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                (this->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock);
     }
 
+    void InterpreterStackFrame::OP_BeginBodyScope()
+    {
+        // Currently we are using the closures created for the param scope.
+        // This marks the beginning of the body scope, so let's create new closures for the body scope.
+        FunctionBody *executeFunction = this->function->GetFunctionBody();
+        Assert(!this->IsParamScopeDone() && !executeFunction->IsParamAndBodyScopeMerged());
+
+        // Save the current closure. We have to use this while copying the initial value of body symbols
+        // from the corresponding symbols in the param.
+        this->SetParamClosure(this->GetLocalClosure());
+
+        this->SetIsParamScopeDone(true);
+
+        if (executeFunction->scopeSlotArraySize > 0)
+        {
+            this->InitializeClosures();
+        }
+    }
+
     void InterpreterStackFrame::OP_ResumeCatch()
     {
         this->m_flags |= InterpreterStackFrameFlags_WithinCatchBlock;
 
-        if (scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             this->DebugProcess();
         }
@@ -6615,7 +6658,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             // mark the stackFrame as 'in try block'
             this->m_flags |= InterpreterStackFrameFlags_WithinTryBlock;
 
-            if (scriptContext->IsInDebugMode())
+            if (this->IsInDebugMode())
             {
                 result = this->ProcessWithDebugging();
             }
@@ -6665,7 +6708,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
         }
 
-        if (pExceptionObject && scriptContext->IsInDebugMode() &&
+        if (pExceptionObject && this->IsInDebugMode() &&
             pExceptionObject != scriptContext->GetThreadContext()->GetPendingSOErrorObject())
         {
             // Swallowing an exception that has triggered a finally is not implemented
@@ -6716,7 +6759,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
 
         int newOffset = 0;
-        if (scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->DebugProcess());
         }
@@ -6880,11 +6923,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         bool strict = this->m_functionBody->GetIsStrictMode();
 
         Var argEnv = nullptr;
-        if (innerFD && this->m_functionBody->GetLocalFrameDisplayReg() != Constants::NoRegister)
+        if (innerFD && this->m_functionBody->GetLocalFrameDisplayRegister() != Constants::NoRegister)
         {
             argEnv = this->GetLocalFrameDisplay();
         }
-        if (argEnv == nullptr && this->m_functionBody->GetEnvReg() != Constants::NoRegister)
+        if (argEnv == nullptr && this->m_functionBody->GetEnvRegister() != Constants::NoRegister)
         {
             argEnv = this->LdEnv();
         }
@@ -6943,6 +6986,16 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->localClosure = closure;
     }
 
+    Var InterpreterStackFrame::GetParamClosure() const
+    {
+        return this->paramClosure;
+    }
+
+    void InterpreterStackFrame::SetParamClosure(Var closure)
+    {
+        this->paramClosure = closure;
+    }
+
     void
     InterpreterStackFrame::OP_NewInnerScopeSlots(uint innerScopeIndex, uint count, int scopeIndex, ScriptContext *scriptContext, FunctionBody *functionBody)
     {
@@ -6990,7 +7043,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         Var * slotArray;
         FunctionBody * functionBody = this->m_functionBody;
-        uint scopeSlotCount = functionBody->scopeSlotArraySize;
+        uint scopeSlotCount = this->IsParamScopeDone() ? functionBody->scopeSlotArraySize : functionBody->paramScopeSlotArraySize;
         Assert(scopeSlotCount != 0);
 
         if (!functionBody->DoStackScopeSlots())
@@ -7598,7 +7651,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_ArgOut_Env(const unaligned T * playout)
     {
         Var argEnv;
-        if (this->m_functionBody->GetLocalFrameDisplayReg() != Constants::NoRegister)
+        if (this->m_functionBody->GetLocalFrameDisplayRegister() != Constants::NoRegister)
         {
             argEnv = this->GetLocalFrameDisplay();
         }

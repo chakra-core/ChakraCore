@@ -97,10 +97,10 @@ namespace Js
         JavascriptSIMDBool32x4 *instance = JavascriptSIMDBool32x4::FromVar(args[0]);
         Assert(instance);
 
-        wchar_t stringBuffer[1024];
+        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
         SIMDValue value = instance->GetValue();
 
-        swprintf_s(stringBuffer, 1024, L"SIMD.Bool32x4(%s, %s, %s, %s)", value.i32[SIMD_X] ? L"true" : L"false", value.i32[SIMD_Y] ? L"true" : L"false", value.i32[SIMD_Z] ? L"true" : L"false", value.i32[SIMD_W] ? L"true" : L"false");
+        JavascriptSIMDBool32x4::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX);
 
         JavascriptString* string = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
 

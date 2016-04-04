@@ -7673,7 +7673,7 @@ LowererMD::LowerCommitScope(IR::Instr *instrCommit)
     LowererMD::ChangeToAssign(instrCommit);
 
     IR::IntConstOpnd *intConstOpnd = instrCommit->UnlinkSrc2()->AsIntConstOpnd();
-    const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArray(intConstOpnd->GetValue(), instrCommit->m_func->GetJnFunction());
+    const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArrayWithLock(intConstOpnd->GetValue(), instrCommit->m_func->GetJnFunction());
     intConstOpnd->Free(this->m_func);
 
     uint firstVarSlot = (uint)Js::ActivationObjectEx::GetFirstVarSlot(propIds);

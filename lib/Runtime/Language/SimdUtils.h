@@ -16,18 +16,22 @@
 #define INT32_SIZE   4
 #define INT16_SIZE   2
 #define INT8_SIZE    1
+#define SIMD_INDEX_VALUE_MAX     5
+#define SIMD_STRING_BUFFER_MAX   1024
+#define SIMD_DATA     \
+    int32   i32[4];\
+    int16   i16[8];\
+    int8    i8[16];\
+    uint32  u32[4];\
+    uint16  u16[8];\
+    uint8   u8[16];\
+    float   f32[4];\
+    double  f64[2];
 
 struct _SIMDValue
 {
     union{
-        int32   i32[4];
-        int16   i16[8];
-        int8    i8[16];
-        uint32  u32[4];
-        uint16  u16[8];
-        uint8   u8[16];
-        float   f32[4];
-        double  f64[2];
+        SIMD_DATA
     };
 
     void SetValue(_SIMDValue value)
@@ -76,7 +80,7 @@ struct DefaultComparer<_SIMDValue>
 struct _x86_SIMDValue
 {
     union{
-        _SIMDValue simdValue;
+        SIMD_DATA
         __m128  m128_value;
         __m128d m128d_value;
         __m128i m128i_value;
@@ -85,20 +89,20 @@ struct _x86_SIMDValue
     static _x86_SIMDValue ToX86SIMDValue(const SIMDValue& val)
     {
         _x86_SIMDValue result;
-        result.simdValue.i32[SIMD_X] = val.i32[SIMD_X];
-        result.simdValue.i32[SIMD_Y] = val.i32[SIMD_Y];
-        result.simdValue.i32[SIMD_Z] = val.i32[SIMD_Z];
-        result.simdValue.i32[SIMD_W] = val.i32[SIMD_W];
+        result.i32[SIMD_X] = val.i32[SIMD_X];
+        result.i32[SIMD_Y] = val.i32[SIMD_Y];
+        result.i32[SIMD_Z] = val.i32[SIMD_Z];
+        result.i32[SIMD_W] = val.i32[SIMD_W];
         return result;
     }
 
     static SIMDValue ToSIMDValue(const _x86_SIMDValue& val)
     {
         SIMDValue result;
-        result.i32[SIMD_X] = val.simdValue.i32[SIMD_X];
-        result.i32[SIMD_Y] = val.simdValue.i32[SIMD_Y];
-        result.i32[SIMD_Z] = val.simdValue.i32[SIMD_Z];
-        result.i32[SIMD_W] = val.simdValue.i32[SIMD_W];
+        result.i32[SIMD_X] = val.i32[SIMD_X];
+        result.i32[SIMD_Y] = val.i32[SIMD_Y];
+        result.i32[SIMD_Z] = val.i32[SIMD_Z];
+        result.i32[SIMD_W] = val.i32[SIMD_W];
         return result;
     }
 };

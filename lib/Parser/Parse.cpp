@@ -123,7 +123,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_parseType = ParseType_Upfront;
 
     m_deferEllipsisError = false;
-
+    m_hasDeferredShorthandInitError = false;
     m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperDisallowed;
 }
 
@@ -1953,7 +1953,7 @@ void Parser::ReduceDeferredScriptLength(size_t chars)
     if ((m_grfscr & fscrDeferFncParse) &&
         (
             PHASE_OFF1(Js::DeferEventHandlersPhase) || 
-            !(m_grfscr & (fscrImplicitThis|fscrImplicitParents))
+            (m_grfscr & fscrGlobalCode)
         )
     )
     {
@@ -2521,9 +2521,20 @@ ParseVarDecl:
         {
             pnode = ParseStatement<buildAST>();
 
+            // TODO: fix binding for anonymous function/class 
             if (buildAST)
             {
-                IdentPtr localName = pnode->sxFnc.pid;
+                IdentPtr localName;
+                if (pnode->nop == knopClassDecl)
+                {
+                    localName = pnode->sxClass.pnodeName->sxVar.pid;
+                }
+                else
+                {
+                    Assert(pnode->nop == knopFncDecl);
+                    localName = pnode->sxFnc.pid;
+                }
+                Assert(localName != nullptr);
 
                 AddModuleExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, localName, nullptr);
             }
@@ -3755,7 +3766,7 @@ Parse a list of object members. e.g. { x:foo, 'y me':bar }
 template<bool buildAST>
 ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength, tokens declarationType)
 {
-    ParseNodePtr pnodeArg;
+    ParseNodePtr pnodeArg = nullptr;
     ParseNodePtr pnodeName = nullptr;
     ParseNodePtr pnodeList = nullptr;
     ParseNodePtr *lastNodeRef = nullptr;
@@ -3774,6 +3785,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
     }
 
     ArenaAllocator tempAllocator(L"MemberNames", m_nodeAllocator.GetPageAllocator(), Parser::OutOfMemory);
+
+    bool hasDeferredInitError = false;
 
     for (;;)
     {
@@ -4033,7 +4046,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
                     }
                 }
             }
-            else if ((m_token.tk == tkRCurly || m_token.tk == tkComma || (isObjectPattern && m_token.tk == tkAsg)) && m_scriptContext->GetConfig()->IsES6ObjectLiteralsEnabled())
+            else if ((m_token.tk == tkRCurly || m_token.tk == tkComma || m_token.tk == tkAsg) && m_scriptContext->GetConfig()->IsES6ObjectLiteralsEnabled())
             {
                 // Shorthand {foo} -> {foo:foo} syntax.
                 // {foo = <initializer>} supported only when on object pattern rules are being applied
@@ -4052,6 +4065,17 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
                 if (buildAST)
                 {
                     CheckArgumentsUse(pidHint, GetCurrentFunctionNode());
+                }
+
+                bool couldBeObjectPattern = !isObjectPattern && m_token.tk == tkAsg;
+
+                if (couldBeObjectPattern)
+                {
+                    declarationType = tkLCurly;
+                    isObjectPattern = true;
+
+                    // This may be an error but we are deferring for favouring destructuring.
+                    hasDeferredInitError = true;
                 }
 
                 ParseNodePtr pnodeIdent = nullptr;
@@ -4079,7 +4103,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
                         pnodeIdent->sxPid.SetSymRef(ref);
                     }
 
-                    pnodeArg = CreateBinNode(isObjectPattern ? knopObjectPatternMember : knopMemberShort, pnodeName, pnodeIdent);
+                    pnodeArg = CreateBinNode(isObjectPattern && !couldBeObjectPattern ? knopObjectPatternMember : knopMemberShort, pnodeName, pnodeIdent);
                 }
             }
             else
@@ -4116,6 +4140,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
             break;
         }
     }
+
+    m_hasDeferredShorthandInitError = m_hasDeferredShorthandInitError || hasDeferredInitError;
 
     if (buildAST)
     {
@@ -4589,14 +4615,16 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     pstmtSave = m_pstmtCur;
     SetCurrentStatement(nullptr);
 
-    // Function definition is inside the parent function's parameter scope  
+    // Function definition is inside the parent function's parameter scope    
     bool isEnclosedInParamScope = this->m_currentScope->GetScopeType() == ScopeType_Parameter;
 
-    if (this->m_currentScope->GetScopeType() == ScopeType_FuncExpr)
+    if (this->m_currentScope->GetScopeType() == ScopeType_FuncExpr || this->m_currentScope->GetScopeType() == ScopeType_Block)
     {
-        // Or this is a function expression enclosed in a parameter scope  
+        // Or this is a function expression or class enclosed in a parameter scope  
         isEnclosedInParamScope = this->m_currentScope->GetEnclosingScope() && this->m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter;
     }
+
+    Assert(!isEnclosedInParamScope || pnodeFncParent->sxFnc.HasNonSimpleParameterList());
 
     RestorePoint beginFormals;
     m_pscan->Capture(&beginFormals);
@@ -4833,44 +4861,52 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             pnodeFnc->sxFnc.pnodeVars = nullptr;
             m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
 
-            // We can't merge the param scope and body scope any more as the nested methods may be capturing params.
             if (pnodeFnc->sxFnc.HasNonSimpleParameterList() && !fAsync)
             {
                 Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope;
+                Assert(paramScope != nullptr);
 
-                paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
-                    if (sym->GetPid()->GetTopRef()->sym == nullptr)
+                if (pnodeFnc->sxFnc.CallsEval() || pnodeFnc->sxFnc.ChildCallsEval())
+                {
+                    if (!m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
                     {
-                        if (m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
+                        Error(ERREvalNotSupportedInParamScope);
+                    }
+                }
+                else
+                {
+                    paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
+                        if (sym->GetPid()->GetTopRef()->sym == nullptr)
                         {
-                            // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
-                            paramScope->SetCannotMergeWithBodyScope();
-                            return true;
+                            if (m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
+                            {
+                                // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
+                                paramScope->SetCannotMergeWithBodyScope();
+                                return true;
+                            }
+                            else
+                            {
+                                Error(ERRFuncRefFormalNotSupportedInParamScope);
+                            }
                         }
                         else
                         {
-                            Error(ERRFuncRefFormalNotSupportedInParamScope);
+                            // If no non-local references are there then the top of the ref stack should point to the same symbol.
+                            Assert(sym->GetPid()->GetTopRef()->sym == sym);
                         }
-                    }
-                    else
-                    {
-                        Assert(sym->GetPid()->GetTopRef()->sym == sym);
-                    }
-                    return false;
-                });
-
-                if (!m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled() && (pnodeFnc->sxFnc.CallsEval() || pnodeFnc->sxFnc.ChildCallsEval()))
-                {
-                    Error(ERREvalNotSupportedInParamScope);
+                        return false;
+                    });
                 }
 
                 if (!paramScope->GetCanMergeWithBodyScope())
                 {
                     OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"The param and body scope of the function %s cannot be merged\n", pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : L"Anonymous function");
-                    // Now add a new symbol reference for each formal in the param scope to the body scope.
+                    // Add a new symbol reference for each formal in the param scope to the body scope.
                     paramScope->ForEachSymbol([this](Symbol* param) {
                         OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"Creating a duplicate symbol for the parameter %s in the body scope\n", param->GetPid()->Psz());
-                        this->CreateVarDeclNode(param->GetPid(), param->GetSymbolType(), false, nullptr, false);
+                        ParseNodePtr paramNode = this->CreateVarDeclNode(param->GetPid(), STVariable, false, nullptr, false);
+                        Assert(paramNode && paramNode->sxVar.sym->GetScope()->GetScopeType() == ScopeType_FunctionBody);
+                        paramNode->sxVar.sym->SetHasInit(true);
                     });
                 }
             }
@@ -5755,18 +5791,19 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
 
                     ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
                     m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+
+                    ParseNodePtr * ppNodeLex = m_currentBlockInfo->m_ppnodeLex;
+                    Assert(ppNodeLex != nullptr);
+
                     ParseNodePtr paramPattern = nullptr;
                     ParseNodePtr pnodePattern = ParseDestructuredLiteral<buildAST>(tkLET, true /*isDecl*/, false /*topLevel*/);
 
-                    if (buildAST)
+                    // Instead of passing the STFormal all the way on many methods, it seems it is better to change the symbol type afterward.
+                    for (ParseNodePtr lexNode = *ppNodeLex; lexNode != nullptr; lexNode = lexNode->sxVar.pnodeNext)
                     {
-                        // Instead of passing the STFormal all the way on many methods, it seems it is better to change the symbol type afterward.
-                        Parser::MapBindIdentifier(pnodePattern, [&](ParseNodePtr item) {
-                            Assert(item->IsVarLetOrConst());
-                            UpdateOrCheckForDuplicateInFormals(item->sxVar.pid, &formals);
-                            item->sxVar.sym->SetSymbolType(STFormal);
-                        });
-                        Assert(pnodePattern->IsPattern() || pnodePattern->nop == knopAsg);
+                        Assert(lexNode->IsVarLetOrConst());
+                        UpdateOrCheckForDuplicateInFormals(lexNode->sxVar.pid, &formals);
+                        lexNode->sxVar.sym->SetSymbolType(STFormal);
                     }
 
                     m_ppnodeVar = ppnodeVarSave;
@@ -7687,6 +7724,10 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
     m_pscan->Capture(&termStart);
 
+    bool deferredErrorFoundOnLeftSide = false;
+    bool savedDeferredInitError = m_hasDeferredShorthandInitError;
+    m_hasDeferredShorthandInitError = false;
+
     // Is the current token a unary operator?
     if (m_phtbl->TokIsUnop(m_token.tk, &opl, &nop) && nop != knopNone)
     {
@@ -7865,6 +7906,9 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 pnode = ConvertToPattern(pnode);
             }
+
+            // The left-hand side is found to be destructuring pattern - so the shorthand can have initializer.
+            m_hasDeferredShorthandInitError = false;
         }
 
         if (buildAST)
@@ -7932,6 +7976,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             m_pscan->Scan();
         }
     }
+
+    deferredErrorFoundOnLeftSide = m_hasDeferredShorthandInitError;
 
     // Process a sequence of operators and operands.
     for (;;)
@@ -8112,6 +8158,15 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             }
         }
     }
+
+    if (m_hasDeferredShorthandInitError && !deferredErrorFoundOnLeftSide)
+    {
+        // Raise error only if it is found not on the right side of the expression.
+        // such as  <expr> = {x = 1}
+        Error(ERRnoColon);
+    }
+
+    m_hasDeferredShorthandInitError = m_hasDeferredShorthandInitError || savedDeferredInitError;
 
     if (NULL != pfCanAssign)
     {
@@ -9746,6 +9801,11 @@ LDefaultToken:
         IdentToken tok;
         pnode = ParseExpr<buildAST>(koplNo, nullptr, TRUE, FALSE, nullptr, nullptr /*hintLength*/, nullptr /*hintOffset*/, &tok);
 
+        if (m_hasDeferredShorthandInitError)
+        {
+            Error(ERRnoColon);
+        }
+
         if (buildAST)
         {
             // Check for a label.
@@ -10369,7 +10429,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     // Scanner should run in Running mode and not syntax coloring mode
     grfscr &= ~fscrSyntaxColor;
 
-    if (this->m_scriptContext->IsInDebugMode() || PHASE_OFF1(Js::Phase::DeferParsePhase)
+    if (this->m_scriptContext->IsScriptContextInDebugMode() || PHASE_OFF1(Js::Phase::DeferParsePhase)
 #ifdef ENABLE_PREJIT
          || Js::Configuration::Global.flags.Prejit
 #endif
@@ -10380,10 +10440,10 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
         // by command-line switch.
         grfscr &= ~fscrDeferFncParse;
     }
-    else if ((grfscr & (fscrImplicitThis | fscrImplicitParents)) &&
+    else if (!(grfscr & fscrGlobalCode) &&
              (
                  PHASE_OFF1(Js::Phase::DeferEventHandlersPhase) ||
-                 this->m_scriptContext->IsInDebugOrSourceRundownMode()
+                 this->m_scriptContext->IsScriptContextInSourceRundownOrDebugMode()
              )
         )
     {
@@ -10682,7 +10742,7 @@ bool Parser::CheckAsmjsModeStrPid(IdentPtr pid)
         !m_pscan->IsEscapeOnLastTkStrCon() &&
         wcsncmp(pid->Psz(), L"use asm", 10) == 0);
 
-    if (isAsmCandidate && m_scriptContext->IsInDebugMode())
+    if (isAsmCandidate && m_scriptContext->IsScriptContextInDebugMode())
     {
         // We would like to report this to debugger - they may choose to disable debugging.
         // TODO : localization of the string?
@@ -10884,7 +10944,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
 
 HRESULT Parser::ParseSourceWithOffset(__out ParseNodePtr* parseTree, LPCUTF8 pSrc, size_t offset, size_t cbLength, charcount_t cchOffset,
         bool isCesu8, ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber, SourceContextInfo * sourceContextInfo,
-        Js::ParseableFunctionInfo* functionInfo, bool isReparse)
+        Js::ParseableFunctionInfo* functionInfo)
 {
     m_functionBody = functionInfo;
     if (m_functionBody)
@@ -10893,7 +10953,7 @@ HRESULT Parser::ParseSourceWithOffset(__out ParseNodePtr* parseTree, LPCUTF8 pSr
         m_InAsmMode = grfscr & fscrNoAsmJs ? false : m_functionBody->GetIsAsmjsMode();
     }
     m_deferAsmJs = !m_InAsmMode;
-    m_parseType = isReparse ? ParseType_Reparse : ParseType_Deferred;
+    m_parseType = ParseType_Deferred;
     return ParseSourceInternal( parseTree, pSrc, offset, cbLength, cchOffset, !isCesu8, grfscr, pse, nextFunctionId, lineNumber, sourceContextInfo);
 }
 
@@ -11549,6 +11609,11 @@ ParseNodePtr Parser::GetRightSideNodeFromPattern(ParseNodePtr pnode)
 
 ParseNodePtr Parser::ConvertMemberToMemberPattern(ParseNodePtr pnodeMember)
 {
+    if (pnodeMember->nop == knopObjectPatternMember)
+    {
+        return pnodeMember;
+    }
+
     Assert(pnodeMember->nop == knopMember || pnodeMember->nop == knopMemberShort);
 
     ParseNodePtr rightNode = GetRightSideNodeFromPattern(pnodeMember->sxBin.pnode2);
@@ -11603,6 +11668,9 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
 
     charcount_t funcInArraySave = m_funcInArray;
     uint funcInArrayDepthSave = m_funcInArrayDepth;
+
+    // we need to reset this as we are going to parse the grammar again.
+    m_hasDeferredShorthandInitError = false;
 
     ParseDestructuredLiteral<false>(declarationType, isDecl, topLevel, initializerContext, allowIn);
 
@@ -11680,7 +11748,16 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
 
     m_pscan->Scan();
 
+
+    bool alreadyHasInitError = m_hasDeferredShorthandInitError;
+
     ParseNodePtr pnodeDefault = ParseExpr<buildAST>(koplCma, nullptr, allowIn);
+
+    if (m_hasDeferredShorthandInitError && !alreadyHasInitError)
+    {
+        Error(ERRnoColon);
+    }
+
     ParseNodePtr pnodeDestructAsg = nullptr;
     if (buildAST)
     {
@@ -11761,7 +11838,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     if (IsPossiblePatternStart())
     {
         // Go recursively
-        pnodeElem = ParseDestructuredLiteral<buildAST>(declarationType, isDecl, false /*topLevel*/);
+        pnodeElem = ParseDestructuredLiteral<buildAST>(declarationType, isDecl, false /*topLevel*/, seenRest ? DIC_ShouldNotParseInitializer : DIC_None);
     }
     else if (m_token.tk == tkSUPER || m_token.tk == tkID)
     {
@@ -11834,7 +11911,13 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         }
         m_pscan->Scan();
 
+        bool alreadyHasInitError = m_hasDeferredShorthandInitError;
         ParseNodePtr pnodeInit = ParseExpr<buildAST>(koplCma);
+
+        if (m_hasDeferredShorthandInitError && !alreadyHasInitError)
+        {
+            Error(ERRnoColon);
+        }
 
         if (buildAST)
         {
