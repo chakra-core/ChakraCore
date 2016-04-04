@@ -253,37 +253,56 @@ var tests = [
       assert.throws(function () { eval('++...window, z;'); }, SyntaxError, "Invalid use of the ... operator");
     }
   },
-  /* This tests is broken and tracked by bug OS 5204357
   {
-    name: "Corner case: user changes %ArrayIteratorPrototype%.next property and we should call it",
+    name: "OS 5204357: Corner case: user changes %ArrayIteratorPrototype%.next property and we should call it",
     body: function () {
       var overrideCalled = false;
-      var aip = Object.getPrototypeOf([].values());
-      var aipNext = aip.next;
-      aip.next = function () {
-          overrideCalled = true;
-          return aipNext.apply(this, arguments);
+      var arrayIteratorProto = Object.getPrototypeOf([][Symbol.iterator]());
+      var arrayIteratorProtoNext = arrayIteratorProto.next;
+
+      function testArrayIteratorProto() {
+        var a = [1];
+        function f() {}
+        f(...a);
+        assert.isTrue(overrideCalled, "Spread of a in call to f should have invoked the overridden %ArrayIteratorPrototype%.next method");
+        overrideCalled = false;
+
+        var b = [...a];
+        assert.isTrue(overrideCalled, "Spread of a in array initializer should have invoked the overridden %ArrayIteratorPrototype%.next method");
+        overrideCalled = false;
+      }
+      
+      var overrideFunc = function () {
+        overrideCalled = true;
+        return arrayIteratorProtoNext.apply(this, arguments);
+      };
+      
+      arrayIteratorProto.next = overrideFunc;
+      testArrayIteratorProto();
+      // Restore the original prototype .next
+      arrayIteratorProto.next = arrayIteratorProtoNext;
+
+      function getIterableObjNextDesc() {
+        return  {
+          get: function next() {
+            overrideCalled = true;
+              return function () {
+                return {
+                  value: 0,
+                  done:  1
+                };
+              };
+          }
+        };
       }
 
-      var a = [1];
-
-      function f() { }
-
-      f(...a);
-
-      assert.isTrue(overrideCalled, "Spread of a in call to f should have invoked the overridden %ArrayIteratorPrototype%.next method");
-
-      overrideCalled = false;
-
-      var b = [...a];
-
-      assert.isTrue(overrideCalled, "Spread of a in array initializer should have invoked the overridden %ArrayIteratorPrototype%.next method");
-
-      // restore after test so we don't muck this up for others
-      aip.next = aipNext;
+      // Change built-in array iterator's next getter function
+      var builtinArrayPrototypeIteratorNextDesc = Object.getOwnPropertyDescriptor(arrayIteratorProto, "next"); 
+      Object.defineProperty(arrayIteratorProto, "next", getIterableObjNextDesc()); 
+      testArrayIteratorProto();
+      Object.defineProperty(arrayIteratorProto, "next", builtinArrayPrototypeIteratorNextDesc); 
     }
   },
-  */
   {
     name: "Corner case: Spread of an array with an accessor property (ES5Array) should call that getter and recognize a change in length during iteration",
     body: function () {
@@ -363,7 +382,7 @@ var tests = [
       assert.areEqual(7, result[2], "Spread for the array initializer called the getter of the third element of a and copied the result to the third element of b");
       assert.areEqual(8, result[3], "Spread for the array initializer recognized the new length of four and copied the fourth element of a to the fourth element of b");
     }
-  },
+  }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
