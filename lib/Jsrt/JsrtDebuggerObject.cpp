@@ -858,7 +858,7 @@ Js::JavascriptArray * JsrtDebugStackFrames::StackFrames(Js::ScriptContext * scri
     uint frameCount = 0;
 
     for (Js::ScriptContext *tempScriptContext = scriptContext->GetThreadContext()->GetScriptContextList();
-    tempScriptContext != nullptr && tempScriptContext->IsInDebugMode();
+    tempScriptContext != nullptr && tempScriptContext->IsScriptContextInDebugMode();
         tempScriptContext = tempScriptContext->next)
     {
         Js::WeakDiagStack * framePointers = tempScriptContext->GetDebugContext()->GetProbeContainer()->GetFramePointers();

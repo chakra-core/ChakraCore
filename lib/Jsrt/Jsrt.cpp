@@ -302,7 +302,7 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
                 //TODO: We currently force this into debug mode in record as well to make sure parsing/bytecode generation is same as during replay.
                 //      Later we will want to be clever during inflate and not do this.
                 //
-                context->GetScriptContext()->GetDebugContext()->SetInDebugMode();
+                context->GetScriptContext()->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
             }
 
             context->GetScriptContext()->InitializeCoreImage_TTD();
@@ -3171,10 +3171,8 @@ STDAPI_(JsErrorCode) JsTTDSetDebuggerForReplay()
         return JsErrorCategoryUsage;
     }
 
-    if(!currentContext->GetScriptContext()->GetDebugContext()->IsInDebugMode())
-    {
-        currentContext->GetScriptContext()->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
-    }
+    //Checks if already in debug mode internally so we don't need to check before calling.
+    currentContext->GetScriptContext()->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
 
     return JsNoError;
 #endif
@@ -3457,7 +3455,7 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
 
             HostScriptContextCallbackFunctor callbackFunctor(context, &JsrtContext::OnScriptLoad_TTDCallback);
             threadContext->BeginCtxTimeTravel(context->GetScriptContext(), callbackFunctor);
-            context->GetScriptContext()->GetDebugContext()->SetInDebugMode();
+            context->GetScriptContext()->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
 
             //initialize the core image but we need to disable debugging while this happens
             threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);

@@ -73,7 +73,7 @@ STDAPI_(JsErrorCode) JsDiagStartDebugging(
         {
             if (!scriptContext->IsClosed())
             {
-                Assert(!scriptContext->IsInDebugOrSourceRundownMode());
+                Assert(!scriptContext->IsScriptContextInSourceRundownOrDebugMode());
 
                 if (FAILED(scriptContext->OnDebuggerAttached()))
                 {

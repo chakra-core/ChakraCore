@@ -269,6 +269,7 @@
 #define ENABLE_TTD 1
 
 #if ENABLE_TTD
+//Enable debugging specific aspects of TTD
 #define ENABLE_TTD_DEBUGGING 1
 
 //A workaround for VSCode getting angry with timing (adds a Sleep before sending msgs)
