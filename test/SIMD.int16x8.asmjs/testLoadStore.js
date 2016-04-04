@@ -11,6 +11,7 @@ function asmModule(stdlib, imports, buffer) {
     var i8add = i8.add;
     var i8load  = i8.load;  
     var i8store  = i8.store
+    var i8sub = i8.sub;
     
     var globImporti8 = i8check(imports.g1); 
     var g2 = i8(1065, -1073, -107, 10, 30000, -30000, 9939, -182);  
@@ -27,6 +28,31 @@ function asmModule(stdlib, imports, buffer) {
     var Int32Heap = new stdlib.Int32Array(buffer);
     var Uint32Heap = new stdlib.Uint32Array(buffer);
     var Float32Heap = new stdlib.Float32Array(buffer);
+
+    function func0()
+    {
+        var x = i8(1, 2, 3, 4, 5, 6, 7, 8);
+        var y = i8(0, 0, 0, 0, 0, 0, 0, 0);
+        var st = i8(0, 0, 0, 0, 0, 0, 0, 0);
+        var ld = i8(0, 0, 0, 0, 0, 0, 0, 0);
+        
+        var t0 = i8(0, 0, 0, 0, 0, 0, 0, 0);
+        
+        var index = 100;
+        var size = 10;
+        var loopIndex = 0;
+        
+        for (loopIndex = 0; (loopIndex | 0) < (size | 0) ; loopIndex = (loopIndex + 1) | 0)
+        {
+            st = i8store(Int8Heap, index >> 0,  i8(1, 2, 3, 4, 5, 6, 7, 8));
+            ld = i8load(Int8Heap, index >> 0);
+            y = i8add(st, ld);
+            t0 = i8add(i8store(Int8Heap, index >> 0, x), i8load(Int8Heap, index   >> 0));
+            t0 = i8add(t0, y);
+            index = (index + 16 ) | 0;
+        }
+        return i8check(t0);
+    }
 
     function func1()
     {
@@ -512,6 +538,7 @@ function asmModule(stdlib, imports, buffer) {
     }
 
     return {
+        func0:func0,
         func1:func1, 
         func1OOB_1:func1OOB_1, 
         func1OOB_2:func1OOB_2, 
@@ -541,6 +568,9 @@ var buffer = new ArrayBuffer(0x10000);
 var m = asmModule(this, {g1:SIMD.Int16x8(13216, 1024,-28, -108, 55, -3323, 992, 20000)}, buffer);
 
 var ret;
+
+ret = m.func0();
+equalSimd([4, 8, 12, 16, 20, 24, 28, 32], ret, SIMD.Int16x8, "Test Load Store");
 
 ret = m.func1();
 //print("func1");

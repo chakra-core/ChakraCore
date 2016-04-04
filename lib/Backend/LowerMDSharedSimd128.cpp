@@ -3016,7 +3016,7 @@ LowererMD::Simd128LowerStoreElem(IR::Instr *instr)
     Assert(
            instr->m_opcode == Js::OpCode::Simd128_StArr_I4 ||
            instr->m_opcode == Js::OpCode::Simd128_StArr_I8 ||
-           /*instr->m_opcode == Js::OpCode::Simd128_StArr_I16 ||*/
+           instr->m_opcode == Js::OpCode::Simd128_StArr_I16 ||
            instr->m_opcode == Js::OpCode::Simd128_StArr_U4 ||
            instr->m_opcode == Js::OpCode::Simd128_StArr_U8 ||
            instr->m_opcode == Js::OpCode::Simd128_StArr_U16 ||
