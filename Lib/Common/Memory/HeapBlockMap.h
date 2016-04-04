@@ -5,6 +5,10 @@
 #pragma once
 #include "CommonDefines.h"
 
+#ifdef JD_PRIVATE
+class HeapBlockHelper;
+#endif
+
 namespace Memory
 {
 class HeapBlockMap32
@@ -65,12 +69,12 @@ public:
 
     void ResetMarks();
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC || ENABLE_PARTIAL_GC
     void ResetWriteWatch(Recycler * recycler);
     uint Rescan(Recycler * recycler, bool resetWriteWatch);
+#endif
     void MakeAllPagesReadOnly(Recycler* recycler);
     void MakeAllPagesReadWrite(Recycler* recycler);
-#endif
 
     void Cleanup(bool concurrentFindImplicitRoot);
 
@@ -88,7 +92,6 @@ private:
     friend class PageSegmentBase<VirtualAllocWrapper>;
 
 #ifdef JD_PRIVATE
-    friend class EXT_CLASS;
     friend class HeapBlockHelper;
 #endif
 
@@ -254,16 +257,15 @@ public:
 
     void ResetMarks();
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC || ENABLE_PARTIAL_GC
     void ResetWriteWatch(Recycler * recycler);
     uint Rescan(Recycler * recycler, bool resetWriteWatch);
+#endif
     void MakeAllPagesReadOnly(Recycler* recycler);
     void MakeAllPagesReadWrite(Recycler* recycler);
-#endif
+    bool OOMRescan(Recycler * recycler);
 
     void Cleanup(bool concurrentFindImplicitRoot);
-
-    bool OOMRescan(Recycler * recycler);
 
 #ifdef RECYCLER_STRESS
     void InduceFalsePositives(Recycler * recycler);

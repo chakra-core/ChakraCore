@@ -72,8 +72,6 @@ SmallNormalHeapBlockT<MediumAllocationBlockAttributes>::SmallNormalHeapBlockT(He
 {
 }
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
-
 template <class TBlockAttributes>
 void
 SmallNormalHeapBlockT<TBlockAttributes>::ScanInitialImplicitRoots(Recycler * recycler)
@@ -171,9 +169,8 @@ SmallNormalHeapBlockT<TBlockAttributes>::CalculateMarkCountForPage(SmallHeapBloc
     return rescanMarkCount;
 }
 
-#endif
 
-#if defined(PARTIAL_GC_ENABLED) && defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
 template <class TBlockAttributes>
 void
 SmallNormalHeapBlockT<TBlockAttributes>::FinishPartialCollect()

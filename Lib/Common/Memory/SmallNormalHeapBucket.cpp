@@ -6,9 +6,13 @@
 
 
 template <typename TBlockType>
-SmallNormalHeapBucketBase<TBlockType>::SmallNormalHeapBucketBase() :
-    partialHeapBlockList(nullptr),
-    partialSweptHeapBlockList(nullptr)
+SmallNormalHeapBucketBase<TBlockType>::SmallNormalHeapBucketBase() 
+#if ENABLE_PARTIAL_GC
+    : partialHeapBlockList(nullptr)
+#if ENABLE_CONCURRENT_GC
+    , partialSweptHeapBlockList(nullptr)
+#endif
+#endif
 {
 }
 
@@ -42,7 +46,7 @@ SmallNormalHeapBucketBase<TBlockType>::ScanInitialImplicitRoots(Recycler * recyc
         heapBlock->ScanInitialImplicitRoots(recycler);
     });
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     Assert(recycler->inPartialCollectMode || partialHeapBlockList == nullptr);
     if (recycler->inPartialCollectMode)
     {
@@ -50,7 +54,7 @@ SmallNormalHeapBucketBase<TBlockType>::ScanInitialImplicitRoots(Recycler * recyc
         {
             heapBlock->ScanInitialImplicitRoots(recycler);
         });
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
         HeapBlockList::ForEach(partialSweptHeapBlockList, [recycler](TBlockType * heapBlock)
         {
             heapBlock->ScanInitialImplicitRoots(recycler);
@@ -66,14 +70,13 @@ SmallNormalHeapBucketBase<TBlockType>::ScanNewImplicitRoots(Recycler * recycler)
 {
     __super::ScanNewImplicitRoots(recycler);
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     Assert(recycler->inPartialCollectMode || partialHeapBlockList == nullptr);
     // Don't need to scan the partial heap block list for new implicit root as we don't allocate from them
 #endif
 }
 
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
 template <typename TBlockType>
 bool
 SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(TBlockType * block, char* pageAddress, char * blockStartAddress, BVStatic<TBlockAttributes::BitVectorCount> * heapBlockMarkBits, const uint localObjectSize, uint bucketIndex, __out_opt bool* anyObjectRescanned, Recycler * recycler)
@@ -194,6 +197,7 @@ SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(TBlockType * block, c
     return true;
 }
 
+#if ENABLE_CONCURRENT_GC
 template <typename TBlockType>
 void
 SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recyclerSweep)
@@ -204,10 +208,13 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
     TBlockType *& pendingSweepList = recyclerSweep.GetPendingSweepBlockList(this);
     TBlockType * const list = pendingSweepList;
     Recycler * const recycler = recyclerSweep.GetRecycler();
+#if ENABLE_PARTIAL_GC
     bool const partialSweep = recycler->inPartialCollectMode;
+#endif
     if (list)
     {
         pendingSweepList = nullptr;
+#if ENABLE_PARTIAL_GC
         if (partialSweep)
         {
             // We did a partial sweep.
@@ -238,6 +245,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
             });
         }
         else
+#endif
         {
             // We decided not to do a partial sweep.
             // Blocks in the pendingSweepList need to have a regular sweep.
@@ -271,12 +279,12 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, 
 }
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 template <typename TBlockType>
 SmallNormalHeapBucketBase<TBlockType>::~SmallNormalHeapBucketBase()
 {
     DeleteHeapBlockList(this->partialHeapBlockList);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     DeleteHeapBlockList(this->partialSweptHeapBlockList);
 #endif
 }
@@ -330,7 +338,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
         this->partialHeapBlockList,
         [](TBlockType * heapBlock, bool isReused) {});
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     // only collect data for pending sweep list but don't sweep yet
     // until we have adjusted the heuristics, and SweepPartialReusePages will
     // sweep the page that we are going to reuse in thread.
@@ -375,7 +383,7 @@ SmallNormalHeapBucketBase<TBlockType>::FinishPartialCollect(RecyclerSweep * recy
     Assert(this->GetRecycler()->inPartialCollectMode);
     Assert(recyclerSweep == nullptr || this->IsAllocationStopped());
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     // Process the partial Swept block and move it to the partial heap block list
     TBlockType * partialSweptList = this->partialSweptHeapBlockList;
     if (partialSweptList)
@@ -420,7 +428,9 @@ SmallNormalHeapBucketBase<TBlockType>::FinishPartialCollect(RecyclerSweep * recy
                 tail->SetNextBlock(currentPartialHeapBlockList);
             }
         }
+#if ENABLE_CONCURRENT_GC
         if (recyclerSweep->GetPendingSweepBlockList(this) == nullptr)
+#endif
         {
             // nothing else to sweep now,  we can start allocating now.
             this->StartAllocationAfterSweep();
@@ -436,7 +446,7 @@ SmallNormalHeapBucketBase<TBlockType>::EnumerateObjects(ObjectInfoBits infoBits,
 {
     __super::EnumerateObjects(infoBits, CallBackFunction);
     HeapBucket::EnumerateObjects(partialHeapBlockList, infoBits, CallBackFunction);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     HeapBucket::EnumerateObjects(partialSweptHeapBlockList, infoBits, CallBackFunction);
 #endif
 }
@@ -450,7 +460,7 @@ void
 SmallNormalHeapBucketBase<TBlockType>::ResetMarks(ResetMarkFlags flags)
 {
     Assert(this->partialHeapBlockList == nullptr);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(this->partialSweptHeapBlockList == nullptr);
 #endif
     __super::ResetMarks(flags);
@@ -468,27 +478,6 @@ SmallNormalHeapBucketBase<TBlockType>::SweepVerifyPartialBlocks(Recycler * recyc
 }
 #endif // DBG
 
-
-template <typename TBlockType>
-template<bool pageheap>
-void
-SmallNormalHeapBucketBase<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)
-{
-#if DBG
-    Recycler * recycler = recyclerSweep.GetRecycler();
-    // Don't need sweep the partialHeapBlockList, the partially collected heap block list.
-    // There should be nothing there that is free-able since the last time we swept
-
-    Assert(recyclerSweep.InPartialCollect() || partialHeapBlockList == nullptr);
-#ifdef CONCURRENT_GC_ENABLED
-    Assert(recyclerSweep.InPartialCollect() || partialSweptHeapBlockList == nullptr);
-#endif
-    this->SweepVerifyPartialBlocks(recycler, this->partialHeapBlockList);
-#endif
-    BaseT::SweepBucket<pageheap>(recyclerSweep, [](RecyclerSweep& recyclerSweep){});
-}
-
-
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
 template <typename TBlockType>
 size_t
@@ -496,7 +485,7 @@ SmallNormalHeapBucketBase<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount
 {
     size_t currentHeapBlockCount = __super::GetNonEmptyHeapBlockCount(false);
     currentHeapBlockCount += HeapBlockList::Count(partialHeapBlockList);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     currentHeapBlockCount += HeapBlockList::Count(partialSweptHeapBlockList);
 #endif
     RECYCLER_SLOW_CHECK(Assert(!checkCount || heapBlockCount == currentHeapBlockCount));
@@ -512,7 +501,7 @@ SmallNormalHeapBucketBase<TBlockType>::Check(bool checkCount)
     Assert(partialHeapBlockList == nullptr || this->GetRecycler()->inPartialCollectMode);
     smallHeapBlockCount += HeapInfo::Check(false, false, this->partialHeapBlockList);
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(partialSweptHeapBlockList == nullptr || this->GetRecycler()->inPartialCollectMode);
     smallHeapBlockCount += HeapInfo::Check(false, false, this->partialSweptHeapBlockList);
 #endif
@@ -534,7 +523,7 @@ SmallNormalHeapBucketBase<TBlockType>::Verify()
         Assert(heapBlock->HasFreeObject());
         heapBlock->Verify();
     });
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(this->partialSweptHeapBlockList == nullptr || this->GetRecycler()->inPartialCollectMode);
     HeapBlockList::ForEach(this->partialSweptHeapBlockList, [](TBlockType * heapBlock)
     {
@@ -554,7 +543,7 @@ SmallNormalHeapBucketBase<TBlockType>::VerifyMark()
         heapBlock->VerifyMark();
     });
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     HeapBlockList::ForEach(this->partialSweptHeapBlockList, [](TBlockType * heapBlock)
     {
         heapBlock->VerifyMark();
@@ -562,7 +551,28 @@ SmallNormalHeapBucketBase<TBlockType>::VerifyMark()
 #endif
 }
 #endif // RECYCLER_VERIFY_MARK
-#endif // PARTIAL_GC_ENABLED
+#endif // ENABLE_PARTIAL_GC
+
+template <typename TBlockType>
+template<bool pageheap>
+void
+SmallNormalHeapBucketBase<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)
+{
+#if ENABLE_PARTIAL_GC
+#if DBG
+    Recycler * recycler = recyclerSweep.GetRecycler();
+    // Don't need sweep the partialHeapBlockList, the partially collected heap block list.
+    // There should be nothing there that is free-able since the last time we swept
+
+    Assert(recyclerSweep.InPartialCollect() || partialHeapBlockList == nullptr);
+#if ENABLE_CONCURRENT_GC
+    Assert(recyclerSweep.InPartialCollect() || partialSweptHeapBlockList == nullptr);
+#endif
+    this->SweepVerifyPartialBlocks(recycler, this->partialHeapBlockList);
+#endif
+#endif
+    BaseT::SweepBucket<pageheap>(recyclerSweep, [](RecyclerSweep& recyclerSweep){});
+}
 
 template class SmallNormalHeapBucketBase<SmallNormalHeapBlock>;
 template class SmallNormalHeapBucketBase<MediumNormalHeapBlock>;

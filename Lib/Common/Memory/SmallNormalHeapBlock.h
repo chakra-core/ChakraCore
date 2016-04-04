@@ -24,13 +24,11 @@ public:
     void ScanInitialImplicitRoots(Recycler * recycler);
     void ScanNewImplicitRoots(Recycler * recycler);
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
     static uint CalculateMarkCountForPage(SmallHeapBlockBitVector* markBits, uint bucketIndex, uint pageStartBitIndex);
 
     static bool CanRescanFullBlock();
     static bool RescanObject(SmallNormalHeapBlockT<TBlockAttributes> * block, __in_ecount(localObjectSize) char * objectAddress, uint localObjectSize, uint objectIndex, Recycler * recycler);
-#endif
-#if defined(PARTIAL_GC_ENABLED) && defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
     void FinishPartialCollect();
 #endif
 

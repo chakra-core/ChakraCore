@@ -623,10 +623,6 @@ void Js::CharClassifier::initClassifier(ScriptContext * scriptContext, CharClass
         // in that case.
         if (FAILED(hr))
         {
-            if (isES6UnicodeVerboseEnabled)
-            {
-                Output::Print(L"Windows::Data::Text::IUnicodeCharactersStatics not initialized\r\n");
-            }
             es6Supported = false;
             es6FallbackMode = CharClassifierModes::ES5;
         }

@@ -29,7 +29,9 @@ public:
     Recycler * GetRecycler() { return this->recycler; }
 
     bool AddMarkedObject(void * obj, size_t byteCount);
+#if ENABLE_CONCURRENT_GC
     bool AddTrackedObject(FinalizableObject * obj);
+#endif
 
     template <bool parallel, bool interior>
     void Mark(void * candidate, void * parentReference);

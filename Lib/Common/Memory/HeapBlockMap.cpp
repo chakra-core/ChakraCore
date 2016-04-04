@@ -533,8 +533,6 @@ HeapBlockMap32::IsAddressInNewChunk(void * address)
 }
 #endif
 
-#ifdef CONCURRENT_GC_ENABLED
-
 template <class Fn>
 void
 HeapBlockMap32::ForEachSegment(Recycler * recycler, Fn func)
@@ -597,6 +595,7 @@ HeapBlockMap32::ForEachSegment(Recycler * recycler, Fn func)
     }
 }
 
+#if ENABLE_CONCURRENT_GC
 void
 HeapBlockMap32::ResetWriteWatch(Recycler * recycler)
 {
@@ -620,6 +619,7 @@ HeapBlockMap32::ResetWriteWatch(Recycler * recycler)
 #endif
     });
 }
+#endif
 
 bool
 HeapBlockMap32::RescanPage(void * dirtyPage, bool* anyObjectsMarkedOnPage, Recycler * recycler)
@@ -756,6 +756,7 @@ HeapBlockMap32::ChangeProtectionLevel(Recycler* recycler, DWORD protectFlags, DW
     });
 }
 
+#if ENABLE_CONCURRENT_GC
 ///
 /// The GetWriteWatch API can fail under low-mem situations if called to retrieve write-watch for a large number of pages
 /// (On Win10, > 255 pages). This helper is to handle the failure case. In the case of failure, we degrade to retrieving
@@ -831,7 +832,9 @@ HeapBlockMap32::GetWriteWatchHelperOnOOM(DWORD writeWatchFlags, _In_ void* baseA
     *count = dirtyCount;
     return 0;
 }
+#endif
 
+#if ENABLE_CONCURRENT_GC
 uint
 HeapBlockMap32::Rescan(Recycler * recycler, bool resetWriteWatch)
 {
@@ -920,6 +923,7 @@ HeapBlockMap32::Rescan(Recycler * recycler, bool resetWriteWatch)
 
     return scannedPageCount;
 }
+#endif
 
 bool
 HeapBlockMap32::OOMRescan(Recycler * recycler)
@@ -1085,7 +1089,6 @@ HeapBlockMap32::RescanHeapBlockOnOOM(TBlockType* heapBlock, char* pageAddress, H
 
     return true;
 }
-#endif
 
 // This function is called in-thread after Sweep, to find empty L2 Maps and release them.
 
@@ -1352,7 +1355,23 @@ HeapBlockMap64::ResetMarks()
     }
 }
 
-#ifdef CONCURRENT_GC_ENABLED
+bool
+HeapBlockMap64::OOMRescan(Recycler * recycler)
+{
+    Node * node = this->list;
+    while (node != nullptr)
+    {
+        if (!node->map.OOMRescan(recycler))
+        {
+            return false;
+        }
+
+        node = node->next;
+    }
+    return true;
+}
+
+#if ENABLE_CONCURRENT_GC
 void
 HeapBlockMap64::ResetWriteWatch(Recycler * recycler)
 {
@@ -1363,6 +1382,7 @@ HeapBlockMap64::ResetWriteWatch(Recycler * recycler)
         node = node->next;
     }
 }
+#endif
 
 void
 HeapBlockMap64::MakeAllPagesReadOnly(Recycler* recycler)
@@ -1386,6 +1406,7 @@ HeapBlockMap64::MakeAllPagesReadWrite(Recycler* recycler)
     }
 }
 
+#if ENABLE_CONCURRENT_GC
 uint
 HeapBlockMap64::Rescan(Recycler * recycler, bool resetWriteWatch)
 {
@@ -1400,22 +1421,7 @@ HeapBlockMap64::Rescan(Recycler * recycler, bool resetWriteWatch)
 
     return scannedPageCount;
 }
-
-bool
-HeapBlockMap64::OOMRescan(Recycler * recycler)
-{
-    Node * node = this->list;
-    while (node != nullptr)
-    {
-        if (!node->map.OOMRescan(recycler))
-        {
-            return false;
-        }
-
-        node = node->next;
-    }
-    return true;
-}
+#endif
 
 void
 HeapBlockMap64::Cleanup(bool concurrentFindImplicitRoot)
@@ -1475,8 +1481,6 @@ HeapBlockMap64::VerifyMarkCountForPages(void * address, uint pageCount)
 
 #endif
 
-#endif
-
 #ifdef RECYCLER_STRESS
 void
 HeapBlockMap64::InduceFalsePositives(Recycler * recycler)
@@ -1500,5 +1504,5 @@ HeapBlockMap64::IsAddressInNewChunk(void * address)
     return node->map.IsAddressInNewChunk(address);
 }
 #endif
-
 #endif
+

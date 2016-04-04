@@ -36,14 +36,14 @@ public:
 
     // Constant heuristic that may be changed by switches
     static uint UncollectedAllocBytesCollection();
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     static uint MaxBackgroundFinishMarkCount(Js::ConfigFlagsTable&);
     static DWORD BackgroundFinishMarkWaitTime(bool, Js::ConfigFlagsTable&);
     static size_t MinBackgroundRepeatMarkRescanBytes(Js::ConfigFlagsTable&);
     static DWORD FinishConcurrentCollectWaitTime(Js::ConfigFlagsTable&);
     static DWORD PriorityBoostTimeout(Js::ConfigFlagsTable&);
 #endif
-#if defined(PARTIAL_GC_ENABLED) && defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
     static bool PartialConcurrentNextCollection(double ratio, Js::ConfigFlagsTable& flags);
 #endif
 
@@ -55,7 +55,7 @@ public:
                                                                                             // This heuristic is currently used for dispose on stack probes
     void ConfigureBaseFactor(uint baseFactor);
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     static const uint MaxBackgroundRepeatMarkCount = 2;
 
     // If we rescan at least 128 pages in the first background repeat mark,
@@ -69,7 +69,7 @@ private:
 #endif
     static const uint DefaultUncollectedAllocBytesCollection = 1 MEGABYTES;
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     static const uint TickCountConcurrentPriorityBoost = 5000;                              // 5 second
     static const DWORD DefaultFinishConcurrentCollectWaitTime = 1000;                       // 1 second
     static const uint DefaultMaxBackgroundFinishMarkCount = 1;

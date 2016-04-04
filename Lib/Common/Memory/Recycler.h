@@ -288,13 +288,13 @@ enum CollectionFlags
 
 #ifdef RECYCLER_STRESS
     CollectStress                   = CollectNowForceInThread,
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     CollectPartialStress            = CollectMode_Partial,
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     CollectBackgroundStress         = CollectNowDefault,
     CollectConcurrentStress         = CollectNowConcurrent,
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     CollectConcurrentPartialStress  = CollectConcurrentStress | CollectPartialStress,
 #endif
 #endif
@@ -375,7 +375,7 @@ private:
 struct RecyclerCollectionStats
 {
     size_t startCollectAllocBytes;
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     size_t startCollectNewPageCount;
 #endif
     size_t continueCollectAllocBytes;
@@ -383,7 +383,7 @@ struct RecyclerCollectionStats
     size_t finishCollectTryCount;
 
     // Heuristic Stats
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     size_t rescanRootBytes;
     size_t estimatedPartialReuseBytes;
     size_t uncollectedNewPageCountPartialCollect;
@@ -413,24 +413,22 @@ struct RecyclerCollectionStats
     struct MarkData
     {
         // Rescan stats
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
         size_t rescanPageCount;
         size_t rescanObjectCount;
         size_t rescanObjectByteCount;
         size_t rescanLargePageCount;
         size_t rescanLargeObjectCount;
         size_t rescanLargeByteCount;
-#endif
         size_t markCount;           // total number of object marked
         size_t markBytes;           // size of all objects marked.
     } markData;
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     MarkData backgroundMarkData[RecyclerHeuristic::MaxBackgroundRepeatMarkCount];
     size_t trackedObjectCount;
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     size_t clientTrackedObjectCount;
 #endif
 
@@ -447,7 +445,7 @@ struct RecyclerCollectionStats
     size_t objectSweepScanCount;            // number of objects walked for sweeping (exclude whole page freed)
     size_t finalizeSweepCount;              // number of objects finalizer/dispose called
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     size_t smallNonLeafHeapBlockPartialReuseCount[HeapBlock::SmallBlockTypeCount];
     size_t smallNonLeafHeapBlockPartialReuseBytes[HeapBlock::SmallBlockTypeCount];
     size_t smallNonLeafHeapBlockPartialUnusedCount[HeapBlock::SmallBlockTypeCount];
@@ -493,7 +491,7 @@ struct CollectionParam
     int timeDiff;
     size_t uncollectedAllocBytes;
     size_t uncollectedPinnedObjects;
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     size_t uncollectedNewPageCountPartialCollect;
     size_t uncollectedNewPageCount;
     size_t unusedPartialCollectFreeBytes;
@@ -540,6 +538,7 @@ struct CollectionParam
 #endif
 
 
+#if ENABLE_CONCURRENT_GC
 class RecyclerParallelThread
 {
 public:
@@ -581,6 +580,7 @@ private:
     HANDLE concurrentThread;
     bool synchronizeOnStartup;
 };
+#endif
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
 class AutoProtectPages
@@ -604,7 +604,9 @@ class Recycler
     friend class MarkContext;
     friend class HeapBlock;
     friend class HeapBlockMap32;
+#if ENABLE_CONCURRENT_GC
     friend class RecyclerParallelThread;
+#endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     friend class AutoProtectPages;
 #endif
@@ -786,6 +788,43 @@ private:
     bool HasPendingTrackObjects() const { return markContext.HasPendingTrackObjects() || parallelMarkContext1.HasPendingTrackObjects() || parallelMarkContext2.HasPendingTrackObjects() || parallelMarkContext3.HasPendingTrackObjects(); }
 
     RecyclerCollectionWrapper * collectionWrapper;
+    HANDLE mainThreadHandle;
+    void * stackBase;
+    class SavedRegisterState
+    {
+    public:
+#if _M_IX86
+        static const int NumRegistersToSave = 8;
+#elif _M_ARM
+        static const int NumRegistersToSave = 13;
+#elif _M_ARM64
+        static const int NumRegistersToSave = 13;
+#elif _M_AMD64
+        static const int NumRegistersToSave = 16;
+#endif
+
+        SavedRegisterState()
+        {
+            memset(registers, 0, sizeof(void*) * NumRegistersToSave);
+        }
+
+        void** GetRegisters()
+        {
+            return registers;
+        }
+
+        void*  GetStackTop()
+        {
+            // By convention, our register-saving routine will always
+            // save the stack pointer as the first item in the array
+            return registers[0];
+        }
+
+    private:
+        void* registers[NumRegistersToSave];
+    };
+
+    SavedRegisterState savedThreadContext;
 
     bool inDispose;
 
@@ -822,30 +861,34 @@ private:
     bool disableCollection;
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     bool enablePartialCollect;
     bool inPartialCollectMode;
+#if ENABLE_CONCURRENT_GC
     bool hasBackgroundFinishPartial;
     bool partialConcurrentNextCollection;
+#endif
+#endif
 #ifdef RECYCLER_STRESS
     bool forcePartialScanStack;
     bool recyclerStress;
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     bool recyclerBackgroundStress;
     bool recyclerConcurrentStress;
     bool recyclerConcurrentRepeatStress;
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     bool recyclerPartialStress;
 #endif
 #endif
+#if DBG
+    bool isExternalStackSkippingGC;
 #endif
-#ifdef CONCURRENT_GC_ENABLED
     bool skipStack;
+#if ENABLE_CONCURRENT_GC
 #if DBG
     bool isConcurrentGCOnIdle;
     bool isFinishGCOnIdle;
-    bool isExternalStackSkippingGC;
 #endif
 
     bool queueTrackedObject;
@@ -864,51 +907,13 @@ private:
     HANDLE concurrentWorkReadyEvent; // main thread uses this event to tell concurrent threads that the work is ready
     HANDLE concurrentWorkDoneEvent; // concurrent threads use this event to tell main thread that the work allocated is done
     HANDLE concurrentThread;
-    HANDLE mainThreadHandle;
 
-    class SavedRegisterState
-    {
-    public:
-#if _M_IX86
-        static const int NumRegistersToSave = 8;
-#elif _M_ARM
-        static const int NumRegistersToSave = 13;
-#elif _M_ARM64
-        static const int NumRegistersToSave = 13;
-#elif _M_AMD64
-        static const int NumRegistersToSave = 16;
-#endif
-
-        SavedRegisterState()
-        {
-            memset(registers, 0, sizeof(void*) * NumRegistersToSave);
-        }
-
-        void** GetRegisters()
-        {
-            return registers;
-        }
-
-        void*  GetStackTop()
-        {
-            // By convention, our register-saving routine will always
-            // save the stack pointer as the first item in the array
-            return registers[0];
-        }
-
-    private:
-        void* registers[NumRegistersToSave];
-    };
-
-    void * stackBase;
-    SavedRegisterState savedThreadContext;
 
     template <uint parallelId>
     void ParallelWorkFunc();
 
     RecyclerParallelThread parallelThread1;
     RecyclerParallelThread parallelThread2;
-    Js::ConfigFlagsTable&  recyclerFlagsTable;
 
 #if DBG
     // Variable indicating if the concurrent thread has exited or not
@@ -918,8 +923,15 @@ private:
     bool concurrentThreadExited;
     bool disableConcurrentThreadExitedCheck;
     bool isProcessingTrackedObjects;
-    bool hasIncompletedDoCollect;
+#endif
 
+    uint tickCountStartConcurrent;
+
+    bool isAborting;
+#endif
+
+#if DBG
+    bool hasIncompleteDoCollect;
     // This is set to true when we begin a Rescan, and set to false when either:
     // (1) We finish the final in-thread Rescan and are about to Mark
     // (2) We do a conditional ResetWriteWatch and are about to Mark
@@ -928,11 +940,7 @@ private:
     bool isProcessingRescan;
 #endif
 
-    uint tickCountStartConcurrent;
-
-    bool isAborting;
-#endif
-
+    Js::ConfigFlagsTable&  recyclerFlagsTable;
     RecyclerSweep recyclerSweepInstance;
     RecyclerSweep * recyclerSweep;
 
@@ -943,7 +951,7 @@ private:
     DWORD needIdleDecommitSignal;
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     SListBase<void *> clientTrackedObjectList;
     ArenaAllocator clientTrackedObjectAllocator;
 
@@ -1139,7 +1147,7 @@ public:
 #endif
 
     BOOL IsShuttingDown() const { return this->isShuttingDown; }
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 #if DBG
     BOOL IsConcurrentMarkEnabled() const { return enableConcurrentMark; }
     BOOL IsConcurrentSweepEnabled() const { return enableConcurrentSweep; }
@@ -1160,7 +1168,9 @@ public:
     void SetupPostCollectionFlags();
     void EnsureNotCollecting();
 
+#if ENABLE_CONCURRENT_GC
     bool QueueTrackedObject(FinalizableObject * trackableObject);
+#endif
 
     // FindRoots
     void TryMarkNonInterior(void* candidate, void* parentReference = nullptr);
@@ -1548,7 +1558,9 @@ private:
     size_t FindRoots();
     size_t TryMarkArenaMemoryBlockList(ArenaMemoryBlock * memoryBlocks);
     size_t TryMarkBigBlockList(BigBlock * memoryBlocks);
+#if ENABLE_CONCURRENT_GC
     size_t TryMarkBigBlockListWithWriteWatch(BigBlock * memoryBlocks);
+#endif
 
     // Mark
     void ResetMarks(ResetMarkFlags flags);
@@ -1556,8 +1568,10 @@ private:
     bool EndMark();
     bool EndMarkCheckOOMRescan();
     void EndMarkOnLowMemory();
+#if ENABLE_CONCURRENT_GC
     void DoParallelMark();
     void DoBackgroundParallelMark();
+#endif
 
     size_t RootMark(CollectionState markState);
 
@@ -1593,7 +1607,11 @@ private:
     bool AddMark(void * candidate, size_t byteCount);
 
     // Sweep
+#if ENABLE_PARTIAL_GC
     bool Sweep(size_t rescanRootBytes = (size_t)-1, bool concurrent = false, bool adjustPartialHeuristics = false);
+#else
+    bool Sweep(bool concurrent = false);
+#endif
     void SweepWeakReference();
     void SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep);
     void FinishSweep(RecyclerSweep& recyclerSweep);
@@ -1620,22 +1638,24 @@ private:
     template <Js::Phase phase>
     void CollectionEnd();
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     void ProcessClientTrackedObjects();
     bool PartialCollect(bool concurrent);
     void FinishPartialCollect(RecyclerSweep * recyclerSweep = nullptr);
     void ClearPartialCollect();
+#if ENABLE_CONCURRENT_GC
     void BackgroundFinishPartialCollect(RecyclerSweep * recyclerSweep);
 #endif
+#endif
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
     size_t RescanMark(DWORD waitTime);
     size_t FinishMark(DWORD waitTime);
     size_t FinishMarkRescan(bool background);
+#if ENABLE_CONCURRENT_GC
     void ProcessTrackedObjects();
 #endif
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     // Concurrent GC
     BOOL IsConcurrentEnabled() const { return this->enableConcurrentMark || this->enableParallelMark || this->enableConcurrentSweep; }
     BOOL IsConcurrentMarkState() const;
@@ -1693,10 +1713,10 @@ private:
 
     void SweepPendingObjects(RecyclerSweep& recyclerSweep);
     void ConcurrentTransferSweptObjects(RecyclerSweep& recyclerSweep);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     void ConcurrentPartialTransferSweptObjects(RecyclerSweep& recyclerSweep);
-#endif // PARTIAL_GC_ENABLED
-#endif // CONCURRENT_GC_ENABLED
+#endif // ENABLE_PARTIAL_GC
+#endif // ENABLE_CONCURRENT_GC
 
     bool ForceSweepObject();
     void NotifyFree(__in char * address, size_t size);
@@ -2139,7 +2159,12 @@ public:
     static CollectedRecyclerWeakRefHeapBlock Instance;
 private:
 
-    CollectedRecyclerWeakRefHeapBlock() : HeapBlock(BlockTypeCount) { isPendingConcurrentSweep = false; }
+    CollectedRecyclerWeakRefHeapBlock() : HeapBlock(BlockTypeCount) 
+    { 
+#if ENABLE_CONCURRENT_GC
+        isPendingConcurrentSweep = false; 
+#endif
+    }
 };
 
 class AutoIdleDecommit

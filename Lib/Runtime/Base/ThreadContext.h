@@ -1000,7 +1000,7 @@ public:
             jobProcessor->Close();
         }
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
         if (this->recycler != nullptr)
         {
             this->recycler->ShutdownThread();

@@ -64,8 +64,8 @@ public:
     void ScanInitialImplicitRoots();
     void ScanNewImplicitRoots();
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
     size_t Rescan(RescanFlags flags);
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
     void SweepPendingObjects(RecyclerSweep& recyclerSweep);
 #endif
     void Sweep(RecyclerSweep& recyclerSweep, bool concurrent);
@@ -76,17 +76,17 @@ public:
     template <ObjectInfoBits attributes>
     void FreeMediumObject(void* object, size_t bytes);
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     void SweepPartialReusePages(RecyclerSweep& recyclerSweep);
     void FinishPartialCollect(RecyclerSweep * recyclerSweep);
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     void PrepareSweep();
 
     void TransferPendingHeapBlocks(RecyclerSweep& recyclerSweep);
     void ConcurrentTransferSweptObjects(RecyclerSweep& recyclerSweep);
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     void ConcurrentPartialTransferSweptObjects(RecyclerSweep& recyclerSweep);
 #endif
 #endif
@@ -192,7 +192,7 @@ private:
         heapBlock->SetNextBlock(list);
         list = heapBlock;
     }
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     template <typename TBlockType> TBlockType *& GetNewHeapBlockList(HeapBucketT<TBlockType> * heapBucket);
     template <>
     SmallLeafHeapBlock *& GetNewHeapBlockList<SmallLeafHeapBlock>(HeapBucketT<SmallLeafHeapBlock> * heapBucket)
@@ -261,15 +261,16 @@ private:
 #endif
 
     void SetupBackgroundSweep(RecyclerSweep& recyclerSweep);
-    template<bool pageheap>
-    void SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep);
-    void SweepLargeNonFinalizable(RecyclerSweep& recyclerSweep);
 #else
     template <typename TBlockType> TBlockType *& GetNewHeapBlockList(HeapBucketT<TBlockType> * heapBucket)
     {
         return heapBucket->heapBlockList;
     }
 #endif
+ 
+    template<bool pageheap>
+    void SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep);
+    void SweepLargeNonFinalizable(RecyclerSweep& recyclerSweep);
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     size_t GetSmallHeapBlockCount(bool checkCount = false) const;
@@ -389,14 +390,14 @@ private:
     size_t lastUncollectedAllocBytes;
     size_t uncollectedExternalBytes;
     uint pendingZeroPageCount;
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     size_t uncollectedNewPageCount;
     size_t unusedPartialCollectFreeBytes;
 #endif
 
     Recycler * recycler;
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     SmallLeafHeapBlock * newLeafHeapBlockList;
     SmallNormalHeapBlock * newNormalHeapBlockList;
     SmallFinalizableHeapBlock * newFinalizableHeapBlockList;
@@ -407,7 +408,7 @@ private:
 #endif
 #endif
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     MediumLeafHeapBlock * newMediumLeafHeapBlockList;
     MediumNormalHeapBlock * newMediumNormalHeapBlockList;
     MediumFinalizableHeapBlock * newMediumFinalizableHeapBlockList;

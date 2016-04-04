@@ -12,22 +12,20 @@ enum CollectionState
     // Mark related states
     Collection_ResetMarks           = 0x00000010,
     Collection_FindRoots            = 0x00000020,
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
     Collection_Rescan               = 0x00000040,
-#endif
     Collection_FinishMark           = 0x00000080,
 
     // Sweep related states
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Collection_ConcurrentSweepSetup = 0x00000100,
 #endif
     Collection_TransferSwept        = 0x00000200,
 
     // State attributes
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     Collection_Partial              = 0x00001000,
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Collection_Concurrent           = 0x00002000,
     Collection_ExecutingConcurrent  = 0x00004000,
     Collection_FinishConcurrent     = 0x00008000,
@@ -51,11 +49,11 @@ enum CollectionState
     CollectionStateExit                   = Collection_Exit,                                                  // exiting concurrent thread
 
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+    // Generally, Rescan is available only when concurrent is enabled
+    // But we need Rescan for mark on OOM too
     CollectionStateRescanFindRoots        = Collection_Mark | Collection_Rescan | Collection_FindRoots,       // rescan (after concurrent mark)
     CollectionStateRescanMark             = Collection_Mark | Collection_Rescan,                              // rescan (after concurrent mark)
-#endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     CollectionStateConcurrentResetMarks   = Collection_ConcurrentMark | Collection_ResetMarks | Collection_ExecutingConcurrent,    // concurrent reset mark
     CollectionStateConcurrentFindRoots    = Collection_ConcurrentMark | Collection_FindRoots | Collection_ExecutingConcurrent,     // concurrent findroot
     CollectionStateConcurrentMark         = Collection_ConcurrentMark | Collection_ExecutingConcurrent,                            // concurrent marking
@@ -67,10 +65,10 @@ enum CollectionState
     CollectionStateTransferSweptWait      = Collection_ConcurrentSweep | Collection_FinishConcurrent,         // transfer swept objects (after concurrent sweep)
 #endif
     CollectionStateParallelMark           = Collection_Mark | Collection_Parallel,
+#if ENABLE_CONCURRENT_GC
     CollectionStateBackgroundParallelMark = Collection_ConcurrentMark | Collection_ExecutingConcurrent | Collection_Parallel,
+    CollectionStateConcurrentWrapperCallback = Collection_Concurrent | Collection_ExecutingConcurrent | Collection_WrapperCallback,
+#endif
 
     CollectionStatePostCollectionCallback = Collection_PostCollectionCallback,
-
-    CollectionStateConcurrentWrapperCallback = Collection_Concurrent | Collection_ExecutingConcurrent | Collection_WrapperCallback,
-
 };

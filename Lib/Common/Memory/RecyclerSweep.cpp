@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 #define KILOBYTES * 1024
 #define MEGABYTES * 1024 KILOBYTES
 #define MEGABYTES_OF_PAGES * 1024 * 1024 / AutoSystemInfo::PageSize;
@@ -29,8 +29,13 @@ RecyclerSweep::IsMemProtectMode()
     return recycler->IsMemProtectMode();
 }
 
+#if ENABLE_PARTIAL_GC
 void
 RecyclerSweep::BeginSweep(Recycler * recycler, size_t rescanRootBytes, bool adjustPartialHeuristics)
+#else
+void
+RecyclerSweep::BeginSweep(Recycler * recycler)
+#endif
 {
     {
         // We are about to sweep, give the runtime a chance to see the now-immutable state of the world.
@@ -56,7 +61,7 @@ RecyclerSweep::BeginSweep(Recycler * recycler, size_t rescanRootBytes, bool adju
     // finish dispose before sweep.
     this->FlushPendingTransferDisposedObjects();
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     // Take the small heap block new heap block list and store in RecyclerSweep temporary
     // We get merge later before we start sweeping the bucket.
 
@@ -95,7 +100,7 @@ RecyclerSweep::BeginSweep(Recycler * recycler, size_t rescanRootBytes, bool adju
 
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     Assert(recycler->clientTrackedObjectList.Empty());
 
     // We should not have partialUncollectedAllocBytes unless we are in partial collect at this point
@@ -131,7 +136,6 @@ RecyclerSweep::BeginSweep(Recycler * recycler, size_t rescanRootBytes, bool adju
 
         Assert(!recycler->inPartialCollectMode);
     }
-#endif
 
     if (this->inPartialCollect)
     {
@@ -142,7 +146,9 @@ RecyclerSweep::BeginSweep(Recycler * recycler, size_t rescanRootBytes, bool adju
         recycler->ResetHeuristicCounters();
     }
     else
+#endif
     {
+        Assert(!this->inPartialCollect);
         // We just did a full collect.
         // We reset uncollectedAllocBytes when we kicked off the collection,
         // so don't reset it here (but do reset partial heuristics).
@@ -153,7 +159,7 @@ RecyclerSweep::BeginSweep(Recycler * recycler, size_t rescanRootBytes, bool adju
 void
 RecyclerSweep::FinishSweep()
 {
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     Assert(this->partial == recycler->inPartialCollectMode);
     // Adjust heuristics
     if (recycler->inPartialCollectMode)
@@ -203,11 +209,13 @@ RecyclerSweep::FinishSweep()
             }
 #endif
 
+#if ENABLE_CONCURRENT_GC
             if (this->IsBackground())
             {
                 recycler->BackgroundFinishPartialCollect(this);
             }
             else
+#endif
             {
                 recycler->FinishPartialCollect(this);
             }
@@ -221,14 +229,16 @@ RecyclerSweep::FinishSweep()
         Assert(recycler->partialUncollectedAllocBytes == 0);
     }
 
+#if ENABLE_CONCURRENT_GC
     recycler->SweepPendingObjects(*this);
+#endif
 #endif
 }
 
 void
 RecyclerSweep::EndSweep()
 {
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     // We clear out the old uncollectedAllocBytes, restore it now to get the adjustment for partial
     // We clear it again after we are done collecting and if we are not in partial collect
     if (this->inPartialCollect)
@@ -253,6 +263,7 @@ RecyclerSweep::EndSweep()
     recycler->heapBlockMap.Cleanup(!recycler->IsMemProtectMode());
 }
 
+#if ENABLE_CONCURRENT_GC
 void
 RecyclerSweep::BackgroundSweep()
 {
@@ -274,6 +285,7 @@ RecyclerSweep::BackgroundSweep()
 
     this->EndBackground();
 }
+#endif
 
 Recycler *
 RecyclerSweep::GetRecycler() const
@@ -309,6 +321,8 @@ RecyclerSweep::FlushPendingTransferDisposedObjects()
 void
 RecyclerSweep::ShutdownCleanup()
 {
+    // REVIEW: Does this need to be controlled more granularly, say with ENABLE_PARTIAL_GC?
+#if ENABLE_CONCURRENT_GC
     SmallLeafHeapBucketT<SmallAllocationBlockAttributes>::DeleteHeapBlockList(this->leafData.pendingMergeNewHeapBlockList, recycler);
     SmallNormalHeapBucket::DeleteHeapBlockList(this->normalData.pendingMergeNewHeapBlockList, recycler);
 #ifdef RECYCLER_WRITE_BARRIER
@@ -362,9 +376,10 @@ RecyclerSweep::ShutdownCleanup()
 #endif
         Assert(this->mediumFinalizableData.bucketData[i].pendingEmptyBlockList == nullptr);
     }
+#endif
 }
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 template <typename TBlockType>
 void
 RecyclerSweep::MergePendingNewHeapBlockList()
@@ -489,7 +504,7 @@ RecyclerSweep::SetPendingMergeNewHeapBlockCount()
 #endif
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 bool
 RecyclerSweep::InPartialCollectMode() const
 {
@@ -544,13 +559,14 @@ RecyclerSweep::StartPartialCollectMode()
     }
 #endif
 }
+#endif
 
 // Called by prepare sweep to track the new allocated bytes on block that is not fully allocated yet.
 template <typename TBlockAttributes>
 void
 RecyclerSweep::AddUnaccountedNewObjectAllocBytes(SmallHeapBlockT<TBlockAttributes> * heapBlock)
 {
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     // Only need to update the unaccounted alloc bytes if we are in partial collect mode
     if (recycler->inPartialCollectMode)
     {
@@ -571,6 +587,7 @@ RecyclerSweep::AddUnaccountedNewObjectAllocBytes(SmallHeapBlockT<TBlockAttribute
 template void RecyclerSweep::AddUnaccountedNewObjectAllocBytes<SmallAllocationBlockAttributes>(SmallHeapBlock * heapBlock);
 template void RecyclerSweep::AddUnaccountedNewObjectAllocBytes<MediumAllocationBlockAttributes>(MediumHeapBlock * heapBlock);
 
+#if ENABLE_PARTIAL_GC
 void
 RecyclerSweep::SubtractSweepNewObjectAllocBytes(size_t newObjectExpectSweepByteCount)
 {
@@ -717,7 +734,9 @@ RecyclerSweep::AdjustPartialHeuristics()
          return false;
     }
 
+#if ENABLE_CONCURRENT_GC
     recycler->partialConcurrentNextCollection = RecyclerHeuristic::PartialConcurrentNextCollection(ratio, recycler->GetRecyclerFlagsTable());
+#endif
     return true;
 }
 

@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 #include <process.h>
 #endif
 
@@ -139,7 +139,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     parallelMarkContext1(this, &this->parallelMarkPagePool1),
     parallelMarkContext2(this, &this->parallelMarkPagePool2),
     parallelMarkContext3(this, &this->parallelMarkPagePool3),
+#if ENABLE_PARTIAL_GC
     clientTrackedObjectAllocator(L"CTO-List", GetPageAllocator(), Js::Throw::OutOfMemory),
+#endif
     outOfMemoryFunc(outOfMemoryFunc),
 #ifdef RECYCLER_TEST_SUPPORT
     checkFn(NULL),
@@ -151,7 +153,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     enableScanInteriorPointers(CUSTOM_CONFIG_FLAG(configFlagsTable, RecyclerForceMarkInterior)),
     enableScanImplicitRoots(false),
     disableCollectOnAllocationHeuristics(false),
-#ifdef CONCURRENT_GC_ENABLED
+    skipStack(false),
+    mainThreadHandle(NULL),
+#if ENABLE_CONCURRENT_GC
     backgroundFinishMarkCount(0),
     hasPendingUnpinnedObject(false),
     hasPendingConcurrentFindRoot(false),
@@ -162,31 +166,33 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     concurrentThread(NULL),
     concurrentWorkReadyEvent(NULL),
     concurrentWorkDoneEvent(NULL),
-    mainThreadHandle(NULL),
     parallelThread1(this, &Recycler::ParallelWorkFunc<0>),
     parallelThread2(this, &Recycler::ParallelWorkFunc<1>),
     priorityBoost(false),
-    skipStack(false),
     isAborting(false),
 #if DBG
     concurrentThreadExited(true),
     isProcessingTrackedObjects(false),
-    hasIncompletedDoCollect(false),
+    hasIncompleteDoCollect(false),
     isConcurrentGCOnIdle(false),
     isFinishGCOnIdle(false),
-    isExternalStackSkippingGC(false),
-    isProcessingRescan(false),
 #endif
 #ifdef IDLE_DECOMMIT_ENABLED
     concurrentIdleDecommitEvent(nullptr),
 #endif
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if DBG
+    isExternalStackSkippingGC(false),
+    isProcessingRescan(false),
+#endif
+#if ENABLE_PARTIAL_GC
     inPartialCollectMode(false),
     scanPinnedObjectMap(false),
     partialUncollectedAllocBytes(0),
     uncollectedNewPageCountPartialCollect((size_t)-1),
+#if ENABLE_CONCURRENT_GC
     partialConcurrentNextCollection(false),
+#endif
 #ifdef RECYCLER_STRESS
     forcePartialScanStack(false),
 #endif
@@ -212,7 +218,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     inCacheCleanupCollection(false),
     hasPendingDeleteGuestArena(false),
     needOOMRescan(false),
+#if ENABLE_CONCURRENT_GC && ENABLE_PARTIAL_GC
     hasBackgroundFinishPartial(false),
+#endif
     decommitOnFinish(false)
 #ifdef PROFILE_EXEC
     , profiler(nullptr)
@@ -275,7 +283,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     this->heapBlockCount = 0;
     this->collectionCount = 0;
     this->disableThreadAccessCheck = false;
+#if ENABLE_CONCURRENT_GC
     this->disableConcurrentThreadExitedCheck = false;
+#endif
 #endif
 #if DBG || defined RECYCLER_TRACE
     this->inResolveExternalWeakReferences = false;
@@ -348,12 +358,12 @@ Recycler::SetMemProtectMode()
     this->disableCollectOnAllocationHeuristics = true;
 #ifdef RECYCLER_STRESS
     this->recyclerStress = GetRecyclerFlagsTable().MemProtectHeapStress;
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     this->recyclerBackgroundStress = GetRecyclerFlagsTable().MemProtectHeapBackgroundStress;
     this->recyclerConcurrentStress = GetRecyclerFlagsTable().MemProtectHeapConcurrentStress;
     this->recyclerConcurrentRepeatStress = GetRecyclerFlagsTable().MemProtectHeapConcurrentRepeatStress;
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     this->recyclerPartialStress = GetRecyclerFlagsTable().MemProtectHeapPartialStress;
 #endif
 #endif
@@ -399,15 +409,17 @@ Recycler::LogMemProtectHeapSize(bool fromGC)
 void
 Recycler::SetDisableConcurrentThreadExitedCheck()
 {
+#if ENABLE_CONCURRENT_GC
     disableConcurrentThreadExitedCheck = true;
+#endif
 #ifdef RECYCLER_STRESS
     this->recyclerStress = false;
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     this->recyclerBackgroundStress = false;
     this->recyclerConcurrentStress = false;
     this->recyclerConcurrentRepeatStress = false;
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     this->recyclerPartialStress = false;
 #endif
 #endif
@@ -420,7 +432,7 @@ Recycler::ResetThreadId()
 {
     // Transfer all the page allocator to the current thread id
     ForRecyclerPageAllocator(ClearConcurrentThreadId());
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     if (this->IsConcurrentEnabled())
     {
         markContext.GetPageAllocator()->ClearConcurrentThreadId();
@@ -434,7 +446,9 @@ Recycler::ResetThreadId()
 
 Recycler::~Recycler()
 {
+#if ENABLE_CONCURRENT_GC
     Assert(!this->isAborting);
+#endif
 
     // Stop any further collection
     this->isShuttingDown = true;
@@ -471,7 +485,7 @@ Recycler::~Recycler()
 
     AUTO_LEAK_REPORT_SECTION(this->GetRecyclerFlagsTable(), L"Skipped finalizers");
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(concurrentThread == nullptr);
 
     // We only sometime clean up the state after abort concurrent to not collection
@@ -518,7 +532,7 @@ Recycler::~Recycler()
         return false;
     });
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     clientTrackedObjectList.Clear(&this->clientTrackedObjectAllocator);
 #endif
 
@@ -545,7 +559,7 @@ Recycler::~Recycler()
     ForRecyclerPageAllocator(ShutdownIdleDecommit());
 #endif
     Assert(this->collectionState == CollectionStateExit || this->collectionState == CollectionStateNotCollecting);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(this->disableConcurrentThreadExitedCheck || this->concurrentThreadExited == true);
 #endif
 }
@@ -656,6 +670,7 @@ Recycler::RootRelease(void* obj, uint *count)
         StackBackTraceNode::DeleteAll(&NoCheckHeapAllocator::Instance, refCount->stackBackTraces);
         refCount->stackBackTraces = nullptr;
 #endif
+#if ENABLE_CONCURRENT_GC
         // Don't delete the entry if we are in concurrent find root state
         // We will delete it later on in-thread find root
         if (this->hasPendingConcurrentFindRoot)
@@ -663,6 +678,7 @@ Recycler::RootRelease(void* obj, uint *count)
             this->hasPendingUnpinnedObject = true;
         }
         else
+#endif
         {
             pinnedObjectMap.Remove(obj);
         }
@@ -691,11 +707,11 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     this->disableCollection = CUSTOM_PHASE_OFF1(GetRecyclerFlagsTable(), Js::RecyclerPhase);
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     this->skipStack = false;
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     this->enablePartialCollect = !CUSTOM_PHASE_OFF1(GetRecyclerFlagsTable(), Js::PartialCollectPhase);
 #else
@@ -774,27 +790,29 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
 #endif
 
 #ifdef RECYCLER_STRESS
+#if ENABLE_PARTIAL_GC
     if (GetRecyclerFlagsTable().RecyclerTrackStress)
     {
         // Disable partial if we are doing track stress, since partial relies on ClientTracked processing
         // and track stress doesn't support this.
         this->enablePartialCollect = false;
     }
+#endif
 
     this->recyclerStress = GetRecyclerFlagsTable().RecyclerStress;
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     this->recyclerBackgroundStress = GetRecyclerFlagsTable().RecyclerBackgroundStress;
     this->recyclerConcurrentStress = GetRecyclerFlagsTable().RecyclerConcurrentStress;
     this->recyclerConcurrentRepeatStress = GetRecyclerFlagsTable().RecyclerConcurrentRepeatStress;
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     this->recyclerPartialStress = GetRecyclerFlagsTable().RecyclerPartialStress;
 #endif
 #endif
 
     bool needWriteWatch = false;
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     // Default to non-concurrent
     uint numProcs = (uint)AutoSystemInfo::Data.GetNumberOfPhysicalProcessors();
     this->maxParallelism = (numProcs > 4) || CUSTOM_PHASE_FORCE1(GetRecyclerFlagsTable(), Js::ParallelMarkPhase) ? 4 : numProcs;
@@ -829,19 +847,23 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
     }
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         needWriteWatch = true;
     }
 #endif
 
+#if ENABLE_CONCURRENT_GC
     if (needWriteWatch)
     {
         // need write watch to support concurrent and/or partial collection
         recyclerPageAllocator.EnableWriteWatch();
         recyclerLargeBlockPageAllocator.EnableWriteWatch();
     }
+#else
+    Assert(!needWriteWatch);
+#endif
 }
 
 #if DBG
@@ -1048,8 +1070,12 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
         return false;
     }
 
+#if ENABLE_CONCURRENT_GC
     // We shouldn't be freeing object when we are running GC in thread
     Assert(this->IsConcurrentState() || !this->CollectionInProgress() || this->collectionState == CollectionStatePostCollectionCallback);
+#else
+    Assert(!this->CollectionInProgress() || this->collectionState == CollectionStatePostCollectionCallback);
+#endif
 
     DebugOnly(RecyclerHeapObjectInfo info);
     Assert(this->FindHeapObject(buffer, FindHeapObjectFlags_NoFreeBitVerify, info));
@@ -1343,7 +1369,7 @@ Recycler::ScanArena(ArenaData * alloc, bool background)
     size_t scanRootBytes = 0;
     BEGIN_DUMP_OBJECT_ADDRESS(L"Guest Arena", alloc);
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
 // The new write watch batching logic broke the write watch handling here.
 // For now, just disable write watch for guest arenas.
 // Re-enable this in the future.
@@ -1416,17 +1442,19 @@ Recycler::ExpectStackSkip() const
 size_t
 Recycler::ScanStack()
 {
-#ifdef CONCURRENT_GC_ENABLED
     if (this->skipStack)
     {
 #ifdef RECYCLER_TRACE
         CUSTOM_PHASE_PRINT_VERBOSE_TRACE1(GetRecyclerFlagsTable(), Js::ScanStackPhase, L"[%04X] Skipping the stack scan\n", ::GetCurrentThreadId());
 #endif
 
+#if ENABLE_CONCURRENT_GC
         Assert(this->isFinishGCOnIdle || this->isConcurrentGCOnIdle || this->ExpectStackSkip());
+#else
+        Assert(this->ExpectStackSkip());
+#endif
         return 0;
     }
-#endif
 
 #ifdef RECYCLER_STATS
     size_t lastMarkCount = this->collectionStats.markData.markCount;
@@ -1558,7 +1586,7 @@ Recycler::FindRoots()
     // Do this first because the host might unpin stuff in the process
     if (externalRootMarker != NULL)
     {
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         if (!this->inPartialCollectMode)
 #endif
         {
@@ -1610,12 +1638,15 @@ Recycler::FindRoots()
     }
 #endif
 
+#if ENABLE_CONCURRENT_GC
     Assert(!this->hasPendingConcurrentFindRoot);
+#endif
     RECYCLER_PROFILE_EXEC_BEGIN(this, Js::FindRootArenaPhase);
     DListBase<GuestArenaAllocator>::EditingIterator guestArenaIter(&guestArenaList);
     while (guestArenaIter.Next())
     {
         GuestArenaAllocator& allocator = guestArenaIter.Data();
+#if ENABLE_CONCURRENT_GC
         if (allocator.pendingDelete)
         {
             Assert(this->hasPendingDeleteGuestArena);
@@ -1624,8 +1655,10 @@ Recycler::FindRoots()
             guestArenaIter.RemoveCurrent(&HeapAllocator::Instance);
         }
         else if (this->backgroundFinishMarkCount == 0)
+#endif
         {
             // Only scan arena if we haven't finished mark in the background
+            // (which is true if concurrent GC is disabled)
             scanRootBytes += ScanArena(&allocator, false);
         }
     }
@@ -1681,6 +1714,7 @@ Recycler::TryMarkArenaMemoryBlockList(ArenaMemoryBlock * memoryBlocks)
     return scanRootBytes;
 }
 
+#if ENABLE_CONCURRENT_GC
 size_t
 Recycler::TryMarkBigBlockListWithWriteWatch(BigBlock * memoryBlocks)
 {
@@ -1714,6 +1748,7 @@ Recycler::TryMarkBigBlockListWithWriteWatch(BigBlock * memoryBlocks)
     }
     return scanRootBytes;
 }
+#endif
 
 size_t
 Recycler::TryMarkBigBlockList(BigBlock * memoryBlocks)
@@ -1793,7 +1828,7 @@ Recycler::CheckAllocExternalMark() const
 {
     Assert(!disableThreadAccessCheck);
     Assert(GetCurrentThreadContextId() == mainThreadId);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
   #ifdef HEAP_ENUMERATION_VALIDATION
     Assert((this->IsMarkState() || this->IsPostEnumHeapValidationInProgress()) && collectionState != CollectionStateConcurrentMark);
   #else
@@ -1834,6 +1869,7 @@ template <bool parallel, bool interior>
 void
 Recycler::ProcessMarkContext(MarkContext * markContext)
 {
+#if ENABLE_CONCURRENT_GC
     // Copying the markContext onto the stack messes up tracked object handling, because
     // the tracked object will call TryMark[Non]Interior to report its references.
     // These functions implicitly use the main markContext on the Recycler, but this will
@@ -1843,7 +1879,11 @@ Recycler::ProcessMarkContext(MarkContext * markContext)
     // In this case we shouldn't be parallel anyway, so we don't need to worry about cache behavior.
     // We should revisit how we manage markContexts in general in the future, and clean this up
     // by passing the MarkContext through to the tracked object's Mark method.
+#if ENABLE_PARTIAL_GC
     if (this->inPartialCollectMode || DoQueueTrackedObject())
+#else
+    if (DoQueueTrackedObject())
+#endif
     {
         // The markContext as passed is one of the markContexts that lives on the Recycler.
         // Copy it locally for processing.
@@ -1865,6 +1905,7 @@ Recycler::ProcessMarkContext(MarkContext * markContext)
         localMarkContext.Clear();
     }
     else
+#endif
     {
         Assert(!parallel);
         markContext->ProcessMark<parallel, interior>();
@@ -1953,14 +1994,16 @@ Recycler::Mark()
     RootMark(CollectionStateMark);
 }
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 void
 Recycler::StartQueueTrackedObject()
 {
     Assert(!this->queueTrackedObject);
     Assert(!this->HasPendingTrackObjects());
+#if ENABLE_PARTIAL_GC
     Assert(this->clientTrackedObjectList.Empty());
     Assert(!this->inPartialCollectMode);
+#endif
     this->queueTrackedObject = true;
 }
 
@@ -1968,10 +2011,12 @@ bool
 Recycler::DoQueueTrackedObject() const
 {
     Assert(this->queueTrackedObject || !this->IsConcurrentMarkState());
-    Assert(this->queueTrackedObject || this->inPartialCollectMode || !(this->collectionState == CollectionStateParallelMark));
     Assert(this->queueTrackedObject || this->isProcessingTrackedObjects || !this->HasPendingTrackObjects());
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
+    Assert(this->queueTrackedObject || this->inPartialCollectMode || !(this->collectionState == CollectionStateParallelMark));
     Assert(!this->queueTrackedObject || (this->clientTrackedObjectList.Empty() && !this->inPartialCollectMode));
+#else
+    Assert(this->queueTrackedObject || !(this->collectionState == CollectionStateParallelMark));
 #endif
     return this->queueTrackedObject;
 }
@@ -1985,19 +2030,23 @@ Recycler::ResetCollectionState()
     Assert(IsMarkStackEmpty());
 
     this->collectionState = CollectionStateNotCollecting;
+#if ENABLE_CONCURRENT_GC
     this->backgroundFinishMarkCount = 0;
+#endif
     this->inExhaustiveCollection = false;
     this->inDecommitNowCollection = false;
 
+#if ENABLE_CONCURRENT_GC
     CleanupPendingUnroot();
+#endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (inPartialCollectMode)
     {
         FinishPartialCollect();
     }
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(!this->DoQueueTrackedObject());
 #endif
 #ifdef RECYCLER_FINALIZE_CHECK
@@ -2022,7 +2071,7 @@ Recycler::ResetMarkCollectionState()
     this->ClearNeedOOMRescan();
     DebugOnly(this->isProcessingRescan = false);
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     // If we're reseting the mark collection state, we need to unlock the block list
     DListBase<GuestArenaAllocator>::EditingIterator guestArenaIter(&guestArenaList);
     while (guestArenaIter.Next())
@@ -2047,7 +2096,7 @@ Recycler::ResetHeuristicCounters()
 
 void Recycler::ResetPartialHeuristicCounters()
 {
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     autoHeap.uncollectedNewPageCount = 0;
 #endif
 }
@@ -2059,7 +2108,7 @@ Recycler::ScheduleNextCollection()
     this->tickCountNextFinishCollection = ::GetTickCount() + RecyclerHeuristic::TickCountFinishCollection;
 }
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 void
 Recycler::PrepareSweep()
 {
@@ -2071,7 +2120,17 @@ size_t
 Recycler::RescanMark(DWORD waitTime)
 {
     bool const onLowMemory = this->NeedOOMRescan();
+    
+    // REVIEW: Why are we asserting for DoQueueTrackedObject here? 
+    // Should we split this into different asserts depending on whether
+    // concurrent or partial is enabled?
+#if ENABLE_CONCURRENT_GC
+#if ENABLE_PARTIAL_GC
     Assert(this->inPartialCollectMode || DoQueueTrackedObject());
+#else
+    Assert(DoQueueTrackedObject());
+#endif
+#endif
 
     {
         // We are about to do a rescan mark, which for consistency requires the runtime to stop any additional mutator threads
@@ -2081,7 +2140,7 @@ Recycler::RescanMark(DWORD waitTime)
 
     // Always called in-thread
     Assert(collectionState == CollectionStateRescanFindRoots);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     if (!onLowMemory && // Don't do background finish mark if we are low on memory
         // Only do background finish mark if we have a time limit or it is forced
         (CUSTOM_PHASE_FORCE1(GetRecyclerFlagsTable(), Js::BackgroundFinishMarkPhase) || waitTime != INFINITE) &&
@@ -2117,11 +2176,12 @@ Recycler::RescanMark(DWORD waitTime)
         this->RevertPrepareBackgroundFindRoots();
     }
 #endif
+#if ENABLE_CONCURRENT_GC
     this->backgroundFinishMarkCount = 0;
+#endif
     return FinishMarkRescan(false) * AutoSystemInfo::PageSize;
 }
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
 size_t
 Recycler::FinishMark(DWORD waitTime)
 {
@@ -2129,11 +2189,11 @@ Recycler::FinishMark(DWORD waitTime)
     Assert(waitTime != INFINITE || scannedRootBytes != Recycler::InvalidScanRootBytes);
     if (scannedRootBytes != Recycler::InvalidScanRootBytes)
     {
-#if DBG
+#if DBG && ENABLE_PARTIAL_GC
         RecyclerVerboseTrace(GetRecyclerFlagsTable(), L"CTO: %d\n", this->clientTrackedObjectList.Count());
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         if (this->inPartialCollectMode)
         {
             RecyclerVerboseTrace(GetRecyclerFlagsTable(), L"Processing client tracked objects\n");
@@ -2141,6 +2201,7 @@ Recycler::FinishMark(DWORD waitTime)
         }
         else
 #endif
+#if ENABLE_CONCURRENT_GC
         if (DoQueueTrackedObject())
         {
             RecyclerVerboseTrace(GetRecyclerFlagsTable(), L"Processing regular tracked objects\n");
@@ -2150,14 +2211,15 @@ Recycler::FinishMark(DWORD waitTime)
                 (this->recyclerPageAllocator.GetWriteWatchPageCount() == 0 &&
                 this->recyclerLargeBlockPageAllocator.GetWriteWatchPageCount() == 0));
         }
+#endif
 
         // Continue to mark from root one more time
         scannedRootBytes += RootMark(CollectionStateRescanMark);
     }
     return scannedRootBytes;
 }
-#endif
 
+#if ENABLE_CONCURRENT_GC
 void
 Recycler::DoParallelMark()
 {
@@ -2180,7 +2242,9 @@ Recycler::DoParallelMark()
 
     // We need to queue tracked objects while we mark in parallel.
     // (Unless it's a partial collect, in which case we don't process tracked objects at all)
+#if ENABLE_PARTIAL_GC
     if (!this->inPartialCollectMode)
+#endif
     {
         StartQueueTrackedObject();
     }
@@ -2243,15 +2307,19 @@ Recycler::DoParallelMark()
 
     // Process tracked objects, if any, then do one final mark phase in case they marked any new objects.
     // (Unless it's a partial collect, in which case we don't process tracked objects at all)
+#if ENABLE_PARTIAL_GC
     if (!this->inPartialCollectMode)
+#endif
     {
         this->ProcessTrackedObjects();
         this->ProcessMark(false);
     }
+#if ENABLE_PARTIAL_GC
     else
     {
         Assert(!this->HasPendingTrackObjects());
     }
+#endif
 }
 
 
@@ -2281,8 +2349,12 @@ Recycler::DoBackgroundParallelMark()
         return;
     }
 
+#if ENABLE_PARTIAL_GC
     // We should already be set up to queue tracked objects, unless this is a partial collect
     Assert(this->DoQueueTrackedObject() || this->inPartialCollectMode);
+#else
+    Assert(this->DoQueueTrackedObject());
+#endif
 
     this->collectionState = CollectionStateBackgroundParallelMark;
 
@@ -2324,13 +2396,18 @@ Recycler::DoBackgroundParallelMark()
 
     this->collectionState = CollectionStateConcurrentMark;
 }
+#endif
 
 size_t
 Recycler::RootMark(CollectionState markState)
 {
     size_t scannedRootBytes = 0;
     Assert(!this->NeedOOMRescan() || markState == CollectionStateRescanMark);
+#if ENABLE_PARTIAL_GC
     RecyclerVerboseTrace(GetRecyclerFlagsTable(), L"PreMark done, partial collect: %d\n", this->inPartialCollectMode);
+#else
+    RecyclerVerboseTrace(GetRecyclerFlagsTable(), L"PreMark done, partial collect not available\n");
+#endif
 
     Assert(collectionState == (markState == CollectionStateMark? CollectionStateFindRoots : CollectionStateRescanFindRoots));
 
@@ -2352,19 +2429,25 @@ Recycler::RootMark(CollectionState markState)
 
     this->collectionState = markState;
 
+#if ENABLE_CONCURRENT_GC
     if (this->enableParallelMark)
     {
         this->DoParallelMark();
     }
     else
+#endif
     {
         this->ProcessMark(false);
     }
 
     if (this->EndMark())
     {
+        // REVIEW: This heuristic doesn't apply when partial is off so there's no need 
+        // to modify scannedRootBytes here, correct?
+#if ENABLE_PARTIAL_GC
         // return large root scanned byte to not get into partial mode if we are low on memory
         scannedRootBytes = RecyclerSweep::MaxPartialCollectRescanRootBytes + 1;
+#endif
     }
 
     return scannedRootBytes;
@@ -2402,8 +2485,12 @@ Recycler::EndMarkCheckOOMRescan()
 bool
 Recycler::EndMark()
 {
+#if ENABLE_CONCURRENT_GC
     Assert(!this->DoQueueTrackedObject());
+#endif
+#if ENABLE_PARTIAL_GC
     Assert(this->clientTrackedObjectList.Empty());
+#endif
 
     {
         // We have finished marking
@@ -2459,17 +2546,21 @@ Recycler::EndMarkOnLowMemory()
 
     do
     {
+#if ENABLE_PARTIAL_GC
         Assert(this->clientTrackedObjectList.Empty());
+#endif
 
+#if ENABLE_CONCURRENT_GC
         // Always queue tracked objects during rescan, to avoid changes to mark state.
         // (Unless we're in a partial, in which case we ignore tracked objects)
         Assert(!this->DoQueueTrackedObject());
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         if (!this->inPartialCollectMode)
 #endif
         {
             this->StartQueueTrackedObject();
         }
+#endif
 
         this->collectionState = CollectionStateRescanFindRoots;
 
@@ -2496,13 +2587,15 @@ Recycler::EndMarkOnLowMemory()
 
         this->ProcessMark(false);
 
+#if ENABLE_CONCURRENT_GC
         // Process any tracked objects we found
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         if (!this->inPartialCollectMode)
 #endif
         {
             ProcessTrackedObjects();
         }
+#endif
 
         // Drain the mark stack
         ProcessMark(false);
@@ -2519,10 +2612,14 @@ Recycler::EndMarkOnLowMemory()
     Assert(!parallelMarkContext3.GetPageAllocator()->DisableAllocationOutOfMemory());
     CUSTOM_PHASE_PRINT_TRACE1(GetRecyclerFlagsTable(), Js::RecyclerPhase, L"EndMarkOnLowMemory iterations: %d\n", iterations);
 
+#if ENABLE_PARTIAL_GC
     Assert(this->clientTrackedObjectList.Empty());
+#endif
+#if ENABLE_CONCURRENT_GC
     Assert(!this->DoQueueTrackedObject());
+#endif
     this->inEndMarkOnLowMemory = false;
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->inPartialCollectMode)
     {
         this->FinishPartialCollect();
@@ -2556,11 +2653,13 @@ Recycler::PostHeapEnumScan(PostHeapEnumScanCallback callback, void *data)
 }
 #endif
 
+#if ENABLE_CONCURRENT_GC
 bool
 Recycler::QueueTrackedObject(FinalizableObject * trackableObject)
 {
     return markContext.AddTrackedObject(trackableObject);
 }
+#endif
 
 bool
 Recycler::FindImplicitRootObject(void* candidate, RecyclerHeapObjectInfo& heapObject)
@@ -2615,12 +2714,19 @@ Recycler::GetRealAddressFromInterior(void* candidate)
  * Sweep
  *------------------------------------------------------------------------------------------------*/
 
+#if ENABLE_PARTIAL_GC
 bool
 Recycler::Sweep(size_t rescanRootBytes, bool concurrent, bool adjustPartialHeuristics)
+#else
+bool
+Recycler::Sweep(bool concurrent)
+#endif
 {
+#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
     Assert(!this->hasBackgroundFinishPartial);
+#endif
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     if (!this->enableConcurrentSweep)
 #endif
     {
@@ -2629,14 +2735,21 @@ Recycler::Sweep(size_t rescanRootBytes, bool concurrent, bool adjustPartialHeuri
 
     RECYCLER_PROFILE_EXEC_BEGIN(this, concurrent? Js::ConcurrentSweepPhase : Js::SweepPhase);
 
+#if ENABLE_PARTIAL_GC
     recyclerSweepInstance.BeginSweep(this, rescanRootBytes, adjustPartialHeuristics);
+#else
+    recyclerSweepInstance.BeginSweep(this);
+#endif
+
     this->SweepHeap(concurrent, *recyclerSweep);
+#if ENABLE_CONCURRENT_GC
     if (concurrent)
     {
         // If we finished mark in the background, all the relevant write watches should already be reset
         // Only reset write watch if we didn't finish mark in the background
         if (this->backgroundFinishMarkCount == 0)
         {
+#if ENABLE_PARTIAL_GC
             if (this->inPartialCollectMode)
             {
                 RECYCLER_PROFILE_EXEC_BEGIN(this, Js::ResetWriteWatchPhase);
@@ -2652,9 +2765,11 @@ Recycler::Sweep(size_t rescanRootBytes, bool concurrent, bool adjustPartialHeuri
                 }
                 RECYCLER_PROFILE_EXEC_END(this, Js::ResetWriteWatchPhase);
             }
+#endif
         }
     }
     else
+#endif
     {
         recyclerSweep->FinishSweep();
         recyclerSweep->EndSweep();
@@ -2662,7 +2777,7 @@ Recycler::Sweep(size_t rescanRootBytes, bool concurrent, bool adjustPartialHeuri
 
     RECYCLER_PROFILE_EXEC_END(this, concurrent? Js::ConcurrentSweepPhase : Js::SweepPhase);
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     if (concurrent)
     {
         if (!StartConcurrent(CollectionStateConcurrentSweep))
@@ -2742,7 +2857,7 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep)
     Assert(!this->hasPendingDeleteGuestArena);
     Assert(!this->isHeapEnumInProgress);
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(!this->DoQueueTrackedObject());
     if (concurrent)
     {
@@ -2764,7 +2879,7 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep)
 
     this->SweepWeakReference();
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     if (concurrent)
     {
         GCETW(GC_SETUPBACKGROUNDSWEEP_START, (this));
@@ -2786,7 +2901,7 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep)
     recyclerPageAllocator.ResumeIdleDecommit();
     recyclerLargeBlockPageAllocator.ResumeIdleDecommit();
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     if (concurrent)
     {
         recyclerPageAllocator.StopQueueZeroPage();
@@ -2815,6 +2930,7 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep)
 #endif
 }
 
+#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
 void
 Recycler::BackgroundFinishPartialCollect(RecyclerSweep * recyclerSweep)
 {
@@ -2824,6 +2940,7 @@ Recycler::BackgroundFinishPartialCollect(RecyclerSweep * recyclerSweep)
     this->autoHeap.FinishPartialCollect(recyclerSweep);
     this->inPartialCollectMode = false;
 }
+#endif
 
 void
 Recycler::DisposeObjects()
@@ -3004,7 +3121,7 @@ Recycler::FinishDisposeObjectsWrapped()
 BOOL
 Recycler::CollectOnAllocatorThread()
 {
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     Assert(!inPartialCollectMode);
 #endif
 #ifdef RECYCLER_TRACE
@@ -3093,7 +3210,7 @@ template <CollectionFlags flags>
 BOOL
 Recycler::GetPartialFlag()
 {
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 #pragma prefast(suppress:6313, "flags is a template parameter and can be 0")
     return(flags & CollectMode_Partial) && inPartialCollectMode;
 #else
@@ -3142,7 +3259,7 @@ Recycler::CollectInternal()
     CaptureCollectionParam(flags);
 #endif
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     const BOOL concurrent = flags & CollectMode_Concurrent;
     const BOOL finishConcurrent = flags & CollectOverride_FinishConcurrent;
 
@@ -3177,7 +3294,7 @@ Recycler::CollectWithHeuristic()
     const BOOL timedIfInScript = flags & CollectHeuristic_TimeIfInScript;
     const BOOL timed = (timedIfScriptActive && isScriptActive) || (timedIfInScript && isInScript) || (flags & CollectHeuristic_Time);
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (GetPartialFlag<flags>())
     {
         Assert(enablePartialCollect);
@@ -3228,7 +3345,7 @@ template <CollectionFlags flags>
 BOOL
 Recycler::Collect()
 {
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     if (this->CollectionInProgress())
     {
         // If we are forced in thread, we can't be concurrent
@@ -3251,7 +3368,7 @@ Recycler::Collect()
     // ExecuteRecyclerCollectionFunction may cause exception. In which case, we may trigger the assert
     // in SetupPostCollectionFlags because we didn't reset the inExhausitvECollection variable if
     // an exception. Use this flag to disable it the assertion if exception occur
-    DebugOnly(this->hasIncompletedDoCollect = true);
+    DebugOnly(this->hasIncompleteDoCollect = true);
 
     {
         RECORD_TIMESTAMP(initialCollectionStartTime);
@@ -3265,9 +3382,9 @@ Recycler::Collect()
 template <CollectionFlags flags>
 void Recycler::SetupPostCollectionFlags()
 {
-    // If we are not in a collection (collection in progress or in dispose), inExhastivecollection should not be set
+    // If we are not in a collection (collection in progress or in dispose), inExhaustiveCollection should not be set
     // Otherwise, we have missed an exhaustive collection.
-    Assert(this->hasIncompletedDoCollect ||
+    Assert(this->hasIncompleteDoCollect ||
         this->CollectionInProgress() || this->inDispose || (!this->inExhaustiveCollection && !this->inDecommitNowCollection));
 
     // Record whether we want to start exhaustive detection or do decommit now after GC
@@ -3292,7 +3409,7 @@ void Recycler::SetupPostCollectionFlags()
 BOOL
 Recycler::DoCollectWrapped(CollectionFlags flags)
 {
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     this->skipStack = ((flags & CollectOverride_SkipStack) != 0);
     DebugOnly(this->isConcurrentGCOnIdle = (flags == CollectOnScriptIdle));
 #endif
@@ -3300,7 +3417,7 @@ Recycler::DoCollectWrapped(CollectionFlags flags)
     this->allowDispose = (flags & CollectOverride_AllowDispose) == CollectOverride_AllowDispose;
     BOOL collected = collectionWrapper->ExecuteRecyclerCollectionFunction(this, &Recycler::DoCollect, flags);
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(IsConcurrentExecutingState() || IsConcurrentFinishedState() || !CollectionInProgress());
 #else
     Assert(!CollectionInProgress());
@@ -3320,9 +3437,9 @@ BOOL
 Recycler::DoCollect(CollectionFlags flags)
 {
     // ExecuteRecyclerCollectionFunction may cause exception. In which case, we may trigger the assert
-    // in SetupPostCollectionFlags because we didn't reset the inExhausitvECollection variable if
+    // in SetupPostCollectionFlags because we didn't reset the inExhaustiveCollection variable if
     // an exception. We are not in DoCollect, there shouldn't be any more exception. Reset the flag
-    DebugOnly(this->hasIncompletedDoCollect = false);
+    DebugOnly(this->hasIncompleteDoCollect = false);
 
 #ifdef RECYCLER_MEMORY_VERIFY
     this->Verify(Js::RecyclerPhase);
@@ -3330,7 +3447,7 @@ Recycler::DoCollect(CollectionFlags flags)
 #ifdef RECYCLER_FINALIZE_CHECK
     autoHeap.VerifyFinalize();
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     BOOL partial = flags & CollectMode_Partial;
 
 #if DBG && defined(RECYCLER_DUMP_OBJECT_GRAPH)
@@ -3357,19 +3474,25 @@ Recycler::DoCollect(CollectionFlags flags)
         DumpObjectGraph();
         dumpObjectOnceOnCollect = false;
 
+#if ENABLE_PARTIAL_GC
         // Can't do a partial collect if DumpObjectGraph is set since it'll call FinishPartial
         // which will set inPartialCollectMode to false.
         partial = false;
+#endif
     }
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     const bool concurrent = (flags & CollectMode_Concurrent) != 0;
     const BOOL forceInThread = flags & CollectOverride_ForceInThread;
+#else
+    const bool concurrent = false;
 #endif
 
     // Flush the pending dispose objects first if dispose is allowed
     Assert(!this->CollectionInProgress());
+#if ENABLE_CONCURRENT_GC
     Assert(this->backgroundFinishMarkCount == 0);
+#endif
 
     bool collected = FinishDisposeObjects();
 
@@ -3379,7 +3502,7 @@ Recycler::DoCollect(CollectionFlags flags)
         RECORD_TIMESTAMP(currentCollectionStartTime);
         this->telemetryBlock->currentCollectionStartProcessUsedBytes = PageAllocator::GetProcessUsedBytes();
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
         // DisposeObject may call script again and start another GC, so we may still be in concurrent GC state
 
         if (this->CollectionInProgress())
@@ -3394,8 +3517,8 @@ Recycler::DoCollect(CollectionFlags flags)
 
             return true;
         }
-#endif
         Assert(this->backgroundFinishMarkCount == 0);
+#endif
 
 #if DBG
         collectionCount++;
@@ -3407,21 +3530,21 @@ Recycler::DoCollect(CollectionFlags flags)
         hasExhaustiveCandidate = false;         // reset the candidate detection
 
 #ifdef RECYCLER_STATS
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         RecyclerCollectionStats oldCollectionStats = collectionStats;
 #endif
         memset(&collectionStats, 0, sizeof(RecyclerCollectionStats));
         this->collectionStats.startCollectAllocBytes = autoHeap.uncollectedAllocBytes;
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         this->collectionStats.startCollectNewPageCount = autoHeap.uncollectedNewPageCount;
         this->collectionStats.uncollectedNewPageCountPartialCollect = this->uncollectedNewPageCountPartialCollect;
 #endif
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         if (partial)
         {
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
             Assert(!forceInThread);
 #endif
 #ifdef RECYCLER_STATS
@@ -3463,7 +3586,7 @@ Recycler::DoCollect(CollectionFlags flags)
         }
 #endif
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 
         bool skipConcurrent = false;
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -3532,7 +3655,7 @@ Recycler::DoCollect(CollectionFlags flags)
     }
     while (this->NeedExhaustiveRepeatCollect());
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     // DisposeObject may call script again and start another GC, so we may still be in concurrent GC state
 
     if (this->CollectionInProgress())
@@ -3552,7 +3675,9 @@ Recycler::DoCollect(CollectionFlags flags)
 void
 Recycler::EndCollection()
 {
+#if ENABLE_CONCURRENT_GC
     Assert(this->backgroundFinishMarkCount == 0);
+#endif
     Assert(!this->CollectionInProgress());
 
     // no more collection is requested, we can turn exhaustive back off
@@ -3573,7 +3698,7 @@ Recycler::EndCollection()
 }
 
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 
 bool
 Recycler::PartialCollect(bool concurrent)
@@ -3583,6 +3708,7 @@ Recycler::PartialCollect(bool concurrent)
     Assert(collectionState == CollectionStateNotCollecting);
     // Rescan again
     collectionState = CollectionStateRescanFindRoots;
+#if ENABLE_CONCURRENT_GC
     if (concurrent && enableConcurrentMark && this->partialConcurrentNextCollection)
     {
         this->PrepareBackgroundFindRoots();
@@ -3595,6 +3721,7 @@ Recycler::PartialCollect(bool concurrent)
         }
         this->RevertPrepareBackgroundFindRoots();
     }
+#endif
 
 #ifdef RECYCLER_STRESS
     if (forcePartialScanStack)
@@ -3632,7 +3759,7 @@ Recycler::ProcessClientTrackedObjects()
     GCETW(GC_PROCESS_CLIENT_TRACKED_OBJECT_START, (this));
 
     Assert(this->inPartialCollectMode);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(!this->DoQueueTrackedObject());
 #endif
 
@@ -3655,7 +3782,9 @@ Recycler::ProcessClientTrackedObjects()
 void
 Recycler::ClearPartialCollect()
 {
+#if ENABLE_CONCURRENT_GC
     Assert(!this->DoQueueTrackedObject());
+#endif
     this->autoHeap.unusedPartialCollectFreeBytes = 0;
     this->partialUncollectedAllocBytes = 0;
     this->clientTrackedObjectList.Clear(&this->clientTrackedObjectAllocator);
@@ -3668,7 +3797,7 @@ Recycler::FinishPartialCollect(RecyclerSweep * recyclerSweep)
     Assert(recyclerSweep == nullptr || !recyclerSweep->IsBackground());
     RECYCLER_PROFILE_EXEC_BEGIN(this, Js::FinishPartialPhase);
     Assert(inPartialCollectMode);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(!this->DoQueueTrackedObject());
 #endif
 
@@ -3681,7 +3810,7 @@ Recycler::FinishPartialCollect(RecyclerSweep * recyclerSweep)
 void
 Recycler::EnsureNotCollecting()
 {
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     FinishConcurrent<ForceFinishCollection>();
 #endif
     Assert(!this->CollectionInProgress());
@@ -3692,7 +3821,7 @@ void Recycler::EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction
     // Make sure we are not collecting
     EnsureNotCollecting();
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     // We are updating the free bit vector, messing up the partial collection state.
     // Just get out of partial collect mode
     // GC-CONSIDER: consider adding an option in FinishConcurrent to not get into partial collect mode during sweep.
@@ -3722,7 +3851,7 @@ Recycler::IsFindRootsState() const
 BOOL
 Recycler::IsReentrantState() const
 {
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     return !this->CollectionInProgress() || this->IsConcurrentState();
 #else
     return !this->CollectionInProgress();
@@ -3766,7 +3895,7 @@ Recycler::CollectionEnd()
     RECYCLER_PROFILE_EXEC_END2(this, phase, Js::RecyclerPhase);
 }
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 size_t
 Recycler::BackgroundRescan(RescanFlags rescanFlags)
 {
@@ -3809,10 +3938,13 @@ Recycler::BackgroundResetWriteWatchAll()
 }
 #endif
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
 size_t
 Recycler::FinishMarkRescan(bool background)
 {
+#if !ENABLE_CONCURRENT_GC
+    Assert(!background);
+#endif
+
     if (background)
     {
         GCETW(GC_BACKGROUNDRESCAN_START, (this, 0));
@@ -3824,7 +3956,7 @@ Recycler::FinishMarkRescan(bool background)
 
     RECYCLER_PROFILE_EXEC_THREAD_BEGIN(background, this, Js::RescanPhase);
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     RescanFlags const flags = (background ? RescanFlags_ResetWriteWatch : RescanFlags_None);
 #else
     Assert(!background);
@@ -3836,9 +3968,13 @@ Recycler::FinishMarkRescan(bool background)
     this->isProcessingRescan = true;
 #endif
 
+#if ENABLE_CONCURRENT_GC
     size_t scannedPageCount = heapBlockMap.Rescan(this, ((flags & RescanFlags_ResetWriteWatch) != 0));
 
     scannedPageCount += autoHeap.Rescan(flags);
+#else
+    size_t scannedPageCount = 0;
+#endif
 
     DebugOnly(this->isProcessingRescan = false);
 
@@ -3857,16 +3993,16 @@ Recycler::FinishMarkRescan(bool background)
 }
 
 
+#if ENABLE_CONCURRENT_GC
 void
 Recycler::ProcessTrackedObjects()
 {
     GCETW(GC_PROCESS_TRACKED_OBJECT_START, (this));
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     Assert(this->clientTrackedObjectList.Empty());
     Assert(!this->inPartialCollectMode);
 #endif
-#ifdef CONCURRENT_GC_ENABLED
     Assert(this->DoQueueTrackedObject());
 
     this->queueTrackedObject = false;
@@ -3881,17 +4017,15 @@ Recycler::ProcessTrackedObjects()
     parallelMarkContext3.ProcessTracked();
 
     DebugOnly(this->isProcessingTrackedObjects = false);
-#endif
 
     GCETW(GC_PROCESS_TRACKED_OBJECT_STOP, (this));
 }
-
-#endif // defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#endif
 
 BOOL
 Recycler::RequestConcurrentWrapperCallback()
 {
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(!IsConcurrentExecutingState());
 
     // Save the original collection state
@@ -3913,14 +4047,14 @@ Recycler::RequestConcurrentWrapperCallback()
     return false;
 }
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 /*------------------------------------------------------------------------------------------------
  * Concurrent
  *------------------------------------------------------------------------------------------------*/
 BOOL
 Recycler::CollectOnConcurrentThread()
 {
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     Assert(!inPartialCollectMode);
 #endif
 #ifdef RECYCLER_TRACE
@@ -4017,7 +4151,7 @@ Recycler::FinishConcurrent()
             collectionParam.finishOnly = true;
             collectionParam.flags = flags;
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
             // If SkipStack is provided, and we're not forcing the finish (i.e we're not in concurrent executing state)
             // then, it's fine to set the skipStack flag to true, so that during the in-thread find-roots, we'll skip
             // the stack scan
@@ -4681,7 +4815,11 @@ Recycler::StartConcurrentSweepCollect()
 
     // We don't have rescan data if we disabled concurrent mark, assume the worst
     // (which means it is harder to get into partial collect mode)
+#if ENABLE_PARTIAL_GC
     bool needConcurrentSweep = this->Sweep(RecyclerSweep::MaxPartialCollectRescanRootBytes, true, true);
+#else
+    bool needConcurrentSweep = this->Sweep(true);
+#endif
     this->CollectionEnd<Js::ConcurrentCollectPhase>();
     FinishCollection(needConcurrentSweep);
     return true;
@@ -4884,7 +5022,11 @@ Recycler::BackgroundFindRoots()
     size_t scanRootBytes = 0;
     Assert(this->IsConcurrentFindRootState());
     Assert(this->hasPendingConcurrentFindRoot);
+#if ENABLE_PARTIAL_GC
     Assert(this->inPartialCollectMode || this->DoQueueTrackedObject());
+#else
+    Assert(this->DoQueueTrackedObject());
+#endif
 
     // Only mark pinned object and guest arenas, which is where most of the roots are.
     // When we go back to the main thread to rescan, we will scan the rest of the root.
@@ -4932,7 +5074,11 @@ Recycler::BackgroundFindRoots()
 size_t
 Recycler::BackgroundFinishMark()
 {
+#if ENABLE_PARTIAL_GC
     Assert(this->inPartialCollectMode || this->DoQueueTrackedObject());
+#else
+    Assert(this->DoQueueTrackedObject());
+#endif
     Assert(collectionState == CollectionStateConcurrentFinishMark);
     size_t rescannedRootBytes = FinishMarkRescan(true) * AutoSystemInfo::PageSize;
     this->collectionState = CollectionStateConcurrentFindRoots;
@@ -4955,15 +5101,17 @@ Recycler::ConcurrentTransferSweptObjects(RecyclerSweep& recyclerSweep)
 {
     Assert(!recyclerSweep.IsBackground());
     Assert((this->collectionState & Collection_TransferSwept) == Collection_TransferSwept);
+#if ENABLE_PARTIAL_GC
     if (this->hasBackgroundFinishPartial)
     {
         this->hasBackgroundFinishPartial = false;
         this->ClearPartialCollect();
     }
+#endif
     autoHeap.ConcurrentTransferSweptObjects(recyclerSweep);
 }
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 void
 Recycler::ConcurrentPartialTransferSweptObjects(RecyclerSweep& recyclerSweep)
 {
@@ -4977,7 +5125,7 @@ BOOL
 Recycler::FinishConcurrentCollectWrapped(CollectionFlags flags)
 {
     this->allowDispose = (flags & CollectOverride_AllowDispose) == CollectOverride_AllowDispose;
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     this->skipStack = ((flags & CollectOverride_SkipStack) != 0);
     DebugOnly(this->isConcurrentGCOnIdle = (flags == CollectOnScriptIdle));
 #endif
@@ -5083,9 +5231,14 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 #ifdef PROFILE_EXEC
     Js::Phase concurrentPhase = Js::ConcurrentCollectPhase;
 #endif
+#if ENABLE_PARTIAL_GC
     RECYCLER_PROFILE_EXEC_BEGIN2(this, Js::RecyclerPhase,
         (concurrentPhase = ((this->inPartialCollectMode && this->IsConcurrentMarkState())?
             Js::ConcurrentPartialCollectPhase : Js::ConcurrentCollectPhase)));
+#else
+    RECYCLER_PROFILE_EXEC_BEGIN2(this, Js::RecyclerPhase,
+        (concurrentPhase = Js::ConcurrentCollectPhase));
+#endif
 
     // Don't do concurrent sweep if we have priority boosted.
     const BOOL forceInThread = flags & CollectOverride_ForceInThread;
@@ -5117,7 +5270,11 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 #endif
 
 #ifdef RECYCLER_TRACE
+#if ENABLE_PARTIAL_GC
         PrintCollectTrace(this->inPartialCollectMode ? Js::ConcurrentPartialCollectPhase : Js::ConcurrentMarkPhase, true);
+#else
+        PrintCollectTrace(Js::ConcurrentMarkPhase, true);
+#endif
 #endif
         collectionState = CollectionStateRescanFindRoots;
 
@@ -5166,7 +5323,11 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
         protectPages.Unprotect();
 #endif
 
+#if ENABLE_PARTIAL_GC
         needConcurrentSweep = this->Sweep(rescanRootBytes, concurrent, true);
+#else
+        needConcurrentSweep = this->Sweep(concurrent);
+#endif
         GCETW(GC_STOP, (this, ETWEvent_ConcurrentRescan));
     }
     else
@@ -5196,7 +5357,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 
         Assert(this->recyclerSweep != nullptr);
         Assert(!this->recyclerSweep->IsBackground());
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         if (this->inPartialCollectMode)
         {
             ConcurrentPartialTransferSweptObjects(*this->recyclerSweep);
@@ -5566,12 +5727,16 @@ Recycler::ThreadProc()
     }
 }
 
-#endif //defined(CONCURRENT_GC_ENABLED)
+#endif //ENABLE_CONCURRENT_GC
 
 void
 Recycler::FinishCollection(bool needConcurrentSweep)
 {
+#if ENABLE_CONCURRENT_GC
     Assert(!!this->InConcurrentSweep() == needConcurrentSweep);
+#else
+    Assert(!needConcurrentSweep);
+#endif
     if (!needConcurrentSweep)
     {
         FinishCollection();
@@ -5585,7 +5750,9 @@ Recycler::FinishCollection(bool needConcurrentSweep)
 void
 Recycler::FinishCollection()
 {
+#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
     Assert(!this->hasBackgroundFinishPartial);
+#endif
     Assert(!this->hasPendingDeleteGuestArena);
 
     // Reset the time heuristics
@@ -5599,7 +5766,9 @@ Recycler::FinishCollection()
         collectionWrapper->PostCollectionCallBack();
     }
 
+#if ENABLE_CONCURRENT_GC
     this->backgroundFinishMarkCount = 0;
+#endif
 
     // Do a partial page decommit now
     if (decommitOnFinish)
@@ -5795,6 +5964,7 @@ Recycler::ShouldIdleCollectOnExit()
     return (autoHeap.uncollectedAllocBytes >= RecyclerHeuristic::IdleUncollectedAllocBytesCollection);
 }
 
+#if ENABLE_CONCURRENT_GC
 bool
 RecyclerParallelThread::StartConcurrent()
 {
@@ -6053,7 +6223,7 @@ RecyclerParallelThread::StaticBackgroundWorkCallback(void * callbackData)
 
     SetEvent(parallelThread->concurrentWorkDoneEvent);
 }
-
+#endif
 
 #ifdef RECYCLER_TRACE
 void
@@ -6064,7 +6234,7 @@ Recycler::CaptureCollectionParam(CollectionFlags flags, bool repeat)
     collectionParam.finishOnly = false;
     collectionParam.flags = flags;
     collectionParam.uncollectedAllocBytes = autoHeap.uncollectedAllocBytes;
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     collectionParam.uncollectedNewPageCountPartialCollect = this->uncollectedNewPageCountPartialCollect;
     collectionParam.inPartialCollectMode = inPartialCollectMode;
     collectionParam.uncollectedNewPageCount = autoHeap.uncollectedNewPageCount;
@@ -6088,7 +6258,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
         const BOOL forceInThread = collectionParam.flags & CollectOverride_ForceInThread;
         const BOOL forceFinish = collectionParam.flags & CollectOverride_ForceFinish;
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         BOOL partial = collectionParam.flags & CollectMode_Partial ;
 #endif
 
@@ -6110,7 +6280,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
         {
             Assert(!collectionParam.repeat);
             Assert(finish);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
             if (collectionState == CollectionStateRescanWait)
             {
                 if (forceFinish)
@@ -6145,7 +6315,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
                     Output::Print(L" Finish sweep");
                 }
             }
-#endif // CONCURRENT_GC_ENABLED
+#endif // ENABLE_CONCURRENT_GC
         }
         else
         {
@@ -6157,7 +6327,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
             {
                 Output::Print(L" No heuristic");
             }
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
             else if (finish && priorityBoost)
             {
                 Output::Print(L" Priority boost no heuristic");
@@ -6169,7 +6339,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
                 bool byteCountUsed = false;
                 bool timeUsed = false;
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
                 bool newPageUsed = false;
                 if (phase == Js::PartialCollectPhase || phase == Js::ConcurrentPartialCollectPhase)
                 {
@@ -6181,7 +6351,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
                     newPageUsed = true;
                 }
                 else
-#endif // PARTIAL_GC_ENABLED
+#endif // ENABLE_PARTIAL_GC
                 {
                     byteCountUsed = !!allocSize;
                     timeUsed = !!timed;
@@ -6191,7 +6361,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
                 Output::Print(L"B:%8d ", collectionParam.uncollectedAllocBytes);
                 Output::Print(timeUsed? L"*" : (timed? L" " : L"~"));
                 Output::Print(L"T:%4d ", -collectionParam.timeDiff);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
                 if (collectionParam.inPartialCollectMode)
                 {
                     Output::Print(L"L:%5d ", collectionParam.uncollectedNewPageCountPartialCollect);
@@ -6203,7 +6373,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
                 Output::Print(newPageUsed? L"*" : (partial? L" " : L"~"));
                 Output::Print(L"P:%5d(%9d) ", collectionParam.uncollectedNewPageCount, collectionParam.uncollectedNewPageCount * AutoSystemInfo::PageSize);
                 Output::Print(L"U:%8d", collectionParam.unusedPartialCollectFreeBytes);
-#endif // PARTIAL_GC_ENABLED
+#endif // ENABLE_PARTIAL_GC
             }
         }
         Output::Print(L"\n");
@@ -6236,6 +6406,7 @@ void
 Recycler::PrintHeapBlockMemoryStats(wchar_t const * name, HeapBlock::HeapBlockType type)
 {
     size_t allocableFreeByteCount = collectionStats.heapBlockFreeByteCount[type];
+#if ENABLE_PARTIAL_GC
     size_t partialUnusedBytes = 0;
     if (this->enablePartialCollect)
     {
@@ -6243,11 +6414,12 @@ Recycler::PrintHeapBlockMemoryStats(wchar_t const * name, HeapBlock::HeapBlockTy
             - collectionStats.smallNonLeafHeapBlockPartialReuseBytes[type];
         allocableFreeByteCount -= partialUnusedBytes;
     }
+#endif
     size_t totalByteCount = (collectionStats.heapBlockCount[type] - collectionStats.heapBlockFreeCount[type]) * AutoSystemInfo::PageSize;
     size_t liveByteCount = totalByteCount - collectionStats.heapBlockFreeByteCount[type];
     Output::Print(L" %6s: %10d %10d", name, liveByteCount, allocableFreeByteCount);
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect &&
         (type == HeapBlock::HeapBlockType::SmallNormalBlockType
       || type == HeapBlock::HeapBlockType::SmallFinalizableBlockType
@@ -6274,7 +6446,7 @@ Recycler::PrintHeapBlockMemoryStats(wchar_t const * name, HeapBlock::HeapBlockTy
     Output::Print(L" %10d %6.1f", totalByteCount,
         (double)allocableFreeByteCount / (double)totalByteCount * 100);
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect &&
         (type == HeapBlock::HeapBlockType::SmallNormalBlockType
         || type == HeapBlock::HeapBlockType::SmallFinalizableBlockType
@@ -6300,7 +6472,7 @@ Recycler::PrintHeuristicCollectionStats()
 {
     Output::Print(L"---------------------------------------------------------------------------------------------------------------\n");
     Output::Print(L"GC Trigger   : %10s %10s %10s", L"Start", L"Continue", L"Finish");
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" | Heuristics                   : %10s %10s %5s", L"", L"", L"%");
@@ -6310,7 +6482,7 @@ Recycler::PrintHeuristicCollectionStats()
 
     Output::Print(L"---------------------------------------------------------------------------------------------------------------\n");
     Output::Print(L" Alloc bytes : %10d %10d %10d", collectionStats.startCollectAllocBytes, collectionStats.continueCollectAllocBytes, this->autoHeap.uncollectedAllocBytes);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" | Cost                         : %10d %10d %5.1f", collectionStats.rescanRootBytes, collectionStats.estimatedPartialReuseBytes, collectionStats.collectCost * 100);
@@ -6318,14 +6490,14 @@ Recycler::PrintHeuristicCollectionStats()
 #endif
     Output::Print(L"\n");
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L"                                                | Efficacy                     : %10s %10s %5.1f\n", L"", L"", collectionStats.collectEfficacy * 100);
     }
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" New page    : %10d %10s %10d", collectionStats.startCollectNewPageCount, L"", autoHeap.uncollectedNewPageCount);
@@ -6335,7 +6507,7 @@ Recycler::PrintHeuristicCollectionStats()
 #endif
 
     Output::Print(L" Finish try  : %10d %10s %10s", collectionStats.finishCollectTryCount, L"", L"");
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" | Partial Reuse Min Free Bytes :            %10d", collectionStats.partialCollectSmallHeapBlockReuseMinFreeBytes * AutoSystemInfo::PageSize);
@@ -6406,7 +6578,7 @@ Recycler::PrintBackgroundCollectionStat(RecyclerCollectionStats::MarkData const&
 void
 Recycler::PrintBackgroundCollectionStats()
 {
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Output::Print(L"---------------------------------------------------------------------------------------------------------------\n");
     Output::Print(L"BgSmall : %5s %6s %10s | BgLarge : %5s %6s %10s | BgMark :%9s %4s %s\n",
         L"Pages", L"Count", L"Bytes", L"Pages", L"Count", L"Bytes", L"Count", L"%", L"NonLeafBytes   %");
@@ -6508,16 +6680,16 @@ Recycler::PrintCollectStats()
     size_t freeBytes = collectionStats.objectSweptBytes - collectionStats.objectSweptFreeListBytes;
 
     Output::Print(L"---------------------------------------------------------------------------------------------------------------\n");
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
     Output::Print(L"Rescan  : %5s %6s %10s | Track   : %5s | ", L"Pages", L"Count", L"Bytes", L"Count");
 #endif
     Output::Print(L"Sweep     : %7s | SweptObj  : %5s %5s %10s\n", L"Count", L"Count", L"%%", L"Bytes");
     Output::Print(L"---------------------------------------------------------------------------------------------------------------\n");
     Output::Print(L"  Small : ");
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
     Output::Print(L"%5d %6d %10d | ", collectionStats.markData.rescanPageCount, collectionStats.markData.rescanObjectCount, collectionStats.markData.rescanObjectByteCount);
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Output::Print(L"Process : %5d | ", collectionStats.trackedObjectCount);
 #else
     Output::Print(L"              | ");
@@ -6527,11 +6699,11 @@ Recycler::PrintCollectStats()
         freeCount, (double)freeCount / (double) collectionStats.objectSweptCount * 100, freeBytes);
 
     Output::Print(L"  Large : ");
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
     Output::Print(L"%5d %6d %10d | ",
         collectionStats.markData.rescanLargePageCount, collectionStats.markData.rescanLargeObjectCount, collectionStats.markData.rescanLargeByteCount);
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     Output::Print(L"Client  : %5d | ", collectionStats.clientTrackedObjectCount);
 #else
     Output::Print(L"                | ");
@@ -6542,7 +6714,7 @@ Recycler::PrintCollectStats()
 
     Output::Print(L"---------------------------------------------------------------------------------------------------------------\n");
     Output::Print(L"SweptBlk:  Live  Free Total Free%% : Swept Swept%% : CSwpt CSwpt%%");
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" | Partial    : Count      Bytes     Existing");
@@ -6552,7 +6724,7 @@ Recycler::PrintCollectStats()
     Output::Print(L"---------------------------------------------------------------------------------------------------------------\n");
 
     PrintHeapBlockStats(L"Small", HeapBlock::SmallNormalBlockType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" |  Reuse     : %5d %10d %10d",
@@ -6564,7 +6736,7 @@ Recycler::PrintCollectStats()
 #endif
     Output::Print(L"\n");
     PrintHeapBlockStats(L"SmFin", HeapBlock::SmallFinalizableBlockType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" |  Unused    : %5d %10d %10d",
@@ -6578,7 +6750,7 @@ Recycler::PrintCollectStats()
 
 #ifdef RECYCLER_WRITE_BARRIER
     PrintHeapBlockStats(L"SmSWB", HeapBlock::SmallNormalBlockWithBarrierType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" |  Unused    : %5d %10d %10d",
@@ -6590,7 +6762,7 @@ Recycler::PrintCollectStats()
 #endif
     Output::Print(L"\n");
     PrintHeapBlockStats(L"SmFin", HeapBlock::SmallFinalizableBlockWithBarrierType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" |  Unused    : %5d %10d %10d",
@@ -6605,7 +6777,7 @@ Recycler::PrintCollectStats()
 
     // TODO: This seems suspicious- why are we looking at smallNonLeaf while print out leaf...
     PrintHeapBlockStats(L"SmLeaf", HeapBlock::SmallLeafBlockType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" |  ReuseFin  : %5d %10d %10d",
@@ -6618,7 +6790,7 @@ Recycler::PrintCollectStats()
     Output::Print(L"\n");
 
     PrintHeapBlockStats(L"Medium", HeapBlock::MediumNormalBlockType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" |  Reuse     : %5d %10d %10d",
@@ -6630,7 +6802,7 @@ Recycler::PrintCollectStats()
 #endif
     Output::Print(L"\n");
     PrintHeapBlockStats(L"MdFin", HeapBlock::MediumFinalizableBlockType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" |  Unused    : %5d %10d %10d",
@@ -6644,7 +6816,7 @@ Recycler::PrintCollectStats()
 
 #ifdef RECYCLER_WRITE_BARRIER
     PrintHeapBlockStats(L"MdSWB", HeapBlock::MediumNormalBlockWithBarrierType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" |  Unused    : %5d %10d %10d",
@@ -6656,7 +6828,7 @@ Recycler::PrintCollectStats()
 #endif
     Output::Print(L"\n");
     PrintHeapBlockStats(L"MdFin", HeapBlock::MediumFinalizableBlockWithBarrierType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" |  Unused    : %5d %10d %10d",
@@ -6671,7 +6843,7 @@ Recycler::PrintCollectStats()
 
     // TODO: This seems suspicious- why are we looking at smallNonLeaf while print out leaf...
     PrintHeapBlockStats(L"MdLeaf", HeapBlock::MediumNormalBlockType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L" |  ReuseFin  : %5d %10d %10d",
@@ -6685,7 +6857,7 @@ Recycler::PrintCollectStats()
 
     // TODO: This can't possibly be correct...check on this later
     PrintHeapBlockStats(L"Large", HeapBlock::LargeBlockType);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
     {
         Output::Print(L"                               |  UnusedFin : %5d %10d %10d",
@@ -6824,8 +6996,10 @@ Recycler::AutoSetupRecyclerForNonCollectingMark::AutoSetupRecyclerForNonCollecti
 void Recycler::AutoSetupRecyclerForNonCollectingMark::DoCommonSetup()
 {
     Assert(m_recycler.collectionState == CollectionStateNotCollecting || m_recycler.collectionState == CollectionStateExit);
+#if ENABLE_CONCURRENT_GC
     Assert(!m_recycler.DoQueueTrackedObject());
-#ifdef PARTIAL_GC_ENABLED
+#endif
+#if ENABLE_PARTIAL_GC
     // We need to get out of partial collect before we do the mark because we
     // will mess with the free bit vector state
     // GC-CONSIDER: don't mess with the free bit vector?
@@ -6951,7 +7125,7 @@ Recycler::StressCollectNow()
         this->CollectNow<CollectStress>();
         return true;
     }
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     else if (this->recyclerBackgroundStress)
     {
         this->CollectNow<CollectBackgroundStress>();
@@ -6961,27 +7135,27 @@ Recycler::StressCollectNow()
         && (this->recyclerConcurrentStress
         || this->recyclerConcurrentRepeatStress))
     {
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         if (this->recyclerPartialStress)
         {
             this->CollectNow<CollectConcurrentPartialStress>();
             return true;
         }
         else
-#endif // PARTIAL_GC_ENABLED
+#endif // ENABLE_PARTIAL_GC
         {
             this->CollectNow<CollectConcurrentStress>();
             return true;
         }
     }
-#endif // CONCURRENT_GC_ENABLED
-#ifdef PARTIAL_GC_ENABLED
+#endif // ENABLE_CONCURRENT_GC
+#if ENABLE_PARTIAL_GC
     else if (this->recyclerPartialStress)
     {
         this->CollectNow<CollectPartialStress>();
         return true;
     }
-#endif // PARTIAL_GC_ENABLED
+#endif // ENABLE_PARTIAL_GC
     return false;
 }
 #endif // RECYCLER_STRESS
@@ -7484,6 +7658,7 @@ void
 Recycler::DeleteGuestArena(ArenaAllocator * arenaAllocator)
 {
     GuestArenaAllocator * guestArenaAllocator = static_cast<GuestArenaAllocator *>(arenaAllocator);
+#if ENABLE_CONCURRENT_GC
     if (this->hasPendingConcurrentFindRoot)
     {
         // We are doing concurrent find root, don't modify the list and mark the arena to be delete
@@ -7493,6 +7668,7 @@ Recycler::DeleteGuestArena(ArenaAllocator * arenaAllocator)
         guestArenaAllocator->pendingDelete = true;
     }
     else
+#endif
     {
         guestArenaList.RemoveElement(&HeapAllocator::Instance, guestArenaAllocator);
     }
@@ -7638,6 +7814,7 @@ Recycler::ReportOnProcessDetach(Fn fn)
     this->markContext.GetPageAllocator()->SetDisableThreadAccessCheck();
 #endif
 
+#if ENABLE_CONCURRENT_GC
     if (this->IsConcurrentState())
     {
         this->AbortConcurrent(true);
@@ -7648,6 +7825,9 @@ Recycler::ReportOnProcessDetach(Fn fn)
         Output::Print(L"WARNING: Thread terminated during GC.  Can't dump object graph\n");
         return;
     }
+#else
+    Assert(!this->CollectionInProgress());
+#endif
     // Don't mark external roots on another thread
     this->SetExternalRootMarker(NULL, NULL);
 #if DBG
