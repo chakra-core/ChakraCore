@@ -110,7 +110,7 @@ public:
     virtual HRESULT ArrayBufferFromExternalObject(__in Js::RecyclableObject *obj,
         __out Js::ArrayBuffer **ppArrayBuffer) = 0;
     virtual Js::JavascriptError* CreateWinRTError(IErrorInfo* perrinfo, Js::RestrictedErrorStrings * proerrstr) = 0;
-    virtual Js::JavascriptFunction* InitializeHostPromiseContinuationFunction() = 0;
+    virtual HRESULT EnqueuePromiseTask(Js::Var varTask) = 0;
 
     virtual HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
     virtual HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) = 0;
@@ -487,8 +487,6 @@ namespace Js
         JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, ulong grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
 
         typedef void (*EventHandler)(ScriptContext *);
-        ScriptContext ** entryInScriptContextWithInlineCachesRegistry;
-        ScriptContext ** entryInScriptContextWithIsInstInlineCachesRegistry;
         ScriptContext ** registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
 
         ArenaAllocator generalAllocator;
@@ -779,8 +777,9 @@ private:
         bool isCloningGlobal;
 #endif
         bool fastDOMenabled;
-        bool hasRegisteredInlineCache;
-        bool hasRegisteredIsInstInlineCache;
+        bool hasUsedInlineCache;
+        bool hasProtoOrStoreFieldInlineCache;
+        bool hasIsInstInlineCache;
         bool deferredBody;
         bool isPerformingNonreentrantWork;
         bool isDiagnosticsScriptContext;   // mentions that current script context belongs to the diagnostics OM.
@@ -878,6 +877,8 @@ private:
             return !nativeCodeGen || ::IsClosedNativeCodeGenerator(nativeCodeGen);
         }
 #endif
+
+        void SetHasUsedInlineCache(bool value) { hasUsedInlineCache = value; }
 
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
@@ -1395,15 +1396,10 @@ private:
         }
 
     public:
-        void RegisterAsScriptContextWithInlineCaches();
-        void RegisterAsScriptContextWithIsInstInlineCaches();
-        bool IsRegisteredAsScriptContextWithIsInstInlineCaches();
         void FreeLoopBody(void* codeAddress);
         void FreeFunctionEntryPoint(Js::JavascriptMethod method);
 
     private:
-        void DoRegisterAsScriptContextWithInlineCaches();
-        void DoRegisterAsScriptContextWithIsInstInlineCaches();
         uint CloneSource(Utf8SourceInfo* info);
     public:
         void RegisterProtoInlineCache(InlineCache *pCache, PropertyId propId);

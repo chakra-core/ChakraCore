@@ -1557,7 +1557,7 @@ case_2:
 
         PCWSTR const varName = _u("String.prototype.replace");
 
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("String.prototype.replace"));
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 

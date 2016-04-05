@@ -4134,6 +4134,24 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
         return false;
     }
 
+    // The following is conservative and works around a bug in induction variable analysis.
+    if (baseOpnd->IsArrayRegOpnd())
+    {
+        IR::ArrayRegOpnd *baseArrayOp = baseOpnd->AsArrayRegOpnd();
+        bool hasBoundChecksRemoved = (
+            baseArrayOp->EliminatedLowerBoundCheck() &&
+            baseArrayOp->EliminatedUpperBoundCheck() &&
+            !instr->extractedUpperBoundCheckWithoutHoisting &&
+            !instr->loadedArrayHeadSegment &&
+            !instr->loadedArrayHeadSegmentLength
+            );
+        if (!hasBoundChecksRemoved)
+        {
+            TRACE_MEMOP_VERBOSE(loop, instr, L"Missing bounds check optimization");
+            return false;
+        }
+    }
+
     if (!baseValueType.IsTypedArray())
     {
         // Check if the instr can kill the value type of the array
@@ -8970,6 +8988,11 @@ GlobOpt::OptConstFoldUnary(
     case Js::OpCode::Ld_A:
         if (instr->HasBailOutInfo())
         {
+            //The profile data for switch expr can be string and in GlobOpt we realize it is an int.
+            if(instr->GetBailOutKind() == IR::BailOutExpectingString)
+            {
+                throw Js::RejitException(RejitReason::DisableSwitchOptExpectingString);
+            }
             Assert(instr->GetBailOutKind() == IR::BailOutExpectingInteger);
             instr->ClearBailOutInfo();
         }
@@ -9549,7 +9572,6 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
     switch(instr->m_opcode)
     {
         case Js::OpCode::InlineMathAtan2:
-        case Js::OpCode::InlineMathPow:
         {
             Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInInlineCandidateId(instr->m_opcode);   // From actual instr, not profile based.
             Js::BuiltInFlags builtInFlags = Js::JavascriptLibrary::GetFlagsForBuiltIn(builtInId);
@@ -9564,6 +9586,31 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             bool retVal = this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
             AssertMsg(retVal, "For pow and atnan2 the args have to be type-specialized to float, but something failed during the process.");
 
+            break;
+        }
+
+        case Js::OpCode::InlineMathPow:
+        {
+#ifndef _M_ARM
+            if (src2Val->GetValueInfo()->IsLikelyInt())
+            {
+                bool lossy = false;
+
+                IR::Opnd* src1 = instr->GetSrc1();
+                this->ToFloat64(instr, src1, this->currentBlock, src1Val, nullptr, IR::BailOutPrimitiveButString);
+
+                IR::Opnd* src2 = instr->GetSrc2();
+                this->ToInt32(instr, src2, this->currentBlock, src2Val, nullptr, lossy);
+
+                TypeSpecializeFloatDst(instr, nullptr, src1Val, src2Val, pDstVal);
+            }
+            else
+            {
+#endif
+                this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
+#ifndef _M_ARM
+            }
+#endif
             break;
         }
 

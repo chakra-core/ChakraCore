@@ -2080,7 +2080,7 @@ STDAPI_(JsErrorCode) JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *da
 STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
 {
     return CallFunctionCore(-1, function, args, cargs, result);
-        }
+    }
 
 STDAPI_(JsErrorCode) JsConstructObject(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_ JsValueRef *result)
 {
@@ -2891,7 +2891,12 @@ STDAPI_(JsErrorCode) JsParseScript(_In_z_ const wchar_t * script, _In_ JsSourceC
     return RunScriptCore(-1, script, sourceContext, sourceUrl, true, JsParseScriptAttributeNone, false /*isModule*/, result);
 }
 
-STDAPI_(JsErrorCode) JsParseScriptWithFlags(_In_z_ const wchar_t *script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _In_ JsParseScriptAttributes parseAttributes, _Out_ JsValueRef *result)
+STDAPI_(JsErrorCode) JsParseScriptWithAttributes(
+    _In_z_ const wchar_t *script,
+    _In_ JsSourceContext sourceContext,
+    _In_z_ const wchar_t *sourceUrl,
+    _In_ JsParseScriptAttributes parseAttributes,
+    _Out_ JsValueRef *result)
 {
     return RunScriptCore(-1, script, sourceContext, sourceUrl, true, parseAttributes, false /*isModule*/, result);
 }

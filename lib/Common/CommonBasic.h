@@ -32,5 +32,3 @@
 #include "Exceptions/Throw.h"
 #include "Exceptions/ExceptionCheck.h"
 #include "Exceptions/ReportError.h"
-
-

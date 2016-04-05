@@ -34,16 +34,15 @@ namespace Js
     CompileAssert(sizeof(PropertyCache) == sizeof(InlineCacheAllocator::CacheLayout));
     CompileAssert(offsetof(PropertyCache, blank) == offsetof(InlineCacheAllocator::CacheLayout, strongRef));
 
-    class PropertyString sealed : public JavascriptString
+    class PropertyString : public JavascriptString
     {
     protected:
         PropertyCache* propCache;
-        bool registerScriptContext;
         const Js::PropertyRecord* m_propertyRecord;
         DEFINE_VTABLE_CTOR(PropertyString, JavascriptString);
         DECLARE_CONCRETE_STRING_CLASS;
 
-        PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord, bool registerScriptContext);
+        PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
     public:
         PropertyCache const * GetPropertyCache() const;
         void ClearPropertyCache();
@@ -55,6 +54,7 @@ namespace Js
 
         virtual void const * GetOriginalStringReference() override;
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
+        virtual bool IsAreanaAllocPropertyString() { return false; }
 
         static uint32 GetOffsetOfPropertyCache() { return offsetof(PropertyString, propCache); }
 
@@ -62,5 +62,14 @@ namespace Js
         //Get the associated property id for this string if there is on (e.g. it is a propertystring otherwise return Js::PropertyIds::_none)
         virtual Js::PropertyId TryGetAssociatedPropertyId() const override { return this->m_propertyRecord->GetPropertyId(); }
 #endif
+    };
+
+    class AreanaAllocPropertyString sealed : public PropertyString
+    {
+        friend PropertyString;
+    protected:
+        AreanaAllocPropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
+    public:
+        virtual bool IsAreanaAllocPropertyString() override { return true; }
     };
 }

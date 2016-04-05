@@ -26,7 +26,7 @@ namespace Js
         // We may, however, have a flags cache (setter) change to add property cache.
         Assert(typeWithoutProperty == nullptr || !IsProto());
 
-        requestContext->RegisterAsScriptContextWithInlineCaches();
+        requestContext->SetHasUsedInlineCache(true);
 
         // Add cache into a store field cache list if required, but not there yet.
         if (typeWithoutProperty != nullptr && invalidationListSlotPtr == nullptr)
@@ -91,7 +91,7 @@ namespace Js
         // Store field and load field caches are never shared so we should never have an add property cache morphing into a prototype cache.
         Assert(!IsLocal() || u.local.typeWithoutProperty == nullptr);
 
-        requestContext->RegisterAsScriptContextWithInlineCaches();
+        requestContext->SetHasUsedInlineCache(true);
 
         // Add cache into a proto cache list if not there yet.
         if (invalidationListSlotPtr == nullptr)
@@ -149,7 +149,7 @@ namespace Js
         // in this case.
         Assert(type->GetScriptContext() == requestContext);
 
-        requestContext->RegisterAsScriptContextWithInlineCaches();
+        requestContext->SetHasUsedInlineCache(true);
 
         if (isOnProto && invalidationListSlotPtr == nullptr)
         {
@@ -1152,7 +1152,6 @@ namespace Js
         // this cache is registered with thread context for invalidation.
         if (this->function == function)
         {
-            Assert(scriptContext->IsRegisteredAsScriptContextWithIsInstInlineCaches());
             Assert(scriptContext->IsIsInstInlineCacheRegistered(this, function));
             this->Set(instanceType, function, result);
         }
@@ -1164,7 +1163,6 @@ namespace Js
                 Clear();
             }
 
-            scriptContext->RegisterAsScriptContextWithIsInstInlineCaches();
             // If the cache's function is not null, the cache must have been registered already.  No need to register again.
             // In fact, ThreadContext::RegisterIsInstInlineCache, would assert if we tried to re-register the same cache (to enforce the invariant above).
             // Review (jedmiad): What happens if we run out of memory inside RegisterIsInstInlieCache?

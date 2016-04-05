@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);NOMINMAX;USE_EDGEMODE_JSRT</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CHAKRACOREBUILD;NOMINMAX;USE_EDGEMODE_JSRT</PreprocessorDefinitions>
       <!-- Some of our STDMETHOD can throw
            TODO: Code review STDMETHOD and separate out API that can throw and those that can't -->
       <PreprocessorDefinitions>%(PreprocessorDefinitions);COM_STDMETHOD_CAN_THROW</PreprocessorDefinitions>

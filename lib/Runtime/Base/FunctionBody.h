@@ -1623,7 +1623,6 @@ namespace Js
         ULONG m_columnNumber;
         WriteBarrierPtr<const char16> m_displayName;  // Optional name
         uint m_displayNameLength;
-        uint m_displayShortNameOffset;
         WriteBarrierPtr<PropertyRecordList> m_boundPropertyRecords;
         WriteBarrierPtr<NestedArray> nestedArray;
 
@@ -2263,10 +2262,12 @@ namespace Js
     public:
         static bool IsNewSimpleJit();
         bool DoSimpleJit() const;
+        bool DoSimpleJitWithLock() const;
         bool DoSimpleJitDynamicProfile() const;
 
     private:
         bool DoInterpreterProfile() const;
+        bool DoInterpreterProfileWithLock() const;
         bool DoInterpreterAutoProfile() const;
 
     public:
@@ -2869,6 +2870,7 @@ namespace Js
         AsmJsFunctionInfo* GetAsmJsFunctionInfoWithLock()const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtrWithLock(AuxPointerType::AsmJsFunctionInfo)); }
         AsmJsFunctionInfo* AllocateAsmJsFunctionInfo();
         AsmJsModuleInfo* GetAsmJsModuleInfo()const { return static_cast<AsmJsModuleInfo*>(this->GetAuxPtr(AuxPointerType::AsmJsModuleInfo)); }
+        AsmJsModuleInfo* GetAsmJsModuleInfoWithLock()const { return static_cast<AsmJsModuleInfo*>(this->GetAuxPtrWithLock(AuxPointerType::AsmJsModuleInfo)); }
         void ResetAsmJsInfo()
         {
             SetAuxPtr(AuxPointerType::AsmJsFunctionInfo, nullptr);

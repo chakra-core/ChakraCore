@@ -14,6 +14,14 @@
       <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
     </default>
   </test>
+    <test>
+    <default>
+      <files>BasicBranching.js</files>
+      <baseline>BasicBranchingLinkFail.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -simdjs -maic:0 -forceAsmJsLinkFail</compile-flags>
+    </default>
+  </test>
+  
   <test>
     <default>
       <files>basicComparisonDouble.js</files>
@@ -775,7 +783,7 @@
     <default>
       <files>uint.js</files>
       <baseline>uint.baseline</baseline>
-      <compile-flags>-maic:1 -testtrace:asmjs -simdjs</compile-flags>
+      <compile-flags>-maic:1 -off:deferparse -testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
   <test>

@@ -96,6 +96,30 @@ var tests = [
       assert.doesNotThrow(function () { eval("function foo({a}, ...b) { if (b) { } }; foo({});"); } );
       assert.doesNotThrow(function () { eval("function foo([], ...b) { if (b) { } }; foo([]);"); });
     }
+  },
+  {
+    name: "Object Destructuring with empty identifier/reference",
+    body: function () {
+      assert.throws(function () { eval("var {x :  } = {};"); }, SyntaxError);
+      assert.throws(function () { eval("var {x :  , } = {};"); }, SyntaxError);
+      assert.throws(function () { eval("var {x :  , y} = {};"); }, SyntaxError);
+      assert.throws(function () { eval("({x : , y} = {});"); }, SyntaxError);
+    }
+  },
+  {
+    name: "Destructuring pattern at param has arguments as declaration",
+    body: function () {
+      assert.doesNotThrow(function () { eval("function foo([arguments]) { arguments; }; foo([1]);"); });
+      assert.doesNotThrow(function () { eval("function foo({arguments}) { arguments; }; foo({arguments:1});"); });
+      assert.doesNotThrow(function () { eval("function foo({x:{arguments}}) { arguments; }; foo({x:{arguments:1}});"); });
+    }
+  },
+  {
+    name: "Destructuring pattern at param has function as default value",
+    body: function () {
+      assert.doesNotThrow(function () { eval("function foo(x = ({y = function (p) {}} = 'bar')) {}; foo();"); });
+      assert.doesNotThrow(function () { eval("var foo = (x = ({y = function (p) {}} = 'bar')) => {}; foo();"); });
+    }
   }
 ];
 

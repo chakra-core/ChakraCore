@@ -1321,4 +1321,10 @@
       <baseline>trycatch_assert.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>ToVarI32_x64.js</files>
+      <compile-flags>-force:rejit -off:ArrayCheckHoist -off:aggressiveinttypespec -off:bailonnoprofile -off:nativearray</compile-flags>
+    </default>
+  </test>
 </regress-exe>

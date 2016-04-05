@@ -408,7 +408,7 @@
     } JsMemoryEventType;
 
     /// <summary>
-    ///     Attribute mask for JsParseScriptWithFlags
+    ///     Attribute mask for JsParseScriptWithAttributes
     /// </summary>
     typedef enum _JsParseScriptAttributes {
         /// <summary>
@@ -872,7 +872,7 @@
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
     STDAPI_(JsErrorCode)
-        JsParseScriptWithFlags(
+        JsParseScriptWithAttributes(
             _In_z_ const wchar_t *script,
             _In_ JsSourceContext sourceContext,
             _In_z_ const wchar_t *sourceUrl,

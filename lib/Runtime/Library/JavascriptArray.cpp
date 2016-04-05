@@ -8976,9 +8976,6 @@ Case0:
         }
         else
         {
-            // Source was not an array or TypedArray, return object is definitely a JavascriptArray
-            Assert(newArr);
-
             for (uint32 k = 0; k < length; k++)
             {
                 if (!JavascriptOperators::HasItem(obj, k))
@@ -8993,7 +8990,14 @@ Case0:
                     JavascriptNumber::ToVar(k, scriptContext),
                     obj);
 
-                newArr->DirectSetItemAt(k, mappedValue);
+                if (newArr)
+                {
+                    newArr->DirectSetItemAt(k, mappedValue);
+                }
+                else
+                {
+                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                }
             }
         }
 
@@ -9655,7 +9659,9 @@ Case0:
         RecyclableObject* newObj = nullptr;
         JavascriptArray* newArr = nullptr;
 
-        if (JavascriptOperators::IsIterable(items, scriptContext))
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext, true /* optional */);
+
+        if (iterator != nullptr)
         {
             if (constructor)
             {
@@ -9675,7 +9681,6 @@ Case0:
                 newObj = newArr;
             }
 
-            RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext);
             Var nextValue;
             uint32 k = 0;
 
