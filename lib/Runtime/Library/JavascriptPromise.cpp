@@ -1528,11 +1528,17 @@ namespace Js
             depOnList.Add(TTD_CONVERT_VAR_TO_PTR_ID(this->resolve));
         }
 
-        snapPromiseCapability->ResolveObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->resolve);
-        depOnList.Add(snapPromiseCapability->ResolveObjId);
+        snapPromiseCapability->ResolveVar = this->resolve;
+        if(TTD::JsSupport::IsVarComplexKind(this->resolve))
+        {
+            depOnList.Add(TTD_CONVERT_VAR_TO_PTR_ID(this->resolve));
+        }
 
-        snapPromiseCapability->RejectObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->reject);
-        depOnList.Add(snapPromiseCapability->RejectObjId);
+        snapPromiseCapability->RejectVar = this->reject;
+        if(TTD::JsSupport::IsVarComplexKind(this->reject))
+        {
+            depOnList.Add(TTD_CONVERT_VAR_TO_PTR_ID(this->reject));
+        }
     }
 #endif
 

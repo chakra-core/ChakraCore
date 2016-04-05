@@ -184,8 +184,8 @@ namespace TTD
             TTD_PTR_ID CapabilityId;
 
             TTDVar PromiseVar;
-            TTD_PTR_ID ResolveObjId;
-            TTD_PTR_ID RejectObjId;
+            TTDVar ResolveVar;
+            TTDVar RejectVar;
         };
 
         Js::JavascriptPromiseCapability* InflatePromiseCapabilityInfo(const SnapPromiseCapabilityInfo* capabilityInfo, Js::ScriptContext* ctx, InflateMap* inflator);

@@ -802,8 +802,8 @@ namespace TTD
             if(!inflator->IsPromiseInfoDefined<Js::JavascriptPromiseCapability>(capabilityInfo->CapabilityId))
             {
                 Js::Var promise = inflator->InflateTTDVar(capabilityInfo->PromiseVar);
-                Js::RecyclableObject* resolve = inflator->LookupObject(capabilityInfo->ResolveObjId);
-                Js::RecyclableObject* reject = inflator->LookupObject(capabilityInfo->RejectObjId);
+                Js::Var resolve = inflator->InflateTTDVar(capabilityInfo->ResolveVar);
+                Js::Var reject = inflator->InflateTTDVar(capabilityInfo->RejectVar);
 
                 Js::JavascriptPromiseCapability* res = ctx->GetLibrary()->CreatePromiseCapability_TTD(promise, resolve, reject);
                 inflator->AddInflatedPromiseInfo<Js::JavascriptPromiseCapability>(capabilityInfo->CapabilityId, res);
@@ -821,8 +821,11 @@ namespace TTD
             writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
             EmitTTDVar(capabilityInfo->PromiseVar, writer, NSTokens::Separator::NoSeparator);
 
-            writer->WriteAddr(NSTokens::Key::ptrIdVal, capabilityInfo->ResolveObjId, NSTokens::Separator::CommaSeparator);
-            writer->WriteAddr(NSTokens::Key::ptrIdVal, capabilityInfo->RejectObjId, NSTokens::Separator::CommaSeparator);
+            writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+            EmitTTDVar(capabilityInfo->ResolveVar, writer, NSTokens::Separator::NoSeparator);
+
+            writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+            EmitTTDVar(capabilityInfo->RejectVar, writer, NSTokens::Separator::NoSeparator);
 
             writer->WriteRecordEnd();
         }
@@ -836,8 +839,11 @@ namespace TTD
             reader->ReadKey(NSTokens::Key::entry, true);
             capabilityInfo->PromiseVar = ParseTTDVar(false, reader);
 
-            capabilityInfo->ResolveObjId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
-            capabilityInfo->RejectObjId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
+            reader->ReadKey(NSTokens::Key::entry, true);
+            capabilityInfo->ResolveVar = ParseTTDVar(false, reader);
+
+            reader->ReadKey(NSTokens::Key::entry, true);
+            capabilityInfo->RejectVar = ParseTTDVar(false, reader);
 
             reader->ReadRecordEnd();
         }
@@ -849,8 +855,8 @@ namespace TTD
             compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(capabilityInfo1->CapabilityId, capabilityInfo2->CapabilityId);
 
             AssertSnapEquivTTDVar_Special(capabilityInfo1->PromiseVar, capabilityInfo2->PromiseVar, compareMap, _u("promiseVar"));
-            compareMap.CheckConsistentAndAddPtrIdMapping_Special(capabilityInfo1->ResolveObjId, capabilityInfo2->ResolveObjId, _u("resolveObjId"));
-            compareMap.CheckConsistentAndAddPtrIdMapping_Special(capabilityInfo1->RejectObjId, capabilityInfo2->RejectObjId, _u("rejectObjId"));
+            AssertSnapEquivTTDVar_Special(capabilityInfo1->ResolveVar, capabilityInfo2->ResolveVar, compareMap, _u("resolveObjId"));
+            AssertSnapEquivTTDVar_Special(capabilityInfo1->RejectVar, capabilityInfo2->RejectVar, compareMap, _u("rejectObjId"));
         }
 #endif
 

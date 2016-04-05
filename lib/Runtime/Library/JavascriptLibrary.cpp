@@ -5177,7 +5177,7 @@ namespace Js
         return argsObj;
     }
 
-    Js::JavascriptPromiseCapability* JavascriptLibrary::CreatePromiseCapability_TTD(Var promise, RecyclableObject* resolve, RecyclableObject* reject)
+    Js::JavascriptPromiseCapability* JavascriptLibrary::CreatePromiseCapability_TTD(Var promise, Var resolve, Var reject)
     {
         return JavascriptPromiseCapability::New(promise, resolve, reject, this->scriptContext);
     }
