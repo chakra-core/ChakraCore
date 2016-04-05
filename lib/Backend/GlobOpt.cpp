@@ -250,6 +250,9 @@ GlobOpt::GlobOpt(Func * func)
         doBoundCheckHoist &&
         !PHASE_OFF(Js::Phase::LoopCountBasedBoundCheckHoistPhase, func) &&
         !func->GetProfileInfo()->IsLoopCountBasedBoundCheckHoistDisabled(func->IsLoopBody())),
+    doPowIntIntTypeSpec(
+        doAggressiveIntTypeSpec &&
+        !func->GetProfileInfo()->IsPowIntIntTypeSpecDisabled()),
     isAsmJSFunc(func->m_workItem->GetFunctionBody()->GetIsAsmjsMode())
 {
 }
@@ -9576,7 +9579,6 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
     switch(instr->m_opcode)
     {
         case Js::OpCode::InlineMathAtan2:
-        case Js::OpCode::InlineMathPow:
         {
             Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInInlineCandidateId(instr->m_opcode);   // From actual instr, not profile based.
             Js::BuiltInFlags builtInFlags = Js::JavascriptLibrary::GetFlagsForBuiltIn(builtInId);
@@ -9591,6 +9593,47 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             bool retVal = this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
             AssertMsg(retVal, "For pow and atnan2 the args have to be type-specialized to float, but something failed during the process.");
 
+            break;
+        }
+
+        case Js::OpCode::InlineMathPow:
+        {
+#ifndef _M_ARM
+            if (src2Val->GetValueInfo()->IsLikelyInt())
+            {
+                bool lossy = false;
+
+                this->ToInt32(instr, instr->GetSrc2(), this->currentBlock, src2Val, nullptr, lossy);
+
+                IR::Opnd* src1 = instr->GetSrc1();
+                int32 valueMin, valueMax;
+                if (src1Val->GetValueInfo()->IsLikelyInt() &&
+                    this->DoPowIntIntTypeSpec() &&
+                    src2Val->GetValueInfo()->GetIntValMinMax(&valueMin, &valueMax, this->DoAggressiveIntTypeSpec()) &&
+                    valueMin >= 0)
+
+                {
+                    this->ToInt32(instr, src1, this->currentBlock, src1Val, nullptr, lossy);
+                    this->TypeSpecializeIntDst(instr, instr->m_opcode, nullptr, src1Val, src2Val, IR::BailOutInvalid, INT32_MIN, INT32_MAX, pDstVal);
+
+                    if(!this->IsLoopPrePass())
+                    {
+                        GenerateBailAtOperation(&instr, IR::BailOutOnPowIntIntOverflow);
+                    }
+                }
+                else
+                {
+                    this->ToFloat64(instr, src1, this->currentBlock, src1Val, nullptr, IR::BailOutPrimitiveButString);
+                    TypeSpecializeFloatDst(instr, nullptr, src1Val, src2Val, pDstVal);
+                }
+            }
+            else
+            {
+#endif
+                this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
+#ifndef _M_ARM
+            }
+#endif
             break;
         }
 
@@ -19352,6 +19395,12 @@ bool
 GlobOpt::DoLoopCountBasedBoundCheckHoist() const
 {
     return doLoopCountBasedBoundCheckHoist;
+}
+
+bool
+GlobOpt::DoPowIntIntTypeSpec() const
+{
+    return doPowIntIntTypeSpec;
 }
 
 bool

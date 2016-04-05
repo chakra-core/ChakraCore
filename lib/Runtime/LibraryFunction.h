@@ -49,7 +49,7 @@ LIBRARY_FUNCTION(Math,          Floor,              1,    BIF_TypeSpecDstToInt |
 LIBRARY_FUNCTION(Math,          Log,                1,    BIF_TypeSpecUnaryToFloat                          , Math::EntryInfo::Log)
 LIBRARY_FUNCTION(Math,          Max,                2,    BIF_TypeSpecSrcAndDstToFloatOrInt                 , Math::EntryInfo::Max)
 LIBRARY_FUNCTION(Math,          Min,                2,    BIF_TypeSpecSrcAndDstToFloatOrInt                 , Math::EntryInfo::Min)
-LIBRARY_FUNCTION(Math,          Pow,                2,    BIF_TypeSpecAllToFloat                            , Math::EntryInfo::Pow)
+LIBRARY_FUNCTION(Math,          Pow,                2,    BIF_TypeSpecSrcAndDstToFloatOrInt                 , Math::EntryInfo::Pow)
 LIBRARY_FUNCTION(Math,          Imul,               2,    BIF_TypeSpecAllToInt                              , Math::EntryInfo::Imul)
 LIBRARY_FUNCTION(Math,          Clz32,              1,    BIF_TypeSpecAllToInt                              , Math::EntryInfo::Clz32)
 LIBRARY_FUNCTION(Array,         Push,               2,    BIF_UseSrc0 | BIF_IgnoreDst | BIF_TypeSpecSrc1ToFloatOrInt, JavascriptArray::EntryInfo::Push)

@@ -505,10 +505,10 @@ HeapInfo::Initialize(Recycler * recycler
     if (pageheapmode == PageHeapMode::PageHeapModeOff)
     {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        isPageHeapEnabled = Js::Configuration::Global.flags.PageHeap != PageHeapMode::PageHeapModeOff;
-        pageheapmode = (PageHeapMode)Js::Configuration::Global.flags.PageHeap;
-        blockTypeFilter = (PageHeapBlockTypeFilter)Js::Configuration::Global.flags.PageHeapBlockType;
-        pBucketNumberRange = &Js::Configuration::Global.flags.PageHeapBucketNumber;
+        isPageHeapEnabled = recycler->GetRecyclerFlagsTable().PageHeap != PageHeapMode::PageHeapModeOff;
+        pageheapmode = (PageHeapMode)recycler->GetRecyclerFlagsTable().PageHeap;
+        blockTypeFilter = (PageHeapBlockTypeFilter)recycler->GetRecyclerFlagsTable().PageHeapBlockType;
+        pBucketNumberRange = &recycler->GetRecyclerFlagsTable().PageHeapBucketNumber;
 #else
         // @TODO in free build, use environment var or other way to enable page heap
         // currently page heap build is enable in free build but has not implemented a way to input the page heap flags.
@@ -528,8 +528,8 @@ HeapInfo::Initialize(Recycler * recycler
         this->captureFreeCallStack = captureFreeCallStack;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        this->captureAllocCallStack = captureAllocCallStack || Js::Configuration::Global.flags.PageHeapAllocStack;
-        this->captureFreeCallStack = captureFreeCallStack || Js::Configuration::Global.flags.PageHeapFreeStack;
+        this->captureAllocCallStack = captureAllocCallStack || recycler->GetRecyclerFlagsTable().PageHeapAllocStack;
+        this->captureFreeCallStack = captureFreeCallStack || recycler->GetRecyclerFlagsTable().PageHeapFreeStack;
 #endif
     }
 #endif

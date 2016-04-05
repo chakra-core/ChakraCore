@@ -1249,6 +1249,7 @@ private:
     bool                    doBoundCheckHoist : 1;
     bool                    doLoopCountBasedBoundCheckHoist : 1;
 
+    bool                    doPowIntIntTypeSpec : 1;
     bool                    isAsmJSFunc : 1;
     OpndList *              noImplicitCallUsesToInsert;
 
@@ -1623,6 +1624,7 @@ private:
     bool                    DoBoundCheckElimination() const;
     bool                    DoBoundCheckHoist() const;
     bool                    DoLoopCountBasedBoundCheckHoist() const;
+    bool                    DoPowIntIntTypeSpec() const;
 
 private:
     // GlobOptBailout.cpp
