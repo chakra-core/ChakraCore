@@ -10228,6 +10228,9 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
             bool isUseAsmDirective = false;
             if (smEnvironment != SM_NotUsed && CheckForDirective(&isUseStrictDirective, &isUseAsmDirective, &isOctalInString))
             {
+                // Ignore "use asm" statement when not building the AST
+                isUseAsmDirective &= buildAST;
+
                 if (isUseStrictDirective)
                 {
                     // Functions with non-simple parameter list cannot be made strict mode
