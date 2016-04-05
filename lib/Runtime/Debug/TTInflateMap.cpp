@@ -279,7 +279,7 @@ namespace TTD
         if(this->m_stepKind == StepKind::PropertyData || this->m_stepKind == StepKind::PropertyGetter || this->m_stepKind == StepKind::PropertySetter)
         {
             const Js::PropertyRecord* pRecord = threadContext->GetPropertyName((Js::PropertyId)this->m_step.IndexOrPID);
-            js_memcpy_s(namebuff, 256, pRecord->GetBuffer(), pRecord->GetLength());
+            js_memcpy_s(namebuff, 256 * sizeof(char16), pRecord->GetBuffer(), pRecord->GetLength() * sizeof(char16));
             namebuff[pRecord->GetLength()] = _u('\0');
         }
 
