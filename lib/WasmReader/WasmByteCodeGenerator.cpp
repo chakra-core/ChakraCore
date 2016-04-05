@@ -1068,6 +1068,7 @@ WasmBytecodeGenerator::GetConstReg(T constVal)
 EmitInfo
 WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
 {
+    EmitInfo retExprInfo;
     if (m_funcInfo->GetResultType() == WasmTypes::Void)
     {
         // TODO (michhol): consider moving off explicit 0 for return reg
@@ -1075,7 +1076,6 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
     }
     else
     {
-        EmitInfo retExprInfo;
         if (lastStmtExprInfo)
         {
             retExprInfo = *lastStmtExprInfo;
@@ -1107,14 +1107,9 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
         }
 
         m_writer.Conv(retOp, 0, retExprInfo.location);
-        if (!lastStmtExprInfo)
-        {
-            ReleaseLocation(&retExprInfo);
-        }
     }
     m_writer.AsmBr(m_funcInfo->GetExitLabel());
-
-    return EmitInfo();
+    return retExprInfo;
 }
 
 EmitInfo
