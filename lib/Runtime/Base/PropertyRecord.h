@@ -43,10 +43,10 @@ namespace Js
         PropertyRecord(PropertyId pid, uint hash, bool isNumeric, DWORD byteCount, bool isSymbol);
         PropertyRecord() { Assert(false); } // never used, needed by compiler for BuiltInPropertyRecord
 
-        static bool IsPropertyNameNumeric(const wchar_t* str, int length, uint32* intVal);
+        static bool IsPropertyNameNumeric(const char16* str, int length, uint32* intVal);
     public:
 #ifdef DEBUG
-        static bool IsPropertyNameNumeric(const wchar_t* str, int length);
+        static bool IsPropertyNameNumeric(const char16* str, int length);
 #endif
         static PropertyRecord * New(Recycler * recycler, JsUtil::CharacterBuffer<WCHAR> const& propertyName);
 
@@ -57,12 +57,12 @@ namespace Js
 
         charcount_t GetLength() const
         {
-            return byteCount / sizeof(wchar_t);
+            return byteCount / sizeof(char16);
         }
 
-        const wchar_t* GetBuffer() const
+        const char16* GetBuffer() const
         {
-            return (const wchar_t *)(this + 1);
+            return (const char16 *)(this + 1);
         }
 
         bool IsNumeric() const { return isNumeric; }
@@ -105,7 +105,7 @@ namespace Js
     struct BuiltInPropertyRecord
     {
         PropertyRecord propertyRecord;
-        wchar_t buffer[LEN];
+        char16 buffer[LEN];
 
         operator const PropertyRecord*() const
         {
@@ -135,9 +135,9 @@ namespace Js
     {
     public:
         const static BuiltInPropertyRecord<1> EMPTY;
-#define ENTRY_INTERNAL_SYMBOL(n) const static BuiltInPropertyRecord<ARRAYSIZE(L"<" L#n L">")> n;
+#define ENTRY_INTERNAL_SYMBOL(n) const static BuiltInPropertyRecord<ARRAYSIZE(_u("<") _u(#n) _u(">"))> n;
 #define ENTRY_SYMBOL(n, d) const static BuiltInPropertyRecord<ARRAYSIZE(d)> n;
-#define ENTRY(n) const static BuiltInPropertyRecord<ARRAYSIZE(L#n)> n;
+#define ENTRY(n) const static BuiltInPropertyRecord<ARRAYSIZE(_u(#n))> n;
 #define ENTRY2(n, s) const static BuiltInPropertyRecord<ARRAYSIZE(s)> n;
 #include "Base/JnDirectFields.h"
     };
@@ -215,13 +215,13 @@ namespace Js
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetBuffer(), str2.GetBuffer(), str1->GetLength()));
         }
 
-        __inline static bool Equals(PropertyRecord const * str1, HashedCharacterBuffer<wchar_t> const & str2)
+        __inline static bool Equals(PropertyRecord const * str1, HashedCharacterBuffer<char16> const & str2)
         {
             return (!str1->IsSymbol() &&
                 str1->GetHashCode() == str2.GetHashCode() &&
                 str1->GetLength() == str2.GetLength() &&
                 !Js::IsInternalPropertyId(str1->GetPropertyId()) &&
-                JsUtil::CharacterBuffer<wchar_t>::StaticEquals(str1->GetBuffer(), str2.GetBuffer(), str1->GetLength()));
+                JsUtil::CharacterBuffer<char16>::StaticEquals(str1->GetBuffer(), str2.GetBuffer(), str1->GetLength()));
         }
 
         __inline static bool Equals(PropertyRecord const * str1, JavascriptString * str2);
@@ -248,9 +248,9 @@ namespace Js
     };
 
     template<>
-    struct PropertyRecordStringHashComparer<HashedCharacterBuffer<wchar_t>>
+    struct PropertyRecordStringHashComparer<HashedCharacterBuffer<char16>>
     {
-        __inline static hash_t GetHashCode(HashedCharacterBuffer<wchar_t> const & str)
+        __inline static hash_t GetHashCode(HashedCharacterBuffer<char16> const & str)
         {
             return str.GetHashCode();
         }

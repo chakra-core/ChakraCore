@@ -135,17 +135,17 @@ namespace Js
                 {
                     Var sourceString = caller->EnsureSourceString();
                     Assert(JavascriptString::Is(sourceString));
-                    const wchar_t* callerString = Js::JavascriptString::FromVar(sourceString)->GetSz();
-                    wchar_t* outString = (wchar_t*)callerString;
+                    const char16* callerString = Js::JavascriptString::FromVar(sourceString)->GetSz();
+                    char16* outString = (char16*)callerString;
                     int length = 0;
-                    if (wcschr(callerString, L'\n') != NULL || wcschr(callerString, L'\n') != NULL)
+                    if (wcschr(callerString, _u('\n')) != NULL || wcschr(callerString, _u('\n')) != NULL)
                     {
                         length = Js::JavascriptString::FromVar(sourceString)->GetLength();
-                        outString = HeapNewArray(wchar_t, length+1);
+                        outString = HeapNewArray(char16, length+1);
                         int j = 0;
                         for (int i = 0; i < length; i++)
                         {
-                            if (callerString[i] != L'\n' && callerString[i] != L'\r')
+                            if (callerString[i] != _u('\n') && callerString[i] != L'\r')
                             {
                                 outString[j++] = callerString[i];
                             }
@@ -160,7 +160,7 @@ namespace Js
 #if DBG_DUMP
                     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostPhase))
                     {
-                        Output::Print(L"Large number of Call to trampoline: methodAddr= %p, Object typeid= %d, caller method= %s, callcount= %d\n",
+                        Output::Print(_u("Large number of Call to trampoline: methodAddr= %p, Object typeid= %d, caller method= %s, callcount= %d\n"),
                             this, typeId, callerString, callCount);
                     }
 #endif
@@ -170,7 +170,7 @@ namespace Js
 #if DBG_DUMP
             if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostPhase))
             {
-                Output::Print(L"Call to trampoline: methodAddr= %p, Object typeid= %d\n", this, typeId);
+                Output::Print(_u("Call to trampoline: methodAddr= %p, Object typeid= %d\n"), this, typeId);
             }
 #endif
         }

@@ -7,7 +7,7 @@
 namespace Js
 {
     template <typename StringType>
-    inline void JavascriptString::Copy(__out_ecount(bufLen) wchar_t *const buffer, const charcount_t bufLen)
+    inline void JavascriptString::Copy(__out_ecount(bufLen) char16 *const buffer, const charcount_t bufLen)
     {
         Assert(buffer);
 

@@ -257,7 +257,7 @@ BackwardPass::Optimize()
         return;
     }
 
-    NoRecoverMemoryJitArenaAllocator localAlloc(tag == Js::BackwardPhase? L"BE-Backward" : L"BE-DeadStore",
+    NoRecoverMemoryJitArenaAllocator localAlloc(tag == Js::BackwardPhase? _u("BE-Backward") : _u("BE-DeadStore"),
         this->func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
 
     this->tempAlloc = &localAlloc;
@@ -320,19 +320,19 @@ BackwardPass::Optimize()
     if (PHASE_STATS(this->tag, this->func))
     {
         this->func->DumpHeader();
-        Output::Print(this->tag == Js::BackwardPhase? L"Backward Phase Stats:\n" : L"Deadstore Phase Stats:\n");
+        Output::Print(this->tag == Js::BackwardPhase? _u("Backward Phase Stats:\n") : _u("Deadstore Phase Stats:\n"));
         if (this->DoDeadStore())
         {
-            Output::Print(L"  Deadstore              : %3d\n", this->numDeadStore);
+            Output::Print(_u("  Deadstore              : %3d\n"), this->numDeadStore);
         }
         if (this->DoMarkTempNumbers())
         {
-            Output::Print(L"  Temp Number            : %3d\n", this->numMarkTempNumber);
-            Output::Print(L"  Transferred Temp Number: %3d\n", this->numMarkTempNumberTransferred);
+            Output::Print(_u("  Temp Number            : %3d\n"), this->numMarkTempNumber);
+            Output::Print(_u("  Transferred Temp Number: %3d\n"), this->numMarkTempNumberTransferred);
         }
         if (this->DoMarkTempObjects())
         {
-            Output::Print(L"  Temp Object            : %3d\n", this->numMarkTempObject);
+            Output::Print(_u("  Temp Object            : %3d\n"), this->numMarkTempObject);
         }
     }
 #endif
@@ -433,7 +433,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         {
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
             // save the byteCodeUpwardExposedUsed from deleting for the block right after the memop loop
             if (this->tag == Js::DeadStorePhase && !this->IsPrePass() && globOpt->DoMemOp(block->loop) && blockSucc->loop != block->loop)
@@ -603,7 +603,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 #endif
 
             PHASE_PRINT_TRACE(Js::ObjTypeSpecStorePhase, this->func,
-                              L"ObjTypeSpecStore: func %s, edge %d => %d: ",
+                              _u("ObjTypeSpecStore: func %s, edge %d => %d: "),
                               this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                               block->GetBlockNum(), blockSucc->GetBlockNum());
 
@@ -672,7 +672,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             }
             else
             {
-                PHASE_PRINT_TRACE(Js::ObjTypeSpecStorePhase, this->func, L"null\n");
+                PHASE_PRINT_TRACE(Js::ObjTypeSpecStorePhase, this->func, _u("null\n"));
                 if (stackSymToFinalType)
                 {
                     if (!this->IsPrePass())
@@ -703,10 +703,10 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 #if DBG_DUMP
                 if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
                 {
-                    wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Js::FunctionBody* topFunctionBody = this->func->GetTopFunc()->GetJnFunction();
                     Js::FunctionBody* functionBody = this->func->GetJnFunction();
-                    Output::Print(L"ObjTypeSpec: top function %s (%s), function %s (%s), write guard symbols on edge %d => %d: ",
+                    Output::Print(_u("ObjTypeSpec: top function %s (%s), function %s (%s), write guard symbols on edge %d => %d: "),
                         topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(),
                         functionBody->GetDebugNumberSet(debugStringBuffer2), block->GetBlockNum(), blockSucc->GetBlockNum());
                 }
@@ -716,7 +716,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 #if DBG_DUMP
                     if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
                     {
-                        Output::Print(L"\n");
+                        Output::Print(_u("\n"));
                         blockSucc->stackSymToWriteGuardsMap->Dump();
                     }
 #endif
@@ -741,7 +741,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 #if DBG_DUMP
                     if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
                     {
-                        Output::Print(L"null\n");
+                        Output::Print(_u("null\n"));
                     }
 #endif
                 }
@@ -753,8 +753,8 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                 {
                     Js::FunctionBody* topFunctionBody = this->func->GetTopFunc()->GetJnFunction();
                     Js::FunctionBody* functionBody = this->func->GetJnFunction();
-                    wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Output::Print(L"ObjTypeSpec: top function %s (%s), function %s (%s), guarded property operations on edge %d => %d: \n",
+                    char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    Output::Print(_u("ObjTypeSpec: top function %s (%s), function %s (%s), guarded property operations on edge %d => %d: \n"),
                         topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2),
                         block->GetBlockNum(), blockSucc->GetBlockNum());
                 }
@@ -765,7 +765,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                     if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecTypeGuardsPhase, this->func))
                     {
                         blockSucc->stackSymToGuardedProperties->Dump();
-                        Output::Print(L"\n");
+                        Output::Print(_u("\n"));
                     }
 #endif
                     if (stackSymToGuardedProperties == nullptr)
@@ -789,7 +789,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 #if DBG_DUMP
                     if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecTypeGuardsPhase, this->func))
                     {
-                        Output::Print(L"null\n");
+                        Output::Print(_u("null\n"));
                     }
 #endif
                 }
@@ -846,10 +846,10 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         NEXT_SUCCESSOR_BLOCK;
 
 #if DBG_DUMP
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         if (PHASE_TRACE(Js::ObjTypeSpecStorePhase, this->func))
         {
-            Output::Print(L"ObjTypeSpecStore: func %s, block %d: ",
+            Output::Print(_u("ObjTypeSpecStore: func %s, block %d: "),
                           this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                           block->GetBlockNum());
             if (stackSymToFinalType)
@@ -858,38 +858,38 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             }
             else
             {
-                Output::Print(L"null\n");
+                Output::Print(_u("null\n"));
             }
         }
 
         if (PHASE_TRACE(Js::TraceObjTypeSpecTypeGuardsPhase, this->func))
         {
-            Output::Print(L"ObjTypeSpec: func %s, block %d, guarded properties:\n",
+            Output::Print(_u("ObjTypeSpec: func %s, block %d, guarded properties:\n"),
                 this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
             if (stackSymToGuardedProperties)
             {
                 stackSymToGuardedProperties->Dump();
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
             else
             {
-                Output::Print(L"null\n");
+                Output::Print(_u("null\n"));
             }
         }
 
         if (PHASE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
         {
-            Output::Print(L"ObjTypeSpec: func %s, block %d, write guards: ",
+            Output::Print(_u("ObjTypeSpec: func %s, block %d, write guards: "),
                 this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
             if (stackSymToWriteGuardsMap)
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
                 stackSymToWriteGuardsMap->Dump();
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
             else
             {
-                Output::Print(L"null\n");
+                Output::Print(_u("null\n"));
             }
         }
 #endif
@@ -1285,7 +1285,7 @@ BackwardPass::ProcessLoopCollectionPass(BasicBlock *const lastBlock)
 #if DBG_DUMP
         if(IsTraceEnabled())
         {
-            Output::Print(L"******* COLLECTION PASS 1 START: Loop %u ********\n", collectionPassLoop->GetLoopTopInstr()->m_id);
+            Output::Print(_u("******* COLLECTION PASS 1 START: Loop %u ********\n"), collectionPassLoop->GetLoopTopInstr()->m_id);
         }
 #endif
 
@@ -1308,7 +1308,7 @@ BackwardPass::ProcessLoopCollectionPass(BasicBlock *const lastBlock)
 #if DBG_DUMP
         if(IsTraceEnabled())
         {
-            Output::Print(L"******** COLLECTION PASS 1 END: Loop %u *********\n", collectionPassLoop->GetLoopTopInstr()->m_id);
+            Output::Print(_u("******** COLLECTION PASS 1 END: Loop %u *********\n"), collectionPassLoop->GetLoopTopInstr()->m_id);
         }
 #endif
     }
@@ -1319,7 +1319,7 @@ BackwardPass::ProcessLoopCollectionPass(BasicBlock *const lastBlock)
 #if DBG_DUMP
         if(IsTraceEnabled())
         {
-            Output::Print(L"******* COLLECTION PASS 2 START: Loop %u ********\n", collectionPassLoop->GetLoopTopInstr()->m_id);
+            Output::Print(_u("******* COLLECTION PASS 2 START: Loop %u ********\n"), collectionPassLoop->GetLoopTopInstr()->m_id);
         }
 #endif
 
@@ -1348,7 +1348,7 @@ BackwardPass::ProcessLoopCollectionPass(BasicBlock *const lastBlock)
 #if DBG_DUMP
         if(IsTraceEnabled())
         {
-            Output::Print(L"******** COLLECTION PASS 2 END: Loop %u *********\n", collectionPassLoop->GetLoopTopInstr()->m_id);
+            Output::Print(_u("******** COLLECTION PASS 2 END: Loop %u *********\n"), collectionPassLoop->GetLoopTopInstr()->m_id);
         }
 #endif
     }
@@ -1362,7 +1362,7 @@ BackwardPass::ProcessLoop(BasicBlock * lastBlock)
 #if DBG_DUMP
     if (this->IsTraceEnabled())
     {
-        Output::Print(L"******* PREPASS START ********\n");
+        Output::Print(_u("******* PREPASS START ********\n"));
     }
 #endif
 
@@ -1432,7 +1432,7 @@ BackwardPass::ProcessLoop(BasicBlock * lastBlock)
 #if DBG_DUMP
     if (this->IsTraceEnabled())
     {
-        Output::Print(L"******** PREPASS END *********\n");
+        Output::Print(_u("******** PREPASS END *********\n"));
     }
 #endif
 }
@@ -2360,7 +2360,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 #if DBG_DUMP
     if (this->IsTraceEnabled())
     {
-        Output::Print(L"******************************* Before Process Block *******************************n");
+        Output::Print(_u("******************************* Before Process Block *******************************n"));
         DumpBlockData(block);
     }
 #endif
@@ -2369,21 +2369,21 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 #if DBG_DUMP
         if (!IsCollectionPass() && IsTraceEnabled() && Js::Configuration::Global.flags.Verbose)
         {
-            Output::Print(L">>>>>>>>>>>>>>>>>>>>>> %s: Instr Start\n", tag == Js::BackwardPhase? L"BACKWARD" : L"DEADSTORE");
+            Output::Print(_u(">>>>>>>>>>>>>>>>>>>>>> %s: Instr Start\n"), tag == Js::BackwardPhase? _u("BACKWARD") : _u("DEADSTORE"));
             instr->Dump();
             Output::SkipToColumn(10);
-            Output::Print(L"   Exposed Use: ");
+            Output::Print(_u("   Exposed Use: "));
             block->upwardExposedUses->Dump();
             Output::SkipToColumn(10);
-            Output::Print(L"Exposed Fields: ");
+            Output::Print(_u("Exposed Fields: "));
             block->upwardExposedFields->Dump();
             if (block->byteCodeUpwardExposedUsed)
             {
                 Output::SkipToColumn(10);
-                Output::Print(L" Byte Code Use: ");
+                Output::Print(_u(" Byte Code Use: "));
                 block->byteCodeUpwardExposedUsed->Dump();
             }
-            Output::Print(L"--------------------\n");
+            Output::Print(_u("--------------------\n"));
         }
 #endif
 
@@ -2665,21 +2665,21 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 #if DBG_DUMP
         if (!IsCollectionPass() && IsTraceEnabled() && Js::Configuration::Global.flags.Verbose)
         {
-            Output::Print(L"-------------------\n");
+            Output::Print(_u("-------------------\n"));
             instr->Dump();
             Output::SkipToColumn(10);
-            Output::Print(L"   Exposed Use: ");
+            Output::Print(_u("   Exposed Use: "));
             block->upwardExposedUses->Dump();
             Output::SkipToColumn(10);
-            Output::Print(L"Exposed Fields: ");
+            Output::Print(_u("Exposed Fields: "));
             block->upwardExposedFields->Dump();
             if (block->byteCodeUpwardExposedUsed)
             {
                 Output::SkipToColumn(10);
-                Output::Print(L" Byte Code Use: ");
+                Output::Print(_u(" Byte Code Use: "));
                 block->byteCodeUpwardExposedUsed->Dump();
             }
-            Output::Print(L"<<<<<<<<<<<<<<<<<<<<<< %s: Instr End\n", tag == Js::BackwardPhase? L"BACKWARD" : L"DEADSTORE");
+            Output::Print(_u("<<<<<<<<<<<<<<<<<<<<<< %s: Instr End\n"), tag == Js::BackwardPhase? _u("BACKWARD") : _u("DEADSTORE"));
         }
 #endif
     }
@@ -2704,7 +2704,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 #if DBG_DUMP
     if (this->IsTraceEnabled())
     {
-        Output::Print(L"******************************* After Process Block *******************************n");
+        Output::Print(_u("******************************* After Process Block *******************************n"));
         DumpBlockData(block);
     }
 #endif
@@ -2717,25 +2717,25 @@ BackwardPass::DumpBlockData(BasicBlock * block)
     block->DumpHeader();
     if (block->upwardExposedUses) // may be null for dead blocks
     {
-        Output::Print(L"             Exposed Uses: ");
+        Output::Print(_u("             Exposed Uses: "));
         block->upwardExposedUses->Dump();
     }
 
     if (block->typesNeedingKnownObjectLayout)
     {
-        Output::Print(L"            Needs Known Object Layout: ");
+        Output::Print(_u("            Needs Known Object Layout: "));
         block->typesNeedingKnownObjectLayout->Dump();
     }
 
     if (this->DoFieldHoistCandidates() && !block->isDead)
     {
-        Output::Print(L"            Exposed Field: ");
+        Output::Print(_u("            Exposed Field: "));
         block->fieldHoistCandidates->Dump();
     }
 
     if (block->byteCodeUpwardExposedUsed)
     {
-        Output::Print(L"   Byte Code Exposed Uses: ");
+        Output::Print(_u("   Byte Code Exposed Uses: "));
         block->byteCodeUpwardExposedUsed->Dump();
     }
 
@@ -2745,7 +2745,7 @@ BackwardPass::DumpBlockData(BasicBlock * block)
         {
             if (this->DoDeadStoreSlots())
             {
-                Output::Print(L"Slot deadStore candidates: ");
+                Output::Print(_u("Slot deadStore candidates: "));
                 block->slotDeadStoreCandidates->Dump();
             }
             DumpMarkTemp();
@@ -3977,11 +3977,11 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                     (!GlobOpt::AreTypeSetsIdentical(existingFldInfo->GetEquivalentTypeSet(), opnd->GetEquivalentTypeSet()) ||
                     (existingFldInfo->GetSlotIndex() != opnd->GetSlotIndex())))
                 {
-                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Js::FunctionBody* topFunctionBody = this->func->GetJnFunction();
                     Js::ScriptContext* scriptContext = topFunctionBody->GetScriptContext();
 
-                    Output::Print(L"EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) on operation %u \n",
+                    Output::Print(_u("EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) on operation %u \n"),
                         topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer),
                         scriptContext->GetPropertyNameLocked(opnd->GetPropertyId())->GetBuffer(), opnd->GetPropertyId(), opnd->GetObjTypeSpecFldId());
                     Output::Flush();
@@ -4267,7 +4267,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
 #if DBG_DUMP
     if (PHASE_TRACE(Js::ObjTypeSpecStorePhase, this->func))
     {
-        Output::Print(L"ObjTypeSpecStore: ");
+        Output::Print(_u("ObjTypeSpecStore: "));
         this->currentInstr->Dump();
         pBucket->Dump();
     }
@@ -5754,21 +5754,21 @@ BackwardPass::EndIntOverflowDoesNotMatterRange()
 #if DBG_DUMP
         if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func->GetJnFunction()))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(
-                L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n",
+                _u("TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n"),
                 func->GetJnFunction()->GetDisplayName(),
                 func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 Js::PhaseNames[Js::BackwardPhase],
                 currentBlock->GetBlockNum());
-            Output::Print(L"    Input syms to be int-specialized (lossless): ");
+            Output::Print(_u("    Input syms to be int-specialized (lossless): "));
             candidateSymsRequiredToBeInt->Minus(
                 currentBlock->intOverflowDoesNotMatterRange->SymsRequiredToBeInt(),
                 currentBlock->intOverflowDoesNotMatterRange->SymsRequiredToBeLossyInt()); // candidate bit-vectors are cleared below anyway
             candidateSymsRequiredToBeInt->Dump();
-            Output::Print(L"    Input syms to be converted to int (lossy):   ");
+            Output::Print(_u("    Input syms to be converted to int (lossy):   "));
             currentBlock->intOverflowDoesNotMatterRange->SymsRequiredToBeLossyInt()->Dump();
-            Output::Print(L"    First instr: ");
+            Output::Print(_u("    First instr: "));
             currentBlock->intOverflowDoesNotMatterRange->FirstInstr()->m_next->Dump();
             Output::Flush();
         }
@@ -6169,7 +6169,7 @@ BackwardPass::DeadStoreInstr(IR::Instr *instr)
 #if DBG_DUMP
     if (this->IsTraceEnabled())
     {
-        Output::Print(L"Deadstore instr: ");
+        Output::Print(_u("Deadstore instr: "));
         instr->Dump();
     }
     this->numDeadStore++;
@@ -6400,7 +6400,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
 
     if (!inlineeStart->m_func->m_hasInlineArgsOpt)
     {
-        PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, L"%s[%d]: Skipping inline args optimization: %s[%d] HasCalls: %s 'arguments' access: %s Can do inlinee args opt: %s\n",
+        PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, _u("%s[%d]: Skipping inline args optimization: %s[%d] HasCalls: %s 'arguments' access: %s Can do inlinee args opt: %s\n"),
                 func->GetJnFunction()->GetExternalDisplayName(), func->GetJnFunction()->GetFunctionNumber(),
                 inlineeStart->m_func->GetJnFunction()->GetExternalDisplayName(), inlineeStart->m_func->GetJnFunction()->GetFunctionNumber(),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasCalls()),
@@ -6411,7 +6411,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
 
     if (!inlineeStart->m_func->frameInfo->isRecorded)
     {
-        PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, L"%s[%d]: InlineeEnd not found - usually due to a throw or a BailOnNoProfile (stressed, most likely)\n",
+        PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, _u("%s[%d]: InlineeEnd not found - usually due to a throw or a BailOnNoProfile (stressed, most likely)\n"),
             func->GetJnFunction()->GetExternalDisplayName(), func->GetJnFunction()->GetFunctionNumber());
         inlineeStart->m_func->DisableCanDoInlineArgOpt();
         return false;

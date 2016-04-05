@@ -52,8 +52,8 @@ namespace Js
         static void PretendTrySetProperty(Type *const type, Type *const oldType, PropertyCacheOperationInfo * operationInfo, PropertyValueInfo *const propertyValueInfo);
 
 #if DBG_DUMP
-        static void TraceCache(InlineCache * inlineCache, const wchar_t * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object);
-        static void TraceCache(PolymorphicInlineCache * polymorphicInlineCache, const wchar_t * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object);
+        static void TraceCache(InlineCache * inlineCache, const char16 * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object);
+        static void TraceCache(PolymorphicInlineCache * polymorphicInlineCache, const char16 * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object);
 #endif
 
     private:
@@ -63,7 +63,7 @@ namespace Js
         static bool CanCachePropertyWrite(RecyclableObject * object, ScriptContext * requestContext);
 
 #if DBG_DUMP
-        static void TraceCacheCommon(const wchar_t * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object);
+        static void TraceCacheCommon(const char16 * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object);
 #endif
     };
 }

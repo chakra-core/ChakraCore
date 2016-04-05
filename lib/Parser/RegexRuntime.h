@@ -28,7 +28,7 @@ namespace UnifiedRegex
     // Programs
     // ----------------------------------------------------------------------
 
-    struct Program : private Chars<wchar_t>
+    struct Program : private Chars<char16>
     {
         friend class Compiler;
         friend struct MatchLiteralNode;
@@ -57,7 +57,7 @@ namespace UnifiedRegex
         // Copy of original text of regex (without delimiting '/'s or trailing flags), null terminated.
         // In run-time allocator, owned by program
         Char* source;
-        CharCount sourceLen; // length in wchar_t's, NOT including terminating null
+        CharCount sourceLen; // length in char16's, NOT including terminating null
         // Number of capturing groups (including implicit overall group at index 0)
         int numGroups;
         int numLoops;
@@ -85,7 +85,7 @@ namespace UnifiedRegex
             CharCount instsLen; // in bytes
             // Literals
             // In run-time allocator, owned by program, may be 0
-            CharCount litbufLen; // length of litbuf in wchar_t's, no terminating null
+            CharCount litbufLen; // length of litbuf in char16's, no terminating null
             Char* litbuf;
 
             // These scanner infos are used by ScannersMixin, which is used by only SyncToLiteralsAndBackupInst. There will only
@@ -171,7 +171,7 @@ namespace UnifiedRegex
     // CountDomain
     // ----------------------------------------------------------------------
 
-    struct CountDomain : private Chars<wchar_t>
+    struct CountDomain : private Chars<char16>
     {
         CharCount lower;
         CharCountOrFlag upper; // CharCountFlag => unbounded
@@ -285,76 +285,76 @@ namespace UnifiedRegex
         inline BackupMixin(const CountDomain& backup) : backup(backup) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
     struct CharMixin
     {
-        wchar_t c;
+        char16 c;
 
-        inline CharMixin(wchar_t c) : c(c) {}
+        inline CharMixin(char16 c) : c(c) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
     struct Char2Mixin
     {
-        wchar_t cs[2];
+        char16 cs[2];
 
-        inline Char2Mixin(wchar_t c0, wchar_t c1) { cs[0] = c0; cs[1] = c1; }
+        inline Char2Mixin(char16 c0, char16 c1) { cs[0] = c0; cs[1] = c1; }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
     struct Char3Mixin
     {
-        wchar_t cs[3];
+        char16 cs[3];
 
-        inline Char3Mixin(wchar_t c0, wchar_t c1, wchar_t c2) { cs[0] = c0; cs[1] = c1; cs[2] = c2; }
+        inline Char3Mixin(char16 c0, char16 c1, char16 c2) { cs[0] = c0; cs[1] = c1; cs[2] = c2; }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
     struct Char4Mixin
     {
-        wchar_t cs[4];
+        char16 cs[4];
 
-        inline Char4Mixin(wchar_t c0, wchar_t c1, wchar_t c2, wchar_t c3) { cs[0] = c0; cs[1] = c1; cs[2] = c2; cs[3] = c3; }
+        inline Char4Mixin(char16 c0, char16 c1, char16 c2, char16 c3) { cs[0] = c0; cs[1] = c1; cs[2] = c2; cs[3] = c3; }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
     struct LiteralMixin
     {
         CharCount offset;  // into program's literal buffer
-        CharCount length;  // in wchar_t's
+        CharCount length;  // in char16's
 
         inline LiteralMixin(CharCount offset, CharCount length) : offset(offset), length(length) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf, bool isEquivClass) const;
+        void Print(DebugWriter* w, const char16* litbuf, bool isEquivClass) const;
 #endif
     };
 
     template<bool IsNegation>
     struct SetMixin
     {
-        RuntimeCharSet<wchar_t> set; // contents always lives in run-time allocator
+        RuntimeCharSet<char16> set; // contents always lives in run-time allocator
 
         // set must always be cloned from source
 
         void FreeBody(ArenaAllocator* rtAllocator);
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -362,12 +362,12 @@ namespace UnifiedRegex
     {
         // scanner must be setup
         Char2LiteralScannerMixin(CharCount offset, CharCount length) : Char2Mixin(0, 0) { Assert(length == 2); }
-        void Setup(wchar_t c0, wchar_t c1) { cs[0] = c0; cs[1] = c1; }
+        void Setup(char16 c0, char16 c1) { cs[0] = c0; cs[1] = c1; }
         CharCount GetLiteralLength() const { return 2; }
-        bool Match(Matcher& matcher, const wchar_t* const input, const CharCount inputLength, CharCount& inputOffset) const;
+        bool Match(Matcher& matcher, const char16* const input, const CharCount inputLength, CharCount& inputOffset) const;
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -379,16 +379,16 @@ namespace UnifiedRegex
         // scanner must be setup
         ScannerMixinT(CharCount offset, CharCount length) : LiteralMixin(offset, length) {}
         CharCount GetLiteralLength() const { return length; }
-        bool Match(Matcher& matcher, const wchar_t* const input, const CharCount inputLength, CharCount& inputOffset) const;
+        bool Match(Matcher& matcher, const char16* const input, const CharCount inputLength, CharCount& inputOffset) const;
 
         void FreeBody(ArenaAllocator* rtAllocator);
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf, bool isEquivClass = false) const;
+        void Print(DebugWriter* w, const char16* litbuf, bool isEquivClass = false) const;
 #endif
     };
 
-    typedef ScannerMixinT<TextbookBoyerMoore<wchar_t>> ScannerMixin;
-    typedef ScannerMixinT<TextbookBoyerMooreWithLinearMap<wchar_t>> ScannerMixin_WithLinearCharMap;
+    typedef ScannerMixinT<TextbookBoyerMoore<char16>> ScannerMixin;
+    typedef ScannerMixinT<TextbookBoyerMooreWithLinearMap<char16>> ScannerMixin_WithLinearCharMap;
 
     template <uint lastPatCharEquivCLassSize>
     struct EquivScannerMixinT : ScannerMixin
@@ -396,10 +396,10 @@ namespace UnifiedRegex
         // scanner must be setup
         EquivScannerMixinT(CharCount offset, CharCount length) : ScannerMixin(offset, length) {}
 
-        bool Match(Matcher& matcher, const wchar_t* const input, const CharCount inputLength, CharCount& inputOffset) const;
+        bool Match(Matcher& matcher, const char16* const input, const CharCount inputLength, CharCount& inputOffset) const;
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -414,7 +414,7 @@ namespace UnifiedRegex
         inline ScannerInfo(CharCount offset, CharCount length, bool isEquivClass) : ScannerMixin(offset, length), isEquivClass(isEquivClass) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -435,7 +435,7 @@ namespace UnifiedRegex
         ScannerInfo* Add(Recycler *recycler, Program *program, CharCount offset, CharCount length, bool isEquivClass);
         void FreeBody(ArenaAllocator* rtAllocator);
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -446,7 +446,7 @@ namespace UnifiedRegex
         inline HardFailMixin(bool canHardFail) : canHardFail(canHardFail) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -457,7 +457,7 @@ namespace UnifiedRegex
         inline GroupMixin(int groupId) : groupId(groupId) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -468,7 +468,7 @@ namespace UnifiedRegex
         inline ChompBoundedMixin(const CountDomain& repeats) : repeats(repeats) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -485,7 +485,7 @@ namespace UnifiedRegex
         }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -497,7 +497,7 @@ namespace UnifiedRegex
         inline BodyGroupsMixin(int minBodyGroupId, int maxBodyGroupId) : minBodyGroupId(minBodyGroupId), maxBodyGroupId(maxBodyGroupId) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -519,7 +519,7 @@ namespace UnifiedRegex
         }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -530,7 +530,7 @@ namespace UnifiedRegex
         inline RepeatLoopMixin(Label beginLabel) : beginLabel(beginLabel) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -547,7 +547,7 @@ namespace UnifiedRegex
         }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -558,7 +558,7 @@ namespace UnifiedRegex
         inline FixedLengthMixin(CharCount length) : length(length) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -569,13 +569,13 @@ namespace UnifiedRegex
         inline NoNeedToSaveMixin(bool noNeedToSave) : noNeedToSave(noNeedToSave) {}
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
     struct SwitchCase
     {
-        wchar_t c;
+        char16 c;
         Label targetLabel;
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -598,17 +598,17 @@ namespace UnifiedRegex
 #if DBG
             for (int i = 0; i < MaxCases; i++)
             {
-                cases[i].c = (wchar_t)-1;
+                cases[i].c = (char16)-1;
                 cases[i].targetLabel = (Label)-1;
             }
 #endif
         }
 
         // Only used at compile time
-        void AddCase(wchar_t c, Label targetLabel);
+        void AddCase(char16 c, Label targetLabel);
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const wchar_t* litbuf) const;
+        void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
     };
 
@@ -616,7 +616,7 @@ namespace UnifiedRegex
     // Instructions
     // ----------------------------------------------------------------------
 
-    struct Inst : protected Chars<wchar_t>
+    struct Inst : protected Chars<char16>
     {
         enum InstTag : uint32
         {
@@ -1419,7 +1419,7 @@ namespace UnifiedRegex
     // Matcher state
     // ----------------------------------------------------------------------
 
-    struct LoopInfo : protected Chars<wchar_t>
+    struct LoopInfo : protected Chars<char16>
     {
         CharCount number;            // current iteration number
         CharCount startInputOffset;  // input offset where the iteration started
@@ -1438,7 +1438,7 @@ namespace UnifiedRegex
 #endif
     };
 
-    struct GroupInfo : protected Chars<wchar_t>
+    struct GroupInfo : protected Chars<char16>
     {
         CharCount offset;
         CharCountOrFlag length;  // CharCountFlag => group is undefined
@@ -1462,7 +1462,7 @@ namespace UnifiedRegex
 #endif
     };
 
-    struct AssertionInfo : private Chars<wchar_t>
+    struct AssertionInfo : private Chars<char16>
     {
         const Label beginLabel;        // label of BeginAssertion instruction
         CharCount startInputOffset;    // input offset when begun assertion (so can rewind)
@@ -1480,7 +1480,7 @@ namespace UnifiedRegex
     // Continuations
     // ----------------------------------------------------------------------
 
-    struct Cont : protected Chars<wchar_t>
+    struct Cont : protected Chars<char16>
     {
         enum ContTag : uint32
         {
@@ -1617,7 +1617,7 @@ namespace UnifiedRegex
     // Matcher
     // ----------------------------------------------------------------------
 
-    class ContStack : public ContinuousPageStackOfVariableElements<Cont>, private Chars<wchar_t>
+    class ContStack : public ContinuousPageStackOfVariableElements<Cont>, private Chars<char16>
     {
     public:
         __inline ContStack(PageAllocator *const pageAllocator, void (*const outOfMemoryFunc)())
@@ -1662,7 +1662,7 @@ namespace UnifiedRegex
         ImmediateFail
     };
 
-    class Matcher : private Chars<wchar_t>
+    class Matcher : private Chars<char16>
     {
 #define M(TagName) friend struct TagName##Inst;
 #define MTemplate(TagName, TemplateDeclaration, GenericClassName, ...) TemplateDeclaration friend struct GenericClassName;

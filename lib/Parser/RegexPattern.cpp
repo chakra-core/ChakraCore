@@ -130,22 +130,22 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void RegexPattern::Print(DebugWriter* w)
     {
-        w->Print(L"/");
+        w->Print(_u("/"));
 
         Js::InternalString str = GetSource();
         if (str.GetLength() == 0)
-            w->Print(L"(?:)");
+            w->Print(_u("(?:)"));
         else
         {
             for (charcount_t i = 0; i < str.GetLength(); ++i)
             {
-                const wchar_t c = str.GetBuffer()[i];
+                const char16 c = str.GetBuffer()[i];
                 switch(c)
                 {
-                case L'/':
-                    w->Print(L"\\%lc", c);
+                case _u('/'):
+                    w->Print(_u("\\%lc"), c);
                     break;
-                case L'\n':
+                case _u('\n'):
                 case L'\r':
                 case L'\x2028':
                 case L'\x2029':
@@ -153,7 +153,7 @@ namespace UnifiedRegex
                     break;
                 case L'\\':
                     Assert(i + 1 < str.GetLength()); // cannot end in a '\'
-                    w->Print(L"\\%lc", str.GetBuffer()[++i]);
+                    w->Print(_u("\\%lc"), str.GetBuffer()[++i]);
                     break;
                 default:
                     w->PrintEscapedChar(c);
@@ -161,21 +161,21 @@ namespace UnifiedRegex
                 }
             }
         }
-        w->Print(L"/");
+        w->Print(_u("/"));
         if (IsIgnoreCase())
-            w->Print(L"i");
+            w->Print(_u("i"));
         if (IsGlobal())
-            w->Print(L"g");
+            w->Print(_u("g"));
         if (IsMultiline())
-            w->Print(L"m");
+            w->Print(_u("m"));
         if (IsUnicode())
-            w->Print(L"u");
+            w->Print(_u("u"));
         if (IsSticky())
-            w->Print(L"y");
-        w->Print(L" /* ");
-        w->Print(L", ");
-        w->Print(isLiteral ? L"literal" : L"dynamic");
-        w->Print(L" */");
+            w->Print(_u("y"));
+        w->Print(_u(" /* "));
+        w->Print(_u(", "));
+        w->Print(isLiteral ? _u("literal") : _u("dynamic"));
+        w->Print(_u(" */"));
     }
 #endif
 }

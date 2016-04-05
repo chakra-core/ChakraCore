@@ -43,19 +43,19 @@ NativeCodeGenerator::NativeCodeGenerator(Js::ScriptContext * scriptContext)
         && (Js::Configuration::Global.flags.AsmDumpMode != nullptr))
     {
         bool fileOpened = false;
-        fileOpened = (0 == _wfopen_s(&this->asmFile, Js::Configuration::Global.flags.AsmDumpMode, L"wt"));
+        fileOpened = (0 == _wfopen_s(&this->asmFile, Js::Configuration::Global.flags.AsmDumpMode, _u("wt")));
         if (!fileOpened)
         {
             size_t len = wcslen(Js::Configuration::Global.flags.AsmDumpMode);
             if (len < _MAX_PATH - 5)
             {
-                wchar_t filename[_MAX_PATH];
+                char16 filename[_MAX_PATH];
                 wcscpy_s(filename, _MAX_PATH, Js::Configuration::Global.flags.AsmDumpMode);
-                wchar_t * number = filename + len;
+                char16 * number = filename + len;
                 for (int i = 0; i < 1000; i++)
                 {
                     _itow_s(i, number, 5, 10);
-                    fileOpened = (0 == _wfopen_s(&this->asmFile, filename, L"wt"));
+                    fileOpened = (0 == _wfopen_s(&this->asmFile, filename, _u("wt")));
                     if (fileOpened)
                     {
                         break;
@@ -409,9 +409,9 @@ void NativeCodeGenerator::TransitionFromSimpleJit(Js::ScriptFunction *const func
 
             if (PHASE_TRACE(Js::SimpleJitPhase, functionBody))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(
-                    L"SimpleJit (TransitionFromSimpleJit): function: %s (%s)",
+                    _u("SimpleJit (TransitionFromSimpleJit): function: %s (%s)"),
                     functionBody->GetDisplayName(),
                     functionBody->GetDebugNumberSet(debugStringBuffer));
                 Output::Flush();
@@ -548,7 +548,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
         function->UpdateThunkEntryPoint(entryPointInfo, NativeCodeGenerator::CheckAsmJsCodeGenThunk);
 
         if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
-            Output::Print(L"New Entrypoint is CheckAsmJsCodeGenThunk for function: %s\n", fn->GetDisplayName());
+            Output::Print(_u("New Entrypoint is CheckAsmJsCodeGenThunk for function: %s\n"), fn->GetDisplayName());
     }
     else
 #endif
@@ -614,7 +614,7 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
     if (PHASE_TRACE1(Js::JITLoopBodyPhase))
     {
         fn->DumpFunctionId(true);
-        Output::Print(L": %-20s LoopBody Start    Loop: %2d ByteCode: %4d (%4d,%4d)\n", fn->GetDisplayName(), fn->GetLoopNumber(loopHeader),
+        Output::Print(_u(": %-20s LoopBody Start    Loop: %2d ByteCode: %4d (%4d,%4d)\n"), fn->GetDisplayName(), fn->GetLoopNumber(loopHeader),
             loopHeader->endOffset - loopHeader->startOffset, loopHeader->startOffset, loopHeader->endOffset);
         Output::Flush();
     }
@@ -853,7 +853,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         nullptr;
 #endif
 
-    NoRecoverMemoryJitArenaAllocator funcAlloc(L"BE-FuncAlloc", pageAllocator, Js::Throw::OutOfMemory);
+    NoRecoverMemoryJitArenaAllocator funcAlloc(_u("BE-FuncAlloc"), pageAllocator, Js::Throw::OutOfMemory);
     Js::ReadOnlyDynamicProfileInfo profileInfo(
         body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr,
         foreground ? nullptr : &funcAlloc);
@@ -938,9 +938,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
             if(PHASE_TRACE(Js::ReJITPhase, body))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(
-                    L"Rejit (compile-time): function: %s (%s) reason: %S\n",
+                    _u("Rejit (compile-time): function: %s (%s) reason: %S\n"),
                     body->GetDisplayName(),
                     body->GetDebugNumberSet(debugStringBuffer),
                     ex.ReasonName());
@@ -1100,13 +1100,13 @@ NativeCodeGenerator::CheckAsmJsCodeGen(Js::ScriptFunction * function)
     {
         if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
         {
-            Output::Print(L"Codegen not done yet for function: %s, Entrypoint is CheckAsmJsCodeGenThunk\n", function->GetFunctionBody()->GetDisplayName());
+            Output::Print(_u("Codegen not done yet for function: %s, Entrypoint is CheckAsmJsCodeGenThunk\n"), function->GetFunctionBody()->GetDisplayName());
         }
         return reinterpret_cast<Js::JavascriptMethod>(entryPoint->GetNativeAddress());
     }
     if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
     {
-        Output::Print(L"CodeGen Done for function: %s, Changing Entrypoint to Full JIT\n", function->GetFunctionBody()->GetDisplayName());
+        Output::Print(_u("CodeGen Done for function: %s, Changing Entrypoint to Full JIT\n"), function->GetFunctionBody()->GetDisplayName());
     }
     // we will need to set the functionbody external and asmjs entrypoint to the fulljit entrypoint
     return CheckCodeGenDone(functionBody, entryPoint, function);
@@ -1622,7 +1622,7 @@ NativeCodeGenerator::GetJobToProcessProactively()
             // Note: This gives a perf regression in fre build, but it is useful for debugging and won't be there for the final build
             //   anyway, so I left it in.
             if (PHASE_TRACE(Js::DelayPhase, workItem->GetFunctionBody())) {
-                OUTPUT_TRACE(Js::DelayPhase, L"ScriptContext: 0x%p, Speculative JIT: %-25s, Byte code generated: %d \n",
+                OUTPUT_TRACE(Js::DelayPhase, _u("ScriptContext: 0x%p, Speculative JIT: %-25s, Byte code generated: %d \n"),
                     this->scriptContext, workItem->GetFunctionBody()->GetExternalDisplayName(), this->byteCodeSizeGenerated);
             }
             Js::FunctionBody *fn = workItem->GetFunctionBody();
@@ -1769,13 +1769,13 @@ NativeCodeGenerator::GatherCodeGenData(
 
     entryPoint->EnsureJitTransferData(recycler);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
     {
-        Output::Print(L"ObjTypeSpec: top function %s (%s), function %s (%s): GatherCodeGenData(): \n",
+        Output::Print(_u("ObjTypeSpec: top function %s (%s), function %s (%s): GatherCodeGenData(): \n"),
             topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer));
         Output::Flush();
     }
@@ -1794,7 +1794,7 @@ NativeCodeGenerator::GatherCodeGenData(
         {
             PHASE_PRINT_TRACE(
                 Js::ObjTypeSpecPhase, functionBody,
-                L"Objtypespec (%s): Pending cache state on add %x to JIT queue: %d\n",
+                _u("Objtypespec (%s): Pending cache state on add %x to JIT queue: %d\n"),
                 functionBody->GetDebugNumberSet(debugStringBuffer), entryPoint, profileData->GetPolymorphicCacheState());
 
             entryPoint->SetPendingPolymorphicCacheState(profileData->GetPolymorphicCacheState());
@@ -1820,14 +1820,14 @@ NativeCodeGenerator::GatherCodeGenData(
             {
                 if (!IsInlinee)
                 {
-                    Output::Print(L"-----------------------------------------------------------------------------\n");
+                    Output::Print(_u("-----------------------------------------------------------------------------\n"));
                 }
                 else
                 {
-                    Output::Print(L"\tInlinee:\t");
+                    Output::Print(_u("\tInlinee:\t"));
                 }
                 functionBody->DumpFullFunctionName();
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         }
 #endif
@@ -1841,11 +1841,11 @@ NativeCodeGenerator::GatherCodeGenData(
 
             PHASE_PRINT_VERBOSE_TESTTRACE(
                 Js::ObjTypeSpecPhase, functionBody,
-                L"Cache #%3d, Layout: %s, Profile info: %s\n",
+                _u("Cache #%3d, Layout: %s, Profile info: %s\n"),
                 i,
                 functionBody->GetInlineCache(i)->LayoutString(),
-                cacheType == Js::FldInfo_NoInfo ? L"none" :
-                (cacheType & Js::FldInfo_Polymorphic) ? L"polymorphic" : L"monomorphic");
+                cacheType == Js::FldInfo_NoInfo ? _u("none") :
+                (cacheType & Js::FldInfo_Polymorphic) ? _u("polymorphic") : _u("monomorphic"));
 
             if (cacheType == Js::FldInfo_NoInfo)
             {
@@ -1872,11 +1872,11 @@ NativeCodeGenerator::GatherCodeGenData(
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
                 {
-                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
                     Js::PropertyRecord const * const propertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
-                    Output::Print(L"ObTypeSpec: top function %s (%s), function %s (%s): cloning mono cache for %s (#%d) cache %d \n",
+                    Output::Print(_u("ObTypeSpec: top function %s (%s), function %s (%s): cloning mono cache for %s (#%d) cache %d \n"),
                         topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer),
                         functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2), propertyRecord->GetBuffer(), propertyId, i);
                     Output::Flush();
@@ -2047,12 +2047,12 @@ NativeCodeGenerator::GatherCodeGenData(
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                             if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
                             {
-                                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                                wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                                char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
                                 Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
                                 Js::PropertyRecord const * const propertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
-                                Output::Print(L"ObTypeSpec: top function %s (%s), function %s (%s): cloning poly cache for %s (#%d) cache %d \n",
+                                Output::Print(_u("ObTypeSpec: top function %s (%s), function %s (%s): cloning poly cache for %s (#%d) cache %d \n"),
                                     topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer),
                                     functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2), propertyRecord->GetBuffer(), propertyId, i);
                                 Output::Flush();
@@ -2092,18 +2092,18 @@ NativeCodeGenerator::GatherCodeGenData(
                 {
                     if (PHASE_VERBOSE_TRACE1(Js::PolymorphicInlineCachePhase))
                     {
-                        if (IsInlinee) Output::Print(L"\t");
-                        Output::Print(L"\t%d: PIC size = %d\n", i, polymorphicInlineCache->GetSize());
+                        if (IsInlinee) Output::Print(_u("\t"));
+                        Output::Print(_u("\t%d: PIC size = %d\n"), i, polymorphicInlineCache->GetSize());
 #if DBG_DUMP
                         polymorphicInlineCache->Dump();
 #endif
                     }
                     else if (PHASE_TRACE1(Js::PolymorphicInlineCachePhase))
                     {
-                        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                         Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
                         Js::PropertyRecord const * const propertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
-                        Output::Print(L"Trace PIC JIT function %s (%s) field: %s (index: %d) \n", functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer),
+                        Output::Print(_u("Trace PIC JIT function %s (%s) field: %s (index: %d) \n"), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer),
                             propertyRecord->GetBuffer(), i);
                     }
 
@@ -2446,24 +2446,24 @@ NativeCodeGenerator::GatherCodeGenData(
 #ifdef FIELD_ACCESS_STATS
     if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         if (jitTimeData->inlineCacheStats)
         {
-            Output::Print(L"ObTypeSpec: gathered code gen data for function %s (#%u) inlined %s (#%u): inline cache stats:\n",
+            Output::Print(_u("ObTypeSpec: gathered code gen data for function %s (#%u) inlined %s (#%u): inline cache stats:\n"),
                 topFunctionBody->GetDisplayName(), topFunctionBody->GetFunctionNumber(), functionBody->GetDisplayName(), functionBody->GetFunctionNumber());
-            Output::Print(L"    overall: total %u, no profile info %u\n",
+            Output::Print(_u("    overall: total %u, no profile info %u\n"),
                 jitTimeData->inlineCacheStats->totalInlineCacheCount, jitTimeData->inlineCacheStats->noInfoInlineCacheCount);
-            Output::Print(L"    mono: total %u, empty %u, cloned %u\n",
+            Output::Print(_u("    mono: total %u, empty %u, cloned %u\n"),
                 jitTimeData->inlineCacheStats->monoInlineCacheCount, jitTimeData->inlineCacheStats->emptyMonoInlineCacheCount,
                 jitTimeData->inlineCacheStats->clonedMonoInlineCacheCount);
-            Output::Print(L"    poly: total %u (high %u, low %u), empty %u, equivalent %u, cloned %u\n",
+            Output::Print(_u("    poly: total %u (high %u, low %u), empty %u, equivalent %u, cloned %u\n"),
                 jitTimeData->inlineCacheStats->polyInlineCacheCount, jitTimeData->inlineCacheStats->highUtilPolyInlineCacheCount,
                 jitTimeData->inlineCacheStats->lowUtilPolyInlineCacheCount, jitTimeData->inlineCacheStats->emptyPolyInlineCacheCount,
                 jitTimeData->inlineCacheStats->equivPolyInlineCacheCount, jitTimeData->inlineCacheStats->clonedPolyInlineCacheCount);
         }
         else
         {
-            Output::Print(L"ObTypeSpec: function %s (%s): inline cache stats unavailable\n", topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer));
+            Output::Print(_u("ObTypeSpec: function %s (%s): inline cache stats unavailable\n"), topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer));
         }
         Output::Flush();
     }
@@ -2506,16 +2506,16 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
         const auto jitTimeData = RecyclerNew(recycler, Js::FunctionCodeGenJitTimeData, functionBody, entryPoint);
         InliningDecider inliningDecider(functionBody, workItem->Type() == JsLoopBodyWorkItemType, functionBody->IsInDebugMode(), workItem->GetJitMode());
 
-        BEGIN_TEMP_ALLOCATOR(gatherCodeGenDataAllocator, scriptContext, L"GatherCodeGenData");
+        BEGIN_TEMP_ALLOCATOR(gatherCodeGenDataAllocator, scriptContext, _u("GatherCodeGenData"));
 
         ObjTypeSpecFldInfoList* objTypeSpecFldInfoList = JitAnew(gatherCodeGenDataAllocator, ObjTypeSpecFldInfoList, gatherCodeGenDataAllocator);
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         if (PHASE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
         {
-            Output::Print(L"ObjTypeSpec: top function %s (%s), function %s (%s): GatherCodeGenData(): \n",
+            Output::Print(_u("ObjTypeSpec: top function %s (%s), function %s (%s): GatherCodeGenData(): \n"),
                 topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2));
         }
 #endif
@@ -2531,11 +2531,11 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
         if (PHASE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
         {
             auto stats = jitTimeData->inlineCacheStats;
-            Output::Print(L"ObjTypeSpec: gathered code gen data for function %s (%s): inline cache stats:\n", topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer));
-            Output::Print(L"    overall: total %u, no profile info %u\n", stats->totalInlineCacheCount, stats->noInfoInlineCacheCount);
-            Output::Print(L"    mono: total %u, empty %u, cloned %u\n",
+            Output::Print(_u("ObjTypeSpec: gathered code gen data for function %s (%s): inline cache stats:\n"), topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer));
+            Output::Print(_u("    overall: total %u, no profile info %u\n"), stats->totalInlineCacheCount, stats->noInfoInlineCacheCount);
+            Output::Print(_u("    mono: total %u, empty %u, cloned %u\n"),
                 stats->monoInlineCacheCount, stats->emptyMonoInlineCacheCount, stats->clonedMonoInlineCacheCount);
-            Output::Print(L"    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n",
+            Output::Print(_u("    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n"),
                 stats->polyInlineCacheCount, stats->highUtilPolyInlineCacheCount, stats->lowUtilPolyInlineCacheCount,
                 stats->nullPolyInlineCacheCount, stats->emptyPolyInlineCacheCount, stats->ignoredPolyInlineCacheCount, stats->disabledPolyInlineCacheCount,
                 stats->equivPolyInlineCacheCount, stats->nonEquivPolyInlineCacheCount, stats->clonedPolyInlineCacheCount);
@@ -2610,7 +2610,7 @@ NativeCodeGenerator::EnterScriptStart()
 
     if (scriptContext->GetDeferredBody())
     {
-        OUTPUT_TRACE(Js::DelayPhase, L"No delay because the script has a deferred body\n");
+        OUTPUT_TRACE(Js::DelayPhase, _u("No delay because the script has a deferred body\n"));
         return;
     }
 
@@ -2969,8 +2969,8 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
         uint32& inlineeCount;
         bool done;
 
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
     public:
         AutoTrace(Js::FunctionBody *const topFunctionBody, Js::FunctionBody *const inlineeFunctionBody, uint32& inlineeCount) : topFunc(topFunctionBody),
@@ -2978,7 +2978,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
         {
             if (topFunc == inlineeFunc)
             {
-                INLINE_TESTTRACE(L"INLINING: Recursive tryAggressiveInlining started topFunc: %s (%s)\n", topFunc->GetDisplayName(),
+                INLINE_TESTTRACE(_u("INLINING: Recursive tryAggressiveInlining started topFunc: %s (%s)\n"), topFunc->GetDisplayName(),
                     topFunc->GetDebugNumberSet(debugStringBuffer))
             }
         }
@@ -2989,12 +2989,12 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
                 done = true;
                 if (topFunc == inlineeFunc)
                 {
-                    INLINE_TESTTRACE(L"INLINING: Recursive tryAggressiveInlining succeeded topFunc: %s (%s), inlinee count: %d\n", topFunc->GetDisplayName(),
+                    INLINE_TESTTRACE(_u("INLINING: Recursive tryAggressiveInlining succeeded topFunc: %s (%s), inlinee count: %d\n"), topFunc->GetDisplayName(),
                         topFunc->GetDebugNumberSet(debugStringBuffer), inlineeCount);
                 }
                 else
                 {
-                    INLINE_TESTTRACE(L"INLINING: TryAggressiveInlining succeeded topFunc: %s (%s), inlinee: %s (%s) \n", topFunc->GetDisplayName(),
+                    INLINE_TESTTRACE(_u("INLINING: TryAggressiveInlining succeeded topFunc: %s (%s), inlinee: %s (%s) \n"), topFunc->GetDisplayName(),
                         topFunc->GetDebugNumberSet(debugStringBuffer),
                         inlineeFunc->GetDisplayName(),
                         inlineeFunc->GetDebugNumberSet(debugStringBuffer2));
@@ -3005,10 +3005,10 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
                 Assert(done == false);
             }
         }
-        void TraceFailure(const wchar_t *message)
+        void TraceFailure(const char16 *message)
         {
 
-            INLINE_TESTTRACE(L"INLINING: TryAggressiveInlining failed topFunc (%s): %s (%s), inlinee: %s (%s) \n", message, topFunc->GetDisplayName(),
+            INLINE_TESTTRACE(_u("INLINING: TryAggressiveInlining failed topFunc (%s): %s (%s), inlinee: %s (%s) \n"), message, topFunc->GetDisplayName(),
                 topFunc->GetDebugNumberSet(debugStringBuffer),
                 inlineeFunc->GetDisplayName(),
                 inlineeFunc->GetDebugNumberSet(debugStringBuffer2));
@@ -3019,12 +3019,12 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
             {
                 if (topFunc == inlineeFunc)
                 {
-                    INLINE_TESTTRACE(L"INLINING: Recursive tryAggressiveInlining failed topFunc: %s (%s)\n", topFunc->GetDisplayName(),
+                    INLINE_TESTTRACE(_u("INLINING: Recursive tryAggressiveInlining failed topFunc: %s (%s)\n"), topFunc->GetDisplayName(),
                         topFunc->GetDebugNumberSet(debugStringBuffer));
                 }
                 else
                 {
-                    INLINE_TESTTRACE(L"INLINING: TryAggressiveInlining failed topFunc: %s (%s), inlinee: %s (%s) \n", topFunc->GetDisplayName(),
+                    INLINE_TESTTRACE(_u("INLINING: TryAggressiveInlining failed topFunc: %s (%s), inlinee: %s (%s) \n"), topFunc->GetDisplayName(),
                         topFunc->GetDebugNumberSet(debugStringBuffer),
                         inlineeFunc->GetDisplayName(),
                         inlineeFunc->GetDebugNumberSet(debugStringBuffer2));
@@ -3040,7 +3040,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
     if (inlineeFunctionBody->GetProfiledSwitchCount())
     {
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-        trace.TraceFailure(L"Switch statement in inlinee");
+        trace.TraceFailure(_u("Switch statement in inlinee"));
 #endif
         return false;
     }

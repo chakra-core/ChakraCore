@@ -31,12 +31,12 @@ namespace Js
         static JavascriptSIMDFloat32x4* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDFloat32x4* FromVar(Var aValue);
-        static const wchar_t* GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name);
+        static const char16* GetFullBuiltinName(char16** aBuffer, const char16* name);
         static JavascriptSIMDFloat32x4* FromFloat64x2(JavascriptSIMDFloat64x2 *instance, ScriptContext* requestContext);
         static JavascriptSIMDFloat32x4* FromInt32x4(JavascriptSIMDInt32x4   *instance, ScriptContext* requestContext);
         static Var CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue,
             const Var* args, uint numArgs, CallInfo callInfo);
-        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer,
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer,
             ScriptContext* scriptContext);
 
         __inline SIMDValue GetValue() { return value; }

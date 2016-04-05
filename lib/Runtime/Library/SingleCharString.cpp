@@ -8,7 +8,7 @@ namespace Js
 {
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(SingleCharString);
 
-    SingleCharString::SingleCharString(wchar_t ch, StaticType * type) : JavascriptString(type, 1, m_buff)
+    SingleCharString::SingleCharString(char16 ch, StaticType * type) : JavascriptString(type, 1, m_buff)
     {
         m_buff[0] = ch;
         m_buff[1] = L'\0';
@@ -18,7 +18,7 @@ namespace Js
 #endif
     }
 
-    /*static*/ SingleCharString* SingleCharString::New(wchar_t ch, ScriptContext* scriptContext)
+    /*static*/ SingleCharString* SingleCharString::New(char16 ch, ScriptContext* scriptContext)
     {
         Assert(scriptContext != nullptr);
 
@@ -26,7 +26,7 @@ namespace Js
             scriptContext->GetLibrary()->GetStringTypeStatic());
     }
 
-    /*static*/ SingleCharString* SingleCharString::New(wchar_t ch, ScriptContext* scriptContext, ArenaAllocator* arena)
+    /*static*/ SingleCharString* SingleCharString::New(char16 ch, ScriptContext* scriptContext, ArenaAllocator* arena)
     {
         Assert(scriptContext != nullptr);
         Assert(arena != nullptr);

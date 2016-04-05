@@ -33,7 +33,7 @@ namespace Js
     Var JavascriptSIMDUint16x8::CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue,
         const Var* args, uint numArgs, CallInfo callInfo)
     {
-        wchar_t *typeString = L"SIMD.Uint16x8(";
+        char16 *typeString = _u("SIMD.Uint16x8(");
         return JavascriptSIMDObject::FromVar(&obj)->ToLocaleString<uint16, 8>(args, numArgs, typeString,
             simdValue.u16, &callInfo, &requestContext);
     }
@@ -43,10 +43,10 @@ namespace Js
         return JavascriptSIMDUint16x8::New(&value, requestContext);
     }
 
-    const wchar_t* JavascriptSIMDUint16x8::GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name)
+    const char16* JavascriptSIMDUint16x8::GetFullBuiltinName(char16** aBuffer, const char16* name)
     {
         Assert(aBuffer && *aBuffer);
-        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, L"SIMD.Uint16x8.%s", name);
+        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, _u("SIMD.Uint16x8.%s"), name);
         return *aBuffer;
     }
 

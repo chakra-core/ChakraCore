@@ -28,7 +28,7 @@ namespace JSON
         }
     }
 
-    void JSONScanner::Init(const wchar_t* input, uint len, Token* pOutToken, Js::ScriptContext* sc, const wchar_t* current, ArenaAllocator* allocator)
+    void JSONScanner::Init(const char16* input, uint len, Token* pOutToken, Js::ScriptContext* sc, const char16* current, ArenaAllocator* allocator)
     {
         // Note that allocator could be nullptr from JSONParser, if we could not reuse an allocator, keep our own
         inputText = input;
@@ -79,14 +79,14 @@ namespace JSON
 
                     // we use StrToDbl() here for compat with the rest of the engine. StrToDbl() accept a larger syntax.
                     // Verify first the JSON grammar.
-                    const wchar_t* saveCurrentChar = currentChar;
+                    const char16* saveCurrentChar = currentChar;
                     if(!IsJSONNumber())
                     {
                         Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadNumber);
                     }
                     currentChar = saveCurrentChar;
                     double val;
-                    const wchar_t* end;
+                    const char16* end;
                     val = Js::NumberUtilities::StrToDbl(currentChar, &end, scriptContext);
                     if(currentChar == end)
                     {
@@ -193,7 +193,7 @@ namespace JSON
                     // at least one digit after '.'
                     if(currentChar < inputText + inputLen)
                     {
-                        wchar_t nch = ReadNextChar();
+                        char16 nch = ReadNextChar();
                         if('0' <= nch && nch <= '9')
                         {
                             return true;
@@ -222,10 +222,10 @@ namespace JSON
 
     tokens JSONScanner::ScanString()
     {
-        wchar_t ch;
+        char16 ch;
 
         this->currentIndex = 0;
-        this->currentString = const_cast<wchar_t*>(currentChar);
+        this->currentString = const_cast<char16*>(currentChar);
         bool endFound = false;
         bool isStringDirectInputTextMapped = true;
         LPCWSTR bulkStart = currentChar;
@@ -328,7 +328,7 @@ namespace JSON
                         }
                         chcode += tempHex;
                         AssertMsg(chcode == (chcode & 0xFFFF), "Bad unicode code");
-                        ch = (wchar_t)chcode;
+                        ch = (char16)chcode;
                     }
                     break;
 
@@ -397,7 +397,7 @@ namespace JSON
             // make currentIndex the length (w/o the \0)
             currentIndex = bulkLength;
 
-            OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, L"ScanString(): direct-mapped string as '%.*s'\n",
+            OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, _u("ScanString(): direct-mapped string as '%.*s'\n"),
                 GetCurrentStringLen(), GetCurrentString());
         }
 
@@ -420,13 +420,13 @@ namespace JSON
                 this->stringBuffer = nullptr;
             }
 
-            this->stringBuffer = AnewArray(this->allocator, wchar_t, requiredSize);
+            this->stringBuffer = AnewArray(this->allocator, char16, requiredSize);
             this->stringBufferLength = requiredSize;
         }
 
         // Step 2: Copy the data to the buffer
         int totalCopied = 0;
-        wchar_t* begin_copy = this->stringBuffer;
+        char16* begin_copy = this->stringBuffer;
         int lastCharacterIndex = this->currentRangeCharacterPairList->Count() - 1;
         for (int i = 0; i <= lastCharacterIndex; i++)
         {
@@ -448,11 +448,11 @@ namespace JSON
 
         if (totalCopied != requiredSize)
         {
-            OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, L"BuildUnescapedString(): allocated size = %d != copying size %d\n", requiredSize, totalCopied);
+            OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, _u("BuildUnescapedString(): allocated size = %d != copying size %d\n"), requiredSize, totalCopied);
             AssertMsg(totalCopied == requiredSize, "BuildUnescapedString(): The allocated size and copying size should match.");
         }
 
-        OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, L"BuildUnescapedString(): unescaped string as '%.*s'\n", GetCurrentStringLen(), this->stringBuffer);
+        OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, _u("BuildUnescapedString(): unescaped string as '%.*s'\n"), GetCurrentStringLen(), this->stringBuffer);
     }
 
     JSONScanner::RangeCharacterPairList* JSONScanner::GetCurrentRangeCharacterPairList(void)
@@ -461,7 +461,7 @@ namespace JSON
         {
             if (this->allocator == nullptr)
             {
-                this->allocatorObject = this->scriptContext->GetTemporaryGuestAllocator(L"JSONScanner");
+                this->allocatorObject = this->scriptContext->GetTemporaryGuestAllocator(_u("JSONScanner"));
                 this->allocator = this->allocatorObject->GetAllocator();
             }
 

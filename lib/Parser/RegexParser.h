@@ -17,7 +17,7 @@ namespace UnifiedRegex
     };
 
     template <typename EncodingPolicy, const bool IsLiteral>
-    class Parser : private EncodingPolicy, private Chars<wchar_t>
+    class Parser : private EncodingPolicy, private Chars<char16>
     {
     private:
         typedef typename EncodingPolicy::EncodedChar EncodedChar;
@@ -66,7 +66,7 @@ namespace UnifiedRegex
         ArenaAllocator* ctAllocator;
         // Standard characters using raw encoding character representation (eg char for utf-8)
         StandardChars<EncodedChar>* standardEncodedChars;
-        // Standard characters using final character representation (eg wchar_t for Unicode)
+        // Standard characters using final character representation (eg char16 for Unicode)
         StandardChars<Char>* standardChars;
 #if ENABLE_REGEX_CONFIG_OPTIONS
         DebugWriter* w;
@@ -132,7 +132,7 @@ namespace UnifiedRegex
         //
         int TryParseExtendedUnicodeEscape(Char& c, bool& previousSurrogatePart, bool trackSurrogatePair = false);
         void TrackIfSurrogatePair(codepoint_t codePoint, const EncodedChar* location, uint32 consumptionLength);
-        Node* CreateSurrogatePairAtom(wchar_t lower, wchar_t upper);
+        Node* CreateSurrogatePairAtom(char16 lower, char16 upper);
         AltNode* AppendSurrogateRangeToDisjunction(codepoint_t lowerCodePoint, codepoint_t upperCodePoint, AltNode *lastAlttNode);
         AltNode* AppendSurrogatePairToDisjunction(codepoint_t codePoint, AltNode *lastAlttNode);
 

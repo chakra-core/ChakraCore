@@ -52,11 +52,11 @@ char * HeapAllocator::AllocT(size_t byteSize)
 
     if (noThrow)
     {
-        FAULTINJECT_MEMORY_NOTHROW(L"Heap", byteSize);
+        FAULTINJECT_MEMORY_NOTHROW(_u("Heap"), byteSize);
     }
     else
     {
-        FAULTINJECT_MEMORY_THROW(L"Heap", byteSize);
+        FAULTINJECT_MEMORY_THROW(_u("Heap"), byteSize);
     }
 
     char * buffer;
@@ -379,16 +379,16 @@ HeapAllocator::~HeapAllocator()
     if (Js::Configuration::Global.flags.IsEnabled(Js::LeakReportFlag))
     {
         fakeHeapLeak();
-        LeakReport::StartSection(L"Heap Leaks");
+        LeakReport::StartSection(_u("Heap Leaks"));
         LeakReport::StartRedirectOutput();
         bool leaked = !HeapAllocator::CheckLeaks();
         LeakReport::EndRedirectOutput();
         LeakReport::EndSection();
 
-        LeakReport::Print(L"--------------------------------------------------------------------------------\n");
+        LeakReport::Print(_u("--------------------------------------------------------------------------------\n"));
         if (leaked)
         {
-            LeakReport::Print(L"Heap Leaked Object: %d bytes (%d objects)\n",
+            LeakReport::Print(_u("Heap Leaked Object: %d bytes (%d objects)\n"),
                 data.outstandingBytes, data.allocCount - data.deleteCount);
         }
     }
@@ -400,15 +400,15 @@ HeapAllocator::~HeapAllocator()
     {
         fakeHeapLeak();
         Output::CaptureStart();
-        Output::Print(L"-------------------------------------------------------------------------------------\n");
-        Output::Print(L"Heap Leaks\n");
-        Output::Print(L"-------------------------------------------------------------------------------------\n");
+        Output::Print(_u("-------------------------------------------------------------------------------------\n"));
+        Output::Print(_u("Heap Leaks\n"));
+        Output::Print(_u("-------------------------------------------------------------------------------------\n"));
         if (!HeapAllocator::CheckLeaks())
         {
-            Output::Print(L"-------------------------------------------------------------------------------------\n");
-            Output::Print(L"Heap Leaked Object: %d bytes (%d objects)\n",
+            Output::Print(_u("-------------------------------------------------------------------------------------\n"));
+            Output::Print(_u("Heap Leaked Object: %d bytes (%d objects)\n"),
                 data.outstandingBytes, data.allocCount - data.deleteCount);
-            wchar_t * buffer = Output::CaptureEnd();
+            char16 * buffer = Output::CaptureEnd();
             MemoryLeakCheck::AddLeakDump(buffer, data.outstandingBytes, data.allocCount - data.deleteCount);
         }
         else
@@ -512,10 +512,10 @@ HeapAllocatorData::CheckLeaks()
         HeapAllocRecord * current = head;
         while (current != nullptr)
         {
-            Output::Print(L"%S%s", current->allocData.GetTypeInfo()->name(),
-                current->allocData.GetCount() == (size_t)-1? L"" : L"[]");
+            Output::Print(_u("%S%s"), current->allocData.GetTypeInfo()->name(),
+                current->allocData.GetCount() == (size_t)-1? _u("") : _u("[]"));
             Output::SkipToColumn(50);
-            Output::Print(L"- %p - %10d bytes\n",
+            Output::Print(_u("- %p - %10d bytes\n"),
                 ((char*)current) + ::Math::Align<size_t>(sizeof(HeapAllocRecord), MEMORY_ALLOCATION_ALIGNMENT),
                 current->size);
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
@@ -523,7 +523,7 @@ HeapAllocatorData::CheckLeaks()
             if (Js::Configuration::Global.flags.LeakStackTrace && current->stacktrace)
             {
                 // Allocation done before the flags is parse doesn't get a stack trace
-                Output::Print(L" Allocation Stack:\n");
+                Output::Print(_u(" Allocation Stack:\n"));
                 current->stacktrace->Print();
             }
 #endif
@@ -533,7 +533,7 @@ HeapAllocatorData::CheckLeaks()
     else if (outstandingBytes != 0)
     {
         needPause = true;
-        Output::Print(L"Unbalanced new/delete size: %d\n", outstandingBytes);
+        Output::Print(_u("Unbalanced new/delete size: %d\n"), outstandingBytes);
     }
 
     Output::Flush();
@@ -547,7 +547,7 @@ HeapAllocatorData::CheckLeaks()
 
         FlushConsoleInputBuffer(handle);
 
-        Output::Print(L"Press any key to continue...\n");
+        Output::Print(_u("Press any key to continue...\n"));
         Output::Flush();
 
         WaitForSingleObject(handle, INFINITE);
@@ -567,7 +567,7 @@ MemoryLeakCheck::~MemoryLeakCheck()
     {
         if (enableOutput)
         {
-            Output::Print(L"FATAL ERROR: Memory Leak Detected\n");
+            Output::Print(_u("FATAL ERROR: Memory Leak Detected\n"));
         }
         LeakRecord * current = head;
         do
@@ -585,8 +585,8 @@ MemoryLeakCheck::~MemoryLeakCheck()
         while (current != nullptr);
         if (enableOutput)
         {
-            Output::Print(L"-------------------------------------------------------------------------------------\n");
-            Output::Print(L"Total leaked: %d bytes (%d objects)\n", leakedBytes, leakedCount);
+            Output::Print(_u("-------------------------------------------------------------------------------------\n"));
+            Output::Print(_u("Total leaked: %d bytes (%d objects)\n"), leakedBytes, leakedCount);
             Output::Flush();
         }
         if (enableOutput)
@@ -597,7 +597,7 @@ MemoryLeakCheck::~MemoryLeakCheck()
 }
 
 void
-MemoryLeakCheck::AddLeakDump(wchar_t const * dump, size_t bytes, size_t count)
+MemoryLeakCheck::AddLeakDump(char16 const * dump, size_t bytes, size_t count)
 {
     AutoCriticalSection autocs(&leakCheck.cs);
     LeakRecord * record = NoCheckHeapNewStruct(LeakRecord);

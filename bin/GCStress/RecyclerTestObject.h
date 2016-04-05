@@ -32,8 +32,8 @@ public:
 
         currentWalkDepth = 0;
 
-        wprintf(L"-------------------------------------------\n");
-        wprintf(L"Full heap walk starting\n");
+        wprintf(_u("-------------------------------------------\n"));
+        wprintf(_u("Full heap walk starting\n"));
     }
     
     static void WalkReference(RecyclerTestObject * object)
@@ -65,14 +65,14 @@ public:
     {
         VerifyCondition(currentWalkDepth == 0);
 
-        wprintf(L"Full heap walk finished\n");
-        wprintf(L"Object Count:   %12llu\n", (unsigned long long) walkObjectCount);
-        wprintf(L"Scanned Bytes:  %12llu\n", (unsigned long long) walkScannedByteCount);
-        wprintf(L"Barrier Bytes:  %12llu\n", (unsigned long long) walkBarrierByteCount);
-        wprintf(L"Tracked Bytes:  %12llu\n", (unsigned long long) walkTrackedByteCount);
-        wprintf(L"Leaf Bytes:     %12llu\n", (unsigned long long) walkLeafByteCount);
-        wprintf(L"Total Bytes:    %12llu\n", (unsigned long long) (walkScannedByteCount + walkBarrierByteCount + walkTrackedByteCount + walkLeafByteCount));
-        wprintf(L"Max Depth:      %12llu\n", (unsigned long long) maxWalkDepth);
+        wprintf(_u("Full heap walk finished\n"));
+        wprintf(_u("Object Count:   %12llu\n"), (unsigned long long) walkObjectCount);
+        wprintf(_u("Scanned Bytes:  %12llu\n"), (unsigned long long) walkScannedByteCount);
+        wprintf(_u("Barrier Bytes:  %12llu\n"), (unsigned long long) walkBarrierByteCount);
+        wprintf(_u("Tracked Bytes:  %12llu\n"), (unsigned long long) walkTrackedByteCount);
+        wprintf(_u("Leaf Bytes:     %12llu\n"), (unsigned long long) walkLeafByteCount);
+        wprintf(_u("Total Bytes:    %12llu\n"), (unsigned long long) (walkScannedByteCount + walkBarrierByteCount + walkTrackedByteCount + walkLeafByteCount));
+        wprintf(_u("Max Depth:      %12llu\n"), (unsigned long long) maxWalkDepth);
     }
 
     // Virtual methods

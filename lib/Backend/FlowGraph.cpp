@@ -540,7 +540,7 @@ Loop::RemoveBreakBlocks(FlowGraph *fg)
             fg->MoveBlocksBefore(breakBlockStart, breakBlockEnd, exitLoopTail->next);
 
 #if DBG_DUMP
-            fg->Dump(true /*needs verbose flag*/, L"\n After Each iteration of canonicalization \n");
+            fg->Dump(true /*needs verbose flag*/, _u("\n After Each iteration of canonicalization \n"));
 #endif
             // Again be conservative, there are edits to the loop graph. Start fresh for this loop.
             breakBlockEnd = loopTailBlock;
@@ -650,7 +650,7 @@ FlowGraph::CanonicalizeLoops()
     }
 
 #if DBG_DUMP
-    this->Dump(true, L"\n Before canonicalizeLoops \n");
+    this->Dump(true, _u("\n Before canonicalizeLoops \n"));
 #endif
 
     bool breakBlockRelocated = false;
@@ -669,7 +669,7 @@ FlowGraph::CanonicalizeLoops()
     }
 
 #if DBG_DUMP
-    this->Dump(true, L"\n After canonicalizeLoops \n");
+    this->Dump(true, _u("\n After canonicalizeLoops \n"));
 #endif
 
     return breakBlockRelocated;
@@ -748,7 +748,7 @@ FlowGraph::BuildLoop(BasicBlock *headBlock, BasicBlock *tailBlock, Loop *parentL
     loop->hasDeadStorePrepass = false;
     loop->memOpInfo = nullptr;
 
-    NoRecoverMemoryJitArenaAllocator tempAlloc(L"BE-LoopBuilder", this->func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+    NoRecoverMemoryJitArenaAllocator tempAlloc(_u("BE-LoopBuilder"), this->func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
 
     WalkLoopBlocks(tailBlock, loop, &tempAlloc);
 
@@ -799,8 +799,8 @@ bool Loop::EnsureMemOpVariablesInitialized()
             Func* func = this->GetFunc();
             if (Js::Configuration::Global.flags.Verbose && PHASE_TRACE(Js::MemOpPhase, func))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(L"MemOp skipped: minimum loop count not reached: Function: %s %s,  Loop: %d\n",
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                Output::Print(_u("MemOp skipped: minimum loop count not reached: Function: %s %s,  Loop: %d\n"),
                               func->GetJnFunction()->GetDisplayName(),
                               func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                               this->GetLoopNumber()
@@ -1596,7 +1596,7 @@ FlowGraph::InsertAirlockBlock(FlowEdge * edge)
     }
 
 #if DBG_DUMP
-    this->Dump(true, L"\n After insertion of airlock block \n");
+    this->Dump(true, _u("\n After insertion of airlock block \n"));
 #endif
 
     return airlockBlock;
@@ -2848,9 +2848,9 @@ Loop::CanDoFieldCopyProp()
     if (((this->implicitCallFlags & ~(Js::ImplicitCall_External)) == 0) &&
         Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostOptPhase))
     {
-        Output::Print(L"fieldcopyprop disabled because external: loop count: %d", GetLoopNumber());
+        Output::Print(_u("fieldcopyprop disabled because external: loop count: %d"), GetLoopNumber());
         GetFunc()->GetJnFunction()->DumpFullFunctionName();
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
         Output::Flush();
     }
 #endif
@@ -3176,7 +3176,7 @@ FlowGraph::VerifyLoopGraph()
 #if DBG_DUMP
 
 void
-FlowGraph::Dump(bool onlyOnVerboseMode, const wchar_t *form)
+FlowGraph::Dump(bool onlyOnVerboseMode, const char16 *form)
 {
     if(PHASE_DUMP(Js::FGBuildPhase, this->GetFunc()))
     {
@@ -3194,28 +3194,28 @@ FlowGraph::Dump(bool onlyOnVerboseMode, const wchar_t *form)
 void
 FlowGraph::Dump()
 {
-    Output::Print(L"\nFlowGraph\n");
+    Output::Print(_u("\nFlowGraph\n"));
     FOREACH_BLOCK(block, this)
     {
         Loop * loop = block->loop;
         while (loop)
         {
-            Output::Print(L"    ");
+            Output::Print(_u("    "));
             loop = loop->parent;
         }
         block->DumpHeader(false);
     } NEXT_BLOCK;
 
-    Output::Print(L"\nLoopGraph\n");
+    Output::Print(_u("\nLoopGraph\n"));
 
     for (Loop *loop = this->loopList; loop; loop = loop->next)
     {
-        Output::Print(L"\nLoop\n");
+        Output::Print(_u("\nLoop\n"));
         FOREACH_BLOCK_IN_LOOP(block, loop)
         {
             block->DumpHeader(false);
         }NEXT_BLOCK_IN_LOOP;
-        Output::Print(L"Loop  Ends\n");
+        Output::Print(_u("Loop  Ends\n"));
     }
 }
 
@@ -3224,134 +3224,134 @@ BasicBlock::DumpHeader(bool insertCR)
 {
     if (insertCR)
     {
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     }
-    Output::Print(L"BLOCK %d:", this->number);
+    Output::Print(_u("BLOCK %d:"), this->number);
 
     if (this->isDead)
     {
-        Output::Print(L" **** DEAD ****");
+        Output::Print(_u(" **** DEAD ****"));
     }
 
     if (this->isBreakBlock)
     {
-        Output::Print(L" **** Break Block ****");
+        Output::Print(_u(" **** Break Block ****"));
     }
     else if (this->isAirLockBlock)
     {
-        Output::Print(L" **** Air lock Block ****");
+        Output::Print(_u(" **** Air lock Block ****"));
     }
     else if (this->isBreakCompensationBlockAtSource)
     {
-        Output::Print(L" **** Break Source Compensation Code ****");
+        Output::Print(_u(" **** Break Source Compensation Code ****"));
     }
     else if (this->isBreakCompensationBlockAtSink)
     {
-        Output::Print(L" **** Break Sink Compensation Code ****");
+        Output::Print(_u(" **** Break Sink Compensation Code ****"));
     }
     else if (this->isAirLockCompensationBlock)
     {
-        Output::Print(L" **** Airlock block Compensation Code ****");
+        Output::Print(_u(" **** Airlock block Compensation Code ****"));
     }
 
     if (!this->predList.Empty())
     {
         BOOL fFirst = TRUE;
-        Output::Print(L" In(");
+        Output::Print(_u(" In("));
         FOREACH_PREDECESSOR_BLOCK(blockPred, this)
         {
             if (!fFirst)
             {
-                Output::Print(L", ");
+                Output::Print(_u(", "));
             }
-            Output::Print(L"%d", blockPred->GetBlockNum());
+            Output::Print(_u("%d"), blockPred->GetBlockNum());
             fFirst = FALSE;
         }
         NEXT_PREDECESSOR_BLOCK;
-        Output::Print(L")");
+        Output::Print(_u(")"));
     }
 
 
     if (!this->succList.Empty())
     {
         BOOL fFirst = TRUE;
-        Output::Print(L" Out(");
+        Output::Print(_u(" Out("));
         FOREACH_SUCCESSOR_BLOCK(blockSucc, this)
         {
             if (!fFirst)
             {
-                Output::Print(L", ");
+                Output::Print(_u(", "));
             }
-            Output::Print(L"%d", blockSucc->GetBlockNum());
+            Output::Print(_u("%d"), blockSucc->GetBlockNum());
             fFirst = FALSE;
         }
         NEXT_SUCCESSOR_BLOCK;
-        Output::Print(L")");
+        Output::Print(_u(")"));
     }
 
     if (!this->deadPredList.Empty())
     {
         BOOL fFirst = TRUE;
-        Output::Print(L" DeadIn(");
+        Output::Print(_u(" DeadIn("));
         FOREACH_DEAD_PREDECESSOR_BLOCK(blockPred, this)
         {
             if (!fFirst)
             {
-                Output::Print(L", ");
+                Output::Print(_u(", "));
             }
-            Output::Print(L"%d", blockPred->GetBlockNum());
+            Output::Print(_u("%d"), blockPred->GetBlockNum());
             fFirst = FALSE;
         }
         NEXT_DEAD_PREDECESSOR_BLOCK;
-        Output::Print(L")");
+        Output::Print(_u(")"));
     }
 
     if (!this->deadSuccList.Empty())
     {
         BOOL fFirst = TRUE;
-        Output::Print(L" DeadOut(");
+        Output::Print(_u(" DeadOut("));
         FOREACH_DEAD_SUCCESSOR_BLOCK(blockSucc, this)
         {
             if (!fFirst)
             {
-                Output::Print(L", ");
+                Output::Print(_u(", "));
             }
-            Output::Print(L"%d", blockSucc->GetBlockNum());
+            Output::Print(_u("%d"), blockSucc->GetBlockNum());
             fFirst = FALSE;
         }
         NEXT_DEAD_SUCCESSOR_BLOCK;
-        Output::Print(L")");
+        Output::Print(_u(")"));
     }
 
     if (this->loop)
     {
-        Output::Print(L"   Loop(%d) header: %d", this->loop->loopNumber, this->loop->GetHeadBlock()->GetBlockNum());
+        Output::Print(_u("   Loop(%d) header: %d"), this->loop->loopNumber, this->loop->GetHeadBlock()->GetBlockNum());
 
         if (this->loop->parent)
         {
-            Output::Print(L" parent(%d): %d", this->loop->parent->loopNumber, this->loop->parent->GetHeadBlock()->GetBlockNum());
+            Output::Print(_u(" parent(%d): %d"), this->loop->parent->loopNumber, this->loop->parent->GetHeadBlock()->GetBlockNum());
         }
 
         if (this->loop->GetHeadBlock() == this)
         {
             Output::SkipToColumn(50);
-            Output::Print(L"Call Exp/Imp: ");
+            Output::Print(_u("Call Exp/Imp: "));
             if (this->loop->GetHasCall())
             {
-                Output::Print(L"yes/");
+                Output::Print(_u("yes/"));
             }
             else
             {
-                Output::Print(L" no/");
+                Output::Print(_u(" no/"));
             }
             Output::Print(Js::DynamicProfileInfo::GetImplicitCallFlagsString(this->loop->GetImplicitCallFlags()));
         }
     }
 
-    Output::Print(L"\n");
+    Output::Print(_u("\n"));
     if (insertCR)
     {
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     }
 }
 
@@ -3371,7 +3371,7 @@ AddPropertyCacheBucket::Dump() const
 {
     Assert(this->initialType != nullptr);
     Assert(this->finalType != nullptr);
-    Output::Print(L" initial type: 0x%x, final type: 0x%x ", this->initialType, this->finalType);
+    Output::Print(_u(" initial type: 0x%x, final type: 0x%x "), this->initialType, this->finalType);
 }
 
 void

@@ -149,17 +149,17 @@ namespace Js
         BOOL isExternalError;
         BOOL isPrototype;
         bool isStackPropertyRedefined;
-        wchar_t const * originalRuntimeErrorMessage;
+        char16 const * originalRuntimeErrorMessage;
         JavascriptExceptionObject *exceptionObject;
 
 #ifdef ERROR_TRACE
-        static void Trace(const wchar_t *form, ...) // const
+        static void Trace(const char16 *form, ...) // const
         {
             if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::ErrorPhase))
             {
                 va_list argptr;
                 va_start(argptr, form);
-                Output::Print(L"Error: ");
+                Output::Print(_u("Error: "));
                 Output::VPrint(form, argptr);
                 Output::Flush();
             }

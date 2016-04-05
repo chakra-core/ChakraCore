@@ -27,7 +27,7 @@ namespace Js
         static JavascriptSIMDBool8x16* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDBool8x16* FromVar(Var aValue);
-        static const wchar_t* GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name);
+        static const char16* GetFullBuiltinName(char16** aBuffer, const char16* name);
         static size_t GetOffsetOfValue() { return offsetof(JavascriptSIMDBool8x16, value); }
         static Var CallToLocaleString(RecyclableObject&, ScriptContext&, SIMDValue, const Var, uint, CallInfo)
         {
@@ -39,13 +39,13 @@ namespace Js
 
         __inline SIMDValue GetValue() { return value; }
 
-        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
         {
-            swprintf_s(stringBuffer, countBuffer, L"SIMD.Bool8x16(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", \
-                value.i8[0] ? L"true" : L"false", value.i8[1] ? L"true" : L"false", value.i8[2] ? L"true" : L"false", value.i8[3] ? L"true" : L"false", \
-                value.i8[4] ? L"true" : L"false", value.i8[5] ? L"true" : L"false", value.i8[6] ? L"true" : L"false", value.i8[7] ? L"true" : L"false", \
-                value.i8[8] ? L"true" : L"false", value.i8[9] ? L"true" : L"false", value.i8[10] ? L"true" : L"false", value.i8[11] ? L"true" : L"false", \
-                value.i8[12] ? L"true" : L"false", value.i8[13] ? L"true" : L"false", value.i8[14] ? L"true" : L"false", value.i8[15] ? L"true" : L"false"
+            swprintf_s(stringBuffer, countBuffer, _u("SIMD.Bool8x16(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"), \
+                value.i8[0] ? _u("true") : _u("false"), value.i8[1] ? _u("true") : _u("false"), value.i8[2] ? _u("true") : _u("false"), value.i8[3] ? _u("true") : _u("false"), \
+                value.i8[4] ? _u("true") : _u("false"), value.i8[5] ? _u("true") : _u("false"), value.i8[6] ? _u("true") : _u("false"), value.i8[7] ? _u("true") : _u("false"), \
+                value.i8[8] ? _u("true") : _u("false"), value.i8[9] ? _u("true") : _u("false"), value.i8[10] ? _u("true") : _u("false"), value.i8[11] ? _u("true") : _u("false"), \
+                value.i8[12] ? _u("true") : _u("false"), value.i8[13] ? _u("true") : _u("false"), value.i8[14] ? _u("true") : _u("false"), value.i8[15] ? _u("true") : _u("false")
                 );
         }
 

@@ -179,7 +179,7 @@ namespace Js
 
         if (!(callInfo.Flags & CallFlags_New) || (newTarget && JavascriptOperators::IsUndefinedObject(newTarget)))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew, L"ArrayBuffer");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew, _u("ArrayBuffer"));
         }
 
         uint32 byteLength = 0;
@@ -274,7 +274,7 @@ namespace Js
 
         if (arrayBuffer->IsDetached())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"ArrayBuffer.transfer");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.transfer"));
         }
 
         uint32 newBufferLength = arrayBuffer->bufferLength;
@@ -314,7 +314,7 @@ namespace Js
 
         if (arrayBuffer->IsDetached()) // 24.1.4.3: 5. If IsDetachedBuffer(O) is true, then throw a TypeError exception.
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"ArrayBuffer.prototype.slice");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.prototype.slice"));
         }
 
         int64 len = arrayBuffer->bufferLength;
@@ -371,7 +371,7 @@ namespace Js
 
             if (newBuffer->IsDetached()) // 24.1.4.3: 21. If IsDetachedBuffer(new) is true, then throw a TypeError exception.
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"ArrayBuffer.prototype.slice");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.prototype.slice"));
             }
 
             if (newBuffer == arrayBuffer) // 24.1.4.3: 22. If SameValue(new, O) is true, then throw a TypeError exception.
@@ -381,7 +381,7 @@ namespace Js
 
             if (newBuffer->bufferLength < byteLength) // 24.1.4.3: 23.If the value of new's [[ArrayBufferByteLength]] internal slot < newLen, then throw a TypeError exception.
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_ArgumentOutOfRange, L"ArrayBuffer.prototype.slice");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_ArgumentOutOfRange, _u("ArrayBuffer.prototype.slice"));
             }
         }
         else
@@ -394,7 +394,7 @@ namespace Js
 
         if (arrayBuffer->IsDetached()) // 24.1.4.3: 24. NOTE: Side-effects of the above steps may have detached O. 25. If IsDetachedBuffer(O) is true, then throw a TypeError exception.
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"ArrayBuffer.prototype.slice");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.prototype.slice"));
         }
 
         // Don't bother doing memcpy if we aren't copying any elements
@@ -734,13 +734,13 @@ namespace Js
 
     BOOL ArrayBuffer::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Object, (ArrayBuffer)");
+        stringBuilder->AppendCppLiteral(_u("Object, (ArrayBuffer)"));
         return TRUE;
     }
 
     BOOL ArrayBuffer::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"[object ArrayBuffer]");
+        stringBuilder->AppendCppLiteral(_u("[object ArrayBuffer]"));
         return TRUE;
     }
 

@@ -93,8 +93,8 @@ namespace Js
         Assert(scriptContext);
         Assert(typeDescriptor != TypeIds_SIMDObject);
 
-        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, L"fromCodePoint");
-        wchar_t* stringBuffer = AnewArray(tempAllocator, wchar_t, SIMD_STRING_BUFFER_MAX);
+        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("fromCodePoint"));
+        char16* stringBuffer = AnewArray(tempAllocator, char16, SIMD_STRING_BUFFER_MAX);
         SIMDValue simdValue;
         switch (typeDescriptor)
         {
@@ -147,7 +147,7 @@ namespace Js
     }
 
     template <typename T, size_t N>
-    Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const wchar_t *typeString, const T (&laneValues)[N], 
+    Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString, const T (&laneValues)[N], 
         CallInfo* callInfo, ScriptContext* scriptContext) const
     {
         Assert(args);
@@ -177,11 +177,11 @@ namespace Js
             Assert(UNREACHED);
         }
         //Locale specifc seperator?? 
-        JavascriptString *seperator = JavascriptString::NewWithSz(L", ", scriptContext);
+        JavascriptString *seperator = JavascriptString::NewWithSz(_u(", "), scriptContext);
         uint idx = 0;
         Var laneVar = nullptr;
-        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, L"fromCodePoint");
-        wchar_t* stringBuffer = AnewArray(tempAllocator, wchar_t, SIMD_STRING_BUFFER_MAX);
+        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("fromCodePoint"));
+        char16* stringBuffer = AnewArray(tempAllocator, char16, SIMD_STRING_BUFFER_MAX);
         JavascriptString *result = nullptr;
 
         swprintf_s(stringBuffer, 1024, typeString);
@@ -232,21 +232,21 @@ namespace Js
         }
         HeapDeleteArray(numArgs, newArgs);
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
-        return JavascriptString::Concat(result, JavascriptString::NewWithSz(L")", scriptContext));
+        return JavascriptString::Concat(result, JavascriptString::NewWithSz(_u(")"), scriptContext));
     }
-    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const wchar_t *typeString, 
+    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString, 
         const float (&laneValues)[4], CallInfo* callInfo, ScriptContext* scriptContext) const;
-    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const wchar_t *typeString,
+    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString,
         const int(&laneValues)[4], CallInfo* callInfo, ScriptContext* scriptContext) const;
-    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const wchar_t *typeString,
+    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString,
         const int16(&laneValues)[8], CallInfo* callInfo, ScriptContext* scriptContext) const;
-    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const wchar_t *typeString,
+    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString,
         const int8(&laneValues)[16], CallInfo* callInfo, ScriptContext* scriptContext) const;
-    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const wchar_t *typeString,
+    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString,
         const uint(&laneValues)[4], CallInfo* callInfo, ScriptContext* scriptContext) const;
-    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const wchar_t *typeString,
+    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString,
         const uint16(&laneValues)[8], CallInfo* callInfo, ScriptContext* scriptContext) const;
-    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const wchar_t *typeString,
+    template Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString,
         const uint8(&laneValues)[16], CallInfo* callInfo, ScriptContext* scriptContext) const;
 
     Var JavascriptSIMDObject::GetValue() const

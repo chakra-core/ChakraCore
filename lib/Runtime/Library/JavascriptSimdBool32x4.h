@@ -22,7 +22,7 @@ namespace Js
 
         static bool Is(Var instance);
         static JavascriptSIMDBool32x4* FromVar(Var aValue);
-        static const wchar_t* GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name);
+        static const char16* GetFullBuiltinName(char16** aBuffer, const char16* name);
         static JavascriptSIMDBool32x4* AllocUninitialized(ScriptContext* requestContext);
         static JavascriptSIMDBool32x4* New(SIMDValue *val, ScriptContext* requestContext);
         static size_t GetOffsetOfValue() { return offsetof(JavascriptSIMDBool32x4, value); }
@@ -31,10 +31,10 @@ namespace Js
             Assert(UNREACHED);
             return nullptr;
         };
-        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
         {
-            swprintf_s(stringBuffer, countBuffer, L"SIMD.Bool32x4(%s, %s, %s, %s)", value.i32[SIMD_X] ? L"true" : L"false",
-                value.i32[SIMD_Y] ? L"true" : L"false", value.i32[SIMD_Z] ? L"true" : L"false", value.i32[SIMD_W] ? L"true" : L"false");
+            swprintf_s(stringBuffer, countBuffer, _u("SIMD.Bool32x4(%s, %s, %s, %s)"), value.i32[SIMD_X] ? _u("true") : _u("false"),
+                value.i32[SIMD_Y] ? _u("true") : _u("false"), value.i32[SIMD_Z] ? _u("true") : _u("false"), value.i32[SIMD_W] ? _u("true") : _u("false"));
         }
 
         JavascriptSIMDBool32x4(StaticType *type);

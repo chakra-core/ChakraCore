@@ -16,14 +16,14 @@ namespace Js
     class WritableStringBuffer
     {
     public:
-        WritableStringBuffer(_In_count_(length) wchar_t* str, _In_ charcount_t length) : m_pszString(str), m_pszCurrentPtr(str), m_length(length) {}
+        WritableStringBuffer(_In_count_(length) char16* str, _In_ charcount_t length) : m_pszString(str), m_pszCurrentPtr(str), m_length(length) {}
 
-        void Append(wchar_t c);
-        void Append(const wchar_t * str, charcount_t countNeeded);
-        void AppendLarge(const wchar_t * str, charcount_t countNeeded);
+        void Append(char16 c);
+        void Append(const char16 * str, charcount_t countNeeded);
+        void AppendLarge(const char16 * str, charcount_t countNeeded);
     private:
-        wchar_t* m_pszString;
-        wchar_t* m_pszCurrentPtr;
+        char16* m_pszString;
+        char16* m_pszCurrentPtr;
         charcount_t m_length;
 #if DBG
         charcount_t GetCount()
@@ -39,7 +39,7 @@ namespace Js
     {
     public:
         static JSONString* New(JavascriptString* originalString, charcount_t start, charcount_t extraChars);
-        virtual const wchar_t* GetSz() override;
+        virtual const char16* GetSz() override;
     protected:
         DEFINE_VTABLE_CTOR(JSONString, JavascriptString);
         DECLARE_CONCRETE_STRING_CLASS;
@@ -64,13 +64,13 @@ namespace Js
             }
             else
             {
-                const wchar_t* szValue = value->GetSz();
-                return EscapeNonEmptyString<op, Js::JSONString, Js::ConcatStringWrapping<L'"', L'"'>, Js::JavascriptString*>(value, szValue, start, len, outputString);
+                const char16* szValue = value->GetSz();
+                return EscapeNonEmptyString<op, Js::JSONString, Js::ConcatStringWrapping<_u('"'), _u('"')>, Js::JavascriptString*>(value, szValue, start, len, outputString);
             }
         }
 
         template <EscapingOperation op, class TJSONString, class TConcatStringWrapping, class TJavascriptString>
-        static TJavascriptString EscapeNonEmptyString(Js::JavascriptString* value, const wchar_t* szValue, uint start, charcount_t len, WritableStringBuffer* outputString)
+        static TJavascriptString EscapeNonEmptyString(Js::JavascriptString* value, const char16* szValue, uint start, charcount_t len, WritableStringBuffer* outputString)
         {
             charcount_t extra = 0;
             TJavascriptString result;
@@ -119,24 +119,24 @@ namespace Js
                             lastFlushSz = current + 1;
                             outputString->Append(L'\\');
                             outputString->Append(specialChar);
-                            if (specialChar == L'u')
+                            if (specialChar == _u('u'))
                             {
-                                wchar_t bf[5];
+                                char16 bf[5];
                                 _ltow_s(wch, bf, _countof(bf), 16);
                                 size_t count = wcslen(bf);
                                 if (count < 4)
                                 {
                                     if (count == 1)
                                     {
-                                        outputString->Append(L"000", 3);
+                                        outputString->Append(_u("000"), 3);
                                     }
                                     else if (count == 2)
                                     {
-                                        outputString->Append(L"00", 2);
+                                        outputString->Append(_u("00"), 2);
                                     }
                                     else
                                     {
-                                        outputString->Append(L"0", 1);
+                                        outputString->Append(_u("0"), 1);
                                     }
                                 }
                                 outputString->Append(bf, (charcount_t)count);
@@ -173,7 +173,7 @@ namespace Js
             return result;
         }
 
-        static WCHAR* EscapeNonEmptyString(ArenaAllocator* allocator, const wchar_t* szValue)
+        static WCHAR* EscapeNonEmptyString(ArenaAllocator* allocator, const char16* szValue)
         {
             WCHAR* result = nullptr;
             StringProxy::allocator = allocator;

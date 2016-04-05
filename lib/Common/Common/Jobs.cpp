@@ -563,7 +563,7 @@ namespace JsUtil
             }
             else
             {
-                this->parallelThreadData[i]->backgroundPageAllocator.debugName = L"BackgroundJobProcessor thread";
+                this->parallelThreadData[i]->backgroundPageAllocator.debugName = _u("BackgroundJobProcessor thread");
             }
 #endif
         }
@@ -586,7 +586,7 @@ namespace JsUtil
         this->parallelThreadData[0]->processor = this;
         this->parallelThreadData[0]->isWaitingForJobs = true;
 #if DBG_DUMP
-        this->parallelThreadData[0]->backgroundPageAllocator.debugName = L"BackgroundJobProcessor";
+        this->parallelThreadData[0]->backgroundPageAllocator.debugName = _u("BackgroundJobProcessor");
 #endif
         this->threadCount = 1;
 
@@ -1009,7 +1009,7 @@ namespace JsUtil
     {
         JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_START(this, 0));
 
-        ArenaAllocator threadArena(L"ThreadArena", threadData->GetPageAllocator(), Js::Throw::OutOfMemory);
+        ArenaAllocator threadArena(_u("ThreadArena"), threadData->GetPageAllocator(), Js::Throw::OutOfMemory);
         threadData->threadArena = &threadArena;
 
         {
@@ -1275,7 +1275,7 @@ namespace JsUtil
 #if DBG && _M_IX86
         int callerEBP = *((int*)pEP->ContextRecord->Ebp);
 
-        Output::Print(L"BackgroundJobProcessor: Uncaught exception: EIP: 0x%X  ExceptionCode: 0x%X  EBP: 0x%X  ReturnAddress: 0x%X  ReturnAddress2: 0x%X\n",
+        Output::Print(_u("BackgroundJobProcessor: Uncaught exception: EIP: 0x%X  ExceptionCode: 0x%X  EBP: 0x%X  ReturnAddress: 0x%X  ReturnAddress2: 0x%X\n"),
             pEP->ExceptionRecord->ExceptionAddress, pEP->ExceptionRecord->ExceptionCode, pEP->ContextRecord->Eip,
             pEP->ContextRecord->Ebp, *((int*)pEP->ContextRecord->Ebp + 1), *((int*) callerEBP + 1));
 #endif
@@ -1379,22 +1379,22 @@ namespace JsUtil
 
 #if DBG_DUMP
     //Just for debugging purpose
-    wchar_t const * const  BackgroundJobProcessor::DebugThreadNames[16] = {
-        L"BackgroundJobProcessor thread 1",
-        L"BackgroundJobProcessor thread 2",
-        L"BackgroundJobProcessor thread 3",
-        L"BackgroundJobProcessor thread 4",
-        L"BackgroundJobProcessor thread 5",
-        L"BackgroundJobProcessor thread 6",
-        L"BackgroundJobProcessor thread 7",
-        L"BackgroundJobProcessor thread 8"
-        L"BackgroundJobProcessor thread 9",
-        L"BackgroundJobProcessor thread 10",
-        L"BackgroundJobProcessor thread 11",
-        L"BackgroundJobProcessor thread 12",
-        L"BackgroundJobProcessor thread 13",
-        L"BackgroundJobProcessor thread 14",
-        L"BackgroundJobProcessor thread 15",
-        L"BackgroundJobProcessor thread 16" };
+    char16 const * const  BackgroundJobProcessor::DebugThreadNames[16] = {
+        _u("BackgroundJobProcessor thread 1"),
+        _u("BackgroundJobProcessor thread 2"),
+        _u("BackgroundJobProcessor thread 3"),
+        _u("BackgroundJobProcessor thread 4"),
+        _u("BackgroundJobProcessor thread 5"),
+        _u("BackgroundJobProcessor thread 6"),
+        _u("BackgroundJobProcessor thread 7"),
+        _u("BackgroundJobProcessor thread 8")
+        _u("BackgroundJobProcessor thread 9"),
+        _u("BackgroundJobProcessor thread 10"),
+        _u("BackgroundJobProcessor thread 11"),
+        _u("BackgroundJobProcessor thread 12"),
+        _u("BackgroundJobProcessor thread 13"),
+        _u("BackgroundJobProcessor thread 14"),
+        _u("BackgroundJobProcessor thread 15"),
+        _u("BackgroundJobProcessor thread 16") };
 #endif
 }

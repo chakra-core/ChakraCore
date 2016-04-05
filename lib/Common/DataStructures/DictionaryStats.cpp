@@ -130,8 +130,8 @@ void DictionaryStats::OutputStats()
 
     EnterCriticalSection(&DictionaryStats::dictionaryTypesCriticalSection);
     DictionaryType* current = dictionaryTypes;
-    Output::Print(L"PROFILE DICTIONARY\n");
-    Output::Print(L"%8s  %13s  %13s  %13s  %13s  %13s  %13s  %13s  %14s  %14s  %13s  %13s  %13s    %s\n", L"Metric",L"StartSize", L"EndSize", L"Resizes", L"Items", L"MaxDepth", L"EmptyBuckets", L"Lookups", L"Collisions", L"AvgLookupDepth", L"AvgCollDepth", L"MaxLookupDepth", L"Instances", L"Type");
+    Output::Print(_u("PROFILE DICTIONARY\n"));
+    Output::Print(_u("%8s  %13s  %13s  %13s  %13s  %13s  %13s  %13s  %14s  %14s  %13s  %13s  %13s    %s\n"), _u("Metric"),_u("StartSize"), _u("EndSize"), _u("Resizes"), _u("Items"), _u("MaxDepth"), _u("EmptyBuckets"), _u("Lookups"), _u("Collisions"), _u("AvgLookupDepth"), _u("AvgCollDepth"), _u("MaxLookupDepth"), _u("Instances"), _u("Type"));
     while(current)
     {
         DictionaryType *type = current;
@@ -183,8 +183,8 @@ void DictionaryStats::OutputStats()
                     avgld = (double)instance->lookupDepthTotal / (double)instance->lookupCount;
                     avgcd = (double)instance->lookupDepthTotal / (double)instance->collisionCount;
                 }
-                Output::Print(L"%8s  %13d  %13d  %13d  %13d  %13d  %13d  %13d  %14d  %14.2f  %13.2f  %13d \n",
-                    L"INS:",
+                Output::Print(_u("%8s  %13d  %13d  %13d  %13d  %13d  %13d  %13d  %14d  %14.2f  %13.2f  %13d \n"),
+                    _u("INS:"),
                     instance->initialSize, instance->finalSize, instance->countOfResize,
                     instance->itemCount, instance->maxDepth, instance->countOfEmptyBuckets,
                     instance->lookupCount, instance->collisionCount, avgld, avgcd,
@@ -195,18 +195,18 @@ void DictionaryStats::OutputStats()
 
         if (max_depth >= Js::Configuration::Global.flags.ProfileDictionary)
         {
-            Output::Print(L"%8s  %13.0f  %13.0f  %13.2f  %13.0f  %13.2f  %13.0f  %13.0f  %14.0f  %14.2f  %13.2f  %13.2f  %13d    %S\n", L"AVG:",
+            Output::Print(_u("%8s  %13.0f  %13.0f  %13.2f  %13.0f  %13.2f  %13.0f  %13.0f  %14.0f  %14.2f  %13.2f  %13.2f  %13d    %S\n"), _u("AVG:"),
                 size/type->instancesCount, endSize/type->instancesCount, resizes/type->instancesCount, items/type->instancesCount,
                 depth/type->instancesCount, empty/type->instancesCount, lookups/type->instancesCount, collisions/type->instancesCount,
                 avglookupdepth/type->instancesCount, avgcollisiondepth/type->instancesCount, maxlookupdepth/type->instancesCount, type->instancesCount, type->name);
-            Output::Print(L"%8s  %13.0f  %13.0f  %13.2f  %13.0f  %13.2f  %13.0f  %13.0f  %14.0f  %14.2f  %13.2f  %13.2f  %13d    %S\n\n", L"MAX:",
+            Output::Print(_u("%8s  %13.0f  %13.0f  %13.2f  %13.0f  %13.2f  %13.0f  %13.0f  %14.0f  %14.2f  %13.2f  %13.2f  %13d    %S\n\n"), _u("MAX:"),
                 max_size, max_endSize, max_resizes, max_items, max_depth, max_empty, max_lookups, max_collisions, max_avglookupdepth,
                 max_avgcollisiondepth, max_maxlookupdepth, type->instancesCount, type->name);
 
         }
         current = current->pNext;
     }
-    Output::Print(L"====================================================================================\n");
+    Output::Print(_u("====================================================================================\n"));
     ClearStats();
     LeaveCriticalSection(&DictionaryStats::dictionaryTypesCriticalSection);
     DeleteCriticalSection(&DictionaryStats::dictionaryTypesCriticalSection);

@@ -134,24 +134,24 @@ namespace Js
         static const uint InlineeMetaArgIndex_Argv            = 3;
         static const uint InlineeMetaArgCount                 = 3;
 
-        static const  wchar_t AnonymousFunction[];
-        static const  wchar_t AnonymousCode[];
-        static const  wchar_t Anonymous[];            // Used in the function created due to new Function
-        static const  wchar_t Empty[];
-        static const  wchar_t FunctionCode[];
-        static const  wchar_t GlobalCode[];
-        static const  wchar_t EvalCode[];
-        static const  wchar_t GlobalFunction[];
-        static const  wchar_t UnknownScriptCode[];
+        static const  char16 AnonymousFunction[];
+        static const  char16 AnonymousCode[];
+        static const  char16 Anonymous[];            // Used in the function created due to new Function
+        static const  char16 Empty[];
+        static const  char16 FunctionCode[];
+        static const  char16 GlobalCode[];
+        static const  char16 EvalCode[];
+        static const  char16 GlobalFunction[];
+        static const  char16 UnknownScriptCode[];
 
-        static const size_t AnonymousFunctionLength = _countof(L"Anonymous function") - 1;
-        static const size_t AnonymousLength         = _countof(L"anonymous") - 1;
-        static const size_t AnonymousClassLength    = _countof(L"Anonymous class") - 1;
-        static const size_t FunctionCodeLength      = _countof(L"Function code") - 1;
-        static const size_t GlobalFunctionLength    = _countof(L"glo") - 1;
-        static const size_t GlobalCodeLength        = _countof(L"Global code") - 1;
-        static const size_t EvalCodeLength          = _countof(L"eval code") - 1;
-        static const size_t UnknownScriptCodeLength = _countof(L"Unknown script code") - 1;
+        static const size_t AnonymousFunctionLength = _countof(_u("Anonymous function")) - 1;
+        static const size_t AnonymousLength         = _countof(_u("anonymous")) - 1;
+        static const size_t AnonymousClassLength    = _countof(_u("Anonymous class")) - 1;
+        static const size_t FunctionCodeLength      = _countof(_u("Function code")) - 1;
+        static const size_t GlobalFunctionLength    = _countof(_u("glo")) - 1;
+        static const size_t GlobalCodeLength        = _countof(_u("Global code")) - 1;
+        static const size_t EvalCodeLength          = _countof(_u("eval code")) - 1;
+        static const size_t UnknownScriptCodeLength = _countof(_u("Unknown script code")) - 1;
     };
 
     extern const FrameDisplay NullFrameDisplay;

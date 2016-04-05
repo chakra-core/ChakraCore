@@ -92,7 +92,7 @@ namespace Js
         template<> void SwapRoutine(double* input, double* dest) {*((uint64*)dest) = RtlUlonglongByteSwap(*((uint64*)input)); }
 
         template<typename TypeName>
-        Var GetValue(uint32 byteOffset, wchar_t* funcName, BOOL isLittleEndian = FALSE)
+        Var GetValue(uint32 byteOffset, char16* funcName, BOOL isLittleEndian = FALSE)
         {
             ScriptContext* scriptContext = GetScriptContext();
             if (this->GetArrayBuffer()->IsDetached())
@@ -120,13 +120,13 @@ namespace Js
         }
 
         template<typename TypeName>
-        inline Var GetValueWithCheck(uint32 byteOffset, wchar_t* funcName, BOOL isLittleEndian = FALSE)
+        inline Var GetValueWithCheck(uint32 byteOffset, char16* funcName, BOOL isLittleEndian = FALSE)
         {
             return GetValueWithCheck<TypeName, TypeName*>(byteOffset, isLittleEndian, funcName);
         }
 
         template<typename TypeName, typename PointerAccessTypeName>
-        Var GetValueWithCheck(uint32 byteOffset, BOOL isLittleEndian, wchar_t* funcName)
+        Var GetValueWithCheck(uint32 byteOffset, BOOL isLittleEndian, char16* funcName)
         {
             ScriptContext* scriptContext = GetScriptContext();
             if (this->GetArrayBuffer()->IsDetached())
@@ -154,13 +154,13 @@ namespace Js
         }
 
         template<typename TypeName>
-        inline void SetValue(uint32 byteOffset, TypeName value, wchar_t *funcName, BOOL isLittleEndian = FALSE)
+        inline void SetValue(uint32 byteOffset, TypeName value, char16 *funcName, BOOL isLittleEndian = FALSE)
         {
             SetValue<TypeName, TypeName*>(byteOffset, value, isLittleEndian, funcName);
         }
 
         template<typename TypeName, typename PointerAccessTypeName>
-        void SetValue(uint32 byteOffset, TypeName value, BOOL isLittleEndian, wchar_t *funcName)
+        void SetValue(uint32 byteOffset, TypeName value, BOOL isLittleEndian, char16 *funcName)
         {
             ScriptContext* scriptContext = GetScriptContext();
             if (this->GetArrayBuffer()->IsDetached())
@@ -188,10 +188,10 @@ namespace Js
 #ifdef _M_ARM
         // For ARM, memory access for float/double address causes data alignment exception if the address is not aligned.
         // Provide template specialization (only) for these scenarios.
-        template<> Var GetValueWithCheck<float>(uint32 byteOffset, wchar_t *funcName, BOOL isLittleEndian /* = FALSE */);
-        template<> Var GetValueWithCheck<double>(uint32 byteOffset, wchar_t *funcName, BOOL isLittleEndian /* = FALSE */);
-        template<> void SetValue<float>(uint32 byteOffset, float value, wchar_t *funcName, BOOL isLittleEndian /* = FALSE */);
-        template<> void SetValue<double>(uint32 byteOffset, double value, wchar_t *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> Var GetValueWithCheck<float>(uint32 byteOffset, char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> Var GetValueWithCheck<double>(uint32 byteOffset, char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> void SetValue<float>(uint32 byteOffset, float value, char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> void SetValue<double>(uint32 byteOffset, double value, char16 *funcName, BOOL isLittleEndian /* = FALSE */);
 #endif
 
         uint32 byteOffset;

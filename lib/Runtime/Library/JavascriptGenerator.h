@@ -49,7 +49,7 @@ namespace Js
             }
         }
 
-        Var CallGenerator(ResumeYieldData* yieldData, const wchar_t* apiNameForErrorMessage);
+        Var CallGenerator(ResumeYieldData* yieldData, const char16* apiNameForErrorMessage);
 
     public:
         JavascriptGenerator(DynamicType* type, Arguments& args, ScriptFunction* scriptFunction);

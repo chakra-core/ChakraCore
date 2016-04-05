@@ -55,9 +55,9 @@ namespace Js
 #if DBG_DUMP
         if (PHASE_VERBOSE_TRACE1(Js::InlineCachePhase))
         {
-            Output::Print(L"IC::CacheLocal, %s: ", requestContext->GetPropertyName(propertyId)->GetBuffer());
+            Output::Print(_u("IC::CacheLocal, %s: "), requestContext->GetPropertyName(propertyId)->GetBuffer());
             Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
 #endif
@@ -119,9 +119,9 @@ namespace Js
 #if DBG_DUMP
         if (PHASE_VERBOSE_TRACE1(Js::InlineCachePhase))
         {
-            Output::Print(L"IC::CacheProto, %s: ", requestContext->GetPropertyName(propertyId)->GetBuffer());
+            Output::Print(_u("IC::CacheProto, %s: "), requestContext->GetPropertyName(propertyId)->GetBuffer());
             Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
 #endif
@@ -181,9 +181,9 @@ namespace Js
 #if DBG_DUMP
         if (PHASE_VERBOSE_TRACE1(Js::InlineCachePhase))
         {
-            Output::Print(L"IC::CacheAccessor, %s: ", requestContext->GetPropertyName(propertyId)->GetBuffer());
+            Output::Print(_u("IC::CacheAccessor, %s: "), requestContext->GetPropertyName(propertyId)->GetBuffer());
             Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
 #endif
@@ -545,7 +545,7 @@ namespace Js
     {
         if (this->u.local.isLocal)
         {
-            Output::Print(L"LOCAL { types: 0x%X -> 0x%X, slot = %d, list slot ptr = 0x%X }",
+            Output::Print(_u("LOCAL { types: 0x%X -> 0x%X, slot = %d, list slot ptr = 0x%X }"),
                 this->u.local.typeWithoutProperty,
                 this->u.local.type,
                 this->u.local.slotIndex,
@@ -554,7 +554,7 @@ namespace Js
         }
         else if (this->u.proto.isProto)
         {
-            Output::Print(L"PROTO { type = 0x%X, prototype = 0x%X, slot = %d, list slot ptr = 0x%X }",
+            Output::Print(_u("PROTO { type = 0x%X, prototype = 0x%X, slot = %d, list slot ptr = 0x%X }"),
                 this->u.proto.type,
                 this->u.proto.prototypeObject,
                 this->u.proto.slotIndex,
@@ -563,7 +563,7 @@ namespace Js
         }
         else if (this->u.accessor.isAccessor)
         {
-            Output::Print(L"FLAGS { type = 0x%X, object = 0x%X, flag = 0x%X, slot = %d, list slot ptr = 0x%X }",
+            Output::Print(_u("FLAGS { type = 0x%X, object = 0x%X, flag = 0x%X, slot = %d, list slot ptr = 0x%X }"),
                 this->u.accessor.type,
                 this->u.accessor.object,
                 this->u.accessor.slotIndex,
@@ -575,7 +575,7 @@ namespace Js
         {
             Assert(this->u.accessor.type == 0);
             Assert(this->u.accessor.slotIndex == 0);
-            Output::Print(L"uninitialized");
+            Output::Print(_u("uninitialized"));
         }
     }
 
@@ -701,15 +701,15 @@ namespace Js
 #if DBG_DUMP
             if (PHASE_VERBOSE_TRACE1(Js::PolymorphicInlineCachePhase))
             {
-                Output::Print(L"PIC::CacheLocal, %s, %d: ", requestContext->GetPropertyName(propertyId)->GetBuffer(), inlineCacheIndex);
+                Output::Print(_u("PIC::CacheLocal, %s, %d: "), requestContext->GetPropertyName(propertyId)->GetBuffer(), inlineCacheIndex);
                 inlineCaches[inlineCacheIndex].Dump();
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
                 Output::Flush();
             }
 #endif
             PHASE_PRINT_INTRUSIVE_TESTTRACE1(
                 Js::PolymorphicInlineCachePhase,
-                L"TestTrace PIC: CacheLocal, 0x%x, entryIndex = %d, collision = %s, entries = %d\n", this, inlineCacheIndex, collision ? L"true" : L"false", GetEntryCount());
+                _u("TestTrace PIC: CacheLocal, 0x%x, entryIndex = %d, collision = %s, entries = %d\n"), this, inlineCacheIndex, collision ? _u("true") : _u("false"), GetEntryCount());
         }
         else
         {
@@ -724,15 +724,15 @@ namespace Js
 #if DBG_DUMP
             if (PHASE_VERBOSE_TRACE1(Js::PolymorphicInlineCachePhase))
             {
-                Output::Print(L"PIC::CacheLocal, %s, %d: ", requestContext->GetPropertyName(propertyId)->GetBuffer(), inlineCacheIndex);
+                Output::Print(_u("PIC::CacheLocal, %s, %d: "), requestContext->GetPropertyName(propertyId)->GetBuffer(), inlineCacheIndex);
                 inlineCaches[inlineCacheIndex].Dump();
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
                 Output::Flush();
             }
 #endif
             PHASE_PRINT_INTRUSIVE_TESTTRACE1(
                 Js::PolymorphicInlineCachePhase,
-                L"TestTrace PIC: CacheLocal, 0x%x, entryIndex = %d, collision = %s, entries = %d\n", this, inlineCacheIndex, collision ? L"true" : L"false", GetEntryCount());
+                _u("TestTrace PIC: CacheLocal, 0x%x, entryIndex = %d, collision = %s, entries = %d\n"), this, inlineCacheIndex, collision ? _u("true") : _u("false"), GetEntryCount());
         }
     }
 
@@ -775,15 +775,15 @@ namespace Js
 #if DBG_DUMP
         if (PHASE_VERBOSE_TRACE1(Js::PolymorphicInlineCachePhase))
         {
-            Output::Print(L"PIC::CacheProto, %s, %d: ", requestContext->GetPropertyName(propertyId)->GetBuffer(), inlineCacheIndex);
+            Output::Print(_u("PIC::CacheProto, %s, %d: "), requestContext->GetPropertyName(propertyId)->GetBuffer(), inlineCacheIndex);
             inlineCaches[inlineCacheIndex].Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
 #endif
         PHASE_PRINT_INTRUSIVE_TESTTRACE1(
             Js::PolymorphicInlineCachePhase,
-            L"TestTrace PIC: CacheProto, 0x%x, entryIndex = %d, collision = %s, entries = %d\n", this, inlineCacheIndex, collision ? L"true" : L"false", GetEntryCount());
+            _u("TestTrace PIC: CacheProto, 0x%x, entryIndex = %d, collision = %s, entries = %d\n"), this, inlineCacheIndex, collision ? _u("true") : _u("false"), GetEntryCount());
     }
 
     void PolymorphicInlineCache::CacheAccessor(
@@ -825,15 +825,15 @@ namespace Js
 #if DBG_DUMP
         if (PHASE_VERBOSE_TRACE1(Js::PolymorphicInlineCachePhase))
         {
-            Output::Print(L"PIC::CacheAccessor, %s, %d: ", requestContext->GetPropertyName(propertyId)->GetBuffer(), inlineCacheIndex);
+            Output::Print(_u("PIC::CacheAccessor, %s, %d: "), requestContext->GetPropertyName(propertyId)->GetBuffer(), inlineCacheIndex);
             inlineCaches[inlineCacheIndex].Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
 #endif
         PHASE_PRINT_INTRUSIVE_TESTTRACE1(
             Js::PolymorphicInlineCachePhase,
-            L"TestTrace PIC: CacheAccessor, 0x%x, entryIndex = %d, collision = %s, entries = %d\n", this, inlineCacheIndex, collision ? L"true" : L"false", GetEntryCount());
+            _u("TestTrace PIC: CacheAccessor, 0x%x, entryIndex = %d, collision = %s, entries = %d\n"), this, inlineCacheIndex, collision ? _u("true") : _u("false"), GetEntryCount());
     }
 
     bool PolymorphicInlineCache::PretendTryGetProperty(
@@ -901,9 +901,9 @@ namespace Js
         {
             if (!inlineCaches[i].IsEmpty())
             {
-                Output::Print(L"  %d: ", i);
+                Output::Print(_u("  %d: "), i);
                 inlineCaches[i].Dump();
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         }
     }
@@ -1097,7 +1097,7 @@ namespace Js
 #if DBG_DUMP
     void ConstructorCache::Dump() const
     {
-        Output::Print(L"guard value or type = 0x%p, script context = 0x%p, pending type = 0x%p, slots = %d, inline slots = %d, populated = %d, polymorphic = %d, update cache = %d, update type = %d, skip default = %d, no return = %d",
+        Output::Print(_u("guard value or type = 0x%p, script context = 0x%p, pending type = 0x%p, slots = %d, inline slots = %d, populated = %d, polymorphic = %d, update cache = %d, update type = %d, skip default = %d, no return = %d"),
             this->GetRawGuardValue(), this->GetScriptContext(), this->GetPendingType(), this->GetSlotCount(), this->GetInlineSlotCount(),
             this->IsPopulated(), this->IsPolymorphic(), this->GetUpdateCacheAfterCtor(), this->GetTypeUpdatePending(),
             this->GetSkipDefaultNewObject(), this->GetCtorHasNoExplicitReturnValue());

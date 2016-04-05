@@ -246,7 +246,7 @@ namespace Js
         static DescriptorFlags GetterSetter(RecyclableObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* scriptContext);
         static DescriptorFlags GetterSetter(RecyclableObject* instance, JavascriptString * propertyName, Var* setterValue, PropertyValueInfo* info, ScriptContext* scriptContext);
         static void OP_InvalidateProtoCaches(PropertyId propertyId, ScriptContext *scriptContext);
-        static BOOL SetGlobalPropertyNoHost(wchar_t const * propertyName, charcount_t propertyLength, Var value, ScriptContext * scriptContext);
+        static BOOL SetGlobalPropertyNoHost(char16 const * propertyName, charcount_t propertyLength, Var value, ScriptContext * scriptContext);
         static RecyclableObject* GetPrototype(RecyclableObject* instance);
         static RecyclableObject* OP_GetPrototype(Var instance, ScriptContext* scriptContext);
 
@@ -404,7 +404,7 @@ namespace Js
         static bool IteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, Var* resultValue);
 
         static void TraceUseConstructorCache(const ConstructorCache* ctorCache, const JavascriptFunction* ctor, bool isHit);
-        static void TraceUpdateConstructorCache(const ConstructorCache* ctorCache, const FunctionBody* ctorBody, bool updated, const wchar_t* reason);
+        static void TraceUpdateConstructorCache(const ConstructorCache* ctorCache, const FunctionBody* ctorBody, bool updated, const char16* reason);
         static Var ConvertToUnmappedArguments(HeapArgumentsObject *argumentsObject, uint32 paramCount, Var *paramAddr, DynamicObject* frameObject, Js::PropertyIdArray *propIds, uint32 formalsCount, ScriptContext* scriptContext);
 
         static Js::GlobalObject * OP_LdRoot(ScriptContext* scriptContext);
@@ -496,7 +496,7 @@ namespace Js
 
         static void GetPropertyIdForInt(uint64 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
         static void GetPropertyIdForInt(uint32 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
-        static BOOL TryConvertToUInt32(const wchar_t* str, int length, uint32* value);
+        static BOOL TryConvertToUInt32(const char16* str, int length, uint32* value);
 
         static BOOL ToPropertyDescriptor(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext);
 

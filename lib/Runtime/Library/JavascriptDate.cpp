@@ -255,7 +255,7 @@ namespace Js
             {
                 JavascriptString* StringObject = JavascriptString::FromVar(args[1]);
 
-                if (wcscmp(StringObject->UnsafeGetBuffer(), L"default") == 0 || wcscmp(StringObject->UnsafeGetBuffer(), L"string") == 0)
+                if (wcscmp(StringObject->UnsafeGetBuffer(), _u("default")) == 0 || wcscmp(StringObject->UnsafeGetBuffer(), _u("string")) == 0)
                 {
                     // Date objects, are unique among built-in ECMAScript object in that they treat "default" as being equivalent to "string"
                     // If hint is the string value "string" or the string value "default", then
@@ -264,7 +264,7 @@ namespace Js
                 }
                 // Else if hint is the string value "number", then
                 // Let tryFirst be "number".
-                else if(wcscmp(StringObject->UnsafeGetBuffer(), L"number") == 0)
+                else if(wcscmp(StringObject->UnsafeGetBuffer(), _u("number")) == 0)
                 {
                     return JavascriptConversion::OrdinaryToPrimitive(args[0], JavascriptHint::HintNumber/*tryFirst*/, scriptContext);
                 }
@@ -277,7 +277,7 @@ namespace Js
             return JavascriptConversion::OrdinaryToPrimitive(args[0], JavascriptHint::HintString/*tryFirst*/, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, L"Date[Symbol.toPrimitive]");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, _u("Date[Symbol.toPrimitive]"));
     }
 
     Var JavascriptDate::EntryGetDate(RecyclableObject* function, CallInfo callInfo, ...)
@@ -296,7 +296,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getDate");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getDate"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -323,7 +323,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getDay");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getDay"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -350,7 +350,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getFullYear");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getFullYear"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -377,7 +377,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getYear");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getYear"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -404,7 +404,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getHours");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getHours"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -431,7 +431,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getMilliseconds");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getMilliseconds"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -458,7 +458,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getMinutes");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getMinutes"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -485,7 +485,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getMonth");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getMonth"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -512,7 +512,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getSeconds");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getSeconds"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -539,7 +539,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getTime");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getTime"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -562,7 +562,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getTimezoneOffset");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getTimezoneOffset"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -585,7 +585,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getUTCDate");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCDate"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -608,7 +608,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getUTCDay");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCDay"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -631,7 +631,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getUTCFullYear");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCFullYear"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -654,7 +654,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getUTCHours");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCHours"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -677,7 +677,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getUTCMilliseconds");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCMilliseconds"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -700,7 +700,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getUTCMinutes");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCMinutes"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -723,7 +723,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getUTCMonth");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCMonth"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -746,7 +746,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getUTCSeconds");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCSeconds"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -769,7 +769,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.getVarDate");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getVarDate"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -878,7 +878,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setDate");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setDate"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -901,7 +901,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setFullYear");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setFullYear"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -924,7 +924,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setYear");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setYear"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -947,7 +947,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setHours");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setHours"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -970,7 +970,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setMilliseconds");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setMilliseconds"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -993,7 +993,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setMinutes");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setMinutes"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1016,7 +1016,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setMonth");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setMonth"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1039,7 +1039,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setSeconds");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setSeconds"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1062,7 +1062,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setTime");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setTime"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1102,7 +1102,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setUTCDate");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCDate"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1125,7 +1125,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setUTCFullYear");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCFullYear"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1148,7 +1148,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setUTCHours");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCHours"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1171,7 +1171,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setUTCMilliseconds");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCMilliseconds"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1194,7 +1194,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setUTCMinutes");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCMinutes"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1217,7 +1217,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setUTCMonth");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCMonth"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1240,7 +1240,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.setUTCSeconds");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCSeconds"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1263,7 +1263,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.toDateString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toDateString"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1290,7 +1290,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.toISOString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toISOString"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1309,12 +1309,12 @@ namespace Js
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, L"Data.prototype.toJSON");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Data.prototype.toJSON"));
         }
         RecyclableObject* thisObj = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Date.prototype.toJSON");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Date.prototype.toJSON"));
         }
 
         Var result;
@@ -1355,7 +1355,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.toLocaleDateString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toLocaleDateString"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1405,7 +1405,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.toLocaleString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toLocaleString"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1463,7 +1463,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.toLocaleTimeString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toLocaleTimeString"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1512,7 +1512,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.toTimeString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toTimeString"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1549,7 +1549,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.toUTCString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toUTCString"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1575,7 +1575,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.valueOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.valueOf"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1600,7 +1600,7 @@ namespace Js
             {
                 return result;
             }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, L"Date.prototype.toString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toString"));
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
@@ -1658,7 +1658,7 @@ namespace Js
 
     BOOL JavascriptDate::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Object, (Date)");
+        stringBuilder->AppendCppLiteral(_u("Object, (Date)"));
         return TRUE;
     }
 } // namespace Js

@@ -240,7 +240,7 @@ namespace Js
                 displayName = JavascriptString::FromVar(value);
             }
         }
-        return LiteralString::Concat(LiteralString::NewCopySz(L"bound ", this->GetScriptContext()), displayName);
+        return LiteralString::Concat(LiteralString::NewCopySz(_u("bound "), this->GetScriptContext()), displayName);
     }
 
     RecyclableObject* BoundFunction::GetBoundThis()

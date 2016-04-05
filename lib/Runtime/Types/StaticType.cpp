@@ -61,23 +61,23 @@ namespace Js
         switch(GetTypeId())
         {
         case TypeIds_Undefined:
-            stringBuilder->AppendCppLiteral(L"Undefined");
+            stringBuilder->AppendCppLiteral(_u("Undefined"));
             break;
         case TypeIds_Null:
-            stringBuilder->AppendCppLiteral(L"Null");
+            stringBuilder->AppendCppLiteral(_u("Null"));
             break;
         case TypeIds_Integer:
         case TypeIds_Number:
-            stringBuilder->AppendCppLiteral(L"Number");
+            stringBuilder->AppendCppLiteral(_u("Number"));
             break;
         case TypeIds_Boolean:
-            stringBuilder->AppendCppLiteral(L"Boolean");
+            stringBuilder->AppendCppLiteral(_u("Boolean"));
             break;
         case TypeIds_String:
-            stringBuilder->AppendCppLiteral(L"String");
+            stringBuilder->AppendCppLiteral(_u("String"));
             break;
         default:
-            stringBuilder->AppendCppLiteral(L"Object, (Static Type)");
+            stringBuilder->AppendCppLiteral(_u("Object, (Static Type)"));
             break;
         }
 

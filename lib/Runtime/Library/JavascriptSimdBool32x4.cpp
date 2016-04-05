@@ -40,10 +40,10 @@ namespace Js
         return reinterpret_cast<JavascriptSIMDBool32x4 *>(aValue);
     }
 
-    const wchar_t* JavascriptSIMDBool32x4::GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name)
+    const char16* JavascriptSIMDBool32x4::GetFullBuiltinName(char16** aBuffer, const char16* name)
     {
         Assert(aBuffer && *aBuffer);
-        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, L"SIMD.Bool32x4.%s", name);
+        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, _u("SIMD.Bool32x4.%s"), name);
         return *aBuffer;
     }
 

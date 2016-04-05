@@ -6,14 +6,14 @@
 
 using namespace Js;
 
-const wchar_t Constants::AnonymousFunction[] = L"Anonymous function";
-const wchar_t Constants::Anonymous[] = L"anonymous";
-const wchar_t Constants::Empty[] = L"";
-const wchar_t Constants::FunctionCode[] = L"Function code";
-const wchar_t Constants::GlobalCode[] = L"Global code";
-const wchar_t Constants::EvalCode[] = L"eval code";
-const wchar_t Constants::GlobalFunction[] = L"glo";
-const wchar_t Constants::UnknownScriptCode[] = L"Unknown script code";
+const char16 Constants::AnonymousFunction[] = _u("Anonymous function");
+const char16 Constants::Anonymous[] = _u("anonymous");
+const char16 Constants::Empty[] = _u("");
+const char16 Constants::FunctionCode[] = _u("Function code");
+const char16 Constants::GlobalCode[] = _u("Global code");
+const char16 Constants::EvalCode[] = _u("eval code");
+const char16 Constants::GlobalFunction[] = _u("glo");
+const char16 Constants::UnknownScriptCode[] = _u("Unknown script code");
 
 #ifdef _M_AMD64
 const PBYTE Constants::StackLimitForScriptInterrupt = (PBYTE)0x7fffffffffffffff;

@@ -15,7 +15,7 @@ namespace JsUtil
 
     uint NoCaseComparer<JsUtil::CharacterBuffer<WCHAR>>::GetHashCode(JsUtil::CharacterBuffer<WCHAR> const& s1)
     {
-        const wchar_t* s = s1.GetBuffer();
+        const char16* s = s1.GetBuffer();
         size_t length = s1.GetLength();
         uint hash = 0;
         for (size_t i = 0; i < length; i++)
@@ -30,8 +30,8 @@ namespace JsUtil
     {
         if (s1.GetLength() != s2.GetLength()) return +1;
         int count = s1.GetLength();
-        const wchar_t* buf1 = s1.GetBuffer();
-        const wchar_t* buf2 = s2.GetBuffer();
+        const char16* buf1 = s1.GetBuffer();
+        const char16* buf2 = s2.GetBuffer();
         for (int i=0; i < count; i++)
         {
             if (tolower(buf1[i]) != tolower(buf2[i]))

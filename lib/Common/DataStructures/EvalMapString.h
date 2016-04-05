@@ -9,14 +9,14 @@ namespace Js
     template <bool fastHash>
     struct EvalMapStringInternal
     {
-        JsUtil::CharacterBuffer<wchar_t> str;
+        JsUtil::CharacterBuffer<char16> str;
         hash_t hash;
         ModuleID moduleID;
         BOOL strict;
         BOOL isLibraryCode;
 
         EvalMapStringInternal() : str(), moduleID(0), strict(FALSE), isLibraryCode(FALSE), hash(0) {};
-        EvalMapStringInternal(__in_ecount(charLength) wchar_t const* content, int charLength, ModuleID moduleID, BOOL strict, BOOL isLibraryCode)
+        EvalMapStringInternal(__in_ecount(charLength) char16 const* content, int charLength, ModuleID moduleID, BOOL strict, BOOL isLibraryCode)
             : str(content, charLength), moduleID(moduleID), strict(strict), isLibraryCode(isLibraryCode)
         {
             // NOTE: this hash is not equivalent to the character buffer hash
