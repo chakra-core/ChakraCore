@@ -120,6 +120,165 @@ var tests = [
       assert.doesNotThrow(function () { eval("function foo(x = ({y = function (p) {}} = 'bar')) {}; foo();"); });
       assert.doesNotThrow(function () { eval("var foo = (x = ({y = function (p) {}} = 'bar')) => {}; foo();"); });
     }
+  },
+  {
+    name: "Destructuring empty patterns at param with arguments/eval at function body",
+    body: function () {
+        (function ({}, {}, {}, {}, {}, a) {
+            eval("");
+            assert.areEqual(arguments[1].x, 1);
+            assert.areEqual(a, 2);
+        })({}, {x:1}, {}, {}, {}, 2);
+        (function ({}, {}, {}, {}, {}, a) {
+            (function () {
+                eval("");
+            })();
+            assert.areEqual(arguments[1].x, 1);
+            assert.areEqual(a, 2);
+        })({}, {x:1}, {}, {}, {}, 2);
+        (function ({}, {}, {}, {}, {}, a) {
+            (function () {
+                a;
+            })();
+            eval("");
+            assert.areEqual(arguments[1].x, 1);
+            assert.areEqual(a, 2);
+        })({}, {x:1}, {}, {}, {}, 2);
+    }
+  },
+  {
+    name: "Destructuring patterns (multiple identifiers in the pattern) at param with arguments/eval at function body",
+    body: function () {
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            eval("");
+            assert.areEqual(arguments[2], [4, 5]);
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            var k = x1 + x2 + x3 + x4 + x5 + x6;
+            eval("");
+            assert.areEqual(arguments[2], [4, 5]);
+            assert.areEqual(k, 21);
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (function() {
+              eval("");  
+            });
+            assert.areEqual(arguments[3], 6);
+            var k = x1 + x2 + x3 + x4 + x5 + x6;
+            assert.areEqual(k, 21);
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (function() {
+                x3; x5; x6;
+            })();
+            var k = x1 + x2 + x3 + x4 + x5 + x6;
+            assert.areEqual(k, 21);
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (function() {
+                x3; x5; x6;
+            })();
+            var k = x1 + x2 + x3 + x4 + x5 + x6;
+            assert.areEqual(arguments[3], 6);
+            assert.areEqual(k, 21);
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+        
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (function() {
+                assert.areEqual(x1 + x2 + x3 + x4 + x5 + x6, 21);
+            })();
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+    }
+  },
+  {
+    name: "Destructuring patterns (multiple identifiers in the pattern) at param with lambdas, arguments and eval at function body",
+    body: function () {
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (() => {
+                assert.areEqual(arguments[2], [4, 5]);
+            })();
+            eval("");
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (() => {
+                var k = x1 + x2 + x3 + x4 + x5 + x6;
+                eval("");
+                assert.areEqual(arguments[2], [4, 5]);
+                assert.areEqual(k, 21);
+            })();
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+    }
+  },
+  {
+    name: "Destructuring patterns with rest at param with arguments/eval at function body",
+    body: function () {
+        (function (a, {b},  ...rest) {
+            eval("");
+            assert.areEqual(b, 2);
+            assert.areEqual(arguments[2], 3);
+        })(1, {b:2}, 3);
+
+        (function (a, {b},  ...rest) {
+            (function () {
+                eval("");
+            })();
+            assert.areEqual(rest, [3]);
+            assert.areEqual(arguments[2], 3);
+        })(1, {b:2}, 3);
+
+        (function (a, {b}, ...rest) {
+            (function () {
+                assert.areEqual(b, 2);
+                assert.areEqual(rest, [3]);
+            })();
+            assert.areEqual(rest, [3]);
+            assert.areEqual(arguments[2], 3);
+        })(1, {b:2}, 3);
+    }
+  },
+  {
+    name: "Rest as pattern at param with arguments/eval at function body",
+    body: function () {
+        (function ([a, b], c, ...{rest1, rest2}) {
+            eval("");
+            assert.areEqual(rest1, 4);
+            assert.areEqual(rest2, 5);
+            assert.areEqual(c, 3);
+            assert.areEqual(arguments[1], 3);
+        })([1, 2], 3, {rest1:4, rest2:5});
+
+        (function ([a, b], c, ...{rest1, rest2}) {
+            (function () {
+                assert.areEqual(rest1, 4);
+                assert.areEqual(rest2, 5);
+                assert.areEqual(a+b, 3);
+            })();
+            eval("");
+            assert.areEqual(arguments[0], [1, 2]);
+        })([1, 2], 3, {rest1:4, rest2:5});
+    }
+  },
+  {
+    name: "Accessing arguments at the params",
+    body: function () {
+        (function (x1, {x2, x3}, [x4, x5], x6 = arguments[0]) {
+            eval("");
+            assert.areEqual(arguments[2], [4, 5]);
+            assert.areEqual(x6, 1);
+        })(1, {x2:2, x3:3}, [4, 5], undefined);
+
+        (function (x1, {x2, x3}, [x4, x5], x6 = arguments[0] = 11) {
+            eval("");
+            assert.areEqual(arguments[0], 11);
+            assert.areEqual(x6, 11);
+        })(1, {x2:2, x3:3}, [4, 5], undefined);
+    }
   }
 ];
 

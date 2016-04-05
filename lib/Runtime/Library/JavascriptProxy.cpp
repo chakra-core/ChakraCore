@@ -1743,17 +1743,17 @@ namespace Js
         //5. Let trap be the result of GetMethod(handler, "getOwnPropertyDescriptor").
         //6. ReturnIfAbrupt(trap).
 
-        //7.3.9 GetMethod(O, P)
-        //    The abstract operation GetMethod is used to get the value of a specific property of an object when the value of the property is expected to be a function.The operation is called with arguments O and P where O is the object, P is the property key.This abstract operation performs the following steps :
-        //1. Assert : Type(O) is Object.
-        //2. Assert : IsPropertyKey(P) is true.
-        //3. Let func be the result of calling the[[Get]] internal method of O passing P and O as the arguments.
-        //4. ReturnIfAbrupt(func).
-        //5. If func is undefined, then return undefined.
-        //6. If IsCallable(func) is false, then throw a TypeError exception.
-        //7. Return func.
+        //7.3.9 GetMethod(V, P)
+        //  The abstract operation GetMethod is used to get the value of a specific property of an ECMAScript language value when the value of the
+        //  property is expected to be a function. The operation is called with arguments V and P where V is the ECMAScript language value, P is the
+        //  property key. This abstract operation performs the following steps:
+        //  1. Assert: IsPropertyKey(P) is true.
+        //  2. Let func be ? GetV(V, P).
+        //  3. If func is either undefined or null, return undefined.
+        //  4. If IsCallable(func) is false, throw a TypeError exception.
+        //  5. Return func.
         BOOL result = JavascriptOperators::GetPropertyReference(handler, methodId, &varMethod, requestContext);
-        if (!result || JavascriptOperators::GetTypeId(varMethod) == TypeIds_Undefined)
+        if (!result || JavascriptOperators::IsUndefinedOrNull(varMethod))
         {
             return nullptr;
         }

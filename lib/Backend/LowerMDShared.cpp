@@ -647,13 +647,17 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        if (callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
+        IR::BailOutKind bailOutKind = callInstr->GetBailOutKind();
+        if (bailOutKind == IR::BailOutOnNotPrimitive ||
+            bailOutKind == IR::BailOutOnPowIntIntOverflow)
         {
             callInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
             bailOutInstr->TransferTo(callInstr);
             bailOutInstr->InsertBefore(callInstr);
 
-            bailOutInstr->m_opcode = Js::OpCode::BailOnNotPrimitive;
+            bailOutInstr->m_opcode = bailOutKind == IR::BailOutOnNotPrimitive
+                                        ? Js::OpCode::BailOnNotPrimitive
+                                        : Js::OpCode::BailOnPowIntIntOverflow;
             bailOutInstr->SetSrc1(opndBailOutArg);
         }
         else
@@ -683,7 +687,8 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
         {
             this->m_lowerer->LowerBailOnNotObject(bailOutInstr, nullptr, labelBailOut);
         }
-        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive)
+        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive ||
+            bailOutInstr->m_opcode == Js::OpCode::BailOnPowIntIntOverflow)
         {
             this->m_lowerer->LowerBailOnTrue(bailOutInstr, labelBailOut);
         }
@@ -9339,6 +9344,7 @@ void LowererMD::GenerateFastInlineBuiltInMathPow(IR::Instr* instr)
 #endif
 
     IR::JnHelperMethod directPowHelper = (IR::JnHelperMethod)0;
+    IR::Opnd* bailoutOpnd = nullptr;
 
     if (!instr->GetSrc2()->IsFloat())
     {
@@ -9351,7 +9357,20 @@ void LowererMD::GenerateFastInlineBuiltInMathPow(IR::Instr* instr)
         }
         else
         {
-            AssertMsg(0, "Math.Pow(int, int) spec NYI");
+            directPowHelper = IR::HelperDirectMath_PowIntInt;
+            LoadHelperArgument(instr, instr->UnlinkSrc1());
+
+            if (!this->m_func->tempSymBool)
+            {
+                this->m_func->tempSymBool = StackSym::New(TyUint8, this->m_func);
+                this->m_func->StackAllocate(this->m_func->tempSymBool, TySize[TyUint8]);
+            }
+            IR::SymOpnd* boolOpnd = IR::SymOpnd::New(this->m_func->tempSymBool, TyUint8, this->m_func);
+            IR::RegOpnd* boolRefOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
+            this->m_lowerer->InsertLea(boolRefOpnd, boolOpnd, instr);
+            LoadHelperArgument(instr, boolRefOpnd);
+
+            bailoutOpnd = boolOpnd;
         }
     }
 #ifndef _M_IX86
@@ -9364,7 +9383,7 @@ void LowererMD::GenerateFastInlineBuiltInMathPow(IR::Instr* instr)
     }
 #endif
 
-    ChangeToHelperCall(instr, directPowHelper);
+    ChangeToHelperCall(instr, directPowHelper, nullptr, bailoutOpnd);
 }
 
 void

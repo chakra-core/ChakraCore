@@ -2599,6 +2599,12 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
     {
         // Even if it wasn't determined during visiting this function that we need a scope object, we still have a few conditions that may require one.
         top->bodyScope->SetIsObject();
+        if (!top->paramScope->GetCanMergeWithBodyScope())
+        {
+            // If we have the function inside an eval then access to outer variables should go through scope object.
+            // So we set the body scope as object and we need to set the param scope also as object in case of split scope.
+            top->paramScope->SetIsObject();
+        }
     }
 
     if (pnode->nop == knopProg
@@ -2718,14 +2724,19 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                                 top->sameNameArgsPlaceHolderSlotCount++; // Same name args appeared before
                             }
                             sym->SetScopeSlot(i);
-                            i++;
                         }
+                        i++;
                     };
 
-                    // We don't need to process the rest parameter here because it may not need a scope slot.
+                    // We need to include the rest as well -as it will get slot assigned.
                     if (ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode))
                     {
-                        MapFormalsWithoutRest(pnode, setArgScopeSlot);
+                        MapFormals(pnode, setArgScopeSlot);
+                        if (argSym->NeedsSlotAlloc(top))
+                        {
+                            Assert(argSym->GetScopeSlot() == Js::Constants::NoProperty);
+                            argSym->SetScopeSlot(i++);
+                        }
                         MapFormalsFromPattern(pnode, setArgScopeSlot);
                     }
 
@@ -4539,6 +4550,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         CheckMaybeEscapedUse(pnode->sxParamPattern.pnode1, byteCodeGenerator);
         break;
 
+    case knopObjectPattern:
     case knopArrayPattern:
         byteCodeGenerator->AssignUndefinedConstRegister();
         CheckMaybeEscapedUse(pnode->sxUni.pnode1, byteCodeGenerator);
@@ -5020,6 +5032,16 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                         }
                     }
                     byteCodeGenerator->AssignRegister(sym);
+                }
+                if (sym->GetScope() == funcInfo->paramScope && !funcInfo->paramScope->GetCanMergeWithBodyScope())
+                {
+                    // We created an equivalent symbol in the body, let us allocate a register for it if necessary,
+                    // because it may not be referenced in the body at all.
+                    Symbol* bodySym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
+                    if (!bodySym->IsInSlot(funcInfo))
+                    {
+                        byteCodeGenerator->AssignRegister(bodySym);
+                    }
                 }
             }
             else

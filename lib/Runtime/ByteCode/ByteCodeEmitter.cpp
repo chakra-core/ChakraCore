@@ -1577,15 +1577,20 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
                     Assert(sym->GetScopeSlot() != Js::Constants::NoProperty && sym->GetScopeSlot() > slot);
                     propIds->elements[slot] = Js::Constants::NoProperty;
                 }
-                slot++;
             }
+            else
+            {
+                // This is for patterns
+                propIds->elements[slot] = Js::Constants::NoProperty;
+            }
+            slot++;
         };
         MapFormalsWithoutRest(pnodeFnc, initArg);
 
-        // initArg assumes the sym is in a slot, but this may not be true for the rest parameter.
+        // If the rest is in the slot - we need to keep that slot.
         if (pnodeFnc->sxFnc.pnodeRest != nullptr && pnodeFnc->sxFnc.pnodeRest->sxVar.sym->IsInSlot(funcInfo))
         {
-            initArg(pnodeFnc->sxFnc.pnodeRest);
+            Symbol::SaveToPropIdArray(pnodeFnc->sxFnc.pnodeRest->sxVar.sym, propIds, this);
         }
     }
     else
@@ -2520,7 +2525,7 @@ void ByteCodeGenerator::GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &
         {
             envIndex++;
         }
-        if ((scope == scope->GetFunc()->GetBodyScope() && !scope->GetFunc()->IsLambda()) || scope->IsGlobalEvalBlockScope())
+        if (((scope == scope->GetFunc()->GetBodyScope() || scope == scope->GetFunc()->GetParamScope()) && !scope->GetFunc()->IsLambda()) || scope->IsGlobalEvalBlockScope())
         {
             break;
         }
@@ -3890,7 +3895,14 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 MapFormalsFromPattern(pnodeFnc, [&](ParseNode *pnode) { pnode->sxVar.sym->EnsureScopeSlot(funcInfo); });
             }
 
-            this->EnsureSpecialScopeSlots(funcInfo, bodyScope);
+            if (paramScope->GetCanMergeWithBodyScope())
+            {
+                this->EnsureSpecialScopeSlots(funcInfo, bodyScope);
+            }
+            else
+            {
+                this->EnsureSpecialScopeSlots(funcInfo, paramScope);
+            }
 
             auto ensureFncDeclScopeSlots = [&](ParseNode *pnodeScope)
             {
@@ -3946,7 +3958,14 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             ParseNode *pnode;
             Symbol *sym;
 
-            this->EnsureSpecialScopeSlots(funcInfo, bodyScope);
+            if (paramScope->GetCanMergeWithBodyScope())
+            {
+                this->EnsureSpecialScopeSlots(funcInfo, bodyScope);
+            }
+            else
+            {
+                this->EnsureSpecialScopeSlots(funcInfo, paramScope);
+            }
 
             pnodeFnc->sxFnc.MapContainerScopes([&](ParseNode *pnodeScope) { this->EnsureFncScopeSlots(pnodeScope, funcInfo); });
 

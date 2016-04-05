@@ -436,6 +436,7 @@ namespace Js
 
         static void InitializePromise(JavascriptPromise* promise, JavascriptPromiseResolveOrRejectFunction** resolve, JavascriptPromiseResolveOrRejectFunction** reject, ScriptContext* scriptContext);
         static Var TryCallResolveOrRejectHandler(Var handler, Var value, ScriptContext* scriptContext);
+        static Var TryRejectWithExceptionObject(JavascriptExceptionObject* exceptionObject, Var handler, ScriptContext* scriptContext);
 
     protected:
         enum PromiseStatus

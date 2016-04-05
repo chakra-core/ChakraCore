@@ -118,7 +118,7 @@ function testToPrimitive()
     SIMD.Bool8x16.prototype[Symbol.toPrimitive] = 5;
     try{var x =  G + G;}
     catch(e)
-    {equal("TypeError: 'Symbol.toPrimitive' is not a function", e);}
+    {equal("TypeError: The value of the property 'Symbol.toPrimitive' is not a Function object", e);}
 
     SIMD.Bool8x16.prototype[Symbol.toPrimitive] = memberBackup;
     SIMD.Bool8x16.prototype.toLocaleString = functionBackup
