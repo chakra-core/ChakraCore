@@ -2458,8 +2458,11 @@ CommonNumber:
             Var member;
 
             // If the item is found in the array own body, then it is a number
-            if (JavascriptOperators::GetOwnItem(object, index, &member, scriptContext))
+            if (JavascriptOperators::GetOwnItem(object, index, &member, scriptContext)
+                && !JavascriptOperators::IsUndefined(member))
+            {
                 return TRUE;
+            }
         }
         return FALSE;
     }
