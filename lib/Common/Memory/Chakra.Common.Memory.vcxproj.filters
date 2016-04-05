@@ -106,6 +106,7 @@
     </ClInclude>
     <ClInclude Include="XDataAllocator.h" />
     <ClInclude Include="CollectionState.h" />
+    <ClInclude Include="AllocationPolicyManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="HeapBlock.inl" />

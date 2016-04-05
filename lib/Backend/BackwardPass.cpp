@@ -4015,8 +4015,9 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
             Assert(guardedPropertyOps != nullptr);
             opnd->EnsureGuardedPropOps(this->func->m_alloc);
             opnd->AddGuardedPropOps(guardedPropertyOps);
-            if (!opnd->IsTypeAvailable())
+            if (this->currentInstr->HasTypeCheckBailOut())
             {
+                // Stop pushing the mono guard type up if it is being checked here.
                 if (bucket->NeedsMonoCheck())
                 {
                     if (this->currentInstr->HasEquivalentTypeCheckBailOut())
@@ -4029,10 +4030,14 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                     }
                     bucket->SetMonoGuardType(nullptr);
                 }
-
-                bucket->SetGuardedPropertyOps(nullptr);
-                JitAdelete(this->tempAlloc, guardedPropertyOps);
-                block->stackSymToGuardedProperties->Clear(objSym->m_id);
+                
+                if (!opnd->IsTypeAvailable())
+                {
+                    // Stop tracking the guarded properties if there's not another type check upstream.
+                    bucket->SetGuardedPropertyOps(nullptr);
+                    JitAdelete(this->tempAlloc, guardedPropertyOps);
+                    block->stackSymToGuardedProperties->Clear(objSym->m_id);
+                }
             }
 #if DBG
             {

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 
 #include "RuntimeLibraryPch.h"
 
@@ -15,20 +16,16 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
-
         Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
+        const uint LANES = 8;
+        int16 values[LANES];
 
-        short s0 = JavascriptConversion::ToInt16(args.Info.Count >= 2 ? args[1] : undefinedVar, scriptContext);
-        short s1 = JavascriptConversion::ToInt16(args.Info.Count >= 3 ? args[2] : undefinedVar, scriptContext);
-        short s2 = JavascriptConversion::ToInt16(args.Info.Count >= 4 ? args[3] : undefinedVar, scriptContext);
-        short s3 = JavascriptConversion::ToInt16(args.Info.Count >= 5 ? args[4] : undefinedVar, scriptContext);
-        short s4 = JavascriptConversion::ToInt16(args.Info.Count >= 6 ? args[5] : undefinedVar, scriptContext);
-        short s5 = JavascriptConversion::ToInt16(args.Info.Count >= 7 ? args[6] : undefinedVar, scriptContext);
-        short s6 = JavascriptConversion::ToInt16(args.Info.Count >= 8 ? args[7] : undefinedVar, scriptContext);
-        short s7 = JavascriptConversion::ToInt16(args.Info.Count >= 9 ? args[8] : undefinedVar, scriptContext);
+        for (uint i = 0; i < LANES; i++)
+        {
+            values[i] = JavascriptConversion::ToInt16(args.Info.Count >= (i + 2) ? args[i + 1] : undefinedVar, scriptContext);
+        }
 
-        SIMDValue lanes = SIMDInt16x8Operation::OpInt16x8(s0, s1, s2, s3, s4, s5, s6, s7);
-
+        SIMDValue lanes = SIMDInt16x8Operation::OpInt16x8(values);
         return JavascriptSIMDInt16x8::New(&lanes, scriptContext);
     }
 

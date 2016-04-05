@@ -4847,6 +4847,8 @@ namespace Js
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Regenerate Due To Debug Mode: function %s (%s) from script context %p\n"),
             this->GetDisplayName(), this->GetDebugNumberSet(debugStringBuffer), m_scriptContext);
+
+        this->counters.bgThreadCallStarted = false; // asuming background jit is stopped and allow the counter setters access again
 #endif
     }
 
@@ -5247,6 +5249,12 @@ namespace Js
         this->scopeProperties->Add(scopeProperty);
     }
 
+    bool DebuggerScope::HasProperty(Js::PropertyId propertyId)
+    {
+        int i = -1;
+        return GetPropertyIndex(propertyId, i);
+    }
+
     bool DebuggerScope::GetPropertyIndex(Js::PropertyId propertyId, int& index)
     {
         if (!this->HasProperties())
@@ -5310,6 +5318,8 @@ namespace Js
             return _u("DiagUnknownScope");
         case DiagExtraScopesType::DiagWithScope:
             return _u("DiagWithScope");
+        case DiagExtraScopesType::DiagParamScope:
+            return _u("DiagParamScope");
         default:
             AssertMsg(false, "Missing a debug scope type.");
             return _u("");
@@ -5673,7 +5683,7 @@ namespace Js
         {
             Js::DebuggerScope *debuggerScope = pScopeChain->Item(i);
             DebuggerScopeProperty debuggerScopeProperty;
-            if (debuggerScope->TryGetProperty(propertyId, location, &debuggerScopeProperty))
+            if (debuggerScope->scopeType != DiagParamScope && debuggerScope->TryGetProperty(propertyId, location, &debuggerScopeProperty))
             {
                 bool isOffsetInScope = debuggerScope->IsOffsetInScope(offset);
 

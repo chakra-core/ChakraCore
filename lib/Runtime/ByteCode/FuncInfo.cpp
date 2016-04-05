@@ -52,7 +52,7 @@ FuncInfo::FuncInfo(
     childCallsEval(false),
     hasArguments(false),
     hasHeapArguments(false),
-    isEventHandler(false),
+    isTopLevelEventHandler(false),
     hasLocalInClosure(false),
     hasClosureReference(false),
     hasGlobalReference(false),

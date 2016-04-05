@@ -155,4 +155,18 @@
       <compile-flags>-ExtendedErrorStackForTestHost -nonative -InjectPartiallyInitializedInterpreterFrameError:3 -InjectPartiallyInitializedInterpreterFrameErrorType:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>validate_line_column.js</files>
+      <baseline>validate_line_column.baseline</baseline>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>validate_line_column.js</files>
+      <baseline>validate_line_column.baseline</baseline>
+      <compile-flags>-ExtendedErrorStackForTestHost -force:DeferParse</compile-flags>
+    </default>
+  </test>
 </regress-exe>

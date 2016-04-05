@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 
 #if _M_IX86 || _M_AMD64
@@ -15,15 +16,6 @@ namespace Js
         // Sets the lower double-precision, floating-point value to x
         // and sets the upper double-precision, floating-point value to y.
         x86Result.m128d_value = _mm_set_pd(y, x);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    SIMDValue SIMDFloat64x2Operation::OpZero()
-    {
-        X86SIMDValue x86Result;
-        // Sets the 2 double-precision, floating-point values to zero
-        x86Result.m128d_value = _mm_setzero_pd();
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -311,21 +303,6 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDFloat64x2Operation::OpClamp(const SIMDValue& value, const SIMDValue& lower, const SIMDValue& upper)
-    { // SIMD review: do we have intrinsic for the implementation?
-        SIMDValue result;
-
-        // lower clamp
-        result.f64[SIMD_X] = value.f64[SIMD_X] < lower.f64[SIMD_X] ? lower.f64[SIMD_X] : value.f64[SIMD_X];
-        result.f64[SIMD_Y] = value.f64[SIMD_Y] < lower.f64[SIMD_Y] ? lower.f64[SIMD_Y] : value.f64[SIMD_Y];
-
-        // upper clamp
-        result.f64[SIMD_X] = result.f64[SIMD_X] > upper.f64[SIMD_X] ? upper.f64[SIMD_X] : result.f64[SIMD_X];
-        result.f64[SIMD_Y] = result.f64[SIMD_Y] > upper.f64[SIMD_Y] ? upper.f64[SIMD_Y] : result.f64[SIMD_Y];
-
-        return result;
-    }
-
     SIMDValue SIMDFloat64x2Operation::OpSelect(const SIMDValue& mV, const SIMDValue& tV, const SIMDValue& fV)
     {
         X86SIMDValue x86Result;
@@ -341,14 +318,6 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    // Get SignMask
-    int SIMDFloat64x2Operation::OpGetSignMask(const SIMDValue& value)
-    {
-        X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
-        // Creates a two-bit mask from the sign bits of the two double-precision, floating-point
-        // values of v.m128d_value
-        return _mm_movemask_pd(v.m128d_value);
-    }
 }
 
 #endif

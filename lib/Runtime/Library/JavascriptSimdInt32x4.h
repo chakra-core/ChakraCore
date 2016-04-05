@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -48,11 +48,8 @@ namespace Js
         static size_t GetOffsetOfValue() { return offsetof(JavascriptSIMDInt32x4, value); }
 
         Var  Copy(ScriptContext* requestContext);
-        Var  CopyAndSetLaneFlag(uint index, BOOL value, ScriptContext* requestContext);
 
     private:
         virtual bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext) override;
-        Var  GetLaneAsFlag(uint index, ScriptContext* requestContext);
-        Var  GetSignMask();
     };
 }

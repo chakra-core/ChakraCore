@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -40,20 +40,6 @@ namespace Js
             return args[1];
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("Float64x2"));
-    }
-
-    Var SIMDFloat64x2Lib::EntryZero(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        SIMDValue lanes = SIMDFloat64x2Operation::OpZero();
-
-        return JavascriptSIMDFloat64x2::New(&lanes, scriptContext);
     }
 
     Var SIMDFloat64x2Lib::EntrySplat(RecyclableObject* function, CallInfo callInfo, ...)
@@ -835,41 +821,6 @@ namespace Js
             return SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[2], lane0, lane1, NULL, NULL, 4, scriptContext);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("shuffle"));
-    }
-
-    Var SIMDFloat64x2Lib::EntryClamp(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        // we expect at least 3 explicit args with Float64x2 type
-        if (args.Info.Count >= 4 &&
-            JavascriptSIMDFloat64x2::Is(args[1]) &&
-            JavascriptSIMDFloat64x2::Is(args[2]) &&
-            JavascriptSIMDFloat64x2::Is(args[3]))
-        {
-            JavascriptSIMDFloat64x2 *t     = JavascriptSIMDFloat64x2::FromVar(args[1]);
-            JavascriptSIMDFloat64x2 *lower = JavascriptSIMDFloat64x2::FromVar(args[2]);
-            JavascriptSIMDFloat64x2 *upper = JavascriptSIMDFloat64x2::FromVar(args[3]);
-            Assert(t && lower && upper);
-
-            SIMDValue tValue, lowerValue, upperValue, resultValue;
-
-            tValue = t->GetValue();
-            lowerValue = lower->GetValue();
-            upperValue = upper->GetValue();
-
-            resultValue = SIMDFloat64x2Operation::OpClamp(tValue, lowerValue, upperValue);
-
-            return JavascriptSIMDFloat64x2::New(&resultValue, scriptContext);
-        }
-
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("clamp"));
     }
 
     Var SIMDFloat64x2Lib::EntrySelect(RecyclableObject* function, CallInfo callInfo, ...)

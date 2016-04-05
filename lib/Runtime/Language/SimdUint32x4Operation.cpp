@@ -1,14 +1,15 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 
 #if defined(_M_ARM32_OR_ARM64)
 
 namespace Js
 {
-    SIMDValue SIMDUint32x4Operation::OpUInt32x4(unsigned int x, unsigned int y, unsigned int z, unsigned int w)
+    SIMDValue SIMDUint32x4Operation::OpUint32x4(unsigned int x, unsigned int y, unsigned int z, unsigned int w)
     {
         SIMDValue result;
 
@@ -62,20 +63,6 @@ namespace Js
         return result;
     }
 
-    // Unary Ops
-
-    SIMDValue SIMDUint32x4Operation::OpMul(const SIMDValue& aValue, const SIMDValue& bValue)
-    {
-        SIMDValue result;
-
-        result.u32[SIMD_X] = aValue.u32[SIMD_X] * bValue.u32[SIMD_X];
-        result.u32[SIMD_Y] = aValue.u32[SIMD_Y] * bValue.u32[SIMD_Y];
-        result.u32[SIMD_Z] = aValue.u32[SIMD_Z] * bValue.u32[SIMD_Z];
-        result.u32[SIMD_W] = aValue.u32[SIMD_W] * bValue.u32[SIMD_W];
-
-        return result;
-    }
-
     SIMDValue SIMDUint32x4Operation::OpMin(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
@@ -113,6 +100,22 @@ namespace Js
         result.u32[SIMD_Z] = (aValue.u32[SIMD_Z] <= bValue.u32[SIMD_Z]) ? 0xffffffff : 0x0;
         result.u32[SIMD_W] = (aValue.u32[SIMD_W] <= bValue.u32[SIMD_W]) ? 0xffffffff : 0x0;
 
+        return result;
+    }
+
+    SIMDValue SIMDUint32x4Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        result = SIMDUint32x4Operation::OpLessThan(aValue, bValue);
+        result = SIMDInt32x4Operation::OpNot(result);
+        return result;
+    }
+
+    SIMDValue SIMDUint32x4Operation::OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        result = SIMDUint32x4Operation::OpLessThanOrEqual(aValue, bValue);
+        result = SIMDInt32x4Operation::OpNot(result);
         return result;
     }
 

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "Backend.h"
 
 #include "SccLiveness.h"
@@ -398,6 +399,13 @@ SCCLiveness::ProcessDst(IR::Opnd *dst, IR::Instr *instr)
             }
         }
     }
+#if defined(_M_X64) || defined(_M_IX86)
+    else if (instr->m_opcode == Js::OpCode::SHUFPS || instr->m_opcode == Js::OpCode::SHUFPD)
+    {
+        // dst is the first src, make sure it gets the same live reg
+        this->ProcessRegUse(dst->AsRegOpnd(), instr);
+    }
+#endif
     else if (dst->IsRegOpnd())
     {
         this->ProcessRegDef(dst->AsRegOpnd(), instr);
@@ -563,9 +571,17 @@ SCCLiveness::ProcessRegDef(IR::RegOpnd *regDef, IR::Instr *instr)
         lifetime = this->InsertLifetime(stackSym, regDef->GetReg(), instr);
         lifetime->region = this->curRegion;
         lifetime->isFloat = regDef->IsFloat();
-        lifetime->isSimd128F4 = regDef->IsSimd128F4();
-        lifetime->isSimd128I4 = regDef->IsSimd128I4();
-        lifetime->isSimd128D2 = regDef->IsSimd128D2();
+        lifetime->isSimd128F4   = regDef->IsSimd128F4();
+        lifetime->isSimd128I4   = regDef->IsSimd128I4 ();
+        lifetime->isSimd128I8   = regDef->IsSimd128I8 ();
+        lifetime->isSimd128I16  = regDef->IsSimd128I16();
+        lifetime->isSimd128U4   = regDef->IsSimd128U4 ();
+        lifetime->isSimd128U8   = regDef->IsSimd128U8 ();
+        lifetime->isSimd128U16  = regDef->IsSimd128U16();
+        lifetime->isSimd128B4 = regDef->IsSimd128B4();
+        lifetime->isSimd128B8 = regDef->IsSimd128B8();
+        lifetime->isSimd128B16 = regDef->IsSimd128B16();
+        lifetime->isSimd128D2   = regDef->IsSimd128D2();
     }
     else
     {

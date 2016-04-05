@@ -366,6 +366,7 @@ public:
     void TrackFunctionDeclarationPropertyForDebugger(Symbol *functionDeclarationSymbol, FuncInfo *funcInfoParent);
     void UpdateDebuggerPropertyInitializationOffset(Js::RegSlot location, Js::PropertyId propertyId, bool shouldConsumeRegister = true);
 
+    void PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNode *pnode);
     FuncInfo *FindEnclosingNonLambda();
 
     bool CanStackNestedFunc(FuncInfo * funcInfo, bool trace = false);

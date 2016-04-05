@@ -83,6 +83,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AllocationPolicyManager.h" />
     <ClInclude Include="Allocator.h" />
     <ClInclude Include="amd64\XDataAllocator.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
