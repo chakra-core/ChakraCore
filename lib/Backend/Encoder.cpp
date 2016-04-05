@@ -170,6 +170,12 @@ Encoder::Encode()
 
                 if (instr->m_opcode == Js::OpCode::InlineeStart)
                 {
+                    Assert(!instr->isInlineeEntryInstr);
+                    if (pragmaInstr)
+                    {
+                        m_pragmaInstrToRecordMap->Add(pragmaInstr);
+                        pragmaInstr = nullptr;
+                    }
                     Func* inlinee = instr->m_func;
                     if (inlinee->frameInfo && inlinee->frameInfo->record)
                     {

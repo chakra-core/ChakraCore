@@ -232,6 +232,10 @@ public:
     void EnsureFncScopeSlots(ParseNode *pnode, FuncInfo *funcInfo);
     void EnsureLetConstScopeSlots(ParseNode *pnodeBlock, FuncInfo *funcInfo);
     void EnsureImportBindingScopeSlots(ParseNode* pnode, FuncInfo* funcInfo);
+    void EnsureExportBindingScopeSlots(ParseNode* pnode, FuncInfo* funcInfo);
+    void EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo, IdentPtr exportName = nullptr, IdentPtr moduleSpecifier = nullptr);
+    void EmitAssignmentToDefaultModuleExport(ParseNode* pnode, FuncInfo* funcInfo);
+
     void PushScope(Scope *innerScope);
     void PopScope();
     void PushBlock(ParseNode *pnode);

@@ -13,22 +13,22 @@ if not "%JENKINS_BUILD%" == "True" (
 
 pushd %~dp0
 
-call jenkins.build.init.cmd
+call jenkins.build.init.cmd %*
 
 set _BuildArch=
 set _BuildType=
 
-call jenkins.build.cmd x86 debug
-call jenkins.build.cmd x86 test
-call jenkins.build.cmd x86 release
+call jenkins.build.cmd x86 debug %JENKINS_BUILD_ARGS%
+call jenkins.build.cmd x86 test %JENKINS_BUILD_ARGS%
+call jenkins.build.cmd x86 release %JENKINS_BUILD_ARGS%
 
-call jenkins.build.cmd x64 debug
-call jenkins.build.cmd x64 test
-call jenkins.build.cmd x64 release
+call jenkins.build.cmd x64 debug %JENKINS_BUILD_ARGS%
+call jenkins.build.cmd x64 test %JENKINS_BUILD_ARGS%
+call jenkins.build.cmd x64 release %JENKINS_BUILD_ARGS%
 
-call jenkins.build.cmd arm debug
-call jenkins.build.cmd arm test
-call jenkins.build.cmd arm release
+call jenkins.build.cmd arm debug %JENKINS_BUILD_ARGS%
+call jenkins.build.cmd arm test %JENKINS_BUILD_ARGS%
+call jenkins.build.cmd arm release %JENKINS_BUILD_ARGS%
 
 popd
 

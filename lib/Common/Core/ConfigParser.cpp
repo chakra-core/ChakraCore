@@ -502,7 +502,7 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
         if (GetEnvironmentVariable(_u("temp"), fileName, _MAX_PATH) != 0)
         {
             wcscat_s(fileName, _MAX_PATH, _u("\\"));
-            const char16 * fileNameOnly = wcsrchr(outputFile, L'\\');
+            const char16 * fileNameOnly = wcsrchr(outputFile, _u('\\'));
             // if outputFile is full path we just need filename, discard the path
             wcscat_s(fileName, _MAX_PATH, fileNameOnly == nullptr ? outputFile : fileNameOnly);
         }

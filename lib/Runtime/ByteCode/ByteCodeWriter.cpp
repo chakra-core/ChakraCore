@@ -1681,6 +1681,8 @@ StoreCommon:
             case OpCode::StEnvSlotChkUndecl:
             case OpCode::StEnvObjSlot:
             case OpCode::StEnvObjSlotChkUndecl:
+            case OpCode::StModuleSlot:
+            case OpCode::LdModuleSlot:
             {
                 break;
             }
@@ -1710,6 +1712,7 @@ StoreCommon:
             case OpCode::LdInnerObjSlot:
             case OpCode::LdEnvSlot:
             case OpCode::LdEnvObjSlot:
+            case OpCode::LdModuleSlot:
                 if ((DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) || DoDynamicProfileOpcode(FloatTypeSpecPhase)) &&
                     profileId != Constants::NoProfileId)
                 {

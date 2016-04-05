@@ -66,7 +66,8 @@ namespace Js
         }
         static SourceTextModuleRecord* Create(ScriptContext* scriptContext);
 
-        uint GetLocalExportSlotIndex(PropertyId exportNameId);
+        uint GetLocalExportSlotIndexByExportName(PropertyId exportNameId);
+        uint GetLocalExportSlotIndexByLocalName(PropertyId localNameId);
         Var* GetLocalExportSlots() const { return localExportSlots; }
         uint GetLocalExportCount() const { return localSlotCount; }
         uint GetModuleId() const { return moduleId; }
@@ -98,7 +99,8 @@ namespace Js
         ModuleExportEntryList* starExportRecordList;
         ChildModuleRecordSet* childrenModuleSet;
         ModuleRecordList* parentModuleList;
-        LocalExportMap* localExportMap;  // from propertyId to index map: for bytecode gen.
+        LocalExportMap* localExportMapByExportName;  // from propertyId to index map: for bytecode gen.
+        LocalExportMap* localExportMapByLocalName;  // from propertyId to index map: for bytecode gen.
         LocalExportIndexList* localExportIndexList; // from index to propertyId: for typehandler.
         uint numUnParsedChildrenModule;
         ExportedNames* exportedNames;
@@ -124,7 +126,7 @@ namespace Js
         void InitializeLocalExports();
         void InitializeIndirectExports();
         PropertyId EnsurePropertyIdForIdentifier(IdentPtr pid);
-        LocalExportMap* GetLocalExportMap() const { return localExportMap; }
+        LocalExportMap* GetLocalExportMap() const { return localExportMapByExportName; }
         LocalExportIndexList* GetLocalExportIndexList() const { return localExportIndexList; }
         ResolvedExportMap* GetExportedNamesMap() const { return resolvedExportMap; }
     };

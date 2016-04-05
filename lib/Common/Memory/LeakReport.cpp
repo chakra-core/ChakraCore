@@ -164,7 +164,7 @@ LeakReport::LogUrl(char16 const * url, void * globalObject)
     size_t length = wcslen(url) + 1; // Add 1 for the NULL.
     char16* urlCopy = NoCheckHeapNewArray(char16, length);
     js_memcpy_s(urlCopy, (length - 1) * sizeof(char16), url, (length - 1) * sizeof(char16));
-    urlCopy[length - 1] = L'\0';
+    urlCopy[length - 1] = _u('\0');
 
     record->url = urlCopy;
     record->time = _time64(NULL);

@@ -145,12 +145,12 @@ namespace Js
                         int j = 0;
                         for (int i = 0; i < length; i++)
                         {
-                            if (callerString[i] != _u('\n') && callerString[i] != L'\r')
+                            if (callerString[i] != _u('\n') && callerString[i] != _u('\r'))
                             {
                                 outString[j++] = callerString[i];
                             }
                         }
-                        outString[j] = L'\0';
+                        outString[j] = _u('\0');
                     }
                     JS_ETW(EventWriteJSCRIPT_HOSTING_CALLER_TO_EXTERNAL(scriptContext, this, typeId, outString, callCount));
                     if (outString != callerString)

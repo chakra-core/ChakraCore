@@ -513,7 +513,7 @@ namespace Js
 
         char16* urlCopy = AnewArray(this->GeneralAllocator(), char16, length);
         js_memcpy_s(urlCopy, (length - 1) * sizeof(char16), bstrUrl, (length - 1) * sizeof(char16));
-        urlCopy[length - 1] = L'\0';
+        urlCopy[length - 1] = _u('\0');
 
         this->url = urlCopy;
 #ifdef LEAK_REPORT
@@ -1803,7 +1803,7 @@ namespace Js
                 Assert((loadScriptFlag & LoadScriptFlag_disableAsmJs) != LoadScriptFlag_disableAsmJs);
 
                 pse->Clear();
-
+                
                 loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
                 return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag);
             }
@@ -2327,7 +2327,7 @@ namespace Js
         size_t length = charCount + 1; // Add 1 for the NULL.
         char16* copy = AnewArray(alloc, char16, length);
         js_wmemcpy_s(copy, length, str, charCount);
-        copy[length - 1] = L'\0';
+        copy[length - 1] = _u('\0');
         return copy;
     }
 

@@ -90,7 +90,7 @@ namespace Js
         uint result = 0;
         for( uint i = 0; i != length; ++i )
         {
-            if( sz[i] == L'\0' ) ++result;
+            if( sz[i] == _u('\0') ) ++result;
         }
 
         return result;

@@ -122,36 +122,6 @@ namespace Js {
         throw NotImplementedException();
     }
 
-    // Returns true when the process is either TE.exe or TE.processhost.exe
-    bool Throw::IsTEProcess()
-    {
-        char16 fileName[_MAX_PATH];
-        char16 moduleName[_MAX_PATH];
-        GetModuleFileName(0, moduleName, _MAX_PATH);
-        errno_t err = _wsplitpath_s(moduleName, nullptr, 0, nullptr, 0, fileName, _MAX_PATH, nullptr, 0);
-
-        return err == 0 && _wcsnicmp(fileName, _u("TE"), 2) == 0;
-    }
-
-    void Throw::GenerateDumpAndTerminateProcess(PEXCEPTION_POINTERS exceptInfo)
-    {
-        if (!Throw::IsTEProcess()
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            && !Js::Configuration::Global.flags.IsEnabled(Js::DumpOnCrashFlag)
-#endif
-            )
-        {
-            return;
-        }
-
-#ifdef GENERATE_DUMP
-        Js::Throw::GenerateDump(exceptInfo, Js::Configuration::Global.flags.DumpOnCrash);
-#endif
-
-        // For now let's terminate the process.
-        TerminateProcess(GetCurrentProcess(), (UINT)DBG_TERMINATE_PROCESS);
-    }
-
 #ifdef GENERATE_DUMP
     CriticalSection Throw::csGenerateDump;
     void Throw::GenerateDump(LPCWSTR filePath, bool terminate, bool needLock)

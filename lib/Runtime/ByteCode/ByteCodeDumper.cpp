@@ -867,12 +867,14 @@ namespace Js
             case OpCode::StEnvObjSlot:
             case OpCode::StEnvSlotChkUndecl:
             case OpCode::StEnvObjSlotChkUndecl:
+            case OpCode::StModuleSlot:
                 Output::Print(_u(" [%d][%d] = R%d "),data->SlotIndex1, data->SlotIndex2, data->Value);
                 break;
             case OpCode::LdInnerSlot:
             case OpCode::LdInnerObjSlot:
             case OpCode::LdEnvSlot:
             case OpCode::LdEnvObjSlot:
+            case OpCode::LdModuleSlot:
                 Output::Print(_u(" R%d = [%d][%d] "),data->Value, data->SlotIndex1, data->SlotIndex2);
                 break;
             default:

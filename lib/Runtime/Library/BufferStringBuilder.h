@@ -68,7 +68,7 @@ namespace Js
     private:
         WritableString* m_string;
 #if DBG
-        static const char16 k_dbgFill = L'\xCDCD';
+        static const char16 k_dbgFill = _u('\xCDCD');
 #endif
     };
 

@@ -298,6 +298,9 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
         Visit(pnode->sxStrTemplate.pnodeSubstitutionExpressions, byteCodeGenerator, prefix, postfix);
         break;
     }
+    case knopExportDefault:
+        Visit(pnode->sxExportDefault.pnodeExpr, byteCodeGenerator, prefix, postfix);
+        break;
     // PTNODE(knopProg       , "program"    ,None    ,Fnc  ,fnopNone)
     case knopProg:
     {
@@ -5097,6 +5100,17 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             {
                 pnode->location = byteCodeGenerator->EnregisterStringTemplateCallsiteConstant(pnode);
             }
+            break;
+        }
+    case knopExportDefault:
+        {
+            ParseNode* expr = pnode->sxExportDefault.pnodeExpr;
+
+            if (expr != nullptr)
+            {
+                CheckMaybeEscapedUse(expr, byteCodeGenerator);
+            }
+
             break;
         }
     case knopYieldLeaf:

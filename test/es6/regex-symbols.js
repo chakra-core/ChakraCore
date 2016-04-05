@@ -118,20 +118,20 @@ function verifySymbolMethodRequiresThisToBeObject(symbol) {
     assert.throws(RegExp.prototype[symbol].bind(nonObject, ""), TypeError);
 }
 
-function withObservableRegExpSymbolSplit(callback) {
+function withObservableRegExp(callback) {
     var originalExec = RegExp.prototype.exec;
     helpers.withPropertyDeleted(RegExp.prototype, "exec", function () {
         var exec = function () {
             return originalExec.apply(this, arguments);
         }
-        Object.defineProperty(RegExp.prototype, "exec", {value: exec, configurable: true});
+        Object.defineProperty(RegExp.prototype, "exec", {writable: true, value: exec, configurable: true});
 
         callback();
     });
 }
 
 function verifySymbolSplitResult(assertResult, re, ...args) {
-    withObservableRegExpSymbolSplit(function () {
+    withObservableRegExp(function () {
         var result = re[Symbol.split](...args);
 
         assert.isTrue(result instanceof Array, "result type");
@@ -394,6 +394,390 @@ function createGenericTestsForSymbol(stringPropertyName, functionName, functionL
 }
 
 var tests = [
+    {
+        name: "RegExp.prototype[@@replace] should run the built-in 'replace' when 'replaceValue' is callable and none of the observable properties are overridden",
+        body: function () {
+            var re = /(-)=/g;
+            var passedCorrectArguments = false;
+            var callCount = 0;
+            var string = "a-=b-=c";
+            var replace = function (matched, capture1, position, stringArg) {
+                callCount += 1;
+                passedCorrectArguments =
+                    matched === "-=" &&
+                    capture1 === "-" &&
+                    (position === 1 || position === 4) &&
+                    stringArg === string;
+                return "*";
+            }
+
+            var result = re[Symbol.replace](string, replace);
+
+            assert.areEqual(2, callCount, "callCount");
+            assert.isTrue(passedCorrectArguments, "replace function arguments");
+            assert.areEqual("a*b*c", result, "result");
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should run the built-in 'replace' when 'replaceValue' isn\'t callable and none of the observable properties are overridden",
+        body: function () {
+            var pattern = "(-)=";
+            var string = "a-=b-=c";
+            var replace = "*$&$1";
+
+            function verify(assertMessagePrefix, expectedResult, flags) {
+                var re = new RegExp("(-)=", flags);
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual(expectedResult, result, assertMessagePrefix + ": result");
+            }
+
+            verify("non-global", "a*-=-b-=c", "");
+            verify("global", "a*-=-b*-=-c", "g");
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should not throw when 'replaceValue' is callable, and 'this' is an ordinary Object and it has 'exec'",
+        body: function () {
+            var re = {
+                exec: function () {
+                    return null;
+                }
+            };
+            var string = '';
+            var replace = function () {
+                return ;
+            }
+
+            assert.doesNotThrow(RegExp.prototype[Symbol.replace].bind(re, string, replace));
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should call 'replaceValue' to get the substitution when 'replaceValue' is callable",
+        body: function () {
+            var pattern = "(-)(=)";
+            var string = "a-=b-=c";
+            var replace = "*$&$1";
+
+            function verify(assertMessagePrefix, expectedResult, expectedCallCount, flags) {
+                withObservableRegExp(function () {
+                    var passedCorrectArguments = false;
+                    var callCount = 0;
+                    var re = new RegExp(pattern, flags);
+                    var replace = function (matched, capture1, capture2, position, stringArg) {
+                        callCount += 1;
+                        passedCorrectArguments =
+                            matched === "-=" &&
+                            capture1 === "-" &&
+                            capture2 === "=" &&
+                            (position === 1 || position === 4) &&
+                            stringArg === string;
+                        return "*";
+                    }
+
+                    var result = re[Symbol.replace](string, replace);
+
+                    assert.areEqual(expectedCallCount, callCount, assertMessagePrefix + ": callCount");
+                    assert.isTrue(passedCorrectArguments, assertMessagePrefix + ": replace function arguments");
+                    assert.areEqual(expectedResult, result, assertMessagePrefix + ": result");
+                })
+            }
+
+            verify("non-global", "a*b-=c", 1, "");
+            verify("global", "a*b*c", 2, "g");
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should 'Get' 'global' when it is overridden",
+        body: function () {
+            var re = /a-/;
+            re.lastIndex = 1; // Will be reset to 0 by RegExp.prototype[@@replace]
+            var string = "a-a-ba-";
+            var replace = "*";
+
+            var calledGlobal = false;
+            var getGlobal = function () {
+                calledGlobal = true;
+                return true;
+            };
+            Object.defineProperty(re, "global", {get: getGlobal});
+
+            var result = re[Symbol.replace](string, replace);
+
+            assert.isTrue(calledGlobal, "'global' getter is called");
+            assert.areEqual("**b*", result, "result")
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should coerce a missing 'global' to 'false'",
+        body: function () {
+            var re = /a-/g;
+            re.lastIndex = 1; // RegExpBuiltinExec will ignore this and start from 0
+            var string = "a-a-ba-";
+            var replace = "*";
+
+            var result;
+            helpers.withPropertyDeleted(RegExp.prototype, "global", function () {
+                result = re[Symbol.replace](string, replace);
+            });
+
+            assert.areEqual("*a-ba-", result, "result")
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should 'Get' 'unicode' when it is overridden",
+        body: function () {
+            var re = /(?:)/g;
+            var string = "";
+            var replace = "-";
+
+            var calledUnicode = false;
+            var getUnicode = function () {
+                calledUnicode = true;
+                return true;
+            };
+            Object.defineProperty(re, "unicode", {get: getUnicode});
+
+            re[Symbol.replace](string, replace);
+
+            assert.isTrue(calledUnicode, "'unicode' getter is called");
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should not replace anything when there is no match",
+        body: function () {
+            withObservableRegExp(function () {
+                var string = "a-b-c";
+
+                var result = /=/g[Symbol.replace](string, '*');
+
+                assert.areEqual(string, result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should advance the string index when the RegExp matches the empty string",
+        body: function () {
+            withObservableRegExp(function () {
+                var string = "abc";
+
+                var result = /(?:)/g[Symbol.replace](string, '-');
+
+                assert.areEqual("-a-b-c-", result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should replace the matched string with a plain 'replaceValue' string",
+        body: function () {
+            withObservableRegExp(function () {
+                var string = "a-=b-=c";
+                var replace = "*";
+
+                function verify(assertMessagePrefix, expectedResult, flags) {
+                    var re = new RegExp("-=", flags);
+
+                    var result = re[Symbol.replace](string, replace);
+
+                    assert.areEqual(expectedResult, result, assertMessagePrefix + ": result");
+                }
+
+                verify("non-global", "a*b-=c", "");
+                verify("global", "a*b*c", "g");
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should coerce 'replaceValue' to String when it isn't callable",
+        body: function () {
+            withObservableRegExp(function () {
+                var re = /-=/g;
+                var string = "a-=b-=c";
+                var replace = {
+                    toString: function () {
+                        return "*";
+                    }
+                };
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a*b*c", result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should replace the matched string with a 'replaceValue' referencing capture groups",
+        body: function () {
+            withObservableRegExp(function () {
+                var re = /(-)(=)/g;
+                var string = "a-=b-=c";
+                var replace = "*$1$2+";
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a*-=+b*-=+c", result);
+            });
+        }
+    },
+    {
+        // Spec leaves this up to the implementations. Since String.prototype.replace keeps a group
+        // reference as is when it is unknown, RegExp.prototype[@@replace] does the same.
+        name: "RegExp.prototype[@@replace] should keep an unknown referencing capture group as is",
+        body: function () {
+            withObservableRegExp(function () {
+                var re = /(-)/g;
+                var string = "a-b";
+                var replace = "*$2+";
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a*$2+b", result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should use the empty String in place of an 'undefined' referencing capture group",
+        body: function () {
+            withObservableRegExp(function () {
+                var re = /(-)|(=)/g;
+                var string = "a-b";
+                var replace = "*$2+";
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a*+b", result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should replace the matched string with a 'replaceValue' containing '$$'",
+        body: function () {
+            withObservableRegExp(function () {
+                var re = /-=/g;
+                var string = "a-=b-=c";
+                var replace = "*$$+";
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a*$+b*$+c", result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should replace the matched string with a 'replaceValue' containing '$&'",
+        body: function () {
+            withObservableRegExp(function () {
+                var re = /-=/g;
+                var string = "a-=b-=c";
+                var replace = "*$&+";
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a*-=+b*-=+c", result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should replace the matched string with a 'replaceValue' containing '$`'",
+        body: function () {
+            withObservableRegExp(function () {
+                var re = /-=/g;
+                var string = "a-=b-=c";
+                var replace = "*$`+";
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a*a+b*a-=b+c", result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should replace the matched string with a 'replaceValue' containing \"$'\"",
+        body: function () {
+            withObservableRegExp(function () {
+                var re = /-=/g;
+                var string = "a-=b-=c";
+                var replace = "*$'+";
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a*b-=c+b*c+c", result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should replace the matched string with a 'replaceValue' containing '$x'", // or $ together with anything that doesn't have a special meaning
+        body: function () {
+            withObservableRegExp(function () {
+                var re = /-=/g;
+                var string = "a-=b-=c";
+                var replace = "*$x+";
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a*$x+b*$x+c", result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should coerce a capture group to String",
+        body: function () {
+            withObservableRegExp(function () {
+                var re = /-=/;
+                var string = "a-=b";
+                var replace = "*$1+";
+                re.exec = function () {
+                    return {
+                        index: 1,
+                        length: 2,
+                        0: "-=",
+                        1: {
+                            toString: function () {
+                                return "-";
+                            }
+                        }
+                    };
+                }
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a*-+b", result);
+            });
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should ignore a replacement when 'exec' returns an invalid 'index'",
+        body: function () {
+                var re = /-=/g;
+                var string = "a-b--c";
+                var replace = "*";
+                var execResults = [
+                    {
+                        index: 3,
+                        length: 1,
+                        0: "-",
+                    },
+                    {
+                        index: 4,
+                        length: 1,
+                        0: "-",
+                    },
+                    {
+                        index: 1, // 'exec' isn't supposed to go backward
+                        length: 1,
+                        0: "-",
+                    },
+                    null
+                ];
+                var execResultIndex = 0;
+                re.exec = Array.prototype.shift.bind(execResults);
+
+                var result = re[Symbol.replace](string, replace);
+
+                assert.areEqual("a-b**c", result);
+        }
+    },
     {
         name: "RegExp.prototype[@@search] should run the built-in 'search' when the 'exec' property does not exist",
         body: function () {
@@ -831,6 +1215,10 @@ tests = tests.concat(
     createTestsForRegExpTypeWhenInvalidRegExpExec("@@match", Symbol.match),
     createTestsForBuiltInSymbolMethod("match", [], "@@match", Symbol.match),
     createTestsForSymbolToExecDelegation(testThisSameRegExp, "@@match", Symbol.match),
+
+    // replace
+    createGenericTestsForSymbol("replace", "[Symbol.replace]", 2, ["replaceValue"], "@@replace", Symbol.replace),
+    createTestsForSymbolToExecDelegation(testThisSameRegExp, "@@replace", Symbol.replace),
 
     // search
     createGenericTestsForSymbol("search", "[Symbol.search]", 1, [], "@@search", Symbol.search),
