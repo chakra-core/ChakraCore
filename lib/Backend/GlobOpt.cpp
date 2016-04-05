@@ -10462,7 +10462,8 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
 
     // Type specialize binary operators to int32
 
-    bool lossy = true;
+    bool src1Lossy = true;
+    bool src2Lossy = true;
     IR::BailOutKind bailOutKind = IR::BailOutInvalid;
     bool ignoredIntOverflow = this->ignoredIntOverflowForCurrentInstr;
     bool ignoredNegativeZero = false;
@@ -10746,7 +10747,8 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                     bailOutKind = IR::BailOutOnDivOfMinInt;
                 }
 
-                lossy = false;          // Detect -0 on the sources
+                src1Lossy = false;          // Detect -0 on the sources
+                src2Lossy = false;
 
                 opcode = Js::OpCode::Div_I4;
                 bailOutKind |= IR::BailOnDivResultNotInt;
@@ -10969,10 +10971,13 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
             // If one of the values is a float constant with a value that fits in a uint32 but not an int32, 
             // and the instruction can ignore int overflow, the source value for the purposes of int specialization 
             // would have been changed to an int constant value by ignoring overflow. But, the conversion is still lossy.
-            if (!(src1OriginalVal && src1OriginalVal->GetValueInfo()->IsFloatConstant() && src1Val && src1Val->GetValueInfo()->HasIntConstantValue()) &&
-                !(src2OriginalVal && src2OriginalVal->GetValueInfo()->IsFloatConstant() && src2Val && src2Val->GetValueInfo()->HasIntConstantValue()))
+            if (!(src1OriginalVal && src1OriginalVal->GetValueInfo()->IsFloatConstant() && src1Val && src1Val->GetValueInfo()->HasIntConstantValue()))
             {
-                lossy = false;
+                src1Lossy = false;
+            }
+            if (!(src2OriginalVal && src2OriginalVal->GetValueInfo()->IsFloatConstant() && src2Val && src2Val->GetValueInfo()->HasIntConstantValue()))
+            {
+                src2Lossy = false;
             }
 
             switch(instr->m_opcode)
@@ -11740,26 +11745,29 @@ LOutsideSwitch:
     }
 
     Value *src1ValueToSpecialize = src1Val, *src2ValueToSpecialize = src2Val;
-    if(lossy)
+    // Lossy conversions to int32 must be done based on the original source values. For instance, if one of the values is a
+    // float constant with a value that fits in a uint32 but not an int32, and the instruction can ignore int overflow, the
+    // source value for the purposes of int specialization would have been changed to an int constant value by ignoring
+    // overflow. If we were to specialize the sym using the int constant value, it would be treated as a lossless
+    // conversion, but since there may be subsequent uses of the same float constant value that may not ignore overflow,
+    // this must be treated as a lossy conversion by specializing the sym using the original float constant value.
+    if(src1Lossy)
     {
-        // Lossy conversions to int32 must be done based on the original source values. For instance, if one of the values is a
-        // float constant with a value that fits in a uint32 but not an int32, and the instruction can ignore int overflow, the
-        // source value for the purposes of int specialization would have been changed to an int constant value by ignoring
-        // overflow. If we were to specialize the sym using the int constant value, it would be treated as a lossless
-        // conversion, but since there may be subsequent uses of the same float constant value that may not ignore overflow,
-        // this must be treated as a lossy conversion by specializing the sym using the original float constant value.
         src1ValueToSpecialize = src1OriginalVal;
+    }
+    if (src2Lossy)
+    {
         src2ValueToSpecialize = src2OriginalVal;
     }
 
     // Make sure the srcs are specialized
     src1 = instr->GetSrc1();
-    this->ToInt32(instr, src1, this->currentBlock, src1ValueToSpecialize, nullptr, lossy);
+    this->ToInt32(instr, src1, this->currentBlock, src1ValueToSpecialize, nullptr, src1Lossy);
 
     if (!skipSrc2)
     {
         src2 = instr->GetSrc2();
-        this->ToInt32(instr, src2, this->currentBlock, src2ValueToSpecialize, nullptr, lossy);
+        this->ToInt32(instr, src2, this->currentBlock, src2ValueToSpecialize, nullptr, src2Lossy);
     }
 
     if(bailOutKind != IR::BailOutInvalid && !this->IsLoopPrePass())
