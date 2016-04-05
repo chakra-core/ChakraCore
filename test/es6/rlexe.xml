@@ -325,6 +325,13 @@
   </test>
   <test>
     <default>
+      <files>classes_bug_OS_7100885.js</files>
+      <compile-flags>-maxsimplejitruncount:4 -maxinterpretcount:4</compile-flags>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>ES6SubclassableBuiltins.js</files>
       <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Off:Deferparse -args summary -endargs</compile-flags>
     </default>
