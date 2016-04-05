@@ -336,13 +336,6 @@ void ThreadContext::GlobalInitialize()
     }
 }
 
-#if ENABLE_NATIVE_CODEGEN
-void ThreadContext::ReleasePreReservedSegment()
-{
-    preReservedVirtualAllocator.Shutdown();
-}
-#endif
-
 ThreadContext::~ThreadContext()
 {
     {
@@ -536,10 +529,6 @@ ThreadContext::~ThreadContext()
         this->projectionMemoryInformation = nullptr;
     }
 #endif
-#endif
-
-#if ENABLE_NATIVE_CODEGEN
-    ReleasePreReservedSegment();
 #endif
 }
 

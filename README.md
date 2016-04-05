@@ -1,46 +1,86 @@
-# ChakraCore with Time-Travel Debugging
+# ChakraCore
 
-This is a branch of [ChakraCore](https://github.com/Microsoft/ChakraCore) to support work on adding Time-Travel Debugging functionality to the Chakra JavaScript engine. The time-travel functionality adds reverse variations of the usual step forward operations provided by a debugger allowing a developer to rewind time to see the exact sequence of statements and program values leading to an error instead of going through the iterative process of re-setting breakpoints and reproducing the bug to narrow in on the source of the error.
+[![Join the chat at https://gitter.im/Microsoft/ChakraCore](https://badges.gitter.im/Microsoft/ChakraCore.svg)](https://gitter.im/Microsoft/ChakraCore?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-The technique used to implement the time-travel functionality is described in an OOPSLA 2014 [paper](http://research.microsoft.com/en-us/um/people/marron/selectpubs/TimeTravelDbg.pdf) and is based on a record/replay with state snapshots design. The current code contains snapshot/restore code for the JavaScript program state, code for record/replay of events from the JsRT host, and new JsRT debugger API's that support time-travel debugging operations. Work is ongoing to complete the snapshot/inflate code and the addition of record/replay hooks to the JsRT API. 
+ChakraCore is the core part of Chakra, the high-performance JavaScript engine that powers Microsoft Edge and Windows applications written in HTML/CSS/JS.  ChakraCore supports Just-in-time (JIT) compilation of JavaScript for x86/x64/ARM, garbage collection, and a wide range of the latest JavaScript features.  ChakraCore also supports the [JavaScript Runtime (JSRT) APIs](https://github.com/Microsoft/ChakraCore/wiki/JavaScript-Runtime-%28JSRT%29-Overview), which allows you to easily embed ChakraCore in your applications.
 
-A demo video of an earlier experimental prototype of the the idea running with Node.js can be seen in the OSS announcement [video](https://youtu.be/1bfDB3YPHFI). You can stay up-to-date on progress by following the [MSEdge developer blog](http://blogs.windows.com/msedgedev/) or [@ChakraCore](https://twitter.com/ChakraCore) on Twitter.
+You can stay up-to-date on progress by following the [MSEdge developer blog](https://blogs.windows.com/msedgedev/).
 
-## Building TTD ChakraCore
+## [Build Status](https://github.com/Microsoft/ChakraCore/wiki/Build-Status)
 
-You can build ChakraCore on Windows 7 SP1 or above with either Visual Studio 2013 or 2015 with C++ support installed.  Once you have Visual Studio installed:
+|         | __Debug__ | __Test__ | __Release__ |
+|:-------:|:---------:|:--------:|:-----------:|
+| __x86__ | [![x86debug][x86dbgicon]][x86dbglink] | [![x86test][x86testicon]][x86testlink] | [![x86release][x86relicon]][x86rellink] |
+| __x64__ | [![x64debug][x64dbgicon]][x64dbglink] | [![x64test][x64testicon]][x64testlink] | [![x64release][x64relicon]][x64rellink] |
+| __arm__ | [![armdebug][armdbgicon]][armdbglink] | [![armtest][armtesticon]][armtestlink] | [![armrelease][armrelicon]][armrellink] |
 
-* Clone ChakraCore through ```git clone https://github.com/Microsoft/ChakraCore.git``` and switch to the TimeTravelDebugging branch
-* Open `Build\Chakra.Core.sln` in Visual Studio
-* Build Solution (x86 with debug or test configurations)
+[x86dbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/badge/icon
+[x86dbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/
+[x86testicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_test/badge/icon
+[x86testlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_test/
+[x86relicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_release/badge/icon
+[x86rellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_release/
 
-More details in [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Building-ChakraCore).
+[x64dbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/badge/icon
+[x64dbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/
+[x64testicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_test/badge/icon
+[x64testlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_test/
+[x64relicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_release/badge/icon
+[x64rellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_release/
 
-## Using TTD ChakraCore
+[armdbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/badge/icon
+[armdbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/
+[armtesticon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_test/badge/icon
+[armtestlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_test/
+[armrelicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_release/badge/icon
+[armrellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_release/
 
-At this point you can experiment with basic time-travel functionality in TTD ChakraCore by using the *ch.exe* binary. This app is a lightweight hosting of JsRT where you can run small applications.  After building, you can find this binary in: `Build\VcBuild\bin\[platform+output]`  (eg. `Build\VcBuild\bin\x86_debug`). Using the ch.exe application you can record the execution of a program execution using the command `ch.exe -TTRecord:[logDirectoryPath] yourSrc.js` (or use `-TTRecord:!default` for a temp default location). To time-travel debug this execution you can launch ch.exe with the command line flag `ch.exe -TTDebug:[logDirectoryPath]` (or `-TTDebug:!default` for the temp default location) which starts the time-travel execution and launches a simple command line debugger to experiemnt with. You can find more usage examples in the unit-test directory `test\TTBasic\`,  `test\TTExecuteBasic\`, and  `test\TTDebuggerBasic\`.
+Above is a table of our rolling build status. We run additional builds on a daily basis. See [Build Status](https://github.com/Microsoft/ChakraCore/wiki/Build-Status) for the status of all builds.
+
+## Security
+
+If you believe you have found a security issue in ChakraCore, please share it with us privately following the guidance at the Microsoft [Security TechCenter](https://technet.microsoft.com/en-us/security/ff852094). Reporting it via this channel helps minimize risk to projects built with ChakraCore.
 
 ## Documentation
 
-* [OOPSLA 2014  research paper](http://research.microsoft.com/en-us/um/people/marron/selectpubs/TimeTravelDbg.pdf)
 * [ChakraCore Architecture](https://github.com/Microsoft/ChakraCore/wiki/Architecture-Overview)
+* [Quickstart Embedding ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Embedding-ChakraCore)
+* [JSRT Reference](https://github.com/Microsoft/ChakraCore/wiki/JavaScript-Runtime-%28JSRT%29-Reference)
 * [Contribution guidelines](CONTRIBUTING.md)
 * [Blogs, talks and other resources](https://github.com/Microsoft/ChakraCore/wiki/Resources)
 
+## Building ChakraCore
+
+You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 or above, with either Visual Studio 2013 or 2015 with C++ support installed.  Once you have Visual Studio installed:
+
+* Clone ChakraCore through ```git clone https://github.com/Microsoft/ChakraCore.git```
+* Open `Build\Chakra.Core.sln` in Visual Studio
+* Build Solution
+
+More details in [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Building-ChakraCore).
+
+## Using ChakraCore
+
+Once built, you have a few options for how you can use ChakraCore:
+
+* The most basic is to test the engine is running correctly with the *ch.exe* binary.  This app is a lightweight hosting of JSRT that you can use to run small applications.  After building, you can find this binary in: `Build\VcBuild\bin\[platform+output]`  (eg. `Build\VcBuild\bin\x64_debug`)
+* You can [embed ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Embedding-ChakraCore) in your applications - see [documentation](https://github.com/Microsoft/ChakraCore/wiki/Embedding-ChakraCore) and [samples](http://aka.ms/chakracoresamples).
+* Finally, you can also use ChakraCore as the JavaScript engine in Node.  You can learn more by reading how to use [Chakra as Node's JS engine](https://github.com/Microsoft/node)
+
+_A note about using ChakraCore_: ChakraCore is the foundational JavaScript engine, but it does not include the external APIs that make up the modern JavaScript development experience.  For example, DOM APIs like ```document.write()``` are additional APIs that are not available by default and would need to be provided.  For debugging, you may instead want to use ```print()```.
+
 ## Contribute
 
-Contributions to ChakraCore TTD (and ChakraCore) are welcome.  Here is how you can contribute:
+Contributions to ChakraCore are welcome.  Here is how you can contribute to ChakraCore:
 
-* Submit pull requests to help complete TTD implementation or add new features
-* Submit bugs to [ChakraCore](https://github.com/Microsoft/ChakraCore/issues) and help verify fixes
+* [Submit bugs](https://github.com/Microsoft/ChakraCore/issues) and help us verify fixes
+* [Submit pull requests](https://github.com/Microsoft/ChakraCore/pulls) for bug fixes and features and discuss existing proposals
 * Chat about [@ChakraCore](https://twitter.com/ChakraCore) on Twitter
 
-Please refer to [Contribution guidelines](CONTRIBUTING.md) for more details.
-
-As this work started as an academic research project in the [RiSE](http://research.microsoft.com/en-us/groups/rise/default.aspx) group at [Microsoft Research](http://research.microsoft.com/en-us/default.aspx) we are also excited to support continued research and experimentation based on TTD ChakraCore code.
+Please refer to [Contribution guidelines](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) for more details.
 
 ## Roadmap
 For details on our planned features and future direction please refer to our [roadmap](https://github.com/Microsoft/ChakraCore/wiki/Roadmap).
 
 ## Contact us
-For questions about ChakraCore, please open an [issue](https://github.com/Microsoft/ChakraCore/issues/new) and prefix the issue title with [Question]. 
+For questions about ChakraCore, you can reach us on [Gitter](https://gitter.im/Microsoft/ChakraCore) or open an [issue](https://github.com/Microsoft/ChakraCore/issues/new) and prefix the issue title with [Question]. See [Question](https://github.com/Microsoft/ChakraCore/issues?q=label%3AQuestion) tag for already-opened questions.

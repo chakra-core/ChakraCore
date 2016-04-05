@@ -699,8 +699,6 @@ namespace Js
             return boxedFunction;
         }
 
-        Assert(functionObjectToBox.Contains(stackFunction->GetFunctionProxy()->GetFunctionProxy()));
-
         if (PHASE_TESTTRACE(Js::StackFuncPhase, stackFunction->GetFunctionProxy()))
         {
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];

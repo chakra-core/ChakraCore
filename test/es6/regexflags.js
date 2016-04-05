@@ -55,13 +55,6 @@ function generatePrototypeFlagsTests() {
     return Array.prototype.concat.apply([], testsGroupedByFlag);
 }
 
-function verifyToStringFlags(re, overriddenFlags, expectedFlags) {
-    Object.defineProperty(re, 'flags', {value: overriddenFlags});
-    var str = re.toString();
-    var [, , returnedFlags] = str.split('/');
-    assert.areEqual(expectedFlags, returnedFlags, "flags");
-}
-
 var tests = [
     {
         name: "Test sticky and unicode getter on RegExp.prototype",
@@ -246,31 +239,6 @@ var tests = [
                 global: true
             };
             assert.areEqual("gimuy", bindFlagsGetter(object)());
-        }
-    },
-    {
-        name: "RegExp.prototype.toString should use the 'flags' property",
-        body: function () {
-            var overriddenFlags = 'imy';
-            var expectedFlags = overriddenFlags;
-            verifyToStringFlags(/./g, overriddenFlags, expectedFlags);
-        }
-    },
-    {
-        name: "RegExp.prototype.toString should coerce the 'flags' property to String",
-        body: function () {
-            var overriddenFlags = 1;
-            var expectedFlags = overriddenFlags.toString();
-            verifyToStringFlags(/./g, overriddenFlags, expectedFlags);
-        }
-    },
-    {
-        name: "RegExp.prototype.toString should use the 'flags' property from a RegExp subclass",
-        body: function () {
-            class Subclass extends RegExp {}
-            var overriddenFlags = 'imy';
-            var expectedFlags = overriddenFlags;
-            verifyToStringFlags(new Subclass(), overriddenFlags, expectedFlags)
         }
     },
 ];

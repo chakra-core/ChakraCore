@@ -198,7 +198,6 @@ private:
     BOOL                m_uncertainStructure;
     bool                m_hasParallelJob;
     bool                m_doingFastScan;
-    Span                m_asgToConst;
     int                 m_nextBlockId;
 
     // RegexPattern objects created for literal regexes are recycler-allocated and need to be kept alive until the function body
@@ -355,6 +354,7 @@ private:
     ParseNodePtr m_currentNodeDeferredFunc; // current function or NULL
     ParseNodePtr m_currentNodeProg; // current program
     DeferredFunctionStub *m_currDeferredStub;
+    DeferredFunctionStub *m_prevSiblingDeferredStub;
     long * m_pCurrentAstSize;
     ParseNodePtr * m_ppnodeScope;  // function list tail
     ParseNodePtr * m_ppnodeExprScope; // function expression list tail
@@ -481,7 +481,7 @@ private:
 
     void MarkEvalCaller()
     {
-        if (m_currentNodeFunc)
+        if (this->GetCurrentFunctionNode())
         {
             ParseNodePtr pnodeFunc = GetCurrentFunctionNode();
             pnodeFunc->sxFnc.SetCallsEval(true);
@@ -929,7 +929,6 @@ public:
 
 private:
     void DeferOrEmitPotentialSpreadError(ParseNodePtr pnodeT);
-    template<bool buildAST> void TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken, charcount_t ichMin, charcount_t ichLim);
     PidRefStack* PushPidRef(IdentPtr pid);
     PidRefStack* FindOrAddPidRef(IdentPtr pid, int blockId, int maxScopeId = -1);
     void RemovePrevPidRef(IdentPtr pid, PidRefStack *lastRef);

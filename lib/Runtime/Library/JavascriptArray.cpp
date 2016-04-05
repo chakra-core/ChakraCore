@@ -9125,21 +9125,17 @@ Case0:
                     if (newArr)
                     {
                         newArr->DirectSetItemAt(i, element);
-                        ++i;
                     }
                     else
                     {
                         JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), i, element);
-                        ++i;
                     }
+                    ++i;
                 }
             }
         }
         else
         {
-            // If source was not an array object, we will always return an array object
-            Assert(newArr);
-
             for (BigIndex k = 0u; k < length; ++k)
             {
                 if (!JavascriptOperators::HasItem(dynamicObject, k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex()))
@@ -9155,7 +9151,14 @@ Case0:
 
                 if (JavascriptConversion::ToBoolean(selected, scriptContext))
                 {
-                    newArr->DirectSetItemAt(i, element);
+                    if (newArr)
+                    {
+                        newArr->DirectSetItemAt(i, element);
+                    }
+                    else
+                    {
+                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), i, element);
+                    }
                     ++i;
                 }
             }

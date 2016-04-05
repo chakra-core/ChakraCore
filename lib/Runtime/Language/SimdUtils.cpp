@@ -5,12 +5,6 @@
 
 #include "RuntimeLanguagePch.h"
 
-
-#if _M_IX86 || _M_AMD64
-// auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
-_x86_SIMDValue X86_TEMP_SIMD[] = { { 0, 0, 0, 0 },{ 0, 0, 0, 0 },{ 0, 0, 0, 0 } };
-#endif
-
 namespace Js
 {
     bool IsSimdType(Var aVar)

@@ -443,13 +443,17 @@ IR::Instr* LowererMD::Simd128LowerConstructor_16(IR::Instr *instr)
 {
     IR::Opnd* dst = nullptr;
     IR::Opnd* srcs[16];
-
     //Simd128_IntsToI16/U16/B16
     Assert(instr->m_opcode == Js::OpCode::Simd128_IntsToU16 || instr->m_opcode == Js::OpCode::Simd128_IntsToI16 || instr->m_opcode == Js::OpCode::Simd128_IntsToB16);
     SList<IR::Opnd*> *args = Simd128GetExtendedArgs(instr);
-    uint8 *tempSIMD = (uint8*)&(X86_TEMP_SIMD[0]);
+    uint8 *tempSIMD = (uint8*)(instr->m_func->GetScriptContext()->GetThreadContext()->GetSimdTempArea());
+#if DBG
+    // using only one SIMD temp
+    intptr_t endAddrSIMD = (intptr_t)(tempSIMD + sizeof(X86SIMDValue));
+#endif
+    void * address;
     IR::Instr * newInstr;
-    // The number of src opnds should be exact. If opnds are missing, they should be filled in by globopt during type-spec.
+
     Assert(args->Count() == 17);
     dst = args->Pop();
 
@@ -461,6 +465,9 @@ IR::Instr* LowererMD::Simd128LowerConstructor_16(IR::Instr *instr)
         srcs[i] = EnregisterIntConst(instr, srcs[i], TyInt8);
         Assert(srcs[i]->GetType() == TyInt8 && srcs[i]->IsRegOpnd());
 
+        address = (void*)(tempSIMD + i);
+        // check for buffer overrun
+        Assert((intptr_t)address < endAddrSIMD);
         // MOV [temp + i], src[i] (TyInt8)
         newInstr = IR::Instr::New(Js::OpCode::MOV, IR::MemRefOpnd::New((void*)(tempSIMD + i), TyInt8, m_func), srcs[i], m_func);
         instr->InsertBefore(newInstr);
@@ -735,7 +742,12 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
             if (laneType == TyInt8)
             {
                 IR::RegOpnd * tmp = IR::RegOpnd::New(TyInt8, m_func);
-                newInstr = IR::Instr::New(Js::OpCode::MOV, tmp, dst, m_func);
+#ifdef _M_IX86
+                tmp->SetReg(RegEBX);
+#else
+                tmp->SetReg(RegRBX);
+#endif
+                newInstr = IR::Instr::New(Js::OpCode::MOV, tmp->UseWithNewType(TyInt32, m_func), dst, m_func);
                 instr->InsertBefore(newInstr);
                 newInstr = IR::Instr::New(Js::OpCode::MOVSX, dst, tmp, m_func);
             }
@@ -758,7 +770,11 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
     {
         IR::Instr* pInstr    = nullptr;
         IR::RegOpnd* tmp = IR::RegOpnd::New(TyInt8, m_func);
-
+#ifdef _M_IX86
+        tmp->SetReg(RegEBX);
+#else
+        tmp->SetReg(RegRBX);
+#endif
         // cmp      dst, -1
         pInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
         pInstr->SetSrc1(dst);
@@ -766,8 +782,8 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         instr->InsertBefore(pInstr);
         Legalize(pInstr);
 
-        // mov     tmp(TyInt8), dst
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp, dst, m_func));
+        // mov     tmp(TyInt32), dst
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp->UseWithNewType(TyInt32, m_func), dst, m_func));
 
         // sete     tmp(TyInt8)
         pInstr = IR::Instr::New(Js::OpCode::SETE, tmp, tmp, m_func);
@@ -1327,7 +1343,11 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
         IR::RegOpnd * shamtReg = IR::RegOpnd::New(TyInt8, m_func);
         shamtReg->SetReg(LowererMDArch::GetRegShiftCount());
         IR::RegOpnd * tmp = IR::RegOpnd::New(TyInt8, m_func);
-
+#ifdef _M_IX86
+        tmp->SetReg(RegEBX);
+#else
+        tmp->SetReg(RegRBX);
+#endif
         // MOVAPS   dst, src1
         instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVAPS, dst, src1, m_func));
         // MOV      reg2, 0FFh
@@ -1337,10 +1357,10 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
         // SHR      reg2, shamtReg (lower 8 bit)
         instr->InsertBefore(IR::Instr::New(Js::OpCode::SHR, reg2, reg2, shamtReg, m_func));
 
-        // MOV      tmp(TyInt8), reg2
+        // MOV      tmp, reg2
         // MOVSX    reg2, tmp(TyInt8)
 
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp, reg2, m_func));
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp->UseWithNewType(TyInt32, m_func), reg2, m_func));
 
         instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVSX, reg2, tmp, m_func));
         IR::RegOpnd *mask = IR::RegOpnd::New(TySimd128I4, m_func);
@@ -1417,9 +1437,7 @@ IR::Instr* LowererMD::SIMD128LowerReplaceLane_8(IR::Instr* instr)
 IR::Instr* LowererMD::SIMD128LowerReplaceLane_16(IR::Instr* instr)
 {
     SList<IR::Opnd*> *args = Simd128GetExtendedArgs(instr);
-
     int lane = 0;
-
     IR::Opnd *dst = args->Pop();
     IR::Opnd *src1 = args->Pop();
     IR::Opnd *src2 = args->Pop();
@@ -1429,22 +1447,34 @@ IR::Instr* LowererMD::SIMD128LowerReplaceLane_16(IR::Instr* instr)
     Assert(dst->IsSimd128() && src1->IsSimd128());
 
     lane = src2->AsIntConstOpnd()->AsInt32();
+    Assert(lane >= 0 && lane < 16);
 
     IR::Opnd* laneValue = EnregisterIntConst(instr, src3, TyInt8);
-    uint8 *tempSIMD = (uint8*) &(X86_TEMP_SIMD[0]);
+    uint8 *tempSIMD = (uint8*)(instr->m_func->GetScriptContext()->GetThreadContext()->GetSimdTempArea());
+#if DBG
+    // using only one SIMD temp
+    intptr_t endAddrSIMD = (intptr_t) (tempSIMD + sizeof(X86SIMDValue));
+#endif
+    void *address = nullptr;
 
     Assert(instr->m_opcode == Js::OpCode::Simd128_ReplaceLane_I16 || instr->m_opcode == Js::OpCode::Simd128_ReplaceLane_U16 || instr->m_opcode == Js::OpCode::Simd128_ReplaceLane_B16);
-
     // MOVUPS [temp], src1
-    newInstr = IR::Instr::New(Js::OpCode::MOVUPS, IR::MemRefOpnd::New((void*)tempSIMD, TySimd128I16, m_func), src1, m_func);
+    address = (void*)tempSIMD;
+    newInstr = IR::Instr::New(Js::OpCode::MOVUPS, IR::MemRefOpnd::New(address, TySimd128I16, m_func), src1, m_func);
     instr->InsertBefore(newInstr);
     Legalize(newInstr);
+
     // MOV [temp+offset], laneValue
-    newInstr = IR::Instr::New(Js::OpCode::MOV, IR::MemRefOpnd::New((void*)(tempSIMD + lane), TyInt8, m_func), laneValue, m_func);
+    address = (void*)(tempSIMD + lane);
+    // check for buffer overrun
+    Assert((intptr_t)address < endAddrSIMD);
+    newInstr = IR::Instr::New(Js::OpCode::MOV, IR::MemRefOpnd::New(address, TyInt8, m_func), laneValue, m_func);
     instr->InsertBefore(newInstr);
     Legalize(newInstr);
+
     // MOVUPS dst, [temp]
-    newInstr = IR::Instr::New(Js::OpCode::MOVUPS, dst, IR::MemRefOpnd::New((void*)tempSIMD, TySimd128I16, m_func), m_func);
+    address = (void*)tempSIMD;
+    newInstr = IR::Instr::New(Js::OpCode::MOVUPS, dst, IR::MemRefOpnd::New(address, TySimd128I16, m_func), m_func);
     instr->InsertBefore(newInstr);
     Legalize(newInstr);
 
@@ -1756,8 +1786,14 @@ IR::Instr* LowererMD::Simd128LowerShuffle(IR::Instr* instr)
     uint8 lanes[16], laneCount = 0, scale = 1;
     bool isShuffle = false;
     IRType laneType = TyInt16;
-    uint8 *tempSIMD = (uint8*) &(X86_TEMP_SIMD[0]);
-    uint8 *dstSIMD = (uint8*) &(X86_TEMP_SIMD[2]);
+    X86SIMDValue * const tempSIMD = (instr->m_func->GetScriptContext()->GetThreadContext()->GetSimdTempArea());
+    uint8 *temp1SIMD = (uint8 *) (&tempSIMD[0]);
+    uint8 *temp2SIMD = (uint8 *) (&tempSIMD[1]);
+    uint8 *dstSIMD   = (uint8 *) (&tempSIMD[2]);
+#if DBG
+    intptr_t endAddrSIMD = (intptr_t)(temp1SIMD + sizeof(X86SIMDValue) * SIMD_TEMP_SIZE);
+#endif
+    void *address = nullptr;
     args = Simd128GetExtendedArgs(instr);
 
     switch (irOpcode)
@@ -1783,6 +1819,7 @@ IR::Instr* LowererMD::Simd128LowerShuffle(IR::Instr* instr)
         Assert(args->Count() == 11);
         laneCount = 8;
         isShuffle = true;
+        laneType = TyUint16;
         scale = 2;
         break;
         case Js::OpCode::Simd128_Shuffle_I16:
@@ -1790,6 +1827,7 @@ IR::Instr* LowererMD::Simd128LowerShuffle(IR::Instr* instr)
         Assert(args->Count() == 19);
         laneCount = 16;
         isShuffle = true;
+        laneType = TyUint8;
         scale = 1;
         break;
     default:
@@ -1813,26 +1851,30 @@ IR::Instr* LowererMD::Simd128LowerShuffle(IR::Instr* instr)
     }
 
     // MOVUPS [temp], src1
-    newInstr = IR::Instr::New(Js::OpCode::MOVUPS, IR::MemRefOpnd::New((void*)tempSIMD, TySimd128I16, m_func), src1, m_func);
+    newInstr = IR::Instr::New(Js::OpCode::MOVUPS, IR::MemRefOpnd::New((void*)temp1SIMD, TySimd128I16, m_func), src1, m_func);
     instr->InsertBefore(newInstr);
     Legalize(newInstr);
     if (isShuffle)
     {
         // MOVUPS [temp+16], src2
-        newInstr = IR::Instr::New(Js::OpCode::MOVUPS, IR::MemRefOpnd::New((void*)(tempSIMD + sizeof(X86SIMDValue)), TySimd128I16, m_func), src2, m_func);
+        newInstr = IR::Instr::New(Js::OpCode::MOVUPS, IR::MemRefOpnd::New((void*)(temp2SIMD), TySimd128I16, m_func), src2, m_func);
         instr->InsertBefore(newInstr);
         Legalize(newInstr);
     }
     for (uint i = 0; i < laneCount; i++)
     {
-        //. MOV tmp, [tempSIMD + laneValue*scale]
+        //. MOV tmp, [temp1SIMD + laneValue*scale]
         IR::RegOpnd *tmp = IR::RegOpnd::New(laneType, m_func);
-        newInstr = IR::Instr::New(Js::OpCode::MOV, tmp, IR::MemRefOpnd::New((void*)(tempSIMD + lanes[i] * scale), laneType, m_func), m_func);
+        address = (void*)(temp1SIMD + lanes[i] * scale);
+        Assert((intptr_t)address + (intptr_t)scale <= (intptr_t)dstSIMD);
+        newInstr = IR::Instr::New(Js::OpCode::MOV, tmp, IR::MemRefOpnd::New(address, laneType, m_func), m_func);
         instr->InsertBefore(newInstr);
         Legalize(newInstr);
 
         //. MOV [dstSIMD + i*scale], tmp
-        newInstr = IR::Instr::New(Js::OpCode::MOV,IR::MemRefOpnd::New((void*)(dstSIMD + i * scale), laneType, m_func), tmp, m_func);
+        address = (void*)(dstSIMD + i * scale);
+        Assert((intptr_t)address + (intptr_t) scale <= endAddrSIMD);
+        newInstr = IR::Instr::New(Js::OpCode::MOV,IR::MemRefOpnd::New(address, laneType, m_func), tmp, m_func);
         instr->InsertBefore(newInstr);
         Legalize(newInstr);
     }
@@ -2441,8 +2483,12 @@ IR::Instr* LowererMD::Simd128LowerAllTrue(IR::Instr* instr)
     Assert(dst->IsRegOpnd() && dst->IsInt32());
     Assert(src1->IsRegOpnd() && src1->IsSimd128());
 
-    IR::Opnd * tmp = IR::RegOpnd::New(TyInt8, m_func);
-
+    IR::RegOpnd * tmp = IR::RegOpnd::New(TyInt8, m_func);
+#ifdef _M_IX86
+    tmp->SetReg(RegEBX);
+#else
+    tmp->SetReg(RegRBX);
+#endif
     // pmovmskb dst, src1
     pInstr = IR::Instr::New(Js::OpCode::PMOVMSKB, dst, src1, m_func);
     instr->InsertBefore(pInstr);
@@ -2454,8 +2500,8 @@ IR::Instr* LowererMD::Simd128LowerAllTrue(IR::Instr* instr)
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 
-    // mov     tmp(TyInt8), dst
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp, dst, m_func));
+    // mov     tmp(TyInt32), dst
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp->UseWithNewType(TyInt32, m_func), dst, m_func));
 
     // sete    tmp(TyInt8)
     pInstr = IR::Instr::New(Js::OpCode::SETE, tmp, tmp, m_func);

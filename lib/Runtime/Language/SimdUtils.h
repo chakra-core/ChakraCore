@@ -28,7 +28,7 @@
     uint8   u8[16];\
     float   f32[4];\
     double  f64[2];
-
+#define SIMD_TEMP_SIZE 3
 struct _SIMDValue
 {
     union{

@@ -1628,6 +1628,7 @@ StoreCommon:
             case OpCode::LdLocalSlot:
             case OpCode::LdParamSlot:
             case OpCode::LdLocalObjSlot:
+            case OpCode::LdParamObjSlot:
                 if ((DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) || DoDynamicProfileOpcode(FloatTypeSpecPhase)) &&
                     profileId != Constants::NoProfileId)
                 {

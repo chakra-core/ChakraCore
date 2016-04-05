@@ -5,6 +5,20 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
+function verifyToStringSource(re, overriddenSource, expectedSource) {
+    Object.defineProperty(re, 'source', {value: overriddenSource});
+    var str = re.toString();
+    var [, returnedSource,] = str.split('/');
+    assert.areEqual(expectedSource, returnedSource, "source");
+}
+
+function verifyToStringFlags(re, overriddenFlags, expectedFlags) {
+    Object.defineProperty(re, 'flags', {value: overriddenFlags});
+    var str = re.toString();
+    var [, , returnedFlags] = str.split('/');
+    assert.areEqual(expectedFlags, returnedFlags, "flags");
+}
+
 function flattenArray(array) {
     return Array.prototype.concat.apply([], array);
 }
@@ -79,5 +93,70 @@ tests = tests.concat(nonGenericPropertyNames.map(function (name) {
         }
     };
 }));
+tests = tests.concat([
+    {
+        name: "RegExp.prototype.toString should be generic",
+        body: function () {
+            var re = {
+                source: "source",
+                flags: "gi"
+            };
+
+            var string = RegExp.prototype.toString.call(re);
+
+            assert.areEqual("/source/gi", string);
+        }
+    },
+    {
+        name: "RegExp.prototype.toString should use the string 'undefined' when the 'source' property is missing",
+        body: function () {
+            var overriddenSource = undefined;
+            var expectedSource = "undefined";
+            verifyToStringSource(/source/, overriddenSource, expectedSource);
+        }
+    },
+    {
+        name: "RegExp.prototype.toString should coerce the 'source' property to String",
+    body: function () {
+            var overriddenSource = 1;
+            var expectedSource = overriddenSource.toString();
+            verifyToStringSource(/source/, overriddenSource, expectedSource);
+        }
+    },
+    {
+        name: "RegExp.prototype.toString should use the 'source' property from a RegExp subclass",
+        body: function () {
+            class Subclass extends RegExp {}
+            var overriddenSource = "source";
+            var expectedSource = overriddenSource;
+            verifyToStringSource(new Subclass(), overriddenSource, expectedSource);
+        }
+    },
+    {
+        name: "RegExp.prototype.toString should use the string 'undefined' when the 'flags' property is missing",
+        body: function () {
+            var overriddenFlags = undefined;
+            var expectedFlags = "undefined";
+            verifyToStringFlags(/./g, overriddenFlags, expectedFlags);
+        }
+    },
+    {
+        name: "RegExp.prototype.toString should coerce the 'flags' property to String",
+        body: function () {
+            var overriddenFlags = 1;
+            var expectedFlags = overriddenFlags.toString();
+            verifyToStringFlags(/./g, overriddenFlags, expectedFlags);
+        }
+    },
+    {
+        name: "RegExp.prototype.toString should use the 'flags' property from a RegExp subclass",
+        body: function () {
+            class Subclass extends RegExp {}
+            var overriddenFlags = 'imy';
+            var expectedFlags = overriddenFlags;
+            verifyToStringFlags(new Subclass(), overriddenFlags, expectedFlags)
+        }
+    },
+]);
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != 'summary' });

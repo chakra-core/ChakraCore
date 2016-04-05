@@ -1392,12 +1392,18 @@ NativeCodeGenerator::Process(JsUtil::Job *const job, JsUtil::ParallelThreadData 
             CodeGen(pageAllocator, codeGenWork, foreground);
             return true;
         }
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        job->failureReason = Job::FailureReason::ExceedJITLimit;
+#endif
         return false;
     }
 
     default:
         Assume(UNREACHED);
     }
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    job->failureReason = Job::FailureReason::Unknown;
+#endif
     return false;
 }
 
@@ -1558,9 +1564,11 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                 switch (job->failureReason)
                 {
-                case Job::FailureReason::OOM: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CodeGenFailedOOM); break;
-                case Job::FailureReason::StackOverflow: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CodeGenFailedStackOverflow); break;
-                case Job::FailureReason::Aborted: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CodeGenFailedAborted); break;
+                case Job::FailureReason::OOM: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedOOM); break;
+                case Job::FailureReason::StackOverflow: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedStackOverflow); break;
+                case Job::FailureReason::Aborted: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedAborted); break;
+                case Job::FailureReason::ExceedJITLimit: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedExceedJITLimit); break;
+                case Job::FailureReason::Unknown: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedUnknown); break;
                 default: Assert(job->failureReason == Job::FailureReason::NotFailed);
                 }
 #endif

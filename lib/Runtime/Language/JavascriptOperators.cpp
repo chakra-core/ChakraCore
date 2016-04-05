@@ -2372,7 +2372,7 @@ CommonNumber:
                     Assert((flags & Data) == Data && (flags & Writable) == None);
                     if (flags & Const)
                     {
-                        JavascriptError::ThrowReferenceError(requestContext, ERRAssignmentToConst);
+                        JavascriptError::ThrowTypeError(requestContext, ERRAssignmentToConst);
                     }
 
                     JavascriptError::ThrowCantAssign(propertyOperationFlags, requestContext, propertyId);
@@ -2782,7 +2782,7 @@ CommonNumber:
                     {
                         if (flags & Const)
                         {
-                            JavascriptError::ThrowReferenceError(scriptContext, ERRAssignmentToConst);
+                            JavascriptError::ThrowTypeError(scriptContext, ERRAssignmentToConst);
                         }
 
                         Assert(!isLexicalThisSlotSymbol);
@@ -8181,18 +8181,16 @@ CommonNumber:
         __analysis_assume(index < EQUIVALENT_TYPE_CACHE_SIZE);
         equivTypes[index] = type;
 
-        if (cache->HasFixedValue())
+        // Fixed field checks allow us to assume a specific type ID, but the assumption is only
+        // valid if we lock the type. Otherwise, the type ID may change out from under us without
+        // evolving the type.
+        // We also need to lock the type in case of, for instance, adding a property to a dictionary type handler.
+        if (DynamicType::Is(type->GetTypeId()))
         {
-            // Fixed field checks allow us to assume a specific type ID, but the assumption is only
-            // valid if we lock the type. Otherwise, the type ID may change out from under us without
-            // evolving the type.
-            if (DynamicType::Is(type->GetTypeId()))
+            DynamicType *dynamicType = static_cast<DynamicType*>(type);
+            if (!dynamicType->GetIsLocked())
             {
-                DynamicType *dynamicType = static_cast<DynamicType*>(type);
-                if (!dynamicType->GetIsLocked())
-                {
-                    dynamicType->LockType();
-                }
+                dynamicType->LockType();
             }
         }
 

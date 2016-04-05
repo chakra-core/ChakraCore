@@ -91,38 +91,42 @@ namespace Js
         if (sourceText == nullptr)
         {
             Assert(sourceLength == 0);
+            hr = E_FAIL;
             JavascriptError *pError = scriptContext->GetLibrary()->CreateError();
-            JavascriptError::SetErrorMessageProperties(pError, E_FAIL, _u("empty module"), scriptContext);
+            JavascriptError::SetErrorMessageProperties(pError, hr, _u("host failed to download module"), scriptContext);
+            *exceptionVar = pError;
         }
-        try
+        else
         {
-            AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-            this->parser = (Parser*)AllocatorNew(ArenaAllocator, allocator, Parser, scriptContext);
-            this->srcInfo = {};
-            this->srcInfo.sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceLength, Js::Constants::NoHostSourceContext);
-//            this->srcInfo.sourceContextInfo->url = nullptr;
-            this->srcInfo.moduleID = moduleId;
-            LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
-                (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
-            this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, &srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
-            if (parseTree == nullptr)
+            try
             {
-                hr = E_FAIL;
+                AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+                this->parser = (Parser*)AllocatorNew(ArenaAllocator, allocator, Parser, scriptContext);
+                this->srcInfo = {};
+                this->srcInfo.sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceLength, Js::Constants::NoHostSourceContext);
+                this->srcInfo.moduleID = moduleId;
+                LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
+                    (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
+                this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, &srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
+                if (parseTree == nullptr)
+                {
+                    hr = E_FAIL;
+                }
             }
-        }
-        catch (Js::OutOfMemoryException)
-        {
-            hr = E_OUTOFMEMORY;
-            se.ProcessError(nullptr, E_OUTOFMEMORY, nullptr);
-        }
-        catch (Js::StackOverflowException)
-        {
-            hr = VBSERR_OutOfStack;
-            se.ProcessError(nullptr, VBSERR_OutOfStack, nullptr);
-        }
-        if (SUCCEEDED(hr))
-        {
-            hr = PostParseProcess();
+            catch (Js::OutOfMemoryException)
+            {
+                hr = E_OUTOFMEMORY;
+                se.ProcessError(nullptr, E_OUTOFMEMORY, nullptr);
+            }
+            catch (Js::StackOverflowException)
+            {
+                hr = VBSERR_OutOfStack;
+                se.ProcessError(nullptr, VBSERR_OutOfStack, nullptr);
+            }
+            if (SUCCEEDED(hr))
+            {
+                hr = PostParseProcess();
+            }
         }
         if (FAILED(hr))
         {
@@ -517,7 +521,8 @@ namespace Js
         Assert(wasParsed);
         Assert(wasEvaluated);
         Assert(wasDeclarationInitialized);
-        Finalize(false);
+        // Debugger can reparse the source and generate the byte code again. Don't cleanup the 
+        // helper information for now.
     }
 
     void SourceTextModuleRecord::ModuleDeclarationInstantiation()
@@ -560,7 +565,6 @@ namespace Js
         }
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
         Assert(this == scriptContext->GetLibrary()->GetModuleRecord(srcInfo.moduleID));
-        uint sourceIndex = scriptContext->SaveSourceNoCopy(this->pSourceInfo, static_cast<charcount_t>(this->pSourceInfo->GetCchLength()), /*isCesu8*/ true);
         CompileScriptException se;
         this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
         if (rootFunction == nullptr)
