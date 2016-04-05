@@ -1480,6 +1480,7 @@ namespace TTD
         {
             snapCtx->m_scriptContextTagId = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
+            snapCtx->m_isPNRGSeeded = ctx->GetLibrary()->IsPRNGSeeded();
             snapCtx->m_randomSeed0 = ctx->GetLibrary()->GetRandSeed0();
             snapCtx->m_randomSeed1 = ctx->GetLibrary()->GetRandSeed1();
             alloc.CopyNullTermStringInto(ctx->GetUrl(), snapCtx->m_contextSRC);
@@ -1528,6 +1529,7 @@ namespace TTD
         {
             AssertMsg(wcscmp(snpCtx->m_contextSRC.Contents, intoCtx->GetUrl()) == 0, "Make sure the src uri values are the same.");
 
+            intoCtx->GetLibrary()->SetIsPRNGSeeded(snpCtx->m_isPNRGSeeded);
             intoCtx->GetLibrary()->SetRandSeed0(snpCtx->m_randomSeed0);
             intoCtx->GetLibrary()->SetRandSeed1(snpCtx->m_randomSeed1);
             inflator->AddScriptContext(snpCtx->m_scriptContextTagId, intoCtx);
@@ -1584,6 +1586,7 @@ namespace TTD
             writer->WriteRecordStart(separator);
 
             writer->WriteLogTag(NSTokens::Key::ctxTag, snapCtx->m_scriptContextTagId);
+            writer->WriteBool(NSTokens::Key::boolVal, snapCtx->m_isPNRGSeeded, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt64(NSTokens::Key::u64Val, snapCtx->m_randomSeed0, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt64(NSTokens::Key::u64Val, snapCtx->m_randomSeed1, NSTokens::Separator::CommaSeparator);
             writer->WriteString(NSTokens::Key::ctxUri, snapCtx->m_contextSRC, NSTokens::Separator::CommaSeparator);
@@ -1632,6 +1635,7 @@ namespace TTD
             reader->ReadRecordStart(readSeperator);
 
             intoCtx->m_scriptContextTagId = reader->ReadLogTag(NSTokens::Key::ctxTag);
+            intoCtx->m_isPNRGSeeded = reader->ReadBool(NSTokens::Key::boolVal, true);
             intoCtx->m_randomSeed0 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
             intoCtx->m_randomSeed1 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
             reader->ReadString(NSTokens::Key::ctxUri, alloc, intoCtx->m_contextSRC, true);
@@ -1681,6 +1685,7 @@ namespace TTD
         {
             compareMap.DiagnosticAssert(snapCtx1->m_scriptContextTagId == snapCtx2->m_scriptContextTagId);
 
+            compareMap.DiagnosticAssert(snapCtx1->m_isPNRGSeeded == snapCtx2->m_isPNRGSeeded);
             compareMap.DiagnosticAssert(snapCtx1->m_randomSeed0 == snapCtx2->m_randomSeed0);
             compareMap.DiagnosticAssert(snapCtx1->m_randomSeed1 == snapCtx2->m_randomSeed1);
 
