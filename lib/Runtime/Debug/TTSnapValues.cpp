@@ -138,7 +138,7 @@ namespace TTD
             {
                 sourceBuffer[i] = (wchar)srcBuff[i];
             }
-            sourceBuffer[length] = L'\0';
+            sourceBuffer[length] = _u('\0');
 
             HeapDeleteArray(length, srcBuff);
             streamFunctions.pfFlushAndCloseStream(srcStream, true, false);
@@ -848,9 +848,9 @@ namespace TTD
         {
             compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(capabilityInfo1->CapabilityId, capabilityInfo2->CapabilityId);
 
-            AssertSnapEquivTTDVar_Special(capabilityInfo1->PromiseVar, capabilityInfo2->PromiseVar, compareMap, L"promiseVar");
-            compareMap.CheckConsistentAndAddPtrIdMapping_Special(capabilityInfo1->ResolveObjId, capabilityInfo2->ResolveObjId, L"resolveObjId");
-            compareMap.CheckConsistentAndAddPtrIdMapping_Special(capabilityInfo1->RejectObjId, capabilityInfo2->RejectObjId, L"rejectObjId");
+            AssertSnapEquivTTDVar_Special(capabilityInfo1->PromiseVar, capabilityInfo2->PromiseVar, compareMap, _u("promiseVar"));
+            compareMap.CheckConsistentAndAddPtrIdMapping_Special(capabilityInfo1->ResolveObjId, capabilityInfo2->ResolveObjId, _u("resolveObjId"));
+            compareMap.CheckConsistentAndAddPtrIdMapping_Special(capabilityInfo1->RejectObjId, capabilityInfo2->RejectObjId, _u("rejectObjId"));
         }
 #endif
 
@@ -899,7 +899,7 @@ namespace TTD
         {
             compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(reactionInfo1->PromiseReactionId, reactionInfo2->PromiseReactionId);
 
-            compareMap.CheckConsistentAndAddPtrIdMapping_Special(reactionInfo1->HandlerObjId, reactionInfo2->HandlerObjId, L"handlerObjId");
+            compareMap.CheckConsistentAndAddPtrIdMapping_Special(reactionInfo1->HandlerObjId, reactionInfo2->HandlerObjId, _u("handlerObjId"));
             AssertSnapEquiv(&(reactionInfo1->Capabilities), &(reactionInfo2->Capabilities), compareMap);
         }
 #endif
@@ -1064,7 +1064,7 @@ namespace TTD
             Js::JavascriptFunction* scriptFunction = nullptr;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
             {
-                scriptFunction = ctx->LoadScript((const byte*)script, scriptLength * sizeof(wchar_t), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, fbInfo->LoadFlag);
+                scriptFunction = ctx->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, fbInfo->LoadFlag);
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
             AssertMsg(scriptFunction != nullptr, "Something went wrong");
@@ -1372,7 +1372,7 @@ namespace TTD
                         }
                     }
                     AssertMsg(resfb != nullptr && fbInfo->OptLine == resfb->GetLineNumber() && fbInfo->OptColumn == resfb->GetColumnNumber(), "We are missing something");
-                    AssertMsg(resfb != nullptr && (wcscmp(fbInfo->FunctionName.Contents, resfb->GetDisplayName()) == 0 || wcscmp(L"get", resfb->GetDisplayName()) == 0 || wcscmp(L"set", resfb->GetDisplayName()) == 0), "We are missing something");
+                    AssertMsg(resfb != nullptr && (wcscmp(fbInfo->FunctionName.Contents, resfb->GetDisplayName()) == 0 || wcscmp(_u("get"), resfb->GetDisplayName()) == 0 || wcscmp(L"set", resfb->GetDisplayName()) == 0), "We are missing something");
                 }
             }
 

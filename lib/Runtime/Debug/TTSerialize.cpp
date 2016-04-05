@@ -105,7 +105,7 @@ namespace TTD
 
     LPCWSTR FileWriter::FormatNumber(DWORD_PTR value)
     {
-        swprintf_s(this->m_numberFormatBuff, L"%u", (uint32)value);
+        swprintf_s(this->m_numberFormatBuff, _u("%u"), (uint32)value);
 
         return this->m_numberFormatBuff;
     }
@@ -200,9 +200,9 @@ namespace TTD
         }
         else
         {
-            swprintf_s(this->m_unicodeBuff, L"\\u%.4x", c);
+            swprintf_s(this->m_unicodeBuff, _u("\\u%.4x"), c);
 
-            for(wchar* curr = this->m_unicodeBuff; *curr != L'\0'; ++curr)
+            for(wchar* curr = this->m_unicodeBuff; *curr != _u('\0'); ++curr)
             {
                 this->WriteByte((byte)(*curr));
             }
@@ -226,41 +226,41 @@ namespace TTD
             //JSON escape sequence in a string \0 \", \/, \\, \b, \f, \n, \r, \t, unicode seq
             switch(c)
             {
-            case L'\0':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'0');
+            case _u('\0'):
+                this->WriteWCHAR(_u('\\'));
+                this->WriteWCHAR(_u('0'));
                 break;
-            case L'\"':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'\"');
+            case _u('\"'):
+                this->WriteWCHAR(_u('\\'));
+                this->WriteWCHAR(_u('\"'));
                 break;
-            case L'/':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'/');
+            case _u('/'):
+                this->WriteWCHAR(_u('\\'));
+                this->WriteWCHAR(_u('/'));
                 break;
-            case L'\\':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'\\');
+            case _u('\\'):
+                this->WriteWCHAR(_u('\\'));
+                this->WriteWCHAR(_u('\\'));
                 break;
-            case L'\b':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'b');
+            case _u('\b'):
+                this->WriteWCHAR(_u('\\'));
+                this->WriteWCHAR(_u('b'));
                 break;
-            case L'\f':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'f');
+            case _u('\f'):
+                this->WriteWCHAR(_u('\\'));
+                this->WriteWCHAR(_u('f'));
                 break;
-            case L'\n':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'n');
+            case _u('\n'):
+                this->WriteWCHAR(_u('\\'));
+                this->WriteWCHAR(_u('n'));
                 break;
-            case L'\r':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'r');
+            case _u('\r'):
+                this->WriteWCHAR(_u('\\'));
+                this->WriteWCHAR(_u('r'));
                 break;
-            case L'\t':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L't');
+            case _u('\t'):
+                this->WriteWCHAR(_u('\\'));
+                this->WriteWCHAR(_u('t'));
                 break;
             default:
                 this->WriteWCHAR(c);
@@ -288,30 +288,30 @@ namespace TTD
     {
         if((separator & NSTokens::Separator::CommaSeparator) == NSTokens::Separator::CommaSeparator)
         {
-            this->WriteWCHAR(L',');
+            this->WriteWCHAR(_u(','));
 
             if((separator & NSTokens::Separator::BigSpaceSeparator) == NSTokens::Separator::BigSpaceSeparator)
             {
-                this->WriteWCHAR(L'\n');
+                this->WriteWCHAR(_u('\n'));
                 for(uint32 i = 0; i < this->m_indentSize; ++i)
                 {
-                    this->WriteWCHAR(L' ');
-                    this->WriteWCHAR(L' ');
+                    this->WriteWCHAR(_u(' '));
+                    this->WriteWCHAR(_u(' '));
                 }
             }
             else
             {
-                this->WriteWCHAR(L' ');
+                this->WriteWCHAR(_u(' '));
             }
         }
 
         if(separator == NSTokens::Separator::BigSpaceSeparator)
         {
-            this->WriteWCHAR(L'\n');
+            this->WriteWCHAR(_u('\n'));
             for(uint32 i = 0; i < this->m_indentSize; ++i)
             {
-                this->WriteWCHAR(L' ');
-                this->WriteWCHAR(L' ');
+                this->WriteWCHAR(_u(' '));
+                this->WriteWCHAR(_u(' '));
             }
         }
     }
@@ -324,18 +324,18 @@ namespace TTD
         LPCWSTR kname = this->m_keyNameArray[(uint32)key];
         AssertMsg(kname != nullptr, "Key not registered!");
 
-        this->WriteWCHAR(L'\"');
+        this->WriteWCHAR(_u('\"'));
         this->WriteString_InternalNoEscape(kname, wcslen(kname));
-        this->WriteWCHAR(L'\"');
+        this->WriteWCHAR(_u('\"'));
 
-        this->WriteWCHAR(L':');
-        this->WriteWCHAR(L' ');
+        this->WriteWCHAR(_u(':'));
+        this->WriteWCHAR(_u(' '));
     }
 
     void JSONWriter::WriteSequenceStart(NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-        this->WriteWCHAR(L'[');
+        this->WriteWCHAR(_u('['));
     }
 
     void JSONWriter::WriteSequenceEnd(NSTokens::Separator separator)
@@ -343,13 +343,13 @@ namespace TTD
         AssertMsg(separator == NSTokens::Separator::NoSeparator || separator == NSTokens::Separator::BigSpaceSeparator, "Shouldn't be anything else!!!");
 
         this->WriteSeperator(separator);
-        this->WriteWCHAR(L']');
+        this->WriteWCHAR(_u(']'));
     }
 
     void JSONWriter::WriteRecordStart(NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-        this->WriteWCHAR(L'{');
+        this->WriteWCHAR(_u('{'));
     }
 
     void JSONWriter::WriteRecordEnd(NSTokens::Separator separator)
@@ -357,7 +357,7 @@ namespace TTD
         AssertMsg(separator == NSTokens::Separator::NoSeparator || separator == NSTokens::Separator::BigSpaceSeparator, "Shouldn't be anything else!!!");
 
         this->WriteSeperator(separator);
-        this->WriteWCHAR(L'}');
+        this->WriteWCHAR(_u('}'));
     }
 
     void JSONWriter::AdjustIndent(int32 delta)
@@ -374,14 +374,14 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        this->WriteString_InternalNoEscape(L"null", 4);
+        this->WriteString_InternalNoEscape(_u("null"), 4);
     }
 
     void JSONWriter::WriteNakedByte(byte val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
 
-        swprintf_s(this->m_numberFormatBuff, L"%I32u", (uint32)val);
+        swprintf_s(this->m_numberFormatBuff, _u("%I32u"), (uint32)val);
         this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
@@ -390,11 +390,11 @@ namespace TTD
         this->WriteKey(key, separator);
         if(val)
         {
-            this->WriteString_InternalNoEscape(L"true", 4);
+            this->WriteString_InternalNoEscape(_u("true"), 4);
         }
         else
         {
-            this->WriteString_InternalNoEscape(L"false", 5);
+            this->WriteString_InternalNoEscape(_u("false"), 5);
         }
     }
 
@@ -402,7 +402,7 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        swprintf_s(this->m_numberFormatBuff, L"%I32i", val);
+        swprintf_s(this->m_numberFormatBuff, _u("%I32i"), val);
         this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
@@ -410,7 +410,7 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        swprintf_s(this->m_numberFormatBuff, L"%I32u", val);
+        swprintf_s(this->m_numberFormatBuff, _u("%I32u"), val);
         this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
@@ -418,7 +418,7 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        swprintf_s(this->m_numberFormatBuff, L"%I64i", val);
+        swprintf_s(this->m_numberFormatBuff, _u("%I64i"), val);
         this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
@@ -426,7 +426,7 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        swprintf_s(this->m_numberFormatBuff, L"%I64u", val);
+        swprintf_s(this->m_numberFormatBuff, _u("%I64u"), val);
         this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
@@ -436,33 +436,33 @@ namespace TTD
 
         if(Js::JavascriptNumber::IsNan(val))
         {
-            this->WriteString_InternalNoEscape(L"#nan", 4);
+            this->WriteString_InternalNoEscape(_u("#nan"), 4);
         }
         else if(Js::JavascriptNumber::IsPosInf(val))
         {
-            this->WriteString_InternalNoEscape(L"#+inf", 5);
+            this->WriteString_InternalNoEscape(_u("#+inf"), 5);
         }
         else if(Js::JavascriptNumber::IsNegInf(val))
         {
-            this->WriteString_InternalNoEscape(L"#-inf", 5);
+            this->WriteString_InternalNoEscape(_u("#-inf"), 5);
         }
         else if(Js::JavascriptNumber::MAX_VALUE == val)
         {
-            this->WriteString_InternalNoEscape(L"#ub", 3);
+            this->WriteString_InternalNoEscape(_u("#ub"), 3);
         }
         else if(Js::JavascriptNumber::MIN_VALUE == val)
         {
-            this->WriteString_InternalNoEscape(L"#lb", 3);
+            this->WriteString_InternalNoEscape(_u("#lb"), 3);
         }
         else if(Js::Math::EPSILON == val)
         {
-            this->WriteString_InternalNoEscape(L"#ep", 3);
+            this->WriteString_InternalNoEscape(_u("#ep"), 3);
         }
         else
         {
             if(floor(val) == val)
             {
-                swprintf_s(this->m_numberFormatBuff, L"%I64i", (int64)val);
+                swprintf_s(this->m_numberFormatBuff, _u("%I64i"), (int64)val);
             }
             else
             {
@@ -471,7 +471,7 @@ namespace TTD
                 //      will want to change this to a dump of the bit representation of the number
                 //
 
-                swprintf_s(this->m_numberFormatBuff, L"%.22f", val);
+                swprintf_s(this->m_numberFormatBuff, _u("%.22f"), val);
             }
 
             this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
@@ -482,7 +482,7 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        swprintf_s(this->m_numberFormatBuff, L"\"*0x%I64x\"", val);
+        swprintf_s(this->m_numberFormatBuff, _u("\"*0x%I64x\""), val);
         this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
@@ -490,7 +490,7 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        swprintf_s(this->m_numberFormatBuff, L"\"!%I64i\"", val);
+        swprintf_s(this->m_numberFormatBuff, _u("\"!%I64i\""), val);
         this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
@@ -498,7 +498,7 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        swprintf_s(this->m_numberFormatBuff, L"\"$%I32i\"", tagvalue);
+        swprintf_s(this->m_numberFormatBuff, _u("\"$%I32i\""), tagvalue);
         this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
@@ -629,7 +629,7 @@ namespace TTD
 
     LPCWSTR FileReader::FormatNumber(DWORD_PTR value)
     {
-        swprintf_s(this->m_numberFormatBuff, L"%u", (uint32)value);
+        swprintf_s(this->m_numberFormatBuff, _u("%u"), (uint32)value);
 
         return this->m_numberFormatBuff;
     }
@@ -721,11 +721,11 @@ namespace TTD
                 break;
             case '"':
                 //check for string
-                charList.Add(L'"');
+                charList.Add(_u('"'));
                 return this->ScanString(charList);
             case '#':
                 //# starts special double/number value representation
-                charList.Add(L'#');
+                charList.Add(_u('#'));
                 return this->ScanSpecialNumber(charList);
             case '-':
             case '+':
@@ -781,7 +781,7 @@ namespace TTD
             if(b == '"')
             {
                 //end of the string
-                charList.Add(L'"');
+                charList.Add(_u('"'));
                 endFound = true;
                 break;
             }
@@ -1090,11 +1090,11 @@ namespace TTD
             uint32 digitValue;
             if((L'a' <= digit) & (digit <= 'f'))
             {
-                digitValue = (digit - L'a') + 10;
+                digitValue = (digit - _u('a')) + 10;
             }
             else
             {
-                digitValue = (digit - L'0');
+                digitValue = (digit - _u('0'));
             }
 
             value += (multiplier * digitValue);
@@ -1111,7 +1111,7 @@ namespace TTD
 
         int64 sign = 1;
         int32 lastIdx = 0;
-        if(buff[0] == L'-')
+        if(buff[0] == _u('-'))
         {
             sign = -1;
             lastIdx = 1;
@@ -1121,7 +1121,7 @@ namespace TTD
         for(int32 i = digitCount - 1; i >= lastIdx; --i)
         {
             wchar digit = buff[i];
-            uint32 digitValue = (digit - L'0');
+            uint32 digitValue = (digit - _u('0'));
 
             value += (multiplier * digitValue);
             multiplier *= 10;
@@ -1139,7 +1139,7 @@ namespace TTD
         for(int32 i = digitCount - 1; i >= 0; --i)
         {
             wchar digit = buff[i];
-            uint32 digitValue = (digit - L'0');
+            uint32 digitValue = (digit - _u('0'));
 
             value += (multiplier * digitValue);
             multiplier *= 10;
@@ -1189,7 +1189,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListPrimary);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
 
-        this->m_charListPrimary.SetItem(this->m_charListPrimary.Count() - 1, L'\0');
+        this->m_charListPrimary.SetItem(this->m_charListPrimary.Count() - 1, _u('\0'));
         LPCWSTR keystr = this->m_charListPrimary.GetBuffer() + 1;
 
         //check key strings are the same
@@ -1246,7 +1246,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
 
-        this->m_charListOpt.Add(L'\0');
+        this->m_charListOpt.Add(_u('\0'));
         uint64 uval = this->ReadUIntFromCharArray(m_charListOpt.GetBuffer());
         FileReader::FileReadAssert(uval <= BYTE_MAX);
         return (byte)uval;
@@ -1269,7 +1269,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
 
-        this->m_charListOpt.Add(L'\0');
+        this->m_charListOpt.Add(_u('\0'));
         int64 ival = this->ReadIntFromCharArray(this->m_charListOpt.GetBuffer());
         FileReader::FileReadAssert(INT32_MIN <= ival && ival <= INT32_MAX);
 
@@ -1283,7 +1283,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
 
-        this->m_charListOpt.Add(L'\0');
+        this->m_charListOpt.Add(_u('\0'));
         uint64 uval = this->ReadUIntFromCharArray(m_charListOpt.GetBuffer());
         FileReader::FileReadAssert(uval <= UINT32_MAX);
 
@@ -1297,7 +1297,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
 
-        this->m_charListOpt.Add(L'\0');
+        this->m_charListOpt.Add(_u('\0'));
         return this->ReadIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
@@ -1308,7 +1308,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
 
-        this->m_charListOpt.Add(L'\0');
+        this->m_charListOpt.Add(_u('\0'));
         return this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
@@ -1320,29 +1320,29 @@ namespace TTD
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
 
         double res = -1.0;
-        if(this->m_charListOpt.Item(0) == L'#')
+        if(this->m_charListOpt.Item(0) == _u('#'))
         {
-            if(this->m_charListOpt.Item(1) == L'n')
+            if(this->m_charListOpt.Item(1) == _u('n'))
             {
                 res = Js::JavascriptNumber::NaN;
             }
-            else if(this->m_charListOpt.Item(1) == L'+')
+            else if(this->m_charListOpt.Item(1) == _u('+'))
             {
                 res = Js::JavascriptNumber::POSITIVE_INFINITY;
             }
-            else if(this->m_charListOpt.Item(1) == L'-')
+            else if(this->m_charListOpt.Item(1) == _u('-'))
             {
                 res = Js::JavascriptNumber::NEGATIVE_INFINITY;
             }
-            else if(this->m_charListOpt.Item(1) == L'u')
+            else if(this->m_charListOpt.Item(1) == _u('u'))
             {
                 res = Js::JavascriptNumber::MAX_VALUE;
             }
-            else if(this->m_charListOpt.Item(1) == L'l')
+            else if(this->m_charListOpt.Item(1) == _u('l'))
             {
                 res = Js::JavascriptNumber::MIN_VALUE;
             }
-            else if(this->m_charListOpt.Item(1) == L'e')
+            else if(this->m_charListOpt.Item(1) == _u('e'))
             {
                 res = Js::Math::EPSILON;
             }
@@ -1353,7 +1353,7 @@ namespace TTD
         }
         else
         {
-            this->m_charListOpt.Add(L'\0');
+            this->m_charListOpt.Add(_u('\0'));
             res = this->ReadDoubleFromCharArray(this->m_charListOpt.GetBuffer());
         }
 
@@ -1367,7 +1367,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String); //Addrs are strings \"*0x...\" are always strings.
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
+        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
         return (TTD_PTR_ID)this->ReadHexFromCharArray(this->m_charListOpt.GetBuffer() + 4); //skip off the first "*0x
     }
 
@@ -1378,7 +1378,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String); //Log tags are strings \"!...\" are always strings.
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
+        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
         return (TTD_LOG_TAG)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer() + 2); //skip off the first "!
     }
 
@@ -1389,7 +1389,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String); //Tags are strings \"$...\" are always strings.
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
+        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
         uint64 tval = this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer() + 2); //skip off the "$
         FileReader::FileReadAssert(tval <= UINT32_MAX);
 
@@ -1441,7 +1441,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
+        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
         LPCWSTR res = alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer() + 1); //remove first "
 
         return res;
@@ -1454,7 +1454,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
+        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
         LPCWSTR res = alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer() + 1); //remove first "
 
         return res;
@@ -1467,7 +1467,7 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
+        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
         LPCWSTR res = this->m_charListOpt.GetBuffer() + 1; //remove first "
 
         return res;

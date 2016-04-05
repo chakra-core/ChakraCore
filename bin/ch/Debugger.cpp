@@ -205,7 +205,7 @@ bool DebuggerCh::IsEmpty(bool blockUntilMsg)
                     {
                         wbuff[i] = epos[i];
                     }
-                    wbuff[contentLength] = L'\0';
+                    wbuff[contentLength] = _u('\0');
 
                     this->m_msgQueue.push(wbuff);
 

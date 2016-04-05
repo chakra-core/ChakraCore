@@ -274,7 +274,7 @@ namespace TTD
         void AssertSnapEquiv(const SnapType* t1, const SnapType* t2, TTDCompareMap& compareMap)
         {
             compareMap.DiagnosticAssert(t1->JsTypeId == t2->JsTypeId);
-            compareMap.CheckConsistentAndAddPtrIdMapping_Special(t1->PrototypeId, t2->PrototypeId, L"prototype");
+            compareMap.CheckConsistentAndAddPtrIdMapping_Special(t1->PrototypeId, t2->PrototypeId, _u("prototype"));
             compareMap.DiagnosticAssert(t1->ScriptContextTag == t2->ScriptContextTag);
 
             if(t1->TypeHandlerInfo == nullptr || t2->TypeHandlerInfo == nullptr)

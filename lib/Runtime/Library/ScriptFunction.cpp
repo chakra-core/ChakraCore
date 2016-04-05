@@ -524,7 +524,7 @@ namespace Js
 
         //do the body path mark
         Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(this->GetParseableFunctionInfo());
-        rctxInfo->EnqueueNewFunctionBodyObject(this, fb, L"!fbody");
+        rctxInfo->EnqueueNewFunctionBodyObject(this, fb, _u("!fbody"));
 
         Js::FrameDisplay* environment = this->GetEnvironment();
         uint32 scopeCount = environment->GetLength();
@@ -570,7 +570,7 @@ namespace Js
 
         if(this->homeObj != nullptr)
         {
-            this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk()->EnqueueNewPathVarAsNeeded(this, this->homeObj, L"_homeObj");
+            this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk()->EnqueueNewPathVarAsNeeded(this, this->homeObj, _u("_homeObj"));
         }
     }
 

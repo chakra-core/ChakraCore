@@ -136,7 +136,7 @@ namespace TTD
                     nbuff[curr] = str[i];
                     curr++;
                 }
-                nbuff[curr] = L'\0';
+                nbuff[curr] = _u('\0');
             }
 
             this->m_contents = nbuff;
@@ -155,7 +155,7 @@ namespace TTD
                 this->m_optFormatBuff = HeapNewArrayZ(wchar, 64);
             }
 
-            swprintf_s(this->m_optFormatBuff, 32, L"%I64u", val); //64 wchars is 32 words
+            swprintf_s(this->m_optFormatBuff, 32, _u("%I64u"), val); //64 wchars is 32 words
 
             this->Append(this->m_optFormatBuff);
         }
@@ -175,7 +175,7 @@ namespace TTD
             }
             AssertMsg(i + 1 == strCount, "Our indexing is off.");
 
-            buff[i] = L'\0';
+            buff[i] = _u('\0');
             this->Append(buff);
 
             HeapDeleteArray((size_t)strCount, buff);

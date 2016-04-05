@@ -638,7 +638,7 @@ namespace Js
         Js::RecyclableObject* CreateSymbolObject_TTD(Var value);
 
         Js::RecyclableObject* CreateDate_TTD(double value);
-        Js::RecyclableObject* CreateRegex_TTD(const wchar_t* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex);
+        Js::RecyclableObject* CreateRegex_TTD(const char16* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex);
         Js::RecyclableObject* CreateError_TTD();
 
         Js::RecyclableObject* CreateES5Array_TTD();

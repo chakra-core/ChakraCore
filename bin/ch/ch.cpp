@@ -12,7 +12,7 @@ JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
 
 BOOL doTTRecord = false;
 BOOL doTTDebug = false;
-wchar_t* ttUri = nullptr;
+char16* ttUri = nullptr;
 UINT32 snapInterval = UINT32_MAX;
 UINT32 snapHistoryLength = UINT32_MAX;
 
@@ -313,21 +313,21 @@ void StartupDebuggerAsNeeded()
     }
     else
     {
-        wchar_t* path = (wchar_t*)CoTaskMemAlloc(MAX_PATH * sizeof(wchar_t));
-        path[0] = L'\0';
+        char16* path = (char16*)CoTaskMemAlloc(MAX_PATH * sizeof(char16));
+        path[0] = _u('\0');
 
         GetModuleFileName(NULL, path, MAX_PATH);
 
         //
         //TODO: this is an ugly semi-hard coded path we need to fix up
         //
-        wchar_t* spos = wcsstr(path, L"\\ch.exe");
+        char16* spos = wcsstr(path, _u("\\ch.exe"));
         AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
 
-        int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(wchar_t));
+        int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(char16));
         std::wstring dbgPath;
         dbgPath.append(path, 0, ccount);
-        dbgPath.append(L"\\..\\chakra_debug.js");
+        dbgPath.append(_u("\\..\\chakra_debug.js"));
 
         LPCWSTR contents = nullptr;
         Helpers::LoadScriptFromFile(dbgPath.c_str(), contents);
@@ -339,14 +339,14 @@ void StartupDebuggerAsNeeded()
     }
 }
 
-void CreateDirectoryIfNeeded(const wchar_t* path)
+void CreateDirectoryIfNeeded(const char16* path)
 {
-    bool isPathDirName = (path[wcslen(path) - 1] == L'\\');
+    bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
 
     std::wstring fullpath(path);
     if(!isPathDirName)
     {
-        fullpath.append(L"\\");
+        fullpath.append(_u("\\"));
     }
 
     DWORD dwAttrib = GetFileAttributes(fullpath.c_str());
@@ -361,25 +361,25 @@ void CreateDirectoryIfNeeded(const wchar_t* path)
         DWORD lastError = GetLastError();
         LPTSTR pTemp = NULL;
         FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
-        fwprintf(stderr, L": %s", pTemp);
+        fwprintf(stderr, _u(": %s"), pTemp);
 
         AssertMsg(false, "Failed Directory Create");
     }
 }
 
-void DeleteDirectory(const wchar_t* path)
+void DeleteDirectory(const char16* path)
 {
     HANDLE hFile;
     WIN32_FIND_DATA FileInformation;
 
-    bool isPathDirName = (path[wcslen(path) - 1] == L'\\');
+    bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
 
     std::wstring strPattern(path);
     if(!isPathDirName)
     {
-        strPattern.append(L"\\");
+        strPattern.append(_u("\\"));
     }
-    strPattern.append(L"*.*");
+    strPattern.append(_u("*.*"));
 
     hFile = ::FindFirstFile(strPattern.c_str(), &FileInformation);
     if(hFile != INVALID_HANDLE_VALUE)
@@ -391,7 +391,7 @@ void DeleteDirectory(const wchar_t* path)
                 std::wstring strFilePath(path);
                 if(!isPathDirName)
                 {
-                    strFilePath.append(L"\\");
+                    strFilePath.append(_u("\\"));
                 }
                 strFilePath.append(FileInformation.cFileName);
 
@@ -414,13 +414,13 @@ void DeleteDirectory(const wchar_t* path)
     }
 }
 
-void GetFileFromURI(const wchar_t* uri, std::wstring& res)
+void GetFileFromURI(const char16* uri, std::wstring& res)
 {
     int urilen = (int)wcslen(uri);
     int fpos = 0;
     for(int spos = urilen - 1; spos >= 0; --spos)
     {
-        if(uri[spos] == L'\\' || uri[spos] == L'/')
+        if(uri[spos] == _u('\\') || uri[spos] == _u('/'))
         {
             fpos = spos + 1;
             break;
@@ -430,43 +430,43 @@ void GetFileFromURI(const wchar_t* uri, std::wstring& res)
     res.append(uri + fpos);
 }
 
-void GetDefaultTTDDirectory(std::wstring& res, const wchar_t* optExtraDir)
+void GetDefaultTTDDirectory(std::wstring& res, const char16* optExtraDir)
 {
-    wchar_t* path = (wchar_t*)CoTaskMemAlloc(MAX_PATH * sizeof(wchar_t));
-    path[0] = L'\0';
+    char16* path = (char16*)CoTaskMemAlloc(MAX_PATH * sizeof(char16));
+    path[0] = _u('\0');
 
     GetModuleFileName(NULL, path, MAX_PATH);
 
-    wchar_t* spos = wcsstr(path, L"\\Build\\VcBuild\\");
+    char16* spos = wcsstr(path, _u("\\Build\\VcBuild\\"));
     AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
 
-    int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(wchar_t));
+    int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(char16));
     res.append(path, 0, ccount);
-    res.append(L"\\test\\_ttdlog\\");
+    res.append(_u("\\test\\_ttdlog\\"));
 
     if(wcslen(optExtraDir) == 0)
     {
-        res.append(L"_defaultLog");
+        res.append(_u("_defaultLog"));
     }
     else
     {
         res.append(optExtraDir);
     }
 
-    wchar_t lastChar = res.back();
-    if(lastChar != L'\\')
+    char16 lastChar = res.back();
+    if(lastChar != _u('\\'))
     {
-        res.append(L"\\");
+        res.append(_u("\\"));
     }
 
     CoTaskMemFree(path);
 }
 
-static void CALLBACK GetTTDDirectory(const wchar_t* uri, wchar_t** fullTTDUri)
+static void CALLBACK GetTTDDirectory(const char16* uri, char16** fullTTDUri)
 {
     std::wstring logDir;
 
-    if(uri[0] != L'!')
+    if(uri[0] != _u('!'))
     {
         logDir.append(uri);
     }
@@ -475,28 +475,28 @@ static void CALLBACK GetTTDDirectory(const wchar_t* uri, wchar_t** fullTTDUri)
         GetDefaultTTDDirectory(logDir, uri + 1);
     }
 
-    if(logDir.back() != L'\\')
+    if(logDir.back() != _u('\\'))
     {
-        logDir.push_back(L'\\');
+        logDir.push_back(_u('\\'));
     }
 
     int uriLength = (int)(logDir.length() + 1);
-    *fullTTDUri = (wchar_t*)CoTaskMemAlloc(uriLength * sizeof(wchar_t));
-    memcpy(*fullTTDUri, logDir.c_str(), uriLength * sizeof(wchar_t));
+    *fullTTDUri = (char16*)CoTaskMemAlloc(uriLength * sizeof(char16));
+    memcpy(*fullTTDUri, logDir.c_str(), uriLength * sizeof(char16));
 }
 
-static void CALLBACK TTInitializeForWriteLogStreamCallback(const wchar_t* uri)
+static void CALLBACK TTInitializeForWriteLogStreamCallback(const char16* uri)
 {
     //Clear the logging directory so it is ready for us to write into
     DeleteDirectory(uri);
 }
 
-static HANDLE CALLBACK TTGetLogStreamCallback(const wchar_t* uri, bool read, bool write)
+static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool write)
 {
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     std::wstring logFile(uri);
-    logFile.append(L"ttdlog.json");
+    logFile.append(_u("ttdlog.json"));
 
     HANDLE res = INVALID_HANDLE_VALUE;
     if(read)
@@ -515,8 +515,8 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const wchar_t* uri, bool read, boo
         DWORD lastError = GetLastError();
         LPTSTR pTemp = NULL;
         FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
-        fwprintf(stderr, L": %s\n", pTemp);
-        fwprintf(stderr, L"Failed on file: %ls\n", logFile.c_str());
+        fwprintf(stderr, _u(": %s\n"), pTemp);
+        fwprintf(stderr, _u("Failed on file: %ls\n"), logFile.c_str());
 
         AssertMsg(false, "Failed File Open");
     }
@@ -524,21 +524,21 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const wchar_t* uri, bool read, boo
     return res;
 }
 
-static HANDLE CALLBACK TTGetSnapshotStreamCallback(const wchar_t* logRootUri, const wchar_t* snapId, bool read, bool write, wchar_t** containerUri)
+static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* logRootUri, const char16* snapId, bool read, bool write, char16** containerUri)
 {
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     std::wstring snapDir(logRootUri);
-    snapDir.append(L"snap_");
+    snapDir.append(_u("snap_"));
     snapDir.append(snapId);
-    snapDir.append(L"\\");
+    snapDir.append(_u("\\"));
 
     int resUriCount = (int)(wcslen(snapDir.c_str()) + 1);
-    *containerUri = (wchar_t*)CoTaskMemAlloc(resUriCount * sizeof(wchar_t));
-    memcpy(*containerUri, snapDir.c_str(), resUriCount * sizeof(wchar_t));
+    *containerUri = (char16*)CoTaskMemAlloc(resUriCount * sizeof(char16));
+    memcpy(*containerUri, snapDir.c_str(), resUriCount * sizeof(char16));
 
     std::wstring snapFile(snapDir);
-    snapFile.append(L"snapshot.json");
+    snapFile.append(_u("snapshot.json"));
 
     HANDLE res = INVALID_HANDLE_VALUE;
     if(read)
@@ -558,8 +558,8 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const wchar_t* logRootUri, co
         DWORD lastError = GetLastError();
         LPTSTR pTemp = NULL;
         FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
-        fwprintf(stderr, L": %s\n", pTemp);
-        fwprintf(stderr, L"Failed on file: %ls\n", snapFile.c_str());
+        fwprintf(stderr, _u(": %s\n"), pTemp);
+        fwprintf(stderr, _u("Failed on file: %ls\n"), snapFile.c_str());
 
         AssertMsg(false, "Failed File Open");
     }
@@ -567,7 +567,7 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const wchar_t* logRootUri, co
     return res;
 }
 
-static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const wchar_t* containerUri, const wchar_t* documentid, const wchar_t* srcFileName, bool read, bool write)
+static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* containerUri, const char16* documentid, const char16* srcFileName, bool read, bool write)
 {
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
@@ -576,7 +576,7 @@ static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const wchar_t* containerUri, c
 
     std::wstring srcPath(containerUri);
     srcPath.append(documentid);
-    srcPath.append(L"_");
+    srcPath.append(_u("_"));
     srcPath.append(sFile.c_str());
 
     HANDLE res = INVALID_HANDLE_VALUE;
@@ -594,8 +594,8 @@ static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const wchar_t* containerUri, c
         DWORD lastError = GetLastError();
         LPTSTR pTemp = NULL;
         FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
-        fwprintf(stderr, L": %s\n", pTemp);
-        fwprintf(stderr, L"Failed on file: %ls\n", srcPath.c_str());
+        fwprintf(stderr, _u(": %s\n"), pTemp);
+        fwprintf(stderr, _u("Failed on file: %ls\n"), srcPath.c_str());
 
         AssertMsg(false, "Failed File Open");
     }
@@ -647,15 +647,15 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, char16
 
     IfJsErrorFailLog(ChakraRTInterface::JsSetPromiseContinuationCallback(PromiseContinuationCallback, (void*)messageQueue));
 
-    if(wcslen(fileName) >= 14 && wcscmp(fileName + wcslen(fileName) - 14, L"ttdSentinal.js") == 0)
+    if(wcslen(fileName) >= 14 && wcscmp(fileName + wcslen(fileName) - 14, _u("ttdSentinal.js")) == 0)
     {
 #if !ENABLE_TTD
-        wprintf(L"Sential js file is only ok when in TTDebug mode!!!\n");
+        wprintf(_u("Sential js file is only ok when in TTDebug mode!!!\n"));
         return E_FAIL;
 #else
         if(!doTTDebug)
         {
-            wprintf(L"Sential js file is only ok when in TTDebug mode!!!\n");
+            wprintf(_u("Sential js file is only ok when in TTDebug mode!!!\n"));
             return E_FAIL;
         }
 
@@ -677,21 +677,21 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, char16
                 //handle any uncaught exception by immediately time-traveling to the throwing line
                 if(res == JsErrorCategoryScript)
                 {
-                    wprintf(L"An unhandled script exception occoured!!!\n");
+                    wprintf(_u("An unhandled script exception occoured!!!\n"));
 
                     ExitProcess(0);
                 }
 
                 if(nextEventTime == -1)
                 {
-                    wprintf(L"\nReached end of Execution -- Exiting.\n");
+                    wprintf(_u("\nReached end of Execution -- Exiting.\n"));
                     break;
                 }
             }
         }
         catch(...)
         {
-            wprintf(L"Exception.");
+            wprintf(_u("Exception."));
         }
 #endif
     }
@@ -797,15 +797,15 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     LPCWSTR fileContents = nullptr;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
 
-    if(wcslen(fileName) >= 14 && wcscmp(fileName + wcslen(fileName) - 14, L"ttdSentinal.js") == 0)
+    if(wcslen(fileName) >= 14 && wcscmp(fileName + wcslen(fileName) - 14, _u("ttdSentinal.js")) == 0)
     {
 #if !ENABLE_TTD
-        wprintf(L"Sential js file is only ok when in TTDebug mode!!!\n");
+        wprintf(_u("Sential js file is only ok when in TTDebug mode!!!\n"));
         return E_FAIL;
 #else
         if(!doTTDebug)
         {
-            wprintf(L"Sential js file is only ok when in TTDebug mode!!!\n");
+            wprintf(_u("Sential js file is only ok when in TTDebug mode!!!\n"));
             return E_FAIL;
         }
 
@@ -1001,31 +1001,31 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     int cpos = 0;
     for(int i = 0; i < argc; ++i)
     {
-        if(wcsstr(argv[i], L"-TTRecord:") == argv[i])
+        if(wcsstr(argv[i], _u("-TTRecord:")) == argv[i])
         {
             doTTRecord = true;
-            ttUri = argv[i] + wcslen(L"-TTRecord:");
+            ttUri = argv[i] + wcslen(_u("-TTRecord:"));
         }
-        else if(wcsstr(argv[i], L"-TTDebug:") == argv[i])
+        else if(wcsstr(argv[i], _u("-TTDebug:")) == argv[i])
         {
             doTTDebug = true;
-            ttUri = argv[i] + wcslen(L"-TTDebug:");
+            ttUri = argv[i] + wcslen(_u("-TTDebug:"));
         }
-        else if(wcsstr(argv[i], L"-TTSnapInterval:") == argv[i])
+        else if(wcsstr(argv[i], _u("-TTSnapInterval:")) == argv[i])
         {
-            LPCWSTR intervalStr = argv[i] + wcslen(L"-TTSnapInterval:");
+            LPCWSTR intervalStr = argv[i] + wcslen(_u("-TTSnapInterval:"));
             snapInterval = (UINT32)_wtoi(intervalStr);
         }
-        else if(wcsstr(argv[i], L"-TTHistoryLength:") == argv[i])
+        else if(wcsstr(argv[i], _u("-TTHistoryLength:")) == argv[i])
         {
-            LPCWSTR historyStr = argv[i] + wcslen(L"-TTHistoryLength:");
+            LPCWSTR historyStr = argv[i] + wcslen(_u("-TTHistoryLength:"));
             snapHistoryLength = (UINT32)_wtoi(historyStr);
         }
-        else if(wcsstr(argv[i], L"--debug-brk=") == argv[i])
+        else if(wcsstr(argv[i], _u("--debug-brk=")) == argv[i])
         {
-            dbgIPAddr = L"127.0.0.1";
+            dbgIPAddr = _u("127.0.0.1");
 
-            LPCWSTR portStr = argv[i] + wcslen(L"--debug-brk=");
+            LPCWSTR portStr = argv[i] + wcslen(_u("--debug-brk="));
             dbgPort = (unsigned short)_wtoi(portStr);
         }
         else

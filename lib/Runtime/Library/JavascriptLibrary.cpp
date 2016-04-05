@@ -1269,7 +1269,7 @@ namespace Js
         }
 
 #if ENABLE_TTD
-        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"telemetryLog", &GlobalObject::EntryInfo::TelemetryLog, 3);
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("telemetryLog"), &GlobalObject::EntryInfo::TelemetryLog, 3);
 #endif
 
 #ifdef IR_VIEWER
@@ -5068,7 +5068,7 @@ namespace Js
         return this->CreateDate(value);
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreateRegex_TTD(const wchar_t* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex)
+    Js::RecyclableObject* JavascriptLibrary::CreateRegex_TTD(const char16* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex)
     {
         Js::JavascriptRegExp* re = Js::JavascriptRegExp::CreateRegEx(patternSource, patternLength, flags, this->scriptContext);
         re->SetLastIndex(lastIndex);

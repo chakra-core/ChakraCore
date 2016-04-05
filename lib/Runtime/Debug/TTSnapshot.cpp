@@ -458,7 +458,7 @@ namespace TTD
     void SnapShot::EmitSnapshot(LPCWSTR sourceDir, DWORD snapId, ThreadContext* threadContext, bool json, bool binary) const
     {
         wchar* snapIdString = HeapNewArrayZ(wchar, 64);
-        swprintf_s(snapIdString, 64, L"%u", snapId);
+        swprintf_s(snapIdString, 64, _u("%u"), snapId);
 
         wchar* snapContainerURI = nullptr;
         HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, false, true, &snapContainerURI);
@@ -483,7 +483,7 @@ namespace TTD
     SnapShot* SnapShot::Parse(LPCWSTR sourceDir, DWORD snapId, ThreadContext* threadContext, bool json, bool binary)
     {
         wchar* snapIdString = HeapNewArrayZ(wchar, 64);
-        swprintf_s(snapIdString, 64, L"%u", snapId);
+        swprintf_s(snapIdString, 64, _u("%u"), snapId);
 
         wchar* snapContainerURI = nullptr;
         HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, true, false, &snapContainerURI);

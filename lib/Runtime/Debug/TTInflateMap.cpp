@@ -269,7 +269,7 @@ namespace TTD
         ;
     }
 
-    void TTDComparePath::WritePathToConsole(ThreadContext* threadContext, bool printNewline, wchar* namebuff) const
+    void TTDComparePath::WritePathToConsole(ThreadContext* threadContext, bool printNewline, char16* namebuff) const
     {
         if(this->m_prefix != nullptr)
         {
@@ -280,7 +280,7 @@ namespace TTD
         {
             const Js::PropertyRecord* pRecord = threadContext->GetPropertyName((Js::PropertyId)this->m_step.IndexOrPID);
             js_memcpy_s(namebuff, 256, pRecord->GetBuffer(), pRecord->GetLength());
-            namebuff[pRecord->GetLength()] = L'\0';
+            namebuff[pRecord->GetLength()] = _u('\0');
         }
 
         bool isFirst = (this->m_prefix == nullptr);
@@ -289,34 +289,34 @@ namespace TTD
         case StepKind::Empty:
             break;
         case StepKind::Root:
-            wprintf(L"root#%I64i", this->m_step.IndexOrPID);
+            wprintf(_u("root#%I64i"), this->m_step.IndexOrPID);
             break;
         case StepKind::PropertyData:
-            wprintf(L"%ls%ls", (isFirst ? L"" : L"."), namebuff);
+            wprintf(_u("%ls%ls"), (isFirst ? _u("") : _u(".")), namebuff);
             break;
         case StepKind::PropertyGetter:
-            wprintf(L"%ls<%ls", (isFirst ? L"" : L"."), namebuff);
+            wprintf(_u("%ls<%ls"), (isFirst ? _u("") : _u(".")), namebuff);
             break;
         case StepKind::PropertySetter:
-            wprintf(L"%ls>%ls", (isFirst ? L"" : L"."), namebuff);
+            wprintf(_u("%ls>%ls"), (isFirst ? _u("") : _u(".")), namebuff);
             break;
         case StepKind::Array:
-            wprintf(L"[%I64i]", this->m_step.IndexOrPID);
+            wprintf(_u("[%I64i]"), this->m_step.IndexOrPID);
             break;
         case StepKind::Scope:
-            wprintf(L"%ls_scope[%I64i]", (isFirst ? L"" : L"."), this->m_step.IndexOrPID);
+            wprintf(_u("%ls_scope[%I64i]"), (isFirst ? _u("") : _u(".")), this->m_step.IndexOrPID);
             break;
         case StepKind::SlotArray:
-            wprintf(L"%ls_slots[%I64i]", (isFirst ? L"" : L"."), this->m_step.IndexOrPID);
+            wprintf(_u("%ls_slots[%I64i]"), (isFirst ? _u("") : _u(".")), this->m_step.IndexOrPID);
             break;
         case StepKind::FunctionBody:
-            wprintf(L"%ls%ls", (isFirst ? L"" : L"."), this->m_step.OptName);
+            wprintf(_u("%ls%ls"), (isFirst ? _u("") : _u(".")), this->m_step.OptName);
             break;
         case StepKind::Special:
-            wprintf(L"%ls_%ls", (isFirst ? L"" : L"."), this->m_step.OptName);
+            wprintf(_u("%ls_%ls"), (isFirst ? _u("") : _u(".")), this->m_step.OptName);
             break;
         case StepKind::SpecialArray:
-            wprintf(L"%ls_%ls[%I64i]", (isFirst ? L"" : L"."), this->m_step.OptName, this->m_step.IndexOrPID);
+            wprintf(_u("%ls_%ls[%I64i]"), (isFirst ? _u("") : _u(".")), this->m_step.OptName, this->m_step.IndexOrPID);
             break;
         default:
             AssertMsg(false, "Unknown tag in switch statement!!!");
@@ -325,7 +325,7 @@ namespace TTD
 
         if(printNewline)
         {
-            wprintf(L"\n");
+            wprintf(_u("\n"));
         }
     }
 
@@ -343,7 +343,7 @@ namespace TTD
         H2FunctionTopLevelLoadMap(&HeapAllocator::Instance), H2FunctionTopLevelNewMap(&HeapAllocator::Instance), H2FunctionTopLevelEvalMap(&HeapAllocator::Instance),
         H2FunctionBodyMap(&HeapAllocator::Instance), H2ObjectMap(&HeapAllocator::Instance)
     {
-        this->PathBuffer = HeapNewArrayZ(wchar, 256);
+        this->PathBuffer = HeapNewArrayZ(char16, 256);
 
         this->SnapObjCmpVTable = HeapNewArrayZ(fPtr_AssertSnapEquivAddtlInfo, (int32)NSSnapObjects::SnapObjectType::Limit);
 
@@ -388,8 +388,8 @@ namespace TTD
         {
             if(this->CurrentPath != nullptr)
             {
-                wprintf(L"Snap1 ptrid: *0x%I64x\n", this->CurrentH1Ptr);
-                wprintf(L"Snap2 ptrid: *0x%I64x\n", this->CurrentH2Ptr);
+                wprintf(_u("Snap1 ptrid: *0x%I64x\n"), this->CurrentH1Ptr);
+                wprintf(_u("Snap2 ptrid: *0x%I64x\n"), this->CurrentH2Ptr);
                 this->CurrentPath->WritePathToConsole(this->Context, true, this->PathBuffer);
             }
         }
@@ -434,7 +434,7 @@ namespace TTD
 
     void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_FunctionBody(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId)
     {
-        TTDComparePath::PathEntry next{ -1, L"!body" };
+        TTDComparePath::PathEntry next{ -1, _u("!body") };
         this->CheckConsistentAndAddPtrIdMapping_Helper(h1PtrId, h2PtrId, TTDComparePath::StepKind::FunctionBody, next);
     }
 

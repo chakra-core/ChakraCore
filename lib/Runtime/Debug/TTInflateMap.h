@@ -162,7 +162,7 @@ namespace TTD
 
         ~TTDComparePath();
 
-        void WritePathToConsole(ThreadContext* threadContext, bool printNewline, wchar* namebuff) const;
+        void WritePathToConsole(ThreadContext* threadContext, bool printNewline, char16* namebuff) const;
     };
 
     //A class that we use to manage all the dictionaries we need when comparing 2 snapshots
@@ -177,7 +177,7 @@ namespace TTD
         TTD_PTR_ID CurrentH1Ptr;
         TTD_PTR_ID CurrentH2Ptr;
         ThreadContext* Context;
-        wchar* PathBuffer;
+        char16* PathBuffer;
         JsUtil::BaseDictionary<TTD_PTR_ID, TTDComparePath*, HeapAllocator> H1PtrToPathMap;
 
         fPtr_AssertSnapEquivAddtlInfo* SnapObjCmpVTable;

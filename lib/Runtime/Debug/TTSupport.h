@@ -147,13 +147,13 @@ namespace TTD
     }
 
     //Function pointer definitions and a struct for writing data out of memory (presumably to stable storage)
-    typedef bool(CALLBACK *TTDDbgCallback)(INT64* optEventTimeRequest, wchar_t** optStaticRequestMessage);
+    typedef bool(CALLBACK *TTDDbgCallback)(INT64* optEventTimeRequest, char16** optStaticRequestMessage);
 
-    typedef void(CALLBACK *TTDInitializeTTDUriCallback)(const wchar_t* uri, wchar_t** fullTTDUri);
-    typedef void(CALLBACK *TTDInitializeForWriteLogStreamCallback)(const wchar_t* uri);
-    typedef HANDLE(CALLBACK *TTDGetLogStreamCallback)(const wchar_t* uri, bool read, bool write);
-    typedef HANDLE(CALLBACK *TTDGetSnapshotStreamCallback)(const wchar_t* logRootUri, const wchar_t* snapId, bool read, bool write, wchar_t** containerUri);
-    typedef HANDLE(CALLBACK *TTDGetSrcCodeStreamCallback)(const wchar_t* containerUri, const wchar_t* documentid, const wchar_t* srcFileName, bool read, bool write);
+    typedef void(CALLBACK *TTDInitializeTTDUriCallback)(const char16* uri, char16** fullTTDUri);
+    typedef void(CALLBACK *TTDInitializeForWriteLogStreamCallback)(const char16* uri);
+    typedef HANDLE(CALLBACK *TTDGetLogStreamCallback)(const char16* uri, bool read, bool write);
+    typedef HANDLE(CALLBACK *TTDGetSnapshotStreamCallback)(const char16* logRootUri, const char16* snapId, bool read, bool write, char16** containerUri);
+    typedef HANDLE(CALLBACK *TTDGetSrcCodeStreamCallback)(const char16* containerUri, const char16* documentid, const char16* srcFileName, bool read, bool write);
 
     typedef BOOL(CALLBACK *TTDReadBytesFromStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount);
     typedef BOOL(CALLBACK *TTDWriteBytesToStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* writtenCount);

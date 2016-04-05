@@ -133,7 +133,7 @@ namespace TTD
     void RuntimeContextInfo::BuildPathString(UtilSupport::TTAutoString rootpath, LPCWSTR name, LPCWSTR optaccessortag, UtilSupport::TTAutoString& into)
     {
         into.Append(rootpath);
-        into.Append(L".");
+        into.Append(_u("."));
         into.Append(name);
 
         if(optaccessortag != nullptr)
@@ -270,10 +270,10 @@ namespace TTD
     {
         JsUtil::List<const Js::PropertyRecord*, ArenaAllocator> propertyRecordList(this->m_shaddowAllocator);
 
-        this->EnqueueRootPathObject(L"global", ctx->GetGlobalObject());
-        this->EnqueueRootPathObject(L"null", ctx->GetLibrary()->GetNull());
+        this->EnqueueRootPathObject(_u("global"), ctx->GetGlobalObject());
+        this->EnqueueRootPathObject(_u("null"), ctx->GetLibrary()->GetNull());
 
-        this->EnqueueRootPathObject(L"_defaultAccessor", ctx->GetLibrary()->GetDefaultAccessorFunction());
+        this->EnqueueRootPathObject(_u("_defaultAccessor"), ctx->GetLibrary()->GetDefaultAccessorFunction());
 
         //DEBUG
         uint32 counter = 0;
@@ -303,13 +303,13 @@ namespace TTD
                     if(getter != nullptr && !Js::JavascriptOperators::IsUndefinedObject(getter))
                     {
                         AssertMsg(Js::JavascriptFunction::Is(getter), "The getter is not a function?");
-                        this->EnqueueNewPathVarAsNeeded(curr, getter, precord, L">");
+                        this->EnqueueNewPathVarAsNeeded(curr, getter, precord, _u(">"));
                     }
 
                     if(setter != nullptr && !Js::JavascriptOperators::IsUndefinedObject(setter))
                     {
                         AssertMsg(Js::JavascriptFunction::Is(setter), "The setter is not a function?");
-                        this->EnqueueNewPathVarAsNeeded(curr, Js::RecyclableObject::FromVar(setter), precord, L"<");
+                        this->EnqueueNewPathVarAsNeeded(curr, Js::RecyclableObject::FromVar(setter), precord, _u("<"));
                     }
                 }
                 else
@@ -329,13 +329,13 @@ namespace TTD
             bool skipProto = (proto == nullptr) || Js::JavascriptOperators::IsUndefinedOrNullType(proto->GetTypeId());
             if(!skipProto)
             {
-                this->EnqueueNewPathVarAsNeeded(curr, proto, L"_proto_");
+                this->EnqueueNewPathVarAsNeeded(curr, proto, _u("_proto_"));
             }
 
             if(Js::GlobalObject::Is(curr))
             {
                 //Place some other values in known locations (they may lazily appear later but we want to force them now)
-                this->EnqueueRootPathObject(L"__Shadow_DefaultAccessorFunction", ctx->GetLibrary()->GetDefaultAccessorFunction());
+                this->EnqueueRootPathObject(_u("__Shadow_DefaultAccessorFunction"), ctx->GetLibrary()->GetDefaultAccessorFunction());
             }
 
             curr->ProcessCorePaths();
@@ -380,7 +380,7 @@ namespace TTD
             this->m_worklist.Enqueue(obj);
 
             UtilSupport::TTAutoString tpath(ppath);
-            tpath.Append(L".");
+            tpath.Append(_u("."));
             tpath.Append(propName);
 
             if(optacessortag != nullptr)
@@ -400,7 +400,7 @@ namespace TTD
 
             UtilSupport::TTAutoString fpath(ppath);
 
-            fpath.Append(L".");
+            fpath.Append(_u("."));
             fpath.Append(name);
 
             this->m_coreBodyToPathMap.AddNew(fbody, fpath);
@@ -409,38 +409,38 @@ namespace TTD
 
     UtilSupport::TTAutoString RuntimeContextInfo::BuildArrayIndexBuffer(uint32 arrayidx)
     {
-        UtilSupport::TTAutoString res(L"!arrayContents[");
+        UtilSupport::TTAutoString res(_u("!arrayContents["));
         res.Append(arrayidx);
-        res.Append(L"]");
+        res.Append(_u("]"));
 
         return res;
     }
 
     UtilSupport::TTAutoString RuntimeContextInfo::BuildEnvironmentIndexBuffer(uint32 envidx)
     {
-        UtilSupport::TTAutoString res(L"!env[");
+        UtilSupport::TTAutoString res(_u("!env["));
         res.Append(envidx);
-        res.Append(L"]");
+        res.Append(_u("]"));
 
         return res;
     }
 
     UtilSupport::TTAutoString RuntimeContextInfo::BuildEnvironmentIndexBodyBuffer(uint32 envidx)
     {
-        UtilSupport::TTAutoString res(L"!env[");
+        UtilSupport::TTAutoString res(_u("!env["));
         res.Append(envidx);
-        res.Append(L"].!body");
+        res.Append(_u("].!body"));
 
         return res;
     }
 
     UtilSupport::TTAutoString RuntimeContextInfo::BuildEnvironmentIndexAndSlotBuffer(uint32 envidx, uint32 slotidx)
     {
-        UtilSupport::TTAutoString res(L"!env[");
+        UtilSupport::TTAutoString res(_u("!env["));
         res.Append(envidx);
-        res.Append(L"].!slot[");
+        res.Append(_u("].!slot["));
         res.Append(slotidx);
-        res.Append(L"]");
+        res.Append(_u("]"));
 
         return res;
     }

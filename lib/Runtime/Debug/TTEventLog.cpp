@@ -961,7 +961,7 @@ namespace TTD
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         TTString pname;
-        this->m_eventSlabAllocator.CopyNullTermStringInto(L"Register Promise Function", pname);
+        this->m_eventSlabAllocator.CopyNullTermStringInto(_u("Register Promise Function"), pname);
 
         eevent->SetFunctionName(pname);
 #endif
@@ -1313,7 +1313,7 @@ namespace TTD
 
         if(this->HasPendingTTDBP())
         {
-            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(this->GetPendingTTDBPTargetEventTime(), L"Reverse operation requested.");
+            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(this->GetPendingTTDBPTargetEventTime(), _u("Reverse operation requested."));
         }
     }
 #endif
@@ -1552,7 +1552,7 @@ namespace TTD
 
     void EventLog::AbortReplayReturnToHost()
     {
-        throw TTDebuggerAbortException::CreateAbortEndOfLog(L"End of log reached -- returning to top-level.");
+        throw TTDebuggerAbortException::CreateAbortEndOfLog(_u("End of log reached -- returning to top-level."));
     }
 
     void EventLog::DoSnapshotExtract()
@@ -2166,7 +2166,7 @@ namespace TTD
         //See if we have been running record mode (even if we are suspended for runtime execution) -- if we aren't then we don't want to emit anything
         if((this->m_currentMode & TTDMode::RecordEnabled) != TTDMode::RecordEnabled)
         {
-            return L"Record Disabled -- No Log Written!";
+            return _u("Record Disabled -- No Log Written!");
         }
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
@@ -2183,13 +2183,13 @@ namespace TTD
 
         TTString archString;
 #if defined(_M_IX86)
-        this->m_miscSlabAllocator.CopyNullTermStringInto(L"x86", archString);
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("x86"), archString);
 #elif defined(_M_X64)
-        this->m_miscSlabAllocator.CopyNullTermStringInto(L"x64", archString);
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("x64"), archString);
 #elif defined(_M_ARM)
-        this->m_miscSlabAllocator.CopyNullTermStringInto(L"arm64", archString);
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("arm64"), archString);
 #else
-        this->m_miscSlabAllocator.CopyNullTermStringInto(L"unknown", archString);
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u(L"unknown"), archString);
 #endif
 
         writer.WriteString(NSTokens::Key::arch, archString);
@@ -2289,11 +2289,11 @@ namespace TTD
         reader.ReadString(NSTokens::Key::arch, this->m_miscSlabAllocator, archString);
 
 #if defined(_M_IX86)
-        AssertMsg(wcscmp(L"x86", archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
+        AssertMsg(wcscmp(_u("x86"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
 #elif defined(_M_X64)
-        AssertMsg(wcscmp(L"x64", archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
+        AssertMsg(wcscmp(_u("x64"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
 #elif defined(_M_ARM)
-        AssertMsg(wcscmp(L"arm64", archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
+        AssertMsg(wcscmp(_u("arm64"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
 #else
         AssertMsg(false, "Unknown arch!!!");
 #endif

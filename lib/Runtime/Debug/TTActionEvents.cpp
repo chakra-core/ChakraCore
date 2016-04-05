@@ -1284,7 +1284,7 @@ namespace TTD
         CompileScriptException se;
         BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(execContext)
         {
-            function = execContext->LoadScript((const byte*)script, scriptLength * sizeof(wchar_t), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, this->m_loadFlag);
+            function = execContext->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, this->m_loadFlag);
         }
         END_LEAVE_SCRIPT_WITH_EXCEPTION(execContext);
         AssertMsg(function != nullptr, "Something went wrong");
@@ -1669,7 +1669,7 @@ namespace TTD
 
             if(this->m_hasScriptException || this->m_hasTerminiatingException)
             {
-                throw TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(threadContext->TTDLog->GetCurrentTopLevelEventTime(), L"Uncaught exception -- Propagate to top-level.");
+                throw TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(threadContext->TTDLog->GetCurrentTopLevelEventTime(), _u("Uncaught exception -- Propagate to top-level."));
             }
         }
 #endif
