@@ -185,15 +185,12 @@ namespace TTD
 
         void StdPropertyRestore(const SnapObject* snpObject, Js::DynamicObject* obj, InflateMap* inflator)
         {
-            if(snpObject->SnapType->PrototypeId != TTD_INVALID_PTR_ID)
+            //Many protos are set at creation, don't mess with them if they are already correct
+            if(snpObject->SnapType->PrototypeVar != nullptr)
             {
-                Js::RecyclableObject* protoObj = Js::RecyclableObject::FromVar(inflator->LookupObject(snpObject->SnapType->PrototypeId));
-
-                //Many protos are set at creation, don't mess with them if they are already correct
-                if(obj->GetPrototype() != protoObj)
+                Js::RecyclableObject* protoObj = Js::RecyclableObject::FromVar(inflator->InflateTTDVar(snpObject->SnapType->PrototypeVar));
+                if(obj->GetType()->GetPrototype() != protoObj)
                 {
-                    AssertMsg(!Js::JavascriptProxy::Is(obj), "Why is proxy's prototype not the regular one?");
-
                     obj->SetPrototype(protoObj);
                 }
             }

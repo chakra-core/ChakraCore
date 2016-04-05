@@ -2565,8 +2565,6 @@ STDAPI_(JsErrorCode) JsGetPropertyIdFromName(_In_z_ const wchar_t *name, _Out_ J
         {
             return JsErrorOutOfMemory;
         }
-
-
     });
 }
 

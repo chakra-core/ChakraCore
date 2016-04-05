@@ -114,8 +114,8 @@ namespace TTD
             //The typeid given by Chakra
             Js::TypeId JsTypeId;
 
-            //The prototype ptr or invalid ptr id if we want to ignore the prototype info
-            TTD_PTR_ID PrototypeId;
+            //The prototype var
+            TTDVar PrototypeVar;
 
             //The id of the script context that this object is associated with
             TTD_LOG_TAG ScriptContextTag;

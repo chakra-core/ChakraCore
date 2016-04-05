@@ -187,15 +187,9 @@ namespace Js
         sType->TypePtrId = TTD_CONVERT_TYPEINFO_TO_PTR_ID(this);
         sType->JsTypeId = this->GetTypeId();
 
-        sType->PrototypeId = TTD_INVALID_PTR_ID;
-        Js::RecyclableObject* proto = this->GetPrototype();
-        if(proto != nullptr && !Js::JavascriptOperators::IsUndefinedOrNullType(proto->GetTypeId()))
-        {
-            sType->PrototypeId = TTD_CONVERT_VAR_TO_PTR_ID(proto);
-        }
+        sType->PrototypeVar = this->GetPrototype();
 
         sType->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(this->GetScriptContext());
-
         sType->TypeHandlerInfo = optHandler;
 
         sType->HasNoEnumerableProperties = false;

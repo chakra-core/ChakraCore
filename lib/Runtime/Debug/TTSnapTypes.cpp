@@ -234,8 +234,10 @@ namespace TTD
             writer->WriteAddr(NSTokens::Key::typeId, sType->TypePtrId);
 
             writer->WriteTag<Js::TypeId>(NSTokens::Key::jsTypeId, sType->JsTypeId, NSTokens::Separator::CommaSeparator);
-            writer->WriteAddr(NSTokens::Key::prototypeId, sType->PrototypeId, NSTokens::Separator::CommaSeparator);
             writer->WriteLogTag(NSTokens::Key::ctxTag, sType->ScriptContextTag, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteKey(NSTokens::Key::prototypeVar, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(sType->PrototypeVar, writer, NSTokens::Separator::NoSeparator);
 
             TTD_PTR_ID handlerId = (sType->TypeHandlerInfo != nullptr) ? sType->TypeHandlerInfo->HandlerId : TTD_INVALID_PTR_ID;
             writer->WriteAddr(NSTokens::Key::handlerId, handlerId, NSTokens::Separator::CommaSeparator);
@@ -252,8 +254,10 @@ namespace TTD
             sType->TypePtrId = reader->ReadAddr(NSTokens::Key::typeId);
 
             sType->JsTypeId = reader->ReadTag<Js::TypeId>(NSTokens::Key::jsTypeId, true);
-            sType->PrototypeId = reader->ReadAddr(NSTokens::Key::prototypeId, true);
             sType->ScriptContextTag = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
+
+            reader->ReadKey(NSTokens::Key::prototypeVar, true);
+            sType->PrototypeVar = NSSnapValues::ParseTTDVar(false, reader);
 
             TTD_PTR_ID handlerId = reader->ReadAddr(NSTokens::Key::handlerId, true);
             if(handlerId == TTD_INVALID_PTR_ID)
@@ -274,8 +278,9 @@ namespace TTD
         void AssertSnapEquiv(const SnapType* t1, const SnapType* t2, TTDCompareMap& compareMap)
         {
             compareMap.DiagnosticAssert(t1->JsTypeId == t2->JsTypeId);
-            compareMap.CheckConsistentAndAddPtrIdMapping_Special(t1->PrototypeId, t2->PrototypeId, _u("prototype"));
             compareMap.DiagnosticAssert(t1->ScriptContextTag == t2->ScriptContextTag);
+
+            NSSnapValues::AssertSnapEquivTTDVar_Special(t1->PrototypeVar, t2->PrototypeVar, compareMap, _u("prototype"));
 
             if(t1->TypeHandlerInfo == nullptr || t2->TypeHandlerInfo == nullptr)
             {
