@@ -321,7 +321,7 @@ bool DebuggerCh::Initialize(JsRuntimeHandle runtime)
     ChakraRTInterface::JsAddRef(this->m_context, nullptr);
 
     JsValueRef globalFunc = JS_INVALID_REFERENCE;
-    IfJsrtErrorHR(ChakraRTInterface::JsParseScriptWithFlags(s_controllerScript, JS_SOURCE_CONTEXT_NONE, L"chakra_debug.js", JsParseScriptAttributeLibraryCode, &globalFunc));
+    IfJsrtErrorHR(ChakraRTInterface::JsParseScriptWithAttributes(s_controllerScript, JS_SOURCE_CONTEXT_NONE, L"chakra_debug.js", JsParseScriptAttributeLibraryCode, &globalFunc));
 
     JsValueRef undefinedValue;
     IfJsrtErrorHR(ChakraRTInterface::JsGetUndefinedValue(&undefinedValue));
