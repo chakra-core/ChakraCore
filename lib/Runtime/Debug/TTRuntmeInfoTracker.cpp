@@ -275,6 +275,12 @@ namespace TTD
 
         this->EnqueueRootPathObject(_u("_defaultAccessor"), ctx->GetLibrary()->GetDefaultAccessorFunction());
 
+        this->EnqueueRootPathObject(_u("_stackTraceAccessor"), ctx->GetLibrary()->GetStackTraceAccessorFunction());
+        this->EnqueueRootPathObject(_u("_throwTypeErrorAccessor"), ctx->GetLibrary()->GetThrowTypeErrorAccessorFunction());
+        this->EnqueueRootPathObject(_u("_throwTypeErrorCallerAccessor"), ctx->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction());
+        this->EnqueueRootPathObject(_u("_throwTypeErrorCalleeAccessor"), ctx->GetLibrary()->GetThrowTypeErrorCalleeAccessorFunction());
+        this->EnqueueRootPathObject(_u("_throwTypeErrorArgumentsAccessor"), ctx->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction());
+
         //DEBUG
         uint32 counter = 0;
 

@@ -84,7 +84,7 @@ namespace Js
     void RuntimeFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
         //
-        //TODO: need to add promise support
+        //TODO: need to add more promise support
         //
 
         Var revokableProxy = nullptr;
@@ -109,10 +109,6 @@ namespace Js
         }
         else
         {
-#if !TTD_ERROR_INFO_WORK_AROUND
-            AssertMsg(objData->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN, "This function is unknown but we didn't think that was possible -- did we miss something in core rundown?");
-#endif
-
             TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapRuntimeFunctionObject>(objData, nullptr);
         }
     }
