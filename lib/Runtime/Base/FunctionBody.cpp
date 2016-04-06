@@ -1656,10 +1656,7 @@ namespace Js
         Recycler* recycler = this->m_scriptContext->GetRecycler();
         propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
 
-        bool isDebugReparse = m_scriptContext->IsScriptContextInSourceRundownOrDebugMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
-        bool isAsmJsReparse = false;
-        bool isReparse = isDebugReparse;
-
+        bool isReparse = false;
         FunctionBody* funcBody = nullptr;
 
         // If m_hasBeenParsed = true, one of the following things happened things happened:
@@ -1737,8 +1734,11 @@ namespace Js
         }
         else
         {
-            isAsmJsReparse = m_isAsmjsMode && !isDebugReparse;
-            isReparse |= isAsmJsReparse;
+            bool isDebugReparse = m_scriptContext->IsScriptContextInSourceRundownOrDebugMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
+            bool isAsmJsReparse = m_isAsmjsMode && !isDebugReparse;
+
+            isReparse = isAsmJsReparse || isDebugReparse;
+
             funcBody = this->GetFunctionBody();
 
             if (isReparse)
@@ -1802,7 +1802,7 @@ namespace Js
                     // (not a function declaration statement).
                     grfscr |= fscrDeferredFncExpression;
                 }
-                if (!CONFIG_FLAG(DeferNested) || isDebugReparse || isAsmJsReparse)
+                if (!CONFIG_FLAG(DeferNested) || isReparse)
                 {
                     grfscr &= ~fscrDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
                 }
