@@ -743,7 +743,7 @@ namespace Js
                 aLeft = JavascriptConversion::ToPrimitive(aLeft, JavascriptHint::HintNumber, scriptContext);
             }
             //BugFix: When @@ToPrimitive of an object is overridden with a function that returns null/undefined
-            //this helper will fall into a inescapable goto loop as the checks for null/undefined were outside of the path 
+            //this helper will fall into a inescapable goto loop as the checks for null/undefined were outside of the path
             return RelationalComparisonHelper(aLeft, aRight, scriptContext, leftFirst, undefinedAs);
         }
 
@@ -1347,12 +1347,11 @@ CommonNumber:
     {
         RecyclableObject* function = GetIteratorFunction(aRight, scriptContext);
         JavascriptMethod method = function->GetEntryPoint();
-        if ((JavascriptArray::Is(aRight) && method == JavascriptArray::EntryInfo::Values.GetOriginalEntryPoint()) ||
-            (TypedArrayBase::Is(aRight) && method == TypedArrayBase::EntryInfo::Values.GetOriginalEntryPoint()))
+        if (((JavascriptArray::Is(aRight) && method == JavascriptArray::EntryInfo::Values.GetOriginalEntryPoint())
+                || (TypedArrayBase::Is(aRight) && method == TypedArrayBase::EntryInfo::Values.GetOriginalEntryPoint()))
+            // We can't optimize away the iterator if the array iterator prototype is user defined.
+            && !JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext))
         {
-            // TODO: There is a compliance bug here in the case where the user has changed %ArrayIteratorPrototype%.next(); we won't call it.
-            // Checking if the property has been modified is currently not possible without doing a Get on it which might call user code.
-            // Fixing this bug will require a way to get the value stored in the property without doing the evaluation semantics of a Get.
             return aRight;
         }
 
@@ -2459,8 +2458,11 @@ CommonNumber:
             Var member;
 
             // If the item is found in the array own body, then it is a number
-            if (JavascriptOperators::GetOwnItem(object, index, &member, scriptContext))
+            if (JavascriptOperators::GetOwnItem(object, index, &member, scriptContext)
+                && !JavascriptOperators::IsUndefined(member))
+            {
                 return TRUE;
+            }
         }
         return FALSE;
     }
@@ -9090,7 +9092,9 @@ CommonNumber:
             // Stack numbers are ok, as we will call ToObject to wrap it in a number object anyway
             // See JavascriptOperators::GetThisHelper
             Assert(JavascriptOperators::GetTypeId(object) == TypeIds_Integer ||
-                JavascriptOperators::GetTypeId(object) == TypeIds_Number || !ThreadContext::IsOnStack(object));
+                JavascriptOperators::GetTypeId(object) == TypeIds_Number ||
+                threadContext->HasNoSideEffect(function) ||
+                !ThreadContext::IsOnStack(object));
 
             // Verify that the scriptcontext is alive before firing getter/setter
             if (!scriptContext->VerifyAlive(!function->IsExternal(), requestContext))
@@ -9488,7 +9492,7 @@ CommonNumber:
 
         if (e != nullptr)
         {
-            reject->GetEntryPoint()(reject, CallInfo(CallFlags_Value, 2), library->GetUndefined(), e->GetThrownObject(scriptContext));
+            JavascriptPromise::TryRejectWithExceptionObject(e, reject, scriptContext);
         }
 
         return promise;
@@ -10173,55 +10177,47 @@ CommonNumber:
         return TypeIds_FirstNumberType <= typeId && typeId <= TypeIds_LastNumberType;
     }
 
-    BOOL JavascriptOperators::IsIterable(RecyclableObject* instance, ScriptContext* scriptContext)
-    {
-        if (JavascriptProxy::Is(instance))
-        {
-            Var func = JavascriptOperators::GetProperty(instance, PropertyIds::_symbolIterator, scriptContext);
-            if (JavascriptOperators::IsUndefinedObject(func))
-            {
-                return FALSE;
-            }
-            else
-            {
-                return TRUE;
-            }
-        }
-        else
-        {
-            return JavascriptOperators::HasProperty(instance, PropertyIds::_symbolIterator);
-        }
-    }
-
     // GetIterator as described in ES6.0 (draft 22) Section 7.4.1
-    RecyclableObject* JavascriptOperators::GetIterator(Var iterable, ScriptContext* scriptContext)
+    RecyclableObject* JavascriptOperators::GetIterator(Var iterable, ScriptContext* scriptContext, bool optional)
     {
         RecyclableObject* iterableObj = RecyclableObject::FromVar(JavascriptOperators::ToObject(iterable, scriptContext));
-        return JavascriptOperators::GetIterator(iterableObj, scriptContext);
+        return JavascriptOperators::GetIterator(iterableObj, scriptContext, optional);
     }
 
-    RecyclableObject* JavascriptOperators::GetIteratorFunction(Var iterable, ScriptContext* scriptContext)
+    RecyclableObject* JavascriptOperators::GetIteratorFunction(Var iterable, ScriptContext* scriptContext, bool optional)
     {
         RecyclableObject* iterableObj = RecyclableObject::FromVar(JavascriptOperators::ToObject(iterable, scriptContext));
-        return JavascriptOperators::GetIteratorFunction(iterableObj, scriptContext);
+        return JavascriptOperators::GetIteratorFunction(iterableObj, scriptContext, optional);
     }
 
-    RecyclableObject* JavascriptOperators::GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext)
+    RecyclableObject* JavascriptOperators::GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext, bool optional)
     {
         Var func = JavascriptOperators::GetProperty(instance, PropertyIds::_symbolIterator, scriptContext);
 
+        if (optional && JavascriptOperators::IsUndefinedOrNull(func))
+        {
+            return nullptr;
+        }
+
         if (!JavascriptConversion::IsCallable(func))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction);
         }
 
         RecyclableObject* function = RecyclableObject::FromVar(func);
         return function;
     }
 
-    RecyclableObject* JavascriptOperators::GetIterator(RecyclableObject* instance, ScriptContext * scriptContext)
+    RecyclableObject* JavascriptOperators::GetIterator(RecyclableObject* instance, ScriptContext * scriptContext, bool optional)
     {
-        RecyclableObject* function = GetIteratorFunction(instance, scriptContext);
+        RecyclableObject* function = GetIteratorFunction(instance, scriptContext, optional);
+
+        if (function == nullptr)
+        {
+            Assert(optional);
+            return nullptr;
+        }
+
         Var iterator = function->GetEntryPoint()(function, CallInfo(Js::CallFlags_Value, 1), instance);
 
         if (!JavascriptOperators::IsObject(iterator))

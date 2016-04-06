@@ -516,26 +516,24 @@ private:
 
 public:
     IdentPtrList* GetRequestedModulesList();
-    ModuleImportEntryList* GetModuleImportEntryList();
-    ModuleExportEntryList* GetModuleLocalExportEntryList();
-    ModuleExportEntryList* GetModuleIndirectExportEntryList();
-    ModuleExportEntryList* GetModuleStarExportEntryList();
+    ModuleImportOrExportEntryList* GetModuleImportEntryList();
+    ModuleImportOrExportEntryList* GetModuleLocalExportEntryList();
+    ModuleImportOrExportEntryList* GetModuleIndirectExportEntryList();
+    ModuleImportOrExportEntryList* GetModuleStarExportEntryList();
 
 protected:
     IdentPtrList* EnsureRequestedModulesList();
-    ModuleImportEntryList* EnsureModuleImportEntryList();
-    ModuleExportEntryList* EnsureModuleLocalExportEntryList();
-    ModuleExportEntryList* EnsureModuleIndirectExportEntryList();
-    ModuleExportEntryList* EnsureModuleStarExportEntryList();
+    ModuleImportOrExportEntryList* EnsureModuleImportEntryList();
+    ModuleImportOrExportEntryList* EnsureModuleLocalExportEntryList();
+    ModuleImportOrExportEntryList* EnsureModuleIndirectExportEntryList();
+    ModuleImportOrExportEntryList* EnsureModuleStarExportEntryList();
 
     void AddModuleSpecifier(IdentPtr moduleRequest);
-    void AddModuleImportEntry(ModuleImportEntryList* importEntryList, IdentPtr importName, IdentPtr localName, IdentPtr moduleRequest, ParseNodePtr declNode);
-    void AddModuleExportEntry(ModuleExportEntryList* exportEntryList, ModuleExportEntry* exportEntry);
-    void AddModuleExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest);
+    ModuleImportOrExportEntry* AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest);
+    ModuleImportOrExportEntry* AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, ModuleImportOrExportEntry* importOrExportEntry);
     void AddModuleLocalExportEntry(ParseNodePtr varDeclNode);
-    void CheckForDuplicateExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr exportName);
+    void CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportEntryList, IdentPtr exportName);
 
-    Js::PropertyId EnsurePropertyId(IdentPtr pid);
     ParseNodePtr CreateModuleImportDeclNode(IdentPtr localName);
     void MarkIdentifierReferenceIsModuleExport(IdentPtr localName);
 
@@ -816,12 +814,12 @@ private:
     bool IsImportOrExportStatementValidHere();
 
     template<bool buildAST> ParseNodePtr ParseImportDeclaration();
-    template<bool buildAST> void ParseImportClause(ModuleImportEntryList* importEntryList, bool parsingAfterComma = false);
+    template<bool buildAST> void ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma = false);
 
     template<bool buildAST> ParseNodePtr ParseExportDeclaration();
     template<bool buildAST> ParseNodePtr ParseDefaultExportClause();
 
-    template<bool buildAST> void ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryList, ModuleExportEntryList* exportEntryList, bool isExportClause);
+    template<bool buildAST> void ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* importOrExportEntryList, bool isExportClause);
     template<bool buildAST> IdentPtr ParseImportOrExportFromClause(bool throwIfNotFound);
 
     BOOL NodeIsIdent(ParseNodePtr pnode, IdentPtr pid);

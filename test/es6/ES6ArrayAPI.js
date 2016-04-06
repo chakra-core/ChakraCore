@@ -278,6 +278,12 @@ var tests = [
             assert.throws(function() { Array.from(objectWithIteratorWhichDoesNotReturnObjects); }, TypeError, "obj[@@iterator] must return an object", "Object expected");
             assert.throws(function() { Array.from(objectWithIteratorNextIsNotAFunction); }, TypeError, "obj[@@iterator].next must be a function", "Function expected");
             assert.throws(function() { Array.from(objectWithIteratorNextDoesNotReturnObjects); }, TypeError, "obj[@@iterator].next must return an object", "Object expected");
+
+            var objectWithUndefinedIterator = { 0: "a", 1: "b", length: 2, [Symbol.iterator]: undefined };
+            var objectWithNullIterator = { 0: "a", 1: "b", length: 2, [Symbol.iterator]: null };
+
+            assert.areEqual([ "a", "b" ], Array.from(objectWithUndefinedIterator), "'@@iterator: undefined' is ignored");
+            assert.areEqual([ "a", "b" ], Array.from(objectWithNullIterator), "'@@iterator: null' is ignored");
         }
     },
     {
@@ -331,6 +337,31 @@ var tests = [
             var o = {length: 4294967301};
 
             assert.throws(function() { Array.from(o); }, RangeError, "Array.from uses abstract operation ArrayCreate which throws RangeError when requested length > 2^32-1", "Array length must be a finite positive integer");
+        }
+    },
+    {
+        name: "Array.from doesn't get @@iterator twice",
+        body: function () {
+            let count = 0;
+            Array.from({
+                get [Symbol.iterator]() {
+                    count++;
+                    return [][Symbol.iterator];
+                }
+            });
+            assert.areEqual(count, 1, "Array.from calls @@iterator getter once");
+
+            count = 0;
+            Array.from(new Proxy({}, {
+                get(target, property) {
+                    if (property === Symbol.iterator) {
+                        count++;
+                        return [][Symbol.iterator];
+                    }
+                    return Reflect.get(target, property);
+                }
+            }));
+            assert.areEqual(count, 1, "Array.from calls proxy's getter with @@iterator as parameter only once");
         }
     },
     {

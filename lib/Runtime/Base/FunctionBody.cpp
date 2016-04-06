@@ -3395,6 +3395,7 @@ namespace Js
 
         newFunctionBody->SetFirstTmpRegister(this->GetFirstTmpRegister());
         newFunctionBody->SetLocalClosureRegister(this->GetLocalClosureRegister());
+        newFunctionBody->SetParamClosureRegister(this->GetParamClosureRegister());
         newFunctionBody->SetLocalFrameDisplayRegister(this->GetLocalFrameDisplayRegister());
         newFunctionBody->SetEnvRegister(this->GetEnvRegister());
         newFunctionBody->SetThisRegisterForEventHandler(this->GetThisRegisterForEventHandler());
@@ -4744,6 +4745,7 @@ namespace Js
         this->SetVarCount(0);
         this->SetConstantCount(0);
         this->SetLocalClosureRegister(Constants::NoRegister);
+        this->SetParamClosureRegister(Constants::NoRegister);
         this->SetLocalFrameDisplayRegister(Constants::NoRegister);
         this->SetEnvRegister(Constants::NoRegister);
         this->SetThisRegisterForEventHandler(Constants::NoRegister);
@@ -6052,6 +6054,7 @@ namespace Js
 
         SetFirstTmpRegister(Constants::NoRegister);
         SetLocalClosureRegister(Constants::NoRegister);
+        SetParamClosureRegister(Constants::NoRegister);
         SetLocalFrameDisplayRegister(Constants::NoRegister);
         SetEnvRegister(Constants::NoRegister);
         SetThisRegisterForEventHandler(Constants::NoRegister);

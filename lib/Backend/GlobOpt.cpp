@@ -971,6 +971,7 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
     BVSparse<JitArenaAllocator> symsRequiringCompensation(tempAlloc);
     {
         BVSparse<JitArenaAllocator> symsCreatedForMerge(tempAlloc);
+        bool forceTypeSpecOnLoopHeader = true;
         FOREACH_PREDECESSOR_BLOCK(pred, block)
         {
             if (pred->globOptData.callSequence && pred->globOptData.callSequence->Empty())
@@ -1019,7 +1020,9 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
                     block,
                     pred,
                     isLoopPrePass ? nullptr : &symsRequiringCompensation,
-                    isLoopPrePass ? nullptr : &symsCreatedForMerge);
+                    isLoopPrePass ? nullptr : &symsCreatedForMerge,
+                    forceTypeSpecOnLoopHeader);
+                forceTypeSpecOnLoopHeader = false; // can force type-spec on the loop header only for the first back edge.
             }
 
             // Restore the value for the next edge
@@ -1809,7 +1812,8 @@ GlobOpt::MergeBlockData(
     BasicBlock *toBlock,
     BasicBlock *fromBlock,
     BVSparse<JitArenaAllocator> *const symsRequiringCompensation,
-    BVSparse<JitArenaAllocator> *const symsCreatedForMerge)
+    BVSparse<JitArenaAllocator> *const symsCreatedForMerge,
+    bool forceTypeSpecOnLoopHeader)
 {
     GlobOptBlockData *fromData = &(fromBlock->globOptData);
 
@@ -1881,7 +1885,7 @@ GlobOpt::MergeBlockData(
         BVSparse<JitArenaAllocator> tempBv1(this->tempAlloc);
         BVSparse<JitArenaAllocator> tempBv2(this->tempAlloc);
 
-        if (isLoopBackEdge)
+        if (isLoopBackEdge && forceTypeSpecOnLoopHeader)
         {
             Loop *const loop = toBlock->loop;
 
@@ -8988,6 +8992,11 @@ GlobOpt::OptConstFoldUnary(
     case Js::OpCode::Ld_A:
         if (instr->HasBailOutInfo())
         {
+            //The profile data for switch expr can be string and in GlobOpt we realize it is an int.
+            if(instr->GetBailOutKind() == IR::BailOutExpectingString)
+            {
+                throw Js::RejitException(RejitReason::DisableSwitchOptExpectingString);
+            }
             Assert(instr->GetBailOutKind() == IR::BailOutExpectingInteger);
             instr->ClearBailOutInfo();
         }
@@ -10957,7 +10966,14 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
 
             // Try to type specialize to int32
 
-            lossy = false;
+            // If one of the values is a float constant with a value that fits in a uint32 but not an int32, 
+            // and the instruction can ignore int overflow, the source value for the purposes of int specialization 
+            // would have been changed to an int constant value by ignoring overflow. But, the conversion is still lossy.
+            if (!(src1OriginalVal && src1OriginalVal->GetValueInfo()->IsFloatConstant() && src1Val && src1Val->GetValueInfo()->HasIntConstantValue()) &&
+                !(src2OriginalVal && src2OriginalVal->GetValueInfo()->IsFloatConstant() && src2Val && src2Val->GetValueInfo()->HasIntConstantValue()))
+            {
+                lossy = false;
+            }
 
             switch(instr->m_opcode)
             {

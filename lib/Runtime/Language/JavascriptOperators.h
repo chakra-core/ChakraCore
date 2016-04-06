@@ -213,7 +213,6 @@ namespace Js
         static BOOL IsUndefinedObject(Var instance, RecyclableObject *libraryUndefined);
         static BOOL IsUndefinedObject(Var instance, JavascriptLibrary* library);
         static BOOL IsAnyNumberValue(Var instance);
-        static BOOL IsIterable(RecyclableObject* instance, ScriptContext* scriptContext);
         static BOOL IsClassConstructor(Var instance);
 
         static BOOL HasOwnItem(RecyclableObject* instance, uint32 index);
@@ -399,10 +398,10 @@ namespace Js
         static void AddFloatsToArraySegment(SparseArraySegment<double> * segment, const Js::AuxArray<double> *doubles);
         static void UpdateNewScObjectCache(Var function, Var instance, ScriptContext* requestContext);
 
-        static RecyclableObject* GetIteratorFunction(Var iterable, ScriptContext* scriptContext);
-        static RecyclableObject* GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext);
-        static RecyclableObject* GetIterator(Var instance, ScriptContext* scriptContext);
-        static RecyclableObject* GetIterator(RecyclableObject* instance, ScriptContext* scriptContext);
+        static RecyclableObject* GetIteratorFunction(Var iterable, ScriptContext* scriptContext, bool optional = false);
+        static RecyclableObject* GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext, bool optional = false);
+        static RecyclableObject* GetIterator(Var instance, ScriptContext* scriptContext, bool optional = false);
+        static RecyclableObject* GetIterator(RecyclableObject* instance, ScriptContext* scriptContext, bool optional = false);
         static RecyclableObject* IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, Var value = nullptr);
         static bool IteratorComplete(RecyclableObject* iterResult, ScriptContext* scriptContext);
         static Var IteratorValue(RecyclableObject* iterResult, ScriptContext* scriptContext);

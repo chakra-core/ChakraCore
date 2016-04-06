@@ -68,6 +68,8 @@ namespace Js
         // 8. Let resolvingFunctions be CreateResolvingFunctions(promise).
         InitializePromise(promise, &resolve, &reject, scriptContext);
 
+        JavascriptExceptionObject* exception = nullptr;
+
         // 9. Let completion be Call(executor, undefined, « resolvingFunctions.[[Resolve]], resolvingFunctions.[[Reject]] »).
         try
         {
@@ -78,13 +80,16 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            // 10. If completion is an abrupt completion, then
-            //    a. Perform ? Call(resolvingFunctions.[[Reject]], undefined, « completion.[[Value]] »).
-            reject->GetEntryPoint()(reject, CallInfo(CallFlags_Value, 2),
-                library->GetUndefined(),
-                e->GetThrownObject(scriptContext));
+            exception = e;
         }
 
+        if (exception != nullptr)
+        {
+            // 10. If completion is an abrupt completion, then
+            //    a. Perform ? Call(resolvingFunctions.[[Reject]], undefined, « completion.[[Value]] »).
+            TryRejectWithExceptionObject(exception, reject, scriptContext);
+        }
+        
         // 11. Return promise. 
         return promise;
     }
@@ -186,7 +191,7 @@ namespace Js
         RecyclableObject* constructorObject = RecyclableObject::FromVar(constructor);
 
         uint32 index = 0;
-        JavascriptArray* values;
+        JavascriptArray* values = nullptr;
 
         // We can't use a simple counter for the remaining element count since each Promise.all Resolve Element Function needs to know how many
         // elements are remaining when it runs and needs to update that counter for all other functions created by this call to Promise.all.
@@ -194,6 +199,8 @@ namespace Js
         // by this call to Promise.all.
         JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper = RecyclerNewStructZ(scriptContext->GetRecycler(), JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper);
         remainingElementsWrapper->remainingElements = 1;
+
+        JavascriptExceptionObject* exception = nullptr;
 
         try
         {
@@ -247,7 +254,12 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            exception = e;
+        }
+
+        if (exception != nullptr)
+        {
+            TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
 
             // We need to explicitly return here to make sure we don't resolve in case index == 0 here.
             // That would happen if GetIterator or IteratorValue throws an exception in the first iteration.
@@ -259,6 +271,8 @@ namespace Js
         // We want this call to happen outside the try statement because if it throws, we aren't supposed to reject the promise.
         if (remainingElementsWrapper->remainingElements == 0)
         {
+            Assert(values != nullptr);
+
             TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), values, scriptContext);
         }
 
@@ -349,6 +363,7 @@ namespace Js
         // would throw otherwise. That means we can safely cast constructor into a RecyclableObject* now and avoid having to perform ToObject
         // as part of the Invoke operation performed inside the loop below.
         RecyclableObject* constructorObject = RecyclableObject::FromVar(constructor);
+        JavascriptExceptionObject* exception = nullptr;
 
         try
         {
@@ -395,7 +410,12 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            exception = e;
+        }
+
+        if (exception != nullptr)
+        {
+            TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
         }
 
         return promiseCapability->GetPromise();
@@ -627,6 +647,12 @@ namespace Js
                 catch (JavascriptExceptionObject* e)
                 {
                     resolution = e->GetThrownObject(scriptContext);
+
+                    if (resolution == nullptr)
+                    {
+                        resolution = undefinedVar;
+                    }
+
                     rejecting = true;
                 }
             }
@@ -646,6 +672,8 @@ namespace Js
             reactions = promise->GetResolveReactions();
             newStatus = PromiseStatusCode_HasResolution;
         }
+
+        Assert(resolution != nullptr);
 
         promise->result = resolution;
         promise->resolveReactions = nullptr;
@@ -706,7 +734,8 @@ namespace Js
         Var argument = reactionTaskFunction->GetArgument();
         JavascriptPromiseCapability* promiseCapability = reaction->GetCapabilities();
         RecyclableObject* handler = reaction->GetHandler();
-        Var handlerResult;
+        Var handlerResult = nullptr;
+        JavascriptExceptionObject* exception = nullptr;
 
         try
         {
@@ -716,8 +745,15 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            return TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            exception = e;
         }
+
+        if (exception != nullptr)
+        {
+            return TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
+        }
+
+        Assert(handlerResult != nullptr);
 
         return TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), handlerResult, scriptContext);
     }
@@ -736,6 +772,18 @@ namespace Js
         return handlerFunc->GetEntryPoint()(handlerFunc, CallInfo(CallFlags_Value, 2),
             undefinedVar,
             value);
+    }
+
+    Var JavascriptPromise::TryRejectWithExceptionObject(JavascriptExceptionObject* exceptionObject, Var handler, ScriptContext* scriptContext)
+    {
+        Var thrownObject = exceptionObject->GetThrownObject(scriptContext);
+
+        if (thrownObject == nullptr)
+        {
+            thrownObject = scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        return TryCallResolveOrRejectHandler(handler, thrownObject, scriptContext);
     }
 
     // Promise Resolve Thenable Job as described in ES 2015 Section 25.4.2.2
@@ -758,6 +806,7 @@ namespace Js
 
         JavascriptPromiseResolveOrRejectFunction* resolve = library->CreatePromiseResolveOrRejectFunction(EntryResolveOrRejectFunction, promise, false, alreadyResolvedRecord);
         JavascriptPromiseResolveOrRejectFunction* reject = library->CreatePromiseResolveOrRejectFunction(EntryResolveOrRejectFunction, promise, true, alreadyResolvedRecord);
+        JavascriptExceptionObject* exception = nullptr;
 
         try
         {
@@ -768,10 +817,12 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            return reject->GetEntryPoint()(reject, Js::CallInfo(Js::CallFlags::CallFlags_Value, 2),
-                library->GetUndefined(),
-                e->GetThrownObject(scriptContext));
+            exception = e;
         }
+
+        Assert(exception != nullptr);
+
+        return TryRejectWithExceptionObject(exception, reject, scriptContext);
     }
 
     // Promise Identity Function as described in ES 2015Section 25.4.5.3.1
@@ -849,6 +900,7 @@ namespace Js
         uint32 index = allResolveElementFunction->GetIndex();
         JavascriptArray* values = allResolveElementFunction->GetValues();
         JavascriptPromiseCapability* promiseCapability = allResolveElementFunction->GetCapabilities();
+        JavascriptExceptionObject* exception = nullptr;
 
         try
         {
@@ -856,7 +908,12 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            return TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            exception = e;
+        }
+
+        if (exception != nullptr)
+        {
+            return TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
         }
 
         if (allResolveElementFunction->DecrementRemainingElements() == 0)
@@ -959,7 +1016,7 @@ namespace Js
         JavascriptLibrary* library = scriptContext->GetLibrary();
         Var undefinedVar = library->GetUndefined();
 
-        JavascriptExceptionObject* e = nullptr;
+        JavascriptExceptionObject* exception = nullptr;
         Var value = nullptr;
         RecyclableObject* next = nullptr;
         bool done;
@@ -968,15 +1025,15 @@ namespace Js
         {
             next = RecyclableObject::FromVar(nextFunction->GetEntryPoint()(nextFunction, CallInfo(CallFlags_Value, 1), undefinedVar));
         }
-        catch (JavascriptExceptionObject* ex)
+        catch (JavascriptExceptionObject* e)
         {
-            e = ex;
+            exception = e;
         }
 
-        if (e != nullptr)
+        if (exception != nullptr)
         {
             // finished with failure, reject the promise
-            reject->GetEntryPoint()(reject, CallInfo(CallFlags_Value, 2), undefinedVar, e->GetThrownObject(scriptContext));
+            TryRejectWithExceptionObject(exception, reject, scriptContext);
             return;
         }
 
@@ -1051,7 +1108,8 @@ namespace Js
         }
 
         RecyclableObject* obj = RecyclableObject::FromVar(resolution);
-        Var then;
+        Var then = nullptr;
+        JavascriptExceptionObject* exception = nullptr;
 
         try
         {
@@ -1059,11 +1117,16 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            exception = e;
+        }
 
+        if (exception != nullptr)
+        {
+            TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
             return true;
         }
 
+        Assert(then != nullptr);
         if (!JavascriptConversion::IsCallable(then))
         {
             return false;
@@ -1080,7 +1143,12 @@ namespace Js
         }
         catch (JavascriptExceptionObject* e)
         {
-            TryCallResolveOrRejectHandler(promiseCapability->GetReject(), e->GetThrownObject(scriptContext), scriptContext);
+            exception = e;
+        }
+
+        if (exception != nullptr)
+        {
+            TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
         }
 
         return true;

@@ -129,8 +129,8 @@ MACRO(MINPS,    Reg2,       None,           RNON,   f(MODRM),   o(MINPS),   DNO1
 
 MACRO(LZCNT,    Reg2,   None,          RNON,   f(MODRM),   o(LZCNT),   DF3|DSETCC|DDST,             OLB_0F)
 
-MACRO(MOV,      Reg2,   None,          R000,   f(MOV),     o(MOV),     DDST,                        OLB_NONE)
-MACRO(MOV_TRUNC,Reg2,   None,          R000,   f(MOV),     o(MOV),     DDST,                        OLB_NONE)// Like a MOV, but MOV ECX, ECX can't be removed (truncation)
+MACRO(MOV,      Reg2,   None,          R000,   f(MOV),     o(MOV),     DDST|DMOV,                   OLB_NONE)
+MACRO(MOV_TRUNC,Reg2,   None,          R000,   f(MOV),     o(MOV),     DDST|DMOV,                   OLB_NONE)// Like a MOV, but MOV ECX, ECX can't be removed (truncation)
 MACRO(MOVD,     Reg2,   None,          RNON,   f(SPECIAL), o(MOVD),    DDST|DNO16|D66,              OLB_0F)
 
 
