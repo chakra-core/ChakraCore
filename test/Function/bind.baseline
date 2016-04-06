@@ -76,6 +76,7 @@ PASS: Construction :30
 PASS: Add Test:50
 PASS: f Test:11
 PASS: Proto Test:true
+PASS: Proto toString Test:[object Function]
 PASS: TestConstruction0 x:0
 PASS: TestConstruction0 y:1
 PASS: TestConstruction1 x:100
