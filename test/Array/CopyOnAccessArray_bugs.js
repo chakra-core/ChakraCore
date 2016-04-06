@@ -98,6 +98,15 @@ var tests = [
         }
     },
     {
+        name: "Calling Object.prototype.hasOwnProperty()",
+        body: function ()
+        {
+            var a=[1,2,3,4,5,6];
+            var c=Object.prototype.hasOwnProperty.call(a, 1);
+            assert.areEqual(c, true);
+        }
+    },
+    {
         name: "OS3713376: Accessing COA through proxy",
         body: function ()
         {
