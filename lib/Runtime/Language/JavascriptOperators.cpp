@@ -9492,7 +9492,7 @@ CommonNumber:
 
         if (e != nullptr)
         {
-            reject->GetEntryPoint()(reject, CallInfo(CallFlags_Value, 2), library->GetUndefined(), e->GetThrownObject(scriptContext));
+            JavascriptPromise::TryRejectWithExceptionObject(e, reject, scriptContext);
         }
 
         return promise;
