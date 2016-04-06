@@ -67,6 +67,7 @@ namespace Js
         DiagBlockScopeInObject,     // Block scope in activation object
         DiagBlockScopeRangeEnd,     // Used to end a block scope range.
         DiagParamScope,             // The scope represents symbols at formals
+        DiagParamScopeInObject,     // The scope represents symbols at formals and formal scope in activation object
     };
 
     class PropertyGuard
@@ -3475,6 +3476,7 @@ namespace Js
         bool IsCatchScope() const;
         bool IsWithScope() const;
         bool IsSlotScope() const;
+        bool IsParamScope() const;
         bool HasProperties() const;
         bool IsAncestorOf(const DebuggerScope* potentialChildScope);
         bool AreAllPropertiesInDeadZone(int byteCodeOffset) const;

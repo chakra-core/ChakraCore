@@ -5318,6 +5318,8 @@ namespace Js
             return _u("DiagWithScope");
         case DiagExtraScopesType::DiagParamScope:
             return _u("DiagParamScope");
+        case DiagExtraScopesType::DiagParamScopeInObject:
+            return _u("DiagParamScopeInObject");
         default:
             AssertMsg(false, "Missing a debug scope type.");
             return _u("");
@@ -5491,6 +5493,12 @@ namespace Js
     {
         return this->scopeType == Js::DiagBlockScopeInSlot
             || this->scopeType == Js::DiagCatchScopeInSlot;
+    }
+
+    bool DebuggerScope::IsParamScope() const
+    {
+        return this->scopeType == Js::DiagParamScope
+            || this->scopeType == Js::DiagParamScopeInObject;
     }
 
     // Gets whether or not the scope has any properties in it.
@@ -5681,7 +5689,7 @@ namespace Js
         {
             Js::DebuggerScope *debuggerScope = pScopeChain->Item(i);
             DebuggerScopeProperty debuggerScopeProperty;
-            if (debuggerScope->scopeType != DiagParamScope && debuggerScope->TryGetProperty(propertyId, location, &debuggerScopeProperty))
+            if (!debuggerScope->IsParamScope() && debuggerScope->TryGetProperty(propertyId, location, &debuggerScopeProperty))
             {
                 bool isOffsetInScope = debuggerScope->IsOffsetInScope(offset);
 
