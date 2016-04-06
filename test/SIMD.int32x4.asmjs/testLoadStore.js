@@ -620,30 +620,24 @@ function asmModule(stdlib, imports, buffer) {
 var buffer = new ArrayBuffer(0x10000);
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)}, buffer);
 
-var ret;
-
-ret = m.func1();
-equalSimd([10, 20, 30, 40], ret, SIMD.Int32x4, "Test Load Store1");
+equalSimd([10, 20, 30, 40], m.func1(), SIMD.Int32x4, "Test Load Store1");
+equalSimd([10, 20, 30, 40], m.func1(), SIMD.Int32x4, "Test Load Store1");
 
 
-ret = m.func2();
+equalSimd([10, 20, 30, 0], m.func2(), SIMD.Int32x4, "Test Load Store2");
+equalSimd([10, 20, 30, 0], m.func2(), SIMD.Int32x4, "Test Load Store2");
 
-equalSimd([10, 20, 30, 0], ret, SIMD.Int32x4, "Test Load Store2");
+equalSimd([10, 20, 0, 0], m.func3(), SIMD.Int32x4, "Test Load Store3");
+equalSimd([10, 20, 0, 0], m.func3(), SIMD.Int32x4, "Test Load Store3");
 
+equalSimd([10, 0, 0, 0], m.func4(), SIMD.Int32x4, "Test Load Store4");
+equalSimd([10, 0, 0, 0], m.func4(), SIMD.Int32x4, "Test Load Store4");
 
-ret = m.func3();
-equalSimd([10, 20, 0, 0], ret, SIMD.Int32x4, "Test Load Store3");
+equalSimd([10, 20, 0, 0], m.func5(), SIMD.Int32x4, "Test Load Store5");
+equalSimd([10, 20, 0, 0], m.func5(), SIMD.Int32x4, "Test Load Store5");
 
-
-ret = m.func4();
-equalSimd([10, 0, 0, 0], ret, SIMD.Int32x4, "Test Load Store4");
-
-ret = m.func5();
-equalSimd([10, 20, 0, 0], ret, SIMD.Int32x4, "Test Load Store5");
-
-
-ret = m.func6();
-equalSimd([10, 0, 0, 0], ret, SIMD.Int32x4, "Test Load Store6");
+equalSimd([10, 0, 0, 0], m.func6(), SIMD.Int32x4, "Test Load Store6");
+equalSimd([10, 0, 0, 0], m.func6(), SIMD.Int32x4, "Test Load Store6");
 
 //
 
@@ -662,6 +656,8 @@ for (var i = 0; i < funcOOB1.length; i ++)
     {
         ret = funcOOB1[i]();
         equalSimd(RESULTS[i], ret, SIMD.Int32x4, "Test Load Store");
+        ret = funcOOB1[i]();
+        equalSimd(RESULTS[i], ret, SIMD.Int32x4, "Test Load Store");
 
     } catch(e)
     {
@@ -677,6 +673,8 @@ for (var i = 0; i < funcOOB2.length; i ++)
     
     try
     {
+        ret = funcOOB2[i]();
+        print("Wrong");
         ret = funcOOB2[i]();
         print("Wrong");
         

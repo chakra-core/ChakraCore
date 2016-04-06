@@ -402,25 +402,33 @@ var v1 = SIMD.Uint32x4(1, 2, 3, 4 );
 var v2 = SIMD.Uint32x4(134, 211, 0xffff, 0xf0f0);
 var v3 = SIMD.Uint32x4(0xcccc, -999996, 0xffff, 0xf0f0);
 var ret1 = m.func1();
+var ret1 = m.func1();
 
+var ret2 = m.func2(v1);
 var ret2 = m.func2(v1);
 //printSimdBaseline(ret2, "SIMD.Uint32x4", "ret2", "func2");
 
 var ret3 = m.func3(v1);
+var ret3 = m.func3(v1);
 //printSimdBaseline(ret3, "SIMD.Uint32x4", "ret3", "func3");
 
+var ret4 = m.func4(v1, v2, v3, v1, v2);
 var ret4 = m.func4(v1, v2, v3, v1, v2);
 //printSimdBaseline(ret4, "SIMD.Uint32x4", "ret4", "func4");
 
 var ret5 = m.func5(v1, v2, v3, v1, v2);
+var ret5 = m.func5(v1, v2, v3, v1, v2);
 //printSimdBaseline(ret5, "SIMD.Uint32x4", "ret5", "func5");
 
+var ret6 = m.func6(v1, v2, v3, v1, v2);
 var ret6 = m.func6(v1, v2, v3, v1, v2);
 //printSimdBaseline(ret6, "SIMD.Uint32x4", "ret6", "func6");
 
 var ret7 = m.func7(v1, v2, v3, v1, v2);
+var ret7 = m.func7(v1, v2, v3, v1, v2);
 //printSimdBaseline(ret7, "SIMD.Uint32x4", "ret7", "func7");
 
+var ret8 = m.func8(v1, v2, v3, v1, v2);
 var ret8 = m.func8(v1, v2, v3, v1, v2);
 //printSimdBaseline(ret8, "SIMD.Uint32x4", "ret8", "func8");
 

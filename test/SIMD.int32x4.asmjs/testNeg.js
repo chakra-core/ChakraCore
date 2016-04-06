@@ -153,13 +153,6 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
 
-var ret1 = m.func1();
-var ret2 = m.func2();
-var ret3 = m.func3();
-
-
-
-
 /*
 var ret7 = m.func7();
 var ret8 = m.func8();
@@ -172,9 +165,17 @@ var ret12 = m.func12();
 
 */
 
-
+var ret1 = m.func1();
 equalSimd([-5033, 3401, -665, 32234], ret1, SIMD.Int32x4, "Test Neg");
+var ret1 = m.func1();
+equalSimd([-5033, 3401, -665, 32234], ret1, SIMD.Int32x4, "Test Neg");
+var ret2 = m.func2();
 equalSimd([1065353216, 1073741824, 1077936128, 1082130432], ret2, SIMD.Int32x4, "Test Neg");
+var ret2 = m.func2();
+equalSimd([1065353216, 1073741824, 1077936128, 1082130432], ret2, SIMD.Int32x4, "Test Neg");
+var ret3 = m.func3();
+equalSimd([1065353216, 1073741824, 1077936128, 1082130432], ret3, SIMD.Int32x4, "Test Neg");
+var ret3 = m.func3();
 equalSimd([1065353216, 1073741824, 1077936128, 1082130432], ret3, SIMD.Int32x4, "Test Neg");
 print("PASS");
 

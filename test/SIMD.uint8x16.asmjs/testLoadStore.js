@@ -538,32 +538,34 @@ var m = asmModule(this, {g1:SIMD.Uint8x16(13216, 1024, 28, 108, 55, 3323, 992, 2
 var ret;
 
 ret = m.func1();
-//print("func1");
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
+ret = m.func1();
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 
 
 ret = m.func2();
-//print("func3");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
-
+ret = m.func2();
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 
 ret = m.func3();
-//print("func3");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
-
+ret = m.func3();
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 
 ret = m.func4();
-//print("func4");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
-
+ret = m.func4();
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 
 ret = m.func5();
-//print("func5");
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
+ret = m.func5();
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 
-
 ret = m.func6();
-//print("func6");
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
+ret = m.func6();
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 //
 
@@ -582,8 +584,9 @@ for (var i = 0; i < funcOOB1.length; i ++)
     try
     {
         ret = funcOOB1[i]();
-        //print("func" + (i+1) + "OOB_1");
-        equalSimd(RESULTS[i], ret, SIMD.Uint8x16, "Test Load Store");
+        equalSimd(RESULTS[i], ret, SIMD.Uint8x16, "Test Load Store" + i);
+        ret = funcOOB1[i]();
+        equalSimd(RESULTS[i], ret, SIMD.Uint8x16, "Test Load Store" + i);
 
     } catch(e)
     {
@@ -596,7 +599,6 @@ var funcOOB2 = [m.func1OOB_2, m.func2OOB_2 ,m.func3OOB_2, m.func4OOB_2, m.func5O
 
 for (var i = 0; i < funcOOB2.length; i ++)
 {
-    //print("func" + (i+1) + "OOB_2");
     try
     {
         ret = funcOOB2[i]();
@@ -605,7 +607,19 @@ for (var i = 0; i < funcOOB2.length; i ++)
     } catch(e)
     {
         if (e instanceof RangeError) {
-            //print("Correct");
+        }
+        else
+            print("Wrong");
+        
+    }
+        try
+    {
+        ret = funcOOB2[i]();
+        print("Wrong");
+        
+    } catch(e)
+    {
+        if (e instanceof RangeError) {
         }
         else
             print("Wrong");

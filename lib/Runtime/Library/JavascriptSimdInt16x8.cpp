@@ -3,15 +3,23 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-
 #include "RuntimeLibraryPch.h"
-
 
 namespace Js
 {
+    JavascriptSIMDInt16x8::JavascriptSIMDInt16x8(StaticType *type) : JavascriptSIMDType(type)
+    {
+        Assert(type->GetTypeId() == TypeIds_SIMDInt16x8);
+    }
+
     JavascriptSIMDInt16x8::JavascriptSIMDInt16x8(SIMDValue *val, StaticType *type) : JavascriptSIMDType(val, type)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDInt16x8);
+    }
+
+    JavascriptSIMDInt16x8* JavascriptSIMDInt16x8::AllocUninitialized(ScriptContext* requestContext)
+    {
+        return (JavascriptSIMDInt16x8 *)AllocatorNew(Recycler, requestContext->GetRecycler(), JavascriptSIMDInt16x8, requestContext->GetLibrary()->GetSIMDInt16x8TypeStatic());
     }
 
     JavascriptSIMDInt16x8* JavascriptSIMDInt16x8::New(SIMDValue *val, ScriptContext* requestContext)

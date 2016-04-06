@@ -229,7 +229,10 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Int8x16(-1065353216, -1073741824, -1077936128, -1082130432, -383829393, -39283838, -92929, -109483922, -1065353216, -1073741824, -1077936128, -1082130432, -383829393, -39283838, -92929, -109483922) });
 
 equalSimd([-96, -127, -128, 127, -15, -1, 0, 0, 0, 94, 1, 1, -128, 127, 10, 16], m.testLocal(), SIMD.Int8x16, "testLocal");
+equalSimd([-96, -127, -128, 127, -15, -1, 0, 0, 0, 94, 1, 1, -128, 127, 10, 16], m.testLocal(), SIMD.Int8x16, "testLocal");
 equalSimd([1, 2, 3, 4, -15, 6, -1, -1, 64, -128, 127, -128, 127, 1, 53, 16], m.testGlobal(), SIMD.Int8x16, "testGlobal");
+equalSimd([1, 2, 3, 4, -15, 6, -1, -1, 64, -128, 127, -128, 127, 1, 53, 16], m.testGlobal(), SIMD.Int8x16, "testGlobal");
+equalSimd([0, 0, 0, 0, 111, -126, -1, 110, 0, 0, 0, 0, 111, -126, -1, 110], m.testGlobalImport(), SIMD.Int8x16, "testGlobalImport");
 equalSimd([0, 0, 0, 0, 111, -126, -1, 110, 0, 0, 0, 0, 111, -126, -1, 110], m.testGlobalImport(), SIMD.Int8x16, "testGlobalImport");
 
 print("PASS");

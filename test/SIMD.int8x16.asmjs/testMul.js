@@ -64,6 +64,9 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Int8x16(-10, 10, -20, 20, -30, 30, -40, 40, -50, 50, -60, 60, -70, 70, -80, 80) });
 
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, -126, -116, -106, -96], m.testMulLocal(), SIMD.Int8x16, "Test Neg");
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, -126, -116, -106, -96], m.testMulLocal(), SIMD.Int8x16, "Test Neg");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, -10, -20, -30, -40, -50, -60, -70, -80], m.testMulGlobal(), SIMD.Int8x16, "Test Neg");
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80, -10, -20, -30, -40, -50, -60, -70, -80], m.testMulGlobal(), SIMD.Int8x16, "Test Neg");
+equalSimd([-20, 20, -40, 40, -60, 60, -80, 80, -100, 100, -120, 120, 116, -116, 96, -96], m.testMulGlobalImport(), SIMD.Int8x16, "Test Neg");
 equalSimd([-20, 20, -40, 40, -60, 60, -80, 80, -100, 100, -120, 120, 116, -116, 96, -96], m.testMulGlobalImport(), SIMD.Int8x16, "Test Neg");
 print("PASS");

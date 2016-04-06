@@ -252,17 +252,24 @@ function printResults(res)
     print(res.toString());
 }
 
-inputLength = initF32(buffer);
-
 //Module initialization
 var m = asmModule(this, {g0:initF32(buffer),g1:SIMD.Float32x4(9,9,9,9), g2:SIMD.Int32x4(1, 2, 3, 4)}, buffer);
+
 var values = new Float32Array(buffer);
 
+initF32(buffer);
+m.scale(0, 16 * 10); //Scale
+validateBuffer(values, 4 * 10);
+
+initF32(buffer);
 m.scale(0, 16 * 10); //Scale
 validateBuffer(values, 4 * 10);
 
 initI32(buffer);
+m.scale2(0, 16 * 10); //Scale
+validateBuffer2(values, 4 * 10);
 
+initI32(buffer);
 m.scale2(0, 16 * 10); //Scale
 validateBuffer2(values, 4 * 10);
 

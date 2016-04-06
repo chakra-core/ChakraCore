@@ -92,9 +92,20 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint8x16(100, 10824, 1028, 82, 3883, 8, 2929, 1442, 52, 127, 128, 129, 129, 0, 88, 100234) });
 
 equalSimd([128, 128, 0, 0, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 0], m.testShiftLeftScalarLocal(), SIMD.Uint8x16, "func1");
+equalSimd([128, 128, 0, 0, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 0], m.testShiftLeftScalarLocal(), SIMD.Uint8x16, "func1");
+
 equalSimd([2, 2, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], m.testShiftRightScalarLocal(), SIMD.Uint8x16, "func2");
+equalSimd([2, 2, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], m.testShiftRightScalarLocal(), SIMD.Uint8x16, "func2");
+
 equalSimd([16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 0], m.testShiftLeftScalarGlobal(), SIMD.Uint8x16, "func3");
 equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0], m.testShiftRightScalarGlobal(), SIMD.Uint8x16, "func4");
+
+equalSimd([16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 0], m.testShiftLeftScalarGlobal(), SIMD.Uint8x16, "func3");
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0], m.testShiftRightScalarGlobal(), SIMD.Uint8x16, "func4");
+
+equalSimd([64, 128, 64, 32, 176, 128, 16, 32, 64, 240, 0, 16, 16, 0, 128, 160], m.testShiftLeftScalarGlobalImport(), SIMD.Uint8x16, "func5");
+equalSimd([4, 8, 4, 2, 11, 8, 1, 2, 4, 15, 0, 1, 1, 0, 8, 10], m.testShiftRightScalarGlobalImport(), SIMD.Uint8x16, "func6");
+
 equalSimd([64, 128, 64, 32, 176, 128, 16, 32, 64, 240, 0, 16, 16, 0, 128, 160], m.testShiftLeftScalarGlobalImport(), SIMD.Uint8x16, "func5");
 equalSimd([4, 8, 4, 2, 11, 8, 1, 2, 4, 15, 0, 1, 1, 0, 8, 10], m.testShiftRightScalarGlobalImport(), SIMD.Uint8x16, "func6");
 print("PASS");

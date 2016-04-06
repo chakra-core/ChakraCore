@@ -164,62 +164,71 @@ var b4 = SIMD.Bool32x4;
 var b8 = SIMD.Bool16x8;
 var b16 = SIMD.Bool8x16;
 
-var ret1 = m.and1(1);
-var ret2 = m.and2(1);
-var ret3 = m.and3(1);
-var ret4 = m.or1(1);
-var ret5 = m.or2(1);
-var ret6 = m.or3(1);
-var ret7 = m.xor1(1);
-var ret8 = m.xor2(1);
-var ret9 = m.xor3(1);
-var ret10 = m.not1(1);
-var ret11 = m.not2(1);
-var ret12 = m.not3(1);
-var ret13 = m.allTrue1(1);
-var ret14 = m.allTrue2(1);
-var ret15 = m.allTrue3(1);
-var ret16 = m.anyTrue1(1);
-var ret17 = m.anyTrue2(1);
-var ret18 = m.anyTrue3(1);
-
 /*
-printSimdBaseline(ret1, "SIMD.Bool32x4", "ret1", "and1");
-printSimdBaseline(ret2, "SIMD.Bool16x8", "ret2", "and2");
-printSimdBaseline(ret3, "SIMD.Bool8x16", "ret3", "and3");
-printSimdBaseline(ret4, "SIMD.Bool32x4", "ret4", "or1");
-printSimdBaseline(ret6, "SIMD.Bool8x16", "ret6", "or3");
-printSimdBaseline(ret5, "SIMD.Bool16x8", "ret5", "or2");
-printSimdBaseline(ret7, "SIMD.Bool32x4", "ret7", "xor1");
-printSimdBaseline(ret8, "SIMD.Bool16x8", "ret8", "xor2");
-printSimdBaseline(ret9, "SIMD.Bool8x16", "ret9", "xor3");
-printSimdBaseline(ret10, "SIMD.Bool32x4", "ret10", "not1");
-printSimdBaseline(ret11, "SIMD.Bool16x8", "ret11", "not2");
-printSimdBaseline(ret12, "SIMD.Bool8x16", "ret12", "not3");
-print(ret13);
-print(ret14);
-print(ret15);
-print(ret16);
-print(ret17);
-print(ret18);
+printSimdBaseline(m.and1(1), "SIMD.Bool32x4", "m.and1(1)", "and1");
+printSimdBaseline(m.and2(1), "SIMD.Bool16x8", "m.and2(1)", "and2");
+printSimdBaseline(m.and3(1), "SIMD.Bool8x16", "m.and3(1)", "and3");
+printSimdBaseline(m.or1(1), "SIMD.Bool32x4", "m.or1(1)", "or1");
+printSimdBaseline(m.or3(1), "SIMD.Bool8x16", "m.or3(1)", "or3");
+printSimdBaseline(m.or2(1), "SIMD.Bool16x8", "m.or2(1)", "or2");
+printSimdBaseline(m.xor1(1_, "SIMD.Bool32x4", "m.xor1(1_", "xor1");
+printSimdBaseline(m.xor2(1), "SIMD.Bool16x8", "m.xor2(1)", "xor2");
+printSimdBaseline(m.xor3(1), "SIMD.Bool8x16", "m.xor3(1)", "xor3");
+printSimdBaseline(m.and1(1)0, "SIMD.Bool32x4", "m.and1(1)0", "not1");
+printSimdBaseline(m.and1(1)1, "SIMD.Bool16x8", "m.and1(1)1", "not2");
+printSimdBaseline(m.and1(1)2, "SIMD.Bool8x16", "m.and1(1)2", "not3");
+print(m.and1(1)3);
+print(m.and1(1)4);
+print(m.and1(1)5);
+print(m.and1(1)6);
+print(m.and1(1)7);
+print(m.and1(1)8);
 */
 
-equalSimd([false, true, false, false], ret1, SIMD.Bool32x4, "and1")
-equalSimd([false, true, false, false, false, true, false, false], ret2, SIMD.Bool16x8, "and2")
-equalSimd([false, true, false, false, false, true, false, false, false, true, false, false, false, true, false, false], ret3, SIMD.Bool8x16, "and3")
-equalSimd([true, true, false, true], ret4, SIMD.Bool32x4, "or1")
-equalSimd([true, true, false, true, true, true, false, true, true, true, false, true, true, true, false, true], ret6, SIMD.Bool8x16, "or3")
-equalSimd([true, true, false, true, true, true, false, true], ret5, SIMD.Bool16x8, "or2")
-equalSimd([true, false, false, true], ret7, SIMD.Bool32x4, "xor1")
-equalSimd([true, false, false, true, true, false, false, true], ret8, SIMD.Bool16x8, "xor2")
-equalSimd([true, false, false, true, true, false, false, true, true, false, false, true, true, false, false, true], ret9, SIMD.Bool8x16, "xor3")
-equalSimd([true, false, true, true], ret10, SIMD.Bool32x4, "not1")
-equalSimd([true, false, true, true, true, false, true, true], ret11, SIMD.Bool16x8, "not2")
-equalSimd([true, false, true, true, true, false, true, true, true, false, true, true, true, false, true, true], ret12, SIMD.Bool8x16, "not3")
-equal(ret13, 1);
-equal(ret14, 1);
-equal(ret15, 0);
-equal(ret16, 1);
-equal(ret17, 1);
-equal(ret18, 1);
+equalSimd([false, true, false, false], m.and1(1), SIMD.Bool32x4, "and1")
+equalSimd([false, true, false, false], m.and1(1), SIMD.Bool32x4, "and1")
+equalSimd([false, true, false, false, false, true, false, false], m.and2(1), SIMD.Bool16x8, "and2")
+equalSimd([false, true, false, false, false, true, false, false], m.and2(1), SIMD.Bool16x8, "and2")
+equalSimd([false, true, false, false, false, true, false, false, false, true, false, false, false, true, false, false], m.and3(1), SIMD.Bool8x16, "and3")
+equalSimd([false, true, false, false, false, true, false, false, false, true, false, false, false, true, false, false], m.and3(1), SIMD.Bool8x16, "and3")
+equalSimd([true, true, false, true], m.or1(1), SIMD.Bool32x4, "or1")
+equalSimd([true, true, false, true], m.or1(1), SIMD.Bool32x4, "or1")
+equalSimd([true, true, false, true, true, true, false, true, true, true, false, true, true, true, false, true], m.or3(1), SIMD.Bool8x16, "or3")
+equalSimd([true, true, false, true, true, true, false, true, true, true, false, true, true, true, false, true], m.or3(1), SIMD.Bool8x16, "or3")
+equalSimd([true, true, false, true, true, true, false, true], m.or2(1), SIMD.Bool16x8, "or2")
+equalSimd([true, true, false, true, true, true, false, true], m.or2(1), SIMD.Bool16x8, "or2")
+equalSimd([true, false, false, true], m.xor1(1) , SIMD.Bool32x4, "xor1")
+equalSimd([true, false, false, true], m.xor1(1) , SIMD.Bool32x4, "xor1")
+equalSimd([true, false, false, true, true, false, false, true], m.xor2(1), SIMD.Bool16x8, "xor2")
+equalSimd([true, false, false, true, true, false, false, true], m.xor2(1), SIMD.Bool16x8, "xor2")
+equalSimd([true, false, false, true, true, false, false, true, true, false, false, true, true, false, false, true], m.xor3(1), SIMD.Bool8x16, "xor3")
+equalSimd([true, false, false, true, true, false, false, true, true, false, false, true, true, false, false, true], m.xor3(1), SIMD.Bool8x16, "xor3")
+equalSimd([true, false, false, true, true, false, false, true, true, false, false, true, true, false, false, true], m.xor3(1), SIMD.Bool8x16, "xor3")
+
+equalSimd([true, false, true, true],m.not1(1), SIMD.Bool32x4, "not1")
+equalSimd([true, false, true, true],m.not1(1), SIMD.Bool32x4, "not1")
+
+equalSimd([true, false, true, true, true, false, true, true], m.not2(1), SIMD.Bool16x8, "not2")
+equalSimd([true, false, true, true, true, false, true, true], m.not2(1), SIMD.Bool16x8, "not2")
+
+equalSimd([true, false, true, true, true, false, true, true, true, false, true, true, true, false, true, true], m.not3(1), SIMD.Bool8x16, "not3")
+equalSimd([true, false, true, true, true, false, true, true, true, false, true, true, true, false, true, true], m.not3(1), SIMD.Bool8x16, "not3")
+equal(m.allTrue1(1), 1);
+equal(m.allTrue1(1), 1);
+
+equal(m.allTrue2(1), 1);
+equal(m.allTrue2(1), 1);
+
+equal(m.allTrue3(1), 0);
+equal(m.allTrue3(1), 0);
+
+equal(m.anyTrue1(1), 1);
+equal(m.anyTrue1(1), 1);
+
+equal(m.anyTrue2(1), 1);
+equal(m.anyTrue2(1), 1);
+
+equal(m.anyTrue3(1), 1);
+equal(m.anyTrue3(1), 1);
+
 print("PASS");

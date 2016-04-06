@@ -305,9 +305,16 @@ var values = new Float32Array(buffer);
 
 //Resetting the buffer.
 initF32(buffer);
-
 var ret = m.merge(0, 5 * 16, 10 * 16, 5);
 validateBuffer(values, 4 * 25);
+
+initF32(buffer);
+var ret = m.merge(0, 5 * 16, 10 * 16, 5);
+validateBuffer(values, 4 * 25);
+
+initI32(buffer);
+var ret = m.merge1(0, 5 * 16, 10 * 16, 5);
+validateBuffer1(values, 4 * 25);
 
 initI32(buffer);
 var ret = m.merge1(0, 5 * 16, 10 * 16, 5);

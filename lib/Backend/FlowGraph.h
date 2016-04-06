@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -547,19 +547,43 @@ public:
     // live syms upon entering loop header (from pred merge + forced syms + used before defs in loop)
     BVSparse<JitArenaAllocator> *simd128F4SymsOnEntry;
     BVSparse<JitArenaAllocator> *simd128I4SymsOnEntry;
+    BVSparse<JitArenaAllocator> *simd128I8SymsOnEntry;
+    BVSparse<JitArenaAllocator> *simd128I16SymsOnEntry;
+    BVSparse<JitArenaAllocator> *simd128U4SymsOnEntry;
+    BVSparse<JitArenaAllocator> *simd128U8SymsOnEntry;
+    BVSparse<JitArenaAllocator> *simd128U16SymsOnEntry;
+    BVSparse<JitArenaAllocator> *simd128B4SymsOnEntry;
+    BVSparse<JitArenaAllocator> *simd128B8SymsOnEntry;
+    BVSparse<JitArenaAllocator> *simd128B16SymsOnEntry;
 
     BVSparse<JitArenaAllocator> *symsUsedBeforeDefined;                // stack syms that are live in the landing pad, and used before they are defined in the loop
     BVSparse<JitArenaAllocator> *likelyIntSymsUsedBeforeDefined;       // stack syms that are live in the landing pad with a likely-int value, and used before they are defined in the loop
     BVSparse<JitArenaAllocator> *likelyNumberSymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-number value, and used before they are defined in the loop
     // SIMD_JS
     BVSparse<JitArenaAllocator> *likelySimd128F4SymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-Simd128F4 value, and used before they are defined in the loop
-    BVSparse<JitArenaAllocator> *likelySimd128I4SymsUsedBeforeDefined;    // stack syms that are live in the landing pad with a likely-Simd128I4 value, and used before they are defined in the loop
+    BVSparse<JitArenaAllocator> *likelySimd128I4SymsUsedBeforeDefined;
+    BVSparse<JitArenaAllocator> *likelySimd128I8SymsUsedBeforeDefined;
+    BVSparse<JitArenaAllocator> *likelySimd128I16SymsUsedBeforeDefined;
+    BVSparse<JitArenaAllocator> *likelySimd128U4SymsUsedBeforeDefined;
+    BVSparse<JitArenaAllocator> *likelySimd128U8SymsUsedBeforeDefined;
+    BVSparse<JitArenaAllocator> *likelySimd128U16SymsUsedBeforeDefined;
+    BVSparse<JitArenaAllocator> *likelySimd128B4SymsUsedBeforeDefined;
+    BVSparse<JitArenaAllocator> *likelySimd128B8SymsUsedBeforeDefined;
+    BVSparse<JitArenaAllocator> *likelySimd128B16SymsUsedBeforeDefined;
 
     BVSparse<JitArenaAllocator> *forceFloat64SymsOnEntry;
     // SIMD_JS
     // syms need to be forced to certain type due to hoisting
     BVSparse<JitArenaAllocator> *forceSimd128F4SymsOnEntry;
     BVSparse<JitArenaAllocator> *forceSimd128I4SymsOnEntry;
+    BVSparse<JitArenaAllocator> *forceSimd128I8SymsOnEntry;
+    BVSparse<JitArenaAllocator> *forceSimd128I16SymsOnEntry;
+    BVSparse<JitArenaAllocator> *forceSimd128U4SymsOnEntry;
+    BVSparse<JitArenaAllocator> *forceSimd128U8SymsOnEntry;
+    BVSparse<JitArenaAllocator> *forceSimd128U16SymsOnEntry;
+    BVSparse<JitArenaAllocator> *forceSimd128B4SymsOnEntry;
+    BVSparse<JitArenaAllocator> *forceSimd128B8SymsOnEntry;
+    BVSparse<JitArenaAllocator> *forceSimd128B16SymsOnEntry;
 
     BVSparse<JitArenaAllocator> *symsDefInLoop;
     BailOutInfo *       bailOutInfo;

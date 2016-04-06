@@ -27,7 +27,9 @@ namespace Js
             static FunctionInfo Bool;
         };
 
+        JavascriptSIMDInt16x8(StaticType *type);
         JavascriptSIMDInt16x8(SIMDValue *val, StaticType *type);
+        static JavascriptSIMDInt16x8* AllocUninitialized(ScriptContext* requestContext);
         static JavascriptSIMDInt16x8* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDInt16x8* FromVar(Var aValue);

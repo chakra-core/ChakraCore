@@ -71,9 +71,14 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint32x4(50, 1000, 3092, 3393, 8838, 63838, NaN, 838) });
 
 equalSimd([29975939, 8488484, 9493872, 4848848], m.testswizzleLocal(), SIMD.Uint32x4, "");
+equalSimd([29975939, 8488484, 9493872, 4848848], m.testswizzleLocal(), SIMD.Uint32x4, "");
+equalSimd([1077936128, 1065353216, 1082130432, 1073741824], m.testswizzleGlobal(), SIMD.Uint32x4, "");
 equalSimd([1077936128, 1065353216, 1082130432, 1073741824], m.testswizzleGlobal(), SIMD.Uint32x4, "");
 equalSimd([3092, 50, 3393, 1000], m.testswizzleGlobalImport(), SIMD.Uint32x4, "");
+equalSimd([3092, 50, 3393, 1000], m.testswizzleGlobalImport(), SIMD.Uint32x4, "");
 equalSimd([1107912067, 1073841700, 1091624304, 1078590672], m.testswizzleFunc(), SIMD.Uint32x4, "");
+equalSimd([1107912067, 1073841700, 1091624304, 1078590672], m.testswizzleFunc(), SIMD.Uint32x4, "");
+
 print("PASS");
 
 

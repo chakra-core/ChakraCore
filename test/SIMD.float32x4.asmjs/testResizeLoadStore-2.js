@@ -691,7 +691,6 @@ function printResults(res)
 }
 
 inputLength = initF32(buffer);
-print(inputLength);
 //Enumerating SIMD loads to test. 
 SIMDLoad = 1;
 SIMDLoad1 = 2;
@@ -710,428 +709,525 @@ var m = asmModule(this, {g0:initF32(buffer),g1:SIMD.Float32x4(9,9,9,9), g2:SIMD.
 var values = new Float32Array(buffer);
 
 
-
-print("Stores:");
-
-print("Test1");
 inputLength = initF32(buffer); 
-var ret = m.store1(SIMDStore1);//Lane1 store
-equalSimd([5.099999904632568, 10, 20, 30], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Lane1 store
+equalSimd([5.099999904632568, 10, 20, 30], m.store1(SIMDStore1), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([5.099999904632568, 10, 20, 30], m.store1(SIMDStore1), SIMD.Float32x4, "ResizeLoadStore");
 
-print("Test2");;
+
 inputLength = initF32(buffer); 
-var ret = m.store1(SIMDStore2);//Lane 1,2 store
-equalSimd([5.099999904632568, -12.300000190734863, 20, 30], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Lane 1,2 store
+equalSimd([5.099999904632568, -12.300000190734863, 20, 30], m.store1(SIMDStore2), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([5.099999904632568, -12.300000190734863, 20, 30], m.store1(SIMDStore2), SIMD.Float32x4, "ResizeLoadStore");
 
-print("Test3");
+
 inputLength = initF32(buffer); 
-var ret = m.store1(SIMDStore3);//Lane 1,2,3 store
-equalSimd([5.099999904632568, -12.300000190734863, 0, 30], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Lane 1,2,3 store
+equalSimd([5.099999904632568, -12.300000190734863, 0, 30], m.store1(SIMDStore3), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([5.099999904632568, -12.300000190734863, 0, 30], m.store1(SIMDStore3), SIMD.Float32x4, "ResizeLoadStore");
 
-print("Test4");
+
 inputLength = initF32(buffer); 
-var ret = m.store1(SIMDStore);//Generic Store
-equalSimd([5.099999904632568, -12.300000190734863, 0, 0], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Generic Store
+equalSimd([5.099999904632568, -12.300000190734863, 0, 0], m.store1(SIMDStore), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([5.099999904632568, -12.300000190734863, 0, 0], m.store1(SIMDStore), SIMD.Float32x4, "ResizeLoadStore");
 
-print("Test5");
+
 inputLength = initF32(buffer);  
-var ret = m.store2(SIMDStore);//Generic store 
-equalSimd([2, 2, 2, 2], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Generic store 
+equalSimd([2, 2, 2, 2], m.store2(SIMDStore), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([2, 2, 2, 2], m.store2(SIMDStore), SIMD.Float32x4, "ResizeLoadStore");
 
-print("Test6");
+
 inputLength = initF32(buffer); 
-var ret = m.store3(SIMDStore);//Generic store
-equalSimd([2,2,2,2], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Generic store
+equalSimd([2,2,2,2], m.store3(SIMDStore), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([2,2,2,2], m.store3(SIMDStore), SIMD.Float32x4, "ResizeLoadStore");
 
 
-print("Test7");
+
 inputLength = initF32(buffer); 
-var ret = m.store1Int8(inputLength);//Int8Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Int8Heap store
+equalSimd([20, 30, 40, 50], m.store1Int8(inputLength), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([20, 30, 40, 50], m.store1Int8(inputLength), SIMD.Float32x4, "ResizeLoadStore");
 
 
-print("Test8");
+
 inputLength = initF32(buffer); 
-var ret = m.store1Uint8(inputLength);//Uint8Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Uint8Heap store
+equalSimd([20, 30, 40, 50], m.store1Uint8(inputLength), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([20, 30, 40, 50], m.store1Uint8(inputLength), SIMD.Float32x4, "ResizeLoadStore");
 
 
-print("Test9");
+
 inputLength = initF32(buffer); 
-var ret = m.store1Int16(inputLength);//Int16Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Int16Heap store
+equalSimd([20, 30, 40, 50], m.store1Int16(inputLength), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([20, 30, 40, 50], m.store1Int16(inputLength), SIMD.Float32x4, "ResizeLoadStore");
 
 
-print("Test10");
+
 inputLength = initF32(buffer); 
-var ret = m.store1Uint16(inputLength);//Uint16Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Uint16Heap store
+equalSimd([20, 30, 40, 50], m.store1Uint16(inputLength), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([20, 30, 40, 50], m.store1Uint16(inputLength), SIMD.Float32x4, "ResizeLoadStore");
 
 
-print("Test12");
+
 inputLength = initF32(buffer); 
-var ret = m.store1Int32(inputLength);//Int32Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Int32Heap store
+equalSimd([20, 30, 40, 50], m.store1Int32(inputLength), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([20, 30, 40, 50], m.store1Int32(inputLength), SIMD.Float32x4, "ResizeLoadStore");
 
 
-print("Test13");
+
 inputLength = initF32(buffer); 
-var ret = m.store1Uint32(inputLength);//Uint32Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Uint32Heap store
+equalSimd([20, 30, 40, 50], m.store1Uint32(inputLength), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([20, 30, 40, 50], m.store1Uint32(inputLength), SIMD.Float32x4, "ResizeLoadStore");
 
 
-print("Test14");
+
 inputLength = initF32(buffer); 
-var ret = m.loadStoreIndex1();//Uint32Heap store
-equalSimd([-1, -2, 3.0999999046325683, -4], ret, SIMD.Float32x4, "ResizeLoadStore");
+//Uint32Heap store
+equalSimd([-1, -2, 3.0999999046325683, -4], m.loadStoreIndex1(), SIMD.Float32x4, "ResizeLoadStore");
+equalSimd([-1, -2, 3.0999999046325683, -4], m.loadStoreIndex1(), SIMD.Float32x4, "ResizeLoadStore");
 
 
 
-print("Loads");
-print("Test1");
-var ret = m.load1(SIMDLoad1);
-equalSimd([160, 0, 0, 0], ret, SIMD.Float32x4, "Resize Loads");
-
-print("Test2");
-var ret = m.load1(SIMDLoad2);
-equalSimd([160, 170, 0, 0], ret, SIMD.Float32x4, "Resize Loads");
-
-print("Test3");
-var ret = m.load1(SIMDLoad3);
-equalSimd([160, 170, 180, 0], ret, SIMD.Float32x4, "Resize Loads");
 
 
-print("Test4");
-var ret = m.load1(SIMDLoad);
-equalSimd([160, 170, 180, 190	], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 0, 0, 0], m.load1(SIMDLoad1), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 0, 0, 0], m.load1(SIMDLoad1), SIMD.Float32x4, "Resize Loads");
 
 
-print("Test5");
-var ret = m.load2(SIMDLoad);
-equalSimd([160, 170, 180, 190], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 0, 0], m.load1(SIMDLoad2), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 0, 0], m.load1(SIMDLoad2), SIMD.Float32x4, "Resize Loads");
 
 
-print("Test6");
-var ret = m.load3(SIMDLoad);
-equalSimd([160, 170, 180, 190], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 0], m.load1(SIMDLoad3), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 0], m.load1(SIMDLoad3), SIMD.Float32x4, "Resize Loads");
 
 
-print("Test7");
-var ret = m.load1Int8(inputLength); //Int8Heap load
-equalSimd([41943000, 41943008, 41943020, 41943032], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190	], m.load1(SIMDLoad), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190	], m.load1(SIMDLoad), SIMD.Float32x4, "Resize Loads");
 
 
-print("Test8");
-var ret = m.load1Uint8(inputLength); //Int8Heap load
-equalSimd([41943000, 41943008, 41943020, 41943032], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190], m.load2(SIMDLoad), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190], m.load2(SIMDLoad), SIMD.Float32x4, "Resize Loads");
 
 
-print("Test9");
-var ret = m.load1Int16(inputLength); //Int16Heap load
-equalSimd([41943000, 41943008, 41943020, 41943032], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190], m.load3(SIMDLoad), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190], m.load3(SIMDLoad), SIMD.Float32x4, "Resize Loads");
 
 
-print("Test10");
-var ret = m.load1Uint16(inputLength); //Int16Heap load
-equalSimd([41943000, 41943008, 41943020, 41943032], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Int8(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Int8(inputLength), SIMD.Float32x4, "Resize Loads");
 
 
-print("Test11");
-var ret = m.load1Int32(inputLength); //Int32Heap load
-equalSimd([41943000, 41943008, 41943020, 41943032], ret, SIMD.Float32x4, "Resize Loads");
+//Int8Heap load
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Uint8(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Uint8(inputLength), SIMD.Float32x4, "Resize Loads");
 
 
-print("Test12");
-var ret = m.load1Uint32(inputLength); //Int32Heap load
-equalSimd([41943000, 41943008, 41943020, 41943032], ret, SIMD.Float32x4, "Resize Loads");
+//Int16Heap load
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Int16(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Int16(inputLength), SIMD.Float32x4, "Resize Loads");
 
 
-print("BoundCheck");
+//Int16Heap load
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Uint16(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Uint16(inputLength), SIMD.Float32x4, "Resize Loads");
+
+
+//Int32Heap load
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Int32(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Int32(inputLength), SIMD.Float32x4, "Resize Loads");
+
+
+//Int32Heap load
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Uint32(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([41943000, 41943008, 41943020, 41943032], m.load1Uint32(inputLength), SIMD.Float32x4, "Resize Loads");
+
+
+
 var value = SIMD.Float32x4(9.9,1.2,3.4,5.6);
 
-print("Test1");
-try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test2");
-try {m.loadF32(inputLength); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {}
+try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {}
 
-print("Test3");
-try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test4");
-try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadF32(inputLength); print("Wrong");} catch(err) {}
+try {m.loadF32(inputLength); print("Wrong");} catch(err) {}
 
-print("Test5");
-try {m.storeF32(value, inputLength-4);print("Correct");} catch(err) {print("Wrong");}
 
-print("Test6");
-try {var v = m.loadF32(inputLength-4);print("Correct");} catch(err) {print("Wrong");}
+try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {}
+try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {}
 
-print("Test7");
-try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {print("Correct");}
 
-print("Test8");
-try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) { print("Correct"); }
+try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {}
+try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {}
 
-print("Test9");
-try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test10");
-try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {print("Correct");}
+try {m.storeF32(value, inputLength-4);} catch(err) {print("Wrong");}
+try {m.storeF32(value, inputLength-4);} catch(err) {print("Wrong");}
 
-print("Test11");
+
+try {var v = m.loadF32(inputLength-4);} catch(err) {print("Wrong");}
+try {var v = m.loadF32(inputLength-4);} catch(err) {print("Wrong");}
+
+
+try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {}
+try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {}
+
+
+try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) {  }
+try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) {  }
+
+
+try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {}
+try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {}
+
+
+try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {}
+try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {}
+
+
 try{
     m.storeI16(value, inputLength*2-8);
-    print("Correct");
+    
+    m.storeI16(value, inputLength*2-8);
+    
+
     m.storeUI16(value, inputLength*2-8);
-    print("Correct");
+    
+    m.storeUI16(value, inputLength*2-8);
+    
+
     m.storeI8(value, inputLength*4-16);
-    print("Correct");
+    
+    m.storeI8(value, inputLength*4-16);
+    
+
     m.storeUI8(value, inputLength*4-16);
-    print("Correct");
+    
+    m.storeUI8(value, inputLength*4-16);
+    
+
     m.loadI16(inputLength*2-8);
-    print("Correct");
+    
+    m.loadI16(inputLength*2-8);
+    
+
     m.loadUI16(inputLength*2-8);
-    print("Correct");
+    
+    m.loadUI16(inputLength*2-8);
+    
+
     m.loadI8(inputLength*4-16);
-    print("Correct");
+    
+    m.loadI8(inputLength*4-16);
+    
+
     m.loadUI8(inputLength*4-16);
-    print("Correct");
+    
+    m.loadUI8(inputLength*4-16);
+    
+    
 } catch(err){ print("Wrong"); }
 
-print("Test12");
-try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {print("Correct");}
 
-print("Test13");
-try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {}
+try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {}
 
-print("Test14");
-try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test15");
-try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test16");
-try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test17");
-try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test18");
-try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test19");
-try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {}
+
+
+try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+
+
+try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {}
+
+
+try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+
+
+try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {}
+try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {}
 
 // change buffer
 var buffer = new ArrayBuffer(0x2000000);
-print(m.changeHeap(buffer));
+m.changeHeap(buffer);
 
-print(">>> ChangeHeap ");
 
-print("Stores:");
 
-print("Test1");
+
+
+
 inputLength = initF32(buffer); 
-var ret = m.store1(SIMDStore1);//Lane1 store
-equalSimd([5.099999904632568, 10, 20, 30], ret, SIMD.Float32x4, "Resize Stores");
+//Lane1 store
+equalSimd([5.099999904632568, 10, 20, 30], m.store1(SIMDStore1), SIMD.Float32x4, "Resize Stores");
+equalSimd([5.099999904632568, 10, 20, 30], m.store1(SIMDStore1), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test2");;
 inputLength = initF32(buffer); 
-var ret = m.store1(SIMDStore2);//Lane 1,2 store
-equalSimd([5.099999904632568, -12.300000190734863, 20, 30], ret, SIMD.Float32x4, "Resize Stores");
+//Lane 1,2 store
+equalSimd([5.099999904632568, -12.300000190734863, 20, 30], m.store1(SIMDStore2), SIMD.Float32x4, "Resize Stores");
+equalSimd([5.099999904632568, -12.300000190734863, 20, 30], m.store1(SIMDStore2), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test3");
 inputLength = initF32(buffer); 
-var ret = m.store1(SIMDStore3);//Lane 1,2,3 store
-equalSimd([5.099999904632568, -12.300000190734863, 0, 30], ret, SIMD.Float32x4, "Resize Stores");
+//Lane 1,2,3 store
+equalSimd([5.099999904632568, -12.300000190734863, 0, 30], m.store1(SIMDStore3), SIMD.Float32x4, "Resize Stores");
+equalSimd([5.099999904632568, -12.300000190734863, 0, 30], m.store1(SIMDStore3), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test4");
 inputLength = initF32(buffer); 
 //Should change the buffer to  0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
-var ret = m.store1(SIMDStore);//Generic Store
-equalSimd([5.099999904632568, -12.300000190734863, 0, 0], ret, SIMD.Float32x4, "Resize Stores");
+//Generic Store
+equalSimd([5.099999904632568, -12.300000190734863, 0, 0],  m.store1(SIMDStore), SIMD.Float32x4, "Resize Stores");
+equalSimd([5.099999904632568, -12.300000190734863, 0, 0],  m.store1(SIMDStore), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test5");
 inputLength = initF32(buffer);  
-var ret = m.store2(SIMDStore);//Generic store 
-equalSimd([2, 2, 2, 2], ret, SIMD.Float32x4, "Resize Stores");
+//Generic store 
+equalSimd([2, 2, 2, 2], m.store2(SIMDStore), SIMD.Float32x4, "Resize Stores");
+equalSimd([2, 2, 2, 2], m.store2(SIMDStore), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test6");
 inputLength = initF32(buffer); 
-var ret = m.store3(SIMDStore);//Generic store
-equalSimd([2, 2, 2, 2], ret, SIMD.Float32x4, "Resize Stores");
+//Generic store
+equalSimd([2, 2, 2, 2], m.store3(SIMDStore), SIMD.Float32x4, "Resize Stores");
+equalSimd([2, 2, 2, 2], m.store3(SIMDStore), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test7");
 inputLength = initF32(buffer); 
-var ret = m.store1Int8(inputLength);//Int8Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "Resize Stores");
+//Int8Heap store
+equalSimd([20, 30, 40, 50], m.store1Int8(inputLength), SIMD.Float32x4, "Resize Stores");
+equalSimd([20, 30, 40, 50], m.store1Int8(inputLength), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test8");
 inputLength = initF32(buffer); 
-var ret = m.store1Uint8(inputLength);//Uint8Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "Resize Stores");
+//Uint8Heap store
+equalSimd([20, 30, 40, 50], m.store1Uint8(inputLength), SIMD.Float32x4, "Resize Stores");
+equalSimd([20, 30, 40, 50], m.store1Uint8(inputLength), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test9");
 inputLength = initF32(buffer); 
-var ret = m.store1Int16(inputLength);//Int16Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "Resize Stores");
+//Int16Heap store
+equalSimd([20, 30, 40, 50], m.store1Int16(inputLength), SIMD.Float32x4, "Resize Stores");
+equalSimd([20, 30, 40, 50], m.store1Int16(inputLength), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test10");
 inputLength = initF32(buffer); 
-var ret = m.store1Uint16(inputLength);//Uint16Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "Resize Stores");
+//Uint16Heap store
+equalSimd([20, 30, 40, 50], m.store1Uint16(inputLength), SIMD.Float32x4, "Resize Stores");
+equalSimd([20, 30, 40, 50], m.store1Uint16(inputLength), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test12");
 inputLength = initF32(buffer); 
-var ret = m.store1Int32(inputLength);//Int32Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "Resize Stores");
+//Int32Heap store
+equalSimd([20, 30, 40, 50], m.store1Int32(inputLength), SIMD.Float32x4, "Resize Stores");
+equalSimd([20, 30, 40, 50], m.store1Int32(inputLength), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test13");
 inputLength = initF32(buffer); 
-var ret = m.store1Uint32(inputLength);//Uint32Heap store
-equalSimd([20, 30, 40, 50], ret, SIMD.Float32x4, "Resize Stores");
+//Uint32Heap store
+equalSimd([20, 30, 40, 50], m.store1Uint32(inputLength), SIMD.Float32x4, "Resize Stores");
+equalSimd([20, 30, 40, 50], m.store1Uint32(inputLength), SIMD.Float32x4, "Resize Stores");
 
 
-print("Test14");
 inputLength = initF32(buffer); 
-var ret = m.loadStoreIndex1();//Uint32Heap store
-equalSimd([-1, -2, 3.0999999046325683, -4], ret, SIMD.Float32x4, "Resize Stores");
+//Uint32Heap store
+equalSimd([-1, -2, 3.0999999046325683, -4], m.loadStoreIndex1(), SIMD.Float32x4, "Resize Stores");
+equalSimd([-1, -2, 3.0999999046325683, -4], m.loadStoreIndex1(), SIMD.Float32x4, "Resize Stores");
 
 
 
-print("Loads");
-print("Test1");
-var ret = m.load1(SIMDLoad1);
-equalSimd([160, 0, 0, 0], ret, SIMD.Float32x4, "Resize Loads");
 
-print("Test2");
-var ret = m.load1(SIMDLoad2);
-equalSimd([160, 170, 0, 0], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 0, 0, 0], m.load1(SIMDLoad1), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 0, 0, 0], m.load1(SIMDLoad1), SIMD.Float32x4, "Resize Loads");
 
-print("Test3");
-var ret = m.load1(SIMDLoad3);
-equalSimd([160, 170, 180, 0], ret, SIMD.Float32x4, "Resize Loads");
 
-print("Test4");
-var ret = m.load1(SIMDLoad);
-equalSimd([160, 170, 180, 190], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 0, 0], m.load1(SIMDLoad2), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 0, 0], m.load1(SIMDLoad2), SIMD.Float32x4, "Resize Loads");
 
-print("Test5");
-var ret = m.load2(SIMDLoad);
-equalSimd([160, 170, 180, 190], ret, SIMD.Float32x4, "Resize Loads");
 
-print("Test6");
-var ret = m.load3(SIMDLoad);
-equalSimd([160, 170, 180, 190], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 0], m.load1(SIMDLoad3), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 0], m.load1(SIMDLoad3), SIMD.Float32x4, "Resize Loads");
 
-print("Test7");
-var ret = m.load1Int8(inputLength); //Int8Heap load
-equalSimd([83886040, 83886048, 83886064, 83886072], ret, SIMD.Float32x4, "Resize Loads");
 
-print("Test8");
-var ret = m.load1Uint8(inputLength); //Int8Heap load
-equalSimd([83886040, 83886048, 83886064, 83886072], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190], m.load1(SIMDLoad), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190], m.load1(SIMDLoad), SIMD.Float32x4, "Resize Loads");
 
-print("Test9");
-var ret = m.load1Int16(inputLength); //Int16Heap load
-equalSimd([83886040, 83886048, 83886064, 83886072], ret, SIMD.Float32x4, "Resize Loads");
 
-print("Test10");
-var ret = m.load1Uint16(inputLength); //Int16Heap load
-equalSimd([83886040, 83886048, 83886064, 83886072], ret, SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190], m.load2(SIMDLoad), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190], m.load2(SIMDLoad), SIMD.Float32x4, "Resize Loads");
 
-print("Test11");
-var ret = m.load1Int32(inputLength); //Int32Heap load
-equalSimd([83886040, 83886048, 83886064, 83886072], ret, SIMD.Float32x4, "Resize Loads");
 
-print("Test12");
-var ret = m.load1Uint32(inputLength); //Int32Heap load
-equalSimd([83886040, 83886048, 83886064, 83886072], ret, SIMD.Float32x4, "Resize Loads");
-print("BoundCheck");
+equalSimd([160, 170, 180, 190], m.load3(SIMDLoad), SIMD.Float32x4, "Resize Loads");
+equalSimd([160, 170, 180, 190], m.load3(SIMDLoad), SIMD.Float32x4, "Resize Loads");
+
+
+//Int8Heap load
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Int8(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Int8(inputLength), SIMD.Float32x4, "Resize Loads");
+
+
+//Int8Heap load
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Uint8(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Uint8(inputLength), SIMD.Float32x4, "Resize Loads");
+
+
+//Int16Heap load
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Int16(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Int16(inputLength), SIMD.Float32x4, "Resize Loads");
+
+
+//Int16Heap load
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Uint16(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Uint16(inputLength), SIMD.Float32x4, "Resize Loads");
+
+
+//Int32Heap load
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Int32(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Int32(inputLength), SIMD.Float32x4, "Resize Loads");
+
+
+//Int32Heap load
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Uint32(inputLength), SIMD.Float32x4, "Resize Loads");
+equalSimd([83886040, 83886048, 83886064, 83886072], m.load1Uint32(inputLength), SIMD.Float32x4, "Resize Loads");
+
+
 var value = SIMD.Float32x4(9.9,1.2,3.4,5.6);
 
-print("Test1");
-try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test2");
-try {m.loadF32(inputLength); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {}
+try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {}
 
-print("Test3");
-try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test4");
-try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadF32(inputLength); print("Wrong");} catch(err) {}
+try {m.loadF32(inputLength); print("Wrong");} catch(err) {}
 
-print("Test5");
-try {m.storeF32(value, inputLength-4);print("Correct");} catch(err) {print("Wrong");}
 
-print("Test6");
-try {var v = m.loadF32(inputLength-4);print("Correct");} catch(err) {print("Wrong");}
+try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {}
+try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {}
 
-print("Test7");
-try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {print("Correct");}
 
-print("Test8");
-try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) { print("Correct"); }
+try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {}
+try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {}
 
-print("Test9");
-try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test10");
-try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {print("Correct");}
+try {m.storeF32(value, inputLength-4);} catch(err) {print("Wrong");}
+try {m.storeF32(value, inputLength-4);} catch(err) {print("Wrong");}
 
-print("Test11");
+
+try {var v = m.loadF32(inputLength-4);} catch(err) {print("Wrong");}
+try {var v = m.loadF32(inputLength-4);} catch(err) {print("Wrong");}
+
+
+try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {}
+try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {}
+
+
+try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) {  }
+try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) {  }
+
+
+try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {}
+try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {}
+
+
+try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {}
+try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {}
+
+
 try{
     m.storeI16(value, inputLength*2-8);
-    print("Correct");
+    
+    m.storeI16(value, inputLength*2-8);
+    
+    
     m.storeUI16(value, inputLength*2-8);
-    print("Correct");
+    
+    m.storeUI16(value, inputLength*2-8);
+    
+    
     m.storeI8(value, inputLength*4-16);
-    print("Correct");
+    
+    m.storeI8(value, inputLength*4-16);
+    
+    
     m.storeUI8(value, inputLength*4-16);
-    print("Correct");
+    
+    m.storeUI8(value, inputLength*4-16);
+    
+    
     m.loadI16(inputLength*2-8);
-    print("Correct");
+    
+    m.loadI16(inputLength*2-8);
+    
+    
     m.loadUI16(inputLength*2-8);
-    print("Correct");
+    
+    m.loadUI16(inputLength*2-8);
+    
+    
     m.loadI8(inputLength*4-16);
-    print("Correct");
+    
+    m.loadI8(inputLength*4-16);
+    
+    
     m.loadUI8(inputLength*4-16);
-    print("Correct");
+    
+    m.loadUI8(inputLength*4-16);
+    
 } catch(err){ print("Wrong"); }
 
-print("Test12");
-try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {print("Correct");}
 
-print("Test13");
-try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {}
+try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {}
 
-print("Test14");
-try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test15");
-try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test16");
-try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test17");
-try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test18");
-try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test19");
-try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {}
+
+
+try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+
+
+try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {}
+
+
+try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+
+
+try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {}
+try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {}
+
+print("PASS")

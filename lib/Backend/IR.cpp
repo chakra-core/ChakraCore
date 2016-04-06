@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -176,6 +176,24 @@ Instr::IsEqual(IR::Instr *compareInstr) const
     {
         return false;
     }
+}
+
+bool
+Instr::HasSimd128BailOutKind() const
+{
+    Assert(HasBailOutInfo());
+    BailOutKind bailOutKind = GetBailOutKind();
+    return
+        bailOutKind == IR::BailOutSimd128F4Only ||
+        bailOutKind == IR::BailOutSimd128I4Only ||
+        bailOutKind == IR::BailOutSimd128I8Only ||
+        bailOutKind == IR::BailOutSimd128I16Only ||
+        bailOutKind == IR::BailOutSimd128U4Only ||
+        bailOutKind == IR::BailOutSimd128U8Only ||
+        bailOutKind == IR::BailOutSimd128U16Only ||
+        bailOutKind == IR::BailOutSimd128B4Only ||
+        bailOutKind == IR::BailOutSimd128B8Only ||
+        bailOutKind == IR::BailOutSimd128B16Only;
 }
 
 ///----------------------------------------------------------------------------

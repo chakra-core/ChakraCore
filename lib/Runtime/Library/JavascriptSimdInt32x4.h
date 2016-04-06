@@ -45,8 +45,6 @@ namespace Js
         __inline SIMDValue GetValue() { return value; }
 
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
-        static size_t GetOffsetOfValue() { return offsetof(JavascriptSIMDInt32x4, value); }
-
         Var  Copy(ScriptContext* requestContext);
 
     private:

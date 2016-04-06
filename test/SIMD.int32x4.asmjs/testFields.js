@@ -131,11 +131,10 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Float32x4(90934.2, 123.9, 419.39, 449.0), g2: SIMD.Int32x4(-1065353216, -1073741824, -1077936128, -1082130432) });
 
-var ret;
 
-ret = m.func5();
-equalSimd([-2130706432, -18048, 1073741824, 1065353216],ret, SIMD.Int32x4, "Func5");
+equalSimd([-2130706432, -18048, 1073741824, 1065353216],m.func5(), SIMD.Int32x4, "Func5");
+equalSimd([-2130706432, -18048, 1073741824, 1065353216],m.func5(), SIMD.Int32x4, "Func5");
 
-ret = m.func7();
-equalSimd([33, 10, -1, 20], ret, SIMD.Int32x4, "Func7");
+equalSimd([33, 10, -1, 20], m.func7(), SIMD.Int32x4, "Func7");
+equalSimd([33, -1, 10, 33], m.func7(), SIMD.Int32x4, "Func7");
 print("PASS");

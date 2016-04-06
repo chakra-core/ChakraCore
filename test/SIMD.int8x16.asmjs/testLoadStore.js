@@ -584,7 +584,8 @@ for (var i = 0; i < funcOOB1.length; i ++)
     try
     {
         ret = funcOOB1[i]();
-        //print("func" + (i+1) + "OOB_1");
+        equalSimd(RESULTS[i], ret, SIMD.Int8x16, "Test Load Store");
+        ret = funcOOB1[i]();
         equalSimd(RESULTS[i], ret, SIMD.Int8x16, "Test Load Store");
 
     } catch(e)
@@ -602,12 +603,13 @@ for (var i = 0; i < funcOOB2.length; i ++)
     try
     {
         ret = funcOOB2[i]();
-       // print("Wrong");
+        ret = funcOOB2[i]();
+       
         
     } catch(e)
     {
         if (e instanceof RangeError) {
-            //print("Correct");
+
         }
         else
             print("Wrong");

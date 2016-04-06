@@ -108,9 +108,15 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint32x4(100, 1073741824, 1028, 102) });
 
 equalSimd([8488484, 4848848, 29975939, 9493872], m.testMinLocal(), SIMD.Uint32x4, "testMinLocal");
+equalSimd([8488484, 4848848, 29975939, 9493872], m.testMinLocal(), SIMD.Uint32x4, "testMinLocal");
+equalSimd([99372621, 18848392, 888288822, 1000010012], m.testMaxLocal(), SIMD.Uint32x4, "testMaxLocal");
 equalSimd([99372621, 18848392, 888288822, 1000010012], m.testMaxLocal(), SIMD.Uint32x4, "testMaxLocal");
 equalSimd([6531634, 74182444, 779364128, 821730432], m.testMinGlobal(), SIMD.Uint32x4, "testMinGlobal");
+equalSimd([6531634, 74182444, 779364128, 821730432], m.testMinGlobal(), SIMD.Uint32x4, "testMinGlobal");
+equalSimd([1065353216, 1073741824, 1077936128, 1082130432], m.testMaxGlobal(), SIMD.Uint32x4, "testMaxGlobal");
 equalSimd([1065353216, 1073741824, 1077936128, 1082130432], m.testMaxGlobal(), SIMD.Uint32x4, "testMaxGlobal");
 equalSimd([100, 4848848, 1028, 102], m.testMinGlobalImport(), SIMD.Uint32x4, "testMinGlobalImport");
+equalSimd([100, 4848848, 1028, 102], m.testMinGlobalImport(), SIMD.Uint32x4, "testMinGlobalImport");
+equalSimd([8488484, 1073741824, 29975939, 9493872], m.testMaxGlobalImport(), SIMD.Uint32x4, "testMaxGlobalImport");
 equalSimd([8488484, 1073741824, 29975939, 9493872], m.testMaxGlobalImport(), SIMD.Uint32x4, "testMaxGlobalImport");
 print("PASS");

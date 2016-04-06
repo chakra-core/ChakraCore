@@ -107,9 +107,15 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, {g1:SIMD.Uint32x4(100, 1073741824, 1028, 102)});
 
 equalSimd([107861105, 23697240, 918264761, 1009503884], m.testAddLocal(), SIMD.Uint32x4, "Func1");
+equalSimd([107861105, 23697240, 918264761, 1009503884], m.testAddLocal(), SIMD.Uint32x4, "Func1");
+equalSimd([4204083159, 4280967752, 3436654413, 3304451156], m.testSubLocal(), SIMD.Uint32x4, "Func2");
 equalSimd([4204083159, 4280967752, 3436654413, 3304451156], m.testSubLocal(), SIMD.Uint32x4, "Func2");
 equalSimd([1071884850, 1147924268, 1857300256, 1903860864], m.testAddGlobal(), SIMD.Uint32x4, "Func3");
+equalSimd([1071884850, 1147924268, 1857300256, 1903860864], m.testAddGlobal(), SIMD.Uint32x4, "Func3");
+equalSimd([1058821582, 999559380, 298572000, 260400000], m.testSubGlobal(), SIMD.Uint32x4, "Func4");
 equalSimd([1058821582, 999559380, 298572000, 260400000], m.testSubGlobal(), SIMD.Uint32x4, "Func4");
 equalSimd([8488584, 1078590672, 29976967, 9493974], m.testAddGlobalImport(), SIMD.Uint32x4, "Func5");
+equalSimd([8488584, 1078590672, 29976967, 9493974], m.testAddGlobalImport(), SIMD.Uint32x4, "Func5");
+equalSimd([4286478912, 1068892976, 4264992385, 4285473526], m.testSubGlobalImport(), SIMD.Uint32x4, "Func6");
 equalSimd([4286478912, 1068892976, 4264992385, 4285473526], m.testSubGlobalImport(), SIMD.Uint32x4, "Func6");
 print("PASS");

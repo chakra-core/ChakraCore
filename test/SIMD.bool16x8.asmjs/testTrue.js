@@ -53,5 +53,7 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, {g1:SIMD.Bool16x8(1, 1, 1, 1, 1, 1, 1, 1)});
 
 equal(1, m.testAnyTrue());
+equal(1, m.testAnyTrue());
+equal(1, m.testAllTrue());
 equal(1, m.testAllTrue());
 print("PASS");

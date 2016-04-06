@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -21,7 +21,9 @@ namespace Js
             static FunctionInfo SymbolToPrimitive;
         };
 
+        JavascriptSIMDUint16x8(StaticType *type);
         JavascriptSIMDUint16x8(SIMDValue *val, StaticType *type);
+        static JavascriptSIMDUint16x8* AllocUninitialized(ScriptContext* requestContext);
         static JavascriptSIMDUint16x8* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDUint16x8* FromVar(Var aValue);
@@ -34,7 +36,6 @@ namespace Js
                 value.u16[0], value.u16[1], value.u16[2], value.u16[3], value.u16[4], value.u16[5], value.u16[6], value.u16[7]);
         }
 
-        __inline SIMDValue GetValue() { return value; }
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
         Var  Copy(ScriptContext* requestContext);

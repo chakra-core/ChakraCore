@@ -144,10 +144,16 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint32x4(100, 1073741824, 1028, 102) });
 
 equalSimd([99371, 4848848, 29975939, 100012], m.testLessThan(), SIMD.Uint32x4, "Func1");
+equalSimd([99371, 4848848, 29975939, 100012], m.testLessThan(), SIMD.Uint32x4, "Func1");
+equalSimd([8488484, 4848848, 29975939, 9493872], m.testLessThanOrEqual(), SIMD.Uint32x4, "Func2");
 equalSimd([8488484, 4848848, 29975939, 9493872], m.testLessThanOrEqual(), SIMD.Uint32x4, "Func2");
 equalSimd([99372621, 18848392, 888288822, 1000010012], m.testGreaterThan(), SIMD.Uint32x4, "Func3");
+equalSimd([99372621, 18848392, 888288822, 1000010012], m.testGreaterThan(), SIMD.Uint32x4, "Func3");
+equalSimd([99372621, 18848392, 888288822, 1000010012], m.testGreaterThanOrEqual(), SIMD.Uint32x4, "Func4");
 equalSimd([99372621, 18848392, 888288822, 1000010012], m.testGreaterThanOrEqual(), SIMD.Uint32x4, "Func4");
 equalSimd([99372621, 18848392, 888288822, 1000010012], m.testEqual(), SIMD.Uint32x4, "Func5");
+equalSimd([99372621, 18848392, 888288822, 1000010012], m.testEqual(), SIMD.Uint32x4, "Func5");
+equalSimd([8488484, 4848848, 29975939, 9493872], m.testNotEqual(), SIMD.Uint32x4, "Func6");
 equalSimd([8488484, 4848848, 29975939, 9493872], m.testNotEqual(), SIMD.Uint32x4, "Func6");
 
 print("PASS");

@@ -156,7 +156,12 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Int16x8(-50, 1000, 3092, -3393, 0, -39283838, 0, -838) });
 
 equalSimd([5000, -3401, 665, -3224, -948, 2834, 7748, -25], m.testLocal(), SIMD.Int16x8, "testLocal");
+equalSimd([5000, -3401, 665, -3224, -948, 2834, 7748, -25], m.testLocal(), SIMD.Int16x8, "testLocal");
+
 equalSimd([106, 0, -10, 1082, 3192, 32, 19, 5], m.testGlobal(), SIMD.Int16x8, "testGlobal");
+equalSimd([106, 0, -10, 1082, 3192, 32, 19, 5], m.testGlobal(), SIMD.Int16x8, "testGlobal");
+
+equalSimd([-50, 1000, 3092, -3393, 0, -27774, 0, -838], m.testGlobalImport(), SIMD.Int16x8, "testGlobalImport");
 equalSimd([-50, 1000, 3092, -3393, 0, -27774, 0, -838], m.testGlobalImport(), SIMD.Int16x8, "testGlobalImport");
 
 print("PASS");

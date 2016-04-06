@@ -718,20 +718,15 @@ BailOutRecord::IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, b
     bool isFloat64 = this->argOutOffsetInfo->argOutFloat64Syms->Test(argOutSlotStart + offsetIndex) != 0;
     bool isInt32 = this->argOutOffsetInfo->argOutLosslessInt32Syms->Test(argOutSlotStart + offsetIndex) != 0;
     // SIMD_JS
-    bool isSimd128F4    = this->argOutOffsetInfo->argOutSimd128F4Syms->Test(argOutSlotStart + offsetIndex) != 0;
-    bool isSimd128I4    = this->argOutOffsetInfo->argOutSimd128I4Syms->Test(argOutSlotStart + offsetIndex) != 0;
-    bool isSimd128I8    = this->argOutOffsetInfo->argOutSimd128I8Syms->Test(argOutSlotStart + offsetIndex) != 0;
-    bool isSimd128I16   = this->argOutOffsetInfo->argOutSimd128I16Syms->Test(argOutSlotStart + offsetIndex) != 0;
-    bool isSimd128U4    = this->argOutOffsetInfo->argOutSimd128U4Syms->Test(argOutSlotStart + offsetIndex) != 0;
-    bool isSimd128U8    = this->argOutOffsetInfo->argOutSimd128U8Syms->Test(argOutSlotStart + offsetIndex) != 0;
-    bool isSimd128U16   = this->argOutOffsetInfo->argOutSimd128U16Syms->Test(argOutSlotStart + offsetIndex) != 0;
-    bool isSimd128B4    = this->argOutOffsetInfo->argOutSimd128B4Syms->Test(argOutSlotStart + offsetIndex) != 0;
-    bool isSimd128B8    = this->argOutOffsetInfo->argOutSimd128B8Syms->Test(argOutSlotStart + offsetIndex) != 0;
-    bool isSimd128B16   = this->argOutOffsetInfo->argOutSimd128B16Syms->Test(argOutSlotStart + offsetIndex) != 0;
+#define SIMD_ARGOUT(_TAG_)\
+    bool isSimd128##_TAG_## = this->argOutOffsetInfo->argOutSimd128##_TAG_##Syms->Test(argOutSlotStart + offsetIndex) != 0;
+    SIMD_EXPAND_W_TAG(SIMD_ARGOUT)
+#undef SIMD_ARGOUT
 
     Assert(!isFloat64 || !isInt32 || 
-        !isSimd128F4 || !isSimd128I4 || !isSimd128I8 || !isSimd128I16 || !
-        !isSimd128U4 || !isSimd128U8 || !isSimd128U16);
+        !isSimd128F4 || !isSimd128I4 || !isSimd128I8 || !isSimd128I16 ||
+        !isSimd128U4 || !isSimd128U8 || !isSimd128U16 || !isSimd128B4 ||
+        !isSimd128B8 || !isSimd128B16);
 
     *pIsFloat64 = isFloat64;
     *pIsInt32 = isInt32;

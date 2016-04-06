@@ -211,11 +211,17 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Float32x4(90934.2, 123.9, 419.39, 449.0), g2: SIMD.Int32x4(-1065353216, -1073741824, -1077936128, -1082130432) });
 
 
-equalSimd([100, 0, 200, 0], m.func1(), SIMD.Int32x4, "TestWithLane");
-equalSimd([100, 137701, 200, 133219], m.func2(), SIMD.Int32x4, "TestWithLane");
-equalSimd([100, -1278847, 200, -60147], m.func3(), SIMD.Int32x4, "TestWithLane");
+equalSimd([100, 0, 200, 0], m.func1(), SIMD.Int32x4, "TestWithLane1");
+equalSimd([100, 0, 200, 0], m.func1(), SIMD.Int32x4, "TestWithLane1");
+equalSimd([100, 137701, 200, 133219], m.func2(), SIMD.Int32x4, "TestWithLane2");
+equalSimd([100, 137701, 200, 133219], m.func2(), SIMD.Int32x4, "TestWithLane2");
+equalSimd([100, -1278847, 200, -60147], m.func3(), SIMD.Int32x4, "TestWithLane3");
+equalSimd([100, -2766637, 200, -153594], m.func3(), SIMD.Int32x4, "TestWithLane3");
 
-equalSimd([0, 100, 0, 200], m.func4(), SIMD.Int32x4, "TestWithLane");
-equalSimd([-319033, 100, 570565, 200], m.func5(), SIMD.Int32x4, "TestWithLane");
-equalSimd([-1035531, 100, 571491, 200], m.func6(), SIMD.Int32x4, "TestWithLane");
+equalSimd([0, 100, 0, 200], m.func4(), SIMD.Int32x4, "TestWithLane4");
+equalSimd([0, 100, 0, 200], m.func4(), SIMD.Int32x4, "TestWithLane4");
+equalSimd([-319033, 100, 570565, 200], m.func5(), SIMD.Int32x4, "TestWithLane5");
+equalSimd([-319033, 100, 570565, 200], m.func5(), SIMD.Int32x4, "TestWithLane5");
+equalSimd([-1035531, 100, 571491, 200], m.func6(), SIMD.Int32x4, "TestWithLane6");
+equalSimd([-2110278, 100, 572880, 200], m.func6(), SIMD.Int32x4, "TestWithLane6");
 print("PASS");

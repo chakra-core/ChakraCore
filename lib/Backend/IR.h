@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -190,6 +190,9 @@ public:
     bool            IsCloned() const { return isCloned; }
     void            SetIsCloned(bool isCloned) { this->isCloned = isCloned; }
     bool            HasBailOutInfo() const { return hasBailOutInfo; }
+    bool            HasSimd128BailOutKind() const;
+
+
     bool            HasAuxBailOut() const { return hasAuxBailOut; }
     bool            HasTypeCheckBailOut() const;
     bool            HasEquivalentTypeCheckBailOut() const;

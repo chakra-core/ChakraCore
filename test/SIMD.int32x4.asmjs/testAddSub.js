@@ -215,9 +215,15 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
 
 equalSimd([-205098, 1274064, -3416622, 393204], m.func1(), SIMD.Int32x4, "Func1");
+equalSimd([-205098, 1274064, -3416622, 393204], m.func1(), SIMD.Int32x4, "Func1");
+equalSimd([260733, 137701, -1708109, 133219], m.func2(), SIMD.Int32x4, "Func2");
 equalSimd([260733, 137701, -1708109, 133219], m.func2(), SIMD.Int32x4, "Func2");
 equalSimd([1045597, -1278847, -570161, -60147], m.func3(), SIMD.Int32x4, "Func3");
+equalSimd([2120344, -2766637, -571550, -153594], m.func3(), SIMD.Int32x4, "Func3");
+equalSimd([0, 0, 0, 0], m.func4(), SIMD.Int32x4, "Func4");
 equalSimd([0, 0, 0, 0], m.func4(), SIMD.Int32x4, "Func4");
 equalSimd([-319033, 280185, 570565, -66619], m.func5(), SIMD.Int32x4, "Func5");
+equalSimd([-319033, 280185, 570565, -66619], m.func5(), SIMD.Int32x4, "Func5");
 equalSimd([-1035531, 1272045, 571491, -4321], m.func6(), SIMD.Int32x4, "Func6");
+equalSimd([-2110278, 2759835, 572880, 89126], m.func6(), SIMD.Int32x4, "Func6");
 print("PASS");

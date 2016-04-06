@@ -3,7 +3,7 @@
   <test>
     <default>
       <files>testReverseHeap.js</files>
-      <baseline>testReverseHeap.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
     </default>
@@ -11,7 +11,7 @@
   <test>
     <default>
       <files>testReverseHeap.js</files>
-      <baseline>testReverseHeap.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
     </default>
@@ -19,7 +19,7 @@
   <test>
     <default>
       <files>testReverseHeap.js</files>
-      <baseline>testReverseHeap.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
@@ -42,7 +42,7 @@
   <test>
     <default>
       <files>testMerge.js</files>
-      <baseline>testMerge.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
       <tags>exclude_dynapogo,exclude_ship</tags>
     </default>
@@ -50,7 +50,7 @@
   <test>
     <default>
       <files>testMerge.js</files>
-      <baseline>testMerge.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
       <tags>exclude_dynapogo,exclude_ship</tags>
     </default>
@@ -58,7 +58,7 @@
   <test>
     <default>
       <files>testMerge.js</files>
-      <baseline>testMerge.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
@@ -81,7 +81,7 @@
   <test>
     <default>
       <files>testScale.js</files>
-      <baseline>testScale.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
       <tags>exclude_dynapogo,exclude_ship</tags>
     </default>
@@ -89,7 +89,7 @@
   <test>
     <default>
       <files>testScale.js</files>
-      <baseline>testScale.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
       <tags>exclude_dynapogo,exclude_ship</tags>
     </default>
@@ -97,7 +97,7 @@
   <test>
     <default>
       <files>testScale.js</files>
-      <baseline>testScale.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
@@ -119,7 +119,7 @@
   <test>
     <default>
       <files>testLinearSearch.js</files>
-      <baseline>testLinearSearch.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
     </default>
@@ -127,7 +127,7 @@
   <test>
     <default>
       <files>testLinearSearch.js</files>
-      <baseline>testLinearSearch.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
     </default>
@@ -135,7 +135,7 @@
   <test>
     <default>
       <files>testLinearSearch.js</files>
-      <baseline>testLinearSearch.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
@@ -144,7 +144,6 @@
   <test>
     <default>
       <files>testLinearSearch.js</files>
-      <baseline>testLinearSearch-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
@@ -152,7 +151,6 @@
   <test>
     <default>
       <files>testLinearSearch.js</files>
-      <baseline>testLinearSearch-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
@@ -160,7 +158,7 @@
   <test>
     <default>
       <files>test2DMatrixAddition.js</files>
-      <baseline>test2DMatrixAddition.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
     </default>
@@ -168,7 +166,7 @@
   <test>
     <default>
       <files>test2DMatrixAddition.js</files>
-      <baseline>test2DMatrixAddition.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
     </default>
@@ -176,7 +174,7 @@
   <test>
     <default>
       <files>test2DMatrixAddition.js</files>
-      <baseline>test2DMatrixAddition.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
@@ -199,7 +197,7 @@
   <test>
     <default>
       <files>test2DMatrixSubtraction.js</files>
-      <baseline>test2DMatrixSubtraction.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
     </default>
@@ -207,7 +205,7 @@
   <test>
     <default>
       <files>test2DMatrixSubtraction.js</files>
-      <baseline>test2DMatrixSubtraction.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
     </default>
@@ -215,7 +213,7 @@
   <test>
     <default>
       <files>test2DMatrixSubtraction.js</files>
-      <baseline>test2DMatrixSubtraction.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
@@ -238,7 +236,7 @@
   <test>
     <default>
       <files>test2DMatrixMultiplication.js</files>
-      <baseline>test2DMatrixMultiplication.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
     </default>
@@ -246,7 +244,7 @@
   <test>
     <default>
       <files>test2DMatrixMultiplication.js</files>
-      <baseline>test2DMatrixMultiplication.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
     </default>
@@ -254,7 +252,7 @@
   <test>
     <default>
       <files>test2DMatrixMultiplication.js</files>
-      <baseline>test2DMatrixMultiplication.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
@@ -269,6 +267,45 @@
   <test>
     <default>
       <files>test2DMatrixMultiplication.js</files>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
+    </default>
+  </test>
+  
+    <test>
+    <default>
+      <files>testVectorRotate.js</files>
+      <baseline>asmjs.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>testVectorRotate.js</files>
+      <baseline>asmjs.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>testVectorRotate.js</files>
+      <baseline>asmjs.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>testVectorRotate.js</files>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -on:simplejit -mic:1 -lic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>testVectorRotate.js</files>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
