@@ -35,6 +35,11 @@ namespace Js
         RecyclableObject* proto = JavascriptOperators::GetPrototype(targetFunction);
         if (proto != type->GetPrototype())
         {
+            if (type->GetIsShared())
+            {
+                this->ChangeType();
+                type = this->GetDynamicType();
+            }
             type->SetPrototype(proto);
         }
         // If targetFunction is proxy, need to make sure that traps are called in right order as per 19.2.3.2 in RC#4 dated April 3rd 2015.
