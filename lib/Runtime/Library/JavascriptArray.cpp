@@ -11801,6 +11801,9 @@ Case0:
 
     BOOL JavascriptNativeIntArray::HasItem(uint32 index)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         int32 value;
         return this->DirectGetItemAt<int32>(index, &value);
     }
