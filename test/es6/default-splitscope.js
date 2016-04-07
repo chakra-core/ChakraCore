@@ -195,7 +195,7 @@ var tests = [
         }).call({x : 10}); 
          
         this.x = 10; 
-        ((a = this.x, b = function() {this.x = 20}) => { 
+        ((a = this.x, b = function() { a; this.x = 20; }) => { 
             assert.areEqual(10, this.x, "this objects property retains the value in param scope before the inner function call in lambda"); 
             b.call(this); 
             assert.areEqual(20, this.x, "Update to a this's property from the param scope of lambda function is reflected in the body scope"); 
@@ -220,6 +220,33 @@ var tests = [
             return b;
         }
         assert.areEqual(thisObj, f4.call(thisObj)(), "Lambda defined in the param scope returns the right this object"); 
+        
+        var thisObj = { x : 1 };
+        function f5() {
+            return (a = this, b = function() { return a; }) => b;
+        }
+        assert.areEqual(thisObj, f5.call(thisObj)()(), "This object is returned properly from the inner lambda method's child function");
+
+        function f6(a, b = function () { return a; }) {
+            return (a = this, b = function() { return a; }) => b;
+        }
+        assert.areEqual(thisObj, f6.call(thisObj)()(), "This object is returned properly from the inner lambda defnied inside a split scoped function");
+
+        function f7(a, b = function () { return a; }) {
+            function f8() {
+                return (a = this, b = function() { return a; }) => b;
+            }
+            return f8.call(this);
+        }
+        assert.areEqual(thisObj, f7.call(thisObj)()(), "This object is returned properly from the inner lambda defnied inside a nested split scoped function");
+
+        function f9(a, b = function () { return a; }) {
+            function f10(c, d = function () { c; }) {
+                return (a = this, b = function() { return a; }) => b;
+            }
+            return f10.call(this);
+        }
+        assert.areEqual(thisObj, f9.call(thisObj)()(), "This object is returned properly from the inner lambda defnied inside a double nested split scoped function");
     } 
   },
   { 
