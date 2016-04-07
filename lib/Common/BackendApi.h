@@ -73,6 +73,8 @@ BOOL IsIntermediateCodeGenThunk(Js::JavascriptMethod codeAddress);
 BOOL IsAsmJsCodeGenThunk(Js::JavascriptMethod codeAddress);
 typedef Js::JavascriptMethod (*CheckCodeGenFunction)(Js::ScriptFunction * function);
 CheckCodeGenFunction GetCheckCodeGenFunction(Js::JavascriptMethod codeAddress);
+Js::JavascriptMethod GetCheckCodeGenThunk();
+Js::JavascriptMethod GetCheckAsmJsCodeGenThunk();
 
 uint GetBailOutRegisterSaveSlotCount();
 uint GetBailOutReserveSlotCount();

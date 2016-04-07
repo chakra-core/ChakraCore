@@ -8206,6 +8206,20 @@ namespace Js
         return this->jitTransferData;
     }
 
+    void EntryPointInfo::OnNativeCodeInstallFailure()
+    {
+        this->runtimeTypeRefs = nullptr;
+        this->FreePropertyGuards();
+        if (this->equivalentTypeCaches != nullptr)
+        {
+            this->equivalentTypeCacheCount = 0;
+            this->equivalentTypeCaches = nullptr;
+            this->UnregisterEquivalentTypeCaches();
+        }
+
+        this->ResetOnNativeCodeInstallFailure();
+    }
+
 #ifdef FIELD_ACCESS_STATS
     FieldAccessStats* EntryPointInfo::EnsureFieldAccessStats(Recycler* recycler)
     {
@@ -8255,31 +8269,6 @@ namespace Js
         Assert(this->jitTransferData != nullptr && this->jitTransferData->GetIsReady());
         Assert(this->equivalentTypeCacheCount == 0 && this->equivalentTypeCaches == nullptr);
         Assert(this->propertyGuardCount == 0 && this->propertyGuardWeakRefs == nullptr);
-
-        class AutoCleanup
-        {
-            EntryPointInfo *entryPointInfo;
-        public:
-            AutoCleanup(EntryPointInfo *entryPointInfo) : entryPointInfo(entryPointInfo)
-            {
-            }
-
-            void Done()
-            {
-                entryPointInfo = nullptr;
-            }
-            ~AutoCleanup()
-            {
-                if (entryPointInfo)
-                {
-                    entryPointInfo->equivalentTypeCacheCount = 0;
-                    entryPointInfo->equivalentTypeCaches = nullptr;
-                    entryPointInfo->propertyGuardCount = 0;
-                    entryPointInfo->propertyGuardWeakRefs = nullptr;
-                    entryPointInfo->UnregisterEquivalentTypeCaches();
-                }
-            }
-        } autoCleanup(this);
 
         for (int i = 0; i < this->jitTransferData->lazyBailoutPropertyCount; i++)
         {
@@ -8437,8 +8426,6 @@ namespace Js
         {
             Js::Throw::OutOfMemory();
         }
-
-        autoCleanup.Done();
     }
 
     PropertyGuard* EntryPointInfo::RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext)
@@ -8913,7 +8900,9 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    void EntryPointInfo::ResetOnNativeCodeInstallFailure()
+    // This function needs review when we enable lazy bailouts- 
+    // Is calling Reset enough? Does Reset sufficiently resets the state of the entryPointInfo?
+    void EntryPointInfo::ResetOnLazyBailoutFailure()
     {
         // Reset the entry point without attempting to create a new default and GenerateFunction on it.
         // Do this for LoopEntryPointInfo or if we throw during FunctionEntryPointInfo::Invalidate.
@@ -9080,13 +9069,25 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    void FunctionEntryPointInfo::OnNativeCodeInstallFailure()
+    void FunctionEntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
-        this->Invalidate(false);
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-        this->SetCleanupReason(CleanupReason::NativeCodeInstallFailure);
-#endif
-        this->Cleanup(false, true /* capture cleanup stack */);
+        this->functionProxy->MapFunctionObjectTypes([&](DynamicType* type)
+        {
+            Assert(type->GetTypeId() == TypeIds_Function);
+
+            ScriptFunctionType* functionType = (ScriptFunctionType*)type;
+            if (functionType->GetEntryPointInfo() == this)
+            {
+                if (!this->GetIsAsmJSFunction())
+                {
+                    functionType->SetEntryPoint(GetCheckCodeGenThunk());
+                }
+                else
+                {
+                    functionType->SetEntryPoint(GetCheckAsmJsCodeGenThunk());
+                }
+            }
+        });
     }
 
     void FunctionEntryPointInfo::EnterExpirableCollectMode()
@@ -9132,7 +9133,7 @@ namespace Js
                 {
                     if (entryPointInfo)
                     {
-                        entryPointInfo->ResetOnNativeCodeInstallFailure();
+                        entryPointInfo->ResetOnLazyBailoutFailure();
                     }
                 }
             } autoCleanup(this);
@@ -9360,9 +9361,9 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    void LoopEntryPointInfo::OnNativeCodeInstallFailure()
+    void LoopEntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
-        this->ResetOnNativeCodeInstallFailure();
+        this->ResetOnLazyBailoutFailure();
     }
 #endif
 
