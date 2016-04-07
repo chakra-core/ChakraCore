@@ -674,10 +674,9 @@ namespace Js
         for (uint i = 0; i < count; i++)
         {
             Js::Var slotValue = scopeSlots.Get(i);
-            if (ThreadContext::IsOnStack(slotValue) && JavascriptFunction::Is(slotValue))
+            if (ScriptFunction::Is(slotValue))
             {
-                // A stack javascript function can only be script function
-                StackScriptFunction * stackFunction = StackScriptFunction::FromVar(slotValue);
+                ScriptFunction * stackFunction = ScriptFunction::FromVar(slotValue);
                 slotValue = BoxStackFunction(stackFunction);
             }
             boxedScopeSlots.Set(i, slotValue);
@@ -685,14 +684,18 @@ namespace Js
         return boxedSlotArray;
     }
 
-    ScriptFunction * StackScriptFunction::BoxState::BoxStackFunction(StackScriptFunction * stackFunction)
+    ScriptFunction * StackScriptFunction::BoxState::BoxStackFunction(ScriptFunction * scriptFunction)
     {
-        Assert(ThreadContext::IsOnStack(stackFunction));
-
         // Box the frame display first, which may in turn box the function
-        FrameDisplay * frameDisplay = stackFunction->GetEnvironment();
+        FrameDisplay * frameDisplay = scriptFunction->GetEnvironment();
         FrameDisplay * boxedFrameDisplay = BoxFrameDisplay(frameDisplay);
 
+        if (!ThreadContext::IsOnStack(scriptFunction))
+        {
+            return scriptFunction;
+        }
+
+        StackScriptFunction * stackFunction = StackScriptFunction::FromVar(scriptFunction);
         ScriptFunction * boxedFunction = stackFunction->boxedScriptFunction;
         if (boxedFunction != nullptr)
         {

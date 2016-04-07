@@ -647,6 +647,13 @@
   </test>
   <test>
     <default>
+      <files>box_jitloopbody3.js</files>
+      <compile-flags>-forcejitloopbody -force:deferparse -bgjit-</compile-flags>
+      <tags>exclude_fre,exclude_arm</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>602481.js</files>
       <tags>exclude_dynapogo</tags>
     </default>
