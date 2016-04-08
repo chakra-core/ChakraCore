@@ -2518,10 +2518,11 @@ void ByteCodeGenerator::EmitInternalScopeObjInit(FuncInfo *funcInfo, Scope *scop
 
 void ByteCodeGenerator::GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &scope, Js::PropertyId &envIndex)
 {
+    Assert(funcInfo->IsLambda());
     envIndex = -1;
-    for (scope = funcInfo->GetBodyScope()->GetEnclosingScope(); scope; scope = scope->GetEnclosingScope())
+    for (scope = GetCurrentScope(); scope; scope = scope->GetEnclosingScope())
     {
-        if (scope->GetMustInstantiate())
+        if (scope->GetMustInstantiate() && scope->GetFunc() != funcInfo)
         {
             envIndex++;
         }
