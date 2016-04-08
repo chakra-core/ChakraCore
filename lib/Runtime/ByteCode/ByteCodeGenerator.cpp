@@ -1757,7 +1757,7 @@ Symbol * ByteCodeGenerator::AddSymbolToFunctionScope(const char16 *key, int keyL
 
 FuncInfo *ByteCodeGenerator::FindEnclosingNonLambda()
 {
-    for (Scope *scope = TopFuncInfo()->GetBodyScope(); scope; scope = scope->GetEnclosingScope())
+    for (Scope *scope = GetCurrentScope(); scope; scope = scope->GetEnclosingScope())
     {
         if (!scope->GetFunc()->IsLambda())
         {
