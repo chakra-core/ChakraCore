@@ -179,6 +179,10 @@ void EtwTrace::PerformRundown(bool start)
 
             scriptContext->MapFunction([&start] (FunctionBody* body)
             {
+#if DBG
+                Js::FunctionBody::AutoResetThreadState autoReset(body);
+#endif
+
                 if(body->HasInterpreterThunkGenerated())
                 {
                     if(start)
