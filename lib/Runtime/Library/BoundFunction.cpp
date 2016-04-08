@@ -226,9 +226,10 @@ namespace Js
         AssertMsg(VirtualTableInfo<BoundFunction>::HasVirtualTable(this), "Derived class need to define marshal to script context");
         VirtualTableInfo<Js::CrossSiteObject<BoundFunction>>::SetVirtualTable(this);
         this->targetFunction = (RecyclableObject*)CrossSite::MarshalVar(scriptContext, this->targetFunction);
+        this->boundThis = (RecyclableObject*)CrossSite::MarshalVar(this->GetScriptContext(), this->boundThis);
         for (uint i = 0; i < count; i++)
         {
-            this->boundArgs[i] = CrossSite::MarshalVar(scriptContext, this->boundArgs[i]);
+            this->boundArgs[i] = CrossSite::MarshalVar(this->GetScriptContext(), this->boundArgs[i]);
         }
     }
 
