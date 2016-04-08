@@ -34,7 +34,12 @@
 typedef DWORD_PTR ChakraCookie;
 typedef BYTE* ChakraBytePtr;
 #else // Non-Windows VC++
-#include <cstdint>
+#include <stdint.h>     // Needed for uintptr_t
+#ifndef __cplusplus
+#include <stdbool.h>    // Needed fo bool
+#include <stdio.h>      // for NULL
+#define nullptr NULL
+#endif
 
 // SAL compat
 #define _Return_type_success_(x)
@@ -60,7 +65,11 @@ typedef BYTE* ChakraBytePtr;
 #define CHAKRA_CALLBACK
 #endif // __i386__
 
-#define CHAKRA_API extern "C" JsErrorCode
+#ifdef __cplusplus
+#define CHAKRA_API extern "C" JsErrorCode 
+#else
+#define CHAKRA_API JsErrorCode
+#endif
 
 typedef uintptr_t ChakraCookie;
 typedef unsigned char* ChakraBytePtr;
@@ -69,7 +78,7 @@ typedef unsigned char* ChakraBytePtr;
     /// <summary>
     ///     An error code returned from a Chakra hosting API.
     /// </summary>
-    typedef _Return_type_success_(return == 0) enum _JsErrorCode : unsigned int
+    typedef _Return_type_success_(return == 0) enum _JsErrorCode 
     {
         /// <summary>
         ///     Success error code.
@@ -564,9 +573,11 @@ typedef unsigned char* ChakraBytePtr;
     /// <param name="callbackState">The data argument to be passed to the callback.</param>
     typedef bool (CHAKRA_CALLBACK *JsThreadServiceCallback)(_In_ JsBackgroundWorkItemCallback callback, _In_opt_ void *callbackState);
 
+#ifdef _WIN32
     /// <summary>
     ///     Called by the runtime to load the source code of the serialized script.
     ///     The caller must keep the script buffer valid until the JsSerializedScriptUnloadCallback.
+    ///     This callback is only supported by the Win32 version of the API
     /// </summary>
     /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
     /// <param name="scriptBuffer">The script returned.</param>
@@ -574,6 +585,7 @@ typedef unsigned char* ChakraBytePtr;
     ///     true if the operation succeeded, false otherwise.
     /// </returns>
     typedef bool (CHAKRA_CALLBACK * JsSerializedScriptLoadSourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const wchar_t** scriptBuffer);
+#endif // _WIN32
 
     /// <summary>
     ///     Called by the runtime when it is finished with all resources related to the script execution.
