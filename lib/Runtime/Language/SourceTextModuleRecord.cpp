@@ -77,7 +77,7 @@ namespace Js
         }
     }
 
-    HRESULT SourceTextModuleRecord::ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, Var* exceptionVar, bool isUtf8)
+    HRESULT SourceTextModuleRecord::ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8)
     {
         Assert(!wasParsed);
         Assert(parser == nullptr);
@@ -105,12 +105,11 @@ namespace Js
             {
                 AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
                 this->parser = (Parser*)AllocatorNew(ArenaAllocator, allocator, Parser, scriptContext);
-                this->srcInfo = {};
-                this->srcInfo.sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceLength, Js::Constants::NoHostSourceContext);
-                this->srcInfo.moduleID = moduleId;
+                srcInfo->moduleID = moduleId;
+
                 LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
                     (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
-                this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, &srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
+                this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
                 if (parseTree == nullptr)
                 {
                     hr = E_FAIL;
@@ -628,7 +627,7 @@ namespace Js
         }
 
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        Assert(this == scriptContext->GetLibrary()->GetModuleRecord(srcInfo.moduleID));
+        Assert(this == scriptContext->GetLibrary()->GetModuleRecord(this->pSourceInfo->GetSrcInfo()->moduleID));
         CompileScriptException se;
         this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
         if (rootFunction == nullptr)
@@ -636,6 +635,11 @@ namespace Js
             this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
             NotifyParentsAsNeeded();
         }
+        else
+        {
+            scriptContext->GetDebugContext()->RegisterFunction(this->rootFunction->GetFunctionBody(), nullptr);
+        }
+
     }
 
     Var SourceTextModuleRecord::ModuleEvaluation()

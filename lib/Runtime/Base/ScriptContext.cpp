@@ -1627,7 +1627,9 @@ namespace Js
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             if (*ppSourceInfo == nullptr)
             {
-                *ppSourceInfo = Utf8SourceInfo::New(this, script, parser->GetSourceIchLim(), cb, pSrcInfo, isLibraryCode);
+                // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
+                // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
+                *ppSourceInfo = Utf8SourceInfo::New(this, script, (int)length, cb, pSrcInfo, isLibraryCode);
             }
         }
         //
@@ -1698,6 +1700,8 @@ namespace Js
         }
         else
         {
+            // Update the length.
+            (*ppSourceInfo)->SetCchLength(parser->GetSourceIchLim());
             *sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, parser->GetSourceIchLim(), /* isCesu8*/ false);
         }
 
