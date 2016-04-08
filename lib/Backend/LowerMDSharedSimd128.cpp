@@ -303,6 +303,9 @@ IR::Instr* LowererMD::Simd128LowerUnMappedInstruction(IR::Instr *instr)
     case Js::OpCode::Simd128_Shuffle_U16:
         return Simd128LowerShuffle(instr);
 
+    case Js::OpCode::Simd128_FromUint32x4_F4:
+        return Simd128LowerFloat32x4FromUint32x4(instr);
+
     case Js::OpCode::Simd128_FromFloat32x4_I4:
         return Simd128LowerInt32x4FromFloat32x4(instr);
 
@@ -2716,6 +2719,53 @@ IR::Instr* LowererMD::Simd128LowerUint32x4FromFloat32x4(IR::Instr *instr)
     m_lowerer->GenerateRuntimeError(instr, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
     // doneLabe:
     instr->InsertBefore(doneLabel);
+
+    instr->Remove();
+    return pInstr;
+}
+
+IR::Instr* LowererMD::Simd128LowerFloat32x4FromUint32x4(IR::Instr *instr)
+{
+    IR::Opnd *dst, *src, *tmp, *zero;
+    IR::Instr *pInstr, *newInstr;
+
+    dst = instr->GetDst();
+    src = instr->GetSrc1();
+    Assert(dst != nullptr && src != nullptr && dst->IsSimd128() && src->IsSimd128());
+
+    pInstr = instr->m_prev;
+
+    zero = IR::RegOpnd::New(TySimd128I4, m_func);
+    tmp = IR::RegOpnd::New(TySimd128I4, m_func);
+
+    // find unsigned values above 2^31-1. Comparison is signed, so look for values < 0
+    // MOVAPS zero, [X86_ALL_ZEROS]
+    newInstr = IR::Instr::New(Js::OpCode::MOVAPS, zero, IR::MemRefOpnd::New((void*)&X86_ALL_ZEROS, TySimd128I4, m_func), m_func);
+    instr->InsertBefore(newInstr);
+    Legalize(newInstr);
+
+    // tmp = PCMPGTD zero, src
+    newInstr = IR::Instr::New(Js::OpCode::PCMPGTD, tmp, zero, src, m_func);
+    instr->InsertBefore(newInstr);
+    Legalize(newInstr);
+
+    // temp1 has f32(2^32) for unsigned values above 2^31, 0 otherwise
+    // ANDPS tmp, tmp, [X86_TWO_32_F4]
+    newInstr = IR::Instr::New(Js::OpCode::ANDPS, tmp, tmp, IR::MemRefOpnd::New((void*)&X86_TWO_32_F4, TySimd128F4, m_func), m_func);
+    instr->InsertBefore(newInstr);
+    Legalize(newInstr);
+
+    // convert
+    // dst = CVTDQ2PS src
+    newInstr = IR::Instr::New(Js::OpCode::CVTDQ2PS, dst, src, m_func);
+    instr->InsertBefore(newInstr);
+    Legalize(newInstr);
+
+    // Add f32(2^32) to negative values
+    // ADDPS dst, dst, tmp
+    newInstr = IR::Instr::New(Js::OpCode::ADDPS, dst, dst, tmp, m_func);
+    instr->InsertBefore(newInstr);
+    Legalize(newInstr);
 
     instr->Remove();
     return pInstr;
