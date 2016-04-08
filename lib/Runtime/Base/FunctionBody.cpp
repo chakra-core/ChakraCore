@@ -409,6 +409,24 @@ namespace Js
 #endif
     }
 
+#if DBG
+    FunctionBody::AutoResetThreadState::AutoResetThreadState(Js::FunctionBody* fb)
+        :functionBody(fb), foreground(ThreadContext::GetContextForCurrentThread() != nullptr), alreadyInBackground(false)
+    {
+        if (!foreground)
+        {
+            alreadyInBackground = functionBody->EnterBackgroundCall();
+        }
+    }
+    FunctionBody::AutoResetThreadState::~AutoResetThreadState()
+    {
+        if (!foreground && !alreadyInBackground)
+        {
+            functionBody->LeaveBackgroundCall();
+        }
+    }
+#endif
+
 
     FunctionBody::FunctionBody(ScriptContext* scriptContext, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
         Utf8SourceInfo* utf8SourceInfo, uint uFunctionNumber, uint uScriptId,

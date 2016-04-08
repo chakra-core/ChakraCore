@@ -1740,6 +1740,26 @@ namespace Js
             {
                 return counters.SetSigned(fieldEnum, val, this);
             }
+#if DBG
+            struct AutoResetThreadState
+            {
+                Js::FunctionBody* functionBody;
+                bool foreground;
+                bool alreadyInBackground;
+                AutoResetThreadState(Js::FunctionBody* fb);
+                ~AutoResetThreadState();
+            };
+            bool EnterBackgroundCall()
+            {
+                bool oldValue = counters.bgThreadCallStarted;
+                counters.bgThreadCallStarted = true;
+                return oldValue;
+            }
+            void LeaveBackgroundCall()
+            {
+                counters.bgThreadCallStarted = false;
+            }
+#endif
 
             struct StatementMap
             {
