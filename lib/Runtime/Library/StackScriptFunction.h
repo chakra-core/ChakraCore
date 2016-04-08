@@ -58,7 +58,7 @@ namespace Js
             Var * BoxScopeSlots(Var * scopeSlots, uint count);
             bool NeedBoxFrame(FunctionBody * functionBody);
             bool NeedBoxScriptFunction(ScriptFunction * scriptFunction);
-            ScriptFunction * BoxStackFunction(StackScriptFunction * scriptFunction);
+            ScriptFunction * BoxStackFunction(ScriptFunction * scriptFunction);
             FrameDisplay * BoxFrameDisplay(FrameDisplay * frameDisplay);
             FrameDisplay * GetFrameDisplayFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody);
             Var * GetScopeSlotsFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody);

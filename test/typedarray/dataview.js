@@ -152,4 +152,6 @@ WScript.Echo(DataView.prototype[10]);
 WScript.Echo(DataView.prototype[-1]);
 WScript.Echo(DataView.prototype[2]);
 DataView.prototype[2] = 10;
-WScript.Echo(DataView.prototype[2]); 
+WScript.Echo(DataView.prototype[2]);
+
+WScript.Echo(dataView.toString());

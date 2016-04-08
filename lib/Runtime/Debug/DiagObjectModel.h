@@ -316,6 +316,8 @@ namespace Js
         virtual BOOL GetGroupObject(ResolvedObject* pResolvedObject) {return FALSE; }
 
         static DWORD GetCurrentFramesLocalsType(DiagStackFrame* frame);
+        static DebuggerScope * GetScopeWhenHaltAtFormals(DiagStackFrame* frame);
+        static int GetAdjustedByteCodeOffset(DiagStackFrame* frame);
 
         IDiagObjectAddress * FindPropertyAddress(PropertyId propId, bool& isConst) override;
 

@@ -56,7 +56,7 @@ namespace Js
         void SetrequestedModuleList(IdentPtrList* requestModules) { requestedModuleList = requestModules; }
 
         ScriptContext* GetScriptContext() const { return scriptContext; }
-        HRESULT ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, Var* exceptionVar, bool isUtf8);
+        HRESULT ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8);
         HRESULT OnHostException(void* errorVar);
 
         static SourceTextModuleRecord* FromHost(void* hostModuleRecord)
@@ -78,6 +78,8 @@ namespace Js
         void AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, unsigned long specifierLength);
 #endif
 
+        Utf8SourceInfo* GetSourceInfo() { return this->pSourceInfo; }
+
     private:
         const static uint InvalidModuleIndex = 0xffffffff;
         const static uint InvalidSlotCount = 0xffffffff;
@@ -88,7 +90,6 @@ namespace Js
         bool wasDeclarationInitialized;
         bool isRootModule;
         ParseNodePtr parseTree;
-        SRCINFO srcInfo; 
         Utf8SourceInfo* pSourceInfo;
         uint sourceIndex;
         Parser* parser;  // we'll need to keep the parser around till we are done with bytecode gen.
