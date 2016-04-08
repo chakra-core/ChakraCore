@@ -4528,9 +4528,9 @@ namespace Js
         ConstructorCache* ctorCache = ((functionInfo->GetAttributes() & FunctionInfo::Attributes::SkipDefaultNewObject) != 0) ?
             this->builtInConstructorCache : &ConstructorCache::DefaultInstance;
 
-        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, RuntimeFunction,
-            DynamicType::New(scriptContext, TypeIds_Function, prototype, functionInfo->GetOriginalEntryPoint(), typeHandler),
-            functionInfo, ctorCache);
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, prototype, functionInfo->GetOriginalEntryPoint(), typeHandler);
+
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, RuntimeFunction, type, functionInfo, ctorCache);
     }
 
     JavascriptExternalFunction* JavascriptLibrary::CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, RecyclableObject * prototype)
