@@ -33,7 +33,7 @@
 
 typedef DWORD_PTR ChakraCookie;
 typedef BYTE* ChakraBytePtr;
-#else
+#else // Non-Windows VC++
 #include <cstdint>
 
 // SAL compat
@@ -54,19 +54,17 @@ typedef BYTE* ChakraBytePtr;
 #define _Out_writes_to_opt_(byteLength, byteLength2)
 
 // Header macros
-// REVIEW: What should we do here??
 #ifdef __i386___
 #define CHAKRA_CALLBACK __attribute__((cdecl))
-#else
+#else // non-32 bit x86 doesn't have cdecl support
 #define CHAKRA_CALLBACK
-#endif
+#endif // __i386__
 
 #define CHAKRA_API extern "C" JsErrorCode
 
 typedef uintptr_t ChakraCookie;
 typedef unsigned char* ChakraBytePtr;
-#endif
-
+#endif //  defined(_WIN32) && defined(_MSC_VER)
 
     /// <summary>
     ///     An error code returned from a Chakra hosting API.
@@ -434,6 +432,79 @@ typedef unsigned char* ChakraBytePtr;
     } JsParseScriptAttributes;
 
     /// <summary>
+    ///     Type enumeration of a JavaScript property
+    /// </summary>
+    typedef enum _JsPropertyIdType {
+        /// <summary>
+        ///     Type enumeration of a JavaScript string property
+        /// </summary>
+        JsPropertyIdTypeString,
+        /// <summary>
+        ///     Type enumeration of a JavaScript symbol property
+        /// </summary>
+        JsPropertyIdTypeSymbol
+    } JsPropertyIdType;
+ 
+    /// <summary>
+    ///     The JavaScript type of a JsValueRef.
+    /// </summary>
+    typedef enum _JsValueType
+    {
+        /// <summary>
+        ///     The value is the <c>undefined</c> value.
+        /// </summary>
+        JsUndefined = 0,
+        /// <summary>
+        ///     The value is the <c>null</c> value.
+        /// </summary>
+        JsNull = 1,
+        /// <summary>
+        ///     The value is a JavaScript number value.
+        /// </summary>
+        JsNumber = 2,
+        /// <summary>
+        ///     The value is a JavaScript string value.
+        /// </summary>
+        JsString = 3,
+        /// <summary>
+        ///     The value is a JavaScript Boolean value.
+        /// </summary>
+        JsBoolean = 4,
+        /// <summary>
+        ///     The value is a JavaScript object value.
+        /// </summary>
+        JsObject = 5,
+        /// <summary>
+        ///     The value is a JavaScript function object value.
+        /// </summary>
+        JsFunction = 6,
+        /// <summary>
+        ///     The value is a JavaScript error object value.
+        /// </summary>
+        JsError = 7,
+        /// <summary>
+        ///     The value is a JavaScript array object value.
+        /// </summary>
+        JsArray = 8,
+        /// <summary>
+        ///     The value is a JavaScript symbol value.
+        /// </summary>
+        JsSymbol = 9,
+        /// <summary>
+        ///     The value is a JavaScript ArrayBuffer object value.
+        /// </summary>
+        JsArrayBuffer = 10,
+        /// <summary>
+        ///     The value is a JavaScript typed array object value.
+        /// </summary>
+        JsTypedArray = 11,
+        /// <summary>
+        ///     The value is a JavaScript DataView object value.
+        /// </summary>
+        JsDataView = 12,
+    } JsValueType;
+ 
+    /// <summary>
     ///     User implemented callback routine for memory allocation events
     /// </summary>
     /// <remarks>
@@ -522,6 +593,41 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     typedef bool (CHAKRA_CALLBACK * JsSerializedScriptLoadUtf8SourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const char** scriptBuffer);
 
+    /// <summary>
+    ///     A finalizer callback.
+    /// </summary>
+    /// <param name="data">
+    ///     The external data that was passed in when creating the object being finalized.
+    /// </param>
+    typedef void (CHAKRA_CALLBACK *JsFinalizeCallback)(_In_opt_ void *data);
+
+    /// <summary>
+    ///     A function callback.
+    /// </summary>
+    /// <param name="callee">
+    ///     A function object that represents the function being invoked.
+    /// </param>
+    /// <param name="isConstructCall">Indicates whether this is a regular call or a 'new' call.</param>
+    /// <param name="arguments">The arguments to the call.</param>
+    /// <param name="argumentCount">The number of arguments.</param>
+    /// <param name="callbackState">
+    ///     The state passed to <c>JsCreateFunction</c>.
+    /// </param>
+    /// <returns>The result of the call, if any.</returns>
+    typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsNativeFunction)(_In_ JsValueRef callee, _In_ bool isConstructCall, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_opt_ void *callbackState);
+
+    /// <summary>
+    ///     A promise continuation callback.
+    /// </summary>
+    /// <remarks>
+    ///     The host can specify a promise continuation callback in <c>JsSetPromiseContinuationCallback</c>. If
+    ///     a script creates a task to be run later, then the promise continuation callback will be called with
+    ///     the task and the task should be put in a FIFO queue, to be run when the current script is
+    ///     done executing.
+    /// </remarks>
+    /// <param name="task">The task, represented as a JavaScript function.</param>
+    /// <param name="callbackState">The data argument to be passed to the callback.</param>
+    typedef void (CHAKRA_CALLBACK *JsPromiseContinuationCallback)(_In_ JsValueRef task, _In_opt_ void *callbackState);
 
     /// <summary>
     ///     Creates a new runtime.
@@ -1172,7 +1278,52 @@ typedef unsigned char* ChakraBytePtr;
         JsGetPropertyNameFromId(
             _In_ JsPropertyIdRef propertyId,
             _Outptr_result_z_ const wchar_t **name);
-#endif
+
+    /// <summary>
+    ///     Creates a string value from a string pointer.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="stringValue">The string pointer to convert to a string value.</param>
+    /// <param name="stringLength">The length of the string to convert.</param>
+    /// <param name="value">The new string value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsPointerToString(
+            _In_reads_(stringLength) const wchar_t *stringValue,
+            _In_ size_t stringLength,
+            _Out_ JsValueRef *value);
+
+    /// <summary>
+    ///     Retrieves the string pointer of a string value.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     This function retrieves the string pointer of a string value. It will fail with
+    ///     <c>JsErrorInvalidArgument</c> if the type of the value is not string. The lifetime
+    ///     of the string returned will be the same as the lifetime of the value it came from, however
+    ///     the string pointer is not considered a reference to the value (and so will not keep it
+    ///     from being collected).
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="value">The string value to convert to a string pointer.</param>
+    /// <param name="stringValue">The string pointer.</param>
+    /// <param name="stringLength">The length of the string.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsStringToPointer(
+            _In_ JsValueRef value,
+            _Outptr_result_buffer_(*stringLength) const wchar_t **stringValue,
+            _Out_ size_t *stringLength);
+#endif // _WIN32
 
     /// <summary>
     ///     Parses a script and returns a function representing the script.
@@ -1411,6 +1562,51 @@ typedef unsigned char* ChakraBytePtr;
             _Outptr_result_z_ const char *name);
 
     /// <summary>
+    ///     Creates a string value from a string pointer.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="stringValue">The string pointer to convert to a string value, encoded as Utf8.</param>
+    /// <param name="stringLength">The length of the string to convert.</param>
+    /// <param name="value">The new string value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsPointerToStringUtf8(
+            _In_reads_(stringLength) const char *stringValue,
+            _In_ size_t stringLength,
+            _Out_ JsValueRef *value);
+
+    /// <summary>
+    ///     Retrieves the string pointer of a string value.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     This function retrieves the string pointer of a string value. It will fail with
+    ///     <c>JsErrorInvalidArgument</c> if the type of the value is not string. The lifetime
+    ///     of the string returned will be the same as the lifetime of the value it came from, however
+    ///     the string pointer is not considered a reference to the value (and so will not keep it
+    ///     from being collected).
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="value">The string value to convert to a string pointer.</param>
+    /// <param name="stringValue">The string pointer, encoded as utf8.</param>
+    /// <param name="stringLength">The length of the string.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsStringToPointerUtf8(
+            _In_ JsValueRef value,
+            _Outptr_result_buffer_(*stringLength) const char **stringValue,
+            _Out_ size_t *stringLength); 
+    
+    /// <summary>
     ///     Gets the symbol associated with the property ID.
     /// </summary>
     /// <remarks>
@@ -1427,20 +1623,6 @@ typedef unsigned char* ChakraBytePtr;
         JsGetSymbolFromPropertyId(
             _In_ JsPropertyIdRef propertyId,
             _Out_ JsValueRef *symbol);
-
-    /// <summary>
-    ///     Type enumeration of a JavaScript property
-    /// </summary>
-    typedef enum _JsPropertyIdType {
-        /// <summary>
-        ///     Type enumeration of a JavaScript string property
-        /// </summary>
-        JsPropertyIdTypeString,
-        /// <summary>
-        ///     Type enumeration of a JavaScript symbol property
-        /// </summary>
-        JsPropertyIdTypeSymbol
-    } JsPropertyIdType;
 
     /// <summary>
     ///     Gets the type of property
@@ -1617,64 +1799,6 @@ typedef unsigned char* ChakraBytePtr;
             _In_ JsValueRef value,
             _Out_ JsValueRef *booleanValue);
 
-    /// <summary>
-    ///     The JavaScript type of a JsValueRef.
-    /// </summary>
-    typedef enum _JsValueType
-    {
-        /// <summary>
-        ///     The value is the <c>undefined</c> value.
-        /// </summary>
-        JsUndefined = 0,
-        /// <summary>
-        ///     The value is the <c>null</c> value.
-        /// </summary>
-        JsNull = 1,
-        /// <summary>
-        ///     The value is a JavaScript number value.
-        /// </summary>
-        JsNumber = 2,
-        /// <summary>
-        ///     The value is a JavaScript string value.
-        /// </summary>
-        JsString = 3,
-        /// <summary>
-        ///     The value is a JavaScript Boolean value.
-        /// </summary>
-        JsBoolean = 4,
-        /// <summary>
-        ///     The value is a JavaScript object value.
-        /// </summary>
-        JsObject = 5,
-        /// <summary>
-        ///     The value is a JavaScript function object value.
-        /// </summary>
-        JsFunction = 6,
-        /// <summary>
-        ///     The value is a JavaScript error object value.
-        /// </summary>
-        JsError = 7,
-        /// <summary>
-        ///     The value is a JavaScript array object value.
-        /// </summary>
-        JsArray = 8,
-        /// <summary>
-        ///     The value is a JavaScript symbol value.
-        /// </summary>
-        JsSymbol = 9,
-        /// <summary>
-        ///     The value is a JavaScript ArrayBuffer object value.
-        /// </summary>
-        JsArrayBuffer = 10,
-        /// <summary>
-        ///     The value is a JavaScript typed array object value.
-        /// </summary>
-        JsTypedArray = 11,
-        /// <summary>
-        ///     The value is a JavaScript DataView object value.
-        /// </summary>
-        JsDataView = 12,
-    } JsValueType;
 
     /// <summary>
     ///     Gets the JavaScript type of a JsValueRef.
@@ -1784,98 +1908,6 @@ typedef unsigned char* ChakraBytePtr;
             _In_ JsValueRef stringValue,
             _Out_ int *length);
 
-#ifdef _WIN32
-    /// <summary>
-    ///     Creates a string value from a string pointer.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="stringValue">The string pointer to convert to a string value.</param>
-    /// <param name="stringLength">The length of the string to convert.</param>
-    /// <param name="value">The new string value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsPointerToString(
-            _In_reads_(stringLength) const wchar_t *stringValue,
-            _In_ size_t stringLength,
-            _Out_ JsValueRef *value);
-
-    /// <summary>
-    ///     Retrieves the string pointer of a string value.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     This function retrieves the string pointer of a string value. It will fail with
-    ///     <c>JsErrorInvalidArgument</c> if the type of the value is not string. The lifetime
-    ///     of the string returned will be the same as the lifetime of the value it came from, however
-    ///     the string pointer is not considered a reference to the value (and so will not keep it
-    ///     from being collected).
-    ///     </para>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="value">The string value to convert to a string pointer.</param>
-    /// <param name="stringValue">The string pointer.</param>
-    /// <param name="stringLength">The length of the string.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsStringToPointer(
-            _In_ JsValueRef value,
-            _Outptr_result_buffer_(*stringLength) const wchar_t **stringValue,
-            _Out_ size_t *stringLength);
-#endif
-
-    /// <summary>
-    ///     Creates a string value from a string pointer.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="stringValue">The string pointer to convert to a string value, encoded as Utf8.</param>
-    /// <param name="stringLength">The length of the string to convert.</param>
-    /// <param name="value">The new string value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsPointerToStringUtf8(
-            _In_reads_(stringLength) const char *stringValue,
-            _In_ size_t stringLength,
-            _Out_ JsValueRef *value);
-
-    /// <summary>
-    ///     Retrieves the string pointer of a string value.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     This function retrieves the string pointer of a string value. It will fail with
-    ///     <c>JsErrorInvalidArgument</c> if the type of the value is not string. The lifetime
-    ///     of the string returned will be the same as the lifetime of the value it came from, however
-    ///     the string pointer is not considered a reference to the value (and so will not keep it
-    ///     from being collected).
-    ///     </para>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="value">The string value to convert to a string pointer.</param>
-    /// <param name="stringValue">The string pointer, encoded as utf8.</param>
-    /// <param name="stringLength">The length of the string.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsStringToPointerUtf8(
-            _In_ JsValueRef value,
-            _Outptr_result_buffer_(*stringLength) const char **stringValue,
-            _Out_ size_t *stringLength);
-
     /// <summary>
     ///     Converts the value to string using standard JavaScript semantics.
     /// </summary>
@@ -1919,14 +1951,6 @@ typedef unsigned char* ChakraBytePtr;
     CHAKRA_API
         JsCreateObject(
             _Out_ JsValueRef *object);
-
-    /// <summary>
-    ///     A finalizer callback.
-    /// </summary>
-    /// <param name="data">
-    ///     The external data that was passed in when creating the object being finalized.
-    /// </param>
-    typedef void (CHAKRA_CALLBACK *JsFinalizeCallback)(_In_opt_ void *data);
 
     /// <summary>
     ///     Creates a new object that stores some external data.
@@ -2628,21 +2652,6 @@ typedef unsigned char* ChakraBytePtr;
             _Out_ JsValueRef *result);
 
     /// <summary>
-    ///     A function callback.
-    /// </summary>
-    /// <param name="callee">
-    ///     A function object that represents the function being invoked.
-    /// </param>
-    /// <param name="isConstructCall">Indicates whether this is a regular call or a 'new' call.</param>
-    /// <param name="arguments">The arguments to the call.</param>
-    /// <param name="argumentCount">The number of arguments.</param>
-    /// <param name="callbackState">
-    ///     The state passed to <c>JsCreateFunction</c>.
-    /// </param>
-    /// <returns>The result of the call, if any.</returns>
-    typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsNativeFunction)(_In_ JsValueRef callee, _In_ bool isConstructCall, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_opt_ void *callbackState);
-
-    /// <summary>
     ///     Creates a new JavaScript function.
     /// </summary>
     /// <remarks>
@@ -2907,20 +2916,6 @@ typedef unsigned char* ChakraBytePtr;
         JsIsRuntimeExecutionDisabled(
             _In_ JsRuntimeHandle runtime,
             _Out_ bool *isDisabled);
-
-
-    /// <summary>
-    ///     A promise continuation callback.
-    /// </summary>
-    /// <remarks>
-    ///     The host can specify a promise continuation callback in <c>JsSetPromiseContinuationCallback</c>. If
-    ///     a script creates a task to be run later, then the promise continuation callback will be called with
-    ///     the task and the task should be put in a FIFO queue, to be run when the current script is
-    ///     done executing.
-    /// </remarks>
-    /// <param name="task">The task, represented as a JavaScript function.</param>
-    /// <param name="callbackState">The data argument to be passed to the callback.</param>
-    typedef void (CHAKRA_CALLBACK *JsPromiseContinuationCallback)(_In_ JsValueRef task, _In_opt_ void *callbackState);
 
     /// <summary>
     ///     Sets a promise continuation callback function that is called by the context when a task
