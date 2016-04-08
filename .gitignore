@@ -9,6 +9,7 @@ Build/VCBuild/
 Build/VCBuild.NoJIT/
 Build/ipch/
 Build/.vs/
+Build/Chakra.Core.VC.db
 build_*.log
 build_*.wrn
 build_*.err
