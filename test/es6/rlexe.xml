@@ -190,6 +190,11 @@
   </test>
   <test>
     <default>
+      <files>blockscope-activationobject.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>blockscope-deferred.js</files>
       <baseline>blockscope-deferred.baseline</baseline>
     </default>
