@@ -49,7 +49,7 @@ namespace Js
 
         void SetNotEnumerable(PropertyId propertyId);
 
-        static Var NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Arguments args);
+        static Var NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var message);
         class EntryInfo
         {
         public:
