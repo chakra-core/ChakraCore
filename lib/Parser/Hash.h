@@ -190,20 +190,11 @@ public:
         return prevRef;
     }
 
-    PidRefStack * FindOrAddPidRef(ArenaAllocator *alloc, int scopeId, int maxScopeId = -1)
+    PidRefStack * FindOrAddPidRef(ArenaAllocator *alloc, int scopeId)
     {
-        // If we were supplied with a maxScopeId, then we potentially need to look one more
-        // scope level out. This can happen if we have a declaration in function scope shadowing
-        // a parameter scope declaration. In this case we'd need to look beyond the body scope (scopeId)
-        // to the outer parameterScope (maxScopeId).
-        if (maxScopeId == -1)
-        {
-            maxScopeId = scopeId;
-        }
-
         // If the stack is empty, or we are pushing to the innermost scope already,
         // we can go ahead and push a new PidRef on the stack.
-        if (m_pidRefStack == nullptr || m_pidRefStack->id < maxScopeId)
+        if (m_pidRefStack == nullptr)
         {
             PidRefStack *newRef = Anew(alloc, PidRefStack, scopeId);
             if (newRef == nullptr)
@@ -226,15 +217,7 @@ public:
                 return ref;
             }
 
-            if (ref->id == maxScopeId
-                // If we match the different maxScopeId, then this match is sufficient if it is a decl.
-                // This is because the parameter scope decl would have been created before this point.
-                && ref->sym != nullptr)
-            {
-                return ref;
-            }
-
-            if (ref->prev == nullptr || ref->prev->id < maxScopeId)
+            if (ref->prev == nullptr || ref->id  < scopeId)
             {
                 // No existing PidRef for this scopeId, so create and insert one at this position.
                 PidRefStack *newRef = Anew(alloc, PidRefStack, scopeId);

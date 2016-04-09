@@ -212,10 +212,20 @@ namespace Js
                 }
                 else
                 {
-                    Assert((currentScope->GetEnclosingScope() ==
-                        (parentFunc->IsGlobalFunction() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope())) ||
-                        // The method can be defined in the parameter scope of the parent function
-                        (currentScope->GetEnclosingScope() == parentFunc->GetParamScope() && !parentFunc->GetParamScope()->GetCanMergeWithBodyScope()));
+                    if (currentScope->GetEnclosingScope() == parentFunc->GetParamScope())
+                    {
+                        Assert(!parentFunc->GetParamScope()->GetCanMergeWithBodyScope());
+                        Assert(funcInfo->GetParamScope()->GetCanMergeWithBodyScope());
+                    }
+                    else if (currentScope->GetEnclosingScope() == funcInfo->GetParamScope())
+                    {
+                        Assert(!funcInfo->GetParamScope()->GetCanMergeWithBodyScope());
+                    }
+                    else
+                    { 
+                        Assert(currentScope->GetEnclosingScope() ==
+                            (parentFunc->IsGlobalFunction() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
+                    }
                 }
 #endif
                 Js::ScopeInfo::SaveParentScopeInfo(parentFunc, funcInfo);

@@ -57,7 +57,7 @@ var tests = [
         assert.areEqual(10, f5()()(), "Parameter scope works fine with nested functions"); 
 
         var a1 = 10; 
-        function f6(b = function () { return a1; }) { 
+        function f6(a, b = function () { a; return a1; }) { 
             assert.areEqual(undefined, a1, "Inside the function body the assignment hasn't happened yet"); 
             var a1 = 20; 
             assert.areEqual(20, a1, "Assignment to the symbol inside the function changes the value"); 
@@ -69,7 +69,7 @@ var tests = [
             a = 20; 
             return b; 
         } 
-        assert.areEqual(10, f7().iFnc(), "Function definition inside the object literal should capture the formal from the param scope"); 
+        assert.areEqual(10, f7().iFnc(), "Function definition inside the object literal should capture the formal from the param scope");
     } 
  }, 
  { 
@@ -505,6 +505,71 @@ var tests = [
           assert.areEqual(11, f9()()()(), "Split scope function defined within the param scope should capture the formals from the corresponding param scope in nested scope"); 
     }   
   }, 
+  {
+    name: "Split scope with symbol overriding",
+    body: function () {
+          function f1(a = 10, b = function () { return a; }) {
+              assert.areEqual(100, a(), "Function definition inside the body is hoisted");
+              function a () {
+                  return 100;
+              }
+              return b;
+        }
+        assert.areEqual(10, f1()(), "Function definition in the param scope captures the symbol from the param scope");
+
+        function f2(a = 10, b = function () { return a; }, c = b) {
+            a = 20;
+            assert.areEqual(20, b(), "Function definition in the body scope captures the body symbol");
+            function b() {
+                return a;
+            }
+            return [c, b];
+        }
+        var result = f2();
+        assert.areEqual(10, result[0](), "Function definition in the param scope captures the param scope symbol");
+        assert.areEqual(20, result[1](), "Function definition in the body captures the body symbol");
+        
+        var g = 1;
+        function f3(a = 10, b = function () { a; return g;}) {
+            assert.areEqual(10, g(), "Function definition inside the body is unaffected by the outer variable");
+            function g() {
+                return 10;
+            }
+            return b;
+        }
+        assert.areEqual(1, f3()(), "Function definition in the param scope captures the outer scoped var");
+        
+        function f4(a = x1, b = function g() {
+            a;
+            return function h() {
+                assert.areEqual(10, x1, "x1 is captured from the outer scope");
+            };
+        }) {
+            var x1 = 100;
+            b()();
+        };
+        var x1 = 10;
+        f4();
+        
+        var x2 = 1;
+        function f5(a = x2, b = function() { a; return x2; }) {
+            {
+                function x2() {
+                }
+            }
+            var x2 = 2;
+            return b;
+        }
+        assert.areEqual(1, f5()(), "Symbol capture at the param scope is unaffected by the inner definitions");
+        
+        var x3 = 1;
+        function f6(a = x3, b = function(_x) { a; return x3; }) {
+            var x3 = 2;
+            return b;
+        }
+        assert.areEqual(1, f6()(), "Symbol capture at the param scope is unaffected by other references in the body and param");
+    }
+  },
   { 
     name: "Split parameter scope and eval", 
     body: function () { 
