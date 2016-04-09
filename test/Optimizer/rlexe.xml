@@ -1346,4 +1346,11 @@
       <compile-flags>-lic:1 -off:nativearray</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug7100343.js</files>
+      <compile-flags>-mic:1 -off:simplejit -force:rejit</compile-flags>
+      <baseline>bug7100343.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
