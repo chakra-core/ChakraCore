@@ -316,13 +316,28 @@ namespace Js
     public:
         // These are public because we don't manage them nor their consistency;
         // the user of this class does.
-        void * address;
+        union address_type_ {
+            address_type_(void *ptr):asPtr(ptr) {}
+            address_type_(Js::JavascriptMethod method):asJsMethod(method) {}
 
-        ProxyEntryPointInfo(void* address, ThreadContext* context = nullptr):
+            void *asPtr;
+            Js::JavascriptMethod asJsMethod;
+        } address;
+        static_assert(sizeof(Js::JavascriptMethod) == sizeof(uintptr_t),
+                                "This compiler / platform is not supported");
+
+        explicit ProxyEntryPointInfo(void* address, ThreadContext* context = nullptr):
             ExpirableObject(context),
             address(address)
         {
         }
+
+        explicit ProxyEntryPointInfo(Js::JavascriptMethod address, ThreadContext* context = nullptr):
+            ExpirableObject(context),
+            address(address)
+        {
+        }
+
         static DWORD GetAddressOffset() { return offsetof(ProxyEntryPointInfo, address); }
         virtual void Expire()
         {
@@ -515,8 +530,32 @@ namespace Js
         virtual bool IsFunctionEntryPointInfo() const override { return true; }
 
     protected:
-        EntryPointInfo(void* address, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
+        explicit EntryPointInfo(void* address, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
             ProxyEntryPointInfo(address, context),
+#if ENABLE_NATIVE_CODEGEN
+            nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
+            jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
+            equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), data(nullptr),
+            numberChunks(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
+            isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
+#endif
+            library(library), codeSize(0), nativeAddress(nullptr), isAsmJsFunction(false), validationCookie(validationCookie)
+#if ENABLE_DEBUG_STACK_BACK_TRACE
+            , cleanupStack(nullptr)
+#endif
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            , cleanupReason(NotCleanedUp)
+#endif
+#if DBG_DUMP | defined(VTUNE_PROFILING)
+            , nativeOffsetMaps(&HeapAllocator::Instance)
+#endif
+#ifdef FIELD_ACCESS_STATS
+            , fieldAccessStats(nullptr)
+#endif
+        {}
+
+        explicit EntryPointInfo(Js::JavascriptMethod method, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
+            ProxyEntryPointInfo(method, context),
 #if ENABLE_NATIVE_CODEGEN
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
@@ -944,8 +983,8 @@ namespace Js
             return (100 / (uint8)CONFIG_FLAG(RejitRatioLimit)) + 1;
         }
 
-        FunctionEntryPointInfo(FunctionProxy * functionInfo, void * address, ThreadContext* context, void* validationCookie);
-
+        explicit FunctionEntryPointInfo(FunctionProxy * functionInfo, void * address, ThreadContext* context, void* validationCookie);
+        explicit FunctionEntryPointInfo(FunctionProxy * functionInfo, JavascriptMethod method, ThreadContext* context, void* validationCookie);
 #ifndef TEMP_DISABLE_ASMJS
         //AsmJS Support
 
@@ -982,7 +1021,7 @@ namespace Js
     public:
         LoopHeader* loopHeader;
         LoopEntryPointInfo(LoopHeader* loopHeader, Js::JavascriptLibrary* library, void* validationCookie) :
-            loopHeader(loopHeader), mIsTemplatizedJitMode(false),EntryPointInfo(nullptr, library, validationCookie, /*threadContext*/ nullptr, /*isLoopBody*/ true)
+            loopHeader(loopHeader), mIsTemplatizedJitMode(false),EntryPointInfo((void*)nullptr, library, validationCookie, /*threadContext*/ nullptr, /*isLoopBody*/ true)
 
 #ifdef BGJIT_STATS
             ,used(false)
@@ -1077,7 +1116,7 @@ namespace Js
 
             if (entryPoint != nullptr)
             {
-                return this->entryPoints->Item(this->GetCurrentEntryPointIndex())->address;
+                return this->entryPoints->Item(this->GetCurrentEntryPointIndex())->address.asPtr;
             }
 
             return nullptr;
@@ -1484,7 +1523,7 @@ namespace Js
         void SetDeferredParsingEntryPoint();
 
         void SetEntryPoint(ProxyEntryPointInfo* entryPoint, Js::JavascriptMethod address) {
-            entryPoint->address = (void*)address;
+            entryPoint->address.asJsMethod = address;
         }
 
         bool IsDynamicScript() const;
@@ -2047,7 +2086,7 @@ namespace Js
         void GenerateDynamicInterpreterThunk();
 #endif
         void CloneByteCodeInto(ScriptContext * scriptContext, FunctionBody *newFunctionBody, uint sourceIndex);
-        void * GetEntryPoint(ProxyEntryPointInfo* entryPoint) const { return entryPoint->address; }
+        void * GetEntryPoint(ProxyEntryPointInfo* entryPoint) const { return entryPoint->address.asPtr; }
         void CaptureDynamicProfileState(FunctionEntryPointInfo* entryPointInfo);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         void DumpRegStats(FunctionBody *funcBody);
