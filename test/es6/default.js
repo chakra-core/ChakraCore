@@ -182,6 +182,44 @@ var tests = [
       }
       var b1 = 1;
       foo6();
+      
+      var a1 = 10; 
+      function foo7(b = function () { return a1; }) { 
+          assert.areEqual(undefined, a1, "Inside the function body the assignment hasn't happened yet"); 
+          var a1 = 20; 
+          assert.areEqual(20, a1, "Assignment to the symbol inside the function changes the value"); 
+          return b; 
+      } 
+      assert.areEqual(10, foo7()(), "Function in the param scope correctly binds to the outer variable");
+      
+      function foo8(a = x1, b = function g() {
+          return function h() {
+              assert.areEqual(10, x1, "x1 is captured from the outer scope");
+          };
+      }) {
+          var x1 = 100;
+          b()();
+      };
+      var x1 = 10;
+      foo8();
+      
+      var x2 = 1;
+      function foo9(a = x2, b = function() { return x2; }) {
+          {
+             function x2() {
+            }
+          }
+          var x2 = 2;
+          return b;
+      }
+      assert.areEqual(1, foo9()(), "Symbol capture at the param scope is unaffected by the inner definitions");
+      
+      var x3 = 1;
+      function foo10(a = x3, b = function(_x) { return x3; }) {
+          var x3 = 2;
+          return b;
+      }
+      assert.areEqual(1, foo10()(), "Symbol capture at the param scope is unaffected by other references in the body and param");
     }
   },
   {

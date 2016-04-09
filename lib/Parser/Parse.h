@@ -928,7 +928,7 @@ public:
 private:
     void DeferOrEmitPotentialSpreadError(ParseNodePtr pnodeT);
     PidRefStack* PushPidRef(IdentPtr pid);
-    PidRefStack* FindOrAddPidRef(IdentPtr pid, int blockId, int maxScopeId = -1);
+    PidRefStack* FindOrAddPidRef(IdentPtr pid, int blockId);
     void RemovePrevPidRef(IdentPtr pid, PidRefStack *lastRef);
     void SetPidRefsInScopeDynamic(IdentPtr pid, int blockId);
 
