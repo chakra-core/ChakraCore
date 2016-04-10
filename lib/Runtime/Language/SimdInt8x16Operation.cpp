@@ -235,10 +235,8 @@ namespace Js
     SIMDValue SIMDInt8x16Operation::OpShiftLeftByScalar(const SIMDValue& value, int count)
     {
         SIMDValue result;
-        if (count < 0 || count > 8) // Similar to polyfill, maximum shift will happen if the shift amounts and invalid
-        {
-            count = 8;
-        }
+
+        count = count & SIMDGetShiftAmountMask(1);
 
         for(uint idx = 0; idx < 16; ++idx)
         {
@@ -252,10 +250,7 @@ namespace Js
     {
         SIMDValue result;
 
-        if (count < 0 || count > 8) // Similar to polyfill, maximum shift will happen if the shift amounts and invalid
-        {
-            count = 8;
-        }
+        count = count & SIMDGetShiftAmountMask(1);
 
         for(uint idx = 0; idx < 16; ++idx)
         {

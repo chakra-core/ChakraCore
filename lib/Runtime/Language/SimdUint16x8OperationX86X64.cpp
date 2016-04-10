@@ -110,10 +110,7 @@ namespace Js
         X86SIMDValue x86Result = { { 0, 0, 0, 0 } };
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(value);
 
-        if (count < 16)
-        {
-            x86Result.m128i_value = _mm_srli_epi16(tmpaValue.m128i_value, count);
-        }
+        x86Result.m128i_value = _mm_srli_epi16(tmpaValue.m128i_value, count &  SIMDGetShiftAmountMask(2));
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }

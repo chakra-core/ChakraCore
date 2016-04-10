@@ -138,8 +138,6 @@ const _x86_SIMDValue X86_4LANES_MASKS[]     = {{ 0xffffffff, 0x00000000, 0x00000
                                                { 0x00000000, 0x00000000, 0xffffffff, 0x00000000 },
                                                { 0x00000000, 0x00000000, 0x00000000, 0xffffffff }};
 
-
-
 // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
 extern _x86_SIMDValue X86_TEMP_SIMD[];
 
@@ -155,6 +153,7 @@ class ValueType;
 namespace Js {
 
     bool IsSimdType(Var aVar);
+    uint32 inline SIMDGetShiftAmountMask(uint32 eleSizeInBytes){ return (eleSizeInBytes << 3) - 1; }
     int32 SIMDCheckTypedArrayIndex(ScriptContext* scriptContext, Var index);
     int32 SIMDCheckLaneIndex(ScriptContext* scriptContext, Var lane, const int32 range = 4);
 
