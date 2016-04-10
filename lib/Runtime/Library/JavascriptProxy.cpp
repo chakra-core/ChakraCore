@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
+
 namespace Js
 {
     __inline BOOL JavascriptProxy::Is(Var obj)
@@ -37,7 +38,7 @@ namespace Js
 
         Var newTarget = args.Info.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
 
-        bool isCtorSuperCall = (args.Info.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (args.Info.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(args.Info.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
 
@@ -1740,17 +1741,17 @@ namespace Js
         //5. Let trap be the result of GetMethod(handler, "getOwnPropertyDescriptor").
         //6. ReturnIfAbrupt(trap).
 
-        //7.3.9 GetMethod(O, P)
-        //    The abstract operation GetMethod is used to get the value of a specific property of an object when the value of the property is expected to be a function.The operation is called with arguments O and P where O is the object, P is the property key.This abstract operation performs the following steps :
-        //1. Assert : Type(O) is Object.
-        //2. Assert : IsPropertyKey(P) is true.
-        //3. Let func be the result of calling the[[Get]] internal method of O passing P and O as the arguments.
-        //4. ReturnIfAbrupt(func).
-        //5. If func is undefined, then return undefined.
-        //6. If IsCallable(func) is false, then throw a TypeError exception.
-        //7. Return func.
+        //7.3.9 GetMethod(V, P)
+        //  The abstract operation GetMethod is used to get the value of a specific property of an ECMAScript language value when the value of the
+        //  property is expected to be a function. The operation is called with arguments V and P where V is the ECMAScript language value, P is the
+        //  property key. This abstract operation performs the following steps:
+        //  1. Assert: IsPropertyKey(P) is true.
+        //  2. Let func be ? GetV(V, P).
+        //  3. If func is either undefined or null, return undefined.
+        //  4. If IsCallable(func) is false, throw a TypeError exception.
+        //  5. Return func.
         BOOL result = JavascriptOperators::GetPropertyReference(handler, methodId, &varMethod, requestContext);
-        if (!result || JavascriptOperators::GetTypeId(varMethod) == TypeIds_Undefined)
+        if (!result || JavascriptOperators::IsUndefinedOrNull(varMethod))
         {
             return nullptr;
         }
@@ -1926,12 +1927,12 @@ namespace Js
 
         if (nullptr == callMethod)
         {
-            // newCount is ushort.
+            // newCount is ushort. If args count is greater than or equal to 65535, an integer
+            // too many arguments
             if (args.Info.Count >= USHORT_MAX) //check against CallInfo::kMaxCountArgs if newCount is ever made int
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgListTooLarge);
             }
-            ushort newCount = (ushort)(args.Info.Count + 1);
 
             // in [[construct]] case, we don't need to check if the function is a constructor: the function should throw there.
             Var newThisObject = nullptr;
@@ -1945,6 +1946,7 @@ namespace Js
                 args.Values[0] = newThisObject;
             }
 
+            ushort newCount = (ushort)(args.Info.Count + 1);
             Var* newValues;
             const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
             Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];

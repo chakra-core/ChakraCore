@@ -565,15 +565,22 @@ namespace Js
 
 
             CompileAssert(_countof(descriptors) == size);
-            SetSlotUnchecked(instance, index, nullptr);
-
-            NullTypeHandlerBase* nullTypeHandler = ((this->GetFlags() & IsPrototypeFlag) != 0) ?
-                (NullTypeHandlerBase*)NullTypeHandler<true>::GetDefaultInstance() : (NullTypeHandlerBase*)NullTypeHandler<false>::GetDefaultInstance();
-            if (instance->HasReadOnlyPropertiesInvisibleToTypeHandler())
+            if (size > 1)
             {
-                nullTypeHandler->ClearHasOnlyWritableDataProperties();
+                SetAttribute(instance, index, PropertyDeleted);
             }
-            SetInstanceTypeHandler(instance, nullTypeHandler, false);
+            else
+            {
+                SetSlotUnchecked(instance, index, nullptr);
+
+                NullTypeHandlerBase* nullTypeHandler = ((this->GetFlags() & IsPrototypeFlag) != 0) ?
+                    (NullTypeHandlerBase*)NullTypeHandler<true>::GetDefaultInstance() : (NullTypeHandlerBase*)NullTypeHandler<false>::GetDefaultInstance();
+                if (instance->HasReadOnlyPropertiesInvisibleToTypeHandler())
+                {
+                    nullTypeHandler->ClearHasOnlyWritableDataProperties();
+                }
+                SetInstanceTypeHandler(instance, nullTypeHandler, false);
+            }
 
             return true;
         }

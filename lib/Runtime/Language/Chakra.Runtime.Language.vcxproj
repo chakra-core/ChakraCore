@@ -167,8 +167,8 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
-    <ClCompile Include="ModuleNamespace.cpp" />
-    <ClCompile Include="SourceTextModuleRecord.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespace.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="amd64\StackFrame.h">

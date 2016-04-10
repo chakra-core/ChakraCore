@@ -13,6 +13,8 @@ var tests = [
         body: function () {
             assert.isTrue(Promise !== undefined, "Promise named global exists");
             assert.areEqual('function', typeof Promise, "Type of Promise global is 'function'");
+            assert.areEqual("[object Promise]", Object.prototype.toString.call(new Promise(() => {})),
+                                                "toString of Promise is '[object Promise]'");
 
             var descriptor = Object.getOwnPropertyDescriptor(Promise, 'prototype');
             assert.isFalse(descriptor.writable, "Promise.length.writable === false");

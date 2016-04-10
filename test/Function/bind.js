@@ -187,6 +187,10 @@ function testProto()
     var f2 = new f();
 
     Verify("Proto Test", add.prototype.isPrototypeOf(f2), true);
+
+    // Test toString inline cache behavior when a bound function has a non-typical prototype
+    var a = decodeURIComponent.bind().toString;
+    Verify("Proto toString Test", Function.prototype.bind(), '[object Function]');
 }
 
 function testConstruction1()

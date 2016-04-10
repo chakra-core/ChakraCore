@@ -1000,7 +1000,7 @@ namespace Js
         // being created, except when call true a host dispatch.
         const CallInfo &callInfo = args.Info;
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert( isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
 
@@ -8976,9 +8976,6 @@ Case0:
         }
         else
         {
-            // Source was not an array or TypedArray, return object is definitely a JavascriptArray
-            Assert(newArr);
-
             for (uint32 k = 0; k < length; k++)
             {
                 if (!JavascriptOperators::HasItem(obj, k))
@@ -8993,7 +8990,14 @@ Case0:
                     JavascriptNumber::ToVar(k, scriptContext),
                     obj);
 
-                newArr->DirectSetItemAt(k, mappedValue);
+                if (newArr)
+                {
+                    newArr->DirectSetItemAt(k, mappedValue);
+                }
+                else
+                {
+                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                }
             }
         }
 
@@ -9655,7 +9659,9 @@ Case0:
         RecyclableObject* newObj = nullptr;
         JavascriptArray* newArr = nullptr;
 
-        if (JavascriptOperators::IsIterable(items, scriptContext))
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext, true /* optional */);
+
+        if (iterator != nullptr)
         {
             if (constructor)
             {
@@ -9675,7 +9681,6 @@ Case0:
                 newObj = newArr;
             }
 
-            RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext);
             Var nextValue;
             uint32 k = 0;
 
@@ -11796,6 +11801,9 @@ Case0:
 
     BOOL JavascriptNativeIntArray::HasItem(uint32 index)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         int32 value;
         return this->DirectGetItemAt<int32>(index, &value);
     }

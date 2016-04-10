@@ -32,12 +32,13 @@ function asmModule(stdlib, imports) {
     //var i4shiftLeftByScalar = i4.shiftLeftByScalar;
     //var i4shiftRightByScalar = i4.shiftRightByScalar;
     //var i4shiftRightArithmeticByScalar = i4.shiftRightArithmeticByScalar;
-
+    
     var f4 = stdlib.SIMD.Float32x4;  
     var f4check = f4.check;
     var f4splat = f4.splat;
     
     var f4fromInt32x4 = f4.fromInt32x4;
+    var f4fromUint32x4 = f4.fromUint32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     
     var f4fromInt16x8Bits = f4.fromInt16x8Bits;
@@ -91,9 +92,11 @@ function asmModule(stdlib, imports) {
 
     var globImportF4 = f4check(imports.g1);       // global var import
     var globImportI4 = i4check(imports.g2);       // global var import
+    var globImportU4 = u4check(imports.g3);
     
     var g1 = f4(5033.2,3401.0,665.34,32234.1);          // global var initialized
-    var g2 = i4(1065353216, 1073741824,1077936128, 1082130432);          // global var initialized
+    var g2 = i4(1065353216, 1073741824,1077936128, 1082130432); 
+    var g3 = u4(3216, -1, 0, -1082130432); 
     
     var g4 = i8(106516, 1073741824,1077936128, 108213032, -1065353216, -1073741824,-1077936128, -1082130432);
     var g5 = u4(106553216, 10737824,77936128, 108132);
@@ -321,6 +324,52 @@ function asmModule(stdlib, imports) {
         return f4check(y);
     }
     
+    function conv15()
+    {
+        var x = f4(0.0,0.0,0.0,0.0);
+        var y = u4(1034, -22342,1233, -1);
+
+        var loopIndex = 0;
+        while ( (loopIndex|0) < (loopCOUNT|0)) {
+
+            x = f4fromUint32x4(y)
+
+            loopIndex = (loopIndex + 1) | 0;
+        }
+
+        return f4check(x);
+    }
+    
+    function conv16()
+    {
+        var x = f4(0.0,0.0,0.0,0.0);
+        var loopIndex = 0;
+        for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0)
+        {
+
+            x = f4fromUint32x4(globImportU4);
+
+        }
+
+        return f4check(x);
+    }
+
+    function conv17()
+    {
+        var x = f4(0.0,0.0,0.0,0.0);
+        var loopIndex = 0;
+        loopIndex = loopCOUNT | 0;
+        do {
+
+            x = f4fromUint32x4(g3);
+
+            loopIndex = (loopIndex - 1) | 0;
+        }
+        while ( (loopIndex | 0) > 0);
+
+        return f4check(x);
+    }
+    
     // TODO: Test conversion of returned value
     function value()
     {
@@ -339,10 +388,10 @@ function asmModule(stdlib, imports) {
         return +ret;
     }
     
-    return {/*func1:conv1, func2:conv2, func3:conv3, func4:conv4, func5:conv5, func6:conv6,*/ func7:conv7, func8:conv8, func9:conv9, func10:conv10, func11:conv11, func12:conv12, func13: conv13, func14:conv14};
+    return {/*func1:conv1, func2:conv2, func3:conv3, func4:conv4, func5:conv5, func6:conv6,*/ func7:conv7, func8:conv8, func9:conv9, func10:conv10, func11:conv11, func12:conv12, func13: conv13, func14:conv14, func15:conv15, func16:conv16, func17:conv17};
 }
 
-var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
+var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Uint32x4(-1065353216, 1073741824, 0, -1082)});
 
 var c;
 /*
@@ -386,5 +435,14 @@ c = m.func13();
 equalSimd([-2.9831537062818825e-7, 3.91155481338501e-8, -5.048728450860812e-29, 1.4110812091639615e-38], c, SIMD.Float32x4, "func13");
 
 c = m.func14();
-equalSimd([-2.9831537062818825e-7, 1.5117207833136126e-38, 7.105444298259947e-15, 1.4110812091639615e-38], c, SIMD.Float32x4, "func13");
+equalSimd([-2.9831537062818825e-7, 1.5117207833136126e-38, 7.105444298259947e-15, 1.4110812091639615e-38], c, SIMD.Float32x4, "func14");
+
+c = m.func15();
+equalSimd([1034, 4294945024, 1233, 4294967296], c, SIMD.Float32x4, "func15");
+
+c = m.func16();
+equalSimd([3229614080, 1073741824, 0, 4294966272], c, SIMD.Float32x4, "func16");
+
+c = m.func17();
+equalSimd([3216, 4294967296, 0, 3212836864], c, SIMD.Float32x4, "func17");
 WScript.Echo("PASS");

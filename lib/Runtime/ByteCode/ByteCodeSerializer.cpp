@@ -125,7 +125,7 @@ struct SerializedFieldList {
 #include "SerializableFunctionFields.h"
     bool has_m_lineNumber: 1;
     bool has_m_columnNumber: 1;
-	bool has_m_nestedCount: 1;
+    bool has_m_nestedCount: 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -207,7 +207,8 @@ enum FunctionFlags
     ffHasReferenceableBuiltInArguments = 0x10000,
     ffIsNamedFunctionExpression        = 0x20000,
     ffIsAsmJsMode                      = 0x40000,
-    ffIsAsmJsFunction                  = 0x80000
+    ffIsAsmJsFunction                  = 0x80000,
+    ffIsAnonymous                      = 0x100000
 };
 
 // Kinds of constant
@@ -2120,7 +2121,11 @@ public:
             Assert(0); // Likely a bug
             return ByteCodeSerializer::CantGenerate;
         }
-        PrependString16(builder, _u("Display Name"), function->m_displayName, (function->m_displayNameLength +1)* sizeof(char16));
+
+        bool isAnonymous = function->GetIsAnonymousFunction();
+        const char16* displayName = isAnonymous ? nullptr : function->GetDisplayName();
+        uint displayNameLength = isAnonymous ? 0 : function->m_displayNameLength;
+        PrependString16(builder, _u("Display Name"), displayName, (displayNameLength + 1)* sizeof(char16));
 
         if (function->m_lineNumber != 0)
         {
@@ -2154,6 +2159,7 @@ public:
             | (function->m_CallsEval ? ffhasSetCallsEval : 0)
             | (function->m_ChildCallsEval ? ffChildCallsEval : 0)
             | (function->m_hasReferenceableBuiltInArguments ? ffHasReferenceableBuiltInArguments : 0)
+            | (isAnonymous ? ffIsAnonymous : 0)
 #ifndef TEMP_DISABLE_ASMJS
             | (function->m_isAsmjsMode ? ffIsAsmJsMode : 0)
             | (function->m_isAsmJsFunction ? ffIsAsmJsFunction : 0)
@@ -3067,7 +3073,7 @@ public:
         Assert(constant == magicStartOfPropertyIdsForScopeSlotArray);
 #endif
 
-        function->SetPropertyIdsForScopeSlotArray(RecyclerNewArrayLeaf(scriptContext->GetRecycler(), Js::PropertyId, function->scopeSlotArraySize), function->scopeSlotArraySize);
+        function->SetPropertyIdsForScopeSlotArray(RecyclerNewArrayLeaf(scriptContext->GetRecycler(), Js::PropertyId, function->scopeSlotArraySize), function->scopeSlotArraySize, function->paramScopeSlotArraySize);
 
         for (uint i = 0; i < function->scopeSlotArraySize; i++)
         {
@@ -3591,11 +3597,13 @@ public:
 
         serialization_alignment SerializedFieldList* definedFields = (serialization_alignment SerializedFieldList*) functionBytes;
 
-        auto displayName = deferDeserializeFunctionInfo != nullptr ?
-            deferDeserializeFunctionInfo->GetDisplayName() :
+        auto displayName = (bitflags & ffIsAnonymous) ? Constants::AnonymousFunction :
+            deferDeserializeFunctionInfo != nullptr ? deferDeserializeFunctionInfo->GetDisplayName() :
             GetString16ById(displayNameId);
 
-        uint displayNameLength = deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetDisplayNameLength() : GetString16LengthById(displayNameId);
+        uint displayNameLength = (bitflags & ffIsAnonymous) ? Constants::AnonymousFunctionLength :
+            deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetDisplayNameLength() : 
+            GetString16LengthById(displayNameId);
         uint displayShortNameOffset = deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetShortDisplayNameOffset() : 0;
         int functionId;
         current = ReadInt32(current, &functionId);
@@ -3746,6 +3754,10 @@ public:
             (*functionBody)->m_isAsmjsMode = (bitflags & ffIsAsmJsMode) ? true : false;
 #endif
 
+            if ((*functionBody)->paramScopeSlotArraySize > 0)
+            {
+                (*functionBody)->SetParamAndBodyScopeNotMerged();
+            }
             byte loopHeaderExists;
             current = ReadByte(current, &loopHeaderExists);
             if (loopHeaderExists)

@@ -40,7 +40,8 @@ enum MethodType : uint16
 {
     MethodType_Interpreted = 0x1,
     MethodType_Jit = 0x2,
-    MethodType_LoopBody = 0x3
+    MethodType_LoopBody = 0x3,
+    MethodType_HostMethod = 0x4,
 };
 
 #ifdef TEST_ETW_EVENTS

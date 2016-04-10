@@ -21175,7 +21175,10 @@ Lowerer::LowerSpreadCall(IR::Instr *instr, Js::CallFlags callFlags, bool setupPr
     instr->ReplaceSrc2(spreadIndicesInstr->UnlinkSrc2());
 
     // Emit the normal args
-    callFlags = (Js::CallFlags)(callFlags | (instr->GetDst() ? Js::CallFlags_Value : Js::CallFlags_NotUsed));
+    if (!(callFlags & Js::CallFlags_New))
+    {
+        callFlags = (Js::CallFlags)(callFlags | (instr->GetDst() ? Js::CallFlags_Value : Js::CallFlags_NotUsed));
+    }
 
     // Profiled helper call requires three more parameters, ArrayProfileId, profileId, and the frame pointer.
     // This is just following the convention of HelperProfiledNewScObjArray call.

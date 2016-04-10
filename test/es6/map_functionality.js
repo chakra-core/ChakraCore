@@ -804,6 +804,21 @@ var tests = [
             });
         }
     },
+
+    {
+        name: "Keys that are int versus double should compare and hash equal (github #390)",
+        body: function() {
+            var map = new Map();
+
+            map.set(1, "test");
+            assert.areEqual("test", map.get(1), "sanity check, map has key-value pair { 1, 'test' }");
+
+            var key = 1.1;
+            key -= 0.1; // key is now 1.0, a double, rather than an int
+
+            assert.areEqual("test", map.get(key), "1.0 should be equal to the key 1 and map to 'test'");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

@@ -20,16 +20,17 @@ namespace Js
 
         SourceTextModuleRecord(ScriptContext* scriptContext);
         IdentPtrList* GetRequestedModuleList() const { return requestedModuleList; }
-        ModuleImportEntryList* GetImportEntryList() const { return importRecordList; }
-        ModuleExportEntryList* GetLocalExportEntryList() const { return localExportRecordList; }
-        ModuleExportEntryList* GetIndirectExportEntryList() const { return indirectExportRecordList; }
-        ModuleExportEntryList* GetStarExportRecordList() const { return starExportRecordList; }
+        ModuleImportOrExportEntryList* GetImportEntryList() const { return importRecordList; }
+        ModuleImportOrExportEntryList* GetLocalExportEntryList() const { return localExportRecordList; }
+        ModuleImportOrExportEntryList* GetIndirectExportEntryList() const { return indirectExportRecordList; }
+        ModuleImportOrExportEntryList* GetStarExportRecordList() const { return starExportRecordList; }
         virtual ExportedNames* GetExportedNames(ExportModuleRecordList* exportStarSet) override;
         virtual bool IsSourceTextModuleRecord() override { return true; } // we don't really have other kind of modulerecord at this time.
 
         // return false when "ambiguous". 
         // otherwise nullptr means "null" where we have circular reference/cannot resolve.
         bool ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ExportModuleRecordList* exportStarSet, ModuleNameRecord** exportRecord) override;
+        bool ResolveImport(PropertyId localName, ModuleNameRecord** importRecord);
         void ModuleDeclarationInstantiation() override;
         Var ModuleEvaluation() override;
 
@@ -37,7 +38,7 @@ namespace Js
         void Dispose(bool isShutdown) override { return; }
         void Mark(Recycler * recycler) override { return; }
 
-        void ResolveExternalModuleDependencies();
+        HRESULT ResolveExternalModuleDependencies();
 
         void* GetHostDefined() const { return hostDefined; }
         void SetHostDefined(void* hostObj) { hostDefined = hostObj; }
@@ -48,14 +49,14 @@ namespace Js
         void SetWasDeclarationInitialized() { wasDeclarationInitialized = true; }
         void SetIsRootModule() { isRootModule = true; }
 
-        void SetImportRecordList(ModuleImportEntryList* importList) { importRecordList = importList; }
-        void SetLocalExportRecordList(ModuleExportEntryList* localExports) { localExportRecordList = localExports; }
-        void SetIndirectExportRecordList(ModuleExportEntryList* indirectExports) { indirectExportRecordList = indirectExports; }
-        void SetStarExportRecordList(ModuleExportEntryList* starExports) { starExportRecordList = starExports; }
+        void SetImportRecordList(ModuleImportOrExportEntryList* importList) { importRecordList = importList; }
+        void SetLocalExportRecordList(ModuleImportOrExportEntryList* localExports) { localExportRecordList = localExports; }
+        void SetIndirectExportRecordList(ModuleImportOrExportEntryList* indirectExports) { indirectExportRecordList = indirectExports; }
+        void SetStarExportRecordList(ModuleImportOrExportEntryList* starExports) { starExportRecordList = starExports; }
         void SetrequestedModuleList(IdentPtrList* requestModules) { requestedModuleList = requestModules; }
 
         ScriptContext* GetScriptContext() const { return scriptContext; }
-        HRESULT ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, Var* exceptionVar, bool isUtf8);
+        HRESULT ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8);
         HRESULT OnHostException(void* errorVar);
 
         static SourceTextModuleRecord* FromHost(void* hostModuleRecord)
@@ -77,6 +78,8 @@ namespace Js
         void AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, unsigned long specifierLength);
 #endif
 
+        Utf8SourceInfo* GetSourceInfo() { return this->pSourceInfo; }
+
     private:
         const static uint InvalidModuleIndex = 0xffffffff;
         const static uint InvalidSlotCount = 0xffffffff;
@@ -87,16 +90,15 @@ namespace Js
         bool wasDeclarationInitialized;
         bool isRootModule;
         ParseNodePtr parseTree;
-        SRCINFO srcInfo; 
         Utf8SourceInfo* pSourceInfo;
         uint sourceIndex;
         Parser* parser;  // we'll need to keep the parser around till we are done with bytecode gen.
         ScriptContext* scriptContext;
         IdentPtrList* requestedModuleList;
-        ModuleImportEntryList* importRecordList;
-        ModuleExportEntryList* localExportRecordList;
-        ModuleExportEntryList* indirectExportRecordList;
-        ModuleExportEntryList* starExportRecordList;
+        ModuleImportOrExportEntryList* importRecordList;
+        ModuleImportOrExportEntryList* localExportRecordList;
+        ModuleImportOrExportEntryList* indirectExportRecordList;
+        ModuleImportOrExportEntryList* starExportRecordList;
         ChildModuleRecordSet* childrenModuleSet;
         ModuleRecordList* parentModuleList;
         LocalExportMap* localExportMapByExportName;  // from propertyId to index map: for bytecode gen.
@@ -123,6 +125,7 @@ namespace Js
         HRESULT OnChildModuleReady(SourceTextModuleRecord* childModule, Var errorObj);
         void NotifyParentsAsNeeded();
         void CleanupBeforeExecution();
+        void InitializeLocalImports();
         void InitializeLocalExports();
         void InitializeIndirectExports();
         PropertyId EnsurePropertyIdForIdentifier(IdentPtr pid);

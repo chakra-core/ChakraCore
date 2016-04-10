@@ -1626,7 +1626,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 
         if (hasFormalArgs)
         {
-            for (uint32 index = functionBody->GetFirstNonTempLocalIndex(); index < functionBody->GetEndNonTempLocalIndex(); index++)
+            Assert(functionBody->GetInParamsCount() > 0);
+            uint32 endIndex = min(functionBody->GetFirstNonTempLocalIndex() + functionBody->GetInParamsCount() - 1, functionBody->GetEndNonTempLocalIndex());
+            for (uint32 index = functionBody->GetFirstNonTempLocalIndex(); index < endIndex; index++)
             {
                 StackSym * stackSym = this->func->m_symTable->FindStackSym(index);
                 if (stackSym != nullptr)
