@@ -230,21 +230,18 @@
   <test>
     <default>
       <files>testShift.js</files>
-      <baseline>testShift.baseline</baseline>
       <compile-flags>-Simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testShift.js</files>
-      <baseline>testShift.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testShift.js</files>
-      <baseline>testShift.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
