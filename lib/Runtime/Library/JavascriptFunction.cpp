@@ -599,14 +599,12 @@ namespace Js
     }
     Var JavascriptFunction::CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript)
     {
-
-#ifdef _M_X64
         Var ret = nullptr;
 
 #ifdef FAULT_INJECTION
         if (Js::Configuration::Global.flags.FaultInjection >= 0)
         {
-            Js::FaultInjection::pfnHandleAV = JavascriptFunction::ResumeForOutOfBoundsArrayRefs;
+            Js::FaultInjection::pfnHandleAV = JavascriptFunction::CallRootEventFilter;
             __try
             {
                 ret = CallRootFunctionInternal(args, scriptContext, inScript);
@@ -621,21 +619,32 @@ namespace Js
         }
 #endif
 
+        ulong exceptionCode = 0;
+        EXCEPTION_POINTERS exceptionInfo = EXCEPTION_POINTERS();
         __try
         {
-            ret = CallRootFunctionInternal(args, scriptContext, inScript);
+            __try
+            {
+                ret = CallRootFunctionInternal(args, scriptContext, inScript);
+            }
+            __except (exceptionInfo = *GetExceptionInformation(), exceptionCode = GetExceptionCode(), CallRootEventFilter(exceptionCode, GetExceptionInformation()))
+            {
+                Assert(UNREACHED);
+            }
         }
-        __except (ResumeForOutOfBoundsArrayRefs(GetExceptionCode(), GetExceptionInformation()))
+        __finally
         {
-            // should never reach here
-            Assert(false);
+            if (exceptionCode != 0 && !IsDebuggerPresent())
+            {
+                exceptionInfo;
+
+                // ensure that hosts are not doing SEH across Chakra frames, as that can lead to bad state (e.g. destructors not being called)
+                RaiseFailFastException(NULL, NULL, NULL);
+            }
         }
         //ret should never be null here
         Assert(ret);
         return ret;
-#else
-        return CallRootFunctionInternal(args, scriptContext, inScript);
-#endif
     }
     Var JavascriptFunction::CallRootFunctionInternal(Arguments args, ScriptContext * scriptContext, bool inScript)
     {
@@ -1628,7 +1637,7 @@ LABEL1:
     9)  Return EXCEPTION_CONTINUE_EXECUTION
 
     */
-#ifdef _M_X64
+#if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
     ArrayAccessDecoder::InstructionData ArrayAccessDecoder::CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo, FunctionBody* funcBody) // get the reg operand and isLoad and
     {
         InstructionData instrData;
@@ -1957,12 +1966,11 @@ LABEL1:
         return instrData;
     }
 
-    int JavascriptFunction::ResumeForOutOfBoundsArrayRefs(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo)
+    bool JavascriptFunction::ResumeForOutOfBoundsArrayRefs(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo)
     {
-#if ENABLE_NATIVE_CODEGEN
         if (exceptionCode != STATUS_ACCESS_VIOLATION)
         {
-            return EXCEPTION_CONTINUE_SEARCH;
+            return false;
         }
 
         ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
@@ -1970,19 +1978,19 @@ LABEL1:
         // AV should come from JITed code, since we don't eliminate bound checks in interpreter
         if (!threadContext->IsNativeAddress((Var)exceptionInfo->ContextRecord->Rip))
         {
-            return EXCEPTION_CONTINUE_SEARCH;
+            return false;
         }
 
         Var* addressOfFuncObj = (Var*)(exceptionInfo->ContextRecord->Rbp + 2 * sizeof(Var));
         if (!addressOfFuncObj)
         {
-            return EXCEPTION_CONTINUE_SEARCH;
+            return false;
         }
 
         Js::ScriptFunction* func = (ScriptFunction::Is(*addressOfFuncObj))?(Js::ScriptFunction*)(*addressOfFuncObj):nullptr;
         if (!func)
         {
-            return EXCEPTION_CONTINUE_SEARCH;
+            return false;
         }
 
         RecyclerHeapObjectInfo heapObject;
@@ -1995,7 +2003,7 @@ LABEL1:
         // ensure that all our objects are heap allocated
         if (!(isFuncObjHeapAllocated && isEntryPointHeapAllocated && isFunctionBodyHeapAllocated))
         {
-            return EXCEPTION_CONTINUE_SEARCH;
+            return false;
         }
         bool isAsmJs = func->GetFunctionBody()->GetIsAsmJsFunction();
         Js::FunctionBody* funcBody = func->GetFunctionBody();
@@ -2007,13 +2015,13 @@ LABEL1:
             uintptr_t moduleMemory = entryPointInfo->GetModuleAddress();
             if (!moduleMemory)
             {
-                return EXCEPTION_CONTINUE_SEARCH;
+                return false;
             }
             ArrayBuffer* arrayBuffer = *(ArrayBuffer**)(moduleMemory + AsmJsModuleMemory::MemoryTableBeginOffset);
             if (!arrayBuffer || !arrayBuffer->GetBuffer())
             {
                 // don't have a heap buffer for asm.js... so this shouldn't be an asm.js heap access
-                return EXCEPTION_CONTINUE_SEARCH;
+                return false;
             }
             buffer = arrayBuffer->GetBuffer();
 
@@ -2021,7 +2029,7 @@ LABEL1:
 
             if (!arrayBuffer->IsValidAsmJsBufferLength(bufferLength))
             {
-                return EXCEPTION_CONTINUE_SEARCH;
+                return false;
             }
         }
 
@@ -2030,25 +2038,25 @@ LABEL1:
         // Check If the instruction is valid
         if (instrData.isInvalidInstr)
         {
-            return EXCEPTION_CONTINUE_SEARCH;
+            return false;
         }
 
         // If we didn't find the array buffer, ignore
         if (!instrData.bufferValue)
         {
-            return EXCEPTION_CONTINUE_SEARCH;
+            return false;
         }
 
         // If asm.js, make sure the base address is that of the heap buffer
         if (isAsmJs && (instrData.bufferValue != (uint64)buffer))
         {
-            return EXCEPTION_CONTINUE_SEARCH;
+            return false;
         }
 
         // SIMD loads/stores do bounds checks.
         if (instrData.isSimd)
         {
-            return EXCEPTION_CONTINUE_SEARCH;
+            return false;
         }
 
         // Set the dst reg if the instr type is load
@@ -2083,12 +2091,21 @@ LABEL1:
         // Add the bytes read to Rip and set it as new Rip
         exceptionInfo->ContextRecord->Rip = exceptionInfo->ContextRecord->Rip + instrData.instrSizeInByte;
 
-        return EXCEPTION_CONTINUE_EXECUTION;
-#else
-        return EXCEPTION_CONTINUE_SEARCH;
-#endif
+        return true;
     }
 #endif
+
+    int JavascriptFunction::CallRootEventFilter(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo)
+    {
+#if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
+        if (ResumeForOutOfBoundsArrayRefs(exceptionCode, exceptionInfo))
+        {
+            return EXCEPTION_CONTINUE_EXECUTION;
+        }
+#endif
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
 #if DBG
     void JavascriptFunction::VerifyEntryPoint()
     {
