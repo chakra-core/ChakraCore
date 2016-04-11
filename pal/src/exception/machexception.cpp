@@ -521,15 +521,16 @@ BOOL SEHDisableMachExceptions()
 
 #endif // FEATURE_PAL_SXS
 
-#if !DISABLE_EXCEPTIONS
 #if !defined(_AMD64_)
-void PAL_DispatchException(PCONTEXT pContext, PEXCEPTION_RECORD pExRecord)
+extern "C"
+void PAL_DispatchException(PCONTEXT pContext, PEXCEPTION_RECORD pExRecord, MachExceptionInfo *pMachExceptionInfo)
 #else // defined(_AMD64_)
 
-// Since catch_exception_raise pushed the context and exception record on the stack, we need to adjust the signature
-// of PAL_DispatchException such that the corresponding arguments are considered to be on the stack per GCC64 calling
-// convention rules. Hence, the first 6 dummy arguments (corresponding to RDI, RSI, RDX,RCX, R8, R9).
-void PAL_DispatchException(DWORD64 dwRDI, DWORD64 dwRSI, DWORD64 dwRDX, DWORD64 dwRCX, DWORD64 dwR8, DWORD64 dwR9, PCONTEXT pContext, PEXCEPTION_RECORD pExRecord)
+// Since HijackFaultingThread pushed the context, exception record and info on the stack, we need to adjust the 
+// signature of PAL_DispatchException such that the corresponding arguments are considered to be on the stack 
+// per GCC64 calling convention rules. Hence, the first 6 dummy arguments (corresponding to RDI, RSI, RDX,RCX, R8, R9).
+extern "C"
+void PAL_DispatchException(DWORD64 dwRDI, DWORD64 dwRSI, DWORD64 dwRDX, DWORD64 dwRCX, DWORD64 dwR8, DWORD64 dwR9, PCONTEXT pContext, PEXCEPTION_RECORD pExRecord, MachExceptionInfo *pMachExceptionInfo)
 #endif // !defined(_AMD64_)
 {
     CPalThread *pThread = InternalGetCurrentThread();
@@ -557,6 +558,7 @@ extern "C" void PAL_DispatchExceptionWrapper();
 extern "C" int PAL_DispatchExceptionReturnOffset;
 #endif // _X86_ || _AMD64_
 
+#if !DISABLE_EXCEPTIONS
 /*++
 Function :
     exception_from_trap_code

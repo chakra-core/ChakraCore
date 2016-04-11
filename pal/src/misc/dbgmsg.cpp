@@ -834,7 +834,7 @@ bool DBG_ShouldCheckStackAlignment()
 #include "CoreFoundation/CFString.h"
 #include "Security/AuthSession.h"
 
-static const char * PAL_DISPLAY_DIALOG PAL_GLOBAL = "PAL_DisplayDialog";
+#define PAL_DISPLAY_DIALOG "PAL_DisplayDialog"
 enum DisplayDialogMode
 {
     DisplayDialog_Uninitialized = -1,

@@ -11,6 +11,7 @@
 // TODO: Abstract out into it's own file
 #include "pal.h"
 #include "inc/rt/palrt.h"
+#include <stdint.h>
 #endif
 
 

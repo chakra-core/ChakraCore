@@ -55,6 +55,21 @@ typedef	mach_exception_data_type_t	mach_exception_subcode_t;
 
 struct MachExceptionHandler;
 
+class MachMessage;
+
+// Contains all the exception and thread state information needed to forward the exception.
+struct MachExceptionInfo
+{
+    exception_type_t ExceptionType;
+    mach_msg_type_number_t SubcodeCount;
+    MACH_EH_TYPE(exception_data_type_t) Subcodes[2];
+    x86_thread_state_t ThreadState;
+    x86_float_state_t FloatState;
+    x86_debug_state_t DebugState;
+
+    MachExceptionInfo(mach_port_t thread, MachMessage& message);
+    void RestoreState(mach_port_t thread);
+};
 // Abstraction of a subset of Mach message types. Provides accessors that hide the subtle differences in the
 // message layout of similar message types.
 class MachMessage
