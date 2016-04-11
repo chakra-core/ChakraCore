@@ -1229,35 +1229,42 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
     Assert(src1->IsRegOpnd() && src1->IsSimd128());
     Assert(src2->IsInt32());
 
-    IR::Opnd *shamt = EnregisterIntConst(instr, src2);
     Js::OpCode opcode = Js::OpCode::PSLLD;
+    int elementSizeInBytes = 0;
 
     switch (instr->m_opcode)
     {
     case Js::OpCode::Simd128_ShLtByScalar_I4:
     case Js::OpCode::Simd128_ShLtByScalar_U4:    // same as int32x4.ShiftLeftScalar
         opcode = Js::OpCode::PSLLD;
+        elementSizeInBytes = 4;
         break;
     case Js::OpCode::Simd128_ShRtByScalar_I4:
         opcode = Js::OpCode::PSRAD;
+        elementSizeInBytes = 4;
         break;
     case Js::OpCode::Simd128_ShLtByScalar_I8:
     case Js::OpCode::Simd128_ShLtByScalar_U8:    // same as int16x8.ShiftLeftScalar
         opcode = Js::OpCode::PSLLW;
+        elementSizeInBytes = 2;
         break;
     case Js::OpCode::Simd128_ShRtByScalar_I8:
         opcode = Js::OpCode::PSRAW;
+        elementSizeInBytes = 2;
         break;
     case Js::OpCode::Simd128_ShRtByScalar_U4:
         opcode = Js::OpCode::PSRLD;
+        elementSizeInBytes = 4;
         break;
     case Js::OpCode::Simd128_ShRtByScalar_U8:
         opcode = Js::OpCode::PSRLW;
+        elementSizeInBytes = 2;
         break;
     case Js::OpCode::Simd128_ShLtByScalar_I16:   // composite, int8x16.ShiftLeftScalar
     case Js::OpCode::Simd128_ShRtByScalar_I16:   // composite, int8x16.ShiftRightScalar
     case Js::OpCode::Simd128_ShLtByScalar_U16:   // same as int8x16.ShiftLeftScalar
     case Js::OpCode::Simd128_ShRtByScalar_U16:   // composite, uint8x16.ShiftRightScalar
+        elementSizeInBytes = 1;
         break;
     default:
         Assert(UNREACHED);
@@ -1270,9 +1277,19 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
     IR::RegOpnd *tmp1 = IR::RegOpnd::New(src1->GetType(), m_func);
     IR::RegOpnd *tmp2 = IR::RegOpnd::New(src1->GetType(), m_func);
 
-    // MOVD   tmp0, shamt
+    //Shift amount: The shift amout is masked by [ElementSize] * 8
+    //The masked Shift amount is moved to xmm register
+    //AND  shamt, shmask, shamt
+    //MOVD tmp0, shamt 
+
+    IR::Opnd *shamt = EnregisterIntConst(instr, src2);
+    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, IR::IntConstOpnd::New(Js::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt8, m_func), shamt, m_func);
+    instr->InsertBefore(pInstr);
+    Legalize(pInstr);
+
     pInstr = IR::Instr::New(Js::OpCode::MOVD, tmp0, shamt, m_func);
     instr->InsertBefore(pInstr);
+
 
     if (instr->m_opcode == Js::OpCode::Simd128_ShLtByScalar_I4 || instr->m_opcode == Js::OpCode::Simd128_ShRtByScalar_I4 ||
         instr->m_opcode == Js::OpCode::Simd128_ShLtByScalar_U4 || instr->m_opcode == Js::OpCode::Simd128_ShRtByScalar_U4 ||

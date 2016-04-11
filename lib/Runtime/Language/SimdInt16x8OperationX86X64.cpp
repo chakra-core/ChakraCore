@@ -239,7 +239,7 @@ namespace Js
         X86SIMDValue x86Result;
         X86SIMDValue tmpValue = X86SIMDValue::ToX86SIMDValue(value);
         // Shifts the 8 signed 16-bit integers in a left by count bits while shifting in zeros
-        x86Result.m128i_value = _mm_slli_epi16(tmpValue.m128i_value, count);
+        x86Result.m128i_value = _mm_slli_epi16(tmpValue.m128i_value, count & SIMDGetShiftAmountMask(2));
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -249,7 +249,7 @@ namespace Js
         X86SIMDValue x86Result;
         X86SIMDValue tmpValue = X86SIMDValue::ToX86SIMDValue(value);
         // Shifts the 8 signed 16-bit integers right by count bits while shifting in the sign bit
-        x86Result.m128i_value = _mm_srai_epi16(tmpValue.m128i_value, count);
+        x86Result.m128i_value = _mm_srai_epi16(tmpValue.m128i_value, count &  SIMDGetShiftAmountMask(2));
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
