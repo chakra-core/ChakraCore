@@ -120,7 +120,11 @@ namespace Js
     {
         Recycler* recycler = this->GetRecycler();
 
-        nullValue = RecyclerNew(recycler, RecyclableObject, StaticType::New(scriptContext, TypeIds_Null, nullptr, nullptr));
+        // Recycler macros below expect that their arguments will not throw when they're evaluated. 
+        // We allocate a lot of types for the built-in prototype objects which we need to store temporarily.
+        DynamicType* tempDynamicType = nullptr;
+        Type* tempType = StaticType::New(scriptContext, TypeIds_Null, nullptr, nullptr);
+        nullValue = RecyclerNew(recycler, RecyclableObject, tempType);
         nullValue->GetType()->SetHasSpecialPrototype(true);
 
         ArrayBuffer* baseArrayBuffer;
@@ -220,74 +224,74 @@ namespace Js
                 arrayBufferType = DynamicType::New(scriptContext, TypeIds_ArrayBuffer, arrayBufferPrototype, nullptr,
                     SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Int8Array, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeInt8ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Int8ArrayPrototype = RecyclerNew(recycler, Int8Array, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Int8Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt8ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Int8ArrayPrototype = RecyclerNew(recycler, Int8Array, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Uint8Array, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeUint8ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Uint8ArrayPrototype = RecyclerNew(recycler, Uint8Array, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Uint8Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint8ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Uint8ArrayPrototype = RecyclerNew(recycler, Uint8Array, baseArrayBuffer, 0, 0, tempDynamicType);
 
                 dataViewPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
                     DeferredTypeHandler<InitializeDataViewPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Uint8ClampedArray, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeUint8ClampedArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Uint8ClampedArrayPrototype = RecyclerNew(recycler, Uint8ClampedArray, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Uint8ClampedArray, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint8ClampedArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Uint8ClampedArrayPrototype = RecyclerNew(recycler, Uint8ClampedArray, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Int16Array, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeInt16ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Int16ArrayPrototype = RecyclerNew(recycler, Int16Array, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Int16Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt16ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Int16ArrayPrototype = RecyclerNew(recycler, Int16Array, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Uint16Array, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeUint16ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Uint16ArrayPrototype = RecyclerNew(recycler, Uint16Array, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Uint16Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint16ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Uint16ArrayPrototype = RecyclerNew(recycler, Uint16Array, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Int32Array, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeInt32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Int32ArrayPrototype = RecyclerNew(recycler, Int32Array, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Int32Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Int32ArrayPrototype = RecyclerNew(recycler, Int32Array, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Uint32Array, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeUint32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Uint32ArrayPrototype = RecyclerNew(recycler, Uint32Array, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Uint32Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Uint32ArrayPrototype = RecyclerNew(recycler, Uint32Array, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Float32Array, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeFloat32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Float32ArrayPrototype = RecyclerNew(recycler, Float32Array, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Float32Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeFloat32ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Float32ArrayPrototype = RecyclerNew(recycler, Float32Array, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Float64Array, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeFloat64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Float64ArrayPrototype = RecyclerNew(recycler, Float64Array, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Float64Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeFloat64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Float64ArrayPrototype = RecyclerNew(recycler, Float64Array, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Int64Array, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeInt64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Int64ArrayPrototype = RecyclerNew(recycler, Int64Array, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Int64Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeInt64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Int64ArrayPrototype = RecyclerNew(recycler, Int64Array, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_Uint64Array, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeUint64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                Uint64ArrayPrototype = RecyclerNew(recycler, Uint64Array, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_Uint64Array, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeUint64ArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                Uint64ArrayPrototype = RecyclerNew(recycler, Uint64Array, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_BoolArray, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeBoolArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                BoolArrayPrototype = RecyclerNew(recycler, BoolArray, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_BoolArray, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeBoolArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                BoolArrayPrototype = RecyclerNew(recycler, BoolArray, baseArrayBuffer, 0, 0, tempDynamicType);
 
+                tempDynamicType = DynamicType::New(scriptContext, TypeIds_CharArray, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeCharArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
                 baseArrayBuffer = JavascriptArrayBuffer::Create(0, arrayBufferType);
-                CharArrayPrototype = RecyclerNew(recycler, CharArray, baseArrayBuffer, 0, 0,
-                    DynamicType::New(scriptContext, TypeIds_CharArray, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeCharArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+                CharArrayPrototype = RecyclerNew(recycler, CharArray, baseArrayBuffer, 0, 0, tempDynamicType);
             }
         }
         else
@@ -315,54 +319,54 @@ namespace Js
             DynamicType::New(scriptContext, TypeIds_Array, objectPrototype, nullptr,
             DeferredTypeHandler<InitializeArrayPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()), recycler);
 
-        booleanPrototype = RecyclerNew(recycler, JavascriptBooleanObject, nullptr,
-            DynamicType::New(scriptContext, TypeIds_BooleanObject, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeBooleanPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        tempDynamicType = DynamicType::New(scriptContext, TypeIds_BooleanObject, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeBooleanPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+        booleanPrototype = RecyclerNew(recycler, JavascriptBooleanObject, nullptr, tempDynamicType);
 
-        numberPrototype = RecyclerNew(recycler, JavascriptNumberObject, TaggedInt::ToVarUnchecked(0),
-            DynamicType::New(scriptContext, TypeIds_NumberObject, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeNumberPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        tempDynamicType = DynamicType::New(scriptContext, TypeIds_NumberObject, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeNumberPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+        numberPrototype = RecyclerNew(recycler, JavascriptNumberObject, TaggedInt::ToVarUnchecked(0), tempDynamicType);
 
-        stringPrototype = RecyclerNew(recycler, JavascriptStringObject, nullptr,
-            DynamicType::New(scriptContext, TypeIds_StringObject, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeStringPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+        tempDynamicType = DynamicType::New(scriptContext, TypeIds_StringObject, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeStringPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+        stringPrototype = RecyclerNew(recycler, JavascriptStringObject, nullptr, tempDynamicType);
 
         /* Initialize SIMD prototypes*/
         if (GetScriptContext()->GetConfig()->IsSimdjsEnabled())
         {
-            simdBool8x16Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr,
-                DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeSIMDBool8x16Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-            simdBool16x8Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr,
-                DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeSIMDBool16x8Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-            simdBool32x4Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr,
-                DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeSIMDBool32x4Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeSIMDBool8x16Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            simdBool8x16Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeSIMDBool16x8Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            simdBool16x8Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeSIMDBool32x4Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            simdBool32x4Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
 
-            simdInt8x16Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr,
-                DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeSIMDInt8x16Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-            simdInt16x8Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr,
-                DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeSIMDInt16x8Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-            simdInt32x4Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr,
-                DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeSIMDInt32x4Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeSIMDInt8x16Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            simdInt8x16Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeSIMDInt16x8Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            simdInt16x8Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeSIMDInt32x4Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            simdInt32x4Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
 
-            simdUint8x16Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr,
-                DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeSIMDUint8x16Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-            simdUint16x8Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr,
-                DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeSIMDUint16x8Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-            simdUint32x4Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr,
-                DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeSIMDUint32x4Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeSIMDUint8x16Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            simdUint8x16Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeSIMDUint16x8Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            simdUint16x8Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeSIMDUint32x4Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            simdUint32x4Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
 
-            simdFloat32x4Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr,
-                DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
-                    DeferredTypeHandler<InitializeSIMDFloat32x4Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_SIMDObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeSIMDFloat32x4Prototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            simdFloat32x4Prototype = RecyclerNew(recycler, JavascriptSIMDObject, nullptr, tempDynamicType);
         }
 
         if (scriptContext->GetConfig()->IsES6PrototypeChain())
@@ -379,9 +383,9 @@ namespace Js
         {
             double initDateValue = JavascriptNumber::NaN;
 
-            datePrototype = RecyclerNewZ(recycler, JavascriptDate, initDateValue,
-                DynamicType::New(scriptContext, TypeIds_Date, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeDatePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Date, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeDatePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            datePrototype = RecyclerNewZ(recycler, JavascriptDate, initDateValue, tempDynamicType);
         }
 
         if (scriptContext->GetConfig()->IsES6PrototypeChain())
@@ -416,45 +420,38 @@ namespace Js
         }
         else
         {
-            errorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
-                DynamicType::New(scriptContext, TypeIds_Error, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()),
-                /*isExternalError*/FALSE, /*isPrototype*/TRUE);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            errorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
-            evalErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
-                DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeEvalErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()),
-                /*isExternalError*/FALSE, /*isPrototype*/TRUE);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
+                DeferredTypeHandler<InitializeEvalErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            evalErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
-            rangeErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
-                DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeRangeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()),
-                /*isExternalError*/FALSE, /*isPrototype*/TRUE);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
+                DeferredTypeHandler<InitializeRangeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            rangeErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
-            referenceErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
-                DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeReferenceErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()),
-                /*isExternalError*/FALSE, /*isPrototype*/TRUE);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
+                DeferredTypeHandler<InitializeReferenceErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            referenceErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
-            syntaxErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
-                DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeSyntaxErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()),
-                /*isExternalError*/FALSE, /*isPrototype*/TRUE);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
+                DeferredTypeHandler<InitializeSyntaxErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            syntaxErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
-            typeErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
-                DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeTypeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()),
-                /*isExternalError*/FALSE, /*isPrototype*/TRUE);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
+                DeferredTypeHandler<InitializeTypeErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            typeErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
 
-            uriErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError,
-                DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
-                DeferredTypeHandler<InitializeURIErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()),
-                /*isExternalError*/FALSE, /*isPrototype*/TRUE);
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_Error, errorPrototype, nullptr,
+                DeferredTypeHandler<InitializeURIErrorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            uriErrorPrototype = RecyclerNew(this->GetRecycler(), JavascriptError, tempDynamicType, /*isExternalError*/FALSE, /*isPrototype*/TRUE);
         }
 
-        functionPrototype = RecyclerNew(recycler, JavascriptFunction,
-            DynamicType::New(scriptContext, TypeIds_Function, objectPrototype, JavascriptFunction::PrototypeEntryPoint,
-            DeferredTypeHandler<InitializeFunctionPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()), &JavascriptFunction::EntryInfo::PrototypeEntryPoint);
+        tempDynamicType = DynamicType::New(scriptContext, TypeIds_Function, objectPrototype, JavascriptFunction::PrototypeEntryPoint,
+            DeferredTypeHandler<InitializeFunctionPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+        functionPrototype = RecyclerNew(recycler, JavascriptFunction, tempDynamicType, &JavascriptFunction::EntryInfo::PrototypeEntryPoint);
 
         promisePrototype = nullptr;
         javascriptEnumeratorIteratorPrototype = nullptr;
@@ -1124,10 +1121,11 @@ namespace Js
         minValue = JavascriptNumber::New(JavascriptNumber::MIN_VALUE, scriptContext);
         maxValue = JavascriptNumber::New(JavascriptNumber::MAX_VALUE, scriptContext);
         negativeZero = JavascriptNumber::New(JavascriptNumber::NEG_ZERO, scriptContext);
-        undefinedValue = RecyclerNew(recycler, RecyclableObject,
-            StaticType::New(scriptContext, TypeIds_Undefined, nullValue, nullptr));
-        missingPropertyHolder = RecyclerNewPlus(recycler, sizeof(Var), DynamicObject,
-            DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr, &MissingPropertyHolderTypeHandler));
+
+        Type* type = StaticType::New(scriptContext, TypeIds_Undefined, nullValue, nullptr);
+        undefinedValue = RecyclerNew(recycler, RecyclableObject, type);
+        DynamicType* dynamicType = DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr, &MissingPropertyHolderTypeHandler);
+        missingPropertyHolder = RecyclerNewPlus(recycler, sizeof(Var), DynamicObject, dynamicType);
         MissingPropertyTypeHandler::SetUndefinedPropertySlot(missingPropertyHolder);
 
         emptyString = CreateEmptyString(); // Must be created before other calls to CreateString
@@ -4528,9 +4526,9 @@ namespace Js
         ConstructorCache* ctorCache = ((functionInfo->GetAttributes() & FunctionInfo::Attributes::SkipDefaultNewObject) != 0) ?
             this->builtInConstructorCache : &ConstructorCache::DefaultInstance;
 
-        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, RuntimeFunction,
-            DynamicType::New(scriptContext, TypeIds_Function, prototype, functionInfo->GetOriginalEntryPoint(), typeHandler),
-            functionInfo, ctorCache);
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, prototype, functionInfo->GetOriginalEntryPoint(), typeHandler);
+
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, RuntimeFunction, type, functionInfo, ctorCache);
     }
 
     JavascriptExternalFunction* JavascriptLibrary::CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, RecyclableObject * prototype)
