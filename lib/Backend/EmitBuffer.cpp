@@ -327,6 +327,17 @@ bool EmitBufferManager<SyncObject>::CheckCommitFaultInjection()
 
 #endif
 
+#if DBG
+template <typename SyncObject>
+bool EmitBufferManager<SyncObject>::IsBufferExecuteReadOnly(EmitBufferAllocation * allocation)
+{
+    AutoRealOrFakeCriticalSection<SyncObject> autoCs(&this->criticalSection);
+    MEMORY_BASIC_INFORMATION memBasicInfo;
+    size_t resultBytes = VirtualQuery(allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
+    return resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE;
+}
+#endif
+
 template <typename SyncObject>
 bool EmitBufferManager<SyncObject>::ProtectBufferWithExecuteReadWriteForInterpreter(EmitBufferAllocation* allocation)
 {
