@@ -4399,7 +4399,7 @@ GlobOpt::CollectMemOpLdElementI(IR::Instr *instr, Loop *loop)
 bool
 GlobOpt::CollectMemOpStElementI(IR::Instr *instr, Loop *loop)
 {
-    Assert(instr->m_opcode == Js::OpCode::StElemI_A);
+    Assert(instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict);
     Assert(instr->GetSrc1());
     return (!PHASE_OFF(Js::MemSetPhase, this->func) && CollectMemsetStElementI(instr, loop)) ||
         (!PHASE_OFF(Js::MemCopyPhase, this->func) && CollectMemcopyStElementI(instr, loop));
@@ -4429,6 +4429,7 @@ GlobOpt::CollectMemOpInfo(IR::Instr *instr, Value *src1Val, Value *src2Val)
     switch (instr->m_opcode)
     {
     case Js::OpCode::StElemI_A:
+    case Js::OpCode::StElemI_A_Strict:
         if (!CollectMemOpStElementI(instr, loop))
         {
             loop->memOpInfo->doMemOp = false;
@@ -20741,10 +20742,10 @@ GlobOpt::FindArraySegmentLoadInstr(IR::Instr* fromInstr)
 void
 GlobOpt::RemoveMemOpSrcInstr(IR::Instr* memopInstr, IR::Instr* srcInstr, BasicBlock* block)
 {
-    Assert(srcInstr && (srcInstr->m_opcode == Js::OpCode::LdElemI_A || srcInstr->m_opcode == Js::OpCode::StElemI_A));
+    Assert(srcInstr && (srcInstr->m_opcode == Js::OpCode::LdElemI_A || srcInstr->m_opcode == Js::OpCode::StElemI_A || srcInstr->m_opcode == Js::OpCode::StElemI_A_Strict));
     Assert(memopInstr && (memopInstr->m_opcode == Js::OpCode::Memcopy || memopInstr->m_opcode == Js::OpCode::Memset));
     Assert(block);
-    const bool isDst = srcInstr->m_opcode == Js::OpCode::StElemI_A;
+    const bool isDst = srcInstr->m_opcode == Js::OpCode::StElemI_A || srcInstr->m_opcode == Js::OpCode::StElemI_A_Strict;
     IR::RegOpnd* opnd = (isDst ? memopInstr->GetDst() : memopInstr->GetSrc1())->AsIndirOpnd()->GetBaseOpnd();
     IR::ArrayRegOpnd* arrayOpnd = opnd->IsArrayRegOpnd() ? opnd->AsArrayRegOpnd() : nullptr;
 
@@ -20811,7 +20812,7 @@ GlobOpt::RemoveMemOpSrcInstr(IR::Instr* memopInstr, IR::Instr* srcInstr, BasicBl
 void
 GlobOpt::GetMemOpSrcInfo(Loop* loop, IR::Instr* instr, IR::RegOpnd*& base, IR::RegOpnd*& index, IRType& arrayType)
 {
-    Assert(instr && (instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::StElemI_A));
+    Assert(instr && (instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict));
     IR::Opnd* arrayOpnd = instr->m_opcode == Js::OpCode::LdElemI_A ? instr->GetSrc1() : instr->GetDst();
     Assert(arrayOpnd->IsIndirOpnd());
 
@@ -20833,7 +20834,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
     Assert(emitData);
     Assert(emitData->candidate);
     Assert(emitData->stElemInstr);
-    Assert(emitData->stElemInstr->m_opcode == Js::OpCode::StElemI_A);
+    Assert(emitData->stElemInstr->m_opcode == Js::OpCode::StElemI_A || emitData->stElemInstr->m_opcode == Js::OpCode::StElemI_A_Strict);
     IR::BailOutKind bailOutKind = emitData->bailOutKind;
 
     const byte unroll = emitData->inductionVar.unroll;
@@ -20993,7 +20994,7 @@ GlobOpt::InspectInstrForMemSetCandidate(Loop* loop, IR::Instr* instr, MemSetEmit
 {
     Assert(emitData && emitData->candidate && emitData->candidate->IsMemSet());
     Loop::MemSetCandidate* candidate = (Loop::MemSetCandidate*)emitData->candidate;
-    if (instr->m_opcode == Js::OpCode::StElemI_A)
+    if (instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict)
     {
         if (instr->GetDst()->IsIndirOpnd()
             && (GetVarSymID(instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->GetStackSym()) == candidate->base)
@@ -21021,7 +21022,7 @@ GlobOpt::InspectInstrForMemCopyCandidate(Loop* loop, IR::Instr* instr, MemCopyEm
 {
     Assert(emitData && emitData->candidate && emitData->candidate->IsMemCopy());
     Loop::MemCopyCandidate* candidate = (Loop::MemCopyCandidate*)emitData->candidate;
-    if (instr->m_opcode == Js::OpCode::StElemI_A)
+    if (instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict)
     {
         if (
             instr->GetDst()->IsIndirOpnd() &&
