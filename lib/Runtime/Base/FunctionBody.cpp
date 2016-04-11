@@ -410,6 +410,59 @@ namespace Js
     }
 
 
+    uint32 FunctionBody::GetCountField(FunctionBody::CounterFields fieldEnum) const
+    {
+        // when getting counters from bg thread, assert that it has entered background thread call
+        // this is in order to flush out those call not guarded by the 
+        Assert(ThreadContext::GetContextForCurrentThread() != nullptr || this->bgThreadRank > 0);
+        return counters.Get(fieldEnum);
+    }
+    uint32 FunctionBody::SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val)
+    {
+        return counters.Set(fieldEnum, val, this);
+    }
+    uint32 FunctionBody::IncreaseCountField(FunctionBody::CounterFields fieldEnum)
+    {
+        return counters.Increase(fieldEnum, this);
+    }
+    int32 FunctionBody::GetCountFieldSigned(FunctionBody::CounterFields fieldEnum) const
+    {
+        Assert(ThreadContext::GetContextForCurrentThread() != nullptr || this->bgThreadRank > 0);
+        return counters.GetSigned(fieldEnum);
+    }
+    int32 FunctionBody::SetCountFieldSigned(FunctionBody::CounterFields fieldEnum, int32 val)
+    {
+        return counters.SetSigned(fieldEnum, val, this);
+    }
+
+#if DBG
+    FunctionBody::AutoResetThreadState::AutoResetThreadState(Js::FunctionBody* fb)
+        :functionBody(fb), foreground(ThreadContext::GetContextForCurrentThread() != nullptr)
+    {
+        if (!foreground)
+        {
+            functionBody->EnterBackgroundCall();
+        }
+    }
+    FunctionBody::AutoResetThreadState::~AutoResetThreadState()
+    {
+        if (!foreground/* && !alreadyInBackground*/)
+        {
+            functionBody->LeaveBackgroundCall();    
+        }
+    }
+
+    void FunctionBody::EnterBackgroundCall()
+    {
+        InterlockedIncrement(&this->bgThreadRank);
+    }
+    void FunctionBody::LeaveBackgroundCall()
+    {
+        InterlockedDecrement(&this->bgThreadRank);
+    }
+#endif
+
+
     FunctionBody::FunctionBody(ScriptContext* scriptContext, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
         Utf8SourceInfo* utf8SourceInfo, uint uFunctionNumber, uint uScriptId,
         Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes
@@ -519,6 +572,7 @@ namespace Js
         , m_inlineCacheTypes(nullptr)
         , m_iProfileSession(-1)
         , initializedExecutionModeAndLimits(false)
+        , bgThreadRank(0)
 #endif
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         , regAllocLoadCount(0)
@@ -4845,8 +4899,6 @@ namespace Js
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Regenerate Due To Debug Mode: function %s (%s) from script context %p\n"),
             this->GetDisplayName(), this->GetDebugNumberSet(debugStringBuffer), m_scriptContext);
-
-        this->counters.bgThreadCallStarted = false; // asuming background jit is stopped and allow the counter setters access again
 #endif
     }
 
