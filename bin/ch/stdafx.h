@@ -26,17 +26,27 @@
 #define ENABLE_TEST_HOOKS 1
 #include "CommonDefines.h"
 
+#ifdef _WIN32
 #include <windows.h>
+#else
+#include <CommonPal.h>
+#endif // _WIN32
+
 #include <stdarg.h>
+#ifdef _MSC_VER
 #include <stdio.h>
 #include <io.h>
+#endif // _MSC_VER
 
 #if defined(_DEBUG)
 #define _DEBUG_WAS_DEFINED
 #undef _DEBUG
 #endif
-#include <map>
+
+#ifdef _WIN32
 #include <atlbase.h>
+#endif // _WIN32
+
 #ifdef _DEBUG_WAS_DEFINED
 #define _DEBUG
 #undef _DEBUG_WAS_DEFINED
@@ -52,11 +62,14 @@
 
 #if defined(DBG)
 
+#define _STRINGIZE_(x) #x
+#define _STRINGIZE(x) _STRINGIZE_(x)
+
 #define AssertMsg(exp, comment)   \
 do { \
 if (!(exp)) \
 { \
-    fprintf(stderr, "ASSERTION (%s, line %d) %s %s\n", __FILE__, __LINE__, _CRT_STRINGIZE(exp), comment); \
+    fprintf(stderr, "ASSERTION (%s, line %d) %s %s\n", __FILE__, __LINE__, _STRINGIZE(exp), comment); \
     fflush(stderr); \
     DebugBreak(); \
 } \

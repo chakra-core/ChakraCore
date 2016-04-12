@@ -30,7 +30,9 @@
 
 // #include "static_assert.h"
 
+#ifndef NO_PAL_TYPE_TRAITS
 #include "inc/pal_type_traits"
+#endif
 
 //==================================================================
 // Semantics: if val can be represented as the exact same value

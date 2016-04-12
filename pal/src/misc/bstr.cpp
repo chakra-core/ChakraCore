@@ -119,6 +119,24 @@ STDAPI_(BSTR) SysAllocStringLen(const OLECHAR *psz, UINT len)
 }
 
 /***
+ *BSTR SysFreeString(char*)
+ *Purpose:
+ *  Free a bstr using the passed in string
+ *
+ *Entry:
+ *  BSTR to free
+ *
+ *Exit:
+ *  return value = void
+ *
+ ***********************************************************************/
+STDAPI_(void) SysFreeString(const OLECHAR* psz)
+{
+    if (psz != NULL)
+        HeapFree(GetProcessHeap(), 0, (LPVOID) psz);
+}
+
+/***
  *BSTR SysAllocString(char*)
  *Purpose:
  *  Allocation a bstr using the passed in string
