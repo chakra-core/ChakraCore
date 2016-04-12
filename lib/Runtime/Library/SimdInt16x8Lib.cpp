@@ -720,7 +720,7 @@ namespace Js
         if (args.Info.Count >= 4 && JavascriptSIMDInt16x8::Is(args[3]))
         {
             SIMD128TypedArrayStore<JavascriptSIMDInt16x8>(args[1], args[2], args[3], 8 * INT16_SIZE, scriptContext);
-            return NULL;
+            return JavascriptSIMDInt16x8::FromVar(args[3]);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Int16x8.store"));
     }

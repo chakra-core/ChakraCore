@@ -9,9 +9,10 @@ function asmModule(stdlib, imports, buffer) {
     var ui16 = stdlib.SIMD.Uint8x16;
     var ui16check = ui16.check;
     var ui16add = ui16.add;
-    var ui16load  = ui16.load;  
-    var ui16store  = ui16.store
-  
+    var ui16load  = ui16.load;
+    var ui16store  = ui16.store;
+    var ui16sub = ui16.sub;
+
     var loopCOUNT = 3;
 
     var Int8Heap = new stdlib.Int8Array (buffer);    
@@ -22,6 +23,31 @@ function asmModule(stdlib, imports, buffer) {
     var Int32Heap = new stdlib.Int32Array(buffer);
     var Uint32Heap = new stdlib.Uint32Array(buffer);
     var Float32Heap = new stdlib.Float32Array(buffer);
+
+    function func0()
+    {
+        var x = ui16(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+        var y = ui16(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        var st = ui16(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        var ld = ui16(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        
+        var t0 = ui16(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        
+        var index = 100;
+        var size = 10;
+        var loopIndex = 0;
+        
+        for (loopIndex = 0; (loopIndex | 0) < (size | 0) ; loopIndex = (loopIndex + 1) | 0)
+        {
+            st = ui16store(Int8Heap, index >> 0, ui16(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16));
+            ld = ui16load(Int8Heap, index >> 0);
+            y = ui16add(st, ld);
+            t0 = ui16add(ui16store(Int8Heap, index >> 0, x), ui16load(Int8Heap, index   >> 0));
+            t0 = ui16add(t0, y);
+            index = (index + 16 ) | 0;
+        }
+        return ui16check(t0);
+    }
 
     function func1()
     {
@@ -507,6 +533,7 @@ function asmModule(stdlib, imports, buffer) {
     }
 
     return {
+        func0:func0,
         func1:func1, 
         func1OOB_1:func1OOB_1, 
         func1OOB_2:func1OOB_2, 
@@ -536,6 +563,10 @@ var buffer = new ArrayBuffer(0x10000);
 var m = asmModule(this, {g1:SIMD.Uint8x16(13216, 1024, 28, 108, 55, 3323, 992, 20000)}, buffer);
 
 var ret;
+
+ret = m.func0();
+equalSimd([4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64], ret, SIMD.Uint8x16, "Test Load Store");
+
 
 ret = m.func1();
 //print("func1");

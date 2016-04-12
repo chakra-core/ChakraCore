@@ -1944,32 +1944,27 @@ namespace Js
         }
 
         EmitExpressionInfo emitInfo;
-        // Arg3 - Value to Store
-        if (simdFunction->IsSimdStoreFunc())
+        if (simdFunction->IsSimdStoreFunc()) //Store
         {
+            // Arg3 - Value to Store. Builtin returns the value being stored.
             Assert(valueNode);
-            // Emit 3rd argument
-            valueInfo = Emit(valueNode);
-            if (valueInfo.type != simdFunction->GetArgType(2))
+            emitInfo = Emit(valueNode);
+
+            if (emitInfo.type != simdFunction->GetArgType(2))
             {
                 throw AsmJsCompilationException(_u("Invalid value to SIMD store "));
             }
             // write opcode
-            mWriter.AsmSimdTypedArr(opcode, valueInfo.location, indexSlot, dataWidth, viewType);
-            mFunction->ReleaseLocation<AsmJsSIMDValue>(&valueInfo);
-            emitInfo.location = 0;
-            emitInfo.type = AsmJsType::Void;
-        }
-        else
-        {
-            // load
-            emitInfo.location = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
             mWriter.AsmSimdTypedArr(opcode, emitInfo.location, indexSlot, dataWidth, viewType);
+        }
+        else //Load
+        {
+            emitInfo.location = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
             emitInfo.type = simdFunction->GetReturnType().toType();
+            mWriter.AsmSimdTypedArr(opcode, emitInfo.location, indexSlot, dataWidth, viewType);
         }
 
         mFunction->ReleaseLocationGeneric(&indexInfo);
-
         return emitInfo;
     }
 
