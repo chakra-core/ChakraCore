@@ -484,8 +484,8 @@ public:
 typedef BVUnitT<UnitWord32> BVUnit32;
 typedef BVUnitT<UnitWord64> BVUnit64;
 
-const LONG BVUnitT<UnitWord32>::ShiftValue = 5;
-const LONG BVUnitT<UnitWord64>::ShiftValue = 6;
+template<> const __declspec(selectany) LONG BVUnitT<UnitWord32>::ShiftValue = 5;
+template<> const __declspec(selectany) LONG BVUnitT<UnitWord64>::ShiftValue = 6;
 
 #if defined(_M_X64_OR_ARM64)
     typedef BVUnit64 BVUnit;

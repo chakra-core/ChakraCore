@@ -95,26 +95,26 @@ namespace Js
 
         Var JavascriptMath::And_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-            int32 and = And_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVar(and, scriptContext);
+            int32 value = And_Helper(aLeft, aRight, scriptContext);
+            return JavascriptNumber::ToVar(value, scriptContext);
         }
 
         Var JavascriptMath::And_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
-            int32 and = And_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVarInPlace(and, scriptContext, result);
+            int32 value = And_Helper(aLeft, aRight, scriptContext);
+            return JavascriptNumber::ToVarInPlace(value, scriptContext, result);
         }
 
         Var JavascriptMath::Or_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-            int32 or = Or_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVar(or, scriptContext);
+            int32 value = Or_Helper(aLeft, aRight, scriptContext);
+            return JavascriptNumber::ToVar(value, scriptContext);
         }
 
         Var JavascriptMath::Or_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
-            int32 or = Or_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVarInPlace(or, scriptContext, result);
+            int32 value = Or_Helper(aLeft, aRight, scriptContext);
+            return JavascriptNumber::ToVarInPlace(value, scriptContext, result);
         }
 
         Var JavascriptMath::Xor_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)

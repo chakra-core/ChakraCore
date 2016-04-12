@@ -10,12 +10,12 @@ bool ChakraRTInterface::m_testHooksSetup = false;
 bool ChakraRTInterface::m_testHooksInitialized = false;
 bool ChakraRTInterface::m_usageStringPrinted = false;
 
-ChakraRTInterface::ArgInfo ChakraRTInterface::m_argInfo = { 0 };
+ChakraRTInterface::ArgInfo* ChakraRTInterface::m_argInfo = nullptr;
 TestHooks ChakraRTInterface::m_testHooks = { 0 };
 JsAPIHooks ChakraRTInterface::m_jsApiHooks = { 0 };
 
 /*static*/
-HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
+HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
 {
     m_argInfo = argInfo;
 
@@ -114,26 +114,37 @@ HRESULT ChakraRTInterface::ParseConfigFlags()
 
     if (m_testHooks.pfSetConfigFlags)
     {
-        hr = SetConfigFlags(m_argInfo.argc, m_argInfo.argv, &HostConfigFlags::flags);
+        hr = SetConfigFlags(m_argInfo->argc, m_argInfo->argv, &HostConfigFlags::flags);
         if (hr != S_OK && !m_usageStringPrinted)
         {
-            m_argInfo.hostPrintUsage();
+            m_argInfo->hostPrintUsage();
             m_usageStringPrinted = true;
         }
     }
 
     if (hr == S_OK)
     {
-        Assert(m_argInfo.filename != nullptr);
-
-        *(m_argInfo.filename) = nullptr;
+        m_argInfo->filename = nullptr;
         Assert(m_testHooks.pfGetFilenameFlag != nullptr);
-        hr = GetFileNameFlag(m_argInfo.filename);
+
+        char16* fileNameWide = nullptr;
+        hr = GetFileNameFlag(&fileNameWide);
+
         if (hr != S_OK)
         {
             wprintf(_u("Error: no script file specified."));
-            m_argInfo.hostPrintUsage();
+            m_argInfo->hostPrintUsage();
             m_usageStringPrinted = true;
+        }
+        else
+        {
+            hr = Helpers::WideStringToNarrowDynamic(fileNameWide, &m_argInfo->filename);
+            if (FAILED(hr))
+            {
+                Assert(hr == E_OUTOFMEMORY);
+                wprintf(_u("Error: Ran out of memory"));
+                return hr;
+            }
         }
     }
 

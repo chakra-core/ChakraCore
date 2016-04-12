@@ -128,15 +128,15 @@ public:
         template <typename TAllocator>
         void RemoveCurrent(TAllocator * allocator)
         {
-            Assert(current != nullptr);
-            Assert(!list->IsHead(current));
+            Assert(this->current != nullptr);
+            Assert(!this->list->IsHead(this->current));
 
-            NodeBase * last = current->Prev();
-            NodeBase * node = const_cast<NodeBase *>(current);
+            NodeBase * last = this->current->Prev();
+            NodeBase * node = const_cast<NodeBase *>(this->current);
             DListBase::RemoveNode(node);
             AllocatorDelete(TAllocator, allocator, (Node *)node);
-            current = last;
-            const_cast<DListBase *>(list)->DecrementCount();
+            this->current = last;
+            const_cast<DListBase *>(this->list)->DecrementCount();
         }
 
         template <typename TAllocator>
@@ -145,9 +145,9 @@ public:
             Node * newNode = AllocatorNew(TAllocator, allocator, Node);
             if (newNode)
             {
-                NodeBase * node = const_cast<NodeBase *>(current);
+                NodeBase * node = const_cast<NodeBase *>(this->current);
                 DListBase::InsertNodeBefore(node, newNode);
-                const_cast<DListBase *>(list)->IncrementCount();
+                const_cast<DListBase *>(this->list)->IncrementCount();
                 return newNode->data;
             }
         }
@@ -158,9 +158,9 @@ public:
             Node * newNode = AllocatorNew(TAllocator, allocator, Node, data);
             if (newNode)
             {
-                NodeBase * node = const_cast<NodeBase *>(current);
+                NodeBase * node = const_cast<NodeBase *>(this->current);
                 DListBase::InsertNodeBefore(node, newNode);
-                const_cast<DListBase *>(list)->IncrementCount();
+                const_cast<DListBase *>(this->list)->IncrementCount();
                 return true;
             }
             return false;
@@ -168,12 +168,12 @@ public:
 
         void MoveCurrentTo(DListBase * toList)
         {
-            NodeBase * last = current->Prev();
-            NodeBase * node = const_cast<NodeBase *>(current);
+            NodeBase * last = this->current->Prev();
+            NodeBase * node = const_cast<NodeBase *>(this->current);
             DListBase::RemoveNode(node);
             DListBase::InsertNodeBefore(toList->Next(), node);
-            current = last;
-            const_cast<DListBase *>(list)->DecrementCount();
+            this->current = last;
+            const_cast<DListBase *>(this->list)->DecrementCount();
             toList->IncrementCount();
         }
     };
@@ -453,7 +453,7 @@ private:
 
 #define FOREACH_DLISTBASE_ENTRY(T, data, list) \
 { \
-    DListBase<T>::Iterator __iter(list); \
+    _TYPENAME DListBase<T>::Iterator __iter(list); \
     while (__iter.Next()) \
     { \
         T& data = __iter.Data();
@@ -463,7 +463,7 @@ private:
 }
 
 #define FOREACH_DLISTBASE_ENTRY_EDITING(T, data, list, iter) \
-    DListBase<T>::EditingIterator iter(list); \
+    _TYPENAME DListBase<T>::EditingIterator iter(list); \
     while (iter.Next()) \
     { \
         T& data = iter.Data();
@@ -475,11 +475,11 @@ template <typename TData, typename TAllocator, typename TCount = DefaultCount>
 class DList : public DListBase<TData, TCount>
 {
 public:
-    class EditingIterator : public DListBase::EditingIterator
+    class EditingIterator : public DListBase<TData, TCount>::EditingIterator
     {
     public:
-        EditingIterator() : DListBase::EditingIterator() {}
-        EditingIterator(DList * list) : DListBase::EditingIterator(list) {}
+        EditingIterator() : DListBase<TData, TCount>::EditingIterator() {}
+        EditingIterator(DList * list) : DListBase<TData, TCount>::EditingIterator(list) {}
         void RemoveCurrent()
         {
             __super::RemoveCurrent(Allocator());
@@ -496,7 +496,7 @@ public:
     private:
         TAllocator * Allocator() const
         {
-            return ((DList const *)list)->allocator;
+            return ((DList const *)this->list)->allocator;
         }
     };
 
@@ -563,7 +563,7 @@ template <typename TData, typename TAllocator = ArenaAllocator>
 class DListCounted : public DList<TData, TAllocator, RealCount>
 {
 public:
-    explicit DListCounted(TAllocator * allocator) : DList(allocator) {}
+    explicit DListCounted(TAllocator * allocator) : DList<TData, TAllocator, RealCount>(allocator) {}
 };
 
 #define FOREACH_DLIST_ENTRY(T, alloc, data, list) \

@@ -59,6 +59,8 @@ void LargeHeapBlock_Metadata_Corrupted(
 
 void FromDOM_NoScriptScope_fatal_error();
 
+
+#ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.
 // Use UnhandleExceptionFilter to let the default handler handles it.
 __inline LONG FatalExceptionFilter(
@@ -86,6 +88,8 @@ __inline LONG FatalExceptionFilter(
 
     return EXCEPTION_CONTINUE_SEARCH;
 }
+#endif // DISABLE_SEH
+
 
 template<class Fn>
 static STDMETHODIMP DebugApiWrapper(Fn fn)

@@ -135,7 +135,13 @@ LeakReport::EnsureLeakReportFile()
     char16 defaultFilename[_MAX_PATH];
     if (filename == nullptr)
     {
+        // xplat-todo: Implement swprintf_s in the PAL
+#ifdef _MSC_VER
         swprintf_s(defaultFilename, _u("jsleakreport-%u.txt"), ::GetCurrentProcessId());
+#else
+        _snwprintf(defaultFilename, _countof(defaultFilename), _u("jsleakreport-%u.txt"), ::GetCurrentProcessId());
+#endif
+
         filename = defaultFilename;
         openMode = _u("a+");   // append mode
     }
@@ -146,12 +152,17 @@ LeakReport::EnsureLeakReportFile()
     }
     Print(_u("================================================================================\n"));
     Print(_u("Chakra Leak Report - PID: %d\n"), ::GetCurrentProcessId());
+
+    // xplat-todo: Make this code cross-platform
+#if _MSC_VER
     __time64_t time_value = _time64(NULL);
     char16 time_string[26];
     struct tm local_time;
     _localtime64_s(&local_time, &time_value);
     _wasctime_s(time_string, &local_time);
     Print(time_string);
+#endif
+
     Print(_u("\n"));
     return true;
 }
@@ -167,7 +178,11 @@ LeakReport::LogUrl(char16 const * url, void * globalObject)
     urlCopy[length - 1] = _u('\0');
 
     record->url = urlCopy;
+#if _MSC_VER
     record->time = _time64(NULL);
+#else
+    record->time = time(NULL);
+#endif
     record->tid = ::GetCurrentThreadId();
     record->next = nullptr;
     record->scriptEngine = nullptr;
@@ -205,10 +220,14 @@ LeakReport::DumpUrl(DWORD tid)
     {
         if (curr->tid == tid)
         {
-            char16 timeStr[26];
+            char16 timeStr[26] = _u("00:00");
+
+            // xplat-todo: Need to implement _wasctime_s in the PAL
+#if _MSC_VER
             struct tm local_time;
             _localtime64_s(&local_time, &curr->time);
             _wasctime_s(timeStr, &local_time);
+#endif
             timeStr[wcslen(timeStr) - 1] = 0;
             Print(_u("%s - (%p, %p) %s\n"), timeStr, curr->scriptEngine, curr->globalObject, curr->url);
             *pprev = curr->next;

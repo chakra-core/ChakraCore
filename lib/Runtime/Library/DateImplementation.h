@@ -79,16 +79,18 @@ namespace Js {
             bool fDst;
         };
 
+#ifdef ENABLE_GLOBALIZATION
         template <class ScriptContext>
         static long GetDaylightBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext);
         template <class ScriptContext>
         static long GetStandardBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext);
+#endif
 
         template <class ScriptContext>
         static double GetTvLcl(double tv, ScriptContext * scriptContext, TZD *ptzd = nullptr);
         template <class ScriptContext>
         static double GetTvUtc(double tv, ScriptContext * scriptContext);
-        static boolean UtcTimeFromStrCore(
+        static bool UtcTimeFromStrCore(
             __in_ecount_z(ulength) const char16 *psz,
             unsigned int ulength,
             double &retVal,
@@ -295,6 +297,7 @@ namespace Js {
         friend HiResTimer;
     };
 
+#ifdef ENABLE_GLOBALIZATION
     ///
     /// Gets the daylight bias to use, in minutes. (Shared with hybrid debugging, which may use a fake scriptContext.)
     ///
@@ -316,6 +319,7 @@ namespace Js {
         Assert(scriptContext);
         return pTz->StandardBias;
     }
+#endif
 
     ///
     /// Use tv as the UTC time and return the corresponding local time. (Shared with hybrid debugging, which may use a fake scriptContext.)

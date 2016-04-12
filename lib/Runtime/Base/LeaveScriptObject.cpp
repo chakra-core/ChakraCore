@@ -27,7 +27,12 @@ namespace Js
         this->doCleanup = doCleanup;
         this->isCallRoot = isCallRoot;
         this->hr = NOERROR;
-        this->hasForcedEnter = scriptContext->GetDebugContext() != nullptr ? scriptContext->GetDebugContext()->GetProbeContainer()->isForcedToEnterScriptStart : false;
+        this->hasForcedEnter =
+#ifdef ENABLE_SCRIPT_DEBUGGING
+         scriptContext->GetDebugContext() != nullptr ?
+            scriptContext->GetDebugContext()->GetProbeContainer()->isForcedToEnterScriptStart :
+#endif
+            false;
 
         // Initialize the entry exit record
         entryExitRecord->returnAddrOfScriptEntryFunction = returnAddress;

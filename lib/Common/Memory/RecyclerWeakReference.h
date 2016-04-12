@@ -40,7 +40,10 @@ protected:
     SmallHeapBlock * weakRefHeapBlock;
     RecyclerWeakReferenceBase* next;
 #if DBG
+#if ENABLE_RECYCLER_TYPE_TRACKING
     type_info const * typeInfo;
+#endif
+    
 #if defined TRACK_ALLOC && defined(PERF_COUNTERS)
     PerfCounter::Counter * counter;
 #endif
@@ -356,7 +359,9 @@ private:
         AddEntry(entry, &buckets[targetBucket]);
         count++;
 #if DBG
+#if ENABLE_RECYCLER_TYPE_TRACKING
         entry->typeInfo = nullptr;
+#endif
 #if defined(TRACK_ALLOC) && defined(PERF_COUNTERS)
         entry->counter = nullptr;
 #endif

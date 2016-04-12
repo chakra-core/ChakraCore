@@ -15,9 +15,9 @@ public:
 
     SmallNormalHeapBucketBase();
 
-    CompileAssert(!IsLeafBucket);
+    CompileAssert(!BaseT::IsLeafBucket);
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
 
 #ifdef DUMP_FRAGMENTATION_STATS

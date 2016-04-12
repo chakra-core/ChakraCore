@@ -69,7 +69,7 @@ CriticalSection ThreadContext::s_csThreadContext;
 size_t ThreadContext::processNativeCodeSize = 0;
 ThreadContext * ThreadContext::globalListFirst = nullptr;
 ThreadContext * ThreadContext::globalListLast = nullptr;
-uint ThreadContext::activeScriptSiteCount = 0;
+__declspec(thread) uint ThreadContext::activeScriptSiteCount = 0;
 
 const Js::PropertyRecord * const ThreadContext::builtInPropertyRecords[] =
 {
@@ -113,7 +113,11 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     isOptimizedForManyInstances(Js::Configuration::Global.flags.OptimizeForManyInstances),
     bgJit(Js::Configuration::Global.flags.BgJit),
     pageAllocator(allocationPolicyManager, PageAllocatorType_Thread, Js::Configuration::Global.flags, 0, PageAllocator::DefaultMaxFreePageCount,
-        false, &backgroundPageQueue),
+        false
+#if ENABLE_BACKGROUND_PAGE_FREEING
+        , &backgroundPageQueue
+#endif
+        ),
     recycler(nullptr),
     hasCollectionCallBack(false),
     callDispose(true),
@@ -1412,10 +1416,10 @@ ThreadContext::SetForceOneIdleCollection()
 BOOLEAN
 ThreadContext::IsOnStack(void const *ptr)
 {
-
-#if defined(_M_IX86)
+#ifdef _WIN32
+#if defined(_M_IX86) && defined(_MSC_VER)
     return ptr < (void*)__readfsdword(0x4) && ptr >= (void*)__readfsdword(0xE0C);
-#elif defined(_M_AMD64)
+#elif defined(_M_AMD64) && defined(_MSC_VER)
     return ptr < (void*)__readgsqword(0x8) && ptr >= (void*)__readgsqword(0x1478);
 #elif defined(_M_ARM)
     ULONG lowLimit, highLimit;
@@ -1431,6 +1435,12 @@ ThreadContext::IsOnStack(void const *ptr)
     AssertMsg(FALSE, "IsOnStack -- not implemented yet case");
     Js::Throw::NotImplemented();
     return false;
+#endif
+#else // !_WIN32
+    void *lowLimit, *highLimit;
+    ::GetCurrentThreadStackBounds((char**)&lowLimit, (char**)&highLimit);
+    bool isOnStack = lowLimit <= ptr && ptr < highLimit;
+    return isOnStack;
 #endif
 }
 
@@ -1563,8 +1573,8 @@ void
 ThreadContext::ProbeStack(size_t size, Js::RecyclableObject * obj, Js::ScriptContext *scriptContext)
 {
     AssertCanHandleStackOverflowCall(obj->IsExternal() ||
-        Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
-        Js::JavascriptFunction::FromVar(obj)->IsExternalFunction());
+        (Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
+        Js::JavascriptFunction::FromVar(obj)->IsExternalFunction()));
     if (!this->IsStackAvailable(size))
     {
         if (this->IsExecutionDisabled())
@@ -1575,8 +1585,8 @@ ThreadContext::ProbeStack(size_t size, Js::RecyclableObject * obj, Js::ScriptCon
         }
 
         if (obj->IsExternal() ||
-            Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
-            Js::JavascriptFunction::FromVar(obj)->IsExternalFunction())
+            (Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
+            Js::JavascriptFunction::FromVar(obj)->IsExternalFunction()))
         {
             Js::JavascriptError::ThrowStackOverflowError(scriptContext);
         }
@@ -3402,7 +3412,7 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
     {
         return TRUE;
     }
-    
+
     if (!this->IsAllJITCodeInPreReservedRegion())
     {
         CustomHeap::CodePageAllocators::AutoLock autoLock(&this->codePageAllocators);
@@ -3819,6 +3829,7 @@ void ThreadContext::ClearThreadContextFlag(ThreadContextFlags contextFlag)
     this->threadContextFlags = (ThreadContextFlags)(this->threadContextFlags & ~contextFlag);
 }
 
+#ifdef ENABLE_GLOBALIZATION
 #ifdef _CONTROL_FLOW_GUARD
 Js::DelayLoadWinCoreMemory * ThreadContext::GetWinCoreMemoryLibrary()
 {
@@ -3890,6 +3901,7 @@ Js::DelayLoadWinRtFoundation* ThreadContext::GetWinRtFoundationLibrary()
     return &delayLoadWinRtFoundationLibrary;
 }
 #endif
+#endif // ENABLE_GLOBALIZATION
 
 bool ThreadContext::IsCFGEnabled()
 {

@@ -17,6 +17,7 @@ void BVSparseNode::init(BVIndex beginIndex, BVSparseNode * nextNode)
     this->next = nextNode;
 }
 
+#ifdef _WIN32
 bool BVSparseNode::ToString(
     __out_ecount(strSize) char *const str,
     const size_t strSize,
@@ -90,3 +91,4 @@ bool BVSparseNode::ToString(
     }
     return true;
 }
+#endif

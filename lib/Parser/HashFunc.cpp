@@ -16,9 +16,6 @@
  *  of the hash function so things don't go out of sync.
  */
 
-// scaffolding - define ULONG
-typedef unsigned long ULONG;
-
 ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, long cch)
 {
     ULONG luHash = 0;

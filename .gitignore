@@ -5,6 +5,7 @@
 *.opendb
 *.user
 *.i
+.vscode/
 Build/VCBuild/
 Build/VCBuild.NoJIT/
 Build/ipch/
@@ -16,6 +17,7 @@ build_*.err
 buildchk.*
 buildfre.*
 Build/swum-cache.txt
+BuildLinux/
 *.tlog/
 .*.swp
 sd.ini
@@ -29,3 +31,18 @@ profile.dpl.*
 Build/Chakra.Core.VC.opendb
 test/benchmarks/*.txt
 test/benchmarks/*.dpl
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+cmake_install.cmake
+install_manifest.txt
+
+# xcode
+*.xcodeproj
+*.xcworkspace
+
+# additional *nix generated files
+*.a
+*.gch
+Makefile
+pal/src/config.h

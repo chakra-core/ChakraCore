@@ -324,7 +324,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     // recycler requires at least Recycler::PrimaryMarkStackReservedPageCount to function properly for the main mark context
-    this->markContext.SetMaxPageCount(max<size_t>(GetRecyclerFlagsTable().MaxMarkStackPageCount, Recycler::PrimaryMarkStackReservedPageCount));
+    this->markContext.SetMaxPageCount(max(static_cast<size_t>(GetRecyclerFlagsTable().MaxMarkStackPageCount), static_cast<size_t>(Recycler::PrimaryMarkStackReservedPageCount)));
     this->parallelMarkContext1.SetMaxPageCount(GetRecyclerFlagsTable().MaxMarkStackPageCount);
     this->parallelMarkContext2.SetMaxPageCount(GetRecyclerFlagsTable().MaxMarkStackPageCount);
     this->parallelMarkContext3.SetMaxPageCount(GetRecyclerFlagsTable().MaxMarkStackPageCount);
@@ -483,7 +483,7 @@ Recycler::~Recycler()
     CheckLeaks(this->IsInDllCanUnloadNow()? _u("DllCanUnloadNow") : this->IsInDetachProcess()? _u("DetachProcess") : _u("Destructor"));
 #endif
 
-    AUTO_LEAK_REPORT_SECTION(this->GetRecyclerFlagsTable(), _u("Skipped finalizers"));
+    AUTO_LEAK_REPORT_SECTION_0(this->GetRecyclerFlagsTable(), _u("Skipped finalizers"));
 
 #if ENABLE_CONCURRENT_GC
     Assert(concurrentThread == nullptr);
@@ -570,6 +570,7 @@ Recycler::SetIsThreadBound()
     Assert(mainThreadHandle == nullptr);
     ::DuplicateHandle(::GetCurrentProcess(), ::GetCurrentThread(), ::GetCurrentProcess(),  &mainThreadHandle,
         0, FALSE, DUPLICATE_SAME_ACCESS);
+
     stackBase = GetStackBase();
 }
 
@@ -587,12 +588,14 @@ Recycler::RootAddRef(void* obj, uint *count)
             this->scanPinnedObjectMap = true;
             RECYCLER_PERF_COUNTER_INC(PinnedObject);
         }
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         if (GetRecyclerFlagsTable().LeakStackTrace)
         {
             StackBackTraceNode::Prepend(&NoCheckHeapAllocator::Instance, refCount.stackBackTraces,
                 transientPinnedObjectStackBackTrace);
         }
+#endif
 #endif
     }
 
@@ -604,11 +607,13 @@ Recycler::RootAddRef(void* obj, uint *count)
 
     transientPinnedObject = obj;
 
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
     if (GetRecyclerFlagsTable().LeakStackTrace)
     {
         transientPinnedObjectStackBackTrace = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance);
     }
+#endif
 #endif
 }
 
@@ -627,11 +632,13 @@ Recycler::RootRelease(void* obj, uint *count)
             *count = (refCount != nullptr) ? *refCount : 0;
         }
 
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         if (GetRecyclerFlagsTable().LeakStackTrace)
         {
             transientPinnedObjectStackBackTrace->Delete(&NoCheckHeapAllocator::Instance);
         }
+#endif
 #endif
     }
     else
@@ -657,6 +664,7 @@ Recycler::RootRelease(void* obj, uint *count)
 
         if (newRefCount != 0)
         {
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
             if (GetRecyclerFlagsTable().LeakStackTrace)
             {
@@ -664,11 +672,14 @@ Recycler::RootRelease(void* obj, uint *count)
                     StackBackTrace::Capture(&NoCheckHeapAllocator::Instance));
             }
 #endif
+#endif
             return;
         }
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         StackBackTraceNode::DeleteAll(&NoCheckHeapAllocator::Instance, refCount->stackBackTraces);
         refCount->stackBackTraces = nullptr;
+#endif
 #endif
 #if ENABLE_CONCURRENT_GC
         // Don't delete the entry if we are in concurrent find root state
@@ -1082,10 +1093,15 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
     Assert((info.GetAttributes() & ~ObjectInfoBits::LeafBit) == 0);          // Only NoBit or LeafBit
 
 #if DBG || defined(RECYCLER_MEMORY_VERIFY) || defined(RECYCLER_PAGE_HEAP)
+
+    // xplat-todo: reenable this Assert once GetThreadId is implemented on
+    // non-Win32 platforms
+#ifdef _WIN32
     // Either the mainThreadHandle is null (we're not thread bound)
     // or we should be calling this function on the main script thread
     Assert(this->mainThreadHandle == NULL ||
         ::GetCurrentThreadId() == ::GetThreadId(this->mainThreadHandle));
+#endif
 
     HeapBlock* heapBlock = this->FindHeapBlock(buffer);
 
@@ -1093,7 +1109,9 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 #ifdef RECYCLER_PAGE_HEAP
     if (this->IsPageHeapEnabled() && this->ShouldCapturePageHeapFreeStack())
     {
+#ifdef STACK_BACK_TRACE
         heapBlock->CapturePageHeapFreeStack();
+#endif
 
         // Don't do actual explicit free in page heap mode
         return false;
@@ -1321,11 +1339,20 @@ void Recycler::TrackNativeAllocatedMemoryBlock(Recycler * recycler, void * memBl
  * FindRoots
  *------------------------------------------------------------------------------------------------*/
 
-
+// xplat-todo: Unify these two variants of GetStackBase
+#ifdef _WIN32
 static void* GetStackBase()
 {
     return ((NT_TIB *)NtCurrentTeb())->StackBase;
 }
+#else
+static void* GetStackBase()
+{
+    char *stackBase, *stackTop;
+    ::GetCurrentThreadStackBounds(&stackBase, &stackTop);
+    return (void*) stackBase;
+}
+#endif
 
 #if _M_IX86
 // REVIEW: For x86, do we care about scanning esp/ebp?
@@ -1522,8 +1549,10 @@ size_t Recycler::ScanPinnedObjects()
             {
                 if (refCount == 0)
                 {
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
                     Assert(refCount.stackBackTraces == nullptr);
+#endif
 #endif
                     // Only remove if we are not doing this in the background.
                     return !background;
@@ -2120,8 +2149,8 @@ size_t
 Recycler::RescanMark(DWORD waitTime)
 {
     bool const onLowMemory = this->NeedOOMRescan();
-    
-    // REVIEW: Why are we asserting for DoQueueTrackedObject here? 
+
+    // REVIEW: Why are we asserting for DoQueueTrackedObject here?
     // Should we split this into different asserts depending on whether
     // concurrent or partial is enabled?
 #if ENABLE_CONCURRENT_GC
@@ -2442,7 +2471,7 @@ Recycler::RootMark(CollectionState markState)
 
     if (this->EndMark())
     {
-        // REVIEW: This heuristic doesn't apply when partial is off so there's no need 
+        // REVIEW: This heuristic doesn't apply when partial is off so there's no need
         // to modify scannedRootBytes here, correct?
 #if ENABLE_PARTIAL_GC
         // return large root scanned byte to not get into partial mode if we are low on memory
@@ -7708,6 +7737,7 @@ Recycler::ReportLeaks()
             LeakReport::Print(_u("Recycler Leaked Object: %d bytes (%d objects)\n"),
                 param.stats.markData.markBytes, param.stats.markData.markCount);
 
+#ifdef STACK_BACK_TRACE
             if (GetRecyclerFlagsTable().LeakStackTrace)
             {
                 LeakReport::StartSection(_u("Pinned object stack traces"));
@@ -7716,6 +7746,7 @@ Recycler::ReportLeaks()
                 LeakReport::EndRedirectOutput();
                 LeakReport::EndSection();
             }
+#endif
         }
         LeakReport::EndSection();
     }
@@ -7764,6 +7795,7 @@ Recycler::CheckLeaks(char16 const * header)
 
         if (param.stats.markData.markCount != 0)
         {
+#ifdef STACK_BACK_TRACE
             if (GetRecyclerFlagsTable().LeakStackTrace)
             {
                 Output::Print(_u("-------------------------------------------------------------------------------------\n"));
@@ -7771,6 +7803,7 @@ Recycler::CheckLeaks(char16 const * header)
                 Output::Print(_u("-------------------------------------------------------------------------------------\n"));
                 this->PrintPinnedObjectStackTraces();
             }
+#endif
 
             Output::Print(_u("-------------------------------------------------------------------------------------\n"));
             Output::Print(_u("Recycler Leaked Object: %d bytes (%d objects)\n"),
@@ -7836,6 +7869,7 @@ Recycler::ReportOnProcessDetach(Fn fn)
     fn();
 }
 
+#ifdef STACK_BACK_TRACE
 void
 Recycler::PrintPinnedObjectStackTraces()
 {
@@ -7847,6 +7881,7 @@ Recycler::PrintPinnedObjectStackTraces()
         }
     );
 }
+#endif
 #endif
 
 #if defined(RECYCLER_DUMP_OBJECT_GRAPH) ||  defined(LEAK_REPORT) || defined(CHECK_MEMORY_LEAK)

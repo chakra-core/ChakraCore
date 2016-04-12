@@ -149,7 +149,7 @@ namespace UnifiedRegex
         , deferredIfUnicodeError(nullptr)
     {
         if (isFromExternalSource)
-            FromExternalSource();
+            this->FromExternalSource();
     }
 
     //
@@ -163,15 +163,15 @@ namespace UnifiedRegex
         this->inputLim = inputLim;
         next = input;
         this->inBody = inBody;
-        RestoreMultiUnits(0);
+        this->RestoreMultiUnits(0);
     }
 
     template <typename P, const bool IsLiteral>
     inline CharCount Parser<P, IsLiteral>::Pos()
     {
         CharCount nextOffset = Chars<EncodedChar>::OSB(next, input);
-        Assert(nextOffset >= m_cMultiUnits);
-        return nextOffset - (CharCount)m_cMultiUnits;
+        Assert(nextOffset >= this->m_cMultiUnits);
+        return nextOffset - (CharCount) this->m_cMultiUnits;
     }
 
     template <typename P, const bool IsLiteral>
@@ -181,13 +181,13 @@ namespace UnifiedRegex
     }
 
     template <typename P, const bool IsLiteral>
-    inline bool Parser<P, IsLiteral>::ECCanConsume(CharCount n = 1)
+    inline bool Parser<P, IsLiteral>::ECCanConsume(CharCount n /*= 1*/)
     {
         return next + n <= inputLim;
     }
 
     template <typename P, const bool IsLiteral>
-    inline typename P::EncodedChar Parser<P, IsLiteral>::ECLookahead(CharCount n = 0)
+    inline typename P::EncodedChar Parser<P, IsLiteral>::ECLookahead(CharCount n /*= 0*/)
     {
         // Ok to look ahead to terminating 0
         Assert(next + n <= inputLim);
@@ -195,7 +195,7 @@ namespace UnifiedRegex
     }
 
     template <typename P, const bool IsLiteral>
-    inline typename P::EncodedChar Parser<P, IsLiteral>::ECLookback(CharCount n = 0)
+    inline typename P::EncodedChar Parser<P, IsLiteral>::ECLookback(CharCount n /*= 0*/)
     {
         // Ok to look ahead to terminating 0
         Assert(n + input <= next);
@@ -203,25 +203,25 @@ namespace UnifiedRegex
     }
 
     template <typename P, const bool IsLiteral>
-    inline void Parser<P, IsLiteral>::ECConsume(CharCount n = 1)
+    inline void Parser<P, IsLiteral>::ECConsume(CharCount n /*= 1*/)
     {
         Assert(next + n <= inputLim);
 #if DBG
         for (CharCount i = 0; i < n; i++)
-            Assert(!IsMultiUnitChar(next[i]));
+            Assert(!this->IsMultiUnitChar(next[i]));
 #endif
         next += n;
     }
 
     template <typename P, const bool IsLiteral>
-    inline void Parser<P, IsLiteral>::ECConsumeMultiUnit(CharCount n = 1)
+    inline void Parser<P, IsLiteral>::ECConsumeMultiUnit(CharCount n /*= 1*/)
     {
         Assert(next + n <= inputLim);
         next += n;
     }
 
     template <typename P, const bool IsLiteral>
-    inline void Parser<P, IsLiteral>::ECRevert(CharCount n = 1)
+    inline void Parser<P, IsLiteral>::ECRevert(CharCount n /*= 1*/)
     {
         Assert(n + input <= next);
         next -= n;
@@ -342,7 +342,7 @@ namespace UnifiedRegex
             // while the bottom is used during Pass 1 (which isn't done when ParseNoAST)
             if(this->ctAllocator != nullptr)
             {
-                SurrogatePairTracker* node = Anew(this->ctAllocator, SurrogatePairTracker, location, this->tempLocationOfRange, codePoint, consumptionLength, m_cMultiUnits);
+                SurrogatePairTracker* node = Anew(this->ctAllocator, SurrogatePairTracker, location, this->tempLocationOfRange, codePoint, consumptionLength, this->m_cMultiUnits);
                 if (surrogatePairList == nullptr)
                 {
                     Assert(currentSurrogatePairNode == nullptr);
@@ -600,7 +600,7 @@ namespace UnifiedRegex
     {
         Assert(!IsEOF());
         // Could be an embedded 0
-        Char c = ReadFull<true>(next, inputLim);
+        Char c = this->template ReadFull<true>(next, inputLim);
         // No embedded newlines in literals
         if (IsLiteral && standardChars->IsNewline(c))
             Fail(ERRnoSlash);
@@ -1577,7 +1577,8 @@ namespace UnifiedRegex
                     digits++;
                 }
                 while (digits < 5 && ECCanConsume(digits + 1) && standardEncodedChars->IsDigit(ECLookahead(digits)));
-                if (n >= numGroups || ECCanConsume(digits + 1) && standardEncodedChars->IsDigit(ECLookahead(digits)))
+                if (n >= numGroups ||
+                    (ECCanConsume(digits + 1) && standardEncodedChars->IsDigit(ECLookahead(digits))))
                 {
                     if (standardEncodedChars->IsOctal(ECLookahead()))
                     {
@@ -1816,7 +1817,7 @@ namespace UnifiedRegex
 
             Assert(ECCanConsume(this->currentSurrogatePairNode->length));
             ECConsumeMultiUnit(this->currentSurrogatePairNode->length);
-            RestoreMultiUnits(this->currentSurrogatePairNode->multiUnits);
+            this->RestoreMultiUnits(this->currentSurrogatePairNode->multiUnits);
             this->currentSurrogatePairNode = this->currentSurrogatePairNode->next;
 
             return true;
@@ -2076,7 +2077,7 @@ namespace UnifiedRegex
                 pendingCodePoint = this->currentSurrogatePairNode->value;
                 Assert(ECCanConsume(this->currentSurrogatePairNode->length));
                 ECConsumeMultiUnit(this->currentSurrogatePairNode->length);
-                RestoreMultiUnits(this->currentSurrogatePairNode->multiUnits);
+                this->RestoreMultiUnits(this->currentSurrogatePairNode->multiUnits);
                 this->currentSurrogatePairNode = this->currentSurrogatePairNode->next;
             }
             else if (nextChar == '\\')
@@ -2948,7 +2949,7 @@ namespace UnifiedRegex
     {
         Assert(program->source == 0);
 
-        program->source = _u("");
+        program->source = const_cast<Char*>(_u(""));
         program->sourceLen = 0;
 
         program->numGroups = 1;
@@ -2965,7 +2966,7 @@ namespace UnifiedRegex
         // Program will own source string
         program->source = RecyclerNewArrayLeaf(recycler, Char, bodyChars + 1);
         // Don't need to zero out since we're writing to the buffer right here
-        ConvertToUnicode(program->source, bodyChars, body);
+        this->ConvertToUnicode(program->source, bodyChars, body);
         program->source[bodyChars] = 0;
         program->sourceLen = bodyChars;
 
@@ -3079,8 +3080,8 @@ namespace UnifiedRegex
         p.ParseDynamic(0, 0, 0, 0, f);
         p.ParseLiteral(0, 0, a, b, c, d, f);
         p.ParseLiteralNoAST(0, 0, a, b, c, d);
-        p.CompileProgram<true>(0, cp, a, b, c, f);
-        p.CompileProgram<false>(0, cp, a, b, c, f);
+        p.template CompileProgram<true>(0, cp, a, b, c, f);
+        p.template CompileProgram<false>(0, cp, a, b, c, f);
         p.CaptureEmptySourceAndNoGroups(0);
         p.CaptureSourceAndGroups(0, 0, 0, 0);
         p.FreeBody();

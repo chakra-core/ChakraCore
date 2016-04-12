@@ -4,7 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef STACK_BACK_TRACE
 class StackBackTrace;
+#endif
 
 namespace Js {
 
@@ -21,17 +23,21 @@ namespace Js {
         static void __declspec(noreturn) FatalProjectionError();
 
         static void CheckAndThrowOutOfMemory(BOOLEAN status);
-#ifdef GENERATE_DUMP
+
         static bool ReportAssert(__in LPSTR fileName, uint lineNumber, __in LPSTR error, __in LPSTR message);
         static void LogAssert();
+#ifdef GENERATE_DUMP
         static int GenerateDump(PEXCEPTION_POINTERS exceptInfo, LPCWSTR filePath, int ret = EXCEPTION_CONTINUE_SEARCH, bool needLock = false);
         static void GenerateDump(LPCWSTR filePath, bool terminate = false, bool needLock = false);
         static void GenerateDumpForAssert(LPCWSTR filePath);
     private:
         static CriticalSection csGenerateDump;
+#ifdef STACK_BACK_TRACE
         __declspec(thread) static  StackBackTrace * stackBackTrace;
+
         static const int StackToSkip = 2;
         static const int StackTraceDepth = 40;
+#endif
 #endif
     };
 

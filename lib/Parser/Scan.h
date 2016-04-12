@@ -4,12 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef ENABLE_GLOBALIZATION
 namespace Js
 {
     class DelayLoadWindowsGlobalization;
 }
 #include "Windows.Globalization.h"
-
+#endif
 
 int CountNewlines(LPCOLESTR psz, int cch = -1);
 
@@ -469,7 +470,7 @@ public:
     {
         Assert(m_currentCharacter - m_pchBase >= 0);
         Assert(m_currentCharacter - m_pchBase <= LONG_MAX);
-        return static_cast< charcount_t >(m_currentCharacter - m_pchBase - m_cMultiUnits);
+        return static_cast< charcount_t >(m_currentCharacter - m_pchBase - this->m_cMultiUnits);
     }
 
     void SetErrorPosition(charcount_t ichMinError, charcount_t ichLimError)
@@ -529,10 +530,10 @@ public:
         DebugOnly(m_iecpLimTokPrevious = (size_t)-1);
         size_t length = m_pchLast - m_pchBase;
         if (offset > length) offset = static_cast< charcount_t >(length);
-        size_t ibOffset = CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, offset);
+        size_t ibOffset = this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, offset);
         m_currentCharacter = m_pchBase + ibOffset;
         Assert(ibOffset >= offset);
-        RestoreMultiUnits(ibOffset - offset);
+        this->RestoreMultiUnits(ibOffset - offset);
         m_line = lineNumber;
     }
 
@@ -614,7 +615,7 @@ public:
             byte *prgbNew;
             byte *prgbOld = (byte *)m_prgch;
 
-            unsigned long cbNew;
+            ULONG cbNew;
             if (FAILED(ULongMult(m_cchMax, sizeof(OLECHAR) * 2, &cbNew)))
             {
                 m_pscanner->Error(ERRnoMemory);
@@ -714,7 +715,7 @@ private:
     {
         Assert(FAILED(hr));
         m_pchMinTok = m_currentCharacter;
-        m_cMinTokMultiUnits = m_cMultiUnits;
+        m_cMinTokMultiUnits = this->m_cMultiUnits;
         AssertMem(m_perr);
         m_perr->Throw(hr);
     }
@@ -756,11 +757,11 @@ private:
     }
     OLECHAR PeekNextChar(void)
     {
-        return PeekFull(m_currentCharacter, m_pchLast);
+        return this->PeekFull(m_currentCharacter, m_pchLast);
     }
     OLECHAR ReadNextChar(void)
     {
-        return ReadFull<true>(m_currentCharacter, m_pchLast);
+        return this->template ReadFull<true>(m_currentCharacter, m_pchLast);
     }
 
     EncodedCharPtr AdjustedLast() const

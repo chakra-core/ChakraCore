@@ -411,19 +411,19 @@ public:
     BOOLEAN TestAndSet(BVIndex i)
     {
         AssertRange(i);
-        return _bittestandset((long *)this->data, (long) i);
+        return _bittestandset((LONG *)this->data, (LONG) i);
     }
 
     BOOLEAN TestIntrinsic(BVIndex i) const
     {
         AssertRange(i);
-        return _bittest((long *)this->data, (long) i);
+        return _bittest((LONG *)this->data, (LONG) i);
     }
 
     BOOLEAN TestAndSetInterlocked(BVIndex i)
     {
         AssertRange(i);
-        return _interlockedbittestandset((long *)this->data, (long) i);
+        return _interlockedbittestandset((LONG *)this->data, (LONG) i);
     }
 
     BOOLEAN TestAndClear(BVIndex i)

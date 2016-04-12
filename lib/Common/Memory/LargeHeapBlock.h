@@ -82,6 +82,8 @@ public:
     LargeHeapBlock* heapBlock;
 };
 
+class HeapInfo;
+
 // CONSIDER: Templatizing this so that we don't have free list support if we don't need it
 class LargeHeapBlock sealed : public HeapBlock
 {
@@ -267,7 +269,7 @@ private:
     bool hadTrimmed;
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
     friend class HeapInfo;
     HeapInfo * heapInfo;

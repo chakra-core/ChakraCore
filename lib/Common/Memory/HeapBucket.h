@@ -110,7 +110,7 @@ protected:
 template <typename TBlockType>
 class HeapBucketT : public HeapBucket
 {
-    typedef typename SmallHeapBlockAllocator<TBlockType> TBlockAllocatorType;
+    typedef SmallHeapBlockAllocator<TBlockType> TBlockAllocatorType;
 
 public:
     HeapBucketT();
@@ -143,7 +143,7 @@ public:
     void SetupBackgroundSweep(RecyclerSweep& recyclerSweep);
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
 
     TBlockAllocatorType * GetAllocator() { return &allocatorHead;}
@@ -244,7 +244,7 @@ protected:
     friend class HeapBucketGroup;
 
     friend class HeapInfo;
-    friend typename TBlockType;
+    friend TBlockType;
 
     template <class TBucketAttributes>
     friend class SmallHeapBlockT;

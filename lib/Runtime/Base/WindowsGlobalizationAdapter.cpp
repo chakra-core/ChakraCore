@@ -308,6 +308,7 @@ namespace Js
 
 #endif
 
+#if ENABLE_UNICODE_API
     HRESULT WindowsGlobalizationAdapter::EnsureDataTextObjectsInitialized(DelayLoadWindowsGlobalization *library)
     {
         HRESULT hr = S_OK;
@@ -329,6 +330,7 @@ namespace Js
 
         return hr;
     }
+#endif
 
 #ifdef ENABLE_INTL_OBJECT
     HRESULT WindowsGlobalizationAdapter::CreateLanguage(_In_ ScriptContext* scriptContext, _In_z_ PCWSTR languageTag, ILanguage** language)
@@ -472,16 +474,6 @@ if (this->object) \
             DetachAndReleaseFactoryObjects(percentFormatterFactory);
             DetachAndReleaseFactoryObjects(incrementNumberRounderActivationFactory);
             DetachAndReleaseFactoryObjects(significantDigitsRounderActivationFactory);
-        }
-    }
-
-    void WindowsGlobalizationAdapter::ResetCharClassifierFactoryObjects()
-    {
-        // Reset only if its not initialized completely.
-        if (!this->initializedCharClassifierObjects)
-        {
-            this->hrForCharClassifierObjectsInit = S_OK;
-            DetachAndReleaseFactoryObjects(unicodeStatics);
         }
     }
 

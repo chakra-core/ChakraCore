@@ -29,6 +29,7 @@ static BOOL FGetStringFromLibrary(HMODULE hlib, int istring, __out_ecount(cchMax
     istring &= 0x0F;
     BOOL fRet = FALSE;
 
+#ifdef ENABLE_GLOBALIZATION
     psz[0] = '\0';
 
     if (NULL == hlib)
@@ -106,7 +107,7 @@ LError:
     }
 
 #endif
-
+#endif // ENABLE_GLOBALIZATION
     return fRet;
 }
 

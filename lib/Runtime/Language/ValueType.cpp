@@ -555,7 +555,7 @@ bool ValueType::IsLikelyArray() const
 
 bool ValueType::IsNotArray() const
 {
-    return IsNotObject() || IsObject() && GetObjectType() > ObjectType::Object && GetObjectType() != ObjectType::Array;
+    return IsNotObject() || (IsObject() && GetObjectType() > ObjectType::Object && GetObjectType() != ObjectType::Array);
 }
 
 bool ValueType::IsArrayOrObjectWithArray() const
@@ -572,7 +572,7 @@ bool ValueType::IsNotArrayOrObjectWithArray() const
 {
     return
         IsNotObject() ||
-        IsObject() && GetObjectType() != ObjectType::ObjectWithArray && GetObjectType() != ObjectType::Array;
+        (IsObject() && GetObjectType() != ObjectType::ObjectWithArray && GetObjectType() != ObjectType::Array);
 }
 
 bool ValueType::IsNativeArray() const
@@ -591,7 +591,7 @@ bool ValueType::IsNotNativeArray() const
         IsNotObject() ||
         (
             IsObject() &&
-            (GetObjectType() != ObjectType::ObjectWithArray && GetObjectType() != ObjectType::Array || HasVarElements())
+            ((GetObjectType() != ObjectType::ObjectWithArray && GetObjectType() != ObjectType::Array) || HasVarElements())
         );
 }
 
@@ -947,7 +947,7 @@ bool ValueType::IsSubsetOf(
         // type is considered to be a subset of the indefinite value type because neither will participate in type
         // specialization.
         if(other.IsUnknownNumber() &&
-            (isAggressiveIntTypeSpecEnabled && IsLikelyInt() || isFloatSpecEnabled && IsLikelyFloat()))
+            ((isAggressiveIntTypeSpecEnabled && IsLikelyInt()) || (isFloatSpecEnabled && IsLikelyFloat())))
         {
             return true;
         }
@@ -967,12 +967,12 @@ bool ValueType::IsSubsetOf(
         return
             (!_this.OneOn(Bits::Likely) || _other.OneOn(Bits::Likely)) &&
             (
-                (
+                ((
                     _this.IsTaggedInt() ||
-                    _this.IsLikelyTaggedInt() && !_other.IsTaggedInt() ||
-                    _this.IsLikelyInt() && !_other.IsLikelyTaggedInt()
-                ) && !_other.IsLikelyFloat() ||
-                _this.IsLikelyFloat() && !_other.IsLikelyInt() ||
+                    (_this.IsLikelyTaggedInt() && !_other.IsTaggedInt()) ||
+                    (_this.IsLikelyInt() && !_other.IsLikelyTaggedInt())
+                ) && !_other.IsLikelyFloat()) ||
+                (_this.IsLikelyFloat() && !_other.IsLikelyInt()) ||
                 _other.IsLikelyUnknownNumber()
             );
     }
@@ -983,7 +983,7 @@ bool ValueType::IsSubsetOf(
     if(OneOn(Bits::Object))
     {
         if(!other.OneOn(Bits::Object))
-            return other.OneOn(Bits::PrimitiveOrObject) || !other.IsDefinite() && other.CanMergeToObject();
+            return other.OneOn(Bits::PrimitiveOrObject) || (!other.IsDefinite() && other.CanMergeToObject());
     }
     else
     {
@@ -995,8 +995,8 @@ bool ValueType::IsSubsetOf(
         return true; // object types other than UninitializedObject are a subset of UninitializedObject regardless of the Likely bit
     if(GetObjectType() != other.GetObjectType())
         return false;
-    if(!OneOn(Bits::Likely) && other.OneOn(Bits::Likely) ||
-        other.GetObjectType() != ObjectType::ObjectWithArray && other.GetObjectType() != ObjectType::Array)
+    if((!OneOn(Bits::Likely) && other.OneOn(Bits::Likely)) ||
+        (other.GetObjectType() != ObjectType::ObjectWithArray && other.GetObjectType() != ObjectType::Array))
     {
         return true;
     }
@@ -1009,7 +1009,7 @@ bool ValueType::IsSubsetOf(
     return
         (HasNoMissingValues() || !other.HasNoMissingValues() || !isArrayMissingValueCheckHoistEnabled) &&
         (
-            (!HasNonInts() || other.HasNonInts()) && (!HasNonFloats() || other.HasNonFloats()) ||
+            ((!HasNonInts() || other.HasNonInts()) && (!HasNonFloats() || other.HasNonFloats())) ||
             !isNativeArrayEnabled
         );
 }
@@ -2169,13 +2169,13 @@ void ValueType::RunUnitTests()
                 {
                     Assert(isSubsetWithTypeSpecEnabled);
                 }
-                else if(!t0.IsDefinite() && t1.IsDefinite() || t0.GetObjectType() != t1.GetObjectType())
+                else if((!t0.IsDefinite() && t1.IsDefinite()) || t0.GetObjectType() != t1.GetObjectType())
                 {
                     Assert(!isSubsetWithTypeSpecEnabled);
                 }
                 else if(
-                    t0.IsDefinite() && !t1.IsDefinite() ||
-                    t0.GetObjectType() != ObjectType::ObjectWithArray && t0.GetObjectType() != ObjectType::Array)
+                    (t0.IsDefinite() && !t1.IsDefinite()) ||
+                    (t0.GetObjectType() != ObjectType::ObjectWithArray && t0.GetObjectType() != ObjectType::Array))
                 {
                     Assert(isSubsetWithTypeSpecEnabled);
                 }

@@ -24,14 +24,18 @@ namespace Js
         bool initializedCommonGlobObjects;
         HRESULT hrForCommonGlobObjectsInit;
 
+#ifdef ENABLE_INTL_OBJECT
         bool initializedDateTimeFormatObjects;
         HRESULT hrForDateTimeFormatObjectsInit;
 
         bool initializedNumberFormatObjects;
         HRESULT hrForNumberFormatObjectsInit;
+#endif
 
+#if ENABLE_UNICODE_API
         bool initializedCharClassifierObjects;
         HRESULT hrForCharClassifierObjectsInit;
+#endif
 
 #ifdef ENABLE_INTL_OBJECT
         // Common
@@ -63,12 +67,16 @@ namespace Js
         WindowsGlobalizationAdapter()
             : initializedCommonGlobObjects(false),
             hrForCommonGlobObjectsInit(S_OK),
+#ifdef ENABLE_INTL_OBJECT
             initializedDateTimeFormatObjects(false),
             hrForDateTimeFormatObjectsInit(S_OK),
             initializedNumberFormatObjects(false),
             hrForNumberFormatObjectsInit(S_OK),
+#endif
+#if ENABLE_UNICODE_API
             initializedCharClassifierObjects(false),
             hrForCharClassifierObjectsInit(S_OK),
+#endif
 #ifdef ENABLE_INTL_OBJECT
             languageFactory(nullptr),
             languageStatics(nullptr),
@@ -90,7 +98,9 @@ namespace Js
         HRESULT EnsureDateTimeFormatObjectsInitialized(DelayLoadWindowsGlobalization *library);
         HRESULT EnsureNumberFormatObjectsInitialized(DelayLoadWindowsGlobalization *library);
 #endif
+#if ENABLE_UNICODE_API
         HRESULT EnsureDataTextObjectsInitialized(DelayLoadWindowsGlobalization *library);
+#endif
 #ifdef ENABLE_INTL_OBJECT
         HRESULT CreateLanguage(_In_ ScriptContext* scriptContext, _In_z_ PCWSTR languageTag, Windows::Globalization::ILanguage** language);
         boolean IsWellFormedLanguageTag(_In_ ScriptContext* scriptContext, _In_z_ PCWSTR languageTag);
@@ -109,15 +119,20 @@ namespace Js
         void ResetTimeZoneFactoryObjects();
         void ResetDateTimeFormatFactoryObjects();
         void ResetNumberFormatFactoryObjects();
-        void ResetCharClassifierFactoryObjects();
 #endif // ENABLE_INTL_OBJECT
+#if ENABLE_UNICODE_API
+        // This is currently used only be the Platform Agnostic Layer
+        // TODO: Move the management of this interface to the Platform Agnostic Interface Layer
+        // TODO: Subsume the Windows Globalization Adapter into the Platform Agnostic Interface Layer
         Windows::Data::Text::IUnicodeCharactersStatics* GetUnicodeStatics()
         {
             return unicodeStatics;
         }
-
+#endif
+#ifdef ENABLE_INTL_OBJECT 
     private:
         HRESULT CreateTimeZoneOnCalendar(_In_ DelayLoadWindowsGlobalization *library, __out Windows::Globalization::ITimeZoneOnCalendar**  result);
+#endif
     };
 }
 #endif

@@ -20,8 +20,9 @@ namespace JsUtil
     class WeakReferenceDictionary: public BaseDictionary<TKey, RecyclerWeakReference<TValue>*, RecyclerNonLeafAllocator, SizePolicy, Comparer, WeakRefValueDictionaryEntry>,
                                    public IWeakReferenceDictionary
     {
+        typedef BaseDictionary<TKey, RecyclerWeakReference<TValue>*, RecyclerNonLeafAllocator, SizePolicy, Comparer, WeakRefValueDictionaryEntry> Base;
+        
     public:
-
         WeakReferenceDictionary(Recycler* recycler, int capacity = 0):
           BaseDictionary(recycler, capacity)
         {
@@ -37,8 +38,8 @@ namespace JsUtil
         }
 
     private:
-        using BaseDictionary::Clone;
-        using BaseDictionary::Copy;
+        using Base::Clone;
+        using Base::Copy;
 
         PREVENT_COPY(WeakReferenceDictionary);
     };

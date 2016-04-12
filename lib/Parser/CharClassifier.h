@@ -3,35 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-#ifdef NTBUILD
-#include "Windows.Globalization.h"
-#else
-#include "Windows.Data.Text.h"
-using namespace ABI;
-#endif
-
 
 
 //Helpers
 static inline BOOL FBigChar(codepoint_t ch) { return ch >= 128u; }
 static inline BOOL BoolFromDbl(double dbl) { return !Js::NumberUtilities::IsNan(dbl) && (0 != dbl); }
-
-enum CharTypeFlags : uint
-{
-    UnknownChar = 0x0,
-    IdChar = 0x01,
-    IdLeadChar = 0x02,
-    HexChar = 0x04,
-    DecimalChar = 0x08,
-    SpaceChar = 0x10,
-    LineFeedChar = 0x20,
-
-    LineCharGroup = SpaceChar | LineFeedChar,
-    LetterCharGroup = IdChar | IdLeadChar,
-    HexCharGroup = IdChar | IdLeadChar | HexChar,
-    DecimalCharGroup = IdChar | DecimalChar,
-
-};
 
 enum CharTypes
 {
@@ -130,29 +106,23 @@ namespace Js
     class CharClassifier
     {
     private:
-        Windows::Data::Text::IUnicodeCharactersStatics* winGlobCharApi;
+#if ENABLE_UNICODE_API
+        static bool BigCharIsWhitespaceDefault(codepoint_t ch, const CharClassifier *instance);
+        static bool BigCharIsIdStartDefault(codepoint_t ch, const CharClassifier *instance);
+        static bool BigCharIsIdContinueDefault(codepoint_t ch, const CharClassifier *instance);
+#endif
 
-        static BOOL BigCharIsWhitespaceDefault(codepoint_t ch, const CharClassifier *instance)
-        {
-            return (instance->getBigCharFlagsFunc(ch, instance) & CharTypeFlags::SpaceChar);
-        }
+        static bool BigCharIsWhitespaceES6(codepoint_t ch, const CharClassifier *instance);
+        static bool BigCharIsIdStartES6(codepoint_t codePoint, const CharClassifier *instance);
+        static bool BigCharIsIdContinueES6(codepoint_t codePoint, const CharClassifier *instance);
 
-        static BOOL BigCharIsIdStartDefault(codepoint_t ch, const CharClassifier *instance)
-        {
-            return (instance->getBigCharFlagsFunc(ch, instance) & CharTypeFlags::IdLeadChar);
-        }
-
-        static BOOL BigCharIsIdContinueDefault(codepoint_t ch, const CharClassifier *instance)
-        {
-            return (instance->getBigCharFlagsFunc(ch, instance) & CharTypeFlags::IdChar);
-        }
-
-        static BOOL BigCharIsWhitespaceES6(codepoint_t ch, const CharClassifier *instance);
-        static BOOL BigCharIsIdStartES6(codepoint_t codePoint, const CharClassifier *instance);
-        static BOOL BigCharIsIdContinueES6(codepoint_t codePoint, const CharClassifier *instance);
-
+#if ENABLE_UNICODE_API
         static CharTypes GetBigCharTypeES6(codepoint_t ch, const CharClassifier *instance);
-        static CharTypeFlags GetBigCharFlagsES6(codepoint_t ch, const CharClassifier *instance);
+        static PlatformAgnostic::UnicodeText::CharacterTypeFlags GetBigCharFlagsES6(codepoint_t ch, const CharClassifier *instance);
+
+        static CharTypes GetBigCharTypeES5(codepoint_t ch, const CharClassifier *instance);
+        static PlatformAgnostic::UnicodeText::CharacterTypeFlags GetBigCharFlagsES5(codepoint_t ch, const CharClassifier *instance);
+#endif
 
         static const OLECHAR* SkipWhiteSpaceSurrogate(LPCOLESTR psz, const CharClassifier *instance);
         static const OLECHAR* SkipWhiteSpaceSurrogateStartEnd(_In_reads_(pStrEnd - pStr) LPCOLESTR pStr, _In_ LPCOLESTR pStrEnd, const CharClassifier *instance);
@@ -164,16 +134,14 @@ namespace Js
         static const OLECHAR* SkipIdentifierNonSurrogate(LPCOLESTR psz, const CharClassifier *instance);
         static const LPCUTF8 SkipIdentifierNonSurrogateStartEnd(LPCUTF8 psz, LPCUTF8 end, const CharClassifier *instance);
 
-
-
-        Windows::Data::Text::UnicodeGeneralCategory GetUnicodeCategoryFor(codepoint_t ch) const;
-
+#if ENABLE_UNICODE_API
         CharTypes (*getBigCharTypeFunc)(codepoint_t ch, const CharClassifier *instance);
-        CharTypeFlags (*getBigCharFlagsFunc)(codepoint_t ch, const CharClassifier *instance);
+        PlatformAgnostic::UnicodeText::CharacterTypeFlags (*getBigCharFlagsFunc)(codepoint_t ch, const CharClassifier *instance);
 
-        BOOL (*bigCharIsWhitespaceFunc)(codepoint_t ch, const CharClassifier *instance);
-        BOOL (*bigCharIsIdStartFunc)(codepoint_t ch, const CharClassifier *instance);
-        BOOL (*bigCharIsIdContinueFunc)(codepoint_t ch, const CharClassifier *instance);
+        bool (*bigCharIsWhitespaceFunc)(codepoint_t ch, const CharClassifier *instance);
+        bool (*bigCharIsIdStartFunc)(codepoint_t ch, const CharClassifier *instance);
+        bool (*bigCharIsIdContinueFunc)(codepoint_t ch, const CharClassifier *instance);
+#endif
 
         const OLECHAR* (*skipWhiteSpaceFunc)(LPCOLESTR psz, const CharClassifier* instance);
         const OLECHAR* (*skipWhiteSpaceStartEndFunc)(LPCOLESTR pStr, LPCOLESTR pStrEnd, const CharClassifier* instance);
@@ -187,30 +155,33 @@ namespace Js
     public:
 
         CharTypes GetCharType(codepoint_t ch) const;
-        CharTypeFlags GetCharFlags(codepoint_t ch) const;
+
+#if ENABLE_UNICODE_API
+        PlatformAgnostic::UnicodeText::CharacterTypeFlags GetCharFlags(codepoint_t ch) const;
+#endif
 
         template <bool isBigChar>
-        BOOL IsWhiteSpaceFast(codepoint_t ch) const;
+        bool IsWhiteSpaceFast(codepoint_t ch) const;
 
-        BOOL IsWhiteSpace(codepoint_t ch) const
+        bool IsWhiteSpace(codepoint_t ch) const
         {
             return FBigChar(ch) ? IsWhiteSpaceFast<true>(ch) : IsWhiteSpaceFast<false>(ch);
         }
 
-        BOOL IsBiDirectionalChar(codepoint_t ch) const;
+        bool IsBiDirectionalChar(codepoint_t ch) const;
 
         template<bool isBigChar>
-        BOOL IsIdStartFast(codepoint_t ch) const;
+        bool IsIdStartFast(codepoint_t ch) const;
 
-        BOOL IsIdStart(codepoint_t ch) const
+        bool IsIdStart(codepoint_t ch) const
         {
             return FBigChar(ch) ? IsIdStartFast<true>(ch) : IsIdStartFast<false>(ch);
         }
 
         template<bool isBigChar>
-        BOOL IsIdContinueFast(codepoint_t ch) const;
+        bool IsIdContinueFast(codepoint_t ch) const;
 
-        BOOL IsIdContinue(codepoint_t ch) const
+        bool IsIdContinue(codepoint_t ch) const
         {
             return FBigChar(ch) ? IsIdContinueFast<true>(ch) : IsIdContinueFast<false>(ch);
         }

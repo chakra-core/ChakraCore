@@ -223,13 +223,13 @@ namespace Js
     }
 
     template <class Lib>
-    __inline static typename Lib::LibStringType JavascriptNumber::ToStringNan(const Lib& lib)
+    __inline typename Lib::LibStringType JavascriptNumber::ToStringNan(const Lib& lib)
     {
         return lib.CreateStringFromCppLiteral(_u("NaN"));
     }
 
     template <class Lib>
-    __inline static typename Lib::LibStringType JavascriptNumber::ToStringNanOrInfinite(double value, const Lib& lib)
+    __inline typename Lib::LibStringType JavascriptNumber::ToStringNanOrInfinite(double value, const Lib& lib)
     {
         if(!NumberUtilities::IsFinite(value))
         {

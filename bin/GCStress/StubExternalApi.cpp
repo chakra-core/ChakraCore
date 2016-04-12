@@ -23,7 +23,7 @@ __forceinline void js_wmemcpy_s(__ecount(sizeInWords) char16 *dst, size_t sizeIn
     Assert(count <= sizeInWords && count <= SIZE_MAX/sizeof(char16));
     if(!(count <= sizeInWords && count <= SIZE_MAX/sizeof(char16)))
     {
-        ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, 2);
+        ReportFatalException((ULONG_PTR) NULL, E_FAIL, Fatal_Internal_Error, 2);
     }
     else
     {
@@ -77,7 +77,7 @@ bool JsUtil::ExternalApi::RaiseOnIntOverflow()
     return false;
 }
 
-LPWSTR JsUtil::ExternalApi::GetFeatureKeyName()
+LPCWSTR JsUtil::ExternalApi::GetFeatureKeyName()
 {
     return  _u("Software\\Microsoft\\Internet Explorer\\ChakraRecycler");
 }

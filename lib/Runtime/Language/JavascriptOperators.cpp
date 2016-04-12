@@ -20,7 +20,7 @@
 #include "Library/ES5Array.h"
 
 #ifndef SCRIPT_DIRECT_TYPE
-typedef enum JsNativeValueType
+typedef enum JsNativeValueType: int
 {
     JsInt8Type,
     JsUint8Type,
@@ -6793,7 +6793,7 @@ CommonNumber:
 
     Var* JavascriptOperators::OP_NewScopeSlotsWithoutPropIds(unsigned int count, int scopeIndex, ScriptContext *scriptContext, FunctionBody *functionBody)
     {
-        DebuggerScope* scope = Constants::FunctionBodyUnavailable;
+        DebuggerScope* scope = reinterpret_cast<DebuggerScope*>(Constants::FunctionBodyUnavailable);
         if (scopeIndex != DebuggerScope::InvalidScopeIndex)
         {
             AssertMsg(functionBody->GetScopeObjectChain(), "A scope chain should always be created when there are new scope slots for blocks.");

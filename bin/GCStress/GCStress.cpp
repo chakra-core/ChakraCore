@@ -5,6 +5,11 @@
 #include "stdafx.h"
 #include "GCStress.h"
 
+// For converting from ANSI to UTF16
+#ifndef _WIN32
+#include <src/include/pal/utils.h>
+#endif
+
 void DoVerify(bool value, const char * expr, const char * file, int line)
 {
     if (!value)
@@ -20,9 +25,16 @@ static const unsigned int stackRootCount = 50;
 static const unsigned int globalRootCount = 50;
 static const unsigned int implicitRootCount = 50;
 
+#ifdef _WIN32
 static const unsigned int initializeCount = 1000000;
-
 static const unsigned int operationsPerHeapWalk = 1000000;
+#else
+// xplat-todo: Increase this number to match the windows numbers
+// Currently, the windows numbers seem to be really slow on linux
+// Need to investigate what operation is so much slower on linux
+static const unsigned int initializeCount = 10000;
+static const unsigned int operationsPerHeapWalk = 100000;
+#endif
 
 // Some global variables
 
@@ -231,12 +243,18 @@ void SimpleRecyclerTest()
     BuildOperationTable();
 
     // Construct Recycler instance and use it
+#if ENABLE_BACKGROUND_PAGE_FREEING
     PageAllocator::BackgroundPageQueue backgroundPageQueue;
+#endif
     IdleDecommitPageAllocator pageAllocator(nullptr, 
         PageAllocatorType::PageAllocatorType_Thread,
         Js::Configuration::Global.flags,
         0 /* maxFreePageCount */, PageAllocator::DefaultMaxFreePageCount /* maxIdleFreePageCount */,
-        false /* zero pages */, &backgroundPageQueue);
+        false /* zero pages */
+#if ENABLE_BACKGROUND_PAGE_FREEING
+        , &backgroundPageQueue
+#endif
+        );
 
     try
     {
@@ -396,4 +414,28 @@ int __cdecl wmain(int argc, __in_ecount(argc) WCHAR* argv[])
     return 0;
 }
 
+#ifndef _WIN32
+int main(int argc, char** argv)
+{
+    // Ignoring mem-alloc failures here as this is
+    // simply a test tool. We can add more error checking
+    // here later if desired.
+    char16** args = new char16*[argc];
+    for (int i = 0; i < argc; i++)
+    {
+        args[i] = UTIL_MBToWC_Alloc(argv[i], -1);
+    }
+    
+    int ret = wmain(argc, args);
+
+    for (int i = 0; i < argc; i++)
+    {
+        free(args[i]);
+    }
+    delete[] args;
+    
+    PAL_Shutdown();
+    return ret;
+}
+#endif
 //////////////////// End program entrypoint ////////////////////

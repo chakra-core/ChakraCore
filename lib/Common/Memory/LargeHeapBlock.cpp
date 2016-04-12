@@ -194,7 +194,7 @@ LargeHeapBlock::~LargeHeapBlock()
         "ReleasePages needs to be called before delete");
     RECYCLER_PERF_COUNTER_DEC(LargeHeapBlockCount);
 
-#ifdef RECYCLER_PAGE_HEAP
+#if defined(RECYCLER_PAGE_HEAP) && defined(STACK_BACK_TRACE)
     if (this->pageHeapAllocStack != nullptr)
     {
         this->pageHeapAllocStack->Delete(&NoCheckHeapAllocator::Instance);
@@ -461,7 +461,7 @@ LargeHeapBlock::AllocFreeListEntry(size_t size, ObjectInfoBits attributes, Large
     header->objectIndex = headerIndex;
     header->objectSize = originalSize;
     header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & StoredObjectInfoBitMask));
-    header->markOnOOMRescan = nullptr;
+    header->markOnOOMRescan = false;
     header->SetNext(this->heapInfo->recycler->Cookie, nullptr);
 
     HeaderList()[headerIndex] = header;

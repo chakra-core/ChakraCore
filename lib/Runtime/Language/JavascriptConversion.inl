@@ -5,7 +5,9 @@
 #pragma once
 
 #if defined(_M_IX86) || defined(_M_X64)
+#ifdef _WIN32
 #include <emmintrin.h>
+#endif
 #endif
 
 namespace Js {

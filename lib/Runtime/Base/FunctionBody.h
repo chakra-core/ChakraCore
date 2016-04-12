@@ -464,7 +464,7 @@ namespace Js
         typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
         InlineeFrameMap*  inlineeFrameMap;
 #endif
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace*    cleanupStack;
 #endif
 
@@ -517,7 +517,7 @@ namespace Js
 
     protected:
         EntryPointInfo(void* address, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
-            ProxyEntryPointInfo(address, context), 
+            ProxyEntryPointInfo(address, context),
 #if ENABLE_NATIVE_CODEGEN
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
@@ -526,8 +526,10 @@ namespace Js
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
 #endif
             library(library), codeSize(0), nativeAddress(nullptr), isAsmJsFunction(false), validationCookie(validationCookie)
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
             , cleanupStack(nullptr)
+#endif
+#if ENABLE_DEBUG_CONFIG_OPTIONS
             , cleanupReason(NotCleanedUp)
 #endif
 #if DBG_DUMP | defined(VTUNE_PROFILING)
@@ -574,7 +576,7 @@ namespace Js
 
         void Cleanup(bool isShutdown, bool captureCleanupStack);
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         void CaptureCleanupStackTrace();
 #endif
 
@@ -875,10 +877,10 @@ namespace Js
 #endif
 #if DBG_DUMP
      public:
-#else if defined(VTUNE_PROFILING)
+#elif defined(VTUNE_PROFILING)
      private:
 #endif
-#if DBG_DUMP | defined(VTUNE_PROFILING)
+#if DBG_DUMP || defined(VTUNE_PROFILING)
          // NativeOffsetMap is public for DBG_DUMP, private for VTUNE_PROFILING
          struct NativeOffsetMap
          {
@@ -1483,7 +1485,7 @@ namespace Js
         void SetDeferredParsingEntryPoint();
 
         void SetEntryPoint(ProxyEntryPointInfo* entryPoint, Js::JavascriptMethod address) {
-            entryPoint->address = address;
+            entryPoint->address = (void*)address;
         }
 
         bool IsDynamicScript() const;
@@ -2021,7 +2023,7 @@ namespace Js
 #endif
         WriteBarrierPtr<FunctionEntryPointInfo> defaultFunctionEntryPointInfo;
 
-#if ENABLE_PROFILE_INFO
+#if ENABLE_PROFILE_INFO 
         WriteBarrierPtr<DynamicProfileInfo> dynamicProfileInfo;
 #endif
 
@@ -3103,7 +3105,7 @@ namespace Js
     struct ScopeSlots
     {
     public:
-        static uint const MaxEncodedSlotCount = USHORT_MAX;
+        static uint const MaxEncodedSlotCount = Constants::UShortMaxValue;
 
         // The slot index is at the same location as the vtable, so that we can distinguish between scope slot and frame display
         static uint const EncodedSlotCountSlotIndex = 0;

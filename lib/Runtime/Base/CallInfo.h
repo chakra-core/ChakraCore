@@ -18,6 +18,7 @@ namespace Js
         CallFlags_NewTarget = 0x40,
         CallFlags_InternalFrame = 0x80
     };
+    ENUM_CLASS_HELPERS(CallFlags, unsigned)
 
     struct CallInfo
     {

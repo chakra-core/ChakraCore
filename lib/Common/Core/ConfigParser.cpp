@@ -3,10 +3,14 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
+
+#ifndef USING_PAL_STDLIB
 #include <io.h>
-#include <fcntl.h>
 #include <share.h>
+#include <fcntl.h>
 #include <strsafe.h>
+#endif
+
 #include "Memory/MemoryLogger.h"
 #include "Memory/ForcedMemoryConstraints.h"
 #include "Core/ICustomConfigFlags.h"
@@ -23,7 +27,7 @@ class ArenaHost
     ArenaAllocator m_allocator;
 
 public:
-    ArenaHost(__in_z char16* arenaName) :
+    ArenaHost(__in_z const char16* arenaName) :
         m_allocationPolicyManager(/* needConcurrencySupport = */ true),
         m_pageAllocator(&m_allocationPolicyManager, Js::Configuration::Global.flags),
         m_allocator(arenaName, &m_pageAllocator, Js::Throw::OutOfMemory)
@@ -57,6 +61,8 @@ void ConfigParser::ParseOnModuleLoad(CmdLineArgsParser& parser, HANDLE hmod)
 
 void ConfigParser::ParseRegistry(CmdLineArgsParser &parser)
 {
+    // xplat-todo: registry?
+#ifdef _WIN32
     HKEY hk;
     bool includeUserHive = true;
 
@@ -81,10 +87,13 @@ void ConfigParser::ParseRegistry(CmdLineArgsParser &parser)
         ParseRegistryKey(hk, parser);
         RegCloseKey(hk);
     }
+#endif // _WIN32
 }
 
 void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
 {
+    // xplat-todo: registry?
+#ifdef _WIN32
     DWORD dwSize;
     DWORD dwValue;
 
@@ -295,12 +304,13 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
             Js::Configuration::Global.flags.Asmjs = true;
         }
     }
+#endif // _WIN32
 }
 
 
 void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
 {
-#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) || defined(PARSE_CONFIG_FILE)
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && CONFIG_PARSE_CONFIG_FILE
     Assert(!_hasReadConfig);
     _hasReadConfig = true;
 
@@ -352,12 +362,18 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
 
 void ConfigParser::ProcessConfiguration(HANDLE hmod)
 {
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     bool hasOutput = false;
     char16 modulename[_MAX_PATH];
 
     GetModuleFileName((HMODULE)hmod, modulename, _MAX_PATH);
 
+    // Win32 specific console creation code
+    // xplat-todo: Consider having this mechanism available on other
+    // platforms
+    // Not a pressing need since ChakraCore runs only in consoles by
+    // default so we don't need to allocate a second console for this
+#if CONFIG_CONSOLE_AVAILABLE
     if (Js::Configuration::Global.flags.Console)
     {
         int fd;
@@ -393,6 +409,7 @@ void ConfigParser::ProcessConfiguration(HANDLE hmod)
             }
         }
     }
+#endif
 
     if (Js::Configuration::Global.flags.IsEnabled(Js::OutputFileFlag)
         && Js::Configuration::Global.flags.OutputFile != nullptr)
@@ -483,7 +500,7 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
         bufferLen = bufferLen - pidStartPosition;
 
         // Copy the PID
-        _ultow_s(GetCurrentProcessId(), pDest, /*bufferSize=*/_MAX_PATH - pidStartPosition, /*radix=*/10);
+        _itow_s(GetCurrentProcessId(), pDest, /*bufferSize=*/_MAX_PATH - pidStartPosition, /*radix=*/10);
 #pragma prefast(suppress: 26014, "ultow string length is smaller than 256")
         pDest += wcslen(pDest);
         bufferLen = bufferLen - wcslen(pDest);
@@ -499,9 +516,12 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
     char16 moduleName[_MAX_PATH];
     GetModuleFileName(0, moduleName, _MAX_PATH);
     _wsplitpath_s(moduleName, nullptr, 0, nullptr, 0, fileName, _MAX_PATH, nullptr, 0);
-    if (_wcsicmp(fileName, _u("WWAHost")) == 0 || _wcsicmp(fileName, _u("ByteCodeGenerator")) == 0 ||
-        _wcsicmp(fileName, _u("spartan")) == 0 || _wcsicmp(fileName, _u("spartan_edge")) == 0 ||
-        _wcsicmp(fileName, _u("MicrosoftEdge")) == 0 || _wcsicmp(fileName, _u("MicrosoftEdgeCP")) == 0)
+    if (_wcsicmp(fileName, _u("WWAHost")) == 0 ||
+        _wcsicmp(fileName, _u("ByteCodeGenerator")) == 0 ||
+        _wcsicmp(fileName, _u("spartan")) == 0 ||
+        _wcsicmp(fileName, _u("spartan_edge")) == 0 ||
+        _wcsicmp(fileName, _u("MicrosoftEdge")) == 0 ||
+        _wcsicmp(fileName, _u("MicrosoftEdgeCP")) == 0)
     {
 
         // we need to output to %temp% directory in wwa. we don't have permission otherwise.

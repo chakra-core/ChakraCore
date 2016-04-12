@@ -54,6 +54,7 @@ HeapBlock::SetNeedOOMRescan(Recycler * recycler)
     recycler->SetNeedOOMRescan();
 }
 
+#ifdef STACK_BACK_TRACE
 #ifdef RECYCLER_PAGE_HEAP
 void
 HeapBlock::CapturePageHeapAllocStack()
@@ -99,6 +100,7 @@ HeapBlock::CapturePageHeapFreeStack()
         }
     }
 }
+#endif
 #endif
 
 //========================================================================================================
@@ -181,6 +183,7 @@ SmallHeapBlockT<TBlockAttributes>::~SmallHeapBlockT()
 #endif
 
 #ifdef RECYCLER_PAGE_HEAP
+#ifdef STACK_BACK_TRACE
     if (this->pageHeapAllocStack != nullptr)
     {
         this->pageHeapAllocStack->Delete(&NoCheckHeapAllocator::Instance);
@@ -194,6 +197,7 @@ SmallHeapBlockT<TBlockAttributes>::~SmallHeapBlockT()
         this->pageHeapFreeStack->Delete(&NoCheckHeapAllocator::Instance);
         this->pageHeapFreeStack = nullptr;
     }
+#endif
 #endif
 }
 
@@ -322,6 +326,7 @@ SmallHeapBlockT<TBlockAttributes>::Init(ushort objectSize, ushort objectCount)
     Assert(!this->isIntegratedBlock);
 
 #ifdef RECYCLER_PAGE_HEAP
+#ifdef STACK_BACK_TRACE
     if (this->pageHeapAllocStack != nullptr)
     {
         this->pageHeapAllocStack->Delete(&NoCheckHeapAllocator::Instance);
@@ -335,6 +340,7 @@ SmallHeapBlockT<TBlockAttributes>::Init(ushort objectSize, ushort objectCount)
         this->pageHeapFreeStack->Delete(&NoCheckHeapAllocator::Instance);
         this->pageHeapFreeStack = nullptr;
     }
+#endif
 #endif
 }
 
@@ -539,6 +545,7 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
 
 }
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
 template <class TBlockAttributes>
 template<bool pageheap>
 void
@@ -571,6 +578,7 @@ SmallHeapBlockT<TBlockAttributes>::BackgroundReleasePagesSweep(Recycler* recycle
     this->segment = nullptr;
     this->Reset();
 }
+#endif
 
 template <class TBlockAttributes>
 void
@@ -640,6 +648,7 @@ SmallHeapBlockT<TBlockAttributes>::Reset()
 #endif
 
 #ifdef RECYCLER_PAGE_HEAP
+#ifdef STACK_BACK_TRACE
     if (this->pageHeapFreeStack != nullptr)
     {
         this->pageHeapFreeStack->Delete(&NoCheckHeapAllocator::Instance);
@@ -651,7 +660,7 @@ SmallHeapBlockT<TBlockAttributes>::Reset()
         this->pageHeapAllocStack->Delete(&NoCheckHeapAllocator::Instance);
         this->pageHeapAllocStack = nullptr;
     }
-
+#endif
 #endif
 
     // There is no page associated with this heap block,
@@ -862,7 +871,7 @@ template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::VerifyMarkBitVector()
 {
-    this->GetRecycler()->heapBlockMap.VerifyMarkCountForPages<TBlockAttributes::BitVectorCount>(this->address, TBlockAttributes::PageCount);
+    this->GetRecycler()->heapBlockMap.template VerifyMarkCountForPages<TBlockAttributes::BitVectorCount>(this->address, TBlockAttributes::PageCount);
 }
 
 template <class TBlockAttributes>
@@ -2228,9 +2237,12 @@ SmallHeapBlockT<TBlockAttributes>::IsWithBarrier() const
 }
 #endif
 
+namespace Memory
+{
 // Instantiate the template
 template class SmallHeapBlockT<SmallAllocationBlockAttributes>;
 template class SmallHeapBlockT<MediumAllocationBlockAttributes>;
+};
 
 #define TBlockTypeAttributes SmallAllocationBlockAttributes
 #include "SmallBlockDeclarations.inl"

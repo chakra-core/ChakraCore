@@ -146,11 +146,12 @@ public:
         : byteCount(byteCount), pv(pv)
     { }
 };
+} // namespace Js
 
 template<>
-struct DefaultComparer<ByteBuffer*>
+struct DefaultComparer<Js::ByteBuffer*>
 {
-    static bool Equals(ByteBuffer const * str1, ByteBuffer const * str2)
+    static bool Equals(Js::ByteBuffer const * str1, Js::ByteBuffer const * str2)
     {
         if (str1->byteCount != str2->byteCount)
         {
@@ -159,12 +160,14 @@ struct DefaultComparer<ByteBuffer*>
         return memcmp(str1->pv, str2->pv, str1->byteCount)==0;
     }
 
-    static hash_t GetHashCode(ByteBuffer const * str)
+    static hash_t GetHashCode(Js::ByteBuffer const * str)
     {
         return JsUtil::CharacterBuffer<char>::StaticGetHashCode(str->s8, str->byteCount);
     }
 };
 
+namespace Js
+{
 struct IndexEntry
 {
     BufferBuilderByte* isPropertyRecord;
@@ -1038,7 +1041,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_3);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Bool8x16_1);
-                
+
                 DEFAULT_LAYOUT_WITH_ONEBYTE(AsmSimdTypedArr);
 
 
@@ -1954,7 +1957,7 @@ public:
     }
 
     template <typename TStructType>
-    uint32 PrependStruct(BufferBuilderList & builder, LPWSTR clue, TStructType * value)
+    uint32 PrependStruct(BufferBuilderList & builder, LPCWSTR clue, TStructType * value)
     {
         auto entry = Anew(alloc, ConstantSizedBufferBuilderOf<TStructType>, clue, *value);
         builder.list = builder.list->Prepend(entry, alloc);
@@ -4348,4 +4351,4 @@ SerializedFuncInfoArray::SerializedFuncInfoArray( uint offset, int count ) :
 
 }
 
-}
+} // namespace Js

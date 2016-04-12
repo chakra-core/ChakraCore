@@ -6,6 +6,7 @@
 #include "Debug/DiagProbe.h"
 #include "Debug/BreakpointProbe.h"
 #include "Debug/DebugDocument.h"
+#include "Debug/DebugManager.h"
 
 namespace Js
 {
@@ -411,6 +412,7 @@ namespace Js
         }
     }
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
     bool Utf8SourceInfo::GetDebugDocumentName(BSTR * sourceName)
     {
         if (this->HasDebugDocument() && this->GetDebugDocument()->HasDocumentText())
@@ -424,4 +426,6 @@ namespace Js
         }
         return false;
     }
+#endif
+
 }

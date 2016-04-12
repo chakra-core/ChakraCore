@@ -198,7 +198,7 @@ RecyclerSweep::QueueEmptyHeapBlock(HeapBucketT<TBlockType> const *heapBucket, TB
 {
     auto& bucketData = this->GetBucketData(heapBucket);
     Assert(heapBlock->heapBucket == heapBucket);
-    heapBlock->BackgroundReleasePagesSweep<pageheap>(recycler);
+    heapBlock->template BackgroundReleasePagesSweep<pageheap>(recycler);
     TBlockType * list = bucketData.pendingEmptyBlockList;
     if (list == nullptr)
     {

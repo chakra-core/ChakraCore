@@ -12,7 +12,13 @@
 // AutoDebug functions that are only available in DEBUG builds
 _declspec(selectany) int AssertCount = 0;
 _declspec(selectany) int AssertsToConsole = false;
+
+#if _WIN32
 _declspec(thread, selectany) int IsInAssert = false;
+#else
+// xplat-todo: This is wrong but unblocking linux for now
+_declspec(selectany) int IsInAssert = false;
+#endif
 
 #if !defined(USED_IN_STATIC_LIB)
 #define REPORT_ASSERT(f, comment) Js::Throw::ReportAssert(__FILE__, __LINE__, STRINGIZE((f)), comment)
@@ -37,9 +43,9 @@ _declspec(thread, selectany) int IsInAssert = false;
             AssertCount++; \
             LOG_ASSERT(); \
             IsInAssert = TRUE; \
-            if (!REPORT_ASSERT(f, comment)) \
+            if (!REPORT_ASSERT(f, comment))      \
             { \
-                RAISE_ASSERTION(comment); \
+                RAISE_ASSERTION(comment);        \
             } \
             IsInAssert = FALSE; \
             __analysis_assume(false); \

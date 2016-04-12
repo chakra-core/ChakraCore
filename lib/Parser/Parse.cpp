@@ -1251,10 +1251,10 @@ ParseNodePtr Parser::CreateProgNodeWithScanner(bool isModuleSource)
     {
         pnodeProg = CreateNodeWithScanner<knopModule>();
 
-        // knopModule is not actually handled anywhere since we would need to handle it everywhere we could 
+        // knopModule is not actually handled anywhere since we would need to handle it everywhere we could
         // have knopProg and it would be treated exactly the same except for import/export statements.
         // We are only using it as a way to get the correct size for PnModule.
-        // Consider: Should we add a flag to PnProg which is false but set to true in PnModule? 
+        // Consider: Should we add a flag to PnProg which is false but set to true in PnModule?
         //           If we do, it can't be a virtual method since the parse nodes are all in a union.
         pnodeProg->nop = knopProg;
     }
@@ -1372,7 +1372,7 @@ ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr localName)
 {
     ParseNodePtr declNode = CreateBlockScopedDeclNode(localName, knopConstDecl);
     Symbol* sym = declNode->sxVar.sym;
-    
+
     sym->SetIsModuleExportStorage(true);
     sym->SetIsModuleImport(true);
 
@@ -1983,7 +1983,7 @@ void Parser::ReduceDeferredScriptLength(size_t chars)
     // and see if this puts us under the deferral threshold.
     if ((m_grfscr & fscrDeferFncParse) &&
         (
-            PHASE_OFF1(Js::DeferEventHandlersPhase) || 
+            PHASE_OFF1(Js::DeferEventHandlersPhase) ||
             (m_grfscr & fscrGlobalCode)
         )
     )
@@ -2130,11 +2130,11 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
         }
         else if (!isExportClause && firstToken != tkID)
         {
-            // If we are parsing an import statement and this ImportSpecifier clause did not have 
+            // If we are parsing an import statement and this ImportSpecifier clause did not have
             // 'as ImportedBinding' at the end of it, identifierName must be a BindingIdentifier.
             Error(ERRsyntax);
         }
-        
+
         if (m_token.tk == tkComma)
         {
             // Consume a trailing comma
@@ -2311,14 +2311,14 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
         if (buildAST)
         {
             IdentPtr localName = m_token.GetIdentifier(m_phtbl);
-            IdentPtr importName = wellKnownPropertyPids.default;
+            IdentPtr importName = wellKnownPropertyPids._default;
 
             CreateModuleImportDeclNode(localName);
             AddModuleImportOrExportEntry(importEntryList, importName, localName, nullptr, nullptr);
         }
-        
+
         break;
-    
+
     case tkLCurly:
         // This begins a list of named imports.
         ParseNamedImportOrExportClause<buildAST>(importEntryList, false);
@@ -2438,7 +2438,7 @@ ParseNodePtr Parser::ParseImportDeclaration()
     return nullptr;
 }
 
-template<bool buildAST> 
+template<bool buildAST>
 IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
 {
     IdentPtr moduleSpecifier = nullptr;
@@ -2465,7 +2465,7 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
     return moduleSpecifier;
 }
 
-template<bool buildAST> 
+template<bool buildAST>
 ParseNodePtr Parser::ParseDefaultExportClause()
 {
     Assert(m_token.tk == tkDEFAULT);
@@ -2473,7 +2473,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
     m_pscan->Scan();
     ParseNodePtr pnode = nullptr;
     ushort flags = fFncNoFlgs;
-    
+
     switch (m_token.tk)
     {
     case tkCLASS:
@@ -2484,8 +2484,8 @@ ParseNodePtr Parser::ParseDefaultExportClause()
             }
 
             // Before we parse the class itself we need to know if the class has an identifier name.
-            // If it does, we'll treat this class as an ordinary class declaration which will bind 
-            // it to that name. Otherwise the class should parse as a nameless class expression and 
+            // If it does, we'll treat this class as an ordinary class declaration which will bind
+            // it to that name. Otherwise the class should parse as a nameless class expression and
             // bind only to the export binding.
             BOOL classHasName = false;
             RestorePoint parsedClass;
@@ -2511,7 +2511,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
             break;
         }
     case tkID:
-        // If we parsed an async token, it could either modify the next token (if it is a 
+        // If we parsed an async token, it could either modify the next token (if it is a
         // function token) or it could be an identifier (let async = 0; export default async;).
         // To handle both cases, when we parse an async token we need to keep the parser state
         // and rewind if the next token is not function.
@@ -2522,12 +2522,12 @@ ParseNodePtr Parser::ParseDefaultExportClause()
             m_pscan->Scan();
             if (m_token.tk == tkFUNCTION)
             {
-                // Token after async is function, consume the async token and continue to parse the 
+                // Token after async is function, consume the async token and continue to parse the
                 // function as an async function.
                 flags |= fFncAsync;
                 goto LFunction;
             }
-            // Token after async is not function, no idea what the async token is supposed to mean 
+            // Token after async is not function, no idea what the async token is supposed to mean
             // so rewind and let the default case handle it.
             m_pscan->SeekTo(parsedAsync);
         }
@@ -2536,8 +2536,8 @@ ParseNodePtr Parser::ParseDefaultExportClause()
     case tkFUNCTION:
         {
 LFunction:
-            // We just parsed a function token but we need to figure out if the function 
-            // has an identifier name or not before we call the helper. 
+            // We just parsed a function token but we need to figure out if the function
+            // has an identifier name or not before we call the helper.
             RestorePoint parsedFunction;
             m_pscan->Capture(&parsedFunction);
             m_pscan->Scan();
@@ -2598,7 +2598,7 @@ LDefault:
         }
     }
 
-    IdentPtr exportName = wellKnownPropertyPids.default;
+    IdentPtr exportName = wellKnownPropertyPids._default;
     IdentPtr localName = wellKnownPropertyPids._starDefaultStar;
     AddModuleImportOrExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, exportName, nullptr);
 
@@ -2694,7 +2694,7 @@ ParseNodePtr Parser::ParseExportDeclaration()
             }
             if (wellKnownPropertyPids.async == pid && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
             {
-                // In module export statements, async token is only valid if it's followed by function. 
+                // In module export statements, async token is only valid if it's followed by function.
                 // We need to check here because ParseStatement would think 'async = 20' is a var decl.
                 RestorePoint parsedAsync;
                 m_pscan->Capture(&parsedAsync);
@@ -2763,7 +2763,7 @@ ParseFunctionDecl:
             }
         }
         break;
-        
+
     case tkDEFAULT:
         {
             pnode = ParseDefaultExportClause<buildAST>();
@@ -4797,12 +4797,12 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     pstmtSave = m_pstmtCur;
     SetCurrentStatement(nullptr);
 
-    // Function definition is inside the parent function's parameter scope    
+    // Function definition is inside the parent function's parameter scope
     bool isEnclosedInParamScope = this->m_currentScope->GetScopeType() == ScopeType_Parameter;
 
     if (this->m_currentScope->GetScopeType() == ScopeType_FuncExpr || this->m_currentScope->GetScopeType() == ScopeType_Block)
     {
-        // Or this is a function expression or class enclosed in a parameter scope  
+        // Or this is a function expression or class enclosed in a parameter scope
         isEnclosedInParamScope = this->m_currentScope->GetEnclosingScope() && this->m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter;
     }
 
@@ -7240,7 +7240,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
 
         // We are not able to pass more than a ushort worth of arguments to the tag
         // so use that as a logical limit on the number of string constant pieces.
-        if (stringConstantCount >= USHORT_MAX)
+        if (stringConstantCount >= USHRT_MAX)
         {
             Error(ERRnoMemory);
         }
@@ -7800,7 +7800,7 @@ LPCOLESTR Parser::AppendNameHints(LPCOLESTR left, IdentPtr right, ulong *pNameLe
 
     Assert(leftLen <= ULONG_MAX); // name hints should not exceed ULONG_MAX characters
 
-    if (left == nullptr || leftLen == 0 && !wrapInBrackets)
+    if (left == nullptr || (leftLen == 0 && !wrapInBrackets))
     {
         if (right != nullptr)
         {
@@ -10131,7 +10131,7 @@ LNeedTerminator:
             pCatch->sxCatch.pnodeNext = nullptr;
 
             // create a fake name for the catch var.
-            WCHAR *uniqueNameStr = _u("__ehobj");
+            const WCHAR *uniqueNameStr = _u("__ehobj");
             IdentPtr uniqueName = m_phtbl->PidHashNameLen(uniqueNameStr, static_cast<long>(wcslen(uniqueNameStr)));
 
             pCatch->sxCatch.pnodeParam = CreateNameNode(uniqueName);
@@ -10384,7 +10384,7 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
     {
         Assert(pnodeFnc->nop == knopFncDecl);
 
-        // Non-simple params (such as default) require a good amount of logic to put vars on appriopriate scopes. ParseFncDecl handles it 
+        // Non-simple params (such as default) require a good amount of logic to put vars on appriopriate scopes. ParseFncDecl handles it
         // properly (both on defer and non-defer case). This is to avoid write duplicated logic here as well. Function with non-simple-param
         // will remain deferred untill they are called.
         if (pnodeFnc->sxFnc.pnodeBody == nullptr && !pnodeFnc->sxFnc.HasNonSimpleParameterList())
@@ -10515,7 +10515,7 @@ void Parser::InitPids()
     wellKnownPropertyPids.target = m_phtbl->PidHashNameLen(_u("target"), sizeof("target") - 1);
     wellKnownPropertyPids.as = m_phtbl->PidHashNameLen(_u("as"), sizeof("as") - 1);
     wellKnownPropertyPids.from = m_phtbl->PidHashNameLen(_u("from"), sizeof("from") - 1);
-    wellKnownPropertyPids.default = m_phtbl->PidHashNameLen(_u("default"), sizeof("default") - 1);
+    wellKnownPropertyPids._default = m_phtbl->PidHashNameLen(_u("default"), sizeof("default") - 1);
     wellKnownPropertyPids._starDefaultStar = m_phtbl->PidHashNameLen(_u("*default*"), sizeof("*default*") - 1);
     wellKnownPropertyPids._star = m_phtbl->PidHashNameLen(_u("*"), sizeof("*") - 1);
 }
@@ -10871,7 +10871,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 
     m_scriptContext->AddSourceSize(m_length);
 
-    if(!m_parseType != ParseType_Deferred)
+    if (m_parseType != ParseType_Deferred)
     {
         JS_ETW(EventWriteJSCRIPT_PARSE_METHOD_STOP(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), pnodeProg->sxFnc.functionId, *m_pCurrentAstSize, false, Js::Constants::GlobalFunction));
     }
@@ -11659,7 +11659,7 @@ inline bool Parser::IsNaNOrInfinityLiteral(LPCOLESTR str)
     return str &&
            (wcscmp(_u("NaN"), str) == 0 ||
            wcscmp(_u("Infinity"), str) == 0 ||
-           CheckForNegativeInfinity && wcscmp(_u("-Infinity"), str) == 0);
+               (CheckForNegativeInfinity && wcscmp(_u("-Infinity"), str) == 0));
 }
 
 template <bool buildAST>

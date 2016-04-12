@@ -78,7 +78,9 @@ namespace Js
         guestArena(nullptr),
         raiseMessageToDebuggerFunctionType(nullptr),
         transitionToDebugModeIfFirstSourceFn(nullptr),
+#ifdef ENABLE_GLOBALIZATION
         lastTimeZoneUpdateTickCount(0),
+#endif
         sourceSize(0),
         deferredBody(false),
         isScriptContextActuallyClosed(false),
@@ -155,12 +157,16 @@ namespace Js
 #ifdef EDIT_AND_CONTINUE
         , activeScriptEditQuery(nullptr)
 #endif
+#ifdef ENABLE_SCRIPT_PROFILING
         , heapEnum(nullptr)
+#endif
 #ifdef RECYCLER_PERF_COUNTERS
         , bindReferenceCount(0)
 #endif
         , nextPendingClose(nullptr)
+#ifdef ENABLE_SCRIPT_PROFILING
         , m_fTraceDomCall(FALSE)
+#endif
 #ifdef ENABLE_DOM_FAST_PATH
         , domFastPathIRHelperMap(nullptr)
 #endif
@@ -264,10 +270,12 @@ namespace Js
         profileMemoryDump = true;
 #endif
 
+#ifdef ENABLE_SCRIPT_PROFILING
         m_pProfileCallback = nullptr;
         m_pProfileCallback2 = nullptr;
         m_inProfileCallback = FALSE;
         CleanupDocumentContext = nullptr;
+#endif
 
         // Do this after all operations that may cause potential exceptions
         threadContext->RegisterScriptContext(this);
@@ -1158,7 +1166,7 @@ namespace Js
         }
 
 #if DYNAMIC_INTERPRETER_THUNK
-        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(), 
+        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
             Js::InterpreterStackFrame::InterpreterThunk);
 #endif
 
@@ -1732,7 +1740,7 @@ namespace Js
                 Assert((loadScriptFlag & LoadScriptFlag_disableAsmJs) != LoadScriptFlag_disableAsmJs);
 
                 pse->Clear();
-                
+
                 loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
                 return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag);
             }
@@ -2002,7 +2010,7 @@ namespace Js
     {
         Assert(this->threadContext->GetRecordedException() == nullptr || GetThreadContext()->HasUnhandledException());
         this->threadContext->SetRecordedException(exceptionObject, propagateToDebugger);
-#if DBG
+#if DBG && ENABLE_DEBUG_STACK_BACK_TRACE
         exceptionObject->FillStackBackTrace();
 #endif
     }
@@ -2316,11 +2324,13 @@ namespace Js
             return si;
     }
 
+#ifdef ENABLE_GLOBALIZATION
     void ScriptContext::UpdateTimeZoneInfo()
     {
         GetTimeZoneInformation(&timeZoneInfo);
         _tzset();
     }
+#endif
 
 #ifdef PROFILE_EXEC
     void
@@ -2459,6 +2469,7 @@ namespace Js
     }
 #endif
 
+#ifdef ENABLE_SCRIPT_PROFILING
     inline void ScriptContext::CoreSetProfileEventMask(DWORD dwEventMask)
     {
         AssertMsg(m_pProfileCallback != NULL, "Assigning the event mask when there is no callback");
@@ -2691,6 +2702,7 @@ namespace Js
         OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::RegisterAllScripts ended\n"));
         return S_OK;
     }
+#endif // ENABLE_SCRIPT_PROFILING
 
     // Shuts down and recreates the native code generator.  This is used when
     // attaching and detaching the debugger in order to clear the list of work
@@ -3009,7 +3021,9 @@ namespace Js
             this->javascriptLibrary->SetDispatchProfile(true, DispatchProfileInvoke);
             if (!calledDuringAttach)
             {
+#ifdef ENABLE_SCRIPT_PROFILING
                 m_fTraceDomCall = TRUE; // This flag is always needed in DebugMode to wrap external functions with DebugProfileThunk
+#endif
                 // Update the function objects currently present in there.
                 this->SetFunctionInRecyclerToProfileMode(true/*enumerateNonUserFunctionsOnly*/);
             }
@@ -3034,6 +3048,7 @@ namespace Js
         }
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     HRESULT ScriptContext::RegisterBuiltinFunctions(RegisterExternalLibraryType RegisterExternalLibrary)
     {
         Assert(m_pProfileCallback != NULL);
@@ -3083,6 +3098,7 @@ namespace Js
 
         OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::SetFunctionInRecyclerToProfileMode ended\n"));
     }
+#endif // ENABLE_SCRIPT_PROFILING
 
     void ScriptContext::UpdateRecyclerFunctionEntryPointsForDebugger()
     {
@@ -3221,6 +3237,7 @@ namespace Js
         scriptFunction->ChangeEntryPoint(pBody->GetDefaultFunctionEntryPointInfo(), newEntryPoint);
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     void ScriptContext::RecyclerEnumClassEnumeratorCallback(void *address, size_t size)
     {
         // TODO: we are assuming its function because for now we are enumerating only on functions
@@ -3304,6 +3321,7 @@ namespace Js
             ScriptContext::SetEntryPointToProfileThunk(pFunction);
         }
     }
+#endif // ENABLE_SCRIPT_PROFILING
 
     // static
     void ScriptContext::SetEntryPointToProfileThunk(JavascriptFunction* function)
@@ -3333,6 +3351,7 @@ namespace Js
         }
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     JavascriptMethod ScriptContext::GetProfileModeThunk(JavascriptMethod entryPoint)
     {
 #if ENABLE_NATIVE_CODEGEN
@@ -3353,6 +3372,7 @@ namespace Js
         }
         return ProfileEntryThunk;
     }
+#endif // ENABLE_SCRIPT_PROFILING
 
 #if _M_IX86
     __declspec(naked)
@@ -3399,6 +3419,7 @@ namespace Js
         BOOL fParsed = FALSE;
         JavascriptMethod entryPoint = Js::JavascriptFunction::DeferredParseCore(functionRef, fParsed);
 
+#ifdef ENABLE_SCRIPT_PROFILING
         OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\t\tIsParsed : %s, updatedEntrypoint : 0x%08X\n"), IsTrueOrFalse(fParsed), entryPoint);
 
         //To get the scriptContext we only need the functionProxy
@@ -3411,6 +3432,7 @@ namespace Js
 
         // We can come to this function even though we have stopped profiling.
         Assert(!pScriptContext->IsProfiling() || (*functionRef)->GetFunctionBody()->GetProfileSession() == pScriptContext->GetProfileSession());
+#endif
 
         return entryPoint;
     }
@@ -3452,6 +3474,7 @@ namespace Js
 
         JavascriptMethod entryPoint = Js::JavascriptFunction::DeferredDeserialize(function);
 
+#ifdef ENABLE_SCRIPT_PROFILING
         //To get the scriptContext; we only need the FunctionProxy
         FunctionProxy *pRootBody = function->GetFunctionProxy();
         ScriptContext *pScriptContext = pRootBody->GetScriptContext();
@@ -3462,10 +3485,12 @@ namespace Js
 
         // We can come to this function even though we have stopped profiling.
         Assert(!pScriptContext->IsProfiling() || function->GetFunctionBody()->GetProfileSession() == pScriptContext->GetProfileSession());
+#endif
 
         return entryPoint;
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     BOOL ScriptContext::GetProfileInfo(
         JavascriptFunction* function,
         PROFILER_TOKEN &scriptId,
@@ -3508,6 +3533,7 @@ namespace Js
 
         return FALSE;
     }
+#endif // ENABLE_SCRIPT_PROFILING
 
     bool ScriptContext::IsForceNoNative()
     {
@@ -3549,6 +3575,7 @@ namespace Js
     // - used when we profile and debug
     Var ScriptContext::DebugProfileProbeThunk(RecyclableObject* callable, CallInfo callInfo, ...)
     {
+#if defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
         RUNTIME_ARGUMENTS(args, callInfo);
 
         JavascriptFunction* function = JavascriptFunction::FromVar(callable);
@@ -3736,8 +3763,12 @@ namespace Js
         }
 
         return aReturn;
+#else
+        return nullptr;
+#endif // defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     // Part of ProfileModeThunk which is called in debug mode (debug or debug & profile).
     Var ScriptContext::ProfileModeThunk_DebugModeWrapper(JavascriptFunction* function, ScriptContext* scriptContext, JavascriptMethod entryPoint, Arguments& args)
     {
@@ -3848,6 +3879,7 @@ namespace Js
     {
         return pScriptContext->OnDispatchFunctionExit(pwszFunctionName);
     }
+#endif // ENABLE_SCRIPT_PROFILING
 
     Js::PropertyId ScriptContext::GetFunctionNumber(JavascriptMethod entryPoint)
     {
@@ -3856,6 +3888,7 @@ namespace Js
 
     HRESULT ScriptContext::RegisterLibraryFunction(const char16 *pwszObjectName, const char16 *pwszFunctionName, Js::PropertyId functionPropertyId, JavascriptMethod entryPoint)
     {
+#ifdef ENABLE_SCRIPT_PROFILING
 #if DEBUG
         const char16 *pwszObjectNameFromProperty = const_cast<char16 *>(GetPropertyName(functionPropertyId)->GetBuffer());
         if (GetPropertyName(functionPropertyId)->IsSymbol())
@@ -3926,6 +3959,9 @@ namespace Js
         {
             return OnFunctionCompiled(functionPropertyId, BuiltInFunctionsScriptId, pwszFunctionName, NULL, NULL);
         }
+#else
+        return S_OK;
+#endif // ENABLE_SCRIPT_PROFILING
     }
 
     void ScriptContext::BindReference(void * addr)
@@ -4063,12 +4099,14 @@ namespace Js
             }
         }
 
+#ifdef ENABLE_SCRIPT_PROFILING
         // If the sourceList got changed, in we need to refresh the nondebug document list in the profiler mode.
         if (fCleanupDocRequired && m_pProfileCallback != NULL)
         {
             Assert(CleanupDocumentContext != NULL);
             CleanupDocumentContext(this);
         }
+#endif // ENABLE_SCRIPT_PROFILING
     }
 
     void ScriptContext::ClearScriptContextCaches()
@@ -4260,15 +4298,18 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             this->javascriptLibrary->SetDispatchProfile(false, dispatchInvoke);
             return true;
         }
+#ifdef ENABLE_SCRIPT_PROFILING
         else if (m_fTraceDomCall)
         {
             this->javascriptLibrary->SetDispatchProfile(true, dispatchInvoke);
             return true;
         }
+#endif // ENABLE_SCRIPT_PROFILING
 
         return false;
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     HRESULT ScriptContext::OnDispatchFunctionEnter(const WCHAR *pwszFunctionName)
     {
         if (m_pProfileCallback2 == NULL)
@@ -4304,6 +4345,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
         return hr;
     }
+#endif // ENABLE_SCRIPT_PROFILING
 
     void ScriptContext::SetBuiltInLibraryFunction(JavascriptMethod entryPoint, JavascriptFunction* function)
     {
@@ -5134,9 +5176,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     {
         if (GetConfig()->IsIntlEnabled())
         {
+#ifdef ENABLE_GLOBALIZATION
             // This will try to load globalization dlls if not already loaded.
             Js::DelayLoadWindowsGlobalization* globLibrary = GetThreadContext()->GetWindowsGlobalizationLibrary();
             return globLibrary->HasGlobalizationDllLoaded();
+#endif
         }
         return false;
     }

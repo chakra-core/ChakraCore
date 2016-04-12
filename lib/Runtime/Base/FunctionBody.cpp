@@ -73,7 +73,7 @@ namespace Js
 
     inline Recycler* FunctionProxy::GetRecycler() const
     {
-        return m_scriptContext->GetRecycler(); 
+        return m_scriptContext->GetRecycler();
     }
 
     inline void* FunctionProxy::GetAuxPtr(AuxPointerType e) const
@@ -101,7 +101,7 @@ namespace Js
     {
         // On process detach this can be called from another thread but the ThreadContext should be locked
         Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
-        
+
         if (ptr == nullptr && GetAuxPtr(e) == nullptr)
         {
             return;
@@ -587,7 +587,7 @@ namespace Js
     {
         return GetCountFieldSigned(CounterFields::SerializationIndex);
     }
-    void FunctionBody::SetSerializationIndex(int index) 
+    void FunctionBody::SetSerializationIndex(int index)
     {
         SetCountFieldSigned(CounterFields::SerializationIndex, index);
     }
@@ -1043,8 +1043,8 @@ namespace Js
 
     void FunctionProxy::SetReferenceInParentFunction(FunctionProxyPtrPtr reference)
     {
-        // No need to tag the reference because the first field of the nested array 
-        // is count, so the reference here won't be same as address of the parent nested 
+        // No need to tag the reference because the first field of the nested array
+        // is count, so the reference here won't be same as address of the parent nested
         // array (even for index 0)
         this->m_referenceInParentFunction = reference;
     }
@@ -1159,7 +1159,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             validationCookie = (void*)scriptContext->GetNativeCodeGenerator();
 #endif
-             
+
             this->m_defaultEntryPointInfo = RecyclerNewFinalized(scriptContext->GetRecycler(),
                 FunctionEntryPointInfo, this, entryPoint, scriptContext->GetThreadContext(), validationCookie);
         }
@@ -1439,7 +1439,7 @@ namespace Js
 
     void ParseableFunctionInfo::ClearNestedFunctionParentFunctionReference()
     {
-        this->ForEachNestedFunc([](FunctionProxy* proxy, uint32 index) 
+        this->ForEachNestedFunc([](FunctionProxy* proxy, uint32 index)
         {
             if (proxy)
             {
@@ -1482,7 +1482,8 @@ namespace Js
     ScriptFunctionType * FunctionProxy::EnsureDeferredPrototypeType()
     {
         Assert(this->GetFunctionProxy() == this);
-        return (deferredPrototypeType != nullptr)? deferredPrototypeType : AllocDeferredPrototypeType();
+        return deferredPrototypeType != nullptr ?
+            static_cast<ScriptFunctionType*>(deferredPrototypeType) : AllocDeferredPrototypeType();
     }
 
     ScriptFunctionType * FunctionProxy::AllocDeferredPrototypeType()
@@ -3431,7 +3432,7 @@ namespace Js
         newFunctionBody->SetReferencedPropertyIdMap(this->GetReferencedPropertyIdMap());
         newFunctionBody->SetPropertyIdsForScopeSlotArray(this->GetPropertyIdsForScopeSlotArray(), this->scopeSlotArraySize);
         newFunctionBody->SetPropertyIdOnRegSlotsContainer(this->GetPropertyIdOnRegSlotsContainer());
-        
+
 
         if (this->byteCodeBlock == nullptr)
         {
@@ -3640,7 +3641,7 @@ namespace Js
         this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionBody));
     }
 
-    FunctionBody * FunctionBody::GetStackNestedFuncParentStrongRef() 
+    FunctionBody * FunctionBody::GetStackNestedFuncParentStrongRef()
     {
         Assert(this->GetStackNestedFuncParent() != nullptr);
         return this->GetStackNestedFuncParent()->Get();
@@ -3735,11 +3736,11 @@ namespace Js
 
         ParseableFunctionInfo* newFunctionInfo = ParseableFunctionInfo::New(scriptContext,
             this->GetNestedCount(),
-            this->GetLocalFunctionId(), 
-            sourceInfo, this->GetDisplayName(), 
+            this->GetLocalFunctionId(),
+            sourceInfo, this->GetDisplayName(),
             this->GetDisplayNameLength(),
-            this->GetShortDisplayNameOffset(), 
-            this->GetBoundPropertyRecords(), 
+            this->GetShortDisplayNameOffset(),
+            this->GetBoundPropertyRecords(),
             this->GetAttributes());
 
         if (this->GetScopeInfo() != nullptr)
@@ -4126,7 +4127,7 @@ namespace Js
         }
     }
 #endif
-    
+
     void FunctionBody::DumpStatementMaps()
     {
         // Source Map to ByteCode
@@ -4526,6 +4527,7 @@ namespace Js
         this->GetPropertyIdOnRegSlotsContainer()->SetFormalArgs(formalArgs);
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     HRESULT FunctionBody::RegisterFunction(BOOL fChangeMode, BOOL fOnlyCurrent)
     {
         if (!this->IsFunctionParsed())
@@ -4658,6 +4660,7 @@ namespace Js
 
 #endif //ENABLE_NATIVE_CODEGEN
     }
+#endif // ENABLE_SCRIPT_PROFILING
 
 #if DBG
     void FunctionBody::MustBeInDebugMode()
@@ -6811,7 +6814,7 @@ namespace Js
         const bool doSimpleJit = DoSimpleJit();
         const bool doInterpreterProfile = DoInterpreterProfile();
         const bool fullyScaled =
-            IsNewSimpleJit() && doSimpleJit && ScaleLimit(simpleJitLimit) ||
+            (IsNewSimpleJit() && doSimpleJit && ScaleLimit(simpleJitLimit)) ||
             (
                 doInterpreterProfile
                     ?   DoInterpreterAutoProfile() &&
@@ -6822,9 +6825,9 @@ namespace Js
                 IsNewSimpleJit()
                     ?   doInterpreterProfile &&
                         (ScaleLimit(profilingInterpreter1Limit) || ScaleLimit(profilingInterpreter0Limit))
-                    :   doInterpreterProfile && ScaleLimit(profilingInterpreter0Limit) ||
-                        doSimpleJit && ScaleLimit(simpleJitLimit) ||
-                        doInterpreterProfile && ScaleLimit(profilingInterpreter1Limit)
+                    :   (doInterpreterProfile && ScaleLimit(profilingInterpreter0Limit)) ||
+                        (doSimpleJit && ScaleLimit(simpleJitLimit)) ||
+                        (doInterpreterProfile && ScaleLimit(profilingInterpreter1Limit))
             );
         Assert(fullyScaled);
         Assert(scale == 0);
@@ -6905,12 +6908,12 @@ namespace Js
         VerifyExecutionModeLimits();
 
         if(&limit == profilingInterpreter0Limit.AddressOf() ||
-            !IsNewSimpleJit() && &limit == simpleJitLimit.AddressOf() ||
+            (!IsNewSimpleJit() && &limit == simpleJitLimit.AddressOf()) ||
             &limit == profilingInterpreter1Limit.AddressOf())
         {
             const uint16 newCommittedProfiledIterations = committedProfiledIterations + clampedExecutedIterations;
             committedProfiledIterations =
-                newCommittedProfiledIterations >= committedProfiledIterations ? newCommittedProfiledIterations : MAXUINT16;
+                newCommittedProfiledIterations >= committedProfiledIterations ? newCommittedProfiledIterations : UINT16_MAX;
         }
     }
 
@@ -6928,7 +6931,9 @@ namespace Js
         // Simple JIT counts down and transitions on overflow
         const uint8 callCount = simpleJitEntryPointInfo->callsCount;
         Assert(simpleJitLimit == 0 ? callCount == 0 : simpleJitLimit > callCount);
-        return callCount == 0 ? simpleJitLimit : simpleJitLimit - callCount - 1;
+        return callCount == 0 ?
+            static_cast<uint16>(simpleJitLimit) :
+            static_cast<uint16>(simpleJitLimit) - callCount - 1;
     }
 
     void FunctionBody::ResetSimpleJitLimitAndCallCount()
@@ -6979,11 +6984,11 @@ namespace Js
             {
                 uint32 interpretedCount = GetInterpretedCount();
                 const uint16 clampedInterpretedCount =
-                    interpretedCount <= MAXUINT16
+                    interpretedCount <= UINT16_MAX
                         ? static_cast<uint16>(interpretedCount)
-                        : MAXUINT16;
+                        : UINT16_MAX;
                 const uint16 newProfiledIterations = profiledIterations + clampedInterpretedCount;
-                profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : MAXUINT16;
+                profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : UINT16_MAX;
                 break;
             }
 
@@ -6991,7 +6996,7 @@ namespace Js
                 if(!IsNewSimpleJit())
                 {
                     const uint16 newProfiledIterations = profiledIterations + GetSimpleJitExecutedIterations();
-                    profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : MAXUINT16;
+                    profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : UINT16_MAX;
                 }
                 break;
         }
@@ -7594,7 +7599,7 @@ namespace Js
                     // isShutdown is false because cleanup is called only in the !isShutdown case
                     entryPoint->Finalize(isShutdown);
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
                     // Do this separately since calling EntryPoint::Finalize doesn't capture the stack trace
                     // and in some calls to CleanupRecyclerData, we do want the stack trace captured.
 
@@ -7765,7 +7770,9 @@ namespace Js
 
     void FunctionBody::InitDisableInlineApply()
     {
-        SetDisableInlineApply(this->functionId != Js::Constants::NoFunctionId && PHASE_OFF(Js::InlinePhase, this) || PHASE_OFF(Js::InlineApplyPhase, this));
+        SetDisableInlineApply(
+            (this->functionId != Js::Constants::NoFunctionId && PHASE_OFF(Js::InlinePhase, this)) ||
+            PHASE_OFF(Js::InlineApplyPhase, this));
     }
 
     bool FunctionBody::CheckCalleeContextForInlining(FunctionProxy* calleeFunctionProxy)
@@ -8751,7 +8758,7 @@ namespace Js
     }
 #endif
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
     void EntryPointInfo::CaptureCleanupStackTrace()
     {
         if (this->cleanupStack != nullptr)
@@ -8779,7 +8786,7 @@ namespace Js
 
         this->Cleanup(isShutdown, false);
 
-#if DBG
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         if (this->cleanupStack != nullptr)
         {
             this->cleanupStack->Delete(&NoCheckHeapAllocator::Instance);
@@ -8858,11 +8865,12 @@ namespace Js
 #if !DBG
             captureCleanupStack = captureCleanupStack && Js::Configuration::Global.flags.FreTestDiagMode;
 #endif
-
+#if ENABLE_DEBUG_STACK_BACK_TRACE
             if (captureCleanupStack)
             {
                 this->CaptureCleanupStackTrace();
             }
+#endif
 #endif
 
 #if ENABLE_NATIVE_CODEGEN
@@ -9650,7 +9658,7 @@ namespace Js
         return m_hasFuncExprScopeRegister ? GetCountField(CounterFields::FuncExprScopeRegister) : Constants::NoRegister;
     }
 
-    void FunctionBody::SetFirstTmpRegister(RegSlot reg) 
+    void FunctionBody::SetFirstTmpRegister(RegSlot reg)
     {
         if (reg == Constants::NoRegister)
         {

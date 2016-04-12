@@ -47,7 +47,7 @@ namespace Js
 #define DECLARE_CONCRETE_STRING_CLASS
 #endif
 
-    class JavascriptString abstract : public RecyclableObject
+    class JavascriptString _ABSTRACT : public RecyclableObject
     {
         friend Lowerer;
         friend LowererMD;
@@ -132,7 +132,9 @@ namespace Js
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
         virtual BOOL BufferEquals(__in_ecount(otherLength) LPCWSTR otherBuffer, __in charcount_t otherLength);
-        virtual char16* GetNormalizedString(NORM_FORM, ArenaAllocator*, charcount_t&);
+#if ENABLE_UNICODE_API
+        char16* GetNormalizedString(PlatformAgnostic::UnicodeText::NormalizationForm, ArenaAllocator*, charcount_t&);
+#endif
 
         static bool Is(Var aValue);
         static JavascriptString* FromVar(Var aValue);

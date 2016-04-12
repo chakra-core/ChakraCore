@@ -44,9 +44,10 @@ StackProber::Initialize()
     PBYTE stackBottom = 0;      // This is the low address limit (here we consider stack growing down).
     ULONG stackGuarantee = 0;
 
-#if defined(_M_IX86)
+#ifdef _WIN32
+#if defined(_M_IX86) && defined(_MSC_VER)
     stackBottom = (PBYTE)__readfsdword(0xE0C); // points to the DeAllocationStack on the TEB - which turns to be the stack bottom.
-#elif defined(_M_AMD64)
+#elif defined(_M_AMD64) && defined(_MSC_VER)
     stackBottom = (PBYTE)__readgsqword(0x1478);
 #elif defined(_M_ARM)
     ULONG lowLimit, highLimit;
@@ -60,10 +61,18 @@ StackProber::Initialize()
     stackBottom = NULL;
     Js::Throw::NotImplemented();
 #endif
+#else // !_WIN32
+    void *lowLimit, *highLimit;
+    ::GetCurrentThreadStackBounds((char**)&lowLimit, (char**)&highLimit);
+    stackBottom = (PBYTE)lowLimit;
+#endif
 
     Assert(stackBottom);
 
+#ifdef _WIN32
     // Calling this API with stackGuarantee == 0 *gets* current stack guarantee.
     SetThreadStackGuarantee(&stackGuarantee);
+#endif
+
     stackLimit = stackBottom + guardPageSize + stackGuarantee + stackOverflowBuffer;
 }

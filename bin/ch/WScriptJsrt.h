@@ -19,7 +19,7 @@ public:
         CallbackMessage(unsigned int time, JsValueRef function);
         ~CallbackMessage();
 
-        HRESULT Call(LPCWSTR fileName);
+        HRESULT Call(LPCSTR fileName);
     };
 
     static void AddMessageQueue(MessageQueue *messageQueue);
@@ -48,8 +48,8 @@ public:
         }
     }
 
-    static bool PrintException(LPCWSTR fileName, JsErrorCode jsErrorCode);
-    static JsValueRef LoadScript(JsValueRef callee, LPCWSTR fileName, size_t fileNameLength, LPCWSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule);
+    static bool PrintException(LPCSTR fileName, JsErrorCode jsErrorCode);
+    static JsValueRef LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule);
     static DWORD_PTR GetNextSourceContext();
     static JsValueRef LoadScriptFileHelper(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, bool isSourceModule);
     static JsValueRef LoadScriptHelper(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState, bool isSourceModule);
