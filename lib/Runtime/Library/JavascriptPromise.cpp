@@ -69,7 +69,7 @@ namespace Js
         InitializePromise(promise, &resolve, &reject, scriptContext);
 
         JavascriptExceptionObject* exception = nullptr;
-
+        
         // 9. Let completion be Call(executor, undefined, « resolvingFunctions.[[Resolve]], resolvingFunctions.[[Reject]] »).
         try
         {
@@ -737,17 +737,20 @@ namespace Js
         Var handlerResult = nullptr;
         JavascriptExceptionObject* exception = nullptr;
 
-        try
         {
-            handlerResult = handler->GetEntryPoint()(handler, Js::CallInfo(Js::CallFlags::CallFlags_Value, 2),
-                undefinedVar,
-                argument);
+            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            try
+            {
+                handlerResult = handler->GetEntryPoint()(handler, Js::CallInfo(Js::CallFlags::CallFlags_Value, 2),
+                    undefinedVar,
+                    argument);
+            }
+            catch (JavascriptExceptionObject* e)
+            {
+                exception = e;
+            }
         }
-        catch (JavascriptExceptionObject* e)
-        {
-            exception = e;
-        }
-
+        
         if (exception != nullptr)
         {
             return TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
@@ -808,16 +811,19 @@ namespace Js
         JavascriptPromiseResolveOrRejectFunction* reject = library->CreatePromiseResolveOrRejectFunction(EntryResolveOrRejectFunction, promise, true, alreadyResolvedRecord);
         JavascriptExceptionObject* exception = nullptr;
 
-        try
         {
-            return thenFunction->GetEntryPoint()(thenFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
-                thenable,
-                resolve,
-                reject);
-        }
-        catch (JavascriptExceptionObject* e)
-        {
-            exception = e;
+            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            try
+            {
+                return thenFunction->GetEntryPoint()(thenFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
+                    thenable,
+                    resolve,
+                    reject);
+            }
+            catch (JavascriptExceptionObject* e)
+            {
+                exception = e;
+            }
         }
 
         Assert(exception != nullptr);
@@ -1097,61 +1103,6 @@ namespace Js
         promiseCapability->SetPromise(promise);
 
         return promiseCapability;
-    }
-
-    // UpdatePromiseFromPotentialThenable as defined in ES 2015Section 25.4.1.8
-    bool JavascriptPromise::UpdatePromiseFromPotentialThenable(Var resolution, JavascriptPromiseCapability* promiseCapability, ScriptContext* scriptContext)
-    {
-        if (!JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(resolution)))
-        {
-            return false;
-        }
-
-        RecyclableObject* obj = RecyclableObject::FromVar(resolution);
-        Var then = nullptr;
-        JavascriptExceptionObject* exception = nullptr;
-
-        try
-        {
-            then = JavascriptOperators::GetProperty(obj, Js::PropertyIds::then, scriptContext);
-        }
-        catch (JavascriptExceptionObject* e)
-        {
-            exception = e;
-        }
-
-        if (exception != nullptr)
-        {
-            TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
-            return true;
-        }
-
-        Assert(then != nullptr);
-        if (!JavascriptConversion::IsCallable(then))
-        {
-            return false;
-        }
-
-        RecyclableObject* thenFunc = RecyclableObject::FromVar(then);
-
-        try
-        {
-            thenFunc->GetEntryPoint()(thenFunc, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
-                resolution,
-                promiseCapability->GetResolve(),
-                promiseCapability->GetReject());
-        }
-        catch (JavascriptExceptionObject* e)
-        {
-            exception = e;
-        }
-
-        if (exception != nullptr)
-        {
-            TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
-        }
-
-        return true;
     }
 
     // TriggerPromiseReactions as defined in ES 2015 Section 25.4.1.7
