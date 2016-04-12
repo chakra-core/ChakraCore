@@ -13,9 +13,6 @@
 #include "Language/AsmJsModule.h"
 #endif
 
-extern "C" PVOID _ReturnAddress(VOID);
-#pragma intrinsic(_ReturnAddress)
-
 #ifdef _M_IX86
 #ifdef _CONTROL_FLOW_GUARD
 extern "C" PVOID __guard_check_icall_fptr;
@@ -621,6 +618,12 @@ namespace Js
         }
 #endif
 
+#ifdef DISABLE_SEH
+        // xplat: JavascriptArrayBuffer::AllocWrapper is disabled on cross-platform
+        // (IsValidVirtualBufferLength always returns false).
+        // SEH and ResumeForOutOfBoundsArrayRefs are not needed.
+        ret = CallRootFunctionInternal(args, scriptContext, inScript);
+#else
         __try
         {
             ret = CallRootFunctionInternal(args, scriptContext, inScript);
@@ -630,12 +633,13 @@ namespace Js
             // should never reach here
             Assert(false);
         }
+#endif
         //ret should never be null here
         Assert(ret);
         return ret;
-#else
+#else // !_M_X64
         return CallRootFunctionInternal(args, scriptContext, inScript);
-#endif
+#endif // !_M_X64
     }
     Var JavascriptFunction::CallRootFunctionInternal(Arguments args, ScriptContext * scriptContext, bool inScript)
     {

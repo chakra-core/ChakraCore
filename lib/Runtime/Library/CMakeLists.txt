@@ -36,7 +36,7 @@ add_library (Chakra.Runtime.Library
     JavascriptDate.cpp
     JavascriptEnumeratorIterator.cpp
     JavascriptError.cpp
-    JavascriptErrorDebug.cpp
+    # JavascriptErrorDebug.cpp
     JavascriptExternalFunction.cpp
     JavascriptFunction.cpp
     JavascriptGenerator.cpp
@@ -79,7 +79,7 @@ add_library (Chakra.Runtime.Library
     JavascriptWeakMap.cpp
     JavascriptWeakSet.cpp
     LiteralString.cpp
-    MathLibrary.cpp
+    # MathLibrary.cpp
     ModuleRoot.cpp
     NullEnumerator.cpp
     ObjectPrototypeObject.cpp
