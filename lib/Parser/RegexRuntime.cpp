@@ -2130,6 +2130,7 @@ namespace UnifiedRegex
 
         if (matcher.literalNextSyncInputOffsets == nullptr)
         {
+            Assert(numLiterals <= MaxNumSyncLiterals);
             matcher.literalNextSyncInputOffsets =
                 RecyclerNewArrayLeaf(matcher.recycler, CharCount, ScannersMixin::MaxNumSyncLiterals);
         }
