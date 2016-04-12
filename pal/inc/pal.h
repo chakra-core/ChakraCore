@@ -538,7 +538,8 @@ PALIMPORT
 DWORD
 PALAPI
 PAL_InitializeChakraCore(
-    const char *szExePath);
+    int argc,
+    char** argv);
 
 PALIMPORT
 DWORD_PTR

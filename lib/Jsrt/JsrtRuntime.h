@@ -8,6 +8,8 @@
 
 #include "JsrtThreadService.h"
 
+class JsrtContext;
+
 class JsrtRuntime
 {
     friend class JsrtContext;

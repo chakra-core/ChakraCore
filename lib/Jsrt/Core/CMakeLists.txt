@@ -6,4 +6,8 @@ add_library (Chakra.Jsrt.Core
     )
 
 target_include_directories (
-    Chakra.Jsrt.Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    Chakra.Jsrt.Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    ../../Runtime
+    ../../Parser
+    ../
+    )

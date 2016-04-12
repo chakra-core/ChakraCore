@@ -85,7 +85,7 @@ SET_DEFAULT_DEBUG_CHANNEL(PAL);
 
 Volatile<INT> init_count PAL_GLOBAL = 0;
 Volatile<BOOL> shutdown_intent PAL_GLOBAL = 0;
-Volatile<LONG> g_coreclrInitialized PAL_GLOBAL = 0;
+Volatile<LONG> g_chakraCoreInitialized PAL_GLOBAL = 0;
 static BOOL g_fThreadDataAvailable = FALSE;
 static pthread_mutex_t init_critsec_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -581,15 +581,14 @@ exit :
 
 /*++
 Function:
-  PAL_InitializeCoreCLR
+  PAL_InitializeChakraCore
 
 Abstract:
-  A replacement for PAL_Initialize when loading CoreCLR. Instead of taking a command line (which CoreCLR
-  instances aren't given anyway) the path into which the CoreCLR is installed is supplied instead. This is
-  cached so that PAL_GetPALDirectoryW can return it later.
+  A replacement for PAL_Initialize when starting the host process that
+  hosts ChakraCore
 
-  This routine also makes sure the psuedo dynamic libraries PALRT and mscorwks have their initialization
-  methods called.
+  This routine also makes sure the psuedo dynamic libraries like PALRT
+  have their initialization methods called.
 
 Return:
   ERROR_SUCCESS if successful
@@ -598,17 +597,17 @@ Return:
 --*/
 PAL_ERROR
 PALAPI
-PAL_InitializeChakraCore(const char *szExePath)
+PAL_InitializeChakraCore(int argc, char** argv)
 {    
     // Fake up a command line to call PAL initialization with.
-    int result = Initialize(1, &szExePath, PAL_INITIALIZE_CHAKRACORE);
+    int result = Initialize(argc, argv, PAL_INITIALIZE_CHAKRACORE);
     if (result != 0)
     {
         return GetLastError();
     }
 
     // Check for a repeated call (this is a no-op).
-    if (InterlockedIncrement(&g_coreclrInitialized) > 1)
+    if (InterlockedIncrement(&g_chakraCoreInitialized) > 1)
     {
         PAL_Enter(PAL_BoundaryTop);
         return ERROR_SUCCESS;

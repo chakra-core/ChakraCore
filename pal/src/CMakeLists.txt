@@ -82,7 +82,8 @@ set(SOURCES
   cruntime/thread.cpp
   cruntime/wchar.cpp
   cruntime/wchartls.cpp
-  safecrt/mbusafecrt.c
+  safecrt/makepath_s.c
+  safecrt/mbusafecrt.c  
   safecrt/safecrt_input_s.c
 #  safecrt/safecrt_output_l.c
   safecrt/safecrt_output_s.c
