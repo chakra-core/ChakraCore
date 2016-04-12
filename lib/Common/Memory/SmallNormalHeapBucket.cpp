@@ -134,7 +134,7 @@ SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(TBlockType * block, c
         return true;
     }
 
-    if (startObjectAddress != pageAddress)
+    if (pageByteOffset % localObjectSize != 0)
     {
         // If the last object on the previous page that spans into the current page is marked,
         // we need to count that in the markCount for rescan
@@ -149,23 +149,31 @@ SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(TBlockType * block, c
     const uint objectBitDelta = SmallHeapBlockT<TBlockAttributes>::GetObjectBitDeltaForBucketIndex(bucketIndex);
 
     uint rescanCount = 0;
+    uint skipCount = 0;
     uint objectIndex = firstObjectOnPageIndex;
 
-    for (uint bitIndex = startBitIndex; rescanCount < rescanMarkCount; objectIndex++, bitIndex += objectBitDelta)
+    for (uint bitIndex = startBitIndex; rescanCount+ skipCount < rescanMarkCount; objectIndex++, bitIndex += objectBitDelta)
     {
         Assert(objectIndex < localObjectCount);
         Assert(!HeapInfo::GetInvalidBitVectorForBucket<TBlockAttributes>(bucketIndex)->Test(bitIndex));
 
         if (heapBlockMarkBits->Test(bitIndex))
         {
-            char * objectAddress = blockStartAddress + objectIndex * localObjectSize;
-            if (!TBlockType::RescanObject(block, objectAddress, localObjectSize, objectIndex, recycler))
+            if (block && (block->ObjectInfo(objectIndex) & LeafBit))
             {
-                // Failed to add to the mark stack due to OOM.
-                return false;
+                skipCount++;
             }
+            else
+            {
+                char * objectAddress = blockStartAddress + objectIndex * localObjectSize;
+                if (!TBlockType::RescanObject(block, objectAddress, localObjectSize, objectIndex, recycler))
+                {
+                    // Failed to add to the mark stack due to OOM.
+                    return false;
+                }
 
-            rescanCount++;
+                rescanCount++;
+            }
         }
     }
 
