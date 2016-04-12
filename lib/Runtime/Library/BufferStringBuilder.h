@@ -53,7 +53,7 @@ namespace Js
                             const char16* suffix, charcount_t cchSuffix);
 
         protected:
-            DEFINE_VTABLE_CTOR(BufferStringBuilder::WritableString, JavascriptString);
+            DEFINE_VTABLE_CTOR(WritableString, JavascriptString);
             DECLARE_CONCRETE_STRING_CLASS;
 
         private:

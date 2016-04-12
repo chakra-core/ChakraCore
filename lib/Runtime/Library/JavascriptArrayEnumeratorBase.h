@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    class JavascriptArrayEnumeratorBase abstract : public JavascriptEnumerator
+    class JavascriptArrayEnumeratorBase _ABSTRACT : public JavascriptEnumerator
     {
     protected:
         JavascriptArray* arrayObject;

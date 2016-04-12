@@ -39,6 +39,309 @@ namespace Js
     INSTANTIATE_BUILT_IN_ENTRYPOINTS(Uint64Array)
     INSTANTIATE_BUILT_IN_ENTRYPOINTS(BoolArray)
 
+    template<> BOOL Uint8ClampedArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint8ClampedArray &&
+               ( VirtualTableInfo<Uint8ClampedArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Uint8ClampedArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Uint8Array::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint8Array &&
+              ( VirtualTableInfo<Uint8Array>::HasVirtualTable(aValue) ||
+                VirtualTableInfo<CrossSiteObject<Uint8Array>>::HasVirtualTable(aValue)
+              );
+    }
+
+    template<> BOOL Int8Array::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int8Array &&
+               ( VirtualTableInfo<Int8Array>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Int8Array>>::HasVirtualTable(aValue)
+               );
+    }
+
+
+    template<> BOOL Int16Array::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int16Array &&
+               ( VirtualTableInfo<Int16Array>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Int16Array>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Uint16Array::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint16Array &&
+              ( VirtualTableInfo<Uint16Array>::HasVirtualTable(aValue) ||
+                VirtualTableInfo<CrossSiteObject<Uint16Array>>::HasVirtualTable(aValue)
+              );
+    }
+
+    template<> BOOL Int32Array::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int32Array &&
+               ( VirtualTableInfo<Int32Array>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Int32Array>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Uint32Array::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint32Array &&
+               ( VirtualTableInfo<Uint32Array>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Uint32Array>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Float32Array::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Float32Array &&
+               ( VirtualTableInfo<Float32Array>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Float32Array>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Float64Array::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Float64Array &&
+               ( VirtualTableInfo<Float64Array>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Float64Array>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Int64Array::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int64Array &&
+               ( VirtualTableInfo<Int64Array>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Int64Array>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Uint64Array::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint64Array &&
+               ( VirtualTableInfo<Uint64Array>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Uint64Array>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL BoolArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_BoolArray &&
+               ( VirtualTableInfo<BoolArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<BoolArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Uint8ClampedVirtualArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint8ClampedArray &&
+               ( VirtualTableInfo<Uint8ClampedVirtualArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Uint8ClampedVirtualArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Uint8VirtualArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint8Array &&
+               ( VirtualTableInfo<Uint8VirtualArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Uint8VirtualArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+
+    template<> BOOL Int8VirtualArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int8Array &&
+               ( VirtualTableInfo<Int8VirtualArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Int8VirtualArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Int16VirtualArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int16Array &&
+               ( VirtualTableInfo<Int16VirtualArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Int16VirtualArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Uint16VirtualArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint16Array &&
+               ( VirtualTableInfo<Uint16VirtualArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Uint16VirtualArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Int32VirtualArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int32Array &&
+               ( VirtualTableInfo<Int32VirtualArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Int32VirtualArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Uint32VirtualArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint32Array &&
+               ( VirtualTableInfo<Uint32VirtualArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Uint32VirtualArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Float32VirtualArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Float32Array &&
+               ( VirtualTableInfo<Float32VirtualArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Float32VirtualArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template<> BOOL Float64VirtualArray::Is(Var aValue)
+    {
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Float64Array &&
+               ( VirtualTableInfo<Float64VirtualArray>::HasVirtualTable(aValue) ||
+                 VirtualTableInfo<CrossSiteObject<Float64VirtualArray>>::HasVirtualTable(aValue)
+               );
+    }
+
+    template <typename TypeName, bool clamped, bool virtualAllocated>
+    TypedArray<TypeName, clamped, virtualAllocated>* TypedArray<TypeName, clamped, virtualAllocated>::FromVar(Var aValue)
+    {
+        AssertMsg(TypedArray::Is(aValue), "invalid TypedArray");
+        return static_cast<TypedArray<TypeName, clamped, virtualAllocated>*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Uint8ClampedArray* Uint8ClampedArray::FromVar(Var aValue)
+    {
+        AssertMsg(Uint8ClampedArray::Is(aValue), "invalid Uint8ClampedArray");
+        return static_cast<Uint8ClampedArray*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Uint8Array* Uint8Array::FromVar(Var aValue)
+    {
+        AssertMsg(Uint8Array::Is(aValue), "invalid Uint8Array");
+        return static_cast<Uint8Array*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Int8Array* Int8Array::FromVar(Var aValue)
+    {
+        AssertMsg(Int8Array::Is(aValue), "invalid Int8Array");
+        return static_cast<Int8Array*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Int16Array* Int16Array::FromVar(Var aValue)
+    {
+        AssertMsg(Int16Array::Is(aValue), "invalid Int16Array");
+        return static_cast<Int16Array*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Uint16Array* Uint16Array::FromVar(Var aValue)
+    {
+        AssertMsg(Uint16Array::Is(aValue), "invalid Uint16Array");
+        return static_cast<Uint16Array*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Int32Array* Int32Array::FromVar(Var aValue)
+    {
+        AssertMsg(Int32Array::Is(aValue), "invalid Int32Array");
+        return static_cast<Int32Array*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Uint32Array* Uint32Array::FromVar(Var aValue)
+    {
+        AssertMsg(Uint32Array::Is(aValue), "invalid Uint32Array");
+        return static_cast<Uint32Array*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Float32Array* Float32Array::FromVar(Var aValue)
+    {
+        AssertMsg(Float32Array::Is(aValue), "invalid Float32Array");
+        return static_cast<Float32Array*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Float64Array* Float64Array::FromVar(Var aValue)
+    {
+        AssertMsg(Float64Array::Is(aValue), "invalid Float64Array");
+        return static_cast<Float64Array*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Int64Array* Int64Array::FromVar(Var aValue)
+    {
+        AssertMsg(Int64Array::Is(aValue), "invalid Int64Array");
+        return static_cast<Int64Array*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Uint64Array* Uint64Array::FromVar(Var aValue)
+    {
+        AssertMsg(Uint64Array::Is(aValue), "invalid Uint64Array");
+        return static_cast<Uint64Array*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Int8VirtualArray* Int8VirtualArray::FromVar(Var aValue)
+    {
+        AssertMsg(Int8VirtualArray::Is(aValue), "invalid Int8Array");
+        return static_cast<Int8VirtualArray*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Uint8ClampedVirtualArray* Uint8ClampedVirtualArray::FromVar(Var aValue)
+    {
+        AssertMsg(Uint8ClampedVirtualArray::Is(aValue), "invalid Uint8ClampedArray");
+        return static_cast<Uint8ClampedVirtualArray*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Uint8VirtualArray* Uint8VirtualArray::FromVar(Var aValue)
+    {
+        AssertMsg(Uint8VirtualArray::Is(aValue), "invalid Uint8Array");
+        return static_cast<Uint8VirtualArray*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Int16VirtualArray* Int16VirtualArray::FromVar(Var aValue)
+    {
+        AssertMsg(Int16VirtualArray::Is(aValue), "invalid Int16Array");
+        return static_cast<Int16VirtualArray*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Uint16VirtualArray* Uint16VirtualArray::FromVar(Var aValue)
+    {
+        AssertMsg(Uint16VirtualArray::Is(aValue), "invalid Uint16Array");
+        return static_cast<Uint16VirtualArray*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Int32VirtualArray* Int32VirtualArray::FromVar(Var aValue)
+    {
+        AssertMsg(Int32VirtualArray::Is(aValue), "invalid Int32Array");
+        return static_cast<Int32VirtualArray*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Uint32VirtualArray* Uint32VirtualArray::FromVar(Var aValue)
+    {
+        AssertMsg(Uint32VirtualArray::Is(aValue), "invalid Uint32Array");
+        return static_cast<Uint32VirtualArray*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Float32VirtualArray* Float32VirtualArray::FromVar(Var aValue)
+    {
+        AssertMsg(Float32VirtualArray::Is(aValue), "invalid Float32Array");
+        return static_cast<Float32VirtualArray*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> Float64VirtualArray* Float64VirtualArray::FromVar(Var aValue)
+    {
+        AssertMsg(Float64VirtualArray::Is(aValue), "invalid Float64Array");
+        return static_cast<Float64VirtualArray*>(RecyclableObject::FromVar(aValue));
+    }
+
+    template<> BoolArray* BoolArray::FromVar(Var aValue)
+    {
+        AssertMsg(BoolArray::Is(aValue), "invalid BoolArray");
+        return static_cast<BoolArray*>(RecyclableObject::FromVar(aValue));
+    }
+
     TypedArrayBase::TypedArrayBase(ArrayBuffer* arrayBuffer, uint32 offSet, uint mappedLength, uint elementSize, DynamicType* type) :
         ArrayBufferParent(type, mappedLength, arrayBuffer),
         byteOffset(offSet),
@@ -2728,521 +3031,253 @@ namespace Js
         return Js::JavascriptNumber::ToVarNoCheck(currentRes, scriptContext);
     }
 
-    template<> BOOL Uint8ClampedArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint8ClampedArray &&
-               ( VirtualTableInfo<Uint8ClampedArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Uint8ClampedArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Uint8Array::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint8Array &&
-              ( VirtualTableInfo<Uint8Array>::HasVirtualTable(aValue) ||
-                VirtualTableInfo<CrossSiteObject<Uint8Array>>::HasVirtualTable(aValue)
-              );
-    }
-
-    template<> BOOL Int8Array::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int8Array &&
-               ( VirtualTableInfo<Int8Array>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Int8Array>>::HasVirtualTable(aValue)
-               );
-    }
-
-
-    template<> BOOL Int16Array::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int16Array &&
-               ( VirtualTableInfo<Int16Array>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Int16Array>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Uint16Array::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint16Array &&
-              ( VirtualTableInfo<Uint16Array>::HasVirtualTable(aValue) ||
-                VirtualTableInfo<CrossSiteObject<Uint16Array>>::HasVirtualTable(aValue)
-              );
-    }
-
-    template<> BOOL Int32Array::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int32Array &&
-               ( VirtualTableInfo<Int32Array>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Int32Array>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Uint32Array::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint32Array &&
-               ( VirtualTableInfo<Uint32Array>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Uint32Array>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Float32Array::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Float32Array &&
-               ( VirtualTableInfo<Float32Array>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Float32Array>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Float64Array::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Float64Array &&
-               ( VirtualTableInfo<Float64Array>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Float64Array>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Int64Array::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int64Array &&
-               ( VirtualTableInfo<Int64Array>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Int64Array>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Uint64Array::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint64Array &&
-               ( VirtualTableInfo<Uint64Array>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Uint64Array>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL BoolArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_BoolArray &&
-               ( VirtualTableInfo<BoolArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<BoolArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Uint8ClampedVirtualArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint8ClampedArray &&
-               ( VirtualTableInfo<Uint8ClampedVirtualArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Uint8ClampedVirtualArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Uint8VirtualArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint8Array &&
-               ( VirtualTableInfo<Uint8VirtualArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Uint8VirtualArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-
-    template<> BOOL Int8VirtualArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int8Array &&
-               ( VirtualTableInfo<Int8VirtualArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Int8VirtualArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Int16VirtualArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int16Array &&
-               ( VirtualTableInfo<Int16VirtualArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Int16VirtualArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Uint16VirtualArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint16Array &&
-               ( VirtualTableInfo<Uint16VirtualArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Uint16VirtualArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Int32VirtualArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Int32Array &&
-               ( VirtualTableInfo<Int32VirtualArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Int32VirtualArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Uint32VirtualArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint32Array &&
-               ( VirtualTableInfo<Uint32VirtualArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Uint32VirtualArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Float32VirtualArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Float32Array &&
-               ( VirtualTableInfo<Float32VirtualArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Float32VirtualArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template<> BOOL Float64VirtualArray::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Float64Array &&
-               ( VirtualTableInfo<Float64VirtualArray>::HasVirtualTable(aValue) ||
-                 VirtualTableInfo<CrossSiteObject<Float64VirtualArray>>::HasVirtualTable(aValue)
-               );
-    }
-
-    template <typename TypeName, bool clamped, bool virtualAllocated>
-    TypedArray<TypeName, clamped, virtualAllocated>* TypedArray<TypeName, clamped, virtualAllocated>::FromVar(Var aValue)
-    {
-        AssertMsg(TypedArray::Is(aValue), "invalid TypedArray");
-        return static_cast<TypedArray<TypeName, clamped, virtualAllocated>*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Uint8ClampedArray* Uint8ClampedArray::FromVar(Var aValue)
-    {
-        AssertMsg(Uint8ClampedArray::Is(aValue), "invalid Uint8ClampedArray");
-        return static_cast<Uint8ClampedArray*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Uint8Array* Uint8Array::FromVar(Var aValue)
-    {
-        AssertMsg(Uint8Array::Is(aValue), "invalid Uint8Array");
-        return static_cast<Uint8Array*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Int8Array* Int8Array::FromVar(Var aValue)
-    {
-        AssertMsg(Int8Array::Is(aValue), "invalid Int8Array");
-        return static_cast<Int8Array*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Int16Array* Int16Array::FromVar(Var aValue)
-    {
-        AssertMsg(Int16Array::Is(aValue), "invalid Int16Array");
-        return static_cast<Int16Array*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Uint16Array* Uint16Array::FromVar(Var aValue)
-    {
-        AssertMsg(Uint16Array::Is(aValue), "invalid Uint16Array");
-        return static_cast<Uint16Array*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Int32Array* Int32Array::FromVar(Var aValue)
-    {
-        AssertMsg(Int32Array::Is(aValue), "invalid Int32Array");
-        return static_cast<Int32Array*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Uint32Array* Uint32Array::FromVar(Var aValue)
-    {
-        AssertMsg(Uint32Array::Is(aValue), "invalid Uint32Array");
-        return static_cast<Uint32Array*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Float32Array* Float32Array::FromVar(Var aValue)
-    {
-        AssertMsg(Float32Array::Is(aValue), "invalid Float32Array");
-        return static_cast<Float32Array*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Float64Array* Float64Array::FromVar(Var aValue)
-    {
-        AssertMsg(Float64Array::Is(aValue), "invalid Float64Array");
-        return static_cast<Float64Array*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Int64Array* Int64Array::FromVar(Var aValue)
-    {
-        AssertMsg(Int64Array::Is(aValue), "invalid Int64Array");
-        return static_cast<Int64Array*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Uint64Array* Uint64Array::FromVar(Var aValue)
-    {
-        AssertMsg(Uint64Array::Is(aValue), "invalid Uint64Array");
-        return static_cast<Uint64Array*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Int8VirtualArray* Int8VirtualArray::FromVar(Var aValue)
-    {
-        AssertMsg(Int8VirtualArray::Is(aValue), "invalid Int8Array");
-        return static_cast<Int8VirtualArray*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Uint8ClampedVirtualArray* Uint8ClampedVirtualArray::FromVar(Var aValue)
-    {
-        AssertMsg(Uint8ClampedVirtualArray::Is(aValue), "invalid Uint8ClampedArray");
-        return static_cast<Uint8ClampedVirtualArray*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Uint8VirtualArray* Uint8VirtualArray::FromVar(Var aValue)
-    {
-        AssertMsg(Uint8VirtualArray::Is(aValue), "invalid Uint8Array");
-        return static_cast<Uint8VirtualArray*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Int16VirtualArray* Int16VirtualArray::FromVar(Var aValue)
-    {
-        AssertMsg(Int16VirtualArray::Is(aValue), "invalid Int16Array");
-        return static_cast<Int16VirtualArray*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Uint16VirtualArray* Uint16VirtualArray::FromVar(Var aValue)
-    {
-        AssertMsg(Uint16VirtualArray::Is(aValue), "invalid Uint16Array");
-        return static_cast<Uint16VirtualArray*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Int32VirtualArray* Int32VirtualArray::FromVar(Var aValue)
-    {
-        AssertMsg(Int32VirtualArray::Is(aValue), "invalid Int32Array");
-        return static_cast<Int32VirtualArray*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Uint32VirtualArray* Uint32VirtualArray::FromVar(Var aValue)
-    {
-        AssertMsg(Uint32VirtualArray::Is(aValue), "invalid Uint32Array");
-        return static_cast<Uint32VirtualArray*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Float32VirtualArray* Float32VirtualArray::FromVar(Var aValue)
-    {
-        AssertMsg(Float32VirtualArray::Is(aValue), "invalid Float32Array");
-        return static_cast<Float32VirtualArray*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> Float64VirtualArray* Float64VirtualArray::FromVar(Var aValue)
-    {
-        AssertMsg(Float64VirtualArray::Is(aValue), "invalid Float64Array");
-        return static_cast<Float64VirtualArray*>(RecyclableObject::FromVar(aValue));
-    }
-
-    template<> BoolArray* BoolArray::FromVar(Var aValue)
-    {
-        AssertMsg(BoolArray::Is(aValue), "invalid BoolArray");
-        return static_cast<BoolArray*>(RecyclableObject::FromVar(aValue));
-    }
-
+    template<>
     __inline BOOL Int8Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt8);
     }
 
+    template<>
     __inline BOOL Int8VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt8);
     }
 
+    template<>
     __inline Var Int8Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
+    template<>
     __inline Var Int8VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
+    template<>
     __inline BOOL Uint8Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt8);
     }
+
+    template<>
     __inline BOOL Uint8VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt8);
     }
 
+    template<>
     __inline Var Uint8Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
+
+    template<>
     __inline Var Uint8VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
-
+    template<>
     __inline BOOL Uint8ClampedArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt8Clamped);
     }
 
+    template<>
     __inline Var Uint8ClampedArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
+    template<>
     __inline BOOL Uint8ClampedVirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt8Clamped);
     }
 
+    template<>
     __inline Var Uint8ClampedVirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
+    template<>
     __inline BOOL Int16Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt16);
     }
 
+    template<>
     __inline Var Int16Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
+    template<>
     __inline BOOL Int16VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt16);
     }
 
+    template<>
     __inline Var Int16VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
-
+    template<>
     __inline BOOL Uint16Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt16);
     }
 
+    template<>
     __inline Var Uint16Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
+    template<>
     __inline BOOL Uint16VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt16);
     }
 
+    template<>
     __inline Var Uint16VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
-
-
+    template<>
     __inline BOOL Int32Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt32);
     }
 
+    template<>
     __inline Var Int32Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
+    template<>
     __inline BOOL Int32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt32);
     }
 
+    template<>
     __inline Var Int32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
-
+    template<>
     __inline BOOL Uint32Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt32);
     }
 
+    template<>
     __inline Var Uint32Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
+    template<>
     __inline BOOL Uint32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt32);
     }
 
+    template<>
     __inline Var Uint32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
-
-
+    template<>
     __inline BOOL Float32Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToFloat);
     }
 
+    template<>
     Var Float32Array::DirectGetItem(__in uint32 index)
     {
         return TypedDirectGetItemWithCheck(index);
     }
 
+    template<>
     __inline BOOL Float32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToFloat);
     }
 
+    template<>
     Var Float32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return TypedDirectGetItemWithCheck(index);
     }
 
-
+    template<>
     __inline BOOL Float64Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToNumber);
     }
 
+    template<>
     __inline Var Float64Array::DirectGetItem(__in uint32 index)
     {
         return TypedDirectGetItemWithCheck(index);
     }
 
+    template<>
     __inline BOOL Float64VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToNumber);
     }
 
+    template<>
     __inline Var Float64VirtualArray::DirectGetItem(__in uint32 index)
     {
         return TypedDirectGetItemWithCheck(index);
     }
 
-
+    template<>
     __inline BOOL Int64Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt64);
     }
 
+    template<>
     __inline Var Int64Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
+    template<>
     __inline BOOL Uint64Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt64);
     }
 
+    template<>
     __inline Var Uint64Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
+    template<>
     __inline BOOL BoolArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToBool);
     }
 
+    template<>
     __inline Var BoolArray::DirectGetItem(__in uint32 index)
     {
         if (index < GetLength())

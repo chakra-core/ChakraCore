@@ -145,10 +145,10 @@ public:
 };
 
 template <typename T>
-class AutoDiscardPTR : public BasePtr < T >
+class AutoDiscardPTR : public BasePtr<T>
 {
 public:
-    AutoDiscardPTR(T * ptr) : BasePtr(ptr) {}
+    AutoDiscardPTR(T * ptr) : BasePtr<T>(ptr) {}
     ~AutoDiscardPTR()
     {
         Clear();
@@ -164,10 +164,10 @@ public:
 private:
     void Clear()
     {
-        if (ptr != nullptr)
+        if (this->ptr != nullptr)
         {
-            ptr->Discard();
-            ptr = nullptr;
+            this->ptr->Discard();
+            this->ptr = nullptr;
         }
     }
 };

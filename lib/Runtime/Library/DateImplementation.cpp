@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include <time.h>
 #include "DateImplementationData.h"
 
 #include "CharClassifier.h"
@@ -32,7 +31,7 @@ namespace Js {
 
     struct SZS
     {
-        char16 *psz;           // string
+        const char16 *psz;      // string
         short cch;              // length of string
         short szst;             // type of entry
         long lwVal;             // value
@@ -369,6 +368,7 @@ namespace Js {
         return DateImplementation::GetDateDefaultString(&ymd, &tzd, 0, scriptContext);
     }
 
+#ifdef ENABLE_GLOBALIZATION
     JavascriptString*
     DateImplementation::GetDateDefaultString(Js::YMD *pymd, TZD *ptzd,DateTimeFlag noDateTime,ScriptContext* scriptContext)
     {
@@ -378,6 +378,7 @@ namespace Js {
             return CompoundString::NewWithCharCapacity(capacity, scriptContext->GetLibrary());
         });
     }
+#endif // ENABLE_GLOBALIZATION
 
     JavascriptString*
     DateImplementation::GetDateGmtString(Js::YMD *pymd,ScriptContext* scriptContext)
@@ -434,6 +435,7 @@ namespace Js {
         return bs;
     }
 
+#ifdef ENABLE_GLOBALIZATION
     JavascriptString*
     DateImplementation::GetDateLocaleString(Js::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime,ScriptContext* scriptContext)
     {
@@ -565,6 +567,7 @@ Error:
 
         return bs;
     }
+#endif // ENABLE_GLOBALIZATION
 
     double
     DateImplementation::GetDateData(DateData dd, bool fUtc, ScriptContext* scriptContext)

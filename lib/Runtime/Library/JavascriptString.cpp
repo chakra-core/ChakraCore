@@ -1281,6 +1281,7 @@ case_2:
         *ppSearch = pSearch;
     }
 
+#ifdef ENABLE_GLOBALIZATION
     Var JavascriptString::EntryLocaleCompare(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -1350,6 +1351,7 @@ case_2:
         }
         return JavascriptNumber::ToVar(result-2, scriptContext);
     }
+#endif // ENABLE_GLOBALIZATION
 
     Var JavascriptString::EntryMatch(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -3255,7 +3257,7 @@ case_2:
             return pThis;
         }
 
-        // Get the number of chars in the mapped string.       
+        // Get the number of chars in the mapped string.
         CaseFlags caseFlags = (toUpper ? CaseFlags::CaseFlagsUpper : CaseFlags::CaseFlagsLower);
         const char16* str = pThis->GetString();
         ApiError err = ApiError::NoError;
