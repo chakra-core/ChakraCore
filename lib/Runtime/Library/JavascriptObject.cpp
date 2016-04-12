@@ -19,7 +19,7 @@ namespace Js
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
 
@@ -376,6 +376,12 @@ namespace Js
                     return library->CreateStringFromCppLiteral(_u("[object Boolean]"));
                 }
                 break;
+            case TypeIds_DataView:
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("DataView")) == 0)
+                {
+                    return library->CreateStringFromCppLiteral(_u("[object DataView]"));
+                }
+                break;
             case TypeIds_Date:
             case TypeIds_WinRTDate:
                 if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Date")) == 0)
@@ -404,6 +410,12 @@ namespace Js
                 if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Number")) == 0)
                 {
                     return library->CreateStringFromCppLiteral(_u("[object Number]"));
+                }
+                break;
+            case TypeIds_Promise:
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Promise")) == 0)
+                {
+                    return library->CreateStringFromCppLiteral(_u("[object Promise]"));
                 }
                 break;
             case TypeIds_SIMDObject:

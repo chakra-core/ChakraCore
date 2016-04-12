@@ -282,7 +282,7 @@ namespace Js
             return JavascriptSIMDUint8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"neg");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("neg"));
     }
 
     Var SIMDUint8x16Lib::EntryNot(RecyclableObject* function, CallInfo callInfo, ...)
@@ -632,7 +632,7 @@ namespace Js
             bValue = b->GetValue();
 
             result = SIMDUint8x16Operation::OpGreaterThan(aValue, bValue);
-            
+
             return JavascriptSIMDBool8x16::New(&result, scriptContext);
         }
 
@@ -663,7 +663,7 @@ namespace Js
             bValue = b->GetValue();
 
             result = SIMDUint8x16Operation::OpGreaterThanOrEqual(aValue, bValue);
-            
+
             return JavascriptSIMDBool8x16::New(&result, scriptContext);
         }
 

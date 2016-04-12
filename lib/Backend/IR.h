@@ -53,13 +53,6 @@ public:
         branchTargets->jmpTable = jmpTable;
         return branchTargets;
     }
-
-    static void Delete(JitArenaAllocator * allocator, BranchJumpTableWrapper * branchTargets)
-    {
-        Assert(allocator != nullptr && branchTargets != nullptr);
-        JitAdeleteArray(allocator, branchTargets->tableSize, branchTargets->jmpTable);
-        JitAdelete(allocator, branchTargets);
-    }
 };
 
 namespace IR {

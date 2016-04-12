@@ -2211,7 +2211,7 @@ LowererMDArch::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelpe
 void
 LowererMDArch::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
 {
-    //    MOV e1, e_src1
+    //    MOV_TRUNC e1, e_src1
     //    CMP e1, 0             [uint32]
     //    JLT $Helper           [uint32]  -- overflows?
     //    BTS r1, VarTag_Shift
@@ -2247,10 +2247,11 @@ LowererMDArch::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelpe
 
     IR::RegOpnd *r1 = IR::RegOpnd::New(TyVar, m_func);
 
-    // e1 = MOV e_src1
+    // e1 = MOV_TRUNC e_src1
+    // (Use MOV_TRUNC here as we rely on the register copy to clear the upper 32 bits.)
     IR::RegOpnd *e1 = r1->Copy(m_func)->AsRegOpnd();
     e1->SetType(TyInt32);
-    instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::MOV,
+    instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC,
         e1,
         src1,
         m_func));

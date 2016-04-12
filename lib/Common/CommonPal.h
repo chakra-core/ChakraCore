@@ -274,6 +274,10 @@ inline T InterlockedDecrement(
     return __sync_sub_and_fetch(Addend, T(1));
 }
 
+inline __int64 _abs64(__int64 n)
+{
+    return n < 0 ? -n : n;
+}
 
 // xplat-todo: implement these for JIT and Concurrent/Partial GC
 uintptr_t _beginthreadex(
@@ -298,10 +302,18 @@ int GetCurrentThreadStackBounds(char** stackBase, char** stackEnd);
 errno_t rand_s(unsigned int* randomValue);
 errno_t __cdecl _ultow_s(unsigned _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix);
 errno_t __cdecl _ui64tow_s(unsigned __int64 _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix);
+void __cdecl qsort_s(void *base, size_t num, size_t width,
+             int (__cdecl *compare )(void *, const void *, const void *),
+             void * context
+);
+char16* __cdecl wmemset(char16* wcs, char16 wc, size_t n);
+DWORD __cdecl CharLowerBuffW(const char16* lpsz, DWORD  cchLength);
+DWORD __cdecl CharUpperBuffW(const char16* lpsz, DWORD  cchLength);
 
 #define MAXUINT32   ((uint32_t)~((uint32_t)0))
 #define MAXINT32    ((int32_t)(MAXUINT32 >> 1))
 #define BYTE_MAX    0xff
+#define USHORT_MAX  0xffff
 
 #ifdef UNICODE
 #define StringCchPrintf  StringCchPrintfW
@@ -394,4 +406,3 @@ void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
 
 __inline
 HRESULT ULongMult(ULONG ulMultiplicand, ULONG ulMultiplier, ULONG* pulResult);
-    

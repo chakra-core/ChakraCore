@@ -1657,10 +1657,7 @@ namespace Js
         Recycler* recycler = this->m_scriptContext->GetRecycler();
         propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
 
-        bool isDebugReparse = m_scriptContext->IsScriptContextInSourceRundownOrDebugMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
-        bool isAsmJsReparse = false;
-        bool isReparse = isDebugReparse;
-
+        bool isDebugOrAsmJsReparse = false;
         FunctionBody* funcBody = nullptr;
 
         // If m_hasBeenParsed = true, one of the following things happened things happened:
@@ -1738,11 +1735,14 @@ namespace Js
         }
         else
         {
-            isAsmJsReparse = m_isAsmjsMode && !isDebugReparse;
-            isReparse |= isAsmJsReparse;
+            bool isDebugReparse = m_scriptContext->IsScriptContextInSourceRundownOrDebugMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
+            bool isAsmJsReparse = m_isAsmjsMode && !isDebugReparse;
+
+            isDebugOrAsmJsReparse = isAsmJsReparse || isDebugReparse;
+
             funcBody = this->GetFunctionBody();
 
-            if (isReparse)
+            if (isDebugOrAsmJsReparse)
             {
     #if ENABLE_DEBUG_CONFIG_OPTIONS
                 char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -1773,7 +1773,7 @@ namespace Js
             Assert(!funcBody->HasExecutionDynamicProfileInfo());
 #endif
             // In debug or asm.js mode, the scriptlet will be asked to recompile again.
-            AssertMsg(isReparse || funcBody->GetGrfscr() & fscrGlobalCode || CONFIG_FLAG(DeferNested), "Deferred parsing of non-global procedure?");
+            AssertMsg(isDebugOrAsmJsReparse || funcBody->GetGrfscr() & fscrGlobalCode || CONFIG_FLAG(DeferNested), "Deferred parsing of non-global procedure?");
 
             HRESULT hr = NO_ERROR;
             HRESULT hrParser = NO_ERROR;
@@ -1803,12 +1803,12 @@ namespace Js
                     // (not a function declaration statement).
                     grfscr |= fscrDeferredFncExpression;
                 }
-                if (!CONFIG_FLAG(DeferNested) || isDebugReparse || isAsmJsReparse)
+                if (!CONFIG_FLAG(DeferNested) || isDebugOrAsmJsReparse)
                 {
                     grfscr &= ~fscrDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
                 }
 
-                if (isReparse)
+                if (isDebugOrAsmJsReparse)
                 {
                     grfscr |= fscrNoAsmJs; // Disable asm.js when debugging or if linking failed
                 }
@@ -1823,7 +1823,7 @@ namespace Js
                     hrParser = ps.ParseSourceWithOffset(&parseTree, pszStart, offset, length, charOffset, isCesu8, grfscr, &se,
                         &nextFunctionId, funcBody->GetRelativeLineNumber(), funcBody->GetSourceContextInfo(),
                         funcBody);
-                    Assert(FAILED(hrParser) || nextFunctionId == funcBody->deferredParseNextFunctionId || isReparse || isByteCodeDeserialization);
+                    Assert(FAILED(hrParser) || nextFunctionId == funcBody->deferredParseNextFunctionId || isDebugOrAsmJsReparse || isByteCodeDeserialization);
 
                     if (FAILED(hrParser))
                     {
@@ -1835,7 +1835,7 @@ namespace Js
                         TRACE_BYTECODE(_u("\nDeferred parse %s\n"), funcBody->GetDisplayName());
                         Js::AutoDynamicCodeReference dynamicFunctionReference(m_scriptContext);
 
-                        bool forceNoNative = isReparse ? this->GetScriptContext()->IsInterpreted() : false;
+                        bool forceNoNative = isDebugOrAsmJsReparse ? this->GetScriptContext()->IsInterpreted() : false;
                         hrParseCodeGen = GenerateByteCode(parseTree, grfscr, m_scriptContext,
                             funcBody->GetParseableFunctionInfoRef(), funcBody->GetSourceIndex(),
                             forceNoNative, &ps, &se, funcBody->GetScopeInfo(), functionRef);
@@ -3396,6 +3396,7 @@ namespace Js
 
         newFunctionBody->SetFirstTmpRegister(this->GetFirstTmpRegister());
         newFunctionBody->SetLocalClosureRegister(this->GetLocalClosureRegister());
+        newFunctionBody->SetParamClosureRegister(this->GetParamClosureRegister());
         newFunctionBody->SetLocalFrameDisplayRegister(this->GetLocalFrameDisplayRegister());
         newFunctionBody->SetEnvRegister(this->GetEnvRegister());
         newFunctionBody->SetThisRegisterForEventHandler(this->GetThisRegisterForEventHandler());
@@ -4747,6 +4748,7 @@ namespace Js
         this->SetVarCount(0);
         this->SetConstantCount(0);
         this->SetLocalClosureRegister(Constants::NoRegister);
+        this->SetParamClosureRegister(Constants::NoRegister);
         this->SetLocalFrameDisplayRegister(Constants::NoRegister);
         this->SetEnvRegister(Constants::NoRegister);
         this->SetThisRegisterForEventHandler(Constants::NoRegister);
@@ -5319,6 +5321,8 @@ namespace Js
             return _u("DiagWithScope");
         case DiagExtraScopesType::DiagParamScope:
             return _u("DiagParamScope");
+        case DiagExtraScopesType::DiagParamScopeInObject:
+            return _u("DiagParamScopeInObject");
         default:
             AssertMsg(false, "Missing a debug scope type.");
             return _u("");
@@ -5492,6 +5496,12 @@ namespace Js
     {
         return this->scopeType == Js::DiagBlockScopeInSlot
             || this->scopeType == Js::DiagCatchScopeInSlot;
+    }
+
+    bool DebuggerScope::IsParamScope() const
+    {
+        return this->scopeType == Js::DiagParamScope
+            || this->scopeType == Js::DiagParamScopeInObject;
     }
 
     // Gets whether or not the scope has any properties in it.
@@ -5682,7 +5692,7 @@ namespace Js
         {
             Js::DebuggerScope *debuggerScope = pScopeChain->Item(i);
             DebuggerScopeProperty debuggerScopeProperty;
-            if (debuggerScope->scopeType != DiagParamScope && debuggerScope->TryGetProperty(propertyId, location, &debuggerScopeProperty))
+            if (!debuggerScope->IsParamScope() && debuggerScope->TryGetProperty(propertyId, location, &debuggerScopeProperty))
             {
                 bool isOffsetInScope = debuggerScope->IsOffsetInScope(offset);
 
@@ -6055,6 +6065,7 @@ namespace Js
 
         SetFirstTmpRegister(Constants::NoRegister);
         SetLocalClosureRegister(Constants::NoRegister);
+        SetParamClosureRegister(Constants::NoRegister);
         SetLocalFrameDisplayRegister(Constants::NoRegister);
         SetEnvRegister(Constants::NoRegister);
         SetThisRegisterForEventHandler(Constants::NoRegister);
@@ -7084,9 +7095,20 @@ namespace Js
             !IsGenerator(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
     }
 
+    bool FunctionBody::DoSimpleJitWithLock() const
+    {
+        return
+            !PHASE_OFF(Js::SimpleJitPhase, this) &&
+            !GetScriptContext()->GetConfig()->IsNoNative() &&
+            !this->IsInDebugMode() &&
+            DoInterpreterProfileWithLock() &&
+            (!IsNewSimpleJit() || DoInterpreterAutoProfile()) &&
+            !IsGenerator(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
+    }
+
     bool FunctionBody::DoSimpleJitDynamicProfile() const
     {
-        Assert(DoSimpleJit());
+        Assert(DoSimpleJitWithLock());
 
         return !PHASE_OFF(Js::SimpleJitDynamicProfilePhase, this) && !IsNewSimpleJit();
     }
@@ -7096,6 +7118,23 @@ namespace Js
 #if ENABLE_PROFILE_INFO
         // Switch off profiling is asmJsFunction
         if (this->GetIsAsmJsFunction() || this->GetAsmJsModuleInfo())
+        {
+            return false;
+        }
+        else
+        {
+            return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
+        }
+#else
+        return false;
+#endif
+    }
+
+    bool FunctionBody::DoInterpreterProfileWithLock() const
+    {
+#if ENABLE_PROFILE_INFO
+        // Switch off profiling is asmJsFunction
+        if (this->GetIsAsmJsFunction() || this->GetAsmJsModuleInfoWithLock())
         {
             return false;
         }

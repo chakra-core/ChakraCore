@@ -5,8 +5,24 @@
 #include "CommonCommonPch.h"
 #include "Common/Int64Math.h"
 
-#if defined(_M_X64) && defined(_MSC_VER)
-#pragma intrinsic(_mul128)
+#if defined(_M_X64)
+#if defined(_MSC_VER)
+    #pragma intrinsic(_mul128)
+#else
+    static int64 _mul128(const int64 left, const int64 right, int64 *high) noexcept
+    {
+        int64 low;
+        __asm__
+        (
+            "imulq %[right]\n"
+            // (I)MUL (Q/64) R[D/A]X <- RAX * r/m64
+            : "=d"(*high), "=a"(low)
+            : [right]"rm"(right), "1"(left)
+        );
+
+        return low;
+    }
+#endif
 #endif
 
 bool
@@ -21,8 +37,7 @@ Int64Math::Add(int64 left, int64 right, int64 *pResult)
 bool
 Int64Math::Mul(int64 left, int64 right, int64 *pResult)
 {
-// TODO: we should use an optimized version of mul128 in !windows too.
-#if defined(_M_X64) && defined(_MSC_VER)
+#if defined(_M_X64)
     int64 high;
     *pResult = _mul128(left, right, &high);
     return ((*pResult > 0) && high != 0) || ((*pResult < 0) && (high != -1));

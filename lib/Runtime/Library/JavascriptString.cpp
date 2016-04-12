@@ -135,7 +135,7 @@ namespace Js
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
 
@@ -1281,6 +1281,7 @@ case_2:
         *ppSearch = pSearch;
     }
 
+#ifdef ENABLE_GLOBALIZATION
     Var JavascriptString::EntryLocaleCompare(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -1350,6 +1351,7 @@ case_2:
         }
         return JavascriptNumber::ToVar(result-2, scriptContext);
     }
+#endif // ENABLE_GLOBALIZATION
 
     Var JavascriptString::EntryMatch(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -1559,7 +1561,7 @@ case_2:
 
         PCWSTR const varName = _u("String.prototype.replace");
 
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("String.prototype.replace"));
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -3255,7 +3257,7 @@ case_2:
             return pThis;
         }
 
-        // Get the number of chars in the mapped string.       
+        // Get the number of chars in the mapped string.
         CaseFlags caseFlags = (toUpper ? CaseFlags::CaseFlagsUpper : CaseFlags::CaseFlagsLower);
         const char16* str = pThis->GetString();
         ApiError err = ApiError::NoError;

@@ -1984,10 +1984,12 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 break;
 
             case IR::BailOutExpectingInteger:
+                profileInfo->DisableSwitchOpt();
                 rejitReason = RejitReason::DisableSwitchOptExpectingInteger;
                 break;
 
             case IR::BailOutExpectingString:
+                profileInfo->DisableSwitchOpt();
                 rejitReason = RejitReason::DisableSwitchOptExpectingString;
                 break;
 
@@ -2134,6 +2136,18 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                     rejitReason = RejitReason::FloorInliningDisabled;
                 }
                 break;
+            }
+            case IR::BailOutOnPowIntIntOverflow:
+            {
+                if (profileInfo->IsPowIntIntTypeSpecDisabled())
+                {
+                    reThunk = true;
+                }
+                else
+                {
+                    profileInfo->DisablePowIntIntTypeSpec();
+                    rejitReason = RejitReason::PowIntIntTypeSpecDisabled;
+                }
             }
         }
 
@@ -2443,6 +2457,12 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
 
             case IR::BailOutOnTaggedValue:
                 rejitReason = RejitReason::FailedTagCheck;
+                break;
+
+            case IR::BailOutOnPowIntIntOverflow:
+                profileInfo->DisablePowIntIntTypeSpec();
+                executeFunction->SetDontRethunkAfterBailout();
+                rejitReason = RejitReason::PowIntIntTypeSpecDisabled;
                 break;
         }
 

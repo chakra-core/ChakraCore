@@ -24,12 +24,20 @@ def machineTypeToOSTagMap = [
 
 def dailyRegex = 'dailies'
 
+// Only generate PR check triggers for the version of netci.groovy in the master branch
+// since those PR checks will apply for all branches.
+def jobTypesToGenerate = [false]
+if (branch == 'master') {
+    // OK to generate PR checks (this ensures we only generate one set of them)
+    jobTypesToGenerate += true
+}
+
 // ---------------
 // HELPER CLOSURES
 // ---------------
 
 def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup ->
-    [true, false].each { isPR ->
+    jobTypesToGenerate.each { isPR ->
         ['x86', 'x64', 'arm'].each { buildArch ->
             ['debug', 'test', 'release'].each { buildType ->
                 if (excludeConfigIf && excludeConfigIf(isPR, buildArch, buildType)) {
@@ -45,12 +53,12 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
                 def testableConfig = buildType in ['debug', 'test'] && buildArch != 'arm'
                 def analysisConfig = buildType in ['release'] && runCodeAnalysis
 
-                def buildScript = "call .\\jenkins\\buildone.cmd ${buildArch} ${buildType}"
+                def buildScript = "call .\\jenkins\\buildone.cmd ${buildArch} ${buildType} "
                 buildScript += buildExtra ?: ''
                 buildScript += analysisConfig ? ' "/p:runcodeanalysis=true"' : ''
-                def testScript = "call .\\jenkins\\testone.cmd ${buildArch} ${buildType}"
+                def testScript = "call .\\jenkins\\testone.cmd ${buildArch} ${buildType} "
                 testScript += testExtra ?: ''
-                def analysisScript = ".\\Build\\scripts\\check_prefast_error.ps1 . CodeAnalysis.err"
+                def analysisScript = '.\\Build\\scripts\\check_prefast_error.ps1 . CodeAnalysis.err'
 
                 def newJob = job(jobName) {
                     // This opens the set of build steps that will be run.
@@ -81,22 +89,23 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
                     false, // doNotFailIfNothingArchived=false ~= failIfNothingArchived
                     false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
-                if (nonDefaultTaskSetup == null)
-                {
-                    Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+                Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+                if (nonDefaultTaskSetup == null) {
                     if (isPR) {
-                        // Set PR trigger.
                         def osTag = machineTypeToOSTagMap.get(machine)
+                        // Set up checks which apply to PRs targeting any branch
                         Utilities.addGithubPRTrigger(newJob, "${osTag} ${config}")
-                    }
-                    else {
-                        // Set a push trigger
+                        // To enable PR checks only for specific target branches, use the following instead:
+                        // Utilities.addGithubPRTriggerForBranch(newJob, branch, checkName)
+                    } else {
                         Utilities.addGithubPushTrigger(newJob)
                     }
-                }
-                else
-                {
-                    Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+                } else {
+                    // nonDefaultTaskSetup is e.g. DailyBuildTaskSetup (which sets up daily builds)
+                    // These jobs will only be configured for the branch specified below,
+                    // which is the name of the branch netci.groovy was processed for.
+                    // See list of such branches at:
+                    // https://github.com/dotnet/dotnet-ci/blob/master/jobs/data/repolist.txt
                     nonDefaultTaskSetup(newJob, isPR, config)
                 }
             }
@@ -130,8 +139,7 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
         if (isPR) {
             // Set PR trigger.
             Utilities.addGithubPRTrigger(newJob, checkName)
-        }
-        else {
+        } else {
             // Set a push trigger
             Utilities.addGithubPushTrigger(newJob)
         }
@@ -151,7 +159,7 @@ CreateBuildTasks('Windows_NT', null, null, null, true, null, null)
 // -----------------
 
 // build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
-CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', ' -win7 -includeSlow', false,
+CreateBuildTasks('Windows 7', 'daily_dev12', 'msbuild12', '-win7 -includeSlow', false,
     /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
@@ -159,7 +167,7 @@ CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', ' -win7 -includeSlow'
             '(dev12|legacy)\\s+tests')})
 
 // build and test on the usual configuration (VS 2015) with -includeSlow
-CreateBuildTasks('Windows_NT', 'daily_slow', null, ' -includeSlow', false,
+CreateBuildTasks('Windows_NT', 'daily_slow', null, '-includeSlow', false,
     /* excludeConfigIf */ null,
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
@@ -167,7 +175,7 @@ CreateBuildTasks('Windows_NT', 'daily_slow', null, ' -includeSlow', false,
             'slow\\s+tests')})
 
 // build and test on the usual configuration (VS 2015) with JIT disabled
-CreateBuildTasks('Windows_NT', 'daily_disablejit', ' "/p:BuildJIT=false"', ' -disablejit', true,
+CreateBuildTasks('Windows_NT', 'daily_disablejit', '"/p:BuildJIT=false"', '-disablejit', true,
     /* excludeConfigIf */ null,
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,

@@ -6,10 +6,12 @@ include_directories(
     $(CHAKRA_RUNTIME_SOURCE_DIR)/../Backend
     $(CHAKRA_RUNTIME_SOURCE_DIR)/../Parser
     $(CHAKRA_RUNTIME_SOURCE_DIR)/ByteCode
+    $(CHAKRA_RUNTIME_SOURCE_DIR)/Math
     )
 
 add_subdirectory (Base)
 add_subdirectory (ByteCode)
 add_subdirectory (Language)
+add_subdirectory (Library)
 add_subdirectory (Math)
 add_subdirectory (Types)

@@ -24,6 +24,8 @@ PASSED
 PASSED
 *** Running test #9 (8): Calling Object.prototype.toString()
 PASSED
-*** Running test #10 (9): OS3713376: Accessing COA through proxy
+*** Running test #10 (9): Calling Object.prototype.hasOwnProperty()
 PASSED
-Summary of tests: total executed: 10; passed: 10; failed: 0
+*** Running test #11 (10): OS3713376: Accessing COA through proxy
+PASSED
+Summary of tests: total executed: 11; passed: 11; failed: 0

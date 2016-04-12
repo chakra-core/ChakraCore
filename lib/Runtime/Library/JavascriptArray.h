@@ -574,7 +574,7 @@ namespace Js
                 if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                 {
                     // The function has changed, go to another ForEachItemInRange
-                    JavascriptArray::FromVar(arr)->ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
+                    JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
                     return;
                 }
             }
@@ -593,7 +593,7 @@ namespace Js
                     if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                     {
                         // The function has changed, go to another ForEachItemInRange
-                        JavascriptArray::FromVar(arr)->ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
+                        JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
                         return;
                     }
                 }

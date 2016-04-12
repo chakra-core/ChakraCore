@@ -20,7 +20,9 @@ namespace JsUtil
     class WeakReferenceDictionary: public BaseDictionary<TKey, RecyclerWeakReference<TValue>*, RecyclerNonLeafAllocator, SizePolicy, Comparer, WeakRefValueDictionaryEntry>,
                                    public IWeakReferenceDictionary
     {
-        typedef BaseDictionary<TKey, RecyclerWeakReference<TValue>*, RecyclerNonLeafAllocator, SizePolicy, Comparer, WeakRefValueDictionaryEntry> Base;        
+        typedef BaseDictionary<TKey, RecyclerWeakReference<TValue>*, RecyclerNonLeafAllocator, SizePolicy, Comparer, WeakRefValueDictionaryEntry> Base;
+        typedef typename Base::EntryType EntryType;
+
     public:
         WeakReferenceDictionary(Recycler* recycler, int capacity = 0):
           Base(recycler, capacity)

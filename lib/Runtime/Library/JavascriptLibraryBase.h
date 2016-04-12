@@ -182,6 +182,7 @@ namespace Js
         JavascriptFunction* debugObjectDebugModeGetterFunction;
         JavascriptFunction* __proto__getterFunction;
         JavascriptFunction* __proto__setterFunction;
+        JavascriptFunction* arrayIteratorPrototypeBuiltinNextFunction;
         DynamicObject* mathObject;
         // SIMD_JS
         DynamicObject* simdObject;

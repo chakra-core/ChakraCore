@@ -86,3 +86,27 @@ function safeCall(f) {
         return ex.name;
     }
 }
+
+// Conversions from uint32 to int32 should be treated as lossy
+WScript.Echo("test4");
+function makeArrayLength(x) {
+    print( Math.floor(x));
+  }
+function test4(a) {
+  
+  var func2 = function () {
+  };
+  func2.length = 1;
+  func2.prop4 = 1;
+  var __loopvar2 = 0;
+  while ((func2.prop4+ 2147483650) |1) {
+
+    if (__loopvar2) {
+      break;
+    }
+    __loopvar2 = 2;
+	   makeArrayLength(2147483650);
+  }
+}
+test4();
+test4();

@@ -419,6 +419,7 @@ namespace Js {
         return GetDateDefaultString<StringBuilder>(&ymd, &tzd, DateTimeFlag::None, scriptContext, newStringBuilder);
     }
 
+#ifdef ENABLE_GLOBALIZATION
     //
     // Get default date string, shared with hybrid debugging.
     //  StringBuilder: A Js::StringBuilder/CompoundString like class, used to build strings.
@@ -517,5 +518,6 @@ namespace Js {
 
         return bs;
     }
+#endif // ENABLE_GLOBALIZATION
 
 } // namespace Js

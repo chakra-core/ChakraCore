@@ -1092,6 +1092,13 @@
       <baseline>LossyLosslessInt32.baseline</baseline>
     </default>
   </test>
+    <test>
+    <default>
+      <files>LossyLosslessInt32.js</files>
+      <compile-flags>-off:simplejit</compile-flags>
+      <baseline>LossyLosslessInt32.baseline</baseline>
+    </default>
+  </test>
   <test>
     <default>
       <files>AggressiveIntTypeSpec.js</files>
@@ -1319,6 +1326,31 @@
     <default>
       <files>trycatch_assert.js</files>
       <baseline>trycatch_assert.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ToVarI32_x64.js</files>
+      <compile-flags>-force:rejit -off:ArrayCheckHoist -off:aggressiveinttypespec -off:bailonnoprofile -off:nativearray</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>forcedTypeSpecOnLoopHeader.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>memop-upperbound.js</files>
+      <baseline>memop-upperbound.baseline</baseline>
+      <compile-flags>-lic:1 -off:nativearray</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug7100343.js</files>
+      <compile-flags>-mic:1 -off:simplejit -force:rejit</compile-flags>
+      <baseline>bug7100343.baseline</baseline>
     </default>
   </test>
 </regress-exe>

@@ -319,9 +319,11 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
 
                 allocatedAddress = (char *)VirtualAlloc(addressToReserve, dwSize, MEM_COMMIT, allocProtectFlags);
 
-                AssertMsg(allocatedAddress != nullptr, "If no space to allocate, then how did we fetch this address from the tracking bit vector?");
-                VirtualProtect(allocatedAddress, dwSize, protectFlags, &oldProtect);
-                AssertMsg(oldProtect == (PAGE_EXECUTE_READWRITE), "CFG Bitmap gets allocated and bits will be set to invalid only upon passing these flags.");
+                if (allocatedAddress != nullptr)
+                {
+                    VirtualProtect(allocatedAddress, dwSize, protectFlags, &oldProtect);
+                    AssertMsg(oldProtect == (PAGE_EXECUTE_READWRITE), "CFG Bitmap gets allocated and bits will be set to invalid only upon passing these flags.");
+                }
             }
             else
 #endif

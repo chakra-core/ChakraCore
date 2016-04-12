@@ -1000,7 +1000,7 @@ namespace Js
         // being created, except when call true a host dispatch.
         const CallInfo &callInfo = args.Info;
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert( isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
 
@@ -3710,7 +3710,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint32 index, Var * element, ScriptContext * scriptContext)
     {
         // Note: Sometime cross site array go down this path to get the marshalling
         Assert(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(obj)
@@ -3724,7 +3724,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint64 index, Var * element, ScriptContext * scriptContext)
     {
         // Note: Sometime cross site array go down this path to get the marshalling
         Assert(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(obj)
@@ -3742,14 +3742,14 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
     {
         Assert(VirtualTableInfo<JavascriptArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptArray>>::HasVirtualTable(pArr));
         return pArr->JavascriptArray::DirectGetItemAtFull(index, element);
     }
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
     {
         // This should never get called.
         Assert(false);
@@ -3757,7 +3757,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
     {
         Assert(VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptNativeIntArray>>::HasVirtualTable(pArr));
@@ -3765,7 +3765,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
     {
         // This should never get called.
         Assert(false);
@@ -3773,7 +3773,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
     {
         Assert(VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptNativeFloatArray>>::HasVirtualTable(pArr));
@@ -3781,7 +3781,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
     {
         // This should never get called.
         Assert(false);
@@ -3789,7 +3789,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint32 index, Var * element, ScriptContext * scriptContext)
     {
         // We need to do explicit check for items since length value may not actually match the actual TypedArray length.
         // User could add a length property to a TypedArray instance which lies and returns a different value from the underlying length.
@@ -3805,7 +3805,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint64 index, Var * element, ScriptContext * scriptContext)
     {
         // This should never get called.
         Assert(false);
@@ -4109,7 +4109,7 @@ namespace Js
 
         JavascriptString* res = nullptr;
 
-        __try
+        TryFinally([&]()
         {
             if (isArray)
             {
@@ -4139,8 +4139,8 @@ namespace Js
             {
                 res = JoinOtherHelper(scriptContext->GetLibrary()->CreateNumberObject(thisArg), separator, scriptContext);
             }
-        }
-        __finally
+        },
+        [&](bool/*hasException*/)
         {
             Var top = scriptContext->PopObject();
             if (JavascriptProxy::Is(thisArg))
@@ -4151,7 +4151,7 @@ namespace Js
             {
                 AssertMsg(top == thisArg, "Unmatched operation stack");
             }
-        }
+        });
 
         if (res == nullptr)
         {
@@ -5272,7 +5272,7 @@ Case0:
     }
 
     template<typename T>
-    static void JavascriptArray::ShiftHelper(JavascriptArray* pArr, ScriptContext * scriptContext)
+    void JavascriptArray::ShiftHelper(JavascriptArray* pArr, ScriptContext * scriptContext)
     {
         Recycler * recycler = scriptContext->GetRecycler();
 
@@ -5556,7 +5556,7 @@ Case0:
    }
 
     template<typename T>
-    static void JavascriptArray::SliceHelper(JavascriptArray* pArr,  JavascriptArray* pnewArr, uint32 start, uint32 newLen)
+    void JavascriptArray::SliceHelper(JavascriptArray* pArr,  JavascriptArray* pnewArr, uint32 start, uint32 newLen)
     {
         SparseArraySegment<T>* headSeg = (SparseArraySegment<T>*)pArr->head;
         SparseArraySegment<T>* pnewHeadSeg = (SparseArraySegment<T>*)pnewArr->head;
@@ -6119,7 +6119,7 @@ Case0:
         this->InvalidateLastUsedSegment();
         length = 0;
 
-        __try
+        TryFinally([&]()
         {
             //The array is a continuous array if there is only one segment
             if (startSeg->next == nullptr) // Single segment fast path
@@ -6173,17 +6173,17 @@ Case0:
                 head = allElements;
                 head->next = nullptr;
             }
-        }
-        __finally
+        },
+        [&](bool hasException)
         {
             length = saveLength;
             ClearSegmentMap(); // Dump the segmentMap again in case user compare function rebuilds it
-            if (AbnormalTermination())
+            if (hasException)
             {
                 head = startSeg;
                 this->InvalidateLastUsedSegment();
             }
-        }
+        });
 
 #if DEBUG
         {
@@ -6911,7 +6911,7 @@ Case0:
                         if (startSeg->next)
                         {
                             // We know the new segment will have a next segment, so allocate it as non-leaf.
-                            newHeadSeg = SparseArraySegment<T>::AllocateSegmentImpl<false>(recycler, 0, headDeleteLen, headDeleteLen, nullptr);
+                            newHeadSeg = SparseArraySegment<T>::template AllocateSegmentImpl<false>(recycler, 0, headDeleteLen, headDeleteLen, nullptr);
                         }
                         else
                         {
@@ -6939,7 +6939,7 @@ Case0:
                         if (startSeg->next)
                         {
                             // We know the new segment will have a next segment, so allocate it as non-leaf.
-                            newHeadSeg = SparseArraySegment<T>::AllocateSegmentImpl<false>(recycler, 0, headDeleteLen, headDeleteLen, nullptr);
+                            newHeadSeg = SparseArraySegment<T>::template AllocateSegmentImpl<false>(recycler, 0, headDeleteLen, headDeleteLen, nullptr);
                         }
                         else
                         {
@@ -7225,7 +7225,7 @@ Case0:
     // Unshift object elements [start, end) to toIndex, asserting toIndex > start.
     //
     template<typename T, typename P>
-    static void JavascriptArray::Unshift(RecyclableObject* obj, const T& toIndex, uint32 start, P end, ScriptContext* scriptContext)
+    void JavascriptArray::Unshift(RecyclableObject* obj, const T& toIndex, uint32 start, P end, ScriptContext* scriptContext)
     {
         typedef IndexTrace<T> index_trace;
 
@@ -7280,7 +7280,7 @@ Case0:
     }
 
     template<typename T>
-    static void JavascriptArray::GrowArrayHeadHelperForUnshift(JavascriptArray* pArr, uint32 unshiftElements, ScriptContext * scriptContext)
+    void JavascriptArray::GrowArrayHeadHelperForUnshift(JavascriptArray* pArr, uint32 unshiftElements, ScriptContext * scriptContext)
     {
         SparseArraySegmentBase* nextToHeadSeg = pArr->head->next;
         Recycler* recycler = scriptContext->GetRecycler();
@@ -7298,7 +7298,7 @@ Case0:
     }
 
     template<typename T>
-    static void JavascriptArray::UnshiftHelper(JavascriptArray* pArr, uint32 unshiftElements, Js::Var * elements)
+    void JavascriptArray::UnshiftHelper(JavascriptArray* pArr, uint32 unshiftElements, Js::Var * elements)
     {
         SparseArraySegment<T>* head = (SparseArraySegment<T>*)pArr->head;
         // Make enough room in the head segment to insert new elements at the front
@@ -7603,6 +7603,7 @@ Case0:
     }
 #endif
 
+#ifdef ENABLE_GLOBALIZATION
     JavascriptString* JavascriptArray::GetLocaleSeparator(ScriptContext* scriptContext)
     {
         LCID lcid = GetUserDefaultLCID();
@@ -7628,6 +7629,7 @@ Case0:
             return JavascriptString::NewCopyBuffer(szSeparator, count, scriptContext);
         }
     }
+#endif
 
     template <typename T>
     JavascriptString* JavascriptArray::ToLocaleString(T* arr, ScriptContext* scriptContext)
@@ -7641,7 +7643,7 @@ Case0:
         JavascriptString* res = scriptContext->GetLibrary()->GetEmptyString();
         bool pushedObject = false;
 
-        __try
+        TryFinally([&]()
         {
             scriptContext->PushObject(arr);
             pushedObject = true;
@@ -7652,30 +7654,28 @@ Case0:
                 res = JavascriptArray::ToLocaleStringHelper(element, scriptContext);
             }
 
-            if (length == 1)
+            if (length > 1)
             {
-                __leave;
-            }
+                JavascriptString* separator = GetLocaleSeparator(scriptContext);
 
-            JavascriptString* separator = GetLocaleSeparator(scriptContext);
-
-            for (uint32 i = 1; i < length; i++)
-            {
-                res = JavascriptString::Concat(res, separator);
-                if (ItemTrace<T>::GetItem(arr, i, &element, scriptContext))
+                for (uint32 i = 1; i < length; i++)
                 {
-                    res = JavascriptString::Concat(res, JavascriptArray::ToLocaleStringHelper(element, scriptContext));
+                    res = JavascriptString::Concat(res, separator);
+                    if (ItemTrace<T>::GetItem(arr, i, &element, scriptContext))
+                    {
+                        res = JavascriptString::Concat(res, JavascriptArray::ToLocaleStringHelper(element, scriptContext));
+                    }
                 }
             }
-        }
-        __finally
+        },
+        [&](bool/*hasException*/)
         {
             if (pushedObject)
             {
                 Var top = scriptContext->PopObject();
                 AssertMsg(top == arr, "Unmatched operation stack");
             }
-        }
+        });
 
         if (res == nullptr)
         {
@@ -8449,7 +8449,7 @@ Case0:
             }
             else
             {
-                TemplatedForEachItemInRange<true>(dynamicObject, 0uLL, length.GetBigIndex(), scriptContext, fn64);
+                TemplatedForEachItemInRange<true>(dynamicObject, 0ui64, length.GetBigIndex(), scriptContext, fn64);
             }
         }
         return scriptContext->GetLibrary()->GetUndefined();
@@ -8976,9 +8976,6 @@ Case0:
         }
         else
         {
-            // Source was not an array or TypedArray, return object is definitely a JavascriptArray
-            Assert(newArr);
-
             for (uint32 k = 0; k < length; k++)
             {
                 if (!JavascriptOperators::HasItem(obj, k))
@@ -8993,7 +8990,14 @@ Case0:
                     JavascriptNumber::ToVar(k, scriptContext),
                     obj);
 
-                newArr->DirectSetItemAt(k, mappedValue);
+                if (newArr)
+                {
+                    newArr->DirectSetItemAt(k, mappedValue);
+                }
+                else
+                {
+                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                }
             }
         }
 
@@ -9655,7 +9659,9 @@ Case0:
         RecyclableObject* newObj = nullptr;
         JavascriptArray* newArr = nullptr;
 
-        if (JavascriptOperators::IsIterable(items, scriptContext))
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext, true /* optional */);
+
+        if (iterator != nullptr)
         {
             if (constructor)
             {
@@ -9675,7 +9681,6 @@ Case0:
                 newObj = newArr;
             }
 
-            RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext);
             Var nextValue;
             uint32 k = 0;
 
@@ -11310,7 +11315,7 @@ Case0:
         if (ThreadContext::IsOnStack(instance->head))
         {
             boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(),
-                inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(T::TElement),
+                inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
                 T, instance, true);
         }
         else if(inlineSlotsSize)
@@ -11796,6 +11801,9 @@ Case0:
 
     BOOL JavascriptNativeIntArray::HasItem(uint32 index)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         int32 value;
         return this->DirectGetItemAt<int32>(index, &value);
     }

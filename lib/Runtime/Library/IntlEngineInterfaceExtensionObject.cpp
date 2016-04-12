@@ -1005,6 +1005,7 @@ namespace Js
         }
 
         int compareResult = 0;
+        DWORD lastError = S_OK;
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("localeCompare"))
         {
             using namespace PlatformAgnostic;
@@ -1036,6 +1037,12 @@ namespace Js
 
             // xplat-todo: Need to replace this with platform-agnostic API
             compareResult = CompareStringEx(givenLocale != nullptr ? givenLocale : defaultLocale, compareFlags, aLeft, size1, aRight, size2, NULL, NULL, 0);
+
+            // Get the last error code so that it won't be affected by END_TEMP_ALLOCATOR.
+            if (compareResult == 0)
+            {
+                lastError = GetLastError();
+            }
         }
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
 
@@ -1045,7 +1052,7 @@ namespace Js
             return JavascriptNumber::ToVar(compareResult - 2, scriptContext);//Convert 1,2,3 to -1,0,1
         }
 
-        JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(GetLastError()));
+        JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(lastError));
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CurrencyDigits(RecyclableObject* function, CallInfo callInfo, ...)

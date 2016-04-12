@@ -6,3 +6,6 @@ test3b: valueOf
 test3b: valueOf
 test3b: 2
 test3c: TypeError
+test4
+2147483650
+2147483650
