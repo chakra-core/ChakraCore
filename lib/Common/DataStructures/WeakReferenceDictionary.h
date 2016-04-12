@@ -32,9 +32,9 @@ namespace JsUtil
 
         virtual void Cleanup() override
         {
-            this->MapAndRemoveIf([](EntryType& entry)
+            this->MapAndRemoveIf([](typename Base::EntryType &entry)
             {
-                return (EntryType::NeedsCleanup(entry));
+                return (Base::EntryType::NeedsCleanup(entry));
             });
         }
 
