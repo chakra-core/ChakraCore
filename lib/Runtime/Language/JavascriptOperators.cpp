@@ -4532,6 +4532,16 @@ CommonNumber:
             returnValue = MEMCOPY_TYPED_ARRAY(Uint32Array, ToUInt32);
             break;
         }
+        case TypeIds_Float32Array:
+        {
+            returnValue = MEMCOPY_TYPED_ARRAY(Float32Array, ToFloat);
+            break;
+        }
+        case TypeIds_Float64Array:
+        {
+            returnValue = MEMCOPY_TYPED_ARRAY(Float64Array, ToNumber);
+            break;
+        }
         case TypeIds_Array:
         case TypeIds_NativeFloatArray:
         case TypeIds_NativeIntArray:
