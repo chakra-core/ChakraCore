@@ -7982,7 +7982,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binding operator, be it unary or binary.
                 Error(ERRsyntax);
             }
-            if (m_currentNodeFunc->sxFnc.IsGenerator()
+            if (GetCurrentFunctionNode()->sxFnc.IsGenerator()
                 && m_currentBlockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter)
             {
                 Error(ERRsyntax);
