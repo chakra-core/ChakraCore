@@ -751,6 +751,13 @@
   </test>
   <test>
     <default>
+      <files>generators-deferparse.js</files>
+      <compile-flags>-force:deferparse -ES6Generators -JitES6Generators -ES6Classes -ES6DefaultArgs</compile-flags>
+      <tags>exclude_arm</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>generators-apis.js</files>
       <compile-flags>-ES6Generators -es6tostringtag -JitES6Generators -args summary -endargs</compile-flags>
       <tags>exclude_arm</tags>
