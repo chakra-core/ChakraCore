@@ -6420,7 +6420,7 @@ void EmitDestructuredObjectMember(ParseNodePtr memberNode,
 }
 
 void EmitDestructuredObject(ParseNode *lhs,
-    Js::RegSlot rhsLocation,
+    Js::RegSlot rhsLocationOrig,
     ByteCodeGenerator *byteCodeGenerator,
     FuncInfo *funcInfo)
 {
@@ -6430,6 +6430,8 @@ void EmitDestructuredObject(ParseNode *lhs,
     byteCodeGenerator->StartStatement(lhs);
 
     Js::ByteCodeLabel skipThrow = byteCodeGenerator->Writer()->DefineLabel();
+    Js::RegSlot rhsLocation = funcInfo->AcquireTmpRegister();
+    byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, rhsLocation, rhsLocationOrig);
     byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrNeq_A, skipThrow, rhsLocation, funcInfo->undefinedConstantRegister);
     byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeTypeError, SCODE_CODE(JSERR_ObjectCoercible));
     byteCodeGenerator->Writer()->MarkLabel(skipThrow);
@@ -6448,6 +6450,7 @@ void EmitDestructuredObject(ParseNode *lhs,
         EmitDestructuredObjectMember(current, rhsLocation, byteCodeGenerator, funcInfo);
     }
 
+    funcInfo->ReleaseTmpRegister(rhsLocation);
     byteCodeGenerator->EndStatement(lhs);
 }
 
