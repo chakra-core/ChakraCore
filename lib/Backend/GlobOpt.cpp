@@ -6303,6 +6303,32 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
                 Assert(!propertySymOpnd->IsTypeChecked());
                 checkObjTypeInstr = this->SetTypeCheckBailOut(checkObjTypeOpnd, checkObjTypeInstr, nullptr);
                 Assert(checkObjTypeInstr->HasBailOutInfo());
+
+                if (this->currentBlock->loop && !this->IsLoopPrePass())
+                {
+                    // Try hoisting this checkObjType.
+                    // But since this isn't the current instr being optimized, we need to play tricks with 
+                    // the byteCodeUse fields...
+                    BVSparse<JitArenaAllocator> *currentBytecodeUses = this->byteCodeUses;
+                    PropertySym * currentPropertySymUse = this->propertySymUse;
+                    PropertySym * tempPropertySymUse = NULL;
+                    this->byteCodeUses = NULL;
+                    BVSparse<JitArenaAllocator> *tempByteCodeUse = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+#if DBG
+                    BVSparse<JitArenaAllocator> *currentBytecodeUsesBeforeOpt = this->byteCodeUsesBeforeOpt;
+                    this->byteCodeUsesBeforeOpt = tempByteCodeUse;
+#endif
+                    this->propertySymUse = NULL;
+                    GlobOpt::TrackByteCodeSymUsed(checkObjTypeInstr, tempByteCodeUse, &tempPropertySymUse);
+
+                    TryHoistInvariant(checkObjTypeInstr, this->currentBlock, NULL, this->FindValue(copySym), NULL, true);
+
+                    this->byteCodeUses = currentBytecodeUses;
+                    this->propertySymUse = currentPropertySymUse;
+#if DBG
+                    this->byteCodeUsesBeforeOpt = currentBytecodeUsesBeforeOpt;
+#endif
+                }
             }
         }
 
@@ -18147,6 +18173,17 @@ GlobOpt::OptIsInvariant(IR::Opnd *src, BasicBlock *block, Loop *loop, Value *src
 
     case IR::OpndKindSym:
         sym = src->AsSymOpnd()->m_sym;
+        if (src->AsSymOpnd()->IsPropertySymOpnd())
+        {
+            if (src->AsSymOpnd()->AsPropertySymOpnd()->IsTypeChecked())
+            {
+                // We do not handle hoisting these yet.  We might be hoisting this across the instr with the type check protecting this one.
+                // And somehow, the dead-store pass now removes the type check on that instr later on...
+                // For CheckFixedFld, there is no benefit hoisting these if they don't have a type check as they won't generate code.
+                return false;
+            }
+        }
+
         break;
 
     case IR::OpndKindHelperCall:
