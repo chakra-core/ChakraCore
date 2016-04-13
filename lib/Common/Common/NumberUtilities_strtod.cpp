@@ -2316,7 +2316,6 @@ int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType f
             //Either session pointer is null or session is in compat mode switch to compat handling
             if ((wExp10 + nDigits) > 0)
             {
-                AnalysisAssert(wExp10 + nDigits + 1 <= kcbMaxRgb);
                 wExp10 += RoundTo(rgb, pbLim, wExp10 + nDigits, rgbAdj, &pbLimAdj);
             }
             else
