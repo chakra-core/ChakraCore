@@ -24,7 +24,6 @@ namespace Js
 
         JavascriptSIMDUint8x16(StaticType *type);
         JavascriptSIMDUint8x16(SIMDValue *val, StaticType *type);
-        JavascriptSIMDUint8x16(StaticType *type);
         static JavascriptSIMDUint8x16* AllocUninitialized(ScriptContext* requestContext);
         static JavascriptSIMDUint8x16* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);

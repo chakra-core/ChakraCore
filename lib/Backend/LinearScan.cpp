@@ -1220,17 +1220,22 @@ FuncBailOutData::Initialize(Func * func, JitArenaAllocator * tempAllocator)
     this->localOffsets = AnewArrayZ(tempAllocator, int, localsCount);
     this->losslessInt32Syms = BVFixed::New(localsCount, tempAllocator);
     this->float64Syms = BVFixed::New(localsCount, tempAllocator);
+
     // SIMD_JS
-    this->simd128F4Syms = BVFixed::New(localsCount, tempAllocator);
-    this->simd128I4Syms = BVFixed::New(localsCount, tempAllocator);
-    this->simd128I8Syms = BVFixed::New(localsCount, tempAllocator);
-    this->simd128I16Syms = BVFixed::New(localsCount, tempAllocator);
-    this->simd128U4Syms = BVFixed::New(localsCount, tempAllocator);
-    this->simd128U8Syms = BVFixed::New(localsCount, tempAllocator);
-    this->simd128U16Syms = BVFixed::New(localsCount, tempAllocator);
-    this->simd128B4Syms = BVFixed::New(localsCount, tempAllocator);
-    this->simd128B8Syms = BVFixed::New(localsCount, tempAllocator);
-    this->simd128B16Syms = BVFixed::New(localsCount, tempAllocator);
+#define SIMD_BV(_TAG_) \
+    this->simd128##_TAG_##Syms =  BVFixed::New(localsCount, tempAllocator);
+
+#define SIMD_BV_NULL(_TAG_) \
+    this->simd128##_TAG_##Syms = nullptr;
+
+    SIMD_EXPAND_W_TAG_CHECK(SIMD_BV, func->GetTopFunc()->HasSIMDOps())
+    else
+    {
+        SIMD_EXPAND_W_TAG(SIMD_BV_NULL)
+    }
+
+#undef SIMD_BV
+#undef SIMD_BV_NULL
 }
 
 void
@@ -1257,16 +1262,16 @@ FuncBailOutData::FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOu
             bool isInt = losslessInt32Syms->Test(i) != 0;
 
             // SIMD_JS
-            bool isSimd128F4  = simd128F4Syms->Test(i) != 0;
-            bool isSimd128I4  = simd128I4Syms->Test(i) != 0;
-            bool isSimd128I8  = simd128I8Syms->Test(i) != 0;
-            bool isSimd128I16 = simd128I16Syms->Test(i) != 0;
-            bool isSimd128U4  = simd128U4Syms->Test(i) != 0;
-            bool isSimd128U8  = simd128U8Syms->Test(i) != 0;
-            bool isSimd128U16 = simd128U16Syms->Test(i) != 0;
-            bool isSimd128B4  = simd128B4Syms->Test(i) != 0;
-            bool isSimd128B8  = simd128B8Syms->Test(i) != 0;
-            bool isSimd128B16 = simd128B16Syms->Test(i) != 0;
+            bool hasSimdOps = func->GetTopFunc()->HasSIMDOps();
+#define SIMD_BOOL(_TAG_)\
+            bool isSimd128##_TAG_## = false;
+            SIMD_EXPAND_W_TAG(SIMD_BOOL);
+#undef SIMD_BOOL
+
+#define SIMD_CHECK(_TAG_)\
+            isSimd128##_TAG_## = simd128##_TAG_##Syms->Test(i) != 0;
+            SIMD_EXPAND_W_TAG_CHECK(SIMD_CHECK, hasSimdOps)
+#undef SIMD_CHECK
 
             globalBailOutRecordDataTable->AddOrUpdateRow(allocator, bailOutRecordId, i, isFloat, isInt, 
                 isSimd128F4, isSimd128I4, isSimd128I8, isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16,
@@ -1285,16 +1290,11 @@ FuncBailOutData::Clear(JitArenaAllocator * tempAllocator)
     losslessInt32Syms->Delete(tempAllocator);
     float64Syms->Delete(tempAllocator);
     // SIMD_JS
-    simd128F4Syms->Delete(tempAllocator);
-    simd128I4Syms->Delete(tempAllocator);
-    simd128I8Syms->Delete(tempAllocator);
-    simd128I16Syms->Delete(tempAllocator);
-    simd128U4Syms->Delete(tempAllocator);
-    simd128U8Syms->Delete(tempAllocator);
-    simd128U16Syms->Delete(tempAllocator);
-    simd128B4Syms->Delete(tempAllocator);
-    simd128B8Syms->Delete(tempAllocator);
-    simd128B16Syms->Delete(tempAllocator);
+#define SIMD_BV_DEL(_TAG_)\
+    simd128##_TAG_##Syms->Delete(tempAllocator);
+
+    SIMD_EXPAND_W_TAG_CHECK(SIMD_BV_DEL, func->GetTopFunc()->HasSIMDOps())
+#undef SIMD_BV_DEL
 }
 
 GlobalBailOutRecordDataTable *
@@ -1462,6 +1462,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         AssertMsg(funcBailOutData[index].localOffsets[i] == 0, "Can't have two active lifetime for the same byte code register");
         Assert(!byteCodeUpwardExposedUsed->Test(stackSym->m_id));
 
+        bool hasSIMDOps = func->HasSIMDOps();
+
         StackSym * copyStackSym = copyPropSyms.Value();
         this->FillBailOutOffset(&funcBailOutData[index].localOffsets[i], copyStackSym, &state, instr);
         if (copyStackSym->IsInt32())
@@ -1474,13 +1476,14 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         }
         // SIMD_JS
 #define SIMD_BV(_TAG_)\
-        else if (copyStackSym->IsSimd128##_TAG_##())\
+        if (copyStackSym->IsSimd128##_TAG_##())\
         {\
             funcBailOutData[index].simd128##_TAG_##Syms->Set(i);\
         }
-        SIMD_EXPAND_W_TAG(SIMD_BV)
+        else SIMD_EXPAND_W_TAG_CHECK(SIMD_BV, hasSIMDOps)
 #undef SIMD_BV
-        
+
+
         iter.RemoveCurrent(this->func->m_alloc);
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
@@ -1503,6 +1506,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 
         AssertMsg(funcBailOutData[index].localOffsets[i] == 0, "Can't have two active lifetime for the same byte code register");
 
+        bool hasSIMDOps = func->HasSIMDOps();
+
         this->FillBailOutOffset(&funcBailOutData[index].localOffsets[i], stackSym, &state, instr);
         if (stackSym->IsInt32())
         {
@@ -1514,12 +1519,13 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         }
         // SIMD_JS
 #define SIMD_BV(_TAG_)\
-        else if (stackSym->IsSimd128##_TAG_##())\
+        if (stackSym->IsSimd128##_TAG_##())\
         {\
             funcBailOutData[index].simd128##_TAG_##Syms->Set(i);\
         }
-        SIMD_EXPAND_W_TAG(SIMD_BV)
+            else SIMD_EXPAND_W_TAG_CHECK(SIMD_BV, hasSIMDOps)
 #undef SIMD_BV
+    
 
     }
     NEXT_BITSET_IN_SPARSEBV;
@@ -1619,16 +1625,15 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         BVFixed * argOutFloat64Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
         BVFixed * argOutLosslessInt32Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
         // SIMD_JS
-        BVFixed * argOutSimd128F4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128I4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128I8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128I16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128U4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128U8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128U16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128B4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128B8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128B16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+#define SIMD_BV_NULL(_TAG_)\
+        BVFixed * argOutSimd128##_TAG_##Syms = nullptr;
+        SIMD_EXPAND_W_TAG(SIMD_BV_NULL)
+#undef SIMD_BV_NULL
+
+#define SIMD_BV(_TAG_)\
+        argOutSimd128##_TAG_##Syms =  BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        SIMD_EXPAND_W_TAG_CHECK(SIMD_BV, func->HasSIMDOps())
+#undef SIMD_BV
 
         int* outParamOffsets = bailOutInfo->outParamOffsets = NativeCodeDataNewArrayZ(allocator, int, bailOutInfo->totalOutParamCount);
 #ifdef _M_IX86
@@ -1678,16 +1683,10 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo->argOutFloat64Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutLosslessInt32Syms = nullptr;
                 // SIMD_JS
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms = nullptr;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms = nullptr;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I8Syms = nullptr;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I16Syms = nullptr;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U4Syms = nullptr;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U8Syms = nullptr;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U16Syms = nullptr;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B4Syms = nullptr;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B8Syms = nullptr;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B16Syms = nullptr;
+#define SIMD_BV(_TAG_)\
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128##_TAG_##Syms = nullptr;
+                SIMD_EXPAND_W_TAG_CHECK(SIMD_BV, func->HasSIMDOps())
+#undef SIMD_BV
 
                 currentBailOutRecord->argOutOffsetInfo->argOutSymStart = 0;
                 currentBailOutRecord->argOutOffsetInfo->outParamOffsets = nullptr;
@@ -1716,8 +1715,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 // SIMD_JS
 #define SIMD_ARGOUT(_TAG_)\
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128##_TAG_##Syms  = argOutSimd128##_TAG_##Syms;
-                SIMD_EXPAND_W_TAG(SIMD_ARGOUT)
+                SIMD_EXPAND_W_TAG_CHECK(SIMD_ARGOUT, func->HasSIMDOps())
 #undef SIMD_ARGOUT
+
             }
 #if DBG_DUMP
             if (PHASE_DUMP(Js::BailOutPhase, this->func))
@@ -1779,6 +1779,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                             }
                             else
                             {
+                                bool hasSIMDOps = func->HasSIMDOps();
                                 this->FillBailOutOffset(&outParamOffsets[outParamOffsetIndex], copyStackSym, &state, instr);
                                 if (copyStackSym->IsInt32())
                                 {
@@ -1790,12 +1791,12 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                                 }
                                 // SIMD_JS
 #define SIMD_ARGOUT(_TAG_)\
-                                else if (copyStackSym->IsSimd128##_TAG_##())\
+                                if (copyStackSym->IsSimd128##_TAG_##())\
                                 {\
                                     argOutSimd128##_TAG_##Syms->Set(outParamOffsetIndex);\
                                 }
 
-                                SIMD_EXPAND_W_TAG(SIMD_ARGOUT)
+                                    else SIMD_EXPAND_W_TAG_CHECK(SIMD_ARGOUT, hasSIMDOps)
 #undef SIMD_ARGOUT
                             }
 #if DBG_DUMP
@@ -1909,6 +1910,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                         this->FillBailOutOffset(&outParamOffsets[outParamOffsetIndex], sym, &state, instr);
                     }
 
+                    bool hasSIMDOps = func->HasSIMDOps();
+
                     if (sym->IsFloat64())
                     {
                         argOutFloat64Syms->Set(outParamOffsetIndex);
@@ -1917,14 +1920,15 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                     {
                         argOutLosslessInt32Syms->Set(outParamOffsetIndex);
                     }
-                    // SIMD_JS
+                    //SIMD_JS
 #define SIMD_ARGOUT(_TAG_)\
-                    else if (sym->IsSimd128##_TAG_##())\
+                    if (sym->IsSimd128##_TAG_##())\
                     {\
                         argOutSimd128##_TAG_##Syms->Set(outParamOffsetIndex);\
                     }
-                    SIMD_EXPAND_W_TAG(SIMD_ARGOUT)
+                    else SIMD_EXPAND_W_TAG_CHECK(SIMD_ARGOUT, hasSIMDOps)
 #undef SIMD_ARGOUT
+
 
 #if DBG_DUMP
                     if (PHASE_DUMP(Js::BailOutPhase, this->func))
@@ -2515,16 +2519,18 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
 
     if (newLifetime)
     {
+        type = TyMachReg;
+
         if (newLifetime->isFloat)
         {
             type = TyFloat64;
         }
 #define SIMD_TYPE(_TAG_)\
-        else if (newLifetime->isSimd128##_TAG_##)\
+        if (newLifetime->isSimd128##_TAG_##)\
         {\
             type = TySimd128##_TAG_##;\
         }
-        SIMD_EXPAND_W_TAG(SIMD_TYPE)
+            else SIMD_EXPAND_W_TAG_CHECK(SIMD_TYPE, func->HasSIMDOps())
 #undef SIMD_TYPE
 
         else

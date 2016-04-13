@@ -1739,7 +1739,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             // Support on IA only
 #if defined(_M_IX86) || defined(_M_X64)
-            else if (instr->GetDst()->IsSimd128())
+            else if (m_func->GetTopFunc()->HasSIMDOps() && instr->GetDst()->IsSimd128())
             {
                 // SIMD_JS
                 m_lowererMD.GenerateCheckedSimdLoad(instr);

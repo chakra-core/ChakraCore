@@ -1640,6 +1640,8 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
             StackSym * int32StackSym = nullptr;
             StackSym * float64StackSym = nullptr;
             StackSym * simd128StackSym = nullptr;
+            bool hasSIMDOps = func->HasSIMDOps();
+
             if (bailOutInfo->liveLosslessInt32Syms->Test(symId))
             {
                 // Var version of the sym is not live, use the int32 version
@@ -1654,11 +1656,13 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
             }
             // SIMD_JS
 #define SIMD_GET_SYM(_TAG_) \
-            else if (bailOutInfo->liveSimd128##_TAG_##Syms->Test(symId))\
+            if (bailOutInfo->liveSimd128##_TAG_##Syms->Test(symId)) \
             {\
-                simd128StackSym = stackSym->GetSimd128##_TAG_##EquivSym(nullptr);\
+                simd128StackSym = stackSym->GetSimd128##_TAG_##EquivSym(nullptr); \
             }
-            SIMD_EXPAND_W_TAG(SIMD_GET_SYM)
+
+            else SIMD_EXPAND_W_TAG_CHECK(SIMD_GET_SYM, hasSIMDOps)
+
 #undef SIMD_GET_SYM
             else
             {
@@ -1690,7 +1694,7 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
                 upwardExposedUses->Set(float64StackSym->m_id);
             }
             // SIMD_JS
-            else if (simd128StackSym != nullptr)
+            else if (hasSIMDOps && simd128StackSym != nullptr)
             {
                 usedCopyPropSyms->PrependNode(allocator, copyPropSyms.Key(), simd128StackSym);
                 iter.RemoveCurrent(allocator);
@@ -2214,32 +2218,35 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
 #if DBG
         // SIMD_JS
         // Simd128 syms should be live in at most one form
-        tempBv->And(bailOutInfo->liveSimd128F4Syms, bailOutInfo->liveSimd128I4Syms);
-        tempBv->And(bailOutInfo->liveSimd128I8Syms);
-        tempBv->And(bailOutInfo->liveSimd128I16Syms);
-        tempBv->And(bailOutInfo->liveSimd128U4Syms);
-        tempBv->And(bailOutInfo->liveSimd128U8Syms);
-        tempBv->And(bailOutInfo->liveSimd128U16Syms);
-        tempBv->And(bailOutInfo->liveSimd128B4Syms);
-        tempBv->And(bailOutInfo->liveSimd128B8Syms);
-        tempBv->And(bailOutInfo->liveSimd128B16Syms);
-        Assert(tempBv->IsEmpty());
+        if (func->HasSIMDOps())
+        {
+            tempBv->And(bailOutInfo->liveSimd128F4Syms, bailOutInfo->liveSimd128I4Syms);
+            tempBv->And(bailOutInfo->liveSimd128I8Syms);
+            tempBv->And(bailOutInfo->liveSimd128I16Syms);
+            tempBv->And(bailOutInfo->liveSimd128U4Syms);
+            tempBv->And(bailOutInfo->liveSimd128U8Syms);
+            tempBv->And(bailOutInfo->liveSimd128U16Syms);
+            tempBv->And(bailOutInfo->liveSimd128B4Syms);
+            tempBv->And(bailOutInfo->liveSimd128B8Syms);
+            tempBv->And(bailOutInfo->liveSimd128B16Syms);
+            Assert(tempBv->IsEmpty());
 
-        // Verify that all syms to restore are live in some fashion
-        tempBv->Minus(byteCodeUpwardExposedUsed, bailOutInfo->liveVarSyms);
-        tempBv->Minus(bailOutInfo->liveLosslessInt32Syms);
-        tempBv->Minus(bailOutInfo->liveFloat64Syms);
-        tempBv->Minus(bailOutInfo->liveSimd128F4Syms);
-        tempBv->Minus(bailOutInfo->liveSimd128I4Syms);
-        tempBv->Minus(bailOutInfo->liveSimd128I8Syms);
-        tempBv->Minus(bailOutInfo->liveSimd128I16Syms);
-        tempBv->Minus(bailOutInfo->liveSimd128U4Syms);
-        tempBv->Minus(bailOutInfo->liveSimd128U8Syms);
-        tempBv->Minus(bailOutInfo->liveSimd128U16Syms);
-        tempBv->Minus(bailOutInfo->liveSimd128B4Syms);
-        tempBv->Minus(bailOutInfo->liveSimd128B8Syms);
-        tempBv->Minus(bailOutInfo->liveSimd128B16Syms);
-        Assert(tempBv->IsEmpty());
+            // Verify that all syms to restore are live in some fashion
+            tempBv->Minus(byteCodeUpwardExposedUsed, bailOutInfo->liveVarSyms);
+            tempBv->Minus(bailOutInfo->liveLosslessInt32Syms);
+            tempBv->Minus(bailOutInfo->liveFloat64Syms);
+            tempBv->Minus(bailOutInfo->liveSimd128F4Syms);
+            tempBv->Minus(bailOutInfo->liveSimd128I4Syms);
+            tempBv->Minus(bailOutInfo->liveSimd128I8Syms);
+            tempBv->Minus(bailOutInfo->liveSimd128I16Syms);
+            tempBv->Minus(bailOutInfo->liveSimd128U4Syms);
+            tempBv->Minus(bailOutInfo->liveSimd128U8Syms);
+            tempBv->Minus(bailOutInfo->liveSimd128U16Syms);
+            tempBv->Minus(bailOutInfo->liveSimd128B4Syms);
+            tempBv->Minus(bailOutInfo->liveSimd128B8Syms);
+            tempBv->Minus(bailOutInfo->liveSimd128B16Syms);
+            Assert(tempBv->IsEmpty());
+        }
 #endif
 
         if (this->func->IsJitInDebugMode())
@@ -2309,6 +2316,8 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
             }
             NEXT_BITSET_IN_SPARSEBV;
 
+
+
             // SIMD_JS
 #define SIMD_CAPTURE_VALS(_TAG_) \
             tempBv->And(byteCodeUpwardExposedUsed, bailOutInfo->liveSimd128##_TAG_##Syms); \
@@ -2322,10 +2331,11 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
             }\
             NEXT_BITSET_IN_SPARSEBV;
 
-            SIMD_EXPAND_W_TAG(SIMD_CAPTURE_VALS)
+                SIMD_EXPAND_W_TAG_CHECK(SIMD_CAPTURE_VALS, func->HasSIMDOps())
 #undef SIMD_CAPTURE_VALS
-        // Var
-        // Any remaining syms to restore will be restored from their var versions
+
+                // Var
+                // Any remaining syms to restore will be restored from their var versions
         }
     }
     else

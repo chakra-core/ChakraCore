@@ -525,6 +525,7 @@ public:
     bool                hasTempObjectProducingInstr:1; // At least one instruction which can produce temp object
     bool                isTJLoopBody : 1;
     bool                isFlowGraphValid : 1;
+	bool                hasSIMDOps : 1;
 #if DBG
     bool                hasCalledSetDoFastPaths:1;
     bool                isPostLower:1;
@@ -638,11 +639,15 @@ public:
     Js::ReadOnlyDynamicProfileInfo * GetProfileInfo() const { return this->profileInfo; }
     bool                HasProfileInfo() { return this->profileInfo->HasProfileInfo(); }
     bool                HasArrayInfo()
+        
     {
         const auto top = this->GetTopFunc();
         return this->HasProfileInfo() && this->GetWeakFuncRef() && !(top->HasTry() && !top->DoOptimizeTryCatch()) &&
             top->DoGlobOpt() && !PHASE_OFF(Js::LoopFastPathPhase, top);
     }
+
+    bool                HasSIMDOps() { return hasSIMDOps; }
+    void                SetHasSIMDOps(bool b) { hasSIMDOps = b; };
 
     static Js::BuiltinFunction GetBuiltInIndex(IR::Opnd* opnd)
     {

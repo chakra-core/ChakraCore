@@ -405,6 +405,7 @@ void BailOutRecord::DumpArgOffsets(uint count, int* offsets, int argOutSlotStart
         isFloat64 |= this->argOutOffsetInfo->argOutSimd128B8Syms->Test(argOutSlotStart + i) != 0;
         isFloat64 |= this->argOutOffsetInfo->argOutSimd128B16Syms->Test(argOutSlotStart + i) != 0;
 
+
         Assert(!isFloat64 || !isInt32);
 
         Output::Print(_u("%s #%3d: "), name, i + regSlotOffset);
@@ -719,9 +720,10 @@ BailOutRecord::IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, b
     bool isInt32 = this->argOutOffsetInfo->argOutLosslessInt32Syms->Test(argOutSlotStart + offsetIndex) != 0;
     // SIMD_JS
 #define SIMD_ARGOUT(_TAG_)\
-    bool isSimd128##_TAG_## = this->argOutOffsetInfo->argOutSimd128##_TAG_##Syms->Test(argOutSlotStart + offsetIndex) != 0;
+    bool isSimd128##_TAG_## = this->argOutOffsetInfo->argOutSimd128##_TAG_##Syms && this->argOutOffsetInfo->argOutSimd128##_TAG_##Syms->Test(argOutSlotStart + offsetIndex) != 0;
     SIMD_EXPAND_W_TAG(SIMD_ARGOUT)
 #undef SIMD_ARGOUT
+
 
     Assert(!isFloat64 || !isInt32 || 
         !isSimd128F4 || !isSimd128I4 || !isSimd128I8 || !isSimd128I16 ||

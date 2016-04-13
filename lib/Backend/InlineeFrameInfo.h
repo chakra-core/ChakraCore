@@ -162,6 +162,15 @@ struct InlineeFrameInfo
     {
         InlineeFrameInfo* frameInfo = JitAnewStructZ(alloc, InlineeFrameInfo);
         frameInfo->arguments = JitAnew(alloc, ArgList, alloc);
+
+        frameInfo->simd128F4Syms = nullptr;
+        frameInfo->simd128I4Syms = nullptr;
+        frameInfo->simd128I8Syms = nullptr;
+        frameInfo->simd128I16Syms = nullptr;
+        frameInfo->simd128U4Syms = nullptr;
+        frameInfo->simd128U8Syms = nullptr;
+        frameInfo->simd128U16Syms = nullptr;
+
         return frameInfo;
     }
 

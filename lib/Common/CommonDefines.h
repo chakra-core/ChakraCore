@@ -552,11 +552,24 @@
     MACRO(B8) \
     MACRO(B16)
 
+// SIMD_JS
+#define SIMD_EXPAND_W_TAG_CHECK(MACRO, COND) \
+    if (COND) \
+    { \
+        SIMD_EXPAND_W_TAG(MACRO) \
+    }
+
 #define SIMD_EXPAND_W_NAME(MACRO) \
     SIMD_EXPAND_W_NAME_NUM_ONLY(MACRO) \
     MACRO(Bool32x4, B4) \
     MACRO(Bool16x8, B8) \
     MACRO(Bool8x16, B16)
+
+#define SIMD_EXPAND_W_NAME_CHECK(MACRO, COND) \
+    if (COND) \
+    {\
+        SIMD_EXPAND_W_NAME(MACRO) \
+    }
 
 #define SIMD_EXPAND_W_NAME_NUM_ONLY(MACRO)\
     MACRO(Float32x4, F4) \

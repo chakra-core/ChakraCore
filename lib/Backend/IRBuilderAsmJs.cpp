@@ -141,6 +141,11 @@ IRBuilderAsmJs::Build()
     Js::LayoutSize layoutSize;
     for (Js::OpCodeAsmJs newOpcode = m_jnReader.ReadAsmJsOp(layoutSize); (uint)m_jnReader.GetCurrentOffset() <= lastOffset; newOpcode = m_jnReader.ReadAsmJsOp(layoutSize))
     {
+        if (IsSimd128AsmJsOpcode(newOpcode))
+        {
+            m_func->SetHasSIMDOps(true);
+        }
+        
         Assert(newOpcode != Js::OpCodeAsmJs::EndOfBlock);
 
         AssertMsg(Js::OpCodeUtilAsmJs::IsValidByteCodeOpcode(newOpcode), "Error getting opcode from m_jnReader.Op()");
@@ -880,7 +885,6 @@ IRBuilderAsmJs::BuildImplicitArgIns()
 
         default:
         {
-            // SIMD_JS
             IRType argType;
             GetSimdTypesFromAsmType((Js::AsmJsType::Which)varType.which(), &argType);
 

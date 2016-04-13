@@ -122,6 +122,9 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     , m_totalJumpTableSizeInBytesForSwitchStatements(0)
     , slotArrayCheckTable(nullptr)
     , frameDisplayCheckTable(nullptr)
+    , hasSIMDOps(false)
+
+        
 {
     Assert(this->IsInlined() == !!runtimeData);
 
@@ -236,9 +239,9 @@ Func::IsLoopBodyInTry() const
 void
 Func::Codegen()
 {
-    Assert(!IsJitInDebugMode() || !m_jnFunction->GetHasTry());
+    Assert((!IsJitInDebugMode() || !m_jnFunction->GetHasTry()) && !HasSIMDOps());
 
-    Js::ScriptContext* scriptContext = this->GetScriptContext();
+	Js::ScriptContext* scriptContext = this->GetScriptContext();
 
     {
         if(IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_START()))

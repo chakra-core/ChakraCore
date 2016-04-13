@@ -786,7 +786,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
 
     // Asm.js only: coerce lane values to JS number 0 => 0, 0xff..f => 1
     if (isAsmJs && 
-        instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B4 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 ||instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16)
+        (instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B4 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 ||instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16))
     {
         
         IR::Instr* pInstr    = nullptr;

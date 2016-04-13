@@ -344,10 +344,10 @@ GlobOpt::TrackCalls(IR::Instr * instr)
 
             // SIMD_JS
 #define SIMD_BV(_TAG_) \
-            frameInfo->simd128##_TAG_##Syms = currentBlock->globOptData.liveSimd128##_TAG_##Syms->CopyNew(this->alloc);
-            SIMD_EXPAND_W_TAG(SIMD_BV)
-#undef SIMD_BV
+                frameInfo->simd128##_TAG_##Syms = currentBlock->globOptData.liveSimd128##_TAG_##Syms->CopyNew(this->alloc);
 
+                SIMD_EXPAND_W_TAG_CHECK(SIMD_BV, func->HasSIMDOps())
+#undef SIMD_BV
         }
         break;
 
@@ -563,6 +563,7 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
 
                 GlobOptBlockData& globOptData = this->currentBlock->globOptData;
 
+
                 if (frameInfo->intSyms->TestEmpty() && frameInfo->intSyms->Test(argSym->m_id))
                 {
                     // Var version of the sym is not live, use the int32 version
@@ -576,12 +577,15 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
                     Assert(argSym);
                 }
 #define SIMD_ARG(_TAG_)\
-                else if (frameInfo->simd128##_TAG_##Syms->TestEmpty() && frameInfo->simd128##_TAG_##Syms->Test(argSym->m_id))\
+                if (frameInfo->simd128##_TAG_##Syms->TestEmpty() && frameInfo->simd128##_TAG_##Syms->Test(argSym->m_id))\
                 {\
                     argSym = argSym->GetSimd128##_TAG_##EquivSym(nullptr);\
                 }
-                    SIMD_EXPAND_W_TAG(SIMD_ARG)
+
+                else SIMD_EXPAND_W_TAG_CHECK(SIMD_ARG, func->HasSIMDOps())
+
 #undef SIMD_ARG
+        
                 else
                 {
                     Assert(globOptData.liveVarSyms->Test(argSym->m_id));
@@ -611,7 +615,8 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
 #define SIMD_BV(_TAG_) \
     JitAdelete(this->alloc, frameInfo->simd128##_TAG_##Syms);\
     frameInfo->simd128##_TAG_##Syms = nullptr;
-    SIMD_EXPAND_W_TAG(SIMD_BV)
+
+        SIMD_EXPAND_W_TAG_CHECK(SIMD_BV, func->HasSIMDOps())
 #undef SIMD_BV
 
     frameInfo->isRecorded = true;
@@ -690,8 +695,10 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
     // SIMD_JS
 #define SIMD_BV(_TAG_) \
     bailOutInfo->liveSimd128##_TAG_##Syms = block->globOptData.liveSimd128##_TAG_##Syms->CopyNew(this->func->m_alloc);
-    SIMD_EXPAND_W_TAG(SIMD_BV)
+
+        SIMD_EXPAND_W_TAG_CHECK(SIMD_BV, func->HasSIMDOps())
 #undef SIMD_BV
+
 
     // The live int32 syms in the bailout info are only the syms resulting from lossless conversion to int. If the int32 value
     // was created from a lossy conversion to int, the original var value cannot be re-materialized from the int32 value. So, the

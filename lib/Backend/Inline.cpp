@@ -2041,6 +2041,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         ThreadContext::SimdFuncSignature simdFuncSignature;
         if (IsSimd128Opcode(callInstr->m_opcode))
         {
+            callInstr->m_func->GetTopFunc()->SetHasSIMDOps(true); //we are inlining a function that contains SIMD functions
             callInstr->m_func->GetScriptContext()->GetThreadContext()->GetSimdFuncSignatureFromOpcode(callInstr->m_opcode, simdFuncSignature);
             Assert(simdFuncSignature.valid);
             // if we have decided to inline, then actual arg count == signature arg count == required arg count from inlinee list (LibraryFunction.h)
