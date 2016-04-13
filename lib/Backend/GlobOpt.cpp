@@ -6313,11 +6313,11 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
                     PropertySym * currentPropertySymUse = this->propertySymUse;
                     PropertySym * tempPropertySymUse = NULL;
                     this->byteCodeUses = NULL;
+                    BVSparse<JitArenaAllocator> *tempByteCodeUse = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
 #if DBG
                     BVSparse<JitArenaAllocator> *currentBytecodeUsesBeforeOpt = this->byteCodeUsesBeforeOpt;
-                    this->byteCodeUsesBeforeOpt = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+                    this->byteCodeUsesBeforeOpt = tempByteCodeUse;
 #endif
-                    BVSparse<JitArenaAllocator> *tempByteCodeUse = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
                     this->propertySymUse = NULL;
                     GlobOpt::TrackByteCodeSymUsed(checkObjTypeInstr, tempByteCodeUse, &tempPropertySymUse);
 
