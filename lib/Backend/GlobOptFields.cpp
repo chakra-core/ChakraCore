@@ -434,7 +434,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
             else
             {
                 Assert(sym->IsPropertySym());
-                if (instr->m_opcode == Js::OpCode::InitLetFld || instr->m_opcode == Js::OpCode::InitConstFld)
+                if (instr->m_opcode == Js::OpCode::InitLetFld || instr->m_opcode == Js::OpCode::InitConstFld || instr->m_opcode == Js::OpCode::InitFld)
                 {
                     // These can grow the aux slot of the activation object.
                     // We need to kill the slot array sym as well.
