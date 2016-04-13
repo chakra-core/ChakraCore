@@ -1964,8 +1964,12 @@ namespace Js
 
         RecyclerWeakReference<Utf8SourceInfo>* sourceWeakRef = this->GetRecycler()->CreateWeakReferenceHandle<Utf8SourceInfo>(sourceInfo);
         sourceInfo->SetIsCesu8(isCesu8);
-
-        return sourceList->SetAtFirstFreeSpot(sourceWeakRef);
+        {
+            // We can be compiling new source code while rundown thread is reading from the list, causing AV on the reader thread
+            // lock the list during write as well.
+            AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
+            return sourceList->SetAtFirstFreeSpot(sourceWeakRef);
+        }
     }
 
     void ScriptContext::CloneSources(ScriptContext* sourceContext)
