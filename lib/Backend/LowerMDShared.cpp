@@ -9339,15 +9339,15 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 bool isF32 = dst->IsFloat32();
                 this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrEq_A, doneLabel, instr);
 
-                IR::Opnd * opndNaN = nullptr; 
-                
+                IR::Opnd * opndNaN = nullptr;
+
                 if (isF32)
                 {
                     opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan32), IRType::TyFloat32, this->m_func);
                 }
                 else
                 {
-                    opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan), IRType::TyFloat64, this->m_func);                    
+                    opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan), IRType::TyFloat64, this->m_func);
                 }
 
                 this->m_lowerer->InsertMove(dst, src2, instr);

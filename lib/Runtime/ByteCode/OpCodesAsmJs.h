@@ -214,8 +214,8 @@ MACRO_WMS   ( Sqrt_Flt                  , Float2        , None           )
 MACRO_WMS   ( Abs_Flt                   , Float2        , None           )
 MACRO_WMS   ( Atan2_Db                  , Double3       , None           )
 MACRO_WMS   ( Min_Db                    , Double3       , None           )
-MACRO_WMS   ( Max_Db                    , Double3       , None           )
 MACRO_WMS   ( Min_Flt                   , Float3        , None           )
+MACRO_WMS   ( Max_Db                    , Double3       , None           )
 MACRO_WMS   ( Max_Flt                   , Float3        , None           )
 
 // Fround
