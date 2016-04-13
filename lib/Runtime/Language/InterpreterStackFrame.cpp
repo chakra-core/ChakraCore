@@ -3507,13 +3507,13 @@ namespace Js
         {
         case AsmJsRetType::Void:
         case AsmJsRetType::Signed:
-            m_localIntSlots[0] = JavascriptFunction::CallAsmJsFunction<int>(function, entrypointInfo->address, asmInfo->GetArgCount(), m_outParams);
+            m_localIntSlots[0] = JavascriptFunction::CallAsmJsFunction<int>(function, entrypointInfo->address.asJsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
         case AsmJsRetType::Double:
-            m_localDoubleSlots[0] = JavascriptFunction::CallAsmJsFunction<double>(function, entrypointInfo->address, asmInfo->GetArgCount(), m_outParams);
+            m_localDoubleSlots[0] = JavascriptFunction::CallAsmJsFunction<double>(function, entrypointInfo->address.asJsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
         case AsmJsRetType::Float:
-            m_localFloatSlots[0] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->address, asmInfo->GetArgCount(), m_outParams);
+            m_localFloatSlots[0] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->address.asJsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
         case AsmJsRetType::Float32x4:
         case AsmJsRetType::Int32x4:
@@ -3527,7 +3527,7 @@ namespace Js
         case AsmJsRetType::Uint16x8:
         case AsmJsRetType::Uint8x16:
             X86SIMDValue simdVal;
-            simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->address, asmInfo->GetArgCount(), m_outParams);
+            simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->address.asJsMethod, asmInfo->GetArgCount(), m_outParams);
             m_localSimdSlots[0] = X86SIMDValue::ToSIMDValue(simdVal);
             break;
         }
@@ -3584,7 +3584,7 @@ namespace Js
         AsmJsRetType::Which retType = (AsmJsRetType::Which) GetRetType(scriptFunc);
 
         void *data = nullptr;
-        JavascriptMethod entryPoint = (JavascriptMethod)entrypointInfo->address;
+        JavascriptMethod entryPoint = entrypointInfo->address.asJsMethod;
         void *savedEsp = nullptr;
         __asm
         {
@@ -5805,12 +5805,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             if (fn->GetIsAsmJsFunction())
             {
                 AutoRestoreLoopNumbers autoRestore(this, loopNumber, doProfileLoopCheck);
-                newOffset = this->CallAsmJsLoopBody((JavascriptMethod)entryPointInfo->address);
+                newOffset = this->CallAsmJsLoopBody(entryPointInfo->address.asJsMethod);
             }
             else
             {
                 AutoRestoreLoopNumbers autoRestore(this, loopNumber, doProfileLoopCheck);
-                newOffset = this->CallLoopBody((JavascriptMethod)entryPointInfo->address);
+                newOffset = this->CallLoopBody(entryPointInfo->address.asJsMethod);
             }
 
             if (envReg != Constants::NoRegister)

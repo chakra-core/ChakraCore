@@ -540,7 +540,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
         entryPointInfo->SetModuleAddress(oldFuncObjEntryPointInfo->GetModuleAddress());
 
         // Update the native address of the older entry point - this should be either the TJ entrypoint or the Interpreter Entry point
-        entryPointInfo->SetNativeAddress(oldFuncObjEntryPointInfo->address);
+        entryPointInfo->SetNativeAddress(oldFuncObjEntryPointInfo->address.asPtr);
         // have a reference to TJ entrypointInfo, this will be queued for collection in checkcodegen
         entryPointInfo->SetOldFunctionEntryPointInfo(oldFuncObjEntryPointInfo);
         Assert(PHASE_ON1(Js::AsmJsJITTemplatePhase) || (!oldFuncObjEntryPointInfo->GetIsTJMode() && !entryPointInfo->GetIsTJMode()));
@@ -608,7 +608,7 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
 {
     ASSERT_THREAD();
     Assert(fn->GetScriptContext()->GetNativeCodeGenerator() == this);
-    Assert(entryPoint->address == nullptr);
+    Assert(entryPoint->address.asPtr == nullptr);
 
 #if DBG_DUMP
     if (PHASE_TRACE1(Js::JITLoopBodyPhase))
@@ -1231,7 +1231,7 @@ NativeCodeGenerator::CheckCodeGenDone(
             entryPointInfo,
             functionBody,
             reinterpret_cast<Js::JavascriptMethod>(entryPointInfo->GetNativeAddress()));
-        address = (Js::JavascriptMethod) entryPointInfo->address;
+        address = entryPointInfo->address.asJsMethod;
 
         Assert(!functionBody->NeedEnsureDynamicProfileInfo() || address == Js::DynamicProfileInfo::EnsureDynamicProfileInfoThunk);
     }

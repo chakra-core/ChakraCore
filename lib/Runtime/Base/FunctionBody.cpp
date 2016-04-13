@@ -546,7 +546,7 @@ namespace Js
 
         this->AddEntryPointToEntryPointList(this->GetDefaultFunctionEntryPointInfo());
 
-        Assert(this->GetDefaultEntryPointInfo()->address != nullptr);
+        Assert(this->GetDefaultEntryPointInfo()->address.asPtr != nullptr);
 
         InitDisableInlineApply();
         InitDisableInlineSpread();
@@ -1496,8 +1496,8 @@ namespace Js
 
     JavascriptMethod FunctionProxy::GetDirectEntryPoint(ProxyEntryPointInfo* entryPoint) const
     {
-        Assert((JavascriptMethod)entryPoint->address != nullptr);
-        return (JavascriptMethod)entryPoint->address;
+        Assert(entryPoint->address.asPtr != nullptr);
+        return entryPoint->address.asJsMethod;
     }
 
     // Function object type list methods
@@ -2946,7 +2946,7 @@ namespace Js
     //      if (profiling) - ProfileDeferredParsingThunk, ProfileDeferredDeserializeThunk, ProfileEntryThunk, CheckCodeGenThunk
     bool FunctionProxy::HasValidNonProfileEntryPoint() const
     {
-        JavascriptMethod directEntryPoint = (JavascriptMethod)this->GetDefaultEntryPointInfo()->address;
+        JavascriptMethod directEntryPoint = this->GetDefaultEntryPointInfo()->address.asJsMethod;
         JavascriptMethod originalEntryPoint = this->originalEntryPoint;
 
         // Check the direct entry point to see if it is codegen thunk
@@ -2966,7 +2966,7 @@ namespace Js
     }
     bool FunctionProxy::HasValidProfileEntryPoint() const
     {
-        JavascriptMethod directEntryPoint = (JavascriptMethod)this->GetDefaultEntryPointInfo()->address;
+        JavascriptMethod directEntryPoint = this->GetDefaultEntryPointInfo()->address.asJsMethod;
         if (this->originalEntryPoint == DefaultDeferredParsingThunk)
         {
             return directEntryPoint == ProfileDeferredParsingThunk;
@@ -3133,7 +3133,7 @@ namespace Js
             return;
         }
         bool isAsmJs = this->GetIsAsmjsMode();
-        Assert(IsIntermediateCodeGenThunk((JavascriptMethod)entryPointInfo->address) || CONFIG_FLAG(Prejit) || this->m_isFromNativeCodeModule || isAsmJs);
+        Assert(IsIntermediateCodeGenThunk(entryPointInfo->address.asJsMethod) || CONFIG_FLAG(Prejit) || this->m_isFromNativeCodeModule || isAsmJs);
         entryPointInfo->EnsureIsReadyToCall();
 
         // keep originalEntryPoint updated with the latest known good native entry point
@@ -3227,7 +3227,7 @@ namespace Js
 #if DBG
         this->GetLoopNumber(loopHeader);
 #endif
-        return (Js::JavascriptMethod)(loopHeader->GetEntryPointInfo(entryPointIndex)->address);
+        return loopHeader->GetEntryPointInfo(entryPointIndex)->address.asJsMethod;
     }
 
     void FunctionBody::SetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, EntryPointInfo* entryPointInfo, Js::JavascriptMethod entryPoint)
@@ -3242,7 +3242,7 @@ namespace Js
         }
 #endif
         Assert(((LoopEntryPointInfo*) entryPointInfo)->loopHeader == loopHeader);
-        Assert(entryPointInfo->address == nullptr);
+        Assert(entryPointInfo->address.asPtr == nullptr);
         entryPointInfo->address = (void*)entryPoint;
         // reset the counter to 1 less than the threshold for TJLoopBody
         if (loopHeader->GetCurrentEntryPointInfo()->GetIsAsmJSFunction())
@@ -4623,8 +4623,8 @@ namespace Js
         //  If the entrypoint is CodeGenOnDemand or CodeGen - then we don't change the entry points
         ProxyEntryPointInfo* defaultEntryPointInfo = this->GetDefaultEntryPointInfo();
 
-        if (!IsIntermediateCodeGenThunk((JavascriptMethod) defaultEntryPointInfo->address)
-            && defaultEntryPointInfo->address != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)
+        if (!IsIntermediateCodeGenThunk(defaultEntryPointInfo->address.asJsMethod)
+            && defaultEntryPointInfo->address.asJsMethod != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)
         {
             if (this->originalEntryPoint == DefaultDeferredParsingThunk)
             {
@@ -4644,7 +4644,7 @@ namespace Js
         // to make sure that new JavascriptFunction instances use profile thunk.
         if (this->deferredPrototypeType)
         {
-            this->deferredPrototypeType->SetEntryPoint((JavascriptMethod)this->GetDefaultEntryPointInfo()->address);
+            this->deferredPrototypeType->SetEntryPoint(this->GetDefaultEntryPointInfo()->address.asJsMethod);
             this->deferredPrototypeType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
         }
 
@@ -4652,7 +4652,7 @@ namespace Js
         if (!this->HasValidEntryPoint())
         {
             OUTPUT_TRACE_DEBUGONLY(Js::ScriptProfilerPhase, _u("FunctionBody::SetEntryToProfileMode, Assert due to HasValidEntryPoint(), directEntrypoint : 0x%0IX, originalentrypoint : 0x%0IX\n"),
-                (JavascriptMethod)this->GetDefaultEntryPointInfo()->address, this->originalEntryPoint);
+                this->GetDefaultEntryPointInfo()->address.asJsMethod, this->originalEntryPoint);
 
             AssertMsg(false, "Not a valid EntryPoint");
         }
@@ -4821,7 +4821,7 @@ namespace Js
     void FunctionBody::SetEntryToDeferParseForDebugger()
     {
         ProxyEntryPointInfo* defaultEntryPointInfo = this->GetDefaultEntryPointInfo();
-        if (defaultEntryPointInfo->address != DefaultDeferredParsingThunk && defaultEntryPointInfo->address != ProfileDeferredParsingThunk)
+        if (defaultEntryPointInfo->address.asJsMethod != DefaultDeferredParsingThunk && defaultEntryPointInfo->address.asJsMethod != ProfileDeferredParsingThunk)
         {
             // Just change the thunk, the cleanup will be done once the function gets called.
             if (this->m_scriptContext->CurrentThunk == ProfileEntryThunk)
@@ -4888,7 +4888,7 @@ namespace Js
         {
             // Update old entry points on the deferred prototype type,
             // as they may point to old native code gen regions which age gone now.
-            this->deferredPrototypeType->SetEntryPoint((JavascriptMethod)this->GetDefaultEntryPointInfo()->address);
+            this->deferredPrototypeType->SetEntryPoint(this->GetDefaultEntryPointInfo()->address.asJsMethod);
             this->deferredPrototypeType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
         }
         ReinitializeExecutionModeAndLimits();
@@ -8926,9 +8926,9 @@ namespace Js
         // Reset the entry point without attempting to create a new default and GenerateFunction on it.
         // Do this for LoopEntryPointInfo or if we throw during FunctionEntryPointInfo::Invalidate.
         this->Reset(true);
-        Assert(this->address != nullptr);
-        FreeNativeCodeGenAllocation(GetScriptContext(), this->address);
-        this->address = nullptr;
+        Assert(this->address.asPtr != nullptr);
+        FreeNativeCodeGenAllocation(GetScriptContext(), this->address.asPtr);
+        this->address.asPtr = nullptr;
     }
 #endif
 
@@ -8943,6 +8943,19 @@ namespace Js
 
     FunctionEntryPointInfo::FunctionEntryPointInfo(FunctionProxy * functionProxy, void * address, ThreadContext* context, void* cookie) :
         EntryPointInfo(address, functionProxy->GetScriptContext()->GetLibrary(), cookie, context),
+        localVarSlotsOffset(Js::Constants::InvalidOffset),
+        localVarChangedOffset(Js::Constants::InvalidOffset),
+        callsCount(0),
+        jitMode(ExecutionMode::Interpreter),
+        nativeEntryPointProcessed(false),
+        functionProxy(functionProxy),
+        nextEntryPoint(nullptr),
+        mIsTemplatizedJitMode(false)
+    {
+    }
+
+    FunctionEntryPointInfo::FunctionEntryPointInfo(FunctionProxy * functionProxy, Js::JavascriptMethod method, ThreadContext* context, void* cookie) :
+        EntryPointInfo(method, functionProxy->GetScriptContext()->GetLibrary(), cookie, context),
         localVarSlotsOffset(Js::Constants::InvalidOffset),
         localVarChangedOffset(Js::Constants::InvalidOffset),
         callsCount(0),
@@ -9278,9 +9291,9 @@ namespace Js
                 const JavascriptMethod simpleJitNativeAddress = reinterpret_cast<JavascriptMethod>(GetNativeAddress());
                 functionBody->MapEntryPoints([&](const int entryPointIndex, FunctionEntryPointInfo *const entryPointInfo)
                 {
-                    if(entryPointInfo != this && entryPointInfo->address == simpleJitNativeAddress)
+                    if(entryPointInfo != this && entryPointInfo->address.asJsMethod == simpleJitNativeAddress)
                     {
-                        entryPointInfo->address = newDirectEntryPoint;
+                        entryPointInfo->address.asJsMethod = newDirectEntryPoint;
                     }
                 });
                 if(functionBody->GetOriginalEntryPoint_Unchecked() == simpleJitNativeAddress)
@@ -9355,7 +9368,7 @@ namespace Js
 
                 if (validationCookie == currentCookie)
                 {
-                    scriptContext->FreeLoopBody((Js::JavascriptMethod)this->GetNativeAddress());
+                    scriptContext->FreeLoopBody((void*)this->GetNativeAddress());
                 }
             }
 

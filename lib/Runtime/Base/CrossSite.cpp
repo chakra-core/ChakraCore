@@ -267,7 +267,7 @@ namespace Js
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-            entryPoint = (JavascriptMethod)ScriptFunction::FromVar(function)->GetEntryPointInfo()->address;
+            entryPoint = (JavascriptMethod)ScriptFunction::FromVar(function)->GetEntryPointInfo()->address.asJsMethod;
             if (funcInfo->IsDeferred() && scriptContext->IsProfiling())
             {
                 // if the current entrypoint is deferred parse we need to update it appropriately for the profiler mode.
@@ -310,7 +310,7 @@ namespace Js
             else
 #endif
             {
-                entryPoint = (JavascriptMethod)ScriptFunction::FromVar(function)->GetEntryPointInfo()->address;
+                entryPoint = ScriptFunction::FromVar(function)->GetEntryPointInfo()->address.asJsMethod;
             }
         }
         else

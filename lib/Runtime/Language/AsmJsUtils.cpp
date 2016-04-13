@@ -210,7 +210,7 @@ namespace Js
 
     void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo)
     {
-        void * address = func->GetEntryPointInfo()->address;
+        void * address = func->GetEntryPointInfo()->address.asPtr;
         Assert(address);
         AsmJsFunctionInfo* info = func->GetFunctionBody()->GetAsmJsFunctionInfo();
         ScriptContext* scriptContext = func->GetScriptContext();
@@ -640,7 +640,7 @@ namespace Js
             }
         }
 
-        const void * asmJSEntryPoint = func->GetEntryPointInfo()->address;
+        const void * asmJSEntryPoint = func->GetEntryPointInfo()->address.asPtr;
         // make call and convert primitive type back to Var
         switch (info->GetReturnType().which())
         {
