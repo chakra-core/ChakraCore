@@ -315,9 +315,6 @@ namespace Js
         intConstPropsOnGlobalObject = Anew(GeneralAllocator(), PropIdSetForConstProp, GeneralAllocator());
         intConstPropsOnGlobalUserObject = Anew(GeneralAllocator(), PropIdSetForConstProp, GeneralAllocator());
 
-        // Initialize the closing critical section which will be deleted when we close DebugContext
-        InitializeCriticalSection(&debugContextCloseCS);
-
         this->debugContext = HeapNew(DebugContext, this);
     }
 
@@ -626,16 +623,11 @@ namespace Js
         {
             // Guard the closing and deleting of DebugContext as in meantime PDM might
             // call OnBreakFlagChange
-            EnterCriticalSection(&debugContextCloseCS);
+            AutoCriticalSection autoDebugContextCloseCS(&debugContextCloseCS);
             this->debugContext->Close();
             HeapDelete(this->debugContext);
             this->debugContext = nullptr;
-            LeaveCriticalSection(&debugContextCloseCS);
         }
-
-        // Deleted DebugContext so delete critical section which was initialized
-        // when we created DebugContext in ScriptContext::InitializeAllocations
-        DeleteCriticalSection(&debugContextCloseCS);
 
         // Need to print this out before the native code gen is deleted
         // which will delete the codegenProfiler

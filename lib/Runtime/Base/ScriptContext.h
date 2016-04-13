@@ -833,7 +833,7 @@ private:
         void InternalClose();
 
         DebugContext* debugContext;
-        CRITICAL_SECTION debugContextCloseCS;
+        CriticalSection debugContextCloseCS;
 
     public:
         static const int kArrayMatchCh=72;
@@ -890,7 +890,7 @@ private:
 #endif
 
         DebugContext* GetDebugContext() const { return this->debugContext; }
-        CRITICAL_SECTION* GetDebugContextCloseCS() { return &debugContextCloseCS; }
+        CriticalSection* GetDebugContextCloseCS() { return &debugContextCloseCS; }
 
         uint callCount;
 
