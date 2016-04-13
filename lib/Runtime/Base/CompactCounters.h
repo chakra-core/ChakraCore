@@ -14,12 +14,12 @@ namespace Js
     {
         struct Fields {
             union {
-                uint8 u8Fields[CountT::Max];
-                int8 i8Fields[CountT::Max];
-                uint16 u16Fields[CountT::Max];
-                int16 i16Fields[CountT::Max];
-                uint32 u32Fields[CountT::Max];
-                int32 i32Fields[CountT::Max];
+                uint8 u8Fields[static_cast<size_t>(CountT::Max)];
+                int8 i8Fields[static_cast<size_t>(CountT::Max)];
+                uint16 u16Fields[static_cast<size_t>(CountT::Max)];
+                int16 i16Fields[static_cast<size_t>(CountT::Max)];
+                uint32 u32Fields[static_cast<size_t>(CountT::Max)];
+                int32 i32Fields[static_cast<size_t>(CountT::Max)];
             };
             Fields() {}
         };
