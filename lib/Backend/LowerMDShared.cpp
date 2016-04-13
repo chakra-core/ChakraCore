@@ -9274,11 +9274,10 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     instr->InsertBefore(branchInstr);
                     LowererMDArch::EmitInt4Instr(branchInstr);
                 }
-                    // MOV dst, src1
-                    this->m_lowerer->InsertMove(dst, src1, instr);
+                // MOV dst, src1
+                this->m_lowerer->InsertMove(dst, src1, instr);
             }
-
-            else if(dst->IsFloat64())
+            else if(dst->IsFloat())
             {
                 //      COMISD src1 (src2), src2 (src1)
                 //      JA $doneLabel
@@ -9337,13 +9336,25 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     isNegZero =  IsOpndNegZero(src1, instr);
                 }
 
+                bool isF32 = dst->IsFloat32();
                 this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrEq_A, doneLabel, instr);
+
+                IR::Opnd * opndNaN = nullptr; 
+                
+                if (isF32)
+                {
+                    opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan32), IRType::TyFloat32, this->m_func);
+                }
+                else
+                {
+                    opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan), IRType::TyFloat64, this->m_func);                    
+                }
 
                 this->m_lowerer->InsertMove(dst, src2, instr);
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, doneLabel, instr->m_func));
 
                 instr->InsertBefore(labelNaNHelper);
-                IR::Opnd * opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan), IRType::TyFloat64, this->m_func);
+
                 this->m_lowerer->InsertMove(dst, opndNaN, instr);
             }
             instr->InsertBefore(doneLabel);
