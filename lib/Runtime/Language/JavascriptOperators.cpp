@@ -4494,49 +4494,56 @@ CommonNumber:
         }
 
         BOOL  returnValue = false;
+#define MEMCOPY_TYPED_ARRAY(type, conversion) type ## ::FromVar(dstInstance)->DirectSetItemAtRange( type ## ::FromVar(srcInstance), srcStart, dstStart, length, JavascriptConversion:: ## conversion)
         switch (instanceType)
         {
         case TypeIds_Int8Array:
         {
-            // The typed array will deal with all possible values for the index
-            returnValue = Int8Array::FromVar(dstInstance)->DirectSetItemAtRange(Int8Array::FromVar(srcInstance), srcStart, dstStart, length, JavascriptConversion::ToInt8);
+            returnValue = MEMCOPY_TYPED_ARRAY(Int8Array, ToInt8);
             break;
         }
-
         case TypeIds_Uint8Array:
         {
-            returnValue = Uint8Array::FromVar(dstInstance)->DirectSetItemAtRange(Uint8Array::FromVar(srcInstance), srcStart, dstStart, length, JavascriptConversion::ToUInt8);
+            returnValue = MEMCOPY_TYPED_ARRAY(Uint8Array, ToUInt8);
             break;
         }
-
         case TypeIds_Uint8ClampedArray:
         {
-            returnValue = Uint8ClampedArray::FromVar(dstInstance)->DirectSetItemAtRange(Uint8ClampedArray::FromVar(srcInstance), srcStart, dstStart, length, JavascriptConversion::ToUInt8Clamped);
+            returnValue = MEMCOPY_TYPED_ARRAY(Uint8ClampedArray, ToUInt8Clamped);
             break;
         }
-
         case TypeIds_Int16Array:
         {
-            returnValue = Int16Array::FromVar(dstInstance)->DirectSetItemAtRange(Int16Array::FromVar(srcInstance), srcStart, dstStart, length, JavascriptConversion::ToInt16);
+            returnValue = MEMCOPY_TYPED_ARRAY(Int16Array, ToInt16);
             break;
         }
-
         case TypeIds_Uint16Array:
         {
-            returnValue = Uint16Array::FromVar(dstInstance)->DirectSetItemAtRange(Uint16Array::FromVar(srcInstance), srcStart, dstStart, length, JavascriptConversion::ToUInt16);
+            returnValue = MEMCOPY_TYPED_ARRAY(Uint16Array, ToUInt16);
             break;
         }
         case TypeIds_Int32Array:
         {
-            returnValue = Int32Array::FromVar(dstInstance)->DirectSetItemAtRange(Int32Array::FromVar(srcInstance), srcStart, dstStart, length, JavascriptConversion::ToInt32);
+            returnValue = MEMCOPY_TYPED_ARRAY(Int32Array, ToInt32);
             break;
         }
         case TypeIds_Uint32Array:
         {
-            returnValue = Uint32Array::FromVar(dstInstance)->DirectSetItemAtRange(Uint32Array::FromVar(srcInstance), srcStart, dstStart, length, JavascriptConversion::ToUInt32);
+            returnValue = MEMCOPY_TYPED_ARRAY(Uint32Array, ToUInt32);
+            break;
+        }
+        case TypeIds_Float32Array:
+        {
+            returnValue = MEMCOPY_TYPED_ARRAY(Float32Array, ToFloat);
+            break;
+        }
+        case TypeIds_Float64Array:
+        {
+            returnValue = MEMCOPY_TYPED_ARRAY(Float64Array, ToNumber);
             break;
         }
         case TypeIds_Array:
+        case TypeIds_NativeFloatArray:
         case TypeIds_NativeIntArray:
         {
             if (dstStart < 0 || srcStart < 0)
@@ -4557,21 +4564,23 @@ CommonNumber:
                 {
                     returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<Var>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
                 }
-                else
+                else if (instanceType == TypeIds_NativeIntArray)
                 {
                     returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<int32>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
+                }
+                else
+                {
+                    returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<double>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
                 }
                 returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(dstInstance);
             }
             break;
         }
         default:
-        {
             AssertMsg(false, "We don't support this type for memcopy yet.");
             break;
         }
-        }
-
+#undef MEMCOPY_TYPED_ARRAY
         return returnValue;
     }
 
@@ -4667,10 +4676,8 @@ CommonNumber:
             break;
         }
         default:
-        {
             AssertMsg(false, "We don't support this type for memset yet.");
             break;
-        }
         }
 
 #undef MEMSET_TYPED_ARRAY

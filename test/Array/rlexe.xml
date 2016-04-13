@@ -659,6 +659,12 @@
   </test>
   <test>
      <default>
+        <files>memcopy.js</files>
+        <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -off:inline -off:globopt:1.18-1.30 -mmoc:0 -args float -endargs</compile-flags>
+     </default>
+  </test>
+  <test>
+     <default>
         <files>memop_alias.js</files>
         <compile-flags>-mic:1 -off:simplejit -off:jitloopbody -mmoc:0</compile-flags>
      </default>

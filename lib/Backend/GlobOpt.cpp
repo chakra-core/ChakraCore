@@ -4121,9 +4121,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
     if (
         !indexValueType.IsInt() ||
             !(
-                baseValueType.IsNativeIntArray() ||
-                // Memset allows native float and float32/float64 typed arrays as well. Todo:: investigate if memcopy can be done safely on float arrays
-                (isMemset ? (baseValueType.IsNativeFloatArray() || baseValueType.IsTypedIntOrFloatArray()) : baseValueType.IsTypedIntArray()) ||
+                baseValueType.IsTypedIntOrFloatArray() ||
                 baseValueType.IsArray()
             )
         )
