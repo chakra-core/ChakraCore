@@ -279,6 +279,15 @@ var tests = [
             assert.areEqual(x6, 11);
         })(1, {x2:2, x3:3}, [4, 5], undefined);
     }
+  },
+  {
+    name: "Object destructuring - changing the RHS when emitting",
+    body: function () {
+        var a = {}, b;
+        ({x:a, y:b = 1} = a);
+        assert.areEqual(a, undefined);
+        assert.areEqual(b, 1);
+    }
   }
 ];
 
