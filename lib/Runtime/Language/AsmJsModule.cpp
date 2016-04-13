@@ -854,6 +854,11 @@ namespace Js
                 mathFunc = nullptr;
                 simdFunc = nullptr;
 
+                if (!pnodeInit) 
+                {
+                    return Fail(decl, _u("The righthand side of a var declaration missing an initialization (empty)"));
+                }
+
                 if (pnodeInit->nop == knopName)
                 {
                     declSym = LookupIdentifier(pnodeInit->name(), func);
