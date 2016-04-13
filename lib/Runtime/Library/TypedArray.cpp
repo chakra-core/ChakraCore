@@ -2709,7 +2709,7 @@ namespace Js
         }
 
         // Get the elements comparison function for the type of this TypedArray
-        void* elementCompare = typedArrayBase->GetCompareElementsFunction();
+        void* elementCompare = reinterpret_cast<void*>(typedArrayBase->GetCompareElementsFunction());
 
         Assert(elementCompare);
 

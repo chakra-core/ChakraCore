@@ -1291,7 +1291,6 @@ private:
         }
 
     public:
-        void FreeLoopBody(void* codeAddress);
         void FreeFunctionEntryPoint(Js::JavascriptMethod method);
 
     private:

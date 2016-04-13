@@ -317,14 +317,14 @@ namespace Js
     public:
         // These are public because we don't manage them nor their consistency;
         // the user of this class does.
-        void * address;
+        Js::JavascriptMethod jsMethod;
 
-        ProxyEntryPointInfo(void* address, ThreadContext* context = nullptr):
+        ProxyEntryPointInfo(Js::JavascriptMethod jsMethod, ThreadContext* context = nullptr):
             ExpirableObject(context),
-            address(address)
+            jsMethod(jsMethod)
         {
         }
-        static DWORD GetAddressOffset() { return offsetof(ProxyEntryPointInfo, address); }
+        static DWORD GetAddressOffset() { return offsetof(ProxyEntryPointInfo, jsMethod); }
         virtual void Expire()
         {
             AssertMsg(false, "Expire called on object that doesn't support expiration");
@@ -449,7 +449,7 @@ namespace Js
         int equivalentTypeCacheCount;
 #endif
         CodeGenWorkItem * workItem;
-        void * nativeAddress;
+        Js::JavascriptMethod nativeAddress;
         ptrdiff_t codeSize;
         bool isAsmJsFunction; // true if entrypoint is for asmjs function
         uintptr_t  mModuleAddress; //asm Module address
@@ -516,8 +516,8 @@ namespace Js
         virtual bool IsFunctionEntryPointInfo() const override { return true; }
 
     protected:
-        EntryPointInfo(void* address, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
-            ProxyEntryPointInfo(address, context),
+        EntryPointInfo(Js::JavascriptMethod method, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
+            ProxyEntryPointInfo(method, context),
 #if ENABLE_NATIVE_CODEGEN
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
@@ -720,14 +720,13 @@ namespace Js
             this->state = CodeGenPending;
         }
 
-        void SetCodeGenRecorded(void * nativeAddress, ptrdiff_t codeSize,
+        void SetCodeGenRecorded(Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize,
             NativeCodeData * data, NativeCodeData * transferData, CodeGenNumberChunk * numberChunks)
         {
             Assert(this->GetState() == CodeGenQueued);
-            Assert(nativeAddress != nullptr);
             Assert(codeSize > 0);
             Assert(this->jitTransferData != nullptr || transferData == nullptr);
-            this->nativeAddress = (void *)nativeAddress;
+            this->nativeAddress = nativeAddress;
             this->codeSize = codeSize;
             this->data = data;
             if (transferData != nullptr)
@@ -770,6 +769,7 @@ namespace Js
 
             nativeThrowSpanSequence = seq;
         }
+
         bool IsInNativeAddressRange(DWORD_PTR codeAddress) {
             return (IsNativeCode() &&
                 codeAddress >= GetNativeAddress() &&
@@ -781,7 +781,9 @@ namespace Js
         {
             // need the assert to skip for asmjsFunction as nativeAddress can be interpreter too for asmjs
             Assert(this->GetState() == CodeGenRecorded || this->GetState() == CodeGenDone || this->isAsmJsFunction);
-            return (DWORD_PTR)this->nativeAddress;
+
+            // !! this is illegal, however (by design) `IsInNativeAddressRange` (right above) needs it
+            return reinterpret_cast<DWORD_PTR>(this->nativeAddress);
         }
 
         ptrdiff_t GetCodeSize() const
@@ -813,7 +815,7 @@ namespace Js
             this->codeSize = size;
         }
 
-        void SetNativeAddress(void* address)
+        void SetNativeAddress(Js::JavascriptMethod address)
         {
             Assert(isAsmJsFunction);
             this->nativeAddress = address;
@@ -946,7 +948,7 @@ namespace Js
             return (100 / (uint8)CONFIG_FLAG(RejitRatioLimit)) + 1;
         }
 
-        FunctionEntryPointInfo(FunctionProxy * functionInfo, void * address, ThreadContext* context, void* validationCookie);
+        FunctionEntryPointInfo(FunctionProxy * functionInfo, Js::JavascriptMethod method, ThreadContext* context, void* validationCookie);
 
 #ifndef TEMP_DISABLE_ASMJS
         //AsmJS Support
@@ -1073,13 +1075,13 @@ namespace Js
             return this->startOffset <= offset && offset < this->endOffset;
         }
 
-        void * GetCurrentEntryPoint() const
+        Js::JavascriptMethod GetCurrentEntryPoint() const
         {
             LoopEntryPointInfo * entryPoint = GetCurrentEntryPointInfo();
 
             if (entryPoint != nullptr)
             {
-                return this->entryPoints->Item(this->GetCurrentEntryPointIndex())->address;
+                return this->entryPoints->Item(this->GetCurrentEntryPointIndex())->jsMethod;
             }
 
             return nullptr;
@@ -1487,8 +1489,8 @@ namespace Js
         void SetInitialDefaultEntryPoint();
         void SetDeferredParsingEntryPoint();
 
-        void SetEntryPoint(ProxyEntryPointInfo* entryPoint, Js::JavascriptMethod address) {
-            entryPoint->address = (void*)address;
+        void SetEntryPoint(ProxyEntryPointInfo* entryPoint, Js::JavascriptMethod jsMethod) {
+            entryPoint->jsMethod = jsMethod;
         }
 
         bool IsDynamicScript() const;
@@ -2050,7 +2052,7 @@ namespace Js
         void GenerateDynamicInterpreterThunk();
 #endif
         void CloneByteCodeInto(ScriptContext * scriptContext, FunctionBody *newFunctionBody, uint sourceIndex);
-        void * GetEntryPoint(ProxyEntryPointInfo* entryPoint) const { return entryPoint->address; }
+        Js::JavascriptMethod GetEntryPoint(ProxyEntryPointInfo* entryPoint) const { return entryPoint->jsMethod; }
         void CaptureDynamicProfileState(FunctionEntryPointInfo* entryPointInfo);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         void DumpRegStats(FunctionBody *funcBody);

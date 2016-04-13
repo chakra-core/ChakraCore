@@ -4033,13 +4033,6 @@ namespace Js
     }
 #endif
 
-    void ScriptContext::FreeLoopBody(void* address)
-    {
-#if ENABLE_NATIVE_CODEGEN
-        FreeNativeCodeGenAllocation(this, address);
-#endif
-    }
-
     void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod method)
     {
 #if ENABLE_NATIVE_CODEGEN

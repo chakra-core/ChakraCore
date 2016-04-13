@@ -236,7 +236,7 @@ namespace Js
         // instead update the address in the function entrypoint info
         else
         {
-            entryPointInfo->address = entryPoint;
+            entryPointInfo->jsMethod = entryPoint;
         }
 
         if (!isAsmJS)
