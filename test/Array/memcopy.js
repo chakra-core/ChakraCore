@@ -139,11 +139,15 @@ function compareResult(name, a, b, start, end, start2) {
   return true;
 }
 
-function makeArray(size) {
-  size = size || 10;
+const isFloatTest = WScript.Arguments[0] === "float";
+
+function makeArray(size = 10) {
   let a = new Array(size);
   for(let i = 0; i < size; ++i) {
-    a[i] = 0;
+    a[i] = isFloatTest ? 0.5 : 0;
+  }
+  if (isFloatTest) {
+    return eval(`[${a.join(", ")}]`);
   }
   return a;
 }
@@ -152,7 +156,16 @@ let arrayGenerators = [
   makeArray,
 ];
 
-function makeSource(size) {
+function makeFloatArray(size = 10) {
+  const arrayValues = new Array(size);
+  for(let i = 0; i < size; ++i) {
+    arrayValues[i] = Math.random() / Math.random() * (Math.random() < 0.2 ? -1 : 1);
+  }
+  return eval(`[${arrayValues.join(", ")}]`);
+}
+
+function makeSource(size = 10) {
+  if (isFloatTest) return makeFloatArray(size);
   let s = new Array(size);
   for(let i = 0; i < size; ++i) {
     s[i] = i;
@@ -185,8 +198,7 @@ for(let testCase of testCases) {
       let result = testInfo.runner(gen, src);
       results.push(result);
     } else {
-      let newArray = gen(testInfo.size);
-      newArray.fill(1);
+      let newArray = gen(testInfo.size || testInfo.end - testInfo.start);
       testInfo.test(newArray, src);
       results.push(newArray);
     }
