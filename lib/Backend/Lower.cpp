@@ -11867,12 +11867,12 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
                 TyInt8,
                 instr);
 
-        // Disable implicit calls since they will be called after bailing out
+        // Disable implicit calls and implicit exceptions since they will be called after bailing out
         disableImplicitCallsInstr =
             IR::Instr::New(
                 Js::OpCode::Ld_A,
                 disableImplicitCallAddress,
-                IR::IntConstOpnd::New(DisableImplicitCallFlag, TyInt8, instr->m_func, true),
+                IR::IntConstOpnd::New(DisableImplicitCallAndExceptionFlag, TyInt8, instr->m_func, true),
                 instr->m_func);
         instr->InsertBefore(disableImplicitCallsInstr);
 
