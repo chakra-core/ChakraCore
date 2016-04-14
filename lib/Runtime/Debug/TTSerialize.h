@@ -421,35 +421,56 @@ namespace TTD
             }
         }
 
-        void Append(const char* str, uint32 length)
+        void AppendRaw(const char* str, uint32 length)
         {
-            memcpy(this->m_buffer + this->m_currLength, str, length);
-            this->m_currLength += length;
+            if(length >= TRACE_LOGGER_BUFFER_SIZE)
+            {
+                const char* msg = "Oversize string ... omitting from output";
+                fwrite(msg, sizeof(char), strlen(msg), this->m_outfile);
+            }
+            else
+            {
+                AssertMsg(this->m_currLength + length < TRACE_LOGGER_BUFFER_SIZE, "We are going to overrun!");
+
+                memcpy(this->m_buffer + this->m_currLength, str, length);
+                this->m_currLength += length;
+            }
         }
 
-        void Append(const wchar* str, uint32 length)
+        void AppendRaw(const char16* str, uint32 length)
         {
-            char* currs = (this->m_buffer + this->m_currLength);
-            const wchar* currw = str;
-
-            for(uint32 i = 0; i < length; ++i)
+            if(length >= TRACE_LOGGER_BUFFER_SIZE)
             {
-                *currs = (char)(*currw);
-                ++currs;
-                ++currw;
+                const char* msg = "Oversize string ... omitting from output";
+                fwrite(msg, sizeof(char), strlen(msg), this->m_outfile);
             }
+            else
+            {
+                AssertMsg(this->m_currLength + length < TRACE_LOGGER_BUFFER_SIZE, "We are going to overrun!");
 
-            this->m_currLength += length;
+                char* currs = (this->m_buffer + this->m_currLength);
+                const char16* currw = str;
+
+                for(uint32 i = 0; i < length; ++i)
+                {
+                    *currs = (char)(*currw);
+                    ++currs;
+                    ++currw;
+                }
+
+                this->m_currLength += length;
+            }
         }
 
         template<size_t N>
         void AppendLiteral(const char(&str)[N])
         {
             this->EnsureSpace(N - 1);
-            this->Append(str, N - 1);
+            this->AppendRaw(str, N - 1);
         }
 
         void AppendText(char* text, uint32 length);
+        void AppendText(const char16* text, uint32 length);
         void AppendIndent();
         void AppendString(char* text);
         void AppendBool(bool bval);

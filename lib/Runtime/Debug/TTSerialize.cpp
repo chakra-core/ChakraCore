@@ -1479,7 +1479,13 @@ namespace TTD
     void TraceLogger::AppendText(char* text, uint32 length)
     {
         this->EnsureSpace(length);
-        this->Append(text, length);
+        this->AppendRaw(text, length);
+    }
+
+    void TraceLogger::AppendText(const char16* text, uint32 length)
+    {
+        this->EnsureSpace(length);
+        this->AppendRaw(text, length);
     }
 
     void TraceLogger::AppendIndent()
@@ -1488,13 +1494,13 @@ namespace TTD
         while(totalIndent > TRACE_LOGGER_INDENT_BUFFER_SIZE)
         {
             this->EnsureSpace(TRACE_LOGGER_INDENT_BUFFER_SIZE);
-            this->Append(this->m_indentBuffer, TRACE_LOGGER_INDENT_BUFFER_SIZE);
+            this->AppendRaw(this->m_indentBuffer, TRACE_LOGGER_INDENT_BUFFER_SIZE);
 
             totalIndent -= TRACE_LOGGER_INDENT_BUFFER_SIZE;
         }
 
         this->EnsureSpace(totalIndent);
-        this->Append(this->m_indentBuffer, totalIndent);
+        this->AppendRaw(this->m_indentBuffer, totalIndent);
     }
 
     void TraceLogger::AppendString(char* text)
@@ -1518,19 +1524,19 @@ namespace TTD
     void TraceLogger::AppendInteger(int64 ival)
     {
         this->EnsureSpace(64);
-        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "%I64i", ival);
+        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, 64, "%I64i", ival);
     }
 
     void TraceLogger::AppendUnsignedInteger(uint64 ival)
     {
         this->EnsureSpace(64);
-        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "%I64u", ival);
+        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, 64, "%I64u", ival);
     }
 
     void TraceLogger::AppendIntegerHex(int64 ival)
     {
         this->EnsureSpace(64);
-        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "0x%I64x", ival);
+        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, 64, "0x%I64x", ival);
     }
 
     void TraceLogger::AppendDouble(double dval)
@@ -1539,11 +1545,11 @@ namespace TTD
 
         if(floor(dval) == dval)
         {
-            this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "%I64i", (int64)dval);
+            this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, 64, "%I64i", (int64)dval);
         }
         else
         {
-            this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "%.22f", dval);
+            this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, 64, "%.22f", dval);
         }
     }
 
@@ -1616,7 +1622,7 @@ namespace TTD
                 break;
             case Js::TypeIds_String:
                 this->AppendLiteral("'");
-                this->Append(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength());
+                this->AppendText(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength());
                 this->AppendLiteral("'");
                 break;
             default:
@@ -1634,7 +1640,7 @@ namespace TTD
         Js::JavascriptString* displayName = function->GetDisplayName();
 
         this->AppendIndent();
-        this->Append(displayName->GetSz(), displayName->GetLength());
+        this->AppendText(displayName->GetSz(), displayName->GetLength());
 
         if(isExternal)
         {
@@ -1668,7 +1674,7 @@ namespace TTD
 
         this->AppendIndent();
         this->AppendLiteral("return(");
-        this->Append(displayName->GetSz(), displayName->GetLength());
+        this->AppendText(displayName->GetSz(), displayName->GetLength());
         this->AppendLiteral(") -> ");
         this->WriteVar(res);
         this->AppendLiteral("\n");
@@ -1682,7 +1688,7 @@ namespace TTD
 
         this->AppendIndent();
         this->AppendLiteral("return(");
-        this->Append(displayName->GetSz(), displayName->GetLength());
+        this->AppendText(displayName->GetSz(), displayName->GetLength());
         this->AppendLiteral(") -> !!exception");
         this->AppendLiteral("\n");
     }
@@ -1692,7 +1698,7 @@ namespace TTD
         this->AppendIndent();
 
         this->EnsureSpace(128);
-        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "(l:%I32u, c:%I32u)\n", line + 1, column);
+        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, 128, "(l:%I32u, c:%I32u)\n", line + 1, column);
 
         ////
         //Temp debugging help if needed 

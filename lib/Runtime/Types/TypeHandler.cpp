@@ -720,11 +720,11 @@ namespace Js
 
             if(handler->MaxPropertyIndex != 0)
             {
-                alloc.SlabCommitArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->MaxPropertyIndex);
+                alloc.SlabCommitArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->MaxPropertyIndex, handler->TotalSlotCapacity);
             }
             else
             {
-                alloc.SlabAbortArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>();
+                alloc.SlabAbortArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->TotalSlotCapacity);
                 handler->PropertyInfoArray = nullptr;
             }
         }

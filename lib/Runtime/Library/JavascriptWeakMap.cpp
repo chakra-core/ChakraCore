@@ -370,11 +370,11 @@ namespace Js
         if(smi->MapSize == 0)
         {
             smi->MapKeyValueArray = nullptr;
-            alloc.SlabAbortArraySpace<TTD::TTDVar>();
+            alloc.SlabAbortArraySpace<TTD::TTDVar>(mapCountEst + 1);
         }
         else
         {
-            alloc.SlabCommitArraySpace<TTD::TTDVar>(smi->MapSize);
+            alloc.SlabCommitArraySpace<TTD::TTDVar>(smi->MapSize, mapCountEst + 1);
         }
 
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapMapInfo*, TTD::NSSnapObjects::SnapObjectType::SnapMapObject>(objData, smi);

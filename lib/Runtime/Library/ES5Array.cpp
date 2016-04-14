@@ -453,11 +453,11 @@ namespace Js
 
         if(es5ArrayInfo->GetterSetterCount != 0)
         {
-            alloc.SlabCommitArraySpace<TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry>(es5ArrayInfo->GetterSetterCount);
+            alloc.SlabCommitArraySpace<TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry>(es5ArrayInfo->GetterSetterCount, length + 1);
         }
         else
         {
-            alloc.SlabAbortArraySpace<TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry>();
+            alloc.SlabAbortArraySpace<TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry>(length + 1);
             es5ArrayInfo->GetterSetterEntries = nullptr;
         }
 

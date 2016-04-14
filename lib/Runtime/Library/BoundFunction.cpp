@@ -490,7 +490,7 @@ namespace Js
                 }
             }
         }
-        alloc.SlabCommitArraySpace<TTD_PTR_ID>(depCount);
+        alloc.SlabCommitArraySpace<TTD_PTR_ID>(depCount, depCount + bfi->ArgCount);
 
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapBoundFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapBoundFunctionObject>(objData, bfi, alloc, depCount, depArray);
     }

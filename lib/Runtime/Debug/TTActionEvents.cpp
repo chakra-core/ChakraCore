@@ -1438,7 +1438,6 @@ namespace TTD
 #if !ENABLE_TTD_DEBUGGING
         *snap = nullptr;
         *logTag = TTD_INVALID_LOG_TAG;
-        *identityTag = TTD_INVALID_IDENTITY_TAG;
 #else
         AssertMsg(this->m_rtrSnap != nullptr, "Does not have rtr info!!");
 

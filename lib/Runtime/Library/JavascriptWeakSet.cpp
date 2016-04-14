@@ -227,11 +227,11 @@ namespace Js
         if(ssi->SetSize == 0)
         {
             ssi->SetValueArray = nullptr;
-            alloc.SlabAbortArraySpace<TTD::TTDVar>();
+            alloc.SlabAbortArraySpace<TTD::TTDVar>(setCountEst + 1);
         }
         else
         {
-            alloc.SlabCommitArraySpace<TTD::TTDVar>(ssi->SetSize);
+            alloc.SlabCommitArraySpace<TTD::TTDVar>(ssi->SetSize, setCountEst + 1);
         }
 
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapSetInfo*, TTD::NSSnapObjects::SnapObjectType::SnapSetObject>(objData, ssi);

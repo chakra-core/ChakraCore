@@ -651,23 +651,29 @@ namespace TTD
 
         //Commit the allocation of count (or fewer) elements of the given type that were reserved previously
         template <typename T>
-        void SlabCommitArraySpace(size_t count)
+        void SlabCommitArraySpace(size_t actualCount, size_t reservedCount)
         {
-            size_t size = count * sizeof(T);
-            if(size <= TTD_SLAB_LARGE_BLOCK_SIZE)
+            size_t reservedSize = reservedCount * sizeof(T);
+            if(reservedSize <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
-                this->SlabAllocateRawSize<false, true>(size);
+                size_t actualSize = actualCount * sizeof(T);
+                this->SlabAllocateRawSize<false, true>(actualSize);
             }
             //we always commit large allocs so no need to clear reserved count info
         }
 
         //Abort the allocation of the elements of the given type that were reserved previously
         template <typename T>
-        void SlabAbortArraySpace()
+        void SlabAbortArraySpace(size_t reservedCount)
         {
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            AssertMsg(this->m_reserveActive != 0, "We don't have anything reserved.");
-            this->m_reserveActive = 0;
+            size_t reservedSize = reservedCount * sizeof(T);
+            if(reservedSize <= TTD_SLAB_LARGE_BLOCK_SIZE)
+            {
+                AssertMsg(this->m_reserveActive != 0, "We don't have anything reserved.");
+                this->m_reserveActive = 0;
+            }
+            //we always commit large allocs so no need to clear reserved count info
 #endif
         }
 
