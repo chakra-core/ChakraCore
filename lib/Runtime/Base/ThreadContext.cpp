@@ -3580,8 +3580,19 @@ bool ThreadContext::HasNoSideEffect(Js::RecyclableObject * function, Js::Functio
 bool
 ThreadContext::RecordImplicitException()
 {
+    // Record the exception in the implicit call flag
     AddImplicitCallFlags(Js::ImplicitCall_Exception);
-    return !IsDisableImplicitException();
+    if (IsDisableImplicitException())
+    {
+        // Indicate that we shouldn't throw if ImplicitExceptions have been disabled
+        return false;
+    }
+    // Disabling implicit exception when disabling implicit calls can result in valid exceptions not being thrown.
+    // Instead we tell not to throw only if an implicit call happened and they are disabled. This is to cover the case
+    // of an exception being thrown because an implicit call not executed left the execution in a bad state.
+    // Since there is an implicit call, we expect to bailout and handle this operation in the interpreter instead.
+    bool hasImplicitCallHappened = IsDisableImplicitCall() && (GetImplicitCallFlags() & ~Js::ImplicitCall_Exception);
+    return !hasImplicitCallHappened;
 }
 
 void ThreadContext::SetThreadServiceWrapper(ThreadServiceWrapper* inThreadServiceWrapper)
