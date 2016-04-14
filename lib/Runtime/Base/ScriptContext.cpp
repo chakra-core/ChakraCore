@@ -621,6 +621,9 @@ namespace Js
 
         if (this->debugContext != nullptr)
         {
+            // Guard the closing and deleting of DebugContext as in meantime PDM might
+            // call OnBreakFlagChange
+            AutoCriticalSection autoDebugContextCloseCS(&debugContextCloseCS);
             this->debugContext->Close();
             HeapDelete(this->debugContext);
             this->debugContext = nullptr;
