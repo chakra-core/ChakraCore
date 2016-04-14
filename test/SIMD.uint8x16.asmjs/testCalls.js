@@ -82,13 +82,16 @@ function asmModule(stdlib, imports) {
     var gval2 = 1234.0;
 
 
-    
+    var i16 = stdlib.SIMD.Int8x16;
+    var i16check = i16.check;
+    var i16fu16 = i16.fromUint8x16Bits;
+    var u16fi16 = u16.fromInt8x16Bits;
     var loopCOUNT = 3;
 
     function func1(a, b)
     {
-        a = u16check(a);
-        b = u16check(b);
+        a = i16check(a);
+        b = i16check(b);
         var x = u16(-1, -2, -3, -4, -5, -6, -7, -8, 1024, 1025, 1026, 1027, -1028, -1029, -1030, -1031);;
 
         var loopIndex = 0;
@@ -100,41 +103,38 @@ function asmModule(stdlib, imports) {
         }
         x = globImportU16;
         g2 = x;
-        return u16check(x);
+        return i16check(i16fu16(x));
     }
     
     function func2(a, b, c, d)
     {
-        a = u16check(a);
-        b = u16check(b);
-        c = u16check(c);
-        d = u16check(d);
+        a = i16check(a);
+        b = i16check(b);
+        c = i16check(c);
+        d = i16check(d);
         var x = u16(-1, -2, -3, -4, -5, -6, -7, -8, 1024, 1025, 1026, 1027, -1028, -1029, -1030, -1031);
         var y = u16(-1, -2, -3, -4, -5, -6, -7, -8, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031);
         var loopIndex = 0;
         for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0)
         {
-
-            x = u16check(func1(a, b));
-            y = u16check(func1(c, d));
-            
-
+            x = u16fi16(i16check(func1(a, b)));
+            y = u16fi16(i16check(func1(c, d)));
         }
 
-        //return u16check(u16add(x,y));
-        return u16check(x);
+        //return i16check(u16add(x,y));
+        return i16check(i16fu16(x));
     }
 
     function func3(a, b, c, d, e, f, g, h)
     {
-        a = u16check(a);
-        b = u16check(b);
-        c = u16check(c);
-        d = u16check(d);
-        e = u16check(e);
-        f = u16check(f);
-        g = u16check(g);
-        h = u16check(h);        
+        a = i16check(a);
+        b = i16check(b);
+        c = i16check(c);
+        d = i16check(d);
+        e = i16check(e);
+        f = i16check(f);
+        g = i16check(g);
+        h = i16check(h);        
         
         var x = u16(-1, -2, -3, -4, -5, -6, -7, -8, 1024, 1025, 1026, 1027, -1028, -1029, -1030, -1031);
         var y = u16(-1, -2, -3, -4, -5, -6, -7, -8, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031);
@@ -142,13 +142,13 @@ function asmModule(stdlib, imports) {
         for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0)
         {
 
-            x = u16check(func2(a, b, c, d));
-            y = u16check(func2(e, f, g, h));
+            x = u16fi16(i16check(func2(a, b, c, d)));
+            y = u16fi16(i16check(func2(e, f, g, h)));
             
         }
 
-        //return u16check(u16add(x,y));
-        return u16check(x);
+        //return i16check(u16add(x,y));
+        return i16check(i16fu16(x));
     }
 
     function func4() { //Testing for a bug while returning SIMD values from a loop
@@ -158,7 +158,7 @@ function asmModule(stdlib, imports) {
         for (i = 0; (i | 0) < 1000; i = (i + 1)|0) {
             //value1 = u16add(value1, u16splat(1));
             if ((i | 0) == 300) {
-                return u16check(value1);
+                return i16check(i16fu16(value1));
             }
         }
     }
@@ -183,14 +183,14 @@ function asmModule(stdlib, imports) {
 
     function fctest(a)
     {
-        a = u16check(a);
+        a = i16check(a);
         return a;
     }
     function fcBug_1()
     {
         var x = f4(-1.0, -2.0, -3.0, -4.0);
         var k = u16(1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8);
-        k = u16check(fctest(k));
+        k = u16fi16(i16check(fctest(i16fu16(k))));
         return f4check(x);
     }
     function fcBug_2()
@@ -198,7 +198,7 @@ function asmModule(stdlib, imports) {
         var x = f4(-1.0, -2.0, -3.0, -4.0);
         var k = u16(1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8);
         x = f4check(fcBug_1());
-        return u16check(k);
+        return i16check(i16fu16(k));
     }
 
     return {func1:func1, func2:func2, func3:func3, func4:func4, func5:fcBug_1, func6:fcBug_2};
@@ -217,12 +217,15 @@ var s6 = SIMD.Uint8x16(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 
 var s7 = SIMD.Uint8x16(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0);
 var s8 = SIMD.Uint8x16(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0);
 
-var ret1 = m.func1(s1, s2);
-var ret2 = m.func2(s1, s2, s3, s4);
-var ret3 = m.func3(s1, s2, s3, s4, s5, s6, s7, s8);
-var ret4 = m.func4();
+var i16fu16 = SIMD.Int8x16.fromUint8x16Bits;
+var u16fi16 = SIMD.Uint8x16.fromInt8x16Bits;
+
+var ret1 = u16fi16(m.func1(i16fu16(s1), i16fu16(s2)));
+var ret2 = u16fi16(m.func2(i16fu16(s1), i16fu16(s2), i16fu16(s3), i16fu16(s4)));
+var ret3 = u16fi16(m.func3(i16fu16(s1), i16fu16(s2), i16fu16(s3), i16fu16(s4), i16fu16(s5), i16fu16(s6), i16fu16(s7), i16fu16(s8)));
+var ret4 = u16fi16(m.func4());
 var ret5 = m.func5();
-var ret6 = m.func6();
+var ret6 = u16fi16(m.func6());
 
 
 equalSimd([98, 0, 192, 0, 160, 192, 88, 128, 158, 0, 64, 0, 96, 64, 168, 128], ret1, SIMD.Uint8x16, "func1")

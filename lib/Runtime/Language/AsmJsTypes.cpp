@@ -1258,6 +1258,13 @@ namespace Js
                mBuiltIn == AsmJsSIMDBuiltin_bool8x16_check;
     }
 
+    bool AsmJsSIMDFunction::IsUnsignedTypeCheck()
+    {
+        return mBuiltIn == AsmJsSIMDBuiltin_uint32x4_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_uint16x8_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_uint8x16_check;
+    }
+
     AsmJsVarType AsmJsSIMDFunction::GetTypeCheckVarType()
     {
         Assert(this->IsTypeCheck());

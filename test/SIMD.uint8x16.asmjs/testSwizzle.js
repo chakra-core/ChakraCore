@@ -18,6 +18,10 @@ function asmModule(stdlib, imports) {
     var ui16g2 = ui16(256, 255, 128, 127, 0, 0, 1000, 1000, 5, 15, 3, 399, 299, 21, 45, 22);
 
     var loopCOUNT = 3;
+    
+    var i16 = stdlib.SIMD.Int8x16;
+    var i16check = i16.check;
+    var i16fu16 = i16.fromUint8x16Bits;    
 
     function testswizzleLocal() {
         var a = ui16(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
@@ -28,7 +32,7 @@ function asmModule(stdlib, imports) {
             result = ui16swizzle(a, 0, 1, 4, 5, 8, 10, 11, 12, 4, 2, 1, 6, 2, 8, 14, 0);
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui16check(result);
+        return i16check(i16fu16(result));
     }
     
     function testswizzleGlobal() {
@@ -39,7 +43,7 @@ function asmModule(stdlib, imports) {
             result = ui16swizzle(ui16g1, 0, 1, 4, 5, 8, 10, 11, 12, 4, 2, 1, 6, 2, 8, 14, 0);
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui16check(result);
+        return i16check(i16fu16(result));
     }
 
     function testswizzleGlobalImport() {
@@ -50,7 +54,7 @@ function asmModule(stdlib, imports) {
             result = ui16swizzle(globImportui16, 0, 1, 4, 5, 8, 10, 11, 12, 4, 2, 1, 6, 2, 8, 14, 0);
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui16check(result);
+        return i16check(i16fu16(result));
     }
 
     function testswizzleFunc() {
@@ -62,7 +66,7 @@ function asmModule(stdlib, imports) {
             result = ui16swizzle(ui16add(a, ui16g1), 0, 1, 4, 5, 8, 10, 11, 12, 4, 2, 1, 6, 2, 8, 14, 0);
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui16check(result);
+        return i16check(i16fu16(result));
     }
 
     return { testswizzleLocal: testswizzleLocal, testswizzleGlobal: testswizzleGlobal, testswizzleGlobalImport: testswizzleGlobalImport, testswizzleFunc: testswizzleFunc };
@@ -70,10 +74,16 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Uint8x16(100, 10824, 1028, 82, 3883, 8, 2929, 1442, 52, 127, 128, 129, 129, 0, 88, 100234) });
 
-equalSimd([1, 2, 5, 6, 9, 11, 12, 13, 5, 3, 2, 7, 3, 9, 15, 1], m.testswizzleLocal(), SIMD.Uint8x16, "");
-equalSimd([1, 2, 5, 6, 9, 11, 12, 13, 5, 3, 2, 7, 3, 9, 15, 1], m.testswizzleGlobal(), SIMD.Uint8x16, "");
-equalSimd([100, 72, 43, 8, 52, 128, 129, 129, 43, 4, 72, 113, 4, 52, 88, 100], m.testswizzleGlobalImport(), SIMD.Uint8x16, "");
-equalSimd([2, 4, 10, 12, 18, 22, 24, 26, 10, 6, 4, 14, 6, 18, 30, 2], m.testswizzleFunc(), SIMD.Uint8x16, "");
+var ret1 = SIMD.Uint8x16.fromInt8x16Bits(m.testswizzleLocal());
+var ret2 = SIMD.Uint8x16.fromInt8x16Bits(m.testswizzleGlobal());
+var ret3 = SIMD.Uint8x16.fromInt8x16Bits(m.testswizzleGlobalImport());
+var ret4 = SIMD.Uint8x16.fromInt8x16Bits(m.testswizzleFunc());
+
+
+equalSimd([1, 2, 5, 6, 9, 11, 12, 13, 5, 3, 2, 7, 3, 9, 15, 1], ret1, SIMD.Uint8x16, "");
+equalSimd([1, 2, 5, 6, 9, 11, 12, 13, 5, 3, 2, 7, 3, 9, 15, 1], ret2, SIMD.Uint8x16, "");
+equalSimd([100, 72, 43, 8, 52, 128, 129, 129, 43, 4, 72, 113, 4, 52, 88, 100], ret3, SIMD.Uint8x16, "");
+equalSimd([2, 4, 10, 12, 18, 22, 24, 26, 10, 6, 4, 14, 6, 18, 30, 2], ret4, SIMD.Uint8x16, "");
 
 print("PASS");
 
