@@ -8189,6 +8189,9 @@ namespace Js
             } autoCleanup(this);
 
             ScriptContext* scriptContext = GetScriptContext();
+
+            // If we start transferring more data from the jit thread, corresponding fields on the
+            // entryPointInfo should be rolled back in EntryPointInfo::OnNativeCodeInstallFailure
             PinTypeRefs(scriptContext);
             InstallGuards(scriptContext);
             FreeJitTransferData();
@@ -8204,6 +8207,22 @@ namespace Js
             this->jitTransferData = RecyclerNew(recycler, EntryPointInfo::JitTransferData);
         }
         return this->jitTransferData;
+    }
+
+    void EntryPointInfo::OnNativeCodeInstallFailure()
+    {
+        // If more data is transferred from the background thread to the main thread in ProcessJitTransferData, 
+        // corresponding fields on the entryPointInfo should be rolled back here.
+        this->runtimeTypeRefs = nullptr;
+        this->FreePropertyGuards();
+        if (this->equivalentTypeCaches != nullptr)
+        {
+            this->equivalentTypeCacheCount = 0;
+            this->equivalentTypeCaches = nullptr;
+            this->UnregisterEquivalentTypeCaches();
+        }
+
+        this->ResetOnNativeCodeInstallFailure();
     }
 
 #ifdef FIELD_ACCESS_STATS
@@ -8255,31 +8274,6 @@ namespace Js
         Assert(this->jitTransferData != nullptr && this->jitTransferData->GetIsReady());
         Assert(this->equivalentTypeCacheCount == 0 && this->equivalentTypeCaches == nullptr);
         Assert(this->propertyGuardCount == 0 && this->propertyGuardWeakRefs == nullptr);
-
-        class AutoCleanup
-        {
-            EntryPointInfo *entryPointInfo;
-        public:
-            AutoCleanup(EntryPointInfo *entryPointInfo) : entryPointInfo(entryPointInfo)
-            {
-            }
-
-            void Done()
-            {
-                entryPointInfo = nullptr;
-            }
-            ~AutoCleanup()
-            {
-                if (entryPointInfo)
-                {
-                    entryPointInfo->equivalentTypeCacheCount = 0;
-                    entryPointInfo->equivalentTypeCaches = nullptr;
-                    entryPointInfo->propertyGuardCount = 0;
-                    entryPointInfo->propertyGuardWeakRefs = nullptr;
-                    entryPointInfo->UnregisterEquivalentTypeCaches();
-                }
-            }
-        } autoCleanup(this);
 
         for (int i = 0; i < this->jitTransferData->lazyBailoutPropertyCount; i++)
         {
@@ -8437,8 +8431,6 @@ namespace Js
         {
             Js::Throw::OutOfMemory();
         }
-
-        autoCleanup.Done();
     }
 
     PropertyGuard* EntryPointInfo::RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext)
@@ -8913,10 +8905,13 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    void EntryPointInfo::ResetOnNativeCodeInstallFailure()
+    // This function needs review when we enable lazy bailouts- 
+    // Is calling Reset enough? Does Reset sufficiently resets the state of the entryPointInfo?
+    void EntryPointInfo::ResetOnLazyBailoutFailure()
     {
-        // Reset the entry point without attempting to create a new default and GenerateFunction on it.
-        // Do this for LoopEntryPointInfo or if we throw during FunctionEntryPointInfo::Invalidate.
+        Assert(PHASE_ON1(Js::LazyBailoutPhase));
+
+        // Reset the entry point upon a lazy bailout.
         this->Reset(true);
         Assert(this->address != nullptr);
         FreeNativeCodeGenAllocation(GetScriptContext(), this->address);
@@ -9080,13 +9075,27 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    void FunctionEntryPointInfo::OnNativeCodeInstallFailure()
+    void FunctionEntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
-        this->Invalidate(false);
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-        this->SetCleanupReason(CleanupReason::NativeCodeInstallFailure);
+        this->functionProxy->MapFunctionObjectTypes([&](DynamicType* type)
+        {
+            Assert(type->GetTypeId() == TypeIds_Function);
+
+            ScriptFunctionType* functionType = (ScriptFunctionType*)type;
+            if (functionType->GetEntryPointInfo() == this)
+            {
+                if (!this->GetIsAsmJSFunction())
+                {
+                    functionType->SetEntryPoint(GetCheckCodeGenThunk());
+                }
+#ifdef ASMJS_PLAT
+                else
+                {
+                    functionType->SetEntryPoint(GetCheckAsmJsCodeGenThunk());
+                }
 #endif
-        this->Cleanup(false, true /* capture cleanup stack */);
+            }
+        });
     }
 
     void FunctionEntryPointInfo::EnterExpirableCollectMode()
@@ -9132,7 +9141,7 @@ namespace Js
                 {
                     if (entryPointInfo)
                     {
-                        entryPointInfo->ResetOnNativeCodeInstallFailure();
+                        entryPointInfo->ResetOnLazyBailoutFailure();
                     }
                 }
             } autoCleanup(this);
@@ -9360,9 +9369,12 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    void LoopEntryPointInfo::OnNativeCodeInstallFailure()
+    void LoopEntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
-        this->ResetOnNativeCodeInstallFailure();
+        // Since we call the address on the entryPointInfo for loop bodies, all we need to do is to roll back
+        // the fields on the entryPointInfo related to transferring data from jit thread to main thread (already 
+        // being done in EntryPointInfo::OnNativeCodeInstallFailure). On the next loop iteration, the interpreter
+        // will call EntryPointInfo::EnsureIsReadyToCall and we'll try to process jit transfer data again.
     }
 #endif
 
