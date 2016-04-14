@@ -26,8 +26,6 @@ namespace Js
 
         uint8 fieldSize;
 #if DBG
-
-        mutable bool bgThreadCallStarted;
         bool isCleaningUp;
 #endif
         WriteBarrierPtr<Fields> fields;
@@ -36,7 +34,7 @@ namespace Js
         CompactCounters(T* host)
             :fieldSize(0)
 #if DBG
-            , bgThreadCallStarted(false), isCleaningUp(false)
+            , isCleaningUp(false)
 #endif
         {
             AllocCounters<uint8>(host);
@@ -44,12 +42,6 @@ namespace Js
 
         uint32 Get(CountT typeEnum) const
         {
-#if DBG
-            if (!bgThreadCallStarted && ThreadContext::GetContextForCurrentThread() == nullptr)
-            {
-                bgThreadCallStarted = true;
-            }
-#endif
             uint8 type = static_cast<uint8>(typeEnum);
             uint8 localFieldSize = fieldSize;
             uint32 value = 0;
@@ -75,12 +67,6 @@ namespace Js
 
         int32 GetSigned(CountT typeEnum) const
         {
-#if DBG
-            if (!bgThreadCallStarted && ThreadContext::GetContextForCurrentThread() == nullptr)
-            {
-                bgThreadCallStarted = true;
-            }
-#endif
 
             uint8 type = static_cast<uint8>(typeEnum);
             uint8 localFieldSize = fieldSize;
@@ -106,7 +92,7 @@ namespace Js
 
         uint32 Set(CountT typeEnum, uint32 val, T* host)
         {
-            Assert(bgThreadCallStarted == false || isCleaningUp == true);
+            Assert(host->bgThreadRank == 0 || isCleaningUp == true);
 
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)
@@ -146,7 +132,7 @@ namespace Js
 
         int32 SetSigned(CountT typeEnum, int32 val, T* host)
         {
-            Assert(bgThreadCallStarted == false || isCleaningUp == true);
+            Assert(host->bgThreadRank == 0 || isCleaningUp == true);
 
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)
@@ -186,7 +172,7 @@ namespace Js
 
         uint32 Increase(CountT typeEnum, T* host)
         {
-            Assert(bgThreadCallStarted == false);
+            Assert(host->bgThreadRank == 0);
 
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)

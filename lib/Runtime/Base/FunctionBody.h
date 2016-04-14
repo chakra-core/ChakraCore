@@ -1720,26 +1720,24 @@ namespace Js
             typedef CompactCounters<FunctionBody> CounterT;
             CounterT counters;
 
-            uint32 GetCountField(FunctionBody::CounterFields fieldEnum) const
+            uint32 GetCountField(FunctionBody::CounterFields fieldEnum) const;
+            uint32 SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val);
+            uint32 IncreaseCountField(FunctionBody::CounterFields fieldEnum);
+            int32 GetCountFieldSigned(FunctionBody::CounterFields fieldEnum) const;
+            int32 SetCountFieldSigned(FunctionBody::CounterFields fieldEnum, int32 val);
+#if DBG
+            struct AutoResetThreadState
             {
-                return counters.Get(fieldEnum);
-            }
-            uint32 SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val)
-            {
-                return counters.Set(fieldEnum, val, this);
-            }
-            uint32 IncreaseCountField(FunctionBody::CounterFields fieldEnum)
-            {
-                return counters.Increase(fieldEnum, this);
-            }
-            int32 GetCountFieldSigned(FunctionBody::CounterFields fieldEnum) const
-            {
-                return counters.GetSigned(fieldEnum);
-            }
-            int32 SetCountFieldSigned(FunctionBody::CounterFields fieldEnum, int32 val)
-            {
-                return counters.SetSigned(fieldEnum, val, this);
-            }
+                Js::FunctionBody* functionBody;
+                bool foreground;
+                bool alreadyInBackground;
+                AutoResetThreadState(Js::FunctionBody* fb);
+                ~AutoResetThreadState();
+            };
+            void EnterBackgroundCall();
+            void LeaveBackgroundCall();
+            volatile uint bgThreadRank;
+#endif
 
             struct StatementMap
             {
