@@ -51,11 +51,6 @@ static BOOL AttachProcess(HANDLE hmod)
     ThreadContext::GlobalInitialize();
 
     char16 *engine = szChakraCoreLock;
-    if (::FindAtom(szJScript9Lock) != 0)
-    {
-        AssertMsg(FALSE, "Expecting to load chakracore.dll but process already loaded jscript9.dll");
-        Binary_Inconsistency_fatal_error();
-    }
     if (::FindAtom(szChakraLock) != 0)
     {
         AssertMsg(FALSE, "Expecting to load chakracore.dll but process already loaded chakra.dll");
