@@ -13143,6 +13143,7 @@ GlobOpt::ToVar(IR::Instr *instr, IR::RegOpnd *regOpnd, BasicBlock *block, Value 
     else
     {
         // SIMD_JS
+        Assert(IsSimd128TypeSpecialized(varSym, &block->globOptData));
         fromType = GetSimd128LiveType(varSym, &block->globOptData);
 
         if (valueInfo)

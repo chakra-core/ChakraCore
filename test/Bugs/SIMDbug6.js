@@ -1,3 +1,8 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 //Configuration: configs\SIMD.xml
 //Testcase Number: 289
 //Switches:-simd128typespec -asmjs-  -PrintSystemException  -simdjs  -maxinterpretcount:1 -maxsimplejitruncount:2 -werexceptionsupport  -force:ScriptFunctionWithInlineCache -force:rejit -force:fixdataprops -force:atom -off:aggressiveinttypespec -off:DelayCapture -off:BoundCheckElimination -off:lossyinttypespec -off:ArrayCheckHoist -off:fefixedmethods -off:trackintusage -off:ParallelParse -off:BoundCheckHoist -ForceArrayBTree

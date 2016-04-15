@@ -3232,8 +3232,10 @@ namespace Js
         vtableAddresses[VTableValue::VtableCompoundString] = VirtualTableInfo<Js::CompoundString>::Address;
 
         // SIMD_JS
-        vtableAddresses[VTableValue::VtableSimd128F4] = VirtualTableInfo<Js::JavascriptSIMDFloat32x4>::Address;
-        vtableAddresses[VTableValue::VtableSimd128I4] = VirtualTableInfo<Js::JavascriptSIMDInt32x4>::Address;
+#define SIMD_VTABLE(_NAME_,_TAG_)\
+        vtableAddresses[VTableValue::VtableSimd128##_TAG_##] = VirtualTableInfo<Js::JavascriptSIMD##_NAME_##>::Address;
+        SIMD_EXPAND_W_NAME(SIMD_VTABLE)
+#undef SIMD_VTABLE
     }
 
     //
