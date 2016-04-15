@@ -665,6 +665,12 @@
   </test>
   <test>
      <default>
+        <files>memcopy_length_bug.js</files>
+        <compile-flags>-bgjit- -lic:0</compile-flags>
+     </default>
+  </test>
+  <test>
+     <default>
         <files>memop_alias.js</files>
         <compile-flags>-mic:1 -off:simplejit -off:jitloopbody -mmoc:0</compile-flags>
      </default>

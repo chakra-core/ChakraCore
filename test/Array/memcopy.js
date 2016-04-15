@@ -54,7 +54,6 @@ let testCases = [
       end: end,
       size: end,
       test: function testReverse(a, src) {
-        // Currently this is not a valid memcopy pattern
         for(let i = 100; i >= 5; i--) {
           a[i] = src[i];
         }
