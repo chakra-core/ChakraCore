@@ -84,6 +84,17 @@ namespace Js
 #define CheckNodeLocation(info,type) if(!mFunction->IsValidLocation<type>(&info)){\
     throw AsmJsCompilationException( _u("Invalid Node location[%d] "), info.location ); }
 
+    template<class NodeType>
+    AsmJsRetType::Which AsmJSByteCodeGenerator::EmitReturnForType(EmitExpressionInfo& info, EmitExpressionInfo& emitInfo, OpCodeAsmJs opCode, AsmJsType asmType)
+    {
+        CheckNodeLocation(info, NodeType);
+        // get return value from tmp register
+        mWriter.Conv(opCode, 0, info.location);
+        mFunction->ReleaseLocation<NodeType>(&info);
+        emitInfo.type = asmType.GetWhich();
+        AsmJsRetType ret = asmType.toRetType();
+        return ret.which();
+    }
 
     AsmJSByteCodeGenerator::AsmJSByteCodeGenerator( AsmJsFunc* func, AsmJsModuleCompiler* compiler ) :
         mFunction( func )
@@ -791,6 +802,7 @@ namespace Js
         ParseNode* expr = pnode->sxReturn.pnodeExpr;
         // return is always the beginning of a statement
         AsmJsRetType retType;
+        bool isSimdType = false;
         EmitExpressionInfo emitInfo( Constants::NoRegister, AsmJsType::Void );
         if( !expr )
         {
@@ -806,129 +818,86 @@ namespace Js
         {
             EmitExpressionInfo info = Emit(expr);
             StartStatement(pnode);
+
             if (info.type.isSubType(AsmJsType::Double))
             {
-                CheckNodeLocation(info, double);
-                // get return value from tmp register
-                mWriter.Conv(OpCodeAsmJs::Return_Db, 0, info.location);
-                mFunction->ReleaseLocation<double>(&info);
-                emitInfo.type = AsmJsType::Double;
-                retType = AsmJsRetType::Double;
+                retType = EmitReturnForType<double>(info, emitInfo, OpCodeAsmJs::Return_Db, AsmJsType::Double);
             }
             else if (info.type.isSubType(AsmJsType::Signed))
             {
-                CheckNodeLocation(info, int);
-                // get return value from tmp register
-                mWriter.Conv(OpCodeAsmJs::Return_Int, 0, info.location);
-                mFunction->ReleaseLocation<int>(&info);
-                emitInfo.type = AsmJsType::Signed;
-                retType = AsmJsRetType::Signed;
+                retType = EmitReturnForType<int>(info, emitInfo, OpCodeAsmJs::Return_Int, AsmJsType::Signed);
             }
             else if (info.type.isSubType(AsmJsType::Float))
             {
-                CheckNodeLocation(info, float);
-                // get return value from tmp register
-                mWriter.Conv(OpCodeAsmJs::Return_Flt, 0, info.location);
-                mFunction->ReleaseLocation<float>(&info);
-                emitInfo.type = AsmJsType::Float;
-                retType = AsmJsRetType::Float;
+                retType = EmitReturnForType<float>(info, emitInfo, OpCodeAsmJs::Return_Flt, AsmJsType::Float);
             }
             else if (info.type.isSubType(AsmJsType::Float32x4))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_F4, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Float32x4;
-                retType = AsmJsRetType::Float32x4;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_F4, AsmJsType::Float32x4);
+                isSimdType = true;
             }
             else if (info.type.isSubType(AsmJsType::Int32x4))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_I4, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Int32x4;
-                retType = AsmJsRetType::Int32x4;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_I4, AsmJsType::Int32x4);
+                isSimdType = true;
             }
             else if (info.type.isSubType(AsmJsType::Bool32x4))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_B4, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Bool32x4;
-                retType = AsmJsRetType::Bool32x4;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_B4, AsmJsType::Bool32x4);
+                isSimdType = true;
             }
             else if (info.type.isSubType(AsmJsType::Bool16x8))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_B8, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Bool16x8;
-                retType = AsmJsRetType::Bool16x8;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_B8, AsmJsType::Bool16x8);
+                isSimdType = true;
             }
             else if (info.type.isSubType(AsmJsType::Bool8x16))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_B16, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Bool8x16;
-                retType = AsmJsRetType::Bool8x16;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_B16, AsmJsType::Bool8x16);
+                isSimdType = true;
             }
 #if 0
             else if (info.type.isSubType(AsmJsType::Float64x2))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_D2, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Float64x2;
-                retType = AsmJsRetType::Float64x2;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_D2, AsmJsType::Float64x2);
+                isSimdType = true;
             }
 #endif // 0
-
             else if (info.type.isSubType(AsmJsType::Int16x8))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_I8, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Int16x8;
-                retType = AsmJsRetType::Int16x8;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_I8, AsmJsType::Int16x8);
+                isSimdType = true;
             }
             else if (info.type.isSubType(AsmJsType::Int8x16))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_I16, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Int8x16;
-                retType = AsmJsRetType::Int8x16;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_I16, AsmJsType::Int8x16);
+                isSimdType = true;
             }
             else if (info.type.isSubType(AsmJsType::Uint32x4))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U4, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Uint32x4;
-                retType = AsmJsRetType::Uint32x4;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_U4, AsmJsType::Uint32x4);
+                isSimdType = true;
             }
             else if (info.type.isSubType(AsmJsType::Uint16x8))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U8, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Uint16x8;
-                retType = AsmJsRetType::Uint16x8;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_U8, AsmJsType::Uint16x8);
+                isSimdType = true;
             }
             else if (info.type.isSubType(AsmJsType::Uint8x16))
             {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U16, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Uint8x16;
-                retType = AsmJsRetType::Uint8x16;
+                retType = EmitReturnForType<AsmJsSIMDValue>(info, emitInfo, OpCodeAsmJs::Simd128_Return_U16, AsmJsType::Uint8x16);
+                isSimdType = true;
             }
             else
             {
                 throw AsmJsCompilationException(_u("Expression for return must be subtype of Signed, Double, or Float"));
             }
             EndStatement(pnode);
+        }
+        //Make sure that simd values are coerced before return.
+        if (isSimdType && !IsSimdCheckCall(expr))
+        {
+            throw AsmJsCompilationException(_u("Expression for returning simd values must be coerced using check()"));
         }
         // check if we saw another return already with a different type
         if (!mFunction->CheckAndSetReturnType(retType))
@@ -941,6 +910,28 @@ namespace Js
     bool AsmJSByteCodeGenerator::IsFRound(AsmJsMathFunction* sym)
     {
         return (sym && sym->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround);
+    }
+
+    bool AsmJSByteCodeGenerator::IsSimdCheckCall(const ParseNode* pnode) const 
+    {
+        Assert(pnode);
+        if (pnode->nop != knopCall)
+        {
+            return false;
+        }
+
+        ParseNode* identifierNode = pnode->sxCall.pnodeTarget; 
+        PropertyName funcName = identifierNode->name(); 
+        AsmJsFunctionDeclaration* sym = mCompiler->LookupFunction(funcName);
+        if (sym->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
+        {
+            AsmJsSIMDFunction *simdFun = sym->Cast<AsmJsSIMDFunction>();
+            if (simdFun->IsTypeCheck())
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     // First set of opcode are for External calls, second set is for internal calls

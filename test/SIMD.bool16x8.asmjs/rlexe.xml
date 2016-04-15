@@ -32,6 +32,14 @@
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
     </default>
   </test>
+   <test>
+    <default>
+      <files>testCheck.js</files>
+      <baseline>testCheck.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-off:deferparse -testtrace:asmjs -simdjs -bgjit- -maic:1</compile-flags>
+    </default>
+  </test>
   <test>
     <default>
       <files>testBitwise.js</files>
