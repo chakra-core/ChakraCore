@@ -5230,6 +5230,13 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(StrictModeFunctionCount, m_scriptContext);
         }
 
+        if (pnodeFnc->sxFnc.CallsEval() && pnodeFnc->sxFnc.IsAsync() && !IsStrictMode()
+            && !m_scriptContext->GetConfig()->IsES7AsyncEvalEnabled())
+        {
+            // When in deferred mode we parse async functions just like a normal function
+            Error(ERREvalNotSupportedInNonStrictAsync);
+        }
+
         if (fDeferred)
         {
             AnalysisAssert(pnodeFnc);
@@ -7550,6 +7557,12 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
     }
     if (pnodeFncGenerator->sxFnc.CallsEval() || pnodeFncGenerator->sxFnc.ChildCallsEval())
     {
+        if (pnodeFncGenerator->sxFnc.CallsEval() && !IsStrictMode()
+            && !m_scriptContext->GetConfig()->IsES7AsyncEvalEnabled())
+        {
+            // We don't support eval in async functions.
+            Error(ERREvalNotSupportedInNonStrictAsync);
+        }
         GetCurrentFunctionNode()->sxFnc.SetChildCallsEval();
     }
     lastNodeRef = NULL;

@@ -189,6 +189,23 @@ var tests = [
             assert.throws(function () { eval("async function af(x) { class x { } }"); }, SyntaxError, "class with same name as formal is an error", "Let/Const redeclaration");
         }
     },
+    {
+      name: "Use of 'eval' inside async methods is not supported",
+      body: function () {
+          assert.throws(function () { eval("async function af() { eval(''); }"); }, SyntaxError, "Eval is not supported in async functions", "'eval' is not allowed in async function in non-strict mode");
+          assert.throws(function () { eval("function f() { async function af() { eval(''); } }"); }, SyntaxError, "Eval is not supported in async functions", "'eval' is not allowed in async function in non-strict mode");
+          assert.throws(function () { eval("async function af() { { eval(''); let a; } }"); }, SyntaxError, "Eval is not supported in the inner blocks of async functions", "'eval' is not allowed in async function in non-strict mode");
+          assert.throws(function () { eval("async function af() { function f(a = eval('')) {} }"); }, SyntaxError, "Eval is not supported in child functions with eval in param scope in an async function", "'eval' is not allowed in the default initializer");
+          assert.throws(function () { eval("async () => { eval(''); }"); }, SyntaxError, "Eval is not supported in lambda async functions", "'eval' is not allowed in async function in non-strict mode");
+          assert.throws(function () { eval("async (a) => { eval(''); var a; }"); }, SyntaxError, "Eval is not supported in lambda async functions", "'eval' is not allowed in async function in non-strict mode");
+          
+          assert.doesNotThrow(function () { eval("async function af() { function f() { eval(''); } }"); }, "Eval is supported in child functions of an async function");
+          assert.doesNotThrow(function () { eval("async function af() { 'use strict'; eval(''); }"); }, "Eval is supported in async function in strict mode");
+          assert.doesNotThrow(function () { eval("async function af() { 'use strict'; { eval(''); let a; } }"); }, "Eval is supported in inner block of an async function in strict mode");
+          assert.doesNotThrow(function () { eval("function f() { 'use strict'; async function af() { eval(''); } }"); }, "Eval is supported in an async function in strict mode");
+          assert.doesNotThrow(function () { eval("class c { f() { async function af() { eval(''); } } }"); }, "Eval is supported inside async function defined inside a class member");
+      }  
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

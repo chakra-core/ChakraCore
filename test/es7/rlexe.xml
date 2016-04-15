@@ -3,13 +3,13 @@
   <test>
     <default>
       <files>asyncawait-syntax.js</files>
-      <compile-flags>-es6experimental -nodeferparse -args summary -endargs</compile-flags>
+      <compile-flags>-nodeferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>asyncawait-syntax.js</files>
-      <compile-flags>-es6experimental -forcedeferparse -args summary -endargs</compile-flags>
+      <compile-flags>-forcedeferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
