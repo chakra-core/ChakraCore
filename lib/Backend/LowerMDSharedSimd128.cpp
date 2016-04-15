@@ -745,18 +745,13 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
             if (laneType == TyInt8)
             {
                 IR::RegOpnd * tmp = IR::RegOpnd::New(TyInt8, m_func);
-#ifdef _M_IX86
-                tmp->SetReg(RegEBX);
-#else
-                tmp->SetReg(RegRBX);
-#endif
-                newInstr = IR::Instr::New(Js::OpCode::MOV, tmp->UseWithNewType(TyInt32, m_func), dst, m_func);
+                newInstr = IR::Instr::New(Js::OpCode::MOV, tmp, dst, m_func);
                 instr->InsertBefore(newInstr);
+                Legalize(newInstr);
                 newInstr = IR::Instr::New(Js::OpCode::MOVSX, dst, tmp, m_func);
             }
             else
             {
-                // any register can be 2-byte addressable
                 newInstr = IR::Instr::New(Js::OpCode::MOVSXW, dst, dst->UseWithNewType(laneType, m_func), m_func);
             }
         }
@@ -773,11 +768,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
     {
         IR::Instr* pInstr    = nullptr;
         IR::RegOpnd* tmp = IR::RegOpnd::New(TyInt8, m_func);
-#ifdef _M_IX86
-        tmp->SetReg(RegEBX);
-#else
-        tmp->SetReg(RegRBX);
-#endif
+
         // cmp      dst, -1
         pInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
         pInstr->SetSrc1(dst);
@@ -785,8 +776,10 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         instr->InsertBefore(pInstr);
         Legalize(pInstr);
 
-        // mov     tmp(TyInt32), dst
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp->UseWithNewType(TyInt32, m_func), dst, m_func));
+        // mov     tmp(TyInt8), dst
+        pInstr = IR::Instr::New(Js::OpCode::MOV, tmp, dst, m_func);
+        instr->InsertBefore(pInstr);
+        Legalize(pInstr);
 
         // sete     tmp(TyInt8)
         pInstr = IR::Instr::New(Js::OpCode::SETE, tmp, tmp, m_func);
@@ -1363,11 +1356,7 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
         IR::RegOpnd * shamtReg = IR::RegOpnd::New(TyInt8, m_func);
         shamtReg->SetReg(LowererMDArch::GetRegShiftCount());
         IR::RegOpnd * tmp = IR::RegOpnd::New(TyInt8, m_func);
-#ifdef _M_IX86
-        tmp->SetReg(RegEBX);
-#else
-        tmp->SetReg(RegRBX);
-#endif
+
         // MOVAPS   dst, src1
         instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVAPS, dst, src1, m_func));
         // MOV      reg2, 0FFh
@@ -1380,7 +1369,9 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
         // MOV      tmp, reg2
         // MOVSX    reg2, tmp(TyInt8)
 
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp->UseWithNewType(TyInt32, m_func), reg2, m_func));
+        pInstr = IR::Instr::New(Js::OpCode::MOV, tmp, reg2, m_func);
+        instr->InsertBefore(pInstr);
+        Legalize(pInstr);
 
         instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVSX, reg2, tmp, m_func));
         IR::RegOpnd *mask = IR::RegOpnd::New(TySimd128I4, m_func);
@@ -2504,11 +2495,7 @@ IR::Instr* LowererMD::Simd128LowerAllTrue(IR::Instr* instr)
     Assert(src1->IsRegOpnd() && src1->IsSimd128());
 
     IR::RegOpnd * tmp = IR::RegOpnd::New(TyInt8, m_func);
-#ifdef _M_IX86
-    tmp->SetReg(RegEBX);
-#else
-    tmp->SetReg(RegRBX);
-#endif
+
     // pmovmskb dst, src1
     pInstr = IR::Instr::New(Js::OpCode::PMOVMSKB, dst, src1, m_func);
     instr->InsertBefore(pInstr);
@@ -2520,8 +2507,10 @@ IR::Instr* LowererMD::Simd128LowerAllTrue(IR::Instr* instr)
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 
-    // mov     tmp(TyInt32), dst
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp->UseWithNewType(TyInt32, m_func), dst, m_func));
+    // mov     tmp(TyInt8), dst
+    pInstr = IR::Instr::New(Js::OpCode::MOV, tmp, dst, m_func);
+    instr->InsertBefore(pInstr);
+    Legalize(pInstr);
 
     // sete    tmp(TyInt8)
     pInstr = IR::Instr::New(Js::OpCode::SETE, tmp, tmp, m_func);
