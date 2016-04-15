@@ -4552,25 +4552,22 @@ CommonNumber:
                 break;
             }
             // Upper bounds check for source array
-            uint32 end;
-            if (UInt32Math::Add(srcStart, length, &end) || end > ((ArrayObject*)srcInstance)->GetLength())
-            {
-                return false;
-            }
+            JavascriptArray* srcArray = JavascriptArray::FromVar(srcInstance);
+            JavascriptArray* dstArray = JavascriptArray::FromVar(dstInstance);
             if (scriptContext->optimizationOverrides.IsEnabledArraySetElementFastPath())
             {
                 INT_PTR vt = VirtualTableInfoBase::GetVirtualTable(dstInstance);
                 if (instanceType == TypeIds_Array)
                 {
-                    returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<Var>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
+                    returnValue = dstArray->DirectSetItemAtRangeFromArray<Var>(dstStart, length, srcArray, srcStart);
                 }
                 else if (instanceType == TypeIds_NativeIntArray)
                 {
-                    returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<int32>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
+                    returnValue = dstArray->DirectSetItemAtRangeFromArray<int32>(dstStart, length, srcArray, srcStart);
                 }
                 else
                 {
-                    returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<double>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
+                    returnValue = dstArray->DirectSetItemAtRangeFromArray<double>(dstStart, length, srcArray, srcStart);
                 }
                 returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(dstInstance);
             }

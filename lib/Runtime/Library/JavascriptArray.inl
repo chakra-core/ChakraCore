@@ -955,45 +955,46 @@ SECOND_PASS:
             return true;
         }
 
-        SparseArraySegment<T> *toSegment = PrepareSegmentForMemOp<T>(toStartIndex, length);
-        if (toSegment == nullptr)
+        const auto isSegmentValid = [length](Js::SparseArraySegment<T>* segment, uint32 startIndex) {
+            uint32 end, segmentEnd;
+            // Check the segment is long enough
+            return (
+                segment &&
+                !UInt32Math::Add(startIndex, length, &end) &&
+                !UInt32Math::Add(segment->left, segment->length, &segmentEnd) &&
+                startIndex >= segment->left &&
+                startIndex < segmentEnd &&
+                segmentEnd >= end
+            );
+        };
+        //Find the segment where itemIndex is present or is at the boundary
+        Js::SparseArraySegment<T>* fromSegment = (Js::SparseArraySegment<T>*)fromArray->GetBeginLookupSegment(fromStartIndex, false);
+        if (!isSegmentValid(fromSegment, fromStartIndex))
         {
             return false;
         }
-        Assert(fromArray->head);
-        Assert(fromArray->length >= (fromStartIndex + length));
 
-        //Find the segment where itemIndex is present or is at the boundary
-        SparseArraySegmentBase* current = fromArray->GetBeginLookupSegment(fromStartIndex, false);
-        Assert(current);
-        Assert(GetSegmentMap() == nullptr  && fromArray->GetSegmentMap() == nullptr);
-
-        while (current && length)
+        // Check the from segment first so we don't prepare the toSegment in case it is invalid
+        SparseArraySegment<T> *toSegment = PrepareSegmentForMemOp<T>(toStartIndex, length);
+        if (!isSegmentValid(toSegment, toStartIndex))
         {
-            int memcopySize = length;
-            int startOffset;
-            if (fromStartIndex >= current->left && fromStartIndex < (current->left + current->length))
-            {
-                startOffset = fromStartIndex - current->left;
-                if ((startOffset + length) > current->length)
-                {
-                    memcopySize = current->length - startOffset;
-                }
-
-
-                js_memcpy_s(toSegment->elements + toStartIndex, memcopySize * sizeof(T), (((Js::SparseArraySegment<T>*)current)->elements + startOffset), memcopySize * sizeof(T));
-
-                fromArray->SetLastUsedSegment(current);
-                fromStartIndex = fromStartIndex + memcopySize;
-                toStartIndex = toStartIndex + memcopySize;
-                length = length - memcopySize;
-
-            }
-            current = current->next;
+            return false;
         }
+        Assert(GetSegmentMap() == nullptr && fromArray->GetSegmentMap() == nullptr);
 
-        Assert(length == 0);
+        int memcopySize = length;
+        int toStartOffset = toStartIndex - toSegment->left;
+        int fromStartOffset = fromStartIndex - fromSegment->left;
+        Assert((fromStartOffset + length) <= fromSegment->length);
 
+        js_memcpy_s(
+            toSegment->elements + toStartOffset,
+            (toSegment->size - toStartOffset) * sizeof(T),
+            fromSegment->elements + fromStartOffset,
+            memcopySize * sizeof(T)
+        );
+
+        fromArray->SetLastUsedSegment(fromSegment);
         this->SetLastUsedSegment(toSegment);
 #if DBG
         if (Js::Configuration::Global.flags.MemOpMissingValueValidate)
