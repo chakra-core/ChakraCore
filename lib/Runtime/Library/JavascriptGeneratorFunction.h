@@ -70,6 +70,7 @@ namespace Js
         };
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewInstanceRestrictedMode(RecyclableObject* function, CallInfo callInfo, ...);
     };
 
     class GeneratorVirtualScriptFunction : public ScriptFunction
