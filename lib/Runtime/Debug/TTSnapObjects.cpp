@@ -235,7 +235,7 @@ namespace TTD
                     //
                     //TODO: workaround because node can force set the name property on external function objects
                     //
-                    if(snpObject->SnapObjectTag == SnapObjectType::SnapExternalFunctionObject && pid == Js::BuiltInPropertyRecords::name.propertyRecord.GetPropertyId())
+                    if(pid == Js::BuiltInPropertyRecords::name.propertyRecord.GetPropertyId() && Js::JavascriptFunction::Is(obj))
                     {
                         AssertMsg(obj->HasOwnProperty(pid) && !obj->IsWritable(pid), "Something else is funny");
 

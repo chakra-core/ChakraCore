@@ -61,6 +61,14 @@ namespace Js
         friend class JSON::JSONParser; //for ReplaceType
         friend class ModuleNamespace; // for slot setting.
 
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        //Fields for tracking object allocation 
+        uint32 TTDDiag_SourceLine;
+        uint32 TTDDiag_SourceEventTime;
+        uint32 TTDDiag_SourceFunctionTime;
+        uint32 TTDDiag_SourceLoopTime;
+#endif
+
     private:
         Var* auxSlots;
         // The objectArrayOrFlags field can store one of two things:

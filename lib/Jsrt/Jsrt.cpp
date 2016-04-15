@@ -1597,7 +1597,11 @@ STDAPI_(JsErrorCode) JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ J
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(JsrtContext::GetCurrent()->GetScriptContext(), JsrtContext::GetCurrent()->GetScriptContext()->GetThreadContext()->TTDLog->RecordJsRTGetTypedArrayInfo(JsrtContext::GetCurrent()->GetScriptContext(), arrayBuffer != nullptr, typedArray));
+        BEGIN_JS_RUNTIME_CALLROOT_EX(JsrtContext::GetCurrent()->GetScriptContext(), false)
+        {
+            PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(JsrtContext::GetCurrent()->GetScriptContext(), JsrtContext::GetCurrent()->GetScriptContext()->GetThreadContext()->TTDLog->RecordJsRTGetTypedArrayInfo(JsrtContext::GetCurrent()->GetScriptContext(), arrayBuffer != nullptr, typedArray));
+        }
+        END_JS_RUNTIME_CALL(JsrtContext::GetCurrent()->GetScriptContext());
 
         if (arrayType != nullptr) {
             *arrayType = GetTypedArrayType(typeId);

@@ -110,37 +110,25 @@ namespace TTD
         void WriteCodeToFile(IOStreamFunctions& streamFunctions, LPCWSTR srcDir, LPCWSTR docId, LPCWSTR sourceUri, const wchar* sourceBuffer, uint32 length)
         {
             HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(srcDir, docId, sourceUri, false, true);
-            byte* srcBuff = (byte*)HeapNewArray(byte, length);
-
-            for(uint32 i = 0; i < length; ++i)
-            {
-                srcBuff[i] = (byte)sourceBuffer[i];
-            }
 
             DWORD writtenCount = 0;
-            BOOL ok = streamFunctions.pfWriteBytesToStream(srcStream, srcBuff, length, &writtenCount);
-            AssertMsg(ok && writtenCount == length, "Write Failed!!!");
+            BOOL ok = streamFunctions.pfWriteBytesToStream(srcStream, (byte*)sourceBuffer, length * sizeof(wchar), &writtenCount);
+            AssertMsg(ok && writtenCount == length * sizeof(wchar), "Write Failed!!!");
 
-            HeapDeleteArray(length, srcBuff);
             streamFunctions.pfFlushAndCloseStream(srcStream, false, true);
         }
 
         void ReadCodeFromFile(IOStreamFunctions& streamFunctions, LPCWSTR srcDir, LPCWSTR docId, LPCWSTR sourceUri, wchar* sourceBuffer, uint32 length)
         {
             HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(srcDir, docId, sourceUri, true, false);
-            byte* srcBuff = (byte*)HeapNewArray(byte, length);
 
             DWORD readCount = 0;
-            BOOL ok = streamFunctions.pfReadBytesFromStream(srcStream, srcBuff, length, &readCount);
-            AssertMsg(ok && readCount == length, "Read Failed!!!");
+            BOOL ok = streamFunctions.pfReadBytesFromStream(srcStream, (byte*)sourceBuffer, length * sizeof(wchar), &readCount);
+            AssertMsg(ok && readCount == length * sizeof(wchar), "Read Failed!!!");
 
-            for(uint32 i = 0; i < length; ++i)
-            {
-                sourceBuffer[i] = (wchar)srcBuff[i];
-            }
+            //make sure null terminated
             sourceBuffer[length] = _u('\0');
 
-            HeapDeleteArray(length, srcBuff);
             streamFunctions.pfFlushAndCloseStream(srcStream, true, false);
         }
     }
