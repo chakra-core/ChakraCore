@@ -674,7 +674,7 @@ namespace Js
         const bool isSticky = pattern->IsSticky();
         CharCount offset;
         if (!GetInitialOffset(isGlobal, isSticky, regularExpression, inputLength, offset))
-            return false;
+            return scriptContext->GetLibrary()->GetFalse();
 
         if (offset <= inputLength)
         {
