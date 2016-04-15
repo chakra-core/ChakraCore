@@ -275,6 +275,8 @@ test(rel, s1, 4);
 echo("****** Global empty regex");
 test(reg, s1, 0);
 test(reg, s1, 4);
+echo("****** lastIndex above MaxCharCount");
+test(rg, s1, Number.MAX_SAFE_INTEGER);
 
 echo("*************");
 echo("*** Match ***");
