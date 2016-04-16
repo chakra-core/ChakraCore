@@ -10,6 +10,14 @@
 #if ENABLE_TTD
 
 ////////
+//Memory allocators used by the TT code
+#define TT_HEAP_ALLOC(T) HeapNew(T)
+#define TT_HEAP_ALLOC_ARRAY(T, SIZE_IN_ELEMENTS) HeapNewArray(T, SIZE_IN_ELEMENTS)
+
+#define TT_HEAP_FREE(T, ELEM) HeapDelete(ELEM)
+#define TT_HEAP_FREE_ARRAY(T, ELEM, SIZE_IN_ELEMENTS) HeapDeleteArray(SIZE_IN_ELEMENTS, ELEM)
+
+////////
 //The default number of elements per arrayblock, the size of "small" arrays and the block size we use when extracting
 #define TTD_ARRAY_BLOCK_SIZE 0x200
 #define TTD_ARRAY_SMALL_ARRAY 0x100

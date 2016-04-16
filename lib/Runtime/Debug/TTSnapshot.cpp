@@ -458,7 +458,7 @@ namespace TTD
 
         if(json)
         {
-            JSONWriter snapwriter(snapHandle, threadContext->TTDStreamFunctions.pfWriteBytesToStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
+            TextFormatWriter snapwriter(snapHandle, threadContext->TTDStreamFunctions.pfWriteBytesToStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
             this->EmitSnapshotToFile(&snapwriter, threadContext->TTDStreamFunctions, snapContainerURI, threadContext);
             snapwriter.FlushAndClose();
@@ -481,7 +481,7 @@ namespace TTD
         wchar* snapContainerURI = nullptr;
         HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, true, false, &snapContainerURI);
 
-        JSONReader snapreader(snapHandle, threadContext->TTDStreamFunctions.pfReadBytesFromStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
+        TextFormatReader snapreader(snapHandle, threadContext->TTDStreamFunctions.pfReadBytesFromStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
         SnapShot* snap = SnapShot::ParseSnapshotFromFile(&snapreader, threadContext->TTDStreamFunctions, snapContainerURI);
 
         CoTaskMemFree(snapContainerURI);

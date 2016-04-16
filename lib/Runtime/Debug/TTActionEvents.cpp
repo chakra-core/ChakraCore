@@ -1325,8 +1325,10 @@ namespace TTD
 
         writer->WriteLengthValue(this->m_sourceCode.Length, NSTokens::Separator::CommaSeparator);
 
-        LPCWSTR docId = writer->FormatNumber(this->m_documentID);
-        JsSupport::WriteCodeToFile(threadContext->TTDStreamFunctions, this->m_srcDir.Contents, docId, this->m_sourceUri.Contents, this->m_sourceCode.Contents, this->m_sourceCode.Length);
+        UtilSupport::TTAutoString docId;
+        docId.Append(this->m_documentID);
+
+        JsSupport::WriteCodeToFile(threadContext->TTDStreamFunctions, this->m_srcDir.Contents, docId.GetStrValue(), this->m_sourceUri.Contents, this->m_sourceCode.Contents, this->m_sourceCode.Length);
 
         writer->WriteRecordEnd();
     }
@@ -1349,8 +1351,10 @@ namespace TTD
         sourceCode.Length = reader->ReadLengthValue(true);
         sourceCode.Contents = alloc.SlabAllocateArray<wchar>(sourceCode.Length + 1);
 
-        LPCWSTR docId = reader->FormatNumber(documentId);
-        JsSupport::ReadCodeFromFile(threadContext->TTDStreamFunctions, srcDir.Contents, docId, srcUri.Contents, sourceCode.Contents, sourceCode.Length);
+        UtilSupport::TTAutoString docId;
+        docId.Append(documentId);
+
+        JsSupport::ReadCodeFromFile(threadContext->TTDStreamFunctions, srcDir.Contents, docId.GetStrValue(), srcUri.Contents, sourceCode.Contents, sourceCode.Length);
 
         return alloc.SlabNew<JsRTCodeParseAction>(eTime, ctxTag, sourceCode, loadFlag, documentId, srcUri, srcDir, sourceFile);
     }

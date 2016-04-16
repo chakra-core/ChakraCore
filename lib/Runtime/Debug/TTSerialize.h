@@ -8,7 +8,8 @@
 
 #if ENABLE_TTD
 
-#define TTD_SERIALIZATION_BUFFER_SIZE 262144
+#define TTD_SERIALIZATION_BUFFER_SIZE 524288
+#define TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE 128
 
 namespace TTD
 {
@@ -27,17 +28,27 @@ namespace TTD
         enum class ParseTokenKind
         {
             Error = 0x0,
-            Number,
-            String,
-            Null,
-            True,
-            False,
+            Comma,
+            Colon,
             LBrack,
             RBrack,
             LCurly,
             RCurly,
-            Comma,
-            Colon
+            Null,
+            True,
+            False,
+            NaN,
+            PosInfty,
+            NegInfty,
+            UpperBound,
+            LowerBound,
+            Epsilon,
+            Number,
+            Address,
+            LogTag,
+            EnumTag,
+            WellKnownToken,
+            String
         };
 
         //Key values for records
@@ -49,7 +60,8 @@ namespace TTD
             Count
         };
 
-        LPCWSTR* InitKeyNamesArray();
+        void InitKeyNamesArray(LPCWSTR** names, size_t** lengths);
+        void CleanupKeyNamesArray(LPCWSTR** names, size_t** lengths);
     }
 
     ////
@@ -63,34 +75,69 @@ namespace TTD
         TTDWriteBytesToStreamCallback m_pfWrite;
         TTDFlushAndCloseStreamCallback m_pfClose;
 
-        //A count of the bytes written
-        uint64 m_totalBytesWritten;
-
-        uint32 m_cursor;
-        byte* m_buffer;
+        size_t m_cursor;
+        char16* m_buffer;
 
         //flush the buffer contents to disk
         void Flush();
 
     protected:
         //write a given byte or buffer of bytes to the buffer/disk as needed
-        void WriteByte(byte b);
-        void WriteBytes(byte* buff, uint32 bufflen);
+        void WriteRawChar(char16 b)
+        {
+            if(this->m_cursor == TTD_SERIALIZATION_BUFFER_SIZE)
+            {
+                this->Flush();
+            }
 
-        //buffer for writing formatted numbers into and a buffer for writing wide chars into as \uxxxx format
-        wchar m_numberFormatBuff[64];
-        wchar m_unicodeBuff[16];
+            this->m_buffer[this->m_cursor] = b;
+            this->m_cursor++;
+        }
+
+        void WriteRawCharBuff(const char16* buff, size_t bufflen)
+        {
+            if(this->m_cursor + bufflen >= TTD_SERIALIZATION_BUFFER_SIZE)
+            {
+                this->Flush();
+            }
+
+            if(bufflen >= TTD_SERIALIZATION_BUFFER_SIZE)
+            {
+                AssertMsg(this->m_buffer == 0, "Should always have been flushed in check above!");
+
+                //explicitly write the buffer to disk
+                DWORD bwp = 0;
+                this->m_pfWrite(this->m_hfile, (byte*)buff, (DWORD)(bufflen * sizeof(char16)), &bwp);
+            }
+            else
+            {
+                size_t sizeAvailable = (size_t)(TTD_SERIALIZATION_BUFFER_SIZE - this->m_cursor);
+                AssertMsg(sizeAvailable >= bufflen, "Our size computation is off somewhere.");
+
+                js_memcpy_s(this->m_buffer + this->m_cursor, sizeAvailable * sizeof(char16), buff, bufflen * sizeof(char16));
+                this->m_cursor += bufflen;
+            }
+        }
+
+        template <size_t N, typename T>
+        void WriteFormattedCharData(const char16(&formatString)[N], T data)
+        {
+            if(this->m_cursor + TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE >= TTD_SERIALIZATION_BUFFER_SIZE)
+            {
+                this->Flush();
+            }
+
+            int addedChars = swprintf_s(this->m_buffer, TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE, formatString, data);
+            AssertMsg(addedChars != -1 && addedChars < TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE, "Formatting failed or result is too big.");
+
+            this->m_cursor += addedChars;
+        }
 
     public:
         FileWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~FileWriter();
 
         void FlushAndClose();
-
-        uint64 GetBytesWritten() const;
-
-        //Format a value (at U64) into a temp buffer for you to use (do not free this buffer)
-        LPCWSTR FormatNumber(DWORD_PTR value);
 
         ////
 
@@ -155,27 +202,22 @@ namespace TTD
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
         void WriteWellKnownToken(NSTokens::Key key, TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
-
-        virtual void WriteFileNameForSourceLocation(LPCWSTR filename, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
     };
 
-    //A implements the writer for JSON formatted output to a file
-    class JSONWriter : public FileWriter
+    //A implements the writer for verbose text formatted output to a file
+    class TextFormatWriter : public FileWriter
     {
     private:
-        //Array of key names 
+        //Array of key names and their lengths
         LPCWSTR* m_keyNameArray;
+        size_t* m_keyNameLengthArray;
 
         //indent size for formatting
         uint32 m_indentSize;
 
-        void WriteWCHAR(wchar c);
-        void WriteString_InternalNoEscape(LPCWSTR str, size_t length);
-        void WriteString_Internal(LPCWSTR str, size_t length);
-
     public:
-        JSONWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
-        virtual ~JSONWriter();
+        TextFormatWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
+        virtual ~TextFormatWriter();
 
         ////
 
@@ -212,8 +254,6 @@ namespace TTD
         virtual void WriteNakedString(const TTString& val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
-
-        virtual void WriteFileNameForSourceLocation(LPCWSTR filename, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
     };
 
     //////////////////
@@ -226,32 +266,24 @@ namespace TTD
         TTDReadBytesFromStreamCallback m_pfRead;
         TTDFlushAndCloseStreamCallback m_pfClose;
 
-        uint64 m_totalBytesRead;
+        int32 m_peekChar;
 
-        int32 m_peekByte;
-
-        uint32 m_cursor;
-        uint32 m_buffCount;
-        byte* m_buffer;
+        size_t m_cursor;
+        size_t m_buffCount;
+        char16* m_buffer;
 
     protected:
         void Fill();
 
-        bool Peek(byte* b);
-        bool ReadByte(byte* b);
+        bool PeekRawChar(char16* c);
+        bool ReadRawChar(char16* c);
 
         //The action we should take if we encounter an invalid token or unexpected state in the file
         void FileReadAssert(bool ok);
 
-        //buffer for writing formatted numbers into and a buffer for writing wide chars into as \uxxxx format
-        wchar m_numberFormatBuff[64];
-
     public:
         FileReader(HANDLE handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~FileReader();
-
-        //Format a value (at U64) into a temp buffer for you to use (do not free this buffer)
-        LPCWSTR FormatNumber(DWORD_PTR value);
 
         virtual void ReadSeperator(bool readSeparator) = 0;
         virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) = 0;
@@ -327,37 +359,43 @@ namespace TTD
             this->ReadKey(keyCheck, readSeparator);
             return this->ReadNakedWellKnownToken(alloc);
         }
-
-        virtual LPCWSTR ReadFileNameForSourceLocation(bool readSeparator = false) = 0;
     };
 
     //////////////////
 
-    //A serialization class that reads a JSON encoded representation of the heap snapshot
-    class JSONReader : public FileReader
+    //A serialization class that reads a for verbose text formatted data format
+    class TextFormatReader : public FileReader
     {
     private:
         JsUtil::List<wchar, HeapAllocator> m_charListPrimary;
         JsUtil::List<wchar, HeapAllocator> m_charListOpt;
         JsUtil::List<wchar, HeapAllocator> m_charListDiscard;
 
-        //Array of key names 
+        //Array of key names and their lengths
         LPCWSTR* m_keyNameArray;
+        size_t* m_keyNameLengthArray;
 
         NSTokens::ParseTokenKind Scan(JsUtil::List<wchar, HeapAllocator>& charList);
-        NSTokens::ParseTokenKind ScanString(JsUtil::List<wchar, HeapAllocator>& charList);
-        NSTokens::ParseTokenKind ScanSpecialNumber(JsUtil::List<wchar, HeapAllocator>& charList);
-        NSTokens::ParseTokenKind ScanNumber(JsUtil::List<wchar, HeapAllocator>& charList);
-        NSTokens::ParseTokenKind ScanNakedString(wchar leadChar, JsUtil::List<wchar, HeapAllocator>& charList);
 
-        uint64 ReadHexFromCharArray(const wchar* buff);
+        NSTokens::ParseTokenKind ScanKey(JsUtil::List<wchar, HeapAllocator>& charList);
+
+        NSTokens::ParseTokenKind ScanSpecialNumber();
+        NSTokens::ParseTokenKind ScanNumber(JsUtil::List<wchar, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanAddress(JsUtil::List<wchar, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanLogTag(JsUtil::List<wchar, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanEnumTag(JsUtil::List<wchar, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanWellKnownToken(JsUtil::List<wchar, HeapAllocator>& charList);
+
+        NSTokens::ParseTokenKind ScanString(JsUtil::List<wchar, HeapAllocator>& charList);
+        NSTokens::ParseTokenKind ScanNakedString(wchar leadChar);
+
         int64 ReadIntFromCharArray(const wchar* buff);
         uint64 ReadUIntFromCharArray(const wchar* buff);
         double ReadDoubleFromCharArray(const wchar* buff);
 
     public:
-        JSONReader(HANDLE handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
-        virtual ~JSONReader();
+        TextFormatReader(HANDLE handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
+        virtual ~TextFormatReader();
 
         virtual void ReadSeperator(bool readSeparator) override;
         virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) override;
@@ -390,8 +428,6 @@ namespace TTD
 
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) override;
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator = false) override;
-
-        virtual LPCWSTR ReadFileNameForSourceLocation(bool readSeparator = false) override;
     };
 
     //////////////////

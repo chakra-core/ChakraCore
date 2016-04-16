@@ -78,9 +78,6 @@ namespace TTD
         Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx);
         uint32 GetLine() const;
         uint32 GetColumn() const;
-
-        void Emit(FileWriter* writer, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) const;
-        static void ParseInto(TTDebuggerSourceLocation& into, FileReader* reader, bool readSeperator = false);
     };
 
     //////////////////

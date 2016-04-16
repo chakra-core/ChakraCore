@@ -12,14 +12,31 @@ namespace TTD
 {
     namespace NSTokens
     {
-        LPCWSTR* InitKeyNamesArray()
+        void InitKeyNamesArray(LPCWSTR** names, size_t** lengths)
         {
-            LPCWSTR* res = HeapNewArrayZ(LPCWSTR, (uint32)Key::Count);
+            LPCWSTR* nameArray = TT_HEAP_ALLOC_ARRAY(LPCWSTR, (uint32)Key::Count);
+            size_t* lengthArray = TT_HEAP_ALLOC_ARRAY(size_t, (uint32)Key::Count);
 
-#define ENTRY_SERIALIZE_ENUM(K) res[(uint32)Key::##K] = __TEXT(#K);
+#define ENTRY_SERIALIZE_ENUM(K) { nameArray[(uint32)Key::##K] = __TEXT(#K); lengthArray[(uint32)Key::##K] = wcslen(__TEXT(#K)); }
 #include "TTSerializeEnum.h"
 
-            return res;
+            *names = nameArray;
+            *lengths = lengthArray;
+        }
+
+        void CleanupKeyNamesArray(LPCWSTR** names, size_t** lengths)
+        {
+            if(*names != nullptr)
+            {
+                TT_HEAP_FREE_ARRAY(LPCWSTR, *names, (uint32)NSTokens::Key::Count);
+                *names = nullptr;
+            }
+
+            if(*lengths != nullptr)
+            {
+                TT_HEAP_FREE_ARRAY(size_t, *lengths, (uint32)NSTokens::Key::Count);
+                *lengths = nullptr;
+            }
         }
     }
 
@@ -32,53 +49,17 @@ namespace TTD
             AssertMsg(this->m_hfile != INVALID_HANDLE_VALUE, "Trying to write to closed file.");
 
             DWORD bwp = 0;
-            this->m_pfWrite(this->m_hfile, this->m_buffer, this->m_cursor, &bwp);
+            this->m_pfWrite(this->m_hfile, (byte*)this->m_buffer, (DWORD)(this->m_cursor * sizeof(char16)), &bwp);
+            AssertMsg(bwp % 2 == 0, "We only wrote half of a char16!!!");
 
-            this->m_totalBytesWritten += this->m_cursor;
             this->m_cursor = 0;
         }
     }
 
-    void FileWriter::WriteByte(byte b)
-    {
-        if(this->m_cursor == TTD_SERIALIZATION_BUFFER_SIZE)
-        {
-            this->Flush();
-        }
-
-        this->m_buffer[this->m_cursor] = b;
-        this->m_cursor++;
-    }
-
-    void FileWriter::WriteBytes(byte* buff, uint32 bufflen)
-    {
-        if(this->m_cursor + bufflen >= TTD_SERIALIZATION_BUFFER_SIZE)
-        {
-            this->Flush();
-        }
-
-        if(bufflen >= TTD_SERIALIZATION_BUFFER_SIZE)
-        {
-            AssertMsg(this->m_buffer == 0, "Should always have been flushed in check above!");
-
-            //explicitly write the buffer to disk
-            DWORD bwp = 0;
-            this->m_pfWrite(this->m_hfile, buff, bufflen, &bwp);
-            AssertMsg(bwp == bufflen, "Write Failed");
-
-            this->m_totalBytesWritten += bufflen;
-        }
-        else
-        {
-            memcpy(this->m_buffer + this->m_cursor, buff, bufflen);
-            this->m_cursor += bufflen;
-        }
-    }
-
     FileWriter::FileWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
-        : m_hfile(handle), m_pfWrite(pfWrite), m_pfClose(pfClose), m_totalBytesWritten(0), m_cursor(0), m_buffer(nullptr)
+        : m_hfile(handle), m_pfWrite(pfWrite), m_pfClose(pfClose), m_cursor(0), m_buffer(nullptr)
     {
-        this->m_buffer = HeapNewArrayZ(byte, TTD_SERIALIZATION_BUFFER_SIZE);
+        this->m_buffer = TT_HEAP_ALLOC_ARRAY(char16, TTD_SERIALIZATION_BUFFER_SIZE);
     }
 
     FileWriter::~FileWriter()
@@ -91,23 +72,11 @@ namespace TTD
         if(this->m_hfile != INVALID_HANDLE_VALUE)
         {
             this->Flush();
-            HeapDeleteArray(TTD_SERIALIZATION_BUFFER_SIZE, this->m_buffer);
+            TT_HEAP_FREE_ARRAY(char16, this->m_buffer, TTD_SERIALIZATION_BUFFER_SIZE);
 
             this->m_pfClose(this->m_hfile, false, true);
             this->m_hfile = INVALID_HANDLE_VALUE;
         }
-    }
-
-    uint64 FileWriter::GetBytesWritten() const
-    {
-        return this->m_totalBytesWritten;
-    }
-
-    LPCWSTR FileWriter::FormatNumber(DWORD_PTR value)
-    {
-        swprintf_s(this->m_numberFormatBuff, _u("%u"), (uint32)value);
-
-        return this->m_numberFormatBuff;
     }
 
     void FileWriter::WriteLengthValue(uint32 length, NSTokens::Separator separator)
@@ -192,277 +161,182 @@ namespace TTD
 
     //////////////////
 
-    void JSONWriter::WriteWCHAR(wchar c)
+    TextFormatWriter::TextFormatWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
+        : FileWriter(handle, pfWrite, pfClose), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr), m_indentSize(0)
     {
-        if(c <= CHAR_MAX)
-        {
-            this->WriteByte((byte)c);
-        }
-        else
-        {
-            swprintf_s(this->m_unicodeBuff, _u("\\u%.4x"), c);
-
-            for(wchar* curr = this->m_unicodeBuff; *curr != _u('\0'); ++curr)
-            {
-                this->WriteByte((byte)(*curr));
-            }
-        }
+        NSTokens::InitKeyNamesArray(&(this->m_keyNameArray), &(this->m_keyNameLengthArray));
     }
 
-    void JSONWriter::WriteString_InternalNoEscape(LPCWSTR str, size_t length)
+    TextFormatWriter::~TextFormatWriter()
     {
-        for(size_t i = 0; i < length; ++i)
-        {
-            this->WriteWCHAR(str[i]);
-        }
+        NSTokens::CleanupKeyNamesArray(&(this->m_keyNameArray), &(this->m_keyNameLengthArray));
     }
 
-    void JSONWriter::WriteString_Internal(LPCWSTR str, size_t length)
-    {
-        for(size_t i = 0; i < length; ++i)
-        {
-            wchar c = str[i];
-
-            //JSON escape sequence in a string \0 \", \/, \\, \b, \f, \n, \r, \t, unicode seq
-            switch(c)
-            {
-            case _u('\0'):
-                this->WriteWCHAR(_u('\\'));
-                this->WriteWCHAR(_u('0'));
-                break;
-            case _u('\"'):
-                this->WriteWCHAR(_u('\\'));
-                this->WriteWCHAR(_u('\"'));
-                break;
-            case _u('/'):
-                this->WriteWCHAR(_u('\\'));
-                this->WriteWCHAR(_u('/'));
-                break;
-            case _u('\\'):
-                this->WriteWCHAR(_u('\\'));
-                this->WriteWCHAR(_u('\\'));
-                break;
-            case _u('\b'):
-                this->WriteWCHAR(_u('\\'));
-                this->WriteWCHAR(_u('b'));
-                break;
-            case _u('\f'):
-                this->WriteWCHAR(_u('\\'));
-                this->WriteWCHAR(_u('f'));
-                break;
-            case _u('\n'):
-                this->WriteWCHAR(_u('\\'));
-                this->WriteWCHAR(_u('n'));
-                break;
-            case _u('\r'):
-                this->WriteWCHAR(_u('\\'));
-                this->WriteWCHAR(_u('r'));
-                break;
-            case _u('\t'):
-                this->WriteWCHAR(_u('\\'));
-                this->WriteWCHAR(_u('t'));
-                break;
-            default:
-                this->WriteWCHAR(c);
-                break;
-            }
-        }
-    }
-
-    JSONWriter::JSONWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
-        : FileWriter(handle, pfWrite, pfClose), m_keyNameArray(nullptr), m_indentSize(0)
-    {
-        this->m_keyNameArray = NSTokens::InitKeyNamesArray();
-    }
-
-    JSONWriter::~JSONWriter()
-    {
-        if(this->m_keyNameArray != nullptr)
-        {
-            HeapDeleteArray((uint32)NSTokens::Key::Count, this->m_keyNameArray);
-            this->m_keyNameArray = nullptr;
-        }
-    }
-
-    void JSONWriter::WriteSeperator(NSTokens::Separator separator)
+    void TextFormatWriter::WriteSeperator(NSTokens::Separator separator)
     {
         if((separator & NSTokens::Separator::CommaSeparator) == NSTokens::Separator::CommaSeparator)
         {
-            this->WriteWCHAR(_u(','));
+            this->WriteRawChar(_u(','));
 
             if((separator & NSTokens::Separator::BigSpaceSeparator) == NSTokens::Separator::BigSpaceSeparator)
             {
-                this->WriteWCHAR(_u('\n'));
+                this->WriteRawChar(_u('\n'));
                 for(uint32 i = 0; i < this->m_indentSize; ++i)
                 {
-                    this->WriteWCHAR(_u(' '));
-                    this->WriteWCHAR(_u(' '));
+                    this->WriteRawChar(_u(' '));
+                    this->WriteRawChar(_u(' '));
                 }
             }
             else
             {
-                this->WriteWCHAR(_u(' '));
+                this->WriteRawChar(_u(' '));
             }
         }
 
         if(separator == NSTokens::Separator::BigSpaceSeparator)
         {
-            this->WriteWCHAR(_u('\n'));
+            this->WriteRawChar(_u('\n'));
             for(uint32 i = 0; i < this->m_indentSize; ++i)
             {
-                this->WriteWCHAR(_u(' '));
-                this->WriteWCHAR(_u(' '));
+                this->WriteRawChar(_u(' '));
+                this->WriteRawChar(_u(' '));
             }
         }
     }
 
-    void JSONWriter::WriteKey(NSTokens::Key key, NSTokens::Separator separator)
+    void TextFormatWriter::WriteKey(NSTokens::Key key, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
 
         AssertMsg(1 <= (uint32)key && (uint32)key < (uint32)NSTokens::Key::Count, "Key not in valid range!");
         LPCWSTR kname = this->m_keyNameArray[(uint32)key];
-        AssertMsg(kname != nullptr, "Key not registered!");
+        size_t ksize = this->m_keyNameLengthArray[(uint32)key];
 
-        this->WriteWCHAR(_u('\"'));
-        this->WriteString_InternalNoEscape(kname, wcslen(kname));
-        this->WriteWCHAR(_u('\"'));
-
-        this->WriteWCHAR(_u(':'));
-        this->WriteWCHAR(_u(' '));
+        this->WriteRawCharBuff(kname, ksize);
+        this->WriteRawChar(_u(':'));
     }
 
-    void JSONWriter::WriteSequenceStart(NSTokens::Separator separator)
+    void TextFormatWriter::WriteSequenceStart(NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-        this->WriteWCHAR(_u('['));
+        this->WriteRawChar(_u('['));
     }
 
-    void JSONWriter::WriteSequenceEnd(NSTokens::Separator separator)
+    void TextFormatWriter::WriteSequenceEnd(NSTokens::Separator separator)
     {
         AssertMsg(separator == NSTokens::Separator::NoSeparator || separator == NSTokens::Separator::BigSpaceSeparator, "Shouldn't be anything else!!!");
 
         this->WriteSeperator(separator);
-        this->WriteWCHAR(_u(']'));
+        this->WriteRawChar(_u(']'));
     }
 
-    void JSONWriter::WriteRecordStart(NSTokens::Separator separator)
+    void TextFormatWriter::WriteRecordStart(NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-        this->WriteWCHAR(_u('{'));
+        this->WriteRawChar(_u('{'));
     }
 
-    void JSONWriter::WriteRecordEnd(NSTokens::Separator separator)
+    void TextFormatWriter::WriteRecordEnd(NSTokens::Separator separator)
     {
         AssertMsg(separator == NSTokens::Separator::NoSeparator || separator == NSTokens::Separator::BigSpaceSeparator, "Shouldn't be anything else!!!");
 
         this->WriteSeperator(separator);
-        this->WriteWCHAR(_u('}'));
+        this->WriteRawChar(_u('}'));
     }
 
-    void JSONWriter::AdjustIndent(int32 delta)
+    void TextFormatWriter::AdjustIndent(int32 delta)
     {
         this->m_indentSize += delta;
     }
 
-    void JSONWriter::SetIndent(uint32 depth)
+    void TextFormatWriter::SetIndent(uint32 depth)
     {
         this->m_indentSize = depth;
     }
 
-    void JSONWriter::WriteNakedNull(NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedNull(NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
 
-        this->WriteString_InternalNoEscape(_u("null"), 4);
+        this->WriteRawCharBuff(_u("null"), 4);
     }
 
-    void JSONWriter::WriteNakedByte(byte val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedByte(byte val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-
-        swprintf_s(this->m_numberFormatBuff, _u("%I32u"), (uint32)val);
-        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
+        this->WriteFormattedCharData(_u("%I32u"), (uint32)val);
     }
 
-    void JSONWriter::WriteBool(NSTokens::Key key, bool val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteBool(NSTokens::Key key, bool val, NSTokens::Separator separator)
     {
         this->WriteKey(key, separator);
         if(val)
         {
-            this->WriteString_InternalNoEscape(_u("true"), 4);
+            this->WriteRawCharBuff(_u("true"), 4);
         }
         else
         {
-            this->WriteString_InternalNoEscape(_u("false"), 5);
+            this->WriteRawCharBuff(_u("false"), 5);
         }
     }
 
-    void JSONWriter::WriteNakedInt32(int32 val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedInt32(int32 val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-
-        swprintf_s(this->m_numberFormatBuff, _u("%I32i"), val);
-        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
+        this->WriteFormattedCharData(_u("%I32i"), val);
     }
 
-    void JSONWriter::WriteNakedUInt32(uint32 val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedUInt32(uint32 val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-
-        swprintf_s(this->m_numberFormatBuff, _u("%I32u"), val);
-        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
+        this->WriteFormattedCharData(_u("%I32u"), val);
     }
 
-    void JSONWriter::WriteNakedInt64(int64 val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedInt64(int64 val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-
-        swprintf_s(this->m_numberFormatBuff, _u("%I64i"), val);
-        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
+        this->WriteFormattedCharData(_u("%I64i"), val);
     }
 
-    void JSONWriter::WriteNakedUInt64(uint64 val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedUInt64(uint64 val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-
-        swprintf_s(this->m_numberFormatBuff, _u("%I64u"), val);
-        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
+        this->WriteFormattedCharData(_u("%I64u"), val);
     }
 
-    void JSONWriter::WriteNakedDouble(double val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedDouble(double val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
 
         if(Js::JavascriptNumber::IsNan(val))
         {
-            this->WriteString_InternalNoEscape(_u("#nan"), 4);
+            this->WriteRawCharBuff(_u("#nan"), 4);
         }
         else if(Js::JavascriptNumber::IsPosInf(val))
         {
-            this->WriteString_InternalNoEscape(_u("#+inf"), 5);
+            this->WriteRawCharBuff(_u("#+inf"), 5);
         }
         else if(Js::JavascriptNumber::IsNegInf(val))
         {
-            this->WriteString_InternalNoEscape(_u("#-inf"), 5);
+            this->WriteRawCharBuff(_u("#-inf"), 5);
         }
         else if(Js::JavascriptNumber::MAX_VALUE == val)
         {
-            this->WriteString_InternalNoEscape(_u("#ub"), 3);
+            this->WriteRawCharBuff(_u("#ub"), 3);
         }
         else if(Js::JavascriptNumber::MIN_VALUE == val)
         {
-            this->WriteString_InternalNoEscape(_u("#lb"), 3);
+            this->WriteRawCharBuff(_u("#lb"), 3);
         }
         else if(Js::Math::EPSILON == val)
         {
-            this->WriteString_InternalNoEscape(_u("#ep"), 3);
+            this->WriteRawCharBuff(_u("#ep"), 3);
         }
         else
         {
             if(floor(val) == val)
             {
-                swprintf_s(this->m_numberFormatBuff, _u("%I64i"), (int64)val);
+                this->WriteFormattedCharData(_u("%I64i"), (int64)val);
             }
             else
             {
@@ -471,40 +345,32 @@ namespace TTD
                 //      will want to change this to a dump of the bit representation of the number
                 //
 
-                swprintf_s(this->m_numberFormatBuff, _u("%.22f"), val);
+                this->WriteFormattedCharData(_u("%.22f"), val);
             }
-
-            this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
         }
     }
 
-    void JSONWriter::WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-
-        swprintf_s(this->m_numberFormatBuff, _u("\"*0x%I64x\""), val);
-        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
+        this->WriteFormattedCharData(_u("*%I64u"), val);
     }
 
-    void JSONWriter::WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-
-        swprintf_s(this->m_numberFormatBuff, _u("\"!%I64i\""), val);
-        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
+        this->WriteFormattedCharData(_u("!%I64i"), val);
     }
 
-    void JSONWriter::WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-
-        swprintf_s(this->m_numberFormatBuff, _u("\"$%I32i\""), tagvalue);
-        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
+        this->WriteFormattedCharData(_u("$%I32i"), tagvalue);
     }
 
     ////
 
-    void JSONWriter::WriteNakedString(const TTString& val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedString(const TTString& val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
 
@@ -514,28 +380,20 @@ namespace TTD
         }
         else
         {
-            this->WriteWCHAR('\"');
-            this->WriteString_Internal(val.Contents, val.Length);
-            this->WriteWCHAR('\"');
+            this->WriteFormattedCharData(_u("@%I32u"), val.Length);
+
+            this->WriteRawChar('\"');
+            this->WriteRawCharBuff(val.Contents, val.Length);
+            this->WriteRawChar('\"');
         }
     }
 
-    void JSONWriter::WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
 
-        this->WriteWCHAR('\"');
-        this->WriteString_InternalNoEscape(val, wcslen(val));
-        this->WriteWCHAR('\"');
-    }
-
-    void JSONWriter::WriteFileNameForSourceLocation(LPCWSTR filename, NSTokens::Separator separator)
-    {
-        this->WriteKey(NSTokens::Key::uri, separator);
-
-        this->WriteWCHAR('\"');
-        this->WriteString_Internal(filename, wcslen(filename));
-        this->WriteWCHAR('\"');
+        this->WriteRawChar('~');
+        this->WriteRawCharBuff(val, wcslen(val));
     }
 
     //////////////////
@@ -547,40 +405,38 @@ namespace TTD
             AssertMsg(this->m_hfile != INVALID_HANDLE_VALUE, "Trying to read a invalid file.");
 
             DWORD bwp = 0;
-            BOOL ok = this->m_pfRead(this->m_hfile, this->m_buffer, TTD_SERIALIZATION_BUFFER_SIZE, &bwp);
-            AssertMsg(ok, "Read failed.");
+            this->m_pfRead(this->m_hfile, (byte*)this->m_buffer, (DWORD)(TTD_SERIALIZATION_BUFFER_SIZE * sizeof(char16)), &bwp);
+            AssertMsg(bwp % 2 == 0, "Read and incomplete char16!!!.");
 
-            this->m_buffCount = bwp;
+            this->m_buffCount = (bwp / 2);
             this->m_cursor = 0;
-
-            this->m_totalBytesRead += bwp;
         }
     }
 
-    bool FileReader::Peek(byte* b)
+    bool FileReader::PeekRawChar(char16* c)
     {
-        if(this->m_peekByte != -1)
+        if(this->m_peekChar != -1)
         {
-            *b = (byte)this->m_peekByte;
+            *c = (char16)this->m_peekChar;
             return true;
         }
         else
         {
-            bool success = this->ReadByte(b);
+            bool success = this->ReadRawChar(c);
             if(success)
             {
-                this->m_peekByte = *b;
+                this->m_peekChar = *c;
             }
             return success;
         }
     }
 
-    bool FileReader::ReadByte(byte* b)
+    bool FileReader::ReadRawChar(char16* c)
     {
-        if(this->m_peekByte != -1)
+        if(this->m_peekChar != -1)
         {
-            *b = (byte)this->m_peekByte;
-            this->m_peekByte = -1;
+            *c = (char16)this->m_peekChar;
+            this->m_peekChar = -1;
 
             return true;
         }
@@ -594,7 +450,7 @@ namespace TTD
             }
             else
             {
-                *b = this->m_buffer[this->m_cursor];
+                *c = this->m_buffer[this->m_cursor];
                 this->m_cursor++;
 
                 return true;
@@ -611,27 +467,20 @@ namespace TTD
     }
 
     FileReader::FileReader(HANDLE handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
-        : m_hfile(handle), m_pfRead(pfRead), m_pfClose(pfClose), m_totalBytesRead(0), m_peekByte(-1), m_cursor(0), m_buffCount(0), m_buffer(nullptr)
+        : m_hfile(handle), m_pfRead(pfRead), m_pfClose(pfClose), m_peekChar(-1), m_cursor(0), m_buffCount(0), m_buffer(nullptr)
     {
-        this->m_buffer = HeapNewArray(byte, TTD_SERIALIZATION_BUFFER_SIZE);
+        this->m_buffer = TT_HEAP_ALLOC_ARRAY(char16, TTD_SERIALIZATION_BUFFER_SIZE);
     }
 
     FileReader::~FileReader()
     {
         if(this->m_hfile != INVALID_HANDLE_VALUE)
         {
-            HeapDeleteArray(TTD_SERIALIZATION_BUFFER_SIZE, this->m_buffer);
+            TT_HEAP_FREE_ARRAY(char16, this->m_buffer, TTD_SERIALIZATION_BUFFER_SIZE);
 
             this->m_pfClose(this->m_hfile, true, false);
             this->m_hfile = INVALID_HANDLE_VALUE;
         }
-    }
-
-    LPCWSTR FileReader::FormatNumber(DWORD_PTR value)
-    {
-        swprintf_s(this->m_numberFormatBuff, _u("%u"), (uint32)value);
-
-        return this->m_numberFormatBuff;
     }
 
     uint32 FileReader::ReadLengthValue(bool readSeparator)
@@ -702,253 +551,178 @@ namespace TTD
 
     //////////////////
 
-    NSTokens::ParseTokenKind JSONReader::Scan(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::Scan(JsUtil::List<wchar, HeapAllocator>& charList)
     {
-        byte b;
+        char16 c = _u('\0');
         charList.Clear();
 
-        while(this->ReadByte(&b))
+        while(this->ReadRawChar(&c))
         {
-            switch(b)
+            switch(c)
             {
             case 0:
                 return NSTokens::ParseTokenKind::Error; //we shouldn't hit EOF explicitly here
-            case '\t':
-            case '\r':
-            case '\n':
-            case ' ':
+            case _u('\t'):
+            case _u('\r'):
+            case _u('\n'):
+            case _u(' '):
                 //WS - keep looping
                 break;
-            case '"':
-                //check for string
-                charList.Add(_u('"'));
-                return this->ScanString(charList);
-            case '#':
-                //# starts special double/number value representation
-                charList.Add(_u('#'));
-                return this->ScanSpecialNumber(charList);
-            case '-':
-            case '+':
-            case '0':
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9':
-            {
-                //decimal digit or (-,+) starts a number
-                charList.Add((wchar)b);
-                return this->ScanNumber(charList);
-            }
-            case ',':
+            case _u(','):
                 return NSTokens::ParseTokenKind::Comma;
-            case ':':
+            case _u(':'):
                 return NSTokens::ParseTokenKind::Colon;
-            case '[':
+            case _u('['):
                 return NSTokens::ParseTokenKind::LBrack;
-            case ']':
+            case _u(']'):
                 return NSTokens::ParseTokenKind::RBrack;
-            case '{':
+            case _u('{'):
                 return NSTokens::ParseTokenKind::LCurly;
-            case '}':
+            case _u('}'):
                 return NSTokens::ParseTokenKind::RCurly;
+            case _u('#'):
+                //# starts special double/number value representation
+                return this->ScanSpecialNumber();
+            case _u('-'):
+            case _u('+'):
+            case _u('0'):
+            case _u('1'):
+            case _u('2'):
+            case _u('3'):
+            case _u('4'):
+            case _u('5'):
+            case _u('6'):
+            case _u('7'):
+            case _u('8'):
+            case _u('9'):
+                //decimal digit or (-,+) starts a number
+                charList.Add(c);
+                return this->ScanNumber(charList);
+            case _u('*'):
+                //address
+                return this->ScanAddress(charList);
+            case _u('!'):
+                //log tag
+                return this->ScanLogTag(charList);
+            case _u('$'):
+                //enumeration value tag
+                return this->ScanEnumTag(charList);
+            case _u('~'):
+                //wellknown token
+                return this->ScanWellKnownToken(charList);
+            case _u('@'):
+                //string
+                return this->ScanString(charList);
             default:
-                //it is a naked string (or an error)
-                charList.Add((wchar)b);
-                return this->ScanNakedString((wchar)b, charList);
+                //it is a naked literal value (or an error)
+                return this->ScanNakedString(c);
             }
         }
 
         return NSTokens::ParseTokenKind::Error;
     }
 
-    NSTokens::ParseTokenKind JSONReader::ScanString(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanKey(JsUtil::List<wchar, HeapAllocator>& charList)
     {
-        byte b;
+        char16 c = _u('\0');
         bool endFound = false;
 
-        while(this->ReadByte(&b))
+        while(this->PeekRawChar(&c))
         {
-            if(b == 0)
+            if(c == 0 || charList.Count() > 256)
             {
+                //we reached the end of the file or the "key" is much longer than it should be
                 return NSTokens::ParseTokenKind::Error;
             }
 
-            if(b == '"')
+            if(c == _u(':'))
             {
                 //end of the string
-                charList.Add(_u('"'));
                 endFound = true;
                 break;
             }
-            else if(b == '\\')
-            {
-                //JSON escape sequence in a string \", \/, \\, \b, \f, \n, \r, \t, unicode seq
-                // unlikely V5.8 regular chars are not escaped, i.e '\g'' in a string is illegal not 'g'
-                bool ok = this->ReadByte(&b);
-                if(!ok)
-                {
-                    return NSTokens::ParseTokenKind::Error;
-                }
-
-                switch(b)
-                {
-                case 0:
-                    return NSTokens::ParseTokenKind::Error; //we shouldn't hit EOF explicitly here
-                case '0':
-                    charList.Add(0x0);
-                    break;
-                case '"':
-                case '/':
-                case '\\':
-                    charList.Add((wchar)b); //keep ch
-                    break;
-                case 'b':
-                    charList.Add(0x08);
-                    break;
-                case 'f':
-                    charList.Add(0x0C);
-                    break;
-                case 'n':
-                    charList.Add(0x0A);
-                    break;
-                case 'r':
-                    charList.Add(0x0D);
-                    break;
-                case 't':
-                    charList.Add(0x09);
-                    break;
-                case 'u':
-                {
-                    int tempHex = 0;
-                    int chcode = 0; // 4 hex digits are needed
-
-                    ok = this->ReadByte(&b);
-                    if(!ok || !Js::NumberUtilities::FHexDigit(b, &tempHex))
-                    {
-                        return NSTokens::ParseTokenKind::Error;
-                    }
-                    chcode = tempHex * 0x1000;
-
-                    ok = this->ReadByte(&b);
-                    if(!ok || !Js::NumberUtilities::FHexDigit(b, &tempHex))
-                    {
-                        return NSTokens::ParseTokenKind::Error;
-                    }
-                    chcode += tempHex * 0x0100;
-
-                    ok = this->ReadByte(&b);
-                    if(!ok || !Js::NumberUtilities::FHexDigit(b, &tempHex))
-                    {
-                        return NSTokens::ParseTokenKind::Error;
-                    }
-                    chcode += tempHex * 0x0010;
-
-                    ok = this->ReadByte(&b);
-                    if(!ok || !Js::NumberUtilities::FHexDigit(b, &tempHex))
-                    {
-                        return NSTokens::ParseTokenKind::Error;
-                    }
-                    chcode += tempHex;
-
-                    AssertMsg(chcode == (chcode & 0xFFFF), "Bad unicode code");
-                    charList.Add((wchar)chcode);
-                }
-                break;
-                default:
-                    // Any other '\o' is an error
-                    return NSTokens::ParseTokenKind::Error;
-                }
-            }
             else
             {
-                charList.Add((wchar)b);
+                this->ReadRawChar(&c);
+                charList.Add(c);
             }
         }
 
         if(!endFound)
         {
-            // no ending '"' found 
+            // no ending found 
             return NSTokens::ParseTokenKind::Error;
         }
 
         return NSTokens::ParseTokenKind::String;
     }
 
-    NSTokens::ParseTokenKind JSONReader::ScanSpecialNumber(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanSpecialNumber()
     {
-        byte b;
-        bool ok = this->ReadByte(&b);
-        charList.Add((wchar)b);
+        char16 c = _u('\0');
+        bool ok = this->ReadRawChar(&c);
 
-        if(ok && b == 'n')
+        if(ok && c == _u('n'))
         {
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'a')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('a'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'n')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('n'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            return NSTokens::ParseTokenKind::Number;
+            return NSTokens::ParseTokenKind::NaN;
         }
-        else if(ok && (b == '+' || b == '-'))
+        else if(ok && (c == _u('+') || c == _u('-')))
         {
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'i')
+            char16 signc = c;
+
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('i'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'n')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('n'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'f')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('f'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            return NSTokens::ParseTokenKind::Number;
+            return (signc == _u('+')) ? NSTokens::ParseTokenKind::PosInfty : NSTokens::ParseTokenKind::NegInfty;
         }
-        else if(ok && (b == 'u' || b == 'l'))
+        else if(ok && (c == _u('u') || c == _u('l')))
         {
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'b')
+            char16 limitc = c;
+
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('b'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            return NSTokens::ParseTokenKind::Number;
+            return (limitc == _u('u')) ? NSTokens::ParseTokenKind::UpperBound : NSTokens::ParseTokenKind::LowerBound;
         }
-        else if(ok && b == 'e')
+        else if(ok && c == _u('e'))
         {
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'p')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('p'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            return NSTokens::ParseTokenKind::Number;
+            return NSTokens::ParseTokenKind::Epsilon;
         }
         else
         {
@@ -956,13 +730,13 @@ namespace TTD
         }
     }
 
-    NSTokens::ParseTokenKind JSONReader::ScanNumber(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanNumber(JsUtil::List<wchar, HeapAllocator>& charList)
     {
-        byte b;
-        while(this->Peek(&b) && (('0' <= b && b <= '9') || (b == '.')))
+        char16 c = _u('\0');
+        while(this->PeekRawChar(&c) && ((_u('0') <= c && c <= _u('9')) || (c == _u('.'))))
         {
-            this->ReadByte(&b);
-            charList.Add((wchar)b);
+            this->ReadRawChar(&c);
+            charList.Add(c);
         }
 
         bool likelyint; //we don't care about this just want to know that it is convertable to a number
@@ -978,96 +752,198 @@ namespace TTD
         return NSTokens::ParseTokenKind::Number;
     }
 
-    NSTokens::ParseTokenKind JSONReader::ScanNakedString(wchar leadChar, JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanAddress(JsUtil::List<wchar, HeapAllocator>& charList)
     {
-        bool ok;
-        byte b;
+        NSTokens::ParseTokenKind okNumber = this->ScanNumber(charList);
+        if(okNumber != NSTokens::ParseTokenKind::Number)
+        {
+            return NSTokens::ParseTokenKind::Error;
+        }
 
-        if(leadChar == 'n')
+        return NSTokens::ParseTokenKind::Address;
+    }
+
+    NSTokens::ParseTokenKind TextFormatReader::ScanLogTag(JsUtil::List<wchar, HeapAllocator>& charList)
+    {
+        NSTokens::ParseTokenKind okNumber = this->ScanNumber(charList);
+        if(okNumber != NSTokens::ParseTokenKind::Number)
+        {
+            return NSTokens::ParseTokenKind::Error;
+        }
+
+        return NSTokens::ParseTokenKind::LogTag;
+    }
+
+    NSTokens::ParseTokenKind TextFormatReader::ScanEnumTag(JsUtil::List<wchar, HeapAllocator>& charList)
+    {
+        NSTokens::ParseTokenKind okNumber = this->ScanNumber(charList);
+        if(okNumber != NSTokens::ParseTokenKind::Number)
+        {
+            return NSTokens::ParseTokenKind::Error;
+        }
+
+        return NSTokens::ParseTokenKind::EnumTag;
+    }
+
+    NSTokens::ParseTokenKind TextFormatReader::ScanWellKnownToken(JsUtil::List<wchar, HeapAllocator>& charList)
+    {
+        char16 c = _u('\0');
+        bool endFound = false;
+
+        while(this->PeekRawChar(&c))
+        {
+            if(c == 0)
+            {
+                return NSTokens::ParseTokenKind::Error;
+            }
+
+            if((c == _u(',')) | (c == _u('}')) | (c == _u(']')) 
+                | (c == _u('\t')) | (c == _u('\r')) | (c == _u('\n')) | (c == _u(' ')))
+            {
+                //end of the string
+                endFound = true;
+                break;
+            }
+            else
+            {
+                this->ReadRawChar(&c);
+                charList.Add(c);
+            }
+        }
+
+        if(!endFound)
+        {
+            // no ending found 
+            return NSTokens::ParseTokenKind::Error;
+        }
+
+        return NSTokens::ParseTokenKind::WellKnownToken;
+    }
+
+    NSTokens::ParseTokenKind TextFormatReader::ScanString(JsUtil::List<wchar, HeapAllocator>& charList)
+    {
+        bool ok = false;
+        char16 c = _u('\0');
+
+        //first we should find a number
+        NSTokens::ParseTokenKind okNumber = this->ScanNumber(charList);
+        if(okNumber != NSTokens::ParseTokenKind::Number)
+        {
+            return NSTokens::ParseTokenKind::Error;
+        }
+
+        //convert this number to get the length of the string (not including "")
+        charList.Add(_u('\0'));
+        uint32 length = (uint32)this->ReadUIntFromCharArray(charList.GetBuffer());
+
+        //read the lead "\""
+        ok = this->ReadRawChar(&c);
+        if(!ok || c != _u('\"'))
+        {
+            return NSTokens::ParseTokenKind::Error;
+        }
+
+        //read that many chars and check for the terminating "\""
+        charList.Clear();
+        for(uint32 i = 0; i < length; ++i)
+        {
+            ok = this->ReadRawChar(&c);
+            if(!ok)
+            {
+                return NSTokens::ParseTokenKind::Error;
+            }
+            charList.Add(c);
+        }
+
+        ok = this->ReadRawChar(&c);
+        if(!ok || c != _u('\"'))
+        {
+            return NSTokens::ParseTokenKind::Error;
+        }
+
+        return NSTokens::ParseTokenKind::String;
+    }
+
+    NSTokens::ParseTokenKind TextFormatReader::ScanNakedString(wchar leadChar)
+    {
+        bool ok = false;
+        char16 c = _u('\0');
+
+        if(leadChar == _u('n'))
         {
             //check for "null"
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'u')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('u'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'l')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('l'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'l')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('l'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
             return NSTokens::ParseTokenKind::Null;
         }
-        else if(leadChar == 't')
+        else if(leadChar == _u('t'))
         {
             //check for "true"
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'r')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('r'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'u')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('u'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'e')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('e'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
             return NSTokens::ParseTokenKind::True;
         }
-        else if(leadChar == 'f')
+        else if(leadChar == _u('f'))
         {
             //check for "false"
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'a')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('a'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'l')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('l'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 's')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('s'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
-            ok = this->ReadByte(&b);
-            if(!ok || b != 'e')
+            ok = this->ReadRawChar(&c);
+            if(!ok || c != _u('e'))
             {
                 return NSTokens::ParseTokenKind::Error;
             }
-            charList.Add((wchar)b);
 
             return NSTokens::ParseTokenKind::False;
         }
@@ -1077,34 +953,7 @@ namespace TTD
         }
     }
 
-    uint64 JSONReader::ReadHexFromCharArray(const wchar* buff)
-    {
-        uint64 value = 0;
-        uint64 multiplier = 1;
-
-        int32 digitCount = (int32)wcslen(buff);
-        for(int32 i = digitCount - 1; i >= 0; --i)
-        {
-            wchar digit = buff[i];
-
-            uint32 digitValue;
-            if((L'a' <= digit) & (digit <= 'f'))
-            {
-                digitValue = (digit - _u('a')) + 10;
-            }
-            else
-            {
-                digitValue = (digit - _u('0'));
-            }
-
-            value += (multiplier * digitValue);
-            multiplier *= 16;
-        }
-
-        return value;
-    }
-
-    int64 JSONReader::ReadIntFromCharArray(const wchar* buff)
+    int64 TextFormatReader::ReadIntFromCharArray(const wchar* buff)
     {
         int64 value = 0;
         int64 multiplier = 1;
@@ -1130,7 +979,7 @@ namespace TTD
         return value * sign;
     }
 
-    uint64 JSONReader::ReadUIntFromCharArray(const wchar* buff)
+    uint64 TextFormatReader::ReadUIntFromCharArray(const wchar* buff)
     {
         uint64 value = 0;
         uint64 multiplier = 1;
@@ -1148,7 +997,7 @@ namespace TTD
         return value;
     }
 
-    double JSONReader::ReadDoubleFromCharArray(const wchar* buff)
+    double TextFormatReader::ReadDoubleFromCharArray(const wchar* buff)
     {
         bool likelytInt; //we don't care about this as we already know it is a double
         const wchar* end;
@@ -1158,22 +1007,18 @@ namespace TTD
         return val;
     }
 
-    JSONReader::JSONReader(HANDLE handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
-        : FileReader(handle, pfRead, pfClose), m_charListPrimary(&HeapAllocator::Instance), m_charListOpt(&HeapAllocator::Instance), m_charListDiscard(&HeapAllocator::Instance), m_keyNameArray(nullptr)
+    TextFormatReader::TextFormatReader(HANDLE handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
+        : FileReader(handle, pfRead, pfClose), m_charListPrimary(&HeapAllocator::Instance), m_charListOpt(&HeapAllocator::Instance), m_charListDiscard(&HeapAllocator::Instance), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr)
     {
-        this->m_keyNameArray = NSTokens::InitKeyNamesArray();
+        NSTokens::InitKeyNamesArray(&(this->m_keyNameArray), &(this->m_keyNameLengthArray));
     }
 
-    JSONReader::~JSONReader()
+    TextFormatReader::~TextFormatReader()
     {
-        if(this->m_keyNameArray != nullptr)
-        {
-            HeapDeleteArray((uint32)NSTokens::Key::Count, this->m_keyNameArray);
-            this->m_keyNameArray = nullptr;
-        }
+        NSTokens::CleanupKeyNamesArray(&(this->m_keyNameArray), &(this->m_keyNameLengthArray));
     }
 
-    void JSONReader::ReadSeperator(bool readSeparator)
+    void TextFormatReader::ReadSeperator(bool readSeparator)
     {
         if(readSeparator)
         {
@@ -1182,15 +1027,16 @@ namespace TTD
         }
     }
 
-    void JSONReader::ReadKey(NSTokens::Key keyCheck, bool readSeparator)
+    void TextFormatReader::ReadKey(NSTokens::Key keyCheck, bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
-        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListPrimary);
+        //We do a special scan here for a key (instead of the more general scan we call elsewhere)
+        NSTokens::ParseTokenKind tok = this->ScanKey(this->m_charListPrimary);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
 
-        this->m_charListPrimary.SetItem(this->m_charListPrimary.Count() - 1, _u('\0'));
-        LPCWSTR keystr = this->m_charListPrimary.GetBuffer() + 1;
+        this->m_charListPrimary.Add(_u('\0'));
+        LPCWSTR keystr = this->m_charListPrimary.GetBuffer();
 
         //check key strings are the same
         FileReader::FileReadAssert(1 <= (uint32)keyCheck && (uint32)keyCheck < (uint32)NSTokens::Key::Count);
@@ -1203,7 +1049,7 @@ namespace TTD
         FileReader::FileReadAssert(toksep == NSTokens::ParseTokenKind::Colon);
     }
 
-    void JSONReader::ReadSequenceStart(bool readSeparator)
+    void TextFormatReader::ReadSequenceStart(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1211,13 +1057,13 @@ namespace TTD
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::LBrack);
     }
 
-    void JSONReader::ReadSequenceEnd()
+    void TextFormatReader::ReadSequenceEnd()
     {
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::RBrack);
     }
 
-    void JSONReader::ReadRecordStart(bool readSeparator)
+    void TextFormatReader::ReadRecordStart(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1225,13 +1071,13 @@ namespace TTD
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::LCurly);
     }
 
-    void JSONReader::ReadRecordEnd()
+    void TextFormatReader::ReadRecordEnd()
     {
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::RCurly);
     }
 
-    void JSONReader::ReadNakedNull(bool readSeparator)
+    void TextFormatReader::ReadNakedNull(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1239,7 +1085,7 @@ namespace TTD
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Null);
     }
 
-    byte JSONReader::ReadNakedByte(bool readSeparator)
+    byte TextFormatReader::ReadNakedByte(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1252,7 +1098,7 @@ namespace TTD
         return (byte)uval;
     }
 
-    bool JSONReader::ReadBool(NSTokens::Key keyCheck, bool readSeparator)
+    bool TextFormatReader::ReadBool(NSTokens::Key keyCheck, bool readSeparator)
     {
         this->ReadKey(keyCheck, readSeparator);
 
@@ -1262,7 +1108,7 @@ namespace TTD
         return (tok == NSTokens::ParseTokenKind::True);
     }
 
-    int32 JSONReader::ReadNakedInt32(bool readSeparator)
+    int32 TextFormatReader::ReadNakedInt32(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1276,7 +1122,7 @@ namespace TTD
         return (int32)ival;
     }
 
-    uint32 JSONReader::ReadNakedUInt32(bool readSeparator)
+    uint32 TextFormatReader::ReadNakedUInt32(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1290,7 +1136,7 @@ namespace TTD
         return (uint32)uval;
     }
 
-    int64 JSONReader::ReadNakedInt64(bool readSeparator)
+    int64 TextFormatReader::ReadNakedInt64(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1301,7 +1147,7 @@ namespace TTD
         return this->ReadIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
-    uint64 JSONReader::ReadNakedUInt64(bool readSeparator)
+    uint64 TextFormatReader::ReadNakedUInt64(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1312,85 +1158,78 @@ namespace TTD
         return this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
-    double JSONReader::ReadNakedDouble(bool readSeparator)
+    double TextFormatReader::ReadNakedDouble(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
 
         double res = -1.0;
-        if(this->m_charListOpt.Item(0) == _u('#'))
+        switch(tok)
         {
-            if(this->m_charListOpt.Item(1) == _u('n'))
-            {
-                res = Js::JavascriptNumber::NaN;
-            }
-            else if(this->m_charListOpt.Item(1) == _u('+'))
-            {
-                res = Js::JavascriptNumber::POSITIVE_INFINITY;
-            }
-            else if(this->m_charListOpt.Item(1) == _u('-'))
-            {
-                res = Js::JavascriptNumber::NEGATIVE_INFINITY;
-            }
-            else if(this->m_charListOpt.Item(1) == _u('u'))
-            {
-                res = Js::JavascriptNumber::MAX_VALUE;
-            }
-            else if(this->m_charListOpt.Item(1) == _u('l'))
-            {
-                res = Js::JavascriptNumber::MIN_VALUE;
-            }
-            else if(this->m_charListOpt.Item(1) == _u('e'))
-            {
-                res = Js::Math::EPSILON;
-            }
-            else
-            {
-                FileReader::FileReadAssert(false);
-            }
-        }
-        else
+        case TTD::NSTokens::ParseTokenKind::NaN:
+            res = Js::JavascriptNumber::NaN;
+            break;
+        case TTD::NSTokens::ParseTokenKind::PosInfty:
+            res = Js::JavascriptNumber::POSITIVE_INFINITY;
+            break;
+        case TTD::NSTokens::ParseTokenKind::NegInfty:
+            res = Js::JavascriptNumber::NEGATIVE_INFINITY;
+            break;
+        case TTD::NSTokens::ParseTokenKind::UpperBound:
+            res = Js::JavascriptNumber::MAX_VALUE;
+            break;
+        case TTD::NSTokens::ParseTokenKind::LowerBound:
+            res = Js::JavascriptNumber::MIN_VALUE;
+            break;
+        case TTD::NSTokens::ParseTokenKind::Epsilon:
+            res = Js::Math::EPSILON;
+            break;
+        default:
         {
+            FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
+
             this->m_charListOpt.Add(_u('\0'));
             res = this->ReadDoubleFromCharArray(this->m_charListOpt.GetBuffer());
+
+            break;
+        }
         }
 
         return res;
     }
 
-    TTD_PTR_ID JSONReader::ReadNakedAddr(bool readSeparator)
+    TTD_PTR_ID TextFormatReader::ReadNakedAddr(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String); //Addrs are strings \"*0x...\" are always strings.
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Address);
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
-        return (TTD_PTR_ID)this->ReadHexFromCharArray(this->m_charListOpt.GetBuffer() + 4); //skip off the first "*0x
+        this->m_charListOpt.Add(_u('\0')); //add terminator
+        return (TTD_PTR_ID)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
-    TTD_LOG_TAG JSONReader::ReadNakedLogTag(bool readSeparator)
+    TTD_LOG_TAG TextFormatReader::ReadNakedLogTag(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String); //Log tags are strings \"!...\" are always strings.
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::LogTag);
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
-        return (TTD_LOG_TAG)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer() + 2); //skip off the first "!
+        this->m_charListOpt.Add(_u('\0')); //add terminator
+        return (TTD_LOG_TAG)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
-    uint32 JSONReader::ReadNakedTag(bool readSeparator)
+    uint32 TextFormatReader::ReadNakedTag(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String); //Tags are strings \"$...\" are always strings.
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::EnumTag);
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
-        uint64 tval = this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer() + 2); //skip off the "$
+        this->m_charListOpt.Add(_u('\0')); //add terminator
+        uint64 tval = this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
         FileReader::FileReadAssert(tval <= UINT32_MAX);
 
         return (uint32)tval;
@@ -1398,7 +1237,7 @@ namespace TTD
 
     ////
 
-    void JSONReader::ReadNakedString(SlabAllocator& alloc, TTString& into, bool readSeparator)
+    void TextFormatReader::ReadNakedString(SlabAllocator& alloc, TTString& into, bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1411,12 +1250,11 @@ namespace TTD
         }
         else
         {
-            const wchar* spos = (this->m_charListOpt.GetBuffer() + 1);
-            alloc.CopyStringIntoWLength(spos, this->m_charListOpt.Count() - 2, into); //don't include the "..." marks
+            alloc.CopyStringIntoWLength(this->m_charListOpt.GetBuffer(), this->m_charListOpt.Count(), into);
         }
     }
 
-    void JSONReader::ReadNakedString(UnlinkableSlabAllocator& alloc, TTString& into, bool readSeparator)
+    void TextFormatReader::ReadNakedString(UnlinkableSlabAllocator& alloc, TTString& into, bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1429,48 +1267,30 @@ namespace TTD
         }
         else
         {
-            const wchar* spos = (this->m_charListOpt.GetBuffer() + 1);
-            alloc.CopyStringIntoWLength(spos, this->m_charListOpt.Count() - 2, into); //don't include the "..." marks
+            alloc.CopyStringIntoWLength(this->m_charListOpt.GetBuffer(), this->m_charListOpt.Count(), into);
         }
     }
 
-    TTD_WELLKNOWN_TOKEN JSONReader::ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator)
+    TTD_WELLKNOWN_TOKEN TextFormatReader::ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::WellKnownToken);
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
-        LPCWSTR res = alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer() + 1); //remove first "
-
-        return res;
+        this->m_charListOpt.Add(_u('\0')); //add null terminator
+        return alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer());
     }
 
-    TTD_WELLKNOWN_TOKEN JSONReader::ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator)
+    TTD_WELLKNOWN_TOKEN TextFormatReader::ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::WellKnownToken);
 
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
-        LPCWSTR res = alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer() + 1); //remove first "
-
-        return res;
-    }
-
-    LPCWSTR JSONReader::ReadFileNameForSourceLocation(bool readSeparator)
-    {
-        this->ReadKey(NSTokens::Key::uri, readSeparator);
-
-        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
-
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, _u('\0')); //remove last "
-        LPCWSTR res = this->m_charListOpt.GetBuffer() + 1; //remove first "
-
-        return res;
+        this->m_charListOpt.Add(_u('\0')); //add null terminator
+        return alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer() + 1);
     }
 
     //////////////////

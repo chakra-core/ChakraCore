@@ -491,23 +491,35 @@ static void CALLBACK TTInitializeForWriteLogStreamCallback(const char16* uri)
     DeleteDirectory(uri);
 }
 
-static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool write)
+static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write)
 {
-    AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
-
-    std::wstring logFile(uri);
-    logFile.append(_u("ttdlog.json"));
-
     HANDLE res = INVALID_HANDLE_VALUE;
+
+    BOOL success = FALSE;
+    DWORD byteCount = 0;
+    byte orderMarks[2] = { 0xFF, 0xFE }; //utf16 little-endian
+
     if(read)
     {
-        res = CreateFile(logFile.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        res = CreateFile(uri, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+        if(res != INVALID_HANDLE_VALUE)
+        {
+            //Handle byte order marks
+            BOOL ok = ReadFile(res, orderMarks, 2, &byteCount, NULL);
+            success = (ok && byteCount == 2 && orderMarks[0] == 0xFF && orderMarks[1] == 0xFE);
+        }
     }
     else
     {
-        CreateDirectoryIfNeeded(uri);
+        res = CreateFile(uri, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
-        res = CreateFile(logFile.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if(res != INVALID_HANDLE_VALUE)
+        {
+            //Handle byte order marks
+            BOOL ok = WriteFile(res, orderMarks, 2, &byteCount, NULL);
+            success = (ok && byteCount == 2);
+        }
     }
 
     if(res == INVALID_HANDLE_VALUE)
@@ -516,12 +528,29 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool
         LPTSTR pTemp = NULL;
         FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
         fwprintf(stderr, _u(": %s\n"), pTemp);
-        fwprintf(stderr, _u("Failed on file: %ls\n"), logFile.c_str());
+        fwprintf(stderr, _u("Failed on file: %ls\n"), uri);
 
         AssertMsg(false, "Failed File Open");
     }
 
+    if(!success)
+    {
+        fwprintf(stderr, _u("Failed on file: %ls\n"), uri);
+
+        AssertMsg(false, "Failed Bad Encoding or File State");
+    }
+
     return res;
+}
+
+static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool write)
+{
+    AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
+
+    std::wstring logFile(uri);
+    logFile.append(_u("ttdlog.json"));
+
+    return TTOpenStream_Helper(logFile.c_str(), read, write);
 }
 
 static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* logRootUri, const char16* snapId, bool read, bool write, char16** containerUri)
@@ -540,31 +569,7 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* logRootUri, con
     std::wstring snapFile(snapDir);
     snapFile.append(_u("snapshot.json"));
 
-    HANDLE res = INVALID_HANDLE_VALUE;
-    if(read)
-    {
-        res = CreateFile(snapFile.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    }
-    else
-    {
-        //create the directory if it does not exist
-        CreateDirectory(snapDir.c_str(), NULL);
-
-        res = CreateFile(snapFile.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    }
-
-    if(res == INVALID_HANDLE_VALUE)
-    {
-        DWORD lastError = GetLastError();
-        LPTSTR pTemp = NULL;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
-        fwprintf(stderr, _u(": %s\n"), pTemp);
-        fwprintf(stderr, _u("Failed on file: %ls\n"), snapFile.c_str());
-
-        AssertMsg(false, "Failed File Open");
-    }
-
-    return res;
+    return TTOpenStream_Helper(snapFile.c_str(), read, write);
 }
 
 static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* containerUri, const char16* documentid, const char16* srcFileName, bool read, bool write)
@@ -579,28 +584,7 @@ static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* containerUri, co
     srcPath.append(_u("_"));
     srcPath.append(sFile.c_str());
 
-    HANDLE res = INVALID_HANDLE_VALUE;
-    if(read)
-    {
-        res = CreateFile(srcPath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    }
-    else
-    {
-        res = CreateFile(srcPath.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    }
-
-    if(res == INVALID_HANDLE_VALUE)
-    {
-        DWORD lastError = GetLastError();
-        LPTSTR pTemp = NULL;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
-        fwprintf(stderr, _u(": %s\n"), pTemp);
-        fwprintf(stderr, _u("Failed on file: %ls\n"), srcPath.c_str());
-
-        AssertMsg(false, "Failed File Open");
-    }
-
-    return res;
+    return TTOpenStream_Helper(srcPath.c_str(), read, write);
 }
 
 static BOOL CALLBACK TTReadBytesFromStreamCallback(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount)

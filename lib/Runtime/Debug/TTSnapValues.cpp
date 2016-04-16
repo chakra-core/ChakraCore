@@ -961,8 +961,10 @@ namespace TTD
             {
                 writer->WriteLengthValue(fbInfo->SourceCode.Length, NSTokens::Separator::CommaSeparator);
 
-                LPCWSTR docId = writer->FormatNumber(fbInfo->DocumentID);
-                JsSupport::WriteCodeToFile(streamFunctions, sourceDir, docId, fbInfo->SourceUri.Contents, fbInfo->SourceCode.Contents, fbInfo->SourceCode.Length);
+                UtilSupport::TTAutoString docId;
+                docId.Append(fbInfo->DocumentID);
+
+                JsSupport::WriteCodeToFile(streamFunctions, sourceDir, docId.GetStrValue(), fbInfo->SourceUri.Contents, fbInfo->SourceCode.Contents, fbInfo->SourceCode.Length);
             }
         }
 
@@ -987,8 +989,10 @@ namespace TTD
                 fbInfo->SourceCode.Length = reader->ReadLengthValue(true);
                 fbInfo->SourceCode.Contents = alloc.SlabAllocateArray<wchar>(fbInfo->SourceCode.Length + 1);
 
-                LPCWSTR docId = reader->FormatNumber(fbInfo->DocumentID);
-                JsSupport::ReadCodeFromFile(streamFunctions, sourceDir, docId, fbInfo->SourceUri.Contents, fbInfo->SourceCode.Contents, fbInfo->SourceCode.Length);
+                UtilSupport::TTAutoString docId;
+                docId.Append(fbInfo->DocumentID);
+
+                JsSupport::ReadCodeFromFile(streamFunctions, sourceDir, docId.GetStrValue(), fbInfo->SourceUri.Contents, fbInfo->SourceCode.Contents, fbInfo->SourceCode.Length);
             }
         }
 

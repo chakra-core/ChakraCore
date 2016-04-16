@@ -237,68 +237,6 @@ namespace TTD
         return this->m_column;
     }
 
-    void TTDebuggerSourceLocation::Emit(FileWriter* writer, NSTokens::Separator separator) const
-    {
-        writer->WriteKey(NSTokens::Key::srcLocation, separator);
-        writer->WriteRecordStart();
-
-        writer->WriteBool(NSTokens::Key::isValid, this->HasValue());
-        if(this->HasValue())
-        {
-            writer->WriteInt64(NSTokens::Key::eventTime, this->m_etime, NSTokens::Separator::CommaSeparator);
-            writer->WriteInt64(NSTokens::Key::functionTime, this->m_ftime, NSTokens::Separator::CommaSeparator);
-            writer->WriteInt64(NSTokens::Key::loopTime, this->m_ltime, NSTokens::Separator::CommaSeparator);
-
-            writer->WriteUInt32(NSTokens::Key::documentId, this->m_docid, NSTokens::Separator::CommaSeparator);
-
-            writer->WriteUInt32(NSTokens::Key::functionLine, this->m_functionLine, NSTokens::Separator::CommaSeparator);
-            writer->WriteUInt32(NSTokens::Key::functionColumn, this->m_functionColumn, NSTokens::Separator::CommaSeparator);
-
-            writer->WriteUInt32(NSTokens::Key::line, this->m_line, NSTokens::Separator::CommaSeparator);
-            writer->WriteUInt32(NSTokens::Key::column, this->m_column, NSTokens::Separator::CommaSeparator);
-
-            writer->WriteFileNameForSourceLocation(this->m_sourceFile, NSTokens::Separator::CommaSeparator);
-        }
-
-        writer->WriteRecordEnd();
-    }
-
-    void TTDebuggerSourceLocation::ParseInto(TTDebuggerSourceLocation& into, FileReader* reader, bool readSeperator)
-    {
-        reader->ReadKey(NSTokens::Key::srcLocation, readSeperator);
-        reader->ReadRecordStart();
-
-        bool hasValue = reader->ReadBool(NSTokens::Key::isValid);
-        if(!hasValue)
-        {
-            into.Clear();
-        }
-        else
-        {
-            into.m_etime = reader->ReadInt64(NSTokens::Key::eventTime, true);
-            into.m_ftime = reader->ReadInt64(NSTokens::Key::functionTime, true);
-            into.m_ltime = reader->ReadInt64(NSTokens::Key::loopTime, true);
-
-            into.m_docid = reader->ReadUInt32(NSTokens::Key::documentId, true);
-
-            into.m_functionLine = reader->ReadUInt32(NSTokens::Key::functionLine, true);
-            into.m_functionColumn = reader->ReadUInt32(NSTokens::Key::functionColumn, true);
-
-            into.m_line = reader->ReadUInt32(NSTokens::Key::line, true);
-            into.m_column = reader->ReadUInt32(NSTokens::Key::column, true);
-
-            LPCWSTR sourceFile = reader->ReadFileNameForSourceLocation(true);
-
-            size_t wcharLength = wcslen(sourceFile) + 1;
-            size_t byteLength = wcharLength * sizeof(wchar);
-
-            into.m_sourceFile = new wchar[wcharLength];
-            js_memcpy_s(into.m_sourceFile, byteLength, sourceFile, byteLength);
-        }
-
-        reader->ReadRecordEnd();
-    }
-
     //////////////////
 
     EventLogEntry::EventLogEntry(EventKind tag, int64 eventTimestamp)

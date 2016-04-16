@@ -2176,7 +2176,7 @@ namespace TTD
 #if TTD_WRITE_JSON_OUTPUT || TTD_WRITE_BINARY_OUTPUT
 
         HANDLE logHandle = this->m_threadContext->TTDStreamFunctions.pfGetLogStream(this->m_logInfoRootDir.Contents, false, true);
-        JSONWriter writer(logHandle, this->m_threadContext->TTDStreamFunctions.pfWriteBytesToStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
+        TextFormatWriter writer(logHandle, this->m_threadContext->TTDStreamFunctions.pfWriteBytesToStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
         writer.WriteRecordStart();
         writer.AdjustIndent(1);
@@ -2281,7 +2281,7 @@ namespace TTD
     void EventLog::ParseLogInto()
     {
         HANDLE logHandle = this->m_threadContext->TTDStreamFunctions.pfGetLogStream(this->m_logInfoRootDir.Contents, true, false);
-        JSONReader reader(logHandle, this->m_threadContext->TTDStreamFunctions.pfReadBytesFromStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
+        TextFormatReader reader(logHandle, this->m_threadContext->TTDStreamFunctions.pfReadBytesFromStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
         reader.ReadRecordStart();
 
