@@ -394,6 +394,7 @@ namespace TTD
 
         this->WriteRawChar('~');
         this->WriteRawCharBuff(val, wcslen(val));
+        this->WriteRawChar('~');
     }
 
     //////////////////
@@ -624,8 +625,21 @@ namespace TTD
 
     NSTokens::ParseTokenKind TextFormatReader::ScanKey(JsUtil::List<wchar, HeapAllocator>& charList)
     {
+        charList.Clear();
+
         char16 c = _u('\0');
         bool endFound = false;
+
+        //Read off any whitespace
+        while(this->PeekRawChar(&c))
+        {
+            if((c != _u('\t')) & (c != _u('\r')) & (c != _u('\n')) & (c != _u(' ')))
+            {
+                break;
+            }
+
+            this->ReadRawChar(&c);
+        }
 
         while(this->PeekRawChar(&c))
         {
@@ -790,15 +804,14 @@ namespace TTD
         char16 c = _u('\0');
         bool endFound = false;
 
-        while(this->PeekRawChar(&c))
+        while(this->ReadRawChar(&c))
         {
             if(c == 0)
             {
                 return NSTokens::ParseTokenKind::Error;
             }
 
-            if((c == _u(',')) | (c == _u('}')) | (c == _u(']')) 
-                | (c == _u('\t')) | (c == _u('\r')) | (c == _u('\n')) | (c == _u(' ')))
+            if(c == _u('~'))
             {
                 //end of the string
                 endFound = true;
@@ -806,7 +819,6 @@ namespace TTD
             }
             else
             {
-                this->ReadRawChar(&c);
                 charList.Add(c);
             }
         }

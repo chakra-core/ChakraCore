@@ -127,7 +127,7 @@ namespace TTD
                 this->Flush();
             }
 
-            int addedChars = swprintf_s(this->m_buffer, TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE, formatString, data);
+            int addedChars = swprintf_s(this->m_buffer + this->m_cursor, TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE, formatString, data);
             AssertMsg(addedChars != -1 && addedChars < TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE, "Formatting failed or result is too big.");
 
             this->m_cursor += addedChars;

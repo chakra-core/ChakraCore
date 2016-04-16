@@ -548,7 +548,7 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     std::wstring logFile(uri);
-    logFile.append(_u("ttdlog.json"));
+    logFile.append(_u("ttdlog.log"));
 
     return TTOpenStream_Helper(logFile.c_str(), read, write);
 }
@@ -567,7 +567,13 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* logRootUri, con
     memcpy(*containerUri, snapDir.c_str(), resUriCount * sizeof(char16));
 
     std::wstring snapFile(snapDir);
-    snapFile.append(_u("snapshot.json"));
+    snapFile.append(_u("snapshot.snp"));
+
+    if(write)
+    {
+        //create the directory if it does not exist
+        CreateDirectory(snapDir.c_str(), NULL);
+    }
 
     return TTOpenStream_Helper(snapFile.c_str(), read, write);
 }
