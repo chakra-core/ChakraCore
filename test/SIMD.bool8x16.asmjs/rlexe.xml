@@ -23,6 +23,13 @@
       <compile-flags>-bgjit- -simdjs -simd128typespec -asmjs- -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>testConstructor.js</files>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-asmjs -simdjs -off:simplejit -maic:0 -mic:0</compile-flags>
+    </default>
+  </test> 
   <!--__Bitwise__-->
   <test>
     <default>
