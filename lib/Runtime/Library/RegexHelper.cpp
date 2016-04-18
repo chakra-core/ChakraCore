@@ -377,7 +377,6 @@ namespace Js
         return !JavascriptRegExp::HasOriginalRegExType(instance)
             || JavascriptRegExp::HasObservableExec(regexPrototype)
             || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
-            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype)
             || JavascriptRegExp::HasObservableUnicodeFlag(regexPrototype);
     }
 
@@ -648,9 +647,7 @@ namespace Js
     {
         DynamicObject* regexPrototype = scriptContext->GetLibrary()->GetRegExpPrototype();
         return !JavascriptRegExp::HasOriginalRegExType(instance)
-            || JavascriptRegExp::HasObservableExec(regexPrototype)
-            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
-            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype);
+            || JavascriptRegExp::HasObservableExec(regexPrototype);
     }
 
     Var RegexHelper::RegexEs6TestImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString *input)
@@ -837,8 +834,7 @@ namespace Js
         return !JavascriptRegExp::HasOriginalRegExType(instance)
             || JavascriptRegExp::HasObservableUnicodeFlag(regexPrototype)
             || JavascriptRegExp::HasObservableExec(regexPrototype)
-            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
-            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype);
+            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype);
     }
 
     Var RegexHelper::RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult)
@@ -1505,9 +1501,7 @@ namespace Js
         return !JavascriptRegExp::HasOriginalRegExType(instance)
             || JavascriptRegExp::HasObservableConstructor(regexPrototype)
             || JavascriptRegExp::HasObservableFlags(regexPrototype)
-            || JavascriptRegExp::HasObservableExec(regexPrototype)
-            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
-            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype);
+            || JavascriptRegExp::HasObservableExec(regexPrototype);
     }
 
     Var RegexHelper::RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)

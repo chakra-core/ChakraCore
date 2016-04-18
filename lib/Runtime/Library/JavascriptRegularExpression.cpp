@@ -752,15 +752,6 @@ namespace Js
             && regexPrototype->GetSlot(library->GetRegexGlobalGetterSlotIndex()) != library->GetRegexGlobalGetterFunction();
     }
 
-    bool JavascriptRegExp::HasObservableStickyFlag(DynamicObject* regexPrototype)
-    {
-        const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
-        JavascriptLibrary* library = regexPrototype->GetLibrary();
-        return scriptConfig->IsES6RegExStickyEnabled()
-            && scriptConfig->IsES6RegExPrototypePropertiesEnabled()
-            && regexPrototype->GetSlot(library->GetRegexStickyGetterSlotIndex()) != library->GetRegexStickyGetterFunction();
-    }
-
     bool JavascriptRegExp::HasObservableUnicodeFlag(DynamicObject* regexPrototype)
     {
         const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
@@ -870,21 +861,6 @@ namespace Js
 
     Var JavascriptRegExp::CallExec(RecyclableObject* thisObj, JavascriptString* string, PCWSTR varName, ScriptContext* scriptContext)
     {
-        JavascriptRegExp* regExObj = nullptr;
-
-        // TODO: The built-in "exec" in ES6 is supposed to access the RegExp flags. Since the flags
-        // can be overridden and return a different value than what's passed to the constructor,
-        // the pattern needs to be recompiled. However, the way the observability check is currently
-        // implemented, it reduces the perf quite a lot.
-        //
-        // Therefore, we recompile the pattern here before calling "exec" for the time being, but
-        // this will be moved to "exec".
-        if (JavascriptRegExp::Is(thisObj))
-        {
-            regExObj = JavascriptRegExp::FromVar(thisObj);
-            regExObj->RecompilePatternForExecIfNeeded(scriptContext);
-        }
-
         Var exec = JavascriptOperators::GetProperty(thisObj, PropertyIds::exec, scriptContext);
         if (JavascriptConversion::IsCallable(exec))
         {
@@ -899,48 +875,8 @@ namespace Js
             return result;
         }
 
-        if (regExObj == nullptr)
-        {
-            regExObj = ToRegExp(thisObj, varName, scriptContext);
-        }
+        JavascriptRegExp* regExObj = ToRegExp(thisObj, varName, scriptContext);
         return RegexHelper::RegexExec(scriptContext, regExObj, string, false);
-    }
-
-    void JavascriptRegExp::RecompilePatternForExecIfNeeded(ScriptContext* scriptContext)
-    {
-        if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
-        {
-            return;
-        }
-
-        DynamicObject* regexPrototype = scriptContext->GetLibrary()->GetRegExpPrototype();
-        bool observable =
-            !JavascriptRegExp::HasOriginalRegExType(this)
-            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
-            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype);
-        if (!observable)
-        {
-            return;
-        }
-
-        UnifiedRegex::RegexPattern* pattern = this->GetPattern();
-
-        UnifiedRegex::RegexFlags newFlags = pattern->GetFlags();
-        newFlags = SetRegexFlag(PropertyIds::global, newFlags, UnifiedRegex::GlobalRegexFlag, scriptContext);
-        newFlags = SetRegexFlag(PropertyIds::sticky, newFlags, UnifiedRegex::StickyRegexFlag, scriptContext);
-
-        if (newFlags != pattern->GetFlags())
-        {
-            InternalString source = pattern->GetSource();
-            UnifiedRegex::RegexPattern* newPattern = RegexHelper::CompileDynamic(
-                scriptContext,
-                source.GetBuffer(),
-                source.GetLength(),
-                newFlags,
-                pattern->IsLiteral());
-            this->SetPattern(newPattern);
-            this->SetSplitPattern(nullptr);
-        }
     }
 
     UnifiedRegex::RegexFlags JavascriptRegExp::SetRegexFlag(
