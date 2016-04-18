@@ -519,7 +519,7 @@ var tests = [
     {
         name: "RegExp.prototype[@@replace] should 'Get' 'global' when it is overridden",
         body: function () {
-            var re = /a-/;
+            var re = /a-/g;
             re.lastIndex = 1; // Will be reset to 0 by RegExp.prototype[@@replace]
             var string = "a-a-ba-";
             var replace = "*";
@@ -540,7 +540,7 @@ var tests = [
     {
         name: "RegExp.prototype[@@replace] should coerce a missing 'global' to 'false'",
         body: function () {
-            var re = /a-/g;
+            var re = /a-/;
             re.lastIndex = 1; // RegExpBuiltinExec will ignore this and start from 0
             var string = "a-a-ba-";
             var replace = "*";
@@ -924,7 +924,7 @@ var tests = [
     {
         name: "RegExp.prototype[@@match] should 'Get' 'global' when it is overridden",
         body: function () {
-            var re = /a-/;
+            var re = /a-/g;
             re.lastIndex = 1; // Will be reset to 0 by RegExp.prototype[@@match]
 
             var calledGlobal = false;
@@ -946,45 +946,11 @@ var tests = [
     {
         name: "RegExp.prototype[@@match] should coerce a missing 'global' to 'false'",
         body: function () {
-            var re = /a-/g;
+            var re = /a-/;
             re.lastIndex = 1; // RegExpBuiltinExec will ignore this and start from 0
 
             var result;
             helpers.withPropertyDeleted(RegExp.prototype, "global", function () {
-                result = re[Symbol.match]("a-a-ba-");
-            });
-
-            assert.areEqual(1, result.length, "result.length");
-            assert.areEqual("a-", result[0], "result[0]");
-        }
-    },
-    {
-        name: "RegExp.prototype[@@match] should 'Get' 'sticky' when it is overridden",
-        body: function () {
-            var re = /a-/;
-            re.lastIndex = 1; // Will be kept at 1
-
-            var calledSticky = false;
-            var getSticky = function () {
-                calledSticky = true;
-                return true;
-            };
-            Object.defineProperty(re, "sticky", {get: getSticky});
-
-            var result = re[Symbol.match]("a-a-ba-");
-
-            assert.isTrue(calledSticky, "'sticky' getter is called");
-            assert.areEqual(null, result, "result");
-        }
-    },
-    {
-        name: "RegExp.prototype[@@match] should coerce a missing 'sticky' to 'false'",
-        body: function () {
-            var re = /a-/y;
-            re.lastIndex = 1; // RegExpBuiltinExec will ignore this and start from 0
-
-            var result;
-            helpers.withPropertyDeleted(RegExp.prototype, "sticky", function () {
                 result = re[Symbol.match]("a-a-ba-");
             });
 
