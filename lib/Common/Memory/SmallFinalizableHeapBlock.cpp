@@ -229,13 +229,10 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::RescanTrackedObject(FinalizableObj
 }
 #endif
 
-template SweepState SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::Sweep<true>(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable);
-template SweepState SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::Sweep<false>(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable);
-template SweepState SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::Sweep<true>(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable);
-template SweepState SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::Sweep<false>(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable);
+template SweepState SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable);
+template SweepState SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable);
 
 template <class TBlockAttributes>
-template<bool pageheap>
 SweepState
 SmallFinalizableHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable)
 {
@@ -245,7 +242,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep
     // If there are finalizable objects in this heap block, they need to be swept
     // in-thread and not in the concurrent thread, so don't queue pending sweep
 
-    return SmallNormalHeapBlockT<TBlockAttributes>::Sweep<pageheap>(recyclerSweep, false, allocable, this->finalizeCount, HasAnyDisposeObjects());
+    return SmallNormalHeapBlockT<TBlockAttributes>::Sweep(recyclerSweep, false, allocable, this->finalizeCount, HasAnyDisposeObjects());
 }
 
 template <class TBlockAttributes>

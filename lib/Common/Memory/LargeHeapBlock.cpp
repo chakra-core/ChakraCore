@@ -168,6 +168,9 @@ LargeHeapBlock::Delete(LargeHeapBlock * heapBlock)
 
 LargeHeapBlock::LargeHeapBlock(__in char * address, size_t pageCount, Segment * segment, uint objectCount, LargeHeapBucket* bucket)
     : HeapBlock(LargeBlockType), pageCount(pageCount), allocAddressEnd(address), objectCount(objectCount), bucket(bucket), freeList(this)
+#ifdef RECYCLER_PAGE_HEAP
+    , pageHeapAllocStack(nullptr), pageHeapFreeStack(nullptr)
+#endif
 {
     Assert(address != nullptr);
     Assert(pageCount != 0);
@@ -197,7 +200,10 @@ LargeHeapBlock::~LargeHeapBlock()
 #ifdef RECYCLER_PAGE_HEAP
     if (this->pageHeapAllocStack != nullptr)
     {
-        this->pageHeapAllocStack->Delete(&NoCheckHeapAllocator::Instance);
+        if (this->pageHeapAllocStack != (StackBackTrace*)1)
+        {
+            this->pageHeapAllocStack->Delete(&NoThrowHeapAllocator::Instance);
+        }
         this->pageHeapAllocStack = nullptr;
     }
 
@@ -205,7 +211,7 @@ LargeHeapBlock::~LargeHeapBlock()
     // Is this okay? Should we delay freeing heap blocks till process/thread shutdown time?
     if (this->pageHeapFreeStack != nullptr)
     {
-        this->pageHeapFreeStack->Delete(&NoCheckHeapAllocator::Instance);
+        this->pageHeapFreeStack->Delete(&NoThrowHeapAllocator::Instance);
         this->pageHeapFreeStack = nullptr;
     }
 #endif
@@ -280,52 +286,104 @@ LargeHeapBlock::ReleasePagesShutdown(Recycler * recycler)
 #endif
 }
 
-template void LargeHeapBlock::ReleasePagesSweep<true>(Recycler * recycler);
-template void LargeHeapBlock::ReleasePagesSweep<false>(Recycler * recycler);
-
-template<bool pageheap>
 void
 LargeHeapBlock::ReleasePagesSweep(Recycler * recycler)
 {
     recycler->heapBlockMap.ClearHeapBlock(this->address, this->pageCount);
 
-    ReleasePages<pageheap>(recycler);
+    ReleasePages(recycler);
 }
 
+#ifdef RECYCLER_PAGE_HEAP
+__declspec(noinline)
+void LargeHeapBlock::VerifyPageHeapPattern()
+{
+    Assert(InPageHeapMode());
+    if (this->allocAddressEnd > this->address) // in case OOM while allocate heapBlockMap
+    {
+#if _M_X64
+        byte* addr = (byte*)this->allocAddressEnd;
+        uint64* alignAddr = (uint64*)Math::Align(((uint64)addr), sizeof(void*));
 
-template void LargeHeapBlock::ReleasePages<true>(Recycler * recycler);
-template void LargeHeapBlock::ReleasePages<false>(Recycler * recycler);
+        for (int i = 0; addr+i<(byte*)alignAddr; i++)
+        {
+            byte current = addr[i];
+            if (current != 0xF0u)
+            {
+                Assert(false);
+                ReportFatalException(NULL, E_FAIL, Fatal_Recycler_MemoryCorruption, 2);
+            }
+        }
 
-template<bool pageheap>
+        for (int i = 0; alignAddr + i < (uint64*)this->allocAddressEnd; i++)
+        {
+            uint64 current = alignAddr[i];
+            if (current != 0xF0F0F0F0F0F0F0F0u)
+            {
+                Assert(false);
+                ReportFatalException(NULL, E_FAIL, Fatal_Recycler_MemoryCorruption, 2);
+            }
+        }
+#else
+        byte* addr = (byte*)this->allocAddressEnd;
+        uint32* alignAddr = (uint32*)Math::Align(((uint32)addr), sizeof(void*));
+
+        for (int i = 0; addr + i<(byte*)alignAddr; i++)
+        {
+            byte current = addr[i];
+            if (current != 0xF0u)
+            {
+                Assert(false);
+                ReportFatalException(NULL, E_FAIL, Fatal_Recycler_MemoryCorruption, 2);
+            }
+        }
+
+        for (int i = 0; alignAddr + i < (uint32*)this->allocAddressEnd; i++)
+        {
+            uint32 current = alignAddr[i];
+            if (current != 0xF0F0F0F0u)
+            {
+                Assert(false);
+                ReportFatalException(NULL, E_FAIL, Fatal_Recycler_MemoryCorruption, 2);
+            }
+        }
+#endif
+    }
+}
+#endif
+
 void
 LargeHeapBlock::ReleasePages(Recycler * recycler)
 {
     Assert(segment != nullptr);
 
-    char* pageAddress = address;
-    size_t realPageCount = pageCount;
+    char* blockStartAddress = this->address;
+    size_t realPageCount = this->pageCount;
 #ifdef RECYCLER_PAGE_HEAP
-    if (pageheap)
+    if (InPageHeapMode())
     {
-        if (InPageHeapMode())
+        Assert(((LargeObjectHeader*)this->address)->isPageHeapFillVerified || this->allocCount == 0);
+        VerifyPageHeapPattern();
+
+        if (guardPageAddress != nullptr)
         {
-            if (guardPageAddress != nullptr)
+
+            if (this->pageHeapMode == PageHeapMode::PageHeapModeBlockStart)
             {
-                DWORD noAccess;
-                if (::VirtualProtect(static_cast<LPVOID>(guardPageAddress), AutoSystemInfo::PageSize, guardPageOldProtectFlags, &noAccess) == FALSE)
-                {
-                    AssertMsg(false, "Unable to set permission for guard page.");
-                    return;
-                }
-                AssertMsg(noAccess == PAGE_NOACCESS, "Guard page should be PAGE_NOACCESS");
-
-                if (this->pageHeapMode == PageHeapMode::PageHeapModeBlockStart)
-                {
-                    pageAddress = guardPageAddress;
-                }
-
-                realPageCount = actualPageCount;
+                blockStartAddress = guardPageAddress;
             }
+            realPageCount = actualPageCount;
+
+            MEMORY_BASIC_INFORMATION memInfo;
+            VirtualQuery(this->address, &memInfo, sizeof(memInfo));
+            if (::VirtualAlloc(guardPageAddress, AutoSystemInfo::PageSize, MEM_COMMIT, memInfo.Protect) == NULL)
+            {
+                // failed to commit the guard page again. decommit all pages
+                RecyclerPageAllocator* pageAllocator = (RecyclerPageAllocator*)this->GetPageAllocator(recycler);
+                pageAllocator->PartialDecommitPages(blockStartAddress, realPageCount, this->address, this->pageCount, this->segment);
+                this->segment = nullptr;
+                return;
+            }            
         }
     }
 #endif
@@ -333,7 +391,7 @@ LargeHeapBlock::ReleasePages(Recycler * recycler)
 #ifdef RECYCLER_FREE_MEM_FILL
     memset(this->address, DbgMemFill, AutoSystemInfo::PageSize * pageCount);
 #endif
-    recycler->recyclerLargeBlockPageAllocator.Release(pageAddress, realPageCount, segment);
+    recycler->GetRecyclerLargeBlockPageAllocator()->Release(blockStartAddress, realPageCount, segment);
     RECYCLER_PERF_COUNTER_SUB(LargeHeapBlockPageSize, pageCount * AutoSystemInfo::PageSize);
 
     this->segment = nullptr;
@@ -482,7 +540,7 @@ LargeHeapBlock::AllocFreeListEntry(size_t size, ObjectInfoBits attributes, Large
 char*
 LargeHeapBlock::Alloc(size_t size, ObjectInfoBits attributes)
 {
-    Assert(HeapInfo::IsAlignedSize(size));
+    Assert(HeapInfo::IsAlignedSize(size) || InPageHeapMode());
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
     AssertMsg((attributes & TrackBit) == 0, "Large tracked object collection not implemented");
 
@@ -513,6 +571,7 @@ LargeHeapBlock::Alloc(size_t size, ObjectInfoBits attributes)
         memset(header, 0, sizeof(LargeObjectHeader));
     }
 #endif
+
     header->objectIndex = allocCount;
     header->objectSize = size;
     header->SetAttributes(recycler->Cookie, (attributes & StoredObjectInfoBitMask));
@@ -556,9 +615,28 @@ LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
         return;
     }
 
+    if (header->isPageHeapAlloc)
+    {
+        this->VerifyPageHeapPattern();
+    }
+
     DUMP_OBJECT_REFERENCE(markContext->GetRecycler(), objectAddress);
 
-    if (!UpdateAttributesOfMarkedObjects(markContext, objectAddress, header->objectSize, header->GetAttributes(this->heapInfo->recycler->Cookie),
+    unsigned char attributes = header->GetAttributes(this->heapInfo->recycler->Cookie);
+    size_t objectSize = header->objectSize;
+    if (this->InPageHeapMode())
+    {
+        // trim off the trailing part which is not a pointer
+        objectSize = objectSize - (objectSize%sizeof(void*));
+        if (objectSize == 0)
+        {
+            // finalizable object must bigger than a pointer size because of the vtable
+            Assert((attributes & (TrackBit | FinalizeBit)) == 0);
+            return;
+        }
+    }
+
+    if (!UpdateAttributesOfMarkedObjects(markContext, objectAddress, objectSize, attributes,
         [&](unsigned char attributes) { header->SetAttributes(this->heapInfo->recycler->Cookie, attributes); }))
     {
         // Couldn't mark children- bail out and come back later
@@ -979,9 +1057,18 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
         RECYCLER_STATS_INC(recycler, markData.rescanLargeObjectCount);
         RECYCLER_STATS_ADD(recycler, markData.rescanLargeByteCount, header->objectSize);
 
-        if (!recycler->AddMark(objectAddress, header->objectSize))
+        size_t objectSize = header->objectSize;
+        if (this->InPageHeapMode())
         {
-            this->SetNeedOOMRescan(recycler);
+            // trim off the trailing part which is not a pointer
+            objectSize = objectSize - (objectSize%sizeof(void*));
+        }
+        if (objectSize > 0) // otherwize the object total size is less than a pointer size
+        {
+            if (!recycler->AddMark(objectAddress, objectSize))
+            {
+                this->SetNeedOOMRescan(recycler);
+            }
         }
     }
     return true;
@@ -1090,11 +1177,20 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
 #ifdef RECYCLER_STATS
         bool objectScanned = false;
 #endif
+
+        size_t objectSize = header->objectSize;
+        if (this->InPageHeapMode())
+        {
+            // trim off the trailing part which is not a pointer
+            objectSize = objectSize - (objectSize%sizeof(void*));
+        }
+
+        Assert(objectSize > 0);
         Assert(oldNeedOOMRescan || !header->markOnOOMRescan);
         // Avoid writing to the page unnecessary by checking first
         if (header->markOnOOMRescan)
         {
-            if (!recycler->AddMark(objectAddress, header->objectSize))
+            if (!recycler->AddMark(objectAddress, objectSize))
             {
                 this->SetNeedOOMRescan(recycler);
                 header->markOnOOMRescan = true;
@@ -1123,7 +1219,7 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
 #if ENABLE_CONCURRENT_GC
         else if (!recycler->inEndMarkOnLowMemory)
         {
-            char * objectAddressEnd = objectAddress + header->objectSize;
+            char * objectAddressEnd = objectAddress + objectSize;
             // Walk through the object, checking if any of its pages have been written to
             // If it has, then queue up this object for marking
             do
@@ -1212,10 +1308,6 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
 * we return SweepStateSwept.
 */
 
-template SweepState LargeHeapBlock::Sweep<true>(RecyclerSweep& recyclerSweep, bool queuePendingSweep);
-template SweepState LargeHeapBlock::Sweep<false>(RecyclerSweep& recyclerSweep, bool queuePendingSweep);
-
-template<bool pageheap>
 SweepState
 LargeHeapBlock::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep)
 {
@@ -1240,7 +1332,7 @@ LargeHeapBlock::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep)
     bool isAllFreed = (finalizeCount == 0 && markCount == 0);
     if (isAllFreed)
     {
-        recycler->NotifyFree<pageheap>(this);
+        recycler->NotifyFree(this);
         Assert(this->pendingDisposeObject == nullptr);
         return SweepStateEmpty;
     }
@@ -1277,7 +1369,7 @@ LargeHeapBlock::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep)
         Assert(!queuePendingSweep);
 #endif
 
-        SweepObjects<pageheap, SweepMode_InThread>(recycler);
+        SweepObjects<SweepMode_InThread>(recycler);
         if (TransferSweptObjects())
         {
             return SweepStatePendingDispose;
@@ -1288,7 +1380,7 @@ LargeHeapBlock::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep)
     {
         Assert(expectedSweepCount == 0);
         isForceSweeping = true;
-        SweepObjects<pageheap, SweepMode_InThread>(recycler);
+        SweepObjects<SweepMode_InThread>(recycler);
         isForceSweeping = false;
     }
 #endif
@@ -1454,8 +1546,7 @@ LargeHeapBlock::FinalizeObject(Recycler* recycler, LargeObjectHeader* header)
 }
 
 // Explicitly instantiate all the sweep modes
-template void LargeHeapBlock::SweepObjects<false, SweepMode_InThread>(Recycler * recycler);
-template void LargeHeapBlock::SweepObjects<true, SweepMode_InThread>(Recycler * recycler);
+template void LargeHeapBlock::SweepObjects<SweepMode_InThread>(Recycler * recycler);
 #if ENABLE_CONCURRENT_GC
 template <>
 void
@@ -1468,7 +1559,7 @@ LargeHeapBlock::SweepObject<SweepMode_Concurrent>(Recycler * recycler, LargeObje
 }
 
 // Explicitly instantiate all the sweep modes
-template void LargeHeapBlock::SweepObjects<false, SweepMode_Concurrent>(Recycler * recycler);
+template void LargeHeapBlock::SweepObjects<SweepMode_Concurrent>(Recycler * recycler);
 #if ENABLE_PARTIAL_GC
 template <>
 void
@@ -1481,7 +1572,7 @@ LargeHeapBlock::SweepObject<SweepMode_ConcurrentPartial>(Recycler * recycler, La
 }
 
 // Explicitly instantiate all the sweep modes
-template void LargeHeapBlock::SweepObjects<false, SweepMode_ConcurrentPartial>(Recycler * recycler);
+template void LargeHeapBlock::SweepObjects<SweepMode_ConcurrentPartial>(Recycler * recycler);
 #endif
 #endif
 
@@ -1522,7 +1613,7 @@ void LargeHeapBlock::FinalizeObjects(Recycler* recycler)
     }
 }
 
-template <bool pageheap, SweepMode mode>
+template <SweepMode mode>
 void
 LargeHeapBlock::SweepObjects(Recycler * recycler)
 {
@@ -1886,5 +1977,58 @@ LargeHeapBlock::GetTrackerDataArray()
 {
     // See LargeHeapBlock::GetAllocPlusSize for layout description
     return (void **)((char *)(this + 1) + LargeHeapBlock::GetAllocPlusSize(this->objectCount) - this->objectCount * sizeof(void *));
+}
+#endif
+
+#ifdef RECYCLER_PAGE_HEAP
+void
+LargeHeapBlock::CapturePageHeapAllocStack()
+{
+    if (this->InPageHeapMode()) // pageheap can be enabled only for some of the buckets
+    {
+        // These asserts are true because explicit free is disallowed in
+        // page heap mode. If they weren't, we'd have to modify the asserts
+        Assert(this->pageHeapFreeStack == nullptr);
+        Assert(this->pageHeapAllocStack == nullptr);
+
+        // Note: NoCheckHeapAllocator will fail fast if we can't allocate the stack to capture
+        // REVIEW: Should we have a flag to configure the number of frames captured?
+        if (pageHeapAllocStack != nullptr && this->pageHeapAllocStack != (StackBackTrace*)1)
+        {
+            this->pageHeapAllocStack->Capture(Recycler::s_numFramesToSkipForPageHeapAlloc);
+        }
+        else
+        {
+            this->pageHeapAllocStack = StackBackTrace::Capture(&NoThrowHeapAllocator::Instance,
+                Recycler::s_numFramesToSkipForPageHeapAlloc, Recycler::s_numFramesToCaptureForPageHeap);
+        }
+        
+        if (this->pageHeapAllocStack == nullptr) 
+        {
+            this->pageHeapAllocStack = (StackBackTrace*)1; // allocate failed, mark it we have tried
+        }
+    }
+}
+
+void
+LargeHeapBlock::CapturePageHeapFreeStack()
+{
+    if (this->InPageHeapMode()) // pageheap can be enabled only for some of the buckets
+    {
+        // These asserts are true because explicit free is disallowed in
+        // page heap mode. If they weren't, we'd have to modify the asserts
+        Assert(this->pageHeapFreeStack == nullptr);
+        Assert(this->pageHeapAllocStack != nullptr);
+
+        if (this->pageHeapFreeStack != nullptr)
+        {
+            this->pageHeapFreeStack->Capture(Recycler::s_numFramesToSkipForPageHeapFree);
+        }
+        else
+        {
+            this->pageHeapFreeStack = StackBackTrace::Capture(&NoThrowHeapAllocator::Instance,
+                Recycler::s_numFramesToSkipForPageHeapFree, Recycler::s_numFramesToCaptureForPageHeap);
+        }
+    }
 }
 #endif

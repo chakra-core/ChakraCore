@@ -72,6 +72,12 @@ public:
 #ifdef RECYCLER_MEMORY_VERIFY
         recycler->FillCheckPad(memBlock, sizeof(T), sizeCat);
 #endif
+#if DBG
+        if (recycler->IsPageHeapEnabled())
+        {
+            recycler->VerifyPageHeapFillAfterAlloc(memBlock);
+        }
+#endif
         return memBlock;
     };
     static uint32 GetEndAddressOffset()

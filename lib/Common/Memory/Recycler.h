@@ -633,7 +633,7 @@ public:
     static const int s_numFramesToSkipForPageHeapAlloc = 0;
     static const int s_numFramesToSkipForPageHeapFree = 0;
 
-    static const int s_numFramesToCaptureForPageHeap = 20;
+    static const int s_numFramesToCaptureForPageHeap = 32;
 #endif
 
     uint Cookie;
@@ -1526,6 +1526,9 @@ private:
     {
         return AllocWithAttributes<WeakReferenceEntryBits, /* nothrow = */ false>(size);
     }
+#if DBG
+    void VerifyPageHeapFillAfterAlloc(char* memBlock);
+#endif
 
     bool NeedDisposeTimed()
     {
@@ -1720,7 +1723,7 @@ private:
 
     bool ForceSweepObject();
     void NotifyFree(__in char * address, size_t size);
-    template <bool pageheap, typename T>
+    template <typename T>
     void NotifyFree(T * heapBlock);
 
     void CleanupPendingUnroot();
@@ -1959,7 +1962,7 @@ private:
 public:
     typedef void (CALLBACK *ObjectBeforeCollectCallback)(void* object, void* callbackState); // same as jsrt JsObjectBeforeCollectCallback
     // same as jsrt JsObjectBeforeCollectCallbackWrapper
-    typedef void (CALLBACK *ObjectBeforeCollectCallbackWrapper)(ObjectBeforeCollectCallback callback, void* object, void* callbackState, void* threadContext); 
+    typedef void (CALLBACK *ObjectBeforeCollectCallbackWrapper)(ObjectBeforeCollectCallback callback, void* object, void* callbackState, void* threadContext);
     void SetObjectBeforeCollectCallback(void* object,
         ObjectBeforeCollectCallback callback,
         void* callbackState,
@@ -1976,7 +1979,7 @@ private:
         ObjectBeforeCollectCallbackWrapper callbackWrapper;
 
         ObjectBeforeCollectCallbackData() {}
-        ObjectBeforeCollectCallbackData(ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) : 
+        ObjectBeforeCollectCallbackData(ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) :
             callbackWrapper(callbackWrapper), callback(callback), callbackState(callbackState), threadContext(threadContext) {}
     };
     typedef JsUtil::BaseDictionary<void*, ObjectBeforeCollectCallbackData, HeapAllocator,
@@ -2088,8 +2091,9 @@ public:
         if (recycler->ShouldCapturePageHeapFreeStack())
         {
             Assert(recycler->IsPageHeapEnabled());
+            Assert(this->m_heapBlock->IsLargeHeapBlock());
 
-            this->m_heapBlock->CapturePageHeapFreeStack();
+            ((LargeHeapBlock*)this->m_heapBlock)->CapturePageHeapFreeStack();
         }
 #endif
 
@@ -2168,10 +2172,10 @@ public:
     static CollectedRecyclerWeakRefHeapBlock Instance;
 private:
 
-    CollectedRecyclerWeakRefHeapBlock() : HeapBlock(BlockTypeCount) 
-    { 
+    CollectedRecyclerWeakRefHeapBlock() : HeapBlock(BlockTypeCount)
+    {
 #if ENABLE_CONCURRENT_GC
-        isPendingConcurrentSweep = false; 
+        isPendingConcurrentSweep = false;
 #endif
     }
 };

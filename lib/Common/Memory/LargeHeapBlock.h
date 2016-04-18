@@ -29,11 +29,11 @@ private:
 #endif
 
 public:
-    bool markOnOOMRescan;
+    bool markOnOOMRescan:1;
+    bool isExplicitFreed:1;
+    bool isPageHeapAlloc:1;
 #if DBG
-    bool isExplicitFreed;
-#else
-    unsigned char unused3;
+    bool isPageHeapFillVerified:1;
 #endif
 
     UINT_PAD_64BIT(unused4);
@@ -123,17 +123,17 @@ public:
     void PartialTransferSweptObjects();
     void FinishPartialCollect(Recycler * recycler);
 #endif
-    template<bool pageheap>
+#ifdef RECYCLER_PAGE_HEAP
+    void VerifyPageHeapPattern();
+#endif
     void ReleasePages(Recycler * recycler);
-    template<bool pageheap>
     void ReleasePagesSweep(Recycler * recycler);
     void ReleasePagesShutdown(Recycler * recycler);
     void ResetMarks(ResetMarkFlags flags, Recycler* recycler);
     void ScanInitialImplicitRoots(Recycler * recycler);
     void ScanNewImplicitRoots(Recycler * recycler);
-    template<bool pageheap>
     SweepState Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep);
-    template <bool pageheap, SweepMode mode>
+    template <SweepMode mode>
     void SweepObjects(Recycler * recycler);
     bool TransferSweptObjects();
     void DisposeObjects(Recycler * recycler);
@@ -142,9 +142,6 @@ public:
 
     char* GetBeginAddress() const { return address; }
     char* GetEndAddress() const { return addressEnd; }
-#ifdef RECYCLER_PAGE_HEAP
-    void SetEndAllocAddress(__in char* endAllocAddress) { allocAddressEnd = endAllocAddress; }
-#endif
 
     char * Alloc(size_t size, ObjectInfoBits attributes);
     char * TryAllocFromFreeList(size_t size, ObjectInfoBits attributes);
@@ -257,6 +254,18 @@ private:
     uint finalizeCount;
 
     bool isInPendingDisposeList;
+
+#ifdef RECYCLER_PAGE_HEAP
+    PageHeapMode pageHeapMode;
+    char* guardPageAddress;
+    StackBackTrace* pageHeapAllocStack;
+    StackBackTrace* pageHeapFreeStack;
+
+public:
+    __inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
+    void CapturePageHeapAllocStack();
+    void CapturePageHeapFreeStack();
+#endif
 
 #if DBG
     bool hasDisposeBeenCalled;
