@@ -752,15 +752,6 @@ namespace Js
             && regexPrototype->GetSlot(library->GetRegexGlobalGetterSlotIndex()) != library->GetRegexGlobalGetterFunction();
     }
 
-    bool JavascriptRegExp::HasObservableStickyFlag(DynamicObject* regexPrototype)
-    {
-        const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
-        JavascriptLibrary* library = regexPrototype->GetLibrary();
-        return scriptConfig->IsES6RegExStickyEnabled()
-            && scriptConfig->IsES6RegExPrototypePropertiesEnabled()
-            && regexPrototype->GetSlot(library->GetRegexStickyGetterSlotIndex()) != library->GetRegexStickyGetterFunction();
-    }
-
     bool JavascriptRegExp::HasObservableUnicodeFlag(DynamicObject* regexPrototype)
     {
         const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
@@ -886,43 +877,6 @@ namespace Js
 
         JavascriptRegExp* regExObj = ToRegExp(thisObj, varName, scriptContext);
         return RegexHelper::RegexExec(scriptContext, regExObj, string, false);
-    }
-
-    void JavascriptRegExp::RecompilePatternForExecIfNeeded(ScriptContext* scriptContext)
-    {
-        if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
-        {
-            return;
-        }
-
-        DynamicObject* regexPrototype = scriptContext->GetLibrary()->GetRegExpPrototype();
-        bool observable =
-            !JavascriptRegExp::HasOriginalRegExType(this)
-            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
-            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype);
-        if (!observable)
-        {
-            return;
-        }
-
-        UnifiedRegex::RegexPattern* pattern = this->GetPattern();
-
-        UnifiedRegex::RegexFlags newFlags = pattern->GetFlags();
-        newFlags = SetRegexFlag(PropertyIds::global, newFlags, UnifiedRegex::GlobalRegexFlag, scriptContext);
-        newFlags = SetRegexFlag(PropertyIds::sticky, newFlags, UnifiedRegex::StickyRegexFlag, scriptContext);
-
-        if (newFlags != pattern->GetFlags())
-        {
-            InternalString source = pattern->GetSource();
-            UnifiedRegex::RegexPattern* newPattern = RegexHelper::CompileDynamic(
-                scriptContext,
-                source.GetBuffer(),
-                source.GetLength(),
-                newFlags,
-                pattern->IsLiteral());
-            this->SetPattern(newPattern);
-            this->SetSplitPattern(nullptr);
-        }
     }
 
     UnifiedRegex::RegexFlags JavascriptRegExp::SetRegexFlag(
