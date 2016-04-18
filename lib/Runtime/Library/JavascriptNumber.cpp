@@ -172,7 +172,7 @@ namespace Js
 
         uint32 uexp = static_cast<uint32>(y);
         int32 result = 1;
-        
+
         while (true)
         {
             if ((uexp & 1) != 0)
@@ -705,7 +705,7 @@ namespace Js
         }
         return JavascriptNumber::ToLocaleStringIntl(args, callInfo, scriptContext);
     }
-    
+
     JavascriptString* JavascriptNumber::ToLocaleStringIntl(Var* values, CallInfo callInfo, ScriptContext* scriptContext)
     {
         Assert(values);
@@ -803,7 +803,7 @@ namespace Js
             {
                 radix = TaggedInt::ToInt32(aRadix);
             }
-            else if(!JavascriptOperators::GetTypeId(aRadix) == TypeIds_Undefined)
+            else if(JavascriptOperators::GetTypeId(aRadix) != TypeIds_Undefined)
             {
                 radix = (int)JavascriptConversion::ToInteger(aRadix,scriptContext);
             }
@@ -1012,6 +1012,7 @@ namespace Js
         return nullptr;
     }
 
+#ifdef ENABLE_GLOBALIZATION
     JavascriptString* JavascriptNumber::ToLocaleString(double value, ScriptContext* scriptContext)
     {
         WCHAR   szRes[bufSize];
@@ -1070,6 +1071,7 @@ namespace Js
 
         return result;
     }
+#endif // ENABLE_GLOBALIZATION
 
     Var JavascriptNumber::CloneToScriptContext(Var aValue, ScriptContext* requestContext)
     {

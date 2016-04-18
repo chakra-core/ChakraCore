@@ -21,19 +21,20 @@ namespace JsUtil
                                    public IWeakReferenceDictionary
     {
         typedef BaseDictionary<TKey, RecyclerWeakReference<TValue>*, RecyclerNonLeafAllocator, SizePolicy, Comparer, WeakRefValueDictionaryEntry> Base;
-        
+        typedef typename Base::EntryType EntryType;
+
     public:
         WeakReferenceDictionary(Recycler* recycler, int capacity = 0):
-          BaseDictionary(recycler, capacity)
+          Base(recycler, capacity)
         {
             Assert(reinterpret_cast<void*>(this) == reinterpret_cast<void*>((IWeakReferenceDictionary*) this));
         }
 
         virtual void Cleanup() override
         {
-            this->MapAndRemoveIf([](EntryType& entry)
+            this->MapAndRemoveIf([](typename Base::EntryType &entry)
             {
-                return (EntryType::NeedsCleanup(entry));
+                return (Base::EntryType::NeedsCleanup(entry));
             });
         }
 

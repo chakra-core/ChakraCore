@@ -3,7 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
+#ifndef USING_PAL_STDLIB
 #include <strsafe.h>
+#endif
 #include "ByteCode/ByteCodeApi.h"
 #include "Exceptions/EvalDisabledException.h"
 

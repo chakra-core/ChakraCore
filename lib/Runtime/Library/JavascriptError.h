@@ -107,8 +107,8 @@ namespace Js
         static HRESULT GetRuntimeError(RecyclableObject* errorObject, __out_opt LPCWSTR * pMessage);
         static HRESULT GetRuntimeErrorWithScriptEnter(RecyclableObject* errorObject, __out_opt LPCWSTR * pMessage);
         static void __declspec(noreturn) ThrowStackOverflowError(ScriptContext *scriptContext, PVOID returnAddress = nullptr);
-        static void SetErrorMessageProperties(JavascriptError *pError, long errCode, PCWSTR message, ScriptContext* scriptContext);
-        static void SetErrorMessage(JavascriptError *pError, long errCode, PCWSTR varName, ScriptContext* scriptContext);
+        static void SetErrorMessageProperties(JavascriptError *pError, HRESULT errCode, PCWSTR message, ScriptContext* scriptContext);
+        static void SetErrorMessage(JavascriptError *pError, HRESULT errCode, PCWSTR varName, ScriptContext* scriptContext);
         static void SetErrorMessage(JavascriptError *pError, HRESULT hr, ScriptContext* scriptContext, va_list argList);
         static void SetErrorType(JavascriptError *pError, ErrorTypeEnum errorType);
 

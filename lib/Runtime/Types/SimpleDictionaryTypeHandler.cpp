@@ -445,9 +445,9 @@ namespace Js
             propertyKey = propertyMap->GetKeyAt(i);
 
             // newTH->nextPropertyIndex will be less than desc.propertyIndex, when we have function with same name parameters
-            if (newTypeHandler->nextPropertyIndex < (U::PropertyIndexType)descriptor.propertyIndex)
+            if (newTypeHandler->nextPropertyIndex < static_cast<typename U::PropertyIndexType>(descriptor.propertyIndex))
             {
-                newTypeHandler->nextPropertyIndex = (U::PropertyIndexType)descriptor.propertyIndex;
+                newTypeHandler->nextPropertyIndex = static_cast<typename U::PropertyIndexType>(descriptor.propertyIndex);
             }
 
             Assert(newTypeHandler->nextPropertyIndex == descriptor.propertyIndex);
@@ -455,7 +455,7 @@ namespace Js
             newTypeHandler->Add(TMapKey_ConvertKey<UMapKey>(scriptContext, propertyKey), descriptor.Attributes, descriptor.isInitialized, descriptor.isFixed, transferUsedAsFixed && descriptor.usedAsFixed, scriptContext);
         }
 
-        newTypeHandler->nextPropertyIndex = (U::PropertyIndexType)nextPropertyIndex;
+        newTypeHandler->nextPropertyIndex = static_cast<typename U::PropertyIndexType>(nextPropertyIndex);
         newTypeHandler->SetNumDeletedProperties(numDeletedProperties);
 
         ClearSingletonInstance();
@@ -1643,7 +1643,8 @@ namespace Js
         }
         else
         {
-            return ConvertToNonSharedSimpleDictionaryType(instance)->DeleteProperty_Internal<allowLetConstGlobal>(instance, propertyId, propertyOperationFlags);
+            SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported> *simpleBase = ConvertToNonSharedSimpleDictionaryType(instance);
+            return simpleBase->DeleteProperty_Internal<allowLetConstGlobal>(instance, propertyId, propertyOperationFlags);
         }
         return true;
     }

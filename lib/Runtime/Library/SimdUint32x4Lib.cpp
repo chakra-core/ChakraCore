@@ -305,7 +305,7 @@ namespace Js
             return JavascriptSIMDUint32x4::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, L"neg");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, _u("neg"));
     }
 
     Var SIMDUint32x4Lib::EntryAdd(RecyclableObject* function, CallInfo callInfo, ...)
@@ -721,7 +721,7 @@ namespace Js
             aValue = a->GetValue();
             bValue = b->GetValue();
             result = SIMDUint32x4Operation::OpGreaterThanOrEqual(aValue, bValue);
-            
+
             return JavascriptSIMDBool32x4::New(&result, scriptContext);
         }
 

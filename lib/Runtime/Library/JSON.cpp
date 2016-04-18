@@ -63,7 +63,7 @@ namespace JSON
         __declspec (align(8)) JSONParser parser(scriptContext, reviver);
         Js::Var result = NULL;
 
-        __try
+        TryFinally([&]()
         {
             result = parser.Parse(input);
 
@@ -85,11 +85,11 @@ namespace JSON
                 Js::JavascriptOperators::InitProperty(root, propertyId, result);
                 result = parser.Walk(scriptContext->GetLibrary()->GetEmptyString(), propertyId, root);
             }
-        }
-        __finally
+        },
+        [&](bool/*hasException*/)
         {
             parser.Finalizer();
-        }
+        });
 
         return result;
     }
@@ -362,7 +362,7 @@ namespace JSON
                 len = min(static_cast<charcount_t>(JSONspaceSize), Js::JavascriptString::FromVar(space)->GetLength());
                 if(len)
                 {
-                    wmemcpy_s(buffer, JSONspaceSize, Js::JavascriptString::FromVar(space)->GetString(), len);
+                    js_wmemcpy_s(buffer, JSONspaceSize, Js::JavascriptString::FromVar(space)->GetString(), len);
                 }
                 break;
             }
@@ -374,7 +374,7 @@ namespace JSON
                     len = min(static_cast<charcount_t>(JSONspaceSize), Js::JavascriptString::FromVar(spaceString)->GetLength());
                     if(len)
                     {
-                        wmemcpy_s(buffer, JSONspaceSize, Js::JavascriptString::FromVar(spaceString)->GetString(), len);
+                        js_wmemcpy_s(buffer, JSONspaceSize, Js::JavascriptString::FromVar(spaceString)->GetString(), len);
                     }
                 }
                 break;
