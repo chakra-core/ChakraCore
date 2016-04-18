@@ -937,6 +937,12 @@ SECOND_PASS:
             return true;
         }
 
+        // Do not do a memcopy from an array that has missing values
+        if (fromArray == nullptr || fromArray == this || !fromArray->HasNoMissingValues())
+        {
+            return false;
+        }
+
         bool isBtree = false;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -953,12 +959,6 @@ SECOND_PASS:
                 }
             }
             return true;
-        }
-
-        // Do not do a memcopy from an array that has missing values
-        if (fromArray == nullptr || fromArray == this || !fromArray->HasNoMissingValues())
-        {
-            return false;
         }
 
         const auto isSegmentValid = [length](Js::SparseArraySegment<T>* segment, uint32 startIndex) {
