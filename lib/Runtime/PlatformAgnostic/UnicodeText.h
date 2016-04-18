@@ -181,5 +181,16 @@ namespace PlatformAgnostic
         // Used for ES5 compat
         //
         CharacterTypeFlags GetLegacyCharacterTypeFlags(char16 character);
+
+        // 
+        // Compares two unicode strings but numbers are compared
+        // numerically rather than as text.
+        // For example, test2 comes before test11
+        //
+        // Return Value:
+        //     0  - The two strings are equal
+        //     -1 - string1 is greater than string2
+        //     +1 - string1 is lesser than string2
+        int LogicalStringCompare(const char16* string1, const char16* string2);
     };
 };

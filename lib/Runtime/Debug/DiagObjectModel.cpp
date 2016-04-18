@@ -30,10 +30,6 @@
 #include "Library/ES5Array.h"
 #include "Library/SimdLib.h"
 
-// Other includes
-#include <shlwapi.h>
-#include <strsafe.h>
-
 namespace Js
 {
 #define RETURN_VALUE_MAX_NAME   255
@@ -60,7 +56,7 @@ namespace Js
         const char16 *str2 = propertyRecord2->GetBuffer();
 
         // Do the natural comparison, for example test2 comes before test11.
-        return StrCmpLogicalW(str1, str2);
+        return PlatformAgnostic::UnicodeText::LogicalStringCompare(str1, str2);
     }
 
     ArenaAllocator *GetArenaFromContext(ScriptContext *scriptContext)
