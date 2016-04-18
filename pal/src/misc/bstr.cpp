@@ -133,7 +133,9 @@ STDAPI_(BSTR) SysAllocStringLen(const OLECHAR *psz, UINT len)
 STDAPI_(void) SysFreeString(const OLECHAR* psz)
 {
     if (psz != NULL)
+    {
         HeapFree(GetProcessHeap(), 0, (LPVOID) psz);
+    }
 }
 
 /***
@@ -151,7 +153,9 @@ STDAPI_(void) SysFreeString(const OLECHAR* psz)
 STDAPI_(BSTR) SysAllocString(const OLECHAR* psz)
 {
     if(psz == NULL)
+    {
         return NULL;
-
+    }
+    
     return SysAllocStringLen(psz, (DWORD)PAL_wcslen(psz));
 }

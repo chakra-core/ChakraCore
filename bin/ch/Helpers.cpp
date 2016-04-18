@@ -14,14 +14,22 @@
 HRESULT Helpers::WideStringToNarrowDynamic(LPCWSTR sourceString, LPSTR* destStringPtr)
 {
     size_t cchSourceString = wcslen(sourceString);
-    size_t cbDestString = (cchSourceString + 1) * 3;
     
-    utf8char_t* destString = (utf8char_t*)malloc(cbDestString);
-    if (destString == nullptr)
+    if (cchSourceString >= MAXUINT32)
     {
         return E_OUTOFMEMORY;
     }
-    if (cchSourceString >= MAXUINT32)
+
+    size_t cbDestString = (cchSourceString + 1) * 3;
+
+    // Check for overflow- cbDestString should be >= cchSourceString
+    if (cbDestString < cchSourceString)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    utf8char_t* destString = (utf8char_t*)malloc(cbDestString);
+    if (destString == nullptr)
     {
         return E_OUTOFMEMORY;
     }
@@ -45,6 +53,12 @@ HRESULT Helpers::NarrowStringToWideDynamic(LPCSTR sourceString, LPWSTR* destStri
     charcount_t cchDestString = utf8::ByteIndexIntoCharacterIndex((LPCUTF8) sourceString, cbSourceString);
     size_t cbDestString = (cchDestString + 1) * sizeof(WCHAR);
     
+    // Check for overflow- cbDestString should be >= cchSourceString
+    if (cbDestString < cchDestString)
+    {
+        return E_OUTOFMEMORY;
+    }
+
     WCHAR* destString = (WCHAR*)malloc(cbDestString);
     if (destString == nullptr)
     {

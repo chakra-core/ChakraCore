@@ -58,30 +58,26 @@ public:
     }
 
     // Scan through the sorted list
-    // Insert before the first node that satisfies the compare function
+    // Insert before the first node that satisfies the LessThan function
     // This function maintains the invariant that the list is always sorted
     void Insert(const T& data)
     {
         DListNode<T>* curr = head;
         DListNode<T>* node = new DListNode<T>(data);
-        DListNode<T>* prevOfCurr = nullptr; 
+        DListNode<T>* prev = nullptr; 
 
         // Now, if we have to insert, we have to insert *after* some node
         while (curr != nullptr)
         {
-            prevOfCurr = curr->prev;
-            if (T::Compare(data, curr->data))
+            if (T::LessThan(data, curr->data))
             {
-                InsertAfter(node, prevOfCurr);
-                return;
+                break;
             }
+            prev = curr;
             curr = curr->next;
         }
 
-        // If we reach this point, we didn't find a node that satisfied the predicate
-        // That means, we're either inserting to the end of the list, or the list is empty 
-        // or we're inserting after head (the insert before head case is taken care of in the loop)
-        InsertAfter(node, (prevOfCurr != nullptr ? prevOfCurr->next : head));
+        InsertAfter(node, prev);
     }
 
     T Pop()
@@ -177,7 +173,7 @@ class MessageQueue
             message(message)
         { }
 
-        static bool Compare(const ListEntry& first, const ListEntry& second)
+        static bool LessThan(const ListEntry& first, const ListEntry& second)
         {
             return first.time < second.time;
         }

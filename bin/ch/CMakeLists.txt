@@ -5,7 +5,7 @@ add_executable (ch
   Helpers.cpp
   HostConfigFlags.cpp
   WScriptJsrt.cpp
-    )
+  )
 
 include_directories(..)
 

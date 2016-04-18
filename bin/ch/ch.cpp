@@ -365,7 +365,6 @@ HRESULT ExecuteTest(const char* fileName)
     bool isUtf8 = false;
     LPCOLESTR contentsRaw = nullptr;
     UINT lengthBytes = 0;
-    char* libraryNameUtf8 = nullptr;
 
     JsContextRef context = JS_INVALID_REFERENCE;
 
@@ -452,11 +451,6 @@ Error:
         ChakraRTInterface::JsDisposeRuntime(runtime);
     }
 
-    if (libraryNameUtf8 != nullptr)
-    {
-        free(libraryNameUtf8);
-    }
-    
     _flushall();
 
     return hr;
@@ -522,7 +516,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 
     // The following code is present to make sure we don't load
     // jscript9.dll etc with ch. Since that isn't a concern on non-Windows
-    // builds, it's safe to conditionally comment it out.
+    // builds, it's safe to conditionally compile it out.
 #ifdef _WIN32    
     ATOM lock = ::AddAtom(szChakraCoreLock);
     AssertMsg(lock, "failed to lock chakracore.dll");

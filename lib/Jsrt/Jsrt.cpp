@@ -2700,11 +2700,6 @@ JsErrorCode RunSerializedScriptCore(const wchar_t *script, TLoadCallback scriptL
 }
 
 #ifdef _WIN32
-template
-JsErrorCode RunSerializedScriptCore<JsSerializedScriptLoadSourceCallback, JsSerializedScriptUnloadCallback>(const wchar_t *script, JsSerializedScriptLoadSourceCallback scriptLoadCallback,
-    JsSerializedScriptUnloadCallback scriptUnloadCallback, unsigned char *buffer, JsSourceContext sourceContext,
-    const wchar_t *sourceUrl, bool parseOnly, JsValueRef *result);
-
 CHAKRA_API JsParseSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext,
     _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
