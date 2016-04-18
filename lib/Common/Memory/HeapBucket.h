@@ -124,15 +124,15 @@ public:
     bool IntegrateBlock(char * blockAddress, PageSegment * segment, Recycler * recycler);
 
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char * RealAlloc(Recycler * recycler, size_t sizeCat);
+    __inline char * RealAlloc(Recycler * recycler, size_t sizeCat, size_t size);
 
 #ifdef RECYCLER_PAGE_HEAP
-    char * PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow);
+    char * PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow);
 #endif
 
     void ExplicitFree(void* object, size_t sizeCat);
 
-    char * SnailAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes, bool nothrow);
+    char * SnailAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow);
 
     void ResetMarks(ResetMarkFlags flags);
     void ScanNewImplicitRoots(Recycler * recycler);
@@ -176,7 +176,7 @@ protected:
     template <class Fn> void ForEachAllocator(Fn fn);
 
     // Allocations
-    char * TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes);
+    char * TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, size_t size, ObjectInfoBits attributes);
     char * TryAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes);
     TBlockType * CreateHeapBlock(Recycler * recycler);
     TBlockType * GetUnusedHeapBlock();

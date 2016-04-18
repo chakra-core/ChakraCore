@@ -12,7 +12,7 @@
 #error "Platform is not handled"
 #endif
 
-template __forceinline char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat);
+template __forceinline char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat, size_t size);
 
 HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>  HeapInfo::smallAllocValidPointersMap;
 HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes> HeapInfo::mediumAllocValidPointersMap;

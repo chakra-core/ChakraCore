@@ -43,7 +43,7 @@ public:
     template <ObjectInfoBits attributes, bool nothrow>
     char* Alloc(Recycler * recycler, size_t sizeCat);
 #ifdef RECYCLER_PAGE_HEAP
-    char *PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow);
+    char *PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow);
 #endif
     void ExplicitFree(void * object, size_t sizeCat);
 
@@ -93,9 +93,9 @@ public:
 #endif
 
 private:
-    char * SnailAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, bool nothrow);
+    char * SnailAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow);
     char * TryAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
-    char * TryAllocFromNewHeapBlock(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, bool nothrow);
+    char * TryAllocFromNewHeapBlock(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow);
     char * TryAllocFromFreeList(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
     char * TryAllocFromExplicitFreeList(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
 

@@ -53,7 +53,7 @@ public:
 
         if (memBlock == nullptr)
         {
-            memBlock = recycler->SmallAllocatorAlloc<attributes>(&allocator, sizeCat);
+            memBlock = recycler->SmallAllocatorAlloc<attributes>(&allocator, sizeCat, size);
             Assert(memBlock != nullptr);
         }
 

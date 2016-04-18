@@ -1198,11 +1198,11 @@ Recycler::TryLargeAlloc(HeapInfo * heap, size_t size, ObjectInfoBits attributes,
     {
         if (heap->largeObjectBucket.IsPageHeapEnabled(attributes))
         {
-            memBlock = heap->largeObjectBucket.PageHeapAlloc(this, size, (ObjectInfoBits)attributes, autoHeap.pageHeapMode, nothrow);
+            memBlock = heap->largeObjectBucket.PageHeapAlloc(this, sizeCat, size, (ObjectInfoBits)attributes, autoHeap.pageHeapMode, nothrow);
             if (memBlock != nullptr)
             {
 #ifdef RECYCLER_ZERO_MEM_CHECK
-                VerifyZeroFill(memBlock, sizeCat);
+                VerifyZeroFill(memBlock, size);
 #endif
                 return memBlock;
             }

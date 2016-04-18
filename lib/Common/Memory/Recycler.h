@@ -1502,7 +1502,7 @@ private:
     template <typename SmallHeapBlockAllocatorType>
     void RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t sizeCat);
     template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
-    char * SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat);
+    char * SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat, size_t size);
 
     // Allocation
     template <ObjectInfoBits attributes, bool nothrow>
@@ -2205,9 +2205,9 @@ Recycler::RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t s
 
 template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
 char *
-Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat)
+Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat, size_t size)
 {
-    return autoHeap.SmallAllocatorAlloc<attributes>(this, allocator, sizeCat);
+    return autoHeap.SmallAllocatorAlloc<attributes>(this, allocator, sizeCat, size);
 }
 
 // Dummy recycler allocator policy classes to choose the allocation function

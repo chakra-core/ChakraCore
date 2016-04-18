@@ -233,9 +233,17 @@ Recycler::AllocZeroWithAttributesInlined(size_t size)
     }
     else
     {
-        // All recycler memory are allocated with zero except for the first word,
-        // which store the next pointer for the free list.  Just zero that one out
-        ((FreeObject *)obj)->ZeroNext();
+        if (IsPageHeapEnabled())
+        {
+            // don't corrupt the page heap filled pattern
+            memset((void*)obj, 0, min(size, sizeof(void*)));
+        }
+        else
+        {
+            // All recycler memory are allocated with zero except for the first word,
+            // which store the next pointer for the free list.  Just zero that one out
+            ((FreeObject *)obj)->ZeroNext();
+        }
     }
 
 #if DBG
@@ -256,13 +264,13 @@ Recycler::RealAllocFromBucket(HeapInfo* heap, size_t size)
     if (isSmallAlloc)
     {
         sizeCat = (uint)HeapInfo::GetAlignedSizeNoCheck(size);
-        memBlock = heap->RealAlloc<attributes, nothrow>(this, sizeCat);
+        memBlock = heap->RealAlloc<attributes, nothrow>(this, sizeCat, size);
     }
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
     else
     {
         sizeCat = (uint)HeapInfo::GetMediumObjectAlignedSizeNoCheck(size);
-        memBlock = heap->MediumAlloc<attributes, nothrow>(this, sizeCat);
+        memBlock = heap->MediumAlloc<attributes, nothrow>(this, sizeCat, size);
     }
 #endif
 
@@ -288,7 +296,27 @@ Recycler::RealAllocFromBucket(HeapInfo* heap, size_t size)
 #endif
         )
     {
-        VerifyZeroFill(memBlock + sizeof(FreeObject), sizeCat - (2 * sizeof(FreeObject)));
+        // TODO: looks the check has been done already
+
+        bool isPageHeapAlloc = false;
+        if (isSmallAlloc)
+        {
+            isPageHeapAlloc = heap->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).IsPageHeapEnabled(attributes);
+        }
+#ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
+        else
+        {
+            isPageHeapAlloc = heap->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).IsPageHeapEnabled(attributes);
+        }
+#endif
+        if (isPageHeapAlloc)
+        {
+            VerifyZeroFill(memBlock, size);
+        }
+        else
+        {
+            VerifyZeroFill(memBlock + sizeof(FreeObject), sizeCat - (2 * sizeof(FreeObject)));
+        }
     }
 #endif
 #ifdef PROFILE_MEM

@@ -352,7 +352,7 @@ HeapBucketT<TBlockType>::TryAlloc(Recycler * recycler, TBlockAllocatorType * all
 
 template <typename TBlockType>
 char *
-HeapBucketT<TBlockType>::TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes)
+HeapBucketT<TBlockType>::TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, size_t size, ObjectInfoBits attributes)
 {
     AUTO_NO_EXCEPTION_REGION;
 
@@ -361,10 +361,7 @@ HeapBucketT<TBlockType>::TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAll
 #ifdef RECYCLER_PAGE_HEAP
     if (IsPageHeapEnabled(attributes))
     {
-        if ((attributes & TrackBit) != TrackBit) // LargeHeapBlock does not support TrackBit today
-        {
-            return this->PageHeapAlloc(recycler, sizeCat, attributes, this->heapInfo->pageHeapMode, true);
-        }
+        return this->PageHeapAlloc(recycler, sizeCat, size, attributes, this->heapInfo->pageHeapMode, true);
     }
 #endif
 
@@ -385,16 +382,16 @@ HeapBucketT<TBlockType>::TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAll
 #ifdef RECYCLER_PAGE_HEAP
 template <typename TBlockType>
 char *
-HeapBucketT<TBlockType>::PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow)
+HeapBucketT<TBlockType>::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow)
 {
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("In PageHeapAlloc [Size: 0x%x, Attributes: 0x%x]\n"), sizeCat, attributes);
-    return heapInfo->largeObjectBucket.PageHeapAlloc(recycler, sizeCat, attributes, mode, nothrow);
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("In PageHeapAlloc [Size: 0x%x, Attributes: 0x%x]\n"), size, attributes);
+    return heapInfo->largeObjectBucket.PageHeapAlloc(recycler, sizeCat, size, attributes, mode, nothrow);
 }
 #endif
 
 template <typename TBlockType>
 char *
-HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes, bool nothrow)
+HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow)
 {
     AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("In SnailAlloc [Size: 0x%x, Attributes: 0x%x]\n"), sizeCat, attributes);
 
@@ -430,7 +427,7 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
         }
 
         // We didn't collect, try to add a new heap block
-        memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, attributes);
+        memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, size, attributes);
         if (memBlock != nullptr)
         {
             return memBlock;
@@ -461,7 +458,7 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
 
     AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("TryAlloc failed\n"));
     // add a heap block if there are no preallocated memory left.
-    memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, attributes);
+    memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, size, attributes);
     if (memBlock != nullptr)
     {
         return memBlock;

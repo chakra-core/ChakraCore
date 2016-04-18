@@ -35,14 +35,14 @@ LargeHeapBucket::Initialize(HeapInfo * heapInfo, uint sizeCat, bool supportFreeL
 // Allocation
 //=====================================================================================================
 char *
-LargeHeapBucket::TryAllocFromNewHeapBlock(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, bool nothrow)
+LargeHeapBucket::TryAllocFromNewHeapBlock(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow)
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
 
 #ifdef RECYCLER_PAGE_HEAP
     if (IsPageHeapEnabled(attributes))
     {
-        return this->PageHeapAlloc(recycler, sizeCat, attributes, this->heapInfo->pageHeapMode, true);
+        return this->PageHeapAlloc(recycler, sizeCat, size, attributes, this->heapInfo->pageHeapMode, true);
     }
 #endif
 
@@ -57,7 +57,7 @@ LargeHeapBucket::TryAllocFromNewHeapBlock(Recycler * recycler, size_t sizeCat, O
 }
 
 char *
-LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, bool nothrow)
+LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow)
 {
     char * memBlock;
 
@@ -73,7 +73,7 @@ LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits 
 
     if (!collected)
     {
-        memBlock = TryAllocFromNewHeapBlock(recycler, sizeCat, attributes, nothrow);
+        memBlock = TryAllocFromNewHeapBlock(recycler, sizeCat, size, attributes, nothrow);
         if (memBlock != nullptr)
         {
             return memBlock;
@@ -90,7 +90,7 @@ LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits 
         return memBlock;
     }
 
-    memBlock = TryAllocFromNewHeapBlock(recycler, sizeCat, attributes, nothrow);
+    memBlock = TryAllocFromNewHeapBlock(recycler, sizeCat, size, attributes, nothrow);
     if (memBlock != nullptr)
     {
         return memBlock;
@@ -108,10 +108,8 @@ LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits 
 
 #ifdef RECYCLER_PAGE_HEAP
 char*
-LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow)
+LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow)
 {
-    size_t sizeCat = HeapInfo::GetAlignedSizeNoCheck(size);
-
     Segment * segment;
     size_t pageCount = LargeHeapBlock::GetPagesNeeded(size, false);
     if (pageCount == 0)
@@ -125,6 +123,12 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t size, ObjectInfoBits 
 
         return nullptr;
     }
+
+    if(size<sizeof(void*))
+    {
+        attributes = (ObjectInfoBits)(attributes | LeafBit);
+    }
+
 
     size_t actualPageCount = pageCount + 1; // 1 for guard page
     auto pageAllocator = recycler->GetRecyclerLargeBlockPageAllocator();
@@ -177,7 +181,7 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t size, ObjectInfoBits 
 
     heapBlock->ResetMarks(ResetMarkFlags_None, recycler);
 
-    char * memBlock = heapBlock->Alloc(sizeCat, attributes);
+    char * memBlock = heapBlock->Alloc(size, attributes);
     Assert(memBlock != nullptr);
 
     // fill pattern
