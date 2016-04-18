@@ -955,6 +955,12 @@ SECOND_PASS:
             return true;
         }
 
+        // Do not do a memcopy from an array that has missing values
+        if (fromArray == nullptr || fromArray == this || !fromArray->HasNoMissingValues())
+        {
+            return false;
+        }
+
         const auto isSegmentValid = [length](Js::SparseArraySegment<T>* segment, uint32 startIndex) {
             uint32 end, segmentEnd;
             // Check the segment is long enough

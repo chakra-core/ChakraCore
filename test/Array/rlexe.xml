@@ -670,6 +670,13 @@
      </default>
   </test>
   <test>
+    <default>
+      <files>memcopy_missing_values.js</files>
+      <compile-flags>-mic:1 -off:simplejit -bgjit- -lic:1</compile-flags>
+      <baseline>memcopy_missing_values.baseline</baseline>
+    </default>
+  </test>
+  <test>
      <default>
         <files>memop_alias.js</files>
         <compile-flags>-mic:1 -off:simplejit -off:jitloopbody -mmoc:0</compile-flags>
