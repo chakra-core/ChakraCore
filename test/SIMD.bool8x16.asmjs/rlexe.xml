@@ -121,7 +121,7 @@
   <test>
     <default>
       <files>bug824.js</files>
-      <baseline>bug824.baseline</baseline>
+      <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0 -mic:0</compile-flags>
     </default>
