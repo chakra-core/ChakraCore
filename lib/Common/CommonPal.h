@@ -31,6 +31,12 @@ typedef wchar_t char16;
 #else // !_WIN32
 
 #define USING_PAL_STDLIB 1
+#ifdef PAL_STDCPP_COMPAT
+#include <math.h>
+#include <time.h>
+#include <smmintrin.h>
+#include <xmmintrin.h>
+#endif
 #include "inc/pal.h"
 #include "inc/rt/palrt.h"
 #include "inc/rt/no_sal2.h"
@@ -39,6 +45,12 @@ typedef wchar_t char16;
 typedef char16_t char16;
 #define _u(s) u##s
 #define INIT_PRIORITY(x) __attribute__((init_priority(x)))
+
+#ifdef PAL_STDCPP_COMPAT
+#define __in
+#define __out
+#define FILE PAL_FILE
+#endif
 
 // xplat-todo: verify below is correct
 #include <cpuid.h>
@@ -354,14 +366,6 @@ extern "C" PVOID _ReturnAddress(VOID);
 #pragma intrinsic(_ReturnAddress)
 #else
 #define _ReturnAddress() __builtin_return_address(0)
-#endif
-
-// xplat-todo: can we get rid of this for clang?
-// Including xmmintrin.h right now creates a ton of
-// compile errors, so temporarily defining this for clang
-// to avoid including that header
-#ifndef _MSC_VER
-#define _MM_HINT_T0 3
 #endif
 
 // xplat-todo: figure out why strsafe.h includes stdio etc

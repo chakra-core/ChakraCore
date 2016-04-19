@@ -59,28 +59,19 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         add_definitions(-D_M_X64 -D_M_AMD64)
     endif(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64)
 
-    add_definitions("-D__STDC_WANT_LIB_EXT1__=1")
     add_definitions(
         -DUNICODE
         -D_SAFECRT_USE_CPP_OVERLOADS=1
+        -D__STDC_WANT_LIB_EXT1__=1
+        -DDISABLE_JIT=1  # xplat-todo: enable the JIT for Linux
         )
 
-    add_compile_options(-fms-extensions)
-
-    # Disable some warnings
-    add_compile_options(-Wno-tautological-constant-out-of-range-compare)
     set(CMAKE_CXX_STANDARD 11)
 
-    # xplat-todo: enable the JIT for Linux
-    add_definitions(
-        -DDISABLE_JIT=1
-        )
-
-    # xplat-todo: revisit these
-    # also, we should change this from add_definitions- the intent of that
-    # is to just add -D flags
-    add_definitions(
+    add_compile_options(
+        -fms-extensions
         -fdelayed-template-parsing
+        -msse4.1
         -Wno-microsoft
         -Wno-unused-value
         -Wno-int-to-void-pointer-cast
@@ -94,6 +85,7 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -Wno-format
         -Wno-invalid-noreturn
         -Wno-null-arithmetic
+        -Wno-tautological-constant-out-of-range-compare
         -Wno-tautological-undefined-compare
         -Wno-address-of-temporary  # vtinfo.h, VirtualTableInfo<T>::RegisterVirtualTable
         -Wno-null-conversion # Check shmemory.cpp and cs.cpp here...
@@ -139,7 +131,10 @@ include_directories(
 
 add_subdirectory (pal)
 
-# build the rest with NO_PAL_MINMAX
-add_definitions(-DNO_PAL_MINMAX)
+# build the rest with NO_PAL_MINMAX and PAL_STDCPP_COMPAT
+add_definitions(
+    -DNO_PAL_MINMAX
+    -DPAL_STDCPP_COMPAT
+    )
 add_subdirectory (lib)
 add_subdirectory (bin)

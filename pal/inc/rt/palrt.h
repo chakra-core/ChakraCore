@@ -1102,7 +1102,7 @@ errno_t __cdecl _ltow_s(long _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radi
 }
 
 #endif
-    
+
 /* _i64tow_s */
 _SAFECRT__EXTERN_C
 errno_t __cdecl _i64tow_s(__int64 _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix);
@@ -1267,60 +1267,6 @@ typename std::remove_reference<T>::type&& move( T&& t );
 #define __RPC__deref_out_ecount_full_opt(x)
 
 typedef DWORD OLE_COLOR;
-
-#ifndef PAL_STDCPP_COMPAT
-// defined in xmmintrin.h
-typedef float __m128 __attribute__((__vector_size__(16)));
-typedef double __m128d __attribute__((__vector_size__(16)));
-
-// __m128i defined in emmintrin.h
-typedef union __m128i {
-    __int8              m128i_i8[16];
-    __int16             m128i_i16[8];
-    __int32             m128i_i32[4];
-    __int64             m128i_i64[2];
-    unsigned __int8     m128i_u8[16];
-    unsigned __int16    m128i_u16[8];
-    unsigned __int32    m128i_u32[4];
-    unsigned __int64    m128i_u64[2];
-} __m128i;
-
-// from emmintrin.h
-static __inline__ __m128d __attribute__((__always_inline__, __nodebug__))
-_mm_load_sd(double const *__dp)
-{
-  struct __mm_load_sd_struct {
-    double __u;
-  } __attribute__((__packed__, __may_alias__));
-  double __u = ((struct __mm_load_sd_struct*)__dp)->__u;
-  return (__m128d){ __u, 0 };
-}
-
-// from emmintrin.h
-static __inline__ int __attribute__((__always_inline__, __nodebug__))
-_mm_cvtsd_si32(__m128d __a)
-{
-  return __builtin_ia32_cvtsd2si(__a);
-}
-
-// from xmmintrin.h
-static __inline__ __m128 __attribute__((__always_inline__, __nodebug__))
-_mm_loadu_ps(const float *__p)
-{
-  struct __loadu_ps {
-    __m128 __v;
-  } __attribute__((__packed__, __may_alias__));
-  return ((struct __loadu_ps*)__p)->__v;
-}
-
-// from xmmintrin.h
-static __inline__ void __attribute__((__always_inline__, __nodebug__))
-_mm_storeu_ps(float *__p, __m128 __a)
-{
-  __builtin_ia32_storeups(__p, __a);
-}
-
-#endif
 
 #define PF_COMPARE_EXCHANGE_DOUBLE          2
 
