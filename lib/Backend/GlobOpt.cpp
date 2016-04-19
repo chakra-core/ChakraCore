@@ -7303,9 +7303,11 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             min1 < 0 &&
             IntConstantBounds(min2, max2).And_0x1f().Contains(0))
         {
-            // Src1 may be too large to represent as a signed int32, and src2 may be zero. Since the result can therefore be too
-            // large to represent as a signed int32, include Number in the value type.
-            return CreateDstUntransferredValue(ValueType::GetNumberAndLikelyInt(true), instr, src1Val, src2Val);
+            // Src1 may be too large to represent as a signed int32, and src2 may be zero. 
+            // Since the result can therefore be too large to represent as a signed int32, 
+            // include Number in the value type.
+            return CreateDstUntransferredValue(
+                ValueType::AnyNumber.SetCanBeTaggedValue(true), instr, src1Val, src2Val);
         }
 
         this->PropagateIntRangeBinary(instr, min1, max1, min2, max2, &newMin, &newMax);
