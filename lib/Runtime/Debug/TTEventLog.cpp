@@ -509,7 +509,7 @@ namespace TTD
 #endif
 
 
-#if ENABLE_BASIC_TRACE
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.WriteLiteralMsg("---SNAPSHOT EVENT---\n");
 #endif
 
@@ -708,7 +708,7 @@ namespace TTD
 
         this->InsertEventAtHead(tevent);
 
-#if ENABLE_BASIC_TRACE
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.ForceFlush();
 #endif
     }
@@ -746,7 +746,7 @@ namespace TTD
 
         this->AdvanceTimeAndPositionForReplay();
 
-#if ENABLE_BASIC_TRACE
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.ForceFlush();
 #endif
     }
@@ -1113,7 +1113,7 @@ namespace TTD
         cfinfo.FunctionTime = this->m_runningFunctionTimeCtr;
         cfinfo.LoopTime = 0;
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
+#if ENABLE_TTD_STACK_STMTS
         cfinfo.CurrentStatementIndex = -1;
         cfinfo.CurrentStatementLoopTime = 0;
 
@@ -1326,7 +1326,7 @@ namespace TTD
         cfinfo.LoopTime++;
     }
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
+#if ENABLE_TTD_STACK_STMTS
     void EventLog::UpdateCurrentStatementInfo(uint bytecodeOffset)
     {
         SingleCallCounter& cfinfo = this->GetTopCallCounter();
@@ -1588,7 +1588,7 @@ namespace TTD
 
         this->m_elapsedExecutionTimeSinceSnapshot = 0.0;
 
-#if ENABLE_BASIC_TRACE
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.WriteLiteralMsg("---SNAPSHOT EVENT---\n");
 #endif
     }
@@ -1755,7 +1755,7 @@ namespace TTD
             this->ResetCallStackForTopLevelCall(-1, -1);
         }
 
-#if ENABLE_BASIC_TRACE
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.WriteLiteralMsg("---INFLATED SNAPSHOT---\n");
 #endif
     }

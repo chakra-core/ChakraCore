@@ -169,7 +169,7 @@ namespace TTD
         uint64 FunctionTime; //The function time when the function was called
         uint64 LoopTime; //The current loop taken time for the function
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
+#if ENABLE_TTD_STACK_STMTS
         int32 LastStatementIndex; //The previously executed statement
         uint64 LastStatementLoopTime; //The previously executed statement
 
@@ -426,7 +426,7 @@ namespace TTD
         //Update the loop count information
         void UpdateLoopCountInfo();
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
+#if ENABLE_TTD_STACK_STMTS
         //
         //TODO: This is not great performance wise
         //

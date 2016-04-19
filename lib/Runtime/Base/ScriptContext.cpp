@@ -2566,7 +2566,7 @@ namespace Js
         this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetGlobalObject());
         this->ScriptContextLogTag = this->threadContext->TTDInfo->LookupTagForObject(this->GetLibrary()->GetGlobalObject());
 
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
+#if ENABLE_TTD_STACK_STMTS
         this->ForceNoNative();
 #endif
     }

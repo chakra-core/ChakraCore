@@ -1907,18 +1907,14 @@ namespace Js
         // - Mark that the function is current executing and may not be modified.
         //
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
+#if ENABLE_TTD_STACK_STMTS
         TTD::TTDExceptionFramePopper exceptionFramePopper;
 
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
 
-            if(elog->ShouldPerformDebugAction() 
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
-                | elog->ShouldPerformRecordAction()
-#endif
-                )
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 bool isInFinally = ((newInstance->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock) == Js::InterpreterStackFrameFlags_WithinFinallyBlock);
 
@@ -1955,16 +1951,12 @@ namespace Js
 
         executeFunction->EndExecution();
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
+#if ENABLE_TTD_STACK_STMTS
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
 
-            if(elog->ShouldPerformDebugAction() 
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
-                | elog->ShouldPerformRecordAction()
-#endif
-                )
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 exceptionFramePopper.PopInfo();
                 elog->PopCallEvent(function, aReturn);
@@ -2312,16 +2304,12 @@ namespace Js
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
+#if ENABLE_TTD_STACK_STMTS
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction()
-#if ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
-                | elog->ShouldPerformRecordAction()
-#endif
-                )
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
             }
@@ -2358,16 +2346,12 @@ namespace Js
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
+#if ENABLE_TTD_STACK_STMTS
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction()
-#if ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
-                | elog->ShouldPerformRecordAction()
-#endif
-                )
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
             }
@@ -5663,7 +5647,7 @@ namespace Js
             this->DoInterruptProbe();
         }
 
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD_STACK_STMTS
         //
         //TODO: Verify that his is definitely called for all loops (e.g., I recall a previous issue with while(true) {...})
         //
@@ -5673,7 +5657,7 @@ namespace Js
         {
             TTD::EventLog* elog = threadContext->TTDLog;
 
-            if(elog->ShouldPerformDebugAction())
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 elog->UpdateLoopCountInfo();
             }
@@ -5742,7 +5726,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             this->DoInterruptProbe();
         }
 
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD_STACK_STMTS
         //
         //TODO: Verify that his is definitely called for all loops (e.g., I recall a previous issue with while(true) {...})
         //
@@ -5752,7 +5736,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
 
-            if(elog->ShouldPerformDebugAction())
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 elog->UpdateLoopCountInfo();
             }
