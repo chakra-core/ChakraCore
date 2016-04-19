@@ -57,12 +57,12 @@ class ActiveScriptProfilerHeapEnum;
 ////////
 
 #include "Debug\TTSupport.h"
+#include "Debug\TTSerialize.h"
 
 class HostScriptContextCallbackFunctor;
 
 namespace TTD
 {
-    class TraceLogger;
     class RuntimeThreadInfo;
     class RuntimeContextInfo;
 
@@ -549,7 +549,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #if ENABLE_TTD
 #include "screrror.h"
 
-#include "Debug\TTSerialize.h"
 #include "Debug\TTRuntimeInfoTracker.h"
 #include "Debug\TTInflateMap.h"
 #include "Debug\TTSnapTypes.h"

@@ -11,6 +11,16 @@
 #define TTD_SERIALIZATION_BUFFER_SIZE 524288
 #define TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE 128
 
+//forward decl
+//
+//TODO: This is not cool but we need it for the trace logger decls.
+//      Split that class out into a seperate file and then include it later in Runtime.h
+//
+namespace Js
+{
+    class JavascriptFunction;
+}
+
 namespace TTD
 {
     namespace NSTokens
@@ -432,10 +442,30 @@ namespace TTD
 
     //////////////////
 
+#if ENABLE_OBJECT_SOURCE_TRACKING
+    //A struct that we use for tracking where objects have been allocated
+    struct DiagnosticOrigin
+    {
+        int32 SourceLine;
+        uint32 EventTime;
+        uint32 TimeHash;
+    };
+
+    bool IsDiagnosticOriginInformationValid(const DiagnosticOrigin& info);
+
+    void InitializeDiagnosticOriginInformation(DiagnosticOrigin& info);
+    void CopyDiagnosticOriginInformation(DiagnosticOrigin& infoInto, const DiagnosticOrigin& infoFrom);
+    void SetDiagnosticOriginInformation(DiagnosticOrigin& info, uint32 sourceLine, uint64 eTime, uint64 fTime, uint64 lTime);
+
+    void EmitDiagnosticOriginInformation(const DiagnosticOrigin& info, FileWriter* writer, NSTokens::Separator separator);
+    void ParseDiagnosticOriginInformation(DiagnosticOrigin& info, bool readSeperator, FileReader* reader);
+#endif
+
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
 #define TRACE_LOGGER_BUFFER_SIZE 4096
 #define TRACE_LOGGER_INDENT_BUFFER_SIZE 64
 
+    //Class that provides all of the trace output functionality we want
     class TraceLogger
     {
     private:

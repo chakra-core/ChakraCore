@@ -169,7 +169,7 @@ namespace TTD
         uint64 FunctionTime; //The function time when the function was called
         uint64 LoopTime; //The current loop taken time for the function
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE
+#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
         int32 LastStatementIndex; //The previously executed statement
         uint64 LastStatementLoopTime; //The previously executed statement
 
@@ -426,7 +426,7 @@ namespace TTD
         //Update the loop count information
         void UpdateLoopCountInfo();
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE
+#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
         //
         //TODO: This is not great performance wise
         //
@@ -436,6 +436,10 @@ namespace TTD
         //Get the current time/position info for the debugger -- all out arguments are optional (nullptr if you don't care)
         void GetTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
 #endif
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        void GetTimeAndPositionForDiagnosticObjectTracking(DiagnosticOrigin& originInfo) const;
+#endif 
 
 #if ENABLE_TTD_DEBUGGING
         //Get the previous statement time/position for the debugger -- return false if this is the first statement of the event handler

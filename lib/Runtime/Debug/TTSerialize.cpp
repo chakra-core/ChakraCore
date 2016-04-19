@@ -1307,6 +1307,52 @@ namespace TTD
 
     //////////////////
 
+#if ENABLE_OBJECT_SOURCE_TRACKING
+    bool IsDiagnosticOriginInformationValid(const DiagnosticOrigin& info)
+    {
+        return info.SourceLine != -1;
+    }
+
+    void InitializeDiagnosticOriginInformation(DiagnosticOrigin& info)
+    {
+        info.SourceLine = -1;
+        info.EventTime = 0;
+        info.TimeHash = 0;
+    }
+
+    void CopyDiagnosticOriginInformation(DiagnosticOrigin& infoInto, const DiagnosticOrigin& infoFrom)
+    {
+        infoInto.SourceLine = infoFrom.SourceLine;
+        infoInto.EventTime = infoFrom.EventTime;
+        infoInto.TimeHash = infoFrom.TimeHash;
+    }
+
+    void SetDiagnosticOriginInformation(DiagnosticOrigin& info, uint32 sourceLine, uint64 eTime, uint64 fTime, uint64 lTime)
+    {
+        info.SourceLine = sourceLine;
+        info.EventTime = (uint32)eTime;
+        info.TimeHash = ((uint32)(lTime << 16)) | ((uint32)fTime);
+    }
+
+    void EmitDiagnosticOriginInformation(const DiagnosticOrigin& info, FileWriter* writer, NSTokens::Separator separator)
+    {
+        writer->WriteRecordStart(separator);
+        writer->WriteInt32(NSTokens::Key::line, info.SourceLine);
+        writer->WriteUInt32(NSTokens::Key::eventTime, info.EventTime, NSTokens::Separator::CommaSeparator);
+        writer->WriteUInt32(NSTokens::Key::u32Val, info.TimeHash, NSTokens::Separator::CommaSeparator);
+        writer->WriteRecordEnd();
+    }
+
+    void ParseDiagnosticOriginInformation(DiagnosticOrigin& info, bool readSeperator, FileReader* reader)
+    {
+        reader->ReadRecordStart(readSeperator);
+        info.SourceLine = reader->ReadInt32(NSTokens::Key::line);
+        info.EventTime = reader->ReadUInt32(NSTokens::Key::eventTime, true);
+        info.TimeHash = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+        reader->ReadRecordEnd();
+    }
+#endif
+
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
     void TraceLogger::AppendText(char* text, uint32 length)
     {

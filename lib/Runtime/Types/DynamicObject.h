@@ -62,11 +62,9 @@ namespace Js
         friend class ModuleNamespace; // for slot setting.
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
-        //Fields for tracking object allocation 
-        uint32 TTDDiag_SourceLine;
-        uint32 TTDDiag_SourceEventTime;
-        uint32 TTDDiag_SourceFunctionTime;
-        uint32 TTDDiag_SourceLoopTime;
+    public:
+        //Field for tracking object allocation 
+        TTD::DiagnosticOrigin TTDDiagOriginInfo;
 #endif
 
     private:
@@ -325,6 +323,11 @@ namespace Js
 
         Js::Var* GetInlineSlots_TTD() const;
         Js::Var* GetAuxSlots_TTD() const;
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        void SetDiagOriginInfoAsNeeded();
+#endif
+
 #endif
     };
 } // namespace Js

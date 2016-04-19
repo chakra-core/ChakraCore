@@ -306,7 +306,9 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
                 context->GetScriptContext()->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
             }
 
+            threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
             context->GetScriptContext()->InitializeCoreImage_TTD();
+            threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
         }
 #endif
 

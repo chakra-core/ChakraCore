@@ -1907,7 +1907,7 @@ namespace Js
         // - Mark that the function is current executing and may not be modified.
         //
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+#if ENABLE_TTD_DEBUGGING || ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
         TTD::TTDExceptionFramePopper exceptionFramePopper;
 
         if(threadContext->TTDLog != nullptr)
@@ -1915,7 +1915,7 @@ namespace Js
             TTD::EventLog* elog = threadContext->TTDLog;
 
             if(elog->ShouldPerformDebugAction() 
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
                 | elog->ShouldPerformRecordAction()
 #endif
                 )
@@ -1955,13 +1955,13 @@ namespace Js
 
         executeFunction->EndExecution();
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+#if ENABLE_TTD_DEBUGGING || ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
 
             if(elog->ShouldPerformDebugAction() 
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
                 | elog->ShouldPerformRecordAction()
 #endif
                 )
@@ -2312,13 +2312,13 @@ namespace Js
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
 
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
             if(elog->ShouldPerformDebugAction()
-#if ENABLE_FULL_BC_TRACE
+#if ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
                 | elog->ShouldPerformRecordAction()
 #endif
                 )
@@ -2358,13 +2358,13 @@ namespace Js
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
 
-#if ENABLE_TTD_DEBUGGING
+#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
             if(elog->ShouldPerformDebugAction()
-#if ENABLE_FULL_BC_TRACE
+#if ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
                 | elog->ShouldPerformRecordAction()
 #endif
                 )
@@ -7450,6 +7450,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(localRegisterID == 0 || localRegisterID >= m_functionBody->GetConstantCount());
         ValidateRegValue(value);
         m_localSlots[localRegisterID] = value;
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        if(value != nullptr && DynamicType::Is(Js::JavascriptOperators::GetTypeId(value)))
+        {
+            static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
+        }
+#endif
     }
 
     template <typename T>
@@ -7538,6 +7545,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(localRegisterID == 0 || localRegisterID >= m_functionBody->GetConstantCount());
         ValidateRegValue(value, true);
         m_localSlots[localRegisterID] = value;
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        if(value != nullptr && DynamicType::Is(Js::JavascriptOperators::GetTypeId(value)))
+        {
+            static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
+        }
+#endif
     }
 
     template <typename RegSlotType>
@@ -7554,6 +7568,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(localRegisterID == 0 || localRegisterID >= m_functionBody->GetConstantCount());
         ValidateRegValue(value, true, false);
         m_localSlots[localRegisterID] = value;
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        if(value != nullptr && DynamicType::Is(Js::JavascriptOperators::GetTypeId(value)))
+        {
+            static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
+        }
+#endif
     }
 
     template <>

@@ -52,6 +52,10 @@ namespace TTD
             //The optional well known token for this object (or INVALID)
             TTD_WELLKNOWN_TOKEN OptWellKnownToken;
 
+#if ENABLE_OBJECT_SOURCE_TRACKING
+            DiagnosticOrigin DiagOriginInfo;
+#endif
+
             //The basic slots of the object the sizes are reproduced in a single array (VarArrayCount should be the same as MaxUsedSlotIndex from the type)
             uint32 VarArrayCount;
             TTDVar* VarArray;

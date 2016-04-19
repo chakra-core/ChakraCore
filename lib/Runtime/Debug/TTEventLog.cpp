@@ -1113,7 +1113,7 @@ namespace TTD
         cfinfo.FunctionTime = this->m_runningFunctionTimeCtr;
         cfinfo.LoopTime = 0;
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE
+#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
         cfinfo.CurrentStatementIndex = -1;
         cfinfo.CurrentStatementLoopTime = 0;
 
@@ -1326,7 +1326,7 @@ namespace TTD
         cfinfo.LoopTime++;
     }
 
-#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE
+#if ENABLE_TTD_DEBUGGING || ENABLE_FULL_BC_TRACE || ENABLE_OBJECT_SOURCE_TRACKING
     void EventLog::UpdateCurrentStatementInfo(uint bytecodeOffset)
     {
         SingleCallCounter& cfinfo = this->GetTopCallCounter();
@@ -1379,6 +1379,20 @@ namespace TTD
         sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime, cfinfo.Function, srcLine, srcColumn);
     }
 #endif
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+    void EventLog::GetTimeAndPositionForDiagnosticObjectTracking(DiagnosticOrigin& originInfo) const
+    {
+        const SingleCallCounter& cfinfo = this->GetTopCallCounter();
+
+        ULONG srcLine = 0;
+        LONG srcColumn = -1;
+        uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
+        cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
+
+        SetDiagnosticOriginInformation(originInfo, srcLine, cfinfo.EventTime, cfinfo.FunctionTime, cfinfo.LoopTime);
+    }
+#endif 
 
 #if ENABLE_TTD_DEBUGGING
     bool EventLog::GetPreviousTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const

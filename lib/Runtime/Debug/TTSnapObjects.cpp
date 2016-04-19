@@ -23,6 +23,10 @@ namespace TTD
 
             sobj->ObjectLogTag = isLogged ? obj->GetScriptContext()->GetThreadContext()->TTDInfo->LookupTagForObject(obj) : TTD_INVALID_LOG_TAG;
 
+#if ENABLE_OBJECT_SOURCE_TRACKING
+            InitializeDiagnosticOriginInformation(sobj->DiagOriginInfo);
+#endif
+
             if(Js::StaticType::Is(objType->GetTypeId()))
             {
                 NSSnapObjects::StdPropertyExtract_StaticType(sobj, obj);
@@ -49,6 +53,10 @@ namespace TTD
         void StdPropertyExtract_DynamicType(SnapObject* snpObject, Js::DynamicObject* dynObj, SlabAllocator& alloc)
         {
             NSSnapType::SnapType* sType = snpObject->SnapType;
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+            CopyDiagnosticOriginInformation(snpObject->DiagOriginInfo, dynObj->TTDDiagOriginInfo);
+#endif
 
             if(sType->TypeHandlerInfo->MaxPropertyIndex == 0)
             {
@@ -198,6 +206,10 @@ namespace TTD
             //set all the standard properties
             const NSSnapType::SnapHandler* handler = snpObject->SnapType->TypeHandlerInfo;
 
+#if ENABLE_OBJECT_SOURCE_TRACKING
+            CopyDiagnosticOriginInformation(obj->TTDDiagOriginInfo, snpObject->DiagOriginInfo);
+#endif
+
             //
             //We assume that placing properties back in the same order we read them out produces correct results.
             //This is not true for enumeration -- but we handle this by explicit logging
@@ -307,6 +319,11 @@ namespace TTD
 
             writer->WriteAddr(NSTokens::Key::typeId, snpObject->SnapType->TypePtrId, NSTokens::Separator::CommaSeparator);
 
+#if ENABLE_OBJECT_SOURCE_TRACKING
+            writer->WriteKey(NSTokens::Key::originInfo, NSTokens::Separator::CommaSeparator);
+            EmitDiagnosticOriginInformation(snpObject->DiagOriginInfo, writer, NSTokens::Separator::NoSeparator);
+#endif
+
             writer->WriteBool(NSTokens::Key::isDepOn, snpObject->OptDependsOnInfo != nullptr, NSTokens::Separator::CommaSeparator);
             if(snpObject->OptDependsOnInfo != nullptr)
             {
@@ -391,6 +408,11 @@ namespace TTD
             }
 
             snpObject->SnapType = ptrIdToTypeMap.LookupKnownItem(reader->ReadAddr(NSTokens::Key::typeId, true));
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+            reader->ReadKey(NSTokens::Key::originInfo, true);
+            ParseDiagnosticOriginInformation(snpObject->DiagOriginInfo, false, reader);
+#endif
 
             snpObject->OptDependsOnInfo = nullptr;
             bool isDepOn = reader->ReadBool(NSTokens::Key::isDepOn, true);
@@ -478,6 +500,12 @@ namespace TTD
             compareMap.DiagnosticAssert((sobj1->OptDependsOnInfo == nullptr && sobj2->OptDependsOnInfo == nullptr) || (sobj1->OptDependsOnInfo->DepOnCount == sobj2->OptDependsOnInfo->DepOnCount));
 
             compareMap.DiagnosticAssert(sobj1->ObjectLogTag == sobj2->ObjectLogTag);
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+            compareMap.DiagnosticAssert(sobj1->DiagOriginInfo.SourceLine == sobj2->DiagOriginInfo.SourceLine);
+            compareMap.DiagnosticAssert(sobj1->DiagOriginInfo.EventTime == sobj2->DiagOriginInfo.EventTime);
+            compareMap.DiagnosticAssert(sobj1->DiagOriginInfo.TimeHash == sobj2->DiagOriginInfo.TimeHash);
+#endif
 
             compareMap.DiagnosticAssert(Js::DynamicType::Is(sobj1->SnapType->JsTypeId) == Js::DynamicType::Is(sobj2->SnapType->JsTypeId));
             if(Js::DynamicType::Is(sobj1->SnapType->JsTypeId))

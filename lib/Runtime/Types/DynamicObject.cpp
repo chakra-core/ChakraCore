@@ -23,6 +23,10 @@ namespace Js
         {
             Assert(type->GetTypeHandler()->GetInlineSlotCapacity() == type->GetTypeHandler()->GetSlotCapacity());
         }
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        TTD::InitializeDiagnosticOriginInformation(this->TTDDiagOriginInfo);
+#endif
     }
 
     DynamicObject::DynamicObject(DynamicType * type, ScriptContext * scriptContext) :
@@ -36,6 +40,10 @@ namespace Js
     {
         Assert(!UsesObjectArrayOrFlagsAsFlags());
         InitSlots(this, scriptContext);
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        TTD::InitializeDiagnosticOriginInformation(this->TTDDiagOriginInfo);
+#endif
     }
 
     DynamicObject::DynamicObject(DynamicObject * instance) :
@@ -80,6 +88,10 @@ namespace Js
 #endif
             }
         }
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        TTD::InitializeDiagnosticOriginInformation(this->TTDDiagOriginInfo);
+#endif
     }
 
     DynamicObject * DynamicObject::New(Recycler * recycler, DynamicType * type)
@@ -1027,6 +1039,21 @@ namespace Js
     {
         return this->auxSlots;
     }
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+    void DynamicObject::SetDiagOriginInfoAsNeeded()
+    {
+        if(!TTD::IsDiagnosticOriginInformationValid(this->TTDDiagOriginInfo))
+        {
+            const TTD::EventLog* elog = this->GetType()->GetScriptContext()->GetThreadContext()->TTDLog;
+            if(elog != nullptr && (elog->ShouldPerformRecordAction() | elog->ShouldPerformDebugAction()))
+            {
+                elog->GetTimeAndPositionForDiagnosticObjectTracking(this->TTDDiagOriginInfo);
+            }
+        }
+    }
+#endif
+
 #endif
 
 } // namespace Js
