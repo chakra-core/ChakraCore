@@ -448,7 +448,7 @@ namespace TTD
     {
         int32 SourceLine;
         uint32 EventTime;
-        uint32 TimeHash;
+        uint64 TimeHash;
     };
 
     bool IsDiagnosticOriginInformationValid(const DiagnosticOrigin& info);

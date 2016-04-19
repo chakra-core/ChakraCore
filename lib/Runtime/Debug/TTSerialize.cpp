@@ -1331,7 +1331,7 @@ namespace TTD
     {
         info.SourceLine = sourceLine;
         info.EventTime = (uint32)eTime;
-        info.TimeHash = ((uint32)(lTime << 16)) | ((uint32)fTime);
+        info.TimeHash = ((uint32)(lTime << 32)) | ((uint32)fTime);
     }
 
     void EmitDiagnosticOriginInformation(const DiagnosticOrigin& info, FileWriter* writer, NSTokens::Separator separator)
@@ -1339,7 +1339,7 @@ namespace TTD
         writer->WriteRecordStart(separator);
         writer->WriteInt32(NSTokens::Key::line, info.SourceLine);
         writer->WriteUInt32(NSTokens::Key::eventTime, info.EventTime, NSTokens::Separator::CommaSeparator);
-        writer->WriteUInt32(NSTokens::Key::u32Val, info.TimeHash, NSTokens::Separator::CommaSeparator);
+        writer->WriteUInt64(NSTokens::Key::u64Val, info.TimeHash, NSTokens::Separator::CommaSeparator);
         writer->WriteRecordEnd();
     }
 
@@ -1348,7 +1348,7 @@ namespace TTD
         reader->ReadRecordStart(readSeperator);
         info.SourceLine = reader->ReadInt32(NSTokens::Key::line);
         info.EventTime = reader->ReadUInt32(NSTokens::Key::eventTime, true);
-        info.TimeHash = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+        info.TimeHash = reader->ReadUInt64(NSTokens::Key::u64Val, true);
         reader->ReadRecordEnd();
     }
 #endif
@@ -1505,8 +1505,29 @@ namespace TTD
                 break;
             default:
             {
-                this->AppendLiteral("JsType:");
-                this->AppendInteger((uint64)tid);
+                if(tid > Js::TypeIds_LastStaticType)
+                {
+                    const Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(var);
+                    if(!IsDiagnosticOriginInformationValid(dynObj->TTDDiagOriginInfo))
+                    {
+                        this->AppendLiteral("*");
+                    }
+                    else
+                    {
+                        this->AppendLiteral("obj(");
+                        this->AppendInteger((int64)dynObj->TTDDiagOriginInfo.SourceLine);
+                        this->AppendLiteral(", ");
+                        this->AppendInteger((int64)dynObj->TTDDiagOriginInfo.EventTime);
+                        this->AppendLiteral(", ");
+                        this->AppendInteger((int64)dynObj->TTDDiagOriginInfo.TimeHash);
+                        this->AppendLiteral(")");
+                    }
+                }
+                else
+                {
+                    this->AppendLiteral("Unspecialized object kind: ");
+                    this->AppendInteger((int64)tid);
+                }
                 break;
             }
             }
@@ -1529,9 +1550,9 @@ namespace TTD
             this->AppendLiteral("(");
         }
 
-        for(uint32 i = 1; i < argc; ++i)
+        for(uint32 i = 0; i < argc; ++i)
         {
-            if(i != 1)
+            if(i != 0)
             {
                 this->AppendLiteral(", ");
             }
