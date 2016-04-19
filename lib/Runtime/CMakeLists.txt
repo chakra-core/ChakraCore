@@ -11,6 +11,7 @@ include_directories(
 
 add_subdirectory (Base)
 add_subdirectory (ByteCode)
+add_subdirectory (Debug)
 add_subdirectory (Language)
 add_subdirectory (Library)
 add_subdirectory (Math)

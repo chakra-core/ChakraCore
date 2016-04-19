@@ -99,5 +99,5 @@ else
     cmake $CC_PREFIX -DCMAKE_BUILD_TYPE=Release ..
 fi
 
-make |& tee build.log
+make -j $(nproc) |& tee build.log
 popd > /dev/null
