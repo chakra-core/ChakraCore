@@ -57,6 +57,7 @@ inline void DebugBreak()
     __builtin_trap();
 }
 
+#define EXIT_FAILURE 1
 #define _BitScanForward BitScanForward
 #define _BitScanForward64 BitScanForward64
 #define _BitScanReverse BitScanReverse
@@ -287,6 +288,7 @@ uintptr_t _beginthreadex(
    void *arglist,
    unsigned initflag,
    unsigned *thrdaddr);
+
 BOOL WINAPI GetModuleHandleEx(
   _In_     DWORD   dwFlags,
   _In_opt_ LPCTSTR lpModuleName,
@@ -406,3 +408,4 @@ void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
 
 __inline
 HRESULT ULongMult(ULONG ulMultiplicand, ULONG ulMultiplier, ULONG* pulResult);
+

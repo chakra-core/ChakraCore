@@ -9,8 +9,10 @@ namespace Js
 {
     // Helper function for converting a Unicode script to utf8.
     // If heapAlloc is true the returned buffer must be freed with HeapDelete.
-    // Otherwise scriptContext must be provided and GCed object is returned.
-    void JsrtSourceHolder::ScriptToUtf8(_When_(heapAlloc, _In_opt_) _When_(!heapAlloc, _In_) Js::ScriptContext *scriptContext,
+    // Otherwise scriptContext must be provided and GCed object is
+    // returned.
+    template <typename TLoadCallback, typename TUnloadCallback>
+    void JsrtSourceHolder<TLoadCallback, TUnloadCallback>::ScriptToUtf8(_When_(heapAlloc, _In_opt_) _When_(!heapAlloc, _In_) Js::ScriptContext *scriptContext,
         _In_z_ const wchar_t *script, _Outptr_result_buffer_(*utf8Length) utf8char_t **utf8Script, _Out_ size_t *utf8Length,
         _Out_ size_t *scriptLength, _Out_opt_ size_t *utf8AllocLength, _In_ bool heapAlloc)
     {
@@ -60,7 +62,8 @@ namespace Js
         }
     }
 
-    void JsrtSourceHolder::EnsureSource(MapRequestFor requestedFor, const wchar_t* reasonString)
+    template <typename TLoadCallback, typename TUnloadCallback>
+    void JsrtSourceHolder<TLoadCallback, TUnloadCallback>::EnsureSource(MapRequestFor requestedFor, const wchar_t* reasonString)
     {
         if (this->mappedSource != nullptr)
         {
@@ -82,7 +85,7 @@ namespace Js
             Js::JavascriptError::ThrowOutOfMemoryError(nullptr);
         }
 
-        JsrtSourceHolder::ScriptToUtf8(nullptr, source, &utf8Source, &utf8Length, &sourceLength, &utf8AllocLength, true);
+        JsrtSourceHolder<TLoadCallback, TUnloadCallback>::ScriptToUtf8(nullptr, source, &utf8Source, &utf8Length, &sourceLength, &utf8AllocLength, true);
 
         this->mappedSource = utf8Source;
         this->mappedSourceByteLength = utf8Length;
@@ -96,7 +99,8 @@ namespace Js
 #endif
     }
 
-    void JsrtSourceHolder::Finalize(bool isShutdown)
+    template <typename TLoadCallback, typename TUnloadCallback>
+    void JsrtSourceHolder<TLoadCallback, TUnloadCallback>::Finalize(bool isShutdown)
     {
         if (scriptUnloadCallback == nullptr)
         {
@@ -116,4 +120,8 @@ namespace Js
         scriptUnloadCallback = nullptr;
         sourceContext = NULL;
     }
+
+#ifdef _WIN32
+template class JsrtSourceHolder<JsSerializedScriptLoadSourceCallback, JsSerializedScriptUnloadCallback>;
+#endif // _WIN32
 };
