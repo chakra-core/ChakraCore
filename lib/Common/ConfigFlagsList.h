@@ -289,6 +289,7 @@ PHASE(All)
             PHASE(ObjectHeaderInliningForConstructors)
             PHASE(ObjectHeaderInliningForObjectLiterals)
             PHASE(ObjectHeaderInliningForEmptyObjects)
+        PHASE(OptUnknownElementName)
 #if DBG_DUMP
         PHASE(TypePropertyCache)
         PHASE(InlineSlots)
