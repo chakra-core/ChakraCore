@@ -9,14 +9,12 @@
 typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 
-#ifndef USING_PAL_STDLIB
 // === C Runtime Header Files ===
 #include <time.h>
 #if defined(_UCRT)
 #include <cmath>
 #else
 #include <math.h>
-#endif
 #endif
 
 // Exceptions

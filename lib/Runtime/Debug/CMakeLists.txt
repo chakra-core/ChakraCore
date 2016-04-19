@@ -1,6 +1,3 @@
-# xplat-todo: This is a skeleton make file and not used in build yet.
-# Please add this to build and fix issues.
-
 add_library (Chakra.Runtime.Debug
     BreakpointProbe.cpp
     DebugContext.cpp

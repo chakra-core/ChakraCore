@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // JScriptDiag does not link with Runtime.lib and does not include .cpp files, so this file will be included as a header
-#pragma once
 #include "RuntimeLibraryPch.h"
 
 

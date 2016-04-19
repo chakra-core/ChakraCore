@@ -6081,7 +6081,7 @@ CoCreateGuid(OUT GUID * pguid);
    To avoid name collisions, those functions have been renamed using
    defines */
 #ifdef PLATFORM_UNIX
-#ifndef PAL_STDCPP_COMPAT
+#if !defined(PAL_STDCPP_COMPAT) || defined(USING_PAL_STDLIB)
 #define exit          PAL_exit
 #define atexit        PAL_atexit
 #define printf        PAL_printf
@@ -6395,7 +6395,7 @@ PALIMPORT int __cdecl _finite(double);
 PALIMPORT int __cdecl _isnan(double);
 PALIMPORT double __cdecl _copysign(double, double);
 
-#ifndef PAL_STDCPP_COMPAT
+#if !defined(PAL_STDCPP_COMPAT) || defined(USING_PAL_STDLIB)
 
 #ifdef __cplusplus
 extern "C++" {
@@ -6562,7 +6562,7 @@ PALIMPORT PAL_FILE * __cdecl PAL_get_stdin(int caller);
 PALIMPORT PAL_FILE * __cdecl PAL_get_stderr(int caller);
 PALIMPORT int * __cdecl PAL_errno(int caller);
 
-#ifdef PAL_STDCPP_COMPAT
+#if defined(PAL_STDCPP_COMPAT) && !defined(USING_PAL_STDLIB)
 #define PAL_stdout (PAL_get_stdout(PAL_get_caller))
 #define PAL_stdin  (PAL_get_stdin(PAL_get_caller))
 #define PAL_stderr (PAL_get_stderr(PAL_get_caller))
