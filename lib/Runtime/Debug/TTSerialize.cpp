@@ -334,7 +334,7 @@ namespace TTD
         }
         else
         {
-            if(floor(val) == val)
+            if(INT32_MAX <= val && val <= INT32_MAX && floor(val) == val)
             {
                 this->WriteFormattedCharData(_u("%I64i"), (int64)val);
             }
