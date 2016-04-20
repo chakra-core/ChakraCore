@@ -76,7 +76,7 @@ namespace Js
         }
     }
 
-    IndexType GetIndexType(Var indexVar, ScriptContext* scriptContext, uint32* index, PropertyRecord const ** propertyRecord, JavascriptString ** propertyNameString, bool createIfNotFound, bool preferJavascriptStringOverPropertyRecord)
+    IndexType GetIndexType(Var indexVar, ScriptContext* scriptContext, uint32* index, PropertyRecord const ** propertyRecord, JavascriptString ** propertyNameString, bool createIfNotFound, RecyclableObject *object, bool preferJavascriptStringOverPropertyRecord)
     {
         indexVar = JavascriptConversion::ToPrimitive(indexVar, JavascriptHint::HintString, scriptContext);
 
@@ -96,6 +96,11 @@ namespace Js
                 char16 buffer[20];
                 ::_itow_s(indexInt, buffer, sizeof(buffer) / sizeof(char16), 10);
                 charcount_t length = JavascriptString::GetBufferLength(buffer);
+                if (!preferJavascriptStringOverPropertyRecord)
+                {
+                    createIfNotFound = createIfNotFound &&
+                        (!object || !JavascriptOperators::CanShortcutOnUnknownPropertyName(object));
+                }
                 if (createIfNotFound || preferJavascriptStringOverPropertyRecord)
                 {
                     // When preferring JavascriptString objects, just return a PropertyRecord instead
@@ -127,24 +132,29 @@ namespace Js
             char16 const * propertyName = indexStr->GetString();
             charcount_t const propertyLength = indexStr->GetLength();
 
-            if (!createIfNotFound && preferJavascriptStringOverPropertyRecord)
+            if (preferJavascriptStringOverPropertyRecord)
             {
-                if (JavascriptOperators::TryConvertToUInt32(propertyName, propertyLength, index) &&
-                    (*index != JavascriptArray::InvalidIndex))
+                createIfNotFound = createIfNotFound &&
+                    (!object || !JavascriptOperators::CanShortcutOnUnknownPropertyName(object));
+                if (!createIfNotFound)
                 {
-                    return IndexType_Number;
-                }
+                    if (JavascriptOperators::TryConvertToUInt32(propertyName, propertyLength, index) &&
+                        (*index != JavascriptArray::InvalidIndex))
+                    {
+                        return IndexType_Number;
+                    }
 
-                *propertyNameString = indexStr;
-                return IndexType_JavascriptString;
+                    *propertyNameString = indexStr;
+                    return IndexType_JavascriptString;
+                }
             }
             return GetIndexTypeFromString(propertyName, propertyLength, scriptContext, index, propertyRecord, createIfNotFound);
         }
     }
 
-    IndexType GetIndexType(Var indexVar, ScriptContext* scriptContext, uint32* index, PropertyRecord const ** propertyRecord, bool createIfNotFound)
+    IndexType GetIndexType(Var indexVar, ScriptContext* scriptContext, uint32* index, PropertyRecord const ** propertyRecord, bool createIfNotFound, RecyclableObject *object)
     {
-        return GetIndexType(indexVar, scriptContext, index, propertyRecord, nullptr, createIfNotFound, false);
+        return GetIndexType(indexVar, scriptContext, index, propertyRecord, nullptr, createIfNotFound, object, false);
     }
 
     BOOL FEqualDbl(double dbl1, double dbl2)
@@ -436,9 +446,7 @@ namespace Js
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
 
             // For JS Objects, don't create the propertyId if not already added
-            bool createIfNotFound = !IsJsNativeObject(object) ||
-                (DynamicType::Is(object->GetTypeId()) && static_cast<DynamicObject*>(object)->GetTypeHandler()->IsStringTypeHandler()) || JavascriptProxy::Is(object);
-            if (GetIndexType(index, scriptContext, &indexVal, &propertyRecord, createIfNotFound) == IndexType_Number)
+            if (GetIndexType(index, scriptContext, &indexVal, &propertyRecord, true, object) == IndexType_Number)
             {
                 // In edge mode, we don't need to worry about the special "unknown" behavior. If the item is not available from Get,
                 // just return undefined.
@@ -452,7 +460,7 @@ namespace Js
             }
             else if (propertyRecord == nullptr)
             {
-                Assert(IsJsNativeObject(object));
+                Assert(CanShortcutOnUnknownPropertyName(object));
 
 #if DBG
                 JavascriptString* indexStr = JavascriptConversion::ToString(index, scriptContext);
@@ -3095,16 +3103,13 @@ CommonNumber:
 
         uint32 indexVal;
         PropertyRecord const * propertyRecord;
-        bool createIfNotFound = (DynamicType::Is(object->GetTypeId()) &&
-            static_cast<DynamicObject*>(object)->GetTypeHandler()->IsStringTypeHandler()) ||
-            JavascriptProxy::Is(object);
-        if (GetIndexType(index, scriptContext, &indexVal, &propertyRecord, createIfNotFound) == IndexType_Number)
+        if (GetIndexType(index, scriptContext, &indexVal, &propertyRecord, true, object) == IndexType_Number)
         {
             return HasItem(object, indexVal);
         }
         else if (propertyRecord == nullptr)
         {
-            Assert(IsJsNativeObject(object));
+            Assert(CanShortcutOnUnknownPropertyName(object));
 
 #if DBG
             JavascriptString* indexStr = JavascriptConversion::ToString(index, scriptContext);
@@ -3677,9 +3682,7 @@ CommonNumber:
         JavascriptString * propertyNameString;
         Var value;
 
-        bool createIfNotFound = !IsJsNativeObject(object);
-
-        IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, &propertyNameString, createIfNotFound, true);
+        IndexType indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, &propertyNameString, true, object, true);
 
         if (indexType == IndexType_Number)
         {
@@ -3888,10 +3891,8 @@ CommonNumber:
         PropertyRecord const * propertyRecord;
         Var value = NULL;
         BOOL hasProperty = FALSE;
-        bool createIfNotFound = !IsJsNativeObject(object) ||
-            (DynamicType::Is(object->GetTypeId()) && static_cast<DynamicObject*>(object)->GetTypeHandler()->IsStringTypeHandler()) || JavascriptProxy::Is(object);
 
-        if (GetIndexType(index, scriptContext, &indexVal, &propertyRecord, createIfNotFound) == IndexType_Number)
+        if (GetIndexType(index, scriptContext, &indexVal, &propertyRecord, true, object) == IndexType_Number)
         {
             hasProperty = JavascriptOperators::GetItemReference(instance, object, indexVal, &value, scriptContext);
         }
@@ -3904,7 +3905,7 @@ CommonNumber:
 #if DBG
             else
             {
-                Assert(IsJsNativeObject(object));
+                Assert(CanShortcutOnUnknownPropertyName(object));
                 JavascriptString* indexStr = JavascriptConversion::ToString(index, scriptContext);
                 PropertyRecord const * debugPropertyRecord;
                 scriptContext->GetOrAddPropertyRecord(indexStr->GetString(), indexStr->GetLength(), &debugPropertyRecord);
@@ -4254,7 +4255,7 @@ CommonNumber:
 
         if (TaggedNumber::Is(receiver))
         {
-            indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, true);
+            indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, true, nullptr);
             if (indexType == IndexType_Number)
             {
                 return  JavascriptOperators::SetItemOnTaggedNumber(receiver, object, indexVal, value, scriptContext, flags);
@@ -4315,7 +4316,7 @@ CommonNumber:
 #if DBG_DUMP
             scriptContext->forinNoCache += (!TaggedInt::Is(index) && JavascriptString::Is(index));
 #endif
-            indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, &propertyNameString, false, true);
+            indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, &propertyNameString, false, nullptr, true);
             if (scriptContext->GetThreadContext()->IsDisableImplicitCall() &&
                 scriptContext->GetThreadContext()->GetImplicitCallFlags() != ImplicitCall_None)
             {
@@ -4725,10 +4726,7 @@ CommonNumber:
         PropertyRecord const * propertyRecord;
         BOOL result = TRUE;
 
-        bool createIfNotFound = !IsJsNativeObject(object) ||
-            (DynamicType::Is(object->GetTypeId()) && static_cast<DynamicObject*>(object)->GetTypeHandler()->IsStringTypeHandler()) || JavascriptProxy::Is(object);
-
-        if (GetIndexType(index, scriptContext, &indexVal, &propertyRecord, createIfNotFound) == IndexType_Number)
+        if (GetIndexType(index, scriptContext, &indexVal, &propertyRecord, true, object) == IndexType_Number)
         {
             result = JavascriptOperators::DeleteItem(object, indexVal, propertyOperationFlags);
         }
@@ -4741,7 +4739,7 @@ CommonNumber:
 #if DBG
             else
             {
-                Assert(IsJsNativeObject(object));
+                Assert(CanShortcutOnUnknownPropertyName(object));
                 JavascriptString* indexStr = JavascriptConversion::ToString(index, scriptContext);
                 PropertyRecord const * debugPropertyRecord;
                 scriptContext->GetOrAddPropertyRecord(indexStr->GetString(), indexStr->GetLength(), &debugPropertyRecord);
@@ -4934,6 +4932,43 @@ CommonNumber:
             default:
                 return false;
         }
+    }
+
+    bool JavascriptOperators::CanShortcutOnUnknownPropertyName(RecyclableObject *instance)
+    {
+        if (!CanShortcutInstanceOnUnknownPropertyName(instance))
+        {
+            return false;
+        }
+        return CanShortcutPrototypeChainOnUnknownPropertyName(instance->GetPrototype());
+    }
+
+    bool JavascriptOperators::CanShortcutInstanceOnUnknownPropertyName(RecyclableObject *instance)
+    {
+        if (JavascriptProxy::Is(instance))
+        {
+            return false;
+        }
+        if (!instance->HasDeferredTypeHandler())
+        {
+            return true;
+        }
+        return !(instance->IsExternal() || 
+                 (JavascriptFunction::Is(instance) && JavascriptFunction::FromVar(instance)->IsExternalFunction()));
+    }
+
+    bool JavascriptOperators::CanShortcutPrototypeChainOnUnknownPropertyName(RecyclableObject *prototype)
+    {
+        Assert(prototype);
+
+        for (; prototype->GetTypeId() != TypeIds_Null; prototype = prototype->GetPrototype())
+        {
+            if (!CanShortcutInstanceOnUnknownPropertyName(prototype))
+            {
+                return false;
+            }
+        }       
+        return true;
     }
 
     RecyclableObject* JavascriptOperators::GetPrototype(RecyclableObject* instance)
@@ -7024,7 +7059,7 @@ CommonNumber:
 
         PropertyRecord const * propertyRecord;
         uint32 index;
-        IndexType indexType = GetIndexType(argProperty, scriptContext, &index, &propertyRecord, true);
+        IndexType indexType = GetIndexType(argProperty, scriptContext, &index, &propertyRecord, true, nullptr);
 
         RecyclableObject* object = RecyclableObject::FromVar(instance);
 
