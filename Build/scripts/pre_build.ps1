@@ -3,7 +3,6 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
-#
 # Pre-Build script
 #
 # This script is fairly simple. It checks if it's running
@@ -13,20 +12,25 @@
 # output to make it easy to inspect builds.
 #
 # Require Environment:
-#   $TF_BUILD_SOURCEGETVERSION
-#   $TF_BUILD_DROPLOCATION
+#   $Env:TF_BUILD_SOURCEGETVERSION
+#   $Env:TF_BUILD_DROPLOCATION
 #
-# Inferable Environment:
-#   $TF_BUILD_SOURCESDIRECTORY
-#   $TF_BUILD_BUILDBINARIESDIRECTORY
-#   $TF_BUILD_BUILDDIRECTORY
+# Inferable Environment (if not specified, inferred by pre_post_util.ps1):
+#   $Env:TF_BUILD_SOURCESDIRECTORY  (a.k.a. $srcpath)
+#   $Env:TF_BUILD_BUILDDIRECTORY    (a.k.a. $objpath)
+#   $Env:TF_BUILD_BINARIESDIRECTORY (a.k.a. $binpath)
 #
 # Optional information:
-#   $TF_BUILD_BUILDDEFINITIONNAME
-#   $TF_BUILD_BUILDNUMBER
-#   $TF_BUILD_BUILDURI
+#   $Env:TF_BUILD_BUILDDEFINITIONNAME
+#   $Env:TF_BUILD_BUILDNUMBER
+#   $Env:TF_BUILD_BUILDURI
 
 param (
+    [ValidateSet("x86", "x64", "arm", "")]
+    [string]$arch = "",
+    [ValidateSet("debug", "release", "test", "codecoverage", "")]
+    [string]$flavor = "",
+
     [string]$srcpath = "",
     [string]$binpath = "",
     [string]$objpath = "",
@@ -48,6 +52,30 @@ if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {
 
 WriteCommonArguments;
 
+#
+# Create packages.config files
+#
+
+$packagesConfigFileText = @"
+<?xml version="1.0" encoding="utf-8"?>
+<packages>
+  <package id="MicroBuild.Core" version="0.2.0" targetFramework="native" developmentDependency="true" />
+</packages>
+"@
+
+$PackagesFiles = Get-ChildItem -Path ${Env:TF_BUILD_SOURCESDIRECTORY} *.vcxproj -Recurse `
+    | % { Join-Path $_.DirectoryName "packages.config" }
+
+foreach ($file in $PackagesFiles) {
+    if (-not (Test-Path $file)) {
+        Write-Output $packagesConfigFileText | Out-File $file -Encoding utf8
+    }
+}
+
+#
+# Create build metadata
+#
+
 if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
 {
     $commitHash = ($Env:TF_BUILD_SOURCEGETVERSION).split(':')[2]
@@ -67,7 +95,6 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
     Write-Output "TF_BUILD_BUILDURI = $Env:TF_BUILD_BUILDURI" | Out-File $outputFile -Append
     Write-Output "" | Out-File $outputFile -Append
 
-
     # Get the git remote path and construct the rest API URI
     $remote = (iex "$gitExe remote -v")[0].split()[1].replace("_git", "_apis/git/repositories");
     $remote = $remote.replace("mshttps", "https");
@@ -79,21 +106,41 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
     $info = Invoke-RestMethod -Headers $header -Uri $uri -Method GET
 
     $buildDate = ([datetime]$info.push.date).toString("yyMMdd-HHmm")
-    $buildPushId = $info.push.pushId;
-    $buildPushIdPart1 = [int]($buildPushId / 65536);
-    $buildPushIdPart2 = [int]($buildPushId % 65536);
-    Write-Output ("PushId = $buildPushId ({0}.{1})" -f $buildPushIdPart1.ToString("00000"), $buildPushIdPart2.ToString("00000")) | Out-File $outputFile -Append
-    Write-Output "PushDate = $buildDate" | Out-File $outputFile -Append
-    Write-Output "" | Out-File $outputFile -Append
+    $buildPushId = $info.push.pushId
+    $buildPushIdPart1 = [int]([math]::Floor($buildPushId / 65536))
+    $buildPushIdPart2 = [int]($buildPushId % 65536)
+    $buildPushIdString = "{0}.{1}" -f $buildPushIdPart1.ToString("00000"), $buildPushIdPart2.ToString("00000")
+
+    Write-Output "PushId = $buildPushId $buildPushIdString" | Out-File $outputFile -Append
+    Write-Output "PushDate = $buildDate"                    | Out-File $outputFile -Append
+    Write-Output ""                                         | Out-File $outputFile -Append
 
     # commit message
     $command = "$gitExe log -1 --name-status -p $commitHash"
     iex $command | Out-File $outputFile -Append
     Pop-Location
 
-
     # commit hash
     $buildCommit = ($Env:TF_BUILD_SOURCEGETVERSION).SubString(14);
+    $commitHash = $buildCommit.Split(":")[1]
+
+    $outputJsonFile = Join-Path -Path $outputDir -ChildPath "change.json"
+    $changeJson = New-Object System.Object
+
+    $changeJson | Add-Member -type NoteProperty -name BuildDefinitionName -value $Env:TF_BUILD_BUILDDEFINITIONNAME
+    $changeJson | Add-Member -type NoteProperty -name BuildNumber -value $Env:TF_BUILD_BUILDNUMBER
+    $changeJson | Add-Member -type NoteProperty -name BuildDate -value $buildDate
+    $changeJson | Add-Member -type NoteProperty -name BuildUri -value $Env:TF_BUILD_BUILDURI
+    $changeJson | Add-Member -type NoteProperty -name Branch -value $Env:BranchName
+    $changeJson | Add-Member -type NoteProperty -name CommitHash -value $commitHash
+    $changeJson | Add-Member -type NoteProperty -name PushId -value $buildPushId
+    $changeJson | Add-Member -type NoteProperty -name PushIdPart1 -value $buildPushIdPart1
+    $changeJson | Add-Member -type NoteProperty -name PushIdPart2 -value $buildPushIdPart2
+    $changeJson | Add-Member -type NoteProperty -name PushIdString -value $buildPushIdString
+    $changeJson | Add-Member -type NoteProperty -name SourceGetVersion -value $Env:TF_BUILD_SOURCEGETVERSION
+
+    $changeJson | ConvertTo-Json | Write-Output
+    $changeJson | ConvertTo-Json | Out-File $outputJsonFile -Encoding ascii
 
     $buildInfoOutputDir = $objpath
     if (-not(Test-Path -Path $buildInfoOutputDir)) {
@@ -118,7 +165,10 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
     Write-Output ($propsFile -f $binpath, $objpath, $buildPushIdPart1, $buildPushIdPart2, $buildCommit, $buildDate) | Out-File $buildInfoOutputFile
 }
 
+#
 # Clean up code analysis summary files in case they get left behind
+#
+
 if (Test-Path $objpath) {
     Get-ChildItem $objpath -include vc.nativecodeanalysis.all.xml -recurse | Remove-Item
 }

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+    <metadata>
+        <id>Microsoft.ChakraCore</id>
+        <version>1.2</version>
+        <authors>Chakra Team</authors>
+        <owners>Chakra Team</owners>
+        <licenseUrl>https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt</licenseUrl>
+        <projectUrl>https://github.com/Microsoft/ChakraCore</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <developmentDependency>true</developmentDependency>
+        <description>ChakraCore is the core part of the Chakra Javascript engine that powers Microsoft Edge.</description>
+        <!--
+        <releaseNotes>**** TODO: need link</releaseNotes>
+        -->
+        <copyright>Copyright (C) 2016 Microsoft</copyright>
+        <language>en-US</language>
+        <tags>Chakra,ChakraCore</tags>
+    </metadata>
+    <files>
+        <file src="VcBuild\bin\x86_release\ChakraCore.dll" target="x86\ChakraCore.dll" />
+        <file src="VcBuild\bin\x86_release\ChakraCore.pdb" target="x86\ChakraCore.pdb" />
+        <file src="VcBuild\bin\x86_release\ch.exe" target="x86\ch.exe" />
+        <file src="VcBuild\bin\x86_release\ch.pdb" target="x86\ch.pdb" />
+        <file src="VcBuild\bin\x64_release\ChakraCore.dll" target="x64\ChakraCore.dll" />
+        <file src="VcBuild\bin\x64_release\ChakraCore.pdb" target="x64\ChakraCore.pdb" />
+        <file src="VcBuild\bin\x64_release\ch.exe" target="x64\ch.exe" />
+        <file src="VcBuild\bin\x64_release\ch.pdb" target="x64\ch.pdb" />
+    </files>
+</package>
