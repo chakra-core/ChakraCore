@@ -378,6 +378,10 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     JsContextRef context = JS_INVALID_REFERENCE;
     IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
     IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+    
+#ifdef DEBUG
+    ChakraRTInterface::SetCheckOpHelpersFlag(true);
+#endif
 
     if (!WScriptJsrt::Initialize())
     {
