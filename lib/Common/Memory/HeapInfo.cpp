@@ -505,10 +505,11 @@ HeapInfo::Initialize(Recycler * recycler
     if (pageheapmode == PageHeapMode::PageHeapModeOff)
     {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        isPageHeapEnabled = recycler->GetRecyclerFlagsTable().PageHeap != PageHeapMode::PageHeapModeOff;
-        pageheapmode = (PageHeapMode)recycler->GetRecyclerFlagsTable().PageHeap;
-        blockTypeFilter = (PageHeapBlockTypeFilter)recycler->GetRecyclerFlagsTable().PageHeapBlockType;
-        pBucketNumberRange = &recycler->GetRecyclerFlagsTable().PageHeapBucketNumber;
+        auto& flags = recycler->GetRecyclerFlagsTable();
+        isPageHeapEnabled = flags.PageHeap != PageHeapMode::PageHeapModeOff;
+        pageheapmode = (PageHeapMode)flags.PageHeap;
+        blockTypeFilter = (PageHeapBlockTypeFilter)flags.PageHeapBlockType;
+        pBucketNumberRange = &flags.PageHeapBucketNumber;
 
 #else
         // @TODO in free build, use environment var or other way to enable page heap
@@ -1766,11 +1767,60 @@ BOOL SmallAllocationBlockAttributes::IsAlignedObjectSize(size_t sizeCat)
 {
     return HeapInfo::IsAlignedSmallObjectSize(sizeCat);
 }
+/* static */
+uint SmallAllocationBlockAttributes::GetUnusablePageCount(size_t sizeCat)
+{
+    UNREFERENCED_PARAMETER(sizeCat);
+    return 0;
+}
+/* static */
+void SmallAllocationBlockAttributes::DecommitUnusablePages(HeapBlock* heapBlock)
+{
+    UNREFERENCED_PARAMETER(heapBlock);
+}
+/* static */
+BOOL SmallAllocationBlockAttributes::RecommitUnusablePages(HeapBlock* heapBlock)
+{
+    UNREFERENCED_PARAMETER(heapBlock);
+    return TRUE;
+}
 
 /* static */
 BOOL MediumAllocationBlockAttributes::IsAlignedObjectSize(size_t sizeCat)
 {
     return HeapInfo::IsAlignedMediumObjectSize(sizeCat);
+}
+/* static */
+uint MediumAllocationBlockAttributes::GetUnusablePageCount(size_t sizeCat)
+{
+    return ((MediumAllocationBlockAttributes::PageCount*AutoSystemInfo::PageSize) % sizeCat) / AutoSystemInfo::PageSize;
+}
+/* static */
+void MediumAllocationBlockAttributes::DecommitUnusablePages(HeapBlock* heapBlock)
+{
+    size_t count = MediumAllocationBlockAttributes::GetUnusablePageCount(heapBlock->GetObjectSize(nullptr));
+    if (count > 0)
+    {
+        char* startPage = heapBlock->address + (MediumAllocationBlockAttributes::PageCount - count)*AutoSystemInfo::PageSize;
+#pragma warning(suppress: 6250)
+        ::VirtualFree(startPage, count*AutoSystemInfo::PageSize, MEM_DECOMMIT);
+#pragma warning(suppress: 6001) // prefast assume startPage is freed and we can't use the address..
+        ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
+    }
+}
+/* static */
+BOOL MediumAllocationBlockAttributes::RecommitUnusablePages(HeapBlock* heapBlock)
+{
+    size_t count = MediumAllocationBlockAttributes::GetUnusablePageCount(heapBlock->GetObjectSize(nullptr));
+    if (count > 0)
+    {
+        FAULTINJECT_MEMORY_NOTHROW_RET(_u("recommit unusable pages"), count*AutoSystemInfo::PageSize, FALSE);
+
+        char* startPage = (char*)heapBlock->address + (MediumAllocationBlockAttributes::PageCount - count)*AutoSystemInfo::PageSize;
+#pragma warning(suppress: 6250)
+        return startPage==::VirtualAlloc(startPage, count*AutoSystemInfo::PageSize, MEM_COMMIT, PAGE_READWRITE);
+    }
+    return TRUE;
 }
 
 template class HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>;

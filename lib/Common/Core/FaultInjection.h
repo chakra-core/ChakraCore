@@ -156,6 +156,10 @@ namespace Js
     if(Js::FaultInjection::Global.ShouldInjectFault(Js::FaultInjection::Global.NoThrow, name, size)) \
         return NULL;
 
+#define FAULTINJECT_MEMORY_NOTHROW_RET(name, size, ret) \
+    if(Js::FaultInjection::Global.ShouldInjectFault(Js::FaultInjection::Global.NoThrow, name, size)) \
+        return ret;
+
 #define FAULTINJECT_MEMORY_THROW(name, size) \
     if(Js::FaultInjection::Global.ShouldInjectFault(Js::FaultInjection::Global.Throw, name, size)) \
         Js::Throw::OutOfMemory();
@@ -200,6 +204,7 @@ namespace Js
 #define IS_FAULTINJECT_NO_THROW_ON false
 
 #define FAULTINJECT_MEMORY_NOTHROW(name, size)
+#define FAULTINJECT_MEMORY_NOTHROW_RET(name, size, ret)
 #define FAULTINJECT_MEMORY_THROW(name, size)
 #define FAULTINJECT_MEMORY_MARK_THROW(name, size)
 #define FAULTINJECT_MEMORY_MARK_NOTHROW(name, size)
