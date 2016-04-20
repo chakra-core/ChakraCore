@@ -270,4 +270,10 @@
       <compile-flags>-ES6FunctionName -args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>HasOnlyWritableDataProperties-cross-context.js</files>
+      <compile-flags>-nonative</compile-flags>
+    </default>
+  </test>
 </regress-exe>

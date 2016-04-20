@@ -65,24 +65,18 @@ namespace Js
 
         if (isSimple)
         {
-            newTypeHandler = ConvertToSimpleDictionaryType(instance, initSlotCapacity);
+            newTypeHandler = ConvertToSimpleDictionaryType(instance, initSlotCapacity, isProto);
         }
         else
         {
-            newTypeHandler = ConvertToDictionaryType(instance, initSlotCapacity);
+            newTypeHandler = ConvertToDictionaryType(instance, initSlotCapacity, isProto);
         }
 
         AssertMsg(!instance->HasSharedType(), "Expect the instance to have a non-shared type and handler after conversion.");
-
-        if (isProto)
-        {
-            newTypeHandler->SetIsPrototype(instance);
-            AssertMsg(instance->GetDynamicType()->GetTypeHandler() == newTypeHandler, "Why did SetIsPrototype force a type handler change on a non-shared type handler?");
-        }
     }
 
     template <typename T>
-    T* DeferredTypeHandlerBase::ConvertToTypeHandler(DynamicObject* instance, int initSlotCapacity)
+    T* DeferredTypeHandlerBase::ConvertToTypeHandler(DynamicObject* instance, int initSlotCapacity, BOOL isProto)
     {
         ScriptContext* scriptContext = instance->GetScriptContext();
         Recycler* recycler = scriptContext->GetRecycler();
@@ -99,17 +93,24 @@ namespace Js
         {
             newTypeHandler->ClearHasOnlyWritableDataProperties();
         }
+
+        if (isProto)
+        {
+            newTypeHandler->SetIsPrototype(instance);
+        }
+
         newTypeHandler->SetInstanceTypeHandler(instance);
+        AssertMsg(!isProto || instance->GetDynamicType()->GetTypeHandler() == newTypeHandler, "Why did SetIsPrototype force a type handler change on a non-shared type handler?");
 
         return newTypeHandler;
     }
 
-    SimpleDictionaryTypeHandler* DeferredTypeHandlerBase::ConvertToSimpleDictionaryType(DynamicObject* instance, int initSlotCapacity)
+    SimpleDictionaryTypeHandler* DeferredTypeHandlerBase::ConvertToSimpleDictionaryType(DynamicObject* instance, int initSlotCapacity, BOOL isProto)
     {
         // DeferredTypeHandler is only used internally by the type system. "initSlotCapacity" should be a tiny number.
         Assert(initSlotCapacity <= SimpleDictionaryTypeHandler::MaxPropertyIndexSize);
 
-        SimpleDictionaryTypeHandler* newTypeHandler = ConvertToTypeHandler<SimpleDictionaryTypeHandler>(instance, initSlotCapacity);
+        SimpleDictionaryTypeHandler* newTypeHandler = ConvertToTypeHandler<SimpleDictionaryTypeHandler>(instance, initSlotCapacity, isProto);
 
     #ifdef PROFILE_TYPES
         instance->GetScriptContext()->convertDeferredToSimpleDictionaryCount++;
@@ -117,12 +118,12 @@ namespace Js
         return newTypeHandler;
     }
 
-    DictionaryTypeHandler* DeferredTypeHandlerBase::ConvertToDictionaryType(DynamicObject* instance, int initSlotCapacity)
+    DictionaryTypeHandler* DeferredTypeHandlerBase::ConvertToDictionaryType(DynamicObject* instance, int initSlotCapacity, BOOL isProto)
     {
         // DeferredTypeHandler is only used internally by the type system. "initSlotCapacity" should be a tiny number.
         Assert(initSlotCapacity <= DictionaryTypeHandler::MaxPropertyIndexSize);
 
-        DictionaryTypeHandler* newTypeHandler = ConvertToTypeHandler<DictionaryTypeHandler>(instance, initSlotCapacity);
+        DictionaryTypeHandler* newTypeHandler = ConvertToTypeHandler<DictionaryTypeHandler>(instance, initSlotCapacity, isProto);
 
     #ifdef PROFILE_TYPES
         instance->GetScriptContext()->convertDeferredToDictionaryCount++;

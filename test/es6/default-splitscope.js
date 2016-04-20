@@ -617,6 +617,15 @@ var tests = [
             return b;   
         }   
         assert.areEqual(400, f3()(), "Function defined in the body scope captures the symbol from the body scope with eval");
+        
+        function f4 (a, b, c = function () { b; }, d = 1) {
+            var e = 10;
+            assert.areEqual(2, arguments[0], "Unmapped arguments value has the expected value in the body");
+            (function () {
+                eval('');
+            }());
+        };
+        f4.call(1, 2);
     }  
   }, 
   { 

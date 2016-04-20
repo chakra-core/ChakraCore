@@ -38,10 +38,10 @@ namespace Js
 
     private:
         template <typename T>
-        T* ConvertToTypeHandler(DynamicObject* instance, int initSlotCapacity);
+        T* ConvertToTypeHandler(DynamicObject* instance, int initSlotCapacity, BOOL isProto = FALSE);
 
-        DictionaryTypeHandler * ConvertToDictionaryType(DynamicObject* instance, int initSlotCapacity);
-        SimpleDictionaryTypeHandler * ConvertToSimpleDictionaryType(DynamicObject* instance, int initSlotCapacity);
+        DictionaryTypeHandler * ConvertToDictionaryType(DynamicObject* instance, int initSlotCapacity, BOOL isProto);
+        SimpleDictionaryTypeHandler * ConvertToSimpleDictionaryType(DynamicObject* instance, int initSlotCapacity, BOOL isProto);
         ES5ArrayTypeHandler * ConvertToES5ArrayType(DynamicObject* instance, int initSlotCapacity);
     };
 

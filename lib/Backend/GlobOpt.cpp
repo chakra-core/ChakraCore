@@ -4124,9 +4124,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
     if (
         !indexValueType.IsInt() ||
             !(
-                baseValueType.IsNativeIntArray() ||
-                // Memset allows native float and float32/float64 typed arrays as well. Todo:: investigate if memcopy can be done safely on float arrays
-                (isMemset ? (baseValueType.IsNativeFloatArray() || baseValueType.IsTypedIntOrFloatArray()) : baseValueType.IsTypedIntArray()) ||
+                baseValueType.IsTypedIntOrFloatArray() ||
                 baseValueType.IsArray()
             )
         )
@@ -4402,7 +4400,7 @@ GlobOpt::CollectMemOpLdElementI(IR::Instr *instr, Loop *loop)
 bool
 GlobOpt::CollectMemOpStElementI(IR::Instr *instr, Loop *loop)
 {
-    Assert(instr->m_opcode == Js::OpCode::StElemI_A);
+    Assert(instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict);
     Assert(instr->GetSrc1());
     return (!PHASE_OFF(Js::MemSetPhase, this->func) && CollectMemsetStElementI(instr, loop)) ||
         (!PHASE_OFF(Js::MemCopyPhase, this->func) && CollectMemcopyStElementI(instr, loop));
@@ -4432,6 +4430,7 @@ GlobOpt::CollectMemOpInfo(IR::Instr *instr, Value *src1Val, Value *src2Val)
     switch (instr->m_opcode)
     {
     case Js::OpCode::StElemI_A:
+    case Js::OpCode::StElemI_A_Strict:
         if (!CollectMemOpStElementI(instr, loop))
         {
             loop->memOpInfo->doMemOp = false;
@@ -6305,6 +6304,32 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
                 Assert(!propertySymOpnd->IsTypeChecked());
                 checkObjTypeInstr = this->SetTypeCheckBailOut(checkObjTypeOpnd, checkObjTypeInstr, nullptr);
                 Assert(checkObjTypeInstr->HasBailOutInfo());
+
+                if (this->currentBlock->loop && !this->IsLoopPrePass())
+                {
+                    // Try hoisting this checkObjType.
+                    // But since this isn't the current instr being optimized, we need to play tricks with 
+                    // the byteCodeUse fields...
+                    BVSparse<JitArenaAllocator> *currentBytecodeUses = this->byteCodeUses;
+                    PropertySym * currentPropertySymUse = this->propertySymUse;
+                    PropertySym * tempPropertySymUse = NULL;
+                    this->byteCodeUses = NULL;
+                    BVSparse<JitArenaAllocator> *tempByteCodeUse = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+#if DBG
+                    BVSparse<JitArenaAllocator> *currentBytecodeUsesBeforeOpt = this->byteCodeUsesBeforeOpt;
+                    this->byteCodeUsesBeforeOpt = tempByteCodeUse;
+#endif
+                    this->propertySymUse = NULL;
+                    GlobOpt::TrackByteCodeSymUsed(checkObjTypeInstr, tempByteCodeUse, &tempPropertySymUse);
+
+                    TryHoistInvariant(checkObjTypeInstr, this->currentBlock, NULL, this->FindValue(copySym), NULL, true);
+
+                    this->byteCodeUses = currentBytecodeUses;
+                    this->propertySymUse = currentPropertySymUse;
+#if DBG
+                    this->byteCodeUsesBeforeOpt = currentBytecodeUsesBeforeOpt;
+#endif
+                }
             }
         }
 
@@ -7281,9 +7306,11 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             min1 < 0 &&
             IntConstantBounds(min2, max2).And_0x1f().Contains(0))
         {
-            // Src1 may be too large to represent as a signed int32, and src2 may be zero. Since the result can therefore be too
-            // large to represent as a signed int32, include Number in the value type.
-            return CreateDstUntransferredValue(ValueType::GetNumberAndLikelyInt(true), instr, src1Val, src2Val);
+            // Src1 may be too large to represent as a signed int32, and src2 may be zero. 
+            // Since the result can therefore be too large to represent as a signed int32, 
+            // include Number in the value type.
+            return CreateDstUntransferredValue(
+                ValueType::AnyNumber.SetCanBeTaggedValue(true), instr, src1Val, src2Val);
         }
 
         this->PropagateIntRangeBinary(instr, min1, max1, min2, max2, &newMin, &newMax);
@@ -18189,6 +18216,17 @@ GlobOpt::OptIsInvariant(IR::Opnd *src, BasicBlock *block, Loop *loop, Value *src
 
     case IR::OpndKindSym:
         sym = src->AsSymOpnd()->m_sym;
+        if (src->AsSymOpnd()->IsPropertySymOpnd())
+        {
+            if (src->AsSymOpnd()->AsPropertySymOpnd()->IsTypeChecked())
+            {
+                // We do not handle hoisting these yet.  We might be hoisting this across the instr with the type check protecting this one.
+                // And somehow, the dead-store pass now removes the type check on that instr later on...
+                // For CheckFixedFld, there is no benefit hoisting these if they don't have a type check as they won't generate code.
+                return false;
+            }
+        }
+
         break;
 
     case IR::OpndKindHelperCall:
@@ -20790,10 +20828,10 @@ GlobOpt::FindArraySegmentLoadInstr(IR::Instr* fromInstr)
 void
 GlobOpt::RemoveMemOpSrcInstr(IR::Instr* memopInstr, IR::Instr* srcInstr, BasicBlock* block)
 {
-    Assert(srcInstr && (srcInstr->m_opcode == Js::OpCode::LdElemI_A || srcInstr->m_opcode == Js::OpCode::StElemI_A));
+    Assert(srcInstr && (srcInstr->m_opcode == Js::OpCode::LdElemI_A || srcInstr->m_opcode == Js::OpCode::StElemI_A || srcInstr->m_opcode == Js::OpCode::StElemI_A_Strict));
     Assert(memopInstr && (memopInstr->m_opcode == Js::OpCode::Memcopy || memopInstr->m_opcode == Js::OpCode::Memset));
     Assert(block);
-    const bool isDst = srcInstr->m_opcode == Js::OpCode::StElemI_A;
+    const bool isDst = srcInstr->m_opcode == Js::OpCode::StElemI_A || srcInstr->m_opcode == Js::OpCode::StElemI_A_Strict;
     IR::RegOpnd* opnd = (isDst ? memopInstr->GetDst() : memopInstr->GetSrc1())->AsIndirOpnd()->GetBaseOpnd();
     IR::ArrayRegOpnd* arrayOpnd = opnd->IsArrayRegOpnd() ? opnd->AsArrayRegOpnd() : nullptr;
 
@@ -20860,7 +20898,7 @@ GlobOpt::RemoveMemOpSrcInstr(IR::Instr* memopInstr, IR::Instr* srcInstr, BasicBl
 void
 GlobOpt::GetMemOpSrcInfo(Loop* loop, IR::Instr* instr, IR::RegOpnd*& base, IR::RegOpnd*& index, IRType& arrayType)
 {
-    Assert(instr && (instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::StElemI_A));
+    Assert(instr && (instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict));
     IR::Opnd* arrayOpnd = instr->m_opcode == Js::OpCode::LdElemI_A ? instr->GetSrc1() : instr->GetDst();
     Assert(arrayOpnd->IsIndirOpnd());
 
@@ -20882,7 +20920,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
     Assert(emitData);
     Assert(emitData->candidate);
     Assert(emitData->stElemInstr);
-    Assert(emitData->stElemInstr->m_opcode == Js::OpCode::StElemI_A);
+    Assert(emitData->stElemInstr->m_opcode == Js::OpCode::StElemI_A || emitData->stElemInstr->m_opcode == Js::OpCode::StElemI_A_Strict);
     IR::BailOutKind bailOutKind = emitData->bailOutKind;
 
     const byte unroll = emitData->inductionVar.unroll;
@@ -21042,7 +21080,7 @@ GlobOpt::InspectInstrForMemSetCandidate(Loop* loop, IR::Instr* instr, MemSetEmit
 {
     Assert(emitData && emitData->candidate && emitData->candidate->IsMemSet());
     Loop::MemSetCandidate* candidate = (Loop::MemSetCandidate*)emitData->candidate;
-    if (instr->m_opcode == Js::OpCode::StElemI_A)
+    if (instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict)
     {
         if (instr->GetDst()->IsIndirOpnd()
             && (GetVarSymID(instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->GetStackSym()) == candidate->base)
@@ -21070,7 +21108,7 @@ GlobOpt::InspectInstrForMemCopyCandidate(Loop* loop, IR::Instr* instr, MemCopyEm
 {
     Assert(emitData && emitData->candidate && emitData->candidate->IsMemCopy());
     Loop::MemCopyCandidate* candidate = (Loop::MemCopyCandidate*)emitData->candidate;
-    if (instr->m_opcode == Js::OpCode::StElemI_A)
+    if (instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict)
     {
         if (
             instr->GetDst()->IsIndirOpnd() &&

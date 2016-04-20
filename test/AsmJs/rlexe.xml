@@ -800,4 +800,11 @@
       <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>vardeclnorhs.js</files>
+      <baseline>vardeclnorhs.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
+    </default>
+  </test>
 </regress-exe>

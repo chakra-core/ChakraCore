@@ -570,7 +570,7 @@ namespace Js
         FieldAccessStats* EnsureFieldAccessStats(Recycler* recycler);
 #endif
 
-        void  PinTypeRefs(ScriptContext* scriptContext);
+        void PinTypeRefs(ScriptContext* scriptContext);
         void InstallGuards(ScriptContext* scriptContext);
 #endif
 
@@ -845,8 +845,9 @@ namespace Js
 
         void EnsureIsReadyToCall();
         void ProcessJitTransferData();
-        void ResetOnNativeCodeInstallFailure();
-        virtual void OnNativeCodeInstallFailure() = 0;
+        void ResetOnLazyBailoutFailure();
+        void OnNativeCodeInstallFailure();
+        virtual void ResetOnNativeCodeInstallFailure() = 0;
 
         Js::PropertyGuard* RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext);
         bool HasSharedPropertyGuards() { return this->sharedPropertyGuards != nullptr; }
@@ -965,7 +966,7 @@ namespace Js
         virtual void Invalidate(bool prolongEntryPoint) override;
         virtual void Expire() override;
         virtual void EnterExpirableCollectMode() override;
-        virtual void OnNativeCodeInstallFailure() override;
+        virtual void ResetOnNativeCodeInstallFailure() override;
 #endif
 
         virtual void OnCleanup(bool isShutdown) override;
@@ -995,7 +996,7 @@ namespace Js
         virtual void OnCleanup(bool isShutdown) override;
 
 #if ENABLE_NATIVE_CODEGEN
-        virtual void OnNativeCodeInstallFailure() override;
+        virtual void ResetOnNativeCodeInstallFailure() override;
 #endif
 
 #ifndef TEMP_DISABLE_ASMJS
