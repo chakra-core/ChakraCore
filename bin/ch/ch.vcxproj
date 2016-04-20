@@ -77,6 +77,12 @@
       <Project>{1876e800-ad77-48c4-a2f7-e5265f24ac38}</Project>
     </ProjectReference>
   </ItemGroup>
+  <!-- Conditionally include the group of files to sign because MBv2 knows what to do with this but the old build definition gets confused. -->
+  <ItemGroup Condition="'$(VSO_MICROBUILD_V2)'=='True'">
+    <FilesToSign Include="$(OutDir)\ch.exe">
+      <Authenticode>Microsoft</Authenticode>
+    </FilesToSign>
+  </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

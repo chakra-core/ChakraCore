@@ -75,6 +75,19 @@
       </AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemGroup>
+  <PropertyGroup Condition="'$(IsPogoBuild)'=='true'" Label="Configuration">
+    <WholeProgramOptimization Condition="'$(POGO_TYPE)'=='PGI'">PGInstrument</WholeProgramOptimization>
+    <WholeProgramOptimization Condition="'$(POGO_TYPE)'=='PGO'">PGOptimize</WholeProgramOptimization>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(IsPogoBuild)'=='true'">
+    <Link>
+      <LinkTimeCodeGeneration Condition="'$(POGO_TYPE)'=='PGI'">PGInstrument</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration Condition="'$(POGO_TYPE)'=='PGO'">PGOptimization</LinkTimeCodeGeneration>
+    </Link>
+    <ClCompile>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\lib\Jsrt\Chakra.Jsrt.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9220f5}</Project>
@@ -133,6 +146,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestHooks.h" />
+  </ItemGroup>
+  <!-- Conditionally include the group of files to sign because MBv2 knows what to do with this but the old build definition gets confused. -->
+  <ItemGroup Condition="'$(VSO_MICROBUILD_V2)'=='True'">
+    <FilesToSign Include="$(OutDir)\ChakraCore.dll">
+      <Authenticode>Microsoft</Authenticode>
+    </FilesToSign>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
