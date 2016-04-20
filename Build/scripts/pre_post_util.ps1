@@ -20,8 +20,7 @@ function WriteCommonArguments() {
     WriteMessage "Binaries Path: $binpath"
 }
 
-function GetGitPath()
-{
+function GetGitPath() {
     $gitExe = "git.exe"
 
     if (!(Get-Command $gitExe -ErrorAction SilentlyContinue)) {
@@ -33,8 +32,6 @@ function GetGitPath()
     return $gitExe;
 }
 
-$srcpath = UseValueOrDefault $srcpath "$env:TF_BUILD_SOURCESDIRECTORY" (Resolve-Path "$OutterScriptRoot\..\..");
-$binpath = UseValueOrDefault $binpath "$env:TF_BUILD_BINARIESDIRECTORY" "$srcpath\Build\VcBuild\bin\$arch_$flavor";
-$objpath = UseValueOrDefault $objpath "$env:TF_BUILD_BUILDDIRECTORY" "$srcpath\Build\VcBuild\obj\$arch_$flavor";
-
-
+$srcpath = UseValueOrDefault $srcpath "$env:TF_BUILD_SOURCESDIRECTORY" (Resolve-Path "$OuterScriptRoot\..\..");
+$objpath = UseValueOrDefault $objpath "$env:TF_BUILD_BUILDDIRECTORY" "${srcpath}\Build\VcBuild\obj\${arch}_${flavor}";
+$binpath = UseValueOrDefault $binpath "$env:TF_BUILD_BINARIESDIRECTORY" "${srcpath}\Build\VcBuild";
