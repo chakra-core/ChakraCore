@@ -6,6 +6,7 @@
 
 namespace Js
 {
+    const char16 JavascriptSIMDBool32x4::TypeName[] = _u("SIMD.Bool32x4");
 
     JavascriptSIMDBool32x4::JavascriptSIMDBool32x4(StaticType *type) : JavascriptSIMDType(type)
     {
@@ -40,11 +41,9 @@ namespace Js
         return reinterpret_cast<JavascriptSIMDBool32x4 *>(aValue);
     }
 
-    const char16* JavascriptSIMDBool32x4::GetFullBuiltinName(char16** aBuffer, const char16* name)
+    const char16* JavascriptSIMDBool32x4::GetTypeName()
     {
-        Assert(aBuffer && *aBuffer);
-        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, _u("SIMD.Bool32x4.%s"), name);
-        return *aBuffer;
+        return JavascriptSIMDBool32x4::TypeName;
     }
 
     Var JavascriptSIMDBool32x4::Copy(ScriptContext* requestContext)
