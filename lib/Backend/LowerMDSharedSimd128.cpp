@@ -422,7 +422,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_8(IR::Instr *instr)
     dst = args->Pop();
 
     uint i = 0;
-    while (!args->Empty())
+    while (!args->Empty() && i < 8)
     {
         srcs[i] = args->Pop();
         // src's might have been constant prop'ed. Enregister them if so.
@@ -461,7 +461,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_16(IR::Instr *instr)
     dst = args->Pop();
 
     uint i = 0;
-    while (!args->Empty())
+    while (!args->Empty() && i < 16)
     {
         srcs[i] = args->Pop();
         // src's might have been constant prop'ed. Enregister them if so.
@@ -1713,13 +1713,13 @@ IR::Instr* LowererMD::Simd128LowerShuffle_4(IR::Instr* instr)
             // compute re-arrangement mask
             for (uint8 i = 0, j1 = 0, j2 = 2; i < 4; i++)
             {
-                if (lanesSrc[i] == 1)
+                if (lanesSrc[i] == 1 && j1 < 4)
                 {
                     ordLanes[j1] = lanes[i];
                     reArrLanes[i] = j1;
                     j1++;
                 }
-                else
+                else if(j2 < 4)
                 {
                     Assert(lanesSrc[i] == 2);
                     ordLanes[j2] = lanes[i];

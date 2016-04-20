@@ -7386,7 +7386,7 @@ void IRBuilderAsmJs::BuildSimd_1Ints(Js::OpCodeAsmJs newOpcode, uint32 offset, I
     srcOpnds[0]->SetValueType(ValueType::GetInt(false));
     instr = AddExtendedArg(srcOpnds[0], nullptr, offset);
     // reset of args
-    for (uint i = 1; i < LANES; i++)
+    for (uint i = 1; i < LANES && i < 16; i++)
     {
         srcOpnds[i] = BuildSrcOpnd(srcRegSlots[i], TyInt32);
         srcOpnds[i]->SetValueType(ValueType::GetInt(false));
