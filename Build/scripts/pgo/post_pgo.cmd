@@ -4,10 +4,14 @@
 ::-------------------------------------------------------------------------------------------------------
 
 :: PGO Build Workflow:
-:: - init_pgi.cmd
+:: - pre_pgi.cmd
 :: - build (with PGI instrumentation enabled)
-:: * init_pgo.cmd
+:: - post_pgi.cmd
+:: - pogo_training.ps1
+:: - pre_pgo.cmd
 :: - build (using PGO profile)
+:: * post_pgo.cmd
+
 set binpath_pgo=%1
 
 if "%binpath_pgo%"=="" (

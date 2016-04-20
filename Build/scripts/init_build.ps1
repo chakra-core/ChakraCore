@@ -3,6 +3,13 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
+# Init Build Script
+#
+# Run this as the very first step in the build to configure the environment.
+# This is distinct from the Pre-Build script as there may be more non-script steps that need to be
+# taken before setting up and running the build.
+# For example, this script creates a cmd script which should be run to initialize environment variables.
+
 param (
     [string]$envconfig = "ComputedEnvironment.cmd",
 

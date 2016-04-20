@@ -3,7 +3,6 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
-#
 # Pre-Build script
 #
 # This script is fairly simple. It checks if it's running
@@ -52,6 +51,30 @@ if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {
 }
 
 WriteCommonArguments;
+
+#
+# Create packages.config files
+#
+
+$packagesConfigFileText = @"
+<?xml version="1.0" encoding="utf-8"?>
+<packages>
+  <package id="MicroBuild.Core" version="0.2.0" targetFramework="native" developmentDependency="true" />
+</packages>
+"@
+
+$PackagesFiles = Get-ChildItem -Path ${Env:TF_BUILD_SOURCESDIRECTORY} *.vcxproj -Recurse `
+    | % { Join-Path $_.DirectoryName "packages.config" }
+
+foreach ($file in $PackagesFiles) {
+    if (-not (Test-Path $file)) {
+        Write-Output $packagesConfigFileText | Out-File $file -Encoding utf8
+    }
+}
+
+#
+# Create build metadata
+#
 
 if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
 {
@@ -142,7 +165,10 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
     Write-Output ($propsFile -f $binpath, $objpath, $buildPushIdPart1, $buildPushIdPart2, $buildCommit, $buildDate) | Out-File $buildInfoOutputFile
 }
 
+#
 # Clean up code analysis summary files in case they get left behind
+#
+
 if (Test-Path $objpath) {
     Get-ChildItem $objpath -include vc.nativecodeanalysis.all.xml -recurse | Remove-Item
 }

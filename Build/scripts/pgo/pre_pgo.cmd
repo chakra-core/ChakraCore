@@ -4,12 +4,15 @@
 ::-------------------------------------------------------------------------------------------------------
 
 :: PGO Build Workflow:
-:: - init_pgi.cmd
+:: - pre_pgi.cmd
 :: - build (with PGI instrumentation enabled)
-:: * init_pgo.cmd
+:: - post_pgi.cmd
+:: - pogo_training.ps1
+:: * pre_pgo.cmd
 :: - build (using PGO profile)
+:: - post_pgo.cmd
 
-set _LINK_=
-set POGO_TYPE=
+REM Optimize build with PGO data
+set POGO_TYPE=PGO
 
 goto:eof

@@ -3,8 +3,13 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
+# Finalize Build Script
 #
-# Clean up the sentinel which previously marked the build as incomplete.
+# This script is run as the final step in a build definition
+# to clean up and produce metadata about the build.
+
+#
+# Clean up the sentinel which previously marked this build flavor as incomplete.
 #
 
 Remove-Item -Path ${Env:FlavorBuildIncompleteFile} -Force
