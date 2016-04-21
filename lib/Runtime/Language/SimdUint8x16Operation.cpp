@@ -85,10 +85,7 @@ namespace Js
     {
         SIMDValue result;
 
-        if (count > 8)   //Similar to polyfill, maximum shift will happen if the shift amounts and invalid
-        {
-            count = 8;
-        }
+        count = count & SIMDGetShiftAmountMask(1);
 
         for (uint idx = 0; idx < 16; ++idx)
         {

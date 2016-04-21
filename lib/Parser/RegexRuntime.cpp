@@ -2128,9 +2128,29 @@ namespace UnifiedRegex
         int besti = -1;
         CharCount bestMatchOffset = 0;
 
+        if (matcher.literalNextSyncInputOffsets == nullptr)
+        {
+            Assert(numLiterals <= MaxNumSyncLiterals);
+            matcher.literalNextSyncInputOffsets =
+                RecyclerNewArrayLeaf(matcher.recycler, CharCount, ScannersMixin::MaxNumSyncLiterals);
+        }
+        CharCount* literalNextSyncInputOffsets = matcher.literalNextSyncInputOffsets;
+
+        if (firstIteration)
+        {
+            for (int i = 0; i < numLiterals; i++)
+            {
+                literalNextSyncInputOffsets[i] = inputOffset;
+            }
+        }
+
         for (int i = 0; i < numLiterals; i++)
         {
-            CharCount thisMatchOffset = inputOffset;
+            CharCount thisMatchOffset = literalNextSyncInputOffsets[i];
+            if (inputOffset > thisMatchOffset)
+            {
+                thisMatchOffset = inputOffset;
+            }
 
             if (infos[i]->isEquivClass ?
                     (infos[i]->scanner.Match<CaseInsensitive::EquivClassSize>
@@ -2159,6 +2179,12 @@ namespace UnifiedRegex
                     besti = i;
                     bestMatchOffset = thisMatchOffset;
                 }
+
+                literalNextSyncInputOffsets[i] = thisMatchOffset;
+            }
+            else
+            {
+                literalNextSyncInputOffsets[i] = inputLength;
             }
         }
 
@@ -4198,14 +4224,14 @@ namespace UnifiedRegex
         , program(pattern->rep.unified.program)
         , groupInfos(nullptr)
         , loopInfos(nullptr)
+        , literalNextSyncInputOffsets(nullptr)
+        , recycler(scriptContext->GetRecycler())
         , previousQcTime(0)
 #if ENABLE_REGEX_CONFIG_OPTIONS
         , stats(0)
         , w(0)
 #endif
     {
-        const auto recycler = scriptContext->GetRecycler();
-
         // Don't need to zero out - the constructor for GroupInfo should take care of it
         groupInfos = RecyclerNewArrayLeaf(recycler, GroupInfo, program->numGroups);
 
@@ -4369,7 +4395,7 @@ namespace UnifiedRegex
     const uint32 maxInstTag = instTags[(sizeof(instTags) / sizeof(uint32)) - 1];
 #endif
 
-    __inline void Matcher::Run(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &nextSyncInputOffset, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks)
+    __inline void Matcher::Run(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &nextSyncInputOffset, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks, bool firstIteration)
     {
         CharCount inputOffset = matchStart;
         const uint8 *instPointer = program->rep.insts.insts;
@@ -4391,7 +4417,7 @@ namespace UnifiedRegex
             {
 #define MBase(TagName, ClassName) \
                 case Inst::TagName: \
-                    if (((const ClassName *)inst)->Exec(*this, input, inputLength, matchStart, inputOffset, nextSyncInputOffset, instPointer, contStack, assertionStack, qcTicks)) \
+                    if (((const ClassName *)inst)->Exec(*this, input, inputLength, matchStart, inputOffset, nextSyncInputOffset, instPointer, contStack, assertionStack, qcTicks, firstIteration)) \
                         return; \
                     break;
 #define M(TagName) MBase(TagName, TagName##Inst)
@@ -4415,7 +4441,7 @@ namespace UnifiedRegex
     }
 #endif
 
-    __inline bool Matcher::MatchHere(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &nextSyncInputOffset, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks)
+    __inline bool Matcher::MatchHere(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &nextSyncInputOffset, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks, bool firstIteration)
     {
         // Reset the continuation and assertion stacks ready for fresh run
         // NOTE: We used to do this after the Run, but it's safer to do it here in case unusual control flow exits
@@ -4432,7 +4458,7 @@ namespace UnifiedRegex
         ResetLoopInfos();
 #endif
 
-        Run(input, inputLength, matchStart, nextSyncInputOffset, contStack, assertionStack, qcTicks);
+        Run(input, inputLength, matchStart, nextSyncInputOffset, contStack, assertionStack, qcTicks, firstIteration);
 
         // Leave the continuation and assertion stack memory in place so we don't have to alloc next time
 
@@ -4769,11 +4795,13 @@ namespace UnifiedRegex
 
                 // Need to continue matching even if matchStart == inputLim since some patterns may match an empty string at the end
                 // of the input. For instance: /a*$/.exec("b")
+                bool firstIteration = true;
                 do
                 {
                     // Let there be only one call to MatchHere(), as that call expands the interpreter loop in-place. Having
                     // multiple calls to MatchHere() would bloat the code.
-                    res = MatchHere(input, inputLength, offset, nextSyncInputOffset, regexStacks->contStack, regexStacks->assertionStack, qcTicks);
+                    res = MatchHere(input, inputLength, offset, nextSyncInputOffset, regexStacks->contStack, regexStacks->assertionStack, qcTicks, firstIteration);
+                    firstIteration = false;
                 } while(!res && loopMatchHere && ++offset <= inputLength);
 
                 break;

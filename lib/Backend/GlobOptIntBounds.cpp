@@ -1794,28 +1794,69 @@ void GlobOpt::DetermineLoopCount(Loop *const loop)
                 {
                     const ValueRelativeOffset &bound = it.CurrentValue();
 
-                    boundBaseVarSym = bound.BaseSym();
-                    if(!boundBaseVarSym || !IsInt32TypeSpecialized(boundBaseVarSym, &landingPadBlockData))
+                    StackSym *currentBoundBaseVarSym = bound.BaseSym();
+
+                    if(!currentBoundBaseVarSym || !IsInt32TypeSpecialized(currentBoundBaseVarSym, &landingPadBlockData))
                     {
                         continue;
                     }
 
-                    Value *const boundBaseValue = FindValue(boundBaseVarSym);
+                    Value *const boundBaseValue = FindValue(currentBoundBaseVarSym);
                     const ValueNumber boundBaseValueNumber = bound.BaseValueNumber();
                     if(!boundBaseValue || boundBaseValue->GetValueNumber() != boundBaseValueNumber)
                     {
                         continue;
                     }
 
-                    Value *const landingPadBoundBaseValue = FindValue(landingPadSymToValueMap, boundBaseVarSym);
+                    Value *const landingPadBoundBaseValue = FindValue(landingPadSymToValueMap, currentBoundBaseVarSym);
                     if(!landingPadBoundBaseValue || landingPadBoundBaseValue->GetValueNumber() != boundBaseValueNumber)
                     {
                         continue;
                     }
 
+                    if (foundBound)
+                    {
+                        // We used to pick the first usable bound we saw in this list, but the list contains both
+                        // the loop counter's bound *and* relative bounds of the primary bound. These secondary bounds
+                        // are not guaranteed to be correct, so if the bound we found on a previous iteration is itself
+                        // a bound for the current bound, then choose the current bound.
+                        if (!boundBaseValue->GetValueInfo()->IsIntBounded())
+                        {
+                            continue;
+                        }
+                        // currentBoundBaseVarSym has relative bounds of its own. If we find the saved boundBaseVarSym
+                        // in currentBoundBaseVarSym's relative bounds list, let currentBoundBaseVarSym be the
+                        // chosen bound.
+                        const IntBounds *const currentBounds = boundBaseValue->GetValueInfo()->AsIntBounded()->Bounds();
+                        bool foundSecondaryBound = false;
+                        for (auto it2 =
+                                 (
+                                     minMagnitudeChange >= 0
+                                     ? currentBounds->RelativeUpperBounds()
+                                     : currentBounds->RelativeLowerBounds()
+                                     ).GetIterator();
+                             it2.IsValid();
+                             it2.MoveNext())
+                        {
+                            const ValueRelativeOffset &bound2 = it2.CurrentValue();
+                            if (bound2.BaseSym() == boundBaseVarSym)
+                            {
+                                // boundBaseVarSym is a secondary bound. Use currentBoundBaseVarSym instead.
+                                foundSecondaryBound = true;
+                                break;
+                            }
+                        }
+                        if (!foundSecondaryBound)
+                        {
+                            // boundBaseVarSym is not a relative bound of currentBoundBaseVarSym, so continue
+                            // to use boundBaseVarSym.
+                            continue;
+                        }
+                    }
+
+                    boundBaseVarSym = bound.BaseSym();
                     boundOffset = bound.Offset();
                     foundBound = true;
-                    break;
                 }
             }
 

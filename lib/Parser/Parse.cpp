@@ -4859,7 +4859,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
              && (!pnodeFnc->sxFnc.IsNested() || CONFIG_FLAG(DeferNested))
             // Don't defer if this is a function expression not contained in a statement or other expression.
             // Assume it will be called as part of this expression.
-             && (!isLikelyModulePattern || !topLevelStmt || PHASE_FORCE1(Js::DeferParsePhase))
+             && (!isLikelyModulePattern || !topLevelStmt || PHASE_FORCE_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->sxFnc.functionId))
              && !m_InAsmMode
                 );
 
@@ -7982,7 +7982,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binding operator, be it unary or binary.
                 Error(ERRsyntax);
             }
-            if (m_currentNodeFunc->sxFnc.IsGenerator()
+            if (GetCurrentFunctionNode()->sxFnc.IsGenerator()
                 && m_currentBlockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter)
             {
                 Error(ERRsyntax);
@@ -10650,7 +10650,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     // Scanner should run in Running mode and not syntax coloring mode
     grfscr &= ~fscrSyntaxColor;
 
-    if (this->m_scriptContext->IsScriptContextInDebugMode() || PHASE_OFF1(Js::Phase::DeferParsePhase)
+    if (this->m_scriptContext->IsScriptContextInDebugMode()
 #ifdef ENABLE_PREJIT
          || Js::Configuration::Global.flags.Prejit
 #endif

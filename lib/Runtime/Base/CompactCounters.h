@@ -12,17 +12,14 @@ namespace Js
     template<class T, typename CountT = typename T::CounterFields>
     struct CompactCounters
     {
-        // requires an integral type constant to use as array size
-        static const int CountTMax = static_cast<int>(CountT::Max);
-
         struct Fields {
             union {
-                uint8 u8Fields[CountTMax];
-                int8 i8Fields[CountTMax];
-                uint16 u16Fields[CountTMax];
-                int16 i16Fields[CountTMax];
-                uint32 u32Fields[CountTMax];
-                int32 i32Fields[CountTMax];
+                uint8 u8Fields[static_cast<size_t>(CountT::Max)];
+                int8 i8Fields[static_cast<size_t>(CountT::Max)];
+                uint16 u16Fields[static_cast<size_t>(CountT::Max)];
+                int16 i16Fields[static_cast<size_t>(CountT::Max)];
+                uint32 u32Fields[static_cast<size_t>(CountT::Max)];
+                int32 i32Fields[static_cast<size_t>(CountT::Max)];
             };
             Fields() {}
         };

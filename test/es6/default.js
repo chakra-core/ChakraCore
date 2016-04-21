@@ -355,6 +355,24 @@ var tests = [
         }
         f3(undefined, undefined, 30);
 
+        function f4 (a, b, c, d = 1) {
+            var e = 10;
+            assert.areEqual(2, arguments[0], "Unmapped arguments value has the expected value in the body");
+            (function () {
+                eval('');
+            }());
+        };
+        f4.call(1, 2);
+        
+        function f5 (a, b, c, d = 1) {
+            var e = 10;
+            var d = 11;
+            assert.areEqual(2, arguments[0], "Unmapped arguments value has the expected value, even with duplicate symbol in the body");
+            (function () {
+                eval('');
+            }());
+        };
+        f5.call(1, 2);
     }
   },
   {

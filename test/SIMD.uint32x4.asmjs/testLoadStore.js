@@ -10,7 +10,8 @@ function asmModule(stdlib, imports, buffer) {
     var ui4check = ui4.check;
     var ui4add = ui4.add;
     var ui4load  = ui4.load;  
-    var ui4store  = ui4.store
+    var ui4store  = ui4.store;
+    var ui4sub = ui4.sub;
     
     var ui4load1 = ui4.load1;
     var ui4load2 = ui4.load2;
@@ -35,6 +36,54 @@ function asmModule(stdlib, imports, buffer) {
     var Int32Heap = new stdlib.Int32Array(buffer);
     var Uint32Heap = new stdlib.Uint32Array(buffer);
     var Float32Heap = new stdlib.Float32Array(buffer);
+
+    function func0()
+    {
+        var x  = ui4(1, 2, 3, 4);
+        var y  = ui4(0, 0, 0, 0);
+        var st = ui4(0, 0, 0, 0);
+        var ld = ui4(0, 0, 0, 0);
+        
+        var t0 = ui4(0, 0, 0, 0);
+        var t1 = ui4(0, 0, 0, 0);
+        var t2 = ui4(0, 0, 0, 0);
+        var t3 = ui4(0, 0, 0, 0);
+        
+        var index = 100;
+        var size = 10;
+        var loopIndex = 0;
+        
+        for (loopIndex = 0; (loopIndex | 0) < (size | 0) ; loopIndex = (loopIndex + 1) | 0)
+        {
+            st = ui4store(Int8Heap, index >> 0, ui4(1, 2, 3, 4));
+            ld = ui4load(Int8Heap, index >> 0);
+            y = ui4add(st, ld);  // (0,0,0,0)
+            t0 = ui4add(ui4store(Int8Heap, index >> 0, x), ui4load(Int8Heap, index   >> 0));
+            t0 = ui4add(y, t0);
+            
+            st = ui4store1(Int8Heap, index >> 0, x);
+            ld = ui4load(Int8Heap, index >> 0);
+            y = ui4add(st, ld);  // (0,0,0,0)
+            t1 = ui4add(ui4store1(Int8Heap, index >> 0, x), ui4load(Int8Heap, index   >> 0));
+            t1 = ui4add(y, t1);
+             
+            st = ui4store2(Int8Heap, index >> 0, x);
+            ld = ui4load(Int8Heap, index >> 0);
+            y = ui4add(st, ld);  // (0,0,0,0)
+            t2 = ui4add(ui4store2(Int8Heap, index >> 0, x), ui4load(Int8Heap, index   >> 0));
+            t2 = ui4add(y, t2);
+
+            st = ui4store3(Int8Heap, index >> 0, x);
+            ld = ui4load(Int8Heap, index >> 0);
+            y = ui4add(st, ld);  // (0,0,0,0)
+            t3 = ui4add(ui4store3(Int8Heap, index >> 0, x), ui4load(Int8Heap, index   >> 0));
+            t3 = ui4add(y, t3);
+
+            t0 = ui4add(t0, ui4add(t1, ui4add(t2, t3)));
+            index = (index + 16 ) | 0;
+        }
+        return ui4check(t0);
+    }
 
     function func1()
     {
@@ -520,6 +569,7 @@ function asmModule(stdlib, imports, buffer) {
     }
 
     return {
+        func0:func0,
         func1:func1, 
         func1OOB_1:func1OOB_1, 
         func1OOB_2:func1OOB_2, 
@@ -549,6 +599,10 @@ var buffer = new ArrayBuffer(0x10000);
 var m = asmModule(this, {g1: SIMD.Uint32x4(1065353216, 1073741824, 1077936128, 1082130432)}, buffer);
 
 var ret;
+
+
+ret = m.func0();
+equalSimd([16, 32, 48, 64], ret, SIMD.Uint32x4, "Test Load Store0");
 
 ret = m.func1();
 equalSimd([10, 20, 30, 40], ret, SIMD.Uint32x4, "Test Load Store1");

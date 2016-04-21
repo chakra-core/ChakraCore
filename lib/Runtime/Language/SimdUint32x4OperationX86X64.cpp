@@ -30,7 +30,7 @@ namespace Js
         X86SIMDValue x86Result;
         X86SIMDValue tmpValue = X86SIMDValue::ToX86SIMDValue(value);
         // Shifts the 4 signed 32-bit integers right by count bits while shifting in zeros
-        x86Result.m128i_value = _mm_srli_epi32(tmpValue.m128i_value, count);
+        x86Result.m128i_value = _mm_srli_epi32(tmpValue.m128i_value, count &  SIMDGetShiftAmountMask(4));
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }

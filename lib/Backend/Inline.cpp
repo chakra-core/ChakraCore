@@ -5334,6 +5334,7 @@ Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * call
         IR::Opnd *linkOpnd = callInstr->GetSrc1();
         IR::Instr *eaInstr1, *eaInstr2, *eaInstr3;
         IR::Opnd *value, *index, *arr;
+        IR::Opnd *dst = callInstr->GetDst();
 
         eaInstr1 = linkOpnd->GetStackSym()->m_instrDef;
         value = eaInstr1->GetSrc1();
@@ -5348,7 +5349,20 @@ Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * call
         arr = eaInstr3->GetSrc1();
 
         indirOpnd = IR::IndirOpnd::New(arr->AsRegOpnd(), index->AsRegOpnd(), TyVar, callInstr->m_func);
-        callInstr->SetDst(indirOpnd);
+        if (dst)
+        {
+            //Load value to be stored to dst. Store returns the value being stored.
+            IR::Instr * ldInstr = IR::Instr::New(Js::OpCode::Ld_A, dst, value, callInstr->m_func);
+            callInstr->InsertBefore(ldInstr);
+
+            //Replace dst
+            callInstr->ReplaceDst(indirOpnd);
+        }
+        else
+        {
+            callInstr->SetDst(indirOpnd);
+        }
+
         callInstr->ReplaceSrc1(value);
 
         // remove ea instructions
