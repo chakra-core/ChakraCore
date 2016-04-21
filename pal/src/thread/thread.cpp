@@ -2788,14 +2788,29 @@ int CorUnix::CThreadMachExceptionHandlers::GetIndexOfHandler(exception_mask_t bm
 
 int GetCurrentThreadStackBounds(char** stackBase, char** stackEnd)
 {
+#ifdef _TARGET_MAC64
+    // This is a Mac specific method
+    *stackBase = (char*)pthread_get_stackaddr_np(pthread_self());
+    *stackEnd = (char*)(stackBase - pthread_get_stacksize_np(pthread_self()));
+#else
     pthread_t currentThreadHandle = pthread_self();
 
     pthread_attr_t attr;
     size_t stacksize;
     void* stackend;
+    int status;
 
-    pthread_getattr_np(currentThreadHandle, &attr);
-    pthread_attr_getstack(&attr, &stackend, &stacksize);
+#if HAVE_PTHREAD_ATTR_GET_NP
+    status = pthread_attr_get_np(currentThreadHandle, &attr);
+#elif HAVE_PTHREAD_GETATTR_NP
+    status = pthread_getattr_np(currentThreadHandle, &attr);
+#else
+#   error "Dont know how to get thread attributes on this platform!"
+#endif
+    _ASSERT_MSG(status == 0, "pthread_getattr_np call failed");
+    
+    status = pthread_attr_getstack(&attr, &stackend, &stacksize);
+    _ASSERT_MSG(status == 0, "pthread_attr_getstack call failed");
 
     void* stackbase = (void*) ((char*) stackend + stacksize);
 
@@ -2803,6 +2818,7 @@ int GetCurrentThreadStackBounds(char** stackBase, char** stackEnd)
 
     *stackBase = (char*) stackbase;
     *stackEnd = (char*) stackend;
+#endif
 
     return 0;
 }

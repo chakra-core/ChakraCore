@@ -33,6 +33,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   add_definitions(-D__LINUX__=1)
 endif(CMAKE_SYSTEM_NAME STREQUAL Linux)
 
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  add_definitions(-D_TARGET_MAC64)
+  set(PLATFORM_SOURCES
+    arch/i386/activationhandlerwrapper.S
+    arch/i386/context.S
+    arch/i386/dispatchexceptionwrapper.S
+    exception/machexception.cpp
+    exception/machmessage.cpp
+  )
+endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+
 add_definitions(-DPLATFORM_UNIX=1)
 add_definitions(-DLP64COMPATIBLE=1)
 add_definitions(-DFEATURE_PAL=1)
@@ -151,8 +162,18 @@ set(SOURCES
 add_library(Chakra.Pal
   STATIC
   ${SOURCES}
+  ${PLATFORM_SOURCES}
   ${ARCH_SOURCES}
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  target_link_libraries(Chakra.Pal
+    pthread
+    dl
+    "-framework CoreFoundation"
+    "-framework Security"
+  )
+endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   if(PAL_CMAKE_PLATFORM_ARCH_AMD64)

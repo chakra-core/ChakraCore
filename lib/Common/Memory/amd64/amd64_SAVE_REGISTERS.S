@@ -4,6 +4,7 @@
 // -------------------------------------------------------------------------------------------------------
 
 .intel_syntax noprefix
+#include "unixasmmacros.inc"
 
 //void amd64_SAVE_REGISTERS(registers)
 //
@@ -13,8 +14,8 @@
 //       void* registers[16];
 //       amd64_SAVE_REGISTERS(registers);
 //
-.globl amd64_SAVE_REGISTERS 
-amd64_SAVE_REGISTERS:   
+.globl C_FUNC(amd64_SAVE_REGISTERS)
+C_FUNC(amd64_SAVE_REGISTERS):   
         mov [rdi+00h], rsp
         mov [rdi+08h], rax
         mov [rdi+10h], rbx
@@ -32,5 +33,3 @@ amd64_SAVE_REGISTERS:
         mov [rdi+70h], r14
         mov [rdi+78h], r15
         ret
-
-

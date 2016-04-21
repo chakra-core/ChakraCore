@@ -219,7 +219,8 @@ extern "C" {
 #ifndef PAL_STDCPP_COMPAT
 // Defined in gnu's types.h. For non PAL_IMPLEMENTATION system
 // includes are not included, so we need to define them.
-#ifndef PAL_IMPLEMENTATION
+// Types below are already defined by stdint.h on __APPLE__.
+#if !defined(PAL_IMPLEMENTATION) && !defined(__APPLE__)
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 typedef __int32 int32_t;
@@ -576,7 +577,7 @@ typedef LONG_PTR SSIZE_T, *PSSIZE_T;
 #endif
 
 #ifndef PAL_STDCPP_COMPAT
-#if defined(__APPLE_CC__) || defined(__LINUX__)
+#if defined(__APPLE__) || defined(__LINUX__)
 #ifdef BIT64
 typedef unsigned long size_t;
 typedef long ptrdiff_t;
