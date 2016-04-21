@@ -1859,6 +1859,33 @@ namespace Js
         }
     }
 
+    Js::Var WasmLoadExports(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* localModuleFunctions)
+    {
+        Js::Var exportsNamespace = nullptr;
+
+        // Check for Default export
+        for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
+        {
+            Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
+            if (funcExport && funcExport->nameLength == 0)
+            {
+                const uint32 funcIndex = funcExport->funcIndex;
+                if (funcIndex < wasmModule->info->GetFunctionCount())
+                {
+                    exportsNamespace = localModuleFunctions[funcIndex];
+                    break;
+                }
+            }
+        }
+        // If no default export is present, create an empty object
+        if (exportsNamespace == nullptr)
+        {
+            exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(ctx);
+        }
+
+        return exportsNamespace;
+    }
+
     Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi, Js::Var* start)
     {
         if (pSrcInfo == nullptr)
@@ -1944,28 +1971,8 @@ namespace Js
             // load functions
             WasmLoadFunctions(wasmModule, this, moduleMemoryPtr, &exportObj, localModuleFunctions, &hasAnyLazyTraps);
 
-            Js::Var exportsNamespace = nullptr;
+            Js::Var exportsNamespace = WasmLoadExports(wasmModule, this, localModuleFunctions);
 
-            // Check for Default export
-            for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
-            {
-                Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
-                if (funcExport && funcExport->nameLength == 0)
-                {
-                    const uint32 funcIndex = funcExport->funcIndex;
-                    if (funcIndex < wasmModule->info->GetFunctionCount())
-                    {
-                        exportsNamespace = localModuleFunctions[funcIndex];
-                        break;
-                    }
-                }
-            }
-
-            // If no default export is present, create an empty object
-            if (exportsNamespace == nullptr)
-            {
-                exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(this);
-            }
 
             if (wasmModule->info->GetMemory()->minSize != 0 && wasmModule->info->GetMemory()->exported)
             {
