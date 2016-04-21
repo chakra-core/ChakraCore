@@ -47,6 +47,7 @@ FLAG_RELEASE(IsES6RegExSymbolsEnabled, ES6RegExSymbols)
 FLAG_RELEASE(IsES6HasInstanceEnabled, ES6HasInstance)
 FLAG_RELEASE(SkipSplitOnNoResult, SkipSplitOnNoResult)
 FLAG_RELEASE(IsES7AsyncAndAwaitEnabled, ES7AsyncAwait)
+FLAG_RELEASE(IsES7AsyncEvalEnabled, ES7AsyncEval)
 FLAG_RELEASE(IsArrayBufferTransferEnabled, ArrayBufferTransfer)
 #ifdef ENABLE_PROJECTION
 FLAG(AreWinRTDelegatesInterfaces, WinRTDelegateInterfaces)

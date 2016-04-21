@@ -100,3 +100,4 @@ LSC_ERROR_MSG(1087, ERRInvalidModuleImportOrExport, "Module import or export sta
 LSC_ERROR_MSG(1088, ERRInvalidExportName, "Unable to resolve module export name")
 
 LSC_ERROR_MSG(1089, ERRLetIDInLexicalDecl, "'let' is not an allowed identifier in lexical declarations")
+LSC_ERROR_MSG(1090, ERREvalNotSupportedInNonStrictAsync, "'eval' is not allowed in async function in non-strict mode")

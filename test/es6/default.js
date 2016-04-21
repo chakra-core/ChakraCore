@@ -284,7 +284,7 @@ var tests = [
         assert.throws(function () { eval("function f(a, b = function () { function f() { eval('1'); } }) { }") }, SyntaxError, "Evals in nested child functions are not allowed in the parameter scope", "'eval' is not allowed in the default initializer");
         assert.throws(function () { eval("function f(a, b = eval('a')) { }") }, SyntaxError, "Eval is not allowed in the parameter scope", "'eval' is not allowed in the default initializer");
         assert.throws(function () { eval("async function f(a = eval('b')) { }"); }, SyntaxError, "Eval is not allowed in the param scope of async functions", "'eval' is not allowed in the default initializer");
-        assert.throws(function () { eval("function f(a = async function(y) { eval('b'); }) { }"); }, SyntaxError, "Eval is not allowed in the param scope of nested async functions", "'eval' is not allowed in the default initializer");
+        assert.throws(function () { eval("function f(a = async function(y) { eval('b'); }) { }"); }, SyntaxError, "Eval is not allowed in the param scope of nested async functions", "'eval' is not allowed in async function in non-strict mode");
         
         assert.doesNotThrow(function (a = eval) { }, "An assignment of eval does not cause syntax error");
         assert.doesNotThrow(function (a = eval()) { }, "If no arguments are passed to eval then it won't cause syntax error");
