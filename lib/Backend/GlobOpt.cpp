@@ -14859,19 +14859,19 @@ GlobOpt::VerifyArrayValueInfoForTracking(
             ) &&
             !DoArraySegmentHoist(valueInfo->Type())
         ));
+#if 0
+    // We can't assert here that there is only a head segment length sym if hoisting is allowed in the current block,
+    // because we may have propagated the sym forward out of a loop, and hoisting may be allowed inside but not
+    // outside the loop.
     Assert(
-        !(
-            !isJsArray &&
-            valueInfo->IsArrayValueInfo() &&
-            valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym() &&
-            !(
-                DoTypedArraySegmentLengthHoist(implicitCallsLoop) ||
-                (
-                    ignoreKnownImplicitCalls &&
-                    !(implicitCallsLoop ? ImplicitCallFlagsAllowOpts(implicitCallsLoop) : ImplicitCallFlagsAllowOpts(func))
-                )
-            )
-        ));
+        isJsArray ||
+        !valueInfo->IsArrayValueInfo() ||
+        !valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym() ||
+        DoTypedArraySegmentLengthHoist(implicitCallsLoop) ||
+        ignoreKnownImplicitCalls ||
+        (implicitCallsLoop ? ImplicitCallFlagsAllowOpts(implicitCallsLoop) : ImplicitCallFlagsAllowOpts(func))
+        );
+#endif
     Assert(
         !(
             isJsArray &&
