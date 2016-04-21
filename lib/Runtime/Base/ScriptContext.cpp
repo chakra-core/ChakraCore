@@ -1928,6 +1928,49 @@ namespace Js
         }
     }
 
+    void WasmLoadImports(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var ffi)
+    {
+        const uint32 importCount = wasmModule->info->GetImportCount();
+        if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
+        {
+            throw Wasm::WasmCompilationException(_u("Import object is invalid"));
+        }
+        for (uint32 i = 0; i < importCount; ++i)
+        {
+            PropertyRecord const * modPropertyRecord = nullptr;
+            PropertyRecord const * propertyRecord = nullptr;
+
+            char16* modName = wasmModule->info->GetFunctionImport(i)->modName;
+            uint32 modNameLen = wasmModule->info->GetFunctionImport(i)->modNameLen;
+            ctx->GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
+            Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), ctx);
+
+            char16* name = wasmModule->info->GetFunctionImport(i)->fnName;
+            uint32 nameLen = wasmModule->info->GetFunctionImport(i)->fnNameLen;
+            Var prop = nullptr;
+            if (nameLen > 0)
+            {
+                ctx->GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
+
+                if (!JavascriptObject::Is(modProp))
+                {
+                    throw Wasm::WasmCompilationException(_u("Import module %s is invalid"), modName);
+                }
+                prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), ctx);
+            }
+            else
+            {
+                // Use only first level if name is missing
+                prop = modProp;
+            }
+            if (!JavascriptFunction::Is(prop))
+            {
+                throw Wasm::WasmCompilationException(_u("Import function %s.%s is invalid"), modName, name);
+            }
+            importFunctions[i] = prop;
+        }
+    }
+
     Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi, Js::Var* start)
     {
         if (pSrcInfo == nullptr)
@@ -2018,45 +2061,7 @@ namespace Js
             WasmBuildObject(wasmModule, this, exportsNamespace, heap, &exportObj, &hasAnyLazyTraps, localModuleFunctions);
 
             Var* importFunctions = moduleMemoryPtr + wasmModule->importFuncOffset;
-            const uint32 importCount = wasmModule->info->GetImportCount();
-            if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
-            {
-                throw Wasm::WasmCompilationException(_u("Import object is invalid"));
-            }
-            for (uint32 i = 0; i < importCount; ++i)
-            {
-                PropertyRecord const * modPropertyRecord = nullptr;
-                PropertyRecord const * propertyRecord = nullptr;
-
-                char16* modName = wasmModule->info->GetFunctionImport(i)->modName;
-                uint32 modNameLen = wasmModule->info->GetFunctionImport(i)->modNameLen;
-                GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
-                Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), this);
-
-                char16* name = wasmModule->info->GetFunctionImport(i)->fnName;
-                uint32 nameLen = wasmModule->info->GetFunctionImport(i)->fnNameLen;
-                Var prop = nullptr;
-                if (nameLen > 0)
-                {
-                    GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
-
-                    if (!JavascriptObject::Is(modProp))
-                    {
-                        throw Wasm::WasmCompilationException(_u("Import module %s is invalid"), modName);
-                    }
-                    prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), this);
-                }
-                else
-                {
-                    // Use only first level if name is missing
-                    prop = modProp;
-                }
-                if (!JavascriptFunction::Is(prop))
-                {
-                    throw Wasm::WasmCompilationException(_u("Import function %s.%s is invalid"), modName, name);
-                }
-                importFunctions[i] = prop;
-            }
+            WasmLoadImports(wasmModule, this, importFunctions, ffi);
 
             Var** indirectFunctionTables = (Var**)(moduleMemoryPtr + wasmModule->indirFuncTableOffset);
             for (uint i = 0; i < wasmModule->info->GetIndirectFunctionCount(); ++i)
