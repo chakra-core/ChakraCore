@@ -856,7 +856,7 @@ namespace Js
         {
             faultInjectionDebug = true;
         }
-        if (globalFlags.FaultInjection >= 0 && !IsDebuggerPresent())
+        if (globalFlags.FaultInjection >= 0)
         {
             // initialize symbol system here instead of inside the exception filter
             // because some hard stack overflow can happen in SymInitialize
@@ -1385,24 +1385,40 @@ namespace Js
     static volatile bool inExceptionHandler = false;
     LONG WINAPI FaultInjection::FaultInjectionExceptionFilter(_In_  struct _EXCEPTION_POINTERS *ExceptionInfo)
     {
+        if (inExceptionHandler)
+        {
+            // re-entering, this can happen if RemoveExceptionFilters() failed because of stack overflow
+            // Let it crash and the postmortem debugger can catch it.
+            DebugBreak();
+        }
+
+        inExceptionHandler = true;
+
         RemoveExceptionFilters();
+
         // for debugging, can't hit here in windbg because of using vectored exception handling
         if (faultInjectionDebug)
         {
             DebugBreak();
         }
 
-        if (inExceptionHandler) 
+        if (ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_OVERFLOW) // hard stack overflow
         {
-            // Let it crash and the postmorterm debugger can catch it.
-            return EXCEPTION_CONTINUE_EXECUTION;
-        }
+            DebugBreak(); // let the postmortem debugger to create the dump, make sure they are filing bug with same bucket
+        }        
 
-        struct AutoValue {
-            AutoValue() { inExceptionHandler = true; }
-            ~AutoValue() { inExceptionHandler = false; }
-        } autoVal;
-        FaultInjection::Global.FaultInjectionAnalyzeException(ExceptionInfo);
+        __try
+        {
+            // sometimes the OS is really low memory and can't commit page for stack expanding
+            // even stack is not deep yet
+            FaultInjection::Global.FaultInjectionAnalyzeException(ExceptionInfo);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            DebugBreak();
+        }
+        inExceptionHandler = false;
+
         return EXCEPTION_EXECUTE_HANDLER;
     }
 
