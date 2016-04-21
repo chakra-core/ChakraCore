@@ -1816,6 +1816,49 @@ namespace Js
         }
     }
 
+    void WasmLoadFunctions(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* moduleMemoryPtr, Var* exportObj, Var* localModuleFunctions, bool* hasAnyLazyTraps)
+    {
+        FrameDisplay * frameDisplay = RecyclerNewPlus(ctx->GetRecycler(), sizeof(void*), FrameDisplay, 1);
+        frameDisplay->SetItem(0, moduleMemoryPtr);
+        const auto createLazyTrap = [ctx, &exportObj]() {
+            JavascriptLibrary *library = ctx->GetLibrary();
+            JavascriptError *pError = library->CreateError();
+            JavascriptExceptionObject * exceptionObject =
+                RecyclerNew(ctx->GetRecycler(), JavascriptExceptionObject, exportObj, ctx, NULL);
+            pError->SetJavascriptExceptionObject(exceptionObject);
+            return library->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)WasmLazyTrapCallback, 0, pError);
+        };
+
+        Wasm::WasmFunction ** functionArray = wasmModule->functions;
+
+        for (uint i = 0; i < wasmModule->funcCount; ++i)
+        {
+            if (functionArray[i] == nullptr)
+            {
+                Assert(PHASE_ON1(WasmLazyTrapPhase));
+                *hasAnyLazyTraps = true;
+                localModuleFunctions[i] = createLazyTrap();
+                continue;
+            }
+            AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(functionArray[i]->body);
+            funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
+            funcObj->SetModuleMemory(moduleMemoryPtr);
+            FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
+            entypointInfo->SetIsAsmJSFunction(true);
+            entypointInfo->address = AsmJsDefaultEntryThunk;
+            entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
+            funcObj->SetEnvironment(frameDisplay);
+            localModuleFunctions[i] = funcObj;
+            // Do MTJRC/MAIC:0 check
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
+            {
+                GenerateFunction(ctx->GetNativeCodeGenerator(), funcObj->GetFunctionBody(), funcObj);
+            }
+#endif
+        }
+    }
+
     Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi, Js::Var* start)
     {
         if (pSrcInfo == nullptr)
@@ -1885,7 +1928,6 @@ namespace Js
             bytecodeGen = HeapNew(Wasm::WasmBytecodeGenerator, this, *ppSourceInfo, reader);
             wasmModule = bytecodeGen->GenerateModule();
 
-            Wasm::WasmFunction ** functionArray = wasmModule->functions;
 
             Var* moduleMemoryPtr = RecyclerNewArrayZ(GetRecycler(), Var, wasmModule->memSize);
 
@@ -1898,45 +1940,9 @@ namespace Js
             // load data segs
             WasmLoadDataSegs(wasmModule, heap, this);
 
-            FrameDisplay * frameDisplay = RecyclerNewPlus(GetRecycler(), sizeof(void*), FrameDisplay, 1);
-            frameDisplay->SetItem(0, moduleMemoryPtr);
             bool hasAnyLazyTraps = false;
-            const auto createLazyTrap = [this, &exportObj]() {
-                JavascriptLibrary *library = this->GetLibrary();
-                JavascriptError *pError = library->CreateError();
-                JavascriptExceptionObject * exceptionObject =
-                    RecyclerNew(this->GetRecycler(), JavascriptExceptionObject, exportObj, this, NULL);
-                pError->SetJavascriptExceptionObject(exceptionObject);
-                return library->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)WasmLazyTrapCallback, 0, pError);
-            };
-
-
-            for (uint i = 0; i < wasmModule->funcCount; ++i)
-            {
-                if (functionArray[i] == nullptr)
-                {
-                    Assert(PHASE_ON1(WasmLazyTrapPhase));
-                    hasAnyLazyTraps = true;
-                    localModuleFunctions[i] = createLazyTrap();
-                    continue;
-                }
-                AsmJsScriptFunction * funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
-                funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
-                funcObj->SetModuleMemory(moduleMemoryPtr);
-                FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
-                entypointInfo->SetIsAsmJSFunction(true);
-                entypointInfo->address = AsmJsDefaultEntryThunk;
-                entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
-                funcObj->SetEnvironment(frameDisplay);
-                localModuleFunctions[i] = funcObj;
-                // Do MTJRC/MAIC:0 check
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-                if (CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
-                {
-                    GenerateFunction(GetNativeCodeGenerator(), funcObj->GetFunctionBody(), funcObj);
-                }
-#endif
-            }
+            // load functions
+            WasmLoadFunctions(wasmModule, this, moduleMemoryPtr, &exportObj, localModuleFunctions, &hasAnyLazyTraps);
 
             Js::Var exportsNamespace = nullptr;
 
