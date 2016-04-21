@@ -546,7 +546,7 @@ namespace TTD
         void AppendDouble(double dval);
 
     public:
-        TraceLogger(FILE* outfile = stdout);
+        TraceLogger(FILE* outfile = stderr);
         ~TraceLogger();
 
         void ForceFlush();

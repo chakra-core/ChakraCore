@@ -1421,7 +1421,7 @@ namespace TTD
     {
         this->EnsureSpace(64);
 
-        if(floor(dval) == dval)
+        if(INT32_MIN <= dval && dval <= INT32_MAX &&  floor(dval) == dval)
         {
             this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, 64, "%I64i", (int64)dval);
         }
