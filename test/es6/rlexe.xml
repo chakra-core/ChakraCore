@@ -732,6 +732,12 @@
   </test>
   <test>
     <default>
+      <files>default-splitscope-undodeferparse.js</files>
+      <compile-flags>-forceundodefer -ES6DefaultArgsSplitScope</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>rest.js</files>
       <compile-flags>-ES6Rest -ES6ObjectLiterals -ES6Spread -ES6DefaultArgs -ES6Classes -args summary -endargs</compile-flags>
     </default>
