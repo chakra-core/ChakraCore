@@ -300,37 +300,51 @@ namespace Js
         Assert(pError != nullptr);
 
         PCWSTR varName = (pei ? pei->bstrDescription : nullptr);
+#ifdef _WIN32
         if (useErrInfoDescription)
         {
             JavascriptErrorDebug::SetErrorMessage(pError, hCode, varName, scriptContext);
         }
         else
+#endif
         {
+            Assert(!useErrInfoDescription);
             JavascriptError::SetErrorMessage(pError, hCode, varName, scriptContext);
         }
         if (pei) FreeExcepInfo(pei);
         JavascriptExceptionOperators::Throw(pError, scriptContext);
     }
 
+#ifdef _WIN32
+#define CREATE_ERROR(create_method, get_type_method, err_type)   \
+    if (perrinfo) \
+    { \
+        JavascriptErrorDebug *pErrorDebug = RecyclerNewFinalized(library->GetRecycler(), JavascriptErrorDebug, perrinfo, library->get_type_method()); \
+        JavascriptError::SetErrorType(pErrorDebug, err_type); \
+        if (proerrstr) \
+        { \
+            pErrorDebug->SetRestrictedErrorStrings(proerrstr); \
+        } \
+        pError = static_cast<JavascriptError*>(pErrorDebug); \
+    } \
+    else \
+    { \
+        pError = library->create_method(); \
+    } 
+#else
+#define CREATE_ERROR(create_method, get_type_method, err_type)   \
+    { \
+        Assert(perrinfo == nullptr); \
+        pError = library->create_method(); \
+    }
+#endif
+
 #define THROW_ERROR_IMPL(err_method, create_method, get_type_method, err_type) \
     static JavascriptError* create_method(ScriptContext* scriptContext, IErrorInfo* perrinfo, RestrictedErrorStrings * proerrstr) \
     { \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
         JavascriptError *pError = nullptr; \
-        if (perrinfo) \
-        { \
-            JavascriptErrorDebug *pErrorDebug = RecyclerNewFinalized(library->GetRecycler(), JavascriptErrorDebug, perrinfo, library->get_type_method()); \
-            JavascriptError::SetErrorType(pErrorDebug, err_type); \
-            if (proerrstr) \
-            { \
-                pErrorDebug->SetRestrictedErrorStrings(proerrstr); \
-            } \
-            pError = static_cast<JavascriptError*>(pErrorDebug); \
-        } \
-        else \
-        { \
-            pError = library->create_method(); \
-        } \
+        CREATE_ERROR(create_method, get_type_method, err_type);  \
         return pError; \
     } \
     \
