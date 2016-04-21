@@ -1886,6 +1886,48 @@ namespace Js
         return exportsNamespace;
     }
 
+    void WasmBuildObject(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* heap, Var* exportObj, bool* hasAnyLazyTraps, Var* localModuleFunctions)
+    {
+        if (wasmModule->info->GetMemory()->minSize != 0 && wasmModule->info->GetMemory()->exported)
+        {
+            PropertyRecord const * propertyRecord = nullptr;
+            ctx->GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
+            JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *heap, ctx);
+        }
+
+        PropertyRecord const * exportsPropertyRecord = nullptr;
+        ctx->GetOrAddPropertyRecord(_u("exports"), lstrlen(_u("exports")), &exportsPropertyRecord);
+        JavascriptOperators::OP_SetProperty(*exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, ctx);
+        if (*hasAnyLazyTraps)
+        {
+            PropertyRecord const * hasErrorsPropertyRecord = nullptr;
+            ctx->GetOrAddPropertyRecord(_u("hasErrors"), lstrlen(_u("hasErrors")), &hasErrorsPropertyRecord);
+            JavascriptOperators::OP_SetProperty(exportsNamespace, hasErrorsPropertyRecord->GetPropertyId(), JavascriptBoolean::OP_LdTrue(ctx), ctx);
+        }
+
+        for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
+        {
+            Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
+            if (funcExport && funcExport->nameLength > 0)
+            {
+                PropertyRecord const * propertyRecord = nullptr;
+                ctx->GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
+                Var funcObj;
+                // todo:: This should not happen, we need to add validation that the `function_bodies` section is present
+                if (funcExport->funcIndex < wasmModule->funcCount)
+                {
+                    funcObj = localModuleFunctions[funcExport->funcIndex];
+                }
+                else
+                {
+                    Assert(UNREACHED);
+                    funcObj = ctx->GetLibrary()->GetUndefined();
+                }
+                JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, ctx);
+            }
+        }
+    }
+
     Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi, Js::Var* start)
     {
         if (pSrcInfo == nullptr)
@@ -1973,45 +2015,7 @@ namespace Js
 
             Js::Var exportsNamespace = WasmLoadExports(wasmModule, this, localModuleFunctions);
 
-
-            if (wasmModule->info->GetMemory()->minSize != 0 && wasmModule->info->GetMemory()->exported)
-            {
-                PropertyRecord const * propertyRecord = nullptr;
-                GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
-                JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *heap, this);
-            }
-
-            PropertyRecord const * exportsPropertyRecord = nullptr;
-            GetOrAddPropertyRecord(_u("exports"), lstrlen(_u("exports")), &exportsPropertyRecord);
-            JavascriptOperators::OP_SetProperty(exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, this);
-            if (hasAnyLazyTraps)
-            {
-                PropertyRecord const * hasErrorsPropertyRecord = nullptr;
-                GetOrAddPropertyRecord(_u("hasErrors"), lstrlen(_u("hasErrors")), &hasErrorsPropertyRecord);
-                JavascriptOperators::OP_SetProperty(exportsNamespace, hasErrorsPropertyRecord->GetPropertyId(), JavascriptBoolean::OP_LdTrue(this), this);
-            }
-
-            for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
-            {
-                Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
-                if (funcExport && funcExport->nameLength > 0)
-                {
-                    PropertyRecord const * propertyRecord = nullptr;
-                    GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
-                    Var funcObj;
-                    // todo:: This should not happen, we need to add validation that the `function_bodies` section is present
-                    if (funcExport->funcIndex < wasmModule->funcCount)
-                    {
-                        funcObj = localModuleFunctions[funcExport->funcIndex];
-                    }
-                    else
-                    {
-                        Assert(UNREACHED);
-                        funcObj = GetLibrary()->GetUndefined();
-                    }
-                    JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, this);
-                }
-            }
+            WasmBuildObject(wasmModule, this, exportsNamespace, heap, &exportObj, &hasAnyLazyTraps, localModuleFunctions);
 
             Var* importFunctions = moduleMemoryPtr + wasmModule->importFuncOffset;
             const uint32 importCount = wasmModule->info->GetImportCount();
