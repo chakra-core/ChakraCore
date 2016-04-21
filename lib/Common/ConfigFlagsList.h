@@ -783,6 +783,7 @@ FLAGNR(Boolean, CheckEmitBufferPermissions, "Check JIT code buffers at commit an
 FLAGR (Boolean, CheckMemoryLeak       , "Check for heap memory leak", false)
 FLAGR (String,  DumpOnLeak            , "Create a dump on failed memory leak check", nullptr)
 #endif
+FLAGNR(Boolean, CheckOpHelpers        , "Verify opHelper labels in the JIT are set properly", false)
 FLAGNR(Boolean, CloneInlinedPolymorphicCaches, "Clones polymorphic inline caches in inlined functions", DEFAULT_CONFIG_CloneInlinedPolymorphicCaches)
 FLAGNR(Boolean, ConcurrentRuntime     , "Enable Concurrent GC and background JIT when creating runtime", DEFAULT_CONFIG_ConcurrentRuntime)
 FLAGNR(Boolean, Console               , "Create console window in GUI app", false)
