@@ -2062,24 +2062,16 @@ namespace Js
             bytecodeGen = HeapNew(Wasm::WasmBytecodeGenerator, this, *ppSourceInfo, reader);
             wasmModule = bytecodeGen->GenerateModule();
 
-
             Var* moduleMemoryPtr = RecyclerNewArrayZ(GetRecycler(), Var, wasmModule->memSize);
-
             Var* heap = moduleMemoryPtr + wasmModule->heapOffset;
-
             exportObj = JavascriptOperators::NewJavascriptObjectNoArg(this);
-
             Var* localModuleFunctions = moduleMemoryPtr + wasmModule->funcOffset;
 
-            // load data segs
             WasmLoadDataSegs(wasmModule, heap, this);
-
+            
             bool hasAnyLazyTraps = false;
-            // load functions
             WasmLoadFunctions(wasmModule, this, moduleMemoryPtr, &exportObj, localModuleFunctions, &hasAnyLazyTraps);
-
             Js::Var exportsNamespace = WasmLoadExports(wasmModule, this, localModuleFunctions);
-
             WasmBuildObject(wasmModule, this, exportsNamespace, heap, &exportObj, &hasAnyLazyTraps, localModuleFunctions);
 
             Var* importFunctions = moduleMemoryPtr + wasmModule->importFuncOffset;
