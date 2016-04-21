@@ -8215,12 +8215,9 @@ namespace Js
         // corresponding fields on the entryPointInfo should be rolled back here.
         this->runtimeTypeRefs = nullptr;
         this->FreePropertyGuards();
-        if (this->equivalentTypeCaches != nullptr)
-        {
-            this->equivalentTypeCacheCount = 0;
-            this->equivalentTypeCaches = nullptr;
-            this->UnregisterEquivalentTypeCaches();
-        }
+        this->equivalentTypeCacheCount = 0;
+        this->equivalentTypeCaches = nullptr;
+        this->UnregisterEquivalentTypeCaches();
 
         this->ResetOnNativeCodeInstallFailure();
     }
