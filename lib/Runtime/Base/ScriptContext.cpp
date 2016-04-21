@@ -1971,6 +1971,28 @@ namespace Js
         }
     }
 
+    void WasmLoadIndirectFunctionTables(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var** indirectFunctionTables, Var* localModuleFunctions)
+    {
+        for (uint i = 0; i < wasmModule->info->GetIndirectFunctionCount(); ++i)
+        {
+            uint funcIndex = wasmModule->info->GetIndirectFunctionIndex(i);
+            if (funcIndex >= wasmModule->info->GetFunctionCount())
+            {
+                // TODO: michhol give error messages
+                Js::Throw::InternalError();
+            }
+            Wasm::WasmFunctionInfo * indirFunc = wasmModule->info->GetFunSig(funcIndex);
+            uint sigId = indirFunc->GetSignature()->GetSignatureId();
+            if (!indirectFunctionTables[sigId])
+            {
+                // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
+                // now, indirect func call to invalid type will give nullptr deref
+                indirectFunctionTables[sigId] = RecyclerNewArrayZ(ctx->GetRecycler(), Js::Var, wasmModule->info->GetIndirectFunctionCount());
+            }
+            indirectFunctionTables[sigId][i] = localModuleFunctions[funcIndex];
+        }
+    }
+
     Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi, Js::Var* start)
     {
         if (pSrcInfo == nullptr)
@@ -2064,25 +2086,7 @@ namespace Js
             WasmLoadImports(wasmModule, this, importFunctions, ffi);
 
             Var** indirectFunctionTables = (Var**)(moduleMemoryPtr + wasmModule->indirFuncTableOffset);
-            for (uint i = 0; i < wasmModule->info->GetIndirectFunctionCount(); ++i)
-            {
-                uint funcIndex = wasmModule->info->GetIndirectFunctionIndex(i);
-                if (funcIndex >= wasmModule->info->GetFunctionCount())
-                {
-                    // TODO: michhol give error messages
-                    Js::Throw::InternalError();
-                }
-                Wasm::WasmFunctionInfo * indirFunc = wasmModule->info->GetFunSig(funcIndex);
-                uint sigId = indirFunc->GetSignature()->GetSignatureId();
-                if (!indirectFunctionTables[sigId])
-                {
-                    // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
-                    // now, indirect func call to invalid type will give nullptr deref
-                    indirectFunctionTables[sigId] = RecyclerNewArrayZ(GetRecycler(), Js::Var, wasmModule->info->GetIndirectFunctionCount());
-                }
-                indirectFunctionTables[sigId][i] = localModuleFunctions[funcIndex];
-            }
-
+            WasmLoadIndirectFunctionTables(wasmModule, this, indirectFunctionTables, localModuleFunctions);
             uint32 startFuncIdx = wasmModule->info->GetStartFunction();
             if (start)
             {
