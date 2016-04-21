@@ -361,6 +361,21 @@ var tests = [
         }));
       }
     }
+  },
+  {
+    name: "OS 7249217: Rest is able to be in a slot in arguments optimization case",
+    body: function () {
+      function foo(...argArr9) {
+        var protoObj0 = {};
+        with (protoObj0) {
+          arguments;
+          var f = function () { assert.areEqual([1,2,3], argArr9, "Arguments scope object optimization allows rest to function correctly inside with"); };
+          f();
+        }
+        assert.areEqual([1,2,3], argArr9, "Arguments scope object optimization allows rest to function correctly");
+      }
+      foo(1,2,3);
+    }
   }
 ];
 

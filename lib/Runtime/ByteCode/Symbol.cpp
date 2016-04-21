@@ -72,11 +72,7 @@ bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
     }
     if (funcInfo->GetHasHeapArguments() && this->GetIsFormal() && ByteCodeGenerator::NeedScopeObjectForArguments(funcInfo, funcInfo->root))
     {
-        // Rest is a special case - it will be in a register.
-        if (funcInfo->root->sxFnc.pnodeRest != this->decl)
-        {
-            return true;
-        }
+        return true;
     }
     if (this->GetIsGlobalCatch())
     {
