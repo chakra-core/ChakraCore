@@ -276,4 +276,27 @@
       <compile-flags>-nonative</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>b208.js</files>
+      <baseline>b208.baseline</baseline>
+      <compile-flags> -bgjit- -simdjs -simd128typespec -mic:1 -lic:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>b208_asmjs.js</files>
+      <baseline>b208_asmjs.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-simdjs -AsmJsStopOnError -maic:0</compile-flags>
+    </default>
+  </test> 
+  <test>
+    <default>
+      <files>b208_asmjs.js</files>
+      <baseline>b208_asmjs.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags> -bgjit- -simdjs -simd128typespec -asmjs- -mic:1 -lic:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
 </regress-exe>
