@@ -2,6 +2,7 @@
 *.sdf
 *.suo
 *.opensdf
+*.VC.db
 *.opendb
 *.user
 *.i
