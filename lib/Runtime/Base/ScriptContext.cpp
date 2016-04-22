@@ -1780,6 +1780,219 @@ namespace Js
         return library->GetUndefined();
     }
 
+    void WasmLoadDataSegs(Wasm::WasmModule * wasmModule, Var* heap, ScriptContext* ctx)
+    {
+        if (wasmModule->info->GetMemory()->minSize != 0)
+        {
+            const uint64 maxSize = wasmModule->info->GetMemory()->maxSize;
+            if (maxSize > ArrayBuffer::MaxArrayBufferLength)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            // TODO: create new type array buffer that is non detachable
+            *heap = JavascriptArrayBuffer::Create((uint32)maxSize, ctx->GetLibrary()->GetArrayBufferType());
+            BYTE* buffer = ((JavascriptArrayBuffer*)*heap)->GetBuffer();
+            for (uint32 iSeg = 0; iSeg < wasmModule->info->GetDataSegCount(); ++iSeg)
+            {
+                Wasm::WasmDataSegment* segment = wasmModule->info->GetDataSeg(iSeg);
+                Assert(segment != nullptr);
+                const uint32 offset = segment->getDestAddr();
+                const uint32 size = segment->getSourceSize();
+                if (offset > maxSize || UInt32Math::Add(offset, size) > maxSize)
+                {
+                    throw Wasm::WasmCompilationException(_u("Data segment #%u is out of bound"), iSeg);
+                }
+
+                if (size > 0)
+                {
+                    js_memcpy_s(buffer + offset, (uint32)maxSize - offset, segment->getData(), size);
+                }
+            }
+
+        }
+        else
+        {
+            *heap = nullptr;
+        }
+    }
+
+    void WasmLoadFunctions(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* moduleMemoryPtr, Var* exportObj, Var* localModuleFunctions, bool* hasAnyLazyTraps)
+    {
+        FrameDisplay * frameDisplay = RecyclerNewPlus(ctx->GetRecycler(), sizeof(void*), FrameDisplay, 1);
+        frameDisplay->SetItem(0, moduleMemoryPtr);
+        const auto createLazyTrap = [ctx, &exportObj]() {
+            JavascriptLibrary *library = ctx->GetLibrary();
+            JavascriptError *pError = library->CreateError();
+            JavascriptExceptionObject * exceptionObject =
+                RecyclerNew(ctx->GetRecycler(), JavascriptExceptionObject, exportObj, ctx, NULL);
+            pError->SetJavascriptExceptionObject(exceptionObject);
+            return library->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)WasmLazyTrapCallback, 0, pError);
+        };
+
+        Wasm::WasmFunction ** functionArray = wasmModule->functions;
+
+        for (uint i = 0; i < wasmModule->funcCount; ++i)
+        {
+            if (functionArray[i] == nullptr)
+            {
+                Assert(PHASE_ON1(WasmLazyTrapPhase));
+                *hasAnyLazyTraps = true;
+                localModuleFunctions[i] = createLazyTrap();
+                continue;
+            }
+            AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(functionArray[i]->body);
+            funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
+            funcObj->SetModuleMemory(moduleMemoryPtr);
+            FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
+            entypointInfo->SetIsAsmJSFunction(true);
+            entypointInfo->address = AsmJsDefaultEntryThunk;
+            entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
+            funcObj->SetEnvironment(frameDisplay);
+            localModuleFunctions[i] = funcObj;
+            // Do MTJRC/MAIC:0 check
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
+            {
+                GenerateFunction(ctx->GetNativeCodeGenerator(), funcObj->GetFunctionBody(), funcObj);
+            }
+#endif
+        }
+    }
+
+    Js::Var WasmLoadExports(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* localModuleFunctions)
+    {
+        Js::Var exportsNamespace = nullptr;
+
+        // Check for Default export
+        for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
+        {
+            Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
+            if (funcExport && funcExport->nameLength == 0)
+            {
+                const uint32 funcIndex = funcExport->funcIndex;
+                if (funcIndex < wasmModule->info->GetFunctionCount())
+                {
+                    exportsNamespace = localModuleFunctions[funcIndex];
+                    break;
+                }
+            }
+        }
+        // If no default export is present, create an empty object
+        if (exportsNamespace == nullptr)
+        {
+            exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(ctx);
+        }
+
+        return exportsNamespace;
+    }
+
+    void WasmBuildObject(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* heap, Var* exportObj, bool* hasAnyLazyTraps, Var* localModuleFunctions)
+    {
+        if (wasmModule->info->GetMemory()->minSize != 0 && wasmModule->info->GetMemory()->exported)
+        {
+            PropertyRecord const * propertyRecord = nullptr;
+            ctx->GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
+            JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *heap, ctx);
+        }
+
+        PropertyRecord const * exportsPropertyRecord = nullptr;
+        ctx->GetOrAddPropertyRecord(_u("exports"), lstrlen(_u("exports")), &exportsPropertyRecord);
+        JavascriptOperators::OP_SetProperty(*exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, ctx);
+        if (*hasAnyLazyTraps)
+        {
+            PropertyRecord const * hasErrorsPropertyRecord = nullptr;
+            ctx->GetOrAddPropertyRecord(_u("hasErrors"), lstrlen(_u("hasErrors")), &hasErrorsPropertyRecord);
+            JavascriptOperators::OP_SetProperty(exportsNamespace, hasErrorsPropertyRecord->GetPropertyId(), JavascriptBoolean::OP_LdTrue(ctx), ctx);
+        }
+
+        for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
+        {
+            Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
+            if (funcExport && funcExport->nameLength > 0)
+            {
+                PropertyRecord const * propertyRecord = nullptr;
+                ctx->GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
+                Var funcObj;
+                // todo:: This should not happen, we need to add validation that the `function_bodies` section is present
+                if (funcExport->funcIndex < wasmModule->funcCount)
+                {
+                    funcObj = localModuleFunctions[funcExport->funcIndex];
+                }
+                else
+                {
+                    Assert(UNREACHED);
+                    funcObj = ctx->GetLibrary()->GetUndefined();
+                }
+                JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, ctx);
+            }
+        }
+    }
+
+    void WasmLoadImports(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var ffi)
+    {
+        const uint32 importCount = wasmModule->info->GetImportCount();
+        if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
+        {
+            throw Wasm::WasmCompilationException(_u("Import object is invalid"));
+        }
+        for (uint32 i = 0; i < importCount; ++i)
+        {
+            PropertyRecord const * modPropertyRecord = nullptr;
+            PropertyRecord const * propertyRecord = nullptr;
+
+            char16* modName = wasmModule->info->GetFunctionImport(i)->modName;
+            uint32 modNameLen = wasmModule->info->GetFunctionImport(i)->modNameLen;
+            ctx->GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
+            Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), ctx);
+
+            char16* name = wasmModule->info->GetFunctionImport(i)->fnName;
+            uint32 nameLen = wasmModule->info->GetFunctionImport(i)->fnNameLen;
+            Var prop = nullptr;
+            if (nameLen > 0)
+            {
+                ctx->GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
+
+                if (!JavascriptObject::Is(modProp))
+                {
+                    throw Wasm::WasmCompilationException(_u("Import module %s is invalid"), modName);
+                }
+                prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), ctx);
+            }
+            else
+            {
+                // Use only first level if name is missing
+                prop = modProp;
+            }
+            if (!JavascriptFunction::Is(prop))
+            {
+                throw Wasm::WasmCompilationException(_u("Import function %s.%s is invalid"), modName, name);
+            }
+            importFunctions[i] = prop;
+        }
+    }
+
+    void WasmLoadIndirectFunctionTables(Wasm::WasmModule * wasmModule, ScriptContext* ctx, Var** indirectFunctionTables, Var* localModuleFunctions)
+    {
+        for (uint i = 0; i < wasmModule->info->GetIndirectFunctionCount(); ++i)
+        {
+            uint funcIndex = wasmModule->info->GetIndirectFunctionIndex(i);
+            if (funcIndex >= wasmModule->info->GetFunctionCount())
+            {
+                // TODO: michhol give error messages
+                Js::Throw::InternalError();
+            }
+            Wasm::WasmFunctionInfo * indirFunc = wasmModule->info->GetFunSig(funcIndex);
+            uint sigId = indirFunc->GetSignature()->GetSignatureId();
+            if (!indirectFunctionTables[sigId])
+            {
+                // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
+                // now, indirect func call to invalid type will give nullptr deref
+                indirectFunctionTables[sigId] = RecyclerNewArrayZ(ctx->GetRecycler(), Js::Var, wasmModule->info->GetIndirectFunctionCount());
+            }
+            indirectFunctionTables[sigId][i] = localModuleFunctions[funcIndex];
+        }
+    }
+
     Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi, Js::Var* start)
     {
         if (pSrcInfo == nullptr)
@@ -1849,212 +2062,23 @@ namespace Js
             bytecodeGen = HeapNew(Wasm::WasmBytecodeGenerator, this, *ppSourceInfo, reader);
             wasmModule = bytecodeGen->GenerateModule();
 
-            Wasm::WasmFunction ** functionArray = wasmModule->functions;
-
             Var* moduleMemoryPtr = RecyclerNewArrayZ(GetRecycler(), Var, wasmModule->memSize);
-
             Var* heap = moduleMemoryPtr + wasmModule->heapOffset;
-
             exportObj = JavascriptOperators::NewJavascriptObjectNoArg(this);
-
             Var* localModuleFunctions = moduleMemoryPtr + wasmModule->funcOffset;
 
-            if (wasmModule->info->GetMemory()->minSize != 0)
-            {
-                const uint64 maxSize = wasmModule->info->GetMemory()->maxSize;
-                if (maxSize > ArrayBuffer::MaxArrayBufferLength)
-                {
-                    Js::Throw::OutOfMemory();
-                }
-                // TODO: create new type array buffer that is non detachable
-                *heap = JavascriptArrayBuffer::Create((uint32)maxSize, GetLibrary()->arrayBufferType);
-                BYTE* buffer = ((JavascriptArrayBuffer*)*heap)->GetBuffer();
-                for (uint32 iSeg = 0; iSeg < wasmModule->info->GetDataSegCount(); ++iSeg)
-                {
-                    Wasm::WasmDataSegment* segment = wasmModule->info->GetDataSeg(iSeg);
-                    Assert(segment != nullptr);
-                    const uint32 offset = segment->getDestAddr();
-                    const uint32 size = segment->getSourceSize();
-                    if (offset > maxSize || UInt32Math::Add(offset, size) > maxSize)
-                    {
-                        throw Wasm::WasmCompilationException(_u("Data segment #%u is out of bound"), iSeg);
-                    }
-
-                    if (size > 0)
-                    {
-                        js_memcpy_s(buffer + offset, (uint32)maxSize - offset, segment->getData(), size);
-                    }
-                }
-
-            }
-            else
-            {
-                *heap = nullptr;
-            }
-
-            FrameDisplay * frameDisplay = RecyclerNewPlus(GetRecycler(), sizeof(void*), FrameDisplay, 1);
-            frameDisplay->SetItem(0, moduleMemoryPtr);
+            WasmLoadDataSegs(wasmModule, heap, this);
+            
             bool hasAnyLazyTraps = false;
-            const auto createLazyTrap = [this, &exportObj]() {
-                JavascriptLibrary *library = this->GetLibrary();
-                JavascriptError *pError = library->CreateError();
-                JavascriptExceptionObject * exceptionObject =
-                    RecyclerNew(this->GetRecycler(), JavascriptExceptionObject, exportObj, this, NULL);
-                pError->SetJavascriptExceptionObject(exceptionObject);
-                return library->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)WasmLazyTrapCallback, 0, pError);
-            };
-
-
-            for (uint i = 0; i < wasmModule->funcCount; ++i)
-            {
-                if (functionArray[i] == nullptr)
-                {
-                    Assert(PHASE_ON1(WasmLazyTrapPhase));
-                    hasAnyLazyTraps = true;
-                    localModuleFunctions[i] = createLazyTrap();
-                    continue;
-                }
-                AsmJsScriptFunction * funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
-                funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
-                funcObj->SetModuleMemory(moduleMemoryPtr);
-                FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
-                entypointInfo->SetIsAsmJSFunction(true);
-                entypointInfo->address = AsmJsDefaultEntryThunk;
-                entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
-                funcObj->SetEnvironment(frameDisplay);
-                localModuleFunctions[i] = funcObj;
-                // Do MTJRC/MAIC:0 check
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-                if (CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
-                {
-                    GenerateFunction(GetNativeCodeGenerator(), funcObj->GetFunctionBody(), funcObj);
-                }
-#endif
-            }
-
-            Js::Var exportsNamespace = nullptr;
-
-            // Check for Default export
-            for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
-            {
-                Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
-                if (funcExport && funcExport->nameLength == 0)
-                {
-                    const uint32 funcIndex = funcExport->funcIndex;
-                    if (funcIndex < wasmModule->info->GetFunctionCount())
-                    {
-                        exportsNamespace = localModuleFunctions[funcIndex];
-                        break;
-                    }
-                }
-            }
-
-            // If no default export is present, create an empty object
-            if (exportsNamespace == nullptr)
-            {
-                exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(this);
-            }
-
-            if (wasmModule->info->GetMemory()->minSize != 0 && wasmModule->info->GetMemory()->exported)
-            {
-                PropertyRecord const * propertyRecord = nullptr;
-                GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
-                JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *heap, this);
-            }
-
-            PropertyRecord const * exportsPropertyRecord = nullptr;
-            GetOrAddPropertyRecord(_u("exports"), lstrlen(_u("exports")), &exportsPropertyRecord);
-            JavascriptOperators::OP_SetProperty(exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, this);
-            if (hasAnyLazyTraps)
-            {
-                PropertyRecord const * hasErrorsPropertyRecord = nullptr;
-                GetOrAddPropertyRecord(_u("hasErrors"), lstrlen(_u("hasErrors")), &hasErrorsPropertyRecord);
-                JavascriptOperators::OP_SetProperty(exportsNamespace, hasErrorsPropertyRecord->GetPropertyId(), JavascriptBoolean::OP_LdTrue(this), this);
-            }
-
-            for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
-            {
-                Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
-                if (funcExport && funcExport->nameLength > 0)
-                {
-                    PropertyRecord const * propertyRecord = nullptr;
-                    GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
-                    Var funcObj;
-                    // todo:: This should not happen, we need to add validation that the `function_bodies` section is present
-                    if (funcExport->funcIndex < wasmModule->funcCount)
-                    {
-                        funcObj = localModuleFunctions[funcExport->funcIndex];
-                    }
-                    else
-                    {
-                        Assert(UNREACHED);
-                        funcObj = GetLibrary()->GetUndefined();
-                    }
-                    JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, this);
-                }
-            }
+            WasmLoadFunctions(wasmModule, this, moduleMemoryPtr, &exportObj, localModuleFunctions, &hasAnyLazyTraps);
+            Js::Var exportsNamespace = WasmLoadExports(wasmModule, this, localModuleFunctions);
+            WasmBuildObject(wasmModule, this, exportsNamespace, heap, &exportObj, &hasAnyLazyTraps, localModuleFunctions);
 
             Var* importFunctions = moduleMemoryPtr + wasmModule->importFuncOffset;
-            const uint32 importCount = wasmModule->info->GetImportCount();
-            if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
-            {
-                throw Wasm::WasmCompilationException(_u("Import object is invalid"));
-            }
-            for (uint32 i = 0; i < importCount; ++i)
-            {
-                PropertyRecord const * modPropertyRecord = nullptr;
-                PropertyRecord const * propertyRecord = nullptr;
-
-                char16* modName = wasmModule->info->GetFunctionImport(i)->modName;
-                uint32 modNameLen = wasmModule->info->GetFunctionImport(i)->modNameLen;
-                GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
-                Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), this);
-
-                char16* name = wasmModule->info->GetFunctionImport(i)->fnName;
-                uint32 nameLen = wasmModule->info->GetFunctionImport(i)->fnNameLen;
-                Var prop = nullptr;
-                if (nameLen > 0)
-                {
-                    GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
-
-                    if (!JavascriptObject::Is(modProp))
-                    {
-                        throw Wasm::WasmCompilationException(_u("Import module %s is invalid"), modName);
-                    }
-                    prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), this);
-                }
-                else
-                {
-                    // Use only first level if name is missing
-                    prop = modProp;
-                }
-                if (!JavascriptFunction::Is(prop))
-                {
-                    throw Wasm::WasmCompilationException(_u("Import function %s.%s is invalid"), modName, name);
-                }
-                importFunctions[i] = prop;
-            }
+            WasmLoadImports(wasmModule, this, importFunctions, ffi);
 
             Var** indirectFunctionTables = (Var**)(moduleMemoryPtr + wasmModule->indirFuncTableOffset);
-            for (uint i = 0; i < wasmModule->info->GetIndirectFunctionCount(); ++i)
-            {
-                uint funcIndex = wasmModule->info->GetIndirectFunctionIndex(i);
-                if (funcIndex >= wasmModule->info->GetFunctionCount())
-                {
-                    // TODO: michhol give error messages
-                    Js::Throw::InternalError();
-                }
-                Wasm::WasmFunctionInfo * indirFunc = wasmModule->info->GetFunSig(funcIndex);
-                uint sigId = indirFunc->GetSignature()->GetSignatureId();
-                if (!indirectFunctionTables[sigId])
-                {
-                    // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
-                    // now, indirect func call to invalid type will give nullptr deref
-                    indirectFunctionTables[sigId] = RecyclerNewArrayZ(GetRecycler(), Js::Var, wasmModule->info->GetIndirectFunctionCount());
-                }
-                indirectFunctionTables[sigId][i] = localModuleFunctions[funcIndex];
-            }
-
+            WasmLoadIndirectFunctionTables(wasmModule, this, indirectFunctionTables, localModuleFunctions);
             uint32 startFuncIdx = wasmModule->info->GetStartFunction();
             if (start)
             {
