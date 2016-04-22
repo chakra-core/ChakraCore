@@ -264,7 +264,7 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
     } while (true);
 }
 
-BOOL Heap::ProtectAllocationWithExecuteReadWrite(Allocation *allocation, char* addressInPage)
+BOOL Heap::ProtectAllocationWithExecuteReadWrite(Allocation *allocation, __in_opt char* addressInPage)
 {
     DWORD protectFlags = 0;
 
@@ -279,7 +279,7 @@ BOOL Heap::ProtectAllocationWithExecuteReadWrite(Allocation *allocation, char* a
     return this->ProtectAllocation(allocation, protectFlags, PAGE_EXECUTE, addressInPage);
 }
 
-BOOL Heap::ProtectAllocationWithExecuteReadOnly(Allocation *allocation, char* addressInPage)
+BOOL Heap::ProtectAllocationWithExecuteReadOnly(Allocation *allocation, __in_opt char* addressInPage)
 {
     DWORD protectFlags = 0;
     if (AutoSystemInfo::Data.IsCFGEnabled())
