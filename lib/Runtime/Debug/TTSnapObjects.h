@@ -733,14 +733,17 @@ namespace TTD
             if(*index >= (*segment)->LastIndex)
             {
                 *segment = (*segment)->Next;
-            }
-
-            if(*segment == nullptr)
-            {
                 *pos = 0;
+
+                if(*segment != nullptr)
+                {
+                    *index = (*segment)->FirstIndex;
+                }
             }
             else
             {
+                AssertMsg(*index >= (*segment)->FirstIndex, "Something went wrong.");
+
                 *pos = *index - (*segment)->FirstIndex;
             }
         }
