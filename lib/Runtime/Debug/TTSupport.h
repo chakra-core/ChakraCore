@@ -129,6 +129,7 @@ namespace TTD
             SnapConsoleScopeActivationObject,
             SnapActivationObjectEx,
             SnapHeapArgumentsObject,
+            SnapES5HeapArgumentsObject,
             SnapBoxedValueObject,
             SnapDateObject,
             SnapRegexObject,

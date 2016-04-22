@@ -929,78 +929,30 @@ namespace TTD
             return  ctx->GetLibrary()->CreateHeapArguments_TTD(argsInfo->NumOfArguments, argsInfo->FormalCount, static_cast<Js::ActivationObject*>(activationObj), argsInfo->DeletedArgFlags);
         }
 
-        void EmitAddtlInfo_SnapHeapArgumentsInfo(const SnapObject* snpObject, FileWriter* writer)
+        Js::RecyclableObject* DoObjectInflation_SnapES5HeapArgumentsInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            SnapHeapArgumentsInfo* argsInfo = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(snpObject);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
 
-            writer->WriteUInt32(NSTokens::Key::numberOfArgs, argsInfo->NumOfArguments, NSTokens::Separator::CommaAndBigSpaceSeparator);
+            SnapHeapArgumentsInfo* argsInfo = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapES5HeapArgumentsObject>(snpObject);
 
-            writer->WriteBool(NSTokens::Key::boolVal, argsInfo->IsFrameNullPtr, NSTokens::Separator::CommaAndBigSpaceSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, argsInfo->IsFrameJsNull, NSTokens::Separator::CommaAndBigSpaceSeparator);
-            writer->WriteAddr(NSTokens::Key::objectId, argsInfo->FrameObject, NSTokens::Separator::CommaAndBigSpaceSeparator);
-
-            writer->WriteLengthValue(argsInfo->FormalCount, NSTokens::Separator::CommaSeparator);
-
-            writer->WriteKey(NSTokens::Key::deletedArgs, NSTokens::Separator::CommaAndBigSpaceSeparator);
-            writer->WriteSequenceStart();
-            for(uint32 i = 0; i < argsInfo->FormalCount; ++i)
+            Js::RecyclableObject* activationObj = nullptr;
+            if(argsInfo->IsFrameNullPtr)
             {
-               writer->WriteNakedByte(argsInfo->DeletedArgFlags[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+                activationObj = nullptr;
             }
-            writer->WriteSequenceEnd();
-        }
-
-        void ParseAddtlInfo_SnapHeapArgumentsInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
-        {
-            SnapHeapArgumentsInfo* argsInfo = alloc.SlabAllocateStruct<SnapHeapArgumentsInfo>();
-
-            argsInfo->NumOfArguments = reader->ReadUInt32(NSTokens::Key::numberOfArgs, true);
-
-            argsInfo->IsFrameNullPtr = reader->ReadBool(NSTokens::Key::boolVal, true);
-            argsInfo->IsFrameJsNull = reader->ReadBool(NSTokens::Key::boolVal, true);
-            argsInfo->FrameObject = reader->ReadAddr(NSTokens::Key::objectId, true);
-
-            argsInfo->FormalCount = reader->ReadLengthValue(true);
-
-            if(argsInfo->FormalCount == 0)
+            else if(argsInfo->IsFrameJsNull)
             {
-                argsInfo->DeletedArgFlags = nullptr;
+                activationObj = ctx->GetLibrary()->GetNull();
             }
             else
             {
-                argsInfo->DeletedArgFlags = alloc.SlabAllocateArray<byte>(argsInfo->FormalCount);
+                AssertMsg(argsInfo->FrameObject != TTD_INVALID_PTR_ID, "That won't work!");
+
+                activationObj = inflator->LookupObject(argsInfo->FrameObject);
             }
 
-            reader->ReadKey(NSTokens::Key::deletedArgs, true);
-            reader->ReadSequenceStart();
-            for(uint32 i = 0; i < argsInfo->FormalCount; ++i)
-            {
-                argsInfo->DeletedArgFlags[i] = reader->ReadNakedByte(i != 0);
-            }
-            reader->ReadSequenceEnd();
-
-            SnapObjectSetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(snpObject, argsInfo);
+            return  ctx->GetLibrary()->CreateES5HeapArguments_TTD(argsInfo->NumOfArguments, argsInfo->FormalCount, static_cast<Js::ActivationObject*>(activationObj), argsInfo->DeletedArgFlags);
         }
-
-#if ENABLE_SNAPSHOT_COMPARE 
-        void AssertSnapEquiv_SnapHeapArgumentsInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
-        {
-            SnapHeapArgumentsInfo* argsInfo1 = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(sobj1);
-            SnapHeapArgumentsInfo* argsInfo2 = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(sobj2);
-
-            compareMap.DiagnosticAssert(argsInfo1->NumOfArguments == argsInfo2->NumOfArguments);
-
-            compareMap.DiagnosticAssert(argsInfo1->IsFrameNullPtr == argsInfo2->IsFrameNullPtr);
-            compareMap.DiagnosticAssert(argsInfo1->IsFrameJsNull == argsInfo2->IsFrameJsNull);
-            compareMap.CheckConsistentAndAddPtrIdMapping_Special(argsInfo1->FrameObject, argsInfo2->FrameObject, _u("frameObject"));
-
-            compareMap.DiagnosticAssert(argsInfo1->FormalCount == argsInfo2->FormalCount);
-            for(uint32 i = 0; i < argsInfo1->FormalCount; ++i)
-            {
-                compareMap.DiagnosticAssert(argsInfo1->DeletedArgFlags[i] == argsInfo2->DeletedArgFlags[i]);
-            }
-        }
-#endif
 
         //////////////////
 

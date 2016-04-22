@@ -279,11 +279,82 @@ namespace TTD
         //Functions for the VTable for ArgumentsObject tags
 
         Js::RecyclableObject* DoObjectInflation_SnapHeapArgumentsInfo(const SnapObject* snpObject, InflateMap* inflator);
-        void EmitAddtlInfo_SnapHeapArgumentsInfo(const SnapObject* snpObject, FileWriter* writer);
-        void ParseAddtlInfo_SnapHeapArgumentsInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+        Js::RecyclableObject* DoObjectInflation_SnapES5HeapArgumentsInfo(const SnapObject* snpObject, InflateMap* inflator);
 
-#if ENABLE_SNAPSHOT_COMPARE 
-        void AssertSnapEquiv_SnapHeapArgumentsInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
+        template <SnapObjectType argsKind>
+        void EmitAddtlInfo_SnapHeapArgumentsInfo(const SnapObject* snpObject, FileWriter* writer)
+        {
+            SnapHeapArgumentsInfo* argsInfo = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, argsKind>(snpObject);
+
+            writer->WriteUInt32(NSTokens::Key::numberOfArgs, argsInfo->NumOfArguments, NSTokens::Separator::CommaAndBigSpaceSeparator);
+
+            writer->WriteBool(NSTokens::Key::boolVal, argsInfo->IsFrameNullPtr, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, argsInfo->IsFrameJsNull, NSTokens::Separator::CommaSeparator);
+            writer->WriteAddr(NSTokens::Key::objectId, argsInfo->FrameObject, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteLengthValue(argsInfo->FormalCount, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteKey(NSTokens::Key::deletedArgs, NSTokens::Separator::CommaSeparator);
+            writer->WriteSequenceStart();
+            for(uint32 i = 0; i < argsInfo->FormalCount; ++i)
+            {
+                writer->WriteNakedByte(argsInfo->DeletedArgFlags[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+            }
+            writer->WriteSequenceEnd();
+        }
+
+        template <SnapObjectType argsKind>
+        void ParseAddtlInfo_SnapHeapArgumentsInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        {
+            SnapHeapArgumentsInfo* argsInfo = alloc.SlabAllocateStruct<SnapHeapArgumentsInfo>();
+
+            argsInfo->NumOfArguments = reader->ReadUInt32(NSTokens::Key::numberOfArgs, true);
+
+            argsInfo->IsFrameNullPtr = reader->ReadBool(NSTokens::Key::boolVal, true);
+            argsInfo->IsFrameJsNull = reader->ReadBool(NSTokens::Key::boolVal, true);
+            argsInfo->FrameObject = reader->ReadAddr(NSTokens::Key::objectId, true);
+
+            argsInfo->FormalCount = reader->ReadLengthValue(true);
+
+            if(argsInfo->FormalCount == 0)
+            {
+                argsInfo->DeletedArgFlags = nullptr;
+            }
+            else
+            {
+                argsInfo->DeletedArgFlags = alloc.SlabAllocateArray<byte>(argsInfo->FormalCount);
+            }
+
+            reader->ReadKey(NSTokens::Key::deletedArgs, true);
+            reader->ReadSequenceStart();
+            for(uint32 i = 0; i < argsInfo->FormalCount; ++i)
+            {
+                argsInfo->DeletedArgFlags[i] = reader->ReadNakedByte(i != 0);
+            }
+            reader->ReadSequenceEnd();
+
+            SnapObjectSetAddtlInfoAs<SnapHeapArgumentsInfo*, argsKind>(snpObject, argsInfo);
+        }
+
+#if ENABLE_SNAPSHOT_COMPARE
+        template <SnapObjectType argsKind>
+        void AssertSnapEquiv_SnapHeapArgumentsInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            SnapHeapArgumentsInfo* argsInfo1 = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, argsKind>(sobj1);
+            SnapHeapArgumentsInfo* argsInfo2 = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, argsKind>(sobj2);
+
+            compareMap.DiagnosticAssert(argsInfo1->NumOfArguments == argsInfo2->NumOfArguments);
+
+            compareMap.DiagnosticAssert(argsInfo1->IsFrameNullPtr == argsInfo2->IsFrameNullPtr);
+            compareMap.DiagnosticAssert(argsInfo1->IsFrameJsNull == argsInfo2->IsFrameJsNull);
+            compareMap.CheckConsistentAndAddPtrIdMapping_Special(argsInfo1->FrameObject, argsInfo2->FrameObject, _u("frameObject"));
+
+            compareMap.DiagnosticAssert(argsInfo1->FormalCount == argsInfo2->FormalCount);
+            for(uint32 i = 0; i < argsInfo1->FormalCount; ++i)
+            {
+                compareMap.DiagnosticAssert(argsInfo1->DeletedArgFlags[i] == argsInfo2->DeletedArgFlags[i]);
+            }
+        }
 #endif
 
         //////////////////

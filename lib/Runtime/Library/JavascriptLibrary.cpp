@@ -5166,6 +5166,22 @@ namespace Js
         return argsObj;
     }
 
+    Js::RecyclableObject* JavascriptLibrary::CreateES5HeapArguments_TTD(uint32 numOfArguments, uint32 formalCount, ActivationObject* frameObject, byte* deletedArray)
+    {
+        Js::HeapArgumentsObject* argsObj = this->CreateHeapArguments(frameObject, formalCount);
+
+        argsObj->SetNumberOfArguments(numOfArguments);
+        for(uint32 i = 0; i < formalCount; ++i)
+        {
+            if(deletedArray[i])
+            {
+                argsObj->DeleteItemAt(i);
+            }
+        }
+
+        return argsObj->ConvertToES5HeapArgumentsObject_TTD();
+    }
+
     Js::JavascriptPromiseCapability* JavascriptLibrary::CreatePromiseCapability_TTD(Var promise, Var resolve, Var reject)
     {
         return JavascriptPromiseCapability::New(promise, resolve, reject, this->scriptContext);

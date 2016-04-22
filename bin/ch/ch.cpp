@@ -487,6 +487,9 @@ static void CALLBACK GetTTDDirectory(const char16* uri, char16** fullTTDUri)
 
 static void CALLBACK TTInitializeForWriteLogStreamCallback(const char16* uri)
 {
+    //If the directory does not exist then we want to write it
+    CreateDirectoryIfNeeded(uri);
+
     //Clear the logging directory so it is ready for us to write into
     DeleteDirectory(uri);
 }
@@ -815,17 +818,17 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     }
     else
     {
-    bool isUtf8 = false;
-    LPCOLESTR contentsRaw = nullptr;
-    UINT lengthBytes = 0;
-    hr = Helpers::LoadScriptFromFile(fileName, fileContents, &isUtf8, &contentsRaw, &lengthBytes);
-    contentsRaw; lengthBytes; // Unused for now.
+        bool isUtf8 = false;
+        LPCOLESTR contentsRaw = nullptr;
+        UINT lengthBytes = 0;
+        hr = Helpers::LoadScriptFromFile(fileName, fileContents, &isUtf8, &contentsRaw, &lengthBytes);
+        contentsRaw; lengthBytes; // Unused for now.
 
-    IfFailGo(hr);
+        IfFailGo(hr);
         if(HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
-    {
-        jsrtAttributes = (JsRuntimeAttributes)(jsrtAttributes | JsRuntimeAttributeSerializeLibraryByteCode);
-    }
+        {
+            jsrtAttributes = (JsRuntimeAttributes)(jsrtAttributes | JsRuntimeAttributeSerializeLibraryByteCode);
+        }
 
 #if ENABLE_TTD
         if(doTTRecord)
@@ -853,73 +856,73 @@ HRESULT ExecuteTest(LPCWSTR fileName)
             StartupDebuggerAsNeeded();
         }
 #else
-    IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
+        IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
         chRuntime = runtime;
 
-    JsContextRef context = JS_INVALID_REFERENCE;
-    IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
-    IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+        JsContextRef context = JS_INVALID_REFERENCE;
+        IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
+        IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 #endif
 
         if(!WScriptJsrt::Initialize())
-    {
-        IfFailGo(E_FAIL);
-    }
+        {
+            IfFailGo(E_FAIL);
+        }
 
-    char16 fullPath[_MAX_PATH];
+        char16 fullPath[_MAX_PATH];
 
         if(_wfullpath(fullPath, fileName, _MAX_PATH) == nullptr)
-    {
-        IfFailGo(E_FAIL);
-    }
+        {
+            IfFailGo(E_FAIL);
+        }
 
-    // canonicalize that path name to lower case for the profile storage
-    size_t len = wcslen(fullPath);
+        // canonicalize that path name to lower case for the profile storage
+        size_t len = wcslen(fullPath);
         for(size_t i = 0; i < len; i++)
-    {
-        fullPath[i] = towlower(fullPath[i]);
-    }
+        {
+            fullPath[i] = towlower(fullPath[i]);
+        }
 
         if(HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
-    {
-            if(isUtf8)
         {
-            if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
+            if(isUtf8)
             {
-                WCHAR libraryName[_MAX_PATH];
-                WCHAR ext[_MAX_EXT];
-                _wsplitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
+                if(HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
+                {
+                    WCHAR libraryName[_MAX_PATH];
+                    WCHAR ext[_MAX_EXT];
+                    _wsplitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
 
-                IfFailGo(CreateLibraryByteCodeHeader(fileContents, (BYTE*)contentsRaw, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
+                    IfFailGo(CreateLibraryByteCodeHeader(fileContents, (BYTE*)contentsRaw, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
+                }
+                else
+                {
+                    fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
+                    IfFailGo(E_FAIL);
+                }
             }
             else
             {
-                fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
+                fwprintf(stderr, _u("FATAL ERROR: GenerateLibraryByteCodeHeader flag can only be used on UTF8 file, exiting\n"));
+                IfFailGo(E_FAIL);
+            }
+        }
+        else if(HostConfigFlags::flags.SerializedIsEnabled)
+        {
+            if(isUtf8)
+            {
+                CreateAndRunSerializedScript(fileName, fileContents, fullPath);
+            }
+            else
+            {
+                fwprintf(stderr, _u("FATAL ERROR: Serialized flag can only be used on UTF8 file, exiting\n"));
                 IfFailGo(E_FAIL);
             }
         }
         else
         {
-            fwprintf(stderr, _u("FATAL ERROR: GenerateLibraryByteCodeHeader flag can only be used on UTF8 file, exiting\n"));
-            IfFailGo(E_FAIL);
+            IfFailGo(RunScript(fileName, fileContents, nullptr, fullPath));
         }
-    }
-        else if(HostConfigFlags::flags.SerializedIsEnabled)
-    {
-            if(isUtf8)
-        {
-            CreateAndRunSerializedScript(fileName, fileContents, fullPath);
-        }
-        else
-        {
-            fwprintf(stderr, _u("FATAL ERROR: Serialized flag can only be used on UTF8 file, exiting\n"));
-            IfFailGo(E_FAIL);
-        }
-    }
-    else
-    {
-        IfFailGo(RunScript(fileName, fileContents, nullptr, fullPath));
-    }
     }
 
 Error:

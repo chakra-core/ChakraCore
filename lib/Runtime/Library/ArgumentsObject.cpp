@@ -286,6 +286,12 @@ namespace Js
 
     void HeapArgumentsObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
+        this->ExtractSnapObjectDataInto_Helper<TTD::NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject>(objData, alloc);
+    }
+
+    template <TTD::NSSnapObjects::SnapObjectType argsKind>
+    void HeapArgumentsObject::ExtractSnapObjectDataInto_Helper(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
         TTD::NSSnapObjects::SnapHeapArgumentsInfo* argsInfo = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapHeapArgumentsInfo>();
 
         AssertMsg(this->callerDeleted == 0, "This never seems to be set but I want to assert just to be safe.");
@@ -329,12 +335,20 @@ namespace Js
 
         if(depOnCount == 0)
         {
-            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapHeapArgumentsInfo*, TTD::NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject>(objData, argsInfo);
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapHeapArgumentsInfo*, argsKind>(objData, argsInfo);
         }
         else
         {
-            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapHeapArgumentsInfo*, TTD::NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject>(objData, argsInfo, alloc, depOnCount, depOnArray);
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapHeapArgumentsInfo*, argsKind>(objData, argsInfo, alloc, depOnCount, depOnArray);
         }
+    }
+
+    ES5HeapArgumentsObject* HeapArgumentsObject::ConvertToES5HeapArgumentsObject_TTD()
+    {
+        Assert(VirtualTableInfo<HeapArgumentsObject>::HasVirtualTable(this));
+        VirtualTableInfo<ES5HeapArgumentsObject>::SetVirtualTable(this);
+
+        return static_cast<ES5HeapArgumentsObject*>(this);
     }
 #endif
 
@@ -899,29 +913,14 @@ namespace Js
     }
 
 #if ENABLE_TTD
-    void ES5HeapArgumentsObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
-    {
-        //
-        //TODO: unimplemented snapshot object
-        //
-    }
-
     TTD::NSSnapObjects::SnapObjectType ES5HeapArgumentsObject::GetSnapTag_TTD() const
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapES5HeapArgumentsObject;
     }
 
     void ES5HeapArgumentsObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        AssertMsg(false, "Not implemented yet!!!");
+        this->ExtractSnapObjectDataInto_Helper<TTD::NSSnapObjects::SnapObjectType::SnapES5HeapArgumentsObject>(objData, alloc);
     }
 #endif
 }

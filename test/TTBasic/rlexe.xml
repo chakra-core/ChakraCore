@@ -138,6 +138,22 @@
   </test>
   <test>
     <default>
+      <files>es5Arguments.js</files>
+      <compile-flags>-TTRecord:!es5ArgumentsTest -TTSnapInterval:0</compile-flags>
+      <baseline>es5ArgumentsRecord.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!es5ArgumentsTest -TTDStartEvent:2</compile-flags>
+      <baseline>es5ArgumentsReplay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>eval.js</files>
       <compile-flags>-TTRecord:!evalTest -TTSnapInterval:0</compile-flags>
       <baseline>evalRecord.baseline</baseline>
