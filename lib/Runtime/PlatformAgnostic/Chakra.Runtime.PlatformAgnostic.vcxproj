@@ -41,6 +41,7 @@
     </ClCompile>
     <ClCompile Include="Platform\Linux\UnicodeText.ICU.cpp" />
     <ClCompile Include="Platform\Windows\UnicodeText.cpp" />
+    <ClCompile Include="Platform\Common\UnicodeText.Common.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChakraPlatform.h" />
