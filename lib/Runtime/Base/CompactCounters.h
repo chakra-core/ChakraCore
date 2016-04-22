@@ -73,40 +73,10 @@ namespace Js
             return value;
         }
 
-        int32 GetSigned(CountT typeEnum) const
-        {
-#if DBG
-            if (!bgThreadCallStarted && ThreadContext::GetContextForCurrentThread() == nullptr)
-            {
-                bgThreadCallStarted = true;
-            }
-#endif
-
-            uint8 type = static_cast<uint8>(typeEnum);
-            uint8 localFieldSize = fieldSize;
-            int32 value = 0;
-            if (localFieldSize == 1)
-            {
-                value = this->fields->i8Fields[type];
-            }
-            else if (localFieldSize == 2)
-            {
-                value = this->fields->i16Fields[type];
-            }
-            else if (localFieldSize == 4)
-            {
-                value = this->fields->i32Fields[type];
-            }
-            else
-            {
-                Assert(localFieldSize == 0 && this->isCleaningUp && this->fields == nullptr); // OOM when initial allocation failed
-            }
-            return value;
-        }
-
         uint32 Set(CountT typeEnum, uint32 val, T* host)
         {
-            Assert(bgThreadCallStarted == false || isCleaningUp == true);
+            Assert(bgThreadCallStarted == false || isCleaningUp == true
+                || host->GetScriptContext()->GetThreadContext()->GetEtwRundownCriticalSection()->IsLockedByAnyThread());
 
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)
@@ -138,46 +108,6 @@ namespace Js
             if (fieldSize == 4)
             {
                 return this->fields->u32Fields[type] = val;
-            }
-
-            Assert(fieldSize == 0 && this->isCleaningUp && this->fields == nullptr && val == 0); // OOM when allocating the counters structure
-            return val;
-        }
-
-        int32 SetSigned(CountT typeEnum, int32 val, T* host)
-        {
-            Assert(bgThreadCallStarted == false || isCleaningUp == true);
-
-            uint8 type = static_cast<uint8>(typeEnum);
-            if (fieldSize == 1)
-            {
-                if (val <= INT8_MAX && val >= INT8_MIN)
-                {
-                    return this->fields->i8Fields[type] = static_cast<uint8>(val);
-                }
-                else
-                {
-                    (val <= INT16_MAX && val >= INT16_MIN)? AllocCounters<uint16>(host): AllocCounters<uint32>(host);
-                    return host->counters.SetSigned(typeEnum, val, host);
-                }
-            }
-
-            if (fieldSize == 2)
-            {
-                if (val <= INT16_MAX && val >= INT16_MIN)
-                {
-                    return this->fields->i16Fields[type] = static_cast<uint16>(val);
-                }
-                else
-                {
-                    AllocCounters<uint32>(host);
-                    return host->counters.SetSigned(typeEnum, val, host);
-                }
-            }
-
-            if (fieldSize == 4)
-            {
-                return this->fields->i32Fields[type] = val;
             }
 
             Assert(fieldSize == 0 && this->isCleaningUp && this->fields == nullptr && val == 0); // OOM when allocating the counters structure
@@ -225,7 +155,6 @@ namespace Js
             Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
             Assert(host->GetRecycler() != nullptr);
 
-            const uint8 signedStart = static_cast<uint8>(CountT::SignedFieldsStart);
             const uint8 max = static_cast<uint8>(CountT::Max);
             typedef CompactCounters<T, CountT> CounterT;
             CounterT::Fields* fieldsArray = (CounterT::Fields*)RecyclerNewArrayLeafZ(host->GetRecycler(), FieldT, sizeof(FieldT)*max);
@@ -235,36 +164,24 @@ namespace Js
             {
                 if (sizeof(FieldT) == 2)
                 {
-                    for (; i < signedStart; i++)
-                    {
-                        fieldsArray->u16Fields[i] = oldFieldsArray->u8Fields[i];
-                    }
                     for (; i < max; i++)
                     {
-                        fieldsArray->i16Fields[i] = oldFieldsArray->i8Fields[i];
+                        fieldsArray->u16Fields[i] = oldFieldsArray->u8Fields[i];
                     }
                 }
                 else if (sizeof(FieldT) == 4)
                 {
-                    for (; i < signedStart; i++)
-                    {
-                        fieldsArray->u32Fields[i] = oldFieldsArray->u8Fields[i];
-                    }
                     for (; i < max; i++)
                     {
-                        fieldsArray->i32Fields[i] = oldFieldsArray->i8Fields[i];
+                        fieldsArray->u32Fields[i] = oldFieldsArray->u8Fields[i];
                     }
                 }
             }
             else if (this->fieldSize == 2)
             {
-                for (; i < signedStart; i++)
-                {
-                    fieldsArray->u32Fields[i] = oldFieldsArray->u16Fields[i];
-                }
                 for (; i < max; i++)
                 {
-                    fieldsArray->i32Fields[i] = oldFieldsArray->i16Fields[i];
+                    fieldsArray->u32Fields[i] = oldFieldsArray->u16Fields[i];
                 }
             }
             else
@@ -272,8 +189,17 @@ namespace Js
                 Assert(this->fieldSize==0);
             }
 
-            this->fieldSize = sizeof(FieldT);
-            this->fields = fieldsArray;
+            if (this->fieldSize == 0)
+            {
+                this->fieldSize = sizeof(FieldT);
+                this->fields = fieldsArray;
+            }
+            else
+            {
+                AutoCriticalSection autoCS(host->GetScriptContext()->GetThreadContext()->GetEtwRundownCriticalSection());
+                this->fieldSize = sizeof(FieldT);
+                this->fields = fieldsArray;
+            }
         }
 
     };

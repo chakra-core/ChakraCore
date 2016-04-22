@@ -1595,7 +1595,7 @@ namespace Js
         bool m_isAsmjsMode : 1;
         bool m_isAsmJsFunction : 1;
         bool m_isGlobalFunc : 1;
-        bool m_doBackendArgumentsOptimization :1;
+        bool m_doBackendArgumentsOptimization : 1;
         bool m_isEval : 1;              // Source code is in 'eval'
         bool m_isDynamicFunction : 1;   // Source code is in 'Function'
         bool m_hasImplicitArgIns : 1;
@@ -1711,10 +1711,6 @@ namespace Js
                 FuncExprScopeRegister                   = 22,
                 FirstTmpRegister                        = 23,
 
-                // Signed integers need keep the sign when promoting 
-                SignedFieldsStart                       = 24,
-                SerializationIndex                      = 24,
-
                 Max
             };
 
@@ -1732,14 +1728,6 @@ namespace Js
             uint32 IncreaseCountField(FunctionBody::CounterFields fieldEnum)
             {
                 return counters.Increase(fieldEnum, this);
-            }
-            int32 GetCountFieldSigned(FunctionBody::CounterFields fieldEnum) const
-            {
-                return counters.GetSigned(fieldEnum);
-            }
-            int32 SetCountFieldSigned(FunctionBody::CounterFields fieldEnum, int32 val)
-            {
-                return counters.SetSigned(fieldEnum, val, this);
             }
 
             struct StatementMap
@@ -1969,6 +1957,9 @@ namespace Js
         bool m_hasFirstInnerScopeRegister : 1;
         bool m_hasFuncExprScopeRegister : 1;
         bool m_hasFirstTmpRegister : 1;
+#if DBG
+        bool m_isSerialized : 1;
+#endif
 #ifdef PERF_COUNTERS
         bool m_isDeserializedFunction : 1;
 #endif
@@ -2095,8 +2086,10 @@ namespace Js
                 this->byteCodeCache = byteCodeCache;
             }
         }
-        void SetSerializationIndex(int index);
-        const int GetSerializationIndex() const;
+#if DBG
+        void SetIsSerialized(bool serialized) { m_isSerialized = serialized; }
+        bool GetIsSerialized()const { return m_isSerialized; }
+#endif
         uint GetByteCodeCount() const { return GetCountField(CounterFields::ByteCodeCount); }
         void SetByteCodeCount(uint count) { SetCountField(CounterFields::ByteCodeCount, count); }
         uint GetByteCodeWithoutLDACount() const { return GetCountField(CounterFields::ByteCodeWithoutLDACount); }
