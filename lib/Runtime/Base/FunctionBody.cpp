@@ -509,6 +509,9 @@ namespace Js
         , m_isFromNativeCodeModule(false)
         , hasHotLoop(false)
         , m_isPartialDeserializedFunction(false)
+#if DBG
+        , m_isSerialized(false)
+#endif
 #ifdef PERF_COUNTERS
         , m_isDeserializedFunction(isDeserializedFunction)
 #endif
@@ -527,7 +530,6 @@ namespace Js
 #endif
     {
         SetCountField(CounterFields::ConstantCount, 1);
-        SetCountFieldSigned(CounterFields::SerializationIndex, -1);
 
         this->SetDefaultFunctionEntryPointInfo((FunctionEntryPointInfo*) this->GetDefaultEntryPointInfo(), DefaultEntryThunk);
         this->m_hasBeenParsed = true;
@@ -580,16 +582,6 @@ namespace Js
         {
             return this->GetByteCode();
         }
-    }
-
-    const int
-    FunctionBody::GetSerializationIndex() const
-    {
-        return GetCountFieldSigned(CounterFields::SerializationIndex);
-    }
-    void FunctionBody::SetSerializationIndex(int index) 
-    {
-        SetCountFieldSigned(CounterFields::SerializationIndex, index);
     }
 
     const char16* ParseableFunctionInfo::GetExternalDisplayName() const
@@ -3551,7 +3543,6 @@ namespace Js
             }
         }
 
-        newFunctionBody->SetSerializationIndex(this->GetSerializationIndex());
         newFunctionBody->m_isFromNativeCodeModule = this->m_isFromNativeCodeModule;
     }
 
