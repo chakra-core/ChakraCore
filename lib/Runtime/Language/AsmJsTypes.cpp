@@ -876,7 +876,10 @@ namespace Js
         AsmJsVarBase* var = FindVar(name);
         if (var)
         {
-            Output::Print(_u("Variable redefinition: %s\n"), name->Psz());
+            if (PHASE_TRACE1(AsmjsPhase))
+            {
+                Output::Print(_u("Variable redefinition: %s\n"), name->Psz());
+            }
             return nullptr;
         }
 
