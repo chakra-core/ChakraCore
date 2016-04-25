@@ -13,10 +13,8 @@ namespace Js
     class JavascriptSIMDInt8x16 sealed : public JavascriptSIMDType
     {
     private:
-        SIMDValue value;
-
         DEFINE_VTABLE_CTOR(JavascriptSIMDInt8x16, JavascriptSIMDType);
-
+        static const char16 TypeName[];
     public:
         class EntryInfo
         {
@@ -26,12 +24,11 @@ namespace Js
             static FunctionInfo ValueOf;
             static FunctionInfo SymbolToPrimitive;
         };
-
+        JavascriptSIMDInt8x16(StaticType *type);
         JavascriptSIMDInt8x16(SIMDValue *val, StaticType *type);
         static JavascriptSIMDInt8x16* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDInt8x16* FromVar(Var aValue);
-        static const char16* GetFullBuiltinName(char16** aBuffer, const char16* name);
         static Var CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue, const Var* args, uint numArgs, CallInfo callInfo);
 
         static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
@@ -43,6 +40,7 @@ namespace Js
 
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
+        static const char16* GetTypeName();
         __inline SIMDValue GetValue() { return value; }
         Var  Copy(ScriptContext* requestContext);
     };

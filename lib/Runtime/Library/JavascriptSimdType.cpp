@@ -26,9 +26,9 @@ namespace Js
 
         if (args.Info.Count == 0 || !SIMDType::Is(args[0]))
         {
-            char16 buffer[512] = _u("");
-            char16* bufferPtr = buffer;
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, SIMDType::GetFullBuiltinName(&bufferPtr, _u("toString()")));
+            char16 buffer[SIMD_STRING_BUFFER_MAX] = _u("");
+            swprintf_s(buffer, SIMD_STRING_BUFFER_MAX, _u("%s.toString()"), SIMDType::GetTypeName());
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, buffer);
         }
 
         JavascriptSIMDType* instance = SIMDType::FromVar(args[0]);
@@ -46,21 +46,22 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        char16 buffer[512] = _u("");
-        char16* bufferPtr = buffer;
-
         if (args.Info.Count == 0 || !SIMDType::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, SIMDType::GetFullBuiltinName(&bufferPtr, _u("toLocaleString"))); //todo
+            char16 buffer[SIMD_STRING_BUFFER_MAX] = _u("");
+            swprintf_s(buffer, SIMD_STRING_BUFFER_MAX, _u("%s.toLocaleString()"), SIMDType::GetTypeName());
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, buffer);
         }
 
         //SPEC: The meanings of the optional parameters to this method are defined in the ECMA - 402 specification; 
         //implementations that do not include ECMA - 402 support must not use those parameter positions for anything else.
         //args[1] and args[2] are optional reserved parameters.
         RecyclableObject *obj = nullptr;
-        if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))  //Is this needed?
+        if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, SIMDType::GetFullBuiltinName(&bufferPtr, _u("toLocaleString")));
+            char16 buffer[SIMD_STRING_BUFFER_MAX] = _u("");
+            swprintf_s(buffer, SIMD_STRING_BUFFER_MAX, _u("%s.toLocaleString()"), SIMDType::GetTypeName());
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, buffer);
         }
 
         if (JavascriptSIMDBool32x4::Is(args[0]) || JavascriptSIMDBool16x8::Is(args[0]) || JavascriptSIMDBool8x16::Is(args[0]))
@@ -108,9 +109,9 @@ namespace Js
                 }
             }
         }
-        char16 buffer[512] = _u("");
-        char16* bufferPtr = buffer;
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, SIMDType::GetFullBuiltinName(&bufferPtr, _u("[Symbol.toPrimitive]"))); //todo
+        char16 buffer[SIMD_STRING_BUFFER_MAX] = _u("");
+        swprintf_s(buffer, SIMD_STRING_BUFFER_MAX, _u("%s.[Symbol.toPrimitive]"), SIMDType::GetTypeName());
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, buffer);
     }
 
     template<typename SIMDType>
@@ -132,9 +133,9 @@ namespace Js
         {
             return SIMDType::FromVar((JavascriptSIMDObject::FromVar(args[0]))->GetValue());
         }
-        char16 buffer[512] = _u("");
-        char16* bufferPtr = buffer;
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SIMDConversion, SIMDType::GetFullBuiltinName(&bufferPtr, _u("valueOf")));
+        char16 buffer[SIMD_STRING_BUFFER_MAX] = _u("");
+        swprintf_s(buffer, SIMD_STRING_BUFFER_MAX, _u("%s.valueOf()"), SIMDType::GetTypeName());
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SIMDConversion, buffer);
     }
     // End Entry Points
 
