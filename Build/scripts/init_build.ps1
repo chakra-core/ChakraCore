@@ -105,6 +105,13 @@ if (-not (Test-Path $flavorBuildIncompleteFile)) {
         | Out-File $flavorBuildIncompleteFile -Encoding Ascii
 }
 
+$PogoConfig = "False"
+if (((${Env:BuildPlatform} -eq "x64") -or (${Env:BuildPlatform} -eq "x86")) `
+    -and (${Env:BuildConfiguration} -eq "release"))
+{
+    $PogoConfig = "True"
+}
+
 # Write the $envconfig script.
 
 @"
@@ -121,10 +128,13 @@ set Username=${Username}
 set CommitHash=${CommitHash}
 
 set OutputPath=${OutputPath}
+set FullOutputPath=${FullOutputPath}
 set FlavorName=${FlavorName}
 
 set BuildIncompleteFile=${buildIncompleteFile}
 set FlavorBuildIncompleteFile=${flavorBuildIncompleteFile}
+
+set PogoConfig=${PogoConfig}
 "@ `
     | Out-File $envconfig -Encoding Ascii
 

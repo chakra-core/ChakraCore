@@ -18,13 +18,13 @@
         <tags>Chakra,ChakraCore</tags>
     </metadata>
     <files>
-        <file src="VcBuild\bin\x86_release\ChakraCore.dll" target="x86\ChakraCore.dll" />
-        <file src="VcBuild\bin\x86_release\ChakraCore.pdb" target="x86\ChakraCore.pdb" />
-        <file src="VcBuild\bin\x86_release\ch.exe" target="x86\ch.exe" />
-        <file src="VcBuild\bin\x86_release\ch.pdb" target="x86\ch.pdb" />
-        <file src="VcBuild\bin\x64_release\ChakraCore.dll" target="x64\ChakraCore.dll" />
-        <file src="VcBuild\bin\x64_release\ChakraCore.pdb" target="x64\ChakraCore.pdb" />
-        <file src="VcBuild\bin\x64_release\ch.exe" target="x64\ch.exe" />
-        <file src="VcBuild\bin\x64_release\ch.pdb" target="x64\ch.pdb" />
+        <file src="..\x86_release\ChakraCore.dll" target="x86\ChakraCore.dll" />
+        <file src="..\x86_release\ChakraCore.pdb" target="x86\ChakraCore.pdb" />
+        <file src="..\x86_release\ch.exe" target="x86\ch.exe" />
+        <file src="..\x86_release\ch.pdb" target="x86\ch.pdb" />
+        <file src="..\x64_release\ChakraCore.dll" target="x64\ChakraCore.dll" />
+        <file src="..\x64_release\ChakraCore.pdb" target="x64\ChakraCore.pdb" />
+        <file src="..\x64_release\ch.exe" target="x64\ch.exe" />
+        <file src="..\x64_release\ch.pdb" target="x64\ch.pdb" />
     </files>
 </package>
