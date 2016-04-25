@@ -26,7 +26,7 @@ var m = function(stdlib,imports,buffer){
         return true 
     }
     function store(value, loc) { value=i4check(value); loc = loc|0; loc = loc<<2; i4store(i32, loc>>2, value);  }
-    function load(loc) {loc = loc|0; loc = loc<<2; return i4load(i32, loc>>2);  }
+    function load(loc) {loc = loc|0; loc = loc<<2; return i4check(i4load(i32, loc>>2));  }
     
     return { load:load
             ,store:store

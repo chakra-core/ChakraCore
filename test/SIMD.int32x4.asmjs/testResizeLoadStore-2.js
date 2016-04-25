@@ -145,50 +145,50 @@ function asmModule(stdlib, imports, buffer) {
     {
         idx = idx|0;
         idx = idx<<2;
-        return i4load(Float32Heap, (idx>>2));
+        return i4check(i4load(Float32Heap, (idx>>2)));
     }
     
     function storeUI32(value, idx) 
     { value= i4check(value); idx = idx|0; idx = idx<<2; 
     i4store(Uint32Heap, (idx>>2), value);}
     function loadUI32(idx) 
-    { idx = idx|0; idx = idx<<2; return i4load(Uint32Heap, (idx>>2)); }
+    { idx = idx|0; idx = idx<<2; return i4check(i4load(Uint32Heap, (idx>>2))); }
     
     function storeI32(value, idx) 
     { value= i4check(value); idx = idx|0; idx = idx<<2; 
     i4store(Int32Heap, (idx>>2), value);}
     function loadI32(idx) 
-    { idx = idx|0; idx = idx<<2; return i4load(Int32Heap, (idx>>2)); }
+    { idx = idx|0; idx = idx<<2; return i4check(i4load(Int32Heap, (idx>>2))); }
     
     function storeI16(value, idx) 
     { value= i4check(value); idx = idx|0; idx = idx<<1; 
     i4store(Int16Heap, (idx>>1), value);}
     function loadI16(idx) 
-    { idx = idx|0; idx = idx<<1; return i4load(Int16Heap, (idx>>1)); }
+    { idx = idx|0; idx = idx<<1; return i4check(i4load(Int16Heap, (idx>>1))); }
 
     function storeUI16(value, idx) 
     { value= i4check(value); idx = idx|0; idx = idx<<1; 
     i4store(Uint16Heap, (idx>>1), value);}
     function loadUI16(idx) 
-    { idx = idx|0; idx = idx<<1; return i4load(Uint16Heap, (idx>>1)); }
+    { idx = idx|0; idx = idx<<1; return i4check(i4load(Uint16Heap, (idx>>1))); }
 
     function storeI8(value, idx) 
     { value= i4check(value); idx = idx|0; idx = idx<<0; 
     i4store(Int8Heap, (idx>>0), value);}
     function loadI8(idx) 
-    { idx = idx|0; idx = idx<<0; return i4load(Int8Heap, (idx>>0)); }
+    { idx = idx|0; idx = idx<<0; return i4check(i4load(Int8Heap, (idx>>0))); }
 
     function storeUI8(value, idx) 
     { value= i4check(value); idx = idx|0; idx = idx<<0; 
     i4store(Uint8Heap, (idx>>0), value);}
     function loadUI8(idx) 
-    { idx = idx|0; idx = idx<<0; return i4load(Uint8Heap, (idx>>0)); }
+    { idx = idx|0; idx = idx<<0; return i4check(i4load(Uint8Heap, (idx>>0))); }
     
     
     function loadStoreIndex1()
     {
         i4store(Float32Heap, 0, i4(-1,-2,3,-4)); 
-        return i4load(Float32Heap, 0);
+        return i4check(i4load(Float32Heap, 0));
     }
     
     
@@ -225,7 +225,7 @@ function asmModule(stdlib, imports, buffer) {
             loopIndex = (loopIndex + 1)|0;
         }
         //Expects the heap to be: 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
-        return i4load(Float32Heap, 0);
+        return i4check(i4load(Float32Heap, 0));
         //Alternate validation
         // for(idx = 0; idx << 2 < end << 2; idx = (idx + 4 << 2)|0)
         // {
@@ -264,7 +264,7 @@ function asmModule(stdlib, imports, buffer) {
                 v0 = i4add(v0, i4(1,1,1,1));
             }
         }
-        return i4load(Float32Heap, 8);
+        return i4check(i4load(Float32Heap, 8));
     } 
     function store_3(functionPicker)
     {
@@ -300,7 +300,7 @@ function asmModule(stdlib, imports, buffer) {
             loopIndex = (loopIndex - 1) | 0;
         }
         while ( (loopIndex | 0) > 0);
-        return i4load(Float32Heap, 8);
+        return i4check(i4load(Float32Heap, 8));
     } 
     function store_1_Int8(length) 
     {
@@ -320,7 +320,7 @@ function asmModule(stdlib, imports, buffer) {
             loopIndex = (loopIndex + 1)|0;
         }
         //Expects the heap to be: 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
-        return i4load(Float32Heap, 2);
+        return i4check(i4load(Float32Heap, 2));
     }
     function store_1_Uint8(length) 
     {
@@ -340,7 +340,7 @@ function asmModule(stdlib, imports, buffer) {
             loopIndex = (loopIndex + 1)|0;
         }
         //Expects the heap to be: 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
-        return i4load(Float32Heap, 2);
+        return i4check(i4load(Float32Heap, 2));
     }
     function store_1_Int16(length) 
     {
@@ -360,7 +360,7 @@ function asmModule(stdlib, imports, buffer) {
             loopIndex = (loopIndex + 1)|0;
         }
         //Expects the heap to be: 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
-        return i4load(Float32Heap, 2);
+        return i4check(i4load(Float32Heap, 2));
     }    
     function store_1_Uint16(length) 
     {
@@ -380,7 +380,7 @@ function asmModule(stdlib, imports, buffer) {
             loopIndex = (loopIndex + 1)|0;
         }
         //Expects the heap to be: 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
-        return i4load(Float32Heap, 2);
+        return i4check(i4load(Float32Heap, 2));
     }    
     function store_1_Int32(length) 
     {
@@ -400,7 +400,7 @@ function asmModule(stdlib, imports, buffer) {
             loopIndex = (loopIndex + 1)|0;
         }
         //Expects the heap to be: 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
-        return i4load(Float32Heap, 2);
+        return i4check(i4load(Float32Heap, 2));
     }    
     function store_1_Uint32(length) 
     {
@@ -420,7 +420,7 @@ function asmModule(stdlib, imports, buffer) {
             loopIndex = (loopIndex + 1)|0;
         }
         //Expects the heap to be: 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
-        return i4load(Float32Heap, 2);
+        return i4check(i4load(Float32Heap, 2))  ;
     }
     
     ////////////////////////////Load////////////////////////////
@@ -459,7 +459,7 @@ function asmModule(stdlib, imports, buffer) {
             }
             loopIndex = (loopIndex + 1) | 0;
         }
-        return v;
+        return i4check(v);
     }
      
     function load_2(functionPicker)
@@ -496,7 +496,7 @@ function asmModule(stdlib, imports, buffer) {
                 }
             }
         }
-        return v;
+        return i4check(v);
     }
 
     function load_3(functionPicker)
@@ -534,7 +534,7 @@ function asmModule(stdlib, imports, buffer) {
             loopIndex = (loopIndex - 1) | 0;
         }
         while ( (loopIndex | 0) > 0);
-        return v;
+        return i4check(v);
     } 
     function load_1_Int8(length)
     {
@@ -551,7 +551,7 @@ function asmModule(stdlib, imports, buffer) {
             }
             loopIndex = (loopIndex + 1) | 0;
         }
-        return v;
+        return i4check(v);
     }
     function load_1_Uint8(length)
     {
@@ -568,7 +568,7 @@ function asmModule(stdlib, imports, buffer) {
             }
             loopIndex = (loopIndex + 1) | 0;
         }
-        return v;
+        return i4check(v);
     }
     function load_1_Int16(length)
     {
@@ -585,7 +585,7 @@ function asmModule(stdlib, imports, buffer) {
             }
             loopIndex = (loopIndex + 1) | 0;
         }
-        return v;
+        return i4check(v);
     }
     function load_1_Uint16(length)
     {
@@ -602,7 +602,7 @@ function asmModule(stdlib, imports, buffer) {
             }
             loopIndex = (loopIndex + 1) | 0;
         }
-        return v;
+        return i4check(v);
     }
     function load_1_Int32(length)
     {
@@ -619,7 +619,7 @@ function asmModule(stdlib, imports, buffer) {
             }
             loopIndex = (loopIndex + 1) | 0;
         }
-        return v;
+        return i4check(v);
     }
     function load_1_Uint32(length)
     {
@@ -636,7 +636,7 @@ function asmModule(stdlib, imports, buffer) {
             }
             loopIndex = (loopIndex + 1) | 0;
         }
-        return v;
+        return i4check(v);
     }    
     
     return {

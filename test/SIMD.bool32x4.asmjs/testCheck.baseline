@@ -1,0 +1,7 @@
+Successfully compiled asm.js code
+
+testCheck.js(25, 9)
+	Asm.js Compilation Error function : module::foo
+	Expression for returning simd values must be coerced using check()
+
+Asm.js compilation failed.

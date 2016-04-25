@@ -118,7 +118,7 @@ function asmModule(stdlib, imports, buffer) {
          f4store(Uint8Heap, (idx + 5)|0, f4(9.0,8.0,10.1, -22.121));
          //return f4load(Uint8Heap, (idx + 5)|0);
          f4store(Uint8Heap, (idx + 0)|0, f4load(Uint8Heap, (idx + 5)|0));
-         return f4load(Uint8Heap, (idx + 0)|0);
+         return f4check(f4load(Uint8Heap, (idx + 0)|0));
     }
 
     function scale(fromIdx, toIdx)

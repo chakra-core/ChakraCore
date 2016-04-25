@@ -114,6 +114,9 @@ namespace Js
         void StartStatement(ParseNode* pnode);
         void EndStatement(ParseNode* pnode);
 
+        template<class NodeType>
+        AsmJsRetType::Which EmitReturnForType(EmitExpressionInfo& info, EmitExpressionInfo& emitInfo, OpCodeAsmJs opCode, AsmJsType asmType);
+
         // Emits the bytecode to load from the module
         // dst is the location of the variable in the function
         // index is the location of the target in the module's table
@@ -147,6 +150,8 @@ namespace Js
         {
             return mFunction->GetFuncBody()->GetScriptContext()->GetConfig()->IsSimdjsEnabled();
         }
+
+        bool IsSimdCheckCall(const ParseNode* pnode) const;
         // try to reuse a tmp register or acquire a new one
         // also takes care of releasing tmp register
         template<typename T>
