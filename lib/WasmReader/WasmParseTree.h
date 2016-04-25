@@ -30,7 +30,6 @@ namespace Wasm
     struct WasmFuncNode
     {
         WasmFunctionInfo * info;
-
     };
 
     struct WasmConstLitNode
@@ -53,11 +52,6 @@ namespace Wasm
         };
     };
 
-    struct WasmBlockNode
-    {
-        uint32 count;
-    };
-
     struct WasmMemOpNode
     {
         uint32 offset;
@@ -67,6 +61,7 @@ namespace Wasm
     struct WasmBrNode
     {
         uint32 depth;
+        uint32 arity;
         bool hasSubExpr;
     };
 
@@ -77,6 +72,17 @@ namespace Wasm
         uint32 defaultTarget;
     };
 
+    struct WasmReturnNode
+    {
+        uint32 arity;
+    };
+
+    struct WasmCallNode
+    {
+        uint32 num; // function id
+        uint32 arity;
+    };
+
     struct WasmNode
     {
         WasmOp op;
@@ -85,10 +91,11 @@ namespace Wasm
             WasmVarNode var;
             WasmConstLitNode cnst;
             WasmFuncNode func;
-            WasmBlockNode block;
             WasmBrNode br;
             WasmBrTableNode brTable;
             WasmMemOpNode mem;
+            WasmReturnNode ret;
+            WasmCallNode call;
         };
     };
 
@@ -107,6 +114,7 @@ namespace Wasm
         uint32 fnNameLen;
         char16* fnName;
     };
+
 }
 
 #define FOREACH_WASMNODE_IN_LIST(node, head) \
