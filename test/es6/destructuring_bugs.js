@@ -288,6 +288,30 @@ var tests = [
         assert.areEqual(a, undefined);
         assert.areEqual(b, 1);
     }
+  },
+  {
+    name: "Destructuring - Empty object pattern inside call node is a valid syntax",
+    body: function () {
+        function f() {
+            ({} = []).Symbol.interator();
+            eval("");
+        };
+    }
+  },
+  {
+    name: "Destructuring - Place holder slots for pattern are accounted when undeferred.",
+    body: function () {
+        function foo({a}) {
+            function x() {}
+            eval('');
+        }
+        foo({});
+        function foo1(...[b]) {
+            function x() {}
+            eval('');
+        }
+        foo1([]);
+    }
   }
 ];
 

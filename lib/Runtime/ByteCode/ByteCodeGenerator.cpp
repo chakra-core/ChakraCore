@@ -2711,7 +2711,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 if (argSym)
                 {
                     Assert(top->bodyScope->GetScopeSlotCount() == 0);
-                    Assert(top->sameNameArgsPlaceHolderSlotCount == 0);
+                    Assert(top->argsPlaceHolderSlotCount == 0);
                     byteCodeGenerator->AssignRegister(argSym);
                     uint i = 0;
                     auto setArgScopeSlot = [&](ParseNode *pnodeArg)
@@ -2721,9 +2721,13 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                             Symbol* sym = pnodeArg->sxVar.sym;
                             if (sym->GetScopeSlot() != Js::Constants::NoProperty)
                             {
-                                top->sameNameArgsPlaceHolderSlotCount++; // Same name args appeared before
+                                top->argsPlaceHolderSlotCount++; // Same name args appeared before
                             }
                             sym->SetScopeSlot(i);
+                        }
+                        else if (pnodeArg->nop == knopParamPattern)
+                        {
+                            top->argsPlaceHolderSlotCount++;
                         }
                         i++;
                     };
