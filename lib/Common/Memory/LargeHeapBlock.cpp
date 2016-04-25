@@ -927,7 +927,21 @@ LargeHeapBlock::ScanInitialImplicitRoots(Recycler * recycler)
 
         // TODO: Assume scan interior?
         DUMP_IMPLICIT_ROOT(recycler, objectAddress);
-        recycler->ScanObjectInlineInterior((void **)objectAddress, header->objectSize);
+
+        if (this->InPageHeapMode())
+        {
+            size_t objectSize = header->objectSize;
+            // trim off the trailing part which is not a pointer
+            objectSize = objectSize - (objectSize % sizeof(void*));
+            if (objectSize > 0) // otherwize the object total size is less than a pointer size
+            {
+                recycler->ScanObjectInlineInterior((void **)objectAddress, objectSize);
+            }
+        }
+        else
+        {
+            recycler->ScanObjectInlineInterior((void **)objectAddress, header->objectSize);
+        }
     }
 }
 
@@ -970,8 +984,21 @@ LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)
                 continue;
             }
 
-            // TODO: Assume scan interior
-            recycler->ScanObjectInlineInterior((void **)objectAddress, header->objectSize);
+            if (this->InPageHeapMode())
+            {
+                size_t objectSize = header->objectSize;
+                // trim off the trailing part which is not a pointer
+                objectSize = objectSize - (objectSize % sizeof(void*));
+                if (objectSize > 0) // otherwize the object total size is less than a pointer size
+                {
+                    recycler->ScanObjectInlineInterior((void **)objectAddress, objectSize);
+                }
+            }
+            else
+            {
+                // TODO: Assume scan interior
+                recycler->ScanObjectInlineInterior((void **)objectAddress, header->objectSize);
+            }
         }
     }
 }

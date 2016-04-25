@@ -2022,6 +2022,13 @@ public:
 
     void* GetObjectAddress() const { return m_address; }
 
+#ifdef RECYCLER_PAGE_HEAP
+    bool IsPageHeapAlloc() 
+    {
+        return isUsingLargeHeapBlock && m_largeHeapBlockHeader->isPageHeapAlloc;
+    }
+#endif
+
     bool IsLeaf() const
     {
 #if LARGEHEAPBLOCK_ENCODING
@@ -2088,12 +2095,16 @@ public:
 
 #ifdef RECYCLER_PAGE_HEAP
         Recycler* recycler = this->m_recycler;
-        if (recycler->ShouldCapturePageHeapFreeStack())
+        if (recycler->IsPageHeapEnabled() && recycler->ShouldCapturePageHeapFreeStack())
         {
-            Assert(recycler->IsPageHeapEnabled());
-            Assert(this->m_heapBlock->IsLargeHeapBlock());
-
-            ((LargeHeapBlock*)this->m_heapBlock)->CapturePageHeapFreeStack();
+            if (this->isUsingLargeHeapBlock)
+            {
+                LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)this->m_heapBlock;
+                if (largeHeapBlock->InPageHeapMode())
+                {
+                    largeHeapBlock->CapturePageHeapFreeStack();
+                }
+            }
         }
 #endif
 
