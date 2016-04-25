@@ -240,36 +240,6 @@ namespace PlatformAgnostic
             return CharacterClassificationType::Invalid;
         }
 
-        CharacterTypeFlags GetLegacyCharacterTypeFlags(char16 ch)
-        {
-            Assert(ch >= 128);
-
-            const char16 lineSeperatorChar = 0x2028;
-            const char16 paraSeperatorChar = 0x2029;
-
-            if (ch == lineSeperatorChar || ch == paraSeperatorChar)
-            {
-                return LineCharGroup;
-            }
-
-            CharacterClassificationType charClass = GetLegacyCharacterClassificationType(ch);
-
-            if (charClass == CharacterClassificationType::Letter)
-            {
-                return LetterCharGroup;
-            }
-            else if (charClass == CharacterClassificationType::DigitOrPunct)
-            {
-                return IdChar;
-            }
-            else if (charClass == CharacterClassificationType::Whitespace)
-            {
-                return SpaceChar;
-            }
-
-            return UnknownChar;
-        }
-
         int32 NormalizeString(NormalizationForm normalizationForm, const char16* sourceString, uint32 sourceLength, char16* destString, int32 destLength, ApiError* pErrorOut)
         {
             // Assert pointers
@@ -311,7 +281,7 @@ namespace PlatformAgnostic
             return (::IsNormalizedString(TranslateToWin32NormForm(normalizationForm), (LPCWSTR)testString, testStringLength) == TRUE);
         }
 
-        uint32 ChangeStringLinguisticCase(CaseFlags caseFlags, const char16* sourceString, uint32 sourceLength, char16* destString, uint32 destLength, ApiError* pErrorOut)
+        int32 ChangeStringLinguisticCase(CaseFlags caseFlags, const char16* sourceString, uint32 sourceLength, char16* destString, uint32 destLength, ApiError* pErrorOut)
         {
             // Assert pointers
             Assert(sourceString != nullptr);
@@ -337,7 +307,30 @@ namespace PlatformAgnostic
             Assert(translatedStringLength >= 0);
             return (uint32) translatedStringLength;
         }
+
+        uint32 ChangeStringCaseInPlace(CaseFlags caseFlags, char16* sourceString, uint32 sourceLength)
+        {
+            // Assert pointers
+            Assert(sourceString != nullptr);
+
+            if (sourceLength == 0 || sourceString == nullptr)
+            {
+                return 0;
+            }
+            
+            if (caseFlags == CaseFlagsUpper)
+            {
+                return (uint32) CharUpperBuff(sourceString, sourceLength);
+            }
+            else if (caseFlags == CaseFlagsLower)
+            {
+                return (uint32) CharLowerBuff(sourceString, sourceLength);
+            }
  
+            AssertMsg(false, "Invalid flags passed to ChangeStringCaseInPlace");
+            return 0;
+        }
+
         UnicodeGeneralCategoryClass GetGeneralCategoryClass(codepoint_t codepoint)
         {
             return ExecuteWinGlobApi([&](IUnicodeCharactersStatics* pUnicodeCharStatics) {

@@ -2118,7 +2118,8 @@ case_2:
 #if DBG
             DWORD converted =
 #endif
-                CharLowerBuffW(&outChar, 1);
+                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
+                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsLower, &outChar, 1);
 
             Assert(converted == 1);
 
@@ -2181,7 +2182,8 @@ case_2:
 #if DBG
             DWORD converted =
 #endif
-                CharUpperBuffW(&outChar, 1);
+                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
+                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsUpper, &outChar, 1);
 
             Assert(converted == 1);
 
@@ -2212,7 +2214,8 @@ case_2:
 #if DBG
             DWORD converted =
 #endif
-                CharUpperBuffW(outStr, count);
+                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
+                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsUpper, outStr, count);
 
             Assert(converted == count);
         }
@@ -2222,7 +2225,8 @@ case_2:
 #if DBG
             DWORD converted =
 #endif
-                CharLowerBuffW(outStr, count);
+                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
+                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsLower, outStr, count);
 
             Assert(converted == count);
         }
@@ -3261,9 +3265,9 @@ case_2:
         CaseFlags caseFlags = (toUpper ? CaseFlags::CaseFlagsUpper : CaseFlags::CaseFlagsLower);
         const char16* str = pThis->GetString();
         ApiError err = ApiError::NoError;
-        uint32 count = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, strLength, nullptr, 0, &err);
+        int32 count = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, strLength, nullptr, 0, &err);
 
-        if (count == 0)
+        if (count <= 0)
         {
             AssertMsg(err != ApiError::NoError, "LCMapString failed");
             Throw::InternalError();
@@ -3274,7 +3278,7 @@ case_2:
 
         int count1 = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, count, stringBuffer, count, &err);
 
-        if (count1 == 0)
+        if (count1 <= 0)
         {
             AssertMsg(err != ApiError::NoError, "LCMapString failed");
             Throw::InternalError();

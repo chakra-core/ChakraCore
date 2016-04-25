@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "CommonPal.h"
 #include "Core/CommonTypedefs.h"
 
 namespace PlatformAgnostic
@@ -168,7 +167,22 @@ namespace PlatformAgnostic
         //   length of the translated string in the destination buffer
         //   If the return value is less than or equal to 0, then see the value of pErrorOut to understand the error
         //
-        uint32 ChangeStringLinguisticCase(CaseFlags caseFlags, const char16* sourceString, uint32 sourceLength, char16* destString, uint32 destLength, ApiError* pErrorOut);
+        int32 ChangeStringLinguisticCase(CaseFlags caseFlags, const char16* sourceString, uint32 sourceLength, char16* destString, uint32 destLength, ApiError* pErrorOut);
+
+        // 
+        // Change the case of a string using linguistic rules
+        // The string is changed in place
+        //
+        // Params:
+        //   caseFlags: the case to convert to 
+        //   sourceString: The string to convert
+        //   sourceLength: The number of characters in the source string. This must be provided, the function does not assume null-termination etc. Length should be greater than 0.
+        // 
+        // Return Value:
+        //   length of the translated string in the destination buffer
+        //   If the return value is less than or equal to 0, then see the value of pErrorOut to understand the error
+        //
+        uint32 ChangeStringCaseInPlace(CaseFlags caseFlags, char16* stringToChange, uint32 bufferLength);
 
         //
         // Return the classification type of the character using Unicode 2.0 rules

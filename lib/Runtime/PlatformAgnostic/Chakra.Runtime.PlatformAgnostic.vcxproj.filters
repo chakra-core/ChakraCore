@@ -8,6 +8,7 @@
       <Filter>Platform\Linux</Filter>
     </ClCompile>
     <ClCompile Include="RuntimePlatformAgnosticPch.cpp" />
+    <ClCompile Include="Platform\Common\UnicodeText.Common.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interfaces">
