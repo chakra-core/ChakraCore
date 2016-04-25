@@ -94,6 +94,7 @@ namespace Wasm
             virtual WasmOp ReadFromBlock() override;
             virtual WasmOp ReadFromCall() override;
             virtual WasmOp ReadExpr() override;
+            virtual void Unread() override { m_pc--; m_funcState.count--; }
 #if DBG_DUMP
             void PrintOps();
 #endif
@@ -113,7 +114,6 @@ namespace Wasm
             void CallNode();
             void CallIndirectNode();
             void CallImportNode();
-            void BlockNode();
             void BrNode();
             void BrTableNode();
             WasmOp MemNode(WasmBinOp op);

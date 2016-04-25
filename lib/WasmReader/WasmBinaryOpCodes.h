@@ -63,28 +63,27 @@ WASM_CTRL_OPCODE(Nop,            0x00,       NOP,                Limit)
 WASM_CTRL_OPCODE(Block,          0x01,       BLOCK,              Limit)
 WASM_CTRL_OPCODE(Loop,           0x02,       LOOP,               Limit)
 WASM_CTRL_OPCODE(If,             0x03,       IF,                 Limit)
-WASM_CTRL_OPCODE(IfElse,         0x04,       IF_ELSE,            Limit)
+WASM_CTRL_OPCODE(Else,           0x04,       ELSE,               Limit)
+
 WASM_CTRL_OPCODE(Br,             0x06,       BR,                 Limit)
 WASM_CTRL_OPCODE(BrIf,           0x07,       BR_IF,              Limit)
 WASM_CTRL_OPCODE(BrTable,        0x08,       BR_TABLE,           Limit)
-WASM_CTRL_OPCODE(Return,         0x14,       RETURN,             Limit)
-WASM_CTRL_OPCODE(Unreachable,    0x15,       LIMIT,              Limit)
+WASM_CTRL_OPCODE(Return,         0x09,       RETURN,             Limit)
+WASM_CTRL_OPCODE(Unreachable,    0x0a,       LIMIT,              Limit)
+WASM_CTRL_OPCODE(End,            0x0f,       END,                Limit)
 
 WASM_SIMPLE_OPCODE(Select,       0x05,       SELECT,             Limit)
 
 // Constants, locals, globals, and calls.
-WASM_MISC_OPCODE(I8Const,        0x09,        CONST_I32,         Limit)
-WASM_MISC_OPCODE(I32Const,       0x0a,        CONST_I32,         Limit)
-WASM_MISC_OPCODE(I64Const,       0x0b,        LIMIT,             Limit)
-WASM_MISC_OPCODE(F64Const,       0x0c,        CONST_F64,         Limit)
-WASM_MISC_OPCODE(F32Const,       0x0d,        CONST_F32,         Limit)
-WASM_MISC_OPCODE(GetLocal,       0x0e,        GETLOCAL,          Limit)
-WASM_MISC_OPCODE(SetLocal,       0x0f,        SETLOCAL,          Limit)
-WASM_MISC_OPCODE(GetGlobal,      0x10,        LIMIT,             Limit)
-WASM_MISC_OPCODE(SetGlobal,      0x11,        LIMIT,             Limit)
-WASM_MISC_OPCODE(Call,           0x12,        CALL,              Limit)
-WASM_MISC_OPCODE(CallIndirect,   0x13,        CALL_INDIRECT,     Limit)
-WASM_MISC_OPCODE(CallImport,     0x1f,        CALL_IMPORT,       Limit)
+WASM_MISC_OPCODE(I32Const,       0x10,        CONST_I32,         Limit)
+WASM_MISC_OPCODE(I64Const,       0x11,        LIMIT,             Limit)
+WASM_MISC_OPCODE(F64Const,       0x12,        CONST_F64,         Limit)
+WASM_MISC_OPCODE(F32Const,       0x13,        CONST_F32,         Limit)
+WASM_MISC_OPCODE(GetLocal,       0x14,        GETLOCAL,          Limit)
+WASM_MISC_OPCODE(SetLocal,       0x15,        SETLOCAL,          Limit)
+WASM_MISC_OPCODE(Call,           0x16,        CALL,              Limit)
+WASM_MISC_OPCODE(CallIndirect,   0x17,        CALL_INDIRECT,     Limit)
+WASM_MISC_OPCODE(CallImport,     0x18,        CALL_IMPORT,       Limit)
 
 // Load memory expressions.
 // TODO: Map to node
@@ -103,7 +102,7 @@ WASM_MEM_OPCODE(I64LoadMem,      0x2b,        LIMIT,            L_I)
 WASM_MEM_OPCODE(F32LoadMem,      0x2c,        LOAD_F32,         F_I)
 WASM_MEM_OPCODE(F64LoadMem,      0x2d,        LOAD_F64,         D_I)
 
-// Store memory expressIons.
+// Store memory expressions.
 WASM_MEM_OPCODE(I32StoreMem8,    0x2e,        STORE8_I32,       I_II)
 WASM_MEM_OPCODE(I32StoreMem16,   0x2f,        STORE16_I32,      I_II)
 WASM_MEM_OPCODE(I64StoreMem8,    0x30,        LIMIT,            L_IL)
@@ -116,8 +115,7 @@ WASM_MEM_OPCODE(F64StoreMem,     0x36,        STORE_F64,        D_ID)
 
 // Load memory
 WASM_MEM_OPCODE(MemorySize,      0x3b,        LIMIT,                I_V)
-WASM_MEM_OPCODE(ResizeMemL,      0x39,        LIMIT,                I_I)
-WASM_MEM_OPCODE(ResizeMemH,      0x3a,        LIMIT,                L_L)
+WASM_MEM_OPCODE(GrowMemory,      0x39,        LIMIT,                I_I)
 
 // Expressions
 WASM_SIMPLE_OPCODE(I32Add,              0x40, ADD_I32,          I_II)

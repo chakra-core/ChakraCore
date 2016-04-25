@@ -122,6 +122,11 @@ namespace Wasm
         static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
         WasmRegisterSpace * GetRegisterSpace(WasmTypes::WasmType type) const;
 
+        EmitInfo PopEvalStack();
+        void PushEvalStack(EmitInfo);
+        void EnterEvalStackScope();
+        void ExitEvalStackScope();
+
         ArenaAllocator m_alloc;
 
         WasmLocal * m_locals;
@@ -146,5 +151,8 @@ namespace Wasm
         WasmRegisterSpace * m_f64RegSlots;
 
         SListCounted<Js::ByteCodeLabel> * m_labels;
+
+        typedef SList<EmitInfo> evalStackScope;
+        SList<evalStackScope*> * m_evalStack;
     };
 }

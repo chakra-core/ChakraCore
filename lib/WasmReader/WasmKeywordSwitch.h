@@ -150,17 +150,6 @@
         switch(p[0])
         {
         case 'f':
-            switch(p[1])
-            {
-            case '_':
-                if (p[2] == 'e' && p[3] == 'l' && p[4] == 's' && p[5] == 'e')
-                {
-                p += 6;
-                token = wtkIF_ELSE;
-                goto LKeyword;
-                }
-                break;
-            }
             p += 1;
             token = wtkIF;
             goto LKeyword;
@@ -452,6 +441,14 @@
                             goto LKeyword;
                             }
                             break;
+                        case 't':
+                            if (p[5] == 'z')
+                            {
+                            p += 6;
+                            token = wtkCTZ_I32;
+                            goto LKeyword;
+                            }
+                            break;
                         case 'o':
                             if (p[5] == 'n' && p[6] == 's' && p[7] == 't')
                             {
@@ -683,6 +680,35 @@
                 goto LKeyword;
                 }
                 break;
+            }
+            break;
+        }
+        goto LError;
+    case 'e':
+        switch(p[0])
+        {
+        case 'n':
+            if (p[1] == 'd')
+            {
+            p += 2;
+            token = wtkEND;
+            goto LKeyword;
+            }
+            break;
+        case 'l':
+            if (p[1] == 's' && p[2] == 'e')
+            {
+            p += 3;
+            token = wtkELSE;
+            goto LKeyword;
+            }
+            break;
+        case 'x':
+            if (p[1] == 'p' && p[2] == 'o' && p[3] == 'r' && p[4] == 't')
+            {
+            p += 5;
+            token = wtkEXPORT;
+            goto LKeyword;
             }
             break;
         }
@@ -1245,14 +1271,6 @@
             goto LKeyword;
             }
             break;
-        }
-        goto LError;
-    case 'e':
-        if (p[0] == 'x' && p[1] == 'p' && p[2] == 'o' && p[3] == 'r' && p[4] == 't')
-        {
-        p += 5;
-        token = wtkEXPORT;
-        goto LKeyword;
         }
         goto LError;
     case 't':
