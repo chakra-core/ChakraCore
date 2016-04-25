@@ -56,7 +56,8 @@ $buildPushIdPart1 = [int]([math]::Floor($buildPushId / 65536))
 $buildPushIdPart2 = [int]($buildPushId % 65536)
 
 $PushID = "{0}.{1}" -f $buildPushIdPart1.ToString("00000"), $buildPushIdPart2.ToString("00000")
-$FullVersionString = "${Env:VERSION_MAJOR}.${Env:VERSION_MINOR}.${PushID}"
+$VersionString = "${Env:VERSION_MAJOR}.${Env:VERSION_MINOR}.${PushID}"
+$PreviewVersionString = "${VersionString}-preview"
 
 #
 # (end code borrowed from pre_build.ps1)
@@ -105,6 +106,13 @@ if (-not (Test-Path $flavorBuildIncompleteFile)) {
         | Out-File $flavorBuildIncompleteFile -Encoding Ascii
 }
 
+$PogoConfig = "False"
+if (((${Env:BuildPlatform} -eq "x64") -or (${Env:BuildPlatform} -eq "x86")) `
+    -and (${Env:BuildConfiguration} -eq "release"))
+{
+    $PogoConfig = "True"
+}
+
 # Write the $envconfig script.
 
 @"
@@ -114,17 +122,21 @@ set YearAndMonth=${YearAndMonth}
 set BuildIdentifier=${BuildIdentifier}
 
 set PushID=${PushID}
-set FullVersionString=${FullVersionString}
+set VersionString=${VersionString}
+set PreviewVersionString=${PreviewVersionString}
 set PushDate=${PushDate}
 set CommitTime=${CommitTime}
 set Username=${Username}
 set CommitHash=${CommitHash}
 
 set OutputPath=${OutputPath}
+set FullOutputPath=${FullOutputPath}
 set FlavorName=${FlavorName}
 
 set BuildIncompleteFile=${buildIncompleteFile}
 set FlavorBuildIncompleteFile=${flavorBuildIncompleteFile}
+
+set PogoConfig=${PogoConfig}
 "@ `
     | Out-File $envconfig -Encoding Ascii
 

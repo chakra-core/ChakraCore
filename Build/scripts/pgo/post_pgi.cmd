@@ -12,6 +12,13 @@
 :: - build (using PGO profile)
 :: - post_pgo.cmd
 
+@echo off
+
+if "%PogoConfig%"=="False" (
+    echo ---- Not a Pogo Config. Skipping step.
+    exit /b 0
+)
+
 set _LINK_=
 set POGO_TYPE=
 

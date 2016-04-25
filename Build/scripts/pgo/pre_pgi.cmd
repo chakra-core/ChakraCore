@@ -14,6 +14,11 @@
 
 @echo off
 
+if "%PogoConfig%"=="False" (
+    echo ---- Not a Pogo Config. Skipping step.
+    exit /b 0
+)
+
 set arch_pgi=%1
 set flavor_pgi=%2
 set binpath_pgi=%3
