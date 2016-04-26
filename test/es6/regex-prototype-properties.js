@@ -23,15 +23,15 @@ function flattenArray(array) {
     return Array.prototype.concat.apply([], array);
 }
 
-var nonGenericPropertyNames = [
+var flagPropertyNames = [
     "global",
     "ignoreCase",
     "multiline",
     "options",
-    "source",
     "sticky",
     "unicode",
 ];
+var nonGenericPropertyNames = flagPropertyNames.concat("source");
 var propertyNames = nonGenericPropertyNames.concat("flags");
 
 var tests = flattenArray(propertyNames.map(function (name) {
@@ -93,7 +93,29 @@ tests = tests.concat(nonGenericPropertyNames.map(function (name) {
         }
     };
 }));
+tests = tests.concat(flagPropertyNames.map(function (name) {
+    return {
+        name: name + " getter should return 'undefined' when called with RegExp prototype",
+        body: function () {
+            var getter = Object.getOwnPropertyDescriptor(RegExp.prototype, name).get;
+
+            var result = getter.call(RegExp.prototype);
+
+            assert.isUndefined(result);
+        }
+    };
+}));
 tests = tests.concat([
+    {
+        name: "RegExp.prototype.source getter should return '(?:)' when called with RegExp prototype",
+        body: function () {
+            var getter = Object.getOwnPropertyDescriptor(RegExp.prototype, "source").get;
+
+            var result = getter.call(RegExp.prototype);
+
+            assert.areEqual("(?:)", result);
+        }
+    },
     {
         name: "RegExp.prototype.toString should be generic",
         body: function () {

@@ -233,6 +233,12 @@ namespace Js
         }
     }
 
+    bool JavascriptRegExp::ShouldApplyPrototypeWebWorkaround(Arguments& args, ScriptContext* scriptContext)
+    {
+        return scriptContext->GetConfig()->IsES6PrototypeChain() && \
+               args.Info.Count >= 1 && args[0] == scriptContext->GetLibrary()->GetRegExpPrototype();
+    }
+
     Var JavascriptRegExp::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -963,6 +969,12 @@ namespace Js
         ARGUMENTS(args, callInfo);
         Assert(!(callInfo.Flags & CallFlags_New));
 
+        ScriptContext* scriptContext = function->GetScriptContext();
+        if (ShouldApplyPrototypeWebWorkaround(args, scriptContext))
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
         return GetJavascriptRegExp(args, _u("RegExp.prototype.options"), function->GetScriptContext())->GetOptions();
     }
 
@@ -1009,6 +1021,12 @@ namespace Js
         ARGUMENTS(args, callInfo);
         Assert(!(callInfo.Flags & CallFlags_New));
 
+        ScriptContext* scriptContext = function->GetScriptContext();
+        if (ShouldApplyPrototypeWebWorkaround(args, scriptContext))
+        {
+            return JavascriptString::NewCopyBuffer(_u("(?:)"), 4, scriptContext);
+        }
+
         return GetJavascriptRegExp(args, _u("RegExp.prototype.source"), function->GetScriptContext())->ToString(true);
     }
 
@@ -1018,6 +1036,12 @@ namespace Js
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault); \
         ARGUMENTS(args, callInfo); \
         Assert(!(callInfo.Flags & CallFlags_New)); \
+        \
+        ScriptContext* scriptContext = function->GetScriptContext(); \
+        if (ShouldApplyPrototypeWebWorkaround(args, scriptContext)) \
+        {\
+            return scriptContext->GetLibrary()->GetUndefined(); \
+        }\
         \
         JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, _u("RegExp.prototype.") _u(#propertyName), function->GetScriptContext()); \
         return pRegEx->GetLibrary()->CreateBoolean(pRegEx->GetPattern()->##patternMethodName##()); \
