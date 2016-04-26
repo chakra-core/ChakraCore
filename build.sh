@@ -19,18 +19,22 @@ PRINT_USAGE() {
     echo ""
     echo "options:"
     echo "-j          : Multicore build (i.e. -j:3 for 3 cores)"
+    echo "-icu        : Path to ICU include folder (see example below)"
     echo "--help, -h  : Show help"
     echo "--debug, -d : Debug build"
     echo "CXX=<path to clang++>"
     echo "CC=<path to clang>"
     echo ""
-    echo "example: ./build.sh CXX=/path/to/clang++ CC=/path/to/clang -j:2"
+    echo "example : ./build.sh CXX=/path/to/clang++ CC=/path/to/clang -j:2"
+    echo "with icu: ./build.sh -icu:/usr/local/Cellar/icu4c/version/include/"
+    echo ""
 }
 
 _CXX=""
 _CC=""
 DEBUG_BUILD=0
 MULTICORE_BUILD=""
+ICU_PATH=""
 
 while [[ $# -gt 0 ]]; do
     if [[ "$1" =~ "CXX=" ]]; then
@@ -55,6 +59,11 @@ while [[ $# -gt 0 ]]; do
     if [[ "$1" =~ "-j:" ]]; then
         MULTICORE_BUILD=$1
         MULTICORE_BUILD="-j ${MULTICORE_BUILD:3}"
+    fi
+    
+    if [[ "$1" =~ "-icu:" ]]; then
+        ICU_PATH=$1
+        ICU_PATH="-DICU_INCLUDE_PATH=${ICU_PATH:5}"
     fi
 
     shift
@@ -99,11 +108,11 @@ pushd BuildLinux > /dev/null
 
 if [ $DEBUG_BUILD -eq 1 ]; then
     echo Generating Debug makefiles
-    cmake $CC_PREFIX -DCMAKE_BUILD_TYPE=Debug ..
+    cmake $CC_PREFIX $ICU_PATH -DCMAKE_BUILD_TYPE=Debug ..
 else
     echo Generating Retail makefiles
     echo Building Retail;
-    cmake $CC_PREFIX -DCMAKE_BUILD_TYPE=Release ..
+    cmake $CC_PREFIX $ICU_PATH -DCMAKE_BUILD_TYPE=Release ..
 fi
 
 make $MULTICORE_BUILD 2>&1 | tee build.log
