@@ -125,7 +125,7 @@ namespace Js
         return (DynamicObject*)CrossSite::MarshalVar(scriptContext, (Var)this->pConsoleScope);
     }
 
-    FrameDisplay *DebugManager::GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne, bool addGlobalThisAtScopeTwo)
+    FrameDisplay *DebugManager::GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne)
     {
         // The scope chain for console eval looks like:
         //  - dummy empty object - new vars, let, consts, functions get added here
@@ -136,10 +136,7 @@ namespace Js
 
         FrameDisplay* environment = JavascriptOperators::OP_LdFrameDisplay(this->GetConsoleScope(scriptContext), const_cast<FrameDisplay *>(&NullFrameDisplay), scriptContext);
 
-        if (addGlobalThisAtScopeTwo)
-        {
-            environment = JavascriptOperators::OP_LdFrameDisplay(scriptContext->GetGlobalObject()->ToThis(), environment, scriptContext);
-        }
+        environment = JavascriptOperators::OP_LdFrameDisplay(scriptContext->GetGlobalObject()->ToThis(), environment, scriptContext);
 
         if (scopeAtOne != nullptr)
         {

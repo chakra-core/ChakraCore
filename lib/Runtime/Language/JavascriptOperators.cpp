@@ -2846,6 +2846,29 @@ CommonNumber:
         // If we have console scope and no one in the scope had the property add it to console scope
         if ((length > 0) && ConsoleScopeActivationObject::Is(pDisplay->GetItem(length - 1)))
         {
+            // CheckPrototypesForAccessorOrNonWritableProperty does not check for const in global object. We should check it here. 
+            if ((length > 1) && GlobalObject::Is(pDisplay->GetItem(length - 2)))
+            {
+                GlobalObject* globalObject = GlobalObject::FromVar(pDisplay->GetItem(length - 2));
+                Var setterValue = nullptr;
+
+                DescriptorFlags flags = JavascriptOperators::GetRootSetter(globalObject, propertyId, &setterValue, &info, scriptContext);
+                Assert((flags & Accessor) != Accessor);
+                Assert((flags & Proxy) != Proxy);
+                if ((flags & Data) == Data && (flags & Writable) == None)
+                {
+                    if (!allowUndecInConsoleScope)
+                    {
+                        if (flags & Const)
+                        {
+                            JavascriptError::ThrowTypeError(scriptContext, ERRAssignmentToConst);
+                        }
+                        Assert(!isLexicalThisSlotSymbol);
+                        return;
+                    }
+                }
+            }
+
             RecyclableObject* obj = RecyclableObject::FromVar((DynamicObject*)pDisplay->GetItem(length - 1));
             OUTPUT_TRACE(Js::ConsoleScopePhase, _u("Adding property '%s' to console scope object\n"), scriptContext->GetPropertyName(propertyId)->GetBuffer());
             JavascriptOperators::SetProperty(obj, obj, propertyId, newValue, scriptContext, propertyOperationFlags);
