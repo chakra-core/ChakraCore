@@ -8,7 +8,7 @@
 
 #if ENABLE_TTD
 
-#define TTD_SERIALIZATION_BUFFER_SIZE 524288
+#define TTD_SERIALIZATION_BUFFER_SIZE 2097152
 #define TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE 128
 
 //forward decl
@@ -26,7 +26,7 @@ namespace TTD
     namespace NSTokens
     {
         //Seperator tokens for records
-        enum class Separator
+        enum class Separator : byte
         {
             NoSeparator = 0x0,
             CommaSeparator = 0x1,
@@ -62,7 +62,8 @@ namespace TTD
         };
 
         //Key values for records
-        enum class Key
+        //WARNING - note the byte size on the enum type so be careful when adding new keys to the enumeration
+        enum class Key : byte
         {
             Invalid = 0x0,
 #define ENTRY_SERIALIZE_ENUM(X) X,
@@ -85,66 +86,103 @@ namespace TTD
         TTDWriteBytesToStreamCallback m_pfWrite;
         TTDFlushAndCloseStreamCallback m_pfClose;
 
+        bool m_doCompression;
         size_t m_cursor;
-        char16* m_buffer;
+        byte* m_buffer;
 
         //flush the buffer contents to disk
-        void Flush();
+        void WriteBlock(const byte* buff, size_t bufflen);
 
-    protected:
-        //write a given byte or buffer of bytes to the buffer/disk as needed
-        void WriteRawChar(char16 b)
+        template <size_t requestedSpace>
+        byte* ReserveSpaceForSmallData()
         {
-            if(this->m_cursor == TTD_SERIALIZATION_BUFFER_SIZE)
+            AssertMsg(requestedSpace < TTD_SERIALIZATION_BUFFER_SIZE, "Must be small data element!");
+
+            if(this->m_cursor + requestedSpace >= TTD_SERIALIZATION_BUFFER_SIZE)
             {
-                this->Flush();
+                this->WriteBlock(this->m_buffer, this->m_cursor);
+                this->m_cursor = 0;
             }
 
-            this->m_buffer[this->m_cursor] = b;
-            this->m_cursor++;
+            return (this->m_buffer + this->m_cursor);
+        }
+
+        void CommitSpaceForSmallData(size_t usedSpace)
+        {
+            AssertMsg(this->m_cursor + usedSpace < TTD_SERIALIZATION_BUFFER_SIZE, "Must have already reserved the space!");
+
+            this->m_cursor += usedSpace;
+        }
+
+    protected:
+        template <typename T>
+        void WriteRawByteBuff_Fixed(const T& data)
+        {
+            byte* trgt = this->ReserveSpaceForSmallData<sizeof(T)>();
+
+            js_memcpy_s(trgt, sizeof(T), (const byte*)(&data), sizeof(T));
+
+            this->CommitSpaceForSmallData(sizeof(T));
+        }
+
+        void WriteRawByteBuff(const byte* buff, size_t bufflen)
+        {
+            if(this->m_cursor + bufflen < TTD_SERIALIZATION_BUFFER_SIZE)
+            {
+                size_t sizeAvailable = (TTD_SERIALIZATION_BUFFER_SIZE - this->m_cursor);
+                AssertMsg(sizeAvailable >= bufflen, "Our size computation is off somewhere.");
+
+                js_memcpy_s(this->m_buffer + this->m_cursor, sizeAvailable, buff, bufflen);
+                this->m_cursor += bufflen;
+            }
+            else
+            {
+                this->WriteBlock(this->m_buffer, this->m_cursor);
+                this->m_cursor = 0;
+
+                const byte* remainingBuff = buff;
+                size_t remainingBytes = bufflen;
+                while(remainingBytes > TTD_SERIALIZATION_BUFFER_SIZE)
+                {
+                    AssertMsg(this->m_cursor == 0, "Should be empty.");
+
+                    this->WriteBlock(remainingBuff, TTD_SERIALIZATION_BUFFER_SIZE);
+                    remainingBuff += TTD_SERIALIZATION_BUFFER_SIZE;
+                    remainingBytes -= TTD_SERIALIZATION_BUFFER_SIZE;
+                }
+
+                if(remainingBytes > 0)
+                {
+                    js_memcpy_s(this->m_buffer, TTD_SERIALIZATION_BUFFER_SIZE, remainingBuff, remainingBytes);
+                    this->m_cursor += remainingBytes;
+                }
+            }
         }
 
         void WriteRawCharBuff(const char16* buff, size_t bufflen)
         {
-            if(this->m_cursor + bufflen >= TTD_SERIALIZATION_BUFFER_SIZE)
-            {
-                this->Flush();
-            }
+            this->WriteRawByteBuff((const byte*)buff, bufflen * sizeof(char16));
+        }
 
-            if(bufflen >= TTD_SERIALIZATION_BUFFER_SIZE)
-            {
-                AssertMsg(this->m_buffer == 0, "Should always have been flushed in check above!");
-
-                //explicitly write the buffer to disk
-                DWORD bwp = 0;
-                this->m_pfWrite(this->m_hfile, (byte*)buff, (DWORD)(bufflen * sizeof(char16)), &bwp);
-            }
-            else
-            {
-                size_t sizeAvailable = (size_t)(TTD_SERIALIZATION_BUFFER_SIZE - this->m_cursor);
-                AssertMsg(sizeAvailable >= bufflen, "Our size computation is off somewhere.");
-
-                js_memcpy_s(this->m_buffer + this->m_cursor, sizeAvailable * sizeof(char16), buff, bufflen * sizeof(char16));
-                this->m_cursor += bufflen;
-            }
+        void WriteRawChar(char16 c)
+        {
+            this->WriteRawByteBuff_Fixed<char16>(c);
         }
 
         template <size_t N, typename T>
         void WriteFormattedCharData(const char16(&formatString)[N], T data)
         {
-            if(this->m_cursor + TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE >= TTD_SERIALIZATION_BUFFER_SIZE)
-            {
-                this->Flush();
-            }
+            byte* trgtBuff = this->ReserveSpaceForSmallData<TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE>();
 
-            int addedChars = swprintf_s(this->m_buffer + this->m_cursor, TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE, formatString, data);
+            int addedChars = swprintf_s((char16*)trgtBuff, TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE, formatString, data);
             AssertMsg(addedChars != -1 && addedChars < TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE, "Formatting failed or result is too big.");
 
-            this->m_cursor += addedChars;
+            int addedBytes = (addedChars != -1) ? (addedChars * sizeof(char16)) : 0;
+            this->CommitSpaceForSmallData(addedBytes);
         }
 
     public:
-        FileWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
+        FileWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~FileWriter();
 
         void FlushAndClose();
@@ -214,7 +252,7 @@ namespace TTD
         void WriteWellKnownToken(NSTokens::Key key, TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
     };
 
-    //A implements the writer for verbose text formatted output to a file
+    //A implements the writer for verbose text formatted output
     class TextFormatWriter : public FileWriter
     {
     private:
@@ -226,8 +264,52 @@ namespace TTD
         uint32 m_indentSize;
 
     public:
-        TextFormatWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
+        TextFormatWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~TextFormatWriter();
+
+        ////
+
+        virtual void WriteSeperator(NSTokens::Separator separator) override;
+        virtual void WriteKey(NSTokens::Key key, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        virtual void WriteSequenceStart(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteSequenceEnd(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteRecordStart(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteRecordEnd(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        virtual void AdjustIndent(int32 delta) override;
+        virtual void SetIndent(uint32 depth) override;
+
+        ////
+
+        virtual void WriteNakedNull(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        virtual void WriteNakedByte(byte val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteBool(NSTokens::Key key, bool val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        virtual void WriteNakedInt32(int32 val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteNakedUInt32(uint32 val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteNakedInt64(int64 val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteNakedUInt64(uint64 val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteNakedDouble(double val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        virtual void WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        ////
+
+        virtual void WriteNakedString(const TTString& val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+    };
+
+    //A implements the writer for a compact binary formatted output
+    class BinaryFormatWriter : public FileWriter
+    {
+    public:
+        BinaryFormatWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
+        virtual ~BinaryFormatWriter();
 
         ////
 
@@ -278,21 +360,142 @@ namespace TTD
 
         int32 m_peekChar;
 
+        bool m_doDecompress;
         size_t m_cursor;
         size_t m_buffCount;
-        char16* m_buffer;
+        byte* m_buffer;
+
+        void ReadBlock(byte* buff, size_t* readSize);
 
     protected:
-        void Fill();
+        template <typename T>
+        void ReadBytesInto_Fixed(T& data)
+        {
+            size_t sizeAvailable = (this->m_buffCount - this->m_cursor);
+            byte* buff = (byte*)&data;
 
-        bool PeekRawChar(char16* c);
-        bool ReadRawChar(char16* c);
+            if(sizeAvailable >= sizeof(T))
+            {
+                js_memcpy_s(buff, sizeAvailable, this->m_buffer + this->m_cursor, sizeof(T));
+                this->m_cursor += sizeof(T);
+            }
+            else
+            {
+                if(sizeAvailable > 0)
+                {
+                    js_memcpy_s(buff, sizeAvailable, this->m_buffer + this->m_cursor, sizeAvailable);
+                    this->m_cursor += sizeAvailable;
+                }
+
+                byte* remainingBuff = (buff + sizeAvailable);
+                size_t remainingBytes = (sizeof(T) - sizeAvailable);
+
+                if(remainingBytes > 0)
+                {
+                    this->ReadBlock(this->m_buffer, &this->m_buffCount);
+                    this->m_cursor = 0;
+
+                    AssertMsg(this->m_buffCount >= remainingBytes, "Not sure what happened");
+                    js_memcpy_s(remainingBuff, this->m_buffCount, this->m_buffer, remainingBytes);
+                    this->m_cursor += remainingBytes;
+                }
+            }
+        }
+
+        void ReadBytesInto(byte* buff, size_t requiredBytes)
+        {
+            size_t sizeAvailable = (this->m_buffCount - this->m_cursor);
+
+            if(sizeAvailable >= requiredBytes)
+            {
+                js_memcpy_s(buff, sizeAvailable, this->m_buffer + this->m_cursor, requiredBytes);
+                this->m_cursor += requiredBytes;
+            }
+            else
+            {
+                if(sizeAvailable > 0)
+                {
+                    js_memcpy_s(buff, sizeAvailable, this->m_buffer + this->m_cursor, sizeAvailable);
+                    this->m_cursor += sizeAvailable;
+                }
+
+                byte* remainingBuff = (buff + sizeAvailable);
+                size_t remainingBytes = (requiredBytes - sizeAvailable);
+
+                while(remainingBytes > TTD_SERIALIZATION_BUFFER_SIZE)
+                {
+                    size_t readCount = 0;
+                    this->ReadBlock(remainingBuff, &readCount);
+                    remainingBuff += readCount;
+                    remainingBytes -= readCount;
+                }
+
+                if(remainingBytes > 0)
+                {
+                    this->ReadBlock(this->m_buffer, &this->m_buffCount);
+                    this->m_cursor = 0;
+
+                    AssertMsg(this->m_buffCount >= remainingBytes, "Not sure what happened");
+                    js_memcpy_s(remainingBuff, this->m_buffCount, this->m_buffer, remainingBytes);
+                    this->m_cursor += remainingBytes;
+                }
+            }
+        }
+
+        bool PeekRawChar(char16* c)
+        {
+            if(this->m_peekChar != -1)
+            {
+                *c = (char16)this->m_peekChar;
+                return true;
+            }
+            else
+            {
+                bool success = this->ReadRawChar(c);
+                if(success)
+                {
+                    this->m_peekChar = *c;
+                }
+                return success;
+            }
+        }
+
+        bool ReadRawChar(char16* c)
+        {
+            if(this->m_peekChar != -1)
+            {
+                *c = (char16)this->m_peekChar;
+                this->m_peekChar = -1;
+
+                return true;
+            }
+            else
+            {
+                if(this->m_cursor == this->m_buffCount)
+                {
+                    this->ReadBlock(this->m_buffer, &this->m_buffCount);
+                    this->m_cursor = 0;
+                }
+
+                if(this->m_cursor == this->m_buffCount)
+                {
+                    return false;
+                }
+                else
+                {
+                    *c = *((char16*)(this->m_buffer + this->m_cursor));
+                    this->m_cursor += sizeof(char16);
+
+                    return true;
+                }
+            }
+        }
 
         //The action we should take if we encounter an invalid token or unexpected state in the file
         void FileReadAssert(bool ok);
 
     public:
-        FileReader(HANDLE handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
+        FileReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~FileReader();
 
         virtual void ReadSeperator(bool readSeparator) = 0;
@@ -373,7 +576,7 @@ namespace TTD
 
     //////////////////
 
-    //A serialization class that reads a for verbose text formatted data format
+    //A serialization class that reads a verbose text data format
     class TextFormatReader : public FileReader
     {
     private:
@@ -404,8 +607,48 @@ namespace TTD
         double ReadDoubleFromCharArray(const wchar* buff);
 
     public:
-        TextFormatReader(HANDLE handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
+        TextFormatReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~TextFormatReader();
+
+        virtual void ReadSeperator(bool readSeparator) override;
+        virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) override;
+
+        virtual void ReadSequenceStart(bool readSeparator = false) override;
+        virtual void ReadSequenceEnd() override;
+        virtual void ReadRecordStart(bool readSeparator = false) override;
+        virtual void ReadRecordEnd() override;
+
+        ////
+
+        virtual void ReadNakedNull(bool readSeparator = false) override;
+        virtual byte ReadNakedByte(bool readSeparator = false) override;
+        virtual bool ReadBool(NSTokens::Key keyCheck, bool readSeparator = false) override;
+
+        virtual int32 ReadNakedInt32(bool readSeparator = false) override;
+        virtual uint32 ReadNakedUInt32(bool readSeparator = false) override;
+        virtual int64 ReadNakedInt64(bool readSeparator = false) override;
+        virtual uint64 ReadNakedUInt64(bool readSeparator = false) override;
+        virtual double ReadNakedDouble(bool readSeparator = false) override;
+        virtual TTD_PTR_ID ReadNakedAddr(bool readSeparator = false) override;
+        virtual TTD_LOG_TAG ReadNakedLogTag(bool readSeparator = false) override;
+
+        virtual uint32 ReadNakedTag(bool readSeparator = false) override;
+
+        ////
+
+        virtual void ReadNakedString(SlabAllocator& alloc, TTString& into, bool readSeparator = false) override;
+        virtual void ReadNakedString(UnlinkableSlabAllocator& alloc, TTString& into, bool readSeparator = false) override;
+
+        virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) override;
+        virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator = false) override;
+    };
+
+    //A serialization class that reads a compact binary format
+    class BinaryFormatReader : public FileReader
+    {
+    public:
+        BinaryFormatReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
+        virtual ~BinaryFormatReader();
 
         virtual void ReadSeperator(bool readSeparator) override;
         virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) override;

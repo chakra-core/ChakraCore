@@ -278,6 +278,18 @@
 //Enable various sanity checking features and asserts
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1
 
+#define TTD_COMPRESSED_OUTPUT 1
+#define TTD_LOG_READER TextFormatReader
+#define TTD_LOG_WRITER TextFormatWriter
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+#define TTD_SNAP_READER TextFormatReader
+#define TTD_SNAP_WRITER TextFormatWriter
+#else
+#define TTD_SNAP_READER BinaryFormatReader
+#define TTD_SNAP_WRITER BinaryFormatWriter
+#endif
+
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
 #define ENABLE_SNAPSHOT_COMPARE 0
 #define ENABLE_OBJECT_SOURCE_TRACKING 0
@@ -291,9 +303,6 @@
 #endif
 
 #define ENABLE_TTD_STACK_STMTS (ENABLE_TTD_DEBUGGING || ENABLE_OBJECT_SOURCE_TRACKING || ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE)
-
-#define TTD_WRITE_JSON_OUTPUT TRUE
-#define TTD_WRITE_BINARY_OUTPUT FALSE
 
 #endif
 //End Time Travel flags

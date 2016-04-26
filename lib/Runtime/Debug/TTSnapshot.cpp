@@ -449,7 +449,7 @@ namespace TTD
         NSSnapValues::ReLinkRoots(sCtx, tCtx, inflator);
     }
 
-    void SnapShot::EmitSnapshot(LPCWSTR sourceDir, DWORD snapId, ThreadContext* threadContext, bool json, bool binary) const
+    void SnapShot::EmitSnapshot(LPCWSTR sourceDir, DWORD snapId, ThreadContext* threadContext) const
     {
         wchar* snapIdString = HeapNewArrayZ(wchar, 64);
         swprintf_s(snapIdString, 64, _u("%u"), snapId);
@@ -457,24 +457,16 @@ namespace TTD
         wchar* snapContainerURI = nullptr;
         HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, false, true, &snapContainerURI);
 
-        if(json)
-        {
-            TextFormatWriter snapwriter(snapHandle, threadContext->TTDStreamFunctions.pfWriteBytesToStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
+        TTD_SNAP_WRITER snapwriter(snapHandle, TTD_COMPRESSED_OUTPUT, threadContext->TTDStreamFunctions.pfWriteBytesToStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
-            this->EmitSnapshotToFile(&snapwriter, threadContext->TTDStreamFunctions, snapContainerURI, threadContext);
-            snapwriter.FlushAndClose();
-        }
-
-        if(binary)
-        {
-            AssertMsg(false, "Not Implemented Yet!!!");
-        }
+        this->EmitSnapshotToFile(&snapwriter, threadContext->TTDStreamFunctions, snapContainerURI, threadContext);
+        snapwriter.FlushAndClose();
 
         CoTaskMemFree(snapContainerURI);
         HeapDeleteArray(64, snapIdString);
     }
 
-    SnapShot* SnapShot::Parse(LPCWSTR sourceDir, DWORD snapId, ThreadContext* threadContext, bool json, bool binary)
+    SnapShot* SnapShot::Parse(LPCWSTR sourceDir, DWORD snapId, ThreadContext* threadContext)
     {
         wchar* snapIdString = HeapNewArrayZ(wchar, 64);
         swprintf_s(snapIdString, 64, _u("%u"), snapId);
@@ -482,7 +474,7 @@ namespace TTD
         wchar* snapContainerURI = nullptr;
         HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, true, false, &snapContainerURI);
 
-        TextFormatReader snapreader(snapHandle, threadContext->TTDStreamFunctions.pfReadBytesFromStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
+        TTD_SNAP_READER snapreader(snapHandle, TTD_COMPRESSED_OUTPUT, threadContext->TTDStreamFunctions.pfReadBytesFromStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
         SnapShot* snap = SnapShot::ParseSnapshotFromFile(&snapreader, threadContext->TTDStreamFunctions, snapContainerURI);
 
         CoTaskMemFree(snapContainerURI);

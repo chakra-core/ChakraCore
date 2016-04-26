@@ -542,6 +542,14 @@ namespace TTD
             into.Contents[into.Length] = '\0';
         }
 
+        //initialize and allocate the memory for a string of a given length (but don't set contents yet)
+        void InitializeAndAllocateWLength(uint32 length, TTString& into)
+        {
+            into.Length = length;
+            into.Contents = this->SlabAllocateArray<wchar>(into.Length + 1);
+            into.Contents[0] = '\0';
+        }
+
         //clone a string into the allocator
         void CopyNullTermStringInto(LPCWSTR str, TTString& into)
         {

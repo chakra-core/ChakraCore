@@ -111,6 +111,11 @@ namespace TTD
         {
             HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(srcDir, docId, sourceUri, false, true);
 
+            byte byteOrderArray[2] = { 0xFF, 0xFE };
+            DWORD byteOrderCount = 0;
+            BOOL okBOC = streamFunctions.pfWriteBytesToStream(srcStream, byteOrderArray, 2, &byteOrderCount);
+            AssertMsg(okBOC && byteOrderCount == 2, "Write Failed!!!");
+
             DWORD writtenCount = 0;
             BOOL ok = streamFunctions.pfWriteBytesToStream(srcStream, (byte*)sourceBuffer, length * sizeof(wchar), &writtenCount);
             AssertMsg(ok && writtenCount == length * sizeof(wchar), "Write Failed!!!");
@@ -121,6 +126,11 @@ namespace TTD
         void ReadCodeFromFile(IOStreamFunctions& streamFunctions, LPCWSTR srcDir, LPCWSTR docId, LPCWSTR sourceUri, wchar* sourceBuffer, uint32 length)
         {
             HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(srcDir, docId, sourceUri, true, false);
+
+            byte byteOrderArray[2] = { 0x0, 0x0 };
+            DWORD byteOrderCount = 0;
+            BOOL okBOC = streamFunctions.pfReadBytesFromStream(srcStream, byteOrderArray, 2, &byteOrderCount);
+            AssertMsg(okBOC && byteOrderCount == 2 && byteOrderArray[0] == 0xFF && byteOrderArray[1] == 0xFE, "Write Failed!!!");
 
             DWORD readCount = 0;
             BOOL ok = streamFunctions.pfReadBytesFromStream(srcStream, (byte*)sourceBuffer, length * sizeof(wchar), &readCount);

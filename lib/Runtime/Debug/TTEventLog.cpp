@@ -2187,10 +2187,8 @@ namespace TTD
         this->m_diagnosticLogger.ForceFlush();
 #endif
 
-#if TTD_WRITE_JSON_OUTPUT || TTD_WRITE_BINARY_OUTPUT
-
         HANDLE logHandle = this->m_threadContext->TTDStreamFunctions.pfGetLogStream(this->m_logInfoRootDir.Contents, false, true);
-        TextFormatWriter writer(logHandle, this->m_threadContext->TTDStreamFunctions.pfWriteBytesToStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
+        TTD_LOG_WRITER writer(logHandle, TTD_COMPRESSED_OUTPUT, this->m_threadContext->TTDStreamFunctions.pfWriteBytesToStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
         writer.WriteRecordStart();
         writer.AdjustIndent(1);
@@ -2289,13 +2287,12 @@ namespace TTD
         writer.FlushAndClose();
 
         return this->m_logInfoRootDir.Contents;
-#endif
     }
 
     void EventLog::ParseLogInto()
     {
         HANDLE logHandle = this->m_threadContext->TTDStreamFunctions.pfGetLogStream(this->m_logInfoRootDir.Contents, true, false);
-        TextFormatReader reader(logHandle, this->m_threadContext->TTDStreamFunctions.pfReadBytesFromStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
+        TTD_LOG_READER reader(logHandle, TTD_COMPRESSED_OUTPUT, this->m_threadContext->TTDStreamFunctions.pfReadBytesFromStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
         reader.ReadRecordStart();
 

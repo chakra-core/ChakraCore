@@ -377,7 +377,7 @@ namespace TTD
     {
         if(this->m_snap == nullptr)
         {
-            this->m_snap = SnapShot::Parse(logContainerUri, (DWORD)this->GetEventTime(), threadContext, TTD_WRITE_JSON_OUTPUT, TTD_WRITE_BINARY_OUTPUT);
+            this->m_snap = SnapShot::Parse(logContainerUri, (DWORD)this->GetEventTime(), threadContext);
         }
     }
 
@@ -395,7 +395,7 @@ namespace TTD
 
         if(this->m_snap != nullptr)
         {
-            this->m_snap->EmitSnapshot(logContainerUri, (DWORD)this->GetEventTime(), threadContext, TTD_WRITE_JSON_OUTPUT, TTD_WRITE_BINARY_OUTPUT);
+            this->m_snap->EmitSnapshot(logContainerUri, (DWORD)this->GetEventTime(), threadContext);
         }
 
         writer->WriteRecordEnd();

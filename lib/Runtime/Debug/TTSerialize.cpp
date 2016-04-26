@@ -42,24 +42,23 @@ namespace TTD
 
     //////////////////
 
-    void FileWriter::Flush()
+    void FileWriter::WriteBlock(const byte* buff, size_t bufflen)
     {
-        if(this->m_cursor != 0)
-        {
-            AssertMsg(this->m_hfile != INVALID_HANDLE_VALUE, "Trying to write to closed file.");
+        AssertMsg(bufflen != 0, "Shouldn't be writing empty blocks");
+        AssertMsg(this->m_hfile != INVALID_HANDLE_VALUE, "Trying to write to closed file.");
 
-            DWORD bwp = 0;
-            this->m_pfWrite(this->m_hfile, (byte*)this->m_buffer, (DWORD)(this->m_cursor * sizeof(char16)), &bwp);
-            AssertMsg(bwp % 2 == 0, "We only wrote half of a char16!!!");
+        //
+        //TODO: this is where we want to do compression
+        //
 
-            this->m_cursor = 0;
-        }
+        DWORD bwp = 0;
+        this->m_pfWrite(this->m_hfile, (byte*)this->m_buffer, (DWORD)this->m_cursor, &bwp);
     }
 
-    FileWriter::FileWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
-        : m_hfile(handle), m_pfWrite(pfWrite), m_pfClose(pfClose), m_cursor(0), m_buffer(nullptr)
+    FileWriter::FileWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
+        : m_hfile(handle), m_pfWrite(pfWrite), m_pfClose(pfClose), m_doCompression(doCompression), m_cursor(0), m_buffer(nullptr)
     {
-        this->m_buffer = TT_HEAP_ALLOC_ARRAY(char16, TTD_SERIALIZATION_BUFFER_SIZE);
+        this->m_buffer = TT_HEAP_ALLOC_ARRAY(byte, TTD_SERIALIZATION_BUFFER_SIZE);
     }
 
     FileWriter::~FileWriter()
@@ -71,11 +70,20 @@ namespace TTD
     {
         if(this->m_hfile != INVALID_HANDLE_VALUE)
         {
-            this->Flush();
-            TT_HEAP_FREE_ARRAY(char16, this->m_buffer, TTD_SERIALIZATION_BUFFER_SIZE);
+            if(this->m_cursor != 0)
+            {
+                this->WriteBlock(this->m_buffer, this->m_cursor);
+                this->m_cursor = 0;
+            }
 
             this->m_pfClose(this->m_hfile, false, true);
             this->m_hfile = INVALID_HANDLE_VALUE;
+        }
+
+        if(this->m_buffer != nullptr)
+        {
+            TT_HEAP_FREE_ARRAY(byte, this->m_buffer, TTD_SERIALIZATION_BUFFER_SIZE);
+            this->m_buffer = nullptr;
         }
     }
 
@@ -161,9 +169,12 @@ namespace TTD
 
     //////////////////
 
-    TextFormatWriter::TextFormatWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
-        : FileWriter(handle, pfWrite, pfClose), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr), m_indentSize(0)
+    TextFormatWriter::TextFormatWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
+        : FileWriter(handle, doCompression, pfWrite, pfClose), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr), m_indentSize(0)
     {
+        byte byteOrderMarker[2] = { 0xFF, 0xFE };
+        this->WriteRawByteBuff(byteOrderMarker, 2);
+
         NSTokens::InitKeyNamesArray(&(this->m_keyNameArray), &(this->m_keyNameLengthArray));
     }
 
@@ -397,66 +408,165 @@ namespace TTD
         this->WriteRawChar('~');
     }
 
+    BinaryFormatWriter::BinaryFormatWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
+        : FileWriter(handle, doCompression, pfWrite, pfClose)
+    {
+        ;
+    }
+
+    BinaryFormatWriter::~BinaryFormatWriter()
+    {
+        ;
+    }
+
+    void BinaryFormatWriter::WriteSeperator(NSTokens::Separator separator)
+    {
+        if((separator & NSTokens::Separator::CommaSeparator) == NSTokens::Separator::CommaSeparator)
+        {
+            this->WriteRawByteBuff_Fixed<byte>((byte)NSTokens::Separator::CommaSeparator);
+        }
+    }
+
+    void BinaryFormatWriter::WriteKey(NSTokens::Key key, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<byte>((byte)key);
+    }
+
+    void BinaryFormatWriter::WriteSequenceStart(NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<byte>('[');
+    }
+
+    void BinaryFormatWriter::WriteSequenceEnd(NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<byte>(']');
+    }
+
+    void BinaryFormatWriter::WriteRecordStart(NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<byte>('{');
+    }
+
+    void BinaryFormatWriter::WriteRecordEnd(NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<byte>('}');
+    }
+
+    void BinaryFormatWriter::AdjustIndent(int32 delta)
+    {
+        ;
+    }
+
+    void BinaryFormatWriter::SetIndent(uint32 depth)
+    {
+        ;
+    }
+
+    void BinaryFormatWriter::WriteNakedNull(NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<byte>((byte)0);
+    }
+
+    void BinaryFormatWriter::WriteNakedByte(byte val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<byte>(val);
+    }
+
+    void BinaryFormatWriter::WriteBool(NSTokens::Key key, bool val, NSTokens::Separator separator)
+    {
+        this->WriteKey(key, separator);
+        this->WriteRawByteBuff_Fixed<byte>(val ? (byte)1 : (byte)0);
+    }
+
+    void BinaryFormatWriter::WriteNakedInt32(int32 val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<int32>(val);
+    }
+
+    void BinaryFormatWriter::WriteNakedUInt32(uint32 val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<uint32>(val);
+    }
+
+    void BinaryFormatWriter::WriteNakedInt64(int64 val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<int64>(val);
+    }
+
+    void BinaryFormatWriter::WriteNakedUInt64(uint64 val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<uint64>(val);
+    }
+
+    void BinaryFormatWriter::WriteNakedDouble(double val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<double>(val);
+    }
+
+    void BinaryFormatWriter::WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<TTD_PTR_ID>(val);
+    }
+
+    void BinaryFormatWriter::WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<TTD_LOG_TAG>(val);
+    }
+
+    void BinaryFormatWriter::WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+        this->WriteRawByteBuff_Fixed<uint32>(tagvalue);
+    }
+
+    void BinaryFormatWriter::WriteNakedString(const TTString& val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+
+        if(IsNullPtrTTString(val))
+        {
+            this->WriteRawByteBuff_Fixed<uint32>(UINT32_MAX);
+        }
+        else
+        {
+            this->WriteRawByteBuff_Fixed<uint32>(val.Length);
+            this->WriteRawByteBuff((const byte*)val.Contents, val.Length * sizeof(char16));
+        }
+    }
+
+    void BinaryFormatWriter::WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+
+        uint32 charLen = (uint32)wcslen(val);
+        this->WriteRawByteBuff_Fixed<uint32>(charLen);
+        this->WriteRawByteBuff((const byte*)val, charLen * sizeof(char16));
+    }
+
     //////////////////
 
-    void FileReader::Fill()
+    void FileReader::ReadBlock(byte* buff, size_t* readSize)
     {
-        if(this->m_cursor == this->m_buffCount)
-        {
-            AssertMsg(this->m_hfile != INVALID_HANDLE_VALUE, "Trying to read a invalid file.");
+        AssertMsg(this->m_hfile != INVALID_HANDLE_VALUE, "Trying to read a invalid file.");
 
-            DWORD bwp = 0;
-            this->m_pfRead(this->m_hfile, (byte*)this->m_buffer, (DWORD)(TTD_SERIALIZATION_BUFFER_SIZE * sizeof(char16)), &bwp);
-            AssertMsg(bwp % 2 == 0, "Read and incomplete char16!!!.");
+        DWORD bwp = 0;
+        this->m_pfRead(this->m_hfile, buff, TTD_SERIALIZATION_BUFFER_SIZE, &bwp);
 
-            this->m_buffCount = (bwp / 2);
-            this->m_cursor = 0;
-        }
-    }
-
-    bool FileReader::PeekRawChar(char16* c)
-    {
-        if(this->m_peekChar != -1)
-        {
-            *c = (char16)this->m_peekChar;
-            return true;
-        }
-        else
-        {
-            bool success = this->ReadRawChar(c);
-            if(success)
-            {
-                this->m_peekChar = *c;
-            }
-            return success;
-        }
-    }
-
-    bool FileReader::ReadRawChar(char16* c)
-    {
-        if(this->m_peekChar != -1)
-        {
-            *c = (char16)this->m_peekChar;
-            this->m_peekChar = -1;
-
-            return true;
-        }
-        else
-        {
-            this->Fill();
-
-            if(this->m_cursor == this->m_buffCount)
-            {
-                return false;
-            }
-            else
-            {
-                *c = this->m_buffer[this->m_cursor];
-                this->m_cursor++;
-
-                return true;
-            }
-        }
+        *readSize = (size_t)bwp;
     }
 
     void FileReader::FileReadAssert(bool ok)
@@ -467,20 +577,24 @@ namespace TTD
         AssertMsg(ok, "Unexpected event in file reading!");
     }
 
-    FileReader::FileReader(HANDLE handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
-        : m_hfile(handle), m_pfRead(pfRead), m_pfClose(pfClose), m_peekChar(-1), m_cursor(0), m_buffCount(0), m_buffer(nullptr)
+    FileReader::FileReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
+        : m_hfile(handle), m_pfRead(pfRead), m_pfClose(pfClose), m_peekChar(-1), m_doDecompress(doDecompress), m_cursor(0), m_buffCount(0), m_buffer(nullptr)
     {
-        this->m_buffer = TT_HEAP_ALLOC_ARRAY(char16, TTD_SERIALIZATION_BUFFER_SIZE);
+        this->m_buffer = TT_HEAP_ALLOC_ARRAY(byte, TTD_SERIALIZATION_BUFFER_SIZE);
     }
 
     FileReader::~FileReader()
     {
         if(this->m_hfile != INVALID_HANDLE_VALUE)
         {
-            TT_HEAP_FREE_ARRAY(char16, this->m_buffer, TTD_SERIALIZATION_BUFFER_SIZE);
-
             this->m_pfClose(this->m_hfile, true, false);
             this->m_hfile = INVALID_HANDLE_VALUE;
+        }
+
+        if(this->m_buffer != nullptr)
+        {
+            TT_HEAP_FREE_ARRAY(byte, this->m_buffer, TTD_SERIALIZATION_BUFFER_SIZE);
+            this->m_buffer = nullptr;
         }
     }
 
@@ -1019,9 +1133,13 @@ namespace TTD
         return val;
     }
 
-    TextFormatReader::TextFormatReader(HANDLE handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
-        : FileReader(handle, pfRead, pfClose), m_charListPrimary(&HeapAllocator::Instance), m_charListOpt(&HeapAllocator::Instance), m_charListDiscard(&HeapAllocator::Instance), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr)
+    TextFormatReader::TextFormatReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
+        : FileReader(handle, doDecompress, pfRead, pfClose), m_charListPrimary(&HeapAllocator::Instance), m_charListOpt(&HeapAllocator::Instance), m_charListDiscard(&HeapAllocator::Instance), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr)
     {
+        byte byteOrderMarker[2] = { 0x0, 0x0 };
+        this->ReadBytesInto(byteOrderMarker, 2);
+        AssertMsg(byteOrderMarker[0] == 0xFF && byteOrderMarker[1] == 0xFE, "Byte Order Marker is incorrect!");
+
         NSTokens::InitKeyNamesArray(&(this->m_keyNameArray), &(this->m_keyNameLengthArray));
     }
 
@@ -1303,6 +1421,248 @@ namespace TTD
 
         this->m_charListOpt.Add(_u('\0')); //add null terminator
         return alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer() + 1);
+    }
+
+    BinaryFormatReader::BinaryFormatReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
+        : FileReader(handle, doDecompress, pfRead, pfClose)
+    {
+        ;
+    }
+
+    BinaryFormatReader::~BinaryFormatReader()
+    {
+        ;
+    }
+
+    void BinaryFormatReader::ReadSeperator(bool readSeparator)
+    {
+        if(readSeparator)
+        {
+            byte sep;
+            this->ReadBytesInto_Fixed<byte>(sep);
+
+            FileReadAssert((NSTokens::Separator)sep == NSTokens::Separator::CommaSeparator);
+        }
+    }
+
+    void BinaryFormatReader::ReadKey(NSTokens::Key keyCheck, bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        byte key;
+        this->ReadBytesInto_Fixed<byte>(key);
+
+        FileReadAssert((NSTokens::Key)key == keyCheck);
+    }
+
+    void BinaryFormatReader::ReadSequenceStart(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        byte tok;
+        this->ReadBytesInto_Fixed<byte>(tok);
+
+        FileReadAssert(tok == '[');
+    }
+
+    void BinaryFormatReader::ReadSequenceEnd()
+    {
+        byte tok;
+        this->ReadBytesInto_Fixed<byte>(tok);
+
+        FileReadAssert(tok == ']');
+    }
+
+    void BinaryFormatReader::ReadRecordStart(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        byte tok;
+        this->ReadBytesInto_Fixed<byte>(tok);
+
+        FileReadAssert(tok == '{');
+    }
+
+    void BinaryFormatReader::ReadRecordEnd()
+    {
+        byte tok;
+        this->ReadBytesInto_Fixed<byte>(tok);
+
+        FileReadAssert(tok == '}');
+    }
+
+    void BinaryFormatReader::ReadNakedNull(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        byte tok;
+        this->ReadBytesInto_Fixed<byte>(tok);
+
+        FileReadAssert(tok == 0);
+    }
+
+    byte BinaryFormatReader::ReadNakedByte(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        byte b;
+        this->ReadBytesInto_Fixed<byte>(b);
+
+        return b;
+    }
+
+    bool BinaryFormatReader::ReadBool(NSTokens::Key keyCheck, bool readSeparator)
+    {
+        this->ReadKey(keyCheck, readSeparator);
+
+        byte b;
+        this->ReadBytesInto_Fixed<byte>(b);
+
+        return b ? true : false;
+    }
+
+    int32 BinaryFormatReader::ReadNakedInt32(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        int32 i;
+        this->ReadBytesInto_Fixed<int32>(i);
+
+        return i;
+    }
+
+    uint32 BinaryFormatReader::ReadNakedUInt32(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        uint32 i;
+        this->ReadBytesInto_Fixed<uint32>(i);
+
+        return i;
+    }
+
+    int64 BinaryFormatReader::ReadNakedInt64(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        int64 i;
+        this->ReadBytesInto_Fixed<int64>(i);
+
+        return i;
+    }
+
+    uint64 BinaryFormatReader::ReadNakedUInt64(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        uint64 i;
+        this->ReadBytesInto_Fixed<uint64>(i);
+
+        return i;
+    }
+
+    double BinaryFormatReader::ReadNakedDouble(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        double d;
+        this->ReadBytesInto_Fixed<double>(d);
+
+        return d;
+    }
+
+    TTD_PTR_ID BinaryFormatReader::ReadNakedAddr(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        TTD_PTR_ID addr;
+        this->ReadBytesInto_Fixed<TTD_PTR_ID>(addr);
+
+        return addr;
+    }
+
+    TTD_LOG_TAG BinaryFormatReader::ReadNakedLogTag(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        TTD_LOG_TAG tag;
+        this->ReadBytesInto_Fixed<TTD_LOG_TAG>(tag);
+
+        return tag;
+    }
+
+    uint32 BinaryFormatReader::ReadNakedTag(bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        uint32 tag;
+        this->ReadBytesInto_Fixed<uint32>(tag);
+
+        return tag;
+    }
+
+    void BinaryFormatReader::ReadNakedString(SlabAllocator& alloc, TTString& into, bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        uint32 sizeField;
+        this->ReadBytesInto_Fixed<uint32>(sizeField);
+
+        if(sizeField == UINT32_MAX)
+        {
+            alloc.CopyNullTermStringInto(nullptr, into);
+        }
+        else
+        {
+            alloc.InitializeAndAllocateWLength(sizeField, into);
+            this->ReadBytesInto((byte*)into.Contents, into.Length * sizeof(char16));
+        }
+    }
+
+    void BinaryFormatReader::ReadNakedString(UnlinkableSlabAllocator& alloc, TTString& into, bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        uint32 sizeField;
+        this->ReadBytesInto_Fixed<uint32>(sizeField);
+
+        if(sizeField == UINT32_MAX)
+        {
+            alloc.CopyNullTermStringInto(nullptr, into);
+        }
+        else
+        {
+            alloc.InitializeAndAllocateWLength(sizeField, into);
+            this->ReadBytesInto((byte*)into.Contents, into.Length * sizeof(char16));
+        }
+    }
+
+    TTD_WELLKNOWN_TOKEN BinaryFormatReader::ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        uint32 charLen;
+        this->ReadBytesInto_Fixed<uint32>(charLen);
+
+        char16* cbuff = alloc.SlabAllocateArray<char16>(charLen + 1);
+        this->ReadBytesInto((byte*)cbuff, charLen * sizeof(char16));
+        cbuff[charLen] = _u('\0');
+
+        return cbuff;
+    }
+
+    TTD_WELLKNOWN_TOKEN BinaryFormatReader::ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        uint32 charLen;
+        this->ReadBytesInto_Fixed<uint32>(charLen);
+
+        char16* cbuff = alloc.SlabAllocateArray<char16>(charLen + 1);
+        this->ReadBytesInto((byte*)cbuff, charLen * sizeof(char16));
+        cbuff[charLen] = _u('\0');
+
+        return cbuff;
     }
 
     //////////////////

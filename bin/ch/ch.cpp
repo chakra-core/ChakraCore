@@ -498,31 +498,13 @@ static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write)
 {
     HANDLE res = INVALID_HANDLE_VALUE;
 
-    BOOL success = FALSE;
-    DWORD byteCount = 0;
-    byte orderMarks[2] = { 0xFF, 0xFE }; //utf16 little-endian
-
     if(read)
     {
         res = CreateFile(uri, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-        if(res != INVALID_HANDLE_VALUE)
-        {
-            //Handle byte order marks
-            BOOL ok = ReadFile(res, orderMarks, 2, &byteCount, NULL);
-            success = (ok && byteCount == 2 && orderMarks[0] == 0xFF && orderMarks[1] == 0xFE);
-        }
     }
     else
     {
         res = CreateFile(uri, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-
-        if(res != INVALID_HANDLE_VALUE)
-        {
-            //Handle byte order marks
-            BOOL ok = WriteFile(res, orderMarks, 2, &byteCount, NULL);
-            success = (ok && byteCount == 2);
-        }
     }
 
     if(res == INVALID_HANDLE_VALUE)
@@ -534,13 +516,6 @@ static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write)
         fwprintf(stderr, _u("Failed on file: %ls\n"), uri);
 
         AssertMsg(false, "Failed File Open");
-    }
-
-    if(!success)
-    {
-        fwprintf(stderr, _u("Failed on file: %ls\n"), uri);
-
-        AssertMsg(false, "Failed Bad Encoding or File State");
     }
 
     return res;
@@ -604,6 +579,14 @@ static BOOL CALLBACK TTReadBytesFromStreamCallback(HANDLE strm, BYTE* buff, DWOR
     BOOL ok = ReadFile(strm, buff, size, readCount, NULL);
     AssertMsg(ok, "Read failed.");
 
+    if(!ok)
+    {
+        DWORD lastError = GetLastError();
+        LPTSTR pTemp = NULL;
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
+        fwprintf(stderr, _u(": %s\n"), pTemp);
+    }
+
     return ok;
 }
 
@@ -613,6 +596,14 @@ static BOOL CALLBACK TTWriteBytesToStreamCallback(HANDLE strm, BYTE* buff, DWORD
 
     BOOL ok = WriteFile(strm, buff, size, writtenCount, NULL);
     AssertMsg(*writtenCount == size, "Write Failed");
+
+    if(!ok)
+    {
+        DWORD lastError = GetLastError();
+        LPTSTR pTemp = NULL;
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
+        fwprintf(stderr, _u(": %s\n"), pTemp);
+    }
 
     return ok;
 }
