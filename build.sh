@@ -18,17 +18,19 @@ PRINT_USAGE() {
     echo "build.sh [options]"
     echo ""
     echo "options:"
-    echo "--help, -h : Show help"
+    echo "-j          : Multicore build (i.e. -j:3 for 3 cores)"
+    echo "--help, -h  : Show help"
     echo "--debug, -d : Debug build"
     echo "CXX=<path to clang++>"
     echo "CC=<path to clang>"
     echo ""
-    echo "example: ./build.sh CXX=/path/to/clang++ CC=/path/to/clang"
+    echo "example: ./build.sh CXX=/path/to/clang++ CC=/path/to/clang -j:2"
 }
 
 _CXX=""
 _CC=""
 DEBUG_BUILD=0
+MULTICORE_BUILD=""
 
 while [[ $# -gt 0 ]]; do
     if [[ "$1" =~ "CXX=" ]]; then
@@ -48,6 +50,11 @@ while [[ $# -gt 0 ]]; do
 
     if [[ "$1" == "--debug" || "$1" == "-d" ]]; then
         DEBUG_BUILD=1
+    fi
+
+    if [[ "$1" =~ "-j:" ]]; then
+        MULTICORE_BUILD=$1
+        MULTICORE_BUILD="-j ${MULTICORE_BUILD:3}"
     fi
 
     shift
@@ -99,5 +106,5 @@ else
     cmake $CC_PREFIX -DCMAKE_BUILD_TYPE=Release ..
 fi
 
-make -j $(nproc) 2>&1 | tee build.log
+make $MULTICORE_BUILD 2>&1 | tee build.log
 popd > /dev/null
