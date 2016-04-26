@@ -179,8 +179,28 @@ function asmModule(stdlib, imports) {
 
         return +ret;
     }
-    
-    return {func1:func1, func2:func2, func3:func3, func4:func4/*, func5:func5, func6:func6*/};
+
+    function fctest(a)
+    {
+        a = i16check(a);
+        return a;
+    }
+    function fcBug_1()
+    {
+        var x = f4(-1.0, -2.0, -3.0, -4.0);
+        var k = i16(1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8);
+        k = i16check(fctest(k));
+        return f4check(x);
+    }
+    function fcBug_2()
+    {
+        var x = f4(-1.0, -2.0, -3.0, -4.0);
+        var k = i16(1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8);
+        x = f4check(fcBug_1());
+        return i16check(k);
+    }
+
+    return {func1:func1, func2:func2, func3:func3, func4:func4, func5:fcBug_1, func6:fcBug_2};
 }
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int8x16(-106535326, -73741824,-10776128, -10130432, -10653536, -10741824,-1077928, -12130432, 106535326, 73741824,10776128, 10130432, 10653536, 10741824,1077928, 12130432)});
@@ -200,12 +220,16 @@ var ret1 = m.func1(s1, s2);
 var ret2 = m.func2(s1, s2, s3, s4);
 var ret3 = m.func3(s1, s2, s3, s4, s5, s6, s7, s8);
 var ret4 = m.func4();
+var ret5 = m.func5();
+var ret6 = m.func6();
 
 
 equalSimd([98, 0, -64, 0, -96, -64, 88, -128, -98, 0, 64, 0, 96, 64, -88, -128], ret1, SIMD.Int8x16, "func1")
 equalSimd([98, 0, -64, 0, -96, -64, 88, -128, -98, 0, 64, 0, 96, 64, -88, -128], ret2, SIMD.Int8x16, "func2")
 equalSimd([98, 0, -64, 0, -96, -64, 88, -128, -98, 0, 64, 0, 96, 64, -88, -128], ret3, SIMD.Int8x16, "func3")
 equalSimd([-1, -2, -3, -4, -5, -6, -7, -8, 0, 1, 2, 3, -4, -5, -6, -7], ret4, SIMD.Int8x16, "func4")
+equalSimd([-1.0, -2.0, -3.0, -4.0], ret5, SIMD.Float32x4, "func5 - Bug1")
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8], ret6, SIMD.Int8x16, "func6 - Bug1")
 
 
 // printSimdBaseline(ret1, "SIMD.Int8x16", "ret1", "func1");
