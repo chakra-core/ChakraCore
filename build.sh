@@ -15,18 +15,22 @@ SAFE_RUN() {
 
 PRINT_USAGE() {
     echo ""
-    echo "build.sh [options]"
+    echo "[ChakraCore Build Script Help]"
     echo ""
-    echo "options:"
-    echo "-j          : Multicore build (i.e. -j:3 for 3 cores)"
-    echo "-icu        : Path to ICU include folder (see example below)"
-    echo "--help, -h  : Show help"
-    echo "--debug, -d : Debug build"
-    echo "CXX=<path to clang++>"
-    echo "CC=<path to clang>"
+    echo "  build.sh [options]"
     echo ""
-    echo "example : ./build.sh CXX=/path/to/clang++ CC=/path/to/clang -j:2"
-    echo "with icu: ./build.sh -icu:/usr/local/Cellar/icu4c/version/include/"
+    echo "  options:"
+    echo "    --cxx       : Path to Clang++ (see example below)"
+    echo "    --cc        : Path to Clang   (see example below)"
+    echo "    --debug, -d : Debug build (by default Release Build)"
+    echo "    --help, -h  : Show help"
+    echo "    --icu       : Path to ICU include folder (see example below)"
+    echo "    --jobs, -j  : Multicore build (i.e. -j=3 for 3 cores)"
+    echo ""
+    echo "  example:"
+    echo "    ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j=2"
+    echo "  with icu:"
+    echo "    ./build.sh --icu=/usr/local/Cellar/icu4c/version/include/"
     echo ""
 }
 
@@ -37,14 +41,14 @@ MULTICORE_BUILD=""
 ICU_PATH=""
 
 while [[ $# -gt 0 ]]; do
-    if [[ "$1" =~ "CXX=" ]]; then
+    if [[ "$1" =~ "--cxx" ]]; then
         _CXX=$1
-        _CXX=${_CXX:4}
+        _CXX=${_CXX:6}
     fi
 
-    if [[ "$1" =~ "CC=" ]]; then
+    if [[ "$1" =~ "--cc" ]]; then
         _CC=$1
-        _CC=${_CC:3}
+        _CC=${_CC:5}
     fi
 
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
@@ -56,14 +60,19 @@ while [[ $# -gt 0 ]]; do
         DEBUG_BUILD=1
     fi
 
-    if [[ "$1" =~ "-j:" ]]; then
+    if [[ "$1" =~ "-j" ]]; then
         MULTICORE_BUILD=$1
         MULTICORE_BUILD="-j ${MULTICORE_BUILD:3}"
     fi
-    
-    if [[ "$1" =~ "-icu:" ]]; then
+
+    if [[ "$1" =~ "--jobs" ]]; then
+        MULTICORE_BUILD=$1
+        MULTICORE_BUILD="-j ${MULTICORE_BUILD:7}"
+    fi
+
+    if [[ "$1" =~ "--icu" ]]; then
         ICU_PATH=$1
-        ICU_PATH="-DICU_INCLUDE_PATH=${ICU_PATH:5}"
+        ICU_PATH="-DICU_INCLUDE_PATH=${ICU_PATH:6}"
     fi
 
     shift
