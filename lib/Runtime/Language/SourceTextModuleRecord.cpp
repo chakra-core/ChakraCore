@@ -27,7 +27,6 @@ namespace Js
         hostDefined(nullptr),
         exportedNames(nullptr),
         resolvedExportMap(nullptr),
-        tempAllocatorObject(nullptr),
         wasParsed(false),
         wasDeclarationInitialized(false),
         isRootModule(false),
@@ -66,13 +65,8 @@ namespace Js
         {
             if (parser != nullptr)
             {
-                AllocatorDelete(ArenaAllocator, tempAllocatorObject->GetAllocator(), parser);
+                AllocatorDelete(ArenaAllocator, scriptContext->GeneralAllocator(), parser);
                 parser = nullptr;
-            }
-            if (tempAllocatorObject != nullptr)
-            {
-                GetScriptContext()->GetThreadContext()->ReleaseTemporaryAllocator(tempAllocatorObject);
-                tempAllocatorObject = nullptr;
             }
         }
     }
@@ -84,7 +78,7 @@ namespace Js
         HRESULT hr = NOERROR;
         ScriptContext* scriptContext = GetScriptContext();
         CompileScriptException se;
-        ArenaAllocator* allocator = EnsureTempAllocator();
+        ArenaAllocator* allocator = scriptContext->GeneralAllocator();
         *exceptionVar = nullptr;
         if (!scriptContext->GetConfig()->IsES6ModuleEnabled())
         {
@@ -235,22 +229,13 @@ namespace Js
         return hr;
     }
 
-    ArenaAllocator* SourceTextModuleRecord::EnsureTempAllocator()
-    {
-        if (tempAllocatorObject == nullptr)
-        {
-            tempAllocatorObject = scriptContext->GetThreadContext()->GetTemporaryAllocator(_u("Module"));
-        }
-        return tempAllocatorObject->GetAllocator();
-    }
-
     ExportedNames* SourceTextModuleRecord::GetExportedNames(ExportModuleRecordList* exportStarSet)
     {
         if (exportedNames != nullptr)
         {
             return exportedNames;
         }
-        ArenaAllocator* allocator = EnsureTempAllocator();
+        ArenaAllocator* allocator = scriptContext->GeneralAllocator();
         if (exportStarSet->Has(this))
         {
             return nullptr;
@@ -341,7 +326,7 @@ namespace Js
     // otherwise nullptr means "null" where we have circular reference/cannot resolve.
     bool SourceTextModuleRecord::ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ExportModuleRecordList* exportStarSet, ModuleNameRecord** exportRecord)
     {
-        ArenaAllocator* allocator = EnsureTempAllocator();
+        ArenaAllocator* allocator = scriptContext->GeneralAllocator();
         if (resolvedExportMap == nullptr)
         {
             resolvedExportMap = AllocatorNew(ArenaAllocator, allocator, ResolvedExportMap, allocator);
@@ -527,7 +512,7 @@ namespace Js
         {
             if (nullptr == childrenModuleSet)
             {
-                ArenaAllocator* allocator = EnsureTempAllocator();
+                ArenaAllocator* allocator = scriptContext->GeneralAllocator();
                 childrenModuleSet = (ChildModuleRecordSet*)AllocatorNew(ArenaAllocator, allocator, ChildModuleRecordSet, allocator);
             }
             requestedModuleList->MapUntil([&](IdentPtr specifier) {
@@ -639,7 +624,6 @@ namespace Js
         {
             scriptContext->GetDebugContext()->RegisterFunction(this->rootFunction->GetFunctionBody(), nullptr);
         }
-
     }
 
     Var SourceTextModuleRecord::ModuleEvaluation()
@@ -744,10 +728,10 @@ namespace Js
             if (localExportRecordList != nullptr)
             {
                 uint currentSlotCount = 0;
-                ArenaAllocator* allocator = EnsureTempAllocator();
+                ArenaAllocator* allocator = scriptContext->GeneralAllocator();
                 localExportMapByExportName = AllocatorNew(ArenaAllocator, allocator, LocalExportMap, allocator);
                 localExportMapByLocalName = AllocatorNew(ArenaAllocator, allocator, LocalExportMap, allocator);
-                localExportIndexList = RecyclerNew(recycler, LocalExportIndexList, recycler);
+                localExportIndexList = AllocatorNew(ArenaAllocator, allocator, LocalExportIndexList, allocator);
                 localExportRecordList->Map([&](ModuleImportOrExportEntry exportEntry)
                 {
                     Assert(exportEntry.moduleRequest == nullptr);
