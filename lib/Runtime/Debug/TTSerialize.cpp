@@ -47,10 +47,6 @@ namespace TTD
         AssertMsg(bufflen != 0, "Shouldn't be writing empty blocks");
         AssertMsg(this->m_hfile != INVALID_HANDLE_VALUE, "Trying to write to closed file.");
 
-        //
-        //TODO: this is where we want to do compression
-        //
-
         DWORD bwp = 0;
         this->m_pfWrite(this->m_hfile, (byte*)this->m_buffer, (DWORD)this->m_cursor, &bwp);
     }

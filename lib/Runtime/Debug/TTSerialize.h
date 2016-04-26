@@ -174,8 +174,8 @@ namespace TTD
         {
             byte* trgtBuff = this->ReserveSpaceForSmallData<TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE>();
 
-            int addedChars = swprintf_s((char16*)trgtBuff, TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE, formatString, data);
-            AssertMsg(addedChars != -1 && addedChars < TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE, "Formatting failed or result is too big.");
+            int addedChars = swprintf_s((char16*)trgtBuff, (TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE / sizeof(char16)), formatString, data);
+            AssertMsg(addedChars != -1 && addedChars < (TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE / sizeof(char16)), "Formatting failed or result is too big.");
 
             int addedBytes = (addedChars != -1) ? (addedChars * sizeof(char16)) : 0;
             this->CommitSpaceForSmallData(addedBytes);
