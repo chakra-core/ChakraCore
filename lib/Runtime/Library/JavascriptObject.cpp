@@ -176,6 +176,16 @@ namespace Js
             return FALSE;
         }
 
+        if (object->IsProtoImmutable())
+        {
+            // ES2016 19.1.3:
+            // The Object prototype object is the intrinsic object %ObjectPrototype%.
+            // The Object prototype object is an immutable prototype exotic object.
+            // ES2016 9.4.7:
+            // An immutable prototype exotic object is an exotic object that has an immutable [[Prototype]] internal slot.
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ImmutablePrototypeSlot);
+        }
+
         // 6.   If V is not null, then
         //  a.  Let p be V.
         //  b.  Repeat, while p is not null
