@@ -1407,9 +1407,11 @@ private:
 
         void UpdateRecyclerFunctionEntryPointsForDebugger();
         void SetFunctionInRecyclerToProfileMode(bool enumerateNonUserFunctionsOnly = false);
+#ifdef ENABLE_SCRIPT_PROFILING
         static void SetEntryPointToProfileThunk(JavascriptFunction* function);
         static void RestoreEntryPointFromProfileThunk(JavascriptFunction* function);
-
+#endif
+        
         static void RecyclerEnumClassEnumeratorCallback(void *address, size_t size);
         static void RecyclerFunctionCallbackForDebugger(void *address, size_t size);
 

@@ -1281,7 +1281,6 @@ case_2:
         *ppSearch = pSearch;
     }
 
-#ifdef ENABLE_GLOBALIZATION
     Var JavascriptString::EntryLocaleCompare(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -1340,6 +1339,7 @@ case_2:
         const char16* pThatStr = pThat->GetString();
         int thatStrCount = pThat->GetLength();
 
+#ifdef ENABLE_GLOBALIZATION
         LCID lcid = GetUserDefaultLCID();
         int result = CompareStringW(lcid, NULL, pThisStr, thisStrCount, pThatStr, thatStrCount );
         if (result == 0)
@@ -1350,8 +1350,15 @@ case_2:
                 VBSERR_InternalError /* TODO-ERROR: _u("Failed compare operation")*/ );
         }
         return JavascriptNumber::ToVar(result-2, scriptContext);
+#else
+        // xplat-todo: doing a locale-insensitive compare here
+        // but need to move locale-specific string comparison to
+        // platform agnostic interface
+        AssertMsg(false, "toLocaleString is not yet implemented on linux");
+        return JavascriptNumber::ToVar(wcscmp(pThisStr, pThatStr), scriptContext);
+#endif
     }
-#endif // ENABLE_GLOBALIZATION
+
 
     Var JavascriptString::EntryMatch(RecyclableObject* function, CallInfo callInfo, ...)
     {

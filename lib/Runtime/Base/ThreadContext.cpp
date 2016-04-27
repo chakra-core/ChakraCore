@@ -187,7 +187,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     loopDepth(0),
     maxGlobalFunctionExecTime(0.0),
     isAllJITCodeInPreReservedRegion(true),
-    activityId(GUID_NULL),
     tridentLoadAddress(nullptr),
     debugManager(nullptr)
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
@@ -203,8 +202,10 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 
     isScriptActive = false;
 
+#ifdef ENABLE_CUSTOM_ENTROPY
     entropy.Initialize();
-
+#endif
+    
 #if ENABLE_NATIVE_CODEGEN
     this->bailOutRegisterSaveSpace = AnewArrayZ(this->GetThreadAlloc(), Js::Var, GetBailOutRegisterSaveSlotCount());
 #endif
@@ -3607,7 +3608,14 @@ ThreadServiceWrapper* ThreadContext::GetThreadServiceWrapper()
 
 uint ThreadContext::GetRandomNumber()
 {
+#ifdef ENABLE_CUSTOM_ENTROPY
     return (uint)GetEntropy().GetRand();
+#else
+    uint randomNumber = 0;
+    errno_t e = rand_s(&randomNumber);
+    Assert(e == 0);
+    return randomNumber;
+#endif
 }
 
 #ifdef ENABLE_JS_ETW
@@ -4054,6 +4062,8 @@ ThreadContext::ClearRootTrackerScriptContext(Js::ScriptContext * scriptContext)
 }
 #endif
 
+#ifdef ENABLE_BASIC_TELEMETRY
+#if ENABLE_NATIVE_CODEGEN
 JITTimer::JITTimer()
 {
     Reset();
@@ -4105,6 +4115,7 @@ void JITTimer::LogTime(double ms)
         stats.greaterThan300ms++;
     }
 }
+#endif // NATIVE_CODE_GEN
 
 ParserTimer::ParserTimer()
 {
@@ -4161,6 +4172,7 @@ void ParserTimer::LogTime(double ms)
         stats.greaterThan300ms++;
     }
 }
+#endif // ENABLE_BASIC_TELEMETRY
 
 AutoTagNativeLibraryEntry::AutoTagNativeLibraryEntry(Js::RecyclableObject* function, Js::CallInfo callInfo, PCWSTR name, void* addr)
 {

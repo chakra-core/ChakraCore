@@ -1265,7 +1265,9 @@ namespace Js
 
 #if DBG
         bool HasValidEntryPoint() const;
+#ifdef ENABLE_SCRIPT_PROFILING
         bool HasValidProfileEntryPoint() const;
+#endif
         bool HasValidNonProfileEntryPoint() const;
 #endif
         virtual void SetDisplayName(const char16* displayName, uint displayNameLength, uint displayShortNameOffset, SetDisplayNameFlags flags = SetDisplayNameFlagsNone) = 0;

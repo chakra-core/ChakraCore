@@ -1041,7 +1041,7 @@ StringCommon:
                 else
                 {
                     AssertMsg(false, "Unable to initialize PRNG seeds with rand_s. Revert to using entropy.");
-
+#ifdef ENABLE_CUSTOM_ENTROPY
                     ThreadContext *threadContext = scriptContext->GetThreadContext();
 
                     threadContext->GetEntropy().AddThreadCycleTime();
@@ -1051,6 +1051,7 @@ StringCommon:
                     threadContext->GetEntropy().AddThreadCycleTime();
                     threadContext->GetEntropy().AddIoCounters();
                     *seed1 = threadContext->GetEntropy().GetRand();
+#endif
                 }
             }
         }

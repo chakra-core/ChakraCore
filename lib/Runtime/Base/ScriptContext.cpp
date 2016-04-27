@@ -618,9 +618,11 @@ namespace Js
         }
 #endif
 
+#ifdef ENABLE_SCRIPT_PROFILING
         // Stop profiling if present
         DeRegisterProfileProbe(S_OK, nullptr);
-
+#endif
+        
         if (this->diagnosticArena != nullptr)
         {
             HeapDelete(this->diagnosticArena);
@@ -1748,10 +1750,14 @@ namespace Js
                 return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag);
             }
 
+#ifdef ENABLE_SCRIPT_PROFILING
             if (pFunction != nullptr && this->IsProfiling())
             {
                 RegisterScript(pFunction->GetFunctionProxy());
             }
+#else
+            Assert(!this->IsProfiling());
+#endif
             return pFunction;
         }
         catch (Js::OutOfMemoryException)
@@ -2622,6 +2628,7 @@ namespace Js
 
     void ScriptContext::SetProfileMode(BOOL fSet)
     {
+#ifdef ENABLE_SCRIPT_PROFILING
         if (fSet)
         {
             AssertMsg(m_pProfileCallback != NULL, "In profile mode when there is no call back");
@@ -2635,7 +2642,9 @@ namespace Js
 #endif
         }
         else
+#endif
         {
+            Assert(!fSet);
             this->CurrentThunk = DefaultEntryThunk;
             this->CurrentCrossSiteThunk = CrossSite::DefaultThunk;
             this->DeferredParsingThunk = DefaultDeferredParsingThunk;
@@ -3016,6 +3025,7 @@ namespace Js
     {
         if (this->IsExceptionWrapperForBuiltInsEnabled())
         {
+#ifdef ENABLE_SCRIPT_PROFILING
             this->CurrentThunk = ProfileEntryThunk;
             this->CurrentCrossSiteThunk = CrossSite::ProfileThunk;
 #if ENABLE_NATIVE_CODEGEN
@@ -3034,6 +3044,9 @@ namespace Js
                 // Update the function objects currently present in there.
                 this->SetFunctionInRecyclerToProfileMode(true/*enumerateNonUserFunctionsOnly*/);
             }
+#else
+            AssertMsg(false, "Profiling needs to be enabled to call RegisterDebugThunk");
+#endif
         }
     }
 
@@ -3164,14 +3177,25 @@ namespace Js
         FunctionProxy * proxy = info->GetFunctionProxy();
         if (proxy != info)
         {
+#ifdef ENABLE_SCRIPT_PROFILING
             // Not a script function or, the thunk can deal with moving to the function body
-            Assert(proxy == nullptr || entryPoint == DefaultDeferredParsingThunk || entryPoint == ProfileDeferredParsingThunk
-                || entryPoint == DefaultDeferredDeserializeThunk || entryPoint == ProfileDeferredDeserializeThunk ||
-                entryPoint == CrossSite::DefaultThunk || entryPoint == CrossSite::ProfileThunk);
+            Assert(proxy == nullptr || entryPoint == DefaultDeferredParsingThunk
+                || entryPoint == ProfileDeferredParsingThunk
+                || entryPoint == ProfileDeferredDeserializeThunk
+                || entryPoint == CrossSite::ProfileThunk
+                || entryPoint == DefaultDeferredDeserializeThunk
+                || entryPoint == CrossSite::DefaultThunk);
+#else
+            // Not a script function or, the thunk can deal with moving to the function body
+            Assert(proxy == nullptr || entryPoint == DefaultDeferredParsingThunk
+                || entryPoint == DefaultDeferredDeserializeThunk
+                || entryPoint == CrossSite::DefaultThunk);
+#endif
 
             // Replace entry points for built-ins/external/winrt functions so that we can wrap them with try-catch for "continue after exception".
             if (!pFunction->IsScriptFunction() && IsExceptionWrapperForBuiltInsEnabled(scriptContext))
             {
+#ifdef ENABLE_SCRIPT_PROFILING
                 if (scriptContext->IsScriptContextInDebugMode())
                 {
                     // We are attaching.
@@ -3188,6 +3212,9 @@ namespace Js
                     }
                     // If we are profiling, don't change anything.
                 }
+#else
+                AssertMsg(false, "Profiling needs to be enabled to change thunks for debugging");
+#endif
             }
 
             return;
@@ -3298,10 +3325,16 @@ namespace Js
             if (proxy != info)
             {
                 // The thunk can deal with moving to the function body
+#ifdef ENABLE_SCRIPT_PROFILING
                 Assert(entryPoint == DefaultDeferredParsingThunk || entryPoint == ProfileDeferredParsingThunk
                     || entryPoint == DefaultDeferredDeserializeThunk || entryPoint == ProfileDeferredDeserializeThunk
                     || entryPoint == CrossSite::DefaultThunk || entryPoint == CrossSite::ProfileThunk);
-
+#else
+                Assert(entryPoint == DefaultDeferredParsingThunk 
+                    || entryPoint == DefaultDeferredDeserializeThunk
+                    || entryPoint == CrossSite::DefaultThunk);
+#endif
+                
                 Assert(!proxy->IsDeferred());
                 Assert(proxy->GetFunctionBody()->GetProfileSession() == proxy->GetScriptContext()->GetProfileSession());
 
@@ -3328,7 +3361,6 @@ namespace Js
             ScriptContext::SetEntryPointToProfileThunk(pFunction);
         }
     }
-#endif // ENABLE_SCRIPT_PROFILING
 
     // static
     void ScriptContext::SetEntryPointToProfileThunk(JavascriptFunction* function)
@@ -3358,7 +3390,6 @@ namespace Js
         }
     }
 
-#ifdef ENABLE_SCRIPT_PROFILING
     JavascriptMethod ScriptContext::GetProfileModeThunk(JavascriptMethod entryPoint)
     {
 #if ENABLE_NATIVE_CODEGEN

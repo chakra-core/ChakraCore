@@ -1467,7 +1467,12 @@ LABEL1:
         }
 
         DebugOnly(JavascriptMethod directEntryPoint = funcBody->GetDirectEntryPoint(funcBody->GetDefaultEntryPointInfo()));
-        Assert(directEntryPoint != DefaultDeferredParsingThunk && directEntryPoint != ProfileDeferredParsingThunk);
+#ifdef ENABLE_SCRIPT_PROFILING
+        Assert(directEntryPoint != DefaultDeferredParsingThunk
+            && directEntryPoint != ProfileDeferredParsingThunk);
+#else
+        Assert(directEntryPoint != DefaultDeferredParsingThunk);
+#endif
         return (*functionRef)->UpdateUndeferredBody(funcBody);
     }
 
@@ -1566,12 +1571,13 @@ LABEL1:
             jmp eax
         }
     }
-#elif defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+#elif (defined(_M_X64) || defined(_M_ARM32_OR_ARM64)) && defined(_MSC_VER)
     //Do nothing: the implementation of JavascriptFunction::DeferredParsingThunk is declared (appropriately decorated) in
     // Library\amd64\javascriptfunctiona.asm
     // Library\arm\arm_DeferredParsingThunk.asm
     // Library\arm64\arm64_DeferredParsingThunk.asm
 #else
+    // xplat-todo: Implement defer deserialization for linux
     Var JavascriptFunction::DeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         Js::Throw::NotImplemented();

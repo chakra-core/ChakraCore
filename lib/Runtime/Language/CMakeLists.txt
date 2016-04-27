@@ -27,27 +27,27 @@ add_library (Chakra.Runtime.Language
     ProfilingHelpers.cpp
     ReadOnlyDynamicProfileInfo.cpp
     RuntimeLanguagePch.cpp
-    SimdBool16x8Operation.cpp
+    # SimdBool16x8Operation.cpp
     # SimdBool16x8OperationX86X64.cpp
-    SimdBool32x4Operation.cpp
+    # SimdBool32x4Operation.cpp
     # SimdBool32x4OperationX86X64.cpp
-    SimdBool8x16Operation.cpp
+    # SimdBool8x16Operation.cpp
     # SimdBool8x16OperationX86X64.cpp
-    SimdFloat32x4Operation.cpp
+    # SimdFloat32x4Operation.cpp
     # SimdFloat32x4OperationX86X64.cpp
-    SimdFloat64x2Operation.cpp
+    # SimdFloat64x2Operation.cpp
     # SimdFloat64x2OperationX86X64.cpp
-    SimdInt16x8Operation.cpp
+    # SimdInt16x8Operation.cpp
     # SimdInt16x8OperationX86X64.cpp
-    SimdInt32x4Operation.cpp
+    # SimdInt32x4Operation.cpp
     # SimdInt32x4OperationX86X64.cpp
-    SimdInt8x16Operation.cpp
+    # SimdInt8x16Operation.cpp
     # SimdInt8x16OperationX86X64.cpp
-    SimdUint16x8Operation.cpp
+    # SimdUint16x8Operation.cpp
     # SimdUint16x8OperationX86X64.cpp
-    SimdUint32x4Operation.cpp
+    # SimdUint32x4Operation.cpp
     # SimdUint32x4OperationX86X64.cpp
-    SimdUint8x16Operation.cpp
+    # SimdUint8x16Operation.cpp
     # SimdUint8x16OperationX86X64.cpp
     # SimdUtils.cpp
     SourceDynamicProfileManager.cpp

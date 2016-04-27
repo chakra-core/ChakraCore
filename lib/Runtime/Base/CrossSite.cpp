@@ -244,7 +244,11 @@ namespace Js
 
     bool CrossSite::IsThunk(JavascriptMethod thunk)
     {
+#ifdef ENABLE_SCRIPT_PROFILING
         return (thunk == CrossSite::ProfileThunk || thunk == CrossSite::DefaultThunk);
+#else
+        return (thunk == CrossSite::DefaultThunk);
+#endif
     }
 
 #ifdef ENABLE_SCRIPT_PROFILING

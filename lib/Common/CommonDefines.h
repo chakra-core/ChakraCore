@@ -121,6 +121,9 @@
 // dep: IActiveScriptProfilerCallback, IActiveScriptProfilerHeapEnum
 #define ENABLE_SCRIPT_PROFILING
 // xplat-todo: change DISABLE_SEH to ENABLE_SEH and move here
+#define ENABLE_SIMDJS
+
+#define ENABLE_CUSTOM_ENTROPY
 #endif
 
 // GC features

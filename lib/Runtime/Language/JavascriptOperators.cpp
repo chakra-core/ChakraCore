@@ -267,6 +267,7 @@ namespace Js
 
     Var JavascriptOperators::Typeof(Var var, ScriptContext* scriptContext)
     {
+#ifdef ENABLE_SIMDJS
         if (IsSimdType(var) && scriptContext->GetConfig()->IsSimdjsEnabled())
         {
             switch ((JavascriptOperators::GetTypeId(var)))
@@ -297,6 +298,7 @@ namespace Js
                 Assert(UNREACHED);
             }
         }
+#endif
         //All remaining types.
         switch (JavascriptOperators::GetTypeId(var))
         {
@@ -557,11 +559,13 @@ namespace Js
                 return result;
             }
         }
+#ifdef ENABLE_SIMDJS
         else if (IsSimdType(aLeft) && IsSimdType(aRight))
         {
             return StrictEqualSIMD(aLeft, aRight, requestContext);
         }
-
+#endif
+        
         if (RecyclableObject::FromVar(aLeft)->Equals(aRight, &result, requestContext))
         {
             return result;
@@ -608,10 +612,12 @@ namespace Js
 
         double dblLeft, dblRight;
 
+#ifdef ENABLE_SIMDJS
         if (IsSimdType(aLeft) || IsSimdType(aRight))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_SIMDConversion, _u("SIMD type"));
         }
+#endif
         TypeId leftType = JavascriptOperators::GetTypeId(aLeft);
         TypeId rightType = JavascriptOperators::GetTypeId(aRight);
 
@@ -765,6 +771,7 @@ namespace Js
         return dblLeft < dblRight;
     }
 
+#ifdef ENABLE_SIMDJS
     BOOL JavascriptOperators::StrictEqualSIMD(Var aLeft, Var aRight, ScriptContext* scriptContext)
     {
         TypeId leftTid  = JavascriptOperators::GetTypeId(aLeft);
@@ -832,6 +839,7 @@ namespace Js
         }
         return result;
     }
+#endif
 
     BOOL JavascriptOperators::StrictEqualString(Var aLeft, Var aRight)
     {
@@ -1004,6 +1012,7 @@ CommonNumber:
                 }
             }
             break;
+#ifdef ENABLE_SIMDJS
         case TypeIds_SIMDBool8x16:
         case TypeIds_SIMDInt8x16:
         case TypeIds_SIMDUint8x16:
@@ -1017,6 +1026,7 @@ CommonNumber:
         case TypeIds_SIMDFloat64x2:
             return StrictEqualSIMD(aLeft, aRight, requestContext);
             break;
+#endif
         }
 
         if (RecyclableObject::FromVar(aLeft)->CanHaveInterceptors())
@@ -4910,7 +4920,9 @@ CommonNumber:
             case TypeIds_Error:
             case TypeIds_BooleanObject:
             case TypeIds_NumberObject:
+#ifdef ENABLE_SIMDJS
             case TypeIds_SIMDObject:
+#endif
             case TypeIds_StringObject:
             case TypeIds_Symbol:
             case TypeIds_SymbolObject:
