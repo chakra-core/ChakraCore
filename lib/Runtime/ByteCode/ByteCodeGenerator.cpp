@@ -998,14 +998,9 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::FunctionBody* functionBody)
                 bodyScope = Anew(alloc, Scope, alloc, ScopeType_FunctionBody, true);
             }
         }
+        bodyScope->SetHasOwnLocalInClosure(scopeInfo->GetHasOwnLocalInClosure());
 
         FuncInfo* func = Anew(alloc, FuncInfo, functionBody->GetDisplayName(), alloc, paramScope, bodyScope, nullptr, functionBody);
-
-        if (paramScope != nullptr)
-        {
-            paramScope->SetFunc(func);
-            paramScopeInfo->GetScopeInfo(nullptr, this, func, paramScope);
-        }
 
         if (bodyScope->GetScopeType() == ScopeType_GlobalEvalBlock)
         {
@@ -1032,6 +1027,12 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::FunctionBody* functionBody)
             funcExprScopeInfo->GetScopeInfo(nullptr, this, func, funcExprScope);
         }
 
+        // Restore the param scope after the function expression scope
+        if (paramScope != nullptr)
+        {
+            paramScope->SetFunc(func);
+            paramScopeInfo->GetScopeInfo(nullptr, this, func, paramScope);
+        }
         scopeInfo->GetScopeInfo(nullptr, this, func, bodyScope);
     }
     else
