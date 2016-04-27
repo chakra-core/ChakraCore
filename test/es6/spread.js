@@ -382,6 +382,15 @@ var tests = [
       assert.areEqual(7, result[2], "Spread for the array initializer called the getter of the third element of a and copied the result to the third element of b");
       assert.areEqual(8, result[3], "Spread for the array initializer recognized the new length of four and copied the fourth element of a to the fourth element of b");
     }
+  },
+  {
+    name: "OS 2970825: Spread should not be allowed with unary operators",
+    body: function () {
+      function foo() {}
+      assert.throws(function () { eval("foo(++...[1,2,3]);"); },      SyntaxError, "Spread with unary operator throws a syntax error",          "Unexpected ... operator");
+      assert.throws(function () { eval("foo(typeof ...[1,2,3]);"); }, SyntaxError, "Spread with keyword unary operator throws a syntax error",  "Unexpected ... operator");
+      assert.throws(function () { eval("foo(!!...[1,2,3]);"); },      SyntaxError, "Spread with chained unary operators throws a syntax error", "Unexpected ... operator");
+    }
   }
 ];
 
