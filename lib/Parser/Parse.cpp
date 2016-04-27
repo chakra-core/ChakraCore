@@ -8006,6 +8006,11 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
         m_pscan->Scan();
 
+        if (m_token.tk == tkEllipsis) {
+            // ... cannot have a unary prefix.
+            Error(ERRUnexpectedEllipsis);
+        }
+
         if (nop == knopYield && !m_pscan->FHadNewLine() && m_token.tk == tkStar)
         {
             m_pscan->Scan();
@@ -8025,8 +8030,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         }
         else
         {
-            // Disallow spread after an Ellipsis token. This prevents chaining, and ensures spread is the top level expression.
-            pnodeT = ParseExpr<buildAST>(opl, &fCanAssign, TRUE, nop != knopEllipsis && fAllowEllipsis, nullptr /*hint*/, nullptr /*hintLength*/, nullptr /*hintOffset*/, &operandToken, true);
+            // Disallow spread after a unary operator.
+            pnodeT = ParseExpr<buildAST>(opl, &fCanAssign, TRUE, FALSE, nullptr /*hint*/, nullptr /*hintLength*/, nullptr /*hintOffset*/, &operandToken, true);
         }
 
         if (nop != knopYieldLeaf)
