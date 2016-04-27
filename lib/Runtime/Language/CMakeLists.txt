@@ -1,4 +1,4 @@
-add_library (Chakra.Runtime.Language
+add_library (Chakra.Runtime.Language STATIC
     AsmJs.cpp
     AsmJsByteCodeGenerator.cpp
     AsmJsCodeGenerator.cpp

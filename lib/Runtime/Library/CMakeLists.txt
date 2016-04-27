@@ -1,4 +1,4 @@
-add_library (Chakra.Runtime.Library
+add_library (Chakra.Runtime.Library STATIC
     ArgumentsObject.cpp
     ArgumentsObjectEnumerator.cpp
     ArrayBuffer.cpp

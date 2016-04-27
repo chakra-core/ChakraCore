@@ -1,4 +1,4 @@
-add_library (Chakra.Runtime.Debug
+add_library (Chakra.Runtime.Debug STATIC
     BreakpointProbe.cpp
     DebugContext.cpp
     DebugDocument.cpp

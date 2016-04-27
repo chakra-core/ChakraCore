@@ -1,4 +1,4 @@
-add_library (Chakra.Parser
+add_library (Chakra.Parser STATIC
     Alloc.cpp
     BackgroundParser.cpp
     CaseInsensitive.cpp
