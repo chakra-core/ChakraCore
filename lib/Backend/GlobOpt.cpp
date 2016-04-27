@@ -584,7 +584,7 @@ GlobOpt::OptBlock(BasicBlock *block)
         Assert(!TrackHoistableFields() || !HasHoistableFields(&this->blockData));
         if (!DoFieldCopyProp() && !DoFieldRefOpts())
         {
-            this->blockData.liveFields->ClearAll();
+            this->KillAllFields(blockData.liveFields);
         }
     }
 
