@@ -775,8 +775,8 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
 
         // cmp      dst, -1
         pInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
-        pInstr->SetSrc1(dst);
-        pInstr->SetSrc2(IR::IntConstOpnd::New(-1, TyInt32, m_func, true));
+        pInstr->SetSrc1(dst->UseWithNewType(laneType, m_func));
+        pInstr->SetSrc2(IR::IntConstOpnd::New(-1, laneType, m_func, true));
         instr->InsertBefore(pInstr);
         Legalize(pInstr);
 
