@@ -129,6 +129,7 @@ include_directories(
     pal
     pal/inc
     pal/inc/rt
+    ${ICU_INCLUDE_PATH}
     )
 
 
