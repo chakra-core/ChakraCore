@@ -3172,24 +3172,6 @@ namespace Js
         }
         TraceExecutionMode();
 
-        if(entryPointInfo->GetJitMode() == ExecutionMode::SimpleJit)
-        {
-            Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
-            SetSimpleJitEntryPointInfo(entryPointInfo);
-            ResetSimpleJitCallCount();
-        }
-        else
-        {
-            Assert(entryPointInfo->GetJitMode() == ExecutionMode::FullJit);
-            Assert(GetExecutionMode() == ExecutionMode::FullJit);
-            entryPointInfo->callsCount =
-                static_cast<uint8>(
-                    min(
-                        static_cast<uint>(static_cast<uint8>(CONFIG_FLAG(MinBailOutsBeforeRejit))) *
-                            (Js::FunctionEntryPointInfo::GetDecrCallCountPerBailout() - 1),
-                        0xffu));
-        }
-
         JS_ETW(EtwTrace::LogMethodNativeLoadEvent(this, entryPointInfo));
 
 #ifdef _M_ARM
