@@ -343,6 +343,8 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
 
+        // xplat-todo: Implement DaylightTimeHelper functions on Linux
+#ifdef _WIN32
         int bias;
         int offset;
         bool isDaylightSavings;
@@ -354,6 +356,9 @@ namespace Js {
             ptzd->fDst = isDaylightSavings;
         }
         return tvLcl;
+#else
+        Js::Throw::NotImplemented();
+#endif
     }
 
     ///
@@ -371,6 +376,8 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
 
+        // xplat-todo: Implement DaylightTimeHelper functions on Linux
+#ifdef _WIN32
         tvUtc = scriptContext->GetDaylightTimeHelper()->LocalToUtc(tv);
         // See if we're out of range after conversion (UTC time value must be within this range)
         if (JavascriptNumber::IsNan(tvUtc) || !NumberUtilities::IsFinite(tv) || tvUtc < ktvMin || tvUtc > ktvMax)
@@ -378,6 +385,9 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
         return tvUtc;
+#else
+        Js::Throw::NotImplemented();
+#endif
     }
 
     //

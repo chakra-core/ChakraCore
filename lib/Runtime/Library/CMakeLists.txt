@@ -109,6 +109,7 @@ add_library (Chakra.Runtime.Library
     TypedArray.cpp
     TypedArrayEnumerator.cpp
     UriHelper.cpp
+    amd64/JavascriptFunctionA.S
     )
 
 target_include_directories (

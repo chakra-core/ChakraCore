@@ -397,7 +397,6 @@ FreeLibrary(
 
     PERF_ENTRY(FreeLibrary);
     ENTRY("FreeLibrary (hLibModule=%p)\n", hLibModule);
-
     retval = LOADFreeLibrary((MODSTRUCT *)hLibModule, TRUE /* fCallDllMain */);
 
     LOGEXIT("FreeLibrary returns BOOL %d\n", retval);
@@ -1379,7 +1378,7 @@ static void *LOADLoadLibraryDirect(LPCSTR libraryNameOrPath)
     void *dl_handle = dlopen(libraryNameOrPath, RTLD_LAZY);
     if (dl_handle == nullptr)
     {
-        WARN("dlopen() failed; dlerror says '%s'\n", dlerror());
+        printf("dlopen() failed; dlerror says '%s'\n", dlerror());
         SetLastError(ERROR_MOD_NOT_FOUND);
     }
     else

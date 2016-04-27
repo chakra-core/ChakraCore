@@ -56,11 +56,12 @@ add_library (Chakra.Runtime.Language
     TaggedInt.cpp
     ValueType.cpp
     amd64/AsmJsJitTemplate.cpp
-    # amd64/StackFrame.cpp
+    amd64/StackFrame.SystemV.cpp
     # arm64/StackFrame.cpp
     # arm/StackFrame.cpp
     # i386/AsmJsJitTemplate.cpp
     # i386/StackFrame.cpp
+    amd64/JavascriptOperatorsA.S
     )
 
 include_directories (

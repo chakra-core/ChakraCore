@@ -29,7 +29,11 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #include <malloc.h>
 #endif
 
+// _AddressOfReturnAddress is declared as (forced) inline in CommonPal
+// Don't need this declaration outside of VC
+#ifdef _MSC_VER
 extern "C" void * _AddressOfReturnAddress(void);
+#endif
 
 #include "Common/GetCurrentFrameId.h"
 

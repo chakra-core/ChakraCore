@@ -63,7 +63,7 @@ StackProber::Initialize()
 #endif
 #else // !_WIN32
     void *lowLimit, *highLimit;
-    ::GetCurrentThreadStackBounds((char**)&lowLimit, (char**)&highLimit);
+    ::GetCurrentThreadStackBounds((char**)&highLimit, (char**)&lowLimit);
     stackBottom = (PBYTE)lowLimit;
 #endif
 

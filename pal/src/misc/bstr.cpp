@@ -139,6 +139,28 @@ STDAPI_(void) SysFreeString(const OLECHAR* psz)
 }
 
 /***
+ *BSTR SysStringLen(char*)
+ *Purpose:
+ *  Return the length of the string in characters (not including null terminator)
+ *
+ *Entry:
+ *  BSTR whose length to return
+ *
+ *Exit:
+ *  return value = length of the string
+ *
+ ***********************************************************************/
+STDAPI_(UINT) SysStringLen(const OLECHAR* psz)
+{
+    if (psz == NULL)
+    {
+        return 0;
+    }
+
+    return PAL_wcslen(psz);
+}
+
+/***
  *BSTR SysAllocString(char*)
  *Purpose:
  *  Allocation a bstr using the passed in string
