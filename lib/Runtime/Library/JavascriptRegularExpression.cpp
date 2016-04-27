@@ -975,7 +975,7 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        return GetJavascriptRegExp(args, _u("RegExp.prototype.options"), function->GetScriptContext())->GetOptions();
+        return GetJavascriptRegExp(args, _u("RegExp.prototype.options"), scriptContext)->GetOptions();
     }
 
     Var JavascriptRegExp::GetOptions()
@@ -1027,7 +1027,7 @@ namespace Js
             return JavascriptString::NewCopyBuffer(_u("(?:)"), 4, scriptContext);
         }
 
-        return GetJavascriptRegExp(args, _u("RegExp.prototype.source"), function->GetScriptContext())->ToString(true);
+        return GetJavascriptRegExp(args, _u("RegExp.prototype.source"), scriptContext)->ToString(true);
     }
 
 #define DEFINE_FLAG_GETTER(methodName, propertyName, patternMethodName) \
@@ -1043,7 +1043,7 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined(); \
         }\
         \
-        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, _u("RegExp.prototype.") _u(#propertyName), function->GetScriptContext()); \
+        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, _u("RegExp.prototype.") _u(#propertyName), scriptContext); \
         return pRegEx->GetLibrary()->CreateBoolean(pRegEx->GetPattern()->##patternMethodName##()); \
     }
 
