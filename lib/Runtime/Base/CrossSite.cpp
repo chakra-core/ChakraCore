@@ -123,7 +123,7 @@ namespace Js
     }
 
     // static
-    __inline Var CrossSite::MarshalVar(ScriptContext* scriptContext, Var value, bool fRequestWrapper)
+    inline Var CrossSite::MarshalVar(ScriptContext* scriptContext, Var value, bool fRequestWrapper)
     {
         // value might be null from disable implicit call
         if (value == nullptr || Js::TaggedNumber::Is(value))

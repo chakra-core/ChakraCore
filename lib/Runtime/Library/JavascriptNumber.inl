@@ -8,13 +8,13 @@
 namespace Js
 {
 #if FLOATVAR
-    __inline JavascriptNumber::JavascriptNumber(double value, StaticType*)
+    inline JavascriptNumber::JavascriptNumber(double value, StaticType*)
     {
         AssertMsg(!IsNan(value) || ToSpecial(value) == k_Nan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
         SetSpecial(ToSpecial(value) ^ FloatTag_Value);
     }
 #else
-    __inline JavascriptNumber::JavascriptNumber(double value, StaticType * type) : RecyclableObject(type), m_value(value)
+    inline JavascriptNumber::JavascriptNumber(double value, StaticType * type) : RecyclableObject(type), m_value(value)
     {
         Assert(type->GetTypeId() == TypeIds_Number);
     }
@@ -32,20 +32,20 @@ namespace Js
         }
     }
 
-    __inline Var JavascriptNumber::ToVar(uint32 nValue, ScriptContext* scriptContext)
+    inline Var JavascriptNumber::ToVar(uint32 nValue, ScriptContext* scriptContext)
     {
         return !TaggedInt::IsOverflow(nValue) ? TaggedInt::ToVarUnchecked(nValue) :
             JavascriptNumber::New((double) nValue,scriptContext);
     }
 
-    __inline Var JavascriptNumber::ToVar(int64 nValue, ScriptContext* scriptContext)
+    inline Var JavascriptNumber::ToVar(int64 nValue, ScriptContext* scriptContext)
     {
         return !TaggedInt::IsOverflow(nValue) ?
                 TaggedInt::ToVarUnchecked((int) nValue) :
                 JavascriptNumber::New((double) nValue,scriptContext);
     }
 
-    __inline Var JavascriptNumber::ToVar(uint64 nValue, ScriptContext* scriptContext)
+    inline Var JavascriptNumber::ToVar(uint64 nValue, ScriptContext* scriptContext)
     {
         return !TaggedInt::IsOverflow(nValue) ?
                 TaggedInt::ToVarUnchecked((int) nValue) :
@@ -89,7 +89,7 @@ namespace Js
         return Is_NoTaggedIntCheck(aValue);
     }
 
-    __inline JavascriptNumber* JavascriptNumber::InPlaceNew(double value, ScriptContext* scriptContext, Js::JavascriptNumber *result)
+    inline JavascriptNumber* JavascriptNumber::InPlaceNew(double value, ScriptContext* scriptContext, Js::JavascriptNumber *result)
     {
         AssertMsg( result != NULL, "Cannot use InPlaceNew without a value result location" );
         result = (JavascriptNumber*)ToVar(value);
@@ -110,19 +110,19 @@ namespace Js
         return ToVar(value);
     }
 
-    __inline Var JavascriptNumber::NewInlined(double value, ScriptContext* scriptContext)
+    inline Var JavascriptNumber::NewInlined(double value, ScriptContext* scriptContext)
     {
         return ToVar(value);
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    __inline Var JavascriptNumber::NewCodeGenInstance(CodeGenNumberAllocator *alloc, double value, ScriptContext* scriptContext)
+    inline Var JavascriptNumber::NewCodeGenInstance(CodeGenNumberAllocator *alloc, double value, ScriptContext* scriptContext)
     {
         return ToVar(value);
     }
 #endif
 
-    __inline Var JavascriptNumber::ToVar(double value)
+    inline Var JavascriptNumber::ToVar(double value)
     {
         uint64 val = *(uint64*)&value;
         AssertMsg(!IsNan(value) || ToSpecial(value) == k_Nan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
@@ -151,14 +151,14 @@ namespace Js
         return reinterpret_cast<JavascriptNumber *>(aValue);
     }
 
-    __inline double JavascriptNumber::GetValue(Var aValue)
+    inline double JavascriptNumber::GetValue(Var aValue)
      {
          AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNumber'");
 
          return JavascriptNumber::FromVar(aValue)->GetValue();
      }
 
-    __inline JavascriptNumber* JavascriptNumber::InPlaceNew(double value, ScriptContext* scriptContext, Js::JavascriptNumber *result)
+    inline JavascriptNumber* JavascriptNumber::InPlaceNew(double value, ScriptContext* scriptContext, Js::JavascriptNumber *result)
     {
         AssertMsg( result != NULL, "Cannot use InPlaceNew without a value result location" );
         Assume(result != NULL); // Encourage the compiler to omit a NULL check on the return from placement new
@@ -175,13 +175,13 @@ namespace Js
         return scriptContext->GetLibrary()->CreateNumber(value, scriptContext->GetNumberAllocator());
     }
 
-    __inline Var JavascriptNumber::NewInlined(double value, ScriptContext* scriptContext)
+    inline Var JavascriptNumber::NewInlined(double value, ScriptContext* scriptContext)
     {
         return scriptContext->GetLibrary()->CreateNumber(value, scriptContext->GetNumberAllocator());
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    __inline Var JavascriptNumber::NewCodeGenInstance(CodeGenNumberAllocator *alloc, double value, ScriptContext* scriptContext)
+    inline Var JavascriptNumber::NewCodeGenInstance(CodeGenNumberAllocator *alloc, double value, ScriptContext* scriptContext)
     {
         return scriptContext->GetLibrary()->CreateCodeGenNumber(alloc, value);
     }
@@ -189,17 +189,17 @@ namespace Js
 
 #endif
 
-    __inline JavascriptString * JavascriptNumber::ToStringNan(ScriptContext* scriptContext)
+    inline JavascriptString * JavascriptNumber::ToStringNan(ScriptContext* scriptContext)
     {
         return ToStringNan(*scriptContext->GetLibrary());
     }
 
-    __inline JavascriptString* JavascriptNumber::ToStringNanOrInfinite(double value, ScriptContext* scriptContext)
+    inline JavascriptString* JavascriptNumber::ToStringNanOrInfinite(double value, ScriptContext* scriptContext)
     {
         return ToStringNanOrInfinite(value, *scriptContext->GetLibrary());
     }
 
-    __inline Var JavascriptNumber::FormatDoubleToString( double value, Js::NumberUtilities::FormatType formatType, int formatDigits, ScriptContext* scriptContext )
+    inline Var JavascriptNumber::FormatDoubleToString( double value, Js::NumberUtilities::FormatType formatType, int formatDigits, ScriptContext* scriptContext )
     {
         static const int bufSize = 256;
         char16 szBuffer[bufSize] = _u("");

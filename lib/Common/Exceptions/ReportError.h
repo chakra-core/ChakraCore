@@ -63,7 +63,7 @@ void FromDOM_NoScriptScope_fatal_error();
 #ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.
 // Use UnhandleExceptionFilter to let the default handler handles it.
-__inline LONG FatalExceptionFilter(
+inline LONG FatalExceptionFilter(
     __in LPEXCEPTION_POINTERS lpep)
 {
     LONG rc = UnhandledExceptionFilter(lpep);

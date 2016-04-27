@@ -1911,7 +1911,7 @@ SmallHeapBlockT<TBlockAttributes>::EnumerateObjects(ObjectInfoBits infoBits, voi
 }
 
 template <class TBlockAttributes>
-__inline
+inline
 void SmallHeapBlockT<TBlockAttributes>::FillFreeMemory(__in_bcount(size) void * address, size_t size)
 {
 #ifdef RECYCLER_MEMORY_VERIFY

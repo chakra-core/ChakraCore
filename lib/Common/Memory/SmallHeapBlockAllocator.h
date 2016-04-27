@@ -15,18 +15,18 @@ public:
     void Initialize();
 
     template <ObjectInfoBits attributes>
-    __inline char * InlinedAlloc(Recycler * recycler, size_t sizeCat);
+    inline char * InlinedAlloc(Recycler * recycler, size_t sizeCat);
 
     // Pass through template parameter to InlinedAllocImpl
     template <bool canFaultInject>
-    __inline char * SlowAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
+    inline char * SlowAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
 
     // There are paths where we simply can't OOM here, so we shouldn't fault inject as it creates a bit of a mess
     template <bool canFaultInject>
-    __inline char* InlinedAllocImpl(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
+    inline char* InlinedAllocImpl(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
 
 #ifdef RECYCLER_PAGE_HEAP
-    __inline char *PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode);
+    inline char *PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode);
 #endif
 
     TBlockType * GetHeapBlock() const { return heapBlock; }
@@ -103,7 +103,7 @@ private:
 
 #ifdef RECYCLER_PAGE_HEAP
 template <typename TBlockType>
-__inline
+inline
 char *
 SmallHeapBlockAllocator<TBlockType>::PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode)
 {
@@ -179,7 +179,7 @@ SmallHeapBlockAllocator<TBlockType>::PageHeapAlloc(Recycler * recycler, size_t s
 
 template <typename TBlockType>
 template <bool canFaultInject>
-__inline char*
+inline char*
 SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes)
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
@@ -259,7 +259,7 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, size_
 
 template <typename TBlockType>
 template <ObjectInfoBits attributes>
-__inline char *
+inline char *
 SmallHeapBlockAllocator<TBlockType>::InlinedAlloc(Recycler * recycler, size_t sizeCat)
 {
     return InlinedAllocImpl<true /* allow fault injection */>(recycler, sizeCat, attributes);
@@ -267,7 +267,7 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAlloc(Recycler * recycler, size_t si
 
 template <typename TBlockType>
 template <bool canFaultInject>
-__inline
+inline
 char *
 SmallHeapBlockAllocator<TBlockType>::SlowAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes)
 {

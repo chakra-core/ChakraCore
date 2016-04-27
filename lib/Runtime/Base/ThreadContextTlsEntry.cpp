@@ -127,7 +127,7 @@ void ThreadContextTLSEntry::Delete(ThreadContextTLSEntry * entry)
     HeapDelete(entry);
 }
 
-__inline ThreadContextTLSEntry * ThreadContextTLSEntry::GetEntryForCurrentThread()
+inline ThreadContextTLSEntry * ThreadContextTLSEntry::GetEntryForCurrentThread()
 {
     Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
     return reinterpret_cast<ThreadContextTLSEntry *>(TlsGetValue(s_tlsSlot));
@@ -146,7 +146,7 @@ ThreadContextTLSEntry * ThreadContextTLSEntry::CreateEntryForCurrentThread()
     return entry;
 }
 
-__inline ThreadContext * ThreadContextTLSEntry::GetThreadContext()
+inline ThreadContext * ThreadContextTLSEntry::GetThreadContext()
 {
     return this->threadContext;
 }

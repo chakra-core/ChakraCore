@@ -82,7 +82,7 @@ protected:
 
 #ifdef RECYCLER_PAGE_HEAP
     bool isPageHeapEnabled;
-    __inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
+    inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
 #endif
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     Recycler * GetRecycler() const;
@@ -119,7 +119,7 @@ public:
     bool IntegrateBlock(char * blockAddress, PageSegment * segment, Recycler * recycler);
 
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char * RealAlloc(Recycler * recycler, size_t sizeCat);
+    inline char * RealAlloc(Recycler * recycler, size_t sizeCat);
 
 #ifdef RECYCLER_PAGE_HEAP
     char * PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow);

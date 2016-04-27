@@ -6,7 +6,7 @@
 
 template <typename TBlockType>
 template <ObjectInfoBits attributes, bool nothrow>
-__inline char *
+inline char *
 HeapBucketT<TBlockType>::RealAlloc(Recycler * recycler, size_t sizeCat)
 {
     Assert(sizeCat == this->sizeCat);

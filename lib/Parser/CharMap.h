@@ -296,7 +296,7 @@ namespace UnifiedRegex
             __analysis_assume(c < directSize);
             return directMap[c];
         }
-        __inline V Get(Char kc) const
+        inline V Get(Char kc) const
         {
             if (CTU(kc) < GetDirectMapSize())
             {

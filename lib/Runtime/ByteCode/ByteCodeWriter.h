@@ -52,7 +52,7 @@ namespace Js
             }
 
             // This does not do check if there is enough space for the copy to succeed.
-            __inline void WriteUnsafe(__in_bcount(byteSize) const void* data, __in uint byteSize)
+            inline void WriteUnsafe(__in_bcount(byteSize) const void* data, __in uint byteSize)
             {
                 AssertMsg(RemainingBytes() >= byteSize, "We do not have enough room");
 
@@ -73,7 +73,7 @@ namespace Js
             uint currentOffset;  // The global offset of last byte written to in the linked data structure
             bool fixedGrowthPolicy;
 
-            __inline uint Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
+            inline uint Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
             __declspec(noinline) void SlowWrite(__in_bcount(byteSize) const void* data, __in uint byteSize);
             void AddChunk(uint byteSize);
 

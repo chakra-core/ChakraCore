@@ -388,7 +388,7 @@ case_2:
         }
     }
 
-    __inline JavascriptString* JavascriptString::ConcatDestructive(JavascriptString* pstRight)
+    inline JavascriptString* JavascriptString::ConcatDestructive(JavascriptString* pstRight)
     {
         Assert(pstRight);
 
@@ -544,7 +544,7 @@ case_2:
         return cs;
     }
 
-    __inline JavascriptString* JavascriptString::Concat(JavascriptString* pstLeft, JavascriptString* pstRight)
+    inline JavascriptString* JavascriptString::Concat(JavascriptString* pstLeft, JavascriptString* pstRight)
     {
         AssertMsg(pstLeft != nullptr, "Must have a valid left string");
         AssertMsg(pstRight != nullptr, "Must have a valid right string");

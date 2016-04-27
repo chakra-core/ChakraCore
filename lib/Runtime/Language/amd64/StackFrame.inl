@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-__inline void Js::Amd64StackFrame::EnsureFunctionEntry()
+inline void Js::Amd64StackFrame::EnsureFunctionEntry()
 {
     if (!functionEntry)
     {
@@ -12,7 +12,7 @@ __inline void Js::Amd64StackFrame::EnsureFunctionEntry()
     }
 }
 
-__inline bool Js::Amd64StackFrame::EnsureCallerContext(bool isCurrentContextNative)
+inline bool Js::Amd64StackFrame::EnsureCallerContext(bool isCurrentContextNative)
 {
     if (!hasCallerContext)
     {
@@ -41,7 +41,7 @@ __inline bool Js::Amd64StackFrame::EnsureCallerContext(bool isCurrentContextNati
     return true;
 }
 
-__inline void Js::Amd64StackFrame::OnCurrentContextUpdated()
+inline void Js::Amd64StackFrame::OnCurrentContextUpdated()
 {
     imageBase = 0;
     functionEntry = nullptr;

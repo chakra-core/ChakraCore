@@ -1258,7 +1258,7 @@ namespace Js
     }
 
     template <typename TypeName, bool clamped, bool virtualAllocated>
-    __inline Var TypedArray<TypeName, clamped, virtualAllocated>::Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary)
+    inline Var TypedArray<TypeName, clamped, virtualAllocated>::Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary)
     {
         uint32 totalLength, mappedByteLength;
 
@@ -3032,175 +3032,175 @@ namespace Js
     }
 
     template<>
-    __inline BOOL Int8Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Int8Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt8);
     }
 
     template<>
-    __inline BOOL Int8VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Int8VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt8);
     }
 
     template<>
-    __inline Var Int8Array::DirectGetItem(__in uint32 index)
+    inline Var Int8Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline Var Int8VirtualArray::DirectGetItem(__in uint32 index)
+    inline Var Int8VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Uint8Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Uint8Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt8);
     }
 
     template<>
-    __inline BOOL Uint8VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Uint8VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt8);
     }
 
     template<>
-    __inline Var Uint8Array::DirectGetItem(__in uint32 index)
+    inline Var Uint8Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline Var Uint8VirtualArray::DirectGetItem(__in uint32 index)
+    inline Var Uint8VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Uint8ClampedArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Uint8ClampedArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt8Clamped);
     }
 
     template<>
-    __inline Var Uint8ClampedArray::DirectGetItem(__in uint32 index)
+    inline Var Uint8ClampedArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Uint8ClampedVirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Uint8ClampedVirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt8Clamped);
     }
 
     template<>
-    __inline Var Uint8ClampedVirtualArray::DirectGetItem(__in uint32 index)
+    inline Var Uint8ClampedVirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Int16Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Int16Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt16);
     }
 
     template<>
-    __inline Var Int16Array::DirectGetItem(__in uint32 index)
+    inline Var Int16Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Int16VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Int16VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt16);
     }
 
     template<>
-    __inline Var Int16VirtualArray::DirectGetItem(__in uint32 index)
+    inline Var Int16VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Uint16Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Uint16Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt16);
     }
 
     template<>
-    __inline Var Uint16Array::DirectGetItem(__in uint32 index)
+    inline Var Uint16Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Uint16VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Uint16VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt16);
     }
 
     template<>
-    __inline Var Uint16VirtualArray::DirectGetItem(__in uint32 index)
+    inline Var Uint16VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Int32Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Int32Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt32);
     }
 
     template<>
-    __inline Var Int32Array::DirectGetItem(__in uint32 index)
+    inline Var Int32Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Int32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Int32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt32);
     }
 
     template<>
-    __inline Var Int32VirtualArray::DirectGetItem(__in uint32 index)
+    inline Var Int32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Uint32Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Uint32Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt32);
     }
 
     template<>
-    __inline Var Uint32Array::DirectGetItem(__in uint32 index)
+    inline Var Uint32Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Uint32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Uint32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt32);
     }
 
     template<>
-    __inline Var Uint32VirtualArray::DirectGetItem(__in uint32 index)
+    inline Var Uint32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Float32Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Float32Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToFloat);
     }
@@ -3212,7 +3212,7 @@ namespace Js
     }
 
     template<>
-    __inline BOOL Float32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Float32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToFloat);
     }
@@ -3224,61 +3224,61 @@ namespace Js
     }
 
     template<>
-    __inline BOOL Float64Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Float64Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToNumber);
     }
 
     template<>
-    __inline Var Float64Array::DirectGetItem(__in uint32 index)
+    inline Var Float64Array::DirectGetItem(__in uint32 index)
     {
         return TypedDirectGetItemWithCheck(index);
     }
 
     template<>
-    __inline BOOL Float64VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Float64VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToNumber);
     }
 
     template<>
-    __inline Var Float64VirtualArray::DirectGetItem(__in uint32 index)
+    inline Var Float64VirtualArray::DirectGetItem(__in uint32 index)
     {
         return TypedDirectGetItemWithCheck(index);
     }
 
     template<>
-    __inline BOOL Int64Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Int64Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToInt64);
     }
 
     template<>
-    __inline Var Int64Array::DirectGetItem(__in uint32 index)
+    inline Var Int64Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL Uint64Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL Uint64Array::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToUInt64);
     }
 
     template<>
-    __inline Var Uint64Array::DirectGetItem(__in uint32 index)
+    inline Var Uint64Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    __inline BOOL BoolArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL BoolArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         return BaseTypedDirectSetItem(index, value, skipSetElement, JavascriptConversion::ToBool);
     }
 
     template<>
-    __inline Var BoolArray::DirectGetItem(__in uint32 index)
+    inline Var BoolArray::DirectGetItem(__in uint32 index)
     {
         if (index < GetLength())
         {
@@ -3320,19 +3320,19 @@ namespace Js
         JavascriptError::ThrowTypeError(function->GetScriptContext(), JSERR_This_NeedTypedArray);
     }
 
-    __inline Var CharArray::Subarray(uint32 begin, uint32 end)
+    inline Var CharArray::Subarray(uint32 begin, uint32 end)
     {
         AssertMsg(FALSE, "not supported in char array");
         JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_This_NeedTypedArray);
     }
 
-    __inline CharArray* CharArray::FromVar(Var aValue)
+    inline CharArray* CharArray::FromVar(Var aValue)
     {
         AssertMsg(CharArray::Is(aValue), "invalid CharArray");
         return static_cast<CharArray*>(RecyclableObject::FromVar(aValue));
     }
 
-    __inline BOOL CharArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
+    inline BOOL CharArray::DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement)
     {
         ScriptContext* scriptContext = GetScriptContext();
         // A typed array is Integer Indexed Exotic object, so doing a get translates to 9.4.5.9 IntegerIndexedElementSet
@@ -3364,7 +3364,7 @@ namespace Js
         return TRUE;
     }
 
-    __inline Var CharArray::DirectGetItem(__in uint32 index)
+    inline Var CharArray::DirectGetItem(__in uint32 index)
     {
         // A typed array is Integer Indexed Exotic object, so doing a get translates to 9.4.5.8 IntegerIndexedElementGet
         if (this->IsDetachedBuffer())
@@ -3399,4 +3399,18 @@ namespace Js
 #endif
         return object;
     }
+
+    // Instantiate the constructor function directly
+    template TypedArray<int8>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<uint8,false>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<uint8,true>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<int16>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<uint16>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<int32>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<uint32>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<float>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<double>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<int64>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<uint64>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
+    template TypedArray<bool>::TypedArray(ArrayBuffer*, uint32, uint32, DynamicType*);
 }

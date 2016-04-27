@@ -1480,7 +1480,7 @@ CommonNumber:
         }
     }
 
-    __inline uint16 JavascriptConversion::ToUInt16(double T1)
+    inline uint16 JavascriptConversion::ToUInt16(double T1)
     {
         //
         // VC does the right thing here, if we first convert to uint32 and then to uint16

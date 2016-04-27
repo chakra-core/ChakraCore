@@ -15,13 +15,13 @@ namespace Js
     }
 
     // Specialization for the empty string
-    template<> JavascriptString* JavascriptLibrary::CreateStringFromCppLiteral(const char16(&value)[1]) const
+    template<> inline JavascriptString* JavascriptLibrary::CreateStringFromCppLiteral(const char16(&value)[1]) const
     {
         return GetEmptyString();
     }
-
+    
     // Specialization for single-char strings
-    template<> JavascriptString* JavascriptLibrary::CreateStringFromCppLiteral(const char16(&value)[2]) const
+    template<> inline JavascriptString* JavascriptLibrary::CreateStringFromCppLiteral(const char16(&value)[2]) const
     {
         return charStringCache.GetStringForChar(value[0]);
     }

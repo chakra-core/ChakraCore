@@ -6,10 +6,12 @@
 
 namespace UnifiedRegex
 {
+    const int CharTrie::initCapacity;
+
     // ----------------------------------------------------------------------
     // CharTrie
     // ----------------------------------------------------------------------
-    __inline bool CharTrie::Find(Char c, int& outi)
+    inline bool CharTrie::Find(Char c, int& outi)
     {
         if (count == 0)
         {

@@ -54,7 +54,7 @@ enum ETWEventGCActivationKind : unsigned
 
 DefaultRecyclerCollectionWrapper DefaultRecyclerCollectionWrapper::Instance;
 
-__inline bool
+inline bool
 DefaultRecyclerCollectionWrapper::IsCollectionDisabled(Recycler * recycler)
 {
     // GC shouldn't be triggered during heap enum, unless we missed a case where it allocate memory (which
@@ -117,9 +117,15 @@ DefaultRecyclerCollectionWrapper::DisposeObjects(Recycler * recycler)
 
 static void* GetStackBase();
 
+#ifdef _MSC_VER
 template __forceinline char * Recycler::AllocWithAttributesInlined<NoBit, false>(size_t size);
 template __forceinline char* Recycler::RealAlloc<NoBit, false>(HeapInfo* heap, size_t size);
 template __forceinline _Ret_notnull_ void * __cdecl operator new<Recycler>(size_t byteSize, Recycler * alloc, char * (Recycler::*AllocFunc)(size_t));
+#else
+template __attribute__((always_inline)) char * Recycler::AllocWithAttributesInlined<NoBit, false>(size_t size);
+template __attribute__((always_inline)) char* Recycler::RealAlloc<NoBit, false>(HeapInfo* heap, size_t size);
+template __attribute__((always_inline)) void * __cdecl operator new<Recycler>(size_t byteSize, Recycler * alloc, char * (Recycler::*AllocFunc)(size_t));
+#endif
 
 Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllocator * pageAllocator, void (*outOfMemoryFunc)(), Js::ConfigFlagsTable& configFlagsTable) :
     collectionState(CollectionStateNotCollecting),
@@ -3097,7 +3103,7 @@ Recycler::FinishDisposeObjectsNow()
 }
 
 template <CollectionFlags flags>
-__inline
+inline
 bool
 Recycler::FinishDisposeObjectsWrapped()
 {

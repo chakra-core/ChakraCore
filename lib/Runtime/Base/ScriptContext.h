@@ -313,7 +313,7 @@ namespace Js
     {
         PropertyString* strLen2[80];
 
-        __inline static uint PStrMapIndex(char16 ch)
+        inline static uint PStrMapIndex(char16 ch)
         {
             Assert(ch >= '0' && ch <= 'z');
             return ch - '0';
@@ -995,7 +995,7 @@ private:
         template <class TDelegate>
         FunctionBody* FindFunction(TDelegate predicate);
 
-        __inline bool EnableEvalMapCleanup() { return CONFIG_FLAG(EnableEvalMapCleanup); };
+        inline bool EnableEvalMapCleanup() { return CONFIG_FLAG(EnableEvalMapCleanup); };
         void BeginDynamicFunctionReferences();
         void EndDynamicFunctionReferences();
         void RegisterDynamicFunctionReference(FunctionProxy* func);

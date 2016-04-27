@@ -10153,7 +10153,7 @@ Case0:
     // Move to the next element if available.
     //
     template<typename T>
-    __inline bool JavascriptArray::ArrayElementEnumerator::MoveNext()
+    inline bool JavascriptArray::ArrayElementEnumerator::MoveNext()
     {
         while (seg)
         {

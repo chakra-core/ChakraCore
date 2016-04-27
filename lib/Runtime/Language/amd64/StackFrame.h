@@ -109,9 +109,9 @@ namespace Js {
         CONTEXT          *callerContext;
         size_t            stackCheckCodeHeight;
 
-        __inline void EnsureFunctionEntry();
-        __inline bool EnsureCallerContext(bool isCurrentContextNative);
-        __inline void OnCurrentContextUpdated();
+        inline void EnsureFunctionEntry();
+        inline bool EnsureCallerContext(bool isCurrentContextNative);
+        inline void OnCurrentContextUpdated();
 
         static bool NextFromNativeAddress(CONTEXT * context);
         static bool Next(CONTEXT *context, ULONG64 imageBase, RUNTIME_FUNCTION *runtimeFunction);

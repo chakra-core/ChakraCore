@@ -383,7 +383,7 @@ bool Scanner<EncodingPolicy>::TryReadCodePointRest(codepoint_t lower, EncodedCha
 
 template <typename EncodingPolicy>
 template <bool bScan>
-__inline bool Scanner<EncodingPolicy>::TryReadCodePoint(EncodedCharPtr &startingLocation, EncodedCharPtr endOfSource, codepoint_t *outChar, bool *hasEscape, bool *outContainsMultiUnitChar)
+inline bool Scanner<EncodingPolicy>::TryReadCodePoint(EncodedCharPtr &startingLocation, EncodedCharPtr endOfSource, codepoint_t *outChar, bool *hasEscape, bool *outContainsMultiUnitChar)
 {
     Assert(outChar != nullptr);
     Assert(outContainsMultiUnitChar != nullptr);

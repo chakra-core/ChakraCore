@@ -31,16 +31,25 @@ typedef wchar_t char16;
 #else // !_WIN32
 
 #define USING_PAL_STDLIB 1
+#define STRSAFE_INLINE   1
+
 #ifdef PAL_STDCPP_COMPAT
 #include <math.h>
 #include <time.h>
 #include <smmintrin.h>
 #include <xmmintrin.h>
 #endif
+
 #include "inc/pal.h"
 #include "inc/rt/palrt.h"
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
+
+// In general, we don't need to force-inline any of Chakra's functions
+// on Linux- we'd rather let the compiler figure this out for us
+// If, in the future, perf investigations reveal that force inlining
+// would help, we can address on a case-by-case basis.
+#define __forceinline inline
 
 typedef char16_t char16;
 #define _u(s) u##s

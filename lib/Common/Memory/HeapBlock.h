@@ -292,7 +292,7 @@ protected:
 #endif
 
 public:
-    __inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
+    inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
 #ifdef STACK_BACK_TRACE
     void CapturePageHeapAllocStack();
     void CapturePageHeapFreeStack();
@@ -608,7 +608,7 @@ public:
     BOOL ReassignPages(Recycler * recycler);
 
     template<bool pageheap>
-    __inline const uint GetPageHeapModePageCount() const;
+    inline const uint GetPageHeapModePageCount() const;
 
 #ifdef RECYCLER_PAGE_HEAP
     void ClearPageHeapState();
@@ -665,7 +665,7 @@ public:
 
 protected:
     static size_t GetAllocPlusSize(uint objectCount);
-    __inline void SetAttributes(void * address, unsigned char attributes);
+    inline void SetAttributes(void * address, unsigned char attributes);
 
     SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
 
@@ -697,7 +697,7 @@ protected:
     void ClearObjectInfoList();
     byte& ObjectInfo(uint index);
 
-    __inline void FillFreeMemory(__in_bcount(size) void * address, size_t size);
+    inline void FillFreeMemory(__in_bcount(size) void * address, size_t size);
 
     template <typename TBlockType>
     bool FindHeapObjectImpl(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject);

@@ -74,22 +74,22 @@ namespace Js {
         static void SetCacheInfo(PropertyValueInfo* info, FunctionBody *const functionBody, PolymorphicInlineCache *const polymorphicInlineCache, const InlineCacheIndex inlineCacheIndex, const bool allowResizingPolymorphicInlineCache);
         static void ClearCacheInfo(PropertyValueInfo* info);
 
-        __inline InlineCache * GetInlineCache() const
+        inline InlineCache * GetInlineCache() const
         {
             return this->inlineCache;
         }
 
-        __inline PolymorphicInlineCache * GetPolymorphicInlineCache() const
+        inline PolymorphicInlineCache * GetPolymorphicInlineCache() const
         {
             return this->polymorphicInlineCache;
         }
 
-        __inline FunctionBody * GetFunctionBody() const
+        inline FunctionBody * GetFunctionBody() const
         {
             return this->functionBody;
         }
 
-        __inline uint GetInlineCacheIndex() const
+        inline uint GetInlineCacheIndex() const
         {
             return this->inlineCacheIndex;
         }
@@ -234,7 +234,7 @@ namespace Js {
         void ClearWritableDataOnlyDetectionBit();
         bool IsWritableDataOnlyDetectionBitSet();
 
-        __inline Type * GetType() const { return type; }
+        inline Type * GetType() const { return type; }
 
         // In order to avoid a branch, every object has an entry point if it gets called like a
         // function - however, if it can't be called like a function, it's set to DefaultEntryPoint

@@ -69,7 +69,7 @@ private:
 
 
 template <typename T>
-__inline
+inline
 bool PageStack<T>::Pop(T * item)
 {
     Assert(currentChunk != nullptr);
@@ -107,7 +107,7 @@ bool PageStack<T>::Pop(T * item)
 }
 
 template <typename T>
-__inline
+inline
 bool PageStack<T>::Push(T item)
 {
     if (nextEntry == chunkEnd)

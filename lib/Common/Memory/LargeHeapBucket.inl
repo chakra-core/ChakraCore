@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-__inline char *
+inline char *
 LargeHeapBucket::TryAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes)
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
@@ -43,7 +43,7 @@ LargeHeapBucket::TryAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits at
 }
 
 template <ObjectInfoBits attributes, bool nothrow>
-__inline char *
+inline char *
 LargeHeapBucket::Alloc(Recycler * recycler, size_t sizeCat)
 {
     Assert(!HeapInfo::IsMediumObject(sizeCat) || HeapInfo::GetMediumObjectAlignedSizeNoCheck(sizeCat) == this->sizeCat);

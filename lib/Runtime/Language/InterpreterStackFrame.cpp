@@ -4309,7 +4309,7 @@ namespace Js
     }
 
     template <class T>
-    __inline bool InterpreterStackFrame::TrySetPropertyLocalFastPath(unaligned T* playout, PropertyId pid, Var instance, InlineCache*& inlineCache, PropertyOperationFlags flags)
+    inline bool InterpreterStackFrame::TrySetPropertyLocalFastPath(unaligned T* playout, PropertyId pid, Var instance, InlineCache*& inlineCache, PropertyOperationFlags flags)
     {
         Assert(!TaggedNumber::Is(instance));
 
@@ -4331,7 +4331,7 @@ namespace Js
     }
 
     template <class T>
-    __inline void InterpreterStackFrame::DoSetProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags)
+    inline void InterpreterStackFrame::DoSetProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
         // Same fast path as in the backend.
 
@@ -4358,7 +4358,7 @@ namespace Js
 
 
     template <class T>
-    __inline void InterpreterStackFrame::DoSetSuperProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags)
+    inline void InterpreterStackFrame::DoSetSuperProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
         DoSetSuperProperty_NoFastPath(playout, instance, flags);
     }

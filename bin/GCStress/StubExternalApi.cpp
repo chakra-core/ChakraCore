@@ -8,7 +8,7 @@
 #include "Core/ConfigParser.h"
 
 // TODO: REMOVE
-__forceinline void js_memcpy_s(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_bcount(count) const void *src, size_t count)
+void js_memcpy_s(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_bcount(count) const void *src, size_t count)
 {
     Assert((count) <= (sizeInBytes));
     if ((count) <= (sizeInBytes))
@@ -17,7 +17,7 @@ __forceinline void js_memcpy_s(__bcount(sizeInBytes) void *dst, size_t sizeInByt
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, 2);
 }
 
-__forceinline void js_wmemcpy_s(__ecount(sizeInWords) char16 *dst, size_t sizeInWords, __in_ecount(count) const char16 *src, size_t count)
+void js_wmemcpy_s(__ecount(sizeInWords) char16 *dst, size_t sizeInWords, __in_ecount(count) const char16 *src, size_t count)
 {
     //Multiplication Overflow check
     Assert(count <= sizeInWords && count <= SIZE_MAX/sizeof(char16));
