@@ -193,7 +193,7 @@ Recycler::AllocWithAttributesInlined(size_t size)
 #endif
 
 #if DBG
-    VerifyPageHeapFillAfterAlloc(memBlock);
+    VerifyPageHeapFillAfterAlloc<attributes>(memBlock, size);
 #endif
     return memBlock;
 }
@@ -247,10 +247,61 @@ Recycler::AllocZeroWithAttributesInlined(size_t size)
     }
 
 #if DBG
-    VerifyPageHeapFillAfterAlloc(obj);
+    VerifyPageHeapFillAfterAlloc<attributes>(obj, size);
 #endif
     return obj;
 }
+
+template<ObjectInfoBits attributes>
+bool Recycler::IsPageHeapEnabled(size_t size)
+{
+    if (IsPageHeapEnabled())
+    {
+        size_t sizeCat = HeapInfo::GetAlignedSizeNoCheck(size);
+        if (HeapInfo::IsSmallObject(size))
+        {
+            auto& bucket = this->autoHeap.GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
+            return bucket.IsPageHeapEnabled(attributes);
+        }
+        else if (HeapInfo::IsMediumObject(size))
+        {
+            auto& bucket = this->autoHeap.GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
+            return bucket.IsPageHeapEnabled(attributes);
+        }
+        else
+        {
+            return this->autoHeap.largeObjectBucket.IsPageHeapEnabled(attributes);
+        }
+    }
+    return false;
+}
+
+#if DBG
+template <ObjectInfoBits attributes>
+void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size)
+{
+    if (IsPageHeapEnabled())
+    {
+        HeapBlock* heapBlock = this->FindHeapBlock(memBlock);
+
+        if (this->IsPageHeapEnabled<attributes>(size))
+        {
+            Assert(heapBlock->IsLargeHeapBlock());
+        }
+
+        if (heapBlock->IsLargeHeapBlock())
+        {
+            LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
+            if (largeHeapBlock->InPageHeapMode())
+            {
+                LargeObjectHeader* header = (LargeObjectHeader*)(memBlock - sizeof(LargeObjectHeader));
+                largeHeapBlock->VerifyPageHeapPattern();
+                header->isPageHeapFillVerified = true;
+            }
+        }
+    }
+}
+#endif
 
 template <ObjectInfoBits attributes, bool isSmallAlloc, bool nothrow>
 __inline char*
@@ -297,19 +348,7 @@ Recycler::RealAllocFromBucket(HeapInfo* heap, size_t size)
         )
     {
         // TODO: looks the check has been done already
-
-        bool isPageHeapAlloc = false;
-        if (isSmallAlloc)
-        {
-            isPageHeapAlloc = heap->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).IsPageHeapEnabled(attributes);
-        }
-#ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
-        else
-        {
-            isPageHeapAlloc = heap->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).IsPageHeapEnabled(attributes);
-        }
-#endif
-        if (isPageHeapAlloc)
+        if (this->IsPageHeapEnabled<attributes>(size))
         {
             VerifyZeroFill(memBlock, size);
         }
@@ -361,7 +400,14 @@ Recycler::RealAlloc(HeapInfo* heap, size_t size)
     }
 #endif
 
-    return LargeAlloc<nothrow>(heap, size, attributes);
+    char* addr = LargeAlloc<nothrow>(heap, size, attributes);
+#if DBG
+    if (IsPageHeapEnabled())
+    {
+        this->VerifyPageHeapFillAfterAlloc<attributes>(addr, size);
+    }
+#endif
+    return addr;
 }
 
 template<typename T>

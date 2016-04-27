@@ -138,18 +138,20 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
         return nullptr;
     }
 
+    size_t guardPageCount = actualPageCount - pageCount; // pageAllocator can return more than asked pages
+
     char* address = nullptr;
     char* guardPageAddress = nullptr;
 
     if (heapInfo->pageHeapMode == PageHeapMode::PageHeapModeBlockStart)
     {
-        address = baseAddress + AutoSystemInfo::PageSize;
+        address = baseAddress + AutoSystemInfo::PageSize * guardPageCount;
         guardPageAddress = baseAddress;
     }
     else if (heapInfo->pageHeapMode == PageHeapMode::PageHeapModeBlockEnd)
     {
         address = baseAddress;
-        guardPageAddress = baseAddress + pageCount* AutoSystemInfo::PageSize;
+        guardPageAddress = baseAddress + pageCount * AutoSystemInfo::PageSize;
     }
     else
     {
@@ -186,11 +188,9 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
 
     // fill pattern
     memset(heapBlock->allocAddressEnd, 0xF0, heapBlock->addressEnd - heapBlock->allocAddressEnd);
-    LargeObjectHeader* header = (LargeObjectHeader*)address;
-    header->isPageHeapAlloc = true;
 
 #pragma prefast(suppress:6250, "This method decommits memory")
-    if (::VirtualFree(guardPageAddress, AutoSystemInfo::PageSize, MEM_DECOMMIT) == FALSE)
+    if (::VirtualFree(guardPageAddress, AutoSystemInfo::PageSize * guardPageCount, MEM_DECOMMIT) == FALSE)
     {
         AssertMsg(false, "Unable to decommit guard page.");
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, 2);
@@ -243,7 +243,9 @@ LargeHeapBucket::AddLargeHeapBlock(size_t size, bool nothrow)
 
     char * address = nullptr;
 
-    address = recycler->GetRecyclerLargeBlockPageAllocator()->Alloc(&pageCount, &segment);
+    size_t realPageCount = pageCount;
+    address = recycler->GetRecyclerLargeBlockPageAllocator()->Alloc(&realPageCount, &segment);
+    pageCount = realPageCount;
 
     if (address == nullptr)
     {

@@ -34,6 +34,11 @@ public:
     void EnumerateObjects(ObjectInfoBits infoBits, void(*CallBackFunction)(void * address, size_t size));
 #ifdef RECYCLER_PAGE_HEAP
     bool IsPageHeapEnabled() const{ return isPageHeapEnabled; }
+    static size_t RoundObjectSize(size_t objectSize) 
+    {
+        // triming off the tail part which is not a pointer
+        return objectSize - (objectSize % sizeof(void*)); 
+    }
 
     template <typename TBlockAttributes>
     bool IsPageHeapEnabledForBlock(const size_t objectSize);

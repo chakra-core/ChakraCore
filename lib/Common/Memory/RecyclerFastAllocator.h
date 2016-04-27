@@ -75,7 +75,7 @@ public:
 #if DBG
         if (recycler->IsPageHeapEnabled())
         {
-            recycler->VerifyPageHeapFillAfterAlloc(memBlock);
+            recycler->VerifyPageHeapFillAfterAlloc<attributes>(memBlock, size);
         }
 #endif
         return memBlock;

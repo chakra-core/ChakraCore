@@ -30,9 +30,8 @@ private:
 
 public:
     bool markOnOOMRescan:1;
-    bool isExplicitFreed:1;
-    bool isPageHeapAlloc:1;
 #if DBG
+    bool isExplicitFreed:1;
     bool isPageHeapFillVerified:1;
 #endif
 
@@ -53,7 +52,11 @@ public:
     void SetAttributes(uint cookie, unsigned char attributes);
     unsigned char GetAttributes(uint cookie);
 };
-
+#if defined(_M_X64_OR_ARM64)
+static_assert(sizeof(LargeObjectHeader) == 0x20, "Incorrect LargeObjectHeader size");
+#else
+static_assert(sizeof(LargeObjectHeader) == 0x10, "Incorrect LargeObjectHeader size");
+#endif
 class LargeHeapBlock;
 class LargeHeapBucket;
 
@@ -265,6 +268,7 @@ public:
     __inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
     void CapturePageHeapAllocStack();
     void CapturePageHeapFreeStack();
+    const StackBackTrace* s_StackTraceAllocFailed = (StackBackTrace*)1;
 #endif
 
 #if DBG

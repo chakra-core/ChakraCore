@@ -739,6 +739,8 @@ private:
     HeapInfo autoHeap;
 #ifdef RECYCLER_PAGE_HEAP
     __inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
+    template<ObjectInfoBits attributes>
+    bool IsPageHeapEnabled(size_t size);
     __inline bool ShouldCapturePageHeapAllocStack() const { return capturePageHeapAllocStack; }
     bool isPageHeapEnabled;
     bool capturePageHeapAllocStack;
@@ -1527,7 +1529,8 @@ private:
         return AllocWithAttributes<WeakReferenceEntryBits, /* nothrow = */ false>(size);
     }
 #if DBG
-    void VerifyPageHeapFillAfterAlloc(char* memBlock);
+    template <ObjectInfoBits attributes>
+    void VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size);
 #endif
 
     bool NeedDisposeTimed()
@@ -2025,7 +2028,7 @@ public:
 #ifdef RECYCLER_PAGE_HEAP
     bool IsPageHeapAlloc() 
     {
-        return isUsingLargeHeapBlock && m_largeHeapBlockHeader->isPageHeapAlloc;
+        return isUsingLargeHeapBlock && ((LargeHeapBlock*)m_heapBlock)->InPageHeapMode();
     }
 #endif
 

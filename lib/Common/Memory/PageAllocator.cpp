@@ -160,7 +160,7 @@ PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, bool commi
     uint maxPageCount = GetMaxPageCount();
 
     if (committed)
-    {    
+    {
         Assert(!allocated);
         this->freePageCount = this->GetAvailablePageCount();
         this->SetRangeInFreePagesBitVector(0, this->freePageCount);
@@ -466,9 +466,10 @@ void
 PageSegmentBase<T>::PartialDecommitPages(__in void * address, size_t totalPageCount, __in void* addressToDecommit, size_t pageCountToDecommit)
 {
 
-    Assert(address >= this->address);
+    Assert(address >= this->address && address < this->GetEndAddress());
+    Assert(addressToDecommit >= this->address && addressToDecommit < this->GetEndAddress());
     Assert(totalPageCount <= allocator->maxAllocPageCount);
-    Assert(((uint)(((char *)address) - this->address)) <= (allocator->maxAllocPageCount - totalPageCount) * AutoSystemInfo::PageSize);
+    Assert(((uintptr_t)(((char *)address) - this->address)) <= (allocator->maxAllocPageCount - totalPageCount) * AutoSystemInfo::PageSize);
 
     Assert(!IsFreeOrDecommitted(address, (uint)totalPageCount));
     uint base = this->GetBitRangeBase(address);
@@ -752,12 +753,12 @@ PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<
 {
     FAULTINJECT_MEMORY_NOTHROW(this->debugName, pageCount*AutoSystemInfo::PageSize);
 
-    char * pages = nullptr;    
+    char * pages = nullptr;
     FreePageEntry* localList = nullptr;
-    while (true) 
+    while (true)
     {
         FreePageEntry * freePage = (FreePageEntry *)::InterlockedPopEntrySList(&zeroPagesList);
-        if (freePage == nullptr) 
+        if (freePage == nullptr)
         {
             break;
         }
@@ -829,12 +830,12 @@ template<typename T>
 char *
 PageAllocatorBase<T>::TryAllocFromZeroPages(uint pageCount, PageSegmentBase<T> ** pageSegment)
 {
-    if (backgroundPageQueue != nullptr) 
+    if (backgroundPageQueue != nullptr)
     {
         return TryAllocFromZeroPagesList(pageCount, pageSegment, backgroundPageQueue->freePageList, false);
     }
 
-    if (this->hasZeroQueuedPages) 
+    if (this->hasZeroQueuedPages)
     {
         __analysis_assume(backgroundPageQueue != nullptr);
         return TryAllocFromZeroPagesList(pageCount, pageSegment, (((ZeroPageQueue *)backgroundPageQueue)->pendingZeroPageList), true);
@@ -1177,10 +1178,10 @@ PageAllocatorBase<T>::AllocPagesInternal(uint pageCount, PageSegmentBase<T> ** p
 
     PageTracking::ReportAllocation((PageAllocator*)this, allocation, AutoSystemInfo::PageSize * pageCount);
 
-    if (!notPageAligned) 
+    if (!notPageAligned)
     {
         Assert(PageSegmentBase<T>::IsAllocationPageAligned(allocation, pageCount));
-    } 
+    }
 
     return allocation;
 }
@@ -1397,18 +1398,19 @@ void
 PageAllocatorBase<T>::PartialDecommitPages(__in void * address, size_t pageCountTotal, __in void* decommitAddress, size_t pageCountToDecommit, __in void * segmentParam)
 {
     // TODO: use a specialized PageHeapPageAllocator to simplify the page allocating logic for pageheap
-    if (pageCountTotal > this->maxAllocPageCount) 
+    if (pageCountTotal > this->maxAllocPageCount)
     {
-        SegmentBase<T> * segment = (SegmentBase<T>*) segmentParam;
+        SegmentBase<T> * segment = (SegmentBase<T>*)segmentParam;
+        Assert(pageCountTotal == segment->GetPageCount());
         PageTracking::ReportFree((PageAllocator*)this, segment->GetAddress(), AutoSystemInfo::PageSize * segment->GetPageCount());
         LogFreePages(segment->GetPageCount());
         LogFreeSegment(segment);
 
-        // when deleteing segement, it call VirtualFree with MEM_RELEASE, so it should be OK
+        // when deleting segement, it call VirtualFree with MEM_RELEASE, so it should be OK
         // even we have partial decommited pages in the segment
         largeSegments.RemoveElement(&NoThrowNoMemProtectHeapAllocator::Instance, segment);
     }
-    else 
+    else
     {
         PageSegmentBase<T> * pageSegment = (PageSegmentBase<T>*) segmentParam;
         DListBase<PageSegmentBase<T>> * fromSegmentList = GetSegmentList(pageSegment);

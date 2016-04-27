@@ -1091,14 +1091,17 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 
     Assert(heapBlock != nullptr);
 #ifdef RECYCLER_PAGE_HEAP
-    if (this->IsPageHeapEnabled() && this->ShouldCapturePageHeapFreeStack())
+    if (this->IsPageHeapEnabled())
     {
-        if (heapBlock->IsLargeHeapBlock())
+        if (this->ShouldCapturePageHeapFreeStack())
         {
-            LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
-            if (largeHeapBlock->InPageHeapMode())
+            if (heapBlock->IsLargeHeapBlock())
             {
-                largeHeapBlock->CapturePageHeapFreeStack();
+                LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
+                if (largeHeapBlock->InPageHeapMode())
+                {
+                    largeHeapBlock->CapturePageHeapFreeStack();
+                }
             }
         }
 
@@ -1247,12 +1250,6 @@ Recycler::LargeAlloc(HeapInfo* heap, size_t size, ObjectInfoBits attributes)
         }
     }
     autoHeap.uncollectedAllocBytes += size;
-#if DBG
-    if (IsPageHeapEnabled())
-    {
-        this->VerifyPageHeapFillAfterAlloc(addr);
-    }
-#endif
     return addr;
 }
 
@@ -1309,29 +1306,6 @@ bool Recycler::AllowNativeCodeBumpAllocation()
 
     return true;
 }
-
-
-#if DBG
-void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock)
-{
-    if (IsPageHeapEnabled())
-    {
-        HeapBlock* heapBlock = this->FindHeapBlock(memBlock);
-        if (heapBlock->IsLargeHeapBlock())
-        {
-            LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
-            if (largeHeapBlock->InPageHeapMode())
-            {
-                LargeObjectHeader* header = (LargeObjectHeader*)(memBlock - sizeof(LargeObjectHeader));
-                Assert(header->isPageHeapAlloc);
-                largeHeapBlock->VerifyPageHeapPattern();
-                header->isPageHeapFillVerified = true;
-            }
-        }
-    }
-}
-#endif
-
 
 void Recycler::TrackNativeAllocatedMemoryBlock(Recycler * recycler, void * memBlock, size_t sizeCat)
 {

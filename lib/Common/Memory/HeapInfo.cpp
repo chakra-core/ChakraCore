@@ -638,8 +638,7 @@ bool HeapInfo::IsPageHeapEnabledForBlock(const size_t objectSize)
         }
         else
         {
-            // Page heap is enabled for large heap by default if page heap mode is on
-            return true;
+            return ((byte)this->pageHeapBlockType & (byte)PageHeapBlockTypeFilter::PageHeapBlockTypeFilterLarge) != 0;
         }
     }
     return false;
