@@ -11,7 +11,7 @@ namespace Js
     typedef JsUtil::BaseDictionary<SourceTextModuleRecord*, SourceTextModuleRecord*, ArenaAllocator, PowerOf2SizePolicy> ParentModuleRecordSet;
     typedef JsUtil::BaseDictionary<PropertyId, uint, ArenaAllocator, PowerOf2SizePolicy> LocalExportMap;
     typedef JsUtil::BaseDictionary<PropertyId, ModuleNameRecord, ArenaAllocator, PowerOf2SizePolicy> ResolvedExportMap;
-    typedef JsUtil::List<PropertyId> LocalExportIndexList;
+    typedef JsUtil::List<PropertyId, ArenaAllocator> LocalExportIndexList;
 
     class SourceTextModuleRecord : public ModuleRecordBase
     {
@@ -108,8 +108,6 @@ namespace Js
         ExportedNames* exportedNames;
         ResolvedExportMap* resolvedExportMap;
 
-        TempArenaAllocatorObject* tempAllocatorObject;
-
         Js::JavascriptFunction* rootFunction;
         void* hostDefined;
         Var errorObject;
@@ -118,7 +116,6 @@ namespace Js
         uint localSlotCount;
         uint moduleId;
 
-        ArenaAllocator* EnsureTempAllocator();
         HRESULT PostParseProcess();
         HRESULT PrepareForModuleDeclarationInitialization();
         void ImportModuleListsFromParser();
