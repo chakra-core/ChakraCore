@@ -44,6 +44,8 @@ namespace Js
         static RecyclableObject * GetThisObject(Arguments& args, PCWSTR varName, ScriptContext* scriptContext);
         static JavascriptString * GetFirstStringArg(Arguments& args, ScriptContext* scriptContext);
 
+        static bool ShouldApplyPrototypeWebWorkaround(Arguments& args, ScriptContext* scriptContext);
+
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result);
         bool SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, BOOL* result);
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* result);
