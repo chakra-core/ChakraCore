@@ -5,6 +5,7 @@
 #include "RuntimeTypePch.h"
 
 namespace Js {
+    const uint TypePath::InitialTypePathSize;
 
     TypePath* TypePath::New(Recycler* recycler, uint size)
     {

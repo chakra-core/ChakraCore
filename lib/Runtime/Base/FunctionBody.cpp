@@ -33,6 +33,8 @@
 
 namespace Js
 {
+    uint const ScopeSlots::MaxEncodedSlotCount;
+
     CriticalSection FunctionProxy::GlobalLock;
 
 #ifdef FIELD_ACCESS_STATS
