@@ -201,6 +201,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     isPrimaryMarkContextInitialized(false),
 #endif
     allowDispose(false),
+    inDisposeWrapper(false),
     hasDisposableObject(false),
     tickCountNextDispose(0),
     hasPendingTransferDisposedObjects(false),
