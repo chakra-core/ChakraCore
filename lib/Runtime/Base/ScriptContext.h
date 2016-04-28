@@ -1084,6 +1084,58 @@ private:
 
         ////
 
+		//Use this to check specifically if we are in record AND this code is being run on behalf of the user application
+		bool ShouldPerformRecordAction() const
+		{
+			//return true if RecordEnabled and ~ExcludedExecution
+			return (this->m_ttdMode & TTD::TTDMode::TTDShouldRecordActionMask) == TTD::TTDMode::RecordEnabled;
+		}
+
+		//Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
+		bool ShouldPerformDebugAction() const
+		{
+#if ENABLE_TTD_DEBUGGING
+			//return true if DebuggingEnabled and ~ExcludedExecution
+			return (this->m_ttdMode & TTD::TTDMode::TTDShouldDebugActionMask) == TTD::TTDMode::DebuggingEnabled;
+
+#else
+			return false;
+#endif
+		}
+
+        //Use this to check if the TTD has been set into record/replay mode (although we still need to check if we should do any record ro replay)
+        bool IsTTDActive() const
+        {
+            return (this->m_ttdMode & TTD::TTDMode::TTDActive) != TTD::TTDMode::Invalid;
+        }
+
+        //Use this to check if the TTD has been detached (e.g., has traced a context execution and has now been detached)
+        bool IsTTDDetached() const
+        {
+            return (this->m_ttdMode & TTD::TTDMode::Detached) != TTD::TTDMode::Invalid;
+        }
+
+        //Use this to check if we should tag values that are passing to/from the JsRT host
+        bool ShouldTagForJsRT() const
+        {
+            bool modeIsPending = (this->m_ttdMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
+            bool modeIsRecord = (this->m_ttdMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
+            bool inDebugableCode = (this->m_ttdMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
+
+            return ((modeIsPending | modeIsRecord) & inDebugableCode);
+        }
+
+        //Use this to check if we should tag values that are passing to/from the JsRT host
+        bool ShouldTagForExternalCall() const
+        {
+            bool modeIsPending = (this->m_ttdMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
+            bool modeIsRecord = (this->m_ttdMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
+            bool modeIsDebug = (this->m_ttdMode & TTD::TTDMode::DebuggingEnabled) == TTD::TTDMode::DebuggingEnabled;
+            bool inDebugableCode = (this->m_ttdMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
+
+            return ((modeIsPending | modeIsRecord | modeIsDebug) & inDebugableCode);
+        }
+
         //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
         bool IsRootTrackedObject_TTD(Js::RecyclableObject* newRoot);
         void AddTrackedRoot_TTD(Js::RecyclableObject* newRoot);
@@ -1146,12 +1198,6 @@ private:
         //Initialize debug script generation and no-native as needed for replay/debug at script context initialization
         void InitializeRecordingActionsAsNeeded_TTD();
         void InitializeDebuggingActionsAsNeeded_TTD();
-
-        //Check if we want to do object tagging for this context
-        bool DoObjectIdenityTagging_TTD()
-        {
-            return (this->m_ttdMode & TTD::TTDMode::TTDTagActive) == this->m_ttdMode;
-        }
 #endif
 
         void SetFirstInterpreterFrameReturnAddress(void * returnAddress) { firstInterpreterFrameReturnAddress = returnAddress;}

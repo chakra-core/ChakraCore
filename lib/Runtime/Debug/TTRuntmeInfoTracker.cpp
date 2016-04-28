@@ -117,12 +117,12 @@ namespace TTD
     void RuntimeThreadInfo::JsRTTagObject(ThreadContext* threadContext, Js::Var value)
     {
         //TTD is completely disabled so we aren't doing anything
-        if(threadContext->TTDInfo == nullptr || value == nullptr || !TTD::JsSupport::IsVarComplexKind(value))
+        if(value == nullptr || !TTD::JsSupport::IsVarComplexKind(value))
         {
             return;
         }
 
-        if(threadContext->TTDLog->ShouldTagForJsRT())
+        if(Js::RecyclableObject::FromVar(value)->GetScriptContext()->ShouldTagForJsRT())
         {
             threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(value));
         }

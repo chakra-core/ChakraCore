@@ -1095,19 +1095,14 @@ StringCommon:
                 scriptContext->GetLibrary()->SetIsPRNGSeeded(true);
 
 #if ENABLE_TTD
-                ThreadContext* threadContext = scriptContext->GetThreadContext();
-                if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+                if(scriptContext->ShouldPerformDebugAction())
                 {
-                    TTD::EventLog* elog = threadContext->TTDLog;
-                    if(elog->ShouldPerformDebugAction())
-                    {
-                        elog->ReplayExternalEntropyRandomEvent(&seed0, &seed1);
-                    }
+                    scriptContext->GetThreadContext()->TTDLog->ReplayExternalEntropyRandomEvent(&seed0, &seed1);
+                }
 
-                    if(elog->ShouldPerformRecordAction())
-                    {
-                        elog->RecordExternalEntropyRandomEvent(seed0, seed1);
-                    }
+                if(scriptContext->ShouldPerformRecordAction())
+                {
+                    scriptContext->GetThreadContext()->TTDLog->RecordExternalEntropyRandomEvent(seed0, seed1);
                 }
 #endif
             }

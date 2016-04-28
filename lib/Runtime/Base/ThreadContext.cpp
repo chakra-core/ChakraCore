@@ -911,7 +911,7 @@ Js::PropertyRecord const *
 ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& propertyName, bool bind, bool isSymbol)
 {
 #if ENABLE_TTD
-    if(this->TTDLog != nullptr && this->TTDLog->ShouldPerformDebugAction())
+    if(this->TTDLog != nullptr && this->TTDLog->ShouldPerformDebugAction_SymbolCreation())
     {
         //We reload all properties that occour in the trace so they only way we get here in TTD mode is:
         //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or 
@@ -979,7 +979,7 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     Js::PropertyId propertyId = this->GetNextPropertyId();
 
 #if ENABLE_TTD
-    if(isSymbol & (this->TTDLog != nullptr && this->TTDLog->ShouldPerformRecordAction()))
+    if(isSymbol & (this->TTDLog != nullptr && this->TTDLog->ShouldPerformRecordAction_SymbolCreation()))
     {
         this->TTDLog->RecordSymbolCreationEvent(propertyId);
     }
@@ -1864,14 +1864,14 @@ void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doR
 
 void ThreadContext::BeginCtxTimeTravel(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor)
 {
-    AssertMsg(!this->TTDLog->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
+    AssertMsg(!ctx->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
 
     this->TTDLog->StartTimeTravelOnScript(ctx, callbackFunctor);
 }
 
 void ThreadContext::EndCtxTimeTravel(Js::ScriptContext* ctx)
 {
-    AssertMsg(!this->TTDLog->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
+    AssertMsg(!ctx->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
 
     this->TTDLog->SetGlobalMode(TTD::TTDMode::Detached);
     this->TTDLog->StopTimeTravelOnScript(ctx);

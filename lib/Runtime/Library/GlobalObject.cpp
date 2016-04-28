@@ -1610,18 +1610,14 @@ LHexError:
         Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
         bool doPrint = (args.Info.Count == 3) && Js::JavascriptBoolean::Is(args[2]) && (Js::JavascriptBoolean::FromVar(args[2])->GetValue());
 
-        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
-        if(elog != nullptr)
+        if(function->GetScriptContext()->ShouldPerformDebugAction())
         {
-            if(elog->ShouldPerformDebugAction())
-            {
-                elog->ReplayTelemetryLogEvent(jsString);
-            }
+            function->GetScriptContext()->GetThreadContext()->TTDLog->ReplayTelemetryLogEvent(jsString);
+        }
 
-            if(elog->ShouldPerformRecordAction())
-            {
-                elog->RecordTelemetryLogEvent(jsString, doPrint);
-            }
+        if(function->GetScriptContext()->ShouldPerformRecordAction())
+        {
+            function->GetScriptContext()->GetThreadContext()->TTDLog->RecordTelemetryLogEvent(jsString, doPrint);
         }
 
         if(doPrint)

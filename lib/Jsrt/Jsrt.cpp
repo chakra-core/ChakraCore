@@ -3249,13 +3249,13 @@ STDAPI_(JsErrorCode) JsTTDStartTimeTravelRecording()
         return JsErrorCategoryUsage;
     }
 
-    if(threadContext->TTDLog->IsTTDDetached())
+    if(scriptContext->IsTTDDetached())
     {
         AssertMsg(false, "Cannot re-start TTD after detach.");
         return JsErrorCategoryUsage;
     }
 
-    if(threadContext->TTDLog->IsTTDActive())
+    if(scriptContext->IsTTDActive())
     {
         AssertMsg(false, "Already started TTD.");
         return JsErrorCategoryUsage;
@@ -3289,13 +3289,13 @@ STDAPI_(JsErrorCode) JsTTDStopTimeTravelRecording()
         return JsErrorCategoryUsage;
     }
 
-    if(threadContext->TTDLog->IsTTDDetached())
+    if(scriptContext->IsTTDDetached())
     {
         AssertMsg(false, "Already stopped TTD.");
         return JsErrorCategoryUsage;
     }
 
-    if(!threadContext->TTDLog->IsTTDActive())
+    if(!scriptContext->IsTTDActive())
     {
         AssertMsg(false, "TTD was never started.");
         return JsErrorCategoryUsage;
@@ -3328,13 +3328,13 @@ STDAPI_(JsErrorCode) JsTTDEmitTimeTravelRecording()
         return JsErrorCategoryUsage;
     }
 
-    if(threadContext->TTDLog->IsTTDDetached())
+    if(scriptContext->IsTTDDetached())
     {
         AssertMsg(false, "Already stopped TTD.");
         return JsErrorCategoryUsage;
     }
 
-    if(!threadContext->TTDLog->IsTTDActive())
+    if(!scriptContext->IsTTDActive())
     {
         AssertMsg(false, "TTD was never started.");
         return JsErrorCategoryUsage;
@@ -3366,13 +3366,13 @@ STDAPI_(JsErrorCode) JsTTDStartTimeTravelDebugging()
         return JsErrorCategoryUsage;
     }
 
-    if(threadContext->TTDLog->IsTTDDetached())
+    if(scriptContext->IsTTDDetached())
     {
         AssertMsg(false, "Cannot re-start TTD after detach.");
         return JsErrorCategoryUsage;
     }
 
-    if(threadContext->TTDLog->IsTTDActive())
+    if(scriptContext->IsTTDActive())
     {
         AssertMsg(false, "Already started TTD.");
         return JsErrorCategoryUsage;

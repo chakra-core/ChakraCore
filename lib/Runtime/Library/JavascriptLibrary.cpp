@@ -4775,55 +4775,49 @@ namespace Js
         if(this->nativeHostPromiseContinuationFunction)
         {
 #if ENABLE_TTD
-            ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
-            if(threadContext->TTDInfo != nullptr && threadContext->TTDLog->ShouldTagForExternalCall())
+            if(this->scriptContext->ShouldTagForExternalCall())
             {
-                threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(taskVar));
+				this->scriptContext->GetThreadContext()->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(taskVar));
             }
 
-            if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+			Js::Var result = this->GetUndefined();
+
+            if(this->scriptContext->ShouldPerformDebugAction())
             {
-                TTD::EventLog* elog = threadContext->TTDLog;
-                Js::Var result = this->GetUndefined();
-
-                if(elog->ShouldPerformDebugAction())
+                scriptContext->TTDRootNestingCount++;
+                BEGIN_LEAVE_SCRIPT(this->scriptContext)
                 {
-                    scriptContext->TTDRootNestingCount++;
-                    BEGIN_LEAVE_SCRIPT(scriptContext)
-                    {
-                        elog->ReplayEnqueueTaskEvent(scriptContext, &result);
-                    }
-                    END_LEAVE_SCRIPT(scriptContext);
-                    scriptContext->TTDRootNestingCount--;
+                    this->scriptContext->GetThreadContext()->TTDLog->ReplayEnqueueTaskEvent(scriptContext, &result);
                 }
+                END_LEAVE_SCRIPT(this->scriptContext);
+                scriptContext->TTDRootNestingCount--;
+            }
+            else if(this->scriptContext->ShouldPerformRecordAction())
+            {
+                Js::HiResTimer timer;
+                double startTime = timer.Now();
 
-                if(elog->ShouldPerformRecordAction())
+                this->scriptContext->TTDRootNestingCount++;
+                TTD::ExternalCallEventBeginLogEntry* beginEvent = this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskBeginEvent(scriptContext->TTDRootNestingCount, startTime);
+
+                BEGIN_LEAVE_SCRIPT(this->scriptContext);
+                try
                 {
-                    Js::HiResTimer timer;
-                    double startTime = timer.Now();
-
-                    scriptContext->TTDRootNestingCount++;
-                    TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordEnqueueTaskBeginEvent(scriptContext->TTDRootNestingCount, startTime);
-
-                    BEGIN_LEAVE_SCRIPT(scriptContext);
-                    try
-                    {
-                        this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
-                    }
-                    catch(...)
-                    {
-                        // Hosts are required not to pass exceptions back across the callback boundary. If
-                        // this happens, it is a bug in the host, not something that we are expected to
-                        // handle gracefully.
-                        Js::Throw::FatalInternalError();
-                    }
-                    END_LEAVE_SCRIPT(scriptContext);
-
-                    double endTime = timer.Now();
-
-                    elog->RecordEnqueueTaskEndEvent(beginEvent->GetEventTime(), scriptContext->TTDRootNestingCount, endTime, result);
-                    scriptContext->TTDRootNestingCount--;
+                    this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
                 }
+                catch(...)
+                {
+                    // Hosts are required not to pass exceptions back across the callback boundary. If
+                    // this happens, it is a bug in the host, not something that we are expected to
+                    // handle gracefully.
+                    Js::Throw::FatalInternalError();
+                }
+                END_LEAVE_SCRIPT(this->scriptContext);
+
+                double endTime = timer.Now();
+
+                this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskEndEvent(beginEvent->GetEventTime(), scriptContext->TTDRootNestingCount, endTime, result);
+                this->scriptContext->TTDRootNestingCount--;
             }
             else
             {
@@ -4859,6 +4853,9 @@ namespace Js
         else
         {
 #if ENABLE_TTD
+			//
+			//TODO: need to implement support for this path
+			//
             AssertMsg(false, "Path not implemented in TTD!!!");
 #endif
 

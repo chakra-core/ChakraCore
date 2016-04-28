@@ -104,7 +104,9 @@ namespace TTD
         TTDActive = (RecordEnabled | DebuggingEnabled),
 
         ExcludedExecution = 0x20,  //Set when the system is executing code on behalf of the TTD/debugger (so we don't want to record/replay things for it)
-        TTDTagActive = (RecordEnabled | DebuggingEnabled) & (~ExcludedExecution)
+
+		TTDShouldRecordActionMask = (RecordEnabled | ExcludedExecution),
+		TTDShouldDebugActionMask = (DebuggingEnabled | ExcludedExecution)
     };
     DEFINE_ENUM_FLAG_OPERATORS(TTDMode)
 

@@ -1909,18 +1909,12 @@ namespace Js
 
 #if ENABLE_TTD_STACK_STMTS
         TTD::TTDExceptionFramePopper exceptionFramePopper;
-
-        if(threadContext->TTDLog != nullptr)
+        if(functionScriptContext->ShouldPerformDebugAction() | functionScriptContext->ShouldPerformRecordAction())
         {
-            TTD::EventLog* elog = threadContext->TTDLog;
+            bool isInFinally = ((newInstance->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock) == Js::InterpreterStackFrameFlags_WithinFinallyBlock);
 
-            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
-            {
-                bool isInFinally = ((newInstance->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock) == Js::InterpreterStackFrameFlags_WithinFinallyBlock);
-
-                elog->PushCallEvent(function, args.Info.Count, args.Values, isInFinally);
-                exceptionFramePopper.PushInfo(elog, function);
-            }
+            threadContext->TTDLog->PushCallEvent(function, args.Info.Count, args.Values, isInFinally);
+            exceptionFramePopper.PushInfo(threadContext->TTDLog, function);
         }
 #endif
 
@@ -1952,16 +1946,11 @@ namespace Js
         executeFunction->EndExecution();
 
 #if ENABLE_TTD_STACK_STMTS
-        if(threadContext->TTDLog != nullptr)
-        {
-            TTD::EventLog* elog = threadContext->TTDLog;
-
-            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
-            {
-                exceptionFramePopper.PopInfo();
-                elog->PopCallEvent(function, aReturn);
-            }
-        }
+		if (functionScriptContext->ShouldPerformDebugAction() | functionScriptContext->ShouldPerformRecordAction())
+		{
+			exceptionFramePopper.PopInfo();
+			threadContext->TTDLog->PopCallEvent(function, aReturn);
+		}
 #endif
 
         if (fReleaseAlloc)
@@ -2305,14 +2294,9 @@ namespace Js
 #endif
 
 #if ENABLE_TTD_STACK_STMTS
-        ThreadContext* threadContext = this->scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr)
+        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
         {
-            TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
-            }
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
 #endif
 
@@ -2347,14 +2331,9 @@ namespace Js
 #endif
 
 #if ENABLE_TTD_STACK_STMTS
-        ThreadContext* threadContext = this->scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr)
+        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
         {
-            TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
-            }
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
 #endif
 
@@ -5651,16 +5630,9 @@ namespace Js
         //
         //TODO: Verify that his is definitely called for all loops (e.g., I recall a previous issue with while(true) {...})
         //
-
-        ThreadContext* threadContext = this->m_functionBody->GetScriptContext()->GetThreadContext();
-        if(threadContext->TTDLog != nullptr)
+        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
         {
-            TTD::EventLog* elog = threadContext->TTDLog;
-
-            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
-            {
-                elog->UpdateLoopCountInfo();
-            }
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
         }
 #endif
 
@@ -5730,16 +5702,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         //
         //TODO: Verify that his is definitely called for all loops (e.g., I recall a previous issue with while(true) {...})
         //
-
-        ThreadContext* threadContext = this->m_functionBody->GetScriptContext()->GetThreadContext();
-        if(threadContext->TTDLog != nullptr)
+        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
         {
-            TTD::EventLog* elog = threadContext->TTDLog;
-
-            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
-            {
-                elog->UpdateLoopCountInfo();
-            }
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
         }
 #endif
 
@@ -6497,10 +6462,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
 #if ENABLE_TTD_DEBUGGING
         //Clear any previous Exception Info
-        TTD::EventLog* elog = this->function->GetScriptContext()->GetThreadContext()->TTDLog;
-        if(elog != nullptr && elog->ShouldPerformDebugAction())
+        if(this->scriptContext->ShouldPerformDebugAction())
         {
-            elog->ClearExceptionFrame();
+            this->scriptContext->GetThreadContext()->TTDLog->ClearExceptionFrame();
         }
 #endif
 

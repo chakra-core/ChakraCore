@@ -7,7 +7,7 @@
 ////
 //Define compact macros for use in the JSRT API's
 #if ENABLE_TTD
-#define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) (CTX)->GetThreadContext()->TTDLog != nullptr && (CTX)->GetThreadContext()->TTDLog->ShouldPerformRecordAction()
+#define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) (CTX)->ShouldPerformRecordAction()
 #define PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(CTX, ACTION_CODE) if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) { (ACTION_CODE); }
 
 //TODO: find and replace all of the occourences of this in jsrt.cpp
@@ -315,24 +315,27 @@ namespace TTD
         //pop the top debugger mode
         void PopMode(TTDMode m);
 
-        //Set the log into debugging mode (it must already be in reaply mode
+        //Set the log into debugging mode (it must already be in replay mode)
         void SetIntoDebuggingMode();
 
-        //Use this to check specifically if we are in record AND this code is being run on behalf of the user application
-        bool ShouldPerformRecordAction() const;
+        //Use this to check specifically if we are in record AND this code is being run on behalf of the user application when doing symbol creation
+        bool ShouldPerformRecordAction_SymbolCreation() const
+        {
+            //return true if RecordEnabled and ~ExcludedExecution
+            return (this->m_currentMode & TTD::TTDMode::TTDShouldRecordActionMask) == TTD::TTDMode::RecordEnabled;
+        }
 
-        //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
-        bool ShouldPerformDebugAction() const;
+        //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application when doing symbol creation
+        bool ShouldPerformDebugAction_SymbolCreation() const
+        {
+#if ENABLE_TTD_DEBUGGING
+            //return true if DebuggingEnabled and ~ExcludedExecution
+            return (this->m_currentMode & TTD::TTDMode::TTDShouldDebugActionMask) == TTD::TTDMode::DebuggingEnabled;
 
-        //Use this to check if we should tag values that are passing to/from the JsRT host
-        bool ShouldTagForJsRT() const;
-        bool ShouldTagForExternalCall() const;
-
-        //Use this to check if the TTD has been set into record/replay mode (although we still need to check if we should do any record ro replay)
-        bool IsTTDActive() const;
-
-        //Use this to check if the TTD has been detached (e.g., has traced a context execution and has now been detached)
-        bool IsTTDDetached() const;
+#else
+            return false;
+#endif
+        }
 
         //Add a property record to our pin set
         void AddPropertyRecord(const Js::PropertyRecord* record);
@@ -417,7 +420,7 @@ namespace TTD
         void SetActiveBP(UINT bpId, const TTDebuggerSourceLocation& bpLocation);
 
         //Process the breakpoint info as we enter a break statement and return true if we actually want to break
-        bool ProcessBPInfoPreBreak();
+        bool ProcessBPInfoPreBreak(Js::FunctionBody* fb);
 
         //Process the breakpoint info as we resume from a break statement
         void ProcessBPInfoPostBreak(Js::FunctionBody* fb);

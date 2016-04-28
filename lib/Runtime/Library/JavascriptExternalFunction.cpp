@@ -270,78 +270,40 @@ namespace Js
 
 #if ENABLE_TTD
         Var result = nullptr;
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
 
-        if(threadContext->TTDInfo != nullptr && threadContext->TTDLog->ShouldTagForExternalCall())
+        if(scriptContext->ShouldTagForExternalCall())
         {
+			TTD::RuntimeThreadInfo* ttdThreadInfo = scriptContext->GetThreadContext()->TTDInfo;
             for(uint32 i = 0; i < args.Info.Count; ++i)
             {
                 Js::Var arg = args.Values[i];
                 if(TTD::JsSupport::IsVarComplexKind(arg))
                 {
-                    threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
+					ttdThreadInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
                 }
             }
         }
 
-        if(threadContext->TTDLog != nullptr)
+        if(scriptContext->ShouldPerformDebugAction())
         {
-            TTD::EventLog* elog = threadContext->TTDLog;
+            //
+            //TODO: should we move these ++/-- operations into an auto managed class like in the record case below
+            //
 
-            if(elog->ShouldPerformDebugAction())
-            {
-                //
-                //TODO: should we move these ++/-- operations into an auto managed class like in the record case below
-                //
+            scriptContext->TTDRootNestingCount++;
 
-                scriptContext->TTDRootNestingCount++;
+            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
 
-                elog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
-
-                scriptContext->TTDRootNestingCount--;
-            }
-            else if(elog->ShouldPerformRecordAction())
-            {
-                //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths
-                TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, externalFunction);
-
-                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values, logPopper.GetStartTime());
-                logPopper.SetCallAction(beginEvent); //wil lalso decrement the nesting count as needed
-
-                Var result = nullptr;
-                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
-                {
-                    // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
-                    result = externalFunction->nativeMethod(function, callInfo, args.Values);
-                }
-                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
-
-                //no exception check below so I assume the external call cannot have an exception registered
-                logPopper.NormalReturn(false, result);
-            }
-            else
-            {
-                Var result = nullptr;
-                if(externalFunction->nativeMethod == nullptr)
-                {
-                    //The only way this should happen is if the debugger is requesting a value to display that is an external accessor.
-                    //We don't support this so it should be ok to return a Js string message.
-                    LPCWSTR msg = L"Non-Inspectable External Value";
-                    result = Js::JavascriptString::NewCopyBuffer(msg, (charcount_t)wcslen(msg), scriptContext);
-                }
-                else
-                {
-                    BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
-                    {
-                        // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
-                        result = externalFunction->nativeMethod(function, callInfo, args.Values);
-                    }
-                    END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
-                }
-            }
+            scriptContext->TTDRootNestingCount--;
         }
-        else
+        else if(scriptContext->ShouldPerformRecordAction())
         {
+            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths
+            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(scriptContext->GetThreadContext()->TTDLog, externalFunction);
+
+            TTD::ExternalCallEventBeginLogEntry* beginEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values, logPopper.GetStartTime());
+            logPopper.SetCallAction(beginEvent); //wil lalso decrement the nesting count as needed
+
             Var result = nullptr;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
             {
@@ -349,6 +311,29 @@ namespace Js
                 result = externalFunction->nativeMethod(function, callInfo, args.Values);
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+
+            //no exception check below so I assume the external call cannot have an exception registered
+            logPopper.NormalReturn(false, result);
+        }
+        else
+        {
+            Var result = nullptr;
+            if(externalFunction->nativeMethod == nullptr)
+            {
+                //The only way this should happen is if the debugger is requesting a value to display that is an external accessor.
+                //We don't support this so it should be ok to return a Js string message.
+                LPCWSTR msg = _u("Non-Inspectable External Value");
+                result = Js::JavascriptString::NewCopyBuffer(msg, (charcount_t)wcslen(msg), scriptContext);
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+                {
+                    // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                    result = externalFunction->nativeMethod(function, callInfo, args.Values);
+                }
+                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+            }
         }
 #else
         Var result = nullptr;
@@ -392,70 +377,57 @@ namespace Js
         Var result = NULL;
 
 #if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-
-        if(threadContext->TTDInfo != nullptr && threadContext->TTDLog->ShouldTagForExternalCall())
+        if(scriptContext->ShouldTagForExternalCall())
         {
+			TTD::RuntimeThreadInfo* ttdThreadInfo = scriptContext->GetThreadContext()->TTDInfo;
+
             for(uint32 i = 0; i < args.Info.Count; ++i)
             {
                 Js::Var arg = args.Values[i];
                 if(TTD::JsSupport::IsVarComplexKind(arg))
                 {
-                    threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
+                    ttdThreadInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
                 }
             }
         }
 
-        if(threadContext->TTDLog != nullptr)
+        if(scriptContext->ShouldPerformDebugAction())
         {
-            TTD::EventLog* elog = threadContext->TTDLog;
+            //
+            //TODO: should we move these ++/-- operations into an auto managed class like in the record case below
+            //
 
-            if(elog->ShouldPerformDebugAction())
-            {
-                //
-                //TODO: should we move these ++/-- operations into an auto managed class like in the record case below
-                //
+            scriptContext->TTDRootNestingCount++;
 
-                scriptContext->TTDRootNestingCount++;
+            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
 
-                elog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
-
-                scriptContext->TTDRootNestingCount--;
-            }
-            else if(elog->ShouldPerformRecordAction())
-            {
-                //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths
-                TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, externalFunction);
-
-                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values, logPopper.GetStartTime());
-                logPopper.SetCallAction(beginEvent);
-
-                BEGIN_LEAVE_SCRIPT(scriptContext)
-                {
-                    result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
-                }
-                END_LEAVE_SCRIPT(scriptContext);
-
-                //exception check is done explicitly below call can have an exception registered
-                logPopper.NormalReturn(true, result);
-            }
-            else
-            {
-                BEGIN_LEAVE_SCRIPT(scriptContext)
-                {
-                    result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
-                }
-                END_LEAVE_SCRIPT(scriptContext);
-            }
+            scriptContext->TTDRootNestingCount--;
         }
-        else
+        else if(scriptContext->ShouldPerformRecordAction())
         {
+            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths
+            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(scriptContext->GetThreadContext()->TTDLog, externalFunction);
+
+            TTD::ExternalCallEventBeginLogEntry* beginEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values, logPopper.GetStartTime());
+            logPopper.SetCallAction(beginEvent);
+
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {
                 result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
             }
             END_LEAVE_SCRIPT(scriptContext);
+
+            //exception check is done explicitly below call can have an exception registered
+            logPopper.NormalReturn(true, result);
         }
+		else
+		{
+			BEGIN_LEAVE_SCRIPT(scriptContext)
+			{
+				result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+			}
+			END_LEAVE_SCRIPT(scriptContext);
+		}
 #else
         BEGIN_LEAVE_SCRIPT(scriptContext)
         {

@@ -647,51 +647,6 @@ namespace TTD
         this->m_ttdContext->InitializeDebuggingActionsAsNeeded_TTD();
     }
 
-    bool EventLog::ShouldPerformRecordAction() const
-    {
-        bool modeIsRecord = (this->m_currentMode & TTDMode::RecordEnabled) == TTDMode::RecordEnabled;
-        bool inRecordableCode = (this->m_currentMode & TTDMode::ExcludedExecution) == TTDMode::Invalid;
-
-        return modeIsRecord & inRecordableCode;
-    }
-
-    bool EventLog::ShouldPerformDebugAction() const
-    {
-        bool modeIsDebug = (this->m_currentMode & TTDMode::DebuggingEnabled) == TTDMode::DebuggingEnabled;
-        bool inDebugableCode = (this->m_currentMode & TTDMode::ExcludedExecution) == TTDMode::Invalid;
-
-        return modeIsDebug & inDebugableCode;
-    }
-
-    bool EventLog::ShouldTagForJsRT() const
-    {
-        bool modeIsPending = (this->m_currentMode & TTDMode::Pending) == TTDMode::Pending;
-        bool modeIsRecord = (this->m_currentMode & TTDMode::RecordEnabled) == TTDMode::RecordEnabled;
-        bool inDebugableCode = (this->m_currentMode & TTDMode::ExcludedExecution) == TTDMode::Invalid;
-
-        return ((modeIsPending | modeIsRecord) & inDebugableCode);
-    }
-
-    bool EventLog::ShouldTagForExternalCall() const
-    {
-        bool modeIsPending = (this->m_currentMode & TTDMode::Pending) == TTDMode::Pending;
-        bool modeIsRecord = (this->m_currentMode & TTDMode::RecordEnabled) == TTDMode::RecordEnabled;
-        bool modeIsDebug = (this->m_currentMode & TTDMode::DebuggingEnabled) == TTDMode::DebuggingEnabled;
-        bool inDebugableCode = (this->m_currentMode & TTDMode::ExcludedExecution) == TTDMode::Invalid;
-
-        return ((modeIsPending | modeIsRecord | modeIsDebug) & inDebugableCode);
-    }
-
-    bool EventLog::IsTTDActive() const
-    {
-        return (this->m_currentMode & TTDMode::TTDActive) != TTDMode::Invalid;
-    }
-
-    bool EventLog::IsTTDDetached() const
-    {
-        return (this->m_currentMode & TTDMode::Detached) != TTDMode::Invalid;
-    }
-
     void EventLog::AddPropertyRecord(const Js::PropertyRecord* record)
     {
         this->m_propertyRecordPinSet->AddNew(const_cast<Js::PropertyRecord*>(record));
@@ -699,8 +654,6 @@ namespace TTD
 
     void EventLog::RecordTelemetryLogEvent(Js::JavascriptString* infoStringJs, bool doPrint)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
-
         TTString infoString;
         this->m_eventSlabAllocator.CopyStringIntoWLength(infoStringJs->GetSz(), infoStringJs->GetLength(), infoString);
 
@@ -715,8 +668,6 @@ namespace TTD
 
     void EventLog::ReplayTelemetryLogEvent(Js::JavascriptString* infoStringJs)
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
-
         if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
@@ -753,16 +704,12 @@ namespace TTD
 
     void EventLog::RecordDateTimeEvent(double time)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
-
         DoubleEventLogEntry* devent = this->m_eventSlabAllocator.SlabNew<DoubleEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), time);
         this->InsertEventAtHead(devent);
     }
 
     void EventLog::RecordDateStringEvent(Js::JavascriptString* stringValue)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
-
         TTString copyStr;
         this->m_eventSlabAllocator.CopyStringIntoWLength(stringValue->GetSz(), stringValue->GetLength(), copyStr);
 
@@ -772,8 +719,6 @@ namespace TTD
 
     void EventLog::ReplayDateTimeEvent(double* result)
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
-
         if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
@@ -789,8 +734,6 @@ namespace TTD
 
     void EventLog::ReplayDateStringEvent(Js::ScriptContext* ctx, Js::JavascriptString** result)
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
-
         if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
@@ -807,16 +750,12 @@ namespace TTD
 
     void EventLog::RecordExternalEntropyRandomEvent(uint64 seed0, uint64 seed1)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
-
         RandomSeedEventLogEntry* revent = this->m_eventSlabAllocator.SlabNew<RandomSeedEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), seed0, seed1);
         this->InsertEventAtHead(revent);
     }
 
     void EventLog::ReplayExternalEntropyRandomEvent(uint64* seed0, uint64* seed1)
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
-
         if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
@@ -833,8 +772,6 @@ namespace TTD
 
     void EventLog::RecordPropertyEnumEvent(BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, Js::JavascriptString* propertyName)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
-
         TTString optName;
         InitializeAsNullPtrTTString(optName);
 
@@ -856,8 +793,6 @@ namespace TTD
 
     void EventLog::ReplayPropertyEnumEvent(BOOL* returnCode, int32* newIndex, const Js::DynamicObject* obj, Js::PropertyId* pid, Js::PropertyAttributes* attributes, Js::JavascriptString** propertyName)
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
-
         if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
@@ -891,16 +826,12 @@ namespace TTD
 
     void EventLog::RecordSymbolCreationEvent(Js::PropertyId pid)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
-
         SymbolCreationEventLogEntry* sevent = this->m_eventSlabAllocator.SlabNew<SymbolCreationEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), pid);
         this->InsertEventAtHead(sevent);
     }
 
     void EventLog::ReplaySymbolCreationEvent(Js::PropertyId* pid)
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
-
         if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
@@ -916,8 +847,6 @@ namespace TTD
 
     ExternalCallEventBeginLogEntry* EventLog::RecordExternalCallBeginEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv, double beginTime)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
-
         ExternalCallEventBeginLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventBeginLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, beginTime);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -939,8 +868,6 @@ namespace TTD
 
     void EventLog::RecordExternalCallEndEvent(Js::JavascriptFunction* func, int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, Js::Var value)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
-
         NSLogValue::ArgRetValue retVal;
         NSLogValue::ExtractArgRetValueFromVar(value, retVal, this->m_eventSlabAllocator);
 
@@ -955,8 +882,6 @@ namespace TTD
 
     ExternalCallEventBeginLogEntry* EventLog::RecordEnqueueTaskBeginEvent(int32 rootDepth, double beginTime)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
-
         ExternalCallEventBeginLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventBeginLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, beginTime);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -973,8 +898,6 @@ namespace TTD
 
     void EventLog::RecordEnqueueTaskEndEvent(int64 matchingBeginTime, int32 rootDepth, double endTime, Js::Var value)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
-
         NSLogValue::ArgRetValue retVal;
         NSLogValue::ExtractArgRetValueFromVar(value, retVal, this->m_eventSlabAllocator);
 
@@ -985,8 +908,6 @@ namespace TTD
 
     void EventLog::ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result)
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
-
         if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
@@ -1044,8 +965,6 @@ namespace TTD
 
     void EventLog::ReplayEnqueueTaskEvent(Js::ScriptContext* ctx, Js::Var* result)
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
-
         if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
@@ -1093,8 +1012,6 @@ namespace TTD
 
     void EventLog::PushCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool isInFinally)
     {
-        AssertMsg(this->IsTTDActive(), "Should check this first.");
-
 #if ENABLE_TTD_DEBUGGING
         //Clear any previous last return frame info
         this->ClearReturnFrame();
@@ -1133,8 +1050,6 @@ namespace TTD
 
     void EventLog::PopCallEvent(Js::JavascriptFunction* function, Js::Var result)
     {
-        AssertMsg(this->IsTTDActive(), "Should check this first.");
-
 #if ENABLE_TTD_DEBUGGING
         if(!this->HasImmediateExceptionFrame())
         {
@@ -1152,8 +1067,6 @@ namespace TTD
 
     void EventLog::PopCallEventException(Js::JavascriptFunction* function, bool isFirstException)
     {
-        AssertMsg(this->IsTTDActive(), "Should check this first.");
-
 #if ENABLE_TTD_DEBUGGING
         if(isFirstException)
         {
@@ -1182,7 +1095,6 @@ namespace TTD
 
     const SingleCallCounter& EventLog::GetImmediateReturnFrame() const
     {
-        AssertMsg(this->IsTTDActive(), "Should check this first.");
         AssertMsg(this->m_isReturnFrame, "This data is invalid if we haven't recorded a return!!!");
 
         return this->m_lastFrame;
@@ -1190,7 +1102,6 @@ namespace TTD
 
     const SingleCallCounter& EventLog::GetImmediateExceptionFrame() const
     {
-        AssertMsg(this->IsTTDActive(), "Should check this first.");
         AssertMsg(this->m_isExceptionFrame, "This data is invalid if we haven't recorded an exception!!!");
 
         return this->m_lastFrame;
@@ -1208,7 +1119,6 @@ namespace TTD
 
     void EventLog::SetReturnAndExceptionFramesFromCurrent(bool setReturn, bool setException)
     {
-        AssertMsg(this->IsTTDActive(), "Should check this first.");
         AssertMsg(this->m_callStack.Count() != 0, "We must have pushed something in order to have an exception or return!!!");
         AssertMsg((setReturn | setException) & (!setReturn | !setException), "We can only have a return or exception -- exactly one not both!!!");
 
@@ -1267,9 +1177,9 @@ namespace TTD
         this->m_activeTTDBP.SetLocation(bpLocation);
     }
 
-    bool EventLog::ProcessBPInfoPreBreak()
+    bool EventLog::ProcessBPInfoPreBreak(Js::FunctionBody* fb)
     {
-        if(!this->ShouldPerformDebugAction())
+        if(!fb->GetScriptContext()->ShouldPerformDebugAction())
         {
             return true;
         }
@@ -1294,7 +1204,7 @@ namespace TTD
 
     void EventLog::ProcessBPInfoPostBreak(Js::FunctionBody* fb)
     {
-        if(!this->ShouldPerformDebugAction())
+        if(!fb->GetScriptContext()->ShouldPerformDebugAction())
         {
             return;
         }
@@ -1320,8 +1230,6 @@ namespace TTD
 
     void EventLog::UpdateLoopCountInfo()
     {
-        AssertMsg(this->IsTTDActive(), "Should check this first.");
-
         SingleCallCounter& cfinfo = this->m_callStack.Last();
         cfinfo.LoopTime++;
     }
@@ -1762,8 +1670,6 @@ namespace TTD
 
     void EventLog::ReplaySingleEntry()
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
-
         if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
@@ -2133,8 +2039,6 @@ namespace TTD
 
     void EventLog::RecordJsRTCallFunctionEnd(Js::ScriptContext* ctx, int64 matchingBeginTime, bool hasScriptException, bool hasTerminatingException, int32 callbackDepth, double endTime)
     {
-        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
-
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
@@ -2145,7 +2049,6 @@ namespace TTD
 
     void EventLog::ReplayActionLoopStep()
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
         AssertMsg(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag, "Should check this first!");
 
         bool nextActionValid = false;

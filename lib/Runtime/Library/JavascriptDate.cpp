@@ -91,19 +91,14 @@ namespace Js
             JavascriptString* res = JavascriptDate::ToString(pDate);
 
 #if ENABLE_TTD
-            ThreadContext* threadContext = function->GetScriptContext()->GetThreadContext();
-            if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+            if(scriptContext->ShouldPerformDebugAction())
             {
-                TTD::EventLog* elog = threadContext->TTDLog;
-                if(elog->ShouldPerformDebugAction())
-                {
-                    elog->ReplayDateStringEvent(function->GetScriptContext(), &res);
-                }
+                scriptContext->GetThreadContext()->TTDLog->ReplayDateStringEvent(scriptContext, &res);
+            }
 
-                if(elog->ShouldPerformRecordAction())
-                {
-                    elog->RecordDateStringEvent(res);
-                }
+            if(scriptContext->ShouldPerformRecordAction())
+            {
+                scriptContext->GetThreadContext()->TTDLog->RecordDateStringEvent(res);
             }
 #endif
             return res;
@@ -139,19 +134,14 @@ namespace Js
             double resTime = DateImplementation::NowFromHiResTimer(scriptContext);
 
 #if ENABLE_TTD
-            ThreadContext* threadContext = scriptContext->GetThreadContext();
-            if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+            if(scriptContext->ShouldPerformDebugAction())
             {
-                TTD::EventLog* elog = threadContext->TTDLog;
-                if(elog->ShouldPerformDebugAction())
-                {
-                    elog->ReplayDateTimeEvent(&resTime);
-                }
+                scriptContext->GetThreadContext()->TTDLog->ReplayDateTimeEvent(&resTime);
+            }
 
-                if(elog->ShouldPerformRecordAction())
-                {
-                    elog->RecordDateTimeEvent(resTime);
-                }
+            if(scriptContext->ShouldPerformRecordAction())
+            {
+                scriptContext->GetThreadContext()->TTDLog->RecordDateTimeEvent(resTime);
             }
 #endif
 
@@ -810,19 +800,14 @@ namespace Js
         double dblRetVal = DateImplementation::NowInMilliSeconds(scriptContext);
 
 #if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        if(scriptContext->ShouldPerformDebugAction())
         {
-            TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction())
-            {
-                elog->ReplayDateTimeEvent(&dblRetVal);
-            }
+            scriptContext->GetThreadContext()->TTDLog->ReplayDateTimeEvent(&dblRetVal);
+        }
 
-            if(elog->ShouldPerformRecordAction())
-            {
-                elog->RecordDateTimeEvent(dblRetVal);
-            }
+        if(scriptContext->ShouldPerformRecordAction())
+        {
+            scriptContext->GetThreadContext()->TTDLog->RecordDateTimeEvent(dblRetVal);
         }
 #endif
 

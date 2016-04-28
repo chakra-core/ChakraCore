@@ -108,15 +108,11 @@ namespace Js
 #if ENABLE_TTD
         //
         //This makes the set decidedly less weak -- forces it to only release when we clean the tracking set but determinizes the behavior nicely
+        //      We want to improve this.
         //
-        ThreadContext* threadContext = function->GetScriptContext()->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        if(scriptContext->ShouldPerformDebugAction() | scriptContext->ShouldPerformRecordAction())
         {
-            TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
-            {
-                threadContext->TTDInfo->TrackTagObject(keyObj);
-            }
+            scriptContext->GetThreadContext()->TTDInfo->TrackTagObject(keyObj);
         }
 #endif
 
