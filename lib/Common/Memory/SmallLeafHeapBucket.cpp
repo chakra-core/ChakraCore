@@ -4,17 +4,11 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
-template void SmallLeafHeapBucketT<SmallAllocationBlockAttributes>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallLeafHeapBucketT<SmallAllocationBlockAttributes>::Sweep<false>(RecyclerSweep& recyclerSweep);
-template void SmallLeafHeapBucketT<MediumAllocationBlockAttributes>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallLeafHeapBucketT<MediumAllocationBlockAttributes>::Sweep<false>(RecyclerSweep& recyclerSweep);
-
 template <typename TBlockAttributes>
-template<bool pageheap>
 void
 SmallLeafHeapBucketT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep)
 {
-    BaseT::SweepBucket<pageheap>(recyclerSweep, [](RecyclerSweep& recyclerSweep){});
+    BaseT::SweepBucket(recyclerSweep, [](RecyclerSweep& recyclerSweep){});
 }
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
