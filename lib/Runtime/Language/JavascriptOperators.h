@@ -538,6 +538,7 @@ namespace Js
         static bool CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* object);
         static bool CheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype);
         static bool DoCheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype);
+        static bool CheckIfPrototypeChainContainsProxyObject(RecyclableObject* prototype);
         static void OP_SetComputedNameVar(Var method, Var computedNameVar);
         static void OP_SetHomeObj(Var method, Var homeObj);
         static Var OP_LdSuper(Var scriptFunction, ScriptContext * scriptContext);
