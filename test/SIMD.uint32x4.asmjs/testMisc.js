@@ -361,7 +361,15 @@ function asmModule(stdlib, imports,buffer) {
         x = u4add(x, y);
         return u4check(y);
     }
-    
+
+    function bug1() //simd tmp reg reuse.
+    {
+        var a = i4(1,2,3,4);
+        var x = u4(-1, -2, -3, -4);
+        u4add(x,x);
+        return i4check(a);
+    }
+
     function func8()
     {
         var loopIndex = 0;
@@ -390,7 +398,9 @@ function asmModule(stdlib, imports,buffer) {
         return u4check(x);
     }
 
-    return {func1:func1, func2: func2, func3:func3, func4:func4, func5: func5, func6:func6, func7:func7, func8:func8};
+    return {func1:func1, func2: func2, func3:func3, func4:func4, 
+            func5: func5, func6:func6, func7:func7, func8:func8,
+            bug1:bug1};
 }
 
 var buffer = new ArrayBuffer(0x10000);
@@ -424,6 +434,9 @@ var ret7 = m.func7(v1, v2, v3, v1, v2);
 var ret8 = m.func8(v1, v2, v3, v1, v2);
 //printSimdBaseline(ret8, "SIMD.Uint32x4", "ret8", "func8");
 
+var ret9 = m.bug1();
+//printSimdBaseline(ret9, "SIMD.Uint32x4", "ret9", "bug1");
+
 
 equal(-11826, ret1);
 equalSimd([1, 2, 1, 2], ret2, SIMD.Uint32x4, "func2")
@@ -433,6 +446,7 @@ equalSimd([17956, 44521, 4294836225, 3804422400], ret5, SIMD.Uint32x4, "func5")
 equalSimd([0, 0, 0, 0], ret6, SIMD.Uint32x4, "func6")
 equalSimd([40, 60, 4294967236, 4294967256], ret7, SIMD.Uint32x4, "func7")
 equalSimd([2741894009, 2100523531, 3103445833, 2451472428], ret8, SIMD.Uint32x4, "func8")
+equalSimd([1,2,3,4], ret9, SIMD.Int32x4, "bug1")
 
 print("PASS");
 

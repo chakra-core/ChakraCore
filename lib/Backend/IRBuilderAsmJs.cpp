@@ -284,8 +284,18 @@ IRBuilderAsmJs::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type)
                 symID = static_cast<SymID>(dstRegSlot);
                 SetMappedTemp(dstRegSlot, symID);
             }
+            else if (IRType_IsSimd128(type))
+            {
+                //In Asm.js, SIMD register space is untyped, so we could have SIMD temp registers.
+                //Make sure that the StackSym types matches before reusing simd temps.
+                StackSym *  stackSym = m_func->m_symTable->FindStackSym(symID);
+                if (!stackSym || stackSym->GetType() != type)
+                {
+                    symID = m_func->m_symTable->NewID();
+                    SetMappedTemp(dstRegSlot, symID);
+                }
+            }
         }
-
     }
     else
     {
@@ -309,6 +319,12 @@ IRBuilderAsmJs::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type)
         }
     }
 
+    //Simd return values of different IR types share the same reg slot.
+    //To avoid symbol type mismatch, use the stack symbol with a dummy simd type.
+    if (RegIsSimd128ReturnVar(symID))
+    {
+        type = TySimd128F4;
+    }
     StackSym * symDst = StackSym::FindOrCreate(symID, dstRegSlot, m_func, type);
     // Always reset isSafeThis to false.  We'll set it to true for singleDef cases,
     // but want to reset it to false if it is multi-def.
@@ -627,7 +643,12 @@ IRBuilderAsmJs::RegIsSimd128Var(Js::RegSlot reg)
     return reg >= m_firstSimdVar && reg < endVarSlotCount;
 
 }
-
+bool
+IRBuilderAsmJs::RegIsSimd128ReturnVar(Js::RegSlot reg)
+{
+    return (reg == m_firstSimdConst &&
+            m_asmFuncInfo->GetReturnType().toVarType().isSIMD());
+}
 BOOL
 IRBuilderAsmJs::RegIsConstant(Js::RegSlot reg)
 {
@@ -7329,7 +7350,7 @@ void IRBuilderAsmJs::BuildSimdConversion(Js::OpCodeAsmJs newOpcode, uint32 offse
     IR::RegOpnd * src1Opnd = BuildSrcOpnd(srcRegSlot, srcSimdType);
     src1Opnd->SetValueType(srcValueType);
 
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128I4);
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, dstSimdType);
     dstOpnd->SetValueType(dstValueType);
 
     Js::OpCode opcode = GetSimdOpcode(newOpcode);
