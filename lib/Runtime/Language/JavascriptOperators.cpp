@@ -8686,6 +8686,11 @@ CommonNumber:
             {
                 descriptor->SetEnumerable(JavascriptConversion::ToBoolean(value, scriptContext) ? true : false);
             }
+            else
+            {
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetEnumerable(false);
+            }
         }
 
         if (JavascriptOperators::HasProperty(propertySpecObj, PropertyIds::configurable) == TRUE)
@@ -8693,6 +8698,11 @@ CommonNumber:
             if (JavascriptOperators::GetProperty(propertySpecObj, PropertyIds::configurable, &value, scriptContext))
             {
                 descriptor->SetConfigurable(JavascriptConversion::ToBoolean(value, scriptContext) ? true : false);
+            }
+            else
+            {
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetConfigurable(false);
             }
         }
 
@@ -8702,6 +8712,11 @@ CommonNumber:
             {
                 descriptor->SetValue(value);
             }
+            else
+            {
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetValue(scriptContext->GetLibrary()->GetUndefined());
+            }
         }
 
         if (JavascriptOperators::HasProperty(propertySpecObj, PropertyIds::writable) == TRUE)
@@ -8709,6 +8724,11 @@ CommonNumber:
             if (JavascriptOperators::GetProperty(propertySpecObj, PropertyIds::writable, &value, scriptContext))
             {
                 descriptor->SetWritable(JavascriptConversion::ToBoolean(value, scriptContext) ? true : false);
+            }
+            else
+            {
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetWritable(false);
             }
         }
 
@@ -8722,6 +8742,11 @@ CommonNumber:
                 }
                 descriptor->SetGetter(value);
             }
+            else
+            {
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetGetter(scriptContext->GetLibrary()->GetUndefined());
+            }
         }
 
         if (JavascriptOperators::HasProperty(propertySpecObj, PropertyIds::set) == TRUE)
@@ -8733,6 +8758,11 @@ CommonNumber:
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, scriptContext->GetPropertyName(PropertyIds::set)->GetBuffer());
                 }
                 descriptor->SetSetter(value);
+            }
+            else
+            {
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetSetter(scriptContext->GetLibrary()->GetUndefined());
             }
         }
 

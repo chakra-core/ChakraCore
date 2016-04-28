@@ -164,7 +164,7 @@ RT_ERROR_MSG(JSERR_Property_CannotDelete_NullOrUndefined, 5049, "Unable to delet
 RT_ERROR_MSG(JSERR_Property_VarDate, 5050, "Unable to access property '%s': type 'VarDate' does not support user-defined properties", "Object expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_Property_NeedFunction, 5051, "The value of the property '%s' is not a Function object", "Function expected", kjstTypeError, JSERR_NeedFunction)
 RT_ERROR_MSG(JSERR_Property_NeedFunction_NullOrUndefined, 5052, "The value of the property '%s' is null or undefined, not a Function object", "Function expected", kjstTypeError, JSERR_NeedObject)
-RT_ERROR_MSG(JSERR_Property_CannotHaveAccessorsAndValue, 5053, "", "Property cannot have both accessors and a value", kjstTypeError, VBSERR_ActionNotSupported)
+RT_ERROR_MSG(JSERR_Property_CannotHaveAccessorsAndValue, 5053, "", "Invalid property descriptor: cannot both specify accessors and a 'value' attribute", kjstTypeError, VBSERR_ActionNotSupported)
 
 RT_ERROR_MSG(JSERR_This_NullOrUndefined, 5054, "%s: 'this' is null or undefined", "'this' is null or undefined", kjstTypeError, JSERR_NeedObject) // {Locked="\'this\'"}
 RT_ERROR_MSG(JSERR_This_NeedObject, 5055, "%s: 'this' is not an Object", "Object expected", kjstTypeError, JSERR_NeedObject) // {Locked="\'this\'"}
