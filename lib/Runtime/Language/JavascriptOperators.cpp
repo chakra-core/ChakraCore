@@ -8686,10 +8686,6 @@ CommonNumber:
             {
                 descriptor->SetEnumerable(JavascriptConversion::ToBoolean(value, scriptContext) ? true : false);
             }
-            else
-            {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'enumerable'.");
-            }
         }
 
         if (JavascriptOperators::HasProperty(propertySpecObj, PropertyIds::configurable) == TRUE)
@@ -8697,10 +8693,6 @@ CommonNumber:
             if (JavascriptOperators::GetProperty(propertySpecObj, PropertyIds::configurable, &value, scriptContext))
             {
                 descriptor->SetConfigurable(JavascriptConversion::ToBoolean(value, scriptContext) ? true : false);
-            }
-            else
-            {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'configurable'.");
             }
         }
 
@@ -8710,10 +8702,6 @@ CommonNumber:
             {
                 descriptor->SetValue(value);
             }
-            else
-            {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'value'.");
-            }
         }
 
         if (JavascriptOperators::HasProperty(propertySpecObj, PropertyIds::writable) == TRUE)
@@ -8721,10 +8709,6 @@ CommonNumber:
             if (JavascriptOperators::GetProperty(propertySpecObj, PropertyIds::writable, &value, scriptContext))
             {
                 descriptor->SetWritable(JavascriptConversion::ToBoolean(value, scriptContext) ? true : false);
-            }
-            else
-            {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'writable'.");
             }
         }
 
@@ -8738,10 +8722,6 @@ CommonNumber:
                 }
                 descriptor->SetGetter(value);
             }
-            else
-            {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'get'.");
-            }
         }
 
         if (JavascriptOperators::HasProperty(propertySpecObj, PropertyIds::set) == TRUE)
@@ -8754,11 +8734,8 @@ CommonNumber:
                 }
                 descriptor->SetSetter(value);
             }
-            else
-            {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'set'.");
-            }
         }
+
         return TRUE;
     }
 
