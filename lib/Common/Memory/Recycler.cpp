@@ -1354,9 +1354,10 @@ static void* GetStackBase()
 #else
 static void* GetStackBase()
 {
-    char *stackBase, *stackTop;
-    ::GetCurrentThreadStackBounds(&stackBase, &stackTop);
-    return (void*) stackBase;
+    ULONG_PTR highLimit = 0;
+    ULONG_PTR lowLimit = 0;
+    ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
+    return (void*) highLimit;
 }
 #endif
 

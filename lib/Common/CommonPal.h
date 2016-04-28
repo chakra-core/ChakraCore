@@ -45,11 +45,11 @@ typedef wchar_t char16;
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
 
-// In general, we don't need to force-inline any of Chakra's functions
-// on Linux- we'd rather let the compiler figure this out for us
-// If, in the future, perf investigations reveal that force inlining
-// would help, we can address on a case-by-case basis.
+#if defined(__GNUC__) || defined(__clang__)
+#define __forceinline inline __attribute__((always_inline))
+#else
 #define __forceinline inline
+#endif
 
 typedef char16_t char16;
 #define _u(s) u##s
@@ -86,15 +86,6 @@ inline void DebugBreak()
 #define _bittest BitTest
 #define _bittestandset BitTestAndSet
 #define _interlockedbittestandset InterlockedBitTestAndSet
-
-#if defined(__GNUC__) || defined(__clang__)
-inline void * __attribute__((__always_inline__)) _AddressOfReturnAddress()
-{
-    return (void*)((char*) __builtin_frame_address(0) + sizeof(void*));
-}
-#else
-#error _AddressOfReturnAddress not defined for this platform
-#endif
 
 #define DbgRaiseAssertionFailure() __builtin_trap()
 
@@ -373,11 +364,7 @@ BOOL WINAPI GetModuleHandleEx(
   _Out_    HMODULE *phModule
 );
 
-// xplat-todo: implement this function to get the stack bounds of the current
-// thread
-// For Linux, we could use pthread_getattr_np to get the stack limit (end)
-// and then use the stack size to calculate the stack base
-int GetCurrentThreadStackBounds(char** stackBase, char** stackEnd);
+int GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit);
 
 errno_t rand_s(unsigned int* randomValue);
 
@@ -434,8 +421,15 @@ DWORD __cdecl CharUpperBuffW(const char16* lpsz, DWORD  cchLength);
 #ifdef _MSC_VER
 extern "C" PVOID _ReturnAddress(VOID);
 #pragma intrinsic(_ReturnAddress)
-#else
+extern "C" void * _AddressOfReturnAddress(void);
+#elif defined(__GNUC__) || defined(__clang__)
 #define _ReturnAddress() __builtin_return_address(0)
+__forceinline void * _AddressOfReturnAddress()
+{
+    return (void*)((char*) __builtin_frame_address(0) + sizeof(void*));
+}
+#else
+#error _AddressOfReturnAddress and _ReturnAddress not defined for this platform
 #endif
 
 // Define strsafe related types and defines for non-VC++ compilers
@@ -498,7 +492,7 @@ STRSAFEAPI StringVPrintfWorkerW(WCHAR* pszDest, size_t cchDest, const WCHAR* psz
         {
             // need to null terminate the string
             pszDest += cchMax;
-            *pszDest = L'\0';
+            *pszDest = _u('\0');
 
             // we have truncated pszDest
             hr = STRSAFE_E_INSUFFICIENT_BUFFER;
@@ -507,7 +501,7 @@ STRSAFEAPI StringVPrintfWorkerW(WCHAR* pszDest, size_t cchDest, const WCHAR* psz
         {
             // need to null terminate the string
             pszDest += cchMax;
-            *pszDest = L'\0';
+            *pszDest = _u('\0');
         }
     }
 

@@ -302,11 +302,20 @@ struct CompareWrapperContext
     void* real_context;
 };
 
+#if !defined(__APPLE__) && !defined(__FreeBSD__)
 static int qsort_compare_wrapper(const void* e1, const void* e2, void* context)
 {
     CompareWrapperContext* wrapper = (CompareWrapperContext*) context;
     return wrapper->real_comparer(wrapper->real_context, e1, e2);
 }
+#else
+// the qsort_r comparer is backwards from the way it's defined on linux
+static int qsort_compare_wrapper(void* context, const void* e1, const void* e2)
+{
+    CompareWrapperContext* wrapper = (CompareWrapperContext*) context;
+    return wrapper->real_comparer(wrapper->real_context, e1, e2);
+}
+#endif
 
 PALIMPORT 
 void __cdecl 
@@ -322,8 +331,14 @@ PAL_qsort_s(void *base, size_t nmemb, size_t size,
         base,
         nmemb,
         size,
+#if !defined(__APPLE__) && !defined(__FreeBSD__)
         qsort_compare_wrapper,
-        &qsort_s_context);
+        &qsort_s_context
+#else
+        &qsort_s_context,
+        qsort_compare_wrapper
+#endif
+        );
 }
 
 PALIMPORT 

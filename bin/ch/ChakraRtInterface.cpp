@@ -8,7 +8,7 @@
 LPCSTR chakraDllName = "chakracore.dll";
 #else
 #include <dlfcn.h>
-LPCSTR chakraDllName = "libChakraCoreLib.so";
+LPCSTR chakraDllName = "libChakraCore.so";
 #endif
 
 bool ChakraRTInterface::m_testHooksSetup = false;

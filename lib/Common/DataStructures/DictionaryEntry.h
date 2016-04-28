@@ -87,7 +87,7 @@ namespace JsUtil
     template<class TKey, class TValue>
     struct ValueToKey
     {
-        static inline TKey ToKey(const TValue &value) { return static_cast<TKey>(value); }
+        static TKey ToKey(const TValue &value) { return static_cast<TKey>(value); }
     };
 
     // Used by BaseHashSet,  the default is that the key is the same as the value

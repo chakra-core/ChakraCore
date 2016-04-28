@@ -157,7 +157,7 @@ STDAPI_(UINT) SysStringLen(const OLECHAR* psz)
         return 0;
     }
 
-    return PAL_wcslen(psz);
+    return (UINT)((((DWORD FAR*)psz)[-1]) / sizeof(OLECHAR));    
 }
 
 /***

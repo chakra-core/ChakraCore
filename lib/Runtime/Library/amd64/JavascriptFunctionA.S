@@ -4,16 +4,20 @@
 //-------------------------------------------------------------------------------------------------------
 .intel_syntax noprefix
 
+#include "pal/inc/unixasmmacros.inc"
+        
 .extern _ZN2Js18JavascriptFunction13DeferredParseEPPNS_14ScriptFunctionE
 
-.global amd64_CallFunction
+.global C_FUNC(amd64_CallFunction)
 .global	_ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz
 
-.type amd64_CallFunction, @function
+#ifndef __APPLE__
+.type C_FUNC(amd64_CallFunction), @function
 .type _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz, @function
+#endif
         
 .text
-amd64_CallFunction:     
+C_FUNC(amd64_CallFunction):
         // Var amd64_CallFunction(RecyclableObject *function,
         //	JavascriptMethod entryPoint, CallInfo callInfo, uint argc, Var *argv) ;
 

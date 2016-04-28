@@ -1,4 +1,4 @@
-add_library (ChakraCoreLib SHARED
+add_library (ChakraCore SHARED
     ChakraCoreDllFunc.cpp
     ConfigParserExternals.cpp
     TestHooks.cpp
@@ -6,10 +6,10 @@ add_library (ChakraCoreLib SHARED
 
 # By default, don't export any symbols from this library
 # We'll manually export the relevant individual functions
-set_target_properties(ChakraCoreLib PROPERTIES CXX_VISIBILITY_PRESET hidden)
+set_target_properties(ChakraCore PROPERTIES CXX_VISIBILITY_PRESET hidden)
   
 target_include_directories (
-  ChakraCoreLib PUBLIC
+  ChakraCore PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CHAKRACORE_SOURCE_DIR}/lib/Common
   ${CHAKRACORE_SOURCE_DIR}/lib/Runtime
@@ -32,8 +32,8 @@ target_include_directories (
 #  dl: For shared library loading related functions
 #  icuuc: For the ICU (xplat-todo: Make this optional)
 #
-target_link_libraries(ChakraCoreLib
-  -Wl,--no-undefined
+target_link_libraries(ChakraCore
+  -Wl,-undefined,error
   -Wl,--start-group
   -Wl,--whole-archive
   Chakra.Jsrt
@@ -60,7 +60,6 @@ target_link_libraries(ChakraCoreLib
   pthread
   stdc++
   dl
-  gcc_s
   icuuc
   -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
 )
@@ -68,7 +67,7 @@ target_link_libraries(ChakraCoreLib
 #
 # Post build step to copy the built shared library
 # to BuildLinux (or whatever the CMakeBuildDir is)
-add_custom_command(TARGET ChakraCoreLib POST_BUILD
+add_custom_command(TARGET ChakraCore POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-  "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreLib.so"
+  "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.so"
    ${CHAKRACORE_BINARY_DIR}/)
