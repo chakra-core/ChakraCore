@@ -73,12 +73,12 @@ namespace Js
         PERF_COUNTER_INC(Code, TotalFunction);
     }
 
-    inline Recycler* FunctionProxy::GetRecycler() const
+    Recycler* FunctionProxy::GetRecycler() const
     {
         return m_scriptContext->GetRecycler();
     }
 
-    inline void* FunctionProxy::GetAuxPtr(AuxPointerType e) const
+    void* FunctionProxy::GetAuxPtr(AuxPointerType e) const
     {
         if (this->auxPtrs == nullptr)
         {
@@ -89,7 +89,8 @@ namespace Js
         Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
         return AuxPtrsT::GetAuxPtr(this, e);
     }
-    inline void* FunctionProxy::GetAuxPtrWithLock(AuxPointerType e) const
+
+    void* FunctionProxy::GetAuxPtrWithLock(AuxPointerType e) const
     {
         if (this->auxPtrs == nullptr)
         {
@@ -99,7 +100,7 @@ namespace Js
         return AuxPtrsT::GetAuxPtr(this, e);
     }
 
-    inline void FunctionProxy::SetAuxPtr(AuxPointerType e, void* ptr)
+    void FunctionProxy::SetAuxPtr(AuxPointerType e, void* ptr)
     {
         // On process detach this can be called from another thread but the ThreadContext should be locked
         Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());

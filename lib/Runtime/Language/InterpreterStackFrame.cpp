@@ -8352,6 +8352,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AssertMsg(allocationToFree == previousAllocation, "Memory locations should match");
         AssertMsg(false, "This function should never actually be called");
     }
+
+    template void* Js::InterpreterStackFrame::GetReg<unsigned int>(unsigned int) const;
+    template void Js::InterpreterStackFrame::SetReg<unsigned int>(unsigned int, void*);
 } // namespace Js
 
 // Make sure the macro and the layout for the op is consistent

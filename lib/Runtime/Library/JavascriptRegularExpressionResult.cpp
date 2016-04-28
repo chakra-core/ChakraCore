@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    inline JavascriptArray* JavascriptRegularExpressionResult::Create(
+    JavascriptArray* JavascriptRegularExpressionResult::Create(
         void *const stackAllocationPointer,
         JavascriptString* input,
         ScriptContext* const scriptContext)
@@ -21,7 +21,7 @@ namespace Js
         return arr;
     }
 
-    inline JavascriptArray* JavascriptRegularExpressionResult::Create(
+    JavascriptArray* JavascriptRegularExpressionResult::Create(
         void *const stackAllocationPointer,
         const int numGroups,
         JavascriptString* input,

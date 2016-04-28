@@ -686,18 +686,6 @@ void Parser::InitNode(OpCode nop,ParseNodePtr pnode) {
 }
 
 // Create nodes using Arena
-template <OpCode nop>
-ParseNodePtr Parser::StaticCreateNodeT(ArenaAllocator* alloc, charcount_t ichMin, charcount_t ichLim)
-{
-    ParseNodePtr pnode = StaticAllocNode<nop>(alloc);
-    InitNode(nop,pnode);
-    // default - may be changed
-    pnode->ichMin = ichMin;
-    pnode->ichLim = ichLim;
-
-    return pnode;
-}
-
 ParseNodePtr
 Parser::StaticCreateBlockNode(ArenaAllocator* alloc, charcount_t ichMin , charcount_t ichLim, int blockId, PnodeBlockType blockType)
 {

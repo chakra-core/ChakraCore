@@ -33,14 +33,14 @@ namespace Js
     #endif
     }
 
-    inline JavascriptString *StringCopyInfo::SourceString() const
+    JavascriptString *StringCopyInfo::SourceString() const
     {
         Assert(isInitialized);
 
         return sourceString;
     }
 
-    inline char16 *StringCopyInfo::DestinationBuffer() const
+    char16 *StringCopyInfo::DestinationBuffer() const
     {
         Assert(isInitialized);
         return destinationBuffer;

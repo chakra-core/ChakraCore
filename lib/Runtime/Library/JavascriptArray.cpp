@@ -12204,4 +12204,10 @@ Case0:
 
         return static_cast<JavascriptNativeFloatArray *>(RecyclableObject::FromVar(aValue));
     }
+
+    template int   Js::JavascriptArray::GetParamForIndexOf<unsigned int>(unsigned int, Js::Arguments const&, void*&, unsigned int&, Js::ScriptContext*);
+    template bool  Js::JavascriptArray::ArrayElementEnumerator::MoveNext<void*>();
+    template void  Js::JavascriptArray::SetArrayLiteralItem<void*>(unsigned int, void*);
+    template void* Js::JavascriptArray::TemplatedIndexOfHelper<false, Js::TypedArrayBase, unsigned int>(Js::TypedArrayBase*, void*, unsigned int, unsigned int, Js::ScriptContext*);
+    template void* Js::JavascriptArray::TemplatedIndexOfHelper<true, Js::TypedArrayBase, unsigned int>(Js::TypedArrayBase*, void*, unsigned int, unsigned int, Js::ScriptContext*);
 } //namespace Js

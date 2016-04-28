@@ -61,7 +61,7 @@ namespace Js
         inline BOOL IsExternal() const { return (this->flags & TypeFlagMask_External) != 0; }
         inline BOOL SkipsPrototype() const { return (this->flags & TypeFlagMask_SkipsPrototype) != 0 ; }
         inline BOOL CanHaveInterceptors() const { return (this->flags & TypeFlagMask_CanHaveInterceptors) != 0; }
-        inline BOOL IsFalsy() const;
+        inline BOOL IsFalsy() const { return flags & TypeFlagMask_IsFalsy; }
         void SetIsFalsy(const bool truth);
         void SetHasSpecialPrototype(const bool hasSpecialPrototype);
 
