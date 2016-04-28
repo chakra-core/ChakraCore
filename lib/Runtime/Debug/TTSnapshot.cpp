@@ -312,12 +312,12 @@ namespace TTD
         return this->m_slotArrayEntries.Count();
     }
 
-    UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_SMALL>& SnapShot::GetContextList()
+    UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& SnapShot::GetContextList()
     {
         return this->m_ctxList;
     }
 
-    const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_SMALL>& SnapShot::GetContextList() const
+    const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& SnapShot::GetContextList() const
     {
         return this->m_ctxList;
     }

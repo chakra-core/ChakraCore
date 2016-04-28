@@ -1609,7 +1609,7 @@ namespace TTD
         //
         //TODO: we currently assume a single context here which we load into the existing ctx
         //
-        const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_SMALL>& snpCtxs = snap->GetContextList();
+        const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& snpCtxs = snap->GetContextList();
         AssertMsg(this->m_ttdContext != nullptr, "We are assuming a single context");
         const NSSnapValues::SnapContext* sCtx = snpCtxs.GetIterator().Current();
 

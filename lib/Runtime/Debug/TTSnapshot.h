@@ -18,7 +18,7 @@ namespace TTD
 
         ////
         //List containing the "context" information for the objects in this snapshot
-        UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_SMALL> m_ctxList;
+        UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL> m_ctxList;
 
         ////
         //Lists containing the "type" information for the objects in this snapshot
@@ -124,8 +124,8 @@ namespace TTD
         uint32 SlotArrayCount() const;
 
         //Get the context list for this snapshot
-        UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_SMALL>& GetContextList();
-        const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_SMALL>& GetContextList() const;
+        UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& GetContextList();
+        const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& GetContextList() const;
 
         //Get a pointer to the next open handler slot that we can fill
         NSSnapType::SnapHandler* GetNextAvailableHandlerEntry();

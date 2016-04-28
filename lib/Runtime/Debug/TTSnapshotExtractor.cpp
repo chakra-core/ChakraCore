@@ -345,7 +345,7 @@ namespace TTD
 
         this->m_pendingSnap = HeapNew(SnapShot);
 
-        UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_SMALL>& snpCtxs = this->m_pendingSnap->GetContextList();
+        UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& snpCtxs = this->m_pendingSnap->GetContextList();
         for(int32 i = 0; i < ctxs.Count(); ++i)
         {
             NSSnapValues::SnapContext* snpCtx = snpCtxs.NextOpenEntry();
