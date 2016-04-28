@@ -39,6 +39,12 @@
   </test>
   <test>
     <default>
+      <files>bug5579910.js</files>
+      <compile-flags>-bgjit- -mic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>conv_bool.js</files>
     </default>
   </test>

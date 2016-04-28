@@ -2152,8 +2152,8 @@ CommonNumber:
                 {
                     Assert((flags & Data) == Data && (flags & Writable) == None);
 
-                    JavascriptError::ThrowCantAssignIfStrictMode(propertyOperationFlags, requestContext);
                     requestContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_NoOpSet);
+                    JavascriptError::ThrowCantAssignIfStrictMode(propertyOperationFlags, requestContext);
                     return FALSE;
                 }
             }
