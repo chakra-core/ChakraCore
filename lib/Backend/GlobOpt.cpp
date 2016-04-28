@@ -15272,7 +15272,11 @@ GlobOpt::ProcessValueKills(BasicBlock *const block, GlobOptBlockData *const bloc
     if(IsLoopPrePass() && block->loop == rootLoopPrePass)
     {
         AnalysisAssert(rootLoopPrePass);
-        rootLoopPrePass->jsArrayKills.SetKillsAllArrays();
+        
+        for (Loop * loop = rootLoopPrePass; loop != nullptr; loop = loop->parent)
+        {
+            loop->jsArrayKills.SetKillsAllArrays();
+        }
         Assert(!rootLoopPrePass->parent || rootLoopPrePass->jsArrayKills.AreSubsetOf(rootLoopPrePass->parent->jsArrayKills));
 
         if(valuesToKillOnCalls->Count() == 0)
