@@ -53,51 +53,6 @@ HeapBlock::SetNeedOOMRescan(Recycler * recycler)
     this->needOOMRescan = true;
     recycler->SetNeedOOMRescan();
 }
-
-#ifdef RECYCLER_PAGE_HEAP
-void
-HeapBlock::CapturePageHeapAllocStack()
-{
-    Assert(this->InPageHeapMode());
-
-    // These asserts are true because explicit free is disallowed in
-    // page heap mode. If they weren't, we'd have to modify the asserts
-    Assert(this->pageHeapFreeStack == nullptr);
-    Assert(this->pageHeapAllocStack == nullptr);
-
-    // Note: NoCheckHeapAllocator will fail fast if we can't allocate the stack to capture
-    // REVIEW: Should we have a flag to configure the number of frames captured?
-    if (pageHeapAllocStack != nullptr)
-    {
-        this->pageHeapAllocStack->Capture(Recycler::s_numFramesToSkipForPageHeapAlloc);
-    }
-    else
-    {
-        this->pageHeapAllocStack = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance, Recycler::s_numFramesToSkipForPageHeapAlloc, Recycler::s_numFramesToCaptureForPageHeap);
-    }
-}
-
-void
-HeapBlock::CapturePageHeapFreeStack()
-{
-    Assert(this->InPageHeapMode());
-
-    // These asserts are true because explicit free is disallowed in
-    // page heap mode. If they weren't, we'd have to modify the asserts
-    Assert(this->pageHeapFreeStack == nullptr);
-    Assert(this->pageHeapAllocStack != nullptr);
-
-    if (this->pageHeapFreeStack != nullptr)
-    {
-        this->pageHeapFreeStack->Capture(Recycler::s_numFramesToSkipForPageHeapFree);
-    }
-    else
-    {
-        this->pageHeapFreeStack = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance, Recycler::s_numFramesToSkipForPageHeapFree, Recycler::s_numFramesToCaptureForPageHeap);
-    }
-}
-#endif
-
 //========================================================================================================
 // SmallHeapBlock
 //========================================================================================================
@@ -176,22 +131,6 @@ SmallHeapBlockT<TBlockAttributes>::~SmallHeapBlockT()
     heapBucket->heapInfo->heapBlockCount[this->GetHeapBlockType()]--;
     heapBucket->heapBlockCount--;
 #endif
-
-#ifdef RECYCLER_PAGE_HEAP
-    if (this->pageHeapAllocStack != nullptr)
-    {
-        this->pageHeapAllocStack->Delete(&NoCheckHeapAllocator::Instance);
-        this->pageHeapAllocStack = nullptr;
-    }
-
-    // REVIEW: This means that the old free stack is lost when we get free the heap block
-    // Is this okay? Should we delay freeing heap blocks till process/thread shutdown time?
-    if (this->pageHeapFreeStack != nullptr)
-    {
-        this->pageHeapFreeStack->Delete(&NoCheckHeapAllocator::Instance);
-        this->pageHeapFreeStack = nullptr;
-    }
-#endif
 }
 
 template <class TBlockAttributes>
@@ -206,25 +145,6 @@ uint
 SmallHeapBlockT<MediumAllocationBlockAttributes>::GetObjectBitDeltaForBucketIndex(uint bucketIndex)
 {
     return HeapInfo::GetObjectSizeForBucketIndex<MediumAllocationBlockAttributes>(bucketIndex) / HeapConstants::ObjectGranularity;
-}
-
-// TODO: consider remove and merge with GetPageCount
-template <class TBlockAttributes>
-template<bool pageheap>
-const uint
-SmallHeapBlockT<TBlockAttributes>::GetPageHeapModePageCount() const
-{
-#ifdef RECYCLER_PAGE_HEAP
-    if (pageheap)
-    {
-        if (InPageHeapMode())
-        {
-            return TBlockAttributes::PageCount + 1;
-        }
-    }
-#endif
-
-    return TBlockAttributes::PageCount;
 }
 
 template <class TBlockAttributes>
@@ -274,25 +194,6 @@ SmallHeapBlockT<TBlockAttributes>::GetExpectedSweepObjectCount() const
     return GetExpectedFreeObjectCount() - freeCount;
 }
 
-#ifdef RECYCLER_PAGE_HEAP
-template <class TBlockAttributes>
-void
-SmallHeapBlockT<TBlockAttributes>::EnablePageHeap()
-{
-    if (this->heapBucket->IsPageHeapEnabled())
-    {
-        this->pageHeapMode = this->heapBucket->heapInfo->pageHeapMode;
-    }
-}
-
-template <class TBlockAttributes>
-void
-SmallHeapBlockT<TBlockAttributes>::ClearPageHeap()
-{
-    this->pageHeapMode = PageHeapMode::PageHeapModeOff;
-}
-#endif
-
 template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::Init(ushort objectSize, ushort objectCount)
@@ -317,26 +218,9 @@ SmallHeapBlockT<TBlockAttributes>::Init(ushort objectSize, ushort objectCount)
     Assert(!this->isInAllocator);
     Assert(!this->isClearedFromAllocator);
     Assert(!this->isIntegratedBlock);
-
-#ifdef RECYCLER_PAGE_HEAP
-    if (this->pageHeapAllocStack != nullptr)
-    {
-        this->pageHeapAllocStack->Delete(&NoCheckHeapAllocator::Instance);
-        this->pageHeapAllocStack = nullptr;
-    }
-
-    // REVIEW: This means that the old free stack is lost when we get reuse the heap block
-    // Is this okay? Should we never reuse heap blocks in page heap mode?
-    if (this->pageHeapFreeStack != nullptr)
-    {
-        this->pageHeapFreeStack->Delete(&NoCheckHeapAllocator::Instance);
-        this->pageHeapFreeStack = nullptr;
-    }
-#endif
 }
 
 template <class TBlockAttributes>
-template<bool pageheap>
 BOOL
 SmallHeapBlockT<TBlockAttributes>::ReassignPages(Recycler * recycler)
 {
@@ -344,13 +228,10 @@ SmallHeapBlockT<TBlockAttributes>::ReassignPages(Recycler * recycler)
     Assert(this->segment == nullptr);
 
     PageSegment * segment;
-#ifdef RECYCLER_PAGE_HEAP
-    const PageHeapMode pageHeapModeLocal = this->pageHeapMode;
-#else
-    const PageHeapMode pageHeapModeLocal = PageHeapModeOff;
-#endif
 
-    char * address = this->GetPageAllocator(recycler)->AllocPagesPageAligned(this->GetPageHeapModePageCount<pageheap>(), &segment, pageHeapModeLocal);
+    auto pageAllocator = this->GetPageAllocator(recycler);
+    uint pagecount = this->GetPageCount();
+    char * address = pageAllocator->AllocPagesPageAligned(pagecount, &segment);
 
     if (address == NULL)
     {
@@ -367,14 +248,14 @@ SmallHeapBlockT<TBlockAttributes>::ReassignPages(Recycler * recycler)
 #endif
         )
     {
-        recycler->VerifyZeroFill(address, AutoSystemInfo::PageSize * this->GetPageHeapModePageCount<pageheap>());
+        recycler->VerifyZeroFill(address, AutoSystemInfo::PageSize * this->GetPageCount());
     }
 #endif
 
-    if (!this->SetPage<pageheap>(address, segment, recycler))
+    if (!this->SetPage(address, segment, recycler))
     {
         this->GetPageAllocator(recycler)->SuspendIdleDecommit();
-        this->ReleasePages<pageheap>(recycler);
+        this->ReleasePages(recycler);
         this->GetPageAllocator(recycler)->ResumeIdleDecommit();
         return FALSE;
     }
@@ -384,65 +265,13 @@ SmallHeapBlockT<TBlockAttributes>::ReassignPages(Recycler * recycler)
     return TRUE;
 }
 
-#ifdef RECYCLER_PAGE_HEAP
 template <class TBlockAttributes>
-void
-SmallHeapBlockT<TBlockAttributes>::ClearPageHeapState()
-{
-    // If this page has a guard page associated with it,
-    // restore its access protections
-    if (this->guardPageAddress != nullptr)
-    {
-        Assert(this->InPageHeapMode());
-        DWORD oldProtectFlags = 0;
-
-        BOOL ret = ::VirtualProtect(static_cast<LPVOID>(this->guardPageAddress), AutoSystemInfo::PageSize, this->guardPageOldProtectFlags, &oldProtectFlags);
-
-        Assert(ret == TRUE);
-        Assert(oldProtectFlags == PAGE_NOACCESS);
-    }
-}
-#endif
-
-template <class TBlockAttributes>
-template<bool pageheap>
 BOOL
 SmallHeapBlockT<TBlockAttributes>::SetPage(__in_ecount_pagesize char * baseAddress, PageSegment * pageSegment, Recycler * recycler)
 {
     char* address = baseAddress;
 
-#ifdef RECYCLER_PAGE_HEAP
-    if (pageheap)
-    {
-        if (InPageHeapMode())
-        {
-            uint pageCount = this->GetPageHeapModePageCount<true>();
-            Assert(pageCount == TBlockAttributes::PageCount + 1 || (!this->InPageHeapMode() && pageCount == TBlockAttributes::PageCount));
-
-            if (this->pageHeapMode == PageHeapMode::PageHeapModeBlockStart)
-            {
-                address = baseAddress + AutoSystemInfo::PageSize;
-                this->guardPageAddress = baseAddress;
-            }
-            else if (this->pageHeapMode == PageHeapMode::PageHeapModeBlockEnd)
-            {
-                address = baseAddress;
-                this->guardPageAddress = baseAddress + (TBlockAttributes::PageCount * AutoSystemInfo::PageSize);
-            }
-
-            if (this->guardPageAddress != nullptr)
-            {
-                if (::VirtualProtect(static_cast<LPVOID>(this->guardPageAddress), AutoSystemInfo::PageSize, PAGE_NOACCESS, &guardPageOldProtectFlags) == FALSE)
-                {
-                    return FALSE;
-                }
-            }
-        }
-    }
-#endif
-
-    uint l2Id = HeapBlockMap32::GetLevel2Id(address);
-    Assert(l2Id + (TBlockAttributes::PageCount - 1) < 256);
+    Assert(HeapBlockMap32::GetLevel2Id(address) + (TBlockAttributes::PageCount - 1) < 256);
 
     this->segment = pageSegment;
     this->address = address;
@@ -488,7 +317,6 @@ SmallHeapBlockT<TBlockAttributes>::SetPage(__in_ecount_pagesize char * baseAddre
 }
 
 template <class TBlockAttributes>
-template<bool pageheap>
 void
 SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
 {
@@ -505,31 +333,11 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
 
     char* address = this->address;
 
-#ifdef RECYCLER_PAGE_HEAP
-    if (pageheap)
-    {
-        if (InPageHeapMode())
-        {
-            ClearPageHeapState();
-
-            if (guardPageAddress != nullptr)
-            {
-                if (this->pageHeapMode == PageHeapMode::PageHeapModeBlockStart)
-                {
-                    address = guardPageAddress;
-                }
-
-                guardPageAddress = nullptr;
-            }
-        }
-    }
-#endif
-
 #ifdef RECYCLER_FREE_MEM_FILL
-    memset(address, DbgMemFill, AutoSystemInfo::PageSize * this->GetPageHeapModePageCount<pageheap>());
+    memset(address, DbgMemFill, AutoSystemInfo::PageSize * this->GetPageCount());
 #endif
 
-    this->GetPageAllocator(recycler)->ReleasePages(address, this->GetPageHeapModePageCount<pageheap>(), this->GetPageSegment());
+    this->GetPageAllocator(recycler)->ReleasePages(address, this->GetPageCount(), this->GetPageSegment());
 
     this->segment = nullptr;
     this->address = nullptr;
@@ -537,32 +345,13 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
 }
 
 template <class TBlockAttributes>
-template<bool pageheap>
 void
 SmallHeapBlockT<TBlockAttributes>::BackgroundReleasePagesSweep(Recycler* recycler)
 {
     recycler->heapBlockMap.ClearHeapBlock(address, this->GetPageCount());
     char* address = this->address;
-#ifdef RECYCLER_PAGE_HEAP
-    if (pageheap)
-    {
-        if (InPageHeapMode())
-        {
-            ClearPageHeapState();
-            if (guardPageAddress != nullptr)
-            {
-                if (this->pageHeapMode == PageHeapMode::PageHeapModeBlockStart)
-                {
-                    address = guardPageAddress;
-                }
 
-                guardPageAddress = nullptr;
-            }
-        }
-    }
-#endif
-
-    this->GetPageAllocator(recycler)->BackgroundReleasePages(address, this->GetPageHeapModePageCount<pageheap>(), this->GetPageSegment());
+    this->GetPageAllocator(recycler)->BackgroundReleasePages(address, this->GetPageCount(), this->GetPageSegment());
 
     this->address = nullptr;
     this->segment = nullptr;
@@ -578,10 +367,6 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePagesShutdown(Recycler * recycler)
     {
         RecyclerVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Releasing leaf block pages at address 0x%p\n"), address);
     }
-
-#ifdef RECYCLER_PAGE_HEAP
-    ClearPageHeapState();
-#endif
 
     RemoveFromHeapBlockMap(recycler);
 
@@ -600,12 +385,11 @@ SmallHeapBlockT<TBlockAttributes>::RemoveFromHeapBlockMap(Recycler* recycler)
 }
 
 template <class TBlockAttributes>
-template<bool pageheap>
 void
 SmallHeapBlockT<TBlockAttributes>::ReleasePagesSweep(Recycler * recycler)
 {
     RemoveFromHeapBlockMap(recycler);
-    ReleasePages<pageheap>(recycler);
+    ReleasePages(recycler);
 }
 
 template <class TBlockAttributes>
@@ -634,21 +418,6 @@ SmallHeapBlockT<TBlockAttributes>::Reset()
 #if DBG
     this->isClearedFromAllocator = false;
     this->isIntegratedBlock = false;
-#endif
-
-#ifdef RECYCLER_PAGE_HEAP
-    if (this->pageHeapFreeStack != nullptr)
-    {
-        this->pageHeapFreeStack->Delete(&NoCheckHeapAllocator::Instance);
-        this->pageHeapFreeStack = nullptr;
-    }
-
-    if (this->pageHeapAllocStack != nullptr)
-    {
-        this->pageHeapAllocStack->Delete(&NoCheckHeapAllocator::Instance);
-        this->pageHeapAllocStack = nullptr;
-    }
-
 #endif
 
     // There is no page associated with this heap block,
@@ -946,24 +715,6 @@ SmallHeapBlockT<TBlockAttributes>::ClearExplicitFreeBitForObject(void* objectAdd
 
 #endif
 
-#ifdef RECYCLER_PAGE_HEAP
-template <class TBlockAttributes>
-void
-SmallHeapBlockT<TBlockAttributes>::VerifyPageHeapAllocation(_In_ char* allocation, PageHeapMode mode)
-{
-    if (mode == PageHeapMode::PageHeapModeBlockStart)
-    {
-        Assert(allocation == this->address);
-    }
-    else
-    {
-        Assert(mode == PageHeapMode::PageHeapModeBlockEnd);
-        char* lastObjectAddress = this->GetAddress() + ((this->GetObjectCount() - 1) * this->objectSize);
-        Assert(lastObjectAddress <= this->GetEndAddress() - this->objectSize);
-    }
-}
-#endif
-
 #ifdef RECYCLER_VERIFY_MARK
 
 template <class TBlockAttributes>
@@ -1082,11 +833,6 @@ SmallHeapBlockT<TBlockAttributes>::DoPartialReusePage(RecyclerSweep const& recyc
 {
     // Partial GC page reuse heuristic
 
-#ifdef RECYCLER_PAGE_HEAP
-    // we should not get here in page heap mode.
-    Assert(!this->InPageHeapMode());
-#endif
-
     Assert(recyclerSweep.InPartialCollectMode());
     expectFreeByteCount = GetExpectedFreeBytes();
     // PartialCollectSmallHeapBlockReuseMinFreeBytes is calculated by dwPageSize* efficacy. If efficacy is
@@ -1165,48 +911,11 @@ SmallHeapBlockT<TBlockAttributes>::AdjustPartialUncollectedAllocBytes(RecyclerSw
 }
 #endif
 
-#ifdef RECYCLER_PAGE_HEAP
 template <class TBlockAttributes>
-char *
-SmallHeapBlockT<TBlockAttributes>::GetPageHeapObjectAddress()
-{
-    Assert(InPageHeapMode());
-
-    if (this->pageHeapMode == PageHeapMode::PageHeapModeBlockStart)
-    {
-        return this->address;
-    }
-    else if (this->pageHeapMode == PageHeapMode::PageHeapModeBlockEnd)
-    {
-        return this->address + (this->objectCount - 1) * objectSize;
-    }
-    else
-    {
-        AssertMsg(false, "Unknown PageHeapMode");
-        return nullptr;
-    }
-}
-#endif
-
-template <class TBlockAttributes>
-template <bool pageheap>
 uint
 SmallHeapBlockT<TBlockAttributes>::GetMarkCountForSweep()
 {
     Assert(IsFreeBitsValid());
-
-    // Determine the number of marked, non-free objects in the block.
-
-#ifdef RECYCLER_PAGE_HEAP
-    if (pageheap && InPageHeapMode())
-    {
-        uint bitIndex = this->GetAddressBitIndex(this->GetPageHeapObjectAddress());
-        bool marked = (this->GetMarkedBitVector()->Test(bitIndex) && !this->GetFreeBitVector()->Test(bitIndex));
-        return marked ? 1 : 0;
-    }
-
-    Assert(!InPageHeapMode());
-#endif
 
     // Make a local copy of mark bits, so we don't modify the actual mark bits.
     SmallHeapBlockBitVector temp;
@@ -1225,7 +934,6 @@ SmallHeapBlockT<TBlockAttributes>::GetMarkCountForSweep()
 }
 
 template <class TBlockAttributes>
-template <bool pageheap>
 SweepState
 SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount, bool hasPendingDispose)
 {
@@ -1259,7 +967,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
     Assert(this->freeCount == this->GetFreeBitVector()->Count());
     RECYCLER_SLOW_CHECK(CheckFreeBitVector(true));
 
-    const uint localMarkCount = this->GetMarkCountForSweep<pageheap>();
+    const uint localMarkCount = this->GetMarkCountForSweep();
     this->markCount = (ushort)localMarkCount;
     Assert(markCount <= objectCount - this->freeCount);
 
@@ -1285,32 +993,12 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
     const bool isAllFreed = (finalizeCount == 0 && noRealObjectsMarked && !hasPendingDispose);
     if (isAllFreed)
     {
-        recycler->NotifyFree<pageheap>(this);
+        recycler->NotifyFree(this);
 
         Assert(!this->HasPendingDisposeObjects());
 
-#ifdef RECYCLER_PAGE_HEAP
-        if (pageheap)
-        {
-            if (InPageHeapMode())
-            {
-                PageHeapVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Heap block 0x%p is empty\n"), this);
-            }
-        }
-#endif
-
         return SweepStateEmpty;
     }
-
-#ifdef RECYCLER_PAGE_HEAP
-    if (pageheap)
-    {
-        if (InPageHeapMode())
-        {
-            PageHeapVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Heap block 0x%p is not empty, local mark count is %d, expected sweep count is %d\n"), this, localMarkCount, expectSweepCount);
-        }
-    }
-#endif
 
     RECYCLER_STATS_ADD(recycler, heapBlockFreeByteCount[this->GetHeapBlockType()], expectFreeCount * this->objectSize);
 
@@ -1327,22 +1015,6 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
         // nothing has been freed
         return (this->freeCount == 0) ? SweepStateFull : state;
     }
-
-#ifdef RECYCLER_PAGE_HEAP
-    if (pageheap)
-    {
-        if (InPageHeapMode())
-        {
-            // If a real object (either the one at the beginning of the page or at
-            // the end of the page) was marked, then this block is full
-            if (noRealObjectsMarked == false)
-            {
-                Assert(localMarkCount == 1);
-                return SweepStateFull;
-            }
-        }
-    }
-#endif
 
     RECYCLER_STATS_INC(recycler, heapBlockSweptCount[this->GetHeapBlockType()]);
 
@@ -1372,7 +1044,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
     Assert(!recyclerSweep.IsBackground());
 #endif
 
-    SweepObjects<pageheap, SweepMode_InThread>(recycler);
+    SweepObjects<SweepMode_InThread>(recycler);
     if (HasPendingDisposeObjects())
     {
         Assert(finalizeCount != 0);
@@ -1401,7 +1073,7 @@ SmallHeapBlockT<TBlockAttributes>::GetMarkCountOnHeapBlockMap() const
 #endif
 
 template <class TBlockAttributes>
-template <bool pageheap, SweepMode mode>
+template <SweepMode mode>
 void
 SmallHeapBlockT<TBlockAttributes>::SweepObjects(Recycler * recycler)
 {
@@ -1413,147 +1085,94 @@ SmallHeapBlockT<TBlockAttributes>::SweepObjects(Recycler * recycler)
 #endif
     Assert(this->IsFreeBitsValid());
     Assert(this->markCount != 0 || this->isForceSweeping || this->IsAnyFinalizableBlock());
-    Assert(this->markCount == this->GetMarkCountForSweep<pageheap>());
+    Assert(this->markCount == this->GetMarkCountForSweep());
 
     DebugOnly(VerifyMarkBitVector());
 
     SmallHeapBlockBitVector * marked = this->GetMarkedBitVector();
 
-#ifdef RECYCLER_PAGE_HEAP
-    if (pageheap && this->InPageHeapMode())
+    DebugOnly(const uint expectedSweepCount = objectCount - freeCount - markCount);
+    Assert(expectedSweepCount != 0 || this->isForceSweeping);
+    DebugOnly(uint sweepCount = 0);
+
+    const uint localSize = objectSize;
+    const uint localObjectCount = objectCount;
+    const char* objectAddress = address;
+    uint objectBitDelta = this->GetObjectBitDelta();
+
+    for (uint objectIndex = 0, bitIndex = 0; objectIndex < localObjectCount; objectIndex++, bitIndex += objectBitDelta)
     {
-        // Page heap blocks are always swept in thread.
-        Assert(mode == SweepMode_InThread);
+        Assert(IsValidBitIndex(bitIndex));
+
+        RECYCLER_STATS_ADD(recycler, objectSweepScanCount, !isForceSweeping);
+        if (!marked->Test(bitIndex))
+        {
+            if (!this->GetFreeBitVector()->Test(bitIndex))
+            {
+                Assert((this->ObjectInfo(objectIndex) & ImplicitRootBit) == 0);
+                FreeObject* addr = (FreeObject*)objectAddress;
+
+#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
+                if (mode != SweepMode_ConcurrentPartial)
+#endif
+                {
+                    // Don't call NotifyFree if we are doing a partial sweep.
+                    // Since we are not actually collecting the object, we will do the NotifyFree later
+                    // when the object is actually collected in a future Sweep.
+                    recycler->NotifyFree((char *)addr, this->objectSize);
+                }
+#if DBG
+                sweepCount++;
+#endif
+                SweepObject<mode>(recycler, objectIndex, addr);
+            }
+        }
+
+#if DBG
+        if (marked->Test(bitIndex))
+        {
+            Assert((ObjectInfo(objectIndex) & NewTrackBit) == 0);
+        }
+#endif
+
+        objectAddress += localSize;
+    }
+
+    Assert(sweepCount == expectedSweepCount);
 #if ENABLE_CONCURRENT_GC
-        Assert(!this->isPendingConcurrentSweep);
+    this->isPendingConcurrentSweep = false;
 #endif
 
-        char * objectAddress = this->GetPageHeapObjectAddress();
-        uint bitIndex = this->GetAddressBitIndex(objectAddress);
-        uint objectIndex = this->GetAddressIndex(objectAddress);
+#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
+    if (mode == SweepMode_ConcurrentPartial)
+    {
+        Assert(recycler->inPartialCollectMode);
 
-        // We know that the object is not live, or we wouldn't be here.
-        Assert(this->markCount == 0);
-
-        // However, it's possible that the PageHeap object is already free.
-        // This can happen when the block was in PendingDispose state, and then
-        // we did the dispose and freed the object in TransferDisposeObjects.
-        // So check for this.
-        if (this->GetFreeBitVector()->Test(bitIndex))
-        {
-            Assert(this->IsAnyFinalizableBlock());
-            Assert(this->freeCount == 1);
-        }
-        else
-        {
-            Assert(!marked->Test(bitIndex));
-            Assert((this->ObjectInfo(objectIndex) & ImplicitRootBit) == 0);
-            FreeObject* addr = (FreeObject*)objectAddress;
-
-            recycler->NotifyFree((char *)addr, this->objectSize);
-            SweepObject<SweepMode_InThread>(recycler, objectIndex, addr);
-
-            // Update the free bit vector
-            Assert(this->freeCount == 0);
-            this->GetFreeBitVector()->Set(bitIndex);
-#if ENABLE_PARTIAL_GC
-            this->oldFreeCount = this->lastFreeCount = this->freeCount = 1;
-#else
-            this->lastFreeCount = this->freeCount = 1;
-#endif
-            this->lastFreeObjectHead = this->freeObjectList;
-        }
+        // We didn't actually collect anything, so the free bit vector should still be valid.
+        Assert(IsFreeBitsValid());
     }
     else
 #endif
     {
-#ifdef RECYCLER_PAGE_HEAP
-        Assert(!this->InPageHeapMode());
-#endif
-
-        DebugOnly(const uint expectedSweepCount = objectCount - freeCount - markCount);
-        Assert(expectedSweepCount != 0 || this->isForceSweeping);
-        DebugOnly(uint sweepCount = 0);
-
-        const uint localSize = objectSize;
-        const uint localObjectCount = objectCount;
-        const char* objectAddress = address;
-        uint objectBitDelta = this->GetObjectBitDelta();
-
-        for (uint objectIndex = 0, bitIndex = 0; objectIndex < localObjectCount; objectIndex++, bitIndex += objectBitDelta)
-        {
-            Assert(IsValidBitIndex(bitIndex));
-
-            RECYCLER_STATS_ADD(recycler, objectSweepScanCount, !isForceSweeping);
-            if (!marked->Test(bitIndex))
-            {
-                if (!this->GetFreeBitVector()->Test(bitIndex))
-                {
-                    Assert((this->ObjectInfo(objectIndex) & ImplicitRootBit) == 0);
-                    FreeObject* addr = (FreeObject*)objectAddress;
-
-#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
-                    if (mode != SweepMode_ConcurrentPartial)
-#endif
-                    {
-                        // Don't call NotifyFree if we are doing a partial sweep.
-                        // Since we are not actually collecting the object, we will do the NotifyFree later
-                        // when the object is actually collected in a future Sweep.
-                        recycler->NotifyFree((char *)addr, this->objectSize);
-                    }
-#if DBG
-                    sweepCount++;
-#endif
-                    SweepObject<mode>(recycler, objectIndex, addr);
-                }
-            }
-
-#if DBG
-            if (marked->Test(bitIndex))
-            {
-                Assert((ObjectInfo(objectIndex) & NewTrackBit) == 0);
-            }
-#endif
-
-            objectAddress += localSize;
-        }
-
-        Assert(sweepCount == expectedSweepCount);
-#if ENABLE_CONCURRENT_GC
-        this->isPendingConcurrentSweep = false;
-#endif
-
-#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
-        if (mode == SweepMode_ConcurrentPartial)
-        {
-            Assert(recycler->inPartialCollectMode);
-
-            // We didn't actually collect anything, so the free bit vector should still be valid.
-            Assert(IsFreeBitsValid());
-        }
-        else
-#endif
-        {
-            // Update the free bit vector
-            // Need to update even if there are not swept object because finalizable object are
-            // consider freed but not on the free list.
-            ushort currentFreeCount = GetExpectedFreeObjectCount();
-            this->GetFreeBitVector()->OrComplimented(marked);
-            this->GetFreeBitVector()->Minus(this->GetInvalidBitVector());
+        // Update the free bit vector
+        // Need to update even if there are not swept object because finalizable object are
+        // consider freed but not on the free list.
+        ushort currentFreeCount = GetExpectedFreeObjectCount();
+        this->GetFreeBitVector()->OrComplimented(marked);
+        this->GetFreeBitVector()->Minus(this->GetInvalidBitVector());
 #if ENABLE_PARTIAL_GC
-            this->oldFreeCount = this->lastFreeCount = this->freeCount = currentFreeCount;
+        this->oldFreeCount = this->lastFreeCount = this->freeCount = currentFreeCount;
 #else
-            this->lastFreeCount = this->freeCount = currentFreeCount;
+        this->lastFreeCount = this->freeCount = currentFreeCount;
 #endif
 
-            this->lastFreeObjectHead = this->freeObjectList;
-        }
+        this->lastFreeObjectHead = this->freeObjectList;
     }
 
     RECYCLER_SLOW_CHECK(CheckFreeBitVector(true));
 
     // The count of marked, non-free objects should still be the same
-    Assert(this->markCount == this->GetMarkCountForSweep<pageheap>());
+    Assert(this->markCount == this->GetMarkCountForSweep());
 }
 
 template <class TBlockAttributes>

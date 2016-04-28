@@ -209,11 +209,7 @@ SmallHeapBlockAllocator<TBlockType>::TrackNativeAllocatedObjects()
 
     if (lastNonNativeBumpAllocatedBlock == nullptr)
     {
-#ifdef RECYCLER_PAGE_HEAP
-        Assert((char *)this->freeObjectList == this->heapBlock->GetAddress() || ((SmallHeapBlock*) this->heapBlock)->InPageHeapMode());
-#else
         Assert((char *)this->freeObjectList == this->heapBlock->GetAddress());
-#endif
         return;
     }
 

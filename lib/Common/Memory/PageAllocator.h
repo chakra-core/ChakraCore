@@ -210,17 +210,18 @@ public:
     uint GetFreePageCount() const { return freePageCount; }
     uint GetDecommitPageCount() const { return decommitPageCount; }
 
-    static bool IsAllocationPageAligned(__in char* address, size_t pageCount, PageHeapMode pageHeapFlags);
+    static bool IsAllocationPageAligned(__in char* address, size_t pageCount);
 
     template <typename T, bool notPageAligned>
-    char * AllocDecommitPages(uint pageCount, T freePages, T decommitPages, PageHeapMode pageHeapFlags);
+    char * AllocDecommitPages(uint pageCount, T freePages, T decommitPages);
 
     template <bool notPageAligned>
-    char * AllocPages(uint pageCount, PageHeapMode pageHeapFlags);
+    char * AllocPages(uint pageCount);
 
     void ReleasePages(__in void * address, uint pageCount);
     template <bool onlyUpdateState>
     void DecommitPages(__in void * address, uint pageCount);
+    void PartialDecommitPages(__in void * address, size_t totalPageCount, __in void* addressToDecommit, size_t pageCountToDecommit);
 
     uint GetCountOfFreePages() const;
     uint GetNextBitInFreePagesBitVector(uint index) const;
@@ -239,7 +240,7 @@ public:
     void ClearRangeInDecommitPagesBitVector(uint index, uint pageCount);
 
     template <bool notPageAligned>
-    char * DoAllocDecommitPages(uint pageCount, PageHeapMode pageHeapFlags);
+    char * DoAllocDecommitPages(uint pageCount);
     uint GetMaxPageCount();
 
     size_t DecommitFreePages(size_t pageToDecommit);
@@ -425,8 +426,9 @@ public:
     void Release(void * address, size_t pageCount, void * segment);
 
     char * AllocPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
-    char * AllocPagesPageAligned(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
+    char * AllocPagesPageAligned(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
+    void PartialDecommitPages(__in void * address, size_t pageCountTotal, __in void* decommitAddress, size_t pageCountToDecommit,  __in void * pageSegment);
     void ReleasePages(__in void * address, uint pageCount, __in void * pageSegment);
     void BackgroundReleasePages(void * address, uint pageCount, PageSegmentBase<TVirtualAlloc> * pageSegment);
 
@@ -486,16 +488,16 @@ protected:
     char * AllocInternal(size_t * pageCount, SegmentBase<TVirtualAlloc> ** segment);
 
     template <bool notPageAligned>
-    char * SnailAllocPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
+    char * SnailAllocPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
     void OnAllocFromNewSegment(uint pageCount, __in void* pages, SegmentBase<TVirtualAlloc>* segment);
 
     template <bool notPageAligned>
-    char * TryAllocFreePages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
+    char * TryAllocFreePages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
     char * TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, SLIST_HEADER& zeroPagesList, bool isPendingZeroList);
-    char * TryAllocFromZeroPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
+    char * TryAllocFromZeroPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
     template <bool notPageAligned>
-    char * TryAllocDecommittedPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
+    char * TryAllocDecommittedPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
     DListBase<PageSegmentBase<TVirtualAlloc>> * GetSegmentList(PageSegmentBase<TVirtualAlloc> * segment);
     void TransferSegment(PageSegmentBase<TVirtualAlloc> * segment, DListBase<PageSegmentBase<TVirtualAlloc>> * fromSegmentList);
@@ -611,7 +613,7 @@ private:
     void QueuePages(void * address, uint pageCount, PageSegmentBase<TVirtualAlloc> * pageSegment);
 
     template <bool notPageAligned>
-    char* AllocPagesInternal(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapModeFlags = PageHeapMode::PageHeapModeOff);
+    char* AllocPagesInternal(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
 #ifdef PROFILE_MEM
     PageMemoryData * memoryData;

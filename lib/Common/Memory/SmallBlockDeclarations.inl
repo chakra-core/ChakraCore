@@ -7,20 +7,11 @@
 #error Need to define block type attributes before including this file
 #endif
 
-template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePages<true>(Recycler * recycler);
-template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePages<false>(Recycler * recycler);
-template void SmallHeapBlockT<TBlockTypeAttributes>::BackgroundReleasePagesSweep<true>(Recycler* recycler);
-template void SmallHeapBlockT<TBlockTypeAttributes>::BackgroundReleasePagesSweep<false>(Recycler* recycler);
-template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePagesSweep<true>(Recycler * recycler);
-template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePagesSweep<false>(Recycler * recycler);
-template BOOL SmallHeapBlockT<TBlockTypeAttributes>::ReassignPages<true>(Recycler * recycler);
-template BOOL SmallHeapBlockT<TBlockTypeAttributes>::ReassignPages<false>(Recycler * recycler);
-template BOOL SmallHeapBlockT<TBlockTypeAttributes>::SetPage<true>(__in_ecount_pagesize char * baseAddress, PageSegment * pageSegment, Recycler * recycler);
-template BOOL SmallHeapBlockT<TBlockTypeAttributes>::SetPage<false>(__in_ecount_pagesize char * baseAddress, PageSegment * pageSegment, Recycler * recycler);
-template const uint SmallHeapBlockT<TBlockTypeAttributes>::GetPageHeapModePageCount<true>() const;
-template const uint SmallHeapBlockT<TBlockTypeAttributes>::GetPageHeapModePageCount<false>() const;
-template SweepState SmallHeapBlockT<TBlockTypeAttributes>::Sweep<true>(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount, bool hasPendingDispose);
-template SweepState SmallHeapBlockT<TBlockTypeAttributes>::Sweep<false>(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount, bool hasPendingDispose);
+template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePages(Recycler * recycler);
+template void SmallHeapBlockT<TBlockTypeAttributes>::BackgroundReleasePagesSweep(Recycler* recycler);
+template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePagesSweep(Recycler * recycler);
+template BOOL SmallHeapBlockT<TBlockTypeAttributes>::ReassignPages(Recycler * recycler);
+template SweepState SmallHeapBlockT<TBlockTypeAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount, bool hasPendingDispose);
 
 template SmallNormalHeapBlockT<TBlockTypeAttributes>* HeapBlock::AsNormalBlock<TBlockTypeAttributes>();
 template SmallLeafHeapBlockT<TBlockTypeAttributes>* HeapBlock::AsLeafBlock<TBlockTypeAttributes>();
@@ -51,8 +42,7 @@ template bool SmallHeapBlockT<TBlockTypeAttributes>::GetFreeObjectListOnAllocato
 // template const SmallHeapBlockT<TBlockTypeAttributes>::SmallHeapBlockBitVector * HeapInfo::ValidPointersMap<TBlockTypeAttributes>::GetInvalidBitVector(uint index) const;
 
 // Explicit instantiate all the sweep mode
-template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<true, SweepMode_InThread>(Recycler * recycler);
-template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<false, SweepMode_InThread>(Recycler * recycler);
+template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_InThread>(Recycler * recycler);
 #if ENABLE_CONCURRENT_GC
 template <>
 template <>
@@ -63,7 +53,7 @@ SmallHeapBlockT<TBlockTypeAttributes>::SweepObject<SweepMode_Concurrent>(Recycle
     EnqueueProcessedObject(&freeObjectList, addr, i);
 }
 // Explicit instantiate all the sweep mode
-template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<false, SweepMode_Concurrent>(Recycler * recycler);
+template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_Concurrent>(Recycler * recycler);
 #if ENABLE_PARTIAL_GC
 template <>
 template <>
@@ -83,7 +73,7 @@ SmallHeapBlockT<TBlockTypeAttributes>::SweepObject<SweepMode_ConcurrentPartial>(
 }
 
 // Explicit instantiate all the sweep mode
-template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<false, SweepMode_ConcurrentPartial>(Recycler * recycler);
+template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_ConcurrentPartial>(Recycler * recycler);
 #endif
 #endif
 
