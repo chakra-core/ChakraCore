@@ -294,11 +294,15 @@ var assert = function assert() {
             ///
             /// expectedException:  A specific exception type, e.g. TypeError.
             ///                     if undefined, this will pass if testFunction throws any exception.<br/>
-            /// expectedErrorMessage: If specified, verifies the thrown Error has expected message.<br/><br/>
+            /// message: Test-provided explanation of why this particular exception should be thrown.<br/>
+            /// expectedErrorMessage: If specified, verifies the thrown Error has expected message.<br/>
+            ///                       You only need to specify this if you are looking for a specific error message.<br/>
+            ///                       Does not require the prefix of e.g. "TypeError:" that would be printed by the host.<br/><br/>
             ///
             /// Example:<br/>
             /// assert.throws(function() { eval("{"); }, SyntaxError, "expected SyntaxError")<br/>
             /// assert.throws(function() { eval("{"); }) // -- use this when you don't care which exception is thrown.<br/>
+            /// assert.throws(function() { eval("{"); }, SyntaxError, "expected SyntaxError with message about expected semicolon.", "Expected ';'")
             /// </summary>
             var noException = {};         // Some unique object which will not be equal to anything else.
             var exception = noException;  // Set default value.
