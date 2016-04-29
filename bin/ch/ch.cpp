@@ -531,40 +531,27 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool
     return TTOpenStream_Helper(logFile.c_str(), read, write);
 }
 
-static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* logRootUri, const char16* snapId, bool read, bool write, char16** containerUri)
+static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* uri, const char16* snapId, bool read, bool write)
 {
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
-    std::wstring snapDir(logRootUri);
-    snapDir.append(_u("snap_"));
-    snapDir.append(snapId);
-    snapDir.append(_u("\\"));
-
-    int resUriCount = (int)(wcslen(snapDir.c_str()) + 1);
-    *containerUri = (char16*)CoTaskMemAlloc(resUriCount * sizeof(char16));
-    memcpy(*containerUri, snapDir.c_str(), resUriCount * sizeof(char16));
-
-    std::wstring snapFile(snapDir);
-    snapFile.append(_u("snapshot.snp"));
-
-    if(write)
-    {
-        //create the directory if it does not exist
-        CreateDirectory(snapDir.c_str(), NULL);
-    }
+    std::wstring snapFile(uri);
+    snapFile.append(_u("\\snap_"));
+    snapFile.append(snapId);
+    snapFile.append(_u(".snp"));
 
     return TTOpenStream_Helper(snapFile.c_str(), read, write);
 }
 
-static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* containerUri, const char16* documentid, const char16* srcFileName, bool read, bool write)
+static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char16* bodyCtrId, const char16* srcFileName, bool read, bool write)
 {
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     std::wstring sFile;
     GetFileFromURI(srcFileName, sFile);
 
-    std::wstring srcPath(containerUri);
-    srcPath.append(documentid);
+    std::wstring srcPath(uri);
+    srcPath.append(bodyCtrId);
     srcPath.append(_u("_"));
     srcPath.append(sFile.c_str());
 

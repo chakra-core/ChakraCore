@@ -294,7 +294,10 @@ namespace TTD
         case EventKind::SnapshotTag:
             res = SnapshotEventLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
-        case EventKind::TelemetryLogEntry:
+        case EventKind::TopLevelCodeTag:
+            res = CodeLoadEventLogEntry::CompleteParse(true, reader, alloc, etime);
+            break;
+        case EventKind::TelemetryLogTag:
             res = TelemetryEventLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
         case EventKind::DoubleTag:
@@ -411,8 +414,47 @@ namespace TTD
 
     //////////////////
 
+    CodeLoadEventLogEntry::CodeLoadEventLogEntry(int64 eTime, uint64 bodyCtrId)
+        : EventLogEntry(EventKind::TopLevelCodeTag, eTime), m_bodyCounterId(bodyCtrId)
+    {
+        ;
+    }
+
+    void CodeLoadEventLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        ;
+    }
+
+    CodeLoadEventLogEntry* CodeLoadEventLogEntry::As(EventLogEntry* e)
+    {
+        AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::TopLevelCodeTag, "Not a telemetry event!");
+
+        return static_cast<CodeLoadEventLogEntry*>(e);
+    }
+
+    uint64 CodeLoadEventLogEntry::GetLoadCounterId() const
+    {
+        return this->m_bodyCounterId;
+    }
+
+    void CodeLoadEventLogEntry::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+
+        writer->WriteUInt64(NSTokens::Key::u64Val, this->m_bodyCounterId, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    CodeLoadEventLogEntry* CodeLoadEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
+    {
+        uint64 bodyCtrId = reader->ReadUInt64(NSTokens::Key::u64Val, true);
+
+        return alloc.SlabNew<CodeLoadEventLogEntry>(eTime, bodyCtrId);
+    }
+
     TelemetryEventLogEntry::TelemetryEventLogEntry(int64 eTime, const TTString& infoString, bool doPrint)
-        : EventLogEntry(EventKind::TelemetryLogEntry, eTime), m_infoString(infoString), m_doPrint(doPrint)
+        : EventLogEntry(EventKind::TelemetryLogTag, eTime), m_infoString(infoString), m_doPrint(doPrint)
     {
         ;
     }
@@ -424,7 +466,7 @@ namespace TTD
 
     TelemetryEventLogEntry* TelemetryEventLogEntry::As(EventLogEntry* e)
     {
-        AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::TelemetryLogEntry, "Not a telemetry event!");
+        AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::TelemetryLogTag, "Not a telemetry event!");
 
         return static_cast<TelemetryEventLogEntry*>(e);
     }

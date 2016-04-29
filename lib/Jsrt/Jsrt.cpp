@@ -2722,6 +2722,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 {
     Js::JavascriptFunction *scriptFunction;
     CompileScriptException se;
+    uint64 bodyCtrId = 0;
     LoadScriptFlag loadScriptFlag = LoadScriptFlag_None;
 
     JsErrorCode errorCode = ContextAPINoScriptWrapper(
@@ -2769,19 +2770,18 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         //
         //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
         //
-        if(scriptContext->GetThreadContext()->TTDLog != nullptr)
+        if(scriptContext->ShouldPerformRecordTopLevelFunction())
         {
             //Make sure we have the body and text information available
             Js::FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
-
-            TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo);
-            TTD::NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(tbfi, globalBody, kmodGlobal, globalBody->GetUtf8SourceInfo()->GetSourceInfoId(), script, (uint32)wcslen(script), loadScriptFlag);
-            scriptContext->m_ttdTopLevelScriptLoad.Add(tbfi);
+            const TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = scriptContext->GetThreadContext()->TTDLog->AddScriptLoad(globalBody, kmodGlobal, globalBody->GetUtf8SourceInfo()->GetSourceInfoId(), script, (uint32)wcslen(script), loadScriptFlag);
+            bodyCtrId = tbfi->TopLevelBase.TopLevelBodyCtr;
 
             //walk global body to (1) add functions to pin set (2) build parent map
             BEGIN_JS_RUNTIME_CALL(scriptContext);
             {
                 scriptContext->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+                scriptContext->RegisterLoadedScript(globalBody, tbfi->TopLevelBase.TopLevelBodyCtr);
             }
             END_JS_RUNTIME_CALL(scriptContext);
         }
@@ -2814,7 +2814,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             //
             AssertMsg(!isSourceModule, "Modules not implemented in TTD yet!!!");
 
-            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, loadScriptFlag, scriptFunction, script, sourceUrl);
+            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, bodyCtrId, loadScriptFlag, scriptFunction, script, sourceUrl);
         }
 #endif
 

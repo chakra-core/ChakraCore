@@ -530,7 +530,8 @@ namespace TTD
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
-        m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator)
+        m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator), 
+        m_loadedTopLevelScripts(&this->m_miscSlabAllocator), m_newFunctionTopLevelScripts(&this->m_miscSlabAllocator), m_evalTopLevelScripts(&this->m_miscSlabAllocator)
     {
         JsSupport::CopyStringToHeapAllocator(logDir, this->m_logInfoRootDir);
 
@@ -650,6 +651,59 @@ namespace TTD
     void EventLog::AddPropertyRecord(const Js::PropertyRecord* record)
     {
         this->m_propertyRecordPinSet->AddNew(const_cast<Js::PropertyRecord*>(record));
+    }
+
+    const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* EventLog::AddScriptLoad(Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen, LoadScriptFlag loadFlag)
+    {
+        NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo = this->m_loadedTopLevelScripts.NextOpenEntry();
+        uint64 fCount = (this->m_loadedTopLevelScripts.Count() + this->m_newFunctionTopLevelScripts.Count() + this->m_evalTopLevelScripts.Count());
+
+        NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo(fbInfo, fb, fCount, moduleId, documentID, source, sourceLen, loadFlag, this->m_miscSlabAllocator);
+
+        return fbInfo;
+    }
+
+    const NSSnapValues::TopLevelNewFunctionBodyResolveInfo* EventLog::AddNewFunction(Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen)
+    {
+        NSSnapValues::TopLevelNewFunctionBodyResolveInfo* fbInfo = this->m_newFunctionTopLevelScripts.NextOpenEntry();
+        uint64 fCount = (this->m_loadedTopLevelScripts.Count() + this->m_newFunctionTopLevelScripts.Count() + this->m_evalTopLevelScripts.Count());
+
+        NSSnapValues::ExtractTopLevelNewFunctionBodyInfo(fbInfo, fb, fCount, moduleId, source, sourceLen, this->m_miscSlabAllocator);
+
+        return fbInfo;
+    }
+
+    const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* EventLog::AddEvalFunction(Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen, ulong grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode)
+    {
+        NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* fbInfo = this->m_evalTopLevelScripts.NextOpenEntry();
+        uint64 fCount = (this->m_loadedTopLevelScripts.Count() + this->m_newFunctionTopLevelScripts.Count() + this->m_evalTopLevelScripts.Count());
+
+        NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo(fbInfo, fb, fCount, moduleId, source, sourceLen, grfscr, registerDocument, isIndirect, strictMode, this->m_miscSlabAllocator);
+
+        return fbInfo;
+    }
+
+    void EventLog::RecordTopLevelCodeAction(uint64 bodyCtrId)
+    {
+        CodeLoadEventLogEntry* tevent = this->m_eventSlabAllocator.SlabNew<CodeLoadEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), bodyCtrId);
+        this->InsertEventAtHead(tevent);
+    }
+
+    uint64 EventLog::ReplayTopLevelCodeAction()
+    {
+        if(!this->m_currentReplayEventIterator.IsValid())
+        {
+            this->AbortReplayReturnToHost();
+        }
+
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+
+        CodeLoadEventLogEntry* clevent = CodeLoadEventLogEntry::As(this->m_currentReplayEventIterator.Current());
+        uint64 fCounter = clevent->GetLoadCounterId();
+
+        this->AdvanceTimeAndPositionForReplay();
+
+        return fCounter;
     }
 
     void EventLog::RecordTelemetryLogEvent(Js::JavascriptString* infoStringJs, bool doPrint)
@@ -1606,6 +1660,27 @@ namespace TTD
         }
         AssertMsg(snap != nullptr, "Log should start with a snapshot!!!");
 
+        TTDIdentifierDictionary<uint64, NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*> topLevelLoadScriptMap;
+        topLevelLoadScriptMap.Initialize(this->m_loadedTopLevelScripts.Count());
+        for(auto iter = this->m_loadedTopLevelScripts.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            topLevelLoadScriptMap.AddItem(iter.Current()->TopLevelBase.TopLevelBodyCtr, iter.Current());
+        }
+
+        TTDIdentifierDictionary<uint64, NSSnapValues::TopLevelNewFunctionBodyResolveInfo*> topLevelNewScriptMap;
+        topLevelNewScriptMap.Initialize(this->m_newFunctionTopLevelScripts.Count());
+        for(auto iter = this->m_newFunctionTopLevelScripts.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            topLevelNewScriptMap.AddItem(iter.Current()->TopLevelBase.TopLevelBodyCtr, iter.Current());
+        }
+
+        TTDIdentifierDictionary<uint64, NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*> topLevelEvalScriptMap;
+        topLevelEvalScriptMap.Initialize(this->m_evalTopLevelScripts.Count());
+        for(auto iter = this->m_evalTopLevelScripts.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            topLevelEvalScriptMap.AddItem(iter.Current()->TopLevelBase.TopLevelBodyCtr, iter.Current());
+        }
+
         //
         //TODO: we currently assume a single context here which we load into the existing ctx
         //
@@ -1617,7 +1692,7 @@ namespace TTD
         {
             this->m_lastInflateMap->PrepForReInflate(snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), snap->EnvCount(), snap->SlotArrayCount());
 
-            NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap);
+            NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap, topLevelLoadScriptMap, topLevelNewScriptMap, topLevelEvalScriptMap);
         }
         else
         {
@@ -1625,7 +1700,7 @@ namespace TTD
             this->m_lastInflateMap->PrepForInitialInflate(this->m_threadContext, snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), snap->EnvCount(), snap->SlotArrayCount());
             this->m_lastInflateSnapshotTime = etime;
 
-            NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap);
+            NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap, topLevelLoadScriptMap, topLevelNewScriptMap, topLevelEvalScriptMap);
 
             //We don't want to have a bunch of snapshots in memory (that will get big fast) so unload all but the current one
             for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
@@ -1983,7 +2058,7 @@ namespace TTD
         this->InsertEventAtHead(createAction);
     }
 
-    void EventLog::RecordJsRTCodeParse(Js::ScriptContext* ctx, LoadScriptFlag loadFlag, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri)
+    void EventLog::RecordJsRTCodeParse(Js::ScriptContext* ctx, uint64 bodyCtrId, LoadScriptFlag loadFlag, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri)
     {
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
@@ -2004,7 +2079,7 @@ namespace TTD
         TTString ssUri;
         this->m_eventSlabAllocator.CopyNullTermStringInto(sourceUri, ssUri);
 
-        JsRTCodeParseAction* parseEvent = this->m_eventSlabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, sourceCode, loadFlag, optDocumentID, optSrcUri, dir, ssUri);
+        JsRTCodeParseAction* parseEvent = this->m_eventSlabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, sourceCode, bodyCtrId, loadFlag, optDocumentID, optSrcUri, dir, ssUri);
 
         this->InsertEventAtHead(parseEvent);
     }
@@ -2184,6 +2259,50 @@ namespace TTD
         writer.AdjustIndent(-1);
         writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
 
+        //do top level script processing here
+        writer.WriteLengthValue(this->m_loadedTopLevelScripts.Count(), NSTokens::Separator::CommaSeparator);
+        writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+        writer.AdjustIndent(1);
+        bool firstLoadScript = true;
+        for(auto iter = this->m_loadedTopLevelScripts.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            NSTokens::Separator sep = (!firstLoadScript) ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator;
+            NSSnapValues::EmitTopLevelLoadedFunctionBodyInfo(iter.Current(), this->m_logInfoRootDir.Contents, this->m_threadContext->TTDStreamFunctions, &writer, sep);
+
+            firstLoadScript = false;
+        }
+        writer.AdjustIndent(-1);
+        writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
+
+        writer.WriteLengthValue(this->m_newFunctionTopLevelScripts.Count(), NSTokens::Separator::CommaSeparator);
+        writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+        writer.AdjustIndent(1);
+        bool firstNewScript = true;
+        for(auto iter = this->m_newFunctionTopLevelScripts.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            NSTokens::Separator sep = (!firstNewScript) ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator;
+            NSSnapValues::EmitTopLevelNewFunctionBodyInfo(iter.Current(), this->m_logInfoRootDir.Contents, this->m_threadContext->TTDStreamFunctions, &writer, sep);
+
+            firstNewScript = false;
+        }
+        writer.AdjustIndent(-1);
+        writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
+
+        writer.WriteLengthValue(this->m_evalTopLevelScripts.Count(), NSTokens::Separator::CommaSeparator);
+        writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+        writer.AdjustIndent(1);
+        bool firstEvalScript = true;
+        for(auto iter = this->m_evalTopLevelScripts.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            NSTokens::Separator sep = (!firstEvalScript) ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator;
+            NSSnapValues::EmitTopLevelEvalFunctionBodyInfo(iter.Current(), this->m_logInfoRootDir.Contents, this->m_threadContext->TTDStreamFunctions, &writer, sep);
+
+            firstEvalScript = false;
+        }
+        writer.AdjustIndent(-1);
+        writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
+        //
+
         writer.AdjustIndent(-1);
         writer.WriteRecordEnd(NSTokens::Separator::BigSpaceSeparator);
 
@@ -2242,6 +2361,35 @@ namespace TTD
             NSSnapType::ParseSnapPropertyRecord(sRecord, i != 0, &reader, this->m_miscSlabAllocator);
         }
         reader.ReadSequenceEnd();
+
+        //do top level script processing here
+        uint32 loadedScriptCount = reader.ReadLengthValue(true);
+        reader.ReadSequenceStart_WDefaultKey(true);
+        for(uint32 i = 0; i < loadedScriptCount; ++i)
+        {
+            NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo = this->m_loadedTopLevelScripts.NextOpenEntry();
+            NSSnapValues::ParseTopLevelLoadedFunctionBodyInfo(fbInfo, i != 0, this->m_logInfoRootDir.Contents, this->m_threadContext->TTDStreamFunctions, &reader, this->m_miscSlabAllocator);
+        }
+        reader.ReadSequenceEnd();
+
+        uint32 newScriptCount = reader.ReadLengthValue(true);
+        reader.ReadSequenceStart_WDefaultKey(true);
+        for(uint32 i = 0; i < newScriptCount; ++i)
+        {
+            NSSnapValues::TopLevelNewFunctionBodyResolveInfo* fbInfo = this->m_newFunctionTopLevelScripts.NextOpenEntry();
+            NSSnapValues::ParseTopLevelNewFunctionBodyInfo(fbInfo, i != 0, this->m_logInfoRootDir.Contents, this->m_threadContext->TTDStreamFunctions, &reader, this->m_miscSlabAllocator);
+        }
+        reader.ReadSequenceEnd();
+
+        uint32 evalScriptCount = reader.ReadLengthValue(true);
+        reader.ReadSequenceStart_WDefaultKey(true);
+        for(uint32 i = 0; i < evalScriptCount; ++i)
+        {
+            NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* fbInfo = this->m_evalTopLevelScripts.NextOpenEntry();
+            NSSnapValues::ParseTopLevelEvalFunctionBodyInfo(fbInfo, i != 0, this->m_logInfoRootDir.Contents, this->m_threadContext->TTDStreamFunctions, &reader, this->m_miscSlabAllocator);
+        }
+        reader.ReadSequenceEnd();
+        //
 
         reader.ReadRecordEnd();
     }

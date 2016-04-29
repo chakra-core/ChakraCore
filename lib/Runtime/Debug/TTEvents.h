@@ -90,7 +90,8 @@ namespace TTD
         enum class EventKind
         {
             SnapshotTag,
-            TelemetryLogEntry,
+            TopLevelCodeTag,
+            TelemetryLogTag,
             DoubleTag,
             StringTag,
             RandomSeedTag,
@@ -175,6 +176,27 @@ namespace TTD
     };
 
     //////////////////
+
+    //A class that represents a top level code load event
+    class CodeLoadEventLogEntry : public EventLogEntry
+    {
+    private:
+        //The code counter id for the TopLevelFunctionBodyInfo
+        const uint64 m_bodyCounterId;
+
+    public:
+        CodeLoadEventLogEntry(int64 eTime, uint64 bodyCtrId);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
+
+        //Get the event as a snapshot event (and do tag checking for consistency)
+        static CodeLoadEventLogEntry* As(EventLogEntry* e);
+
+        //Get the info about the event
+        uint64 GetLoadCounterId() const;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static CodeLoadEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
+    };
 
     //A class that represents telemetry events from the user code
     class TelemetryEventLogEntry : public EventLogEntry

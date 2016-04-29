@@ -395,9 +395,9 @@ namespace TTD
         SlabAllocator& alloc = this->m_pendingSnap->GetSnapshotSlabAllocator();
 
         //We extract all the global code function bodies with the context so clear their marks now
-        JsUtil::List<NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance);
-        JsUtil::List<NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance);
-        JsUtil::List<NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator> topLevelEval(&HeapAllocator::Instance);
+        JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance);
+        JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance);
+        JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelEval(&HeapAllocator::Instance);
 
         for(int32 i = 0; i < ctxs.Count(); ++i)
         {
@@ -410,19 +410,19 @@ namespace TTD
 
             for(int32 j = 0; j < topLevelScriptLoad.Count(); ++j)
             {
-                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelScriptLoad.Item(j)->TopLevelBase.FunctionBodyId);
+                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelScriptLoad.Item(j).ContextSpecificBodyPtrId);
                 this->m_marks.ClearMark(body);
             }
 
             for(int32 j = 0; j < topLevelNewFunction.Count(); ++j)
             {
-                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelNewFunction.Item(j)->TopLevelBase.FunctionBodyId);
+                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelNewFunction.Item(j).ContextSpecificBodyPtrId);
                 this->m_marks.ClearMark(body);
             }
 
             for(int32 j = 0; j < topLevelEval.Count(); ++j)
             {
-                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelEval.Item(j)->TopLevelBase.FunctionBodyId);
+                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelEval.Item(j).ContextSpecificBodyPtrId);
                 this->m_marks.ClearMark(body);
             }
         }

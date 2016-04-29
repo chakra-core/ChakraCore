@@ -8,7 +8,7 @@
 
 namespace TTD
 {
-    void SnapShot::EmitSnapshotToFile(FileWriter* writer, IOStreamFunctions& streamFunctions, LPCWSTR srcDir, ThreadContext* threadContext) const
+    void SnapShot::EmitSnapshotToFile(FileWriter* writer, ThreadContext* threadContext) const
     {
         Js::HiResTimer timer;
         double startWrite = timer.Now();
@@ -32,7 +32,7 @@ namespace TTD
         bool firstCtx = true;
         for(auto iter = this->m_ctxList.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            NSSnapValues::EmitSnapContext(iter.Current(), srcDir, streamFunctions, writer, firstCtx ? NSTokens::Separator::BigSpaceSeparator : NSTokens::Separator::CommaAndBigSpaceSeparator);
+            NSSnapValues::EmitSnapContext(iter.Current(), writer, firstCtx ? NSTokens::Separator::BigSpaceSeparator : NSTokens::Separator::CommaAndBigSpaceSeparator);
 
             firstCtx = false;
         }
@@ -50,7 +50,7 @@ namespace TTD
         bool firstBody = true;
         for(auto iter = this->m_functionBodyList.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            NSSnapValues::EmitFunctionBodyInfo(iter.Current(), srcDir, streamFunctions, writer, firstBody ? NSTokens::Separator::BigSpaceSeparator : NSTokens::Separator::CommaAndBigSpaceSeparator);
+            NSSnapValues::EmitFunctionBodyInfo(iter.Current(), writer, firstBody ? NSTokens::Separator::BigSpaceSeparator : NSTokens::Separator::CommaAndBigSpaceSeparator);
 
             firstBody = false;
         }
@@ -84,7 +84,7 @@ namespace TTD
         writer->WriteRecordEnd(NSTokens::Separator::BigSpaceSeparator);
     }
 
-    SnapShot* SnapShot::ParseSnapshotFromFile(FileReader* reader, IOStreamFunctions& streamFunctions, LPCWSTR srcDir)
+    SnapShot* SnapShot::ParseSnapshotFromFile(FileReader* reader)
     {
         reader->ReadRecordStart();
 
@@ -101,7 +101,7 @@ namespace TTD
         for(uint32 i = 0; i < ctxCount; ++i)
         {
             NSSnapValues::SnapContext* snpCtx = snap->m_ctxList.NextOpenEntry();
-            NSSnapValues::ParseSnapContext(snpCtx, i != 0, srcDir, streamFunctions, reader, snap->GetSnapshotSlabAllocator());
+            NSSnapValues::ParseSnapContext(snpCtx, i != 0, reader, snap->GetSnapshotSlabAllocator());
         }
         reader->ReadSequenceEnd();
 
@@ -131,7 +131,7 @@ namespace TTD
         for(uint32 i = 0; i < bodyCount; ++i)
         {
             NSSnapValues::FunctionBodyResolveInfo* into = snap->m_functionBodyList.NextOpenEntry();
-            NSSnapValues::ParseFunctionBodyInfo(into, i != 0, srcDir, streamFunctions, reader, snap->GetSnapshotSlabAllocator());
+            NSSnapValues::ParseFunctionBodyInfo(into, i != 0, reader, snap->GetSnapshotSlabAllocator());
         }
         reader->ReadSequenceEnd();
 
@@ -454,15 +454,13 @@ namespace TTD
         wchar* snapIdString = HeapNewArrayZ(wchar, 64);
         swprintf_s(snapIdString, 64, _u("%u"), snapId);
 
-        wchar* snapContainerURI = nullptr;
-        HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, false, true, &snapContainerURI);
+        HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, false, true);
 
         TTD_SNAP_WRITER snapwriter(snapHandle, TTD_COMPRESSED_OUTPUT, threadContext->TTDStreamFunctions.pfWriteBytesToStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
-        this->EmitSnapshotToFile(&snapwriter, threadContext->TTDStreamFunctions, snapContainerURI, threadContext);
+        this->EmitSnapshotToFile(&snapwriter, threadContext);
         snapwriter.FlushAndClose();
 
-        CoTaskMemFree(snapContainerURI);
         HeapDeleteArray(64, snapIdString);
     }
 
@@ -471,13 +469,11 @@ namespace TTD
         wchar* snapIdString = HeapNewArrayZ(wchar, 64);
         swprintf_s(snapIdString, 64, _u("%u"), snapId);
 
-        wchar* snapContainerURI = nullptr;
-        HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, true, false, &snapContainerURI);
+        HANDLE snapHandle = threadContext->TTDStreamFunctions.pfGetSnapshotStream(sourceDir, snapIdString, true, false);
 
         TTD_SNAP_READER snapreader(snapHandle, TTD_COMPRESSED_OUTPUT, threadContext->TTDStreamFunctions.pfReadBytesFromStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
-        SnapShot* snap = SnapShot::ParseSnapshotFromFile(&snapreader, threadContext->TTDStreamFunctions, snapContainerURI);
+        SnapShot* snap = SnapShot::ParseSnapshotFromFile(&snapreader);
 
-        CoTaskMemFree(snapContainerURI);
         HeapDeleteArray(64, snapIdString);
 
         return snap;

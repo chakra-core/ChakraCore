@@ -54,8 +54,8 @@ namespace TTD
         UnorderedArrayList<NSSnapValues::SlotArrayInfo, TTD_ARRAY_LIST_SIZE_DEFAULT> m_slotArrayEntries;
 
         //Emit the json file for the snapshot into the given directory 
-        void EmitSnapshotToFile(FileWriter* writer, IOStreamFunctions& streamFunctions, LPCWSTR srcDir, ThreadContext* threadContext) const;
-        static SnapShot* ParseSnapshotFromFile(FileReader* reader, IOStreamFunctions& streamFunctions, LPCWSTR srcDir);
+        void EmitSnapshotToFile(FileWriter* writer, ThreadContext* threadContext) const;
+        static SnapShot* ParseSnapshotFromFile(FileReader* reader);
 
         template<typename Fn, typename T, uint32 allocSize>
         static void EmitListHelper(Fn emitFunc, const UnorderedArrayList<T, allocSize>& list, FileWriter* snapwriter)

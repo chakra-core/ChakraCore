@@ -247,18 +247,35 @@ namespace Js
         //
         //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
         //
-        if(scriptContext->GetThreadContext()->TTDLog != nullptr)
+        if(scriptContext->ShouldPerformRecordTopLevelFunction() | scriptContext->ShouldPerformDebugAction())
         {
             //Make sure we have the body and text information available
             FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
             if(!scriptContext->IsBodyAlreadyLoadedAtTopLevel(globalBody))
             {
-                TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo);
-                TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, globalBody, moduleID, sourceString, sourceLen);
-                scriptContext->m_ttdTopLevelNewFunction.Add(tbfi);
+                uint64 bodyIdCtr = 0;
+
+                if(scriptContext->ShouldPerformRecordTopLevelFunction())
+                {
+                    const TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = scriptContext->GetThreadContext()->TTDLog->AddNewFunction(globalBody, moduleID, sourceString, sourceLen);
+
+                    //We always want to register the top-level load but we don't always need to log the event
+                    if(scriptContext->ShouldPerformRecordAction())
+                    {
+                        scriptContext->GetThreadContext()->TTDLog->RecordTopLevelCodeAction(tbfi->TopLevelBase.TopLevelBodyCtr);
+                    }
+
+                    bodyIdCtr = tbfi->TopLevelBase.TopLevelBodyCtr;
+                }
+
+                if(scriptContext->ShouldPerformDebugAction())
+                {
+                    bodyIdCtr = scriptContext->GetThreadContext()->TTDLog->ReplayTopLevelCodeAction();
+                }
 
                 //walk global body to (1) add functions to pin set (2) build parent map
                 scriptContext->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+                scriptContext->RegisterNewScript(globalBody, bodyIdCtr);
             }
         }
 #endif

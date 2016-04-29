@@ -159,14 +159,24 @@ namespace TTD
         DEFINE_ENUM_FLAG_OPERATORS(SnapObjectType);
     }
 
+    //A struct that maintains the relation between a globally stable top-level body counter and the PTR id it has in this particular script context
+    struct TopLevelFunctionInContextRelation
+    {
+        //The globally unique body counter id from the log 
+        uint64 TopLevelBodyCtr;
+
+        //The PTR_ID that is used to refer to this top-level body within the given script context
+        TTD_PTR_ID ContextSpecificBodyPtrId;
+    };
+
     //Function pointer definitions and a struct for writing data out of memory (presumably to stable storage)
     typedef bool(CALLBACK *TTDDbgCallback)(INT64* optEventTimeRequest, char16** optStaticRequestMessage);
 
     typedef void(CALLBACK *TTDInitializeTTDUriCallback)(const char16* uri, char16** fullTTDUri);
     typedef void(CALLBACK *TTDInitializeForWriteLogStreamCallback)(const char16* uri);
     typedef HANDLE(CALLBACK *TTDGetLogStreamCallback)(const char16* uri, bool read, bool write);
-    typedef HANDLE(CALLBACK *TTDGetSnapshotStreamCallback)(const char16* logRootUri, const char16* snapId, bool read, bool write, char16** containerUri);
-    typedef HANDLE(CALLBACK *TTDGetSrcCodeStreamCallback)(const char16* containerUri, const char16* documentid, const char16* srcFileName, bool read, bool write);
+    typedef HANDLE(CALLBACK *TTDGetSnapshotStreamCallback)(const char16* uri, const char16* snapId, bool read, bool write);
+    typedef HANDLE(CALLBACK *TTDGetSrcCodeStreamCallback)(const char16* uri, const char16* srcid, const char16* srcFileName, bool read, bool write);
 
     typedef BOOL(CALLBACK *TTDReadBytesFromStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount);
     typedef BOOL(CALLBACK *TTDWriteBytesToStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* writtenCount);
@@ -1114,18 +1124,18 @@ namespace TTD
             }
         }
 
-        void AddItem(TTD_PTR_ID ptrId, const T& item)
+        void AddItem(Tag id, const T& item)
         {
-            Entry* entry = this->FindSlotForId<true>(ptrId);
+            Entry* entry = this->FindSlotForId<true>(id);
 
-            InitializeEntry(entry, ptrId, item);
+            InitializeEntry(entry, id, item);
             this->m_count++;
         }
 
         //Lookup an item which is known to exist in the dictionary (and errors if it is not present)
-        const T& LookupKnownItem(TTD_PTR_ID ptrId) const
+        const T& LookupKnownItem(Tag id) const
         {
-            Entry* entry = this->FindSlotForId<false>(ptrId);
+            Entry* entry = this->FindSlotForId<false>(id);
 
             return entry->Data;
         }

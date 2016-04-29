@@ -144,7 +144,7 @@ namespace Js
         , m_ttdTopLevelEval(&HeapAllocator::Instance)
         , m_ttdPinnedRootFunctionSet(nullptr)
         , m_ttdFunctionBodyParentMap(&HeapAllocator::Instance)
-        , m_ttdMode(TTD::TTDMode::Pending)
+        , m_ttdMode(TTD::TTDMode::Invalid)
         , ScriptContextLogTag(TTD_INVALID_LOG_TAG)
         , m_ttdAddtlRuntimeContext(nullptr)
         , TTDRootNestingCount(0)
@@ -565,28 +565,8 @@ namespace Js
             this->m_ttdRootSet = nullptr;
         }
 
-        for(int32 i = 0; i < this->m_ttdTopLevelScriptLoad.Count(); ++i)
-        {
-            TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* func = this->m_ttdTopLevelScriptLoad.Item(i);
-            TTD::NSSnapValues::UnloadTopLevelLoadedFunctionBodyInfo(func);
-            HeapDelete(func);
-        }
         this->m_ttdTopLevelScriptLoad.Clear();
-
-        for(int32 i = 0; i < this->m_ttdTopLevelNewFunction.Count(); ++i)
-        {
-            TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* nfunc = this->m_ttdTopLevelNewFunction.Item(i);
-            TTD::NSSnapValues::UnloadTopLevelNewFunctionBodyInfo(nfunc);
-            HeapDelete(nfunc);
-        }
         this->m_ttdTopLevelNewFunction.Clear();
-
-        for(int32 i = 0; i < this->m_ttdTopLevelEval.Count(); ++i)
-        {
-            TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* efunc = this->m_ttdTopLevelEval.Item(i);
-            TTD::NSSnapValues::UnloadTopLevelEvalFunctionBodyInfo(efunc);
-            HeapDelete(efunc);
-        }
         this->m_ttdTopLevelEval.Clear();
 
         if(this->m_ttdPinnedRootFunctionSet != nullptr)
@@ -2483,7 +2463,7 @@ namespace Js
         return res;
     }
 
-    void ScriptContext::GetLoadedSources_TTD(JsUtil::List<TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator>& topLevelEval)
+    void ScriptContext::GetLoadedSources_TTD(JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval)
     {
         AssertMsg(topLevelScriptLoad.Count() == 0 && topLevelNewFunction.Count() == 0 && topLevelEval.Count() == 0, "Should be empty when you call this.");
 
@@ -2521,6 +2501,33 @@ namespace Js
 
             this->ProcessFunctionBodyOnLoad(currfb, body);
         }
+    }
+
+    void ScriptContext::RegisterLoadedScript(FunctionBody* body, uint64 bodyCtrId)
+    {
+        TTD::TopLevelFunctionInContextRelation relation;
+        relation.TopLevelBodyCtr = bodyCtrId;
+        relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
+
+        this->m_ttdTopLevelScriptLoad.Add(relation);
+    }
+
+    void ScriptContext::RegisterNewScript(FunctionBody* body, uint64 bodyCtrId)
+    {
+        TTD::TopLevelFunctionInContextRelation relation;
+        relation.TopLevelBodyCtr = bodyCtrId;
+        relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
+
+        this->m_ttdTopLevelNewFunction.Add(relation);
+    }
+
+    void ScriptContext::RegisterEvalScript(FunctionBody* body, uint64 bodyCtrId)
+    {
+        TTD::TopLevelFunctionInContextRelation relation;
+        relation.TopLevelBodyCtr = bodyCtrId;
+        relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
+
+        this->m_ttdTopLevelEval.Add(relation);
     }
 
     FunctionBody* ScriptContext::ResolveParentBody(FunctionBody* body) const

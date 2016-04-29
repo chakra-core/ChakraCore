@@ -910,51 +910,29 @@ namespace TTD
 
         //////////////////
 
-        void ExtractTopLevelCommonBodyResolveInfo_InScriptContext(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen)
+        void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen, SlabAllocator& alloc)
         {
-            fbInfo->FunctionBodyId = TTD_CONVERT_VAR_TO_PTR_ID(fb);
             fbInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(fb->GetScriptContext());
+            fbInfo->TopLevelBodyCtr = topLevelCtr;
 
-            JsSupport::CopyStringToHeapAllocator(fb->GetDisplayName(), fbInfo->FunctionName);
+            alloc.CopyNullTermStringInto(fb->GetDisplayName(), fbInfo->FunctionName);
 
             fbInfo->ModuleId = moduleId;
             fbInfo->DocumentID = documentID;
-            JsSupport::CopyStringToHeapAllocator(fb->GetSourceContextInfo()->url, fbInfo->SourceUri);
+            alloc.CopyNullTermStringInto(fb->GetSourceContextInfo()->url, fbInfo->SourceUri);
 
-            JsSupport::CopyStringToHeapAllocatorWLength(source, sourceLen, fbInfo->SourceCode);
-        }
+            alloc.CopyStringIntoWLength(source, sourceLen, fbInfo->SourceCode);
 
-        void UnloadTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo)
-        {
-            JsSupport::DeleteStringFromHeapAllocator(fbInfo->FunctionName);
-
-            JsSupport::DeleteStringFromHeapAllocator(fbInfo->SourceUri);
-            JsSupport::DeleteStringFromHeapAllocator(fbInfo->SourceCode);
-        }
-
-        void ExtractTopLevelCommonBodyResolveInfo_InShapshot(TopLevelCommonBodyResolveInfo* fbInfoDest, const TopLevelCommonBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
-        {
-            fbInfoDest->FunctionBodyId = fbInfoSrc->FunctionBodyId;
-            fbInfoDest->ScriptContextTag = fbInfoSrc->ScriptContextTag;
-
-            alloc.CopyStringIntoWLength(fbInfoSrc->FunctionName.Contents, fbInfoSrc->FunctionName.Length, fbInfoDest->FunctionName);
-
-            fbInfoDest->ModuleId = fbInfoSrc->ModuleId;
-            fbInfoDest->DocumentID = fbInfoSrc->DocumentID;
-
-            InitializeAsNullPtrTTString(fbInfoDest->SourceUri);
-            if(!IsNullPtrTTString(fbInfoSrc->SourceUri))
-            {
-                alloc.CopyStringIntoWLength(fbInfoSrc->SourceUri.Contents, fbInfoSrc->SourceUri.Length, fbInfoDest->SourceUri);
-            }
-
-            alloc.CopyStringIntoWLength(fbInfoSrc->SourceCode.Contents, fbInfoSrc->SourceCode.Length, fbInfoDest->SourceCode);
+#if ENABLE_TTD_DEBUGGING
+            fbInfo->DbgSerializedBytecodeSize = -1;
+            fbInfo->DbgSerializedBytecodeBuffer = nullptr;
+#endif
         }
 
         void EmitTopLevelCommonBodyResolveInfo(const TopLevelCommonBodyResolveInfo* fbInfo, bool emitInline, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
         {
             writer->WriteRecordStart(separator);
-            writer->WriteAddr(NSTokens::Key::functionBodyId, fbInfo->FunctionBodyId);
+            writer->WriteUInt64(NSTokens::Key::functionBodyId, fbInfo->TopLevelBodyCtr);
             writer->WriteAddr(NSTokens::Key::ctxTag, fbInfo->ScriptContextTag, NSTokens::Separator::CommaSeparator);
 
             writer->WriteString(NSTokens::Key::name, fbInfo->FunctionName, NSTokens::Separator::CommaSeparator);
@@ -972,7 +950,7 @@ namespace TTD
                 writer->WriteLengthValue(fbInfo->SourceCode.Length, NSTokens::Separator::CommaSeparator);
 
                 UtilSupport::TTAutoString docId;
-                docId.Append(fbInfo->DocumentID);
+                docId.Append(fbInfo->TopLevelBodyCtr);
 
                 JsSupport::WriteCodeToFile(streamFunctions, sourceDir, docId.GetStrValue(), fbInfo->SourceUri.Contents, fbInfo->SourceCode.Contents, fbInfo->SourceCode.Length);
             }
@@ -981,7 +959,7 @@ namespace TTD
         void ParseTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, bool readSeperator, bool parseInline, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc)
         {
             reader->ReadRecordStart(readSeperator);
-            fbInfo->FunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId);
+            fbInfo->TopLevelBodyCtr = reader->ReadUInt64(NSTokens::Key::functionBodyId);
             fbInfo->ScriptContextTag = reader->ReadAddr(NSTokens::Key::ctxTag, true);
 
             reader->ReadString(NSTokens::Key::name, alloc, fbInfo->FunctionName, true);
@@ -1000,7 +978,7 @@ namespace TTD
                 fbInfo->SourceCode.Contents = alloc.SlabAllocateArray<wchar>(fbInfo->SourceCode.Length + 1);
 
                 UtilSupport::TTAutoString docId;
-                docId.Append(fbInfo->DocumentID);
+                docId.Append(fbInfo->TopLevelBodyCtr);
 
                 JsSupport::ReadCodeFromFile(streamFunctions, sourceDir, docId.GetStrValue(), fbInfo->SourceUri.Contents, fbInfo->SourceCode.Contents, fbInfo->SourceCode.Length);
             }
@@ -1010,6 +988,7 @@ namespace TTD
         void AssertSnapEquiv(const TopLevelCommonBodyResolveInfo* fbInfo1, const TopLevelCommonBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap)
         {
             compareMap.DiagnosticAssert(fbInfo1->ScriptContextTag == fbInfo2->ScriptContextTag);
+            compareMap.DiagnosticAssert(fbInfo1->TopLevelBodyCtr == fbInfo2->TopLevelBodyCtr);
             compareMap.DiagnosticAssert(TTStringEQForDiagnostics(fbInfo1->FunctionName, fbInfo2->FunctionName));
 
             //
@@ -1027,23 +1006,11 @@ namespace TTD
         ////
         //Regular script-load functions
 
-        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen, LoadScriptFlag loadFlag)
+        void ExtractTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen, LoadScriptFlag loadFlag, SlabAllocator& alloc)
         {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, documentID, source, sourceLen);
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, fb, topLevelCtr, moduleId, documentID, source, sourceLen, alloc);
 
             fbInfo->LoadFlag = loadFlag;
-        }
-
-        void UnloadTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo)
-        {
-            NSSnapValues::UnloadTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase);
-        }
-
-        void ExtractTopLevelLoadedFunctionBodyInfo_InShapshot(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoDest, const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
-        {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InShapshot(&fbInfoDest->TopLevelBase, &fbInfoSrc->TopLevelBase, alloc);
-
-            fbInfoDest->LoadFlag = fbInfoSrc->LoadFlag;
         }
 
         Js::FunctionBody* InflateTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
@@ -1080,13 +1047,9 @@ namespace TTD
             Js::FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
 
             ////
-            //We don't do this automatically in the eval helper so do it here
-            TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo);
-            TTD::NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(tbfi, globalBody, fbInfo->TopLevelBase.ModuleId, fbInfo->TopLevelBase.DocumentID, fbInfo->TopLevelBase.SourceCode.Contents, fbInfo->TopLevelBase.SourceCode.Length, fbInfo->LoadFlag);
-            ctx->m_ttdTopLevelScriptLoad.Add(tbfi);
-
-            //walk global body to (1) add functions to pin set (2) build parent map
+            //We don't do this automatically in the load script helper so do it here
             ctx->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+            ctx->RegisterLoadedScript(globalBody, fbInfo->TopLevelBase.TopLevelBodyCtr);
 
             const HostScriptContextCallbackFunctor& hostFunctor = ctx->GetCallbackFunctor_TTD();
             if(hostFunctor.pfOnScriptLoadCallback != nullptr)
@@ -1128,19 +1091,9 @@ namespace TTD
         ////
         //'new Function(...)' functions
 
-        void ExtractTopLevelNewFunctionBodyInfo_InScriptContext(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen)
+        void ExtractTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen, SlabAllocator& alloc)
         {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, 0, source, sourceLen);
-        }
-
-        void UnloadTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo)
-        {
-            NSSnapValues::UnloadTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase);
-        }
-
-        void ExtractTopLevelNewFunctionBodyInfo_InShapshot(TopLevelNewFunctionBodyResolveInfo* fbInfoDest, const TopLevelNewFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
-        {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InShapshot(&fbInfoDest->TopLevelBase, &fbInfoSrc->TopLevelBase, alloc);
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, fb, topLevelCtr, moduleId, 0, source, sourceLen, alloc);
         }
 
         Js::FunctionBody* InflateTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
@@ -1163,15 +1116,9 @@ namespace TTD
 
             Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
 
-            ////
             //We don't do this automatically in the eval helper so do it here
-            TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo);
-            TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, fb, moduleID, fbInfo->TopLevelBase.SourceCode.Contents, fbInfo->TopLevelBase.SourceCode.Length);
-            ctx->m_ttdTopLevelNewFunction.Add(tbfi);
-
-            //walk global body to (1) add functions to pin set (2) build parent map
             ctx->ProcessFunctionBodyOnLoad(fb, nullptr);
-            ////
+            ctx->RegisterNewScript(fb, fbInfo->TopLevelBase.TopLevelBodyCtr);
 
             return fb;
         }
@@ -1200,29 +1147,14 @@ namespace TTD
         ////
         //'eval(...)' functions
 
-        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen, ulong grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode)
+        void ExtractTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen, ulong grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode, SlabAllocator& alloc)
         {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, 0, source, sourceLen);
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, fb, topLevelCtr, moduleId, 0, source, sourceLen, alloc);
 
             fbInfo->EvalFlags = grfscr;
             fbInfo->RegisterDocument = registerDocument;
             fbInfo->IsIndirect = isIndirect ? true : false;
             fbInfo->IsStrictMode = strictMode ? true : false;
-        }
-
-        void UnloadTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo)
-        {
-            NSSnapValues::UnloadTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase);
-        }
-
-        void ExtractTopLevelEvalFunctionBodyInfo_InShapshot(TopLevelEvalFunctionBodyResolveInfo* fbInfoDest, const TopLevelEvalFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
-        {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InShapshot(&fbInfoDest->TopLevelBase, &fbInfoSrc->TopLevelBase, alloc);
-
-            fbInfoDest->EvalFlags = fbInfoSrc->EvalFlags;
-            fbInfoDest->RegisterDocument = fbInfoSrc->RegisterDocument;
-            fbInfoDest->IsIndirect = fbInfoSrc->IsIndirect;
-            fbInfoDest->IsStrictMode = fbInfoSrc->IsStrictMode;
         }
 
         Js::FunctionBody* InflateTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
@@ -1239,15 +1171,9 @@ namespace TTD
 
             Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
 
-            ////
             //We don't do this automatically ing the eval helper so do it here
-            TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo);
-            TTD::NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(tbfi, fb, fbInfo->TopLevelBase.ModuleId, fbInfo->TopLevelBase.SourceCode.Contents, fbInfo->TopLevelBase.SourceCode.Length, (ulong)fbInfo->EvalFlags, fbInfo->RegisterDocument, fbInfo->IsIndirect, fbInfo->IsStrictMode);
-            ctx->m_ttdTopLevelEval.Add(tbfi);
-
-            //walk global body to (1) add functions to pin set (2) build parent map
             ctx->ProcessFunctionBodyOnLoad(fb, nullptr);
-            ////
+            ctx->RegisterNewScript(fb, fbInfo->TopLevelBase.TopLevelBodyCtr);
 
             return fb;
         }
@@ -1408,7 +1334,7 @@ namespace TTD
             inflator->AddInflationFunctionBody(fbInfo->FunctionBodyId, resfb);
         }
 
-        void EmitFunctionBodyInfo(const FunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
+        void EmitFunctionBodyInfo(const FunctionBodyResolveInfo* fbInfo, FileWriter* writer, NSTokens::Separator separator)
         {
             writer->WriteRecordStart(separator);
             writer->WriteAddr(NSTokens::Key::functionBodyId, fbInfo->FunctionBodyId);
@@ -1430,7 +1356,7 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc)
+        void ParseFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
         {
             reader->ReadRecordStart(readSeperator);
 
@@ -1487,31 +1413,31 @@ namespace TTD
             snapCtx->m_randomSeed1 = ctx->GetLibrary()->GetRandSeed1();
             alloc.CopyNullTermStringInto(ctx->GetUrl(), snapCtx->m_contextSRC);
 
-            JsUtil::List<NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance); 
-            JsUtil::List<NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance); 
-            JsUtil::List<NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator> topLevelEval(&HeapAllocator::Instance);
+            JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance);
+            JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance);
+            JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelEval(&HeapAllocator::Instance);
 
             ctx->GetLoadedSources_TTD(topLevelScriptLoad, topLevelNewFunction, topLevelEval);
 
-            snapCtx->m_loadedScriptCount = topLevelScriptLoad.Count();
-            snapCtx->m_loadedScriptArray = (snapCtx->m_loadedScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelScriptLoadFunctionBodyResolveInfo>(snapCtx->m_loadedScriptCount) : nullptr;
+            snapCtx->m_loadedTopLevelScriptCount = topLevelScriptLoad.Count();
+            snapCtx->m_loadedTopLevelScriptArray = (snapCtx->m_loadedTopLevelScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(snapCtx->m_loadedTopLevelScriptCount) : nullptr;
             for(int32 i = 0; i < topLevelScriptLoad.Count(); ++i)
             {
-                NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InShapshot(snapCtx->m_loadedScriptArray + i, topLevelScriptLoad.Item(i), alloc);
+                snapCtx->m_loadedTopLevelScriptArray[i] = topLevelScriptLoad.Item(i);
             }
 
-            snapCtx->m_newScriptCount = topLevelNewFunction.Count();
-            snapCtx->m_newScriptArray = (snapCtx->m_newScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelNewFunctionBodyResolveInfo>(snapCtx->m_newScriptCount) : nullptr;
+            snapCtx->m_newFunctionTopLevelScriptCount = topLevelNewFunction.Count();
+            snapCtx->m_newFunctionTopLevelScriptArray = (snapCtx->m_newFunctionTopLevelScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(snapCtx->m_newFunctionTopLevelScriptCount) : nullptr;
             for(int32 i = 0; i < topLevelNewFunction.Count(); ++i)
             {
-                NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InShapshot(snapCtx->m_newScriptArray + i, topLevelNewFunction.Item(i), alloc);
+                snapCtx->m_newFunctionTopLevelScriptArray[i] = topLevelNewFunction.Item(i);
             }
 
-            snapCtx->m_evalScriptCount = topLevelEval.Count();
-            snapCtx->m_evalScriptArray = (snapCtx->m_evalScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelEvalFunctionBodyResolveInfo>(snapCtx->m_evalScriptCount) : nullptr;
+            snapCtx->m_evalTopLevelScriptCount = topLevelEval.Count();
+            snapCtx->m_evalTopLevelScriptArray = (snapCtx->m_evalTopLevelScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(snapCtx->m_evalTopLevelScriptCount) : nullptr;
             for(int32 i = 0; i < topLevelEval.Count(); ++i)
             {
-                NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo_InShapshot(snapCtx->m_evalScriptArray + i, topLevelEval.Item(i), alloc);
+                snapCtx->m_evalTopLevelScriptArray[i] = topLevelEval.Item(i);
             }
 
             snapCtx->m_rootCount = ctx->m_ttdRootSet->Count();
@@ -1527,7 +1453,10 @@ namespace TTD
             }
         }
 
-        void InflateScriptContext(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator)
+        void InflateScriptContext(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator, 
+            const TTDIdentifierDictionary<uint64, TopLevelScriptLoadFunctionBodyResolveInfo*>& topLevelLoadScriptMap,
+            const TTDIdentifierDictionary<uint64, TopLevelNewFunctionBodyResolveInfo*>& topLevelNewScriptMap, 
+            const TTDIdentifierDictionary<uint64, TopLevelEvalFunctionBodyResolveInfo*>& topLevelEvalScriptMap)
         {
             AssertMsg(wcscmp(snpCtx->m_contextSRC.Contents, intoCtx->GetUrl()) == 0, "Make sure the src uri values are the same.");
 
@@ -1536,37 +1465,43 @@ namespace TTD
             intoCtx->GetLibrary()->SetRandSeed1(snpCtx->m_randomSeed1);
             inflator->AddScriptContext(snpCtx->m_scriptContextTagId, intoCtx);
 
-            for(uint32 i = 0; i < snpCtx->m_loadedScriptCount; ++i)
+            for(uint32 i = 0; i < snpCtx->m_loadedTopLevelScriptCount; ++i)
             {
-                TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo = snpCtx->m_loadedScriptArray + i;
-                Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(fbInfo->TopLevelBase.FunctionBodyId);
+                const TopLevelFunctionInContextRelation& cri = snpCtx->m_loadedTopLevelScriptArray[i];
+
+                Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(cri.ContextSpecificBodyPtrId);
                 if(fb == nullptr)
                 {
+                    const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo = topLevelLoadScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
                     fb = NSSnapValues::InflateTopLevelLoadedFunctionBodyInfo(fbInfo, intoCtx);
                 }
-                inflator->AddInflationFunctionBody(fbInfo->TopLevelBase.FunctionBodyId, fb);
+                inflator->AddInflationFunctionBody(cri.ContextSpecificBodyPtrId, fb);
             }
 
-            for(uint32 i = 0; i < snpCtx->m_newScriptCount; ++i)
+            for(uint32 i = 0; i < snpCtx->m_newFunctionTopLevelScriptCount; ++i)
             {
-                TopLevelNewFunctionBodyResolveInfo* fbInfo = snpCtx->m_newScriptArray + i;
-                Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(fbInfo->TopLevelBase.FunctionBodyId);
+                const TopLevelFunctionInContextRelation& cri = snpCtx->m_newFunctionTopLevelScriptArray[i];
+
+                Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(cri.ContextSpecificBodyPtrId);
                 if(fb == nullptr)
                 {
+                    const TopLevelNewFunctionBodyResolveInfo* fbInfo = topLevelNewScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
                     fb = NSSnapValues::InflateTopLevelNewFunctionBodyInfo(fbInfo, intoCtx);
                 }
-                inflator->AddInflationFunctionBody(fbInfo->TopLevelBase.FunctionBodyId, fb);
+                inflator->AddInflationFunctionBody(cri.ContextSpecificBodyPtrId, fb);
             }
 
-            for(uint32 i = 0; i < snpCtx->m_evalScriptCount; ++i)
+            for(uint32 i = 0; i < snpCtx->m_evalTopLevelScriptCount; ++i)
             {
-                TopLevelEvalFunctionBodyResolveInfo* fbInfo = snpCtx->m_evalScriptArray + i;
-                Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(fbInfo->TopLevelBase.FunctionBodyId);
+                const TopLevelFunctionInContextRelation& cri = snpCtx->m_evalTopLevelScriptArray[i];
+
+                Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(cri.ContextSpecificBodyPtrId);
                 if(fb == nullptr)
                 {
+                    const TopLevelEvalFunctionBodyResolveInfo* fbInfo = topLevelEvalScriptMap.LookupKnownItem(cri.TopLevelBodyCtr);
                     fb = NSSnapValues::InflateTopLevelEvalFunctionBodyInfo(fbInfo, intoCtx);
                 }
-                inflator->AddInflationFunctionBody(fbInfo->TopLevelBase.FunctionBodyId, fb);
+                inflator->AddInflationFunctionBody(cri.ContextSpecificBodyPtrId, fb);
             }
         }
 
@@ -1583,7 +1518,7 @@ namespace TTD
             }
         }
 
-        void EmitSnapContext(const SnapContext* snapCtx, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
+        void EmitSnapContext(const SnapContext* snapCtx, FileWriter* writer, NSTokens::Separator separator)
         {
             writer->WriteRecordStart(separator);
 
@@ -1593,30 +1528,45 @@ namespace TTD
             writer->WriteUInt64(NSTokens::Key::u64Val, snapCtx->m_randomSeed1, NSTokens::Separator::CommaSeparator);
             writer->WriteString(NSTokens::Key::ctxUri, snapCtx->m_contextSRC, NSTokens::Separator::CommaSeparator);
 
-            writer->WriteLengthValue(snapCtx->m_loadedScriptCount, NSTokens::Separator::CommaSeparator);
+            writer->WriteLengthValue(snapCtx->m_loadedTopLevelScriptCount, NSTokens::Separator::CommaSeparator);
             writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-            for(uint32 i = 0; i < snapCtx->m_loadedScriptCount; ++i)
+            for(uint32 i = 0; i < snapCtx->m_loadedTopLevelScriptCount; ++i)
             {
+                const TopLevelFunctionInContextRelation* cri = snapCtx->m_loadedTopLevelScriptArray + i;
                 NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
-                NSSnapValues::EmitTopLevelLoadedFunctionBodyInfo(snapCtx->m_loadedScriptArray + i, sourceDir, streamFunctions, writer, sep);
+
+                writer->WriteRecordStart(sep);
+                writer->WriteUInt64(NSTokens::Key::bodyCounterId, cri->TopLevelBodyCtr);
+                writer->WriteAddr(NSTokens::Key::functionBodyId, cri->ContextSpecificBodyPtrId, NSTokens::Separator::CommaSeparator);
+                writer->WriteRecordEnd();
             }
             writer->WriteSequenceEnd();
 
-            writer->WriteLengthValue(snapCtx->m_newScriptCount, NSTokens::Separator::CommaSeparator);
+            writer->WriteLengthValue(snapCtx->m_newFunctionTopLevelScriptCount, NSTokens::Separator::CommaSeparator);
             writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-            for(uint32 i = 0; i < snapCtx->m_newScriptCount; ++i)
+            for(uint32 i = 0; i < snapCtx->m_newFunctionTopLevelScriptCount; ++i)
             {
+                const TopLevelFunctionInContextRelation* cri = snapCtx->m_newFunctionTopLevelScriptArray + i;
                 NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
-                NSSnapValues::EmitTopLevelNewFunctionBodyInfo(snapCtx->m_newScriptArray + i, sourceDir, streamFunctions, writer, sep);
+
+                writer->WriteRecordStart(sep);
+                writer->WriteUInt64(NSTokens::Key::bodyCounterId, cri->TopLevelBodyCtr);
+                writer->WriteAddr(NSTokens::Key::functionBodyId, cri->ContextSpecificBodyPtrId, NSTokens::Separator::CommaSeparator);
+                writer->WriteRecordEnd();
             }
             writer->WriteSequenceEnd();
 
-            writer->WriteLengthValue(snapCtx->m_evalScriptCount, NSTokens::Separator::CommaSeparator);
+            writer->WriteLengthValue(snapCtx->m_evalTopLevelScriptCount, NSTokens::Separator::CommaSeparator);
             writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-            for(uint32 i = 0; i < snapCtx->m_evalScriptCount; ++i)
+            for(uint32 i = 0; i < snapCtx->m_evalTopLevelScriptCount; ++i)
             {
+                const TopLevelFunctionInContextRelation* cri = snapCtx->m_evalTopLevelScriptArray + i;
                 NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
-                NSSnapValues::EmitTopLevelEvalFunctionBodyInfo(snapCtx->m_evalScriptArray + i, sourceDir, streamFunctions, writer, sep);
+
+                writer->WriteRecordStart(sep);
+                writer->WriteUInt64(NSTokens::Key::bodyCounterId, cri->TopLevelBodyCtr);
+                writer->WriteAddr(NSTokens::Key::functionBodyId, cri->ContextSpecificBodyPtrId, NSTokens::Separator::CommaSeparator);
+                writer->WriteRecordEnd();
             }
             writer->WriteSequenceEnd();
 
@@ -1632,7 +1582,7 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseSnapContext(SnapContext* intoCtx, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc)
+        void ParseSnapContext(SnapContext* intoCtx, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
         {
             reader->ReadRecordStart(readSeperator);
 
@@ -1642,30 +1592,45 @@ namespace TTD
             intoCtx->m_randomSeed1 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
             reader->ReadString(NSTokens::Key::ctxUri, alloc, intoCtx->m_contextSRC, true);
 
-            intoCtx->m_loadedScriptCount = reader->ReadLengthValue(true);
-            intoCtx->m_loadedScriptArray = (intoCtx->m_loadedScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelScriptLoadFunctionBodyResolveInfo>(intoCtx->m_loadedScriptCount) : nullptr;
+            intoCtx->m_loadedTopLevelScriptCount = reader->ReadLengthValue(true);
+            intoCtx->m_loadedTopLevelScriptArray = (intoCtx->m_loadedTopLevelScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(intoCtx->m_loadedTopLevelScriptCount) : nullptr;
             reader->ReadSequenceStart_WDefaultKey(true);
-            for(uint32 i = 0; i < intoCtx->m_loadedScriptCount; ++i)
+            for(uint32 i = 0; i < intoCtx->m_loadedTopLevelScriptCount; ++i)
             {
-                NSSnapValues::ParseTopLevelLoadedFunctionBodyInfo(intoCtx->m_loadedScriptArray + i, i != 0, sourceDir, streamFunctions, reader, alloc);
+                TopLevelFunctionInContextRelation* cri = intoCtx->m_loadedTopLevelScriptArray + i;
+
+                reader->ReadRecordStart(i != 0);
+                cri->TopLevelBodyCtr = reader->ReadUInt64(NSTokens::Key::bodyCounterId);
+                cri->ContextSpecificBodyPtrId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
+                reader->ReadRecordEnd();
             }
             reader->ReadSequenceEnd();
 
-            intoCtx->m_newScriptCount = reader->ReadLengthValue(true);
-            intoCtx->m_newScriptArray = (intoCtx->m_newScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelNewFunctionBodyResolveInfo>(intoCtx->m_newScriptCount) : nullptr;
+            intoCtx->m_newFunctionTopLevelScriptCount = reader->ReadLengthValue(true);
+            intoCtx->m_newFunctionTopLevelScriptArray = (intoCtx->m_newFunctionTopLevelScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(intoCtx->m_newFunctionTopLevelScriptCount) : nullptr;
             reader->ReadSequenceStart_WDefaultKey(true);
-            for(uint32 i = 0; i < intoCtx->m_newScriptCount; ++i)
+            for(uint32 i = 0; i < intoCtx->m_newFunctionTopLevelScriptCount; ++i)
             {
-                NSSnapValues::ParseTopLevelNewFunctionBodyInfo(intoCtx->m_newScriptArray + i, i != 0, sourceDir, streamFunctions, reader, alloc);
+                TopLevelFunctionInContextRelation* cri = intoCtx->m_newFunctionTopLevelScriptArray + i;
+
+                reader->ReadRecordStart(i != 0);
+                cri->TopLevelBodyCtr = reader->ReadUInt64(NSTokens::Key::bodyCounterId);
+                cri->ContextSpecificBodyPtrId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
+                reader->ReadRecordEnd();
             }
             reader->ReadSequenceEnd();
 
-            intoCtx->m_evalScriptCount = reader->ReadLengthValue(true);
-            intoCtx->m_evalScriptArray = (intoCtx->m_evalScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelEvalFunctionBodyResolveInfo>(intoCtx->m_evalScriptCount) : nullptr;
+            intoCtx->m_evalTopLevelScriptCount = reader->ReadLengthValue(true);
+            intoCtx->m_evalTopLevelScriptArray = (intoCtx->m_evalTopLevelScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(intoCtx->m_evalTopLevelScriptCount) : nullptr;
             reader->ReadSequenceStart_WDefaultKey(true);
-            for(uint32 i = 0; i < intoCtx->m_evalScriptCount; ++i)
+            for(uint32 i = 0; i < intoCtx->m_evalTopLevelScriptCount; ++i)
             {
-                NSSnapValues::ParseTopLevelEvalFunctionBodyInfo(intoCtx->m_evalScriptArray + i, i != 0, sourceDir, streamFunctions, reader, alloc);
+                TopLevelFunctionInContextRelation* cri = intoCtx->m_evalTopLevelScriptArray + i;
+
+                reader->ReadRecordStart(i != 0);
+                cri->TopLevelBodyCtr = reader->ReadUInt64(NSTokens::Key::bodyCounterId);
+                cri->ContextSpecificBodyPtrId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
+                reader->ReadRecordEnd();
             }
             reader->ReadSequenceEnd();
 

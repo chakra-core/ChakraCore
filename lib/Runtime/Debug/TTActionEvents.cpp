@@ -1225,8 +1225,8 @@ namespace TTD
         return alloc.SlabNew<JsRTCallbackAction>(eTime, ctxTag, isCancel, isRepeating, currentCallbackId, callbackFunctionTag, callbackId);
     }
 
-    JsRTCodeParseAction::JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, const TTString& sourceCode, LoadScriptFlag loadFlag, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CodeParse), m_sourceCode(sourceCode), m_sourceUri(sourceUri), m_documentID(documentId), m_loadFlag(loadFlag), m_srcDir(srcDir), m_sourceFile(sourceFile)
+    JsRTCodeParseAction::JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, const TTString& sourceCode, uint64 bodyCtrId, LoadScriptFlag loadFlag, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CodeParse), m_sourceCode(sourceCode), m_bodyCtrId(bodyCtrId), m_sourceUri(sourceUri), m_documentID(documentId), m_loadFlag(loadFlag), m_srcDir(srcDir), m_sourceFile(sourceFile)
     {
         ;
     }
@@ -1293,12 +1293,8 @@ namespace TTD
 
         ////
         //We don't do this automatically in the eval helper so do it here
-        TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo);
-        TTD::NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(tbfi, fb, kmodGlobal, this->m_documentID, this->m_sourceCode.Contents, this->m_sourceCode.Length, this->m_loadFlag);
-        execContext->m_ttdTopLevelScriptLoad.Add(tbfi);
-
-        //walk global body to (1) add functions to pin set (2) build parent map
         execContext->ProcessFunctionBodyOnLoad(fb, nullptr);
+        execContext->RegisterLoadedScript(fb, this->m_bodyCtrId);
 
         const HostScriptContextCallbackFunctor& hostFunctor = execContext->GetCallbackFunctor_TTD();
         if(hostFunctor.pfOnScriptLoadCallback != nullptr)
@@ -1319,6 +1315,8 @@ namespace TTD
         writer->WriteUInt64(NSTokens::Key::documentId, (uint64)this->m_documentID, NSTokens::Separator::CommaSeparator);
         writer->WriteTag<LoadScriptFlag>(NSTokens::Key::loadFlag, this->m_loadFlag, NSTokens::Separator::CommaSeparator);
 
+        writer->WriteUInt64(NSTokens::Key::bodyCounterId, this->m_bodyCtrId, NSTokens::Separator::CommaSeparator);
+
         writer->WriteString(NSTokens::Key::logDir, this->m_srcDir, NSTokens::Separator::CommaSeparator);
         writer->WriteString(NSTokens::Key::src, this->m_sourceFile, NSTokens::Separator::CommaSeparator);
         writer->WriteString(NSTokens::Key::uri, this->m_sourceUri, NSTokens::Separator::CommaSeparator);
@@ -1327,6 +1325,7 @@ namespace TTD
 
         UtilSupport::TTAutoString docId;
         docId.Append(this->m_documentID);
+        docId.Append(_u("ld"));
 
         JsSupport::WriteCodeToFile(threadContext->TTDStreamFunctions, this->m_srcDir.Contents, docId.GetStrValue(), this->m_sourceUri.Contents, this->m_sourceCode.Contents, this->m_sourceCode.Length);
 
@@ -1337,6 +1336,8 @@ namespace TTD
     {
         DWORD_PTR documentId = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
         LoadScriptFlag loadFlag = reader->ReadTag<LoadScriptFlag>(NSTokens::Key::loadFlag, true);
+
+        uint64 bodyCtrId = reader->ReadUInt64(NSTokens::Key::bodyCounterId, true);
 
         TTString srcDir;
         reader->ReadString(NSTokens::Key::logDir, alloc, srcDir, true);
@@ -1353,10 +1354,11 @@ namespace TTD
 
         UtilSupport::TTAutoString docId;
         docId.Append(documentId);
+        docId.Append(_u("ld"));
 
         JsSupport::ReadCodeFromFile(threadContext->TTDStreamFunctions, srcDir.Contents, docId.GetStrValue(), srcUri.Contents, sourceCode.Contents, sourceCode.Length);
 
-        return alloc.SlabNew<JsRTCodeParseAction>(eTime, ctxTag, sourceCode, loadFlag, documentId, srcUri, srcDir, sourceFile);
+        return alloc.SlabNew<JsRTCodeParseAction>(eTime, ctxTag, sourceCode, bodyCtrId, loadFlag, documentId, srcUri, srcDir, sourceFile);
     }
 
     JsRTCallFunctionBeginAction::JsRTCallFunctionBeginAction(int64 eTime, TTD_LOG_TAG ctxTag, int32 callbackDepth, int64 hostCallbackId, double beginTime, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs)

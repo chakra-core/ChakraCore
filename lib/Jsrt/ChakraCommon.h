@@ -2669,25 +2669,24 @@
     ///     Construct a HANDLE that will be used to read/write a snapshot and generate a unique uri that is associated with this snapshot.
     /// </summary>
     /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
-    /// <param name="logRootUri">The fully resolved root location for the TTD data as provied by JsTTDInitializeUriCallback.</param>
+    /// <param name="uri">The fully resolved root location for the TTD data as provied by JsTTDInitializeUriCallback.</param>
     /// <param name="snapId">A unique string identifier for this snapshot.</param>
     /// <param name="read">If the handle should be opened for reading.</param>
     /// <param name="write">If the handle should be opened for writing.</param>
-    /// <param name="containerUri">A unique uri which can be extended for storing source code data associated with this snapshot -- marked for deprecation.</param>
     /// <returns>A HANDLE opened in read/write mode as specified.</returns>
-    typedef HANDLE (CALLBACK *JsTTDGetSnapshotStreamCallback)(_In_z_ const wchar_t* logRootUri, _In_z_ const wchar_t* snapId, _In_z_ bool read, _In_ bool write, _Out_ wchar_t** containerUri);
+    typedef HANDLE (CALLBACK *JsTTDGetSnapshotStreamCallback)(_In_z_ const wchar_t* uri, _In_z_ const wchar_t* snapId, _In_z_ bool read, _In_ bool write);
 
     /// <summary>
     ///     Construct a HANDLE that will be used to read/write information on source code loaded by the program.
     /// </summary>
     /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
-    /// <param name="containerUri">The fully resolved root location for the TTD source code data.</param>
-    /// <param name="documentid">A unique string identifier for this source file.</param>
-    /// <param name="documentid">The base filename for this source code.</param>
+    /// <param name="uri">The fully resolved root location for the TTD source code data.</param>
+    /// <param name="bodyCtrId">A unique string identifier for this source file.</param>
+    /// <param name="srcFileName">The base filename for this source code.</param>
     /// <param name="read">If the handle should be opened for reading.</param>
     /// <param name="write">If the handle should be opened for writing.</param>
     /// <returns>A HANDLE opened in read/write mode as specified.</returns>
-    typedef HANDLE (CALLBACK *JsTTDGetSrcCodeStreamCallback)(_In_z_ const wchar_t* containerUri, _In_z_ const wchar_t* documentid, _In_z_ const wchar_t* srcFileName, _In_ bool read, _In_ bool write);
+    typedef HANDLE (CALLBACK *JsTTDGetSrcCodeStreamCallback)(_In_z_ const wchar_t* uri, _In_z_ const wchar_t* bodyCtrId, _In_z_ const wchar_t* srcFileName, _In_ bool read, _In_ bool write);
 
     /// <summary>
     ///     A callback for reading data from a handle.

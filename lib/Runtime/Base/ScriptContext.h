@@ -1062,9 +1062,9 @@ private:
         TTD::ObjectPinSet* m_ttdRootSet;
 
         //The lists containing the top-level code that is loaded in this context
-        JsUtil::List<TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> m_ttdTopLevelScriptLoad;
-        JsUtil::List<TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator> m_ttdTopLevelNewFunction;
-        JsUtil::List<TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator> m_ttdTopLevelEval;
+        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelScriptLoad;
+        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelNewFunction;
+        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelEval;
 
         //need to add back pin set for functionBody to make sure they don't get collected on us
         TTD::FunctionBodyPinSet* m_ttdPinnedRootFunctionSet;
@@ -1115,6 +1115,16 @@ private:
             return (this->m_ttdMode & TTD::TTDMode::Detached) != TTD::TTDMode::Invalid;
         }
 
+        //A special record check because we want to record code load even if we aren't actively logging (but are planning to do so in the future)
+        bool ShouldPerformRecordTopLevelFunction() const
+        {
+            bool modeIsPending = (this->m_ttdMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
+            bool modeIsRecord = (this->m_ttdMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
+            bool inDebugableCode = (this->m_ttdMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
+
+            return ((modeIsPending | modeIsRecord) & inDebugableCode);
+        }
+
         //Use this to check if we should tag values that are passing to/from the JsRT host
         bool ShouldTagForJsRT() const
         {
@@ -1160,13 +1170,16 @@ private:
         FunctionBody* LookupRuntimeFunctionBodyForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
 
         //Get all of the root level sources evaluated in this script context (source text & root function returned)
-        void GetLoadedSources_TTD(JsUtil::List<TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator>& topLevelEval);
+        void GetLoadedSources_TTD(JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval);
 
         //To support cases where we may get cached function bodies ('new Function' & eval) check if we already know of a top-level body
         bool IsBodyAlreadyLoadedAtTopLevel(FunctionBody* body) const;
 
         //force parsing and load up the parent maps etc.
         void ProcessFunctionBodyOnLoad(FunctionBody* body, FunctionBody* parent);
+        void RegisterLoadedScript(FunctionBody* body, uint64 bodyCtrId);
+        void RegisterNewScript(FunctionBody* body, uint64 bodyCtrId);
+        void RegisterEvalScript(FunctionBody* body, uint64 bodyCtrId);
 
         //Lookup the parent bofy for a function body (or null for global code)
         FunctionBody* ResolveParentBody(FunctionBody* body) const;

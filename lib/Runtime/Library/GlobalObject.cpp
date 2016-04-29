@@ -631,18 +631,35 @@ namespace Js
         //
         //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
         //
-        if(!isLibraryCode && scriptContext->GetThreadContext()->TTDLog != nullptr)
+        if(!isLibraryCode && (scriptContext->ShouldPerformRecordTopLevelFunction() | scriptContext->ShouldPerformDebugAction()))
         {
             //Make sure we have the body and text information available
             FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
             if(!scriptContext->IsBodyAlreadyLoadedAtTopLevel(globalBody))
             {
-                TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo);
-                TTD::NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(tbfi, globalBody, moduleID, sourceString, sourceLen, additionalGrfscr, registerDocument, isIndirect, strictMode);
-                scriptContext->m_ttdTopLevelEval.Add(tbfi);
+                uint64 bodyIdCtr = 0;
+
+                if(scriptContext->ShouldPerformRecordTopLevelFunction())
+                {
+                    const TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* tbfi = scriptContext->GetThreadContext()->TTDLog->AddEvalFunction(globalBody, moduleID, sourceString, sourceLen, additionalGrfscr, registerDocument, isIndirect, strictMode);
+
+                    //We always want to register the top-level load but we don't always need to log the event
+                    if(scriptContext->ShouldPerformRecordAction())
+                    {
+                        scriptContext->GetThreadContext()->TTDLog->RecordTopLevelCodeAction(tbfi->TopLevelBase.TopLevelBodyCtr);
+                    }
+
+                    bodyIdCtr = tbfi->TopLevelBase.TopLevelBodyCtr;
+                }
+
+                if(scriptContext->ShouldPerformDebugAction())
+                {
+                    bodyIdCtr = scriptContext->GetThreadContext()->TTDLog->ReplayTopLevelCodeAction();
+                }
 
                 //walk global body to (1) add functions to pin set (2) build parent map
                 scriptContext->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+                scriptContext->RegisterEvalScript(globalBody, bodyIdCtr);
             }
         }
 #endif
