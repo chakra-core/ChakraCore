@@ -299,4 +299,12 @@
       <compile-flags> -bgjit- -simdjs -simd128typespec -asmjs- -mic:1 -lic:1 -off:simplejit</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>testSimdManyVars.js</files>
+      <baseline>testSimdManyVars.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags> -simdjs -asmjs -off:backend -testtrace:asmjs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
