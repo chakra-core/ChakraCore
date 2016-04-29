@@ -12,6 +12,13 @@
 :: - build (using PGO profile)
 :: - post_pgo.cmd
 
+@echo off
+
+if "%PogoConfig%"=="False" (
+    echo ---- Not a Pogo Config. Skipping step.
+    exit /b 0
+)
+
 REM Optimize build with PGO data
 set POGO_TYPE=PGO
 

@@ -15,10 +15,6 @@
 param (
     [string[]]$scenarios = @(),
 
-    [string]$vcinstallroot = ${env:ProgramFiles(x86)},
-    [string]$vcbinpath = "Microsoft Visual Studio 14.0\VC\bin",
-    [string]$dllname = "pgort140.dll",
-
     [Parameter(Mandatory=$True)]
     [string]$binary,
 
@@ -27,8 +23,17 @@ param (
 
     # force callers to specify this in case of future use
     [Parameter(Mandatory=$True)]
-    [string]$flavor = ""
+    [string]$flavor,
+
+    [string]$vcinstallroot = ${env:ProgramFiles(x86)},
+    [string]$vcbinpath = "Microsoft Visual Studio 14.0\VC\bin",
+    [string]$dllname = "pgort140.dll"
 )
+
+if (${Env:PogoConfig} -eq "False") {
+    Write-Host "---- Not a Pogo Config. Skipping step."
+    return 0
+}
 
 $binpath = Split-Path -Path $binary -Parent
 $pgoOutDll = Join-Path $binpath $dllname;
@@ -49,8 +54,7 @@ for ($i = 0; $i -lt $scenarios.Length; $i = $i + 1) {
     if (Test-Path $path -PathType Container) {
         # *.js files in directories
         $items = Get-ChildItem -Path $path -Filter "*.js" | % {join-path $path $_ }
-    }
-    else {
+    } else {
         $items = @($path)
     }
 
