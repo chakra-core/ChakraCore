@@ -67,7 +67,6 @@ function asmModule(stdlib, imports) {
     var gval2 = 1234.0;
 
 
-    
     var loopCOUNT = 3;
 
     function func1(a, i, b, count)
@@ -167,8 +166,28 @@ function asmModule(stdlib, imports) {
 
         return +ret;
     }
-    
-    return {func1:func1, func2:func2, func3:func3, func4:func4, /*func5:func5, func6:func6*/};
+
+    function fctest(a)
+    {
+        a = i4check(a);
+        return a;
+    }
+    function fcBug_1()
+    {
+        var x = f4(-1.0, -2.0, -3.0, -4.0);
+        var k = i4(-1, -2, -3, -4);
+        k = i4check(fctest(k));
+        return f4check(x);
+    }
+    function fcBug_2()
+    {
+        var x = f4(-1.0, -2.0, -3.0, -4.0);
+        var k = i4(-1, -2, -3, -4);
+        x = f4check(fcBug_1());
+        return i4check(k);
+    }
+
+    return {func1:func1, func2:func2, func3:func3, func4:func4, fcBug1:fcBug_1, fcBug2:fcBug_2};
 }
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
@@ -194,4 +213,11 @@ equalSimd([8.000000,16.000000,24.000000,32.000000], c, SIMD.Float32x4, "func1");
 
 c = m.func4();
 equalSimd([301.000000,301.000000,301.000000,301.000000], c, SIMD.Float32x4, "func1");
+
+c = m.fcBug1();
+equalSimd([-1, -2, -3, -4], c, SIMD.Float32x4, 'fcBug1');
+
+c = m.fcBug2();
+equalSimd([-1, -2, -3, -4], c, SIMD.Int32x4, 'fcBug2');
+
 WScript.Echo("PASS");

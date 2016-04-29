@@ -5,11 +5,10 @@
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
-    /*
+
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
-    var i4splat = i4.splat;
-    
+    /*
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
     //var i4abs = i4.abs;
@@ -181,8 +180,28 @@ function asmModule(stdlib, imports) {
 
         return +ret;
     }
-    
-    return {func1:func1, func2:func2, func3:func3, func4:func4/*, func5:func5, func6:func6*/};
+
+    function fctest(a)
+    {
+        a = u4check(a);
+        return a;
+    }
+    function fcBug_1()
+    {
+        var x = i4(1, 2, 3, 4);
+        var k = u4(1, 2, 3, 4);
+        k = u4check(fctest(k));
+        return i4check(x);
+    }
+    function fcBug_2()
+    {
+        var x = i4(1, 2, 3, 4);
+        var k = u4(1, 2, 3, 4);
+        x = i4check(fcBug_1());
+        return u4check(k);
+    }
+
+    return {func1:func1, func2:func2, func3:func3, func4:func4, func5:fcBug_1, func6:fcBug_2};
 }
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Uint32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
@@ -200,6 +219,8 @@ var ret1 = m.func1(s1, s2);
 var ret2 = m.func2(s1, s2, s3, s4);
 var ret3 = m.func3(s1, s2, s3, s4, s5, s6, s7, s8);
 var ret4 = m.func4();
+var ret5 = m.func5();
+var ret6 = m.func6();
 
 /*
 printSimdBaseline(ret1, "SIMD.Uint32x4", "ret1", "func1");
@@ -211,6 +232,8 @@ equalSimd([3229614080, 3221225472, 3217031168, 3212836864], ret1, SIMD.Uint32x4,
 equalSimd([3229614080, 3221225472, 3217031168, 3212836864], ret2, SIMD.Uint32x4, "func2")
 equalSimd([3229614080, 3221225472, 3217031168, 3212836864], ret3, SIMD.Uint32x4, "func3")
 equalSimd([4294967295, 4294967294, 4294967293, 4294967292], ret4, SIMD.Uint32x4, "func4")
+equalSimd([1,2,3,4], ret5, SIMD.Int32x4, "func5 - Bug1")
+equalSimd([1,2,3,4], ret6, SIMD.Uint32x4, "func6 - Bug1")
 
 
 
