@@ -2399,7 +2399,7 @@ case_2:
         Assert(count > 0);
 
         const char16* currentRawString = currentString->GetString();
-        int currentLength = currentString->GetLength();
+        charcount_t currentLength = currentString->GetLength();
 
         charcount_t finalBufferCount = UInt32Math::Add(UInt32Math::Mul(count, currentLength), 1);
         char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, finalBufferCount);
@@ -2413,6 +2413,7 @@ case_2:
         {
             char16* bufferDst = buffer;
             size_t bufferDstSize = finalBufferCount;
+            AnalysisAssert(bufferDstSize > currentLength);
 
             for (charcount_t i = 0; i < count; i += 1)
             {
