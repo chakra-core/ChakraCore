@@ -1,4 +1,4 @@
-add_library (Chakra.Runtime.ByteCode
+add_library (Chakra.Runtime.ByteCode STATIC
     AsmJsByteCodeDumper.cpp
     AsmJsByteCodeWriter.cpp
     BackendOpCodeAttr.cpp

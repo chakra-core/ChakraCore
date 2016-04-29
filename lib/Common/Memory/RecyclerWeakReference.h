@@ -58,18 +58,18 @@ class RecyclerWeakReference: public RecyclerWeakReferenceBase
 public:
     // Fast get of the strong reference- this might return a wrong result if the recycler is in sweep so callers
     // should never call this during sweep
-    __inline T* FastGet() const
+    inline T* FastGet() const
     {
         return ((T*) strongRef);
     }
 
-    __inline T* Get() const
+    inline T* Get() const
     {
         char * ref = this->strongRef;
         return (T*)ref;
     }
 
-    __inline T** GetAddressOfStrongRef()
+    inline T** GetAddressOfStrongRef()
     {
         return (T**)&strongRef;
     }

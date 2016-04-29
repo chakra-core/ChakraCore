@@ -532,11 +532,12 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         Helpers::WideStringToNarrowDynamic(argv[1], &argInfo.filename);
     }
 
-#ifdef _WIN32
     if (chakraLibrary != nullptr)
     {
+#ifdef _WIN32
         HANDLE threadHandle;
         threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(0, 0, &StaticThreadProc, &argInfo, STACK_SIZE_PARAM_IS_A_RESERVATION, 0));
+        
         if (threadHandle != nullptr)
         {
             DWORD waitResult = WaitForSingleObject(threadHandle, INFINITE);
@@ -548,13 +549,12 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
             fwprintf(stderr, _u("FATAL ERROR: failed to create worker thread error code %d, exiting\n"), errno);
             AssertMsg(false, "failed to create worker thread");
         }
+#else
+        // On linux, execute on the same thread
+        ExecuteTestWithMemoryCheck(argInfo.filename);
+#endif
         ChakraRTInterface::UnloadChakraDll(chakraLibrary);
     }
-#else
-    // TODO: Remove this once ChakraCore is compiling on Linux
-    Assert(chakraLibrary == nullptr);
-    printf("Loading ChakraCore library dynamically is not yet implemented\n");
-#endif // _WIN32
 
     return 0;
 }

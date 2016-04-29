@@ -14,7 +14,7 @@ namespace Js
 #endif
 
     template <class T>
-    __inline T * DynamicObject::NewObject(Recycler * recycler, DynamicType * type)
+    inline T * DynamicObject::NewObject(Recycler * recycler, DynamicType * type)
     {
         size_t inlineSlotsSize = type->GetTypeHandler()->GetInlineSlotsSize();
         if (inlineSlotsSize)

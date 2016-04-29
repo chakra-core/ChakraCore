@@ -6,6 +6,12 @@
 #include "Option.h"
 #include "ImmutableList.h"
 
+// Include it just for VC- non-VC++ platforms get the required definitions
+// from CommonPal.h
+#ifdef _MSC_VER
+#include <strsafe.h>
+#endif
+
 template<int chunkSize>
 void regex::ImmutableStringBuilder<chunkSize>::AppendInt32(int32 value)
 {

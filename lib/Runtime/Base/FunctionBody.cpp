@@ -33,6 +33,8 @@
 
 namespace Js
 {
+    uint const ScopeSlots::MaxEncodedSlotCount;
+
     CriticalSection FunctionProxy::GlobalLock;
 
 #ifdef FIELD_ACCESS_STATS
@@ -1175,8 +1177,14 @@ namespace Js
     ParseableFunctionInfo* ParseableFunctionInfo::New(ScriptContext* scriptContext, int nestedCount,
         LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, Js::PropertyRecordList* propertyRecords, Attributes attributes)
     {
-        Assert(scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk
-            || scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
+#ifdef ENABLE_SCRIPT_PROFILING
+        Assert(
+            scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk ||
+            scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
+#else
+        Assert(scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
+#endif
+
 #ifdef PERF_COUNTERS
         PERF_COUNTER_INC(Code, DeferredFunction);
 #endif
@@ -2964,6 +2972,7 @@ namespace Js
 #endif
         ;
     }
+#ifdef ENABLE_SCRIPT_PROFILING
     bool FunctionProxy::HasValidProfileEntryPoint() const
     {
         JavascriptMethod directEntryPoint = (JavascriptMethod)this->GetDefaultEntryPointInfo()->address;
@@ -2996,6 +3005,7 @@ namespace Js
         return true;
 #endif
     }
+#endif
 
     bool FunctionProxy::HasValidEntryPoint() const
     {
@@ -3004,18 +3014,27 @@ namespace Js
         {
             return this->HasValidNonProfileEntryPoint();
         }
+#ifdef ENABLE_SCRIPT_PROFILING
         if (m_scriptContext->IsProfiling())
         {
             return this->HasValidProfileEntryPoint();
         }
+
         return this->HasValidNonProfileEntryPoint() || this->HasValidProfileEntryPoint();
+#else
+        return this->HasValidNonProfileEntryPoint();
+#endif
     }
 
 #endif
     void ParseableFunctionInfo::SetDeferredParsingEntryPoint()
     {
+#ifdef ENABLE_SCRIPT_PROFILING
         Assert(m_scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk
             || m_scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
+#else
+        Assert(m_scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
+#endif
 
         this->SetEntryPoint(this->GetDefaultEntryPointInfo(), m_scriptContext->DeferredParsingThunk);
         originalEntryPoint = DefaultDeferredParsingThunk;
@@ -3023,10 +3042,17 @@ namespace Js
 
     void ParseableFunctionInfo::SetInitialDefaultEntryPoint()
     {
+#ifdef ENABLE_SCRIPT_PROFILING
         Assert(m_scriptContext->CurrentThunk == ProfileEntryThunk || m_scriptContext->CurrentThunk == DefaultEntryThunk);
         Assert(originalEntryPoint == DefaultDeferredParsingThunk || originalEntryPoint == ProfileDeferredParsingThunk ||
                originalEntryPoint == DefaultDeferredDeserializeThunk || originalEntryPoint == ProfileDeferredDeserializeThunk ||
                originalEntryPoint == DefaultEntryThunk || originalEntryPoint == ProfileEntryThunk);
+#else
+        Assert(m_scriptContext->CurrentThunk == DefaultEntryThunk);
+        Assert(originalEntryPoint == DefaultDeferredParsingThunk ||
+               originalEntryPoint == DefaultDeferredDeserializeThunk ||
+               originalEntryPoint == DefaultEntryThunk);
+#endif
         Assert(this->m_defaultEntryPointInfo != nullptr);
 
         // CONSIDER: we can optimize this to generate the dynamic interpreter thunk up front
@@ -4821,14 +4847,20 @@ namespace Js
     void FunctionBody::SetEntryToDeferParseForDebugger()
     {
         ProxyEntryPointInfo* defaultEntryPointInfo = this->GetDefaultEntryPointInfo();
-        if (defaultEntryPointInfo->address != DefaultDeferredParsingThunk && defaultEntryPointInfo->address != ProfileDeferredParsingThunk)
+        if (defaultEntryPointInfo->address != DefaultDeferredParsingThunk
+#ifdef ENABLE_SCRIPT_PROFILING
+            && defaultEntryPointInfo->address != ProfileDeferredParsingThunk
+#endif
+            )
         {
+#ifdef ENABLE_SCRIPT_PROFILING
             // Just change the thunk, the cleanup will be done once the function gets called.
             if (this->m_scriptContext->CurrentThunk == ProfileEntryThunk)
             {
                 defaultEntryPointInfo->address = ProfileDeferredParsingThunk;
             }
             else
+#endif
             {
                 defaultEntryPointInfo->address = DefaultDeferredParsingThunk;
             }
@@ -8218,7 +8250,7 @@ namespace Js
 
     void EntryPointInfo::OnNativeCodeInstallFailure()
     {
-        // If more data is transferred from the background thread to the main thread in ProcessJitTransferData, 
+        // If more data is transferred from the background thread to the main thread in ProcessJitTransferData,
         // corresponding fields on the entryPointInfo should be rolled back here.
         this->runtimeTypeRefs = nullptr;
         this->FreePropertyGuards();
@@ -8913,7 +8945,7 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    // This function needs review when we enable lazy bailouts- 
+    // This function needs review when we enable lazy bailouts-
     // Is calling Reset enough? Does Reset sufficiently resets the state of the entryPointInfo?
     void EntryPointInfo::ResetOnLazyBailoutFailure()
     {
@@ -9265,8 +9297,8 @@ namespace Js
                 }
                 else
                 {
-                    Assert(functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo());                    
-                    Assert(((FunctionEntryPointInfo*)functionType->GetEntryPointInfo())->IsCleanedUp() 
+                    Assert(functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo());
+                    Assert(((FunctionEntryPointInfo*)functionType->GetEntryPointInfo())->IsCleanedUp()
                         || (DWORD_PTR)functionType->GetEntryPoint() != this->GetNativeAddress());
                 }
             });
@@ -9380,7 +9412,7 @@ namespace Js
     void LoopEntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
         // Since we call the address on the entryPointInfo for loop bodies, all we need to do is to roll back
-        // the fields on the entryPointInfo related to transferring data from jit thread to main thread (already 
+        // the fields on the entryPointInfo related to transferring data from jit thread to main thread (already
         // being done in EntryPointInfo::OnNativeCodeInstallFailure). On the next loop iteration, the interpreter
         // will call EntryPointInfo::EnsureIsReadyToCall and we'll try to process jit transfer data again.
     }

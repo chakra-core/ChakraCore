@@ -119,7 +119,7 @@ public:
     }
 
 private:
-    __inline bool RequestAllocImpl(size_t byteCount)
+    inline bool RequestAllocImpl(size_t byteCount)
     {
         size_t newCurrentMemory = currentMemory + byteCount;
 
@@ -141,7 +141,7 @@ private:
         }
     }
 
-    __inline void ReportFreeImpl(MemoryAllocateEvent allocationEvent, size_t byteCount)
+    inline void ReportFreeImpl(MemoryAllocateEvent allocationEvent, size_t byteCount)
     {
         Assert(currentMemory >= byteCount);
 

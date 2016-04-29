@@ -151,24 +151,38 @@ namespace Js {
     double
     DateImplementation::NowFromHiResTimer(ScriptContext* scriptContext)
     {
+        // xplat-todo: Implement Hi-Res timer on Linux
+#ifdef _WIN32
         // Use current time.
         return scriptContext->GetThreadContext()->GetHiResTimer()->Now();
+#else
+        Js::Throw::NotImplemented();
+#endif
     }
 
     double
     DateImplementation::NowInMilliSeconds(ScriptContext * scriptContext)
     {
+        // xplat-todo: Implement Hi-Res timer on Linux
+#ifdef _WIN32
         return DoubleToTvUtc(DateImplementation::NowFromHiResTimer(scriptContext));
+#else
+        Js::Throw::NotImplemented();
+#endif
     }
 
     JavascriptString*
     DateImplementation::GetString(DateStringFormat dsf, DateTimeFlag noDateTime)
     {
+        // xplat-todo: Implement this for
+        // GetDateDefaultString/GetDateLocaleString on Linux
         if (JavascriptNumber::IsNan(m_tvUtc))
         {
             return m_scriptContext->GetLibrary()->GetInvalidDateString();
         }
-
+        // xplat-todo: Implement this for
+        // GetDateDefaultString/GetDateLocaleString on Linux
+#ifdef _WIN32
         switch (dsf)
          {
             default:
@@ -202,6 +216,9 @@ namespace Js {
                 EnsureYmdUtc();
                 return GetDateGmtString(&m_ymdUtc, m_scriptContext);
         }
+#else
+        Js::Throw::NotImplemented();
+#endif
     }
 
     JavascriptString*
@@ -365,7 +382,12 @@ namespace Js {
 
         Js::DateImplementation::GetYmdFromTv(tv, &ymd);
 
+        // xplat-todo: Implement GetDeteDefaultString functions on Linux
+#ifdef _WIN32
         return DateImplementation::GetDateDefaultString(&ymd, &tzd, 0, scriptContext);
+#else
+        Js::Throw::NotImplemented();
+#endif
     }
 
 #ifdef ENABLE_GLOBALIZATION

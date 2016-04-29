@@ -651,7 +651,7 @@ StringCommon:
             }
         }
 
-        Var __inline JavascriptMath::Add_DoubleHelper(double dblLeft, Var addRight, ScriptContext* scriptContext, JavascriptNumber*result)
+        Var inline JavascriptMath::Add_DoubleHelper(double dblLeft, Var addRight, ScriptContext* scriptContext, JavascriptNumber*result)
         {
             if (TaggedInt::Is(addRight))
             {
@@ -673,7 +673,7 @@ StringCommon:
             }
         }
 
-        Var __inline JavascriptMath::Add_DoubleHelper(Var addLeft, double dblRight, ScriptContext* scriptContext, JavascriptNumber*result)
+        Var inline JavascriptMath::Add_DoubleHelper(Var addLeft, double dblRight, ScriptContext* scriptContext, JavascriptNumber*result)
         {
             if (TaggedInt::Is(addLeft))
             {
@@ -695,7 +695,7 @@ StringCommon:
             }
         }
 
-        Var __inline JavascriptMath::Subtract_DoubleHelper(double dblLeft, Var subRight, ScriptContext* scriptContext, JavascriptNumber* result)
+        Var inline JavascriptMath::Subtract_DoubleHelper(double dblLeft, Var subRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
             if (TaggedInt::Is(subRight))
             {
@@ -717,7 +717,7 @@ StringCommon:
             }
         }
 
-        Var __inline JavascriptMath::Subtract_DoubleHelper(Var subLeft, double dblRight, ScriptContext* scriptContext, JavascriptNumber*result)
+        Var inline JavascriptMath::Subtract_DoubleHelper(Var subLeft, double dblRight, ScriptContext* scriptContext, JavascriptNumber*result)
         {
             if (TaggedInt::Is(subLeft))
             {
@@ -1041,7 +1041,7 @@ StringCommon:
                 else
                 {
                     AssertMsg(false, "Unable to initialize PRNG seeds with rand_s. Revert to using entropy.");
-
+#ifdef ENABLE_CUSTOM_ENTROPY
                     ThreadContext *threadContext = scriptContext->GetThreadContext();
 
                     threadContext->GetEntropy().AddThreadCycleTime();
@@ -1051,6 +1051,7 @@ StringCommon:
                     threadContext->GetEntropy().AddThreadCycleTime();
                     threadContext->GetEntropy().AddIoCounters();
                     *seed1 = threadContext->GetEntropy().GetRand();
+#endif
                 }
             }
         }

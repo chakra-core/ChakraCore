@@ -1012,7 +1012,6 @@ namespace Js
         return nullptr;
     }
 
-#ifdef ENABLE_GLOBALIZATION
     JavascriptString* JavascriptNumber::ToLocaleString(double value, ScriptContext* scriptContext)
     {
         WCHAR   szRes[bufSize];
@@ -1034,6 +1033,7 @@ namespace Js
         JavascriptString *dblStr = JavascriptString::FromVar(FormatDoubleToString(value, NumberUtilities::FormatFixed, -1, scriptContext));
         const char16* szValue = dblStr->GetSz();
 
+#ifdef ENABLE_GLOBALIZATION
         count = GetNumberFormatEx(LOCALE_NAME_USER_DEFAULT, 0, szValue, NULL, NULL, 0);
 
         if( count <= 0 )
@@ -1070,8 +1070,12 @@ namespace Js
         }
 
         return result;
-    }
+#else
+        // xplat-todo: Implement the locale specific version
+        AssertMsg(false, "JavascriptNumber::ToLocaleString is not yet implemented");
+        return dblStr;
 #endif // ENABLE_GLOBALIZATION
+    }
 
     Var JavascriptNumber::CloneToScriptContext(Var aValue, ScriptContext* requestContext)
     {

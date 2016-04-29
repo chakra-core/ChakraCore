@@ -187,7 +187,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     loopDepth(0),
     maxGlobalFunctionExecTime(0.0),
     isAllJITCodeInPreReservedRegion(true),
-    activityId(GUID_NULL),
     tridentLoadAddress(nullptr),
     debugManager(nullptr)
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
@@ -203,8 +202,10 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 
     isScriptActive = false;
 
+#ifdef ENABLE_CUSTOM_ENTROPY
     entropy.Initialize();
-
+#endif
+    
 #if ENABLE_NATIVE_CODEGEN
     this->bailOutRegisterSaveSpace = AnewArrayZ(this->GetThreadAlloc(), Js::Var, GetBailOutRegisterSaveSlotCount());
 #endif
@@ -1416,7 +1417,6 @@ ThreadContext::SetForceOneIdleCollection()
 BOOLEAN
 ThreadContext::IsOnStack(void const *ptr)
 {
-#ifdef _WIN32
 #if defined(_M_IX86) && defined(_MSC_VER)
     return ptr < (void*)__readfsdword(0x4) && ptr >= (void*)__readfsdword(0xE0C);
 #elif defined(_M_AMD64) && defined(_MSC_VER)
@@ -1431,16 +1431,16 @@ ThreadContext::IsOnStack(void const *ptr)
     ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
     bool isOnStack = (void*)lowLimit <= ptr && ptr < (void*)highLimit;
     return isOnStack;
+#elif !defined(_MSC_VER)
+    ULONG_PTR lowLimit = 0;
+    ULONG_PTR highLimit = 0;
+    ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
+    bool isOnStack = (void*)lowLimit <= ptr && ptr < (void*)highLimit;
+    return isOnStack;
 #else
     AssertMsg(FALSE, "IsOnStack -- not implemented yet case");
     Js::Throw::NotImplemented();
     return false;
-#endif
-#else // !_WIN32
-    void *lowLimit, *highLimit;
-    ::GetCurrentThreadStackBounds((char**)&lowLimit, (char**)&highLimit);
-    bool isOnStack = lowLimit <= ptr && ptr < highLimit;
-    return isOnStack;
 #endif
 }
 
@@ -3607,7 +3607,14 @@ ThreadServiceWrapper* ThreadContext::GetThreadServiceWrapper()
 
 uint ThreadContext::GetRandomNumber()
 {
+#ifdef ENABLE_CUSTOM_ENTROPY
     return (uint)GetEntropy().GetRand();
+#else
+    uint randomNumber = 0;
+    errno_t e = rand_s(&randomNumber);
+    Assert(e == 0);
+    return randomNumber;
+#endif
 }
 
 #ifdef ENABLE_JS_ETW
@@ -4054,6 +4061,8 @@ ThreadContext::ClearRootTrackerScriptContext(Js::ScriptContext * scriptContext)
 }
 #endif
 
+#ifdef ENABLE_BASIC_TELEMETRY
+#if ENABLE_NATIVE_CODEGEN
 JITTimer::JITTimer()
 {
     Reset();
@@ -4105,6 +4114,7 @@ void JITTimer::LogTime(double ms)
         stats.greaterThan300ms++;
     }
 }
+#endif // NATIVE_CODE_GEN
 
 ParserTimer::ParserTimer()
 {
@@ -4161,6 +4171,7 @@ void ParserTimer::LogTime(double ms)
         stats.greaterThan300ms++;
     }
 }
+#endif // ENABLE_BASIC_TELEMETRY
 
 AutoTagNativeLibraryEntry::AutoTagNativeLibraryEntry(Js::RecyclableObject* function, Js::CallInfo callInfo, PCWSTR name, void* addr)
 {

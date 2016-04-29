@@ -125,7 +125,7 @@ namespace UnifiedRegex
 
         // NOTE: In the following pat and patLen must be the same as passed to Setup above
         template <uint equivClassSize>
-        __inline bool Match
+        inline bool Match
             ( const Char *const input
             , const CharCount inputLength
             , CharCount& inputOffset

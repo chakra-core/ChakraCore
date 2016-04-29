@@ -123,7 +123,7 @@ namespace Js
     }
 
     // static
-    __inline Var CrossSite::MarshalVar(ScriptContext* scriptContext, Var value, bool fRequestWrapper)
+    inline Var CrossSite::MarshalVar(ScriptContext* scriptContext, Var value, bool fRequestWrapper)
     {
         // value might be null from disable implicit call
         if (value == nullptr || Js::TaggedNumber::Is(value))
@@ -244,7 +244,11 @@ namespace Js
 
     bool CrossSite::IsThunk(JavascriptMethod thunk)
     {
+#ifdef ENABLE_SCRIPT_PROFILING
         return (thunk == CrossSite::ProfileThunk || thunk == CrossSite::DefaultThunk);
+#else
+        return (thunk == CrossSite::DefaultThunk);
+#endif
     }
 
 #ifdef ENABLE_SCRIPT_PROFILING

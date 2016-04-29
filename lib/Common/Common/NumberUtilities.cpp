@@ -9,6 +9,29 @@
 
 namespace Js
 {
+    // Redeclare static constants
+    const UINT64 NumberConstantsBase::k_Nan;
+    const INT64 NumberUtilitiesBase::Pos_InvalidInt64;
+    const INT64 NumberUtilitiesBase::Neg_InvalidInt64;
+    const uint64 NumberConstants::k_PosInf;
+    const uint64 NumberConstants::k_NegInf;
+    const uint64 NumberConstants::k_PosMin;
+    const uint64 NumberConstants::k_PosMax;
+    const uint64 NumberConstants::k_NegZero;
+    const uint64 NumberConstants::k_Zero;
+    const uint64 NumberConstants::k_PointFive;
+    const uint64 NumberConstants::k_NegPointFive;
+    const uint64 NumberConstants::k_NegOne;
+    const uint64 NumberConstants::k_OnePointZero;
+    const uint64 NumberConstants::k_TwoToFraction;
+    const uint64 NumberConstants::k_NegTwoToFraction;
+    const uint32 NumberConstants::k_Float32Zero;
+    const uint32 NumberConstants::k_Float32PointFive;
+    const uint32 NumberConstants::k_Float32NegPointFive;
+    const uint32 NumberConstants::k_Float32NegZero;
+    const uint32 NumberConstants::k_Float32TwoToFraction;
+    const uint32 NumberConstants::k_Float32NegTwoToFraction;
+
     const double NumberConstants::MAX_VALUE = *(double*)(&NumberConstants::k_PosMax);
     const double NumberConstants::MIN_VALUE = *(double*)(&NumberConstants::k_PosMin);
     const double NumberConstants::NaN = *(double*)(&NumberConstants::k_Nan);

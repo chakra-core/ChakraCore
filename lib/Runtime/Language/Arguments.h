@@ -4,6 +4,43 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef _WIN32
+#define VA_LIST_TO_VARARRAY(vl, va, callInfo) Js::Var* va = (Var*) vl;
+#else
+#if _M_X64
+// System V AMD64 calling convention requires that the callee
+// not assume that the arguments are all passed on the
+// stack. Instead, arguments are passed in registers first and
+// are passed through the stack only after the 6th
+// argument. va_list therefore is not merely a stack pointer
+// but a more complex datastructure, so we can't directly cast
+// it to a Var*.
+// As a workaround, for now we can allocate a new arguments array
+// directly on the stack and copy the original arguments onto
+// this stack allocated memory.
+// This is implemented as a macro since we allocate the var array on the
+// stack using alloca
+//
+// xplat-todo: Investigate whether we can do something
+// cleverer here to avoid this stack copying. Perhaps a
+// combination of making up our own calling convention between
+// amd64_JavascriptCallFunction and its callees, and having
+// argument reader manipulate the stack pointer directly
+// instead of using va_list/va_args. However, the following
+// solution is probably the cleanest/most portable.
+#define VA_LIST_TO_VARARRAY(vl, va, callInfo)                              \
+    Js::Var* va = (Var*) alloca(callInfo.Count * sizeof(Var*));            \
+    {                                                                      \
+        for (int i = 0; i < callInfo.Count; i++)                           \
+        {                                                                  \
+            va[i] = va_arg(vl, Var);                                       \
+        }                                                                  \
+    }
+#else
+#error Not yet implemented
+#endif
+#endif
+
 /*
  * RUNTIME_ARGUMENTS is a simple wrapper around the variadic calling convention
  * used by JavaScript functions. It is a low level macro that does not try to
@@ -13,19 +50,23 @@
 #define RUNTIME_ARGUMENTS(n, s)                                           \
     va_list argptr;                                                       \
     va_start(argptr, s);                                                  \
-    Js::Arguments n(s, (Js::Var *)argptr);
+    VA_LIST_TO_VARARRAY(argptr, _argsVarArray, s)                         \
+    Js::Arguments n(s, _argsVarArray);
 
 #define ARGUMENTS(n, s)                                                   \
     va_list argptr;                                                       \
     va_start(argptr, s);                                                  \
-    Js::ArgumentReader n(&s, (Js::Var *)argptr);
+    VA_LIST_TO_VARARRAY(argptr, _argsVarArray, s)                         \
+    Js::ArgumentReader n(&s, _argsVarArray);
 
 namespace Js
 {
     struct Arguments
     {
     public:
-        Arguments(CallInfo callInfo, Var *values) : Info(callInfo), Values(values) {}
+        Arguments(CallInfo callInfo, Var* values) :
+            Info(callInfo), Values(values) {}
+
         Arguments(VirtualTableInfoCtorEnum v) : Info(v) {}
         Var operator [](int idxArg) { return const_cast<Var>(static_cast<const Arguments&>(*this)[idxArg]); }
         const Var operator [](int idxArg) const
@@ -42,8 +83,14 @@ namespace Js
 
     struct ArgumentReader : public Arguments
     {
-        ArgumentReader(CallInfo *callInfo, Var *values)
+        ArgumentReader(CallInfo *callInfo, Var* values)
             : Arguments(*callInfo, values)
+        {
+            AdjustArguments(callInfo);
+        }
+
+    private:
+        void AdjustArguments(CallInfo *callInfo)
         {
             AssertMsg(!(Info.Flags & Js::CallFlags_NewTarget) || (Info.Flags & Js::CallFlags_ExtraArg), "NewTarget flag must be used together with ExtraArg.");
             if (Info.Flags & Js::CallFlags_ExtraArg)

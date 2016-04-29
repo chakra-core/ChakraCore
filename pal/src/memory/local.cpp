@@ -140,3 +140,27 @@ LocalFree(
     PERF_EXIT(LocalFree);
     return bRetVal == TRUE ? (HLOCAL)NULL : hMem;
 }
+
+#define STDAPI_(type) extern "C" type __stdcall
+
+STDAPI_(LPVOID)
+CoTaskMemAlloc(
+    IN SIZE_T cb)
+{
+    return HeapAlloc(GetProcessHeap(), 0, cb);
+}
+
+STDAPI_(LPVOID)
+CoTaskMemRealloc(
+    IN LPVOID pv,
+    IN SIZE_T cb)
+{
+    return HeapReAlloc(GetProcessHeap(), 0, pv, cb);
+}
+
+STDAPI_(void)
+CoTaskMemFree(
+    IN LPVOID pv)
+{
+    HeapFree(GetProcessHeap(), 0, pv);
+}

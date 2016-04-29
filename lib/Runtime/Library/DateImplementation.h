@@ -169,7 +169,7 @@ namespace Js {
         ///    Make sure m_tvLcl is valid. (Shared with hybrid debugging, which may use a fake scriptContext.)
         ///------------------------------------------------------------------------------
         template <class ScriptContext>
-        __inline void EnsureTvLcl(ScriptContext* scriptContext)
+        inline void EnsureTvLcl(ScriptContext* scriptContext)
         {
             if (!(m_grfval & DateValueType::Local))
             {
@@ -178,7 +178,7 @@ namespace Js {
             }
         }
 
-        __inline void EnsureTvLcl(void)
+        inline void EnsureTvLcl(void)
         {
             EnsureTvLcl(m_scriptContext);
         }
@@ -187,7 +187,7 @@ namespace Js {
         /// Make sure m_ymdLcl is valid. (Shared with hybrid debugging, which may use a fake scriptContext.)
         ///------------------------------------------------------------------------------
         template <class ScriptContext>
-        __inline void EnsureYmdLcl(ScriptContext* scriptContext)
+        inline void EnsureYmdLcl(ScriptContext* scriptContext)
         {
             if (m_grfval & DateValueType::YearMonthDayLocal)
             {
@@ -198,7 +198,7 @@ namespace Js {
             m_grfval |= DateValueType::YearMonthDayLocal;
         }
 
-        __inline void EnsureYmdLcl(void)
+        inline void EnsureYmdLcl(void)
         {
             EnsureYmdLcl(m_scriptContext);
         }
@@ -206,7 +206,7 @@ namespace Js {
         ///------------------------------------------------------------------------------
         /// Make sure m_ymdUtc is valid.
         ///------------------------------------------------------------------------------
-        __inline void EnsureYmdUtc(void)
+        inline void EnsureYmdUtc(void)
         {
             if (m_grfval & DateValueType::YearMonthDayUTC)
             {
@@ -217,13 +217,13 @@ namespace Js {
         }
 
 
-        __inline Var GetFullYear()
+        inline Var GetFullYear()
         {
             EnsureYmdLcl();
             return JavascriptNumber::ToVar(m_ymdLcl.year, m_scriptContext);
         }
 
-        __inline Var GetYear()
+        inline Var GetYear()
         {
             EnsureYmdLcl();
             // WOOB bug 1099381: ES5 spec B.2.4: getYear() must return YearFromTime() - 1900.
@@ -232,43 +232,43 @@ namespace Js {
             return JavascriptNumber::ToVar(value, m_scriptContext);
         }
 
-        __inline Var GetMonth()
+        inline Var GetMonth()
         {
             EnsureYmdLcl();
             return JavascriptNumber::ToVar(m_ymdLcl.mon, m_scriptContext);
         }
 
-        __inline Var GetDate()
+        inline Var GetDate()
         {
             EnsureYmdLcl();
             return JavascriptNumber::ToVar(m_ymdLcl.mday + 1, m_scriptContext);
         }
 
-        __inline Var GetDay()
+        inline Var GetDay()
         {
             EnsureYmdLcl();
             return JavascriptNumber::ToVar(m_ymdLcl.wday, m_scriptContext);
         }
 
-        __inline Var GetHours()
+        inline Var GetHours()
         {
             EnsureYmdLcl();
             return JavascriptNumber::ToVar((m_ymdLcl.time / 3600000)%24, m_scriptContext);
         }
 
-        __inline Var GetMinutes()
+        inline Var GetMinutes()
         {
             EnsureYmdLcl();
             return JavascriptNumber::ToVar((m_ymdLcl.time / 60000) % 60, m_scriptContext);
         }
 
-        __inline Var GetSeconds()
+        inline Var GetSeconds()
         {
             EnsureYmdLcl();
             return JavascriptNumber::ToVar((m_ymdLcl.time / 1000) % 60, m_scriptContext);
         }
 
-        __inline Var GetDateMilliSeconds()
+        inline Var GetDateMilliSeconds()
         {
             EnsureYmdLcl();
             return JavascriptNumber::ToVar(m_ymdLcl.time % 1000, m_scriptContext);
@@ -343,6 +343,8 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
 
+        // xplat-todo: Implement DaylightTimeHelper functions on Linux
+#ifdef _WIN32
         int bias;
         int offset;
         bool isDaylightSavings;
@@ -354,6 +356,9 @@ namespace Js {
             ptzd->fDst = isDaylightSavings;
         }
         return tvLcl;
+#else
+        Js::Throw::NotImplemented();
+#endif
     }
 
     ///
@@ -371,6 +376,8 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
 
+        // xplat-todo: Implement DaylightTimeHelper functions on Linux
+#ifdef _WIN32
         tvUtc = scriptContext->GetDaylightTimeHelper()->LocalToUtc(tv);
         // See if we're out of range after conversion (UTC time value must be within this range)
         if (JavascriptNumber::IsNan(tvUtc) || !NumberUtilities::IsFinite(tv) || tvUtc < ktvMin || tvUtc > ktvMax)
@@ -378,6 +385,9 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
         return tvUtc;
+#else
+        Js::Throw::NotImplemented();
+#endif
     }
 
     //

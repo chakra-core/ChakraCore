@@ -43,7 +43,7 @@ void CopyException (EXCEPINFO *peiDest, const EXCEPINFO *peiSource)
 ***********************************************************************/
 HRESULT GetErrorInfo(EXCEPINFO *pexcepinfo)
 {
-    HRESULT hr;
+    HRESULT hr = S_FALSE;
 
     memset(pexcepinfo, 0, sizeof(*pexcepinfo));
     IErrorInfo *perrinfo;
@@ -51,6 +51,7 @@ HRESULT GetErrorInfo(EXCEPINFO *pexcepinfo)
     // GetErrorInfo returns S_FALSE if there is no rich error info
     // and S_OK if there is.
 
+#ifdef _WIN32
     if(NOERROR == (hr = GetErrorInfo(0L, &perrinfo)))
     {
         perrinfo->GetSource(&pexcepinfo->bstrSource);
@@ -59,7 +60,8 @@ HRESULT GetErrorInfo(EXCEPINFO *pexcepinfo)
         perrinfo->GetHelpContext(&pexcepinfo->dwHelpContext);
         perrinfo->Release();
     }
-
+#endif
+    
     return hr;
 }
 

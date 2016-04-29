@@ -7,6 +7,8 @@
 
 namespace Js
 {
+    const int JavascriptRegExpConstructor::NumCtorCaptures;
+
     JavascriptRegExpConstructor::JavascriptRegExpConstructor(DynamicType * type) :
         RuntimeFunction(type, &JavascriptRegExp::EntryInfo::NewInstance),
         reset(false),

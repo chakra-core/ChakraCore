@@ -468,7 +468,7 @@ HeapInfo::GetMediumBucket(size_t sizeCat)
 #endif
 
 template <ObjectInfoBits attributes, bool nothrow>
-__inline char *
+inline char *
 HeapInfo::RealAlloc(Recycler * recycler, size_t sizeCat)
 {
     Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
@@ -479,7 +479,7 @@ HeapInfo::RealAlloc(Recycler * recycler, size_t sizeCat)
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS)
 #if SMALLBLOCK_MEDIUM_ALLOC
 template <ObjectInfoBits attributes, bool nothrow>
-__inline char *
+inline char *
 HeapInfo::MediumAlloc(Recycler * recycler, size_t sizeCat)
 {
     auto& bucket = this->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
@@ -499,7 +499,7 @@ HeapInfo::MediumAlloc(Recycler * recycler, size_t sizeCat)
 #endif
 
 template <ObjectInfoBits attributes>
-__inline void
+inline void
 HeapInfo::FreeSmallObject(void* object, size_t sizeCat)
 {
     Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
@@ -507,7 +507,7 @@ HeapInfo::FreeSmallObject(void* object, size_t sizeCat)
 }
 
 template <ObjectInfoBits attributes>
-__inline void
+inline void
 HeapInfo::FreeMediumObject(void* object, size_t sizeCat)
 {
     Assert(HeapInfo::IsAlignedMediumObjectSize(sizeCat));

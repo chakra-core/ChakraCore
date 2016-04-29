@@ -7,13 +7,13 @@
 
 struct PrimePolicy
 {
-    __inline static uint GetBucket(hash_t hashCode, int size)
+    inline static uint GetBucket(hash_t hashCode, int size)
     {
         uint targetBucket = hashCode % size;
         return targetBucket;
     }
 
-    __inline static uint GetSize(uint capacity)
+    inline static uint GetSize(uint capacity)
     {
         return GetPrime(capacity);
     }
@@ -25,7 +25,7 @@ private:
 
 struct PowerOf2Policy
 {
-    __inline static uint GetBucket(hash_t hashCode, int size)
+    inline static uint GetBucket(hash_t hashCode, int size)
     {
         AssertMsg(Math::IsPow2(size), "Size is not a power of 2.");
         uint targetBucket = hashCode & (size-1);
@@ -34,7 +34,7 @@ struct PowerOf2Policy
 
     /// Returns a size that is power of 2 and
     /// greater than specified capacity.
-    __inline static uint GetSize(size_t minCapacity_t)
+    inline static uint GetSize(size_t minCapacity_t)
     {
         AssertMsg(minCapacity_t <= MAXINT32, "the next higher power of 2  must fit in uint32");
         uint minCapacity = static_cast<uint>(minCapacity_t);
@@ -61,16 +61,16 @@ struct DictionarySizePolicy
 {
     CompileAssert(growthRateNumerator > growthRateDenominator);
     CompileAssert(growthRateDenominator != 0);
-    __inline static uint GetBucket(hash_t hashCode, uint bucketCount)
+    inline static uint GetBucket(hash_t hashCode, uint bucketCount)
     {
         return SizePolicy::GetBucket(hashCode, bucketCount);
     }
-    __inline static uint GetNextSize(uint minCapacity)
+    inline static uint GetNextSize(uint minCapacity)
     {
         uint nextSize = minCapacity * growthRateNumerator / growthRateDenominator;
         return (growthRateDenominator != 1 && nextSize <= minCapacity)? minCapacity + 1 : nextSize;
     }
-    __inline static uint GetBucketSize(uint size)
+    inline static uint GetBucketSize(uint size)
     {
         if (minBucket * averageChainLength >= size)
         {

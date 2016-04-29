@@ -287,6 +287,60 @@ PAL_qsort(void *base, size_t nmemb, size_t size,
     PERF_EXIT(qsort);
 }
 
+//
+// qsort_s is a variant of qsort that takes in a context parameter
+// It's similar to qsort_r that GCC provides, but with the difference
+// that qsort_s takes in the context as the first param to the compare
+// function, while qsort_r takes it as the last.
+// So we have to do this wrapper dance to deal with the translation
+// Lambda doesn't work here as qsort_r needs a function pointer
+//
+typedef int (__cdecl * qsort_s_comparer)(void*, const void *, const void *);
+struct CompareWrapperContext
+{
+    qsort_s_comparer real_comparer;
+    void* real_context;
+};
+
+#if !defined(__APPLE__) && !defined(__FreeBSD__)
+static int qsort_compare_wrapper(const void* e1, const void* e2, void* context)
+{
+    CompareWrapperContext* wrapper = (CompareWrapperContext*) context;
+    return wrapper->real_comparer(wrapper->real_context, e1, e2);
+}
+#else
+// the qsort_r comparer is backwards from the way it's defined on linux
+static int qsort_compare_wrapper(void* context, const void* e1, const void* e2)
+{
+    CompareWrapperContext* wrapper = (CompareWrapperContext*) context;
+    return wrapper->real_comparer(wrapper->real_context, e1, e2);
+}
+#endif
+
+PALIMPORT 
+void __cdecl 
+PAL_qsort_s(void *base, size_t nmemb, size_t size, 
+    int (__cdecl *compar )(void*, const void *, const void *), void* context)
+{
+    CompareWrapperContext qsort_s_context = {0};
+    qsort_s_context.real_comparer = compar;
+    qsort_s_context.real_context  = context;
+    
+    // REVIEW: Do we need to call some kind of invalid parameter handler here?
+    qsort_r(
+        base,
+        nmemb,
+        size,
+#if !defined(__APPLE__) && !defined(__FreeBSD__)
+        qsort_compare_wrapper,
+        &qsort_s_context
+#else
+        &qsort_s_context,
+        qsort_compare_wrapper
+#endif
+        );
+}
+
 PALIMPORT 
 void * __cdecl 
 PAL_bsearch(const void *key, const void *base, size_t nmemb, size_t size,

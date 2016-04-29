@@ -124,9 +124,13 @@ namespace JsUtil
     WaitableJobManager::WaitableJobManager(JobProcessor *const processor)
         : JobManager(processor, true),
         jobBeingWaitedUpon(0),
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         jobBeingWaitedUponProcessed(false),
-        isWaitingForQueuedJobs(false),
-        queuedJobsProcessed(false)
+#endif
+        isWaitingForQueuedJobs(false)
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
+        , queuedJobsProcessed(false)
+#endif
     {
     }
 
@@ -217,7 +221,11 @@ namespace JsUtil
 
     CriticalSection *JobProcessor::GetCriticalSection()
     {
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         return processesInBackground ? static_cast<BackgroundJobProcessor *>(this)->GetCriticalSection() : 0;
+#else
+        return 0;
+#endif
     }
 
     void JobProcessor::AddManager(JobManager *const manager)

@@ -17,7 +17,7 @@ SmallHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsigned char a
     ObjectInfo(index) = attributes;
 }
 
-__inline
+inline
 IdleDecommitPageAllocator*
 HeapBlock::GetPageAllocator(Recycler* recycler)
 {

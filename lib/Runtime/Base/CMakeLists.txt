@@ -1,4 +1,4 @@
-add_library (Chakra.Runtime.Base
+add_library (Chakra.Runtime.Base STATIC
     CallInfo.cpp
     CharStringCache.cpp
     Constants.cpp

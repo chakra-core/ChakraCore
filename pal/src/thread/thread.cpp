@@ -2786,12 +2786,12 @@ int CorUnix::CThreadMachExceptionHandlers::GetIndexOfHandler(exception_mask_t bm
 
 #endif // HAVE_MACH_EXCEPTIONS
 
-int GetCurrentThreadStackBounds(char** stackBase, char** stackEnd)
+void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
 {
 #ifdef _TARGET_MAC64
     // This is a Mac specific method
-    *stackBase = (char*)pthread_get_stackaddr_np(pthread_self());
-    *stackEnd = (char*)(stackBase - pthread_get_stacksize_np(pthread_self()));
+    *highLimit = (ULONG_PTR)pthread_get_stackaddr_np(pthread_self());
+    *lowLimit = (ULONG_PTR)(highLimit - pthread_get_stacksize_np(pthread_self()));
 #else
     pthread_t currentThreadHandle = pthread_self();
 
@@ -2816,9 +2816,7 @@ int GetCurrentThreadStackBounds(char** stackBase, char** stackEnd)
 
     pthread_attr_destroy(&attr);
 
-    *stackBase = (char*) stackbase;
-    *stackEnd = (char*) stackend;
+    *lowLimit = (ULONG_PTR) stackend;
+    *highLimit = (ULONG_PTR) stackbase;
 #endif
-
-    return 0;
 }

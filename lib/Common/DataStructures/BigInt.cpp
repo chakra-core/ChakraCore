@@ -591,20 +591,6 @@ LNegative:
         return dbl;
     }
 
-    namespace // anonymous
-    {
-        template <typename EncodedChar>
-        void Reference(void)
-        {
-            BigInt i;
-            i.FInitFromDigits<EncodedChar>(NULL, 0, NULL);
-        }
-
-        void Instantiations(void)
-        {
-            Reference<char16>();
-            Reference<utf8char_t>();
-        }
-    }
-
+    template bool BigInt::FInitFromDigits<char16>(const char16 *prgch, long cch, long *pcchDig);
+    template bool BigInt::FInitFromDigits<utf8char_t>(const utf8char_t *prgch, long cch, long *pcchDig);
 }

@@ -29,8 +29,6 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #include <malloc.h>
 #endif
 
-extern "C" void * _AddressOfReturnAddress(void);
-
 #include "Common/GetCurrentFrameId.h"
 
 namespace Js

@@ -779,7 +779,7 @@ namespace JsUtil
         }
 
         template <typename LookupType>
-        __inline int FindEntryWithKey(const LookupType& key) const
+        inline int FindEntryWithKey(const LookupType& key) const
         {
 #if PROFILE_DICTIONARY
             uint depth = 0;
@@ -820,7 +820,7 @@ namespace JsUtil
         }
 
         template <typename LookupType>
-        __inline bool FindEntryWithKey(const LookupType& key, int *const i, int *const last, uint *const targetBucket)
+        inline bool FindEntryWithKey(const LookupType& key, int *const i, int *const last, uint *const targetBucket)
         {
 #if PROFILE_DICTIONARY
             uint depth = 0;
@@ -1103,7 +1103,7 @@ namespace JsUtil
             *ppEntries = entries;
         }
 
-        __inline void RemoveAt(const int i, const int last, const uint targetBucket)
+        inline void RemoveAt(const int i, const int last, const uint targetBucket)
         {
             if (last < 0)
             {
@@ -1709,7 +1709,7 @@ namespace JsUtil
         }
 
         template <typename TLookup>
-        __inline bool TryGetReference(const TLookup& key, TValue** value)
+        inline bool TryGetReference(const TLookup& key, TValue** value)
         {
             typename LockPolicy::ReadLock autoLock(syncObj);
 
@@ -1717,7 +1717,7 @@ namespace JsUtil
         }
 
         template <typename TLookup>
-        __inline bool TryGetReference(const TLookup& key, TValue** value, int* index)
+        inline bool TryGetReference(const TLookup& key, TValue** value, int* index)
         {
             typename LockPolicy::ReadLock autoLock(syncObj);
 

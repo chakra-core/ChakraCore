@@ -104,6 +104,9 @@ Term ::= ... | '(' '?' '=' Disjunction ')' [removed] | '(' '?' '!' Disjunction '
 
 namespace UnifiedRegex
 {
+    template <typename P, const bool IsLiteral>
+    const CharCount Parser<P, IsLiteral>::initLitbufSize;
+
     ParseError::ParseError(bool isBody, CharCount pos, CharCount encodedPos, HRESULT error)
         : isBody(isBody), pos(pos), encodedPos(encodedPos), error(error)
     {
@@ -3055,45 +3058,20 @@ namespace UnifiedRegex
         }
     }
 
-    //
-    // Template instantiation
-    //
+    // Instantiate all templates
+#define INSTANTIATE_REGEX_PARSER_COMPILE(EncodingPolicy, IsLiteral, BuildAST)    \
+    template RegexPattern* Parser<EncodingPolicy, IsLiteral>::CompileProgram<BuildAST>(Node* root, const EncodedChar*& currentCharacter, const CharCount totalLen, const CharCount bodyChars, const CharCount totalChars, const RegexFlags flags );
 
-    template <typename P, const bool IsLiteral>
-    void UnifiedRegexParserForceInstantiation()
-    {
-        typedef typename P::EncodedChar EncodedChar;
-        Parser<P, IsLiteral> p
-            ( 0
-            , 0
-            , 0
-            , 0
-            , false
-#if ENABLE_REGEX_CONFIG_OPTIONS
-            , 0
-#endif
-            );
+#define INSTANTIATE_REGEX_PARSER(EncodingPolicy)                     \
+    INSTANTIATE_REGEX_PARSER_COMPILE(EncodingPolicy, false, false)   \
+    INSTANTIATE_REGEX_PARSER_COMPILE(EncodingPolicy, false, true)    \
+    INSTANTIATE_REGEX_PARSER_COMPILE(EncodingPolicy, true, false)    \
+    INSTANTIATE_REGEX_PARSER_COMPILE(EncodingPolicy, true, true)     \
+    template class Parser<EncodingPolicy, false>;                    \
+    template class Parser<EncodingPolicy, true>;
 
-        RegexFlags f;
-        CharCount a, b, c, d;
-        const EncodedChar* cp = 0;
-        p.ParseDynamic(0, 0, 0, 0, f);
-        p.ParseLiteral(0, 0, a, b, c, d, f);
-        p.ParseLiteralNoAST(0, 0, a, b, c, d);
-        p.template CompileProgram<true>(0, cp, a, b, c, f);
-        p.template CompileProgram<false>(0, cp, a, b, c, f);
-        p.CaptureEmptySourceAndNoGroups(0);
-        p.CaptureSourceAndGroups(0, 0, 0, 0);
-        p.FreeBody();
-    }
-
-    void UnifiedRegexParserForceAllInstantiations()
-    {
-        UnifiedRegexParserForceInstantiation<NullTerminatedUnicodeEncodingPolicy, false>();
-        UnifiedRegexParserForceInstantiation<NullTerminatedUnicodeEncodingPolicy, true>();
-        UnifiedRegexParserForceInstantiation<NullTerminatedUTF8EncodingPolicy, false>();
-        UnifiedRegexParserForceInstantiation<NullTerminatedUTF8EncodingPolicy, true>();
-        UnifiedRegexParserForceInstantiation<NotNullTerminatedUTF8EncodingPolicy, false>();
-        UnifiedRegexParserForceInstantiation<NotNullTerminatedUTF8EncodingPolicy, true>();
-    }
+    // Instantiate the Parser
+    INSTANTIATE_REGEX_PARSER(NullTerminatedUnicodeEncodingPolicy);
+    INSTANTIATE_REGEX_PARSER(NullTerminatedUTF8EncodingPolicy);
+    INSTANTIATE_REGEX_PARSER(NotNullTerminatedUTF8EncodingPolicy);
 }

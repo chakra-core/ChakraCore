@@ -1,8 +1,9 @@
-add_library (Chakra.Jsrt
+add_library (Chakra.Jsrt STATIC
     Jsrt.cpp
     JsrtContext.cpp
     JsrtExternalArrayBuffer.cpp
     JsrtExternalObject.cpp
+    JsrtHelper.cpp
     JsrtPch.cpp
     JsrtRuntime.cpp
     JsrtSourceHolder.cpp

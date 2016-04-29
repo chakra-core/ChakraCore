@@ -71,7 +71,7 @@
 
 /* helper routine that does the main job. */
 #ifdef _SECURE_ITOA
-static errno_t __stdcall xtox_s
+errno_t __stdcall xtox_s
         (
         unsigned long val,
         TCHAR *buf,
@@ -80,7 +80,7 @@ static errno_t __stdcall xtox_s
         int is_neg
         )
 #else  /* _SECURE_ITOA */
-static void __stdcall xtox
+void __stdcall xtox
         (
         unsigned long val,
         TCHAR *buf,
@@ -287,7 +287,7 @@ TCHAR * __cdecl _ultox (
 *******************************************************************************/
 
 #ifdef _SECURE_ITOA
-static errno_t __fastcall x64tox_s
+errno_t __fastcall x64tox_s
         (/* stdcall is faster and smaller... Might as well use it for the helper. */
         unsigned __int64 val,
         TCHAR *buf,
@@ -296,7 +296,7 @@ static errno_t __fastcall x64tox_s
         int is_neg
         )
 #else  /* _SECURE_ITOA */
-static void __fastcall x64tox
+void __fastcall x64tox
         (/* stdcall is faster and smaller... Might as well use it for the helper. */
         unsigned __int64 val,
         TCHAR *buf,

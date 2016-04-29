@@ -706,6 +706,7 @@ namespace Js
         return varResult;
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     ScriptFunction* GlobalObject::ProfileModeEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
     {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -729,6 +730,7 @@ namespace Js
 
         return pEvalFunction;
     }
+#endif
 
     void GlobalObject::ValidateSyntax(ScriptContext* scriptContext, const char16 *source, int sourceLength, bool isGenerator, bool isAsync, void (Parser::*validateSyntax)())
     {

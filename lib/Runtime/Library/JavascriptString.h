@@ -368,31 +368,31 @@ namespace Js
     template<>
     struct PropertyRecordStringHashComparer<JavascriptString *>
     {
-        __inline static bool Equals(JavascriptString * str1, JavascriptString * str2)
+        inline static bool Equals(JavascriptString * str1, JavascriptString * str2)
         {
             return (str1->GetLength() == str2->GetLength() &&
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetString(), str2->GetString(), str1->GetLength()));
         }
 
-        __inline static bool Equals(JavascriptString * str1, JsUtil::CharacterBuffer<WCHAR> const & str2)
+        inline static bool Equals(JavascriptString * str1, JsUtil::CharacterBuffer<WCHAR> const & str2)
         {
             return (str1->GetLength() == str2.GetLength() &&
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetString(), str2.GetBuffer(), str1->GetLength()));
         }
 
-        __inline static bool Equals(JavascriptString * str1, PropertyRecord const * str2)
+        inline static bool Equals(JavascriptString * str1, PropertyRecord const * str2)
         {
             return (str1->GetLength() == str2->GetLength() && !Js::IsInternalPropertyId(str2->GetPropertyId()) &&
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetString(), str2->GetBuffer(), str1->GetLength()));
         }
 
-        __inline static uint GetHashCode(JavascriptString * str)
+        inline static uint GetHashCode(JavascriptString * str)
         {
             return JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(str->GetString(), str->GetLength());
         }
     };
 
-    __inline bool PropertyRecordStringHashComparer<PropertyRecord const *>::Equals(PropertyRecord const * str1, JavascriptString * str2)
+    inline bool PropertyRecordStringHashComparer<PropertyRecord const *>::Equals(PropertyRecord const * str1, JavascriptString * str2)
     {
         return (str1->GetLength() == str2->GetLength() && !Js::IsInternalPropertyId(str1->GetPropertyId()) &&
             JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetBuffer(), str2->GetString(), str1->GetLength()));
@@ -402,12 +402,12 @@ namespace Js
 template <>
 struct DefaultComparer<Js::JavascriptString*>
 {
-    __inline static bool Equals(Js::JavascriptString * x, Js::JavascriptString * y)
+    inline static bool Equals(Js::JavascriptString * x, Js::JavascriptString * y)
     {
         return Js::JavascriptString::Equals(x, y);
     }
 
-    __inline static uint GetHashCode(Js::JavascriptString * pStr)
+    inline static uint GetHashCode(Js::JavascriptString * pStr)
     {
         return JsUtil::CharacterBuffer<char16>::StaticGetHashCode(pStr->GetString(), pStr->GetLength());
     }

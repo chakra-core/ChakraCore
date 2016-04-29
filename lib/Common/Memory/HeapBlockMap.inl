@@ -6,7 +6,7 @@
 #pragma once
 
 template <bool interlocked>
-__inline
+inline
 bool
 HeapBlockMap32::MarkInternal(L2MapChunk * chunk, void * candidate)
 {
@@ -53,7 +53,7 @@ HeapBlockMap32::MarkInternal(L2MapChunk * chunk, void * candidate)
 //
 
 template <bool interlocked>
-__inline
+inline
 void
 HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
 {
@@ -154,7 +154,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
 }
 
 template <bool interlocked, bool updateChunk>
-__inline
+inline
 bool
 HeapBlockMap32::MarkInteriorInternal(MarkContext * markContext, L2MapChunk *& chunk, void * originalCandidate, void * realCandidate)
 {
@@ -192,7 +192,7 @@ HeapBlockMap32::MarkInteriorInternal(MarkContext * markContext, L2MapChunk *& ch
 }
 
 template <bool interlocked>
-__inline
+inline
 void
 HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
 {
@@ -328,7 +328,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
 //
 
 template <bool interlocked>
-__inline
+inline
 void
 HeapBlockMap64::Mark(void * candidate, MarkContext * markContext)
 {
@@ -352,7 +352,7 @@ HeapBlockMap64::Mark(void * candidate, MarkContext * markContext)
 }
 
 template <bool interlocked>
-__inline
+inline
 void
 HeapBlockMap64::MarkInterior(void * candidate, MarkContext * markContext)
 {

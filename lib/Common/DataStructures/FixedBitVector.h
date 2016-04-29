@@ -63,7 +63,7 @@ protected:
 
 
     template<class Fn>
-    __inline void for_each(const BVFixed *bv2, const Fn callback)
+    inline void for_each(const BVFixed *bv2, const Fn callback)
     {
         AssertMsg(this->len == bv2->len, "Fatal: The 2 bitvectors should have had the same length.");
 
@@ -337,7 +337,7 @@ private:
     BVUnit * EndUnit() { return &this->data[wordCount]; }
 
     template<class Fn>
-    __inline void for_each(const BVStatic *bv2, const Fn callback)
+    inline void for_each(const BVStatic *bv2, const Fn callback)
     {
         BVUnit *        i;
         const BVUnit *  j;

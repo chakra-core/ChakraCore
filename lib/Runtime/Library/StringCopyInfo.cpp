@@ -20,7 +20,7 @@ namespace Js
     #endif
     }
 
-    inline StringCopyInfo::StringCopyInfo(
+    StringCopyInfo::StringCopyInfo(
         JavascriptString *const sourceString,
         _Inout_count_(sourceString->m_charLength) char16 *const destinationBuffer)
         : sourceString(sourceString), destinationBuffer(destinationBuffer)

@@ -31,16 +31,25 @@ typedef wchar_t char16;
 #else // !_WIN32
 
 #define USING_PAL_STDLIB 1
+#define STRSAFE_INLINE   1
+
 #ifdef PAL_STDCPP_COMPAT
 #include <math.h>
 #include <time.h>
 #include <smmintrin.h>
 #include <xmmintrin.h>
 #endif
+
 #include "inc/pal.h"
 #include "inc/rt/palrt.h"
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
+
+#if defined(__GNUC__) || defined(__clang__)
+#define __forceinline inline __attribute__((always_inline))
+#else
+#define __forceinline inline
+#endif
 
 typedef char16_t char16;
 #define _u(s) u##s
@@ -85,6 +94,7 @@ inline void DebugBreak()
 #define wmemcmp         wcsncmp
 // sprintf_s overloaded in safecrt.h. Not sure why palrt.h redefines sprintf_s.
 #undef sprintf_s
+// #define sprintf_s PAL_sprintf_s
 
 // PAL LoadLibraryExW not supported
 #define LOAD_LIBRARY_SEARCH_SYSTEM32     0
@@ -354,20 +364,18 @@ BOOL WINAPI GetModuleHandleEx(
   _Out_    HMODULE *phModule
 );
 
-// xplat-todo: implement this function to get the stack bounds of the current
-// thread
-// For Linux, we could use pthread_getattr_np to get the stack limit (end)
-// and then use the stack size to calculate the stack base
-int GetCurrentThreadStackBounds(char** stackBase, char** stackEnd);
+int GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit);
 
 errno_t rand_s(unsigned int* randomValue);
-errno_t __cdecl _ultow_s(unsigned _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix);
-errno_t __cdecl _ui64tow_s(unsigned __int64 _Value, WCHAR *_Dst, size_t _SizeInWords, int _Radix);
-void __cdecl qsort_s(void *base, size_t num, size_t width,
-             int (__cdecl *compare )(void *, const void *, const void *),
-             void * context
-);
-char16* __cdecl wmemset(char16* wcs, char16 wc, size_t n);
+
+inline char16* wmemset(char16* wcs, char16 wc, size_t n)
+{
+    while (n)
+    {
+        wcs[--n] = wc;
+    }
+}
+
 DWORD __cdecl CharLowerBuffW(const char16* lpsz, DWORD  cchLength);
 DWORD __cdecl CharUpperBuffW(const char16* lpsz, DWORD  cchLength);
 
@@ -413,10 +421,19 @@ DWORD __cdecl CharUpperBuffW(const char16* lpsz, DWORD  cchLength);
 #ifdef _MSC_VER
 extern "C" PVOID _ReturnAddress(VOID);
 #pragma intrinsic(_ReturnAddress)
-#else
+extern "C" void * _AddressOfReturnAddress(void);
+#elif defined(__GNUC__) || defined(__clang__)
 #define _ReturnAddress() __builtin_return_address(0)
+__forceinline void * _AddressOfReturnAddress()
+{
+    return (void*)((char*) __builtin_frame_address(0) + sizeof(void*));
+}
+#else
+#error _AddressOfReturnAddress and _ReturnAddress not defined for this platform
 #endif
 
+// Define strsafe related types and defines for non-VC++ compilers
+#ifndef _MSC_VER
 // xplat-todo: figure out why strsafe.h includes stdio etc
 // which prevents me from directly including PAL's strsafe.h
 #ifdef __cplusplus
@@ -433,11 +450,92 @@ extern "C" PVOID _ReturnAddress(VOID);
 #elif defined(STRSAFE_LIB_IMPL)
 #define STRSAFEAPI  _STRSAFE_EXTERN_C HRESULT __stdcall
 #else
-#define STRSAFEAPI  __inline HRESULT __stdcall
+#define STRSAFEAPI  inline HRESULT __stdcall
 #define STRSAFE_INLINE
 #endif
 
 STRSAFEAPI StringCchPrintfW(WCHAR* pszDest, size_t cchDest, const WCHAR* pszFormat, ...);
+STRSAFEAPI StringVPrintfWorkerW(WCHAR* pszDest, size_t cchDest, const WCHAR* pszFormat, va_list argList);
+
+#define STRSAFE_MAX_CCH  2147483647 // max # of characters we support (same as INT_MAX)
+
+// STRSAFE error return codes
+//
+#define STRSAFE_E_INSUFFICIENT_BUFFER       ((HRESULT)0x8007007AL)  // 0x7A = 122L = ERROR_INSUFFICIENT_BUFFER
+#define STRSAFE_E_INVALID_PARAMETER         ((HRESULT)0x80070057L)  // 0x57 =  87L = ERROR_INVALID_PARAMETER
+#define STRSAFE_E_END_OF_FILE               ((HRESULT)0x80070026L)  // 0x26 =  38L = ERROR_HANDLE_EOF
+#endif
+
+// Provide the definitions for non-windows platforms
+#ifndef _MSC_VER
+STRSAFEAPI StringVPrintfWorkerW(WCHAR* pszDest, size_t cchDest, const WCHAR* pszFormat, va_list argList)
+{
+    HRESULT hr = S_OK;
+
+    if (cchDest == 0)
+    {
+        // can not null terminate a zero-byte dest buffer
+        hr = STRSAFE_E_INVALID_PARAMETER;
+    }
+    else    
+    {
+        int iRet;
+        size_t cchMax;
+
+        // leave the last space for the null terminator
+        cchMax = cchDest - 1;
+
+        iRet = _vsnwprintf(pszDest, cchMax, pszFormat, argList);
+        // ASSERT((iRet < 0) || (((size_t)iRet) <= cchMax));
+
+        if ((iRet < 0) || (((size_t)iRet) > cchMax))
+        {
+            // need to null terminate the string
+            pszDest += cchMax;
+            *pszDest = _u('\0');
+
+            // we have truncated pszDest
+            hr = STRSAFE_E_INSUFFICIENT_BUFFER;
+        }
+        else if (((size_t)iRet) == cchMax)
+        {
+            // need to null terminate the string
+            pszDest += cchMax;
+            *pszDest = _u('\0');
+        }
+    }
+
+    return hr;
+}
+
+STRSAFEAPI StringCchPrintfW(WCHAR* pszDest, size_t cchDest, const WCHAR* pszFormat, ...)
+{
+    HRESULT hr;
+
+    if (cchDest > STRSAFE_MAX_CCH)
+    {
+        hr = STRSAFE_E_INVALID_PARAMETER;
+    }
+    else
+    {
+        va_list argList;
+
+        va_start(argList, pszFormat);
+
+        hr = StringVPrintfWorkerW(pszDest, cchDest, pszFormat, argList);
+    
+        va_end(argList);
+    }
+
+    return hr;
+}
+#endif
+
+#ifndef _WIN32
+HANDLE GetModuleHandle(HANDLE hProcess);
+__inline
+HRESULT ULongMult(ULONG ulMultiplicand, ULONG ulMultiplier, ULONG* pulResult);
+#endif
 
 template <class TryFunc, class FinallyFunc>
 void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
@@ -456,7 +554,3 @@ void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
 
     finallyFunc(hasException);
 }
-
-__inline
-HRESULT ULongMult(ULONG ulMultiplicand, ULONG ulMultiplier, ULONG* pulResult);
-

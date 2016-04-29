@@ -297,6 +297,7 @@ BUILTIN(Math, Imul, Imul, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 
 // SIMDFloat32x4Lib entry points
+#ifdef ENABLE_SIMDJS
 BUILTIN(SIMDFloat32x4Lib, Float32x4, EntryFloat32x4, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDFloat32x4Lib, Check, EntryCheck, FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Splat, EntrySplat, FunctionInfo::None)
@@ -813,6 +814,7 @@ BUILTIN(JavascriptSIMDFloat32x4, ToLocaleString, EntryToLocaleString<JavascriptS
 BUILTIN(JavascriptSIMDFloat32x4, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDFloat32x4>, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptSIMDFloat32x4, ToString, EntryToString<JavascriptSIMDFloat32x4>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptSIMDFloat32x4, ValueOf, EntryValueOf<JavascriptSIMDFloat32x4>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
+#endif
 
 BUILTIN(Math, Fround, Fround, FunctionInfo::ErrorOnNew)
 BUILTIN(TypedArrayBase, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)

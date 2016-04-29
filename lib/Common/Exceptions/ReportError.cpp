@@ -5,7 +5,7 @@
 #include "CommonExceptionsPch.h"
 
 #ifdef _MSC_VER
-__inline
+inline
 #endif
 void ReportFatalException(
     __in ULONG_PTR context,

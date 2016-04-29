@@ -67,7 +67,7 @@ namespace Js
         return instance;
     }
 
-    __inline Var  JavascriptSIMDInt16x8::GetLaneAsNumber(uint index, ScriptContext* requestContext)
+    inline Var  JavascriptSIMDInt16x8::GetLaneAsNumber(uint index, ScriptContext* requestContext)
     {
         // convert value.i32[index] to TaggedInt
         AssertMsg(index < 8, "Out of range lane index");

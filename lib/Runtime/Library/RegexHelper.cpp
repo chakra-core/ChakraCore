@@ -1435,7 +1435,7 @@ namespace Js
         ary->DirectAppendItem(subString);
     }
 
-    __inline UnifiedRegex::RegexPattern *RegexHelper::GetSplitPattern(ScriptContext* scriptContext, JavascriptRegExp *regularExpression)
+    inline UnifiedRegex::RegexPattern *RegexHelper::GetSplitPattern(ScriptContext* scriptContext, JavascriptRegExp *regularExpression)
     {
         UnifiedRegex::RegexPattern* splitPattern = regularExpression->GetSplitPattern();
         if (!splitPattern)

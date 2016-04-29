@@ -53,14 +53,14 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     char* stackBase = (char*) teb->StackBase;
     char* stackEnd  = (char*) teb->StackLimit;
 #else
-    char* stackBase = nullptr;
-    char* stackEnd = nullptr;
-    ::GetCurrentThreadStackBounds(&stackBase, &stackEnd);
+    ULONG_PTR stackBase = 0;
+    ULONG_PTR stackEnd = 0;
+    ::GetCurrentThreadStackLimits(&stackEnd, &stackBase);
 #endif
     
     size_t numPages = (stackBase - stackEnd) / AutoSystemInfo::PageSize;
     // stackEnd is the lower boundary
-    return OnSegmentAlloc(stackEnd, numPages);
+    return OnSegmentAlloc((char*) stackEnd, numPages);
 }
 
 bool

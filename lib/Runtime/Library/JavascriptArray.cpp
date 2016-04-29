@@ -7603,9 +7603,9 @@ Case0:
     }
 #endif
 
-#ifdef ENABLE_GLOBALIZATION
     JavascriptString* JavascriptArray::GetLocaleSeparator(ScriptContext* scriptContext)
     {
+#ifdef ENABLE_GLOBALIZATION
         LCID lcid = GetUserDefaultLCID();
         int count = 0;
         char16 szSeparator[6];
@@ -7628,8 +7628,11 @@ Case0:
 
             return JavascriptString::NewCopyBuffer(szSeparator, count, scriptContext);
         }
-    }
+#else
+        // xplat-todo: Support locale-specific seperator
+        return scriptContext->GetLibrary()->GetCommaSpaceDisplayString();        
 #endif
+    }
 
     template <typename T>
     JavascriptString* JavascriptArray::ToLocaleString(T* arr, ScriptContext* scriptContext)
@@ -10153,7 +10156,7 @@ Case0:
     // Move to the next element if available.
     //
     template<typename T>
-    __inline bool JavascriptArray::ArrayElementEnumerator::MoveNext()
+    inline bool JavascriptArray::ArrayElementEnumerator::MoveNext()
     {
         while (seg)
         {

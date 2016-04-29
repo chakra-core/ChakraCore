@@ -43,7 +43,7 @@ namespace Js
 
         static BOOL Is(Var aValue);
 
-        static __inline DataView* FromVar(Var aValue)
+        static inline DataView* FromVar(Var aValue)
         {
             Assert(DataView::Is(aValue));
             return static_cast<DataView*>(aValue);

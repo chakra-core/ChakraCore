@@ -331,7 +331,7 @@ public:
 
 
     template <typename CharType>
-    __inline IdentPtr FindExistingPid(
+    inline IdentPtr FindExistingPid(
         CharType const * prgch,
         long cch,
         ulong luHash,

@@ -95,7 +95,7 @@ namespace JsUtil
     class ImplicitKeyValueEntry : public ValueEntry<TValue>
     {
     public:
-        TKey Key() const { return ValueToKey<TKey, TValue>::ToKey(this->value); }
+        inline TKey Key() const { return ValueToKey<TKey, TValue>::ToKey(this->value); }
 
         void Set(TKey const& key, TValue const& value)
         {
@@ -150,13 +150,13 @@ namespace JsUtil
     {
     public:
         template<typename Comparer, typename TLookup>
-        __inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
+        inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
         {
             return Comparer::Equals(this->Key(), otherKey);
         }
 
         template<typename Comparer>
-        __inline hash_t GetHashCode()
+        inline hash_t GetHashCode()
         {
             return ((Comparer::GetHashCode(this->Key()) & 0x7fffffff) << 1) | 1;
         }
@@ -174,14 +174,14 @@ namespace JsUtil
     public:
         static const int INVALID_HASH_VALUE = 0;
         template<typename Comparer, typename TLookup>
-        __inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
+        inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
         {
             Assert(TAGHASH(Comparer::GetHashCode(this->Key())) == this->hashCode);
             return this->hashCode == otherHashCode && Comparer::Equals(this->Key(), otherKey);
         }
 
         template<typename Comparer>
-        __inline hash_t GetHashCode()
+        inline hash_t GetHashCode()
         {
             Assert(TAGHASH(Comparer::GetHashCode(this->Key())) == this->hashCode);
             return hashCode;

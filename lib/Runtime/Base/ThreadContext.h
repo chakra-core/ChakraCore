@@ -253,6 +253,8 @@ public:
     ~AutoTagNativeLibraryEntry();
 };
 
+#ifdef ENABLE_BASIC_TELEMETRY
+#if ENABLE_NATIVE_CODEGEN
 struct JITStats
 {
     uint lessThan5ms;
@@ -263,6 +265,7 @@ struct JITStats
     uint within100And300ms;
     uint greaterThan300ms;
 };
+#endif
 
 struct ParserStats
 {
@@ -289,7 +292,7 @@ public:
     void LogTime(double ms);
 };
 
-
+#if ENABLE_NATIVE_CODEGEN
 class JITTimer
 {
 private:
@@ -302,6 +305,8 @@ public:
     double Now();
     void LogTime(double ms);
 };
+#endif
+#endif
 
 #define AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, name) \
     AutoTagNativeLibraryEntry __tag(function, callInfo, name, _AddressOfReturnAddress())
@@ -843,9 +848,12 @@ public:
     Js::DelayLoadWinCoreProcessThreads * GetWinCoreProcessThreads();
 #endif
 
+#ifdef ENABLE_BASIC_TELEMETRY
+#if ENABLE_NATIVE_CODEGEN
     JITTimer JITTelemetry;
+#endif
     ParserTimer ParserTelemetry;
-    GUID activityId;
+#endif
     void *tridentLoadAddress;
 
     void* GetTridentLoadAddress() const { return tridentLoadAddress;  }
@@ -855,6 +863,8 @@ public:
     DirectCallTelemetry directCallTelemetry;
 #endif
 
+#ifdef ENABLE_BASIC_TELEMETRY
+#if ENABLE_NATIVE_CODEGEN
     JITStats GetJITStats()
     {
         return JITTelemetry.GetStats();
@@ -864,7 +874,8 @@ public:
     {
         JITTelemetry.Reset();
     }
-
+#endif
+    
     ParserStats GetParserStats()
     {
         return ParserTelemetry.GetStats();
@@ -874,7 +885,7 @@ public:
     {
         ParserTelemetry.Reset();
     }
-
+#endif
 
     double maxGlobalFunctionExecTime;
     double GetAndResetMaxGlobalFunctionExecTime()
@@ -1375,11 +1386,13 @@ public:
         this->recyclableData->propagateException = propagateToDebugger;
     }
 
+#ifdef ENABLE_CUSTOM_ENTROPY
     Entropy& GetEntropy()
     {
         return entropy;
     }
-
+#endif
+    
     Js::ImplicitCallFlags * GetAddressOfImplicitCallFlags()
     {
         return &implicitCallFlags;
@@ -1413,7 +1426,7 @@ public:
     void CheckAndResetImplicitCallAccessorFlag();
 
     template <class Fn>
-    __inline Js::Var ExecuteImplicitCall(Js::RecyclableObject * function, Js::ImplicitCallFlags flags, Fn implicitCall)
+    inline Js::Var ExecuteImplicitCall(Js::RecyclableObject * function, Js::ImplicitCallFlags flags, Fn implicitCall)
     {
         // For now, we will not allow Function that is marked as HasNoSideEffect to be called, and we will just bailout.
         // These function may still throw exceptions, so we will need to add checks with RecordImplicitException

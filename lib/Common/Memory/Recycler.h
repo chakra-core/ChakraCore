@@ -751,14 +751,14 @@ private:
     DListBase<ArenaData*> externalGuestArenaList;    // guest arenas are scanned for roots
     HeapInfo autoHeap;
 #ifdef RECYCLER_PAGE_HEAP
-    __inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
-    __inline bool ShouldCapturePageHeapAllocStack() const { return capturePageHeapAllocStack; }
+    inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
+    inline bool ShouldCapturePageHeapAllocStack() const { return capturePageHeapAllocStack; }
     bool isPageHeapEnabled;
     bool capturePageHeapAllocStack;
     bool capturePageHeapFreeStack;
 #else
-    __inline const bool IsPageHeapEnabled() const { return false; }
-    __inline bool ShouldCapturePageHeapAllocStack() const { return false; }
+    inline const bool IsPageHeapEnabled() const { return false; }
+    inline bool ShouldCapturePageHeapAllocStack() const { return false; }
 #endif
 
 
@@ -1112,9 +1112,9 @@ public:
     }
 
 #ifdef RECYCLER_PAGE_HEAP
-    __inline bool ShouldCapturePageHeapFreeStack() const { return capturePageHeapFreeStack; }
+    inline bool ShouldCapturePageHeapFreeStack() const { return capturePageHeapFreeStack; }
 #else
-    __inline bool ShouldCapturePageHeapFreeStack() const { return false; }
+    inline bool ShouldCapturePageHeapFreeStack() const { return false; }
 #endif
 
     void SetIsThreadBound();
@@ -1261,7 +1261,7 @@ public:
 
 #ifdef TRACE_OBJECT_LIFETIME
 #define DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributesFunc, attributes) \
-    __inline char* AllocFunc##Trace(size_t size) \
+    inline char* AllocFunc##Trace(size_t size) \
     { \
         return AllocWithAttributesFunc<(ObjectInfoBits)(attributes | TraceBit), /* nothrow = */ false>(size); \
     }
@@ -1269,7 +1269,7 @@ public:
 #define DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributeFunc, attributes)
 #endif
 #define DEFINE_RECYCLER_ALLOC_BASE(AllocFunc, AllocWithAttributesFunc, attributes) \
-    __inline char * AllocFunc(size_t size) \
+    inline char * AllocFunc(size_t size) \
     { \
         return AllocWithAttributesFunc<attributes, /* nothrow = */ false>(size); \
     } \
@@ -1280,11 +1280,11 @@ public:
     DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributesFunc, attributes);
 
 #define DEFINE_RECYCLER_NOTHROW_ALLOC_BASE(AllocFunc, AllocWithAttributesFunc, attributes) \
-    __inline char * NoThrow##AllocFunc(size_t size) \
+    inline char * NoThrow##AllocFunc(size_t size) \
     { \
         return AllocWithAttributesFunc<attributes, /* nothrow = */ true>(size); \
     } \
-    __inline char * NoThrow##AllocFunc##Inlined(size_t size) \
+    inline char * NoThrow##AllocFunc##Inlined(size_t size) \
     { \
         return AllocWithAttributesFunc##Inlined<attributes, /* nothrow = */ true>(size);  \
     } \
@@ -1400,10 +1400,10 @@ public:
     void RootRelease(void* obj, uint *count = nullptr);
 
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char* RealAlloc(HeapInfo* heap, size_t size);
+    inline char* RealAlloc(HeapInfo* heap, size_t size);
 
     template <ObjectInfoBits attributes, bool isSmallAlloc, bool nothrow>
-    __inline char* RealAllocFromBucket(HeapInfo* heap, size_t size);
+    inline char* RealAllocFromBucket(HeapInfo* heap, size_t size);
 
     void EnterIdleDecommit();
     void LeaveIdleDecommit();
@@ -1519,7 +1519,7 @@ private:
 
     // Allocation
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char * AllocWithAttributesInlined(size_t size);
+    inline char * AllocWithAttributesInlined(size_t size);
     template <ObjectInfoBits attributes, bool nothrow>
     char * AllocWithAttributes(size_t size)
     {
@@ -1527,7 +1527,7 @@ private:
     }
 
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char* AllocZeroWithAttributesInlined(size_t size);
+    inline char* AllocZeroWithAttributesInlined(size_t size);
 
     template <ObjectInfoBits attributes, bool nothrow>
     char* AllocZeroWithAttributes(size_t size)
@@ -1613,9 +1613,9 @@ private:
         void* candidate;
     } blockCache;
 
-    __inline void ScanObjectInline(void ** obj, size_t byteCount);
-    __inline void ScanObjectInlineInterior(void ** obj, size_t byteCount);
-    __inline void ScanMemoryInline(void ** obj, size_t byteCount);
+    inline void ScanObjectInline(void ** obj, size_t byteCount);
+    inline void ScanObjectInlineInterior(void ** obj, size_t byteCount);
+    inline void ScanMemoryInline(void ** obj, size_t byteCount);
     void ScanMemory(void ** obj, size_t byteCount) { if (byteCount != 0) { ScanMemoryInline(obj, byteCount); } }
     bool AddMark(void * candidate, size_t byteCount);
 

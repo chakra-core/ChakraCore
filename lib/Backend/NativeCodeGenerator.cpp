@@ -858,8 +858,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr,
         foreground ? nullptr : &funcAlloc);
     bool rejit;
+#ifdef ENABLE_BASIC_TELEMETRY
     ThreadContext *threadContext = scriptContext->GetThreadContext();
     double startTime = threadContext->JITTelemetry.Now();
+#endif
 
     do
     {
@@ -967,7 +969,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         }
     } while(rejit);
 
+#ifdef ENABLE_BASIC_TELEMETRY
     threadContext->JITTelemetry.LogTime(threadContext->JITTelemetry.Now() - startTime);
+#endif
 
 #ifdef BGJIT_STATS
     // Must be interlocked because the following data may be modified from the background and foreground threads concurrently
