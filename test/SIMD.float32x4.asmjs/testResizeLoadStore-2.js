@@ -68,10 +68,6 @@ function asmModule(stdlib, imports, buffer) {
     var f4store3 = f4.store3;
     
     var f4select = f4.select;
-    var f4and = f4.and;
-    var f4or = f4.or;
-    var f4xor = f4.xor;
-    var f4not = f4.not;
 
     
     var fround = stdlib.Math.fround;

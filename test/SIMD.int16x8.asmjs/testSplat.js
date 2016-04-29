@@ -68,9 +68,9 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Int16x8(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)});
 
-var ret1 = m.func1(SIMD.Int16x8(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4), SIMD.Float64x2(1, 2, 3, 4));
-var ret2 = m.func2(SIMD.Int16x8(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4), SIMD.Float64x2(1, 2, 3, 4));
-var ret3 = m.func3(SIMD.Int16x8(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4), SIMD.Float64x2(1, 2, 3, 4));
+var ret1 = m.func1(SIMD.Int16x8(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4)/*, SIMD.Float64x2(1, 2, 3, 4)*/);
+var ret2 = m.func2(SIMD.Int16x8(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4)/*, SIMD.Float64x2(1, 2, 3, 4)*/);
+var ret3 = m.func3(SIMD.Int16x8(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4)/*, SIMD.Float64x2(1, 2, 3, 4)*/);
 
 equalSimd([100, 100, 100, 100, 100, 100, 100, 100], ret1, SIMD.Int16x8, "");
 equalSimd([4951, 4951, 4951, 4951, 4951, 4951, 4951, 4951], ret2, SIMD.Int16x8, "");
