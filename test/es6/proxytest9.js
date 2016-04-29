@@ -45,7 +45,7 @@ function test2() {
         print('Expected to throw TypeError');
     } catch (e) {
         if (e instanceof TypeError) {
-            if (e.message !== 'Property cannot have both accessors and a value') {
+            if (e.message !== "Invalid property descriptor: cannot both specify accessors and a 'value' attribute") {
                 print('FAIL');
             }
         } else {
