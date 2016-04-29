@@ -443,6 +443,10 @@ namespace TTD
         //The actual source code
         const TTString m_sourceCode;
 
+        //
+        //TODO: it kinda sucks to copy all the source here when we have it in the Log as well maybe we can just record the bodyCtrId and look up the other info during replay?
+        //
+
         //The body counter id associated with this load
         const uint64 m_bodyCtrId;
 

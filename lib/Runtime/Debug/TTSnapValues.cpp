@@ -1021,6 +1021,12 @@ namespace TTD
 
             AssertMsg(ctx->GetSourceContextInfo(sourceContext, nullptr) == nullptr, "On inflate we should either have clean ctxts or we want to optimize the inflate process by skipping redoing this work!!!");
 
+            //
+            //TODO: Add code here to see if we have already inflated (and have byte code).
+            //      If we have bytecode then re-inflate from this otherwise we should re-inflate and generate the bytecode for later use.
+            //      See also in newFunction and Eval inflates below.
+            //
+
             SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, fbInfo->TopLevelBase.SourceUri.Contents, fbInfo->TopLevelBase.SourceUri.Length, nullptr);
             SRCINFO si = {
                 /* sourceContextInfo   */ sourceContextInfo,
