@@ -10032,22 +10032,23 @@ CommonNumber:
         return true;
     }
 
+    // Checks to see if the specified object (which should be a prototype object)
+    // contains a proxy anywhere in the prototype chain.
     bool JavascriptOperators::CheckIfPrototypeChainContainsProxyObject(RecyclableObject* prototype)
     {
         Assert(JavascriptOperators::IsObjectOrNull(prototype));
 
-        if (prototype->GetTypeId() == TypeIds_Null)
+        while (prototype->GetTypeId() != TypeIds_Null)
         {
-            return false;
+            if (prototype->GetTypeId() == TypeIds_Proxy)
+            {
+                return true;
+            }
+
+            prototype = prototype->GetPrototype();
         }
-        else if (prototype->GetTypeId() == TypeIds_Proxy)
-        {
-            return true;
-        }
-        else
-        {
-            return CheckIfPrototypeChainContainsProxyObject(prototype->GetPrototype());
-        }
+
+        return false;
     }
 
     BOOL JavascriptOperators::Equal(Var aLeft, Var aRight, ScriptContext* scriptContext)
