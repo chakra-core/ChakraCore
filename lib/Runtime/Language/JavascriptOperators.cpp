@@ -8670,6 +8670,7 @@ CommonNumber:
 
         return true;
     }
+
     BOOL JavascriptOperators::ToPropertyDescriptorForProxyObjects(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext)
     {
         if (!JavascriptOperators::IsObject(propertySpec))
@@ -8822,7 +8823,8 @@ CommonNumber:
 
     BOOL JavascriptOperators::ToPropertyDescriptor(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext)
     {
-        if (JavascriptProxy::Is(propertySpec))
+        if (JavascriptProxy::Is(propertySpec) ||
+            JavascriptOperators::CheckIfPrototypeChainContainsProxyObject(RecyclableObject::FromVar(propertySpec)->GetPrototype()))
         {
             if (ToPropertyDescriptorForProxyObjects(propertySpec, descriptor, scriptContext) == FALSE)
             {
@@ -9960,15 +9962,12 @@ CommonNumber:
         return !Equal(aLeft, aRight, scriptContext);
     }
 
-
     // NotStrictEqual() returns whether the two vars have strict equality, as
     // described in (ES3.0: S11.9.5, S11.9.6).
-
     BOOL JavascriptOperators::NotStrictEqual(Var aLeft, Var aRight, ScriptContext* scriptContext)
     {
         return !StrictEqual(aLeft, aRight, scriptContext);
     }
-
 
     bool JavascriptOperators::CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* object)
     {
@@ -10038,6 +10037,25 @@ CommonNumber:
         }
 
         return true;
+    }
+
+    // Checks to see if the specified object (which should be a prototype object)
+    // contains a proxy anywhere in the prototype chain.
+    bool JavascriptOperators::CheckIfPrototypeChainContainsProxyObject(RecyclableObject* prototype)
+    {
+        Assert(JavascriptOperators::IsObjectOrNull(prototype));
+
+        while (prototype->GetTypeId() != TypeIds_Null)
+        {
+            if (prototype->GetTypeId() == TypeIds_Proxy)
+            {
+                return true;
+            }
+
+            prototype = prototype->GetPrototype();
+        }
+
+        return false;
     }
 
     BOOL JavascriptOperators::Equal(Var aLeft, Var aRight, ScriptContext* scriptContext)
