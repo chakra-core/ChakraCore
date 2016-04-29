@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 var proxyHandler = {
-    has() { WScript.Echo("has"); return true; }
+    has(t, p) { WScript.Echo("has " + p); return true; }
 };
 var p = new Proxy({}, proxyHandler);
 var obj = {};
