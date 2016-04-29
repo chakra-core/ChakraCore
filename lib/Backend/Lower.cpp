@@ -12195,11 +12195,19 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
             // Generate code to write the cache index into the bailout record before we jump to the call site.
             Assert(bailOutInfo->polymorphicCacheIndex != (uint)-1);
             Assert(bailOutInfo->bailOutRecord);
-
+            //Assert(bailOutInfo->bailOutRecord->type == Bailloutrecordtyp)
             IR::MemRefOpnd *pIndexOpnd =
                 IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + BailOutRecord::GetOffsetOfPolymorphicCacheIndex(), TyUint32, this->m_func);
             m_lowererMD.CreateAssign(
                 pIndexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr);
+        }
+
+        if (bailOutInfo->bailOutRecord->GetType() == BailOutRecord::BailoutRecordType::Shared)
+        {
+            IR::MemRefOpnd *functionBodyOpnd =
+                IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + SharedBailOutRecord::GetOffsetOfFunctionBody(), TyMachPtr, this->m_func);
+            m_lowererMD.CreateAssign(
+                functionBodyOpnd, CreateFunctionBodyOpnd(instr->m_func), instr);
         }
 
         // GenerateBailOut should have replaced this as a label as we should have already lowered
@@ -12313,8 +12321,16 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
     }
     else
     {
-        bailOutRecord = NativeCodeDataNewZ(this->m_func->GetNativeCodeDataAllocator(),
-            BailOutRecord, bailOutInfo->bailOutOffset, bailOutInfo->polymorphicCacheIndex, instr->GetBailOutKind(), bailOutInfo->bailOutFunc);
+        if (bailOutInstr->GetBailOutKind() == IR::BailOutShared)
+        {
+            bailOutRecord = NativeCodeDataNewZ(this->m_func->GetNativeCodeDataAllocator(),
+                SharedBailOutRecord, bailOutInfo->bailOutOffset, bailOutInfo->polymorphicCacheIndex, instr->GetBailOutKind(), bailOutInfo->bailOutFunc);
+        }
+        else
+        {
+            bailOutRecord = NativeCodeDataNewZ(this->m_func->GetNativeCodeDataAllocator(),
+                BailOutRecord, bailOutInfo->bailOutOffset, bailOutInfo->polymorphicCacheIndex, instr->GetBailOutKind(), bailOutInfo->bailOutFunc);
+        }
 
         helperMethod = IR::HelperSaveAllRegistersAndBailOut;
 #ifdef _M_IX86
