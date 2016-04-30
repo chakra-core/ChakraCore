@@ -73,7 +73,7 @@ var tests = [
     } 
  }, 
  { 
-    name: "Split parameter scope in function expressions with name", 
+    name: "Split parameter scope and function expressions with name", 
     body: function () { 
         function f1(a = 10, b = function c() { return a; }) { 
             assert.areEqual(10, a, "Initial value of parameter in the body scope of the method should be the same as the one in param scope"); 
@@ -86,7 +86,53 @@ var tests = [
         function f2(a = 10, b = function c(recurse = true) { return recurse ? c(false) : a; }) { 
             return b; 
         } 
-        assert.areEqual(10, f2()(), "Recursive function expression defined in the param scope captures the formals from the param scope not body scope"); 
+        assert.areEqual(10, f2()(), "Recursive function expression defined in the param scope captures the formals from the param scope not body scope");
+        
+        assert.areEqual(10, f2()(), "Recursive function expression defined in the param scope captures the formals from the param scope not body scope");
+
+        var f3 = function f4 (a = function ( ) { b; return f4(20); }, b) {
+            if (a == 20) {
+                return 10;
+            }
+            return a;
+        }
+        assert.areEqual(10, f3()(), "Recursive call to the function from the param scope returns the right value");
+
+        var f5 = function f6 (a = function ( ) { b; return f6; }, b) {
+            if (a == 20) {
+                return 10;
+            }
+            return a;
+        }
+        assert.areEqual(10, f5()()(20), "Recursive call to the function from the param scope returns the right value");
+        
+        var f7 = function f8 (a = function ( ) { b; }, b) {
+            if (a == 20) {
+                return 10;
+            }
+            var a = function () { return f8(20); };
+            return a;
+        }
+        assert.areEqual(10, f7()(), "Recursive call to the function from the body scope returns the right value");
+        
+        var f9 = function f10 (a = function ( ) { b; return f10(20); }, b) {
+            eval("");
+            if (a == 20) {
+                return 10;
+            }
+            return a;
+        }
+        assert.areEqual(10, f9()(), "Recursive call to the function from the param scope returns the right value when eval is there in the body");
+        
+        var f11 = function f12 (a = function ( ) { b; }, b) {
+            eval("");
+            if (a == 20) {
+                return 10;
+            }
+            var a = function () { return f12(20); };
+            return a;
+        }
+        assert.areEqual(10, f11()(), "Recursive call to the function from the body scope returns the right value when eval is there in the body");
     } 
  }, 
  { 

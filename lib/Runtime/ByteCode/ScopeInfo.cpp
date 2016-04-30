@@ -68,6 +68,7 @@ namespace Js
         scopeInfo->isCached = (scope->GetFunc()->GetBodyScope() == scope) && scope->GetFunc()->GetHasCachedScope();
         scopeInfo->isGlobalEval = scope->GetScopeType() == ScopeType_GlobalEvalBlock;
         scopeInfo->canMergeWithBodyScope = scope->GetCanMergeWithBodyScope();
+        scopeInfo->hasLocalInClosure = scope->GetHasOwnLocalInClosure();
 
         TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s #symbols: %d %s\n"),
             scope->GetFunc()->name, parent->GetDisplayName(), count, scopeInfo->isObject ? _u("isObject") : _u(""));
@@ -206,9 +207,16 @@ namespace Js
 #if DBG
                 if (funcInfo->GetFuncExprScope() && funcInfo->GetFuncExprScope()->GetIsObject())
                 {
-                    Assert(currentScope->GetEnclosingScope() == funcInfo->GetFuncExprScope() &&
-                        currentScope->GetEnclosingScope()->GetEnclosingScope() ==
-                        (parentFunc->IsGlobalFunction() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
+                    if (funcInfo->paramScope && !funcInfo->paramScope->GetCanMergeWithBodyScope())
+                    {
+                        Assert(currentScope->GetEnclosingScope()->GetEnclosingScope() == funcInfo->GetFuncExprScope());
+                    }
+                    else
+                    {
+                        Assert(currentScope->GetEnclosingScope() == funcInfo->GetFuncExprScope() &&
+                            currentScope->GetEnclosingScope()->GetEnclosingScope() ==
+                            (parentFunc->IsGlobalFunction() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
+                    }
                 }
                 else
                 {
@@ -262,6 +270,7 @@ namespace Js
         {
             scope->SetCannotMergeWithBodyScope();
         }
+        scope->SetHasOwnLocalInClosure(this->hasLocalInClosure);
         if (parser)
         {
             scriptContext = parser->GetScriptContext();
