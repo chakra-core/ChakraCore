@@ -158,6 +158,16 @@ namespace TTD
                 {
                     BOOL ok = FALSE;
                     Js::PropertyId pid = iter.CurrentValue();
+
+                    //This is a bit of a kludge
+                    if(Js::IsInternalPropertyId(pid))
+                    {
+                        AssertMsg(dynObj->GetTypeId() == Js::TypeIds_Object, "If it is anything else then I am not sure we can re-create it appropriately");
+
+                        propertyReset.Clear();
+                        return dynObj->GetLibrary()->CreateObject();
+                    }
+
                     if(!dynObj->IsConfigurable(pid))
                     {
                         ok = dynObj->SetProperty(pid, undefined, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);

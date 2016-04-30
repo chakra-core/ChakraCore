@@ -1179,7 +1179,7 @@ namespace TTD
 
             //We don't do this automatically ing the eval helper so do it here
             ctx->ProcessFunctionBodyOnLoad(fb, nullptr);
-            ctx->RegisterNewScript(fb, fbInfo->TopLevelBase.TopLevelBodyCtr);
+            ctx->RegisterEvalScript(fb, fbInfo->TopLevelBase.TopLevelBodyCtr);
 
             return fb;
         }

@@ -1861,6 +1861,7 @@ namespace TTD
                 break;
             default:
             {
+#if ENABLE_OBJECT_SOURCE_TRACKING
                 if(tid > Js::TypeIds_LastStaticType)
                 {
                     const Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(var);
@@ -1881,9 +1882,12 @@ namespace TTD
                 }
                 else
                 {
+#endif
                     this->AppendLiteral("Unspecialized object kind: ");
                     this->AppendInteger((int64)tid);
+#if ENABLE_OBJECT_SOURCE_TRACKING
                 }
+#endif
                 break;
             }
             }
