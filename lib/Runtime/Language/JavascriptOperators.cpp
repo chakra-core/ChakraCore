@@ -8688,7 +8688,8 @@ CommonNumber:
             }
             else
             {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'enumerable'.");
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetEnumerable(false);
             }
         }
 
@@ -8700,7 +8701,8 @@ CommonNumber:
             }
             else
             {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'configurable'.");
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetConfigurable(false);
             }
         }
 
@@ -8712,7 +8714,8 @@ CommonNumber:
             }
             else
             {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'value'.");
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetValue(scriptContext->GetLibrary()->GetUndefined());
             }
         }
 
@@ -8724,7 +8727,8 @@ CommonNumber:
             }
             else
             {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'writable'.");
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetWritable(false);
             }
         }
 
@@ -8740,7 +8744,8 @@ CommonNumber:
             }
             else
             {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'get'.");
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetGetter(scriptContext->GetLibrary()->GetUndefined());
             }
         }
 
@@ -8756,9 +8761,11 @@ CommonNumber:
             }
             else
             {
-                AssertMsg(FALSE, "Proxy : HasProperty and GetProperty's result don't match for 'set'.");
+                // The proxy said we have the property, so we try to read the property and get the default value.
+                descriptor->SetSetter(scriptContext->GetLibrary()->GetUndefined());
             }
         }
+
         return TRUE;
     }
 
