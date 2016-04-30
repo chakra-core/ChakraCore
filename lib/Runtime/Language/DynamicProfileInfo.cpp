@@ -317,7 +317,7 @@ namespace Js
         Assert(entryPoint == function->GetEntryPointInfo());
         Assert(entryPoint->IsCodeGenDone());
 
-        JavascriptMethod directEntryPoint = (JavascriptMethod)entryPoint->address;
+        JavascriptMethod directEntryPoint = entryPoint->jsMethod;
 
         // Check if it has changed already
         if (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk)
@@ -332,7 +332,7 @@ namespace Js
                 directEntryPoint = (JavascriptMethod)entryPoint->GetNativeAddress();
             }
 
-            entryPoint->address = directEntryPoint;
+            entryPoint->jsMethod = directEntryPoint;
         }
         else
         {
