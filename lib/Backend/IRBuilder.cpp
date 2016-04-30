@@ -6704,13 +6704,21 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
                     Js::Constants::NoByteCodeOffset);
             }
 
+            IR::RegOpnd* tempRegOpnd = IR::RegOpnd::New(StackSym::New(this->m_func), TyVar, this->m_func);
             this->AddInstr(
                 IR::Instr::New(
                     Js::OpCode::LdFrameDisplay,
-                    this->BuildDstOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister()),
+                    tempRegOpnd,
                     this->BuildSrcOpnd(this->m_func->GetJnFunction()->GetLocalClosureRegister()),
                     this->BuildSrcOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister()),
-                    m_func),
+                    this->m_func),
+                Js::Constants::NoByteCodeOffset);
+            this->AddInstr(
+                IR::Instr::New(
+                    Js::OpCode::MOV,
+                    this->BuildDstOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister()),
+                    tempRegOpnd,
+                    this->m_func),
                 Js::Constants::NoByteCodeOffset);
         }
         break;
