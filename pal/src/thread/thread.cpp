@@ -2514,7 +2514,7 @@ CPalThread::GetStackBase()
 
     if (m_stackBase == NULL)
     {
-#ifdef _TARGET_MAC64
+#ifdef __APPLE__
         // This is a Mac specific method
         m_stackBase = pthread_get_stackaddr_np(pthread_self());
 #else
@@ -2559,7 +2559,7 @@ CPalThread::GetStackLimit()
 
     if (m_stackLimit == NULL)
     {
-#ifdef _TARGET_MAC64
+#ifdef __APPLE__
         // This is a Mac specific method
         m_stackLimit = ((BYTE *)pthread_get_stackaddr_np(pthread_self()) -
                        pthread_get_stacksize_np(pthread_self()));
@@ -2788,7 +2788,7 @@ int CorUnix::CThreadMachExceptionHandlers::GetIndexOfHandler(exception_mask_t bm
 
 void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
 {
-#ifdef _TARGET_MAC64
+#ifdef __APPLE__
     // This is a Mac specific method
     *highLimit = (ULONG_PTR)pthread_get_stackaddr_np(pthread_self());
     *lowLimit = (ULONG_PTR)(highLimit - pthread_get_stacksize_np(pthread_self()));

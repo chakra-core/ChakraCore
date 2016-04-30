@@ -19,7 +19,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     endif()
     set(CLR_CMAKE_PLATFORM_LINUX 1)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    add_definitions(-D_TARGET_MAC64)
     add_definitions(-DPLATFORM_UNIX)
 
     set(CLR_CMAKE_PLATFORM_UNIX 1)
@@ -35,6 +34,7 @@ endif()
 
 if(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64)
   set(CLR_CMAKE_PLATFORM_ARCH_AMD64 1)
+  add_definitions(-D_M_X64_OR_ARM64)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
