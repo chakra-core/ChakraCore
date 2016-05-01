@@ -188,10 +188,9 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
     else
     {
         const wchar_t *fileContent;
-        char *fileName;
+        char *fileName = (char*) "script.js";
         const wchar_t *scriptInjectType = _u("self");
         size_t fileContentLength;
-        size_t fileNameLength;
         size_t scriptInjectTypeLength;
         bool freeFileName = false;
 
@@ -200,18 +199,17 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
         if (argumentCount > 2)
         {
             IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[2], &scriptInjectType, &scriptInjectTypeLength));
-        }
 
-        fileName = "script.js";
-        fileNameLength = strlen(fileName);
-        if (argumentCount > 3)
-        {
-            size_t fileNameWideLength = 0;
-            const wchar_t* fileNameWide = nullptr;
-            IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[3], &fileNameWide, &fileNameWideLength));
-            IfFailGo(Helpers::WideStringToNarrowDynamic(fileNameWide, &fileName));
-            freeFileName = true;
+            if (argumentCount > 3)
+            {
+                size_t fileNameWideLength = 0;
+                const wchar_t* fileNameWide = nullptr;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[3], &fileNameWide, &fileNameWideLength));
+                IfFailGo(Helpers::WideStringToNarrowDynamic(fileNameWide, &fileName));
+                freeFileName = true;
+            }
         }
+        
         returnValue = LoadScript(callee, fileName, fileContent, scriptInjectType, isSourceModule);
 
         if (freeFileName)

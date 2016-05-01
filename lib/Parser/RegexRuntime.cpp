@@ -5063,6 +5063,10 @@ namespace UnifiedRegex
     }
 #endif
 
+    // Template parameter here is the max number of cases
+    template void UnifiedRegex::SwitchMixin<10>::AddCase(char16, unsigned int);
+    template void UnifiedRegex::SwitchMixin<20>::AddCase(char16, unsigned int);
+
 #define M(...)
 #define MTemplate(TagName, TemplateDeclaration, GenericClassName, SpecializedClassName) template struct SpecializedClassName;
 #include "RegexOpCodes.h"

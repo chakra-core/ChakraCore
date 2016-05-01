@@ -3154,4 +3154,11 @@ namespace Js
     template class SimpleDictionaryTypeHandlerBase<PropertyIndex, JavascriptString*, true>;
     template class SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, false>;
     template class SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, true>;
+
+    template void Js::SimpleDictionaryTypeHandlerBase<unsigned short, Js::PropertyRecord const*, false>::Add<Js::PropertyRecord const*>(Js::PropertyRecord const*, unsigned char, bool, bool, bool, Js::ScriptContext* const);
+    template void Js::SimpleDictionaryTypeHandlerBase<unsigned short, Js::PropertyRecord const*, true>::Add<Js::PropertyRecord const*>(Js::PropertyRecord const*, unsigned char, bool, bool, bool, Js::ScriptContext* const);
+
+    // Instantiated here since this method is defined in this file
+    template void Js::PropertyIndexRangesBase<Js::PropertyIndexRanges<int> >::VerifySlotCapacity(int);
+    template void Js::PropertyIndexRangesBase<Js::PropertyIndexRanges<unsigned short> >::VerifySlotCapacity(int);
 }

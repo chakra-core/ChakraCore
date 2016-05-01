@@ -8220,3 +8220,6 @@ RecyclerHeapObjectInfo::GetSize() const
 #endif
     return size;
 }
+
+template char* Recycler::AllocWithAttributesInlined<(Memory::ObjectInfoBits)32, false>(size_t);
+

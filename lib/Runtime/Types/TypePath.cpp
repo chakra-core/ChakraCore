@@ -40,7 +40,7 @@ namespace Js {
         return LookupInline(propId,typePathLength);
     }
 
-    inline PropertyIndex TypePath::LookupInline(PropertyId propId,int typePathLength)
+    PropertyIndex TypePath::LookupInline(PropertyId propId,int typePathLength)
     {
         if (propId == Constants::NoProperty) {
            return Constants::NoSlot;

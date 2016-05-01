@@ -665,3 +665,11 @@ PlatformAgnostic::UnicodeText::CharacterTypeFlags Js::CharClassifier::GetCharFla
 #endif
 }
 #endif
+
+// Explicit instantiation
+template bool Js::CharClassifier::IsIdStartFast<true>(codepoint_t) const;
+template bool Js::CharClassifier::IsIdStartFast<false>(codepoint_t) const;
+template bool Js::CharClassifier::IsIdContinueFast<true>(codepoint_t) const;
+template bool Js::CharClassifier::IsIdContinueFast<false>(codepoint_t) const;
+template bool Js::CharClassifier::IsWhiteSpaceFast<true>(codepoint_t) const;
+template bool Js::CharClassifier::IsWhiteSpaceFast<false>(codepoint_t) const;

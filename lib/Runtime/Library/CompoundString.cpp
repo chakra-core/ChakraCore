@@ -146,7 +146,7 @@ namespace Js
 
     #endif
 
-    inline CharCount CompoundString::Block::PointerLengthFromCharLength(const CharCount charLength)
+    CharCount CompoundString::Block::PointerLengthFromCharLength(const CharCount charLength)
     {
         return PointerAlign(charLength) / (sizeof(void *) / sizeof(char16));
     }

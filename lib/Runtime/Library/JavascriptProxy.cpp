@@ -7,7 +7,7 @@
 
 namespace Js
 {
-    inline BOOL JavascriptProxy::Is(Var obj)
+    BOOL JavascriptProxy::Is(Var obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
     }

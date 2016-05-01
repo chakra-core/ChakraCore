@@ -791,7 +791,7 @@ namespace Js
         return JavascriptOperators::FromPropertyDescriptor(propertyDescriptor, scriptContext);
     }
 
-    inline BOOL JavascriptObject::GetOwnPropertyDescriptorHelper(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor& propertyDescriptor)
+    BOOL JavascriptObject::GetOwnPropertyDescriptorHelper(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor& propertyDescriptor)
     {
         BOOL isPropertyDescriptorDefined;
         if (obj->CanHaveInterceptors())
