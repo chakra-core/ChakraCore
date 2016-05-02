@@ -8823,8 +8823,9 @@ CommonNumber:
 
     BOOL JavascriptOperators::ToPropertyDescriptor(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext)
     {
-        if (JavascriptProxy::Is(propertySpec) ||
-            JavascriptOperators::CheckIfPrototypeChainContainsProxyObject(RecyclableObject::FromVar(propertySpec)->GetPrototype()))
+        if (JavascriptProxy::Is(propertySpec) || (
+            RecyclableObject::Is(propertySpec) &&
+            JavascriptOperators::CheckIfPrototypeChainContainsProxyObject(RecyclableObject::FromVar(propertySpec)->GetPrototype())))
         {
             if (ToPropertyDescriptorForProxyObjects(propertySpec, descriptor, scriptContext) == FALSE)
             {
