@@ -2574,7 +2574,7 @@ public:
         return ReadInt32(buffer, remainingBytes, (int*)value);
     }
 
-    const byte * ReadULong(const byte * buffer, ulong * value)
+    const byte * ReadULong(const byte * buffer, uint32 * value)
     {
         auto remainingBytes = (raw + totalSize) - buffer;
         return ReadInt32(buffer, remainingBytes, (int*)value);
@@ -4206,17 +4206,17 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
     return hr;
 }
 
-HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, ulong scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
 {
     return ByteCodeSerializer::DeserializeFromBufferInternal(scriptContext, scriptFlags, utf8Source, /* sourceHolder */ nullptr, srcInfo, buffer, nativeModule, function, sourceIndex);
 }
 // Deserialize function body from supplied buffer
-HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, ulong scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
 {
     AssertMsg(sourceHolder != nullptr, "SourceHolder can't be null, if you have an empty source then pass ISourceHolder::GetEmptySourceHolder()");
     return ByteCodeSerializer::DeserializeFromBufferInternal(scriptContext, scriptFlags, /* utf8Source */ nullptr, sourceHolder, srcInfo, buffer, nativeModule, function, sourceIndex);
 }
-HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * scriptContext, ulong scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
 {
     //ETW Event start
     JS_ETW(EventWriteJSCRIPT_BYTECODEDESERIALIZE_START(scriptContext, 0));

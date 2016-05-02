@@ -17,8 +17,8 @@ namespace Js
 
         long m_cluMax;
         long m_clu;
-        ulong *m_prglu;
-        ulong m_rgluInit[kcluMaxInit];
+        uint32 *m_prglu;
+        uint32 m_rgluInit[kcluMaxInit];
 
         inline BigInt & operator= (BigInt &bi);
         bool FResize(long clu);
@@ -36,11 +36,11 @@ namespace Js
         BigInt(void);
         ~BigInt(void);
 
-        bool FInitFromRglu(ulong *prglu, long clu);
+        bool FInitFromRglu(uint32 *prglu, long clu);
         bool FInitFromBigint(BigInt *pbiSrc);
         template <typename EncodedChar>
         bool FInitFromDigits(const EncodedChar *prgch, long cch, long *pcchDec);
-        bool FMulAdd(ulong luMul, ulong luAdd);
+        bool FMulAdd(uint32 luMul, uint32 luAdd);
         bool FMulPow5(long c5);
         bool FShiftLeft(long cbit);
         void ShiftLusRight(long clu);
@@ -51,7 +51,7 @@ namespace Js
         int DivRem(BigInt *pbi);
 
         long Clu(void);
-        ulong Lu(long ilu);
+        uint32 Lu(long ilu);
         double GetDbl(void);
     };
 }

@@ -184,7 +184,7 @@ private:
     ***********************************************************************/
     ParseNodeAllocator m_nodeAllocator;
     long        m_cactIdentToNodeLookup;
-    ulong       m_grfscr;
+    uint32       m_grfscr;
     size_t      m_length;             // source length in characters excluding comments and literals
     size_t      m_originalLength;             // source length in characters excluding comments and literals
     Js::LocalFunctionId * m_nextFunctionId;
@@ -717,7 +717,7 @@ private:
 
     template<bool buildAST> ParseNodePtr ParseArgList(bool *pCallOfConstants, uint16 *pSpreadArgCount, uint16 * pCount);
     template<bool buildAST> ParseNodePtr ParseArrayList(bool *pArrayOfTaggedInts, bool *pArrayOfInts, bool *pArrayOfNumbers, bool *pHasMissingValues, uint *count, uint *spreadCount);
-    template<bool buildAST> ParseNodePtr ParseMemberList(LPCOLESTR pNameHint, ulong *pHintLength, tokens declarationType = tkNone);
+    template<bool buildAST> ParseNodePtr ParseMemberList(LPCOLESTR pNameHint, uint32 *pHintLength, tokens declarationType = tkNone);
     template<bool buildAST> ParseNodePtr ParseSuper(ParseNodePtr pnode, bool fAllowCall);
 
     // Used to determine the type of JavaScript object member.
@@ -737,7 +737,7 @@ private:
 
     static MemberNameToTypeMap* CreateMemberNameMap(ArenaAllocator* pAllocator);
 
-    template<bool buildAST> void ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint = nullptr, ulong *pNameLength = nullptr, ulong *pShortNameOffset = nullptr);
+    template<bool buildAST> void ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint = nullptr, uint32 *pNameLength = nullptr, uint32 *pShortNameOffset = nullptr);
     template<bool buildAST> ParseNodePtr ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint);
     template<bool buildAST> ParseNodePtr ParseFncDecl(ushort flags, LPCOLESTR pNameHint = NULL, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
     template<bool buildAST> bool ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef);
@@ -760,22 +760,22 @@ private:
     template<bool buildAST> ParseNodePtr GenerateEmptyConstructor(bool extends = false);
 
     IdentPtr ParseClassPropertyName(IdentPtr * hint);
-    template<bool buildAST> ParseNodePtr ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulong *pHintLength, ulong *pShortNameOffset);
+    template<bool buildAST> ParseNodePtr ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uint32 *pHintLength, uint32 *pShortNameOffset);
 
     template<bool buildAST> ParseNodePtr ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc);
 
     // This is used in the es6 class pattern.
-    LPCOLESTR ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberName, IdentPtr pGetSet, bool isStatic, ulong* nameLength, ulong* pShortNameOffset, bool isComputedName = false, LPCOLESTR pMemberNameHint = nullptr);
+    LPCOLESTR ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberName, IdentPtr pGetSet, bool isStatic, uint32* nameLength, uint32* pShortNameOffset, bool isComputedName = false, LPCOLESTR pMemberNameHint = nullptr);
 
     // Construct the name from the parse node.
-    LPCOLESTR FormatPropertyString(LPCOLESTR propertyString, ParseNodePtr pNode, ulong *fullNameHintLength, ulong *pShortNameOffset);
-    LPCOLESTR ConstructNameHint(ParseNodePtr pNode, ulong* fullNameHintLength, ulong *pShortNameOffset);
-    LPCOLESTR AppendNameHints(IdentPtr  left, IdentPtr  right, ulong *pNameLength, ulong *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
-    LPCOLESTR AppendNameHints(IdentPtr  left, LPCOLESTR right, ulong *pNameLength, ulong *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
-    LPCOLESTR AppendNameHints(LPCOLESTR left, IdentPtr  right, ulong *pNameLength, ulong *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
-    LPCOLESTR AppendNameHints(LPCOLESTR left, LPCOLESTR right, ulong *pNameLength, ulong *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
-    LPCOLESTR AppendNameHints(LPCOLESTR leftStr, ulong leftLen, LPCOLESTR rightStr, ulong rightLen, ulong *pNameLength, ulong *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
-    WCHAR * AllocateStringOfLength(ulong length);
+    LPCOLESTR FormatPropertyString(LPCOLESTR propertyString, ParseNodePtr pNode, uint32 *fullNameHintLength, uint32 *pShortNameOffset);
+    LPCOLESTR ConstructNameHint(ParseNodePtr pNode, uint32* fullNameHintLength, uint32 *pShortNameOffset);
+    LPCOLESTR AppendNameHints(IdentPtr  left, IdentPtr  right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
+    LPCOLESTR AppendNameHints(IdentPtr  left, LPCOLESTR right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
+    LPCOLESTR AppendNameHints(LPCOLESTR left, IdentPtr  right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
+    LPCOLESTR AppendNameHints(LPCOLESTR left, LPCOLESTR right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
+    LPCOLESTR AppendNameHints(LPCOLESTR leftStr, uint32 leftLen, LPCOLESTR rightStr, uint32 rightLen, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
+    WCHAR * AllocateStringOfLength(ULONG length);
 
     void FinishFncNode(ParseNodePtr pnodeFnc);
 
@@ -794,16 +794,16 @@ private:
         BOOL fAllowIn = TRUE,
         BOOL fAllowEllipsis = FALSE,
         LPCOLESTR pHint = NULL,
-        ulong *pHintLength = nullptr,
-        ulong *pShortNameOffset = nullptr,
+        uint32 *pHintLength = nullptr,
+        uint32 *pShortNameOffset = nullptr,
         _Inout_opt_ IdentToken* pToken = NULL,
         bool fUnaryOrParen = false,
         _Inout_opt_ bool* pfLikelyPattern = nullptr);
     template<bool buildAST> ParseNodePtr ParseTerm(
         BOOL fAllowCall = TRUE,
         LPCOLESTR pNameHint = nullptr,
-        ulong *pHintLength = nullptr,
-        ulong *pShortNameOffset = nullptr,
+        uint32 *pHintLength = nullptr,
+        uint32 *pShortNameOffset = nullptr,
         _Inout_opt_ IdentToken* pToken = nullptr,
         bool fUnaryOrParen = false,
         _Out_opt_ BOOL* pfCanAssign = nullptr,
@@ -1035,7 +1035,7 @@ private:
 
 public:
     charcount_t GetSourceIchLim() { return m_sourceLim; }
-    static BOOL NodeEqualsName(ParseNodePtr pnode, LPCOLESTR sz, ulong cch);
+    static BOOL NodeEqualsName(ParseNodePtr pnode, LPCOLESTR sz, uint32 cch);
 
 };
 

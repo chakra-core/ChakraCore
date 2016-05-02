@@ -5968,7 +5968,7 @@ Recycler::ShouldIdleCollectOnExit()
         return true;
     }
 
-    ulong nextTime = tickCountNextCollection - tickDiffToNextCollect;
+    uint32 nextTime = tickCountNextCollection - tickDiffToNextCollect;
     // We will try to start a concurrent collect if we are within .9 ms to next scheduled collection, AND,
     // the size of allocation is larger than 32M. This is similar to CollectionAllocation logic, just
     // earlier in both time heuristic and size heuristic, so we can do some concurrent GC while we are

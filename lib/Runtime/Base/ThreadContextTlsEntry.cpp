@@ -5,7 +5,7 @@
 #include "RuntimeBasePch.h"
 #include "Base/ThreadContextTlsEntry.h"
 
-ulong ThreadContextTLSEntry::s_tlsSlot = TLS_OUT_OF_INDEXES;
+uint32 ThreadContextTLSEntry::s_tlsSlot = TLS_OUT_OF_INDEXES;
 
 bool ThreadContextTLSEntry::InitializeProcess()
 {

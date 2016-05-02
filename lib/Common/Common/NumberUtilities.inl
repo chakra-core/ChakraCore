@@ -42,21 +42,21 @@
 
 namespace Js
 {
-    NUMBER_UTIL_INLINE ulong &NumberUtilities::LuHiDbl(double &dbl)
+    NUMBER_UTIL_INLINE uint32 &NumberUtilities::LuHiDbl(double &dbl)
     {
 #if defined(__BIG_ENDIAN__)
-        return ((ulong *)&dbl)[0];
+        return ((uint32 *)&dbl)[0];
 #else //!BIG_ENDIAN
-        return ((ulong *)&dbl)[1];
+        return ((uint32 *)&dbl)[1];
 #endif //!BIG_ENDIAN
     }
 
-    NUMBER_UTIL_INLINE ulong &NumberUtilities::LuLoDbl(double &dbl)
+    NUMBER_UTIL_INLINE uint32 &NumberUtilities::LuLoDbl(double &dbl)
     {
 #if defined(__BIG_ENDIAN__)
-        return ((ulong *)&dbl)[1];
+        return ((uint32 *)&dbl)[1];
 #else //!BIG_ENDIAN
-        return ((ulong *)&dbl)[0];
+        return ((uint32 *)&dbl)[0];
 #endif //!BIG_ENDIAN
     }
 

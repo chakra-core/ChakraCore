@@ -1893,7 +1893,7 @@ bool ByteCodeGenerator::DoJitLoopBodies(FuncInfo *funcInfo) const
     return functionBody->ForceJITLoopBody() || funcInfo->byteCodeFunction->IsJitLoopBodyPhaseEnabled();
 }
 
-void ByteCodeGenerator::Generate(__in ParseNode *pnode, ulong grfscr, __in ByteCodeGenerator* byteCodeGenerator,
+void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in ByteCodeGenerator* byteCodeGenerator,
     __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex,
     __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction **functionRef)
 {
@@ -2049,7 +2049,7 @@ void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
 
 void ByteCodeGenerator::Begin(
     __in ArenaAllocator *alloc,
-    __in ulong grfscr,
+    __in uint32 grfscr,
     __in Js::ParseableFunctionInfo* pRootFunc)
 {
     this->alloc = alloc;
@@ -2094,7 +2094,7 @@ void ByteCodeGenerator::Begin(
     }
 }
 
-HRESULT GenerateByteCode(__in ParseNode *pnode, __in ulong grfscr, __in Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
+HRESULT GenerateByteCode(__in ParseNode *pnode, __in uint32 grfscr, __in Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
                          __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, __in CompileScriptException *pse, Js::ScopeInfo* parentScopeInfo,
                         Js::ScriptFunction ** functionRef)
 {

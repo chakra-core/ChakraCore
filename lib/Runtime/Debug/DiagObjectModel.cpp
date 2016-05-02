@@ -436,7 +436,7 @@ namespace Js
         return displayInfo->IsConst() || displayInfo->IsInDeadZone();
     }
 
-    ulong VariableWalkerBase::GetChildrenCount()
+    uint32 VariableWalkerBase::GetChildrenCount()
     {
         PopulateMembers();
         return GetMemberCount();
@@ -599,7 +599,7 @@ namespace Js
                     Assert(pFBody->paramScopeSlotArraySize > 0);
                     pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, slotArrayCount);
 
-                    for (ulong i = 0; i < slotArrayCount; i++)
+                    for (uint32 i = 0; i < slotArrayCount; i++)
                     {
                         Js::DebuggerScopeProperty scopeProperty = formalScope->scopeProperties->Item(i);
 
@@ -620,7 +620,7 @@ namespace Js
                 {
                     pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, slotArrayCount);
 
-                    for (ulong i = 0; i < slotArrayCount; i++)
+                    for (uint32 i = 0; i < slotArrayCount; i++)
                     {
                         Js::PropertyId propertyId = pFBody->GetPropertyIdsForScopeSlotArray()[i];
                         bool isConst = false;
@@ -925,7 +925,7 @@ namespace Js
         scopeIsInitialized = true;
     }
 
-    ulong DiagScopeVariablesWalker::GetChildrenCount()
+    uint32 DiagScopeVariablesWalker::GetChildrenCount()
     {
         if (scopeIsInitialized)
         {
@@ -1321,7 +1321,7 @@ namespace Js
         return hasUserNotDefinedArguments;
     }
 
-    ulong LocalsWalker::GetChildrenCount()
+    uint32 LocalsWalker::GetChildrenCount()
     {
         if (totalLocalsCount == 0)
         {
@@ -1641,7 +1641,7 @@ namespace Js
         return TRUE;
     }
 
-    ulong CatchScopeWalker::GetChildrenCount()
+    uint32 CatchScopeWalker::GetChildrenCount()
     {
         return debuggerScope->scopeProperties->Count();
     }
@@ -1943,7 +1943,7 @@ namespace Js
                     if (value < 0)
                     {
                         // On the tools side we show unsigned value.
-                        ulong ul = (ulong)(long)value; // ARM: casting negative value to ulong gives 0
+                        uint32 ul = (uint32)(long)value; // ARM: casting negative value to uint32 gives 0
                         value = (double)ul;
                     }
                     valueStr = Js::JavascriptString::Concat(scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("0x")),
@@ -2261,7 +2261,7 @@ namespace Js
         return nullptr;
     }
 
-    ulong RecyclableObjectWalker::GetChildrenCount()
+    uint32 RecyclableObjectWalker::GetChildrenCount()
     {
         if (pMembersList == nullptr)
         {
@@ -2543,7 +2543,7 @@ namespace Js
             pMembersList->Sort(ElementsComparer, scriptContext);
         }
 
-        ulong childrenCount =
+        uint32 childrenCount =
             pMembersList->Count()
           + (innerArrayObjectWalker ? innerArrayObjectWalker->GetChildrenCount() : 0)
           + (fakeGroupObjectWalkerList ? fakeGroupObjectWalkerList->Count() : 0);
@@ -2856,11 +2856,11 @@ namespace Js
                     Js::JavascriptArray::FromVar(instance);
     }
 
-    ulong RecyclableArrayWalker::GetChildrenCount()
+    uint32 RecyclableArrayWalker::GetChildrenCount()
     {
         if (Js::JavascriptArray::Is(instance) || Js::ES5Array::Is(instance))
         {
-            ulong count = (!fOnlyOwnProperties ? RecyclableObjectWalker::GetChildrenCount() : 0);
+            uint32 count = (!fOnlyOwnProperties ? RecyclableObjectWalker::GetChildrenCount() : 0);
 
             Js::JavascriptArray* arrayObj = GetArrayObject();
 
@@ -2929,11 +2929,11 @@ namespace Js
     {
     }
 
-    ulong RecyclableArgumentsObjectWalker::GetChildrenCount()
+    uint32 RecyclableArgumentsObjectWalker::GetChildrenCount()
     {
         if (innerArrayObjectWalker == nullptr)
         {
-            ulong count = RecyclableObjectWalker::GetChildrenCount();
+            uint32 count = RecyclableObjectWalker::GetChildrenCount();
             if (innerArrayObjectWalker != nullptr)
             {
                 RecyclableArgumentsArrayWalker *pWalker = static_cast<RecyclableArgumentsArrayWalker *> (innerArrayObjectWalker);
@@ -2954,7 +2954,7 @@ namespace Js
     {
     }
 
-    ulong RecyclableArgumentsArrayWalker::GetChildrenCount()
+    uint32 RecyclableArgumentsArrayWalker::GetChildrenCount()
     {
         if (pMembersList == nullptr)
         {
@@ -3127,7 +3127,7 @@ namespace Js
     {
     }
 
-    ulong RecyclableTypedArrayWalker::GetChildrenCount()
+    uint32 RecyclableTypedArrayWalker::GetChildrenCount()
     {
         if (!indexedItemCount)
         {
@@ -3417,7 +3417,7 @@ namespace Js
     }
 
     template <typename TData>
-    ulong RecyclableCollectionObjectWalker<TData>::GetChildrenCount()
+    uint32 RecyclableCollectionObjectWalker<TData>::GetChildrenCount()
     {
         TData* data = TData::FromVar(instance);
         if (data->Size() > 0 && propertyList == nullptr)
@@ -3669,7 +3669,7 @@ namespace Js
         pMembersList->Add(info);
     }
 
-    ulong RecyclableMethodsGroupWalker::GetChildrenCount()
+    uint32 RecyclableMethodsGroupWalker::GetChildrenCount()
     {
         return pMembersList ? pMembersList->Count() : 0;
     }
@@ -3894,7 +3894,7 @@ namespace Js
         return nullptr;
     }
 
-    ulong PendingMutationBreakpointWalker::GetChildrenCount()
+    uint32 PendingMutationBreakpointWalker::GetChildrenCount()
     {
         switch (this->mutationType)
         {

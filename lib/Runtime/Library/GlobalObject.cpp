@@ -168,7 +168,7 @@ namespace Js
 
         // used arbitrary defaults for these, but it seems to work
         ModuleID moduleID = 0;
-        ulong grfscr = 0;
+        uint32 grfscr = 0;
         LPCOLESTR pszTitle = _u("");
         BOOL registerDocument = false;
 
@@ -562,7 +562,7 @@ namespace Js
     }
 
     Var GlobalObject::VEval(JavascriptLibrary* library, FrameDisplay* environment, ModuleID moduleID, bool strictMode, bool isIndirect,
-        Arguments& args, bool isLibraryCode, bool registerDocument, ulong additionalGrfscr)
+        Arguments& args, bool isLibraryCode, bool registerDocument, uint32 additionalGrfscr)
     {
         Assert(library);
         ScriptContext* scriptContext = library->GetScriptContext();
@@ -597,7 +597,7 @@ namespace Js
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
         if (!scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript))
         {
-            ulong grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
+            uint32 grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
             if (isLibraryCode)
             {
                 grfscr |= fscrIsLibraryCode;
@@ -707,7 +707,7 @@ namespace Js
     }
 
 #ifdef ENABLE_SCRIPT_PROFILING
-    ScriptFunction* GlobalObject::ProfileModeEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
+    ScriptFunction* GlobalObject::ProfileModeEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
     {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -793,7 +793,7 @@ namespace Js
         }
     }
 
-    ScriptFunction* GlobalObject::DefaultEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
+    ScriptFunction* GlobalObject::DefaultEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
     {
         Assert(sourceLength >= 0);
         AnalysisAssert(scriptContext);
@@ -964,7 +964,7 @@ namespace Js
 
 #ifdef IR_VIEWER
     Var GlobalObject::IRDumpEvalHelper(ScriptContext* scriptContext, const char16 *source,
-        int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle,
+        int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle,
         BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
     {
         // TODO (t-doilij) clean up this function, specifically used for IR dump (don't execute bytecode; potentially dangerous)

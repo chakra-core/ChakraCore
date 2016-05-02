@@ -76,12 +76,12 @@ namespace Js
     }
 
     /***************************************************************************
-    Multiply two unsigned longs. Return the low ulong and fill *pluHi with
-    the high ulong.
+    Multiply two unsigned longs. Return the low uint32 and fill *pluHi with
+    the high uint32.
     ***************************************************************************/
 #pragma warning(push)
 #pragma warning(disable:4035)   // Turn off warning that there is no return value
-    ulong NumberUtilities::MulLu(ulong lu1, ulong lu2, ulong *pluHi)
+    uint32 NumberUtilities::MulLu(uint32 lu1, uint32 lu2, uint32 *pluHi)
     {
 #if I386_ASM
         __asm
@@ -94,8 +94,8 @@ namespace Js
 #else //!I386_ASM
         DWORDLONG llu = UInt32x32To64(lu1, lu2);
 
-        *pluHi = (ulong)(llu >> 32);
-        return (ulong)llu;
+        *pluHi = (uint32)(llu >> 32);
+        return (uint32)llu;
 #endif //!I386_ASM
     }
 #pragma warning(pop)
@@ -103,7 +103,7 @@ namespace Js
     /***************************************************************************
     Add two unsigned longs and return the carry bit.
     ***************************************************************************/
-    int NumberUtilities::AddLu(ulong *plu1, ulong lu2)
+    int NumberUtilities::AddLu(uint32 *plu1, uint32 lu2)
     {
         *plu1 += lu2;
         return *plu1 < lu2;
@@ -118,7 +118,7 @@ namespace Js
 #endif
     }
 
-    int NumberUtilities::CbitZeroLeft(ulong lu)
+    int NumberUtilities::CbitZeroLeft(uint32 lu)
     {
         int cbit = 0;
 
@@ -343,15 +343,15 @@ namespace Js
         return (long)dbl;
     }
 
-    ulong NumberUtilities::LuFromDblNearest(double dbl)
+    uint32 NumberUtilities::LuFromDblNearest(double dbl)
     {
         if (Js::NumberUtilities::IsNan(dbl))
             return 0;
-        if (dbl >(ulong)0xFFFFFFFFUL)
-            return (ulong)0xFFFFFFFFUL;
+        if (dbl >(uint32)0xFFFFFFFFUL)
+            return (uint32)0xFFFFFFFFUL;
         if (dbl < 0)
             return 0;
-        return (ulong)dbl;
+        return (uint32)dbl;
     }
 
     BOOL NumberUtilities::FDblIsLong(double dbl, long *plw)
@@ -397,17 +397,17 @@ namespace Js
         if (uT & 0x08)
         {
             cbit = 4;
-            Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)(uT & 0x07) << 17;
+            Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)(uT & 0x07) << 17;
         }
         else if (uT & 0x04)
         {
             cbit = 3;
-            Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)(uT & 0x03) << 18;
+            Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)(uT & 0x03) << 18;
         }
         else if (uT & 0x02)
         {
             cbit = 2;
-            Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)(uT & 0x01) << 19;
+            Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)(uT & 0x01) << 19;
         }
         else
         {
@@ -427,17 +427,17 @@ namespace Js
             }
 
             if (cbit <= 17)
-                Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)uT << (17 - cbit);
+                Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT << (17 - cbit);
             else if (cbit < 21)
             {
-                Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)uT >> (cbit - 17);
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT << (49 - cbit);
+                Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT >> (cbit - 17);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT << (49 - cbit);
             }
             else if (cbit <= 49)
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT << (49 - cbit);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT << (49 - cbit);
             else if (cbit <= 53)
             {
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT >> (cbit - 49);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT >> (cbit - 49);
                 bExtra = (byte)(uT << (57 - cbit));
             }
             else if (0 != uT)
@@ -457,7 +457,7 @@ namespace Js
             Js::NumberUtilities::LuLoDbl(dbl) = 0;
             return dbl;
         }
-        Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)cbit << 20;
+        Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)cbit << 20;
 
         // Use bExtra to round.
         if ((bExtra & 0x80) && ((bExtra & 0x7F) || (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
@@ -509,16 +509,16 @@ namespace Js
         {
             if (cbit <= rightShiftValue)
             {
-                Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)uT << (rightShiftValue - cbit);
+                Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT << (rightShiftValue - cbit);
 
             }
             else if (cbit <= leftShiftValue)
             {
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT << (leftShiftValue - cbit);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT << (leftShiftValue - cbit);
             }
             else if (cbit == leftShiftValue + 1)//53 bits
             {
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT >> (cbit - leftShiftValue);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT >> (cbit - leftShiftValue);
                 bExtra = (byte)(uT << (60 - cbit));
             }
             else if (0 != uT)
@@ -540,7 +540,7 @@ namespace Js
             return dbl;
         }
 
-        Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)cbit << 20;
+        Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)cbit << 20;
 
         // Use bExtra to round.
         if ((bExtra & 0x80) && ((bExtra & 0x7F) || (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
@@ -581,12 +581,12 @@ namespace Js
         if (uT & 0x04)//is the 3rd bit set
         {
             cbit = 3;
-            Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)(uT & 0x03) << 18;
+            Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)(uT & 0x03) << 18;
         }
         else if (uT & 0x02)//is the 2nd bit set
         {
             cbit = 2;
-            Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)(uT & 0x01) << 19;
+            Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)(uT & 0x01) << 19;
         }
         else// then is the first bit set
         {
@@ -598,17 +598,17 @@ namespace Js
         for (; (uT = (*psz - '0')) <= 7; psz++)
         {
             if (cbit <= 18)
-                Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)uT << (18 - cbit);
+                Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT << (18 - cbit);
             else if (cbit < 21)
             {
-                Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)uT >> (cbit - 18);
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT << (50 - cbit);
+                Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT >> (cbit - 18);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT << (50 - cbit);
             }
             else if (cbit <= 50)
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT << (50 - cbit);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT << (50 - cbit);
             else if (cbit <= 53)
             {
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT >> (cbit - 50);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT >> (cbit - 50);
                 bExtra = (byte)(uT << (58 - cbit));
             }
             else if (0 != uT)
@@ -629,7 +629,7 @@ namespace Js
             return dbl;
 
         }
-        Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)cbit << 20;
+        Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)cbit << 20;
 
         // Use bExtra to round.
         if ((bExtra & 0x80) && ((bExtra & 0x7F) || (Js::NumberUtilities::LuLoDbl(dbl) & 1)))

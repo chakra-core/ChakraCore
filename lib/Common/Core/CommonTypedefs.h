@@ -17,7 +17,6 @@ typedef char16_t char16;
 typedef char16 wchar;
 typedef unsigned int uint;
 typedef unsigned short ushort;
-typedef unsigned long ulong;
 
 typedef signed char sbyte;
 

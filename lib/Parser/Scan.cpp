@@ -590,7 +590,7 @@ IdentPtr Scanner<EncodingPolicy>::PidAt(size_t iecpMin, size_t iecpLim)
 }
 
 template <typename EncodingPolicy>
-ulong Scanner<EncodingPolicy>::UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPtr last)
+uint32 Scanner<EncodingPolicy>::UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPtr last)
 {
     m_tempChBuf.Init();
     while( p < last )

@@ -472,7 +472,7 @@ namespace Js
     private:
         PropertyStringMap* propertyStrings[80];
 
-        JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, ulong grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
+        JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
 
         typedef void (*EventHandler)(ScriptContext *);
         ScriptContext ** registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
