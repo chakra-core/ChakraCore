@@ -35,7 +35,7 @@ void UnloadChakraCore(HINSTANCE module)
 
 void* GetChakraCoreSymbol(HINSTANCE module, const char* symbol)
 {
-    return GetProcAddress(module, symbol);
+    return reinterpret_cast<void*>(GetProcAddress(module, symbol));
 }
 
 /*static*/

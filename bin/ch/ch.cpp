@@ -7,7 +7,11 @@
 
 unsigned int MessageBase::s_messageCount = 0;
 
+#ifdef _WIN32
 LPCWSTR hostName = _u("ch.exe");
+#else
+LPCWSTR hostName = _u("ch");
+#endif
 
 extern "C"
 HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
@@ -121,17 +125,17 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 
 void __stdcall PrintUsageFormat()
 {
-    wprintf(_u("\nUsage: ch.exe [flaglist] filename\n"));
+    wprintf(_u("\nUsage: %s [flaglist] <source file>\n"), hostName);
 }
 
 void __stdcall PrintUsage()
 {
-#ifndef DEBUG
-    wprintf(_u("\nUsage: ch.exe filename")
-            _u("\n[flaglist] is not supported for Release mode\n"));
+#if !defined(DEBUG) || !defined(_WIN32)
+    wprintf(_u("\nUsage: %s <source file> %s"), hostName,
+            _u("\n[flaglist] is only supported for debug builds on Windows\n"));
 #else
     PrintUsageFormat();
-    wprintf(_u("Try 'ch.exe -?' for help\n"));
+    wprintf(_u("Try '%s -?' for help\n"), hostName);
 #endif
 }
 
