@@ -3399,6 +3399,7 @@ namespace Js
         {
             return ProfileDeferredParsingThunk;
         }
+
         if (entryPoint == DefaultDeferredDeserializeThunk || entryPoint == ProfileDeferredDeserializeThunk)
         {
             return ProfileDeferredDeserializeThunk;
