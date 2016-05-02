@@ -567,7 +567,7 @@ PHASE(All)
 #endif
 #define DEFAULT_CONFIG_BailOnNoProfileLimit    200      // The limit of bailout on no profile info before triggering a rejit
 #define DEFAULT_CONFIG_BailOnNoProfileRejitLimit (-1)   // The limit of bailout on no profile info before disable all the no profile bailouts
-#define DEFAULT_CONFIG_RejitRatioLimit 5                // Ratio of function calls to bailouts on a single bailout record
+#define DEFAULT_CONFIG_CallsToBailoutsRatioForRejit 5   // Ratio of function calls to bailouts on a single bailout record
                                                         // above which a rejit is considered
 #define DEFAULT_CONFIG_MinBailOutsBeforeRejit 2         // Minimum number of bailouts for a single bailout record after which a rejit is considered
 #define DEFAULT_CONFIG_RejitMaxBailOutCount 500         // Maximum number of bailouts for a single bailout record after which rejit is forced.
@@ -1127,7 +1127,7 @@ FLAGNR(Boolean, ProfileBailOutRecordMemory, "Profile bailout record memory stati
 #endif
 
 FLAGNR(Number,  RejitMaxBailOutCount, "Maximum number of bailouts for a bailout record after which rejit is forced", DEFAULT_CONFIG_RejitMaxBailOutCount)
-FLAGNR(Number,  RejitRatioLimit,     "Rejit ratio (Percentage of bailouts per function after which rejit is queued)", DEFAULT_CONFIG_RejitRatioLimit)
+FLAGNR(Number,  CallsToBailoutsRatioForRejit, "Ratio of function calls to bailouts on a single bailout record above which a rejit is considered", DEFAULT_CONFIG_CallsToBailoutsRatioForRejit)
 FLAGNR(Number,  MinBailOutsBeforeRejit, "Minimum number of bailouts for a single bailout record after which a rejit is considered", DEFAULT_CONFIG_MinBailOutsBeforeRejit)
 
 FLAGNR(Boolean, LibraryStackFrame           , "Display library stack frame", DEFAULT_CONFIG_LibraryStackFrame)
