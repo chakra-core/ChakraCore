@@ -1809,10 +1809,7 @@ void ByteCodeGenerator::InitScopeSlotArray(FuncInfo * funcInfo)
                 propertyIdsForScopeSlotArray[sym->GetScopeSlot()] = sym->EnsurePosition(funcInfo);
             }
         };
-        if (funcInfo->GetParamScope() != nullptr)
-        {
-            funcInfo->GetParamScope()->ForEachSymbol(setPropIdsForScopeSlotArray);
-        }
+
         funcInfo->GetBodyScope()->ForEachSymbol(setPropIdsForScopeSlotArray);
 
         if (funcInfo->thisScopeSlot != Js::Constants::NoRegister)
