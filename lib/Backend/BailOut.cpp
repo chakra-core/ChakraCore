@@ -1984,13 +1984,27 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 break;
 
             case IR::BailOutExpectingInteger:
-                profileInfo->DisableSwitchOpt();
-                rejitReason = RejitReason::DisableSwitchOptExpectingInteger;
+                if (profileInfo->IsSwitchOptDisabled())
+                {
+                    reThunk = true;
+                }
+                else
+                {
+                    profileInfo->DisableSwitchOpt();
+                    rejitReason = RejitReason::DisableSwitchOptExpectingInteger;
+                }
                 break;
 
             case IR::BailOutExpectingString:
-                profileInfo->DisableSwitchOpt();
-                rejitReason = RejitReason::DisableSwitchOptExpectingString;
+                if (profileInfo->IsSwitchOptDisabled())
+                {
+                    reThunk = true;
+                }
+                else
+                {
+                    profileInfo->DisableSwitchOpt();
+                    rejitReason = RejitReason::DisableSwitchOptExpectingString;
+                }
                 break;
 
             case IR::BailOutOnFailedPolymorphicInlineTypeCheck:
@@ -2296,11 +2310,13 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
 
             case IR::BailOutExpectingInteger:
                 profileInfo->DisableSwitchOpt();
+                executeFunction->SetDontRethunkAfterBailout();
                 rejitReason = RejitReason::DisableSwitchOptExpectingInteger;
                 break;
 
             case IR::BailOutExpectingString:
                 profileInfo->DisableSwitchOpt();
+                executeFunction->SetDontRethunkAfterBailout();
                 rejitReason = RejitReason::DisableSwitchOptExpectingString;
                 break;
 
