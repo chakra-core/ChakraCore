@@ -157,14 +157,25 @@ SWAP_BP_FOR_OPCODE:
                 return nullptr;
 
             case INTERPRETER_OPCODE::ExtendedOpcodePrefix:
+            case INTERPRETER_OPCODE::DblExtendedOpcodePrefix:
             {
-                ip = [this](const byte * ip) -> const byte *
+                ip = [this](const byte * ip, INTERPRETER_OPCODE prefixOp) -> const byte *
                 {
+                    uint bias;
+                    if (prefixOp == INTERPRETER_OPCODE::ExtendedOpcodePrefix)
+                    {
+                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
+                    }
+                    else
+                    {
+                        Assert(prefixOp == INTERPRETER_OPCODE::DblExtendedOpcodePrefix);
+                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;
+                    }
                     INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
 #if DBG_DUMP
                     , true
 #endif
-                    ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
+                    ) + bias);
                     switch (op)
                     {
 #define EXDEF2(x, op, func) PROCESS_##x(op, func)
@@ -180,7 +191,7 @@ SWAP_BP_FOR_OPCODE:
                             __assume(false);
                     };
                     return ip;
-                }(ip);
+                }(ip, op);
 
 #if ENABLE_PROFILE_INFO
                 if (switchProfileMode)
@@ -232,10 +243,21 @@ SWAP_BP_FOR_OPCODE:
                 break;
             }
             case INTERPRETER_OPCODE::ExtendedMediumLayoutPrefix:
+            case INTERPRETER_OPCODE::DblExtendedMediumLayoutPrefix:
             {
 #ifndef INTERPRETER_ASMJS  // Asmjs doesn't have any extended opcodes for now, remove that case
-                ip = [this](const byte * ip) -> const byte *
+                ip = [this](const byte * ip, INTERPRETER_OPCODE prefixOp) -> const byte *
                 {
+                    uint bias;
+                    if (prefixOp == INTERPRETER_OPCODE::ExtendedMediumLayoutPrefix)
+                    {
+                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
+                    }
+                    else 
+                    {
+                        Assert(prefixOp == INTERPRETER_OPCODE::DblExtendedMediumLayoutPrefix);
+                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;
+                    }
                     INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
 #if DBG_DUMP
                     , true
@@ -254,7 +276,7 @@ SWAP_BP_FOR_OPCODE:
                             __assume(false);
                     };
                     return ip;
-                }(ip);
+                }(ip, op);
 
 #if ENABLE_PROFILE_INFO
                 if (switchProfileMode)
@@ -308,10 +330,22 @@ SWAP_BP_FOR_OPCODE:
                 break;
             }
             case INTERPRETER_OPCODE::ExtendedLargeLayoutPrefix:
+            case INTERPRETER_OPCODE::DblExtendedLargeLayoutPrefix:
             {
 #ifndef INTERPRETER_ASMJS  // Asmjs doesn't have any extended opcodes for now, remove that case
-                ip = [this](const byte * ip) -> const byte *
+                ip = [this](const byte * ip, INTERPRETER_OPCODE prefixOp) -> const byte *
                 {
+                    uint bias;
+                if (prefixOp == INTERPRETER_OPCODE::ExtendedLargeLayoutPrefix)
+                {
+                    bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
+                }
+                else
+                {
+                    Assert(prefixOp == INTERPRETER_OPCODE::DblExtendedLargeLayoutPrefix);
+                    bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;
+                }
+
                     INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
 #if DBG_DUMP
                     , true
@@ -330,7 +364,7 @@ SWAP_BP_FOR_OPCODE:
                             __assume(false);
                     };
                     return ip;
-                }(ip);
+                }(ip, op);
 
 #if ENABLE_PROFILE_INFO
                 if(switchProfileMode)

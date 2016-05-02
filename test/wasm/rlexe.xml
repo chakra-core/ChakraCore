@@ -5,5 +5,25 @@
       <files>rot.js</files>
       <baseline>rot.baseline</baseline>
     </default>
-  </test>
+</test>
+<test>
+    <default>
+        <files>rot.js</files>
+        <baseline>rot.baseline</baseline>
+        <compile-flags>-maic:0</compile-flags>
+    </default>
+</test>    
+<test>
+     <default>
+       <files>misc.js</files>
+       <baseline>misc.baseline</baseline>
+     </default>
+</test>
+<test>
+    <default>
+        <files>misc.js</files>
+        <baseline>misc.baseline</baseline>
+        <compile-flags>-maic:0</compile-flags>
+    </default>
+</test>
 </regress-exe>

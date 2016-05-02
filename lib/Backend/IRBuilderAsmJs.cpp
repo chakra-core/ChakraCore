@@ -2558,6 +2558,10 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
 
         break;
 
+    case Js::OpCodeAsmJs::Eqz_Int:
+        instr = IR::Instr::New(Js::OpCode::CmEq_I4, dstOpnd, srcOpnd, IR::IntConstOpnd::New(0, TyInt32, m_func), m_func);
+        break;
+
     default:
         Assume(UNREACHED);
     }
@@ -2768,6 +2772,12 @@ IRBuilderAsmJs::BuildDouble2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
     case Js::OpCodeAsmJs::I_Conv_VTD:
         instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
         break;
+    case Js::OpCodeAsmJs::Trunc_Db:
+        instr = IR::Instr::New(Js::OpCode::Trunc_A, dstOpnd, srcOpnd, m_func);
+        break;
+    case Js::OpCodeAsmJs::Nearest_Db:
+        instr = IR::Instr::New(Js::OpCode::Nearest_A, dstOpnd, srcOpnd, m_func);
+        break;
     default:
         Assume(UNREACHED);
     }
@@ -2830,6 +2840,12 @@ IRBuilderAsmJs::BuildFloat2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlo
     case Js::OpCodeAsmJs::I_Conv_VTF:
         instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
         break;
+    case Js::OpCodeAsmJs::Trunc_Flt:
+        instr = IR::Instr::New(Js::OpCode::Trunc_A, dstOpnd, srcOpnd, m_func);
+        break;
+    case Js::OpCodeAsmJs::Nearest_Flt:
+        instr = IR::Instr::New(Js::OpCode::Nearest_A, dstOpnd, srcOpnd, m_func);
+        break;
     default:
         Assume(UNREACHED);
     }
@@ -2879,6 +2895,10 @@ IRBuilderAsmJs::BuildFloat3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlo
 
     case Js::OpCodeAsmJs::Div_Flt:
         instr = IR::Instr::New(Js::OpCode::Div_A, dstOpnd, src1Opnd, src2Opnd, m_func);
+        break;
+
+    case Js::OpCodeAsmJs::Copysign_Flt:
+        instr = IR::Instr::New(Js::OpCode::Copysign_A, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
 
     default:
@@ -3016,6 +3036,11 @@ IRBuilderAsmJs::BuildDouble3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
 
     case Js::OpCodeAsmJs::Max_Db:
         instr = IR::Instr::New(Js::OpCode::InlineMathMax, dstOpnd, src1Opnd, src2Opnd, m_func);
+        break;
+
+    case Js::OpCodeAsmJs::Copysign_Db:
+        Assert(UNREACHED);
+        instr = IR::Instr::New(Js::OpCode::Copysign_A, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
 
     default:

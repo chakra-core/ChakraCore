@@ -127,16 +127,6 @@ namespace Js
         return (unsigned int)aLeft >> (unsigned int)aRight;
     }
 
-    __inline int AsmJsMath::Rol( int aLeft, int aRight )
-    {
-        return _rotl(aLeft, aRight);
-    }
-
-    __inline int AsmJsMath::Ror( int aLeft, int aRight )
-    {
-        return _rotr(aLeft, aRight);
-    }
-
     template<typename T>
     __inline T AsmJsMath::Neg( T aLeft )
     {
@@ -167,4 +157,5 @@ namespace Js
         }
         return 32;
     }
+
 }

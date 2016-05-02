@@ -2973,6 +2973,20 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = this->LowerSlotArrayCheck(instr);
             break;
 
+#ifdef ENABLE_WASM
+        case Js::OpCode::Copysign_A:
+            m_lowererMD.GenerateCopysign(instr);
+            break;
+
+        case Js::OpCode::Trunc_A:
+            m_lowererMD.GenerateTrunc(instr);
+            break;
+
+        case Js::OpCode::Nearest_A:
+            m_lowererMD.GenerateNearest(instr);
+            break;
+#endif //ENABLE_WASM
+
         default:
 #if defined(_M_IX86) || defined(_M_X64)
             if (IsSimd128Opcode(instr->m_opcode))

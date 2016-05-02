@@ -6081,6 +6081,54 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     insertionPointInstr->InsertBefore(branchToAllocDoneInstr);
 }
 
+#ifdef ENABLE_WASM
+void
+LowererMD::GenerateCopysign(IR::Instr * instr)
+{
+#if defined(_M_IX86)
+    // We should only generate this if sse2 is available
+    Assert(AutoSystemInfo::Data.SSE2Available());
+#endif
+
+    // ANDPS reg0, absDoubleCst
+    // ANDPS reg1, sgnBitDoubleCst
+    // ORPS reg0, reg1
+
+    // Copy sign from src2 to src1
+    IR::Opnd* src1 = instr->GetSrc1();
+    GenerateFloatAbs(src1->AsRegOpnd(), instr);
+
+    if (src1->IsFloat64())
+    {
+        Assert(UNREACHED);
+    }
+    else
+    {
+        Assert(src1->IsFloat32());
+        IR::Instr* t2 = IR::Instr::New(Js::OpCode::ANDPS, instr->GetSrc2(), instr->GetSrc2(),
+            IR::MemRefOpnd::New((void *)&Js::JavascriptNumber::SgnBitCst, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef),
+            m_func);
+        instr->InsertBefore(t2);
+        Legalize(t2);
+    }
+
+    instr->m_opcode = Js::OpCode::ORPS;
+    Legalize(instr);
+};
+
+void
+LowererMD::GenerateTrunc(IR::Instr * instr)
+{
+    Assert(UNREACHED);
+}
+
+void
+LowererMD::GenerateNearest(IR::Instr * instr)
+{
+    Assert(UNREACHED);
+}
+#endif //ENABLE_WASM
+
 void
 LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::Instr *instrOrig, IR::Instr *instrInsert, bool isHelper)
 {

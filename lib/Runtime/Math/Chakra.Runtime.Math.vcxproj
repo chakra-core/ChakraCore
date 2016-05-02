@@ -46,7 +46,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeMathPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="WasmMath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WasmMath.h" />
@@ -56,6 +55,7 @@
     <ClInclude Include="RuntimeMathPch.h" />
     <ClInclude Include="JavascriptMath.h" />
     <ClInclude Include="JavascriptSSE2MathOperators.h" />
+    <ClInclude Include="WasmMath.inl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="AsmJsMath.inl" />

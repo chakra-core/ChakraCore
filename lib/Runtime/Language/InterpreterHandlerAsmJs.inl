@@ -92,8 +92,8 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( I2toI1Mem        , Shl_Int      , AsmJsMath::Shl                                     )
   DEF2_WMS( I2toI1Mem        , Shr_Int      , AsmJsMath::Shr                                     )
   DEF2_WMS( I2toI1Mem        , ShrU_Int     , AsmJsMath::ShrU                                    )
-  DEF2_WMS( I2toI1Mem        , Rol_Int      , AsmJsMath::Rol                                     )
-  DEF2_WMS( I2toI1Mem        , Ror_Int      , AsmJsMath::Ror                                     )
+  DEF2_WMS( I2toI1Mem        , Rol_Int      , Wasm::WasmMath::Rol                                )
+  DEF2_WMS( I2toI1Mem        , Ror_Int      , Wasm::WasmMath::Ror                                )
 
   DEF2_WMS( I2toI1Mem   , Mul_UInt     , AsmJsMath::Mul<uint>                             )
   DEF2_WMS( I2toI1Mem   , Div_UInt     , AsmJsMath::Div<uint>                             )
@@ -128,7 +128,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( I2toI1Mem        , Imul_Int     , AsmJsMath::Mul<int>                                )
   DEF2_WMS( I1toI1Mem        , Clz32_Int    , AsmJsMath::Clz32                                   )
   DEF2_WMS( I1toI1Mem        , Ctz_Int      , Wasm::WasmMath::Ctz                                )
-
+  DEF2_WMS( I1toI1Mem        , Eqz_Int      , Wasm::WasmMath::Eqz)
 
   DEF2_WMS( D2toI1Mem        , CmLt_Db      , AsmJsMath::CmpLt<double>                           )
   DEF2_WMS( D2toI1Mem        , CmLe_Db      , AsmJsMath::CmpLe<double>                           )
@@ -165,10 +165,16 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( D2toD1Mem        , Min_Db       , AsmJsMath::Min<double>                             )
   DEF2_WMS( D2toD1Mem        , Max_Db       , AsmJsMath::Max<double>                             )
 
-
   DEF2_WMS( F1toF1Mem        , Fround_Flt   , (float)                                            )
   DEF2_WMS( D1toF1Mem        , Fround_Db    , (float)                                            )
   DEF2_WMS( I1toF1Mem        , Fround_Int   , (float)                                            )
+  DEF2_WMS( F2toF1Mem        , Copysign_Flt , Wasm::WasmMath::Copysign<float>                    )
+  DEF2_WMS( D2toD1Mem        , Copysign_Db  , Wasm::WasmMath::Copysign<double>                   )
+
+  EXDEF2_WMS( F1toF1Mem      , Trunc_Flt    , Wasm::WasmMath::Trunc<float>                       )
+  EXDEF2_WMS( F1toF1Mem      , Nearest_Flt  , Wasm::WasmMath::Nearest<float>                     )
+  EXDEF2_WMS( D1toD1Mem      , Trunc_Db     , Wasm::WasmMath::Trunc<double>                      )
+  EXDEF2_WMS( D1toD1Mem      , Nearest_Db   , Wasm::WasmMath::Nearest<double>                    )
 
   DEF2_WMS( IP_TARG_ASM      , AsmJsLoopBodyStart, OP_ProfiledLoopBodyStart                      )
 
@@ -218,7 +224,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( SIMD_I4_1toI4_1  , Simd128_Not_I4              , Js::SIMDInt32x4Operation::OpNot             )
   EXDEF2_WMS( SIMD_B4_1toB4_1, Simd128_Not_B4              , Js::SIMDInt32x4Operation::OpNot            )
   EXDEF2_WMS( SIMD_B8_1toB8_1, Simd128_Not_B8              , Js::SIMDInt32x4Operation::OpNot            )
-  DEF2_WMS( SIMD_B16_1toB16_1, Simd128_Not_B16           , Js::SIMDInt32x4Operation::OpNot            )
+  EXDEF2_WMS( SIMD_B16_1toB16_1, Simd128_Not_B16           , Js::SIMDInt32x4Operation::OpNot            )
     
   EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AllTrue_B4            , Js::SIMDBool32x4Operation::OpAllTrue        )
   EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AllTrue_B8            , Js::SIMDBool32x4Operation::OpAllTrue        )
@@ -615,9 +621,9 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( SIMD_U8_2toB8_1   , Simd128_Gt_U8               , Js::SIMDUint16x8Operation::OpGreaterThan        )
   EXDEF2_WMS( SIMD_U16_2toB16_1 , Simd128_Gt_U16              , Js::SIMDUint8x16Operation::OpGreaterThan        )
 
-  DEF2_WMS( SIMD_U4_1toU4_1     , Simd128_Neg_U4              , SIMDInt32x4Operation::OpNeg                     )
-  DEF2_WMS( SIMD_U8_1toU8_1     , Simd128_Neg_U8              , SIMDInt16x8Operation::OpNeg                     )
-  DEF2_WMS( SIMD_U16_1toU16_1   , Simd128_Neg_U16             , SIMDInt8x16Operation::OpNeg                     )
+  EXDEF2_WMS( SIMD_U4_1toU4_1     , Simd128_Neg_U4              , SIMDInt32x4Operation::OpNeg                     )
+  EXDEF2_WMS( SIMD_U8_1toU8_1     , Simd128_Neg_U8              , SIMDInt16x8Operation::OpNeg                     )
+  EXDEF2_WMS( SIMD_U16_1toU16_1   , Simd128_Neg_U16             , SIMDInt8x16Operation::OpNeg                     )
 
 #if 0
       DEF2_WMS(SIMD_D2toD2_1, Simd128_DoublesToD2, SIMDFloat64x2Operation::OpFloat64x2)

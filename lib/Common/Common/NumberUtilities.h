@@ -45,6 +45,7 @@ namespace Js
 
         static const BYTE AbsDoubleCst[];
         static const BYTE AbsFloatCst[];
+        static const BYTE SgnBitCst[];
         static double const UIntConvertConst[];
         static double const MaskNegDouble[];
         static float const MaskNegFloat[];
