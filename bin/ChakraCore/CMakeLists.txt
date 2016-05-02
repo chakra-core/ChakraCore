@@ -33,7 +33,7 @@ target_include_directories (
 #  icuuc: For the ICU (xplat-todo: Make this optional)
 #
 target_link_libraries(ChakraCore
-  -Wl,-undefined,error
+  -Wl,--no-undefined
   -Wl,--start-group
   -Wl,--whole-archive
   Chakra.Jsrt

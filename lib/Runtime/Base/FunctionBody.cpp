@@ -4848,7 +4848,11 @@ namespace Js
     void FunctionBody::SetEntryToDeferParseForDebugger()
     {
         ProxyEntryPointInfo* defaultEntryPointInfo = this->GetDefaultEntryPointInfo();
-        if (defaultEntryPointInfo->jsMethod != DefaultDeferredParsingThunk && defaultEntryPointInfo->jsMethod != ProfileDeferredParsingThunk)
+        if (defaultEntryPointInfo->jsMethod != DefaultDeferredParsingThunk
+#ifdef ENABLE_SCRIPT_PROFILING
+            && defaultEntryPointInfo->jsMethod != ProfileDeferredParsingThunk
+#endif
+            )
         {
 #ifdef ENABLE_SCRIPT_PROFILING
             // Just change the thunk, the cleanup will be done once the function gets called.
