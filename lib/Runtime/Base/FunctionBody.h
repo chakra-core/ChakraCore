@@ -941,7 +941,7 @@ namespace Js
     public:
         static const uint8 GetDecrCallCountPerBailout()
         {
-            return (100 / (uint8)CONFIG_FLAG(RejitRatioLimit)) + 1;
+            return (100 / (uint8)CONFIG_FLAG(CallsToBailoutsRatioForRejit)) + 1;
         }
 
         FunctionEntryPointInfo(FunctionProxy * functionInfo, void * address, ThreadContext* context, void* validationCookie);
