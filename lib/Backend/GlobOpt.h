@@ -1575,8 +1575,9 @@ private:
     bool                    OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, bool isNotTypeSpecConv, bool allowNonPrimitives, Value **loopHeadValRef = nullptr);
     bool                    OptDstIsInvariant(IR::RegOpnd *dst);
     bool                    OptIsInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv, const bool forceInvariantHoisting = false);
-    void                    OptHoistInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *dstVal, Value *const src1Val, bool isNotTypeSpecConv, bool lossy = false);
-    bool                    TryHoistInvariant(IR::Instr *instr, BasicBlock *block, Value *dstVal, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv, const bool lossy = false, const bool forceInvariantHoisting = false);
+    void                    OptHoistInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *dstVal, Value *const src1Val, bool isNotTypeSpecConv, bool lossy = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
+    bool                    TryHoistInvariant(IR::Instr *instr, BasicBlock *block, Value *dstVal, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv,
+                                                const bool lossy = false, const bool forceInvariantHoisting = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     void                    HoistInvariantValueInfo(ValueInfo *const invariantValueInfoToHoist, Value *const valueToUpdate, BasicBlock *const targetBlock);
 public:
     static bool             IsTypeSpecPhaseOff(Func* func);

@@ -13734,57 +13734,60 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
             Assert(loop->bailOutInfo);
         }
 
-        if(toType == TyInt32 && opcode == Js::OpCode::FromVar)
+        if (opcode == Js::OpCode::FromVar)
         {
-            Assert(valueInfo);
-            if(lossy)
+            
+            if (toType == TyInt32)
             {
-                if(!valueInfo->IsPrimitive() && !IsTypeSpecialized(varSym, block))
+                Assert(valueInfo);
+                if (lossy)
                 {
-                    // Lossy conversions to int32 on non-primitive values may have implicit calls to toString or valueOf, which
-                    // may be overridden to have a side effect. The side effect needs to happen every time the conversion is
-                    // supposed to happen, so the resulting lossy int32 value cannot be reused. Bail out on implicit calls.
-                    Assert(DoLossyIntTypeSpec());
+                    if (!valueInfo->IsPrimitive() && !IsTypeSpecialized(varSym, block))
+                    {
+                        // Lossy conversions to int32 on non-primitive values may have implicit calls to toString or valueOf, which
+                        // may be overridden to have a side effect. The side effect needs to happen every time the conversion is
+                        // supposed to happen, so the resulting lossy int32 value cannot be reused. Bail out on implicit calls.
+                        Assert(DoLossyIntTypeSpec());
 
-                    bailOutKind = IR::BailOutOnNotPrimitive;
+                        bailOutKind = IR::BailOutOnNotPrimitive;
+                        isBailout = true;
+                    }
+                }
+                else if (!valueInfo->IsInt())
+                {
+                    // The operand is likely an int (hence the request to convert to int), so bail out if it's not an int. Only
+                    // bail out if a lossless conversion to int is requested. Lossy conversions to int such as in (a | 0) don't
+                    // need to bail out.
+                    if (bailOutKind == IR::BailOutExpectingInteger)
+                    {
+                        Assert(IsSwitchOptEnabled());
+                    }
+                    else
+                    {
+                        Assert(DoAggressiveIntTypeSpec());
+                    }
+
                     isBailout = true;
                 }
             }
-            else if(!valueInfo->IsInt())
+            else if (toType == TyFloat64 &&
+                (!valueInfo || !valueInfo->IsNumber()))
             {
-                // The operand is likely an int (hence the request to convert to int), so bail out if it's not an int. Only
-                // bail out if a lossless conversion to int is requested. Lossy conversions to int such as in (a | 0) don't
-                // need to bail out.
-                if(bailOutKind == IR::BailOutExpectingInteger)
-                {
-                    Assert(IsSwitchOptEnabled());
-                }
-                else
-                {
-                    Assert(DoAggressiveIntTypeSpec());
-                }
-
+                // Bailout if converting vars to float if we can't prove they are floats:
+                //      x = str + float;  -> need to bailout if str is a string
+                //
+                //      x = obj * 0.1;
+                //      y = obj * 0.2;  -> if obj has valueof, we'll only call valueof once on the FromVar conversion...
+                Assert(bailOutKind != IR::BailOutInvalid);
                 isBailout = true;
             }
-        }
-        else if (toType == TyFloat64 && opcode == Js::OpCode::FromVar
-            && (!valueInfo || !valueInfo->IsNumber()))
-        {
-            // Bailout if converting vars to float if we can't prove they are floats:
-            //      x = str + float;  -> need to bailout if str is a string
-            //
-            //      x = obj * 0.1;
-            //      y = obj * 0.2;  -> if obj has valueof, we'll only call valueof once on the FromVar conversion...
-            Assert(bailOutKind != IR::BailOutInvalid);
-            isBailout = true;
-        }
-        else if (IRType_IsSimd128(toType)
-            && opcode == Js::OpCode::FromVar
-            && (!valueInfo || !valueInfo->IsSimd128(toType)))
-        {
+            else if (IRType_IsSimd128(toType) &&
+                (!valueInfo || !valueInfo->IsSimd128(toType)))
+            {
                 Assert(toType == TySimd128F4 && bailOutKind == IR::BailOutSimd128F4Only
                     || toType == TySimd128I4 && bailOutKind == IR::BailOutSimd128I4Only);
                 isBailout = true;
+            }
         }
 
         if (isBailout)
@@ -13894,7 +13897,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
         if (block->loop)
         {
             Assert(!this->IsLoopPrePass());
-            isHoisted = this->TryHoistInvariant(newInstr, block, val, val, nullptr, false, lossy);
+            isHoisted = this->TryHoistInvariant(newInstr, block, val, val, nullptr, false, lossy, false, bailOutKind);
         }
 
         if (isBailout)
@@ -18460,34 +18463,97 @@ GlobOpt::OptHoistInvariant(
     Value *dstVal,
     Value *const src1Val,
     bool isNotTypeSpecConv,
-    bool lossy)
+    bool lossy,
+    IR::BailOutKind bailoutKind)
 {
     BasicBlock *landingPad = loop->landingPad;
     IR::RegOpnd *dst = instr->GetDst() ? instr->GetDst()->AsRegOpnd() : nullptr;
     if(dst)
     {
-        switch(instr->m_opcode)
+        switch (instr->m_opcode)
         {
-            case Js::OpCode::CmEq_I4:
-            case Js::OpCode::CmNeq_I4:
-            case Js::OpCode::CmLt_I4:
-            case Js::OpCode::CmLe_I4:
-            case Js::OpCode::CmGt_I4:
-            case Js::OpCode::CmGe_I4:
-            case Js::OpCode::CmUnLt_I4:
-            case Js::OpCode::CmUnLe_I4:
-            case Js::OpCode::CmUnGt_I4:
-            case Js::OpCode::CmUnGe_I4:
-                // These operations are a special case. They generate a lossy int value, and the var sym is initialized using
-                // Conv_Bool. A sym cannot be live only as a lossy int sym, the var needs to be live as well since the lossy int
-                // sym cannot be used to convert to var. We don't know however, whether the Conv_Bool will be hoisted. The idea
-                // currently is that the sym is only used on the path in which it is initialized inside the loop. So, don't
-                // hoist any liveness info for the dst.
-                if (!this->GetIsAsmJSFunc())
+        case Js::OpCode::CmEq_I4:
+        case Js::OpCode::CmNeq_I4:
+        case Js::OpCode::CmLt_I4:
+        case Js::OpCode::CmLe_I4:
+        case Js::OpCode::CmGt_I4:
+        case Js::OpCode::CmGe_I4:
+        case Js::OpCode::CmUnLt_I4:
+        case Js::OpCode::CmUnLe_I4:
+        case Js::OpCode::CmUnGt_I4:
+        case Js::OpCode::CmUnGe_I4:
+            // These operations are a special case. They generate a lossy int value, and the var sym is initialized using
+            // Conv_Bool. A sym cannot be live only as a lossy int sym, the var needs to be live as well since the lossy int
+            // sym cannot be used to convert to var. We don't know however, whether the Conv_Bool will be hoisted. The idea
+            // currently is that the sym is only used on the path in which it is initialized inside the loop. So, don't
+            // hoist any liveness info for the dst.
+            if (!this->GetIsAsmJSFunc())
+            {
+                lossy = true;
+            }
+            break;
+
+        case Js::OpCode::FromVar:
+        {
+            StackSym* src1StackSym = IR::RegOpnd::TryGetStackSym(instr->GetSrc1());
+
+            if (instr->HasBailOutInfo())
+            {
+                IR::BailOutKind bailoutKind = instr->GetBailOutKind();
+                Assert(bailoutKind == IR::BailOutIntOnly ||
+                    bailoutKind == IR::BailOutExpectingInteger ||
+                    bailoutKind == IR::BailOutOnNotPrimitive ||
+                    bailoutKind == IR::BailOutNumberOnly ||
+                    bailoutKind == IR::BailOutPrimitiveButString ||
+                    bailoutKind == IR::BailOutSimd128F4Only ||
+                    bailoutKind == IR::BailOutSimd128I4Only);
+            }
+            else if (src1StackSym && bailoutKind != IR::BailOutInvalid)
+            {
+                // We may be hoisting FromVar from a region where it didn't need a bailout (src1 had a definite value type) to a region
+                // where it would. In such cases, the FromVar needs a bailout based on the value type of src1 in its new position.
+                Assert(!src1StackSym->IsTypeSpec());
+                Value* landingPadSrc1val = FindValue(landingPad->globOptData.symToValueMap, src1StackSym);
+                Assert(src1Val->GetValueNumber() == landingPadSrc1val->GetValueNumber());
+
+                ValueInfo *src1ValueInfo = src1Val->GetValueInfo();
+                ValueInfo *landingPadSrc1ValueInfo = landingPadSrc1val->GetValueInfo();
+                IRType dstType = dst->GetType();
+                
+                const auto AddBailOutToFromVar = [&]()
                 {
-                    lossy = true;
+                    instr->GetSrc1()->SetValueType(landingPadSrc1val->GetValueInfo()->Type());
+                    EnsureBailTarget(loop);
+                    instr = instr->ConvertToBailOutInstr(instr, bailoutKind);
+                };
+
+                // A definite type in the source position and not a definite type in the destination (landing pad)
+                // and no bailout on the instruction; we should put a bailout on the hoisted instruction.
+                if (dstType == TyInt32)
+                {
+                    if (lossy)
+                    {
+                        if ((src1ValueInfo->IsPrimitive() || IsTypeSpecialized(src1StackSym, block)) &&                // didn't need a lossy type spec bailout in the source block
+                            (!landingPadSrc1ValueInfo->IsPrimitive() && !IsTypeSpecialized(src1StackSym, landingPad))) // needs a lossy type spec bailout in the landing pad
+                        {
+                            bailoutKind = IR::BailOutOnNotPrimitive;
+                            AddBailOutToFromVar();
+                        }
+                    }
+                    else if (src1ValueInfo->IsInt() && !landingPadSrc1ValueInfo->IsInt())
+                    {
+                        AddBailOutToFromVar();
+                    }
                 }
-                break;
+                else if ((dstType == TyFloat64 && src1ValueInfo->IsNumber() && !landingPadSrc1ValueInfo->IsNumber()) ||
+                    (IRType_IsSimd128(dstType) && src1ValueInfo->IsSimd128() && !landingPadSrc1ValueInfo->IsSimd128()))
+                {
+                    AddBailOutToFromVar();
+                }
+            }
+
+            break;
+        }
         }
 
         if (dstVal == NULL)
@@ -18899,7 +18965,8 @@ GlobOpt::TryHoistInvariant(
     Value *src2Val,
     bool isNotTypeSpecConv,
     const bool lossy,
-    const bool forceInvariantHoisting)
+    const bool forceInvariantHoisting,
+    IR::BailOutKind bailoutKind)
 {
     Assert(!this->IsLoopPrePass());
 
@@ -18944,7 +19011,7 @@ GlobOpt::TryHoistInvariant(
             Assert(tempByteCodeUse->Count() == 0 && propertySymUse == NULL);
         }
 #endif
-        OptHoistInvariant(instr, block, loop, dstVal, src1Val, isNotTypeSpecConv, lossy);
+        OptHoistInvariant(instr, block, loop, dstVal, src1Val, isNotTypeSpecConv, lossy, bailoutKind);
         return true;
     }
 
