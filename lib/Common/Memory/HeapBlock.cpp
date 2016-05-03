@@ -295,7 +295,7 @@ SmallHeapBlockT<TBlockAttributes>::SetPage(__in_ecount_pagesize char * baseAddre
 
     // We use the block type directly here, without the getter so that we can tell on the heap block map,
     // whether the block is a medium block or not
-    if (!recycler->heapBlockMap.SetHeapBlock(this->address, this->GetPageCount(), this, this->heapBlockType, (byte)this->bucketIndex))
+    if (!recycler->heapBlockMap.SetHeapBlock(this->address, this->GetPageCount() - this->GetUnusablePageCount(), this, this->heapBlockType, (byte)this->bucketIndex))
     {
         return FALSE;
     }
@@ -357,7 +357,7 @@ template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::BackgroundReleasePagesSweep(Recycler* recycler)
 {
-    recycler->heapBlockMap.ClearHeapBlock(address, this->GetPageCount());
+    recycler->heapBlockMap.ClearHeapBlock(address, this->GetPageCount() - this->GetUnusablePageCount());
     char* address = this->address;
 
     if (!this->RecommitUnusablePages())
@@ -398,7 +398,7 @@ template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::RemoveFromHeapBlockMap(Recycler* recycler)
 {
-    recycler->heapBlockMap.ClearHeapBlock(address, this->GetPageCount());
+    recycler->heapBlockMap.ClearHeapBlock(address, this->GetPageCount() - this->GetUnusablePageCount());
 }
 
 template <class TBlockAttributes>
