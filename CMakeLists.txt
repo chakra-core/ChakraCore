@@ -71,43 +71,49 @@ if(CLR_CMAKE_PLATFORM_UNIX)
 
     set(CMAKE_CXX_STANDARD 11)
 
-    set(c_warn_flags
-        -Wno-implicit-function-declaration
+    # CC WARNING FLAGS
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+        -Wno-implicit-function-declaration"
     )
 
-    set(cxx_warn_flags
-        -Wno-microsoft
-        -Wno-unused-value
-        -Wno-int-to-void-pointer-cast
-        -Wno-invalid-offsetof
-        -Wno-undefined-inline
-        -Wno-inconsistent-missing-override
-        -Wno-c++14-extensions
-        -Wno-macro-redefined
-        -Wno-ignored-pragmas
-        -Wno-invalid-token-paste
-        -Wno-format
-        -Wno-invalid-noreturn
-        -Wno-null-arithmetic
-        -Wno-tautological-constant-out-of-range-compare
-        -Wno-tautological-undefined-compare
-        -Wno-address-of-temporary  # vtinfo.h, VirtualTableInfo<T>::RegisterVirtualTable
-        -Wno-null-conversion # Check shmemory.cpp and cs.cpp here...
-        -Wno-return-type # switch unreachable code
-        -Wno-switch # switch values not handled
-        -Wno-int-to-pointer-cast
+    # CXX WARNING FLAGS
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Wno-microsoft\
+        -Wno-unused-value\
+        -Wno-int-to-void-pointer-cast\
+        -Wno-invalid-offsetof\
+        -Wno-undefined-inline\
+        -Wno-inconsistent-missing-override\
+        -Wno-c++14-extensions\
+        -Wno-macro-redefined\
+        -Wno-ignored-pragmas\
+        -Wno-invalid-token-paste\
+        -Wno-format\
+        -Wno-invalid-noreturn\
+        -Wno-null-arithmetic\
+        -Wno-tautological-constant-out-of-range-compare\
+        -Wno-tautological-undefined-compare\
+        -Wno-address-of-temporary\
+        -Wno-null-conversion\
+        -Wno-return-type\
+        -Wno-switch\
+        -Wno-int-to-pointer-cast"
+    )
+        # notes..
+        # -Wno-address-of-temporary  # vtinfo.h, VirtualTableInfo<T>::RegisterVirtualTable
+        # -Wno-null-conversion # Check shmemory.cpp and cs.cpp here...
+        # -Wno-return-type # switch unreachable code
+        # -Wno-switch # switch values not handled
+
+    # CXX COMPILER FLAGS
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -fdelayed-template-parsing"
     )
 
-    set(cxx_compile_flags
-        -fdelayed-template-parsing
-    )
-
+    # CXX / CC COMPILER FLAGS
     add_compile_options(
         -fms-extensions
         -msse4.1
-        "$<$<COMPILE_LANGUAGE:C>:${c_warn_flags}>"
-        "$<$<COMPILE_LANGUAGE:CXX>:${cxx_warn_flags}>"
-        "$<$<COMPILE_LANGUAGE:CXX>:${cxx_compile_flags}>"
     )
 endif(CLR_CMAKE_PLATFORM_UNIX)
 
@@ -119,7 +125,9 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
         -DDBG_DUMP=1
     )
     # xplat-todo: reenable this warning
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-writable-strings")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Wno-writable-strings"
+    )
 endif(CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
