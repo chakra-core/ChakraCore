@@ -2998,10 +2998,12 @@ namespace Js
             ULONG * line, LONG * col);
 #endif
 
+#ifdef ENABLE_SCRIPT_PROFILING
         HRESULT RegisterFunction(BOOL fChangeMode, BOOL fOnlyCurrent = FALSE);
         HRESULT ReportScriptCompiled();
         HRESULT ReportFunctionCompiled();
         void SetEntryToProfileMode();
+#endif
 
         void CheckAndRegisterFuncToDiag(ScriptContext *scriptContext);
         void SetEntryToDeferParseForDebugger();

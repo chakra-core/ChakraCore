@@ -71,10 +71,11 @@ if(CLR_CMAKE_PLATFORM_UNIX)
 
     set(CMAKE_CXX_STANDARD 11)
 
-    add_compile_options(
-        -fms-extensions
-        -fdelayed-template-parsing
-        -msse4.1
+    set(c_warn_flags
+        -Wno-implicit-function-declaration
+    )
+
+    set(cxx_warn_flags
         -Wno-microsoft
         -Wno-unused-value
         -Wno-int-to-void-pointer-cast
@@ -95,6 +96,18 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -Wno-return-type # switch unreachable code
         -Wno-switch # switch values not handled
         -Wno-int-to-pointer-cast
+    )
+
+    set(cxx_compile_flags
+        -fdelayed-template-parsing
+    )
+
+    add_compile_options(
+        -fms-extensions
+        -msse4.1
+        "$<$<COMPILE_LANGUAGE:C>:${c_warn_flags}>"
+        "$<$<COMPILE_LANGUAGE:CXX>:${cxx_warn_flags}>"
+        "$<$<COMPILE_LANGUAGE:CXX>:${cxx_compile_flags}>"
     )
 endif(CLR_CMAKE_PLATFORM_UNIX)
 

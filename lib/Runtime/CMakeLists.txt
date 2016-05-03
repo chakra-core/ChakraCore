@@ -1,13 +1,13 @@
 project(CHAKRA_RUNTIME)
 
 include_directories(
-    $(CHAKRA_RUNTIME_SOURCE_DIR)
-    $(CHAKRA_RUNTIME_SOURCE_DIR)../Common
-    $(CHAKRA_RUNTIME_SOURCE_DIR)../Backend
-    $(CHAKRA_RUNTIME_SOURCE_DIR)../Parser
-    $(CHAKRA_RUNTIME_SOURCE_DIR)/ByteCode
-    $(CHAKRA_RUNTIME_SOURCE_DIR)/PlatformAgnostic
-    $(CHAKRA_RUNTIME_SOURCE_DIR)/Math
+    .
+    ../Common
+    ../Backend
+    ../Parser
+    ByteCode
+    PlatformAgnostic
+    Math
     )
 
 add_subdirectory (Base)
