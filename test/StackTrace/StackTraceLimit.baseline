@@ -267,10 +267,10 @@ Error: Out of stack space
 
 --Throw new Error() in getter for a number of times
 Error: My error in custom stackTraceLimit getter
-	at get stackTraceLimit (stacktracelimit.js:94:13)
-	at get stackTraceLimit (stacktracelimit.js:94:13)
-	at get stackTraceLimit (stacktracelimit.js:94:13)
-	at get stackTraceLimit (stacktracelimit.js:94:13)
+	at stackTraceLimit.get (stacktracelimit.js:94:13)
+	at stackTraceLimit.get (stacktracelimit.js:94:13)
+	at stackTraceLimit.get (stacktracelimit.js:94:13)
+	at stackTraceLimit.get (stacktracelimit.js:94:13)
 	at throwException (longcallstackthrow.js:33:5)
 	at throwExceptionWithCatch (longcallstackthrow.js:22:9)
 	at Anonymous function (longcallstackthrow.js:45:17)
