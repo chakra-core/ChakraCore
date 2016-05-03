@@ -19,7 +19,8 @@ def msbuildTypeMap = [
 // convert `machine` parameter to OS component of PR task name
 def machineTypeToOSTagMap = [
     'Windows 7': 'Windows 7',
-    'Windows_NT': 'Windows'
+    'Windows_NT': 'Windows',
+    'Ubuntu14.04': 'Ubuntu'
 ]
 
 def dailyRegex = 'dailies'
@@ -76,20 +77,18 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
                     }
                 }
 
-                Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
-
                 def msbuildType = msbuildTypeMap.get(buildType)
                 def msbuildFlavor = "build_${buildArch}${msbuildType}"
-
                 def archivalString = "test/${msbuildFlavor}.*,test/logs/**"
                 archivalString += analysisConfig ? ',CodeAnalysis.err' : ''
-
                 Utilities.addArchival(newJob, archivalString,
                     '', // no exclusions from archival
                     false, // doNotFailIfNothingArchived=false ~= failIfNothingArchived
                     false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
+                Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
                 Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+
                 if (nonDefaultTaskSetup == null) {
                     if (isPR) {
                         def osTag = machineTypeToOSTagMap.get(machine)
@@ -108,6 +107,57 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
                     // https://github.com/dotnet/dotnet-ci/blob/master/jobs/data/repolist.txt
                     nonDefaultTaskSetup(newJob, isPR, config)
                 }
+            }
+        }
+    }
+}
+
+def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSetup ->
+    [true, false].each { isPR ->
+        ['debug', 'release'].each { buildType ->
+            def config = "linux_${buildType}"
+            config = (configTag == null) ? config : "${configTag}_${config}"
+
+            // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
+            def jobName = Utilities.getFullJobName(project, config, isPR)
+
+            def debugFlag = buildType == 'debug' ? '--debug' : ''
+            def buildScript = "./build.sh ${debugFlag}"
+            def testScript = "./test/runtests.sh"
+
+            def newJob = job(jobName) {
+                steps {
+                    shell(buildScript)
+                    shell(testScript)
+                }
+            }
+
+            def archivalString = "BuildLinux/build.log"
+            Utilities.addArchival(newJob, archivalString,
+                '', // no exclusions from archival
+                false, // doNotFailIfNothingArchived=false ~= failIfNothingArchived
+                false) // archiveOnlyIfSuccessful=false ~= archiveAlways
+
+            Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
+            Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+
+            if (nonDefaultTaskSetup == null) {
+                if (isPR) {
+                    def osTag = machineTypeToOSTagMap.get(machine)
+                    // Set up checks which apply to PRs targeting any branch
+                    Utilities.addGithubPRTriggerForBranch(newJob, linuxBranch, "${osTag} ${config}")
+                    // To enable PR checks only for specific target branches, use the following instead:
+                    // Utilities.addGithubPRTriggerForBranch(newJob, branch, checkName)
+                } else {
+                    Utilities.addGithubPushTrigger(newJob)
+                }
+            } else {
+                // nonDefaultTaskSetup is e.g. DailyBuildTaskSetup (which sets up daily builds)
+                // These jobs will only be configured for the branch specified below,
+                // which is the name of the branch netci.groovy was processed for.
+                // See list of such branches at:
+                // https://github.com/dotnet/dotnet-ci/blob/master/jobs/data/repolist.txt
+                nonDefaultTaskSetup(newJob, isPR, config)
             }
         }
     }
@@ -188,3 +238,21 @@ CreateBuildTasks('Windows_NT', 'daily_disablejit', '"/p:BuildJIT=false"', '-disa
 
 CreateStyleCheckTasks('./jenkins/check_eol.sh', 'ubuntu_check_eol', 'EOL Check')
 CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 'Copyright Check')
+
+// -----------------
+// LINUX BUILD TASKS
+// -----------------
+
+if (branch == 'linux') {
+    osString = 'Ubuntu14.04'
+
+    // PR checks
+    CreateLinuxBuildTasks(osString, "ubuntu", branch, null)
+
+    // daily builds
+    CreateLinuxBuildTasks(osString, "daily_ubuntu", branch,
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Ubuntu ${config}",
+                'linux\\s+tests')})
+}
