@@ -42,6 +42,7 @@
         <!-- Make sure we linked in our own operator new before we got the CRT -->
         $(IntDir)..\Chakra.Common.Memory\HeapAllocatorOperators.obj;
         kernel32.lib;
+        user32.lib;
         advapi32.lib;
         ole32.lib;
         $(ChakraCommonLinkDependencies)
