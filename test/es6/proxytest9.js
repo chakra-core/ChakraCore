@@ -532,6 +532,36 @@ function test29() {
     }  
 }
 
+function test30() {
+    var o = Proxy.revocable([], {});
+    o.revoke();
+    try {
+        Array.prototype.concat.call(o.proxy);
+    } catch(e) {
+        print('expected :' + e.message);
+    }
+    
+    try {
+        Array.prototype.join.call(o.proxy, o.proxy);
+    } catch(e) {
+        print('expected :' + e.message);
+    }
+
+    try {
+        Object.prototype.toString.call(o.proxy);
+    } catch(e) {
+        print('expected :' + e.message);
+    }
+
+    try {
+        function foo() {return this;}
+        var p = Proxy.revocable(foo, {});
+        p.revoke();
+        var pp = new p.proxy();
+    } catch(e) {
+        print('expected :' + e.message);
+    }
+}
 test0();
 test1();
 test2();
@@ -562,3 +592,4 @@ test26();
 test27();
 test28();
 test29();
+test30();
