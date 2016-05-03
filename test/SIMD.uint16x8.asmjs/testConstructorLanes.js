@@ -16,6 +16,10 @@ function asmModule(stdlib, imports) {
 
     var vectorLength = 8;
 
+    var i8 = stdlib.SIMD.Int16x8;
+    var i8check = i8.check;
+    var i8fu8 = i8.fromUint16x8Bits;
+
     var loopCOUNT = 3;
 
     function testLocal() {
@@ -58,7 +62,7 @@ function asmModule(stdlib, imports) {
 
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui8check(result);
+        return i8check(i8fu8(result));
 }
     
         function testGlobal() {
@@ -101,7 +105,7 @@ function asmModule(stdlib, imports) {
                 loopIndex = (loopIndex + 1) | 0;
             }
 
-            return ui8check(result);
+            return i8check(i8fu8(result));
         }
 
         function testGlobalImport() {
@@ -144,7 +148,7 @@ function asmModule(stdlib, imports) {
                 loopIndex = (loopIndex + 1) | 0;
             }
 
-            return ui8check(result);
+            return i8check(i8fu8(result));
         }
         
         return { testLocal: testLocal, testGlobal: testGlobal, testGlobalImport: testGlobalImport };
@@ -152,8 +156,12 @@ function asmModule(stdlib, imports) {
 
     var m = asmModule(this, { g1: SIMD.Uint16x8(65535, 1000, 3092, -65535, 0, -39283838, 0, -838) });
 
-    equalSimd([65535, 1, 0, 0, 0, 0, 57599, 27009], m.testLocal(), SIMD.Uint16x8, "testLocal");
-    equalSimd([106, 0, 10, 65535, 3192, 32, 19, 5], m.testGlobal(), SIMD.Uint16x8, "testGlobal");
-    equalSimd([65535, 1000, 3092, 1, 0, 37762, 0, 64698], m.testGlobalImport(), SIMD.Uint16x8, "testGlobalImport");
+    var ret1 = SIMD.Uint16x8.fromInt16x8Bits(m.testLocal());
+    var ret2 = SIMD.Uint16x8.fromInt16x8Bits(m.testGlobal());
+    var ret3 = SIMD.Uint16x8.fromInt16x8Bits(m.testGlobalImport());
+
+    equalSimd([65535, 1, 0, 0, 0, 0, 57599, 27009], ret1, SIMD.Uint16x8, "testLocal");
+    equalSimd([106, 0, 10, 65535, 3192, 32, 19, 5], ret2, SIMD.Uint16x8, "testGlobal");
+    equalSimd([65535, 1000, 3092, 1, 0, 37762, 0, 64698], ret3, SIMD.Uint16x8, "testGlobalImport");
 
     print("PASS");

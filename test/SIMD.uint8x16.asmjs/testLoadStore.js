@@ -23,6 +23,10 @@ function asmModule(stdlib, imports, buffer) {
     var Int32Heap = new stdlib.Int32Array(buffer);
     var Uint32Heap = new stdlib.Uint32Array(buffer);
     var Float32Heap = new stdlib.Float32Array(buffer);
+    
+    var i16 = stdlib.SIMD.Int8x16;
+    var i16check = i16.check;
+    var i16fu16 = i16.fromUint8x16Bits;    
 
     function func0()
     {
@@ -46,7 +50,7 @@ function asmModule(stdlib, imports, buffer) {
             t0 = ui16add(t0, y);
             index = (index + 16 ) | 0;
         }
-        return ui16check(t0);
+        return i16check(i16fu16(t0));
     }
 
     function func1()
@@ -70,7 +74,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func1OOB_1()
@@ -97,7 +101,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
     
     function func1OOB_2()
@@ -124,7 +128,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func2()
@@ -148,7 +152,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func2OOB_1()
@@ -175,7 +179,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func2OOB_2()
@@ -225,7 +229,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func3OOB_1()
@@ -252,7 +256,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func3OOB_2()
@@ -279,7 +283,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func4()
@@ -303,7 +307,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func4OOB_1()
@@ -330,7 +334,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func4OOB_2()
@@ -357,7 +361,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func5()
@@ -381,7 +385,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func5OOB_1()
@@ -407,7 +411,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func5OOB_2()
@@ -434,7 +438,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func6()
@@ -458,7 +462,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func6OOB_1()
@@ -485,7 +489,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     function func6OOB_2()
@@ -512,7 +516,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui16add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui16check(y);
+        return i16check(i16fu16(y));
     }
 
     // TODO: Test conversion of returned value
@@ -564,36 +568,36 @@ var m = asmModule(this, {g1:SIMD.Uint8x16(13216, 1024, 28, 108, 55, 3323, 992, 2
 
 var ret;
 
-ret = m.func0();
+ret = SIMD.Uint8x16.fromInt8x16Bits(m.func0());
 equalSimd([4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64], ret, SIMD.Uint8x16, "Test Load Store");
 
 
-ret = m.func1();
+ret = SIMD.Uint8x16.fromInt8x16Bits(m.func1());
 //print("func1");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 
 
-ret = m.func2();
+ret = SIMD.Uint8x16.fromInt8x16Bits(m.func2());
 //print("func3");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 
 
-ret = m.func3();
+ret = SIMD.Uint8x16.fromInt8x16Bits(m.func3());
 //print("func3");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 
 
-ret = m.func4();
+ret = SIMD.Uint8x16.fromInt8x16Bits(m.func4());
 //print("func4");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 
 
-ret = m.func5();
+ret = SIMD.Uint8x16.fromInt8x16Bits(m.func5());
 //print("func5");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 
 
-ret = m.func6();
+ret = SIMD.Uint8x16.fromInt8x16Bits(m.func6());
 //print("func6");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160], ret, SIMD.Uint8x16, "Test Load Store");
 //
@@ -612,7 +616,7 @@ for (var i = 0; i < funcOOB1.length; i ++)
 {
     try
     {
-        ret = funcOOB1[i]();
+        ret = SIMD.Uint8x16.fromInt8x16Bits(funcOOB1[i]());
         //print("func" + (i+1) + "OOB_1");
         equalSimd(RESULTS[i], ret, SIMD.Uint8x16, "Test Load Store");
 
@@ -630,7 +634,7 @@ for (var i = 0; i < funcOOB2.length; i ++)
     //print("func" + (i+1) + "OOB_2");
     try
     {
-        ret = funcOOB2[i]();
+        ret = SIMD.Uint8x16.fromInt8x16Bits(funcOOB2[i]());
         print("Wrong");
         
     } catch(e)

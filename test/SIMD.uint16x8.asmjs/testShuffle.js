@@ -19,6 +19,10 @@ function asmModule(stdlib, imports) {
 
     var loopCOUNT = 3;
 
+    var i8 = stdlib.SIMD.Int16x8;
+    var i8check = i8.check;
+    var i8fu8 = i8.fromUint16x8Bits;
+
     function testShuffleLocal() {
         var a = ui8(5033, 3401, 665, 3234, 948, 2834, 7748, 25);
         var b = ui8(3483, 2144, 5697, 65, 1000000, 984, 3434, 9876);
@@ -30,7 +34,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
 
     function testShuffleGlobal() {
@@ -42,7 +46,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
 
     function testShuffleGlobalImport() {
@@ -55,7 +59,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
     
     function testShuffleFunc() {
@@ -68,7 +72,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
 
     return { testShuffleLocal: testShuffleLocal, testShuffleGlobal: testShuffleGlobal, testShuffleGlobalImport: testShuffleGlobalImport, testShuffleFunc: testShuffleFunc };
@@ -76,10 +80,15 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Uint16x8(50, 1000, 3092, 3393, Infinity, 39238, NaN, 838) });
 
-equalSimd([5033, 3401, 948, 2834, 3483, 3234, 665, 7748], m.testShuffleLocal(), SIMD.Uint16x8, "");
-equalSimd([10, 1073, 10402, 12332, 35316, 1082, 107, 311], m.testShuffleGlobal(), SIMD.Uint16x8, "");
-equalSimd([5033, 3401, 948, 2834, 50, 3234, 665, 7748], m.testShuffleGlobalImport(), SIMD.Uint16x8, "");
-equalSimd([5043, 4474, 11350, 15166, 50330, 4316, 772, 8059], m.testShuffleFunc(), SIMD.Uint16x8, "");
+var ret1 = SIMD.Uint16x8.fromInt16x8Bits(m.testShuffleLocal());
+var ret2 = SIMD.Uint16x8.fromInt16x8Bits(m.testShuffleGlobal());
+var ret3 = SIMD.Uint16x8.fromInt16x8Bits(m.testShuffleGlobalImport());
+var ret4 = SIMD.Uint16x8.fromInt16x8Bits(m.testShuffleFunc());
+
+equalSimd([5033, 3401, 948, 2834, 3483, 3234, 665, 7748], ret1, SIMD.Uint16x8, "");
+equalSimd([10, 1073, 10402, 12332, 35316, 1082, 107, 311], ret2, SIMD.Uint16x8, "");
+equalSimd([5033, 3401, 948, 2834, 50, 3234, 665, 7748], ret3, SIMD.Uint16x8, "");
+equalSimd([5043, 4474, 11350, 15166, 50330, 4316, 772, 8059], ret4, SIMD.Uint16x8, "");
 
 print("PASS");
 

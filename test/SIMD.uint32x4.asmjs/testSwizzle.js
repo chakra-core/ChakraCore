@@ -19,6 +19,11 @@ function asmModule(stdlib, imports) {
 
     var loopCOUNT = 3;
 
+    var i4 = stdlib.SIMD.Int32x4;
+    var i4check = i4.check;
+    var i4fu4 = i4.fromUint32x4Bits;
+    var u4fi4 = ui4.fromInt32x4Bits;
+
     function testswizzleLocal() {
         var a = ui4(8488484, 4848848, 29975939, 9493872);
         var result = ui4(0, 0, 0, 0);
@@ -28,7 +33,7 @@ function asmModule(stdlib, imports) {
             result = ui4swizzle(a, 2, 0, 3, 1);
             loopIndex = (loopIndex + 1) | 0;
         }   
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
 
     function testswizzleGlobal() {
@@ -39,7 +44,7 @@ function asmModule(stdlib, imports) {
             result = ui4swizzle(ui4g1, 2, 0, 3, 1);
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
 
     function testswizzleGlobalImport() {
@@ -50,7 +55,7 @@ function asmModule(stdlib, imports) {
             result = ui4swizzle(globImporti4, 2, 0, 3, 1);
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
 
     function testswizzleFunc() {
@@ -62,7 +67,7 @@ function asmModule(stdlib, imports) {
             result = ui4swizzle(ui4add(a, ui4g1), 2, 0, 3, 1);
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
 
     return { testswizzleLocal: testswizzleLocal, testswizzleGlobal: testswizzleGlobal, testswizzleGlobalImport: testswizzleGlobalImport, testswizzleFunc: testswizzleFunc };
@@ -70,10 +75,15 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Uint32x4(50, 1000, 3092, 3393, 8838, 63838, NaN, 838) });
 
-equalSimd([29975939, 8488484, 9493872, 4848848], m.testswizzleLocal(), SIMD.Uint32x4, "");
-equalSimd([1077936128, 1065353216, 1082130432, 1073741824], m.testswizzleGlobal(), SIMD.Uint32x4, "");
-equalSimd([3092, 50, 3393, 1000], m.testswizzleGlobalImport(), SIMD.Uint32x4, "");
-equalSimd([1107912067, 1073841700, 1091624304, 1078590672], m.testswizzleFunc(), SIMD.Uint32x4, "");
+var ret1 = SIMD.Uint32x4.fromInt32x4Bits(m.testswizzleLocal());
+var ret2 = SIMD.Uint32x4.fromInt32x4Bits(m.testswizzleGlobal());
+var ret3 = SIMD.Uint32x4.fromInt32x4Bits(m.testswizzleGlobalImport());
+var ret4 = SIMD.Uint32x4.fromInt32x4Bits(m.testswizzleFunc());
+
+equalSimd([29975939, 8488484, 9493872, 4848848],  ret1, SIMD.Uint32x4, "");
+equalSimd([1077936128, 1065353216, 1082130432, 1073741824], ret2, SIMD.Uint32x4, "");
+equalSimd([3092, 50, 3393, 1000], ret3, SIMD.Uint32x4, "");
+equalSimd([1107912067, 1073841700, 1091624304, 1078590672], ret4, SIMD.Uint32x4, "");
 print("PASS");
 
 

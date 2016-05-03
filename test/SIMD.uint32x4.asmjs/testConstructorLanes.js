@@ -17,6 +17,10 @@ function asmModule(stdlib, imports) {
     var vectorLength = 8;
 
     var loopCOUNT = 3;
+       
+    var i4 = stdlib.SIMD.Int32x4;
+    var i4check = i4.check;
+    var i4fu4 = i4.fromUint32x4Bits;
 
     function testLocal() {
         var a = ui4(8488484, 4848848, 29975939, 9493872);
@@ -46,7 +50,7 @@ function asmModule(stdlib, imports) {
 
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
     
         function testGlobal() {
@@ -77,7 +81,7 @@ function asmModule(stdlib, imports) {
                 loopIndex = (loopIndex + 1) | 0;
             }
 
-            return ui4check(result);
+        return i4check(i4fu4(result));
         }
 
         function testGlobalImport() {
@@ -108,16 +112,20 @@ function asmModule(stdlib, imports) {
                 loopIndex = (loopIndex + 1) | 0;
             }
 
-            return ui4check(result);
+        return i4check(i4fu4(result));
         }
         
         return { testLocal: testLocal, testGlobal: testGlobal, testGlobalImport: testGlobalImport };
     }
 
     var m = asmModule(this, { g1: SIMD.Uint32x4(100, 1073741824, 1028, 102) });
+    
+    var ret1 = SIMD.Uint32x4.fromInt32x4Bits(m.testLocal());
+    var ret2 = SIMD.Uint32x4.fromInt32x4Bits(m.testGlobal());
+    var ret3 = SIMD.Uint32x4.fromInt32x4Bits(m.testGlobalImport());
 
-    equalSimd([8488484, 4848848, 29975939, 9493872], m.testLocal(), SIMD.Uint32x4, "testLocal");
-    equalSimd([1065353216, 1073741824, 1077936128, 1082130432], m.testGlobal(), SIMD.Uint32x4, "testGlobal");
-    equalSimd([100, 1073741824, 1028, 102], m.testGlobalImport(), SIMD.Uint32x4, "testGlobalImport");
+    equalSimd([8488484, 4848848, 29975939, 9493872], ret1, SIMD.Uint32x4, "testLocal");
+    equalSimd([1065353216, 1073741824, 1077936128, 1082130432], ret2, SIMD.Uint32x4, "testGlobal");
+    equalSimd([100, 1073741824, 1028, 102], ret3, SIMD.Uint32x4, "testGlobalImport");
 
     print("PASS");

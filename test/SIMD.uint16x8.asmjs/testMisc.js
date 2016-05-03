@@ -68,14 +68,8 @@ var i4 = stdlib.SIMD.Int32x4;
     var u8store             = u8.store              ;
     var u8fromFloat32x4Bits = u8.fromFloat32x4Bits  ;
     var u8fromInt32x4Bits   = u8.fromInt32x4Bits    ;
-    var u8fromInt16x8Bits  = u8.fromInt16x8Bits   ;
     var u8fromUint32x4Bits  = u8.fromUint32x4Bits   ;
     var u8fromUint8x16Bits  = u8.fromUint8x16Bits   ;
-
-    
-   
-    
-
 
     var f4 = stdlib.SIMD.Float32x4;  
     var f4check = f4.check;
@@ -143,6 +137,9 @@ var i4 = stdlib.SIMD.Int32x4;
     
     var loopCOUNT = 3;
 
+    var u8fi8 = u8.fromInt16x8Bits;
+    var i8fu8 = i8.fromUint16x8Bits;
+
     function func1()
     {
         var x = u8(-1, -2, -3, -4, -5, -6, -7, -8);;
@@ -179,7 +176,7 @@ var i4 = stdlib.SIMD.Int32x4;
     
     function func2(a)
     {
-        a = u8check(a);
+        a = i8check(a);
         var x = u8(0, 0, 0, 0, 0, 0, 0, 0);
         var loopIndex = 0;
         var loopCOUNT = 3;
@@ -187,16 +184,16 @@ var i4 = stdlib.SIMD.Int32x4;
         while ( (loopIndex|0) < (loopCOUNT|0)) {
 
             x = u8swizzle(x, 1, 2, 3, 4, 0, 7, 7, 7);
-            x = u8shuffle(a, x, 0, 1, 10, 11, 2, 3, 12, 13);
+            x = u8shuffle(u8fi8(a), x, 0, 1, 10, 11, 2, 3, 12, 13);
             loopIndex = (loopIndex + 1) | 0;
         }
         
-        return u8check(x);
+        return i8check(i8fu8(x));
     }
     
     function func3(a)
     {
-        a = u8check(a);
+        a = i8check(a);
         var x = u8(0, 0, 0, 0, 0, 0, 0, 0);
         var y = u8(0, 0, 0, 0, 0, 0, 0, 0);
         var loopIndex = 0;
@@ -212,17 +209,17 @@ var i4 = stdlib.SIMD.Int32x4;
             loopIndex = (loopIndex + 1) | 0;
         }
         
-        return u8check(y);
+        return i8check(i8fu8(y));
     }
     
     
     function func4(a, b, c, d, e)
     {
-        a = u8check(a);
-        b = u8check(b);
-        c = u8check(c);
-        d = u8check(d);
-        e = u8check(e);
+        a = i8check(a);
+        b = i8check(b);
+        c = i8check(c);
+        d = i8check(d);
+        e = i8check(e);
         var x = u8(0, 0, 0, 0, 0, 0, 0, 0);
         var y = u8(0, 0, 0, 0, 0, 0, 0, 0);
         var loopIndex = 0;
@@ -230,24 +227,24 @@ var i4 = stdlib.SIMD.Int32x4;
         
         
         while ( (loopIndex|0) < (loopCOUNT|0)) {
-            x = u8and(a, b);
-            x = u8or(x, d);
-            x = u8xor(x, e);
+            x = u8and(u8fi8(a), u8fi8(b));
+            x = u8or(x, u8fi8(d));
+            x = u8xor(x, u8fi8(e));
             x = u8not(x);
             
             loopIndex = (loopIndex + 1) | 0;
         }
         
-        return u8check(x);
+        return i8check(i8fu8(x));
     }
     
     function func5(a, b, c, d, e)
     {
-        a = u8check(a);
-        b = u8check(b);
-        c = u8check(c);
-        d = u8check(d);
-        e = u8check(e);
+        a = i8check(a);
+        b = i8check(b);
+        c = i8check(c);
+        d = i8check(d);
+        e = i8check(e);
         var x = u8(0, 0, 0, 0, 0, 0, 0, 0);
         var y = u8(0, 0, 0, 0, 0, 0, 0, 0);
         var loopIndex = 0;
@@ -255,23 +252,23 @@ var i4 = stdlib.SIMD.Int32x4;
         
         
         while ( (loopIndex|0) < (loopCOUNT|0)) {
-            x = u8add(a, b);
-            x = u8sub(x, d);
-            x = u8mul(x, e);
+            x = u8add(u8fi8(a), u8fi8(b));
+            x = u8sub(x, u8fi8(d));
+            x = u8mul(x, u8fi8(e));
             
             loopIndex = (loopIndex + 1) | 0;
         }
         
-        return u8check(x);
+        return i8check(i8fu8(x));
     }
     
     function func6(a, b, c, d, e)
     {
-        a = u8check(a);
-        b = u8check(b);
-        c = u8check(c);
-        d = u8check(d);
-        e = u8check(e);
+        a = i8check(a);
+        b = i8check(b);
+        c = i8check(c);
+        d = i8check(d);
+        e = i8check(e);
         var x = u8(0, 0, 0, 0, 0, 0, 0, 0);
         var y = u8(0, 0, 0, 0, 0, 0, 0, 0);
         var loopIndex = 0;
@@ -279,8 +276,8 @@ var i4 = stdlib.SIMD.Int32x4;
         
         
         while ( (loopIndex|0) < (loopCOUNT|0)) {
-            x = u8min(x, b);
-            y = u8max(y, d);
+            x = u8min(x, u8fi8(b));
+            y = u8max(y, u8fi8(d));
             x = u8shiftLeftByScalar(x, loopIndex>>>0);
             y = u8shiftRightByScalar(y, loopIndex>>>0);
             
@@ -288,7 +285,7 @@ var i4 = stdlib.SIMD.Int32x4;
         }
         x = u8addSaturate(x, x);
         x = u8subSaturate(x, y);
-        return u8check(x);
+        return i8check(i8fu8(x));
     }
     
     
@@ -316,7 +313,7 @@ var i4 = stdlib.SIMD.Int32x4;
             y = u8add(y, t);
             index = (index + 16 ) | 0;
         }
-        return u8check(y);
+        return i8check(i8fu8(y));
     }
     
     function func8()
@@ -339,11 +336,11 @@ var i4 = stdlib.SIMD.Int32x4;
         {
             x = u8add(x, u8fromFloat32x4Bits(v_f4));
             x = u8add(x, u8fromInt32x4Bits(v_i4));
-            x = u8add(x, u8fromInt16x8Bits(v_i8));
+            x = u8add(x, u8fi8(v_i8));
             x = u8add(x, u8fromUint32x4Bits(v_u4));
             x = u8add(x, u8fromUint8x16Bits(v_u16));
         }
-        return u8check(x);
+        return i8check(i8fu8(x));
     }
 
     function bug1() //simd tmp reg reuse.
@@ -353,7 +350,7 @@ var i4 = stdlib.SIMD.Int32x4;
         u8add(x,x);
         return i4check(a);
     }
-    
+
     return {func1:func1, func2: func2, func3:func3, func4:func4,
             func5: func5, func6:func6, func7:func7, func8:func8, bug1:bug1};
 }
@@ -361,39 +358,40 @@ var i4 = stdlib.SIMD.Int32x4;
 var buffer = new ArrayBuffer(0x10000);
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)}, buffer);
 
-
+var u8fi8 = SIMD.Uint16x8.fromInt16x8Bits;
+var i8fu8 = SIMD.Int16x8.fromUint16x8Bits;
 
 var v1 = SIMD.Uint16x8(1, 2, 3, 4, 5, 6, 7, 8);
 var v2 = SIMD.Uint16x8(134, 211, -333, 422, -165, 999996, 0xffff, 0xf0f0);
 var v3 = SIMD.Uint16x8(0xcccc, -211, 189, 422, -165, -999996, 0xffff, 0xf0f0);
 var ret1 = m.func1();
 
-var ret2 = m.func2(v1);
+var ret2 = u8fi8(m.func2(i8fu8(v1)));
 //printSimdBaseline(ret2, "SIMD.Uint16x8", "ret2", "func2");
 
 
-var ret3 = m.func3(v1);
+var ret3 = u8fi8(m.func3(i8fu8(v1)));
 //printSimdBaseline(ret3, "SIMD.Uint16x8", "ret3", "func3");
 
 
-var ret4 = m.func4(v1, v2, v3, v1, v2);
+var ret4 = u8fi8(m.func4(i8fu8(v1), i8fu8(v2), i8fu8(v3), i8fu8(v1), i8fu8(v2)));
 //printSimdBaseline(ret4, "SIMD.Uint16x8", "ret4", "func4");
 
 
-var ret5 = m.func5(v1, v2, v3, v1, v2);
+var ret5 = u8fi8(m.func5(i8fu8(v1), i8fu8(v2), i8fu8(v3), i8fu8(v1), i8fu8(v2)));
 //printSimdBaseline(ret5, "SIMD.Uint16x8", "ret5", "func5");
 
 
 
-var ret6 = m.func6(v1, v2, v3, v1, v2);
+var ret6 = u8fi8(m.func6(i8fu8(v1), i8fu8(v2), i8fu8(v3), i8fu8(v1), i8fu8(v2)));
 //printSimdBaseline(ret6, "SIMD.Uint16x8", "ret6", "func6");
 
 
-var ret7 = m.func7(v1, v2, v3, v1, v2);
+var ret7 = u8fi8(m.func7(i8fu8(v1), i8fu8(v2), i8fu8(v3), i8fu8(v1), i8fu8(v2)));
 //printSimdBaseline(ret7, "SIMD.Uint16x8", "ret7", "func7");
 
 
-var ret8 = m.func8(v1, v2, v3, v1, v2);
+var ret8 = u8fi8(m.func8(i8fu8(v1), i8fu8(v2), i8fu8(v3), i8fu8(v1), i8fu8(v2)));
 //printSimdBaseline(ret8, "SIMD.Uint16x8", "ret8", "func8");
 
 var ret9 = m.bug1();

@@ -32,7 +32,10 @@ function asmModule(stdlib, imports) {
     var globImportI4 = i4check(imports.g2);       // global var import
     var g1 = f4(5033.2,3401.0,665.34,32234.1);          // global var initialized
     var g2 = i4(1065353216, 1073741824,1077936128, 1082130432);          // global var initialized
- 
+
+    var i8check = i8.check;
+    var i8fu8 = i8.fromUint16x8Bits;
+    
     var loopCOUNT = 3;
 
     function conv1()
@@ -47,7 +50,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(x);
+        return i8check(i8fu8(x));
     }
     
     function conv2()
@@ -58,7 +61,7 @@ function asmModule(stdlib, imports) {
         {
             x = ui8fromInt32x4Bits(globImportI4);
         }
-        return ui8check(x);
+        return i8check(i8fu8(x));
     }
 
     function conv3()
@@ -75,7 +78,7 @@ function asmModule(stdlib, imports) {
         }
         while ( (loopIndex | 0) > 0);
 
-        return ui8check(x);
+        return i8check(i8fu8(x));
     }
 
     function conv4()
@@ -90,7 +93,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(x);
+        return i8check(i8fu8(x));
     }
 
     function conv5()
@@ -102,7 +105,7 @@ function asmModule(stdlib, imports) {
         {
             x = ui8fromInt8x16Bits(m);
         }
-        return ui8check(x);
+        return i8check(i8fu8(x));
     }
     
     function conv6()
@@ -114,7 +117,7 @@ function asmModule(stdlib, imports) {
         {
             x = ui8fromUint8x16Bits(m);
         }
-        return ui8check(x);
+        return i8check(i8fu8(x));
     }
 
     
@@ -155,12 +158,19 @@ printSimdBaseline(m.func4(), "SIMD.Uint16x8", "m.func4()", "Func4");
 printSimdBaseline(m.func5(), "SIMD.Uint16x8", "m.func5()", "Func5");
 printSimdBaseline(m.func6(), "SIMD.Uint16x8", "m.func6()", "Func6");*/
 
-equalSimd([18842, 17821, 36864, 17748, 21955, 17446, 54323, 18171], m.func1(), SIMD.Uint16x8, "Func1");
-equalSimd([0, 49280, 0, 49152, 0, 49088, 0, 49024], m.func2(), SIMD.Uint16x8, "Func2");
-equalSimd([1, 0, 2, 0, 3, 0, 4, 0], m.func3(), SIMD.Uint16x8, "Func3");
-equalSimd([1, 2, 3, 4, 5, 6, 7, 8], m.func4(), SIMD.Uint16x8, "Func4");
-equalSimd([43690, 43690, 43690, 43690, 43690, 43690, 43690, 43690], m.func5(), SIMD.Uint16x8, "Func5");
-equalSimd([21845, 21845, 21845, 21845, 21845, 21845, 21845, 21845], m.func6(), SIMD.Uint16x8, "Func6");
+var ret1 = SIMD.Uint16x8.fromInt16x8Bits(m.func1());
+var ret2 = SIMD.Uint16x8.fromInt16x8Bits(m.func2());
+var ret3 = SIMD.Uint16x8.fromInt16x8Bits(m.func3());
+var ret4 = SIMD.Uint16x8.fromInt16x8Bits(m.func4());
+var ret5 = SIMD.Uint16x8.fromInt16x8Bits(m.func5());
+var ret6 = SIMD.Uint16x8.fromInt16x8Bits(m.func6());
+
+equalSimd([18842, 17821, 36864, 17748, 21955, 17446, 54323, 18171], ret1, SIMD.Uint16x8, "Func1");
+equalSimd([0, 49280, 0, 49152, 0, 49088, 0, 49024], ret2, SIMD.Uint16x8, "Func2");
+equalSimd([1, 0, 2, 0, 3, 0, 4, 0], ret3, SIMD.Uint16x8, "Func3");
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8], ret4, SIMD.Uint16x8, "Func4");
+equalSimd([43690, 43690, 43690, 43690, 43690, 43690, 43690, 43690], ret5, SIMD.Uint16x8, "Func5");
+equalSimd([21845, 21845, 21845, 21845, 21845, 21845, 21845, 21845], ret6, SIMD.Uint16x8, "Func6");
 
 
 print("PASS");
