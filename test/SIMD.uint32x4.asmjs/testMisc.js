@@ -62,7 +62,6 @@ function asmModule(stdlib, imports,buffer) {
     var u4store2             = u4.store2              ;
     var u4store3             = u4.store3              ;
     var u4fromFloat32x4Bits = u4.fromFloat32x4Bits  ;
-    var u4fromInt32x4Bits   = u4.fromInt32x4Bits    ;
     var u4fromInt16x8Bits  = u4.fromInt16x8Bits   ;
     var u4fromUint16x8Bits  = u4.fromUint16x8Bits   ;
     var u4fromUint8x16Bits  = u4.fromUint8x16Bits   ;
@@ -143,6 +142,8 @@ function asmModule(stdlib, imports,buffer) {
     var Float32Heap = new stdlib.Float32Array(buffer);
     
     var loopCOUNT = 3;
+    var i4fu4 = i4.fromUint32x4Bits;
+    var u4fi4 = u4.fromInt32x4Bits;
 
     function func1()
     {
@@ -163,15 +164,13 @@ function asmModule(stdlib, imports,buffer) {
             y = u4extractLane(x, 3);
             s = ( s + y ) | 0;
             loopIndex = (loopIndex + 1) | 0;
-            
         }
-        
         return s | 0;
     }
-    
+
     function func2(a)
     {
-        a = u4check(a);
+        a = i4check(a);
         var x = u4(0, 0, 0, 0);
         var loopIndex = 0;
         var loopCOUNT = 3;
@@ -179,16 +178,16 @@ function asmModule(stdlib, imports,buffer) {
         while ( (loopIndex|0) < (loopCOUNT|0)) {
 
             x = u4swizzle(x, 3, 2, 1, 0);
-            x = u4shuffle(a, x, 0, 1, 7, 6);
+            x = u4shuffle(u4fi4(a), x, 0, 1, 7, 6);
             loopIndex = (loopIndex + 1) | 0;
         }
         
-        return u4check(x);
+        return i4check(i4fu4(x));
     }
     
     function func3(a)
     {
-        a = u4check(a);
+        a = i4check(a);
         var x = u4(0, 0, 0, 0);
         var y = u4(0, 0, 0, 0);
         var loopIndex = 0;
@@ -204,17 +203,17 @@ function asmModule(stdlib, imports,buffer) {
             loopIndex = (loopIndex + 1) | 0;
         }
         
-        return u4check(y);
+        return i4check(i4fu4(y));
     }
     
     
     function func4(a, b, c, d, e)
     {
-        a = u4check(a);
-        b = u4check(b);
-        c = u4check(c);
-        d = u4check(d);
-        e = u4check(e);
+        a = i4check(a);
+        b = i4check(b);
+        c = i4check(c);
+        d = i4check(d);
+        e = i4check(e);
         var x = u4(0, 0, 0, 0);
         var y = u4(0, 0, 0, 0);
         var loopIndex = 0;
@@ -222,24 +221,24 @@ function asmModule(stdlib, imports,buffer) {
         
         
         while ( (loopIndex|0) < (loopCOUNT|0)) {
-            x = u4and(a, b);
-            x = u4or(x, d);
-            x = u4xor(x, e);
+            x = u4and(u4fi4(a), u4fi4(b));
+            x = u4or(x, u4fi4(d));
+            x = u4xor(x, u4fi4(e));
             x = u4not(x);
             
             loopIndex = (loopIndex + 1) | 0;
         }
         
-        return u4check(x);
+        return i4check(i4fu4(x));
     }
     
     function func5(a, b, c, d, e)
     {
-        a = u4check(a);
-        b = u4check(b);
-        c = u4check(c);
-        d = u4check(d);
-        e = u4check(e);
+        a = i4check(a);
+        b = i4check(b);
+        c = i4check(c);
+        d = i4check(d);
+        e = i4check(e);
         var x = u4(0, 0, 0, 0);
         var y = u4(0, 0, 0, 0);
         var loopIndex = 0;
@@ -247,24 +246,24 @@ function asmModule(stdlib, imports,buffer) {
         
         
         while ( (loopIndex|0) < (loopCOUNT|0)) {
-            x = u4add(a, b);
-            x = u4sub(x, d);
-            x = u4mul(x, e);
+            x = u4add(u4fi4(a), u4fi4(b));
+            x = u4sub(x, u4fi4(d));
+            x = u4mul(x, u4fi4(e));
             
             
             loopIndex = (loopIndex + 1) | 0;
         }
         
-        return u4check(x);
+        return i4check(i4fu4(x));
     }
-    
+
     function func6(a, b, c, d, e)
     {
-        a = u4check(a);
-        b = u4check(b);
-        c = u4check(c);
-        d = u4check(d);
-        e = u4check(e);
+        a = i4check(a);
+        b = i4check(b);
+        c = i4check(c);
+        d = i4check(d);
+        e = i4check(e);
         var x = u4(0, 0, 0, 0);
         var y = u4(0, 0, 0, 0);
         var loopIndex = 0;
@@ -272,19 +271,17 @@ function asmModule(stdlib, imports,buffer) {
         
         
         while ( (loopIndex|0) < (loopCOUNT|0)) {
-            x = u4min(x, b);
-            y = u4max(y, d);
+            x = u4min(x, u4fi4(b));
+            y = u4max(y, u4fi4(d));
             x = u4shiftLeftByScalar(x, loopIndex>>>0);
             y = u4shiftRightByScalar(y, loopIndex>>>0);
             
             loopIndex = (loopIndex + 1) | 0;
         }
         
-        return u4check(x);
+        return i4check(i4fu4(x));
     }
-    
-    
-    
+
     function func7()
     {
         var loopIndex = 0;
@@ -359,7 +356,7 @@ function asmModule(stdlib, imports,buffer) {
         }
         
         x = u4add(x, y);
-        return u4check(y);
+        return i4check(i4fu4(y));
     }
 
     function bug1() //simd tmp reg reuse.
@@ -389,13 +386,13 @@ function asmModule(stdlib, imports,buffer) {
         for (loopIndex = 0; (loopIndex | 0) < (size | 0) ; loopIndex = (loopIndex + 1) | 0)
         {
             x = u4add(x, u4fromFloat32x4Bits(v_f4));
-            x = u4add(x, u4fromInt32x4Bits(v_i4));
+            x = u4add(x, u4fi4(v_i4));
             x = u4add(x, u4fromInt16x8Bits(v_i8));
             x = u4add(x, u4fromUint16x8Bits(v_u8));
             x = u4add(x, u4fromUint8x16Bits(v_u16));
         }
 
-        return u4check(x);
+        return i4check(i4fu4(x));
     }
 
     return {func1:func1, func2: func2, func3:func3, func4:func4, 
@@ -406,32 +403,33 @@ function asmModule(stdlib, imports,buffer) {
 var buffer = new ArrayBuffer(0x10000);
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)}, buffer);
 
-
+var i4fu4 = SIMD.Int32x4.fromUint32x4Bits;
+var u4fi4 = SIMD.Uint32x4.fromInt32x4Bits;
 
 var v1 = SIMD.Uint32x4(1, 2, 3, 4 );
 var v2 = SIMD.Uint32x4(134, 211, 0xffff, 0xf0f0);
 var v3 = SIMD.Uint32x4(0xcccc, -999996, 0xffff, 0xf0f0);
 var ret1 = m.func1();
 
-var ret2 = m.func2(v1);
+var ret2 = u4fi4(m.func2(i4fu4(v1)));
 //printSimdBaseline(ret2, "SIMD.Uint32x4", "ret2", "func2");
 
-var ret3 = m.func3(v1);
+var ret3 = u4fi4(m.func3(i4fu4(v1)));
 //printSimdBaseline(ret3, "SIMD.Uint32x4", "ret3", "func3");
 
-var ret4 = m.func4(v1, v2, v3, v1, v2);
+var ret4 = u4fi4(m.func4(i4fu4(v1), i4fu4(v2), i4fu4(v3), i4fu4(v1), i4fu4(v2)));
 //printSimdBaseline(ret4, "SIMD.Uint32x4", "ret4", "func4");
 
-var ret5 = m.func5(v1, v2, v3, v1, v2);
+var ret5 = u4fi4(m.func5(i4fu4(v1), i4fu4(v2), i4fu4(v3), i4fu4(v1), i4fu4(v2)));
 //printSimdBaseline(ret5, "SIMD.Uint32x4", "ret5", "func5");
 
-var ret6 = m.func6(v1, v2, v3, v1, v2);
+var ret6 = u4fi4(m.func6(i4fu4(v1), i4fu4(v2), i4fu4(v3), i4fu4(v1), i4fu4(v2)));
 //printSimdBaseline(ret6, "SIMD.Uint32x4", "ret6", "func6");
 
-var ret7 = m.func7(v1, v2, v3, v1, v2);
+var ret7 = u4fi4(m.func7(i4fu4(v1), i4fu4(v2), i4fu4(v3), i4fu4(v1), i4fu4(v2)));
 //printSimdBaseline(ret7, "SIMD.Uint32x4", "ret7", "func7");
 
-var ret8 = m.func8(v1, v2, v3, v1, v2);
+var ret8 = u4fi4(m.func8(i4fu4(v1), i4fu4(v2), i4fu4(v3), i4fu4(v1), i4fu4(v2)));
 //printSimdBaseline(ret8, "SIMD.Uint32x4", "ret8", "func8");
 
 var ret9 = m.bug1();

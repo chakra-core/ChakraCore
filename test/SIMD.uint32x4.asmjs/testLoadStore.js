@@ -27,6 +27,10 @@ function asmModule(stdlib, imports, buffer) {
     var gval2 = 1234.0;
 
     var loopCOUNT = 5;
+    
+    var i4 = stdlib.SIMD.Int32x4;
+    var i4check = i4.check;
+    var i4fu4 = i4.fromUint32x4Bits;
 
     var Int8Heap = new stdlib.Int8Array (buffer);    
     var Uint8Heap = new stdlib.Uint8Array (buffer);    
@@ -82,7 +86,7 @@ function asmModule(stdlib, imports, buffer) {
             t0 = ui4add(t0, ui4add(t1, ui4add(t2, t3)));
             index = (index + 16 ) | 0;
         }
-        return ui4check(t0);
+        return i4check(i4fu4(t0));
     }
 
     function func1()
@@ -106,7 +110,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func1OOB_1()
@@ -133,7 +137,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
     
     function func1OOB_2()
@@ -160,7 +164,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func2()
@@ -184,7 +188,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func2OOB_1()
@@ -211,7 +215,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func2OOB_2()
@@ -261,7 +265,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func3OOB_1()
@@ -288,7 +292,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func3OOB_2()
@@ -315,7 +319,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func4()
@@ -339,7 +343,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func4OOB_1()
@@ -366,7 +370,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func4OOB_2()
@@ -393,7 +397,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func5()
@@ -417,7 +421,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func5OOB_1()
@@ -443,7 +447,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func5OOB_2()
@@ -470,7 +474,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func6()
@@ -494,7 +498,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func6OOB_1()
@@ -521,7 +525,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     function func6OOB_2()
@@ -548,7 +552,7 @@ function asmModule(stdlib, imports, buffer) {
             y = ui4add(y, t);
             index = (index + 16 ) | 0;
         }
-        return ui4check(y);
+        return i4check(i4fu4(y));
     }
 
     // TODO: Test conversion of returned value
@@ -601,30 +605,30 @@ var m = asmModule(this, {g1: SIMD.Uint32x4(1065353216, 1073741824, 1077936128, 1
 var ret;
 
 
-ret = m.func0();
+ret = SIMD.Uint32x4.fromInt32x4Bits(m.func0());
 equalSimd([16, 32, 48, 64], ret, SIMD.Uint32x4, "Test Load Store0");
 
-ret = m.func1();
+ret = SIMD.Uint32x4.fromInt32x4Bits(m.func1());
 equalSimd([10, 20, 30, 40], ret, SIMD.Uint32x4, "Test Load Store1");
 
 
-ret = m.func2();
+ret = SIMD.Uint32x4.fromInt32x4Bits(m.func2());
 equalSimd([10, 20, 30, 0], ret, SIMD.Uint32x4, "Test Load Store2");
 
 
-ret = m.func3();
+ret = SIMD.Uint32x4.fromInt32x4Bits(m.func3());
 equalSimd([10, 20, 0, 0], ret, SIMD.Uint32x4, "Test Load Store3");
 
 
-ret = m.func4();
+ret = SIMD.Uint32x4.fromInt32x4Bits(m.func4());
 equalSimd([10, 0, 0, 0], ret, SIMD.Uint32x4, "Test Load Store4");
 
 
-ret = m.func5();
+ret = SIMD.Uint32x4.fromInt32x4Bits(m.func5());
 equalSimd([10, 20, 30, 40], ret, SIMD.Uint32x4, "Test Load Store5");
 
 
-ret = m.func6();
+ret = SIMD.Uint32x4.fromInt32x4Bits(m.func6());
 equalSimd([10, 20, 30, 40], ret, SIMD.Uint32x4, "Test Load Store6");
 
 
@@ -643,7 +647,7 @@ for (var i = 0; i < funcOOB1.length; i ++)
 {
     try
     {
-        ret = funcOOB1[i]();
+        ret = SIMD.Uint32x4.fromInt32x4Bits(funcOOB1[i]());
         //print("func" + (i+1) + "OOB_1");
         equalSimd(RESULTS[i], ret, SIMD.Uint32x4, "Test Load Store");
 
@@ -661,7 +665,7 @@ for (var i = 0; i < funcOOB2.length; i ++)
     //print("func" + (i+1) + "OOB_2");
     try
     {
-        ret = funcOOB2[i]();
+        ret = SIMD.Uint32x4.fromInt32x4Bits(funcOOB2[i]());
         print("Wrong");
         
     } catch(e)
