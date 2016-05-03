@@ -26,6 +26,7 @@ PRINT_USAGE() {
     echo "    --help, -h  : Show help"
     echo "    --icu       : Path to ICU include folder (see example below)"
     echo "    --jobs, -j  : Multicore build (i.e. -j=3 for 3 cores)"
+    echo "    --ninja, -n : Build with ninja instead of make"
     echo ""
     echo "  example:"
     echo "    ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j=2"
@@ -36,7 +37,9 @@ PRINT_USAGE() {
 
 _CXX=""
 _CC=""
-DEBUG_BUILD=0
+BUILD_TYPE="Release"
+CMAKE_GEN=
+MAKE=make
 MULTICORE_BUILD=""
 ICU_PATH=""
 
@@ -57,7 +60,7 @@ while [[ $# -gt 0 ]]; do
     fi
 
     if [[ "$1" == "--debug" || "$1" == "-d" ]]; then
-        DEBUG_BUILD=1
+        BUILD_TYPE="Debug"
     fi
 
     if [[ "$1" =~ "-j" ]]; then
@@ -73,6 +76,11 @@ while [[ $# -gt 0 ]]; do
     if [[ "$1" =~ "--icu" ]]; then
         ICU_PATH=$1
         ICU_PATH="-DICU_INCLUDE_PATH=${ICU_PATH:6}"
+    fi
+
+    if [[ "$1" == "--ninja" || "$1" == "-n" ]]; then
+        CMAKE_GEN="-G Ninja"
+        MAKE=ninja
     fi
 
     shift
@@ -115,14 +123,8 @@ fi
 
 pushd BuildLinux > /dev/null
 
-if [ $DEBUG_BUILD -eq 1 ]; then
-    echo Generating Debug makefiles
-    cmake $CC_PREFIX $ICU_PATH -DCMAKE_BUILD_TYPE=Debug ..
-else
-    echo Generating Retail makefiles
-    echo Building Retail;
-    cmake $CC_PREFIX $ICU_PATH -DCMAKE_BUILD_TYPE=Release ..
-fi
+echo Generating $BUILD_TYPE makefiles
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
 
-make $MULTICORE_BUILD 2>&1 | tee build.log
+$MAKE $MULTICORE_BUILD 2>&1 | tee build.log
 popd > /dev/null
