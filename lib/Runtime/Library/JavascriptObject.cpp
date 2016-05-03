@@ -474,7 +474,7 @@ namespace Js
                 break;
 
             case TypeIds_Proxy:
-                if (JavascriptOperators::IsArray(JavascriptProxy::FromVar(thisArg)->GetTarget()))
+                if (JavascriptOperators::IsArray(thisArg))
                 {
                     if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Array")) == 0)
                     {
