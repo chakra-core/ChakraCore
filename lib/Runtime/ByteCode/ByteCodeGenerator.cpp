@@ -1819,6 +1819,17 @@ bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
         return false;
     }
 
+    if (funcInfo->paramScope && !funcInfo->paramScope->GetCanMergeWithBodyScope())
+    {
+        if (trace)
+        {
+            PHASE_PRINT_TESTTRACE(Js::StackFuncPhase, funcInfo->byteCodeFunction,
+                _u("CanStackNestedFunc: %s (Split Scope)\n"),
+                funcInfo->byteCodeFunction->GetDisplayName());
+        }
+        return false;
+    }
+
     if (trace && funcInfo->byteCodeFunction->GetNestedCount())
     {
         // Only print functions that actually have nested functions, although we will still mark

@@ -70,6 +70,14 @@ var tests = [
             return b; 
         } 
         assert.areEqual(10, f7().iFnc(), "Function definition inside the object literal should capture the formal from the param scope");
+        
+        var f8 = function (a, b = ((function() { assert.areEqual('string1', a, "First arguemnt receives the right value"); })(), 1), c) {
+            var d = 'string3';
+            (function () { assert.areEqual('string3', d, "Var declaration in the body is initialized properly"); })();
+            return c;
+        };
+
+        assert.areEqual('string2', f8('string1', undefined, 'string2'), "Function returns the third argument properly");
     } 
  }, 
  { 
