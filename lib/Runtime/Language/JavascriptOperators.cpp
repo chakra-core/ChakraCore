@@ -4685,11 +4685,29 @@ CommonNumber:
                 }
                 else if (instanceType == TypeIds_NativeIntArray)
                 {
-                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, JavascriptConversion::ToInt32(value, scriptContext));
+                    // Only accept tagged int. Also covers case for MissingItem
+                    if (!TaggedInt::Is(value))
+                    {
+                        return false;
+                    }
+                    int32 intValue = JavascriptConversion::ToInt32(value, scriptContext);
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, intValue);
                 }
                 else
                 {
-                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<double>(start, length, JavascriptConversion::ToNumber(value, scriptContext));
+                    // For native float arrays, the jit doesn't check the type of the source so we have to do it here
+                    if (!JavascriptNumber::Is(value) && !TaggedNumber::Is(value))
+                    {
+                        return false;
+                    }
+
+                    double doubleValue = JavascriptConversion::ToNumber(value, scriptContext);
+                    // Special case for missing item
+                    if (SparseArraySegment<double>::IsMissingItem(&doubleValue))
+                    {
+                        return false;
+                    }
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<double>(start, length, doubleValue);
                 }
                 returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(instance);
             }
