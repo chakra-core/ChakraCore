@@ -953,10 +953,11 @@ SECOND_PASS:
             for (uint i = 0; i < length; i++)
             {
                 T val;
-                if (fromArray->DirectGetItemAt(fromStartIndex + i, &val))
+                if (!fromArray->DirectGetItemAt(fromStartIndex + i, &val))
                 {
-                    DirectSetItem_Full(toStartIndex + i, val);
+                    return false;
                 }
+                DirectSetItem_Full(toStartIndex + i, val);
             }
             return true;
         }
