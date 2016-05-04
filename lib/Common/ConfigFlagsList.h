@@ -569,7 +569,7 @@ PHASE(All)
 #endif
 #define DEFAULT_CONFIG_BailOnNoProfileLimit    200      // The limit of bailout on no profile info before triggering a rejit
 #define DEFAULT_CONFIG_BailOnNoProfileRejitLimit (-1)   // The limit of bailout on no profile info before disable all the no profile bailouts
-#define DEFAULT_CONFIG_CallsToBailoutsRatioForRejit 20   // Ratio of function calls to bailouts above which a rejit is considered
+#define DEFAULT_CONFIG_CallsToBailoutsRatioForRejit 10   // Ratio of function calls to bailouts above which a rejit is considered
 #define DEFAULT_CONFIG_LoopIterationsToBailoutsRatioForRejit 50 // Ratio of loop iteration count to bailouts above which a rejit of the loop body is considered
 #define DEFAULT_CONFIG_MinBailOutsBeforeRejit 2         // Minimum number of bailouts for a single bailout record after which a rejit is considered
 #define DEFAULT_CONFIG_MinBailOutsBeforeRejitForLoops 2         // Minimum number of bailouts for a single bailout record after which a rejit is considered
