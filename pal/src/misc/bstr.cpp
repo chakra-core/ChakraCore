@@ -119,7 +119,7 @@ STDAPI_(BSTR) SysAllocStringLen(const OLECHAR *psz, UINT len)
 }
 
 /***
- *BSTR SysFreeString(char*)
+ *void SysFreeString(BSTR)
  *Purpose:
  *  Free a bstr using the passed in string
  *
@@ -130,16 +130,20 @@ STDAPI_(BSTR) SysAllocStringLen(const OLECHAR *psz, UINT len)
  *  return value = void
  *
  ***********************************************************************/
-STDAPI_(void) SysFreeString(const OLECHAR* psz)
+STDAPI_(void) SysFreeString(BSTR bstr)
 {
-    if (psz != NULL)
+    if (bstr != NULL)
     {
-        HeapFree(GetProcessHeap(), 0, (LPVOID) psz);
+        bstr = (BSTR) ((char*) bstr - sizeof(DWORD));
+#if defined(_WIN64)
+        bstr = (BSTR) ((char*) bstr - sizeof(DWORD));
+#endif
+        HeapFree(GetProcessHeap(), 0, (LPVOID) bstr);
     }
 }
 
 /***
- *BSTR SysStringLen(char*)
+ *UINT SysStringLen(BSTR)
  *Purpose:
  *  Return the length of the string in characters (not including null terminator)
  *
@@ -150,14 +154,14 @@ STDAPI_(void) SysFreeString(const OLECHAR* psz)
  *  return value = length of the string
  *
  ***********************************************************************/
-STDAPI_(UINT) SysStringLen(const OLECHAR* psz)
+STDAPI_(UINT) SysStringLen(BSTR bstr)
 {
-    if (psz == NULL)
+    if (bstr == NULL)
     {
         return 0;
     }
 
-    return (UINT)((((DWORD FAR*)psz)[-1]) / sizeof(OLECHAR));    
+    return (UINT)((((DWORD FAR*)bstr)[-1]) / sizeof(OLECHAR));
 }
 
 /***
@@ -178,6 +182,6 @@ STDAPI_(BSTR) SysAllocString(const OLECHAR* psz)
     {
         return NULL;
     }
-    
+
     return SysAllocStringLen(psz, (DWORD)PAL_wcslen(psz));
 }
