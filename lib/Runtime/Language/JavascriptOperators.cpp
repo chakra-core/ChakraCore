@@ -4685,12 +4685,12 @@ CommonNumber:
                 }
                 else if (instanceType == TypeIds_NativeIntArray)
                 {
-                    int32 intValue = JavascriptConversion::ToInt32(value, scriptContext);
-                    // Special case for missing item
-                    if (SparseArraySegment<int32>::IsMissingItem(&intValue))
+                    // Only accept tagged int. Also covers case for MissingItem
+                    if (!TaggedInt::Is(value))
                     {
                         return false;
                     }
+                    int32 intValue = JavascriptConversion::ToInt32(value, scriptContext);
                     returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, intValue);
                 }
                 else
