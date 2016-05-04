@@ -1872,6 +1872,12 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
         Assert(lastRecord->leaveForHost || lastRecord->leaveForAsyncHostOperation);
         lastRecord->hasReentered = true;
         record->next = lastRecord;
+
+        // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+        if ((uintptr_t)record > (uintptr_t)lastRecord)
+        {
+            RaiseFailFastException(NULL, NULL, NULL);
+        }
     }
 
     this->entryExitRecord = record;
@@ -1880,6 +1886,12 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
 void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
 {
     AssertMsg(record && record == this->entryExitRecord, "Mismatch script entry/exit");
+
+    // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+    if (this->entryExitRecord->next && (uintptr_t)this->entryExitRecord > (uintptr_t)this->entryExitRecord->next)
+    {
+        RaiseFailFastException(NULL, NULL, NULL);
+    }
 
     this->entryExitRecord = this->entryExitRecord->next;
 }
