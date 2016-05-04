@@ -4689,6 +4689,11 @@ CommonNumber:
                 }
                 else
                 {
+                    // For native float arrays, the jit doesn't check the type of the source so we have to do it here
+                    if (!JavascriptNumber::Is(value) && !TaggedNumber::Is(value))
+                    {
+                        return false;
+                    }
                     returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<double>(start, length, JavascriptConversion::ToNumber(value, scriptContext));
                 }
                 returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(instance);
