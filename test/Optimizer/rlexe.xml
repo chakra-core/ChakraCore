@@ -1366,4 +1366,11 @@
       <baseline>bug7100343.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>negativeZero_bugs.js</files>
+      <compile-flags>-mic:2 -off:simplejit</compile-flags>
+      <baseline>negativeZero_bugs.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
