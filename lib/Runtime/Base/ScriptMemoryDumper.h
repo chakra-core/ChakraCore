@@ -8,7 +8,7 @@
 class ScriptMemoryDumper
 {
 public:
-    typedef struct HeapStats
+    struct HeapStats
     {
         size_t pageCount;
         uint32 objectSize;
