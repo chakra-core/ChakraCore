@@ -215,6 +215,10 @@ namespace Js
         static BOOL IsAnyNumberValue(Var instance);
         static BOOL IsClassConstructor(Var instance);
 
+        static bool CanShortcutOnUnknownPropertyName(RecyclableObject * instance);
+        static bool CanShortcutInstanceOnUnknownPropertyName(RecyclableObject *instance);
+        static bool CanShortcutPrototypeChainOnUnknownPropertyName(RecyclableObject *instance);
+
         static BOOL HasOwnItem(RecyclableObject* instance, uint32 index);
         static BOOL HasItem(RecyclableObject* instance, uint32 index);
         static BOOL HasItem(RecyclableObject* instance, uint64 index);
