@@ -46,12 +46,12 @@ Revision History:
 #include <mach/vm_param.h>
 #endif  // HAVE_MACH_VM_PARAM_H
 
-#if defined(_TARGET_MAC64)
+#if defined(__APPLE__)
 #include <mach/vm_statistics.h>
 #include <mach/mach_types.h>
 #include <mach/mach_init.h>
 #include <mach/mach_host.h>
-#endif // defined(_TARGET_MAC64)
+#endif // defined(__APPLE__)
 
 // On some platforms sys/user.h ends up defining _DEBUG; if so
 // remove the definition before including the header and put
@@ -345,4 +345,3 @@ PAL_GetLogicalProcessorCacheSizeFromOS()
 
     return cacheSize;
 }
-

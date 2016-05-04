@@ -34,7 +34,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
 endif(CMAKE_SYSTEM_NAME STREQUAL Linux)
 
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  add_definitions(-D_TARGET_MAC64)
   set(PLATFORM_SOURCES
     arch/i386/activationhandlerwrapper.S
     arch/i386/context.S

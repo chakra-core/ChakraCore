@@ -1571,14 +1571,14 @@ typedef OUT_OF_PROCESS_FUNCTION_TABLE_CALLBACK *POUT_OF_PROCESS_FUNCTION_TABLE_C
 
 #if defined(FEATURE_PAL_SXS)
 
-// #if !defined(_TARGET_MAC64)
+// #if !defined(__APPLE__)
 // typedef LONG (*PEXCEPTION_ROUTINE)(
     // IN PEXCEPTION_POINTERS pExceptionPointers,
     // IN LPVOID lpvParam);
 
 // #define DISPATCHER_CONTEXT    LPVOID
 
-// #else // defined(_TARGET_MAC64)
+// #else // defined(__APPLE__)
 
 //
 // Define unwind history table structure.
@@ -1663,7 +1663,7 @@ typedef struct _DISPATCHER_CONTEXT {
 
 #endif
 
-// #endif // !defined(_TARGET_MAC64)
+// #endif // !defined(__APPLE__)
 
 typedef DISPATCHER_CONTEXT *PDISPATCHER_CONTEXT;
 
