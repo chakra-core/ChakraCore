@@ -56,6 +56,14 @@
     </default>
   </test>
   <test>
+     <default>
+        <files>testBug1.js</files>
+        <baseline>testBug1.baseline</baseline>
+        <tags>exclude_dynapogo,exclude_ship</tags>
+        <compile-flags>-off:deferparse -testtrace:asmjs -simdjs -bgjit- -maic:1</compile-flags>
+     </default>
+   </test>
+  <test>
     <default>
       <files>testFail_1.js</files>
       <baseline>testFail_1.baseline</baseline>

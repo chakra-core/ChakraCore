@@ -84,6 +84,13 @@ function asmModule(stdlib, imports) {
         return b8check(result);
     }
 
+    //Validation will fail with the bug
+    function retValueCoercionBug()
+    {
+        var ret1 = 0;
+        var a = b8(1,2,3,4,5,6,7,8);
+        ret1 = (b8extractLane(a, 0))|0;
+    }
     return {testConstructor:testConstructor,
     testSplat:testSplat,
     testLaneAccess: testLaneAccess};

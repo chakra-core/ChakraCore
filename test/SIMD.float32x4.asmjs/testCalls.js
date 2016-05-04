@@ -53,7 +53,7 @@ function asmModule(stdlib, imports) {
     var f4xor = f4.xor;
     var f4not = f4.not;
 
-    
+    var f4extractLane = f4.extractLane;
 
     var fround = stdlib.Math.fround;
 
@@ -185,6 +185,16 @@ function asmModule(stdlib, imports) {
         var k = i4(-1, -2, -3, -4);
         x = f4check(fcBug_1());
         return i4check(k);
+    }
+
+    //Validation will fail with the bug
+    function retValueCoercionBug()
+    {
+        var ret = 0.0;
+        var ret1 = fround(0);
+        var a = f4(1.0, 2.0, 3.0, 4.0);
+        ret = +f4extractLane(a, 0);
+        ret1 = fround(f4extractLane(a, 0));
     }
 
     return {func1:func1, func2:func2, func3:func3, func4:func4, fcBug1:fcBug_1, fcBug2:fcBug_2};
