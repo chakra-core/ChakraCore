@@ -273,8 +273,8 @@ function asmModule(stdlib, imports,buffer) {
         while ( (loopIndex|0) < (loopCOUNT|0)) {
             x = u4min(x, u4fi4(b));
             y = u4max(y, u4fi4(d));
-            x = u4shiftLeftByScalar(x, loopIndex>>>0);
-            y = u4shiftRightByScalar(y, loopIndex>>>0);
+            x = u4shiftLeftByScalar(x, loopIndex);
+            y = u4shiftRightByScalar(y, loopIndex);
             
             loopIndex = (loopIndex + 1) | 0;
         }

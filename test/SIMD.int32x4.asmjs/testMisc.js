@@ -99,8 +99,8 @@ var i4 = stdlib.SIMD.Int32x4;
 
             d = i4min(b, c);
             b = i4max(d, c);
-            d = i4shiftLeftByScalar(d, loopIndex >>> 0);
-            b = i4shiftRightByScalar(b, loopIndex >>> 0);
+            d = i4shiftLeftByScalar(d, loopIndex);
+            b = i4shiftRightByScalar(b, loopIndex);
             loopIndex = (loopIndex + 1) | 0;
         }
 
