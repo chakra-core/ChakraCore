@@ -374,6 +374,7 @@ inline char16* wmemset(char16* wcs, char16 wc, size_t n)
     {
         wcs[--n] = wc;
     }
+    return wcs;
 }
 
 DWORD __cdecl CharLowerBuffW(const char16* lpsz, DWORD  cchLength);
@@ -477,7 +478,7 @@ STRSAFEAPI StringVPrintfWorkerW(WCHAR* pszDest, size_t cchDest, const WCHAR* psz
         // can not null terminate a zero-byte dest buffer
         hr = STRSAFE_E_INVALID_PARAMETER;
     }
-    else    
+    else
     {
         int iRet;
         size_t cchMax;
@@ -523,7 +524,7 @@ STRSAFEAPI StringCchPrintfW(WCHAR* pszDest, size_t cchDest, const WCHAR* pszForm
         va_start(argList, pszFormat);
 
         hr = StringVPrintfWorkerW(pszDest, cchDest, pszFormat, argList);
-    
+
         va_end(argList);
     }
 
