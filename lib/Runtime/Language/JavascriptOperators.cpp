@@ -4685,7 +4685,13 @@ CommonNumber:
                 }
                 else if (instanceType == TypeIds_NativeIntArray)
                 {
-                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, JavascriptConversion::ToInt32(value, scriptContext));
+                    int32 intValue = JavascriptConversion::ToInt32(value, scriptContext);
+                    // Special case for missing item
+                    if (SparseArraySegment<int32>::IsMissingItem(&intValue))
+                    {
+                        return false;
+                    }
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, intValue);
                 }
                 else
                 {
@@ -4694,7 +4700,14 @@ CommonNumber:
                     {
                         return false;
                     }
-                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<double>(start, length, JavascriptConversion::ToNumber(value, scriptContext));
+
+                    double doubleValue = JavascriptConversion::ToNumber(value, scriptContext);
+                    // Special case for missing item
+                    if (SparseArraySegment<double>::IsMissingItem(&doubleValue))
+                    {
+                        return false;
+                    }
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<double>(start, length, doubleValue);
                 }
                 returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(instance);
             }
