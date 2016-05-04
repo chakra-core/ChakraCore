@@ -645,7 +645,7 @@ namespace Js
                 exceptionInfo;
 
                 // ensure that hosts are not doing SEH across Chakra frames, as that can lead to bad state (e.g. destructors not being called)
-                RaiseFailFastException(NULL, NULL, NULL);
+                RaiseFailFastException(nullptr, nullptr, 0);
             }
         }
         //ret should never be null here
