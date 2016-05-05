@@ -313,7 +313,7 @@ SmallHeapBlockT<TBlockAttributes>::SetPage(__in_ecount_pagesize char * baseAddre
     MemoryBarrier();
 #endif
 
-    this->DecommitUnusablePages();
+    this->ProtectUnusablePages();
 
     return TRUE;
 }
@@ -339,15 +339,12 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
     memset(address, DbgMemFill, AutoSystemInfo::PageSize * (this->GetPageCount()-this->GetUnusablePageCount()));
 #endif
 
-    if (!this->RecommitUnusablePages())
+    if (this->GetUnusablePageCount() > 0)
     {
-        this->GetPageAllocator(recycler)->PartialDecommitPages(address, this->GetPageCount(), address,
-            this->GetPageCount() - this->GetUnusablePageCount(), this->segment);
+        this->RestoreUnusablePages();
     }
-    else
-    {
-        this->GetPageAllocator(recycler)->ReleasePages(address, this->GetPageCount(), this->GetPageSegment());
-    }    
+
+    this->GetPageAllocator(recycler)->ReleasePages(address, this->GetPageCount(), this->GetPageSegment());
 
     this->segment = nullptr;
     this->address = nullptr;
@@ -360,15 +357,11 @@ SmallHeapBlockT<TBlockAttributes>::BackgroundReleasePagesSweep(Recycler* recycle
     recycler->heapBlockMap.ClearHeapBlock(address, this->GetPageCount() - this->GetUnusablePageCount());
     char* address = this->address;
 
-    if (!this->RecommitUnusablePages())
+    if (this->GetUnusablePageCount() > 0)
     {
-        this->GetPageAllocator(recycler)->PartialDecommitPages(address, this->GetPageCount(), address, 
-            this->GetPageCount() - this->GetUnusablePageCount(), this->segment);
+        this->RestoreUnusablePages();
     }
-    else
-    {
-        this->GetPageAllocator(recycler)->BackgroundReleasePages(address, this->GetPageCount(), this->GetPageSegment());
-    }
+    this->GetPageAllocator(recycler)->BackgroundReleasePages(address, this->GetPageCount(), this->GetPageSegment());
 
     this->address = nullptr;
     this->segment = nullptr;
