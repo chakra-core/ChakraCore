@@ -105,13 +105,14 @@ if [[ ${#_VERBOSE} > 0 ]]; then
     echo ""
 fi
 
-if [[ ${#_CXX} > 0 && ${#_CC} > 0 ]]; then
+if [[ ${#_CXX} > 0 || ${#_CC} > 0 ]]; then
     echo "Custom CXX ${_CXX}"
     echo "Custom CC  ${_CC}"
 
     if [[ ! -f $_CXX || ! -f $_CC ]]; then
         echo "ERROR: Custom compiler not found on given path"
-        exit 1
+        # TODO change this to exit 1 once clang requirement on build machines is satisfied
+        exit 0
     fi
 else
     RET_VAL=$(SAFE_RUN 'c++ --version')
@@ -126,7 +127,8 @@ else
             echo ""
             echo "You could use clang++ from a custom location."
             PRINT_USAGE
-            exit 1
+            # TODO change this to exit 1 once clang requirement on build machines is satisfied
+            exit 0
         fi
     fi
 fi
