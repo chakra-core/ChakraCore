@@ -96,7 +96,6 @@ SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(TBlockType * block, c
     const uint pageByteOffset = static_cast<uint>((char*)pageAddress - blockStartAddress);
     uint firstObjectOnPageIndex = pageByteOffset / localObjectSize;
 
-
     // This is not necessarily the address on the first object that starts on the page
     // If the last object on the previous page spans two pages, this is the address of that object
     // We do it this way so that we can figure out if we need to rescan the first few bytes of the page
@@ -115,7 +114,7 @@ SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(TBlockType * block, c
     const uint pageObjectCount = blockInfoForPage.pageObjectCount;
     const uint localObjectCount = (TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / localObjectSize;
 
-    // With decommitting unallocatable ending pages and reset writewatch, we should never be scanning on these pages.
+    // With protected unallocatable ending pages and reset writewatch, we should never be scanning on these pages.
     if (firstObjectOnPageIndex >= localObjectCount)
     {
         ReportFatalException(NULL, E_FAIL, Fatal_Recycler_MemoryCorruption, 3);

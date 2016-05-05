@@ -445,14 +445,14 @@ public:
 public:
     ~SmallHeapBlockT();
 
-    void DecommitUnusablePages() 
+    void ProtectUnusablePages()
     {
-        TBlockAttributes::DecommitUnusablePages(this);
+        TBlockAttributes::ProtectUnusablePages(this);
     }
 
-    BOOL RecommitUnusablePages()
+    BOOL RestoreUnusablePages()
     {
-        return TBlockAttributes::RecommitUnusablePages(this);
+        return TBlockAttributes::RestoreUnusablePages(this);
     }
 
     uint GetUnusablePageCount()

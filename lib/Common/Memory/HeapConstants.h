@@ -26,7 +26,8 @@ public:
     static const uint MediumBucketCount = (MaxMediumObjectSize - MaxSmallObjectSize) / MediumObjectGranularity;
 #endif
 };
-namespace Memory {
+namespace Memory
+{
     class HeapBlock;
 }
 
@@ -65,8 +66,8 @@ public:
 
     static BOOL IsAlignedObjectSize(size_t sizeCat);
     static uint GetUnusablePageCount(size_t sizeCat);
-    static void DecommitUnusablePages(Memory::HeapBlock* heapBlock);
-    static BOOL RecommitUnusablePages(Memory::HeapBlock* heapBlock);
+    static void ProtectUnusablePages(Memory::HeapBlock* heapBlock);
+    static BOOL RestoreUnusablePages(Memory::HeapBlock* heapBlock);
 };
 
 class MediumAllocationBlockAttributes
@@ -90,8 +91,8 @@ public:
 
     static BOOL IsAlignedObjectSize(size_t sizeCat);
     static uint GetUnusablePageCount(size_t sizeCat);
-    static void DecommitUnusablePages(Memory::HeapBlock* heapBlock);
-    static BOOL RecommitUnusablePages(Memory::HeapBlock* heapBlock);
+    static void ProtectUnusablePages(Memory::HeapBlock* heapBlock);
+    static BOOL RestoreUnusablePages(Memory::HeapBlock* heapBlock);
 };
 
 class LargeAllocationBlockAttributes

@@ -344,17 +344,9 @@ LargeHeapBlock::ReleasePages(Recycler * recycler)
             realPageCount = this->actualPageCount;
             size_t guardPageCount = this->actualPageCount - this->pageCount;
 
-            MEMORY_BASIC_INFORMATION memInfo;
-            VirtualQuery(this->address, &memInfo, sizeof(memInfo));
-            if (::VirtualAlloc(guardPageAddress, AutoSystemInfo::PageSize * guardPageCount, MEM_COMMIT, memInfo.Protect) == NULL)
-            {
-                // failed to commit the guard page again. decommit all pages
-                RecyclerPageAllocator* pageAllocator = (RecyclerPageAllocator*)this->GetPageAllocator(recycler);
-                pageAllocator->PartialDecommitPages(blockStartAddress, actualPageCount, this->address, this->pageCount, this->segment);
-                RECYCLER_PERF_COUNTER_SUB(LargeHeapBlockPageSize, this->pageCount * AutoSystemInfo::PageSize);
-                this->segment = nullptr;
-                return;
-            }
+            DWORD oldProtect;
+            BOOL ret = ::VirtualProtect(guardPageAddress, AutoSystemInfo::PageSize * guardPageCount, PAGE_READWRITE, &oldProtect);
+            Assert(ret && oldProtect == PAGE_NOACCESS);
         }
     }
 #endif
