@@ -19,6 +19,7 @@ target_include_directories (ch
   ../ChakraCore
   ../../lib/Common
   ../../lib/Jsrt
+  ../../lib/Runtime/PlatformAgnostic
   )
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE -pie")

@@ -16,4 +16,5 @@ target_include_directories (
     Chakra.Jsrt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
     ../Runtime
     ../Parser
+    ../Runtime/PlatformAgnostic
     )

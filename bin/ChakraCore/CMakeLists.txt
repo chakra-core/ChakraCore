@@ -15,6 +15,7 @@ target_include_directories (
   ${CHAKRACORE_SOURCE_DIR}/lib/Runtime
   ${CHAKRACORE_SOURCE_DIR}/lib/Parser
   ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
+  ${CHAKRACORE_SOURCE_DIR}/lib/Runtime/PlatformAgnostic
   )
 
 #

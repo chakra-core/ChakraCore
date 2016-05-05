@@ -32,4 +32,5 @@ target_include_directories (
     ../Backend
     ../Runtime
     ../Runtime/ByteCode
+    ../Runtime/PlatformAgnostic
     )

@@ -182,6 +182,8 @@ namespace Js {
 
                 if( m_ymdLcl.year > 1600 && m_ymdLcl.year < 10000 )
                 {
+#ifdef ENABLE_GLOBALIZATION
+
                     // The year falls in the range which can be handled by both the Win32
                     // function GetDateFormat and the COM+ date type
                     // - the latter is for forward compatibility with JS 7.
@@ -191,9 +193,8 @@ namespace Js {
                         return bs;
                     }
                     else
-                    {
+#endif
                         return GetDateDefaultString(&m_ymdLcl, &m_tzd, noDateTime, m_scriptContext);
-                    }
                 }
                 else
                 {
@@ -370,7 +371,6 @@ namespace Js {
         return DateImplementation::GetDateDefaultString(&ymd, &tzd, 0, scriptContext);
     }
 
-#ifdef ENABLE_GLOBALIZATION
     JavascriptString*
     DateImplementation::GetDateDefaultString(Js::YMD *pymd, TZD *ptzd,DateTimeFlag noDateTime,ScriptContext* scriptContext)
     {
@@ -380,7 +380,6 @@ namespace Js {
             return CompoundString::NewWithCharCapacity(capacity, scriptContext->GetLibrary());
         });
     }
-#endif // ENABLE_GLOBALIZATION
 
     JavascriptString*
     DateImplementation::GetDateGmtString(Js::YMD *pymd,ScriptContext* scriptContext)

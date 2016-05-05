@@ -45,6 +45,8 @@ typedef wchar_t char16;
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
 
+#include "ChakraPlatform.h"
+
 #if defined(__GNUC__) || defined(__clang__)
 #define __forceinline inline __attribute__((always_inline))
 #else
