@@ -70,10 +70,18 @@ var tests = [
             return b; 
         } 
         assert.areEqual(10, f7().iFnc(), "Function definition inside the object literal should capture the formal from the param scope");
+        
+        var f8 = function (a, b = ((function() { assert.areEqual('string1', a, "First arguemnt receives the right value"); })(), 1), c) {
+            var d = 'string3';
+            (function () { assert.areEqual('string3', d, "Var declaration in the body is initialized properly"); })();
+            return c;
+        };
+
+        assert.areEqual('string2', f8('string1', undefined, 'string2'), "Function returns the third argument properly");
     } 
  }, 
  { 
-    name: "Split parameter scope in function expressions with name", 
+    name: "Split parameter scope and function expressions with name", 
     body: function () { 
         function f1(a = 10, b = function c() { return a; }) { 
             assert.areEqual(10, a, "Initial value of parameter in the body scope of the method should be the same as the one in param scope"); 
@@ -86,7 +94,53 @@ var tests = [
         function f2(a = 10, b = function c(recurse = true) { return recurse ? c(false) : a; }) { 
             return b; 
         } 
-        assert.areEqual(10, f2()(), "Recursive function expression defined in the param scope captures the formals from the param scope not body scope"); 
+        assert.areEqual(10, f2()(), "Recursive function expression defined in the param scope captures the formals from the param scope not body scope");
+        
+        assert.areEqual(10, f2()(), "Recursive function expression defined in the param scope captures the formals from the param scope not body scope");
+
+        var f3 = function f4 (a = function ( ) { b; return f4(20); }, b) {
+            if (a == 20) {
+                return 10;
+            }
+            return a;
+        }
+        assert.areEqual(10, f3()(), "Recursive call to the function from the param scope returns the right value");
+
+        var f5 = function f6 (a = function ( ) { b; return f6; }, b) {
+            if (a == 20) {
+                return 10;
+            }
+            return a;
+        }
+        assert.areEqual(10, f5()()(20), "Recursive call to the function from the param scope returns the right value");
+        
+        var f7 = function f8 (a = function ( ) { b; }, b) {
+            if (a == 20) {
+                return 10;
+            }
+            var a = function () { return f8(20); };
+            return a;
+        }
+        assert.areEqual(10, f7()(), "Recursive call to the function from the body scope returns the right value");
+        
+        var f9 = function f10 (a = function ( ) { b; return f10(20); }, b) {
+            eval("");
+            if (a == 20) {
+                return 10;
+            }
+            return a;
+        }
+        assert.areEqual(10, f9()(), "Recursive call to the function from the param scope returns the right value when eval is there in the body");
+        
+        var f11 = function f12 (a = function ( ) { b; }, b) {
+            eval("");
+            if (a == 20) {
+                return 10;
+            }
+            var a = function () { return f12(20); };
+            return a;
+        }
+        assert.areEqual(10, f11()(), "Recursive call to the function from the body scope returns the right value when eval is there in the body");
     } 
  }, 
  { 
@@ -250,7 +304,7 @@ var tests = [
     } 
   },
   { 
-    name: "Split parameter scope in class methods", 
+    name: "Split parameter scope and class", 
     body: function () { 
         class c { 
             f(a = 10, d, b = function () { return a; }, c) { 
@@ -315,7 +369,53 @@ var tests = [
                 return y; 
             } 
         } 
-        assert.areEqual(10, (new c4()).f({})(), "The method defined as the default destructured value of the parameter should capture the formal from the param scope"); 
+        assert.areEqual(10, (new c4()).f({})(), "The method defined as the default destructured value of the parameter should capture the formal from the param scope");
+        
+        function f3(a = 10, d, b = (function () { return a; }, class { method1() { return a; } }), c) { 
+            var a = 20; 
+            assert.areEqual(10, (new b()).method1(), "Class method defined within the param scope should capture the formal from the param scope"); 
+            return b; 
+        } 
+        result = f3(); 
+        assert.areEqual(10, (new result()).method1(), "Methods defined in a class defined, after another function definition, in the param scope should capture the formals form that param scope itself"); 
+        
+        function f4(a = 10, d, b = (function () { return a; }, class {}, class { method1() { return a; } }), c) { 
+            var a = 20; 
+            return b; 
+        } 
+        result = f4(); 
+        assert.areEqual(10, (new result()).method1(), "Methods defined in a class defined, after another class definition, in the param scope should capture the formals form that param scope itself");
+         
+        function f5(a = 10, d, b = (function () { return a; }, class {}, function () {}, class { method1() { return a; } }), c) { 
+            var a = 20; 
+            return b; 
+        } 
+        result = f5(); 
+        assert.areEqual(10, (new result()).method1(), "Methods defined in a class defined, after a function and class, in the param scope should capture the formals form that param scope itself");
+        
+        function f6(a = 10, d, b = (function () { return a; }, class {}, function (a, b = () => a) {}, class { method1() { return a; } }), c) { 
+            var a = 20; 
+            return b; 
+        } 
+        result = f6(); 
+        assert.areEqual(10, (new result()).method1(), "Methods defined in a class defined, after a split scope function, in the param scope should capture the formals form that param scope itself");
+        
+        function f7(a = 10, d, b = (function () { return a; }, class c1 { method1() { return a; } }), c) { 
+            var a = 20; 
+            assert.areEqual(10, (new b()).method1(), "Class method defined within the param scope should capture the formal from the param scope"); 
+            return b; 
+        } 
+        result = f7(); 
+        assert.areEqual(10, (new result()).method1(), "Methods defined in a class with name defined, after another function definition, in the param scope should capture the formals form that param scope itself");
+        
+        function f8(a = 10, d, b = class c1 { method1() { return a; } }, c = (function () { return a; }, class c2 extends b { method2() { return a * a; } })) { 
+            var a = 20; 
+            assert.areEqual(10, (new b()).method1(), "Class method defined within the param scope should capture the formal from the param scope"); 
+            return c; 
+        } 
+        result = f8(); 
+        assert.areEqual(10, (new result()).method1(), "Methods defined in a class extending another class defined, after another function definition, in the param scope should capture the formals form that param scope itself");
+        assert.areEqual(100, (new result()).method2(), "Method in the derived class returns the right value");
     } 
   },
   { 

@@ -24,7 +24,22 @@
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:AsmJsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
   </test>
-  
+  <test>
+    <default>
+      <files>testFail.js</files>
+      <baseline>testFail.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-off:deferparse -testtrace:asmjs -simdjs -bgjit- -maic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>testFail_1.js</files>
+      <baseline>testFail_1.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-off:deferparse -testtrace:asmjs -simdjs -bgjit- -maic:1</compile-flags>
+    </default>
+  </test>
   <test>
     <default>
       <files>testCalls.js</files>

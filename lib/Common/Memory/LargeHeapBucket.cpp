@@ -35,14 +35,14 @@ LargeHeapBucket::Initialize(HeapInfo * heapInfo, uint sizeCat, bool supportFreeL
 // Allocation
 //=====================================================================================================
 char *
-LargeHeapBucket::TryAllocFromNewHeapBlock(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, bool nothrow)
+LargeHeapBucket::TryAllocFromNewHeapBlock(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow)
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
 
 #ifdef RECYCLER_PAGE_HEAP
-    if (IsPageHeapEnabled())
+    if (IsPageHeapEnabled(attributes))
     {
-        return this->PageHeapAlloc(recycler, sizeCat, attributes, this->heapInfo->pageHeapMode, true);
+        return this->PageHeapAlloc(recycler, sizeCat, size, attributes, this->heapInfo->pageHeapMode, true);
     }
 #endif
 
@@ -57,7 +57,7 @@ LargeHeapBucket::TryAllocFromNewHeapBlock(Recycler * recycler, size_t sizeCat, O
 }
 
 char *
-LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, bool nothrow)
+LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow)
 {
     char * memBlock;
 
@@ -73,7 +73,7 @@ LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits 
 
     if (!collected)
     {
-        memBlock = TryAllocFromNewHeapBlock(recycler, sizeCat, attributes, nothrow);
+        memBlock = TryAllocFromNewHeapBlock(recycler, sizeCat, size, attributes, nothrow);
         if (memBlock != nullptr)
         {
             return memBlock;
@@ -90,7 +90,7 @@ LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits 
         return memBlock;
     }
 
-    memBlock = TryAllocFromNewHeapBlock(recycler, sizeCat, attributes, nothrow);
+    memBlock = TryAllocFromNewHeapBlock(recycler, sizeCat, size, attributes, nothrow);
     if (memBlock != nullptr)
     {
         return memBlock;
@@ -108,12 +108,10 @@ LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits 
 
 #ifdef RECYCLER_PAGE_HEAP
 char*
-LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow)
+LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow)
 {
-    size_t sizeCat = HeapInfo::GetAlignedSizeNoCheck(size);
-
     Segment * segment;
-    size_t pageCount = LargeHeapBlock::GetPagesNeeded(size, this->supportFreeList);
+    size_t pageCount = LargeHeapBlock::GetPagesNeeded(size, false);
     if (pageCount == 0)
     {
         if (nothrow == false)
@@ -126,98 +124,82 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t size, ObjectInfoBits 
         return nullptr;
     }
 
-    size_t actualPageCount = pageCount + 1; // for page heap
+    if(size<sizeof(void*))
+    {
+        attributes = (ObjectInfoBits)(attributes | LeafBit);
+    }
 
-    char * baseAddress = recycler->GetRecyclerLargeBlockPageAllocator()->Alloc(&actualPageCount, &segment);
+
+    size_t actualPageCount = pageCount + 1; // 1 for guard page
+    auto pageAllocator = recycler->GetRecyclerLargeBlockPageAllocator();
+    char * baseAddress = pageAllocator->Alloc(&actualPageCount, &segment);
     if (baseAddress == nullptr)
     {
         return nullptr;
     }
 
+    size_t guardPageCount = actualPageCount - pageCount; // pageAllocator can return more than asked pages
+
     char* address = nullptr;
     char* guardPageAddress = nullptr;
-    DWORD guardPageOldProtectFlags = PAGE_NOACCESS;
 
     if (heapInfo->pageHeapMode == PageHeapMode::PageHeapModeBlockStart)
     {
-        address = baseAddress + AutoSystemInfo::PageSize;
+        address = baseAddress + AutoSystemInfo::PageSize * guardPageCount;
         guardPageAddress = baseAddress;
     }
     else if (heapInfo->pageHeapMode == PageHeapMode::PageHeapModeBlockEnd)
     {
         address = baseAddress;
-        guardPageAddress = baseAddress + pageCount* AutoSystemInfo::PageSize;
+        guardPageAddress = baseAddress + pageCount * AutoSystemInfo::PageSize;
     }
     else
     {
         AnalysisAssert(false);
     }
 
-    if (::VirtualProtect(static_cast<LPVOID>(guardPageAddress), AutoSystemInfo::PageSize, PAGE_NOACCESS, &guardPageOldProtectFlags) == FALSE)
-    {
-        AssertMsg(false, "Unable to set permission for guard page.");
-        return nullptr;
-    }
 
-#ifdef RECYCLER_ZERO_MEM_CHECK
-    recycler->VerifyZeroFill(address, pageCount * AutoSystemInfo::PageSize);
-#endif
 
     LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, 1, nullptr);
     if (!heapBlock)
     {
-        recycler->GetRecyclerLargeBlockPageAllocator()->SuspendIdleDecommit();
-        recycler->GetRecyclerLargeBlockPageAllocator()->Release(address, actualPageCount, segment);
-        recycler->GetRecyclerLargeBlockPageAllocator()->ResumeIdleDecommit();
+        pageAllocator->SuspendIdleDecommit();
+        pageAllocator->Release(baseAddress, actualPageCount, segment);
+        pageAllocator->ResumeIdleDecommit();
         return nullptr;
     }
-    heapBlock->actualPageCount = actualPageCount;
-    heapBlock->guardPageAddress = guardPageAddress;
-    heapBlock->guardPageOldProtectFlags = guardPageOldProtectFlags;
-    heapBlock->pageHeapMode = heapInfo->pageHeapMode;
-
-    if (heapBlock->pageHeapMode == PageHeapMode::PageHeapModeBlockEnd)
-    {
-        // TODO: pad the address to close-most to the guard page to increase the chance to hit guard page when overflow
-        // some Mark code need to be updated to support this
-        // heapBlock->SetEndAllocAddress(address
-        //    + AutoSystemInfo::PageSize - (((AllocSizeMath::Add(sizeCat, sizeof(LargeObjectHeader)) - 1) % AutoSystemInfo::PageSize) / HeapInfo::ObjectGranularity + 1) * HeapInfo::ObjectGranularity);
-    }
-
-#if DBG
-    LargeAllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Allocated new large heap block 0x%p for sizeCat 0x%x\n"), heapBlock, sizeCat);
-#endif
-
-#ifdef ENABLE_JS_ETW
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-    if (segment->GetPageCount() > recycler->GetRecyclerLargeBlockPageAllocator()->GetMaxAllocPageCount())
-    {
-        EventWriteJSCRIPT_INTERNAL_RECYCLER_EXTRALARGE_OBJECT_ALLOC(size);
-    }
-#endif
-#endif
-
-#if ENABLE_PARTIAL_GC
-    recycler->autoHeap.uncollectedNewPageCount += pageCount;
-#endif
-
-    RECYCLER_SLOW_CHECK(this->heapInfo->heapBlockCount[HeapBlock::HeapBlockType::LargeBlockType]++);
 
     heapBlock->heapInfo = this->heapInfo;
+    heapBlock->actualPageCount = actualPageCount;
+    heapBlock->guardPageAddress = guardPageAddress;
 
-    Assert(recycler->collectionState != CollectionStateMark);
+    // fill pattern before set pageHeapMode, so background scan stack may verify the pattern
+    size_t usedSpace = sizeof(LargeObjectHeader) + size;
+    memset(address + usedSpace, 0xF0, pageCount * AutoSystemInfo::PageSize - usedSpace);
+    heapBlock->pageHeapMode = heapInfo->pageHeapMode;
 
     if (!recycler->heapBlockMap.SetHeapBlock(address, pageCount, heapBlock, HeapBlock::HeapBlockType::LargeBlockType, 0))
     {
-        recycler->GetRecyclerLargeBlockPageAllocator()->SuspendIdleDecommit();
-        heapBlock->ReleasePages<true>(recycler);
-        recycler->GetRecyclerLargeBlockPageAllocator()->ResumeIdleDecommit();
+        pageAllocator->SuspendIdleDecommit();
+        heapBlock->ReleasePages(recycler);
+        pageAllocator->ResumeIdleDecommit();
         LargeHeapBlock::Delete(heapBlock);
-        RECYCLER_SLOW_CHECK(this->heapInfo->heapBlockCount[HeapBlock::HeapBlockType::LargeBlockType]--);
         return nullptr;
     }
 
     heapBlock->ResetMarks(ResetMarkFlags_None, recycler);
+
+    char * memBlock = heapBlock->Alloc(size, attributes);
+    Assert(memBlock != nullptr);
+
+
+#pragma prefast(suppress:6250, "This method decommits memory")
+    if (::VirtualFree(guardPageAddress, AutoSystemInfo::PageSize * guardPageCount, MEM_DECOMMIT) == FALSE)
+    {
+        AssertMsg(false, "Unable to decommit guard page.");
+        ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, 2);
+        return nullptr;
+    }
 
     if (this->largePageHeapBlockList)
     {
@@ -228,10 +210,14 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t size, ObjectInfoBits 
         this->largePageHeapBlockList = heapBlock;
     }
 
+#if ENABLE_PARTIAL_GC
+    recycler->autoHeap.uncollectedNewPageCount += pageCount;
+#endif
+
+    RECYCLER_SLOW_CHECK(this->heapInfo->heapBlockCount[HeapBlock::HeapBlockType::LargeBlockType]++);
     RECYCLER_PERF_COUNTER_ADD(FreeObjectSize, heapBlock->GetPageCount() * AutoSystemInfo::PageSize);
 
-    char * memBlock = heapBlock->Alloc(sizeCat, attributes);
-    Assert(memBlock != nullptr);
+
     if (recycler->ShouldCapturePageHeapAllocStack())
     {
 #ifdef STACK_BACK_TRACE
@@ -263,7 +249,9 @@ LargeHeapBucket::AddLargeHeapBlock(size_t size, bool nothrow)
 
     char * address = nullptr;
 
-    address = recycler->GetRecyclerLargeBlockPageAllocator()->Alloc(&pageCount, &segment);
+    size_t realPageCount = pageCount;
+    address = recycler->GetRecyclerLargeBlockPageAllocator()->Alloc(&realPageCount, &segment);
+    pageCount = realPageCount;
 
     if (address == nullptr)
     {
@@ -308,7 +296,7 @@ LargeHeapBucket::AddLargeHeapBlock(size_t size, bool nothrow)
     if (!recycler->heapBlockMap.SetHeapBlock(address, pageCount, heapBlock, HeapBlock::HeapBlockType::LargeBlockType, 0))
     {
         recycler->GetRecyclerLargeBlockPageAllocator()->SuspendIdleDecommit();
-        heapBlock->ReleasePages<false>(recycler);
+        heapBlock->ReleasePages(recycler);
         recycler->GetRecyclerLargeBlockPageAllocator()->ResumeIdleDecommit();
         LargeHeapBlock::Delete(heapBlock);
         RECYCLER_SLOW_CHECK(this->heapInfo->heapBlockCount[HeapBlock::HeapBlockType::LargeBlockType]--);
@@ -533,10 +521,7 @@ LargeHeapBucket::ScanNewImplicitRoots(Recycler * recycler)
 // Sweep
 //=====================================================================================================
 #pragma region Sweep
-template void LargeHeapBucket::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void LargeHeapBucket::Sweep<false>(RecyclerSweep& recyclerSweep);
 
-template<bool pageheap>
 void
 LargeHeapBucket::Sweep(RecyclerSweep& recyclerSweep)
 {
@@ -571,15 +556,14 @@ LargeHeapBucket::Sweep(RecyclerSweep& recyclerSweep)
 #if ENABLE_CONCURRENT_GC
     Assert(this->pendingSweepLargeBlockList == nullptr);
 #endif
-    SweepLargeHeapBlockList<pageheap>(recyclerSweep, currentLargeObjectBlocks);
+    SweepLargeHeapBlockList(recyclerSweep, currentLargeObjectBlocks);
 #ifdef RECYCLER_PAGE_HEAP
-    SweepLargeHeapBlockList<pageheap>(recyclerSweep, currentLargePageHeapObjectBlocks);
+    SweepLargeHeapBlockList(recyclerSweep, currentLargePageHeapObjectBlocks);
 #endif
-    SweepLargeHeapBlockList<pageheap>(recyclerSweep, currentFullLargeObjectBlocks);
-    SweepLargeHeapBlockList<pageheap>(recyclerSweep, currentDisposeLargeBlockList);
+    SweepLargeHeapBlockList(recyclerSweep, currentFullLargeObjectBlocks);
+    SweepLargeHeapBlockList(recyclerSweep, currentDisposeLargeBlockList);
 }
 
-template<bool pageheap>
 void
 LargeHeapBucket::SweepLargeHeapBlockList(RecyclerSweep& recyclerSweep, LargeHeapBlock * heapBlockList)
 {
@@ -589,7 +573,7 @@ LargeHeapBucket::SweepLargeHeapBlockList(RecyclerSweep& recyclerSweep, LargeHeap
         this->UnregisterFreeList(heapBlock->GetFreeList());
 
         // CONCURRENT-TODO: Allow large block to be sweep in the background
-        SweepState state = heapBlock->Sweep<pageheap>(recyclerSweep, false);
+        SweepState state = heapBlock->Sweep(recyclerSweep, false);
 
         // If the block is already in the pending dispose list (re-entrant GC scenario), do nothing, leave it there
         if (heapBlock->IsInPendingDisposeList()) return;
@@ -597,7 +581,7 @@ LargeHeapBucket::SweepLargeHeapBlockList(RecyclerSweep& recyclerSweep, LargeHeap
         switch (state)
         {
         case SweepStateEmpty:
-            heapBlock->ReleasePagesSweep<pageheap>(recycler);
+            heapBlock->ReleasePagesSweep(recycler);
             LargeHeapBlock::Delete(heapBlock);
             RECYCLER_SLOW_CHECK(this->heapInfo->heapBlockCount[HeapBlock::HeapBlockType::LargeBlockType]--);
             break;
@@ -777,7 +761,7 @@ LargeHeapBucket::SweepPendingObjects(RecyclerSweep& recyclerSweep)
             HeapBlockList::ForEach(this->pendingSweepLargeBlockList, [recycler](LargeHeapBlock * heapBlock)
             {
                 // Page heap blocks are never swept concurrently
-                heapBlock->SweepObjects<false, SweepMode_ConcurrentPartial>(recycler);
+                heapBlock->SweepObjects<SweepMode_ConcurrentPartial>(recycler);
             });
         }
         else
@@ -786,7 +770,7 @@ LargeHeapBucket::SweepPendingObjects(RecyclerSweep& recyclerSweep)
             HeapBlockList::ForEach(this->pendingSweepLargeBlockList, [recycler](LargeHeapBlock * heapBlock)
             {
                 // Page heap blocks are never swept concurrently
-                heapBlock->SweepObjects<false, SweepMode_Concurrent>(recycler);
+                heapBlock->SweepObjects<SweepMode_Concurrent>(recycler);
             });
         }
     }

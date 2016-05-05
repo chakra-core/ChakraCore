@@ -392,6 +392,10 @@ HRESULT ExecuteTest(const char* fileName)
 
     IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
     IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+    
+#ifdef DEBUG
+    ChakraRTInterface::SetCheckOpHelpersFlag(true);
+#endif
 
     if (!WScriptJsrt::Initialize())
     {

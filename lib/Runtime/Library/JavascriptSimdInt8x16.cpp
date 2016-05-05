@@ -6,7 +6,14 @@
 
 namespace Js
 {
-    JavascriptSIMDInt8x16::JavascriptSIMDInt8x16(SIMDValue *val, StaticType *type) : JavascriptSIMDType(type), value(*val)
+    const char16 JavascriptSIMDInt8x16::TypeName[] = _u("SIMD.Int8x16");
+
+    JavascriptSIMDInt8x16::JavascriptSIMDInt8x16(StaticType *type) : JavascriptSIMDType(type)
+    {
+        Assert(type->GetTypeId() == TypeIds_SIMDInt8x16);
+    }
+
+    JavascriptSIMDInt8x16::JavascriptSIMDInt8x16(SIMDValue *val, StaticType *type) : JavascriptSIMDType(val, type)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDInt8x16);
     }
@@ -42,11 +49,9 @@ namespace Js
         return JavascriptSIMDInt8x16::New(&value, requestContext);
     }
 
-    const char16* JavascriptSIMDInt8x16::GetFullBuiltinName(char16** aBuffer, const char16* name)
+    const char16* JavascriptSIMDInt8x16::GetTypeName()
     {
-        Assert(aBuffer && *aBuffer);
-        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, _u("SIMD.Int8x16.%s"), name);
-        return *aBuffer;
+        return JavascriptSIMDInt8x16::TypeName;
     }
 
     Var JavascriptSIMDInt8x16::Copy(ScriptContext* requestContext)

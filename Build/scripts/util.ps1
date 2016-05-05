@@ -3,20 +3,16 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
-function WriteMessage($str)
-{
+function WriteMessage($str) {
     Write-Output $str
-    if ($logFile -ne "")
-    {
+    if ($logFile -ne "") {
         Write-Output $str | Out-File $logFile -Append
     }
 }
 
-function WriteErrorMessage($str)
-{
+function WriteErrorMessage($str) {
     $host.ui.WriteErrorLine($str);
-    if ($logFile -ne "")
-    {
+    if ($logFile -ne "") {
         Write-Output $str | Out-File $logFile -Append
     }
 }

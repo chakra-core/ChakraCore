@@ -144,11 +144,12 @@ namespace Js
 
     enum FrameWalkerFlags
     {
-        FW_None                 = 0x0,
-        FW_MakeGroups           = 0x1,  // Make groups such as [Scope], [Globals] etc.
-        FW_EnumWithScopeAlso    = 0x2,  // While walking include the with scope as well.
-        FW_AllowLexicalThis     = 0x4,  // Do not filter out Js::PropertyIds::_lexicalThisSlotSymbol
-        FW_AllowSuperReference  = 0x8,  // Allow walking of Js::PropertyIds::_superReferenceSymbol and Js::PropertyIds::_superCtorReferenceSymbol
+        FW_None                   = 0x0,
+        FW_MakeGroups             = 0x1,  // Make groups such as [Scope], [Globals] etc.
+        FW_EnumWithScopeAlso      = 0x2,  // While walking include the with scope as well.
+        FW_AllowLexicalThis       = 0x4,  // Do not filter out Js::PropertyIds::_lexicalThisSlotSymbol
+        FW_AllowSuperReference    = 0x8,  // Allow walking of Js::PropertyIds::_superReferenceSymbol and Js::PropertyIds::_superCtorReferenceSymbol
+        FW_DontAddGlobalsDirectly = 0x10, // Do not add global object directly.
     };
 
     class VariableWalkerBase : public IDiagObjectModelWalkerBase

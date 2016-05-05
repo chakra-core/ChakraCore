@@ -16,6 +16,9 @@ function asmModule(stdlib, imports) {
     var ui4g2 = ui4(6531634, 74182444, 779364128, 821730432);
 
     var loopCOUNT = 3;
+    var i4 = stdlib.SIMD.Int32x4;
+    var i4check = i4.check;
+    var i4fu4 = i4.fromUint32x4Bits;
 
     function testAddLocal()
     {
@@ -29,7 +32,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
     
     function testSubLocal()
@@ -44,7 +47,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
 
     function testAddGlobal()
@@ -57,7 +60,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
     
     function testSubGlobal()
@@ -70,7 +73,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
     
     function testAddGlobalImport()
@@ -84,7 +87,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
     
     function testSubGlobalImport()
@@ -98,7 +101,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
     
     return { testAddLocal: testAddLocal, testSubLocal: testSubLocal, testAddGlobal: testAddGlobal, testSubGlobal: testSubGlobal, testAddGlobalImport: testAddGlobalImport, testSubGlobalImport: testSubGlobalImport };
@@ -106,10 +109,17 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Uint32x4(100, 1073741824, 1028, 102)});
 
-equalSimd([107861105, 23697240, 918264761, 1009503884], m.testAddLocal(), SIMD.Uint32x4, "Func1");
-equalSimd([4204083159, 4280967752, 3436654413, 3304451156], m.testSubLocal(), SIMD.Uint32x4, "Func2");
-equalSimd([1071884850, 1147924268, 1857300256, 1903860864], m.testAddGlobal(), SIMD.Uint32x4, "Func3");
-equalSimd([1058821582, 999559380, 298572000, 260400000], m.testSubGlobal(), SIMD.Uint32x4, "Func4");
-equalSimd([8488584, 1078590672, 29976967, 9493974], m.testAddGlobalImport(), SIMD.Uint32x4, "Func5");
-equalSimd([4286478912, 1068892976, 4264992385, 4285473526], m.testSubGlobalImport(), SIMD.Uint32x4, "Func6");
+var ret1 = SIMD.Uint32x4.fromInt32x4Bits(m.testAddLocal());
+var ret2 = SIMD.Uint32x4.fromInt32x4Bits(m.testSubLocal());
+var ret3 = SIMD.Uint32x4.fromInt32x4Bits(m.testAddGlobal());
+var ret4 = SIMD.Uint32x4.fromInt32x4Bits(m.testSubGlobal());
+var ret5 = SIMD.Uint32x4.fromInt32x4Bits(m.testAddGlobalImport());
+var ret6 = SIMD.Uint32x4.fromInt32x4Bits(m.testSubGlobalImport());
+
+equalSimd([107861105, 23697240, 918264761, 1009503884], ret1, SIMD.Uint32x4, "Func1");
+equalSimd([4204083159, 4280967752, 3436654413, 3304451156], ret2, SIMD.Uint32x4, "Func2");
+equalSimd([1071884850, 1147924268, 1857300256, 1903860864], ret3, SIMD.Uint32x4, "Func3");
+equalSimd([1058821582, 999559380, 298572000, 260400000], ret4, SIMD.Uint32x4, "Func4");
+equalSimd([8488584, 1078590672, 29976967, 9493974], ret5, SIMD.Uint32x4, "Func5");
+equalSimd([4286478912, 1068892976, 4264992385, 4285473526], ret6, SIMD.Uint32x4, "Func6");
 print("PASS");

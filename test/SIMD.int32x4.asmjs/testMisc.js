@@ -106,15 +106,25 @@ var i4 = stdlib.SIMD.Int32x4;
 
         return i4check(d);
     }
-    
-    
-    
-    return {func1:func1};
+
+    function bug1() //simd tmp reg reuse.
+    {
+        var a = f4(1.0, 2.0, 3.0, 4.0);
+        var x = i4(-1, -2, -3, -4);
+        i4add(x,x);
+        return f4check(a);
+    }
+
+    return {func1:func1, bug1:bug1};
 }
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
 var r = m.func1();
 equalSimd([-136732, 424688, -2277748, 131068], r, SIMD.Int32x4, "func1");
 //printSimdBaseline(r, "SIMD.Int32x4", "r", "func1");
+
+var r = m.bug1();
+equalSimd([1.0,2.0,3.0,4.0], r, SIMD.Float32x4, "bug1");
+//printSimdBaseline(r, "SIMD.Float32x4", "r", "bug1");
 
 print("PASS");

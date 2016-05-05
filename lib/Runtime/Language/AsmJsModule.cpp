@@ -780,6 +780,10 @@ namespace Js
                     {
                        return Fail(rhs, _u("Invalid SIMD argument type check. E.g. expected x = f4check(x)"));
                     }
+                    if (simdFunc->IsUnsignedTypeCheck())
+                    {
+                        return Fail(rhs, _u("Invalid SIMD argument type. Expecting Signed arguments."));
+                    }
                     var->SetVarType(simdFunc->GetTypeCheckVarType());
                     // We don't set SIMD args reg location here. We defer that after all function locals are processed.
                     // This allows us to capture all SIMD constants from locals initializations, add them to the register space before we assign registers to args and locals.

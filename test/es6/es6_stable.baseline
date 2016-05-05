@@ -3,8 +3,8 @@ FLAG ES6 = 1 - setting child flag Simdjs = 0
 FLAG Simdjs = 0
 FLAG ES6 = 1 - setting child flag ES6Species = 1
 FLAG ES6Species = 1
-FLAG ES6 = 1 - setting child flag ES7AsyncAwait = 1
-FLAG ES7AsyncAwait = 1
+FLAG ES6 = 1 - setting child flag ES7AsyncAwait = 0
+FLAG ES7AsyncAwait = 0
 FLAG ES6 = 1 - setting child flag ES6Classes = 1
 FLAG ES6Classes = 1
 FLAG ES6 = 1 - setting child flag ES6DateParseFix = 1

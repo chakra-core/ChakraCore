@@ -207,6 +207,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     isPrimaryMarkContextInitialized(false),
 #endif
     allowDispose(false),
+    inDisposeWrapper(false),
     hasDisposableObject(false),
     tickCountNextDispose(0),
     hasPendingTransferDisposedObjects(false),
@@ -1113,10 +1114,20 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 
     Assert(heapBlock != nullptr);
 #ifdef RECYCLER_PAGE_HEAP
-    if (this->IsPageHeapEnabled() && this->ShouldCapturePageHeapFreeStack())
+    if (this->IsPageHeapEnabled())
     {
 #ifdef STACK_BACK_TRACE
-        heapBlock->CapturePageHeapFreeStack();
+        if (this->ShouldCapturePageHeapFreeStack())
+        {
+            if (heapBlock->IsLargeHeapBlock())
+            {
+                LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
+                if (largeHeapBlock->InPageHeapMode())
+                {
+                    largeHeapBlock->CapturePageHeapFreeStack();
+                }
+            }
+        }
 #endif
 
         // Don't do actual explicit free in page heap mode
@@ -1210,13 +1221,13 @@ Recycler::TryLargeAlloc(HeapInfo * heap, size_t size, ObjectInfoBits attributes,
 #ifdef RECYCLER_PAGE_HEAP
     if (IsPageHeapEnabled())
     {
-        if (heap->largeObjectBucket.IsPageHeapEnabled())
+        if (heap->largeObjectBucket.IsPageHeapEnabled(attributes))
         {
-            memBlock = heap->largeObjectBucket.PageHeapAlloc(this, size, (ObjectInfoBits)attributes, autoHeap.pageHeapMode, nothrow);
+            memBlock = heap->largeObjectBucket.PageHeapAlloc(this, sizeCat, size, (ObjectInfoBits)attributes, autoHeap.pageHeapMode, nothrow);
             if (memBlock != nullptr)
             {
 #ifdef RECYCLER_ZERO_MEM_CHECK
-                VerifyZeroFill(memBlock, sizeCat);
+                VerifyZeroFill(memBlock, size);
 #endif
                 return memBlock;
             }
@@ -1320,7 +1331,6 @@ bool Recycler::AllowNativeCodeBumpAllocation()
 
     return true;
 }
-
 
 void Recycler::TrackNativeAllocatedMemoryBlock(Recycler * recycler, void * memBlock, size_t sizeCat)
 {
@@ -3897,10 +3907,10 @@ Recycler::IsReentrantState() const
 
 #ifdef ENABLE_JS_ETW
 template <Js::Phase phase> static ETWEventGCActivationKind GetETWEventGCActivationKind();
-template <> static ETWEventGCActivationKind GetETWEventGCActivationKind<Js::GarbageCollectPhase>() { return ETWEvent_GarbageCollect; }
-template <> static ETWEventGCActivationKind GetETWEventGCActivationKind<Js::ThreadCollectPhase>() { return ETWEvent_ThreadCollect; }
-template <> static ETWEventGCActivationKind GetETWEventGCActivationKind<Js::ConcurrentCollectPhase>() { return ETWEvent_ConcurrentCollect; }
-template <> static ETWEventGCActivationKind GetETWEventGCActivationKind<Js::PartialCollectPhase>() { return ETWEvent_PartialCollect; }
+template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::GarbageCollectPhase>() { return ETWEvent_GarbageCollect; }
+template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::ThreadCollectPhase>() { return ETWEvent_ThreadCollect; }
+template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::ConcurrentCollectPhase>() { return ETWEvent_ConcurrentCollect; }
+template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::PartialCollectPhase>() { return ETWEvent_PartialCollect; }
 #endif
 
 template <Js::Phase phase>
@@ -8012,10 +8022,10 @@ Recycler::SetProfiler(Js::Profiler * profiler, Js::Profiler * backgroundProfiler
 }
 #endif
 
-void Recycler::SetObjectBeforeCollectCallback(void* object, 
-    ObjectBeforeCollectCallback callback, 
+void Recycler::SetObjectBeforeCollectCallback(void* object,
+    ObjectBeforeCollectCallback callback,
     void* callbackState,
-    ObjectBeforeCollectCallbackWrapper callbackWrapper, 
+    ObjectBeforeCollectCallbackWrapper callbackWrapper,
     void* threadContext)
 {
     if (objectBeforeCollectCallbackState == ObjectBeforeCollectCallback_Shutdown)

@@ -684,8 +684,20 @@
   </test>
   <test>
     <default>
+      <files>proxyprotobug.js</files>
+      <baseline>proxyprotobug.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>proxyenumbug.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>proxy-issue884.js</files>
+      <baseline>proxy-issue884.baseline</baseline>
     </default>
   </test>
   <test>
@@ -703,19 +715,19 @@
   <test>
     <default>
       <files>default.js</files>
-      <compile-flags>-force:deferparse -ES6DefaultArgs -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-force:deferparse -ES6DefaultArgs -ES7AsyncAwait -ES6Generators -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>default.js</files>
-      <compile-flags>-off:deferparse -ES6DefaultArgs -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -ES6DefaultArgs -ES7AsyncAwait -ES6Generators -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>default.js</files>
-      <compile-flags>-force:CachedScope -ES6DefaultArgs -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-force:CachedScope -ES6DefaultArgs -ES7AsyncAwait -ES6Generators -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -728,6 +740,12 @@
     <default>
       <files>default-splitscope.js</files>
       <compile-flags>-force:deferparse -ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>default-splitscope-undodeferparse.js</files>
+      <compile-flags>-forceundodefer -ES6DefaultArgsSplitScope</compile-flags>
     </default>
   </test>
   <test>
@@ -930,7 +948,7 @@
   <test>
     <default>
       <files>regex-prototype-properties.js</files>
-      <compile-flags>-ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+      <compile-flags>-ES6RegExPrototypeProperties -ES6PrototypeChain -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

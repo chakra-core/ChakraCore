@@ -249,6 +249,7 @@ BackwardPass::CleanupBackwardPassInfoInFlowGraph()
         block->noImplicitCallNativeArrayUses = nullptr;
         block->noImplicitCallJsArrayHeadSegmentSymUses = nullptr;
         block->noImplicitCallArrayLengthSymUses = nullptr;
+        block->couldRemoveNegZeroBailoutForDef = nullptr;
 
         if (block->loop != nullptr)
         {
@@ -372,6 +373,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     BVSparse<JitArenaAllocator> * fieldHoistCandidates = nullptr;
     BVSparse<JitArenaAllocator> * slotDeadStoreCandidates = nullptr;
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = nullptr;
+    BVSparse<JitArenaAllocator> * couldRemoveNegZeroBailoutForDef = nullptr;
 #if DBG
     uint byteCodeLocalsCount = func->GetJnFunction()->GetLocalsCount();
     StackSym ** byteCodeRestoreSyms = nullptr;
@@ -434,6 +436,10 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             if (this->tag == Js::BackwardPhase)
             {
                 cloneStrCandidates = JitAnew(this->globOpt->alloc, BVSparse<JitArenaAllocator>, this->globOpt->alloc);
+            }
+            else
+            {
+                couldRemoveNegZeroBailoutForDef = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
             }
         }
 
@@ -802,6 +808,16 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                     }
 #endif
                 }
+
+                if (blockSucc->couldRemoveNegZeroBailoutForDef != nullptr)
+                {
+                    couldRemoveNegZeroBailoutForDef->And(blockSucc->couldRemoveNegZeroBailoutForDef);
+                    if (deleteData)
+                    {
+                        JitAdelete(this->tempAlloc, blockSucc->couldRemoveNegZeroBailoutForDef);
+                        blockSucc->couldRemoveNegZeroBailoutForDef = nullptr;
+                    }
+                }
             }
 
             if (blockSucc->noImplicitCallUses != nullptr)
@@ -1002,6 +1018,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             Assert(block->noImplicitCallNativeArrayUses == nullptr);
             Assert(block->noImplicitCallJsArrayHeadSegmentSymUses == nullptr);
             Assert(block->noImplicitCallArrayLengthSymUses == nullptr);
+            Assert(block->couldRemoveNegZeroBailoutForDef == nullptr);
         }
         else
         {
@@ -1053,6 +1070,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     block->noImplicitCallNativeArrayUses = noImplicitCallNativeArrayUses;
     block->noImplicitCallJsArrayHeadSegmentSymUses = noImplicitCallJsArrayHeadSegmentSymUses;
     block->noImplicitCallArrayLengthSymUses = noImplicitCallArrayLengthSymUses;
+    block->couldRemoveNegZeroBailoutForDef = couldRemoveNegZeroBailoutForDef;
 }
 
 ObjTypeGuardBucket
@@ -1219,6 +1237,11 @@ BackwardPass::DeleteBlockData(BasicBlock * block)
         JitAdeleteArray(this->tempAlloc, func->GetJnFunction()->GetLocalsCount(), block->byteCodeRestoreSyms);
         block->byteCodeRestoreSyms = nullptr;
 #endif
+    }
+    if (block->couldRemoveNegZeroBailoutForDef != nullptr)
+    {
+        JitAdelete(this->tempAlloc, block->couldRemoveNegZeroBailoutForDef);
+        block->couldRemoveNegZeroBailoutForDef = nullptr;
     }
 }
 
@@ -4934,6 +4957,26 @@ BackwardPass::TrackBitWiseOrNumberOp(IR::Instr *const instr)
 }
 
 void
+BackwardPass::RemoveNegativeZeroBailout(IR::Instr* instr)
+{
+    Assert(instr->HasBailOutInfo() && (instr->GetBailOutKind() & IR::BailOutOnNegativeZero));
+    IR::BailOutKind bailOutKind = instr->GetBailOutKind();
+    bailOutKind = bailOutKind & ~IR::BailOutOnNegativeZero;
+    if (bailOutKind)
+    {
+        instr->SetBailOutKind(bailOutKind);
+    }
+    else
+    {
+        instr->ClearBailOutInfo();
+        if (preOpBailOutInstrToProcess == instr)
+        {
+            preOpBailOutInstrToProcess = nullptr;
+        }
+    }
+}
+
+void
 BackwardPass::TrackIntUsage(IR::Instr *const instr)
 {
     Assert(instr);
@@ -4967,28 +5010,47 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
     if(dstSym)
     {
         // For a dst where the def is in this block, transfer the current info into the instruction
-        if(trackNegativeZero && negativeZeroDoesNotMatterBySymId->TestAndClear(dstSym->m_id))
+        if(trackNegativeZero)
         {
-            instr->ignoreNegativeZero = true;
-            if(tag == Js::DeadStorePhase && instr->HasBailOutInfo())
+            if (negativeZeroDoesNotMatterBySymId->Test(dstSym->m_id))
             {
-                IR::BailOutKind bailOutKind = instr->GetBailOutKind();
-                if(bailOutKind & IR::BailOutOnNegativeZero)
+                instr->ignoreNegativeZero = true;
+            }
+
+            if (tag == Js::DeadStorePhase)
+            {
+                if (negativeZeroDoesNotMatterBySymId->TestAndClear(dstSym->m_id))
                 {
-                    bailOutKind -= IR::BailOutOnNegativeZero;
-                    if(bailOutKind)
+                    if (instr->HasBailOutInfo())
                     {
-                        instr->SetBailOutKind(bailOutKind);
-                    }
-                    else
-                    {
-                        instr->ClearBailOutInfo();
-                        if(preOpBailOutInstrToProcess == instr)
+                        IR::BailOutKind bailOutKind = instr->GetBailOutKind();
+                        if (bailOutKind & IR::BailOutOnNegativeZero)
                         {
-                            preOpBailOutInstrToProcess = nullptr;
+                            RemoveNegativeZeroBailout(instr);
                         }
                     }
                 }
+                else
+                {
+                    if (instr->HasBailOutInfo())
+                    {
+                        if (instr->GetBailOutKind() & IR::BailOutOnNegativeZero)
+                        {
+                            if (this->currentBlock->couldRemoveNegZeroBailoutForDef->TestAndClear(dstSym->m_id))
+                            {
+                                RemoveNegativeZeroBailout(instr);
+                            }
+                        }
+                        // This instruction could potentially bail out. Hence, we cannot reliably remove negative zero
+                        // bailouts upstream. If we did, and the operation actually produced a -0, and this instruction
+                        // bailed out, we'd use +0 instead of -0 in the interpreter.
+                        this->currentBlock->couldRemoveNegZeroBailoutForDef->ClearAll();
+                    }
+                }
+            }
+            else
+            {
+                this->negativeZeroDoesNotMatterBySymId->Clear(dstSym->m_id);
             }
         }
         if(trackIntOverflow)
@@ -5096,38 +5158,41 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
                 break;
 
             case Js::OpCode::Add_I4:
+            {
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
                 Assert(instr->GetSrc1()->IsRegOpnd() || instr->GetSrc1()->IsIntConstOpnd());
                 Assert(instr->GetSrc2());
                 Assert(instr->GetSrc2()->IsRegOpnd() || instr->GetSrc2()->IsIntConstOpnd());
 
-                if(instr->ignoreNegativeZero ||
-                    !(instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout) ||
-                    !(instr->GetSrc2()->IsRegOpnd() && instr->GetSrc2()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout))
+                if (instr->ignoreNegativeZero ||
+                    (instr->GetSrc1()->IsIntConstOpnd() && instr->GetSrc1()->AsIntConstOpnd()->GetValue() != 0) ||
+                    instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0)
                 {
-                    // -0 does not matter for dst, or this instruction does not generate -0 since one of the srcs is not -0
-                    // (regardless of -0 bailout checks)
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
                     break;
                 }
-
+                
                 // -0 + -0 == -0. As long as one src is guaranteed to not be -0, -0 does not matter for the other src. Pick a
                 // src for which to ignore negative zero, based on which sym is last-use. If both syms are last-use, src2 is
                 // picked arbitrarily.
-                if(instr->GetSrc2()->IsRegOpnd() &&
-                    !currentBlock->upwardExposedUses->Test(instr->GetSrc2()->AsRegOpnd()->m_sym->m_id))
+                SetNegativeZeroMatters(instr->GetSrc1());
+                SetNegativeZeroMatters(instr->GetSrc2());
+                if (tag == Js::DeadStorePhase)
                 {
-                    SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
-                    SetNegativeZeroMatters(instr->GetSrc1());
-                }
-                else
-                {
-                    SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
-                    SetNegativeZeroMatters(instr->GetSrc2());
+                    if (instr->GetSrc2()->IsRegOpnd() &&
+                        !currentBlock->upwardExposedUses->Test(instr->GetSrc2()->AsRegOpnd()->m_sym->m_id))
+                    {
+                        SetCouldRemoveNegZeroBailoutForDefIfLastUse(instr->GetSrc2());
+                    }
+                    else
+                    {
+                        SetCouldRemoveNegZeroBailoutForDefIfLastUse(instr->GetSrc1());
+                    }
                 }
                 break;
+            }
 
             case Js::OpCode::Add_A:
                 Assert(dstSym);
@@ -5149,26 +5214,26 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
                 break;
 
             case Js::OpCode::Sub_I4:
+            {
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
                 Assert(instr->GetSrc1()->IsRegOpnd() || instr->GetSrc1()->IsIntConstOpnd());
                 Assert(instr->GetSrc2());
                 Assert(instr->GetSrc2()->IsRegOpnd() || instr->GetSrc2()->IsIntConstOpnd());
 
-                if(instr->ignoreNegativeZero ||
-                    !(instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout) ||
+                if (instr->ignoreNegativeZero ||
+                    (instr->GetSrc1()->IsIntConstOpnd() && instr->GetSrc1()->AsIntConstOpnd()->GetValue() != 0) ||
                     instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0)
                 {
-                    // At least one of the following is true:
-                    //     - -0 does not matter for dst
-                    //     - Src1 is not -0 (regardless of -0 bailout checks), and so this instruction cannot generate -0
-                    //     - Src2 is a nonzero int constant, and so this instruction cannot generate -0
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
-                    break;
                 }
-                goto NegativeZero_Sub_Default;
-
+                else
+                {
+                    goto NegativeZero_Sub_Default;
+                }
+                break;
+            }
             case Js::OpCode::Sub_A:
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
@@ -5197,7 +5262,11 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
             NegativeZero_Sub_Default:
                 // -0 - 0 == -0. As long as src1 is guaranteed to not be -0, -0 does not matter for src2.
                 SetNegativeZeroMatters(instr->GetSrc1());
-                SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
+                SetNegativeZeroMatters(instr->GetSrc2());
+                if (this->tag == Js::DeadStorePhase)
+                {
+                    SetCouldRemoveNegZeroBailoutForDefIfLastUse(instr->GetSrc2());
+                }
                 break;
 
             case Js::OpCode::BrEq_I4:
@@ -5625,6 +5694,16 @@ BackwardPass::SetNegativeZeroMatters(IR::Opnd *const opnd)
     if(stackSym)
     {
         negativeZeroDoesNotMatterBySymId->Clear(stackSym->m_id);
+    }
+}
+
+void
+BackwardPass::SetCouldRemoveNegZeroBailoutForDefIfLastUse(IR::Opnd *const opnd)
+{
+    StackSym * stackSym = IR::RegOpnd::TryGetStackSym(opnd);
+    if (stackSym && !this->currentBlock->upwardExposedUses->Test(stackSym->m_id))
+    {
+        this->currentBlock->couldRemoveNegZeroBailoutForDef->Set(stackSym->m_id);
     }
 }
 

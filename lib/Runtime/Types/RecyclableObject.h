@@ -285,6 +285,7 @@ namespace Js {
         virtual BOOL IsConfigurable(PropertyId propertyId) { return false; }
         virtual BOOL IsEnumerable(PropertyId propertyId) { return false; }
         virtual BOOL IsExtensible() { return false; }
+        virtual BOOL IsProtoImmutable() const { return false; }
         virtual BOOL PreventExtensions() { return false; };     // Sets [[Extensible]] flag of instance to false
         virtual void ThrowIfCannotDefineProperty(PropertyId propId, PropertyDescriptor descriptor);
         virtual void ThrowIfCannotGetOwnPropertyDescriptor(PropertyId propId) {}

@@ -41,6 +41,7 @@ namespace Js {
         BYTE isGlobalEval : 1;
         BYTE areNamesCached : 1;
         BYTE canMergeWithBodyScope : 1;
+        BYTE hasLocalInClosure : 1;
 
         Scope *scope;
         int scopeId;
@@ -49,7 +50,7 @@ namespace Js {
 
     private:
         ScopeInfo(FunctionBody * parent, int symbolCount)
-            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true)
+            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false)
         {
         }
 
@@ -191,6 +192,16 @@ namespace Js {
         bool GetCanMergeWithBodyScope() const
         {
             return canMergeWithBodyScope;
+        }
+
+        void SetHasLocalInClosure(bool has)
+        {
+            hasLocalInClosure = has;
+        }
+
+        bool GetHasOwnLocalInClosure() const
+        {
+            return hasLocalInClosure;
         }
 
         static void SaveScopeInfoForDeferParse(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func);

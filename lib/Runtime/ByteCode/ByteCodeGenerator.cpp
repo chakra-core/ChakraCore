@@ -998,14 +998,9 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::FunctionBody* functionBody)
                 bodyScope = Anew(alloc, Scope, alloc, ScopeType_FunctionBody, true);
             }
         }
+        bodyScope->SetHasOwnLocalInClosure(scopeInfo->GetHasOwnLocalInClosure());
 
         FuncInfo* func = Anew(alloc, FuncInfo, functionBody->GetDisplayName(), alloc, paramScope, bodyScope, nullptr, functionBody);
-
-        if (paramScope != nullptr)
-        {
-            paramScope->SetFunc(func);
-            paramScopeInfo->GetScopeInfo(nullptr, this, func, paramScope);
-        }
 
         if (bodyScope->GetScopeType() == ScopeType_GlobalEvalBlock)
         {
@@ -1032,6 +1027,12 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::FunctionBody* functionBody)
             funcExprScopeInfo->GetScopeInfo(nullptr, this, func, funcExprScope);
         }
 
+        // Restore the param scope after the function expression scope
+        if (paramScope != nullptr)
+        {
+            paramScope->SetFunc(func);
+            paramScopeInfo->GetScopeInfo(nullptr, this, func, paramScope);
+        }
         scopeInfo->GetScopeInfo(nullptr, this, func, bodyScope);
     }
     else
@@ -1814,6 +1815,17 @@ bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
                 _u("HasMaybeEscapedNestedFunc (ObjectScope): %s (function %s)\n"),
                 funcInfo->byteCodeFunction->GetDisplayName(),
                 funcInfo->byteCodeFunction->GetDebugNumberSet(debugStringBuffer));
+        }
+        return false;
+    }
+
+    if (funcInfo->paramScope && !funcInfo->paramScope->GetCanMergeWithBodyScope())
+    {
+        if (trace)
+        {
+            PHASE_PRINT_TESTTRACE(Js::StackFuncPhase, funcInfo->byteCodeFunction,
+                _u("CanStackNestedFunc: %s (Split Scope)\n"),
+                funcInfo->byteCodeFunction->GetDisplayName());
         }
         return false;
     }
@@ -2711,7 +2723,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 if (argSym)
                 {
                     Assert(top->bodyScope->GetScopeSlotCount() == 0);
-                    Assert(top->sameNameArgsPlaceHolderSlotCount == 0);
+                    Assert(top->argsPlaceHolderSlotCount == 0);
                     byteCodeGenerator->AssignRegister(argSym);
                     uint i = 0;
                     auto setArgScopeSlot = [&](ParseNode *pnodeArg)
@@ -2721,9 +2733,13 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                             Symbol* sym = pnodeArg->sxVar.sym;
                             if (sym->GetScopeSlot() != Js::Constants::NoProperty)
                             {
-                                top->sameNameArgsPlaceHolderSlotCount++; // Same name args appeared before
+                                top->argsPlaceHolderSlotCount++; // Same name args appeared before
                             }
                             sym->SetScopeSlot(i);
+                        }
+                        else if (pnodeArg->nop == knopParamPattern)
+                        {
+                            top->argsPlaceHolderSlotCount++;
                         }
                         i++;
                     };
@@ -3020,7 +3036,7 @@ void AddFunctionsToScope(ParseNodePtr scope, ByteCodeGenerator * byteCodeGenerat
 
 template <class PrefixFn, class PostfixFn>
 void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCodeGenerator* byteCodeGenerator,
-    PrefixFn prefix, PostfixFn postfix, uint *pIndex, bool breakOnNonFnc = false)
+    PrefixFn prefix, PostfixFn postfix, uint *pIndex, bool breakOnBodyScope = false)
 {
     // Visit all scopes nested in this scope before visiting this function's statements. This way we have all the
     // attributes of all the inner functions before we assign registers within this function.
@@ -3247,7 +3263,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             return;
         }
 
-        if (breakOnNonFnc && pnodeScope->nop != knopFncDecl)
+        if (breakOnBodyScope && pnodeScope == pnodeParent->sxFnc.pnodeBodyScope)
         {
             break;
         }

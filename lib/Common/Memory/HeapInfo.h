@@ -34,6 +34,11 @@ public:
     void EnumerateObjects(ObjectInfoBits infoBits, void(*CallBackFunction)(void * address, size_t size));
 #ifdef RECYCLER_PAGE_HEAP
     bool IsPageHeapEnabled() const{ return isPageHeapEnabled; }
+    static size_t RoundObjectSize(size_t objectSize) 
+    {
+        // triming off the tail part which is not a pointer
+        return objectSize - (objectSize % sizeof(void*)); 
+    }
 
     template <typename TBlockAttributes>
     bool IsPageHeapEnabledForBlock(const size_t objectSize);
@@ -46,11 +51,11 @@ public:
 #endif
 
     template <ObjectInfoBits attributes, bool nothrow>
-    char * MediumAlloc(Recycler * recycler, size_t sizeCat);
+    char * MediumAlloc(Recycler * recycler, size_t sizeCat, size_t size);
 
     // Small allocator
     template <ObjectInfoBits attributes, bool nothrow>
-    char * RealAlloc(Recycler * recycler, size_t sizeCat);
+    char * RealAlloc(Recycler * recycler, size_t sizeCat, size_t size);
     template <ObjectInfoBits attributes>
     bool IntegrateBlock(char * blockAddress, PageSegment * segment, Recycler * recycler, size_t sizeCat);
     template <typename SmallHeapBlockAllocatorType>
@@ -58,7 +63,7 @@ public:
     template <typename SmallHeapBlockAllocatorType>
     void RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t sizeCat);
     template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
-    char * SmallAllocatorAlloc(Recycler * recycler, SmallHeapBlockAllocatorType * allocator, size_t sizeCat);
+    char * SmallAllocatorAlloc(Recycler * recycler, SmallHeapBlockAllocatorType * allocator, size_t sizeCat, size_t size);
 
     // collection functions
     void ScanInitialImplicitRoots();
@@ -164,8 +169,7 @@ private:
     template <ObjectInfoBits attributes>
     typename SmallHeapBlockType<attributes, SmallAllocationBlockAttributes>::BucketType& GetBucket(size_t sizeCat);
 
-    template<bool pageheap>
-    void Sweep(RecyclerSweep& recyclerSweep, bool concurrent);
+    void SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent);
 
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
 #if SMALLBLOCK_MEDIUM_ALLOC
@@ -260,8 +264,6 @@ private:
         return heapBucket->heapBlockList;
     }
 #endif
-
-    template<bool pageheap>
     void SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep);
     void SweepLargeNonFinalizable(RecyclerSweep& recyclerSweep);
 
@@ -469,22 +471,22 @@ HeapInfo::GetMediumBucket(size_t sizeCat)
 
 template <ObjectInfoBits attributes, bool nothrow>
 inline char *
-HeapInfo::RealAlloc(Recycler * recycler, size_t sizeCat)
+HeapInfo::RealAlloc(Recycler * recycler, size_t sizeCat, size_t size)
 {
     Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
     auto& bucket = this->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
-    return bucket.template RealAlloc<attributes, nothrow>(recycler, sizeCat);
+    return bucket.RealAlloc<attributes, nothrow>(recycler, sizeCat, size);
 }
 
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS)
 #if SMALLBLOCK_MEDIUM_ALLOC
 template <ObjectInfoBits attributes, bool nothrow>
 inline char *
-HeapInfo::MediumAlloc(Recycler * recycler, size_t sizeCat)
+HeapInfo::MediumAlloc(Recycler * recycler, size_t sizeCat, size_t size)
 {
     auto& bucket = this->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
 
-    return bucket.template RealAlloc<attributes, nothrow>(recycler, sizeCat);
+    return bucket.RealAlloc<attributes, nothrow>(recycler, sizeCat, size);
 }
 
 #else
@@ -543,7 +545,7 @@ HeapInfo::RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t s
 
 template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
 char *
-HeapInfo::SmallAllocatorAlloc(Recycler * recycler, SmallHeapBlockAllocatorType * allocator, size_t sizeCat)
+HeapInfo::SmallAllocatorAlloc(Recycler * recycler, SmallHeapBlockAllocatorType * allocator, size_t sizeCat, size_t size)
 {
     Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
     CompileAssert((attributes & SmallHeapBlockAllocatorType::BlockType::RequiredAttributes) == SmallHeapBlockAllocatorType::BlockType::RequiredAttributes);
@@ -551,7 +553,7 @@ HeapInfo::SmallAllocatorAlloc(Recycler * recycler, SmallHeapBlockAllocatorType *
     auto& bucket = this->GetBucket<SmallHeapBlockAllocatorType::BlockType::RequiredAttributes>(sizeCat);
 
     // For now, SmallAllocatorAlloc is always throwing- but it's pretty easy to switch it if it's needed
-    return bucket.SnailAlloc(recycler, allocator, sizeCat, attributes, /* nothrow = */ false);
+    return bucket.SnailAlloc(recycler, allocator, sizeCat, size, attributes, /* nothrow = */ false);
 }
 
 // Forward declaration of explicit specialization before instantiation

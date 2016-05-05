@@ -1016,6 +1016,20 @@ SECOND_PASS:
     template<typename T>
     bool JavascriptArray::DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue)
     {
+        bool isBtree = false;
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        isBtree = Js::Configuration::Global.flags.ForceArrayBTree;
+#endif
+        if (GetSegmentMap() || isBtree)
+        {
+            for (uint i = startIndex; i < startIndex + length; i++)
+            {
+                DirectSetItem_Full<T>(i, newValue);
+            }
+            return true;
+        }
+
         if (startIndex == 0 && head != EmptySegment && length < head->size)
         {
             if (newValue == (T)0 || newValue == (T)(-1))
@@ -1094,20 +1108,7 @@ SECOND_PASS:
         {
             return true;
         }
-
-        bool isBtree = false;
-
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        isBtree = Js::Configuration::Global.flags.ForceArrayBTree;
-#endif
-        if (GetSegmentMap() || isBtree)
-        {
-            for (uint i = startIndex; i < startIndex + length; i++)
-            {
-                DirectSetItem_Full<T>(i, newValue);
-            }
-            return true;
-        }
+        Assert(!GetSegmentMap());
 
         SparseArraySegment<T> *current = PrepareSegmentForMemOp<T>(startIndex, length);
         if (current == nullptr)

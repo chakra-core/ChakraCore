@@ -5024,9 +5024,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
         {
             paramScope->ForEachSymbol([this](Symbol* paramSym)
             {
-                Symbol* sym = paramSym->GetPid()->GetTopRef()->GetSym();
                 PidRefStack* ref = PushPidRef(paramSym->GetPid());
-                ref->SetSym(sym);
+                ref->SetSym(paramSym);
             });
         }
 
@@ -7999,6 +7998,11 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
         m_pscan->Scan();
 
+        if (m_token.tk == tkEllipsis) {
+            // ... cannot have a unary prefix.
+            Error(ERRUnexpectedEllipsis);
+        }
+
         if (nop == knopYield && !m_pscan->FHadNewLine() && m_token.tk == tkStar)
         {
             m_pscan->Scan();
@@ -8018,8 +8022,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         }
         else
         {
-            // Disallow spread after an Ellipsis token. This prevents chaining, and ensures spread is the top level expression.
-            pnodeT = ParseExpr<buildAST>(opl, &fCanAssign, TRUE, nop != knopEllipsis && fAllowEllipsis, nullptr /*hint*/, nullptr /*hintLength*/, nullptr /*hintOffset*/, &operandToken, true);
+            // Disallow spread after a unary operator.
+            pnodeT = ParseExpr<buildAST>(opl, &fCanAssign, TRUE, FALSE, nullptr /*hint*/, nullptr /*hintLength*/, nullptr /*hintOffset*/, &operandToken, true);
         }
 
         if (nop != knopYieldLeaf)
@@ -10461,6 +10465,29 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
             // Start the var list.
             pnodeFnc->sxFnc.pnodeVars = nullptr;
             m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+
+            if (scope != nullptr && !pnodeFnc->sxFnc.IsAsync())
+            {
+                if (scope->GetCanMergeWithBodyScope())
+                {
+                    scope->ForEachSymbol([this](Symbol* paramSym)
+                    {
+                        PidRefStack* ref = PushPidRef(paramSym->GetPid());
+                        ref->SetSym(paramSym);
+                    });
+                }
+                else
+                {
+                    OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("The param and body scope of the function %s cannot be merged\n"), pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : _u("Anonymous function"));
+                    // Add a new symbol reference for each formal in the param scope to the body scope.
+                    scope->ForEachSymbol([this](Symbol* param) {
+                        OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("Creating a duplicate symbol for the parameter %s in the body scope\n"), param->GetPid()->Psz());
+                        ParseNodePtr paramNode = this->CreateVarDeclNode(param->GetPid(), STVariable, false, nullptr, false);
+                        Assert(paramNode && paramNode->sxVar.sym->GetScope()->GetScopeType() == ScopeType_FunctionBody);
+                        paramNode->sxVar.sym->SetHasInit(true);
+                    });
+                }
+            }
 
             Assert(m_currentNodeNonLambdaFunc == nullptr);
             m_currentNodeNonLambdaFunc = pnodeFnc;

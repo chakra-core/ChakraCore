@@ -17,6 +17,10 @@ function asmModule(stdlib, imports) {
 
     var loopCOUNT = 3;
 
+    var i8 = stdlib.SIMD.Int16x8;
+    var i8check = i8.check;
+    var i8fu8 = i8.fromUint16x8Bits;
+
     function testMulLocal()
     {
         var a = ui8(5, 10, 15, 20, 25, 30, 35, 40);
@@ -29,7 +33,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
     function testMulGlobal()
     {    
@@ -41,7 +45,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
 
     function testMulGlobalImport()
@@ -55,7 +59,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
     
     return {testMulLocal:testMulLocal, testMulGlobal:testMulGlobal, testMulGlobalImport:testMulGlobalImport};
@@ -63,7 +67,11 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Uint16x8(5, 10, 15, 20, 25, 30, 35, 40) });
 
-equalSimd([10, 20, 30, 40, 50, 60, 70, 80], m.testMulLocal(), SIMD.Uint16x8, "Test Mul");
-equalSimd([65000, 24464, 30030, 12330, 10, 210, 3000, 45450], m.testMulGlobal(), SIMD.Uint16x8, "Test Mul");
-equalSimd([10, 20, 30, 40, 50, 60, 70, 80], m.testMulGlobalImport(), SIMD.Uint16x8, "Test Mul");
+var ret1 = SIMD.Uint16x8.fromInt16x8Bits(m.testMulLocal());
+var ret2 = SIMD.Uint16x8.fromInt16x8Bits(m.testMulGlobal());
+var ret3 = SIMD.Uint16x8.fromInt16x8Bits(m.testMulGlobalImport());
+
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret1, SIMD.Uint16x8, "Test Mul");
+equalSimd([65000, 24464, 30030, 12330, 10, 210, 3000, 45450], ret2, SIMD.Uint16x8, "Test Mul");
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret3, SIMD.Uint16x8, "Test Mul");
 print("PASS");
