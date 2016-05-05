@@ -292,7 +292,7 @@ BailOutRecord::BailOutRecord(uint32 bailOutOffset, uint bailOutCacheIndex, IR::B
     argOutOffsetInfo(nullptr), bailOutOffset(bailOutOffset),
     bailOutCount(0), polymorphicCacheIndex(bailOutCacheIndex), bailOutKind(kind),
     branchValueRegSlot(Js::Constants::NoRegister),
-    ehBailoutData(nullptr), m_bailOutRecordId(0)
+    ehBailoutData(nullptr), m_bailOutRecordId(0), type(Normal)
 #if DBG
     , inlineDepth(0)
 #endif
@@ -1279,9 +1279,9 @@ BailOutRecord::BailOutFromLoopBodyHelper(Js::JavascriptCallStackLayout * layout,
     return bailOutOffset;
 }
 
-void BailOutRecord::UpdatePolymorphicFieldAccess(Js::JavascriptFunction *  function, BailOutRecord const * bailOutRecord)
+void BailOutRecord::UpdatePolymorphicFieldAccess(Js::JavascriptFunction * function, BailOutRecord const * bailOutRecord)
 {
-    Js::FunctionBody * executeFunction = function->GetFunctionBody();
+    Js::FunctionBody * executeFunction = bailOutRecord->type == Shared ? ((SharedBailOutRecord*)bailOutRecord)->functionBody : function->GetFunctionBody();
     Js::DynamicProfileInfo *dynamicProfileInfo = nullptr;
     if (executeFunction->HasDynamicProfileInfo())
     {
@@ -1290,7 +1290,7 @@ void BailOutRecord::UpdatePolymorphicFieldAccess(Js::JavascriptFunction *  funct
 
         if (bailOutRecord->polymorphicCacheIndex != (uint)-1)
         {
-            dynamicProfileInfo->RecordPolymorphicFieldAccess(function->GetFunctionBody(), bailOutRecord->polymorphicCacheIndex);
+            dynamicProfileInfo->RecordPolymorphicFieldAccess(executeFunction, bailOutRecord->polymorphicCacheIndex);
             if (IR::IsEquivalentTypeCheckBailOutKind(bailOutRecord->bailOutKind))
             {
                 // If we've already got a polymorphic inline cache, and if we've got an equivalent type check
@@ -2564,6 +2564,7 @@ BranchBailOutRecord::BranchBailOutRecord(uint32 trueBailOutOffset, uint32 falseB
     : BailOutRecord(trueBailOutOffset, (uint)-1, kind, bailOutFunc), falseBailOutOffset(falseBailOutOffset)
 {
     branchValueRegSlot = resultByteCodeReg;
+    type = BailoutRecordType::Branch;
 };
 
 Js::Var BranchBailOutRecord::BailOut(BranchBailOutRecord const * bailOutRecord, BOOL cond)
@@ -2649,6 +2650,13 @@ BranchBailOutRecord::BailOutFromLoopBodyInlined(Js::JavascriptCallStackLayout * 
         branchValue = (cond ? scriptContext->GetLibrary()->GetTrue() : scriptContext->GetLibrary()->GetFalse());
     }
     return __super::BailOutFromLoopBodyInlinedCommon(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutRecord->bailOutKind, branchValue);
+}
+
+SharedBailOutRecord::SharedBailOutRecord(uint32 bailOutOffset, uint bailOutCacheIndex, IR::BailOutKind kind, Func *bailOutFunc)
+    : BailOutRecord(bailOutOffset, bailOutCacheIndex, kind, bailOutFunc)
+{
+    this->functionBody = nullptr;
+    this->type = BailoutRecordType::Shared;
 }
 
 void LazyBailOutRecord::SetBailOutKind()

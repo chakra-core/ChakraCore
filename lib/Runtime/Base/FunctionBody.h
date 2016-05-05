@@ -9,7 +9,6 @@
 
 struct CodeGenWorkItem;
 class SourceContextInfo;
-class FunctionBailOutRecord;
 struct DeferredFunctionStub;
 #ifdef DYNAMIC_PROFILE_MUTATOR
 class DynamicProfileMutator;

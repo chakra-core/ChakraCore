@@ -1361,9 +1361,9 @@
   </test>
   <test>
     <default>
-      <files>bug7100343.js</files>
+      <files>forceRejitBugs.js</files>
       <compile-flags>-mic:1 -off:simplejit -force:rejit</compile-flags>
-      <baseline>bug7100343.baseline</baseline>
+      <baseline>forceRejitBugs.baseline</baseline>
     </default>
   </test>
   <test>
