@@ -9122,8 +9122,12 @@ CommonNumber:
             Var thisVar = RootToThisObject(object, scriptContext);
 
             RecyclableObject* marshalledFunction = RecyclableObject::FromVar(CrossSite::MarshalVar(requestContext, function));
+#ifdef _WIN32
             Var result = marshalledFunction->GetEntryPoint()(function, CallInfo(flags, 1), thisVar);
-
+#else
+            Var result = JavascriptFunction::CallFunction<false>(
+                    function, marshalledFunction->GetEntryPoint(), Arguments(CallInfo(flags, 1), &thisVar));
+#endif
             result = CrossSite::MarshalVar(requestContext, result);
 
             return result;
@@ -9165,7 +9169,13 @@ CommonNumber:
                 marshalledFunction = RecyclableObject::FromVar(CrossSite::MarshalVar(requestContext, function));
             }
 
+#ifdef _WIN32
             Var result = marshalledFunction->GetEntryPoint()(function, CallInfo(flags, 2), thisVar, putValue);
+#else
+            Var args[] = { thisVar, putValue };
+            Var result = JavascriptFunction::CallFunction<false>(
+                    function, marshalledFunction->GetEntryPoint(), Arguments(CallInfo(flags, 2), args));
+#endif
             Assert(result);
             return nullptr;
         });
