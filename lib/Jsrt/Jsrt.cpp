@@ -844,6 +844,8 @@ STDAPI_(JsErrorCode) JsGetFalseValue(_Out_ JsValueRef *falseValue)
 
 STDAPI_(JsErrorCode) JsBoolToBoolean(_In_ bool value, _Out_ JsValueRef *booleanValue)
 {
+    asdf; //TODO add TTD action here
+
     return ContextAPINoScriptWrapper([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(booleanValue);
 
@@ -873,6 +875,8 @@ STDAPI_(JsErrorCode) JsBooleanToBool(_In_ JsValueRef value, _Out_ bool *boolValu
 
 STDAPI_(JsErrorCode) JsConvertValueToBoolean(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
+    asdf; //TODO add TTD action here
+
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
         PARAM_NOT_NULL(result);
@@ -964,6 +968,8 @@ STDAPI_(JsErrorCode) JsDoubleToNumber(_In_ double dbl, _Out_ JsValueRef *asValue
       return JsNoError;
     }
 
+    asdf; //TODO add TTD action here -- note if fast check worked then number is inline so we don't need to record anything
+
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         *asValue = Js::JavascriptNumber::ToVarNoCheck(dbl, scriptContext);
         return JsNoError;
@@ -977,6 +983,8 @@ STDAPI_(JsErrorCode) JsIntToNumber(_In_ int intValue, _Out_ JsValueRef *asValue)
     {
         return JsNoError;
     }
+
+    asdf; //TODO add TTD action here -- note if fast check worked then number is inline so we don't need to record anything
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         *asValue = Js::JavascriptNumber::ToVar(intValue, scriptContext);
@@ -1034,6 +1042,8 @@ STDAPI_(JsErrorCode) JsNumberToInt(_In_ JsValueRef value, _Out_ int *asInt)
 
 STDAPI_(JsErrorCode) JsConvertValueToNumber(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
+    asdf; //TODO add TTD action here
+
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
         PARAM_NOT_NULL(result);
@@ -1062,6 +1072,8 @@ STDAPI_(JsErrorCode) JsGetStringLength(_In_ JsValueRef value, _Out_ int *length)
 
 STDAPI_(JsErrorCode) JsPointerToString(_In_reads_(stringLength) const wchar_t *stringValue, _In_ size_t stringLength, _Out_ JsValueRef *string)
 {
+    asdf; //TODO add TTD action here
+
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(stringValue);
         PARAM_NOT_NULL(string);
@@ -1103,6 +1115,8 @@ STDAPI_(JsErrorCode) JsStringToPointer(_In_ JsValueRef stringValue, _Outptr_resu
 
 STDAPI_(JsErrorCode) JsConvertValueToString(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
+    asdf; //TODO add TTD action here
+
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
         PARAM_NOT_NULL(result);

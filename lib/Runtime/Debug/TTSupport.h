@@ -42,12 +42,6 @@ typedef uint64 TTD_PTR_ID;
 #define TTD_COERCE_PTR_ID_TO_VAR(X) (reinterpret_cast<Js::Var>(X))
 #define TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(X) (reinterpret_cast<Js::FunctionBody*>(X))
 
-typedef uint64 TTD_LOG_TAG;
-#define TTD_INVALID_LOG_TAG 0l
-#define TTD_INITIAL_LOG_TAG 1l
-
-#define TTD_INCREMENT_LOG_TAG(X) ((X)++)
-
 //The representation of an identifier (currently access path) for a well known object/primitive/function body/etc. in the JS engine or HOST
 typedef LPCWSTR TTD_WELLKNOWN_TOKEN;
 #define TTD_INVALID_WELLKNOWN_TOKEN nullptr

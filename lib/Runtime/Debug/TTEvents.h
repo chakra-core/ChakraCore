@@ -7,6 +7,10 @@
 
 #if ENABLE_TTD
 
+//Ideally we want this to be a multiple of 8 when added to the tag sizes in the EventLogEntry struct.
+//It should also be of a size that allows us to inline the event data for the most common events without being too wasteful on other events.
+#define EVENT_INLINE_DATA_BYTE_COUNT 36
+
 namespace TTD
 {
     //An exception class for controlled aborts from the runtime to the toplevel TTD control loop
@@ -40,6 +44,32 @@ namespace TTD
         LPCWSTR GetStaticAbortMessage() const;
     };
 
+    //A struct for tracking time events in a single method
+    struct SingleCallCounter
+    {
+        Js::FunctionBody* Function;
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        LPCWSTR Name; //only added for debugging can get rid of later.
+#endif
+
+        uint64 EventTime; //The event time when the function was called
+        uint64 FunctionTime; //The function time when the function was called
+        uint64 LoopTime; //The current loop taken time for the function
+
+#if ENABLE_TTD_STACK_STMTS
+        int32 LastStatementIndex; //The previously executed statement
+        uint64 LastStatementLoopTime; //The previously executed statement
+
+        int32 CurrentStatementIndex; //The currently executing statement
+        uint64 CurrentStatementLoopTime; //The currently executing statement
+
+                                         //bytecode range of the current stmt
+        uint32 CurrentStatementBytecodeMin;
+        uint32 CurrentStatementBytecodeMax;
+#endif
+    };
+
     //A class to represent a source location
     class TTDebuggerSourceLocation
     {
@@ -51,7 +81,7 @@ namespace TTD
 
         //The document
         wchar* m_sourceFile; //temp use until we make docid stable
-        uint32 m_docid; 
+        uint32 m_docid;
 
         //The position of the function in the document
         uint32 m_functionLine;
@@ -69,6 +99,7 @@ namespace TTD
         bool HasValue() const;
         void Clear();
         void SetLocation(const TTDebuggerSourceLocation& other);
+        void SetLocation(const SingleCallCounter& callFrame);
         void SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
 
         int64 GetRootEventTime() const;
@@ -82,13 +113,13 @@ namespace TTD
 
     //////////////////
 
-    //A base class for our event log entries
-    class EventLogEntry
+    namespace NSLogEvents
     {
-    public:
         //An enumeration of the event kinds in the system
-        enum class EventKind
+        enum class EventKind : uint32
         {
+            Invalid = 0x0,
+            //Tags for internal engine events
             SnapshotTag,
             TopLevelCodeTag,
             TelemetryLogTag,
@@ -97,378 +128,253 @@ namespace TTD
             RandomSeedTag,
             PropertyEnumTag,
             SymbolCreationTag,
-            ExternalCallBeginTag,
-            ExternalCallEndTag,
-            JsRTActionTag
+            ExternalCallTag,
+            //JsRTActionTag is a marker for where the JsRT actions begin
+            JsRTActionTag,
+
+#if !INT32VAR
+            CreateIntegerActionTag,
+#endif
+            CreateNumberActionTag,
+            CreateBooleanActionTag,
+            CreateStringActionTag,
+            CreateSymbolActionTag,
+
+            VarConvertToNumberActionTag,
+            VarConvertToBooleanActionTag,
+            VarConvertToStringActionTag,
+            VarConvertToObjectActionTag,
+
+            AddRootRefActionTag,
+            RemoveRootRefActionTag,
+            LocalRootClearActionTag,
+
+            AllocateObjectActionTag,
+            AllocateExternalObjectActionTag,
+            AllocateArrayActionTag,
+            AllocateArrayBufferActionTag,
+            AllocateFunctionActionTag,
+            GetAndClearExceptionActionTag,
+            GetPropertyActionTag,
+            GetIndexActionTag,
+            GetOwnPropertyInfoActionTag,
+            GetOwnPropertiesInfoActionTag,
+            DefinePropertyActionTag,
+            DeletePropertyActionTag,
+            SetPrototypeActionTag,
+            SetPropertyActionTag,
+            SetIndexActionTag,
+            GetTypedArrayInfoActionTag,
+            ConstructCallActionTag,
+            CallbackOpActionTag,
+            CodeParseActionTag,
+            CallExistingFunctionActionTag,
+            Limit
         };
 
-    private:
-        //The kind of the event
-        const EventKind m_eventKind;
+        typedef void(*fPtr_EventLogActionEntryInfoExecute)(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
-        //The time at which this event occoured
-        const int64 m_eventTimestamp;
+        typedef void(*fPtr_EventLogEntryInfoUnload)(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
+        typedef void(*fPtr_EventLogEntryInfoEmit)(const EventLogEntry* evt, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext);
+        typedef void(*fPtr_EventLogEntryInfoParse)(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
-    protected:
-        EventLogEntry(EventKind tag, int64 eventTimestamp);
+        //A base struct for our event log entries -- we will use the kind tags as v-table values 
+        struct EventLogEntry
+        {
+            byte EventData[EVENT_INLINE_DATA_BYTE_COUNT];
 
-        //A helper for subclasses implementing EmitObject, this writes the initial tags and the standard data
-        void BaseStdEmit(FileWriter* writer, NSTokens::Separator separator) const;
-
-    public:
-        //unload any memory this event uses (including any unlinkable memory)
-        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc);
-
-        //Get the event kind tag
-        EventKind GetEventKind() const;
-
-        //The timestamp the event occoured
-        int64 GetEventTime() const;
-
-        //If this event may have a snapshot associated with it go ahead and unload it so we don't fill up memory with them
-        virtual void UnloadSnapshot() const;
-
-        //serialize the event data 
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const = 0;
-
-        //de-serialize an Event calling the correct completion vased on the EventKind
-        //IMPORTANT: Each subclass should implement a static "CompleteParse" method which this will call to complete the parse and create the event
-        static EventLogEntry* Parse(bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+            //The kind of the event
+            EventKind EventKind;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        //A debug value that tells us what the global event tag counter should be before this event completes
-        TTD_LOG_TAG DiagnosticEventTagValue;
+            //The event time for this event
+            int64 EventTimeStamp;
+
+            //The time at which this event occoured
+            double EventBeginTime;
+            double EventEndTime;
 #endif
-    };
-
-    //////////////////
-
-    //A class that represents snapshot events
-    class SnapshotEventLogEntry : public EventLogEntry
-    {
-    private:
-        //The timestamp we should restore to 
-        const int64 m_restoreTimestamp;
-
-        //The tag and identity we should restore to 
-        const TTD_LOG_TAG m_restoreLogTag;
-
-        //The snapshot (we many persist this to disk and inflate back in later)
-        mutable SnapShot* m_snap;
-
-    public:
-        SnapshotEventLogEntry(int64 eTime, SnapShot* snap, int64 restoreTimestamp, TTD_LOG_TAG restoreLogTag);
-        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
-
-        virtual void UnloadSnapshot() const override;
-
-        //Get the event as a snapshot event (and do tag checking for consistency)
-        static SnapshotEventLogEntry* As(EventLogEntry* e);
-
-        //Get the event time and tag to restore to
-        int64 GetRestoreEventTime() const;
-        TTD_LOG_TAG GetRestoreLogTag() const;
-        void EnsureSnapshotDeserialized(LPCWSTR logContainerUri, ThreadContext* threadContext) const;
-        const SnapShot* GetSnapshot() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static SnapshotEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
-    };
-
-    //////////////////
-
-    //A class that represents a top level code load event
-    class CodeLoadEventLogEntry : public EventLogEntry
-    {
-    private:
-        //The code counter id for the TopLevelFunctionBodyInfo
-        const uint64 m_bodyCounterId;
-
-    public:
-        CodeLoadEventLogEntry(int64 eTime, uint64 bodyCtrId);
-        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
-
-        //Get the event as a snapshot event (and do tag checking for consistency)
-        static CodeLoadEventLogEntry* As(EventLogEntry* e);
-
-        //Get the info about the event
-        uint64 GetLoadCounterId() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static CodeLoadEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
-    };
-
-    //A class that represents telemetry events from the user code
-    class TelemetryEventLogEntry : public EventLogEntry
-    {
-    private:
-        //A string that contains all of the info that is logged
-        const TTString m_infoString;
-
-        //Do we want to print the msg or just record it internally
-        const bool m_doPrint;
-
-    public:
-        TelemetryEventLogEntry(int64 eTime, const TTString& infoString, bool doPrint);
-        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
-
-        //Get the event as a snapshot event (and do tag checking for consistency)
-        static TelemetryEventLogEntry* As(EventLogEntry* e);
-
-        //Get the info about the event
-        const TTString& GetInfoString() const;
-        bool GetDoPrint() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static TelemetryEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
-    };
-
-    //////////////////
-
-    //A class that represents the generation of random seeds
-    class RandomSeedEventLogEntry : public EventLogEntry
-    {
-    private:
-        //The values associated with the event
-        const uint64 m_seed0;
-        const uint64 m_seed1;
-
-    public:
-        RandomSeedEventLogEntry(int64 eventTimestamp, uint64 seed0, uint64 seed1);
-
-        static RandomSeedEventLogEntry* As(EventLogEntry* e);
-
-        uint64 GetSeed0() const;
-        uint64 GetSeed1() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static RandomSeedEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
-    };
-
-    //A class that represents a simple event that needs a double value (e.g. date values)
-    class DoubleEventLogEntry : public EventLogEntry
-    {
-    private:
-        //The value associated with the event
-        const double m_doubleValue;
-
-    public:
-        DoubleEventLogEntry(int64 eventTimestamp, double val);
-
-        static DoubleEventLogEntry* As(EventLogEntry* e);
-
-        double GetDoubleValue() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static DoubleEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
-    };
-
-    //A class that represents a simple event that needs a string value (e.g. date values)
-    class StringValueEventLogEntry : public EventLogEntry
-    {
-    private:
-        //The value associated with the event
-        const TTString m_stringValue;
-
-    public:
-        StringValueEventLogEntry(int64 eventTimestamp, const TTString& val);
-        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
-
-        static StringValueEventLogEntry* As(EventLogEntry* e);
-
-        const TTString& GetStringValue() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static StringValueEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
-    };
-
-    //////////////////
-
-    //A class that represents a single enumeration step for properties on a dynamic object
-    class PropertyEnumStepEventLogEntry : public EventLogEntry
-    {
-    private:
-        //The return code, property id, and attributes returned
-        const BOOL m_returnCode;
-        const Js::PropertyId m_pid;
-        const Js::PropertyAttributes m_attributes;
-
-        //Optional property name string (may need to actually use later if pid can be Constants::NoProperty)
-        //Always set if if doing extra diagnostics otherwise only as needed
-        const TTString m_propertyString;
-
-    public:
-        PropertyEnumStepEventLogEntry(int64 eventTimestamp, BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, const TTString& propertyName);
-        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
-
-        static PropertyEnumStepEventLogEntry* As(EventLogEntry* e);
-
-        BOOL GetReturnCode() const;
-        Js::PropertyId GetPropertyId() const;
-        Js::PropertyAttributes GetAttributes() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static PropertyEnumStepEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
-    };
-
-    //////////////////
-
-    //A class that represents the creation of a symbol (which we need to make sure gets the correct property id)
-    class SymbolCreationEventLogEntry : public EventLogEntry
-    {
-    private:
-        //The property id of the created symbol
-        const Js::PropertyId m_pid;
-
-    public:
-        SymbolCreationEventLogEntry(int64 eventTimestamp, Js::PropertyId pid);
-
-        static SymbolCreationEventLogEntry* As(EventLogEntry* e);
-
-        Js::PropertyId GetPropertyId() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static SymbolCreationEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
-    };
-
-    //////////////////
-
-    namespace NSLogValue
-    {
-        enum class ArgRetValueTag
-        {
-            Invalid = 0x0,
-
-            RawNull,
-            ChakraUndefined,
-            ChakraNull,
-            ChakraBool,
-            ChakraInteger,
-            ChakraInt64,
-            ChakraUInt64,
-            ChakraNumber,
-            ChakraString,
-            ChakraSymbol,
-            ChakraLoggedObject
         };
 
-        //A struct that represents a cross Host/Chakra call argument/return value 
-        struct ArgRetValue
+        template <typename T, EventKind tag>
+        const T* GetInlineEventDataAs(const EventLogEntry* evt)
         {
-            ArgRetValueTag Tag;
+            static_assert(sizeof(T) < EVENT_INLINE_DATA_BYTE_COUNT, "Data is too large for inline representation!!!");
+            AssertMsg(evt->EventKind == tag, "Bad tag match!");
 
-            union
-            {
-                BOOL u_boolVal;
-                int64 u_int64Val;
-                uint64 u_uint64Val;
-                double u_doubleVal;
-                Js::PropertyId u_propertyId;
-                TTD_LOG_TAG u_objectTag;
-            };
+            return static_cast<T*>(evt->EventData);
+        }
 
-            TTString* m_optStringContents;
+        template <typename T, EventKind tag>
+        T* GetInlineEventDataAs(EventLogEntry* evt)
+        {
+            static_assert(sizeof(T) < EVENT_INLINE_DATA_BYTE_COUNT, "Data is too large for inline representation!!!");
+            AssertMsg(evt->EventKind == tag, "Bad tag match!");
+
+            return static_cast<T*>(event->EventData);
+        }
+
+        //Helpers for initializing, emitting and parsing the basic event data
+        void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime, Js::HiResTimer& timer);
+        void EventLogEntry_Done(EventLogEntry* evt, Js::HiResTimer& timer);
+        void EventLogEntry_Emit(const EventLogEntry* evt, fPtr_EventLogEntryInfoEmit emitFP, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext, NSTokens::Separator separator);
+        void EventLogEntry_Parse(EventLogEntry* evt, fPtr_EventLogEntryInfoParse parseFP, bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //////////////////
+
+        //A struct that represents snapshot events
+        struct SnapshotEventLogEntry
+        {
+            //The timestamp we should restore to 
+            int64 RestoreTimestamp;
+
+            //The snapshot (we many persist this to disk and inflate back in later)
+            SnapShot* Snap;
         };
 
-        //Unload any data that is needed from this ArgRetValue
-        void UnloadData(const ArgRetValue& val, UnlinkableSlabAllocator& alloc);
+        void SnapshotEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
+        void SnapshotEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void SnapshotEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
-        //Initialize as invalid
-        void InitializeArgRetValueAsInvalid(ArgRetValue& val);
+        void SnapshotEventLogEntry_EnsureSnapshotDeserialized(EventLogEntry* evt, LPCWSTR uri, ThreadContext* threadContext);
+        void SnapshotEventLogEntry_UnloadSnapshot(EventLogEntry* evt);
 
-        //Extract a ArgRetValue 
-        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val, UnlinkableSlabAllocator& alloc);
+        //////////////////
 
-        //Convert the ArgRetValue into the appropriate value
-        Js::Var InflateArgRetValueIntoVar(const ArgRetValue& val, Js::ScriptContext* ctx);
+        //A struct that represents a top level code load event
+        struct CodeLoadEventLogEntry
+        {
+            //The code counter id for the TopLevelFunctionBodyInfo
+            uint64 BodyCounterId;
+        };
 
-        //serialize the SnapPrimitiveValue
-        void EmitArgRetValue(const ArgRetValue& val, FileWriter* writer, NSTokens::Separator separator);
+        void CodeLoadEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void CodeLoadEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
-        //de-serialize the SnapPrimitiveValue
-        void ParseArgRetValue(ArgRetValue& val, bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc);
+        //A struct that represents telemetry events from the user code
+        struct TelemetryEventLogEntry
+        {
+            //A string that contains all of the info that is logged
+            TTString InfoString;
+
+            //Do we want to print the msg or just record it internally
+            bool DoPrint;
+        };
+
+        void TelemetryEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
+        void TelemetryEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void TelemetryEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //////////////////
+
+        //A struct that represents the generation of random seeds
+        struct RandomSeedEventLogEntry
+        {
+            //The values associated with the event
+            uint64 Seed0;
+            uint64 Seed1;
+        };
+
+        void RandomSeedEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void RandomSeedEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //A struct that represents a simple event that needs a double value (e.g. date values)
+        struct DoubleEventLogEntry
+        {
+            //The value associated with the event
+            double DoubleValue;
+        };
+
+        void DoubleEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void DoubleEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //A struct that represents a simple event that needs a string value (e.g. date values)
+        struct StringValueEventLogEntry
+        {
+            //The value associated with the event
+            TTString StringValue;
+        };
+
+        void StringValueEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
+        void StringValueEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void StringValueEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //////////////////
+
+        //A struct that represents a single enumeration step for properties on a dynamic object
+        struct PropertyEnumStepEventLogEntry
+        {
+            //The return code, property id, and attributes returned
+            BOOL ReturnCode;
+            Js::PropertyId Pid;
+            Js::PropertyAttributes Attributes;
+
+            //Optional property name string (may need to actually use later if pid can be Constants::NoProperty)
+            //Always set if if doing extra diagnostics otherwise only as needed
+            TTString PropertyString;
+        };
+
+        void PropertyEnumStepEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
+        void PropertyEnumStepEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void PropertyEnumStepEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //////////////////
+
+        //A struct that represents the creation of a symbol (which we need to make sure gets the correct property id)
+        struct SymbolCreationEventLogEntry
+        {
+            //The property id of the created symbol
+            Js::PropertyId Pid;
+        };
+
+        void SymbolCreationEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void SymbolCreationEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //////////////////
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+    //A struct containing additional information on the external call
+        struct ExternalCallEventLogEntryDiagInfo
+        {
+            //the function name for the function that is invoked
+            TTString FunctionName;
+
+            //The last event time that is nested in this external call
+            int64 LastNestedEvent;
+        };
+#endif
+
+        //A struct for logging calls from Chakra to an external function (e.g., record start of external execution and later any argument information)
+        struct ExternalCallEventLogEntry
+        {
+            //The root nesting depth
+            int32 RootNestingDepth;
+
+            uint32 ArgCount;
+            TTDVar* ArgArray;
+
+            //The return value of the external call
+            TTDVar ReturnValue;
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            ExternalCallEventLogEntryDiagInfo* DiagInfo;
+#endif
+
+            //
+            //TODO: later we should record more detail on the script exception for inflation if needed
+            //
+            bool HasScriptException;
+            bool HasTerminiatingException;
+        };
+
+        void ExternalCallEventLogEntry_ProcessDiagInfo(EventLogEntry* evt, int64 lastNestedEvent, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc);
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc);
+        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException);
+
+        void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
+        void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void ExternalCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
     }
-
-    //////////////////
-
-    //A class for logging calls from Chakra to an external function (e.g., record start of external execution and later any argument information)
-    class ExternalCallEventBeginLogEntry : public EventLogEntry
-    {
-    private:
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        //the function name for the function that is invoked
-        TTString m_functionName;
-#endif
-
-        //The root nesting depth
-        const int32 m_rootNestingDepth;
-
-        //The time at which the external call began
-        const double m_callBeginTime;
-
-    public:
-        ExternalCallEventBeginLogEntry(int64 eTime, int32 rootNestingDepth, double callBeginTime);
-        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        void SetFunctionName(const TTString& fname);
-#endif
-
-        //Get the event as a external call event (and do tag checking for consistency)
-        static ExternalCallEventBeginLogEntry* As(EventLogEntry* e);
-
-        //Return the root nesting depth
-        int32 GetRootNestingDepth() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static ExternalCallEventBeginLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
-    };
-
-    //A class for logging calls from Chakra to an external function (e.g., record the return value)
-    class ExternalCallEventEndLogEntry : public EventLogEntry
-    {
-    private:
-        //The corresponding begin action time
-        int64 m_matchingBeginTime;
-
-        //The time at which the external call ended
-        const double m_callEndTime;
-
-        //
-        //TODO: later we should record more detail on the script exception for inflation if needed
-        //
-        const bool m_hasScriptException;
-        const bool m_hasTerminiatingException;
-
-        //The root nesting depth
-        const int32 m_rootNestingDepth;
-
-        //the value returned by the external call
-        const NSLogValue::ArgRetValue m_returnVal;
-
-    public:
-        ExternalCallEventEndLogEntry(int64 eTime, int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, const NSLogValue::ArgRetValue& returnVal);
-        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
-
-        //Get the event as a external call event (and do tag checking for consistency)
-        static ExternalCallEventEndLogEntry* As(EventLogEntry* e);
-
-        bool HasTerminatingException() const;
-        bool HasScriptException() const;
-
-        //Get the event time for the matching call begin event
-        int64 GetMatchingCallBegin() const;
-
-        //Return the root nesting depth
-        int32 GetRootNestingDepth() const;
-
-        //Get the return value argument
-        const NSLogValue::ArgRetValue& GetReturnValue() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static ExternalCallEventEndLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
-    };
 }
 
 #endif
-

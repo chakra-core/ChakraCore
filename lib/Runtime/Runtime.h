@@ -100,11 +100,14 @@ namespace TTD
     class SnapShot;
     class SnapshotExtractor;
 
-    class EventTime;
     class TTDExceptionFramePopper;
     struct SingleCallCounter;
-    class EventLogEntry;
-    class JsRTActionLogEntry;
+
+    namespace NSLogEvents
+    {
+        struct EventLogEntry;
+    }
+
     class EventLog;
 
     class TTDebuggerAbortException;

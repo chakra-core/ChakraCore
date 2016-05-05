@@ -67,6 +67,8 @@ namespace TTD
             {
                 NSSnapType::SnapHandler* sHandler = sType->TypeHandlerInfo;
 
+                static_assert(sizeof(TTDVar) == sizeof(Js::Var), "These need to be the same size (and have same bit layout) for this to work!");
+
                 snpObject->VarArrayCount = sHandler->MaxPropertyIndex;
                 snpObject->VarArray = alloc.SlabAllocateArray<TTDVar>(snpObject->VarArrayCount);
 
@@ -77,7 +79,7 @@ namespace TTD
 
                     //copy all the properties (if they all fit into the inline slots) otherwise just copy all the inline slot values
                     uint32 inlineSlotCount = min(sHandler->MaxPropertyIndex, sHandler->InlineSlotCapacity);
-                    memcpy(cpyBase, inlineSlots, inlineSlotCount * sizeof(Js::Var));
+                    js_memcpy_s(cpyBase, inlineSlotCount * sizeof(TTDVar), inlineSlots, inlineSlotCount * sizeof(Js::Var));
                 }
 
                 if(sHandler->MaxPropertyIndex > sHandler->InlineSlotCapacity)
@@ -87,7 +89,7 @@ namespace TTD
 
                     //there are some values in aux slots (in addition to the inline slots) so copy them as well
                     uint32 auxSlotCount = (sHandler->MaxPropertyIndex - sHandler->InlineSlotCapacity);
-                    memcpy(cpyBase, auxSlots, auxSlotCount * sizeof(Js::Var));
+                    js_memcpy_s(cpyBase, auxSlotCount * sizeof(TTDVar), auxSlots, auxSlotCount * sizeof(Js::Var));
                 }
             }
 

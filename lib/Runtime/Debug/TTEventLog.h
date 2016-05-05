@@ -156,32 +156,6 @@ namespace TTD
         Iterator GetIteratorAtLast() const;
     };
 
-    //A struct for tracking time events in a single method
-    struct SingleCallCounter
-    {
-        Js::FunctionBody* Function;
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR Name; //only added for debugging can get rid of later.
-#endif
-
-        uint64 EventTime; //The event time when the function was called
-        uint64 FunctionTime; //The function time when the function was called
-        uint64 LoopTime; //The current loop taken time for the function
-
-#if ENABLE_TTD_STACK_STMTS
-        int32 LastStatementIndex; //The previously executed statement
-        uint64 LastStatementLoopTime; //The previously executed statement
-
-        int32 CurrentStatementIndex; //The currently executing statement
-        uint64 CurrentStatementLoopTime; //The currently executing statement
-
-        //bytecode range of the current stmt
-        uint32 CurrentStatementBytecodeMin;
-        uint32 CurrentStatementBytecodeMax;
-#endif
-    };
-
     //A class that represents the event log for the program execution
     class EventLog
     {
