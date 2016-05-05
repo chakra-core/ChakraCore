@@ -63,7 +63,7 @@
 #if defined(DBG)
 
 #define _STRINGIZE_(x) #x
-#define _STRINGIZE(x) _STRINGIZE_(x)
+//#define _STRINGIZE(x) _STRINGIZE_(x)
 
 #define AssertMsg(exp, comment)   \
 do { \
@@ -80,10 +80,10 @@ if (!(exp)) \
 
 #define Assert(exp)             AssertMsg(exp, #exp)
 #define _JSRT_
-#include "ChakraCommon.h"
+#include "ChakraCore.h"
 #include "Core/CommonTypedefs.h"
 #include "TestHooksRt.h"
-#include "ChakraDebug.h"
+#include <map>
 
 typedef void * Var;
 

@@ -107,7 +107,6 @@
     JsRunScriptUtf8
     JsSerializeScriptUtf8
     JsRunSerializedScriptUtf8
-    JsExperimentalApiRunModuleUtf8
     JsGetPropertyIdFromNameUtf8
     JsStringFree
     JsDiagEvaluateUtf8

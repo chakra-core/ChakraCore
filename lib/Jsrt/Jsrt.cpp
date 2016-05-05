@@ -3420,15 +3420,6 @@ CHAKRA_API JsRunSerializedScriptUtf8(
         buffer, sourceContext, url, false, result);
 }
 
-CHAKRA_API JsExperimentalApiRunModuleUtf8(
-    _In_z_ const char *script,
-    _In_ JsSourceContext sourceContext,
-    _In_z_ const char *sourceUrl,
-    _Out_ JsValueRef *result)
-{
-    return RunScriptCore(-1, script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, true, result);
-}
-
 CHAKRA_API JsStringFree(_In_ char* stringValue)
 {
     if (stringValue == nullptr)

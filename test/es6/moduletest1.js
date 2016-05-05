@@ -1,0 +1,1 @@
+WScript.LoadScriptFile("passModule.JS", "module");

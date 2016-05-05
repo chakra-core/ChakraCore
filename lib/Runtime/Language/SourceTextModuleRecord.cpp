@@ -23,6 +23,7 @@ namespace Js
         localExportMapByExportName(nullptr),
         localExportMapByLocalName(nullptr),
         localExportIndexList(nullptr),
+        normalizedSpecifier(nullptr),
         errorObject(nullptr),
         hostDefined(nullptr),
         exportedNames(nullptr),
@@ -30,6 +31,7 @@ namespace Js
         wasParsed(false),
         wasDeclarationInitialized(false),
         isRootModule(false),
+        hadNotifyHostReady(false),
         localExportSlots(nullptr),
         numUnParsedChildrenModule(0),
         moduleId(InvalidModuleIndex),
@@ -199,7 +201,11 @@ namespace Js
                 Assert(this->errorObject == nullptr);
 
                 ModuleDeclarationInstantiation();
-                hr = scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
+                if (!hadNotifyHostReady)
+                {
+                    hr = scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
+                    hadNotifyHostReady = true;
+                }
             }
         }
         return hr;
@@ -208,11 +214,6 @@ namespace Js
     HRESULT SourceTextModuleRecord::OnChildModuleReady(SourceTextModuleRecord* childModule, Var childException)
     {
         HRESULT hr = NOERROR;
-        if (numUnParsedChildrenModule == 0)
-        {
-            return NOERROR; // this is only in case of recursive module reference. Let the higher stack frame handle this module.
-        }
-        numUnParsedChildrenModule--;
         if (childException != nullptr)
         {
             // propagate the error up as needed.
@@ -221,9 +222,20 @@ namespace Js
                 this->errorObject = childException;
             }
             NotifyParentsAsNeeded();
+            if (isRootModule && !hadNotifyHostReady)
+            {
+                hr = scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
+                hadNotifyHostReady = true;
+            }
         }
         else
         {
+            if (numUnParsedChildrenModule == 0)
+            {
+                return NOERROR; // this is only in case of recursive module reference. Let the higher stack frame handle this module.
+            }
+            numUnParsedChildrenModule--;
+
             hr = PrepareForModuleDeclarationInitialization();
         }
         return hr;
@@ -642,8 +654,13 @@ namespace Js
         {
             return nullptr;
         }
-        SetWasEvaluated();
         Assert(this->errorObject == nullptr);
+        if (this->errorObject != nullptr)
+        {
+            JavascriptExceptionOperators::Throw(errorObject, scriptContext);
+        }
+        Assert(!WasEvaluated());
+        SetWasEvaluated();
         // we shouldn't evaluate if there are existing failure. This is defense in depth as the host shouldn't 
         // call into evaluation if there was previous fialure on the module.
         if (this->errorObject)
