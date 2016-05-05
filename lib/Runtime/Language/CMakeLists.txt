@@ -1,3 +1,9 @@
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64)
+    set( ARCH_CHAKRA_RUNTIME_LANGUAGE
+        amd64/JavascriptOperatorsA.S
+        )
+endif()
+
 add_library (Chakra.Runtime.Language STATIC
     AsmJs.cpp
     AsmJsByteCodeGenerator.cpp
@@ -61,7 +67,7 @@ add_library (Chakra.Runtime.Language STATIC
     # arm/StackFrame.cpp
     # i386/AsmJsJitTemplate.cpp
     # i386/StackFrame.cpp
-    amd64/JavascriptOperatorsA.S
+    ${ARCH_CHAKRA_RUNTIME_LANGUAGE}
     )
 
 include_directories (

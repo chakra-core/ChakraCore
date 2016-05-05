@@ -1472,7 +1472,7 @@ LABEL1:
 #ifdef ENABLE_SCRIPT_PROFILING
         Assert(directEntryPoint != DefaultDeferredParsingThunk
             && directEntryPoint != ProfileDeferredParsingThunk);
-#else
+#else // !ENABLE_SCRIPT_PROFILING
         Assert(directEntryPoint != DefaultDeferredParsingThunk);
 #endif
         return (*functionRef)->UpdateUndeferredBody(funcBody);
