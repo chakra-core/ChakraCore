@@ -24,14 +24,6 @@ static ATOM  lockedDll = 0;
 #define EXPORT_FUNC __attribute__ ((visibility ("default")))
 #endif
 
-#ifndef _WIN32
-HANDLE GetModuleHandle(HANDLE hProcess)
-{
-    Assert(hProcess == NULL);
-    return g_hInstance;
-}
-#endif
-
 static BOOL AttachProcess(HANDLE hmod)
 {
     if (!ThreadContextTLSEntry::InitializeProcess() || !JsrtContext::Initialize())
@@ -80,7 +72,7 @@ static BOOL AttachProcess(HANDLE hmod)
     lockedDll = ::AddAtom(engine);
     AssertMsg(lockedDll, "Failed to lock chakracore.dll");
 #endif // _WIN32
-    
+
 #ifdef ENABLE_BASIC_TELEMETRY
     g_TraceLoggingClient = NoCheckHeapNewStruct(TraceLoggingClient);
 #endif
@@ -148,7 +140,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
         lockedDll = ::DeleteAtom(lockedDll);
         AssertMsg(lockedDll == 0, "Failed to release the lock for chakracore.dll");
 #endif
-        
+
 #ifdef DYNAMIC_PROFILE_STORAGE
         DynamicProfileStorage::Uninitialize();
 #endif

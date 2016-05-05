@@ -590,7 +590,11 @@ int CmdLineArgsParser::Parse(__in LPWSTR oneArg) throw()
                 NextChar();
             }
             //fallthrough
+#ifdef _WIN32
+        // Only support '/' as a command line switch start char on Windows
+        // for legacy reason. Deprecate on xplat, as it starts a path on Unix.
         case '/':
+#endif
             NextChar();
             if('?' == CurChar())
             {

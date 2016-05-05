@@ -130,9 +130,9 @@ void __stdcall PrintUsageFormat()
 
 void __stdcall PrintUsage()
 {
-#if !defined(DEBUG) || !defined(_WIN32)
+#ifndef DEBUG
     wprintf(_u("\nUsage: %s <source file> %s"), hostName,
-            _u("\n[flaglist] is only supported for debug builds on Windows\n"));
+            _u("\n[flaglist] is not supported for Release mode\n"));
 #else
     PrintUsageFormat();
     wprintf(_u("Try '%s -?' for help\n"), hostName);
@@ -188,7 +188,7 @@ HRESULT CreateLibraryByteCodeHeader(LPCOLESTR fileContents, BYTE * contentsRaw, 
     HRESULT hr = GetSerializedBuffer(fileContents, &bcBuffer, &bcBufferSize);
 
     if (FAILED(hr)) return hr;
-    
+
     bcFileHandle = CreateFile(bcFullPath, GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (bcFileHandle == INVALID_HANDLE_VALUE)
     {
@@ -283,7 +283,7 @@ HRESULT RunScript(const char* fileName, LPCWSTR fileContents, BYTE *bcBuffer, ch
     MessageQueue * messageQueue = new MessageQueue();
     WScriptJsrt::AddMessageQueue(messageQueue);
     LPWSTR fullPathWide = nullptr;
-    
+
     IfJsErrorFailLog(ChakraRTInterface::JsSetPromiseContinuationCallback(PromiseContinuationCallback, (void*)messageQueue));
 
     Assert(fileContents != nullptr || bcBuffer != nullptr);
@@ -489,12 +489,12 @@ HRESULT ExecuteTestWithMemoryCheck(char* fileName)
     {
         Assert(false);
     }
-#else 
+#else
     // REVIEW: Do we need a SEH handler here?
     hr = ExecuteTest(fileName);
     if (FAILED(hr)) exit(0);
 #endif // _WIN32
-    
+
     _flushall();
 #ifdef CHECK_MEMORY_LEAK
     ChakraRTInterface::SetEnableCheckMemoryLeakOutput(true);
@@ -522,11 +522,11 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     // The following code is present to make sure we don't load
     // jscript9.dll etc with ch. Since that isn't a concern on non-Windows
     // builds, it's safe to conditionally compile it out.
-#ifdef _WIN32    
+#ifdef _WIN32
     ATOM lock = ::AddAtom(szChakraCoreLock);
     AssertMsg(lock, "failed to lock chakracore.dll");
 #endif // _WIN32
-    
+
     HostConfigFlags::HandleArgsFlag(argc, argv);
 
     ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, nullptr };
@@ -541,7 +541,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 #ifdef _WIN32
         HANDLE threadHandle;
         threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(0, 0, &StaticThreadProc, &argInfo, STACK_SIZE_PARAM_IS_A_RESERVATION, 0));
-        
+
         if (threadHandle != nullptr)
         {
             DWORD waitResult = WaitForSingleObject(threadHandle, INFINITE);
@@ -567,9 +567,9 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 int main(int argc, char** argv)
 {
     PAL_InitializeChakraCore(argc, argv);
-        
+
     const char* strProgramFile = argv[0];
-    
+
     // Ignoring mem-alloc failures here as this is
     // simply a test tool. We can add more error checking
     // here later if desired.
@@ -578,7 +578,7 @@ int main(int argc, char** argv)
     {
         Helpers::NarrowStringToWideDynamic(argv[i], &args[i]);
     }
-    
+
     int ret = wmain(argc, args);
 
     for (int i = 0; i < argc; i++)
@@ -586,7 +586,7 @@ int main(int argc, char** argv)
         free(args[i]);
     }
     delete[] args;
-    
+
     PAL_Shutdown();
     return ret;
 }
