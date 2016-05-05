@@ -20,13 +20,14 @@ PRINT_USAGE() {
     echo "  build.sh [options]"
     echo ""
     echo "  options:"
-    echo "    --cxx       : Path to Clang++ (see example below)"
-    echo "    --cc        : Path to Clang   (see example below)"
-    echo "    --debug, -d : Debug build (by default Release Build)"
-    echo "    --help, -h  : Show help"
-    echo "    --icu       : Path to ICU include folder (see example below)"
-    echo "    --jobs, -j  : Multicore build (i.e. -j=3 for 3 cores)"
-    echo "    --ninja, -n : Build with ninja instead of make"
+    echo "    --cxx         : Path to Clang++ (see example below)"
+    echo "    --cc          : Path to Clang   (see example below)"
+    echo "    --debug, -d   : Debug build (by default Release Build)"
+    echo "    --help, -h    : Show help"
+    echo "    --icu         : Path to ICU include folder (see example below)"
+    echo "    --jobs, -j    : Multicore build (i.e. -j=3 for 3 cores)"
+    echo "    --ninja, -n   : Build with ninja instead of make"
+    echo "    --verbose, -v : Display verbose output including all options"
     echo ""
     echo "  example:"
     echo "    ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j=2"
@@ -37,6 +38,7 @@ PRINT_USAGE() {
 
 _CXX=""
 _CC=""
+VERBOSE=""
 BUILD_TYPE="Release"
 CMAKE_GEN=
 MAKE=make
@@ -57,6 +59,10 @@ while [[ $# -gt 0 ]]; do
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
         PRINT_USAGE
         exit
+    fi
+
+    if [[ "$1" == "--verbose" || "$1" == "-v" ]]; then
+        _VERBOSE="verbose"
     fi
 
     if [[ "$1" == "--debug" || "$1" == "-d" ]]; then
@@ -85,6 +91,19 @@ while [[ $# -gt 0 ]]; do
 
     shift
 done
+
+if [[ ${#_VERBOSE} > 0 ]]; then
+    # echo options back to the user
+    echo "Printing command line options back to the user:"
+    echo "_CXX=${_CXX}"
+    echo "_CC=${_CC}"
+    echo "BUILD_TYPE=${BUILD_TYPE}"
+    echo "MULTICORE_BUILD=${MULTICORE_BUILD}"
+    echo "ICU_PATH=${ICU_PATH}"
+    echo "CMAKE_GEN=${CMAKE_GEN}"
+    echo "MAKE=${MAKE}"
+    echo ""
+fi
 
 if [[ ${#_CXX} > 0 && ${#_CC} > 0 ]]; then
     echo "Custom CXX ${_CXX}"
