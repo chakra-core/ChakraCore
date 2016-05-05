@@ -8,34 +8,12 @@
 #define VA_LIST_TO_VARARRAY(vl, va, callInfo) Js::Var* va = (Var*) vl;
 #else
 #if _M_X64
-// System V AMD64 calling convention requires that the callee
-// not assume that the arguments are all passed on the
-// stack. Instead, arguments are passed in registers first and
-// are passed through the stack only after the 6th
-// argument. va_list therefore is not merely a stack pointer
-// but a more complex datastructure, so we can't directly cast
-// it to a Var*.
-// As a workaround, for now we can allocate a new arguments array
-// directly on the stack and copy the original arguments onto
-// this stack allocated memory.
-// This is implemented as a macro since we allocate the var array on the
-// stack using alloca
+// We use a custom calling convention to invoke JavascriptMethod based on
+// System V AMD64 ABI. At entry of JavascriptMethod the stack layout is:
+//      [Return Address] [function] [callInfo] [arg0] [arg1] ...
 //
-// xplat-todo: Investigate whether we can do something
-// cleverer here to avoid this stack copying. Perhaps a
-// combination of making up our own calling convention between
-// amd64_JavascriptCallFunction and its callees, and having
-// argument reader manipulate the stack pointer directly
-// instead of using va_list/va_args. However, the following
-// solution is probably the cleanest/most portable.
 #define VA_LIST_TO_VARARRAY(vl, va, callInfo)                              \
-    Js::Var* va = (Var*) alloca(callInfo.Count * sizeof(Var*));            \
-    {                                                                      \
-        for (int i = 0; i < callInfo.Count; i++)                           \
-        {                                                                  \
-            va[i] = va_arg(vl, Var);                                       \
-        }                                                                  \
-    }
+    Js::Var* va = reinterpret_cast<Js::Var*>(_AddressOfReturnAddress()) + 3;
 #else
 #error Not yet implemented
 #endif
