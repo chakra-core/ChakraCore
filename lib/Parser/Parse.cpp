@@ -967,7 +967,7 @@ void Parser::RestorePidRefForSym(Symbol *sym)
     ref->SetSym(sym);
 }
 
-IdentPtr Parser::GenerateIdentPtr(__ecount(len) char16* name, long len)
+IdentPtr Parser::GenerateIdentPtr(__ecount(len) char16* name, int32 len)
 {
     return m_phtbl->PidHashNameLen(name,len);
 }
@@ -1213,7 +1213,7 @@ ParseNodePtr Parser::CreateStrNode(IdentPtr pid)
     return pnode;
 }
 
-ParseNodePtr Parser::CreateIntNode(long lw)
+ParseNodePtr Parser::CreateIntNode(int32 lw)
 {
     ParseNodePtr pnode = CreateNode(knopInt);
     pnode->sxInt.lw = lw;
@@ -1299,7 +1299,7 @@ ParseNodePtr Parser::CreateStrNodeWithScanner(IdentPtr pid)
     return pnode;
 }
 
-ParseNodePtr Parser::CreateIntNodeWithScanner(long lw)
+ParseNodePtr Parser::CreateIntNodeWithScanner(int32 lw)
 {
     Assert(!this->m_deferringAST);
     ParseNodePtr pnode = CreateNodeWithScanner<knopInt>();
@@ -3381,7 +3381,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                        !Js::TaggedInt::IsOverflow(uintValue)) // the optimization is not very useful if the number can't be represented as a TaggedInt
                     {
                         // No need to verify that uintValue != JavascriptArray::InvalidIndex since all nonnegative TaggedInts are valid indexes
-                        auto intNode = CreateIntNodeWithScanner(uintValue); // implicit conversion from uint32 to long
+                        auto intNode = CreateIntNodeWithScanner(uintValue); // implicit conversion from uint32 to int32
                         pnode->sxBin.pnode2 = intNode;
                     }
                     // Field optimization (see GlobOpt::KillLiveElems) checks for value being a Number,
@@ -4413,7 +4413,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     uint scopeCountNoAstSave = m_scopeCountNoAst;
     m_scopeCountNoAst = 0;
 
-    long* pAstSizeSave = m_pCurrentAstSize;
+    int32* pAstSizeSave = m_pCurrentAstSize;
     bool noStmtContext = false;
 
     if (fDeclaration)
@@ -5590,7 +5590,7 @@ bool Parser::FastScanFormalsAndBody()
                 if (tempCurlyDepth != (uint)-1)
                 {
                     ParseNodePtr pnodeFncSave = m_currentNodeFunc;
-                    long *pastSizeSave = m_pCurrentAstSize;
+                    int32 *pastSizeSave = m_pCurrentAstSize;
                     uint *pnestedCountSave = m_pnestedCount;
                     ParseNodePtr *ppnodeScopeSave = m_ppnodeScope;
                     ParseNodePtr *ppnodeExprScopeSave = m_ppnodeExprScope;
@@ -6268,7 +6268,7 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
         pnodeFnc->sxFnc.columnNumber = 0;
     }
 
-    long * pAstSizeSave = m_pCurrentAstSize;
+    int32 * pAstSizeSave = m_pCurrentAstSize;
     m_pCurrentAstSize = &(pnodeFnc->sxFnc.astSize);
 
     // Make this the current function.
@@ -6438,7 +6438,7 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
 
     ParseNodePtr pnodeFncSave = m_currentNodeFunc;
     uint *pnestedCountSave = m_pnestedCount;
-    long* pAstSizeSave = m_pCurrentAstSize;
+    int32* pAstSizeSave = m_pCurrentAstSize;
 
     m_currentNodeFunc = pnodeFnc;
     m_pCurrentAstSize = & (pnodeFnc->sxFnc.astSize);
@@ -6581,7 +6581,7 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
 void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef)
 {
     LPCOLESTR name = NULL;
-    JS_ETW(long startAstSize = *m_pCurrentAstSize);
+    JS_ETW(int32 startAstSize = *m_pCurrentAstSize);
     if(IS_JS_ETW(EventEnabledJSCRIPT_PARSE_METHOD_START()) || PHASE_TRACE1(Js::DeferParsePhase))
     {
         name = GetFunctionName(pnodeFnc, pNameHint);
@@ -6620,7 +6620,7 @@ void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNode
     //pnodeFnc->sxFnc.pnodeTmps = *m_ppnodeVar;
 
 #ifdef ENABLE_JS_ETW
-    long astSize = *m_pCurrentAstSize - startAstSize;
+    int32 astSize = *m_pCurrentAstSize - startAstSize;
     EventWriteJSCRIPT_PARSE_METHOD_STOP(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), pnodeFnc->sxFnc.functionId, astSize, m_parseType, name);
 #endif
 }
@@ -7383,7 +7383,7 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
     uint scopeCountNoAstSave = m_scopeCountNoAst;
     m_scopeCountNoAst = 0;
 
-    long* pAstSizeSave = m_pCurrentAstSize;
+    int32* pAstSizeSave = m_pCurrentAstSize;
 
     pnodeFncSave = m_currentNodeFunc;
     pnodeDeferredFncSave = m_currentNodeDeferredFunc;
@@ -10128,7 +10128,7 @@ LNeedTerminator:
 
             // create a fake name for the catch var.
             const WCHAR *uniqueNameStr = _u("__ehobj");
-            IdentPtr uniqueName = m_phtbl->PidHashNameLen(uniqueNameStr, static_cast<long>(wcslen(uniqueNameStr)));
+            IdentPtr uniqueName = m_phtbl->PidHashNameLen(uniqueNameStr, static_cast<int32>(wcslen(uniqueNameStr)));
 
             pCatch->sxCatch.pnodeParam = CreateNameNode(uniqueName);
 
@@ -10711,7 +10711,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     m_pscan->Scan();
 
     // Make the main 'knopProg' node
-    long initSize = 0;
+    int32 initSize = 0;
     m_pCurrentAstSize = &initSize;
     pnodeProg = CreateProgNodeWithScanner(isModuleSource);
     pnodeProg->grfpn = PNodeFlags::fpnNone;
@@ -11887,7 +11887,7 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
     {
         m_currentNodeDeferredFunc = m_currentNodeFunc;
     }
-    long *pAstSizeSave = m_pCurrentAstSize;
+    int32 *pAstSizeSave = m_pCurrentAstSize;
     uint *pNestedCountSave = m_pnestedCount;
     ParseNodePtr *ppnodeScopeSave = m_ppnodeScope;
     ParseNodePtr *ppnodeExprScopeSave = m_ppnodeExprScope;
@@ -11895,7 +11895,7 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
     ParseNodePtr newTempScope = nullptr;
     m_ppnodeScope = &newTempScope;
 
-    long newTempAstSize = 0;
+    int32 newTempAstSize = 0;
     m_pCurrentAstSize = &newTempAstSize;
 
     uint newTempNestedCount = 0;

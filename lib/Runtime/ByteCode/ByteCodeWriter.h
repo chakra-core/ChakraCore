@@ -229,10 +229,10 @@ namespace Js
 #endif
 
         void Create();
-        void InitData(ArenaAllocator* alloc, long initCodeBufferSize);
+        void InitData(ArenaAllocator* alloc, int32 initCodeBufferSize);
         void Begin(ByteCodeGenerator* byteCodeGenerator, FunctionBody* functionWrite, ArenaAllocator* alloc, bool doJitLoopBodies, bool hasLoop);
 #ifdef LOG_BYTECODE_AST_RATIO
-        void End(long currentAstSize, long maxAstSize);
+        void End(int32 currentAstSize, int32 maxAstSize);
 #else
         void End();
 #endif

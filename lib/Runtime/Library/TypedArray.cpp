@@ -429,7 +429,7 @@ namespace Js
             else if (ArrayBuffer::Is(firstArgument))
             {
                 // Constructor(ArrayBuffer buffer,
-                //  optional unsigned long byteOffset, optional unsigned long length)
+                //  optional uint32 byteOffset, optional uint32 length)
                 arrayBuffer = ArrayBuffer::FromVar(firstArgument);
                 if (arrayBuffer->IsDetached())
                 {

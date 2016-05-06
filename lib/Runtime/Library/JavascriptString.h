@@ -8,7 +8,7 @@ namespace Js
 {
     typedef struct
     {
-        unsigned long shift;
+        uint32 shift;
     } Boyer_Moore_Jump;
 
     // Boyer Moore table for only the first character in the search string.

@@ -6,7 +6,7 @@
 #include "ARMEncode.h"
 
 bool
-EncoderMD::EncodeImmediate16(long constant, DWORD * result)
+EncoderMD::EncodeImmediate16(int32 constant, DWORD * result)
 {
     if (constant > 0xFFFF)
     {

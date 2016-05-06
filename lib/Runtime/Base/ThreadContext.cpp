@@ -1961,7 +1961,7 @@ void ThreadContext::ReleaseDebugManager()
     Assert(crefSContextForDiag > 0);
     Assert(this->debugManager != nullptr);
 
-    long lref = InterlockedDecrement(&crefSContextForDiag);
+    LONG lref = InterlockedDecrement(&crefSContextForDiag);
 
     if (lref == 0)
     {

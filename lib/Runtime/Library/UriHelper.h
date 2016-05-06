@@ -81,7 +81,7 @@ namespace Js
 
         static const uint32 MaxUTF8Len = 4;
         static uint32 ToUTF8( uint32 uVal, BYTE bUTF8[MaxUTF8Len]);
-        static unsigned long FromUTF8( BYTE bUTF8[MaxUTF8Len], uint32 uLen );
+        static uint32 FromUTF8( BYTE bUTF8[MaxUTF8Len], uint32 uLen );
         static Var Encode(__in_ecount(len) const char16* psz, uint32 len, unsigned char unescapedFlags, ScriptContext* scriptContext );
 
     private:

@@ -190,7 +190,7 @@ namespace Js {
         AsmJsModuleMemory               mModuleMemory;
         AsmJsCompileTime                mCompileTime;
         AsmJsCompileTime                mCompileTimeLastTick;
-        long                            mMaxAstSize;
+        int32                            mMaxAstSize;
         BVStatic<ASMMATH_BUILTIN_SIZE>  mAsmMathBuiltinUsedBV;
         BVStatic<ASMARRAY_BUILTIN_SIZE> mAsmArrayBuiltinUsedBV;
         AsmJsCompileTime                mPhaseCompileTime[AsmJsCompilation::Phases_COUNT];
@@ -234,8 +234,8 @@ namespace Js {
         inline ParseNode *GetModuleFunctionNode() const{return mModuleFunctionNode;}
 
         inline ArenaAllocator* GetAllocator() {return &mAllocator;}
-        inline long GetMaxAstSize() const{return mMaxAstSize;}
-        inline void UpdateMaxAstSize( long val ){mMaxAstSize = val>mMaxAstSize?val:mMaxAstSize;}
+        inline int32 GetMaxAstSize() const{return mMaxAstSize;}
+        inline void UpdateMaxAstSize( int32 val ){mMaxAstSize = val>mMaxAstSize?val:mMaxAstSize;}
 
         //Mutable interface
         inline void InitModuleName( PropertyName name ){mModuleFunctionName = name;}

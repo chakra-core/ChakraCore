@@ -558,7 +558,7 @@ CommonNumber:
         {
             ScriptContext *const scriptContext = recyclableObject->GetScriptContext();
 
-            long hCode;
+            int32 hCode;
 
             switch (hint)
             {

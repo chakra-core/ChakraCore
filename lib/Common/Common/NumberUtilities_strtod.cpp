@@ -10,8 +10,8 @@ namespace Js
 static inline BOOL FNzDigit(int ch)
 { return ch >= '1' && ch <= '9'; }
 
-static const long klwMaxExp10 = 310;     // Upper bound on base 10 exponent
-static const long klwMinExp10 = -325;    // Lower bound on base 10 exponent
+static const int32 klwMaxExp10 = 310;     // Upper bound on base 10 exponent
+static const int32 klwMinExp10 = -325;    // Lower bound on base 10 exponent
 static const int kcbMaxRgb = 50;
 static const int kcchMaxSig = 20;        // 20 significant digits. ECMA allows this.
 
@@ -24,7 +24,7 @@ static const double g_rgdblTens[] =
     1e20, 1e21, 1e22, 1e23, 1e24, 1e25, 1e26, 1e27, 1e28
 };
 
-static inline char16 ToDigit(long wVal)
+static inline char16 ToDigit(int32 wVal)
 {
     //return reinterpret_cast<char16>((wVal < 10) ? '0' + (ushort) wVal : 'a' - 10 + (ushort) wVal);
     return (ushort)((wVal < 10) ? '0' + (ushort) wVal : 'a' - 10 + (ushort) wVal);
@@ -83,7 +83,7 @@ struct BIGNUM
 
     // Set the value from decimal digits and decimal exponent
     template <typename EncodedChar>
-    void SetFromRgchExp(const EncodedChar *pch, long cch, long lwExp);
+    void SetFromRgchExp(const EncodedChar *pch, int32 cch, int32 lwExp);
 
     // Multiply by a BIGNUM
     void Mul(const BIGNUM *pnumOp);
@@ -130,7 +130,7 @@ struct BIGNUM
         uint32 luT = (m_luError + 1) >> 1;
 
         if (luT &&
-            !Js::NumberUtilities::AddLu(&m_lu0, (uint32)-(long)luT) &&
+            !Js::NumberUtilities::AddLu(&m_lu0, (uint32)-(int32)luT) &&
             !Js::NumberUtilities::AddLu(&m_lu1, 0xFFFFFFFF))
         {
             Js::NumberUtilities::AddLu(&m_lu2, 0xFFFFFFFF);
@@ -344,7 +344,7 @@ void BIGNUM::MulTenAdd(byte bAdd, uint32 *pluExtra)
 }
 
 template<typename EncodedChar>
-void BIGNUM::SetFromRgchExp(const EncodedChar *prgch, long cch, long lwExp)
+void BIGNUM::SetFromRgchExp(const EncodedChar *prgch, int32 cch, int32 lwExp)
 {
     Assert(cch > 0);
     AssertArrMemR(prgch, cch);
@@ -717,18 +717,18 @@ we adjust it to be exactly half way to the previous representable value
 and re-compare.
 ***************************************************************************/
 template <typename EncodedChar>
-static double AdjustDbl(double dbl, const EncodedChar *prgch, long cch, long lwExp)
+static double AdjustDbl(double dbl, const EncodedChar *prgch, int32 cch, int32 lwExp)
 {
     Js::BigInt biDec, biDbl;
-    long c2Dec, c2Dbl;
-    long c5Dec, c5Dbl;
+    int32 c2Dec, c2Dbl;
+    int32 c5Dec, c5Dbl;
     int wAddHi, wT;
-    long iT;
-    long wExp2;
+    int32 iT;
+    int32 wExp2;
     uint32 rglu[2];
     uint32 luT;
     BOOL f;
-    long clu;
+    int32 clu;
 
     if (!biDec.FInitFromDigits(prgch, cch, &cch))
         goto LFail;
@@ -913,14 +913,14 @@ double Js::NumberUtilities::StrToDbl( const EncodedChar *psz, const EncodedChar 
     // points to the first digit and pchLimDig points just past the last
     // digit. cchDig is the number of digits. pchLimDig - pchMinDig may be
     // cchDig + 1 (if there is a decimal point).
-    long cchDig = 0;
+    int32 cchDig = 0;
     const EncodedChar *pchMinDig = NULL;
     const EncodedChar *pchLimDig = NULL;
 
     int signExp = 1;    // sign of the exponent
     int signMan = 0;    // sign of the mantissa
-    long lwAdj = 0;        // exponent adjustment
-    long lwExp = 0;        // the exponent
+    int32 lwAdj = 0;        // exponent adjustment
+    int32 lwExp = 0;        // the exponent
 
     const EncodedChar *pchSave;
     const EncodedChar *pch = psz;
@@ -1071,7 +1071,7 @@ LEnd:
 
         // Here, we are going to consider that there are only kcchMaxSig digits (effectively the same as replacing excessive
         // digits with a '0' to make them insignificant, as the spec requests). So, the following need to be done:
-        const long numExcessiveDigits = cchDig - kcchMaxSig;
+        const int32 numExcessiveDigits = cchDig - kcchMaxSig;
 
         // Move pchLimDig to the left over numExcessiveDigits digits. Note that it needs to move over digits; the decimal point
         // does not count as a digit. We determine if pchLimDig would jump over the decimal point by using the lwAdj value and
@@ -1191,7 +1191,7 @@ LEnd:
 
     // Convert to a big number.
     Assert(pchLimDig - pchMinDig >= 0 && pchLimDig - pchMinDig <= LONG_MAX);
-    num.SetFromRgchExp(pchMinDig, (long)(pchLimDig - pchMinDig), lwExp);
+    num.SetFromRgchExp(pchMinDig, (int32)(pchLimDig - pchMinDig), lwExp);
 
     // If there is no error in the big number, just convert it to a double.
     if (0 == num.m_luError)
@@ -1199,7 +1199,7 @@ LEnd:
         dbl = num.GetDbl();
 #if DBG
         Assert(pchLimDig - pchMinDig >= 0 && pchLimDig - pchMinDig <= LONG_MAX);
-        dblLo = AdjustDbl(dbl, pchMinDig, (long)(pchLimDig - pchMinDig), lwExp);
+        dblLo = AdjustDbl(dbl, pchMinDig, (int32)(pchLimDig - pchMinDig), lwExp);
         Assert(dbl == dblLo);
 #endif //DBG
         goto LDone;
@@ -1220,7 +1220,7 @@ LEnd:
 #if DBG
         Assert(dbl == num.GetDbl());
         Assert(pchLimDig - pchMinDig >= 0 && pchLimDig - pchMinDig <= LONG_MAX);
-        dblLo = AdjustDbl(dbl, pchMinDig, (long)(pchLimDig - pchMinDig), lwExp);
+        dblLo = AdjustDbl(dbl, pchMinDig, (int32)(pchLimDig - pchMinDig), lwExp);
         Assert(dbl == dblLo || Js::NumberUtilities::IsNan(dblLo));
 #endif //DBG
         goto LDone;
@@ -1232,7 +1232,7 @@ LEnd:
     // x = 1.2345678901234568347913049445e+200;
     //
     Assert(pchLimDig - pchMinDig >= 0 && pchLimDig - pchMinDig <= LONG_MAX);
-    dbl = AdjustDbl(num.GetDbl(), pchMinDig, (long)(pchLimDig - pchMinDig), lwExp);
+    dbl = AdjustDbl(num.GetDbl(), pchMinDig, (int32)(pchLimDig - pchMinDig), lwExp);
 
 LDone:
     // This assert was removed because it would fire on VERY rare occasions. Not

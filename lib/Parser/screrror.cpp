@@ -165,7 +165,7 @@ const MHR g_rgmhr[] =
     /*0x80080005*/ MAPHR(CO_E_SERVER_EXEC_FAILURE, VBSERR_CantCreateObject),
 #endif // _WIN32 || _WIN64
 };
-const long kcmhr = sizeof(g_rgmhr) / sizeof(g_rgmhr[0]);
+const int32 kcmhr = sizeof(g_rgmhr) / sizeof(g_rgmhr[0]);
 
 
 HRESULT MapHr(HRESULT hr, ErrorTypeEnum * errorTypeOut)

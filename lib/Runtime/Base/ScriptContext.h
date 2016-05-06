@@ -240,7 +240,7 @@ namespace Js
         {
             return &projectionConfiguration;
         }
-        void SetHostType(long hostType) { this->HostType = hostType; }
+        void SetHostType(int32 hostType) { this->HostType = hostType; }
         void SetWinRTConstructorAllowed(bool allowed) { this->WinRTConstructorAllowed = allowed; }
         void SetProjectionTargetVersion(DWORD version)
         {
@@ -1058,7 +1058,7 @@ private:
         bool Close(bool inDestructor);
         void MarkForClose();
 #ifdef ENABLE_PROJECTION
-        void SetHostType(long hostType) { config.SetHostType(hostType); }
+        void SetHostType(int32 hostType) { config.SetHostType(hostType); }
         void SetWinRTConstructorAllowed(bool allowed) { config.SetWinRTConstructorAllowed(allowed); }
         void SetProjectionTargetVersion(DWORD version) { config.SetProjectionTargetVersion(version); }
 #endif

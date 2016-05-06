@@ -857,7 +857,7 @@ namespace Js
         // 1. Let O be RequireObjectCoercible(O).
         // 2. ReturnIfAbrupt(O).
         // 3. If Type(proto) is neither Object or Null, then throw a TypeError exception.
-        long errCode = NOERROR;
+        int32 errCode = NOERROR;
 
         if (args.Info.Count < 2 || !JavascriptConversion::CheckObjectCoercible(args[1], scriptContext))
         {

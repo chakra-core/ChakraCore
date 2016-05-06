@@ -2751,7 +2751,7 @@ namespace Js
         return FALSE;
     }
 
-    void FunctionBody::FindClosestStatements(long characterOffset, StatementLocation *firstStatementLocation, StatementLocation *secondStatementLocation)
+    void FunctionBody::FindClosestStatements(int32 characterOffset, StatementLocation *firstStatementLocation, StatementLocation *secondStatementLocation)
     {
         auto statementMaps = this->GetStatementMaps();
         if (statementMaps)

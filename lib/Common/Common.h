@@ -34,7 +34,7 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 namespace Js
 {
     typedef int32 PropertyId;
-    typedef unsigned long ModuleID;
+    typedef uint32 ModuleID;
 }
 
 #define IsTrueOrFalse(value)     ((value) ? _u("True") : _u("False"))

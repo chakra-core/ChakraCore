@@ -2713,7 +2713,7 @@ void ByteCodeGenerator::EmitProgram(ParseNode *pnodeProg)
     this->trackEnvDepth = true;
     AssignPropertyIds(pnodeProg->sxFnc.funcInfo->byteCodeFunction);
 
-    long initSize = this->maxAstSize / AstBytecodeRatioEstimate;
+    int32 initSize = this->maxAstSize / AstBytecodeRatioEstimate;
 
     // Use the temp allocator in bytecode write temp buffer.
     m_writer.InitData(this->alloc, initSize);
@@ -9567,7 +9567,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         funcInfo->AcquireLoc(pnode);
         if (pnode->sxUni.pnode1->nop == knopInt)
         {
-            long value = pnode->sxUni.pnode1->sxInt.lw;
+            int32 value = pnode->sxUni.pnode1->sxInt.lw;
             Js::OpCode op = value ? Js::OpCode::LdFalse : Js::OpCode::LdTrue;
             byteCodeGenerator->Writer()->Reg1(op, pnode->location);
         }

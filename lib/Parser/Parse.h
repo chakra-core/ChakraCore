@@ -134,7 +134,7 @@ public:
     static IdentPtr PidFromNode(ParseNodePtr pnode);
 
     ParseNode* CopyPnode(ParseNode* pnode);
-    IdentPtr GenerateIdentPtr(__ecount(len) char16* name,long len);
+    IdentPtr GenerateIdentPtr(__ecount(len) char16* name,int32 len);
 
     ArenaAllocator *GetAllocator() { return &m_nodeAllocator;}
 
@@ -183,7 +183,7 @@ private:
     Core members.
     ***********************************************************************/
     ParseNodeAllocator m_nodeAllocator;
-    long        m_cactIdentToNodeLookup;
+    int32        m_cactIdentToNodeLookup;
     uint32       m_grfscr;
     size_t      m_length;             // source length in characters excluding comments and literals
     size_t      m_originalLength;             // source length in characters excluding comments and literals
@@ -215,8 +215,8 @@ private:
     __declspec(noreturn) void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim);
     __declspec(noreturn) static void OutOfMemory();
 
-    void GenerateCode(ParseNodePtr pnode, void *pvUser, long cbUser,
-        LPCOLESTR pszSrc, long cchSrc, LPCOLESTR pszTitle);
+    void GenerateCode(ParseNodePtr pnode, void *pvUser, int32 cbUser,
+        LPCOLESTR pszSrc, int32 cchSrc, LPCOLESTR pszTitle);
 
     void EnsureStackAvailable();
 
@@ -284,7 +284,7 @@ public:
 
     ParseNodePtr CreateNode(OpCode nop, charcount_t ichMin);
     ParseNodePtr CreateTriNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ParseNodePtr pnode3);
-    ParseNodePtr CreateIntNode(long lw);
+    ParseNodePtr CreateIntNode(int32 lw);
     ParseNodePtr CreateStrNode(IdentPtr pid);
 
     ParseNodePtr CreateUniNode(OpCode nop, ParseNodePtr pnodeOp);
@@ -348,7 +348,7 @@ private:
     template <OpCode nop> ParseNodePtr CreateNodeWithScanner();
     template <OpCode nop> ParseNodePtr CreateNodeWithScanner(charcount_t ichMin);
     ParseNodePtr CreateStrNodeWithScanner(IdentPtr pid);
-    ParseNodePtr CreateIntNodeWithScanner(long lw);
+    ParseNodePtr CreateIntNodeWithScanner(int32 lw);
     ParseNodePtr CreateProgNodeWithScanner(bool isModuleSource);
 
     static void InitNode(OpCode nop,ParseNodePtr pnode);
@@ -362,7 +362,7 @@ private:
     ParseNodePtr m_currentNodeProg; // current program
     DeferredFunctionStub *m_currDeferredStub;
     DeferredFunctionStub *m_prevSiblingDeferredStub;
-    long * m_pCurrentAstSize;
+    int32 * m_pCurrentAstSize;
     ParseNodePtr * m_ppnodeScope;  // function list tail
     ParseNodePtr * m_ppnodeExprScope; // function expression list tail
     ParseNodePtr * m_ppnodeVar;  // variable list tail
@@ -506,7 +506,7 @@ private:
         ParseNodePtr *m_ppnodeScopeSave;
         ParseNodePtr *m_ppnodeExprScopeSave;
         charcount_t m_funcInArraySave;
-        long *m_pCurrentAstSizeSave;
+        int32 *m_pCurrentAstSizeSave;
         uint m_funcInArrayDepthSave;
         uint m_nestedCountSave;
 #if DEBUG

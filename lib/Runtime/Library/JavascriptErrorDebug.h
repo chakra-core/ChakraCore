@@ -44,7 +44,7 @@ namespace Js
         static void ClearErrorInfo(ScriptContext* scriptContext);
 #endif
 
-        static void SetErrorMessage(JavascriptError *pError, long errCode, PCWSTR varDescription, ScriptContext* scriptContext);
+        static void SetErrorMessage(JavascriptError *pError, HRESULT errCode, PCWSTR varDescription, ScriptContext* scriptContext);
 
         void SetRestrictedErrorStrings(RestrictedErrorStrings * proerrstr)
         {

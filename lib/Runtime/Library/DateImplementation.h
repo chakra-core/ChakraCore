@@ -81,9 +81,9 @@ namespace Js {
 
 #ifdef ENABLE_GLOBALIZATION
         template <class ScriptContext>
-        static long GetDaylightBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext);
+        static int32 GetDaylightBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext);
         template <class ScriptContext>
-        static long GetStandardBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext);
+        static int32 GetStandardBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext);
 #endif
 
         template <class ScriptContext>
@@ -289,7 +289,7 @@ namespace Js {
         Js::YMD                 m_ymdUtc;
         Js::YMD                 m_ymdLcl;
         TZD                     m_tzd;
-        unsigned long           m_grfval; // Which fields are valid. m_tvUtc is always valid.
+        uint32           m_grfval; // Which fields are valid. m_tvUtc is always valid.
         ScriptContext *         m_scriptContext;
         bool                    m_modified : 1; // Whether SetDateData was called on this class
 
@@ -302,7 +302,7 @@ namespace Js {
     /// Gets the daylight bias to use, in minutes. (Shared with hybrid debugging, which may use a fake scriptContext.)
     ///
     template <class ScriptContext>
-    long DateImplementation::GetDaylightBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext)
+    int32 DateImplementation::GetDaylightBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext)
     {
         Assert(pTz);
         Assert(scriptContext);
@@ -313,7 +313,7 @@ namespace Js {
     /// Gets the standard bias to use, in minutes. (Shared with hybrid debugging, which may use a fake scriptContext.)
     ///
     template <class ScriptContext>
-    long DateImplementation::GetStandardBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext)
+    int32 DateImplementation::GetStandardBias(const TIME_ZONE_INFORMATION *const pTz, const ScriptContext *const scriptContext)
     {
         Assert(pTz);
         Assert(scriptContext);
@@ -448,7 +448,7 @@ namespace Js {
             const charcount_t cchWritten = NumberUtilities::UInt16ToString(value, buffer, charCapacity, 2);
             Assert(cchWritten != 0);
         };
-        const auto ConvertLongToString = [](const long value, char16 *const buffer, const CharCount charCapacity)
+        const auto ConvertLongToString = [](const int32 value, char16 *const buffer, const CharCount charCapacity)
         {
             const errno_t err = _ltow_s(value, buffer, charCapacity, 10);
             Assert(err == 0);
