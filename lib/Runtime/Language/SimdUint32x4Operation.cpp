@@ -47,11 +47,11 @@ namespace Js
     SIMDValue SIMDUint32x4Operation::OpFromFloat32x4(const SIMDValue& v, bool &throws)
     {
         SIMDValue result = {0};
-        const uint MIN_UINT = 0, MAX_UINT = 0xFFFFFFFF;
+        const int MIN_UINT = -1, MAX_UINT = 0xFFFFFFFF;
 
         for (int i = 0; i < 4; i++)
         {
-            if (v.f32[i] >= MIN_UINT && v.f32[i] <= MAX_UINT)
+            if (v.f32[i] > MIN_UINT && v.f32[i] <= MAX_UINT)
             {
                 result.u32[i] = (unsigned int)(v.f32[i]);
             }

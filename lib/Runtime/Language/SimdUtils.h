@@ -115,6 +115,7 @@ const _x86_SIMDValue X86_ALL_ONES_I4 = { 0x00000001, 0x00000001, 0x00000001, 0x0
 const _x86_SIMDValue X86_ALL_ONES_D2 = { 0x00000000, 0x3ff00000, 0x00000000, 0x3ff00000 }; // {1.0, 1.0}
 
 const _x86_SIMDValue X86_ALL_NEG_ONES = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff };
+const _x86_SIMDValue X86_ALL_NEG_ONES_F4 = { 0xBF800000, 0xBF800000, 0xBF800000, 0xBF800000 }; //-1.0, -1.0, -1.0, -1.0
 
 const _x86_SIMDValue X86_ALL_ONES_I8  = { 0x00010001, 0x00010001, 0x00010001, 0x00010001 }; // {1, 1, 1, 1, 1, 1, 1, 1}
 
