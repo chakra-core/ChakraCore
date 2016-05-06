@@ -138,7 +138,7 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
             def archivalString = "BuildLinux/build.log"
             Utilities.addArchival(newJob, archivalString,
                 '', // no exclusions from archival
-                false, // doNotFailIfNothingArchived=false ~= failIfNothingArchived
+                true, // doNotFailIfNothingArchived=false ~= failIfNothingArchived (true ~= doNotFail)
                 false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
             Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
