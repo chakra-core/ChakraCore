@@ -44,6 +44,7 @@ namespace Js
         JavascriptLibrary* localLibrary = RecyclerNewFinalized(scriptContext->GetRecycler(), JavascriptLibrary, this);
         scriptContext->SetLibrary(localLibrary);
         type->javascriptLibrary = localLibrary;
+        scriptContext->InitializeCache();
         localLibrary->Initialize(scriptContext, this);
         library = localLibrary;
     }
