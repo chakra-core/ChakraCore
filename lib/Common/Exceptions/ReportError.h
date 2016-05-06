@@ -19,7 +19,8 @@ enum ErrorReason
     MarkStack_OUTOFMEMORY = 11,
     EnterScript_FromDOM_NoScriptScope = 12,
     Fatal_FailedToBox_OUTOFMEMORY = 13,
-    Fatal_Recycler_MemoryCorruption = 14
+    Fatal_Recycler_MemoryCorruption = 14,
+    Fatal_Debugger_AttachDetach_Failure = 15
 };
 
 extern "C" void ReportFatalException(
@@ -59,6 +60,8 @@ void LargeHeapBlock_Metadata_Corrupted(
 #endif
 
 void FromDOM_NoScriptScope_fatal_error();
+
+void Debugger_AttachDetach_fatal_error();
 
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.
 // Use UnhandleExceptionFilter to let the default handler handles it.
