@@ -625,7 +625,7 @@ namespace Js
         ret = CallRootFunctionInternal(args, scriptContext, inScript);
 #else
         // mark volatile, because otherwise VC will incorrectly optimize away load in the finally block
-        volatile ulong exceptionCode = 0;
+        volatile uint32 exceptionCode = 0;
         volatile int exceptionAction = EXCEPTION_CONTINUE_SEARCH;
         EXCEPTION_POINTERS exceptionInfo = {0};
         __try

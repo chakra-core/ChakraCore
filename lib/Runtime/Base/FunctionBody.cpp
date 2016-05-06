@@ -1313,12 +1313,12 @@ namespace Js
     }
 
     void
-    ParseableFunctionInfo::SetGrfscr(ulong grfscr)
+    ParseableFunctionInfo::SetGrfscr(uint32 grfscr)
     {
         this->m_grfscr = grfscr;
     }
 
-    ulong
+    uint32
     ParseableFunctionInfo::GetGrfscr() const
     {
         return this->m_grfscr;
@@ -1391,7 +1391,7 @@ namespace Js
         return GetNestedArray()->functionProxyArray;
     }
 
-    void ParseableFunctionInfo::SetNestedFunc(FunctionProxy* nestedFunc, uint index, ulong flags)
+    void ParseableFunctionInfo::SetNestedFunc(FunctionProxy* nestedFunc, uint index, uint32 flags)
     {
         AssertMsg(index < this->GetNestedCount(), "Trying to write past the nested func array");
 
@@ -1798,7 +1798,7 @@ namespace Js
 
                 LPCUTF8 pszStart = this->GetStartOfDocument();
 
-                ulong grfscr = funcBody->GetGrfscr() | fscrDeferredFnc;
+                uint32 grfscr = funcBody->GetGrfscr() | fscrDeferredFnc;
 
                 // For the global function we want to re-use the glo functionbody which is already created in the non-debug mode
                 if (!funcBody->GetIsGlobalFunc())
@@ -1983,7 +1983,7 @@ namespace Js
 
         LPCUTF8 pszStart = this->GetStartOfDocument();
 
-        ulong grfscr = funcBody->GetGrfscr() | fscrDeferredFnc | fscrDeferredFncExpression;
+        uint32 grfscr = funcBody->GetGrfscr() | fscrDeferredFnc | fscrDeferredFncExpression;
 
         uint nextFunctionId = funcBody->GetLocalFunctionId();
 
@@ -2041,7 +2041,7 @@ namespace Js
         }
     }
 
-    bool ParseableFunctionInfo::IsFakeGlobalFunc(ulong flags) const
+    bool ParseableFunctionInfo::IsFakeGlobalFunc(uint32 flags) const
     {
         return GetIsGlobalFunc() && !(flags & fscrGlobalCode);
     }
@@ -3984,7 +3984,7 @@ namespace Js
         this->RecordConstant(location, intConst);
     }
 
-    void FunctionBody::RecordStrConstant(RegSlot location, LPCOLESTR psz, ulong cch)
+    void FunctionBody::RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch)
     {
         ScriptContext *scriptContext = this->GetScriptContext();
         PropertyRecord const * propertyRecord;

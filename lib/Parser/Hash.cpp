@@ -102,8 +102,8 @@ void HashTbl::Grow()
     {
         for (IdentPtr pid = m_prgpidName[i], next = pid ? pid->m_pidNext : nullptr; pid; pid = next, next = pid ? pid->m_pidNext : nullptr)
         {
-            ulong luHash = pid->m_luHash;
-            ulong luIndex = luHash & n_luMask;
+            uint32 luHash = pid->m_luHash;
+            uint32 luIndex = luHash & n_luMask;
             pid->m_pidNext = n_prgpidName[luIndex];
             n_prgpidName[luIndex] = pid;
         }
@@ -153,9 +153,9 @@ tokens Ident::Tk(bool isStrictMode)
     if (token == tkLim)
     {
         m_tk = tkNone;
-        const ulong luHash = this->m_luHash;
+        const uint32 luHash = this->m_luHash;
         const LPCOLESTR prgch = Psz();
-        const ulong cch = Cch();
+        const uint32 cch = Cch();
         #include "kwds_sw.h"
 
         #define KEYWORD(tk,f,prec2,nop2,prec1,nop1,name) \
@@ -217,19 +217,19 @@ IdentPtr HashTbl::PidFromTk(tokens token)
 }
 
 template <typename CharType>
-IdentPtr HashTbl::PidHashNameLen(CharType const * prgch, ulong cch)
+IdentPtr HashTbl::PidHashNameLen(CharType const * prgch, uint32 cch)
 {
     // NOTE: We use case sensitive hash during compilation, but the runtime
     // uses case insensitive hashing so it can do case insensitive lookups.
-    ulong luHash = CaseSensitiveComputeHashCch(prgch, cch);
+    uint32 luHash = CaseSensitiveComputeHashCch(prgch, cch);
     return PidHashNameLenWithHash(prgch, cch, luHash);
 };
-template IdentPtr HashTbl::PidHashNameLen<utf8char_t>(utf8char_t const * prgch, ulong cch);
-template IdentPtr HashTbl::PidHashNameLen<char>(char const * prgch, ulong cch);
-template IdentPtr HashTbl::PidHashNameLen<char16>(char16 const * prgch, ulong cch);
+template IdentPtr HashTbl::PidHashNameLen<utf8char_t>(utf8char_t const * prgch, uint32 cch);
+template IdentPtr HashTbl::PidHashNameLen<char>(char const * prgch, uint32 cch);
+template IdentPtr HashTbl::PidHashNameLen<char16>(char16 const * prgch, uint32 cch);
 
 template <typename CharType>
-IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch, long cch, ulong luHash)
+IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch, long cch, uint32 luHash)
 {
     Assert(cch >= 0);
     AssertArrMemR(prgch, cch);
@@ -322,7 +322,7 @@ template <typename CharType>
 IdentPtr HashTbl::FindExistingPid(
     CharType const * prgch,
     long cch,
-    ulong luHash,
+    uint32 luHash,
     IdentPtr **pppInsert,
     long *pBucketCount
 #if PROFILE_DICTIONARY
@@ -362,19 +362,19 @@ IdentPtr HashTbl::FindExistingPid(
 }
 
 template IdentPtr HashTbl::FindExistingPid<utf8char_t>(
-    utf8char_t const * prgch, long cch, ulong luHash, IdentPtr **pppInsert, long *pBucketCount
+    utf8char_t const * prgch, long cch, uint32 luHash, IdentPtr **pppInsert, long *pBucketCount
 #if PROFILE_DICTIONARY
     , int& depth
 #endif
     );
 template IdentPtr HashTbl::FindExistingPid<char>(
-    char const * prgch, long cch, ulong luHash, IdentPtr **pppInsert, long *pBucketCount
+    char const * prgch, long cch, uint32 luHash, IdentPtr **pppInsert, long *pBucketCount
 #if PROFILE_DICTIONARY
     , int& depth
 #endif
     );
 template IdentPtr HashTbl::FindExistingPid<char16>(
-    char16 const * prgch, long cch, ulong luHash, IdentPtr **pppInsert, long *pBucketCount
+    char16 const * prgch, long cch, uint32 luHash, IdentPtr **pppInsert, long *pBucketCount
 #if PROFILE_DICTIONARY
     , int& depth
 #endif
@@ -382,7 +382,7 @@ template IdentPtr HashTbl::FindExistingPid<char16>(
 
 bool HashTbl::Contains(_In_reads_(cch) LPCOLESTR prgch, long cch)
 {
-    ulong luHash = CaseSensitiveComputeHashCch(prgch, cch);
+    uint32 luHash = CaseSensitiveComputeHashCch(prgch, cch);
 
     for (auto pid = m_prgpidName[luHash & m_luMask]; pid; pid = pid->m_pidNext)
     {
@@ -405,9 +405,9 @@ bool HashTbl::Contains(_In_reads_(cch) LPCOLESTR prgch, long cch)
 #pragma warning(disable:4740)  // flow in or out of inline asm code suppresses global optimization
 // Decide if token is keyword by string matching -
 // This method is used during colorizing when scanner isn't interested in storing the actual id and does not care about conversion of escape sequences
-tokens HashTbl::TkFromNameLenColor(_In_reads_(cch) LPCOLESTR prgch, ulong cch)
+tokens HashTbl::TkFromNameLenColor(_In_reads_(cch) LPCOLESTR prgch, uint32 cch)
 {
-    ulong luHash = CaseSensitiveComputeHashCch(prgch, cch);
+    uint32 luHash = CaseSensitiveComputeHashCch(prgch, cch);
 
     // look for a keyword
 #include "kwds_sw.h"
@@ -432,9 +432,9 @@ LDefault:
 
 // Decide if token is keyword by string matching -
 // This method is used during colorizing when scanner isn't interested in storing the actual id and does not care about conversion of escape sequences
-tokens HashTbl::TkFromNameLen(_In_reads_(cch) LPCOLESTR prgch, ulong cch, bool isStrictMode)
+tokens HashTbl::TkFromNameLen(_In_reads_(cch) LPCOLESTR prgch, uint32 cch, bool isStrictMode)
 {
-    ulong luHash = CaseSensitiveComputeHashCch(prgch, cch);
+    uint32 luHash = CaseSensitiveComputeHashCch(prgch, cch);
 
     // look for a keyword
 #include "kwds_sw.h"

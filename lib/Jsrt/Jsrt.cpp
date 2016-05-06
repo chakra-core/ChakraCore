@@ -2645,7 +2645,7 @@ JsErrorCode RunSerializedScriptCore(const wchar_t *script, TLoadCallback scriptL
             /* grfsi               */ 0
         };
 
-        ulong flags = 0;
+        uint32 flags = 0;
 
         if (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling())
         {

@@ -199,7 +199,7 @@ namespace Js
             return FALSE;
         }
 
-        ulong ubos = static_cast<ulong>(ibos);
+        uint32 ubos = static_cast<uint32>(ibos);
 
         // Getting the appropriate statement on the asked position works on the heuristic which requires two
         // probable candidates. These candidates will be closest to the ibos where first.range.start < ibos and
@@ -210,8 +210,8 @@ namespace Js
 
         this->utf8SourceInfo->MapFunction([&](FunctionBody* pFuncBody)
         {
-            ulong functionStart = pFuncBody->StartInDocument();
-            ulong functionEnd = functionStart + pFuncBody->LengthInBytes();
+            uint32 functionStart = pFuncBody->StartInDocument();
+            uint32 functionEnd = functionStart + pFuncBody->LengthInBytes();
 
             // For the first candidate, we should allow the current function to participate if its range
             // (instead of just start offset) is closer to the ubos compared to already found candidate1.

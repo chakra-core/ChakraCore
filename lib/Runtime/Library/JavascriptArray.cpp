@@ -7560,9 +7560,9 @@ Case0:
     }
 
 #if DEBUG
-    BOOL JavascriptArray::GetIndex(const char16* propName, ulong *pIndex)
+    BOOL JavascriptArray::GetIndex(const char16* propName, uint32 *pIndex)
     {
-        ulong lu, luDig;
+        uint32 lu, luDig;
 
         long cch = (long)wcslen(propName);
         char16* pch = const_cast<char16 *>(propName);

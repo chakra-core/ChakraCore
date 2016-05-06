@@ -433,7 +433,7 @@ bool DynamicProfileStorage::Uninitialize()
         CloseHandle(mutex);
     }
 #ifdef DYNAMIC_PROFILE_EXPORT_FILE_CHECK
-    ulong oldCount = infoMap.Count();
+    uint32 oldCount = infoMap.Count();
 #endif
 
     ClearInfoMap(false);
@@ -756,7 +756,7 @@ bool DynamicProfileStorage::SetupCacheDir(__in_z char16 const * dirname)
     char16 tempPath[_MAX_PATH];
     if (dirname == nullptr)
     {
-        ulong len = GetTempPath(_MAX_PATH, tempPath);
+        uint32 len = GetTempPath(_MAX_PATH, tempPath);
         if (len >= _MAX_PATH || wcscat_s(tempPath, _u("jsdpcache")) != 0)
         {
             DisableCacheDir();

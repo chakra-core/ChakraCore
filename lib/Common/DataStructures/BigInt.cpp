@@ -45,7 +45,7 @@ namespace Js
         return m_clu;
     }
 
-    ulong BigInt::Lu(long ilu)
+    uint32 BigInt::Lu(long ilu)
     {
         AssertBi(this);
         Assert(ilu < m_clu);
@@ -56,7 +56,7 @@ namespace Js
     {
         AssertBiNoVal(this);
 
-        ulong *prglu;
+        uint32 *prglu;
 
         if (clu <= m_cluMax)
             return true;
@@ -64,12 +64,12 @@ namespace Js
         clu += clu;
         if (m_prglu == m_rgluInit)
         {
-            if ((INT_MAX / sizeof(ulong) < clu) || (NULL == (prglu = (ulong *)malloc(clu * sizeof(ulong)))))
+            if ((INT_MAX / sizeof(uint32) < clu) || (NULL == (prglu = (uint32 *)malloc(clu * sizeof(uint32)))))
                 return false;
             if (0 < m_clu)
-                js_memcpy_s(prglu, clu * sizeof(ulong), m_prglu, m_clu * sizeof(ulong));
+                js_memcpy_s(prglu, clu * sizeof(uint32), m_prglu, m_clu * sizeof(uint32));
         }
-        else if (NULL == (prglu = (ulong *)realloc(m_prglu, clu * sizeof(ulong))))
+        else if (NULL == (prglu = (uint32 *)realloc(m_prglu, clu * sizeof(uint32))))
             return false;
 
         m_prglu = prglu;
@@ -79,7 +79,7 @@ namespace Js
         return true;
     }
 
-    bool BigInt::FInitFromRglu(ulong *prglu, long clu)
+    bool BigInt::FInitFromRglu(uint32 *prglu, long clu)
     {
         AssertBi(this);
         Assert(clu >= 0);
@@ -89,7 +89,7 @@ namespace Js
             return false;
         m_clu = clu;
         if (clu > 0)
-            js_memcpy_s(m_prglu, m_clu * sizeof(ulong), prglu, clu * sizeof(ulong));
+            js_memcpy_s(m_prglu, m_clu * sizeof(uint32), prglu, clu * sizeof(uint32));
 
         AssertBi(this);
         return true;
@@ -112,8 +112,8 @@ namespace Js
         Assert(prgch != 0);
         Assert(pcchDig != 0);
 
-        ulong luAdd;
-        ulong luMul;
+        uint32 luAdd;
+        uint32 luMul;
         long clu = (cch + 8) / 9;
         const EncodedChar *pchLim = prgch + cch;
 
@@ -147,14 +147,14 @@ namespace Js
         return true;
     }
 
-    bool BigInt::FMulAdd(ulong luMul, ulong luAdd)
+    bool BigInt::FMulAdd(uint32 luMul, uint32 luAdd)
     {
         AssertBi(this);
         Assert(luMul != 0);
 
-        ulong luT;
-        ulong *plu = m_prglu;
-        ulong *pluLim = plu + m_clu;
+        uint32 luT;
+        uint32 *plu = m_prglu;
+        uint32 *pluLim = plu + m_clu;
 
         for (; plu < pluLim; plu++)
         {
@@ -179,9 +179,9 @@ LDone:
         AssertBi(this);
         Assert(c5 >= 0);
 
-        const ulong k5to13 = 1220703125;
+        const uint32 k5to13 = 1220703125;
         long clu = (c5 + 12) / 13;
-        ulong luT;
+        uint32 luT;
 
         if (0 == m_clu || 0 == c5)
             return true;
@@ -210,7 +210,7 @@ LDone:
 
         long ilu;
         long clu;
-        ulong luExtra;
+        uint32 luExtra;
 
         if (0 == cbit || 0 == m_clu)
             return true;
@@ -244,8 +244,8 @@ LDone:
             if (clu > 0)
             {
                 // Shift the ulongs.
-                memmove(m_prglu + clu, m_prglu, m_clu * sizeof(ulong));
-                memset(m_prglu, 0, clu * sizeof(ulong));
+                memmove(m_prglu + clu, m_prglu, m_clu * sizeof(uint32));
+                memset(m_prglu, 0, clu * sizeof(uint32));
                 m_clu += clu;
             }
 
@@ -271,7 +271,7 @@ LDone:
         }
         if (clu > 0)
         {
-            memmove(m_prglu, m_prglu + clu, (m_clu - clu) * sizeof(ulong));
+            memmove(m_prglu, m_prglu + clu, (m_clu - clu) * sizeof(uint32));
             m_clu -= clu;
         }
 
@@ -399,7 +399,7 @@ LDone:
 
         long ilu;
         int wCarry;
-        ulong luT;
+        uint32 luT;
 
         if (m_clu < pbi->m_clu)
             goto LNegative;
@@ -453,7 +453,7 @@ LNegative:
         int wCarry;
         int wQuo;
         int wT;
-        ulong luT, luHi, luLo;
+        uint32 luT, luHi, luLo;
 
         clu = pbi->m_clu;
         Assert(m_clu <= clu);
@@ -513,8 +513,8 @@ LNegative:
     double BigInt::GetDbl(void)
     {
         double dbl;
-        ulong luHi, luLo;
-        ulong lu1, lu2, lu3;
+        uint32 luHi, luLo;
+        uint32 lu1, lu2, lu3;
         long ilu;
         int cbit;
 

@@ -13,7 +13,7 @@ class ByteCodeGenerator
 private:
     Js::ScriptContext* scriptContext;
     ArenaAllocator *alloc;
-    ulong flags;
+    uint32 flags;
     Js::PropertyRecordList* propertyRecords;
     SList<FuncInfo*> *funcInfoStack;
     ParseNode *currentBlock;
@@ -93,12 +93,12 @@ public:
         return m_utf8SourceInfo->GetSrcInfo()->moduleID;
     }
 
-    void SetFlags(ulong grfscr)
+    void SetFlags(uint32 grfscr)
     {
         flags = grfscr;
     }
 
-    ulong GetFlags(void)
+    uint32 GetFlags(void)
     {
         return flags;
     }
@@ -336,10 +336,10 @@ public:
 
     bool DoJitLoopBodies(FuncInfo *funcInfo) const;
 
-    static void Generate(__in ParseNode *pnode, ulong grfscr, __in ByteCodeGenerator* byteCodeGenerator, __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction ** functionRef);
+    static void Generate(__in ParseNode *pnode, uint32 grfscr, __in ByteCodeGenerator* byteCodeGenerator, __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction ** functionRef);
     void Begin(
         __in ArenaAllocator *alloc,
-        __in ulong grfscr,
+        __in uint32 grfscr,
         __in Js::ParseableFunctionInfo* pRootFunc);
 
     void SetCurrentSourceIndex(uint sourceIndex) { this->sourceIndex = sourceIndex; }

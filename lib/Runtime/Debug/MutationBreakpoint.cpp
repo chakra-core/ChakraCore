@@ -470,12 +470,12 @@ Js::MutationBreakpointDelegate * Js::MutationBreakpointDelegate::New(Js::Mutatio
 
 STDMETHODIMP_(ULONG) Js::MutationBreakpointDelegate::AddRef()
 {
-    return (ulong)InterlockedIncrement(&m_refCount);
+    return (ULONG)InterlockedIncrement(&m_refCount);
 }
 
 STDMETHODIMP_(ULONG) Js::MutationBreakpointDelegate::Release()
 {
-    ulong refCount = (ulong)InterlockedDecrement(&m_refCount);
+    ULONG refCount = (ULONG)InterlockedDecrement(&m_refCount);
 
     if (0 == refCount)
     {

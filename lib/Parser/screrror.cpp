@@ -182,7 +182,7 @@ HRESULT MapHr(HRESULT hr, ErrorTypeEnum * errorTypeOut)
     {
         fCheckSort = FALSE;
         for (imhr = 1; imhr < kcmhr; imhr++)
-            Assert((ulong)g_rgmhr[imhr - 1].hrIn < (ulong)g_rgmhr[imhr].hrIn);
+            Assert((uint32)g_rgmhr[imhr - 1].hrIn < (uint32)g_rgmhr[imhr].hrIn);
     }
 #endif // DEBUG
 
@@ -200,7 +200,7 @@ HRESULT MapHr(HRESULT hr, ErrorTypeEnum * errorTypeOut)
     for (imhrMin = 0, imhrLim = kcmhr; imhrMin < imhrLim; )
     {
         imhr = (imhrMin + imhrLim) / 2;
-        if ((ulong)g_rgmhr[imhr].hrIn < (ulong)hr)
+        if ((uint32)g_rgmhr[imhr].hrIn < (uint32)hr)
             imhrMin = imhr + 1;
         else
             imhrLim = imhr;

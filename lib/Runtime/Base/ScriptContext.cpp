@@ -828,7 +828,7 @@ namespace Js
                 return false;
             }
 
-            ulong index;
+            uint32 index;
             BOOL isIndex = JavascriptArray::GetIndex(name->GetBuffer(), &index);
             if (isNumericPropertyId != isIndex)
             {
@@ -839,7 +839,7 @@ namespace Js
             }
             else if (isNumericPropertyId)
             {
-                Assert((ulong)*value == index);
+                Assert((uint32)*value == index);
             }
         }
 #endif
@@ -1772,7 +1772,7 @@ namespace Js
         }
     }
 
-    JavascriptFunction* ScriptContext::GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, ulong grfscr, CompileScriptException * pse, const char16 *rootDisplayName)
+    JavascriptFunction* ScriptContext::GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName)
     {
         HRESULT hr;
 

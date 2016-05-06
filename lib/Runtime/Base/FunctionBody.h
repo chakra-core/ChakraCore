@@ -1427,7 +1427,7 @@ namespace Js
         // Fake global ->
         //    1) new Function code's global code
         //    2) global code generated from the reparsing deferred parse function
-        bool IsFakeGlobalFunc(ulong flags) const;
+        bool IsFakeGlobalFunc(uint32 flags) const;
 
         void SetIsGlobalFunc(bool is) { m_isGlobalFunc = is; }
         bool GetIsStrictMode() const { return m_isStrictMode; }
@@ -1446,8 +1446,8 @@ namespace Js
 
         bool GetHasImplicitArgIns() { return m_hasImplicitArgIns; }
         void SetHasImplicitArgIns(bool has) { m_hasImplicitArgIns = has; }
-        ulong GetGrfscr() const;
-        void SetGrfscr(ulong grfscr);
+        uint32 GetGrfscr() const;
+        void SetGrfscr(uint32 grfscr);
 
         ///----------------------------------------------------------------------------
         ///
@@ -1577,7 +1577,7 @@ namespace Js
         FunctionProxy* GetNestedFunc(uint index);
         FunctionProxyPtrPtr GetNestedFuncReference(uint index);
         ParseableFunctionInfo* GetNestedFunctionForExecution(uint index);
-        void SetNestedFunc(FunctionProxy* nestedFunc, uint index, ulong flags);
+        void SetNestedFunc(FunctionProxy* nestedFunc, uint index, uint32 flags);
         void ClearNestedFunctionParentFunctionReference();
 
         void SetCapturesThis() { attributes = (Attributes)(attributes | Attributes::CapturesThis); }
@@ -2759,7 +2759,7 @@ namespace Js
         void RecordTrueObject(RegSlot location);
         void RecordFalseObject(RegSlot location);
         void RecordIntConstant(RegSlot location, unsigned int val);
-        void RecordStrConstant(RegSlot location, LPCOLESTR psz, ulong cch);
+        void RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch);
         void RecordFloatConstant(RegSlot location, double d);
         void RecordNullDisplayConstant(RegSlot location);
         void RecordStrictNullDisplayConstant(RegSlot location);
