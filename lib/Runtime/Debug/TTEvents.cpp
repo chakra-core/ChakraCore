@@ -251,6 +251,37 @@ namespace TTD
 
     namespace NSLogEvents
     {
+        void PassVarToHostInReplay(Js::ScriptContext* ctx, TTDVar origVar, Js::Var replayVar)
+        {
+            static_assert(sizeof(TTDVar) == sizeof(Js::Var), "We assume the bit patterns on these types are the same!!!");
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            if(replayVar == nullptr || TTD::JsSupport::IsVarTaggedInline(replayVar))
+            {
+                AssertMsg(origVar == replayVar, "Should be same bit pattern.");
+            }
+#endif
+
+            if(replayVar != nullptr && TTD::JsSupport::IsVarPtrValued(replayVar))
+            {
+                ctx->GetThreadContext()->TTDInfo->TrackTagObject(origVar, Js::RecyclableObject::FromVar(replayVar));
+            }
+        }
+
+        Js::Var InflateVarInReplay(Js::ScriptContext* ctx, TTDVar origVar)
+        {
+            static_assert(sizeof(TTDVar) == sizeof(Js::Var), "We assume the bit patterns on these types are the same!!!");
+
+            if(origVar == nullptr || TTD::JsSupport::IsVarTaggedInline(origVar))
+            {
+                return (Js::Var)origVar;
+            }
+            else
+            {
+                return ctx->GetThreadContext()->TTDInfo->LookupObjectForTag(origVar);
+            }
+        }
+
         void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime)
         {
             evt->EventKind = tag;
@@ -511,6 +542,22 @@ namespace TTD
 
         //////////////////
 
+        void ExternalCbRegisterCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        {
+            const ExternalCbRegisterCallEventLogEntry* cbrEvt = GetInlineEventDataAs<ExternalCbRegisterCallEventLogEntry, EventKind::ExternalCbRegisterCall>(evt);
+
+            NSSnapValues::EmitTTDVar(cbrEvt->CallbackFunction, writer, NSTokens::Separator::CommaSeparator);
+        }
+
+        void ExternalCbRegisterCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        {
+            ExternalCbRegisterCallEventLogEntry* cbrEvt = GetInlineEventDataAs<ExternalCbRegisterCallEventLogEntry, EventKind::ExternalCbRegisterCall>(evt);
+
+            cbrEvt->CallbackFunction = NSSnapValues::ParseTTDVar(true, reader);
+        }
+
+        //////////////////
+
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         void ExternalCallEventLogEntry_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc)
         {
@@ -548,7 +595,7 @@ namespace TTD
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
-            callEvt->ReturnValue = (TTDVar)res;
+            callEvt->ReturnValue = TTD_CONVERT_JSVAR_TO_TTDVAR(res);
             callEvt->HasScriptException = hasScriptException;
             callEvt->HasTerminiatingException = hasTerminiatingException;
         }

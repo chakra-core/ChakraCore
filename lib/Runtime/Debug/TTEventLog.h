@@ -416,10 +416,8 @@ namespace TTD
         //replay an external return event (which should be the current event)
         void ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result);
 
-        NSLogEvents::EventLogEntry* RecordEnqueueTaskEvent(int32 rootDepth);
-        void RecordEnqueueTaskEndEvent(int64 matchingBeginTime, int32 rootDepth, Js::Var value);
-
-        void ReplayEnqueueTaskEvent(Js::ScriptContext* ctx, Js::Var* result);
+        void RecordEnqueueTaskEvent(Js::Var taskVar);
+        void ReplayEnqueueTaskEvent(Js::ScriptContext* ctx, Js::Var taskVar);
 
         //Log a function call
         void PushCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool isInFinally);
@@ -491,7 +489,7 @@ namespace TTD
         int64 GetCurrentTopLevelEventTime() const;
 
         //Get the time info around a host id creation/cancelation event -- return null if we can't find the event of interest (not in log or we were called directly by host -- host id == -1)
-        JsRTCallbackAction* GetEventForHostCallbackId(bool wantRegisterOp, int64 hostIdOfInterest) const;
+        const NSLogEvents::JsRTCallbackAction* GetEventForHostCallbackId(bool wantRegisterOp, int64 hostIdOfInterest) const;
 
         //Get the event time corresponding to the k-th top-level event in the log
         int64 GetKthEventTime(uint32 k) const;
@@ -546,9 +544,22 @@ namespace TTD
         //Get the most recently assigned event time value
         int64 GetLastEventTime() const;
 
+#if !INT32VAR
+        void RecordJsRTCreateInteger(Js::ScriptContext* ctx, int value);
+#endif
+
+        void RecordJsRTCreateNumber(Js::ScriptContext* ctx, double value);
+        void RecordJsRTCreateBoolean(Js::ScriptContext* ctx, bool value);
+        void RecordJsRTCreateString(Js::ScriptContext* ctx, const char16* stringValue, size_t stringLength);
+        void RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var);
+
         //Record conversions and symbol creation
         void RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var);
-        void RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var);
+
+        //Record lifetime management events
+        void RecordJsRTAddRootRef(Js::ScriptContext* ctx, Js::Var var);
+        void RecordJsRTRemoveRootRef(Js::ScriptContext* ctx, Js::Var var);
+        void RecordJsRTEventLoopYieldPoint(Js::ScriptContext* ctx);
 
         //Record object allocate operations
         void RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, bool isRegularObject);

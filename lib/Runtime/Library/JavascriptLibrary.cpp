@@ -4775,30 +4775,20 @@ namespace Js
         if(this->nativeHostPromiseContinuationFunction)
         {
 #if ENABLE_TTD
-            if(this->scriptContext->ShouldTagForExternalCall())
-            {
-				this->scriptContext->GetThreadContext()->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(taskVar));
-            }
-
-			Js::Var result = this->GetUndefined();
-
             if(this->scriptContext->ShouldPerformDebugAction())
             {
                 scriptContext->TTDRootNestingCount++;
                 BEGIN_LEAVE_SCRIPT(this->scriptContext)
                 {
-                    this->scriptContext->GetThreadContext()->TTDLog->ReplayEnqueueTaskEvent(scriptContext, &result);
+                    this->scriptContext->GetThreadContext()->TTDLog->ReplayEnqueueTaskEvent(scriptContext, taskVar);
                 }
                 END_LEAVE_SCRIPT(this->scriptContext);
                 scriptContext->TTDRootNestingCount--;
             }
             else if(this->scriptContext->ShouldPerformRecordAction())
             {
-                Js::HiResTimer timer;
-                double startTime = timer.Now();
-
                 this->scriptContext->TTDRootNestingCount++;
-                TTD::ExternalCallEventBeginLogEntry* beginEvent = this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskBeginEvent(scriptContext->TTDRootNestingCount, startTime);
+                this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskEvent(taskVar);
 
                 BEGIN_LEAVE_SCRIPT(this->scriptContext);
                 try
@@ -4814,9 +4804,6 @@ namespace Js
                 }
                 END_LEAVE_SCRIPT(this->scriptContext);
 
-                double endTime = timer.Now();
-
-                this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskEndEvent(beginEvent->GetEventTime(), scriptContext->TTDRootNestingCount, endTime, result);
                 this->scriptContext->TTDRootNestingCount--;
             }
             else

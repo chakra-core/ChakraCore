@@ -1125,27 +1125,6 @@ private:
             return ((modeIsPending | modeIsRecord) & inDebugableCode);
         }
 
-        //Use this to check if we should tag values that are passing to/from the JsRT host
-        bool ShouldTagForJsRT() const
-        {
-            bool modeIsPending = (this->m_ttdMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
-            bool modeIsRecord = (this->m_ttdMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
-            bool inDebugableCode = (this->m_ttdMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
-
-            return ((modeIsPending | modeIsRecord) & inDebugableCode);
-        }
-
-        //Use this to check if we should tag values that are passing to/from the JsRT host
-        bool ShouldTagForExternalCall() const
-        {
-            bool modeIsPending = (this->m_ttdMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
-            bool modeIsRecord = (this->m_ttdMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
-            bool modeIsDebug = (this->m_ttdMode & TTD::TTDMode::DebuggingEnabled) == TTD::TTDMode::DebuggingEnabled;
-            bool inDebugableCode = (this->m_ttdMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
-
-            return ((modeIsPending | modeIsRecord | modeIsDebug) & inDebugableCode);
-        }
-
         //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
         bool IsRootTrackedObject_TTD(Js::RecyclableObject* newRoot);
         void AddTrackedRoot_TTD(Js::RecyclableObject* newRoot);

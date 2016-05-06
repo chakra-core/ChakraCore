@@ -21,48 +21,12 @@ namespace TTD
             }
         }
 
-        void JsRTActionPassVarToHostInReplay(Js::ScriptContext* ctx, TTDVar origVar, Js::Var replayVar)
-        {
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            if(replayVar == nullptr || TTD::JsSupport::IsVarTaggedInline(replayVar))
-            {
-                AssertMsg(origVar == replayVar, "Should be same bit pattern.");
-            }
-#endif
-
-            if(ctx->ShouldTagForJsRT())
-            {
-                if(replayVar != nullptr && TTD::JsSupport::IsVarPtrValued(replayVar))
-                {
-                    ctx->GetThreadContext()->TTDInfo->TrackTagObject(origVar, Js::RecyclableObject::FromVar(replayVar));
-                }
-            }
-        }
-
-        Js::Var JsRTActionInflateVarInReplay(Js::ScriptContext* ctx, TTDVar origVar)
-        {
-            static_assert(sizeof(TTDVar) == sizeof(Js::Var), "We assume the bit patterns on these types are the same!!!");
-
-            if(origVar == nullptr || TTD::JsSupport::IsVarTaggedInline(origVar))
-            {
-                return (Js::Var)origVar;
-            }
-            else
-            {
-                return ctx->GetThreadContext()->TTDInfo->LookupObjectForTag(origVar);
-            }
-        }
-
 #if !INT32VAR
         void CreateInt_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::CreateIntegerActionTag>(evt);
 
-            Js::Var res = nullptr;
-            if(!Js::JavascriptNumber::TryToVarFast((int32)action->u_iVal, &res))
-            {
-                res = Js::JavascriptNumber::ToVar((int32)action->u_iVal, ctx);
-            }
+            Js::Var res = Js::JavascriptNumber::ToVar((int32)action->u_iVal, ctx);
 
             JsRTActionHandleResultForReplay<JsRTVarsWithIntegralUnionArgumentAction, EventKind::CreateIntegerActionTag>(ctx, evt, res);
         }
@@ -98,7 +62,7 @@ namespace TTD
         void CreateSymbol_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::CreateSymbolActionTag>(evt);
-            Js::Var description = JsRTActionInflateVarInReplay(ctx, action->Var1);
+            Js::Var description = InflateVarInReplay(ctx, action->Var1);
 
             Js::JavascriptString* descriptionString;
             if(description != nullptr)
@@ -117,7 +81,7 @@ namespace TTD
         void VarConvertToNumber_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::VarConvertToNumberActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
             Js::Var res = Js::JavascriptOperators::ToNumber(var, ctx);
 
@@ -127,7 +91,7 @@ namespace TTD
         void VarConvertToBoolean_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::VarConvertToBooleanActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
             Js::Var res = Js::JavascriptConversion::ToBool(var, ctx) ? ctx->GetLibrary()->GetTrue() : ctx->GetLibrary()->GetFalse();
 
@@ -137,7 +101,7 @@ namespace TTD
         void VarConvertToString_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::VarConvertToStringActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
             Js::Var res = Js::JavascriptConversion::ToString(var, ctx);
 
@@ -147,7 +111,7 @@ namespace TTD
         void VarConvertToObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::VarConvertToObjectActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
             Js::Var res = Js::JavascriptOperators::ToObject(var, ctx);
 
@@ -156,15 +120,21 @@ namespace TTD
 
         void AddRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
-            asdf;
+            const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::AddRootRefActionTag>(evt);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
+
+            asdf; //need to do the add ref and monitor in my TTD code
         }
 
         void RemoveRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
-            asdf;
+            const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::RemoveRootRefActionTag>(evt);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
+
+            asdf; //need to do the add ref and monitor in my TTD code
         }
 
-        void LocalRootClear_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        void EventLoopYieldPointAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             asdf;
         }
@@ -215,7 +185,7 @@ namespace TTD
             }
             else
             {
-                Js::Var nameVar = JsRTActionInflateVarInReplay(ctx, action->Var1);
+                Js::Var nameVar = InflateVarInReplay(ctx, action->Var1);
 
                 Js::JavascriptString* name = nullptr;
                 if(nameVar != nullptr)
@@ -262,7 +232,7 @@ namespace TTD
         void GetPropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::GetPropertyActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
             Js::Var res = Js::JavascriptOperators::OP_GetProperty(var, action->u_pid, ctx);
 
@@ -272,8 +242,8 @@ namespace TTD
         void GetIndexAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::GetIndexActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
-            Js::Var index = JsRTActionInflateVarInReplay(ctx, action->Var2);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
+            Js::Var index = InflateVarInReplay(ctx, action->Var2);
 
             Js::Var res = Js::JavascriptOperators::OP_GetElementI(var, index, ctx);
 
@@ -283,7 +253,7 @@ namespace TTD
         void GetOwnPropertyInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::GetOwnPropertyInfoActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
             Js::Var res = nullptr;
             Js::PropertyDescriptor propertyDescriptorValue;
@@ -298,7 +268,7 @@ namespace TTD
         void GetOwnPropertiesInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::GetOwnPropertiesInfoActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
             Js::Var res = nullptr;
             if(action->u_bVal)
@@ -316,8 +286,8 @@ namespace TTD
         void DefinePropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::DefinePropertyActionTag>(evt);
-            Js::Var object = JsRTActionInflateVarInReplay(ctx, action->Var1);
-            Js::Var propertyDescriptor = JsRTActionInflateVarInReplay(ctx, action->Var2);
+            Js::Var object = InflateVarInReplay(ctx, action->Var1);
+            Js::Var propertyDescriptor = InflateVarInReplay(ctx, action->Var2);
 
             Js::PropertyDescriptor propertyDescriptorValue;
             Js::JavascriptOperators::ToPropertyDescriptor(propertyDescriptor, &propertyDescriptorValue, ctx);
@@ -328,7 +298,7 @@ namespace TTD
         void DeletePropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsWithBoolAndPIDArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithBoolAndPIDArgumentAction, EventKind::DeletePropertyActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
             Js::Var res = Js::JavascriptOperators::OP_DeleteProperty(var, action->Pid, ctx, action->BoolVal ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
 
@@ -338,8 +308,8 @@ namespace TTD
         void SetPrototypeAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::SetPrototypeActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
-            Js::Var proto = JsRTActionInflateVarInReplay(ctx, action->Var2);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
+            Js::Var proto = InflateVarInReplay(ctx, action->Var2);
 
             Js::JavascriptObject::ChangePrototype(Js::RecyclableObject::FromVar(var), Js::RecyclableObject::FromVar(proto), true, ctx);
         }
@@ -347,8 +317,8 @@ namespace TTD
         void SetPropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsWithBoolAndPIDArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithBoolAndPIDArgumentAction, EventKind::SetPropertyActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
-            Js::Var value = JsRTActionInflateVarInReplay(ctx, action->Var2);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
+            Js::Var value = InflateVarInReplay(ctx, action->Var2);
 
             Js::JavascriptOperators::OP_SetProperty(var, action->Pid, value, ctx, nullptr, action->BoolVal ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
         }
@@ -356,9 +326,9 @@ namespace TTD
         void SetIndexAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::SetIndexActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
-            Js::Var index = JsRTActionInflateVarInReplay(ctx, action->Var2);
-            Js::Var value = JsRTActionInflateVarInReplay(ctx, action->Var3);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
+            Js::Var index = InflateVarInReplay(ctx, action->Var2);
+            Js::Var value = InflateVarInReplay(ctx, action->Var3);
 
             Js::JavascriptOperators::OP_SetElementI(var, index, value, ctx);
         }
@@ -366,7 +336,7 @@ namespace TTD
         void GetTypedArrayInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::GetTypedArrayInfoActionTag>(evt);
-            Js::Var var = JsRTActionInflateVarInReplay(ctx, action->Var1);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
             Js::Var res = nullptr;
             if(action->u_bVal)
@@ -397,14 +367,14 @@ namespace TTD
         {
             const JsRTConstructCallAction* ccAction = GetInlineEventDataAs<JsRTConstructCallAction, EventKind::ConstructCallActionTag>(evt);
 
-            Js::Var jsFunctionVar = JsRTActionInflateVarInReplay(ctx, ccAction->ArgArray[0]);
+            Js::Var jsFunctionVar = InflateVarInReplay(ctx, ccAction->ArgArray[0]);
             Js::JavascriptFunction* jsFunction = Js::JavascriptFunction::FromVar(jsFunctionVar);
 
             //remove implicit constructor function as first arg in callInfo and argument loop below
             Js::CallInfo callInfo(Js::CallFlags::CallFlags_New, (ushort)(ccAction->ArgCount - 1)); 
             for(uint32 i = 1; i < ccAction->ArgCount; ++i)
             {
-                ccAction->ExecArgs[i] = JsRTActionInflateVarInReplay(ctx, ccAction->ArgArray[i]);
+                ccAction->ExecArgs[i] = InflateVarInReplay(ctx, ccAction->ArgArray[i]);
             }
             Js::Arguments jsArgs(callInfo, ccAction->ExecArgs);
 
@@ -702,7 +672,7 @@ namespace TTD
         }
 #endif
 
-        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double wallTime, int64 hostCallbackId, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc)
+        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double wallTime, int64 hostCallbackId, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc)
         {
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             cfAction->AdditionalInfo = alloc.SlabAllocateStruct<JsRTCallFunctionAction_AdditionalInfo>();
@@ -718,6 +688,8 @@ namespace TTD
 
             cfAction->AdditionalInfo->BeginTime = wallTime;
             cfAction->AdditionalInfo->EndTime = -1.0;
+
+            cfAction->AdditionalInfo->CallEventTime = callEventTime;
 
             cfAction->AdditionalInfo->HostCallbackId = hostCallbackId;
             cfAction->AdditionalInfo->TopLevelCallbackEventTime = topLevelCallbackEventTime;
@@ -741,14 +713,14 @@ namespace TTD
 
             ThreadContext* threadContext = ctx->GetThreadContext();
 
-            Js::Var jsFunctionVar = JsRTActionInflateVarInReplay(ctx, cfAction->ArgArray[0]);
+            Js::Var jsFunctionVar = InflateVarInReplay(ctx, cfAction->ArgArray[0]);
             Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(jsFunctionVar);
 
             //remove implicit constructor function as first arg in callInfo and argument loop below
             Js::CallInfo callInfo((ushort)(cfAction->ArgCount - 1));
             for(uint32 i = 1; i < cfAction->ArgCount; ++i)
             {
-                cfAction->AdditionalInfo->ExecArgs[i] = JsRTActionInflateVarInReplay(ctx, cfAction->ArgArray[i]);
+                cfAction->AdditionalInfo->ExecArgs[i] = InflateVarInReplay(ctx, cfAction->ArgArray[i]);
             }
             Js::Arguments jsArgs(callInfo, cfAction->AdditionalInfo->ExecArgs);
 
@@ -855,6 +827,8 @@ namespace TTD
             writer->WriteDouble(NSTokens::Key::beginTime, cfInfo->BeginTime, NSTokens::Separator::CommaSeparator);
             writer->WriteDouble(NSTokens::Key::endTime, cfInfo->EndTime, NSTokens::Separator::CommaSeparator);
 
+            writer->WriteInt64(NSTokens::Key::eventTime, cfInfo->CallEventTime, NSTokens::Separator::CommaSeparator);
+
             writer->WriteInt64(NSTokens::Key::hostCallbackId, cfInfo->HostCallbackId, NSTokens::Separator::CommaSeparator);
             writer->WriteInt64(NSTokens::Key::eventTime, cfInfo->TopLevelCallbackEventTime, NSTokens::Separator::CommaSeparator);
 
@@ -889,6 +863,8 @@ namespace TTD
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
             cfInfo->BeginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
             cfInfo->EndTime = reader->ReadDouble(NSTokens::Key::endTime, true);
+
+            cfInfo->CallEventTime = reader->ReadInt64(NSTokens::Key::eventTime, true);
 
             cfInfo->HostCallbackId = reader->ReadInt64(NSTokens::Key::hostCallbackId, true);
             cfInfo->TopLevelCallbackEventTime = reader->ReadInt64(NSTokens::Key::eventTime, true);

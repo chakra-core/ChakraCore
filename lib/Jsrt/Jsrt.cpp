@@ -590,9 +590,19 @@ STDAPI_(JsErrorCode) JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
                 return JsNoError;
             }
 
-            asdf; //need to add TTD hook here
-
             recycler->RootAddRef(ref, count);
+
+#if ENABLE_TTD
+            Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
+            if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+            {
+                if(*count == 1)
+                {
+                    scriptContext->GetThreadContext()->TTDLog->RecordJsRTAddRootRef(scriptContext, (Js::Var)ref);
+                }
+            }
+#endif
+
             return JsNoError;
         });
     }
@@ -636,14 +646,24 @@ STDAPI_(JsErrorCode) JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
         return GlobalAPIWrapper([&]() -> JsErrorCode
         {
             // Note, some references may live in arena-allocated memory, so we need to do this check
-            if (!recycler->IsValidObject(ref))
+            if(!recycler->IsValidObject(ref))
             {
                 return JsNoError;
             }
 
-            asdf; //need to add TTD hook here
-
             recycler->RootRelease(ref, count);
+
+#if ENABLE_TTD
+            Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
+            if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+            {
+                if(*count == 0)
+                {
+                    scriptContext->GetThreadContext()->TTDLog->RecordJsRTRemoveRootRef(scriptContext, (Js::Var)ref);
+                }
+            }
+#endif
+
             return JsNoError;
         });
     }
@@ -695,7 +715,7 @@ STDAPI_(JsErrorCode) JsSetObjectBeforeCollectCallback(_In_ JsRef ref, _In_opt_ v
 STDAPI_(JsErrorCode) JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ JsContextRef *newContext)
 {
     return CreateContextCore(runtimeHandle, false, newContext);
-        }
+}
 
 STDAPI_(JsErrorCode) JsGetCurrentContext(_Out_ JsContextRef *currentContext)
 {
@@ -850,13 +870,15 @@ STDAPI_(JsErrorCode) JsGetFalseValue(_Out_ JsValueRef *falseValue)
 
 STDAPI_(JsErrorCode) JsBoolToBoolean(_In_ bool value, _Out_ JsValueRef *booleanValue)
 {
-    asdf; //TODO add TTD action here
-
     return ContextAPINoScriptWrapper([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(booleanValue);
 
-        *booleanValue = value ? scriptContext->GetLibrary()->GetTrue() :
-            scriptContext->GetLibrary()->GetFalse();
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateBoolean(scriptContext, value));
+
+        *booleanValue = value ? scriptContext->GetLibrary()->GetTrue() : scriptContext->GetLibrary()->GetFalse();
+
+        PERFORM_JSRT_TTD_TAG_ACTION(*booleanValue);
+
         return JsNoError;
     },
     /*allowInObjectBeforeCollectCallback*/true);
@@ -974,10 +996,14 @@ STDAPI_(JsErrorCode) JsDoubleToNumber(_In_ double dbl, _Out_ JsValueRef *asValue
       return JsNoError;
     }
 
-    asdf; //TODO add TTD action here -- note if fast check worked then number is inline so we don't need to record anything
-
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateNumber(scriptContext, dbl));
+
         *asValue = Js::JavascriptNumber::ToVarNoCheck(dbl, scriptContext);
+
+        PERFORM_JSRT_TTD_TAG_ACTION(*asValue);
+
         return JsNoError;
     });
 }

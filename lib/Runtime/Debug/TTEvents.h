@@ -128,6 +128,7 @@ namespace TTD
             RandomSeedTag,
             PropertyEnumTag,
             SymbolCreationTag,
+            ExternalCbRegisterCall,
             ExternalCallTag,
             //JsRTActionTag is a marker for where the JsRT actions begin
             JsRTActionTag,
@@ -147,7 +148,7 @@ namespace TTD
 
             AddRootRefActionTag,
             RemoveRootRefActionTag,
-            LocalRootClearActionTag,
+            EventLoopYieldPointActionTag,
 
             AllocateObjectActionTag,
             AllocateExternalObjectActionTag,
@@ -171,6 +172,10 @@ namespace TTD
             CallExistingFunctionActionTag,
             Count
         };
+
+        //Inflate an argument variable for an action during replay and record passing an value to the host
+        void PassVarToHostInReplay(Js::ScriptContext* ctx, TTDVar origVar, Js::Var replayVar);
+        Js::Var InflateVarInReplay(Js::ScriptContext* ctx, TTDVar var);
 
         typedef void(*fPtr_EventLogActionEntryInfoExecute)(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
@@ -324,6 +329,18 @@ namespace TTD
 
         void SymbolCreationEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
         void SymbolCreationEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //////////////////
+
+        //A struct for logging the invocation of the host callback registration function
+        struct ExternalCbRegisterCallEventLogEntry
+        {
+            //the number of arguments and the argument array -- function is always argument[0]
+            TTDVar CallbackFunction;
+        };
+
+        void ExternalCbRegisterCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void ExternalCbRegisterCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
 

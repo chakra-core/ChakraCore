@@ -271,19 +271,6 @@ namespace Js
 #if ENABLE_TTD
         Var result = nullptr;
 
-        if(scriptContext->ShouldTagForExternalCall())
-        {
-			TTD::RuntimeThreadInfo* ttdThreadInfo = scriptContext->GetThreadContext()->TTDInfo;
-            for(uint32 i = 0; i < args.Info.Count; ++i)
-            {
-                Js::Var arg = args.Values[i];
-                if(TTD::JsSupport::IsVarComplexKind(arg))
-                {
-					ttdThreadInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
-                }
-            }
-        }
-
         if(scriptContext->ShouldPerformDebugAction())
         {
             //
@@ -375,20 +362,6 @@ namespace Js
         Var result = NULL;
 
 #if ENABLE_TTD
-        if(scriptContext->ShouldTagForExternalCall())
-        {
-			TTD::RuntimeThreadInfo* ttdThreadInfo = scriptContext->GetThreadContext()->TTDInfo;
-
-            for(uint32 i = 0; i < args.Info.Count; ++i)
-            {
-                Js::Var arg = args.Values[i];
-                if(TTD::JsSupport::IsVarComplexKind(arg))
-                {
-                    ttdThreadInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
-                }
-            }
-        }
-
         if(scriptContext->ShouldPerformDebugAction())
         {
             //

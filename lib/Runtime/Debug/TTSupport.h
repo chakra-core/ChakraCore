@@ -22,6 +22,9 @@
 #define TTD_ARRAY_BLOCK_SIZE 0x200
 #define TTD_ARRAY_SMALL_ARRAY 0x100
 
+//Convert from Js::Var to TTDVar 
+#define TTD_CONVERT_JSVAR_TO_TTDVAR(X) ((TTDVar)(X))
+
 //The ids for objects in a snapshot
 typedef uint64 TTD_PTR_ID;
 #define TTD_INVALID_PTR_ID 0ul
@@ -36,8 +39,6 @@ typedef uint64 TTD_PTR_ID;
 //Promises have a wide range of heap allocated bits -- we define He-Man casts for all of them -- ugly but so is having a bunch of specific functions
 #define TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 #define TTD_CONVERT_PROMISE_INFO_TO_SPECIFIC_TYPE(T, X) static_cast<T*>(X)
-
-#define TTD_EXTRACT_CTX_LOG_TAG(X) ((X)->ScriptContextLogTag)
 
 #define TTD_COERCE_PTR_ID_TO_VAR(X) (reinterpret_cast<Js::Var>(X))
 #define TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(X) (reinterpret_cast<Js::FunctionBody*>(X))

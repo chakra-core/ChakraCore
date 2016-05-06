@@ -28,10 +28,6 @@ namespace TTD
             GetInlineEventDataAs<T, tag>(evt)->Result = var;
         }
 
-        //Inflate an argument variable for an action during replay and record passing an value to the host
-        void JsRTActionPassVarToHostInReplay(Js::ScriptContext* ctx, TTDVar origVar, Js::Var replayVar);
-        Js::Var JsRTActionInflateVarInReplay(Js::ScriptContext* ctx, TTDVar var);
-
         //Handle the recording of the result of an action for the the given action type and tag
         template <typename T, EventKind tag>
         void JsRTActionHandleResultForRecord(EventLogEntry* evt, Js::Var result)
@@ -44,7 +40,7 @@ namespace TTD
         void JsRTActionHandleResultForReplay(Js::ScriptContext* ctx, const EventLogEntry* evt, Js::Var result)
         {
             TTDVar origResult = JsRTGetActionResult<T, tag>(evt);
-            JsRTActionPassVarToHostInReplay(ctx, origResult, result);
+            PassVarToHostInReplay(ctx, origResult, result);
         }
 
         //////////////////
@@ -309,7 +305,7 @@ namespace TTD
 
         void AddRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void RemoveRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void LocalRootClear_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void EventLoopYieldPointAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
         void AllocateObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void AllocateExternalObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
@@ -427,6 +423,9 @@ namespace TTD
             double BeginTime;
             double EndTime;
 
+            //The actual event time associated with this call (is >= the TopLevelCallbackEventTime)
+            int64 CallEventTime;
+
             //The id given by the host for this callback (or -1 if this call is not associated with any callback)
             int64 HostCallbackId;
 
@@ -480,7 +479,7 @@ namespace TTD
         void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, double wallTime, int64 lastNestedEvent);
 #endif
 
-        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double wallTime, int64 hostCallbackId, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc);
+        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double wallTime, int64 hostCallbackId, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc);
         void JsRTCallFunctionAction_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException);
 
         void JsRTCallFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);

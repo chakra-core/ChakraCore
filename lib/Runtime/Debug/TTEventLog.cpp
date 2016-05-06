@@ -839,16 +839,28 @@ namespace TTD
         return evt;
     }
 
-
     void EventLog::ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result)
     {
-        const NSLogEvents::ExternalCallEventLogEntry* scEvent = this->ReplayGetReplayEvent_Helper<NSLogEvents::ExternalCallEventLogEntry, NSLogEvents::EventKind::ExternalCallTag>();
+        const NSLogEvents::ExternalCallEventLogEntry* ecEvent = this->ReplayGetReplayEvent_Helper<NSLogEvents::ExternalCallEventLogEntry, NSLogEvents::EventKind::ExternalCallTag>();
 
         Js::ScriptContext* ctx = function->GetScriptContext();
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.WriteCall(function, true, argc, argv);
 #endif
+
+        //make sure we log all of the passed arguments in the replay host
+        AssertMsg(argc + 1 == ecEvent->ArgCount, "Mismatch in args!!!");
+
+        TTDVar recordedFunction = ecEvent->ArgArray[0];
+        NSLogEvents::PassVarToHostInReplay(ctx, recordedFunction, function);
+
+        for(uint32 i = 0; i < argc; ++i)
+        {
+            Js::Var replayVar = argv[i];
+            TTDVar recordedVar = ecEvent->ArgArray[i + 1];
+            NSLogEvents::PassVarToHostInReplay(ctx, recordedVar, replayVar);
+        }
 
         //replay anything that happens when we are out of the call
         if(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventKind > NSLogEvents::EventKind::JsRTActionTag)
@@ -873,56 +885,36 @@ namespace TTD
             this->AbortReplayReturnToHost();
         }
 
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         AssertMsg(this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
+#endif
 
-        *result = NSLogValue::InflateArgRetValueIntoVar(eeventEnd->GetReturnValue(), ctx);
+        *result = NSLogEvents::InflateVarInReplay(ctx, ecEvent->ReturnValue);
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.WriteReturn(function, *result);
 #endif
     }
 
-    ExternalCallEventBeginLogEntry* EventLog::RecordEnqueueTaskBeginEvent(int32 rootDepth)
+    void EventLog::RecordEnqueueTaskEvent(Js::Var taskVar)
     {
-        ExternalCallEventBeginLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventBeginLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, beginTime);
+        NSLogEvents::ExternalCbRegisterCallEventLogEntry* ecEvent = this->RecordGetInitializedEvent_Helper<NSLogEvents::ExternalCbRegisterCallEventLogEntry, NSLogEvents::EventKind::ExternalCbRegisterCall>();
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        TTString pname;
-        this->m_eventSlabAllocator.CopyNullTermStringInto(_u("Register Promise Function"), pname);
+        ecEvent->CallbackFunction = static_cast<TTDVar>(taskVar);
 
-        eevent->SetFunctionName(pname);
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+        this->m_diagnosticLogger.WriteReturn(function, *result);
 #endif
-
-        this->InsertEventAtHead(eevent);
-
-        return eevent;
     }
 
-    void EventLog::RecordEnqueueTaskEndEvent(int64 matchingBeginTime, int32 rootDepth, double endTime, Js::Var value)
+    void EventLog::ReplayEnqueueTaskEvent(Js::ScriptContext* ctx, Js::Var taskVar)
     {
-        NSLogValue::ArgRetValue retVal;
-        NSLogValue::ExtractArgRetValueFromVar(value, retVal, this->m_eventSlabAllocator);
+        const NSLogEvents::ExternalCbRegisterCallEventLogEntry* ecEvent = this->ReplayGetReplayEvent_Helper<NSLogEvents::ExternalCbRegisterCallEventLogEntry, NSLogEvents::EventKind::ExternalCbRegisterCall>();
 
-        ExternalCallEventEndLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), matchingBeginTime, rootDepth, false, false, endTime, retVal);
-
-        this->InsertEventAtHead(eevent);
-    }
-
-    void EventLog::ReplayEnqueueTaskEvent(Js::ScriptContext* ctx, Js::Var* result)
-    {
-        if(!this->m_currentReplayEventIterator.IsValid())
-        {
-            this->AbortReplayReturnToHost();
-        }
-
-        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
-
-        //advance the begin event item off the event list
-        ExternalCallEventBeginLogEntry* eeventBegin = ExternalCallEventBeginLogEntry::As(this->m_currentReplayEventIterator.Current());
-        this->AdvanceTimeAndPositionForReplay();
+        NSLogEvents::PassVarToHostInReplay(ctx, ecEvent->CallbackFunction, taskVar);
 
         //replay anything that happens when we are out of the call
-        if(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag)
+        if(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventKind > NSLogEvents::EventKind::JsRTActionTag)
         {
             if(!ctx->GetThreadContext()->IsScriptActive())
             {
@@ -944,15 +936,9 @@ namespace TTD
             this->AbortReplayReturnToHost();
         }
 
-        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
-
-        //advance the end event item off the event list and get the return value
-        ExternalCallEventEndLogEntry* eeventEnd = ExternalCallEventEndLogEntry::As(this->m_currentReplayEventIterator.Current());
-        this->AdvanceTimeAndPositionForReplay();
-
-        AssertMsg(eeventBegin->GetRootNestingDepth() == eeventEnd->GetRootNestingDepth(), "These should always match!!!");
-
-        *result = NSLogValue::InflateArgRetValueIntoVar(eeventEnd->GetReturnValue(), ctx);
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        AssertMsg(this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
+#endif
     }
 
     void EventLog::PushCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool isInFinally)
@@ -1342,7 +1328,7 @@ namespace TTD
         return this->m_topLevelCallbackEventTime;
     }
 
-    JsRTCallbackAction* EventLog::GetEventForHostCallbackId(bool wantRegisterOp, int64 hostIdOfInterest) const
+    const NSLogEvents::JsRTCallbackAction* EventLog::GetEventForHostCallbackId(bool wantRegisterOp, int64 hostIdOfInterest) const
     {
         if(hostIdOfInterest == -1)
         {
@@ -1351,10 +1337,10 @@ namespace TTD
 
         for(auto iter = this->m_currentReplayEventIterator; iter.IsValid(); iter.MovePrevious())
         {
-            if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(iter.Current())->GetActionTypeTag() == JsRTActionType::CallbackOp)
+            if(iter.Current()->EventKind == NSLogEvents::EventKind::CallbackOpActionTag)
             {
-                JsRTCallbackAction* callbackAction = JsRTCallbackAction::As(JsRTActionLogEntry::As(iter.Current()));
-                if(callbackAction->GetAssociatedHostCallbackId() == hostIdOfInterest && callbackAction->IsCreateOp() == wantRegisterOp)
+                const NSLogEvents::JsRTCallbackAction* callbackAction = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallbackAction, NSLogEvents::EventKind::CallbackOpActionTag>(iter.Current());
+                if(callbackAction->NewCallbackId == hostIdOfInterest && callbackAction->IsCreate == wantRegisterOp)
                 {
                     return callbackAction;
                 }
@@ -1369,14 +1355,17 @@ namespace TTD
         uint32 topLevelCount = 0;
         for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
         {
-            if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(iter.Current())->IsRootCallBegin())
+            if(iter.Current()->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag)
             {
-                JsRTCallFunctionBeginAction* rootCallAction = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(iter.Current()));
-                topLevelCount++;
-
-                if(topLevelCount == k)
+                NSLogEvents::JsRTCallFunctionAction* callAction = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(iter.Current());
+                if(callAction->CallbackDepth != 0)
                 {
-                    return rootCallAction->GetEventTime();
+                    topLevelCount++;
+
+                    if(topLevelCount == k)
+                    {
+                        return callAction->AdditionalInfo->CallEventTime;
+                    }
                 }
             }
         }
@@ -1636,18 +1625,12 @@ namespace TTD
             this->AbortReplayReturnToHost();
         }
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        TTD_LOG_TAG diagnosticsCurrentTag = this->m_threadContext->TTDInfo->GetLogTagValueForDiagnostics();
-        const EventLogEntry* diagnosticsEntry = this->m_currentReplayEventIterator.Current();
-        AssertMsg(diagnosticsCurrentTag == diagnosticsEntry->DiagnosticEventTagValue, "Log Tag is out of sync!!!");
-#endif
-
-        switch(this->m_currentReplayEventIterator.Current()->GetEventKind())
+        switch(this->m_currentReplayEventIterator.Current()->EventKind)
         {
-            case EventLogEntry::EventKind::SnapshotTag:
+            case NSLogEvents::EventKind::SnapshotTag:
                 this->ReplaySnapshotEvent();
                 break;
-            case EventLogEntry::EventKind::JsRTActionTag:
+            case NSLogEvents::EventKind::JsRTActionTag:
                 this->ReplayActionLoopStep(); 
                 break;
             default:
@@ -1689,17 +1672,29 @@ namespace TTD
         return this->m_eventTimeCtr - 1;
     }
 
-    void EventLog::RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var)
+#if !INT32VAR
+    void EventLog::RecordJsRTCreateInteger(Js::ScriptContext* ctx, int value)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+        NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* nAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::CreateIntegerActionTag>();
+        nAction->u_iVal = value;
+    }
+#endif
 
-        NSLogValue::ArgRetValue vval;
-        NSLogValue::ExtractArgRetValueFromVar(var, vval, this->m_eventSlabAllocator);
+    void EventLog::RecordJsRTCreateNumber(Js::ScriptContext* ctx, double value)
+    {
+        NSLogEvents::JsRTDoubleArgumentAction* dAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTDoubleArgumentAction, NSLogEvents::EventKind::CreateNumberActionTag>();
+        dAction->DoubleValue = value;
+    }
 
-        JsRTVarConvertToObjectAction* convertEvent = this->m_eventSlabAllocator.SlabNew<JsRTVarConvertToObjectAction>(etime, ctxTag, vval);
+    void EventLog::RecordJsRTCreateBoolean(Js::ScriptContext* ctx, bool value)
+    {
+        NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* nAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::CreateBooleanActionTag>();
+        nAction->u_iVal = (value ? TRUE : FALSE);
+    }
 
-        this->InsertEventAtHead(convertEvent);
+    void EventLog::RecordJsRTCreateString(Js::ScriptContext* ctx, const char16* stringValue, size_t stringLength)
+    {
+        asdf;
     }
 
     void EventLog::RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var)
@@ -1713,6 +1708,40 @@ namespace TTD
         JsRTCreateSymbol* createEvent = this->m_eventSlabAllocator.SlabNew<JsRTCreateSymbol>(etime, ctxTag, vval);
 
         this->InsertEventAtHead(createEvent);
+    }
+
+    void EventLog::RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var)
+    {
+        uint64 etime = this->GetCurrentEventTimeAndAdvance();
+        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+
+        NSLogValue::ArgRetValue vval;
+        NSLogValue::ExtractArgRetValueFromVar(var, vval, this->m_eventSlabAllocator);
+
+        JsRTVarConvertToObjectAction* convertEvent = this->m_eventSlabAllocator.SlabNew<JsRTVarConvertToObjectAction>(etime, ctxTag, vval);
+
+        this->InsertEventAtHead(convertEvent);
+    }
+
+    void EventLog::RecordJsRTAddRootRef(Js::ScriptContext* ctx, Js::Var var)
+    {
+        NSLogEvents::JsRTVarsArgumentAction* addAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::AddRootRefActionTag>();
+        addAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+
+        asdf; //need to do the add ref and monitor in my TTD code
+    }
+
+    void EventLog::RecordJsRTRemoveRootRef(Js::ScriptContext* ctx, Js::Var var)
+    {
+        NSLogEvents::JsRTVarsArgumentAction* removeAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::RemoveRootRefActionTag>();
+        removeAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+
+        asdf; //need to do the add ref and monitor in my TTD code
+    }
+
+    void EventLog::RecordJsRTEventLoopYieldPoint(Js::ScriptContext* ctx)
+    {
+        asdf;
     }
 
     void EventLog::RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, bool isRegularObject)
