@@ -8657,17 +8657,26 @@ void LowererMD::HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod
 
     IR::Opnd * argOpnd = instr->UnlinkSrc1();
     IR::JnHelperMethod helperMethod;
+    uint dwordCount;
     if (argOpnd->IsFloat32())
     {
         helperMethod = helperMethodFloat;
         LoadFloatHelperArgument(instr, argOpnd);
+        dwordCount = 1;
     }
     else
     {
         helperMethod = helperMethodDouble;
         LoadDoubleHelperArgument(instr, argOpnd);
+        dwordCount = 2;
     }
-    ChangeToHelperCall(instr, helperMethod);
+
+    instr->m_opcode = Js::OpCode::CALL;
+
+    IR::HelperCallOpnd *helperCallOpnd = Lowerer::CreateHelperCallOpnd(helperMethod, this->lowererMDArch.GetHelperArgsCount(), m_func);
+    instr->SetSrc1(helperCallOpnd);
+
+    this->lowererMDArch.LowerCall(instr, dwordCount);
 }
 void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMethod helperMethod)
 {
