@@ -299,10 +299,8 @@ namespace Js
         else if(scriptContext->ShouldPerformRecordAction())
         {
             //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths
-            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(scriptContext->GetThreadContext()->TTDLog, externalFunction);
-
-            TTD::ExternalCallEventBeginLogEntry* beginEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values, logPopper.GetStartTime());
-            logPopper.SetCallAction(beginEvent); //wil lalso decrement the nesting count as needed
+            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values);
+            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(scriptContext, callEvent);
 
             Var result = nullptr;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
@@ -406,11 +404,9 @@ namespace Js
         else if(scriptContext->ShouldPerformRecordAction())
         {
             //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths
-            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(scriptContext->GetThreadContext()->TTDLog, externalFunction);
-
-            TTD::ExternalCallEventBeginLogEntry* beginEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values, logPopper.GetStartTime());
-            logPopper.SetCallAction(beginEvent);
-
+            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values);
+            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(scriptContext, callEvent);
+            
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {
                 result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);

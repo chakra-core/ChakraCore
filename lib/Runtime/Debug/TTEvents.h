@@ -169,7 +169,7 @@ namespace TTD
             CallbackOpActionTag,
             CodeParseActionTag,
             CallExistingFunctionActionTag,
-            Limit
+            Count
         };
 
         typedef void(*fPtr_EventLogActionEntryInfoExecute)(const EventLogEntry* evt, Js::ScriptContext* ctx);
@@ -189,10 +189,6 @@ namespace TTD
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             //The event time for this event
             int64 EventTimeStamp;
-
-            //The time at which this event occoured
-            double EventBeginTime;
-            double EventEndTime;
 #endif
         };
 
@@ -215,8 +211,7 @@ namespace TTD
         }
 
         //Helpers for initializing, emitting and parsing the basic event data
-        void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime, Js::HiResTimer& timer);
-        void EventLogEntry_Done(EventLogEntry* evt, Js::HiResTimer& timer);
+        void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime);
         void EventLogEntry_Emit(const EventLogEntry* evt, fPtr_EventLogEntryInfoEmit emitFP, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext, NSTokens::Separator separator);
         void EventLogEntry_Parse(EventLogEntry* evt, fPtr_EventLogEntryInfoParse parseFP, bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
@@ -350,6 +345,7 @@ namespace TTD
             //The root nesting depth
             int32 RootNestingDepth;
 
+            //the number of arguments and the argument array -- function is always argument[0]
             uint32 ArgCount;
             TTDVar* ArgArray;
 
@@ -367,8 +363,12 @@ namespace TTD
             bool HasTerminiatingException;
         };
 
-        void ExternalCallEventLogEntry_ProcessDiagInfo(EventLogEntry* evt, int64 lastNestedEvent, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc);
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc);
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        void ExternalCallEventLogEntry_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc);
+        void ExternalCallEventLogEntry_ProcessDiagInfoPost(EventLogEntry* evt, int64 lastNestedEvent);
+#endif
+
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc);
         void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException);
 
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);

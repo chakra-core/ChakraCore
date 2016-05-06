@@ -380,6 +380,19 @@ namespace TTD
         
         //////////////////
 
+        void JsRTConstructCallAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc)
+        {
+            JsRTConstructCallAction* ccAction = GetInlineEventDataAs<JsRTConstructCallAction, EventKind::ConstructCallActionTag>(evt);
+
+            ccAction->ArgCount = argc + 1;
+
+            static_assert(sizeof(TTDVar) == sizeof(Js::Var), "These need to be the same size (and have same bit layout) for this to work!");
+
+            ccAction->ArgArray = alloc.SlabAllocateArray<TTDVar>(ccAction->ArgCount);
+            ccAction->ArgArray[0] = static_cast<TTDVar>(function);
+            js_memcpy_s(ccAction->ArgArray + 1, (ccAction->ArgCount - 1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
+        }
+
         void JsRTConstructCallAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTConstructCallAction* ccAction = GetInlineEventDataAs<JsRTConstructCallAction, EventKind::ConstructCallActionTag>(evt);
@@ -621,6 +634,9 @@ namespace TTD
             const JsRTCodeParseAction* cpAction = GetInlineEventDataAs<JsRTCodeParseAction, EventKind::CodeParseActionTag>(evt);
             JsRTCodeParseAction_AdditionalInfo* cpInfo = cpAction->AdditionalInfo;
 
+            writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(cpAction->Result, writer, NSTokens::Separator::NoSeparator);
+
             writer->WriteUInt64(NSTokens::Key::documentId, (uint64)cpInfo->DocumentID, NSTokens::Separator::CommaSeparator);
             writer->WriteTag<LoadScriptFlag>(NSTokens::Key::loadFlag, cpInfo->LoadFlag, NSTokens::Separator::CommaSeparator);
 
@@ -646,6 +662,9 @@ namespace TTD
 
             JsRTCodeParseAction_AdditionalInfo* cpInfo = cpAction->AdditionalInfo;
 
+            reader->ReadKey(NSTokens::Key::argRetVal, true);
+            cpAction->Result = NSSnapValues::ParseTTDVar(false, reader);
+
             cpInfo->DocumentID = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
             cpInfo->LoadFlag = reader->ReadTag<LoadScriptFlag>(NSTokens::Key::loadFlag, true);
 
@@ -663,6 +682,56 @@ namespace TTD
             docId.Append(_u("ld"));
 
             JsSupport::ReadCodeFromFile(threadContext->TTDStreamFunctions, cpInfo->SrcDir.Contents, docId.GetStrValue(), cpInfo->SourceUri.Contents, cpInfo->SourceCode.Contents, cpInfo->SourceCode.Length);
+        }
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        void JsRTCallFunctionAction_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc)
+        {
+            JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
+
+            Js::JavascriptString* displayName = function->GetDisplayName();
+            alloc.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), cfAction->AdditionalInfo->FunctionName);
+        }
+
+        void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, double wallTime, int64 lastNestedEvent)
+        {
+            JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
+
+            cfAction->AdditionalInfo->EndTime = wallTime;
+            cfAction->AdditionalInfo->LastNestedEvent = lastNestedEvent;
+        }
+#endif
+
+        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double wallTime, int64 hostCallbackId, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc)
+        {
+            JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
+            cfAction->AdditionalInfo = alloc.SlabAllocateStruct<JsRTCallFunctionAction_AdditionalInfo>();
+
+            cfAction->CallbackDepth = rootDepth;
+            cfAction->ArgCount = argc + 1;
+
+            static_assert(sizeof(TTDVar) == sizeof(Js::Var), "These need to be the same size (and have same bit layout) for this to work!");
+
+            cfAction->ArgArray = alloc.SlabAllocateArray<TTDVar>(cfAction->ArgCount);
+            cfAction->ArgArray[0] = static_cast<TTDVar>(function);
+            js_memcpy_s(cfAction->ArgArray + 1, (cfAction->ArgCount -1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
+
+            cfAction->AdditionalInfo->BeginTime = wallTime;
+            cfAction->AdditionalInfo->EndTime = -1.0;
+
+            cfAction->AdditionalInfo->HostCallbackId = hostCallbackId;
+            cfAction->AdditionalInfo->TopLevelCallbackEventTime = topLevelCallbackEventTime;
+        }
+
+        void JsRTCallFunctionAction_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException)
+        {
+            JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
+            JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
+
+            JsRTActionHandleResultForRecord<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt, res);
+
+            cfInfo->HasScriptException = hasScriptException;
+            cfInfo->HasTerminiatingException = hasTerminiatingException;
         }
 
         void JsRTCallFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
@@ -685,7 +754,7 @@ namespace TTD
 
             if(cfAction->CallbackDepth == 0)
             {
-                threadContext->TTDLog->ResetCallStackForTopLevelCall(cfInfo->TopLevelCallbackEventTime, cfAction->HostCallbackId);
+                threadContext->TTDLog->ResetCallStackForTopLevelCall(cfInfo->TopLevelCallbackEventTime, cfInfo->HostCallbackId);
             }
 
             Js::Var result = nullptr;
@@ -768,6 +837,9 @@ namespace TTD
             const JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             const JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
 
+            writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(cfAction->Result, writer, NSTokens::Separator::NoSeparator);
+
             writer->WriteInt32(NSTokens::Key::rootNestingDepth, cfAction->CallbackDepth, NSTokens::Separator::CommaSeparator);
 
             writer->WriteLengthValue(cfAction->ArgCount, NSTokens::Separator::CommaSeparator);
@@ -780,11 +852,10 @@ namespace TTD
             }
             writer->WriteSequenceEnd();
 
-            writer->WriteInt64(NSTokens::Key::hostCallbackId, cfAction->HostCallbackId, NSTokens::Separator::CommaSeparator);
-
             writer->WriteDouble(NSTokens::Key::beginTime, cfInfo->BeginTime, NSTokens::Separator::CommaSeparator);
             writer->WriteDouble(NSTokens::Key::endTime, cfInfo->EndTime, NSTokens::Separator::CommaSeparator);
 
+            writer->WriteInt64(NSTokens::Key::hostCallbackId, cfInfo->HostCallbackId, NSTokens::Separator::CommaSeparator);
             writer->WriteInt64(NSTokens::Key::eventTime, cfInfo->TopLevelCallbackEventTime, NSTokens::Separator::CommaSeparator);
 
             writer->WriteBool(NSTokens::Key::boolVal, cfInfo->HasScriptException, NSTokens::Separator::CommaSeparator);
@@ -801,6 +872,9 @@ namespace TTD
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             cfAction->AdditionalInfo = alloc.SlabAllocateStruct<JsRTCallFunctionAction_AdditionalInfo>();
 
+            reader->ReadKey(NSTokens::Key::argRetVal, true);
+            cfAction->Result = NSSnapValues::ParseTTDVar(false, reader);
+
             cfAction->CallbackDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
 
             cfAction->ArgCount = reader->ReadLengthValue(true);
@@ -812,12 +886,11 @@ namespace TTD
             }
             reader->ReadSequenceEnd();
 
-            cfAction->HostCallbackId = reader->ReadInt64(NSTokens::Key::hostCallbackId, true);
-
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
             cfInfo->BeginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
             cfInfo->EndTime = reader->ReadDouble(NSTokens::Key::endTime, true);
 
+            cfInfo->HostCallbackId = reader->ReadInt64(NSTokens::Key::hostCallbackId, true);
             cfInfo->TopLevelCallbackEventTime = reader->ReadInt64(NSTokens::Key::eventTime, true);
 
             cfInfo->HasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);

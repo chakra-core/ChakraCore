@@ -13,7 +13,7 @@
 //TODO: find and replace all of the occourences of this in jsrt.cpp
 #define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) { AssertMsg(false, "Need to implement support here!!!"); }
 
-#define PERFORM_JSRT_TTD_TAG_ACTION(CTX, VAL_PTR) if(VAL_PTR != nullptr ) { TTD::RuntimeThreadInfo::JsRTTagObject((CTX)->GetThreadContext(), *(VAL_PTR)); }
+#define PERFORM_JSRT_TTD_TAG_ACTION(CTX, VAL_PTR) asdf //TODO: probably want to make this work with an action popper???
 #else
 #define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) false
 #define PERFORM_JSRT_TTD_RECORD_ACTION(ACTION_CODE)
@@ -27,7 +27,7 @@
 
 #if ENABLE_TTD
 
-#define TTD_EVENTLOG_LIST_BLOCK_SIZE 512
+#define TTD_EVENTLOG_LIST_BLOCK_SIZE 4096
 
 namespace TTD
 {
@@ -50,42 +50,38 @@ namespace TTD
     class TTDRecordExternalFunctionCallActionPopper
     {
     private:
-        EventLog* m_log;
-        Js::JavascriptFunction* m_function;
-        Js::HiResTimer m_timer;
-        double m_startTime;
-
-        ExternalCallEventBeginLogEntry* m_callAction;
+        Js::ScriptContext* m_ctx;
+        NSLogEvents::EventLogEntry* m_callAction;
 
     public:
-        TTDRecordExternalFunctionCallActionPopper(EventLog* log, Js::JavascriptFunction* function);
+        TTDRecordExternalFunctionCallActionPopper(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction);
         ~TTDRecordExternalFunctionCallActionPopper();
 
         void NormalReturn(bool checkException, Js::Var returnValue);
-
-        void SetCallAction(ExternalCallEventBeginLogEntry* action);
-        double GetStartTime();
     };
 
     //A class to ensure that even when exceptions are thrown we record the time difference info
     class TTDRecordJsRTFunctionCallActionPopper
     {
     private:
-        EventLog* m_log;
-        Js::ScriptContext* m_scriptContext;
-        Js::HiResTimer m_timer;
-        double m_startTime;
-
-        JsRTCallFunctionBeginAction* m_callAction;
+        Js::ScriptContext* m_ctx;
+        NSLogEvents::EventLogEntry* m_callAction;
 
     public:
-        TTDRecordJsRTFunctionCallActionPopper(EventLog* log, Js::ScriptContext* scriptContext);
+        TTDRecordJsRTFunctionCallActionPopper(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction);
         ~TTDRecordJsRTFunctionCallActionPopper();
 
-        void NormalReturn();
+        void NormalReturn(Js::Var returnValue);
+    };
 
-        void SetCallAction(JsRTCallFunctionBeginAction* action);
-        double GetStartTime();
+    //A struct that we use for our pseudo v-table on the EventLogEntry data
+    struct EventLogEntryVTableEntry
+    {
+        NSLogEvents::fPtr_EventLogActionEntryInfoExecute ExecuteFP;
+
+        NSLogEvents::fPtr_EventLogEntryInfoUnload UnloadFP;
+        NSLogEvents::fPtr_EventLogEntryInfoEmit EmitFP;
+        NSLogEvents::fPtr_EventLogEntryInfoParse ParseFP;
     };
 
     //A list class for the events that we accumulate in the event log
@@ -100,7 +96,7 @@ namespace TTD
             uint32 StartPos;
 
             //The actual block for the data
-            EventLogEntry** BlockData;
+            NSLogEvents::EventLogEntry* BlockData;
 
             //The next block in the list
             TTEventListLink* Next;
@@ -118,14 +114,14 @@ namespace TTD
 
     public:
         TTEventList(UnlinkableSlabAllocator* alloc);
-        void UnloadEventList();
+        void UnloadEventList(EventLogEntryVTableEntry* vtable);
 
         //Add the entry to the list
-        void AddEntry(EventLogEntry* data);
+        NSLogEvents::EventLogEntry* GetNextAvailableEntry();
 
         //Delete the entry from the list (must always be the first link/entry in the list)
         //This also calls unload on the entry
-        void DeleteFirstEntry(TTEventListLink* block, EventLogEntry* data);
+        void DeleteFirstEntry(TTEventListLink* block, NSLogEvents::EventLogEntry* data, EventLogEntryVTableEntry* vtable);
 
         //Return true if this is empty
         bool IsEmpty() const;
@@ -143,8 +139,8 @@ namespace TTD
             Iterator();
             Iterator(TTEventListLink* head, uint32 pos);
 
-            const EventLogEntry* Current() const;
-            EventLogEntry* Current();
+            const NSLogEvents::EventLogEntry* Current() const;
+            NSLogEvents::EventLogEntry* Current();
 
             bool IsValid() const;
 
@@ -175,8 +171,11 @@ namespace TTD
         uint32 m_snapInterval;
         uint32 m_snapHistoryLength;
 
-        //The global event time variable
+        //The global event time variable and a high res timer we can use to extract some diagnostic timing info as we go
         int64 m_eventTimeCtr;
+
+        //A high res timer we can use to extract some diagnostic timing info as we go
+        Js::HiResTimer m_timer;
 
         //A counter (per event dispatch) which holds the current value for the function counter
         uint64 m_runningFunctionTimeCtr;
@@ -189,6 +188,7 @@ namespace TTD
 
         //The list of all the events and the iterator we use during replay
         TTEventList m_eventList;
+        EventLogEntryVTableEntry* m_eventListVTable;
         TTEventList::Iterator m_currentReplayEventIterator;
 
         //Array of call counters (used as stack)
@@ -258,9 +258,6 @@ namespace TTD
         //Advance the time and event position for replay
         void AdvanceTimeAndPositionForReplay();
 
-        //insert the event at the head of the events list
-        void InsertEventAtHead(EventLogEntry* evnt);
-
         //Look at the stack to get the new computed mode
         void UpdateComputedMode();
 
@@ -268,10 +265,57 @@ namespace TTD
         void UnloadRetainedData();
 
         //A helper for extracting snapshots
-        void DoSnapshotExtract_Helper(SnapShot** snap, TTD_LOG_TAG* logTag);
+        void DoSnapshotExtract_Helper(SnapShot** snap);
 
         //Replay a snapshot event -- either just advance the event position or, if running diagnostics, take new snapshot and compare
         void ReplaySnapshotEvent();
+
+        //A helper for initializing and type casting EventLogEntry data for record
+        template <typename T, NSLogEvents::EventKind tag>
+        T* RecordGetInitializedEvent_Helper()
+        {
+            NSLogEvents::EventLogEntry* evt = this->m_eventList.GetNextAvailableEntry();
+            NSLogEvents::EventLogEntry_Initialize(evt, tag, this->GetCurrentEventTimeAndAdvance());
+
+            return NSLogEvents::GetInlineEventDataAs<T, tag>(evt);
+        }
+
+        template <typename T, NSLogEvents::EventKind tag>
+        T* RecordGetInitializedEvent_HelperWithMainEvent(NSLogEvents::EventLogEntry** evt)
+        {
+            *evt = this->m_eventList.GetNextAvailableEntry();
+            NSLogEvents::EventLogEntry_Initialize(evt, tag, this->GetCurrentEventTimeAndAdvance());
+
+            return NSLogEvents::GetInlineEventDataAs<T, tag>(evt);
+        }
+
+        //Sometimes we need to abort replay and immediately return to the top-level host (debugger) so it can decide what to do next
+        //    (1) If we are trying to replay something and we are at the end of the log then we need to terminate
+        //    (2) If we are at a breakpoint and we want to step back (in some form) then we need to terminate
+        void AbortReplayReturnToHost();
+
+        //A helper for getting and doing some iterator manipulation during replay
+        template <typename T, NSLogEvents::EventKind tag>
+        const T* ReplayGetReplayEvent_Helper()
+        {
+            if(!this->m_currentReplayEventIterator.IsValid())
+            {
+                this->AbortReplayReturnToHost();
+            }
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            AssertMsg(this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
+#endif
+
+            const NSLogEvents::EventLogEntry* evt = this->m_currentReplayEventIterator.Current();
+
+            this->AdvanceTimeAndPositionForReplay();
+
+            return NSLogEvents::GetInlineEventDataAs<T, tag>(evt);
+        }
+
+        //Initialize the vtable for the event list data
+        void InitializeEventListVTable();
 
     public:
         EventLog(ThreadContext* threadContext, LPCWSTR logDir, uint32 snapInterval, uint32 snapHistoryLength);
@@ -367,14 +411,13 @@ namespace TTD
         void ReplaySymbolCreationEvent(Js::PropertyId* pid);
 
         //Log a value event for return from an external call
-        ExternalCallEventBeginLogEntry* RecordExternalCallBeginEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv, double beginTime);
-        void RecordExternalCallEndEvent(Js::JavascriptFunction* func, int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, Js::Var value);
-
-        ExternalCallEventBeginLogEntry* RecordEnqueueTaskBeginEvent(int32 rootDepth, double beginTime);
-        void RecordEnqueueTaskEndEvent(int64 matchingBeginTime, int32 rootDepth, double endTime, Js::Var value);
+        NSLogEvents::EventLogEntry* RecordExternalCallEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv);
 
         //replay an external return event (which should be the current event)
         void ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result);
+
+        NSLogEvents::EventLogEntry* RecordEnqueueTaskEvent(int32 rootDepth);
+        void RecordEnqueueTaskEndEvent(int64 matchingBeginTime, int32 rootDepth, Js::Var value);
 
         void ReplayEnqueueTaskEvent(Js::ScriptContext* ctx, Js::Var* result);
 
@@ -469,11 +512,6 @@ namespace TTD
         ////////////////////////////////
         //Snapshot and replay support
 
-        //Sometimes we need to abort replay and immediately return to the top-level host (debugger) so it can decide what to do next
-        //    (1) If we are trying to replay something and we are at the end of the log then we need to terminate
-        //    (2) If we are at a breakpoint and we want to step back (in some form) then we need to terminate
-        void AbortReplayReturnToHost();
-
         //Do the snapshot extraction 
         void DoSnapshotExtract();
 
@@ -501,6 +539,12 @@ namespace TTD
 
         ////////////////////////////////
         //Host API record & replay support
+
+        //Get the current time from the hi res timer
+        double GetCurrentWallTime();
+
+        //Get the most recently assigned event time value
+        int64 GetLastEventTime() const;
 
         //Record conversions and symbol creation
         void RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var);

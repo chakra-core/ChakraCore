@@ -353,13 +353,14 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
         {
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
-            TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(elog, scriptContext);
-            TTD::JsRTCallFunctionBeginAction* callAction = elog->RecordJsRTCallFunctionBegin(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, actionPopper.GetStartTime(), jsFunction, cargs, jsArgs.Values);
-            actionPopper.SetCallAction(callAction);
 
+            TTD::NSLogEvents::JsRTCallFunctionAction* callAction = elog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, jsFunction, cargs, jsArgs.Values);
+            TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext, callAction);
+            
+            
             if(scriptContext->TTDRootNestingCount == 0)
             {
-                elog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
+                elog->ResetCallStackForTopLevelCall(callAction->AdditionalInfo->TopLevelCallbackEventTime, hostCallbackId);
             }
 
             Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
@@ -369,7 +370,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
                 Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
             }
 
-            actionPopper.NormalReturn();
+            actionPopper.NormalReturn(result != nullptr ? *result : nullptr);
         }
         else
         {
@@ -589,6 +590,8 @@ STDAPI_(JsErrorCode) JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
                 return JsNoError;
             }
 
+            asdf; //need to add TTD hook here
+
             recycler->RootAddRef(ref, count);
             return JsNoError;
         });
@@ -637,6 +640,9 @@ STDAPI_(JsErrorCode) JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
             {
                 return JsNoError;
             }
+
+            asdf; //need to add TTD hook here
+
             recycler->RootRelease(ref, count);
             return JsNoError;
         });
@@ -2856,13 +2862,14 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 #if ENABLE_TTD
             if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
             {
-                TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext->GetThreadContext()->TTDLog, scriptContext);
-                TTD::JsRTCallFunctionBeginAction* callAction = scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallFunctionBegin(scriptContext, scriptContext->TTDRootNestingCount, -1, actionPopper.GetStartTime(), scriptFunction, args.Info.Count, args.Values);
-                actionPopper.SetCallAction(callAction);
+                TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+                TTD::NSLogEvents::JsRTCallFunctionAction* callAction = elog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, jsFunction, cargs, jsArgs.Values);
+                TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext, callAction);
 
                 if(scriptContext->TTDRootNestingCount == 0)
                 {
-                    scriptContext->GetThreadContext()->TTDLog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
+                    scriptContext->GetThreadContext()->TTDLog->ResetCallStackForTopLevelCall(callAction->AdditionalInfo->TopLevelCallbackEventTime, hostCallbackId);
                 }
 
                 Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
@@ -2871,7 +2878,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
                     *result = varResult;
                 }
 
-                actionPopper.NormalReturn();
+                actionPopper.NormalReturn(result != nullptr ? *result : nullptr);
             }
             else
             {

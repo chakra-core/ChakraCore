@@ -34,7 +34,7 @@ namespace TTD
 
         //Handle the recording of the result of an action for the the given action type and tag
         template <typename T, EventKind tag>
-        void JsRTActionHandleResultForRecord(Js::ScriptContext* ctx, EventLogEntry* evt, Js::Var result)
+        void JsRTActionHandleResultForRecord(EventLogEntry* evt, Js::Var result)
         {
             JsRTSetActionResult<T, tag>(evt, result);
         }
@@ -350,6 +350,8 @@ namespace TTD
 #endif
         };
 
+        void JsRTConstructCallAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc);
+
         void JsRTConstructCallAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void JsRTConstructCallAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void JsRTConstructCallAction_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
@@ -405,6 +407,8 @@ namespace TTD
         //A struct for calls to script parse
         struct JsRTCodeParseAction
         {
+            TTDVar Result;
+
             //The body counter id associated with this load
             uint64 BodyCtrId;
 
@@ -422,6 +426,9 @@ namespace TTD
         {
             double BeginTime;
             double EndTime;
+
+            //The id given by the host for this callback (or -1 if this call is not associated with any callback)
+            int64 HostCallbackId;
 
             //The event time that corresponds to the top-level event time around this call
             int64 TopLevelCallbackEventTime;
@@ -444,7 +451,7 @@ namespace TTD
 #endif
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            //The last event time that is nested in this external call
+            //The last event time that is nested in this call
             int64 LastNestedEvent;
 
             //The name of the function
@@ -455,6 +462,8 @@ namespace TTD
         //A struct for calls to that execute existing functions
         struct JsRTCallFunctionAction
         {
+            TTDVar Result;
+
             //The re-entry depth we are at when this happens
             int32 CallbackDepth;
 
@@ -462,12 +471,17 @@ namespace TTD
             uint32 ArgCount;
             TTDVar* ArgArray;
 
-            //The id given by the host for this callback (or -1 if this call is not associated with any callback)
-            int64 HostCallbackId;
-
             //Additional info associated with the Action
             JsRTCallFunctionAction_AdditionalInfo* AdditionalInfo;
         };
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        void JsRTCallFunctionAction_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc);
+        void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, double wallTime, int64 lastNestedEvent);
+#endif
+
+        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double wallTime, int64 hostCallbackId, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc);
+        void JsRTCallFunctionAction_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException);
 
         void JsRTCallFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void JsRTCallFunctionAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);

@@ -251,22 +251,12 @@ namespace TTD
 
     namespace NSLogEvents
     {
-        void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime, Js::HiResTimer& timer)
+        void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime)
         {
             evt->EventKind = tag;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             evt->EventTimeStamp = etime;
-
-            evt->EventBeginTime = timer.Now();
-            evt->EventEndTime = -1;
-#endif
-        }
-
-        void EventLogEntry_Done(EventLogEntry* evt, Js::HiResTimer& timer)
-        {
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            evt->EventEndTime = timer.Now();
 #endif
         }
 
@@ -278,12 +268,12 @@ namespace TTD
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             writer->WriteInt64(NSTokens::Key::eventTime, evt->EventTimeStamp, NSTokens::Separator::CommaSeparator);
-
-            writer->WriteDouble(NSTokens::Key::beginTime, evt->EventBeginTime, NSTokens::Separator::CommaSeparator);
-            writer->WriteDouble(NSTokens::Key::endTime, evt->EventEndTime, NSTokens::Separator::CommaSeparator);
 #endif
 
-            emitFP(evt, writer, uri, threadContext);
+            if(emitFP != nullptr)
+            {
+                emitFP(evt, writer, uri, threadContext);
+            }
 
             writer->WriteRecordEnd();
         }
@@ -296,12 +286,12 @@ namespace TTD
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             evt->EventTimeStamp = reader->ReadInt64(NSTokens::Key::eventTime, true);
-
-            evt->EventBeginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
-            evt->EventEndTime = reader->ReadDouble(NSTokens::Key::endTime, true);
 #endif
 
-            parseFP(evt, threadContext, reader, alloc);
+            if(parseFP != nullptr)
+            {
+                parseFP(evt, threadContext, reader, alloc);
+            }
 
             reader->ReadRecordEnd();
         }
@@ -521,31 +511,37 @@ namespace TTD
 
         //////////////////
 
-        void ExternalCallEventLogEntry_ProcessDiagInfo(EventLogEntry* evt, int64 lastNestedEvent, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc)
-        {
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        void ExternalCallEventLogEntry_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc)
+        {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
             callEvt->DiagInfo = alloc.SlabAllocateStruct<ExternalCallEventLogEntryDiagInfo>();
 
             Js::JavascriptString* displayName = function->GetDisplayName();
             alloc.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), callEvt->DiagInfo->FunctionName);
-
-            callEvt->DiagInfo->LastNestedEvent = lastNestedEvent;
-#endif
         }
 
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc)
+        void ExternalCallEventLogEntry_ProcessDiagInfoPost(EventLogEntry* evt, int64 lastNestedEvent)
+        {
+            ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
+
+            callEvt->DiagInfo->LastNestedEvent = lastNestedEvent;
+        }
+#endif
+
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
             callEvt->RootNestingDepth = rootDepth;
-            callEvt->ArgCount = argc;
+            callEvt->ArgCount = argc + 1;
 
             static_assert(sizeof(TTDVar) == sizeof(Js::Var), "These need to be the same size (and have same bit layout) for this to work!");
 
             callEvt->ArgArray = alloc.SlabAllocateArray<TTDVar>(callEvt->ArgCount);
-            js_memcpy_s(callEvt->ArgArray, callEvt->ArgCount * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
+            callEvt->ArgArray[0] = static_cast<TTDVar>(function);
+            js_memcpy_s(callEvt->ArgArray + 1, (callEvt->ArgCount - 1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
         }
 
         void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException)
