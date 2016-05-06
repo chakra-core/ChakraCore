@@ -160,11 +160,12 @@ SWAP_BP_FOR_OPCODE:
             {
                 ip = [this](const byte * ip) -> const byte *
                 {
+                    uint bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
                     INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
 #if DBG_DUMP
                     , true
 #endif
-                    ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
+                    ) + bias);
                     switch (op)
                     {
 #define EXDEF2(x, op, func) PROCESS_##x(op, func)
@@ -191,6 +192,44 @@ SWAP_BP_FOR_OPCODE:
 #endif
                 break;
             }
+#ifdef INTERPRETER_ASMJS
+            case INTERPRETER_OPCODE::DblExtendedOpcodePrefix:
+            {
+                ip = [this](const byte * ip) -> const byte *
+                {
+                    uint bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;
+                    INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
+#if DBG_DUMP
+                    , true
+#endif
+                    ) + bias);
+                    switch (op)
+                    {
+#define EXDEF2(x, op, func) PROCESS_##x(op, func)
+#define EXDEF3(x, op, func, y) PROCESS_##x(op, func, y)
+#define EXDEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Small)
+#define EXDEF3_WMS(x, op, func, y) PROCESS_##x##_COMMON(op, func, y, _Small)
+#define EXDEF4_WMS(x, op, func, y, t) PROCESS_##x##_COMMON(op, func, y, _Small, t)
+#include "InterpreterHandler.inl"
+                        default:
+                            // Help the C++ optimizer by declaring that the cases we
+                            // have above are sufficient
+                            AssertMsg(false, "dispatch to bad opcode");
+                            __assume(false);
+                    };
+                    return ip;
+                }(ip);
+
+#if ENABLE_PROFILE_INFO
+                if (switchProfileMode)
+                {
+                    // Aborting the current interpreter loop to switch the profile mode
+                    return nullptr;
+                }
+#endif
+                break;
+            }
+#endif // INTERPRETER_ASMJS
             case INTERPRETER_OPCODE::MediumLayoutPrefix:
             {
                 Var yieldValue = nullptr;
@@ -232,15 +271,27 @@ SWAP_BP_FOR_OPCODE:
                 break;
             }
             case INTERPRETER_OPCODE::ExtendedMediumLayoutPrefix:
+            case INTERPRETER_OPCODE::DblExtendedMediumLayoutPrefix:
             {
 #ifndef INTERPRETER_ASMJS  // Asmjs doesn't have any extended opcodes for now, remove that case
-                ip = [this](const byte * ip) -> const byte *
+                ip = [this](const byte * ip, INTERPRETER_OPCODE prefixOp) -> const byte *
                 {
+                    uint bias;
+                    if (prefixOp == INTERPRETER_OPCODE::ExtendedMediumLayoutPrefix)
+                    {
+                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
+                    }
+                    else
+                    {
+                        Assert(prefixOp == INTERPRETER_OPCODE::DblExtendedMediumLayoutPrefix);
+                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;
+                    }
+
                     INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
 #if DBG_DUMP
                     , true
 #endif
-                    ) + (INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8));
+                    ) + bias);
                     switch (op)
                     {
 #define EXDEF2_WMS(x, op, func) PROCESS_##x##_COMMON(op, func, _Medium)
@@ -254,7 +305,7 @@ SWAP_BP_FOR_OPCODE:
                             __assume(false);
                     };
                     return ip;
-                }(ip);
+                }(ip, op);
 
 #if ENABLE_PROFILE_INFO
                 if (switchProfileMode)
@@ -308,10 +359,21 @@ SWAP_BP_FOR_OPCODE:
                 break;
             }
             case INTERPRETER_OPCODE::ExtendedLargeLayoutPrefix:
+            case INTERPRETER_OPCODE::DblExtendedLargeLayoutPrefix:
             {
 #ifndef INTERPRETER_ASMJS  // Asmjs doesn't have any extended opcodes for now, remove that case
-                ip = [this](const byte * ip) -> const byte *
+                ip = [this](const byte * ip, INTERPRETER_OPCODE prefixOp) -> const byte *
                 {
+                    uint bias;
+                    if (prefixOp == INTERPRETER_OPCODE::ExtendedLargeLayoutPrefix)
+                    {
+                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
+                    }
+                    else
+                    {
+                        Assert(prefixOp == INTERPRETER_OPCODE::DblExtendedLargeLayoutPrefix);
+                        bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;
+                    }
                     INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
 #if DBG_DUMP
                     , true
@@ -330,7 +392,7 @@ SWAP_BP_FOR_OPCODE:
                             __assume(false);
                     };
                     return ip;
-                }(ip);
+                }(ip, op);
 
 #if ENABLE_PROFILE_INFO
                 if(switchProfileMode)

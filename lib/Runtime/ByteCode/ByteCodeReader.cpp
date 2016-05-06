@@ -96,26 +96,44 @@ namespace Js
     {
         Assert(ip < m_endLocation);
         OpCode op = (OpCode)*ip++;
+        uint bias = 0;
         switch (prefix)
         {
         case Js::OpCode::MediumLayoutPrefix:
             layoutSize = MediumLayout;
-            return op;
+            break;
         case Js::OpCode::LargeLayoutPrefix:
             layoutSize = LargeLayout;
-            return op;
+            break;
         case Js::OpCode::ExtendedOpcodePrefix:
             layoutSize = SmallLayout;
+            bias = (1 << 8);
             break;
         case Js::OpCode::ExtendedMediumLayoutPrefix:
             layoutSize = MediumLayout;
+            bias = (1 << 8);
+            break;
+        case Js::OpCode::ExtendedLargeLayoutPrefix:
+            layoutSize = LargeLayout;
+            bias = (1 << 8);
+            break;
+        case Js::OpCode::DblExtendedOpcodePrefix:
+            layoutSize = SmallLayout;
+            bias = (1 << 9);
+            break;
+        case Js::OpCode::DblExtendedMediumLayoutPrefix:
+            layoutSize = MediumLayout;
+            bias = (1 << 9);
+            break;
+        case Js::OpCode::DblExtendedLargeLayoutPrefix:
+            layoutSize = LargeLayout;
+            bias = (1 << 9);
             break;
         default:
-            Assert(prefix == Js::OpCode::ExtendedLargeLayoutPrefix);
-            layoutSize = LargeLayout;
+            Assert(UNREACHED);
         }
 
-        return (OpCode)(op + (Js::OpCode::ExtendedOpcodePrefix << 8));
+        return (OpCode)(op + bias);
     }
 
     OpCode ByteCodeReader::ReadOp(LayoutSize& layoutSize)

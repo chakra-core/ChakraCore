@@ -59,7 +59,9 @@ MACRO(                  MediumLayoutPrefix,  Empty,         OpByteCodeOnly)
 MACRO(                  ExtendedMediumLayoutPrefix,Empty,   OpByteCodeOnly)
 MACRO(                  LargeLayoutPrefix,  Empty,          OpByteCodeOnly)
 MACRO(                  ExtendedLargeLayoutPrefix,Empty,    OpByteCodeOnly)
-
+MACRO(                  DblExtendedOpcodePrefix      , Empty     , OpByteCodeOnly  )
+MACRO(                  DblExtendedMediumLayoutPrefix, Empty     , OpByteCodeOnly  )
+MACRO(                  DblExtendedLargeLayoutPrefix , Empty     , OpByteCodeOnly  )
 MACRO(                  Nop,                        Empty,          None)       // No operation (Default value = 0)
 MACRO(                  StartCall,          StartCall,      OpSideEffect)
 MACRO_BACKEND_ONLY(     LoweredStartCall,   StartCall,      OpSideEffect)       // StartCall instruction after it's been lowered
@@ -600,9 +602,9 @@ MACRO_WMS(              Unused,             Reg1,           None)
 MACRO_WMS(              Concat3,            Reg4,           OpByteCodeOnly|OpCallsValueOf|OpHasImplicitCall|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpPostOpDbgBailOut)
 MACRO_WMS(              NewConcatStrMulti,  Reg3B1,         None)       // Although the byte code version include the concat, and has value of/to string, the BE version doesn't
 MACRO_BACKEND_ONLY(     NewConcatStrMultiBE, Reg3B1,        OpCanCSE)   // Although the byte code version include the concat, and has value of/to string, the BE version doesn't
-MACRO_WMS(              SetConcatStrMultiItem,   Reg2B1,    None)       // Although the byte code version include the concat, and has value of/to string, the BE version doesn't
+MACRO_EXTEND_WMS(              SetConcatStrMultiItem,   Reg2B1,    None)       // Although the byte code version include the concat, and has value of/to string, the BE version doesn't
 MACRO_BACKEND_ONLY(     SetConcatStrMultiItemBE, Reg2B1,    OpCanCSE)   // Although the byte code version include the concat, and has value of/to string, the BE version doesn't
-MACRO_WMS(              SetConcatStrMultiItem2,  Reg3B1,         None)  // Although the byte code version include the concat, and has value of/to string, the BE version doesn't
+MACRO_EXTEND_WMS(              SetConcatStrMultiItem2,  Reg3B1,         None)  // Although the byte code version include the concat, and has value of/to string, the BE version doesn't
 MACRO_BACKEND_ONLY(     LdStr,              Empty,          OpTempNumberProducing|OpCanCSE)                 // Load string literal
 MACRO_BACKEND_ONLY(     CloneStr,           Empty,          OpTempNumberSources | OpTempNumberProducing)    // Load string literal
 
@@ -723,7 +725,7 @@ MACRO_BACKEND_ONLY(     LdNullDisplay,      Empty,          None)       // Load 
 MACRO_BACKEND_ONLY(     LdStrictNullDisplay,Empty,          None)       // Load the strict null frame display
 #endif
 
-MACRO(                  SpreadArrayLiteral, Reg2Aux,        OpSideEffect|OpHasImplicitCall)
+MACRO_EXTEND(                  SpreadArrayLiteral, Reg2Aux,        OpSideEffect|OpHasImplicitCall)
 MACRO_BACKEND_ONLY(     LdSpreadIndices,    Empty,          None)
 
 MACRO_EXTEND_WMS(       ClearAttributes,    ElementU,       None)
