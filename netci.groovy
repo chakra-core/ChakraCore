@@ -122,10 +122,10 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
             // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
             def jobName = Utilities.getFullJobName(project, config, isPR)
 
-            def infoScript = 'jenkins/get_system_info.sh'
+            def infoScript = 'bash jenkins/get_system_info.sh'
             def debugFlag = buildType == 'debug' ? '--debug' : ''
-            def buildScript = "./build.sh -j=`nproc` ${debugFlag}"
-            def testScript = "test/runtests.sh"
+            def buildScript = "bash ./build.sh -j=`nproc` ${debugFlag}"
+            def testScript = "bash test/runtests.sh"
 
             def newJob = job(jobName) {
                 steps {
