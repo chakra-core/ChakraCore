@@ -123,6 +123,7 @@ BSTR BstrGetResourceString(long isz)
 {
     // NOTE - isz is expected to be HRESULT
 
+#ifdef _WIN32
     OLECHAR szT[1024];
 
     if (!FGetResourceString(isz, szT,
@@ -130,6 +131,17 @@ BSTR BstrGetResourceString(long isz)
     {
         return NULL;
     }
+#else
+    const char16* LoadResourceStr(UINT id);
+
+    UINT id = (WORD)isz;
+    const char16* szT = LoadResourceStr(id);
+    if (!szT)
+    {
+        return NULL;
+    }
+
+#endif
 
     return SysAllocString(szT);
 }
