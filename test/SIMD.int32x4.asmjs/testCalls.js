@@ -28,6 +28,7 @@ function asmModule(stdlib, imports) {
     var i4or = i4.or;
     var i4xor = i4.xor;
     var i4not = i4.not;
+    var i4extractLane = i4.extractLane;
     //var i4shiftLeftByScalar = i4.shiftLeftByScalar;
     //var i4shiftRightByScalar = i4.shiftRightByScalar;
     //var i4shiftRightArithmeticByScalar = i4.shiftRightArithmeticByScalar;
@@ -195,6 +196,16 @@ function asmModule(stdlib, imports) {
         var k = i16(1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8);
         x = i4check(fcBug_1());
         return i16check(k);
+    }
+
+    //Validation will fail with the bug
+    function retValueCoercionBug()
+    {
+        var ret = 0.0;
+        var ret1 = 0;
+        var a = i4(1, 2, 3, 4);
+        ret = +i4extractLane(a, 0);
+        ret1 = (i4extractLane(a, 0))|0;
     }
 
     return {func1:func1, func2:func2, func3:func3, func4:func4, fcBug_2:fcBug_2, fcBug_1:fcBug_1};
