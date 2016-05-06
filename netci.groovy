@@ -124,7 +124,7 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
 
             def infoScript = 'bash jenkins/get_system_info.sh'
             def debugFlag = buildType == 'debug' ? '--debug' : ''
-            def buildScript = "bash ./build.sh -j=`nproc` ${debugFlag} --cxx=/usr/bin/clang++-3.5 --cc=/usr/bin/clang-3.5"
+            def buildScript = "bash ./build.sh -j=`nproc` ${debugFlag} --cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
             def testScript = "bash test/runtests.sh"
 
             def newJob = job(jobName) {
