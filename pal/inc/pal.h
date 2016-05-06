@@ -691,12 +691,12 @@ CharNextExA(
 #define CharNextEx CharNextExA
 #endif
 
-extern int sprintf_s(char *_Dst, size_t _SizeInBytes, const char *_Format, ...);        
+extern int sprintf_s(char *_Dst, size_t _SizeInBytes, const char *_Format, ...);
 
 typedef int errno_t;
 extern errno_t _ultow_s(unsigned long inValue, WCHAR* outBuffer, size_t inDestBufferSize, int inRadix );
 extern errno_t _ui64tow_s(unsigned long long inValue, WCHAR* outBuffer, size_t inDestBufferSize, int inRadix );
-    
+
 PALIMPORT
 int
 PALAPIV
@@ -3802,6 +3802,17 @@ GetModuleFileNameExW(
 
 #ifdef UNICODE
 #define GetModuleFileNameEx GetModuleFileNameExW
+#endif
+
+PALIMPORT
+HMODULE
+PALAPI
+GetModuleHandleW(
+    IN OPTIONAL LPCWSTR lpModuleName
+);
+
+#ifdef UNICODE
+#define GetModuleHandle GetModuleHandleW
 #endif
 
 // Get base address of the module containing a given symbol

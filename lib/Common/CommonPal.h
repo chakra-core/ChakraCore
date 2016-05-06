@@ -533,7 +533,6 @@ STRSAFEAPI StringCchPrintfW(WCHAR* pszDest, size_t cchDest, const WCHAR* pszForm
 #endif
 
 #ifndef _WIN32
-HANDLE GetModuleHandle(HANDLE hProcess);
 __inline
 HRESULT ULongMult(ULONG ulMultiplicand, ULONG ulMultiplier, ULONG* pulResult);
 #endif
