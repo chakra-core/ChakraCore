@@ -18,6 +18,13 @@ typedef char16 wchar;
 typedef unsigned int uint;
 typedef unsigned short ushort;
 
+// Use of ulong is not allowed in ChakraCore- uint32 should be used instead since 
+// it's our cross-platform 32 bit integer value. However, legacy code in ChakraFull
+// still depends on ulong so it's allowed for full builds.
+#ifdef NTBUILD
+typedef unsigned long ulong;
+#endif
+
 typedef signed char sbyte;
 
 typedef __int8 int8;
