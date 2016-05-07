@@ -19,7 +19,9 @@ enum ErrorReason
     MarkStack_OUTOFMEMORY = 11,
     EnterScript_FromDOM_NoScriptScope = 12,
     Fatal_FailedToBox_OUTOFMEMORY = 13,
-    Fatal_Recycler_MemoryCorruption = 14
+    Fatal_Recycler_MemoryCorruption = 14,
+    Fatal_EntryExitRecordCorruption = 15,
+    Fatal_UnexpectedExceptionHandling = 16
 };
 
 extern "C" void ReportFatalException(
@@ -52,6 +54,8 @@ void MarkStack_OOM_fatal_error();
 
 void Binary_Inconsistency_fatal_error();
 void Version_Inconsistency_fatal_error();
+void EntryExitRecord_Corrupted_fatal_error();
+void UnexpectedExceptionHandling_fatal_error(EXCEPTION_POINTERS * originalException);
 
 #ifdef LARGEHEAPBLOCK_ENCODING
 void LargeHeapBlock_Metadata_Corrupted(

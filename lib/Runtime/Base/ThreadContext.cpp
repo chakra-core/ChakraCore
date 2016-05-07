@@ -1874,9 +1874,9 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
         record->next = lastRecord;
 
         // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
-        if ((uintptr_t)record > (uintptr_t)lastRecord)
+        if (!IsOnStack(lastRecord) || (uintptr_t)record >= (uintptr_t)lastRecord)
         {
-            RaiseFailFastException(nullptr, nullptr, 0);
+            EntryExitRecord_Corrupted_fatal_error();
         }
     }
 
@@ -1888,12 +1888,13 @@ void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
     AssertMsg(record && record == this->entryExitRecord, "Mismatch script entry/exit");
 
     // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
-    if (this->entryExitRecord->next && (uintptr_t)this->entryExitRecord > (uintptr_t)this->entryExitRecord->next)
+    Js::ScriptEntryExitRecord * next = this->entryExitRecord->next;
+    if (next && (!IsOnStack(next) || (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
     {
-        RaiseFailFastException(nullptr, nullptr, 0);
+        EntryExitRecord_Corrupted_fatal_error();
     }
 
-    this->entryExitRecord = this->entryExitRecord->next;
+    this->entryExitRecord = next;
 }
 
 BOOL ThreadContext::ReserveStaticTypeIds(__in int first, __in int last)
