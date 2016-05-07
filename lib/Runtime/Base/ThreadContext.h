@@ -853,6 +853,7 @@ public:
     JITTimer JITTelemetry;
 #endif
     ParserTimer ParserTelemetry;
+    GUID activityId;
 #endif
     void *tridentLoadAddress;
 

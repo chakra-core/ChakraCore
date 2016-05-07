@@ -5,7 +5,7 @@
 #pragma once
 
 #ifdef _WIN32
-#define VA_LIST_TO_VARARRAY(vl, va, callInfo) Js::Var* va = (Var*) vl;
+#define VA_LIST_TO_VARARRAY(vl, va, callInfo) Js::Var* va = (Js::Var*) vl;
 #else
 #if _M_X64
 // We use a custom calling convention to invoke JavascriptMethod based on

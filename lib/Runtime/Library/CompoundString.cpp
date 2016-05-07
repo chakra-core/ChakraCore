@@ -146,7 +146,9 @@ namespace Js
 
     #endif
 
-    CharCount CompoundString::Block::PointerLengthFromCharLength(const CharCount charLength)
+    // ChakraDiag includes CompoundString.cpp as a header file so this method needs to be marked as inline 
+    // to handle that case
+    JS_DIAG_INLINE CharCount CompoundString::Block::PointerLengthFromCharLength(const CharCount charLength)
     {
         return PointerAlign(charLength) / (sizeof(void *) / sizeof(char16));
     }
