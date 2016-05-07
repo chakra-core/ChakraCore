@@ -873,11 +873,11 @@ STDAPI_(JsErrorCode) JsBoolToBoolean(_In_ bool value, _Out_ JsValueRef *booleanV
     return ContextAPINoScriptWrapper([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(booleanValue);
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateBoolean(scriptContext, value));
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateBoolean(scriptContext, value, __ttd_resultPtr));
 
         *booleanValue = value ? scriptContext->GetLibrary()->GetTrue() : scriptContext->GetLibrary()->GetFalse();
 
-        PERFORM_JSRT_TTD_TAG_ACTION(*booleanValue);
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(*booleanValue);
 
         return JsNoError;
     },
@@ -903,22 +903,24 @@ STDAPI_(JsErrorCode) JsBooleanToBool(_In_ JsValueRef value, _Out_ bool *boolValu
 
 STDAPI_(JsErrorCode) JsConvertValueToBoolean(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
-    asdf; //TODO add TTD action here
-
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
         PARAM_NOT_NULL(result);
 
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTVarToBooleanConversion(scriptContext, value, __ttd_resultPtr));
+
         if (Js::JavascriptConversion::ToBool((Js::Var)value, scriptContext))
         {
             *result = scriptContext->GetLibrary()->GetTrue();
-            return JsNoError;
         }
         else
         {
             *result = scriptContext->GetLibrary()->GetFalse();
-            return JsNoError;
         }
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(*result);
+
+        return JsNoError;
     });
 }
 
@@ -998,11 +1000,11 @@ STDAPI_(JsErrorCode) JsDoubleToNumber(_In_ double dbl, _Out_ JsValueRef *asValue
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateNumber(scriptContext, dbl));
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateNumber(scriptContext, dbl, __ttd_resultPtr));
 
         *asValue = Js::JavascriptNumber::ToVarNoCheck(dbl, scriptContext);
 
-        PERFORM_JSRT_TTD_TAG_ACTION(*asValue);
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(*asValue);
 
         return JsNoError;
     });
@@ -1016,10 +1018,18 @@ STDAPI_(JsErrorCode) JsIntToNumber(_In_ int intValue, _Out_ JsValueRef *asValue)
         return JsNoError;
     }
 
-    asdf; //TODO add TTD action here -- note if fast check worked then number is inline so we don't need to record anything
-
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+#if !INT32VAR
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateInteger(scriptContext, intValue, __ttd_resultPtr));
+#endif
+
         *asValue = Js::JavascriptNumber::ToVar(intValue, scriptContext);
+
+#if !INT32VAR
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(*asValue);
+#endif
+
         return JsNoError;
     });
 }
@@ -1074,13 +1084,16 @@ STDAPI_(JsErrorCode) JsNumberToInt(_In_ JsValueRef value, _Out_ int *asInt)
 
 STDAPI_(JsErrorCode) JsConvertValueToNumber(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
-    asdf; //TODO add TTD action here
-
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
         PARAM_NOT_NULL(result);
 
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTVarToNumberConversion(scriptContext, value, __ttd_resultPtr));
+
         *result = (JsValueRef)Js::JavascriptOperators::ToNumber((Js::Var)value, scriptContext);
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(*result);
+
         return JsNoError;
     });
 }
@@ -1104,11 +1117,11 @@ STDAPI_(JsErrorCode) JsGetStringLength(_In_ JsValueRef value, _Out_ int *length)
 
 STDAPI_(JsErrorCode) JsPointerToString(_In_reads_(stringLength) const wchar_t *stringValue, _In_ size_t stringLength, _Out_ JsValueRef *string)
 {
-    asdf; //TODO add TTD action here
-
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(stringValue);
         PARAM_NOT_NULL(string);
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTCreateString(scriptContext, stringValue, stringLength, __ttd_resultPtr));
 
         if (!Js::IsValidCharCount(stringLength))
         {
@@ -1116,6 +1129,9 @@ STDAPI_(JsErrorCode) JsPointerToString(_In_reads_(stringLength) const wchar_t *s
         }
 
         *string = Js::JavascriptString::NewCopyBuffer(stringValue, static_cast<charcount_t>(stringLength), scriptContext);
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(*string);
+
         return JsNoError;
     });
 }
@@ -1147,14 +1163,17 @@ STDAPI_(JsErrorCode) JsStringToPointer(_In_ JsValueRef stringValue, _Outptr_resu
 
 STDAPI_(JsErrorCode) JsConvertValueToString(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
-    asdf; //TODO add TTD action here
-
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTVarToStringConversion(scriptContext, value, __ttd_resultPtr));
+
         *result = (JsValueRef) Js::JavascriptConversion::ToString((Js::Var)value, scriptContext);
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(*result);
+
         return JsNoError;
     });
 }
@@ -1175,11 +1194,11 @@ STDAPI_(JsErrorCode) JsCreateObject(_Out_ JsValueRef *object)
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(object);
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateBasicObject(scriptContext, true));
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateBasicObject(scriptContext, __ttd_resultPtr));
 
         *object = scriptContext->GetLibrary()->CreateObject();
 
-        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, object);
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(*object);
 
         return JsNoError;
     });
@@ -1190,11 +1209,11 @@ STDAPI_(JsErrorCode) JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFina
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(object);
 
-        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateBasicObject(scriptContext, false));
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTAllocateExternalObject(scriptContext, __ttd_resultPtr));
 
         *object = RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, RecyclerNew(scriptContext->GetRecycler(), JsrtExternalType, scriptContext, finalizeCallback), data);
 
-        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, object);
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(*object);
 
         return JsNoError;
     });

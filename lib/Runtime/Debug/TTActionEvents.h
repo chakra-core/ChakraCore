@@ -14,32 +14,11 @@ namespace TTD
         //true if this is exectued in the script context JsRT wrapper
         bool IsJsRTActionExecutedInScriptWrapper(EventKind tag);
 
-        //Get the result parameter for the given action type layout and tag
-        template <typename T, EventKind tag>
-        TTDVar JsRTGetActionResult(const EventLogEntry* evt)
-        {
-            return GetInlineEventDataAs<T, tag>(evt)->Result;
-        }
-
-        //Set the result parameter for the given action type layout and tag
-        template <typename T, EventKind tag>
-        void JsRTSetActionResult(EventLogEntry* evt, TTDVar var)
-        {
-            GetInlineEventDataAs<T, tag>(evt)->Result = var;
-        }
-
-        //Handle the recording of the result of an action for the the given action type and tag
-        template <typename T, EventKind tag>
-        void JsRTActionHandleResultForRecord(EventLogEntry* evt, Js::Var result)
-        {
-            JsRTSetActionResult<T, tag>(evt, result);
-        }
-
         //Handle the replay of the result of an action for the the given action type and tag
         template <typename T, EventKind tag>
         void JsRTActionHandleResultForReplay(Js::ScriptContext* ctx, const EventLogEntry* evt, Js::Var result)
         {
-            TTDVar origResult = JsRTGetActionResult<T, tag>(evt);
+            TTDVar origResult = GetInlineEventDataAs<T, tag>(evt)->Result;
             PassVarToHostInReplay(ctx, origResult, result);
         }
 

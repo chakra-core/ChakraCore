@@ -23,7 +23,7 @@
 #define TTD_ARRAY_SMALL_ARRAY 0x100
 
 //Convert from Js::Var to TTDVar 
-#define TTD_CONVERT_JSVAR_TO_TTDVAR(X) ((TTDVar)(X))
+#define TTD_CONVERT_JSVAR_TO_TTDVAR(X) ((TTD::TTDVar)(X))
 
 //The ids for objects in a snapshot
 typedef uint64 TTD_PTR_ID;

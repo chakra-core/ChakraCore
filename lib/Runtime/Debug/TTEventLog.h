@@ -8,12 +8,13 @@
 //Define compact macros for use in the JSRT API's
 #if ENABLE_TTD
 #define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) (CTX)->ShouldPerformRecordAction()
-#define PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(CTX, ACTION_CODE) if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) { (ACTION_CODE); }
+
+#define PERFORM_JSRT_TTD_RECORD_ACTION(CTX, ACTION_CODE) if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) { (ACTION_CODE); }
+#define PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(CTX, ACTION_CODE) TTD::TTDVar* __ttd_resultPtr = nullptr; if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) { (ACTION_CODE); }
+#define PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(RESULT) if(__ttd_resultPtr != nullptr) { *__ttd_resultPtr = TTD_CONVERT_JSVAR_TO_TTDVAR(RESULT); }
 
 //TODO: find and replace all of the occourences of this in jsrt.cpp
 #define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) { AssertMsg(false, "Need to implement support here!!!"); }
-
-#define PERFORM_JSRT_TTD_TAG_ACTION(CTX, VAL_PTR) asdf //TODO: probably want to make this work with an action popper???
 #else
 #define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) false
 #define PERFORM_JSRT_TTD_RECORD_ACTION(ACTION_CODE)
@@ -289,6 +290,17 @@ namespace TTD
             return NSLogEvents::GetInlineEventDataAs<T, tag>(evt);
         }
 
+        template <typename T, NSLogEvents::EventKind tag>
+        T* RecordGetInitializedEvent_HelperWithResultPtr(TTDVar* resultPtr)
+        {
+            NSLogEvents::EventLogEntry* evt = this->m_eventList.GetNextAvailableEntry();
+            NSLogEvents::EventLogEntry_Initialize(evt, tag, this->GetCurrentEventTimeAndAdvance());
+
+            resultPtr = &(GetInlineEventDataAs<T, tag>(evt)->Result);
+
+            return NSLogEvents::GetInlineEventDataAs<T, tag>(evt);
+        }
+
         //Sometimes we need to abort replay and immediately return to the top-level host (debugger) so it can decide what to do next
         //    (1) If we are trying to replay something and we are at the end of the log then we need to terminate
         //    (2) If we are at a breakpoint and we want to step back (in some form) then we need to terminate
@@ -545,16 +557,19 @@ namespace TTD
         int64 GetLastEventTime() const;
 
 #if !INT32VAR
-        void RecordJsRTCreateInteger(Js::ScriptContext* ctx, int value);
+        void RecordJsRTCreateInteger(Js::ScriptContext* ctx, int value, TTDVar* resultVarPtr);
 #endif
 
-        void RecordJsRTCreateNumber(Js::ScriptContext* ctx, double value);
-        void RecordJsRTCreateBoolean(Js::ScriptContext* ctx, bool value);
-        void RecordJsRTCreateString(Js::ScriptContext* ctx, const char16* stringValue, size_t stringLength);
-        void RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var);
+        void RecordJsRTCreateNumber(Js::ScriptContext* ctx, double value, TTDVar* resultVarPtr);
+        void RecordJsRTCreateBoolean(Js::ScriptContext* ctx, bool value, TTDVar* resultVarPtr);
+        void RecordJsRTCreateString(Js::ScriptContext* ctx, const char16* stringValue, size_t stringLength, TTDVar* resultVarPtr);
+        void RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
 
         //Record conversions and symbol creation
-        void RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var);
+        void RecordJsRTVarToNumberConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
+        void RecordJsRTVarToBooleanConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
+        void RecordJsRTVarToStringConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
+        void RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
 
         //Record lifetime management events
         void RecordJsRTAddRootRef(Js::ScriptContext* ctx, Js::Var var);
@@ -562,7 +577,8 @@ namespace TTD
         void RecordJsRTEventLoopYieldPoint(Js::ScriptContext* ctx);
 
         //Record object allocate operations
-        void RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, bool isRegularObject);
+        void RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, TTDVar* resultVarPtr);
+        void RecordJsRTAllocateExternalObject(Js::ScriptContext* ctx, TTDVar* resultVarPtr);
         void RecordJsRTAllocateBasicClearArray(Js::ScriptContext* ctx, Js::TypeId arrayType, uint32 length);
         void RecordJsRTAllocateArrayBuffer(Js::ScriptContext* ctx, byte* buff, uint32 size);
         void RecordJsRTAllocateFunction(Js::ScriptContext* ctx, bool isNamed, Js::Var optName);
