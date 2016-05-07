@@ -102,6 +102,9 @@ struct _x86_SIMDValue
     }
 };
 
+#pragma warning(push)
+#pragma warning(disable:4838) // conversion from 'unsigned int' to 'int32' requires a narrowing conversion
+
 // These global values are 16-byte aligned.
 const _x86_SIMDValue X86_ABS_MASK_F4 = { 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff };
 const _x86_SIMDValue X86_ABS_MASK_I4 = { 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff };
@@ -137,6 +140,9 @@ const _x86_SIMDValue X86_4LANES_MASKS[]     = {{ 0xffffffff, 0x00000000, 0x00000
                                                { 0x00000000, 0xffffffff, 0x00000000, 0x00000000 },
                                                { 0x00000000, 0x00000000, 0xffffffff, 0x00000000 },
                                                { 0x00000000, 0x00000000, 0x00000000, 0xffffffff }};
+
+
+#pragma warning(pop)
 
 // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
 extern _x86_SIMDValue X86_TEMP_SIMD[];

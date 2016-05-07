@@ -4803,9 +4803,9 @@ void
 Inline::SetupInlineeFrame(Func *inlinee, IR::Instr *inlineeStart, Js::ArgSlot actualCount, IR::Opnd *functionObject)
 {
     Js::ArgSlot argSlots[Js::Constants::InlineeMetaArgCount] = {
-        actualCount + 1, /* argc */
-        actualCount + 2, /* function object */
-        actualCount + 3  /* arguments object slot */
+        actualCount + 1u, /* argc */
+        actualCount + 2u, /* function object */
+        actualCount + 3u  /* arguments object slot */
     };
 
     IR::Opnd *srcs[Js::Constants::InlineeMetaArgCount] = {
