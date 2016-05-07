@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -41,28 +41,6 @@
     <default>
       <files>testAddSub.js</files>
       <baseline>testAddSub.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
-    </default>
-  </test>
-
-  <test>
-    <default>
-      <files>testBitwise.js</files>
-      <baseline>testBitwise.baseline</baseline>
-      <compile-flags>-Simdjs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>testBitwise.js</files>
-      <baseline>testBitwise.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>testBitwise.js</files>
-      <baseline>testBitwise.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>

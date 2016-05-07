@@ -30,8 +30,6 @@ var i4 = stdlib.SIMD.Int32x4;
     var i4not = i4.not;
     var i4shiftLeftByScalar = i4.shiftLeftByScalar;
     var i4shiftRightByScalar = i4.shiftRightByScalar;
-    var i4min = i4.min;
-    var i4max = i4.max;
     
     var i8 = stdlib.SIMD.Int16x8;
     var i8check = i8.check;
@@ -49,8 +47,6 @@ var i4 = stdlib.SIMD.Int32x4;
     var i8sub               = i8.sub                ;
     var i8mul               = i8.mul                ;
     var i8neg               = i8.neg                ;
-    var i8min               = i8.min                ;
-    var i8max               = i8.max                ;
     var i8shiftLeftByScalar = i8.shiftLeftByScalar  ;
     var i8shiftRightByScalar= i8.shiftRightByScalar ;
     var i8addSaturate       = i8.addSaturate        ;
@@ -87,10 +83,6 @@ var i4 = stdlib.SIMD.Int32x4;
     var f4mul = f4.mul;
     var f4div = f4.div;
     
-    var f4min = f4.min;
-    var f4max = f4.max;
-
-
     var f4sqrt = f4.sqrt;
     //var f4swizzle = f4.swizzle;
     //var f4shuffle = f4.shuffle;
@@ -102,10 +94,6 @@ var i4 = stdlib.SIMD.Int32x4;
     var f4greaterThanOrEqual = f4.greaterThanOrEqual;
 
     var f4select = f4.select;
-    var f4and = f4.and;
-    var f4or = f4.or;
-    var f4xor = f4.xor;
-    var f4not = f4.not;
 
     
     var fround = stdlib.Math.fround;
@@ -261,35 +249,7 @@ var i4 = stdlib.SIMD.Int32x4;
         
         return i8check(x);
     }
-    
-    function func6(a, b, c, d, e)
-    {
-        a = i8check(a);
-        b = i8check(b);
-        c = i8check(c);
-        d = i8check(d);
-        e = i8check(e);
-        var x = i8(0, 0, 0, 0, 0, 0, 0, 0);
-        var y = i8(0, 0, 0, 0, 0, 0, 0, 0);
-        var loopIndex = 0;
-        var loopCOUNT = 3;
         
-        
-        while ( (loopIndex|0) < (loopCOUNT|0)) {
-            x = i8min(x, b);
-            y = i8max(y, d);
-            x = i8shiftLeftByScalar(x, loopIndex);
-            y = i8shiftRightByScalar(y, loopIndex);
-            
-            loopIndex = (loopIndex + 1) | 0;
-        }
-        x = i8addSaturate(x, x);
-        x = i8subSaturate(x, y);
-        return i8check(x);
-    }
-    
-    
-    
     function func7()
     {
         var loopIndex = 0;
@@ -352,11 +312,11 @@ var i4 = stdlib.SIMD.Int32x4;
     }
 
     return {func1:func1, func2: func2, func3:func3, func4:func4,
-            func5: func5, func6:func6, func7:func7, func8:func8, bug1:bug1};
+            func5: func5, func7:func7, func8:func8, bug1:bug1};
 }
 
 var buffer = new ArrayBuffer(0x10000);
-var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)}, buffer);
+var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)/*, g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)*/}, buffer);
 
 
 
@@ -381,11 +341,6 @@ equalSimd([-136, -210, 335, -419, 161, -16955, 7, 3847], ret4, SIMD.Int16x8, "fu
 var ret5 = m.func5(v1, v2, v3, v1, v2);
 //printSimdBaseline(ret5, "SIMD.Int16x8", "ret5", "func5");
 equalSimd([-17956, 21015, 20183, 18524, -27225, 496, -1, 7936], ret5, SIMD.Int16x8, "func5");
-
-
-var ret6 = m.func6(v1, v2, v3, v1, v2);
-//printSimdBaseline(ret6, "SIMD.Int16x8", "ret6", "func6");
-equalSimd([0, 0, -5328, -1, -2641, -1, -17, -32768], ret6, SIMD.Int16x8, "func6");
 
 var ret7 = m.func7(v1, v2, v3, v1, v2);
 //printSimdBaseline(ret7, "SIMD.Int16x8", "ret7", "func7");
