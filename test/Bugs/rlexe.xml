@@ -307,4 +307,20 @@
       <compile-flags> -simdjs -asmjs -off:backend -testtrace:asmjs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>b95.js</files>
+      <baseline>b95.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-simdjs -testtrace:asmjs  -asmjs -maic:0</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>b108.js</files>
+      <baseline>b108.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-simdjs  -asmjs -testtrace:asmjs -asmjsstoponerror</compile-flags>
+    </default>
+  </test>
 </regress-exe>

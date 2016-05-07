@@ -1279,8 +1279,10 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
     //AND  shamt, shmask, shamt
     //MOVD tmp0, shamt 
 
-    IR::Opnd *shamt = EnregisterIntConst(instr, src2);
-    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, IR::IntConstOpnd::New(Js::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt8, m_func), shamt, m_func);
+    IR::RegOpnd *shamt = IR::RegOpnd::New(src2->GetType(), m_func);
+    // en-register
+    IR::Opnd *origShamt = EnregisterIntConst(instr, src2); //unnormalized shift amount
+    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, origShamt, IR::IntConstOpnd::New(Js::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt8, m_func), m_func); // normalizing by elm width (i.e. shamt % elm_width)
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 
