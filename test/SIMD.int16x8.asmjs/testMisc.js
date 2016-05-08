@@ -340,11 +340,19 @@ var i4 = stdlib.SIMD.Int32x4;
             x = i8add(x, i8fromUint16x8Bits(v_u8));
             x = i8add(x, i8fromUint8x16Bits(v_u16));
         }
-
         return i8check(x);
     }
 
-    return {func1:func1, func2: func2, func3:func3, func4:func4, func5: func5, func6:func6, func7:func7, func8:func8};
+    function bug1() //simd tmp reg reuse.
+    {
+        var a = i4(1,2,3,4);
+        var x = i8(-1, -2, -3, -4,-1, -2, -3, -4);
+        i8add(x,x);
+        return i4check(a);
+    }
+
+    return {func1:func1, func2: func2, func3:func3, func4:func4,
+            func5: func5, func6:func6, func7:func7, func8:func8, bug1:bug1};
 }
 
 var buffer = new ArrayBuffer(0x10000);
@@ -386,6 +394,11 @@ equalSimd([10, 20, 30, 40, -10, -20, -30, -40], ret7, SIMD.Int16x8, "func7");
 var ret8 = m.func8(v1, v2, v3, v1, v2);
 //printSimdBaseline(ret8, "SIMD.Int16x8", "ret8", "func8");
 equalSimd([-1159, -23736, 29089, 32006, -10305, 16232, -32693, -28368], ret8, SIMD.Int16x8, "func8")
+
+ret8 = m.bug1();
+//printSimdBaseline(ret8, "SIMD.Int16x8", "ret8", "func8");
+equalSimd([1,2,3,4], ret8, SIMD.Int32x4, "bug1")
+
 
 print("PASS");
 

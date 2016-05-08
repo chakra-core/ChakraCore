@@ -176,6 +176,16 @@ namespace Js
             return FALSE;
         }
 
+        if (object->IsProtoImmutable())
+        {
+            // ES2016 19.1.3:
+            // The Object prototype object is the intrinsic object %ObjectPrototype%.
+            // The Object prototype object is an immutable prototype exotic object.
+            // ES2016 9.4.7:
+            // An immutable prototype exotic object is an exotic object that has an immutable [[Prototype]] internal slot.
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ImmutablePrototypeSlot);
+        }
+
         // 6.   If V is not null, then
         //  a.  Let p be V.
         //  b.  Repeat, while p is not null
@@ -464,7 +474,7 @@ namespace Js
                 break;
 
             case TypeIds_Proxy:
-                if (JavascriptOperators::IsArray(JavascriptProxy::FromVar(thisArg)->GetTarget()))
+                if (JavascriptOperators::IsArray(thisArg))
                 {
                     if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Array")) == 0)
                     {
@@ -2037,60 +2047,26 @@ namespace Js
     }
 
     /*static*/
-    char16 * JavascriptObject::ConstructAccessorNameES6(const PropertyRecord * propertyRecord, const char16 * getOrSetStr, ScriptContext* scriptContext)
-    {
-        Assert(propertyRecord);
-        Assert(scriptContext);
-        char16 * finalName = nullptr;
-        size_t propertyLength = static_cast<size_t>(propertyRecord->GetLength() + 1); //+ 1 (for null terminator)
-        if (propertyLength > 0)
-        {
-            size_t totalChars;
-            const size_t getSetLength = 4;    // 4 = 3 (get or set) +1 (for space)
-            if (SizeTAdd(propertyLength, getSetLength, &totalChars) == S_OK)
-            {
-                finalName = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, totalChars);
-                Assert(finalName != nullptr);
-
-                Assert(getOrSetStr != nullptr);
-                Assert(wcslen(getOrSetStr) == 4);
-                wcscpy_s(finalName, totalChars, getOrSetStr);
-
-                const char16* propertyName = propertyRecord->GetBuffer();
-                Assert(propertyName != nullptr);
-                js_wmemcpy_s(finalName + getSetLength, propertyLength, propertyName, propertyLength);
-
-            }
-        }
-        return finalName;
-    }
-
-    /*static*/
     void JavascriptObject::ModifyGetterSetterFuncName(const PropertyRecord * propertyRecord, const PropertyDescriptor& descriptor, ScriptContext* scriptContext)
     {
         Assert(scriptContext);
         Assert(propertyRecord);
         if (descriptor.GetterSpecified() || descriptor.SetterSpecified())
         {
+            charcount_t propertyLength = propertyRecord->GetLength();
+
             if (descriptor.GetterSpecified()
                 && Js::ScriptFunction::Is(descriptor.GetGetter())
                 && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->GetDisplayName(), _u("get")) == 0)
             {
                 // modify to name.get
-                char16* finalName;
-                if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-                {
-                    finalName = ConstructAccessorNameES6(propertyRecord, _u("get "), scriptContext);
-                }
-                else
-                {
-                    finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
-                }
+                char16* finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
                 if (finalName != nullptr)
                 {
                     FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
 
-                    Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->SetDisplayName(finalName, propertyRecord->GetLength() + 4 /*".get" or "get "*/, flags);
+                    Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->SetDisplayName(finalName,
+                        propertyLength + 4 /*".get"*/, propertyLength + 1, flags);
                 }
             }
 
@@ -2099,21 +2075,13 @@ namespace Js
                 && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->GetDisplayName(), _u("set")) == 0)
             {
                 // modify to name.set
-                char16* finalName;
-                if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-                {
-                    finalName = ConstructAccessorNameES6(propertyRecord, _u("set "), scriptContext);
-                }
-                else
-                {
-                    finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
-                }
-
+                char16* finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
                 if (finalName != nullptr)
                 {
                     FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
 
-                    Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->SetDisplayName(finalName, propertyRecord->GetLength() + 4 /*".set" or "set "*/, flags);
+                    Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->SetDisplayName(finalName,
+                        propertyLength + 4 /*".set"*/, propertyLength + 1, flags);
                 }
             }
         }

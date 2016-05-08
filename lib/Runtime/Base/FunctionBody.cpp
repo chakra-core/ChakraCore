@@ -512,6 +512,9 @@ namespace Js
         , m_isFromNativeCodeModule(false)
         , hasHotLoop(false)
         , m_isPartialDeserializedFunction(false)
+#if DBG
+        , m_isSerialized(false)
+#endif
 #ifdef PERF_COUNTERS
         , m_isDeserializedFunction(isDeserializedFunction)
 #endif
@@ -530,7 +533,6 @@ namespace Js
 #endif
     {
         SetCountField(CounterFields::ConstantCount, 1);
-        SetCountFieldSigned(CounterFields::SerializationIndex, -1);
 
         this->SetDefaultFunctionEntryPointInfo((FunctionEntryPointInfo*) this->GetDefaultEntryPointInfo(), DefaultEntryThunk);
         this->m_hasBeenParsed = true;
@@ -583,16 +585,6 @@ namespace Js
         {
             return this->GetByteCode();
         }
-    }
-
-    const int
-    FunctionBody::GetSerializationIndex() const
-    {
-        return GetCountFieldSigned(CounterFields::SerializationIndex);
-    }
-    void FunctionBody::SetSerializationIndex(int index)
-    {
-        SetCountFieldSigned(CounterFields::SerializationIndex, index);
     }
 
     const char16* ParseableFunctionInfo::GetExternalDisplayName() const
@@ -3208,24 +3200,6 @@ namespace Js
         }
         TraceExecutionMode();
 
-        if(entryPointInfo->GetJitMode() == ExecutionMode::SimpleJit)
-        {
-            Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
-            SetSimpleJitEntryPointInfo(entryPointInfo);
-            ResetSimpleJitCallCount();
-        }
-        else
-        {
-            Assert(entryPointInfo->GetJitMode() == ExecutionMode::FullJit);
-            Assert(GetExecutionMode() == ExecutionMode::FullJit);
-            entryPointInfo->callsCount =
-                static_cast<uint8>(
-                    min(
-                        static_cast<uint>(static_cast<uint8>(CONFIG_FLAG(MinBailOutsBeforeRejit))) *
-                            (Js::FunctionEntryPointInfo::GetDecrCallCountPerBailout() - 1),
-                        0xffu));
-        }
-
         JS_ETW(EtwTrace::LogMethodNativeLoadEvent(this, entryPointInfo));
 
 #ifdef _M_ARM
@@ -3579,7 +3553,6 @@ namespace Js
             }
         }
 
-        newFunctionBody->SetSerializationIndex(this->GetSerializationIndex());
         newFunctionBody->m_isFromNativeCodeModule = this->m_isFromNativeCodeModule;
     }
 
@@ -8255,12 +8228,9 @@ namespace Js
         // corresponding fields on the entryPointInfo should be rolled back here.
         this->runtimeTypeRefs = nullptr;
         this->FreePropertyGuards();
-        if (this->equivalentTypeCaches != nullptr)
-        {
-            this->equivalentTypeCacheCount = 0;
-            this->equivalentTypeCaches = nullptr;
-            this->UnregisterEquivalentTypeCaches();
-        }
+        this->equivalentTypeCacheCount = 0;
+        this->equivalentTypeCaches = nullptr;
+        this->UnregisterEquivalentTypeCaches();
 
         this->ResetOnNativeCodeInstallFailure();
     }

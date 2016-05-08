@@ -1407,7 +1407,7 @@ namespace Js
             if (executeFunction->HasScopeObject())
             {
                 Js::RegSlot funcExprScopeReg = executeFunction->GetFuncExprScopeRegister();
-                if (funcExprScopeReg != Constants::NoRegister)
+                if (funcExprScopeReg != Constants::NoRegister && this->paramClosure == nullptr)
                 {
                     // t0 = NewPseudoScope
                     // t1 = LdFrameDisplay t0 env

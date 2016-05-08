@@ -30,6 +30,10 @@ function asmModule(stdlib, imports) {
     var gval2 = 1234.0;
 
     var loopCOUNT = 3;
+    
+    var i4 = stdlib.SIMD.Int32x4;
+    var i4check = i4.check;
+    var i4fu4 = i4.fromUint32x4Bits;
 
     function func1()
     {
@@ -50,7 +54,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(d);
+        return i4check(i4fu4(d));
     }
     
     function func2()
@@ -71,7 +75,7 @@ function asmModule(stdlib, imports) {
             
         }
 
-        return ui4check(d);
+        return i4check(i4fu4(d));
     }
 
     function func3()
@@ -94,7 +98,7 @@ function asmModule(stdlib, imports) {
         }
         while ( (loopIndex | 0) > 0);
 
-        return ui4check(ui4g1);
+        return i4check(i4fu4(ui4g1));
     }
     
     
@@ -103,7 +107,12 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Uint32x4(100, 1073741824, 1028, 102) });
 
-equalSimd([1, 1, 1, 1], m.func1(), SIMD.Uint32x4, "Func1");
-equalSimd([8488513, 1078590673, 29974920, 9493783], m.func2(), SIMD.Uint32x4, "Func2");
-equalSimd([91080810, 22439513, 893080502, 990522477], m.func3(), SIMD.Uint32x4, "Func3");
+var ret1 = SIMD.Uint32x4.fromInt32x4Bits(m.func1());
+var ret2 = SIMD.Uint32x4.fromInt32x4Bits(m.func2());
+var ret3 = SIMD.Uint32x4.fromInt32x4Bits(m.func3());
+
+
+equalSimd([1, 1, 1, 1], ret1, SIMD.Uint32x4, "Func1");
+equalSimd([8488513, 1078590673, 29974920, 9493783], ret2, SIMD.Uint32x4, "Func2");
+equalSimd([91080810, 22439513, 893080502, 990522477], ret3, SIMD.Uint32x4, "Func3");
 print("PASS");

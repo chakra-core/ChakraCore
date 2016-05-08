@@ -59,7 +59,7 @@ namespace Js
         MutationBreakpoint* GetActiveMutationBreakpoint() const;
 #endif
         DynamicObject* GetConsoleScope(ScriptContext* scriptContext);
-        FrameDisplay *GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne, bool addGlobalThisAtScopeTwo);
+        FrameDisplay *GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne);
         void UpdateConsoleScope(DynamicObject* copyFromScope, ScriptContext* scriptContext);
         PageAllocator * GetDiagnosticPageAllocator() { return &this->diagnosticPageAllocator; }
 #if DBG

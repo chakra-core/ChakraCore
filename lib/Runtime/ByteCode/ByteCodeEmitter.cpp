@@ -187,6 +187,9 @@ bool IsArguments(ParseNode *pnode)
         case knopTry:
         case knopTryCatch:
         case knopTryFinally:
+        case knopArrayPattern:
+        case knopObjectPattern:
+        case knopParamPattern:
             return true;
 
         default:
@@ -1806,10 +1809,7 @@ void ByteCodeGenerator::InitScopeSlotArray(FuncInfo * funcInfo)
                 propertyIdsForScopeSlotArray[sym->GetScopeSlot()] = sym->EnsurePosition(funcInfo);
             }
         };
-        if (funcInfo->GetParamScope() != nullptr)
-        {
-            funcInfo->GetParamScope()->ForEachSymbol(setPropIdsForScopeSlotArray);
-        }
+
         funcInfo->GetBodyScope()->ForEachSymbol(setPropIdsForScopeSlotArray);
 
         if (funcInfo->thisScopeSlot != Js::Constants::NoRegister)
@@ -3275,9 +3275,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         {
             // Emit bytecode to copy the initial values from param names to their corresponding body bindings.
             // We have to do this after the rest param is marked as false for need declaration.
-            paramScope->ForEachSymbol([this, funcInfo, paramScope, byteCodeFunction](Symbol* param) {
+            paramScope->ForEachSymbol([&](Symbol* param) {
                 Symbol* varSym = funcInfo->GetBodyScope()->FindLocalSymbol(param->GetName());
-                Assert(varSym || param->GetIsArguments());
+                Assert(varSym || param->GetIsArguments() || pnode->sxFnc.pnodeName->sxVar.sym == param);
                 Assert(param->GetIsArguments() || param->IsInSlot(funcInfo));
                 if (varSym && varSym->GetSymbolType() == STVariable && (varSym->IsInSlot(funcInfo) || varSym->GetLocation() != Js::Constants::NoRegister))
                 {
@@ -3533,7 +3533,7 @@ void ByteCodeGenerator::MapReferencedPropertyIds(FuncInfo * funcInfo)
 #endif
 }
 
-void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, bool breakOnNonFunc)
+void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodyScopeNode)
 {
     while (pnode)
     {
@@ -3567,22 +3567,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, bool breakOnNonFunc)
                 this->StartEmitFunction(pnode);
 
                 Scope* paramScope = pnode->sxFnc.funcInfo->GetParamScope();
-                Scope* bodyScope = pnode->sxFnc.funcInfo->GetBodyScope();
 
-                if (paramScope && !paramScope->GetCanMergeWithBodyScope())
-                {
-                    ParseNodePtr paramBlock = pnode->sxFnc.pnodeScopes;
-                    Assert(paramBlock->nop == knopBlock && paramBlock->sxBlock.blockType == Parameter);
-
-                    PushScope(paramScope);
-
-                    // While emitting the functions we have to stop when we see the body scope block.
-                    // Otherwise functions defined in the body scope will not be able to get the right references.
-                    this->EmitScopeList(paramBlock->sxBlock.pnodeScopes, true);
-                    Assert(this->GetCurrentScope() == paramScope);
-                }
-
-                PushScope(bodyScope);
                 // Persist outer func scope info if nested func is deferred
                 if (CONFIG_FLAG(DeferNested))
                 {
@@ -3602,12 +3587,6 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, bool breakOnNonFunc)
 
                 this->EmitOneFunction(pnode);
                 this->EndEmitFunction(pnode);
-
-                if (paramScope && !paramScope->GetCanMergeWithBodyScope())
-                {
-                    Assert(this->GetCurrentScope() == paramScope);
-                    PopScope(); // Pop the param scope
-                }
             }
             pnode = pnode->sxFnc.pnodeNext;
             break;
@@ -3638,7 +3617,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, bool breakOnNonFunc)
             break;
         }
 
-        if (breakOnNonFunc && pnode && pnode->nop != knopFncDecl)
+        if (breakOnBodyScopeNode != nullptr && breakOnBodyScopeNode == pnode)
         {
             break;
         }
@@ -3765,7 +3744,14 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
         else
         {
             Symbol *sym = funcInfo->root->sxFnc.GetFuncSymbol();
-            funcInfo->bodyScope->AddSymbol(sym);
+            if (funcInfo->paramScope->GetCanMergeWithBodyScope())
+            {
+                funcInfo->bodyScope->AddSymbol(sym);
+            }
+            else
+            {
+                funcInfo->paramScope->AddSymbol(sym);
+            }
         }
     }
 
@@ -3799,9 +3785,6 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 paramScope->SetLocation(funcInfo->frameSlotsRegister);
             }
         }
-
-        bodyScope->SetMustInstantiate(funcInfo->frameObjRegister != Js::Constants::NoRegister || funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
-        paramScope->SetMustInstantiate(!paramScope->GetCanMergeWithBodyScope());
 
         if (bodyScope->GetIsObject())
         {
@@ -4013,6 +3996,18 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 this->EnsureLetConstScopeSlots(pnodeFnc->sxFnc.pnodeBodyScope, funcInfo);
             }
         }
+
+        if (!paramScope->GetCanMergeWithBodyScope() && bodyScope->GetScopeSlotCount() == 0 && !bodyScope->GetHasOwnLocalInClosure())
+        {
+            // When we have split scope the body scope may be wrongly marked as must instantiate even though the capture occurred
+            // in param scope. This check is to make sure if no capture occurs in body scope make in not must instantiate.
+            bodyScope->SetMustInstantiate(false);
+        }
+        else
+        {
+            bodyScope->SetMustInstantiate(funcInfo->frameObjRegister != Js::Constants::NoRegister || funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
+        }
+        paramScope->SetMustInstantiate(!paramScope->GetCanMergeWithBodyScope());
     }
     else
     {
@@ -4023,6 +4018,21 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             Assert(bodyScope->GetIsObject());
         }
     }
+
+    if (paramScope && !paramScope->GetCanMergeWithBodyScope())
+    {
+        ParseNodePtr paramBlock = pnodeFnc->sxFnc.pnodeScopes;
+        Assert(paramBlock->nop == knopBlock && paramBlock->sxBlock.blockType == Parameter);
+
+        PushScope(paramScope);
+
+        // While emitting the functions we have to stop when we see the body scope block.
+        // Otherwise functions defined in the body scope will not be able to get the right references.
+        this->EmitScopeList(paramBlock->sxBlock.pnodeScopes, pnodeFnc->sxFnc.pnodeBodyScope);
+        Assert(this->GetCurrentScope() == paramScope);
+    }
+
+    PushScope(bodyScope);
 }
 
 void ByteCodeGenerator::EmitModuleExportAccess(Symbol* sym, Js::OpCode opcode, Js::RegSlot location, FuncInfo* funcInfo)
@@ -4147,6 +4157,13 @@ void ByteCodeGenerator::EndEmitFunction(ParseNode *pnodeFnc)
     PopScope(); // function body
 
     FuncInfo *funcInfo = pnodeFnc->sxFnc.funcInfo;
+
+    Scope* paramScope = funcInfo->paramScope;
+    if (paramScope && !paramScope->GetCanMergeWithBodyScope())
+    {
+        Assert(this->GetCurrentScope() == paramScope);
+        PopScope(); // Pop the param scope
+    }
 
     Scope *scope = funcInfo->funcExprScope;
     if (scope && scope->GetMustInstantiate())

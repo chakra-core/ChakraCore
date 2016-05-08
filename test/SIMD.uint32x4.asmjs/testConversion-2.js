@@ -28,8 +28,6 @@ function asmModule(stdlib, imports) {
     var i16 = stdlib.SIMD.Int8x16;
     var u16 = stdlib.SIMD.Uint8x16;
     
-    
-    
     var fround = stdlib.Math.fround;
 
     var globImporti168 = ui4check(imports.g1);       // global var import
@@ -37,6 +35,8 @@ function asmModule(stdlib, imports) {
     var g1 = f4(5033.2,3401.0,665.34,32234.1);          // global var initialized
     var g2 = i4(1065353216, 1073741824,1077936128, 1082130432);          // global var initialized
     var loopCOUNT = 3;
+    
+    var i4fu4 = i4.fromUint32x4Bits;
 
     function conv1()
     {
@@ -49,7 +49,7 @@ function asmModule(stdlib, imports) {
 
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui4check(x);
+        return i4check(i4fu4(x));
     }
     
     function conv2()
@@ -60,7 +60,7 @@ function asmModule(stdlib, imports) {
         {
             x = ui4fromInt32x4Bits(globImportI4);
         }
-        return ui4check(x);
+        return i4check(i4fu4(x));
     }
 
     function conv3()
@@ -77,7 +77,7 @@ function asmModule(stdlib, imports) {
         }
         while ( (loopIndex | 0) > 0);
        
-        return ui4check(x);
+        return i4check(i4fu4(x));
     }
 
     function conv4()
@@ -92,7 +92,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
        
-        return ui4check(x);
+        return i4check(i4fu4(x));
     }
 
     function conv5()
@@ -104,7 +104,7 @@ function asmModule(stdlib, imports) {
         {
             x = ui4fromInt8x16Bits(m);
         }
-        return ui4check(x);
+        return i4check(i4fu4(x));
     }
     
     function conv6()
@@ -116,7 +116,7 @@ function asmModule(stdlib, imports) {
         {
             x = ui4fromUint8x16Bits(m);
         }
-        return ui4check(x);
+        return i4check(i4fu4(x));
     }
 
     function conv7()
@@ -132,7 +132,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(x);
+        return i4check(i4fu4(x));
     }
     
     function conv8()
@@ -145,7 +145,7 @@ function asmModule(stdlib, imports) {
             x = ui4fromInt16x8Bits(m);
         }
 
-        return ui4check(x);
+        return i4check(i4fu4(x));
     }
     // TODO: Test conversion of returned value
     function value()
@@ -187,12 +187,20 @@ printSimdBaseline(m.func5(), "SIMD.Uint32x4", "m.func5()", "Func5");
 //printSimdBaseline(m.func6(), "SIMD.Uint32x4", "m.func6()", "Func6");  //need to check exception is thrown
 printSimdBaseline(m.func7(), "SIMD.Uint32x4", "m.func7()", "Func7");
 printSimdBaseline(m.func8(), "SIMD.Uint32x4", "m.func8()", "Func8");*/
-equalSimd([1167935898, 1163169792, 1143363011, 1190908979], m.func1(), SIMD.Uint32x4, "Func1");
-equalSimd([3229614080, 3221225472, 3217031168, 3212836864], m.func2(), SIMD.Uint32x4, "Func2");
-equalSimd([1, 2, 3, 4], m.func3(), SIMD.Uint32x4, "Func3");
-equalSimd([2863311530, 2863311530, 2863311530, 2863311530], m.func5(), SIMD.Uint32x4, "Func5");
-equalSimd([1034, 22342, 1233, 40443], m.func7(), SIMD.Uint32x4, "Func7");
-equalSimd([11141290, 11141290, 11141290, 11141290], m.func8(), SIMD.Uint32x4, "Func8");
+
+var ret1 = SIMD.Uint32x4.fromInt32x4Bits(m.func1());
+var ret2 = SIMD.Uint32x4.fromInt32x4Bits(m.func2());
+var ret3 = SIMD.Uint32x4.fromInt32x4Bits(m.func3());
+var ret5 = SIMD.Uint32x4.fromInt32x4Bits(m.func5());
+var ret7 = SIMD.Uint32x4.fromInt32x4Bits(m.func7());
+var ret8 = SIMD.Uint32x4.fromInt32x4Bits(m.func8());
+
+equalSimd([1167935898, 1163169792, 1143363011, 1190908979], ret1, SIMD.Uint32x4, "Func1");
+equalSimd([3229614080, 3221225472, 3217031168, 3212836864], ret2, SIMD.Uint32x4, "Func2");
+equalSimd([1, 2, 3, 4], ret3, SIMD.Uint32x4, "Func3");
+equalSimd([2863311530, 2863311530, 2863311530, 2863311530], ret5, SIMD.Uint32x4, "Func5");
+equalSimd([1034, 22342, 1233, 40443], ret7, SIMD.Uint32x4, "Func7");
+equalSimd([11141290, 11141290, 11141290, 11141290], ret8, SIMD.Uint32x4, "Func8");
 
 
 print("PASS");

@@ -876,7 +876,10 @@ namespace Js
         AsmJsVarBase* var = FindVar(name);
         if (var)
         {
-            Output::Print(_u("Variable redefinition: %s\n"), name->Psz());
+            if (PHASE_TRACE1(AsmjsPhase))
+            {
+                Output::Print(_u("Variable redefinition: %s\n"), name->Psz());
+            }
             return nullptr;
         }
 
@@ -1253,6 +1256,13 @@ namespace Js
                mBuiltIn == AsmJsSIMDBuiltin_bool32x4_check ||
                mBuiltIn == AsmJsSIMDBuiltin_bool16x8_check || 
                mBuiltIn == AsmJsSIMDBuiltin_bool8x16_check;
+    }
+
+    bool AsmJsSIMDFunction::IsUnsignedTypeCheck()
+    {
+        return mBuiltIn == AsmJsSIMDBuiltin_uint32x4_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_uint16x8_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_uint8x16_check;
     }
 
     AsmJsVarType AsmJsSIMDFunction::GetTypeCheckVarType()

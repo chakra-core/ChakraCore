@@ -17,6 +17,10 @@ function asmModule(stdlib, imports) {
     var gval = 20;
 
     var loopCOUNT = 3;
+    
+    var i16 = stdlib.SIMD.Int8x16;
+    var i16check = i16.check;
+    var i16fu16 = i16.fromUint8x16Bits;
 
     function splat1()
     {
@@ -27,7 +31,7 @@ function asmModule(stdlib, imports) {
             a = ui16splat(255);
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui16check(a);
+        return i16check(i16fu16(a));
     }
     
     function splat2()
@@ -39,7 +43,7 @@ function asmModule(stdlib, imports) {
             a = ui16splat(value() | 0);
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui16check(a);
+        return i16check(i16fu16(a));
     }
 
     function splat3()
@@ -51,7 +55,7 @@ function asmModule(stdlib, imports) {
             a = ui16splat(gval);
             loopIndex = (loopIndex + 1) | 0;
         }
-        return ui16check(a);
+        return i16check(i16fu16(a));
     }
     
     function value()
@@ -70,9 +74,9 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Uint8x16(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)});
 
-var ret1 = m.func1(SIMD.Uint8x16(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4), SIMD.Float64x2(1, 2, 3, 4));
-var ret2 = m.func2(SIMD.Uint8x16(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4), SIMD.Float64x2(1, 2, 3, 4));
-var ret3 = m.func3(SIMD.Uint8x16(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4), SIMD.Float64x2(1, 2, 3, 4));
+var ret1 = SIMD.Uint8x16.fromInt8x16Bits(m.func1(SIMD.Uint8x16(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4), SIMD.Float64x2(1, 2, 3, 4)));
+var ret2 = SIMD.Uint8x16.fromInt8x16Bits(m.func2(SIMD.Uint8x16(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4), SIMD.Float64x2(1, 2, 3, 4)));
+var ret3 = SIMD.Uint8x16.fromInt8x16Bits(m.func3(SIMD.Uint8x16(1, 2, 3, 4, 5, 6, 7, 8), SIMD.Float32x4(1, 2, 3, 4), SIMD.Float64x2(1, 2, 3, 4)));
 
 equalSimd([255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255], ret1, SIMD.Uint8x16, "");
 equalSimd([87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87, 87], ret2, SIMD.Uint8x16, "");

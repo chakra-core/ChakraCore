@@ -635,7 +635,7 @@ public:
     static const int s_numFramesToSkipForPageHeapAlloc = 0;
     static const int s_numFramesToSkipForPageHeapFree = 0;
 
-    static const int s_numFramesToCaptureForPageHeap = 20;
+    static const int s_numFramesToCaptureForPageHeap = 32;
 #endif
 
     uint Cookie;
@@ -751,7 +751,10 @@ private:
     DListBase<ArenaData*> externalGuestArenaList;    // guest arenas are scanned for roots
     HeapInfo autoHeap;
 #ifdef RECYCLER_PAGE_HEAP
+
     inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
+    template<ObjectInfoBits attributes>
+    bool IsPageHeapEnabled(size_t size);
     inline bool ShouldCapturePageHeapAllocStack() const { return capturePageHeapAllocStack; }
     bool isPageHeapEnabled;
     bool capturePageHeapAllocStack;
@@ -1515,7 +1518,7 @@ private:
     template <typename SmallHeapBlockAllocatorType>
     void RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t sizeCat);
     template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
-    char * SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat);
+    char * SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat, size_t size);
 
     // Allocation
     template <ObjectInfoBits attributes, bool nothrow>
@@ -1539,6 +1542,10 @@ private:
     {
         return AllocWithAttributes<WeakReferenceEntryBits, /* nothrow = */ false>(size);
     }
+#if DBG
+    template <ObjectInfoBits attributes>
+    void VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size);
+#endif
 
     bool NeedDisposeTimed()
     {
@@ -1733,7 +1740,7 @@ private:
 
     bool ForceSweepObject();
     void NotifyFree(__in char * address, size_t size);
-    template <bool pageheap, typename T>
+    template <typename T>
     void NotifyFree(T * heapBlock);
 
     void CleanupPendingUnroot();
@@ -1972,7 +1979,7 @@ private:
 public:
     typedef void (CALLBACK *ObjectBeforeCollectCallback)(void* object, void* callbackState); // same as jsrt JsObjectBeforeCollectCallback
     // same as jsrt JsObjectBeforeCollectCallbackWrapper
-    typedef void (CALLBACK *ObjectBeforeCollectCallbackWrapper)(ObjectBeforeCollectCallback callback, void* object, void* callbackState, void* threadContext); 
+    typedef void (CALLBACK *ObjectBeforeCollectCallbackWrapper)(ObjectBeforeCollectCallback callback, void* object, void* callbackState, void* threadContext);
     void SetObjectBeforeCollectCallback(void* object,
         ObjectBeforeCollectCallback callback,
         void* callbackState,
@@ -1989,7 +1996,7 @@ private:
         ObjectBeforeCollectCallbackWrapper callbackWrapper;
 
         ObjectBeforeCollectCallbackData() {}
-        ObjectBeforeCollectCallbackData(ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) : 
+        ObjectBeforeCollectCallbackData(ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) :
             callbackWrapper(callbackWrapper), callback(callback), callbackState(callbackState), threadContext(threadContext) {}
     };
     typedef JsUtil::BaseDictionary<void*, ObjectBeforeCollectCallbackData, HeapAllocator,
@@ -2031,6 +2038,13 @@ public:
         m_address(address), m_recycler(recycler), m_heapBlock(heapBlock), m_attributes(attributes) { }
 
     void* GetObjectAddress() const { return m_address; }
+
+#ifdef RECYCLER_PAGE_HEAP
+    bool IsPageHeapAlloc() 
+    {
+        return isUsingLargeHeapBlock && ((LargeHeapBlock*)m_heapBlock)->InPageHeapMode();
+    }
+#endif
 
     bool IsLeaf() const
     {
@@ -2098,12 +2112,19 @@ public:
 
 #ifdef RECYCLER_PAGE_HEAP
         Recycler* recycler = this->m_recycler;
-        if (recycler->ShouldCapturePageHeapFreeStack())
+        if (recycler->IsPageHeapEnabled() && recycler->ShouldCapturePageHeapFreeStack())
         {
             Assert(recycler->IsPageHeapEnabled());
 
 #ifdef STACK_BACK_TRACE
-            this->m_heapBlock->CapturePageHeapFreeStack();
+            if (this->isUsingLargeHeapBlock)
+            {
+                LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)this->m_heapBlock;
+                if (largeHeapBlock->InPageHeapMode())
+                {
+                    largeHeapBlock->CapturePageHeapFreeStack();
+                }
+            }
 #endif
         }
 #endif
@@ -2183,10 +2204,10 @@ public:
     static CollectedRecyclerWeakRefHeapBlock Instance;
 private:
 
-    CollectedRecyclerWeakRefHeapBlock() : HeapBlock(BlockTypeCount) 
-    { 
+    CollectedRecyclerWeakRefHeapBlock() : HeapBlock(BlockTypeCount)
+    {
 #if ENABLE_CONCURRENT_GC
-        isPendingConcurrentSweep = false; 
+        isPendingConcurrentSweep = false;
 #endif
     }
 };
@@ -2216,9 +2237,9 @@ Recycler::RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t s
 
 template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
 char *
-Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat)
+Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat, size_t size)
 {
-    return autoHeap.SmallAllocatorAlloc<attributes>(this, allocator, sizeCat);
+    return autoHeap.SmallAllocatorAlloc<attributes>(this, allocator, sizeCat, size);
 }
 
 // Dummy recycler allocator policy classes to choose the allocation function

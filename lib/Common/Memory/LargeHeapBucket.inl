@@ -58,7 +58,7 @@ LargeHeapBucket::Alloc(Recycler * recycler, size_t sizeCat)
     else
     {
 #ifdef RECYCLER_PAGE_HEAP
-        Assert(!IsPageHeapEnabled());
+        Assert(!IsPageHeapEnabled(attributes));
 #endif
     }
 

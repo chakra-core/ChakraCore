@@ -23,6 +23,22 @@
       <compile-flags>-bgjit- -simdjs -simd128typespec -asmjs- -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>testConstructor.js</files>
+      <baseline>asmjs.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -off:simplejit -maic:0 -mic:0 -AsmJsStopOnError</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>testConstructor.js</files>
+      <baseline>asmjs.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -off:simplejit -mic:0 -AsmJsStopOnError -lic:1</compile-flags>
+    </default>
+  </test>
   <!--__Bitwise__-->
   <test>
     <default>
@@ -101,4 +117,13 @@
       <compile-flags>-bgjit- -simdjs -simd128typespec -asmjs- -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
+  <!--__Bug824__-->
+  <test>
+    <default>
+      <files>bug824.js</files>
+      <baseline>asmjs.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship</tags>
+      <compile-flags>-bgjit- -asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0 -mic:0</compile-flags>
+    </default>
+  </test>  
 </regress-exe>

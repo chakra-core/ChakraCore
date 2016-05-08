@@ -37,7 +37,7 @@ protected:
 
     char* strongRef;
     HeapBlock * strongRefHeapBlock;
-    SmallHeapBlock * weakRefHeapBlock;
+    HeapBlock * weakRefHeapBlock;
     RecyclerWeakReferenceBase* next;
 #if DBG
 #if ENABLE_RECYCLER_TYPE_TRACKING
@@ -350,8 +350,8 @@ private:
         Assert(entry->strongRefHeapBlock != nullptr);
 
         HeapBlock * weakRefHeapBlock = recycler->FindHeapBlock(entry);
-        Assert(!weakRefHeapBlock->IsLargeHeapBlock());
-        entry->weakRefHeapBlock = (SmallHeapBlock *)weakRefHeapBlock;
+        Assert(!weakRefHeapBlock->IsLargeHeapBlock() || ((LargeHeapBlock*)weakRefHeapBlock)->InPageHeapMode());
+        entry->weakRefHeapBlock = weakRefHeapBlock;
 
 #ifdef RECYCLER_TRACE_WEAKREF
         Output::Print(_u("Add 0x%08x to bucket %d\n"), entry, targetBucket);

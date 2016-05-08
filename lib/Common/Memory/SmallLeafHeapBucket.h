@@ -13,7 +13,6 @@ protected:
     template <class TBlockAttributes>
     friend class HeapBucketGroup;
 
-    template<bool pageheap>
     void Sweep(RecyclerSweep& recyclerSweep);
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)

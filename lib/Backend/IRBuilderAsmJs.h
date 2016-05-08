@@ -84,6 +84,7 @@ private:
     Js::RegSlot             GetRegSlotFromSimd128Reg(Js::RegSlot srcSimd128Reg);
     IR::Instr *             AddExtendedArg(IR::RegOpnd *src1, IR::RegOpnd *src2, uint32 offset);
     BOOL                    RegIsSimd128Var(Js::RegSlot reg);
+    bool                    RegIsSimd128ReturnVar(Js::RegSlot reg);
     SymID                   GetMappedTemp(Js::RegSlot reg);
     void                    SetMappedTemp(Js::RegSlot reg, SymID tempId);
     BOOL                    GetTempUsed(Js::RegSlot reg);

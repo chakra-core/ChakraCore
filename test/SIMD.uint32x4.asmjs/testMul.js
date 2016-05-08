@@ -16,6 +16,10 @@ function asmModule(stdlib, imports) {
     var ui4g2 = ui4(6531634, 74182444, 779364128, 821730432);
 
     var loopCOUNT = 3;
+     
+    var i4 = stdlib.SIMD.Int32x4;
+    var i4check = i4.check;
+    var i4fu4 = i4.fromUint32x4Bits;
 
     function testMulLocal()
     {
@@ -29,7 +33,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
     function testMulGlobal()
     {    
@@ -41,7 +45,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
 
     function testMulGlobalImport()
@@ -55,7 +59,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(result);
+        return i4check(i4fu4(result));
     }
     
     return {testMulLocal:testMulLocal, testMulGlobal:testMulGlobal, testMulGlobalImport:testMulGlobalImport};
@@ -63,7 +67,11 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Uint32x4(100, 1073741824, 1028, 102) });
 
-equalSimd([4211364052, 378760832, 1840974754, 1974380608], m.testMulLocal(), SIMD.Uint32x4, "Test Mul");
-equalSimd([1728053248, 0, 3355443200, 1073741824], m.testMulGlobal(), SIMD.Uint32x4, "Test Mul");
-equalSimd([848848400, 0, 750494220, 968374944], m.testMulGlobalImport(), SIMD.Uint32x4, "Test Mul");
+var ret1 = SIMD.Uint32x4.fromInt32x4Bits(m.testMulLocal());
+var ret2 = SIMD.Uint32x4.fromInt32x4Bits(m.testMulGlobal());
+var ret3 = SIMD.Uint32x4.fromInt32x4Bits(m.testMulGlobalImport());
+
+equalSimd([4211364052, 378760832, 1840974754, 1974380608], ret1, SIMD.Uint32x4, "Test Mul");
+equalSimd([1728053248, 0, 3355443200, 1073741824], ret2, SIMD.Uint32x4, "Test Mul");
+equalSimd([848848400, 0, 750494220, 968374944], ret3, SIMD.Uint32x4, "Test Mul");
 print("PASS");

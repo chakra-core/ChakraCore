@@ -130,9 +130,16 @@ function asmModule(stdlib, imports) {
 
         return f4check(f4reciprocalSqrtApproximation(b));
     }
-    
-    
-    return {func1:func1, func2:func2};
+
+    function bug1() //simd tmp reg reuse.
+    {
+        var a = i4(1,2,3,4);
+        var x = f4(-1.0, -2.0, -3.0, -4.0);
+        f4add(x,x);
+        return i4check(a);
+    }
+
+    return {func1:func1, func2:func2, bug1:bug1};
 }
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
@@ -143,6 +150,9 @@ equalSimd([0.00019868074741680175, 0.00000470933673568652, 0.0015029908390715718
 
 c = m.func2();
 equalSimd([0.01409541629254818, 0.002170100575312972, 0.038768425583839416, 0.003906280267983675], c, SIMD.Float32x4, "func2")
+
+c = m.bug1();
+equalSimd([1,2,3,4], c, SIMD.Int32x4, "bug1")
 
 
 print("PASS");

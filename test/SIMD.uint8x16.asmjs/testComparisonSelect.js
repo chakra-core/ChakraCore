@@ -24,6 +24,10 @@ function asmModule(stdlib, imports) {
 
     var loopCOUNT = 6;
 
+    var i16 = stdlib.SIMD.Int8x16;
+    var i16check = i16.check;
+    var i16fu16 = i16.fromUint8x16Bits;
+
     function testLessThan() {
         var b = ui16(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
         var c = ui16(16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1);
@@ -38,7 +42,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui16check(d);
+        return i16check(i16fu16(d));
     }
 
     function testLessThanOrEqual() {
@@ -56,7 +60,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui16check(d);
+        return i16check(i16fu16(d));
     }
 
     function testGreaterThan() {
@@ -74,7 +78,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui16check(d);
+        return i16check(i16fu16(d));
     }
 
     function testGreaterThanOrEqual() {
@@ -92,7 +96,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui16check(d);
+        return i16check(i16fu16(d));
     }
 
     function testEqual() {
@@ -110,7 +114,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui16check(d);
+        return i16check(i16fu16(d));
     }
 
     function testNotEqual() {
@@ -128,7 +132,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui16check(d);
+        return i16check(i16fu16(d));
     }
 
     return { testLessThan: testLessThan, testLessThanOrEqual: testLessThanOrEqual, testGreaterThan: testGreaterThan, testGreaterThanOrEqual: testGreaterThanOrEqual, testEqual: testEqual, testNotEqual: testNotEqual };
@@ -136,12 +140,19 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Uint8x16(100, -1073741824, -1028, -102, 127, -38, -92929, -128, 52, 127, -127, -129, 129, 0, 88, 100234) });
 
-equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1], m.testLessThan(), SIMD.Uint8x16, "Func1");
-equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1], m.testLessThanOrEqual(), SIMD.Uint8x16, "Func2");
-equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 9, 10, 11, 12, 13, 14, 15, 16], m.testGreaterThan(), SIMD.Uint8x16, "Func3");
-equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 9, 10, 11, 12, 13, 14, 15, 16], m.testGreaterThanOrEqual(), SIMD.Uint8x16, "Func4");
-equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1], m.testEqual(), SIMD.Uint8x16, "Func5");
-equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], m.testNotEqual(), SIMD.Uint8x16, "Func6");
+var ret1 = SIMD.Uint8x16.fromInt8x16Bits(m.testLessThan());
+var ret2 = SIMD.Uint8x16.fromInt8x16Bits(m.testLessThanOrEqual());
+var ret3 = SIMD.Uint8x16.fromInt8x16Bits(m.testGreaterThan());
+var ret4 = SIMD.Uint8x16.fromInt8x16Bits(m.testGreaterThanOrEqual());
+var ret5 = SIMD.Uint8x16.fromInt8x16Bits(m.testEqual());
+var ret6 = SIMD.Uint8x16.fromInt8x16Bits(m.testNotEqual());
+
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1], ret1, SIMD.Uint8x16, "Func1");
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1], ret2, SIMD.Uint8x16, "Func2");
+equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 9, 10, 11, 12, 13, 14, 15, 16], ret3, SIMD.Uint8x16, "Func3");
+equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 9, 10, 11, 12, 13, 14, 15, 16], ret4, SIMD.Uint8x16, "Func4");
+equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1], ret5, SIMD.Uint8x16, "Func5");
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], ret6, SIMD.Uint8x16, "Func6");
 
 print("PASS");
 

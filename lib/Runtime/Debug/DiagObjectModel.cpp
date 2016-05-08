@@ -1082,7 +1082,8 @@ namespace Js
 
             // In the eval function, we will not show global items directly, instead they should go as a group node.
             bool shouldAddGlobalItemsDirectly = pFBody->GetIsGlobalFunc() && !pFBody->IsEval();
-            if (shouldAddGlobalItemsDirectly)
+            bool dontAddGlobalsDirectly = (frameWalkerFlags & FrameWalkerFlags::FW_DontAddGlobalsDirectly) == FrameWalkerFlags::FW_DontAddGlobalsDirectly;
+            if (shouldAddGlobalItemsDirectly && !dontAddGlobalsDirectly)
             {
                 // Global properties will be enumerated using RootObjectVariablesWalker
                 pVarWalkers->Add(Anew(arena, RootObjectVariablesWalker, pFrame, pFrame->GetRootObject(), UIGroupType_None));
@@ -1167,7 +1168,7 @@ namespace Js
             }
 
             // No need to add global properties if this is a global function, as it is already done above.
-            if (!shouldAddGlobalItemsDirectly)
+            if (!shouldAddGlobalItemsDirectly && !dontAddGlobalsDirectly)
             {
                 pVarWalker = Anew(arena, RootObjectVariablesWalker, pFrame, pFrame->GetRootObject(),  UIGroupType_Globals);
                 pVarWalkers->Add(pVarWalker);
@@ -3617,6 +3618,10 @@ namespace Js
     BOOL RecyclableProxyObjectWalker::Get(int i, ResolvedObject* pResolvedObject)
     {
         JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
+        if (proxy->GetTarget() == nullptr || proxy->GetHandler() == nullptr)
+        {
+            return FALSE;
+        }
         if (i == 0)
         {
             pResolvedObject->name = _u("[target]");

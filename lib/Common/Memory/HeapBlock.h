@@ -281,24 +281,6 @@ protected:
     bool isPendingConcurrentSweep;
 #endif
 
-#ifdef RECYCLER_PAGE_HEAP
-    PageHeapMode pageHeapMode;
-    DWORD guardPageOldProtectFlags;
-    char* guardPageAddress;
-
-#ifdef STACK_BACK_TRACE
-    StackBackTrace* pageHeapAllocStack;
-    StackBackTrace* pageHeapFreeStack;
-#endif
-
-public:
-    inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
-#ifdef STACK_BACK_TRACE
-    void CapturePageHeapAllocStack();
-    void CapturePageHeapFreeStack();
-#endif
-#endif
-
 public:
     template <typename Fn>
     bool UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn);
@@ -307,11 +289,6 @@ public:
     HeapBlock(HeapBlockType heapBlockType) :
         heapBlockType(heapBlockType),
         needOOMRescan(false)
-#ifdef RECYCLER_PAGE_HEAP
-#ifdef STACK_BACK_TRACE
-        , pageHeapAllocStack(nullptr), pageHeapFreeStack(nullptr)
-#endif
-#endif
     {
         Assert(GetHeapBlockType() <= HeapBlock::HeapBlockType::BlockTypeCount);
     }
@@ -480,17 +457,6 @@ public:
     template<bool checkPageHeap=true>
     bool HasFreeObject() const
     {
-#ifdef RECYCLER_PAGE_HEAP
-        // in pageheap, we point freeObjectList to end of the allocable block to cheat the system.
-        // but sometimes we need to know if it's really no free block or not.
-        if (checkPageHeap)
-        {
-            if (this->pageHeapMode != PageHeapMode::PageHeapModeOff)
-            {
-                return false;
-            }
-        }
-#endif
         return freeObjectList != nullptr;
     }
 
@@ -579,17 +545,9 @@ public:
     void SetObjectMarkedBit(void* objectAddress) override;
     virtual size_t GetObjectSize(void* object) override { return objectSize; }
 
-#ifdef RECYCLER_PAGE_HEAP
-    char * GetPageHeapObjectAddress();
-#endif
-
-    template <bool pageheap>
     uint GetMarkCountForSweep();
-
-    template <bool pageheap>
     SweepState Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount = 0, bool hasPendingDispose = false);
-
-    template <bool pageheap, SweepMode mode>
+    template <SweepMode mode>
     void SweepObjects(Recycler * recycler);
 
     uint GetAndClearLastFreeCount();
@@ -603,27 +561,14 @@ public:
 #endif
 #endif
     void TransferProcessedObjects(FreeObject * list, FreeObject * tail);
-
-    template<bool pageheap>
     BOOL ReassignPages(Recycler * recycler);
-
-    template<bool pageheap>
-    inline const uint GetPageHeapModePageCount() const;
-
-#ifdef RECYCLER_PAGE_HEAP
-    void ClearPageHeapState();
-#endif
-
-    template<bool pageheap>
     BOOL SetPage(__in_ecount_pagesize char * baseAddress, PageSegment * pageSegment, Recycler * recycler);
 
-    template<bool pageheap>
     void ReleasePages(Recycler * recycler);
-    template<bool pageheap>
     void ReleasePagesSweep(Recycler * recycler);
     void ReleasePagesShutdown(Recycler * recycler);
+
 #if ENABLE_BACKGROUND_PAGE_FREEING
-    template<bool pageheap>
     void BackgroundReleasePagesSweep(Recycler* recycler);
 #endif
 
@@ -638,11 +583,6 @@ public:
 
 #ifdef RECYCLER_SLOW_CHECK_ENABLED
     void Check(bool expectFull, bool expectPending);
-#endif
-#ifdef RECYCLER_PAGE_HEAP
-    void VerifyPageHeapAllocation(_In_ char* allocation, PageHeapMode mode);
-    void EnablePageHeap();
-    void ClearPageHeap();
 #endif
 #ifdef RECYCLER_MEMORY_VERIFY
     void Verify(bool pendingDispose = false);

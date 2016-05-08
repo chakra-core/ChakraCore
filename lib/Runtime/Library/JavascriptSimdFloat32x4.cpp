@@ -6,6 +6,8 @@
 
 namespace Js
 {
+    const char16 JavascriptSIMDFloat32x4::TypeName[] = _u("SIMD.Float32x4");
+
     JavascriptSIMDFloat32x4::JavascriptSIMDFloat32x4(StaticType *type) : JavascriptSIMDType(type)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDFloat32x4);
@@ -57,11 +59,9 @@ namespace Js
         swprintf_s(stringBuffer, countBuffer, _u("SIMD.Float32x4(%s, %s, %s, %s)"), f0, f1, f2, f3);
     }
 
-    const char16* JavascriptSIMDFloat32x4::GetFullBuiltinName(char16** aBuffer, const char16* name)
+    const char16* JavascriptSIMDFloat32x4::GetTypeName()
     {
-        Assert(aBuffer && *aBuffer);
-        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, _u("SIMD.Float32x4.%s"), name);
-        return *aBuffer;
+        return JavascriptSIMDFloat32x4::TypeName;
     }
 
     RecyclableObject * JavascriptSIMDFloat32x4::CloneToScriptContext(ScriptContext* requestContext)
