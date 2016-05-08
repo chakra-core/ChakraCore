@@ -288,9 +288,9 @@ namespace TTD
 
         void AllocateObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void AllocateExternalObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-
         void AllocateArrayAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void AllocateArrayBufferAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void AllocateExternalArrayBufferAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void AllocateFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
         void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
@@ -298,7 +298,8 @@ namespace TTD
         void GetPropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void GetIndexAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void GetOwnPropertyInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void GetOwnPropertiesInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void GetOwnPropertyNamesInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void GetOwnPropertySymbolsInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
         void DefinePropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void DeletePropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
@@ -324,8 +325,6 @@ namespace TTD
             Js::Var* ExecArgs;
 #endif
         };
-
-        void JsRTConstructCallAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc);
 
         void JsRTConstructCallAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void JsRTConstructCallAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);

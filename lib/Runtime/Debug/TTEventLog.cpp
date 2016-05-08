@@ -1759,45 +1759,32 @@ namespace TTD
         NSLogEvents::JsRTVarsArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::AllocateExternalObjectActionTag>(resultVarPtr);
     }
 
-    void EventLog::RecordJsRTAllocateBasicClearArray(Js::ScriptContext* ctx, Js::TypeId arrayType, uint32 length)
+    void EventLog::RecordJsRTAllocateBasicArray(Js::ScriptContext* ctx, uint32 length, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        JsRTArrayAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTArrayAllocateAction>(etime, ctxTag, arrayType, length);
-
-        this->InsertEventAtHead(allocEvent);
+        NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::AllocateArrayActionTag>(resultVarPtr);
+        cAction->u_iVal = length;
     }
 
-    void EventLog::RecordJsRTAllocateArrayBuffer(Js::ScriptContext* ctx, byte* buff, uint32 size)
+    void EventLog::RecordJsRTAllocateArrayBuffer(Js::ScriptContext* ctx, uint32 size, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        byte* abuff = this->m_eventSlabAllocator.SlabAllocateArray<byte>(size);
-        js_memcpy_s(abuff, size, buff, size);
-
-        JsRTArrayBufferAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTArrayBufferAllocateAction>(etime, ctxTag, size, buff);
-
-        this->InsertEventAtHead(allocEvent);
+        NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::AllocateArrayBufferActionTag>(resultVarPtr);
+        cAction->u_iVal = size;
     }
 
-    void EventLog::RecordJsRTAllocateFunction(Js::ScriptContext* ctx, bool isNamed, Js::Var optName)
+    void EventLog::RecordJsRTAllocateExternalArrayBuffer(Js::ScriptContext* ctx, byte* buff, uint32 size, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+        NSLogEvents::JsRTByteBufferAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTByteBufferAction, NSLogEvents::EventKind::AllocateExternalArrayBufferActionTag>(resultVarPtr);
+        cAction->Length = size;
 
-        NSLogValue::ArgRetValue name;
-        NSLogValue::InitializeArgRetValueAsInvalid(name);
+        cAction->Buffer = this->m_eventSlabAllocator.SlabAllocateArray<byte>(cAction->Length);
+        js_memcpy_s(cAction->Buffer, cAction->Length, buff, size);
+    }
 
-        if(isNamed)
-        {
-            NSLogValue::ExtractArgRetValueFromVar(optName, name, this->m_eventSlabAllocator);
-        }
-
-        JsRTFunctionAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTFunctionAllocateAction>(etime, ctxTag, isNamed, name);
-
-        this->InsertEventAtHead(allocEvent);
+    void EventLog::RecordJsRTAllocateFunction(Js::ScriptContext* ctx, bool isNamed, Js::Var optName, TTDVar* resultVarPtr)
+    {
+        NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::AllocateFunctionActionTag>(resultVarPtr);
+        cAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(optName);
+        cAction->u_bVal = isNamed ? TRUE : FALSE;
     }
 
     void EventLog::RecordJsRTGetAndClearException(Js::ScriptContext* ctx)
@@ -1810,171 +1797,96 @@ namespace TTD
         this->InsertEventAtHead(exceptionEvent);
     }
 
-    void EventLog::RecordJsRTGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var)
+    void EventLog::RecordJsRTGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        NSLogValue::ArgRetValue val;
-        NSLogValue::ExtractArgRetValueFromVar(var, val, this->m_eventSlabAllocator);
-
-        JsRTGetPropertyAction* getEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetPropertyAction>(etime, ctxTag, pid, val);
-
-        this->InsertEventAtHead(getEvent);
+        NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* gpAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::GetPropertyActionTag>(resultVarPtr);
+        gpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+        gpAction->u_pid = pid;
     }
 
-    void EventLog::RecordJsRTGetIndex(Js::ScriptContext* ctx, Js::Var index, Js::Var var)
+    void EventLog::RecordJsRTGetIndex(Js::ScriptContext* ctx, Js::Var index, Js::Var var, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        NSLogValue::ArgRetValue aindex;
-        NSLogValue::ExtractArgRetValueFromVar(index, aindex, this->m_eventSlabAllocator);
-
-        NSLogValue::ArgRetValue aval;
-        NSLogValue::ExtractArgRetValueFromVar(var, aval, this->m_eventSlabAllocator);
-
-        JsRTGetIndexAction* getEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetIndexAction>(etime, ctxTag, aindex, aval);
-
-        this->InsertEventAtHead(getEvent);
+        NSLogEvents::JsRTVarsArgumentAction* giAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetIndexActionTag>(resultVarPtr);
+        giAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+        giAction->Var2 = TTD_CONVERT_JSVAR_TO_TTDVAR(index);
     }
 
-    void EventLog::RecordJsRTGetOwnPropertyInfo(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var)
+    void EventLog::RecordJsRTGetOwnPropertyInfo(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        NSLogValue::ArgRetValue val;
-        NSLogValue::ExtractArgRetValueFromVar(var, val, this->m_eventSlabAllocator);
-
-        JsRTGetOwnPropertyInfoAction* getInfoEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetOwnPropertyInfoAction>(etime, ctxTag, pid, val);
-
-        this->InsertEventAtHead(getInfoEvent);
+        NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* gpAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::GetOwnPropertyInfoActionTag>(resultVarPtr);
+        gpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+        gpAction->u_pid = pid;
     }
 
-    void EventLog::RecordJsRTGetOwnPropertiesInfo(Js::ScriptContext* ctx, bool isGetNames, Js::Var var)
+    void EventLog::RecordJsRTGetOwnPropertyNamesInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+        NSLogEvents::JsRTVarsArgumentAction* gpAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetOwnPropertyNamesInfoActionTag>(resultVarPtr);
+        gpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+    }
 
-        NSLogValue::ArgRetValue val;
-        NSLogValue::ExtractArgRetValueFromVar(var, val, this->m_eventSlabAllocator);
-
-        JsRTGetOwnPropertiesInfoAction* getInfoEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetOwnPropertiesInfoAction>(etime, ctxTag, isGetNames, val);
-
-        this->InsertEventAtHead(getInfoEvent);
+    void EventLog::RecordJsRTGetOwnPropertySymbolsInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
+    {
+        NSLogEvents::JsRTVarsArgumentAction* gpAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetOwnPropertySymbolsInfoActionTag>(resultVarPtr);
+        gpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
     }
 
     void EventLog::RecordJsRTDefineProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, Js::Var propertyDescriptor)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
-
-        NSLogValue::ArgRetValue pdval;
-        NSLogValue::ExtractArgRetValueFromVar(propertyDescriptor, pdval, this->m_eventSlabAllocator);
-
-        JsRTDefinePropertyAction* defineEvent = this->m_eventSlabAllocator.SlabNew<JsRTDefinePropertyAction>(etime, ctxTag, avar, pid, pdval);
-
-        this->InsertEventAtHead(defineEvent);
+        NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* dpAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::DefinePropertyActionTag>();
+        dpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+        dpAction->Var2 = TTD_CONVERT_JSVAR_TO_TTDVAR(propertyDescriptor);
+        dpAction->u_pid = pid;
     }
 
-    void EventLog::RecordJsRTDeleteProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, bool useStrictRules)
+    void EventLog::RecordJsRTDeleteProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, bool useStrictRules, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
-
-        JsRTDeletePropertyAction* deleteEvent = this->m_eventSlabAllocator.SlabNew<JsRTDeletePropertyAction>(etime, ctxTag, avar, pid, useStrictRules);
-
-        this->InsertEventAtHead(deleteEvent);
+        NSLogEvents::JsRTVarsWithBoolAndPIDArgumentAction* dpAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithBoolAndPIDArgumentAction, NSLogEvents::EventKind::DeletePropertyActionTag>(resultVarPtr);
+        dpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+        dpAction->Pid = pid;
+        dpAction->BoolVal = useStrictRules ? TRUE : FALSE;
     }
 
     void EventLog::RecordJsRTSetPrototype(Js::ScriptContext* ctx, Js::Var var, Js::Var proto)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
-
-        NSLogValue::ArgRetValue aproto;
-        NSLogValue::ExtractArgRetValueFromVar(proto, aproto, this->m_eventSlabAllocator);
-
-        JsRTSetPrototypeAction* setEvent = this->m_eventSlabAllocator.SlabNew<JsRTSetPrototypeAction>(etime, ctxTag, avar, aproto);
-
-        this->InsertEventAtHead(setEvent);
+        NSLogEvents::JsRTVarsArgumentAction* spAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::SetPrototypeActionTag>();
+        spAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+        spAction->Var2 = TTD_CONVERT_JSVAR_TO_TTDVAR(proto);
     }
 
     void EventLog::RecordJsRTSetProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, Js::Var val, bool useStrictRules)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
-
-        NSLogValue::ArgRetValue aval;
-        NSLogValue::ExtractArgRetValueFromVar(val, aval, this->m_eventSlabAllocator);
-
-        JsRTSetPropertyAction* setEvent = this->m_eventSlabAllocator.SlabNew<JsRTSetPropertyAction>(etime, ctxTag, avar, pid, aval, useStrictRules);
-
-        this->InsertEventAtHead(setEvent);
+        NSLogEvents::JsRTVarsWithBoolAndPIDArgumentAction* spAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsWithBoolAndPIDArgumentAction, NSLogEvents::EventKind::SetPropertyActionTag>();
+        spAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+        spAction->Var2 = TTD_CONVERT_JSVAR_TO_TTDVAR(val);
+        spAction->Pid = pid;
+        spAction->BoolVal = useStrictRules ? TRUE : FALSE;
     }
 
     void EventLog::RecordJsRTSetIndex(Js::ScriptContext* ctx, Js::Var var, Js::Var index, Js::Var val)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
-
-        NSLogValue::ArgRetValue aindex;
-        NSLogValue::ExtractArgRetValueFromVar(index, aindex, this->m_eventSlabAllocator);
-
-        NSLogValue::ArgRetValue aval;
-        NSLogValue::ExtractArgRetValueFromVar(val, aval, this->m_eventSlabAllocator);
-
-        JsRTSetIndexAction* setEvent = this->m_eventSlabAllocator.SlabNew<JsRTSetIndexAction>(etime, ctxTag, avar, aindex, aval);
-
-        this->InsertEventAtHead(setEvent);
+        NSLogEvents::JsRTVarsArgumentAction* spAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::SetIndexActionTag>();
+        spAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
+        spAction->Var2 = TTD_CONVERT_JSVAR_TO_TTDVAR(index);
+        spAction->Var3 = TTD_CONVERT_JSVAR_TO_TTDVAR(val);
     }
 
-    void EventLog::RecordJsRTGetTypedArrayInfo(Js::ScriptContext* ctx, bool returnsArrayBuff, Js::Var var)
+    void EventLog::RecordJsRTGetTypedArrayInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
-
-        JsRTGetTypedArrayInfoAction* infoEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetTypedArrayInfoAction>(etime, ctxTag, returnsArrayBuff, avar);
-
-        this->InsertEventAtHead(infoEvent);
+        NSLogEvents::JsRTVarsArgumentAction* giAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetTypedArrayInfoActionTag>();
+        giAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
     }
 
-    void EventLog::RecordJsRTConstructCall(Js::ScriptContext* ctx, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args)
+    void EventLog::RecordJsRTConstructCall(Js::ScriptContext* ctx, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-        TTD_LOG_TAG fTag = ctx->GetThreadContext()->TTDInfo->LookupTagForObject(func);
+        NSLogEvents::JsRTConstructCallAction* ccAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTConstructCallAction, NSLogEvents::EventKind::ConstructCallActionTag>(resultVarPtr);
+        
+        ccAction->ArgCount = argCount + 1;
 
-        NSLogValue::ArgRetValue* argArray = (argCount != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<NSLogValue::ArgRetValue>(argCount) : 0;
-        for(uint32 i = 0; i < argCount; ++i)
-        {
-            Js::Var arg = args[i];
-            NSLogValue::ExtractArgRetValueFromVar(arg, argArray[i], this->m_eventSlabAllocator);
-        }
-        Js::Var* execArgs = (argCount != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<Js::Var>(argCount) : nullptr;
+        static_assert(sizeof(TTDVar) == sizeof(Js::Var), "These need to be the same size (and have same bit layout) for this to work!");
 
-        JsRTConstructCallAction* constructEvent = this->m_eventSlabAllocator.SlabNew<JsRTConstructCallAction>(etime, ctxTag, fTag, argCount, argArray, execArgs);
-
-        this->InsertEventAtHead(constructEvent);
+        ccAction->ArgArray = this->m_eventSlabAllocator.SlabAllocateArray<TTDVar>(ccAction->ArgCount);
+        ccAction->ArgArray[0] = TTD_CONVERT_JSVAR_TO_TTDVAR(func);
+        js_memcpy_s(ccAction->ArgArray + 1, (ccAction->ArgCount - 1) * sizeof(TTDVar), args, argCount * sizeof(Js::Var));
     }
 
     void EventLog::RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 callbackId)

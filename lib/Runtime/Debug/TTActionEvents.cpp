@@ -164,14 +164,24 @@ namespace TTD
 
         void AllocateArrayBufferAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
-            const JsRTByteBufferAction* action = GetInlineEventDataAs<JsRTByteBufferAction, EventKind::AllocateArrayBufferActionTag>(evt);
+            const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::AllocateArrayBufferActionTag>(evt);
+
+            Js::ArrayBuffer* abuff = ctx->GetLibrary()->CreateArrayBuffer(action->u_iVal);
+            AssertMsg(abuff->GetByteLength() == action->u_iVal, "Something is wrong with our sizes.");
+
+            JsRTActionHandleResultForReplay<JsRTVarsWithIntegralUnionArgumentAction, EventKind::AllocateArrayBufferActionTag>(ctx, evt, (Js::Var)abuff);
+        }
+
+        void AllocateExternalArrayBufferAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        {
+            const JsRTByteBufferAction* action = GetInlineEventDataAs<JsRTByteBufferAction, EventKind::AllocateExternalArrayBufferActionTag>(evt);
 
             Js::ArrayBuffer* abuff = ctx->GetLibrary()->CreateArrayBuffer(action->Length);
             AssertMsg(abuff->GetByteLength() == action->Length, "Something is wrong with our sizes.");
 
             js_memcpy_s(abuff->GetBuffer(), abuff->GetByteLength(), action->Buffer, action->Length);
 
-            JsRTActionHandleResultForReplay<JsRTByteBufferAction, EventKind::AllocateArrayBufferActionTag>(ctx, evt, (Js::Var)abuff);
+            JsRTActionHandleResultForReplay<JsRTByteBufferAction, EventKind::AllocateExternalArrayBufferActionTag>(ctx, evt, (Js::Var)abuff);
         }
 
         void AllocateFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
@@ -261,26 +271,31 @@ namespace TTD
             {
                 res = Js::JavascriptOperators::FromPropertyDescriptor(propertyDescriptorValue, ctx);
             }
+            {
+                res = ctx->GetLibrary()->GetUndefined();
+            }
 
             JsRTActionHandleResultForReplay<JsRTVarsWithIntegralUnionArgumentAction, EventKind::GetOwnPropertyInfoActionTag>(ctx, evt, res);
         }
 
-        void GetOwnPropertiesInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        void GetOwnPropertyNamesInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
-            const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::GetOwnPropertiesInfoActionTag>(evt);
+            const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::GetOwnPropertyNamesInfoActionTag>(evt);
             Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
-            Js::Var res = nullptr;
-            if(action->u_bVal)
-            {
-                res = Js::JavascriptOperators::GetOwnPropertyNames(var, ctx);
-            }
-            else
-            {
-                res = Js::JavascriptOperators::GetOwnPropertySymbols(var, ctx);
-            }
+            Js::Var res = Js::JavascriptOperators::GetOwnPropertyNames(var, ctx);
 
-            JsRTActionHandleResultForReplay<JsRTVarsWithIntegralUnionArgumentAction, EventKind::GetOwnPropertiesInfoActionTag>(ctx, evt, res);
+            JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::GetOwnPropertyNamesInfoActionTag>(ctx, evt, res);
+        }
+
+        void GetOwnPropertySymbolsInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
+        {
+            const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::GetOwnPropertySymbolsInfoActionTag>(evt);
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
+
+            Js::Var res = Js::JavascriptOperators::GetOwnPropertySymbols(var, ctx);
+
+            JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::GetOwnPropertySymbolsInfoActionTag>(ctx, evt, res);
         }
 
         void DefinePropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
@@ -335,33 +350,16 @@ namespace TTD
 
         void GetTypedArrayInfoAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
-            const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::GetTypedArrayInfoActionTag>(evt);
+            const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::GetTypedArrayInfoActionTag>(evt);
             Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
-            Js::Var res = nullptr;
-            if(action->u_bVal)
-            {
-                Js::TypedArrayBase* typedArrayBase = Js::TypedArrayBase::FromVar(var);
-                res = typedArrayBase->GetArrayBuffer();
-            }
+            Js::TypedArrayBase* typedArrayBase = Js::TypedArrayBase::FromVar(var);
+            Js::Var res = typedArrayBase->GetArrayBuffer();
 
-            JsRTActionHandleResultForReplay<JsRTVarsWithIntegralUnionArgumentAction, EventKind::GetTypedArrayInfoActionTag>(ctx, evt, res);
+            JsRTActionHandleResultForReplay<JsRTVarsArgumentAction, EventKind::GetTypedArrayInfoActionTag>(ctx, evt, res);
         }
         
         //////////////////
-
-        void JsRTConstructCallAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc)
-        {
-            JsRTConstructCallAction* ccAction = GetInlineEventDataAs<JsRTConstructCallAction, EventKind::ConstructCallActionTag>(evt);
-
-            ccAction->ArgCount = argc + 1;
-
-            static_assert(sizeof(TTDVar) == sizeof(Js::Var), "These need to be the same size (and have same bit layout) for this to work!");
-
-            ccAction->ArgArray = alloc.SlabAllocateArray<TTDVar>(ccAction->ArgCount);
-            ccAction->ArgArray[0] = static_cast<TTDVar>(function);
-            js_memcpy_s(ccAction->ArgArray + 1, (ccAction->ArgCount - 1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
-        }
 
         void JsRTConstructCallAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
@@ -700,7 +698,7 @@ namespace TTD
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
 
-            JsRTActionHandleResultForRecord<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt, res);
+            cfAction->Result = TTD_CONVERT_JSVAR_TO_TTDVAR(res);
 
             cfInfo->HasScriptException = hasScriptException;
             cfInfo->HasTerminiatingException = hasTerminiatingException;

@@ -154,22 +154,30 @@ namespace TTD
             AllocateExternalObjectActionTag,
             AllocateArrayActionTag,
             AllocateArrayBufferActionTag,
+            AllocateExternalArrayBufferActionTag,
             AllocateFunctionActionTag,
+
             GetAndClearExceptionActionTag,
+
             GetPropertyActionTag,
             GetIndexActionTag,
             GetOwnPropertyInfoActionTag,
-            GetOwnPropertiesInfoActionTag,
+            GetOwnPropertyNamesInfoActionTag,
+            GetOwnPropertySymbolsInfoActionTag,
+
             DefinePropertyActionTag,
             DeletePropertyActionTag,
             SetPrototypeActionTag,
             SetPropertyActionTag,
             SetIndexActionTag,
+
             GetTypedArrayInfoActionTag,
+
             ConstructCallActionTag,
             CallbackOpActionTag,
             CodeParseActionTag,
             CallExistingFunctionActionTag,
+
             Count
         };
 
