@@ -2690,12 +2690,12 @@ IR::Instr* LowererMD::Simd128LowerUint32x4FromFloat32x4(IR::Instr *instr)
     two_31_i4_mask = IR::RegOpnd::New(TySimd128I4, m_func);
     tmp = IR::RegOpnd::New(TySimd128F4, m_func);
     tmp2 = IR::RegOpnd::New(TySimd128F4, m_func);
-    // any lanes < 0 ?
-    // CMPLTPS tmp, src, [X86_ALL_ZEROS]
+    // any lanes <= -1.0 ?
+    // CMPLEPS tmp, src, [X86_ALL_FLOAT32_NEG_ONES]
     // MOVMSKPS mask, tmp
     // CMP mask, 0
     // JNE $throwLabel
-    newInstr = IR::Instr::New(Js::OpCode::CMPLTPS, tmp, src, IR::MemRefOpnd::New((void*)&X86_ALL_ZEROS, TySimd128I4, m_func), m_func);
+    newInstr = IR::Instr::New(Js::OpCode::CMPLEPS, tmp, src, IR::MemRefOpnd::New((void*)&X86_ALL_NEG_ONES_F4, TySimd128I4, m_func), m_func);
     instr->InsertBefore(newInstr);
     Legalize(newInstr);
 
