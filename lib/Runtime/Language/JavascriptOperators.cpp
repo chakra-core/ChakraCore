@@ -5044,7 +5044,7 @@ CommonNumber:
             return false;
         }
 
-        if (JavascriptProxy::Is(instance) || instance->IsExternal())
+        if (JavascriptProxy::Is(instance) || HostDispatch::Is(instance) || instance->IsExternal())
         {
             return false;
         }
