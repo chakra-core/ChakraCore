@@ -8403,7 +8403,10 @@ LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
     if(sharedBailout)
     {
-        bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
+        // In case of a shared bailout, we should jump to the code that sets some data on the 
+        // bailout record which is specific to this bailout.
+        bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);
+        instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr()->InsertBefore(bailoutLabel);
     }
     else
     {
@@ -8481,7 +8484,7 @@ LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
     {
         instr->InsertBefore(bailoutLabel);
     }
-    this->m_lowerer->GenerateBailOut(instr);
+    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
 
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
@@ -8506,7 +8509,10 @@ LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
     if(sharedBailout)
     {
-        bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
+        // In case of a shared bailout, we should jump to the code that sets some data on the 
+        // bailout record which is specific to this bailout.
+        bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);
+        instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr()->InsertBefore(bailoutLabel);
     }
     else
     {
@@ -8589,7 +8595,7 @@ LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
     {
         instr->InsertBefore(bailoutLabel);
     }
-    this->m_lowerer->GenerateBailOut(instr);
+    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
 
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
@@ -8614,7 +8620,10 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
     if(sharedBailout)
     {
-        bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
+        // In case of a shared bailout, we should jump to the code that sets some data on the 
+        // bailout record which is specific to this bailout.
+        bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);
+        instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr()->InsertBefore(bailoutLabel);
     }
     else
     {
@@ -8701,7 +8710,7 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     {
         instr->InsertBefore(bailoutLabel);
     }
-    this->m_lowerer->GenerateBailOut(instr);
+    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
 
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);

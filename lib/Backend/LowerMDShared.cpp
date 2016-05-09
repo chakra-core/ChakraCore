@@ -8851,7 +8851,10 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
                 if (sharedBailout)
                 {
-                    bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
+                    // In case of a shared bailout, we should jump to the code that sets some data on the 
+                    // bailout record which is specific to this bailout.
+                    bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);
+                    instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr()->InsertBefore(bailoutLabel);
                 }
                 else
                 {
@@ -9071,7 +9074,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 {
                     instr->InsertBefore(bailoutLabel);
                 }
-                this->m_lowerer->GenerateBailOut(instr);
+                this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
             }
             else
             {
