@@ -150,7 +150,7 @@ SCCLiveness::Build()
 
         if (instr->IsLabelInstr())
         {
-            IR::LabelInstr * labelInstr = instr->AsLabelInstr();
+            IR::LabelInstr * const labelInstr = instr->AsLabelInstr();
 
             if (labelInstr->IsUnreferenced())
             {
@@ -191,7 +191,6 @@ SCCLiveness::Build()
             {
                 this->loopNest++;       // used in spill cost calculation.
 
-                IR::LabelInstr * labelInstr = instr->AsLabelInstr();
                 uint32 lastBranchNum = 0;
                 IR::BranchInstr *lastBranchInstr = nullptr;
 
@@ -672,9 +671,9 @@ SCCLiveness::ExtendLifetime(Lifetime *lifetime, IR::Instr *instr)
         if (isLifetimeExtended)
         {
             // Keep track of the lifetime extended for this loop so we can update the call bits
-            FOREACH_SLISTBASE_ENTRY(Loop *, loop, this->extendedLifetimesLoopList)
+            FOREACH_SLISTBASE_ENTRY(Loop *, currLoop, this->extendedLifetimesLoopList)
             {
-                loop->regAlloc.extendedLifetime->Prepend(lifetime);
+                currLoop->regAlloc.extendedLifetime->Prepend(lifetime);
             }
             NEXT_SLISTBASE_ENTRY
         }
@@ -690,8 +689,8 @@ Lifetime *
 SCCLiveness::InsertLifetime(StackSym *stackSym, RegNum reg, IR::Instr *const currentInstr)
 {
     const uint start = currentInstr->GetNumber(), end = start;
-    Lifetime * lifetime = JitAnew(tempAlloc, Lifetime, tempAlloc, stackSym, reg, start, end, this->func);
-    lifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(currentInstr);
+    Lifetime * newLlifetime = JitAnew(tempAlloc, Lifetime, tempAlloc, stackSym, reg, start, end, this->func);
+    newLlifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(currentInstr);
 
     // Find insertion point
     // This looks like a search, but we should almost exit on the first iteration, except
@@ -705,17 +704,17 @@ SCCLiveness::InsertLifetime(StackSym *stackSym, RegNum reg, IR::Instr *const cur
     }
     NEXT_SLIST_ENTRY_EDITING;
 
-    iter.InsertBefore(lifetime);
+    iter.InsertBefore(newLlifetime);
 
     // let's say 'var a = 10;'. if a is not used in the function, we still want to have the instr, otherwise the write-through will not happen and upon debug bailout
     // we would not be able to restore the values to see in locals window.
     if (this->func->IsJitInDebugMode() && stackSym->HasByteCodeRegSlot() && this->func->IsNonTempLocalVar(stackSym->GetByteCodeRegSlot()))
     {
-        lifetime->isDeadStore = false;
+        newLlifetime->isDeadStore = false;
     }
 
-    stackSym->scratch.linearScan.lifetime = lifetime;
-    return lifetime;
+    stackSym->scratch.linearScan.lifetime = newLlifetime;
+    return newLlifetime;
 }
 
 bool

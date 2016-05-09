@@ -4075,8 +4075,8 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
             {
                 // If there is no upstream type check that is live and could protect guarded properties, we better
                 // not have any properties remaining.
-                ObjTypeGuardBucket* bucket = block->stackSymToGuardedProperties->Get(opnd->GetObjectSym()->m_id);
-                Assert(opnd->IsTypeAvailable() || bucket == nullptr || bucket->GetGuardedPropertyOps()->IsEmpty());
+                ObjTypeGuardBucket* objTypeGuardBucket = block->stackSymToGuardedProperties->Get(opnd->GetObjectSym()->m_id);
+                Assert(opnd->IsTypeAvailable() || objTypeGuardBucket == nullptr || objTypeGuardBucket->GetGuardedPropertyOps()->IsEmpty());
             }
 #endif
         }

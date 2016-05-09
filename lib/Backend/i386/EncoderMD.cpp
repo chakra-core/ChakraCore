@@ -892,16 +892,15 @@ modrm:
             }
             else
             {
-                uint32 value;
                 AssertMsg(opr2->IsIntConstOpnd(), "Expected register or constant as shift amount opnd");
-                value = opr2->AsIntConstOpnd()->GetValue();
-                if (value == 1)
+                uint32 constValue = opr2->AsIntConstOpnd()->GetValue();
+                if (constValue == 1)
                 {
                     *opcodeByte |= 0x10;
                 }
                 else
                 {
-                    this->EmitConst(value, 1);
+                    this->EmitConst(constValue, 1);
                 }
             }
             break;
@@ -952,14 +951,14 @@ modrm:
             {
             case Js::OpCode::RET: {
                 AssertMsg(opr1->IsIntConstOpnd(), "RET should have intConst as src");
-                uint32 value = opr1->AsIntConstOpnd()->GetValue();
+                uint32 constValue = opr1->AsIntConstOpnd()->GetValue();
 
-                if (value==0)
+                if (constValue == 0)
                 {
                     *opcodeByte |= 0x1; // no imm16 follows
                 }
                 else {
-                    this->EmitConst(value, 2);
+                    this->EmitConst(constValue, 2);
                 }
                 break;
             }

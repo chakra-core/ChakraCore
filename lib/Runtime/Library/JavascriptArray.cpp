@@ -4272,7 +4272,6 @@ CaseDefault:
                     {
                         cs->Append(separator);
                     }
-                    Var value;
                     if (JavascriptOperators::GetItem(object, i, &value, scriptContext))
                     {
                         cs->Append(JavascriptArray::JoinToString(value, scriptContext));

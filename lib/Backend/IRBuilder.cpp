@@ -631,7 +631,7 @@ IRBuilder::Build()
             {
                 dstOpnd = this->BuildDstOpnd(frameDisplayReg);
             }
-            IR::Instr *instr = IR::Instr::New(op, dstOpnd, closureOpnd, m_func);
+            instr = IR::Instr::New(op, dstOpnd, closureOpnd, m_func);
             if (frameDisplayOpnd != nullptr)
             {
                 instr->SetSrc2(frameDisplayOpnd);
@@ -3575,7 +3575,6 @@ LdLocalObjSlot:
 NewScFuncCommon:
             {
                 IR::Opnd * functionBodySlotOpnd = IR::IntConstOpnd::New(slotId, TyInt32, m_func, true);
-                SymID symID;
 
                 // The byte code doesn't refer directly to a closure environment. Get the implicit one
                 // that's pointed to by the function body.
@@ -4132,7 +4131,7 @@ stCommon:
     {
         Assert(!isProfiled);
 
-        IR::SymOpnd *   fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
+        fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
 
         // Implicit root object as default instance
         IR::Opnd * instance2Opnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
@@ -4147,7 +4146,7 @@ stCommon:
     {
         Assert(!isProfiled);
 
-        IR::SymOpnd *   fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
+        fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
 
         // Implicit root object as default instance
         IR::Opnd * instance2Opnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
@@ -4588,7 +4587,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
             PropertyKind propertyKind = PropertyKindData;
             fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, propertyIdIndex, propertyKind);
             // Implicit root object as default instance
-            IR::RegOpnd * regOpnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
+            regOpnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
 
             instr = IR::Instr::New(newOpcode, fieldSymOpnd, regOpnd, m_func);
             break;

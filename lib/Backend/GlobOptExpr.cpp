@@ -576,9 +576,9 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
         if (instr->m_opcode != Js::OpCode::StElemI_A && instr->m_opcode != Js::OpCode::StElemI_A_Strict
             && src1 && src1->IsRegOpnd())
         {
-            StackSym *sym = src1->AsRegOpnd()->m_sym;
+            StackSym *sym1 = src1->AsRegOpnd()->m_sym;
 
-            if (this->IsTypeSpecialized(sym, block) || block->globOptData.liveInt32Syms->Test(sym->m_id))
+            if (this->IsTypeSpecialized(sym1, block) || block->globOptData.liveInt32Syms->Test(sym1->m_id))
             {
                 IR::Opnd *src2 = instr->GetSrc2();
 
@@ -588,8 +588,8 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
                 }
                 else if (src2->IsRegOpnd())
                 {
-                    StackSym *sym = src2->AsRegOpnd()->m_sym;
-                    if (this->IsTypeSpecialized(src2->AsRegOpnd()->m_sym, block) || block->globOptData.liveInt32Syms->Test(sym->m_id))
+                    StackSym *sym2 = src2->AsRegOpnd()->m_sym;
+                    if (this->IsTypeSpecialized(sym2, block) || block->globOptData.liveInt32Syms->Test(sym2->m_id))
                     {
                         needsBailOnImplicitCall = false;
                     }
@@ -605,20 +605,20 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
         {
             if (src1->IsRegOpnd())
             {
-                StackSym *varSym = src1->AsRegOpnd()->m_sym;
+                StackSym *varSym1 = src1->AsRegOpnd()->m_sym;
 
-                Assert(!varSym->IsTypeSpec());
-                if (!block->globOptData.liveFields->Test(varSym->m_id))
+                Assert(!varSym1->IsTypeSpec());
+                if (!block->globOptData.liveFields->Test(varSym1->m_id))
                 {
                     return false;
                 }
                 IR::Opnd *src2 = instr->GetSrc2();
                 if (src2 && src2->IsRegOpnd())
                 {
-                    StackSym *varSym = src2->AsRegOpnd()->m_sym;
+                    StackSym *varSym2 = src2->AsRegOpnd()->m_sym;
 
-                    Assert(!varSym->IsTypeSpec());
-                    if (!block->globOptData.liveFields->Test(varSym->m_id))
+                    Assert(!varSym2->IsTypeSpec());
+                    if (!block->globOptData.liveFields->Test(varSym2->m_id))
                     {
                         return false;
                     }

@@ -7,7 +7,7 @@
 #if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
-    ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, InlineCache* cache, uint cacheId, EntryPointInfo *entryPoint,
+    ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, InlineCache* cache, uint const cacheId, EntryPointInfo *entryPoint,
         FunctionBody* const topFunctionBody, FunctionBody *const functionBody, FieldAccessStatsPtr inlineCacheStats)
     {
         if (cache->IsEmpty())
@@ -53,7 +53,7 @@ namespace Js
         ScriptContext* scriptContext = functionBody->GetScriptContext();
         Recycler *const recycler = scriptContext->GetRecycler();
 
-        Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);
+        Js::PropertyId const propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);
         uint16 slotIndex = Constants::NoSlot;
         bool usesAuxSlot = false;
         DynamicObject* prototypeObject = nullptr;
@@ -129,7 +129,6 @@ namespace Js
             if (Js::DynamicType::Is(propertyOwnerType->GetTypeId()))
             {
                 Js::DynamicTypeHandler* propertyOwnerTypeHandler = ((Js::DynamicType*)propertyOwnerType)->GetTypeHandler();
-                Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);
                 Js::PropertyRecord const * const fixedPropertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
                 Var fixedProperty = nullptr;
                 Js::JavascriptFunction* functionObject = nullptr;

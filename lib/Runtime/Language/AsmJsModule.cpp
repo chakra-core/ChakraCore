@@ -189,10 +189,10 @@ namespace Js
         }
 
         int iVar = 0, iVarImp = 0, iFunc = 0, iFuncImp = 0;
-        const int size = mModuleEnvironment.Count();
-        asmInfo->InitializeSlotMap(size);
+        const int moduleEnvCount = mModuleEnvironment.Count();
+        asmInfo->InitializeSlotMap(moduleEnvCount);
         auto slotMap = asmInfo->GetAsmJsSlotMap();
-        for (int i = 0; i < size; i++)
+        for (int i = 0; i < moduleEnvCount; i++)
         {
             AsmJsSymbol* sym = mModuleEnvironment.GetValueAt(i);
             if (sym)

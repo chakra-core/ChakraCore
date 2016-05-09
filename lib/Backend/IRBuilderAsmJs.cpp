@@ -721,9 +721,9 @@ IRBuilderAsmJs::BuildConstantLoads()
     Js::Var * constTable = m_func->GetJnFunction()->GetConstTable();
 
     // Load FrameDisplay
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::ModuleMemReg, TyVar);
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::LdAsmJsEnv, dstOpnd, m_func);
-    AddInstr(instr, Js::Constants::NoByteCodeOffset);
+    IR::RegOpnd * asmJsEnvDstOpnd = BuildDstOpnd(AsmJsRegSlots::ModuleMemReg, TyVar);
+    IR::Instr * ldAsmJsEnvInstr = IR::Instr::New(Js::OpCode::LdAsmJsEnv, asmJsEnvDstOpnd, m_func);
+    AddInstr(ldAsmJsEnvInstr, Js::Constants::NoByteCodeOffset);
 
     // Load heap buffer
     if (m_asmFuncInfo->UsesHeapBuffer())
@@ -834,7 +834,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         // However, for ASMJS, the IR type is enough to tell us it is a Simd128 value.
         dstOpnd->SetValueType(ValueType::UninitializedObject);
 
-        IR::Instr *instr = IR::Instr::New(Js::OpCode::Simd128_LdC, dstOpnd, IR::Simd128ConstOpnd::New(simdConst, TySimd128F4, m_func), m_func);
+        IR::Instr *instrLdC = IR::Instr::New(Js::OpCode::Simd128_LdC, dstOpnd, IR::Simd128ConstOpnd::New(simdConst, TySimd128F4, m_func), m_func);
 
 #if _M_IX86
         if (dstOpnd->m_sym->IsSingleDef())
@@ -843,7 +843,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         }
 #endif
 
-        AddInstr(instr, Js::Constants::NoByteCodeOffset);
+        AddInstr(instrLdC, Js::Constants::NoByteCodeOffset);
         ++regAllocated;
     }
 }
@@ -1821,22 +1821,21 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
     // With SIMD, args have variable size, so we need to track argument position in the args list to be able to assign arg register for first four args on x64.
     if (m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
     {
-        IR::Instr *instr;
         for (uint i = 1; !m_tempList->Empty(); i++)
         {
-            instr = m_tempList->Pop();
+            IR::Instr * instrArg = m_tempList->Pop();
             // record argument position and make room for implicit args
-            instr->GetDst()->GetStackSym()->m_argPosition = i;
+            instrArg->GetDst()->GetStackSym()->m_argPosition = i;
             if (newOpcode == Js::OpCodeAsmJs::I_Call)
             {
                 // implicit func obj arg
-                instr->GetDst()->GetStackSym()->m_argPosition += 1;
+                instrArg->GetDst()->GetStackSym()->m_argPosition += 1;
             }
             else
             {
                 // implicit func obj + callInfo args
                 Assert(newOpcode == Js::OpCodeAsmJs::Call);
-                instr->GetDst()->GetStackSym()->m_argPosition += 2;
+                instrArg->GetDst()->GetStackSym()->m_argPosition += 2;
             }
         }
     }
@@ -1856,9 +1855,9 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
         // after foreign function call, we need to make sure that the heap hasn't been detached
         if (newOpcode == Js::OpCodeAsmJs::Call)
         {
-            IR::Instr * instr = IR::Instr::New(Js::OpCode::ArrayDetachedCheck, m_func);
-            instr->SetSrc1(IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetIsDetachedOffset(), TyInt8, m_func));
-            AddInstr(instr, offset);
+            IR::Instr * instrArrayDetachedCheck = IR::Instr::New(Js::OpCode::ArrayDetachedCheck, m_func);
+            instrArrayDetachedCheck->SetSrc1(IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetIsDetachedOffset(), TyInt8, m_func));
+            AddInstr(instrArrayDetachedCheck, offset);
         }
     }
 }

@@ -2453,7 +2453,7 @@ namespace Js
                 index = indexNode;
             }
 
-            bool isConst = false;
+            isConst = false;
             if (index->nop == knopName)
             {
                 AsmJsSymbol * declSym = mCompiler->LookupIdentifier(index->name(), mFunction);

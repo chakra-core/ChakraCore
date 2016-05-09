@@ -334,14 +334,14 @@ namespace Js
 
         if (args.Info.Count >= 2)
         {
-            Var input = args[1];
+            Var inputArg = args[1];
 
-            if (TaggedInt::Is(input))
+            if (TaggedInt::Is(inputArg))
             {
-                return input;
+                return inputArg;
             }
 
-            double x = JavascriptConversion::ToNumber(args[1], scriptContext);
+            double x = JavascriptConversion::ToNumber(inputArg, scriptContext);
 #if defined(_M_ARM32_OR_ARM64)
             if (Js::JavascriptNumber::IsNan(x))
             {

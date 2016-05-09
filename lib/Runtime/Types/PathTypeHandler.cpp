@@ -1045,14 +1045,14 @@ namespace Js
                 {
                     typeHandlerToUpdate->typePath = newTypePath;
 
-                    DynamicType * nextType = typeHandlerToUpdate->GetPredecessorType();
-                    if (nextType == nullptr)
+                    DynamicType * predecessorType = typeHandlerToUpdate->GetPredecessorType();
+                    if (predecessorType == nullptr)
                     {
                         break;
                     }
 
-                    Assert(nextType->GetTypeHandler()->IsPathTypeHandler());
-                    typeHandlerToUpdate = (PathTypeHandlerBase *)nextType->GetTypeHandler();
+                    Assert(predecessorType->GetTypeHandler()->IsPathTypeHandler());
+                    typeHandlerToUpdate = (PathTypeHandlerBase *)predecessorType->GetTypeHandler();
                     if (typeHandlerToUpdate->typePath != oldTypePath)
                     {
                         break;
@@ -1387,8 +1387,8 @@ namespace Js
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            DynamicType* oldType = instance->GetDynamicType();
-            RecyclerWeakReference<DynamicObject>* oldSingletonInstance = GetSingletonInstance();
+        DynamicType* oldTypeDebug = instance->GetDynamicType();
+        RecyclerWeakReference<DynamicObject>* oldSingletonInstance = GetSingletonInstance();
 #endif
 
         if ((GetIsOrMayBecomeShared() && IsolatePrototypes()))
@@ -1408,9 +1408,7 @@ namespace Js
         {
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            DynamicType* oldType = instance->GetDynamicType();
-            RecyclerWeakReference<DynamicObject>* oldSingletonInstance = GetSingletonInstance();
-            TraceFixedFieldsBeforeSetIsProto(instance, this, oldType, oldSingletonInstance);
+            TraceFixedFieldsBeforeSetIsProto(instance, this, oldTypeDebug, oldSingletonInstance);
 #endif
 
             if (ChangeTypeOnProto())
@@ -1442,7 +1440,7 @@ namespace Js
             SetFlags(IsPrototypeFlag);
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            TraceFixedFieldsAfterSetIsProto(instance, this, typeHandler, oldType, instance->GetDynamicType(), oldSingletonInstance);
+            TraceFixedFieldsAfterSetIsProto(instance, this, typeHandler, oldTypeDebug, instance->GetDynamicType(), oldSingletonInstance);
 #endif
 
         }
