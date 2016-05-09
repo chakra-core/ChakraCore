@@ -73,6 +73,7 @@ function test2() {
     }
     WScript.Echo('test2 failed to throw TDZ error in f()');
 }
+test2();
 
 function test3() {
     // this used to assert before #505 was fixed; arguments expression
@@ -94,6 +95,7 @@ function test3() {
     }
     WScript.Echo('fail');
 }
+test3();
 
 function test4() {
     // this case come from jsfunfuzz and is the smallest I could

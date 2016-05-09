@@ -12,7 +12,7 @@ void EmitLoad(ParseNode *rhs, ByteCodeGenerator *byteCodeGenerator, FuncInfo *fu
 void EmitCall(ParseNode* pnode, Js::RegSlot rhsLocation, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue, BOOL fEvaluateComponents, BOOL fHasNewTarget, Js::RegSlot overrideThisLocation = Js::Constants::NoRegister);
 void EmitSuperFieldPatch(FuncInfo* funcInfo, ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator);
 
-bool EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
+void EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitUseBeforeDeclarationRuntimeError(ByteCodeGenerator *byteCodeGenerator, Js::RegSlot location);
 void VisitClearTmpRegs(ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator, FuncInfo * funcInfo);
 
@@ -4883,6 +4883,12 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
     if (sym && sym->GetNeedDeclaration() && scope->GetFunc() == funcInfo)
     {
         EmitUseBeforeDeclarationRuntimeError(this, Js::Constants::NoRegister);
+        // Intentionally continue on to do normal EmitPropStore behavior so
+        // that the bytecode ends up well-formed for the backend.  This is
+        // in contrast to EmitPropLoad and EmitPropTypeof where they both
+        // tell EmitUseBeforeDeclarationRuntimeError to emit a LdUndef in place
+        // of their load and then they skip emitting their own bytecode.
+        // Potayto potahto.
     }
 
     if (sym == nullptr || sym->GetIsGlobal())
@@ -5991,6 +5997,9 @@ void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncI
             }
             else
             {
+                // EmitLoad will check for needsDeclaration and emit the Use Before Declaration error
+                // bytecode op as necessary, but EmitReference does not check this (by design). So we
+                // must manually check here.
                 EmitUseBeforeDeclaration(pnode->sxCall.pnodeTarget->sxPid.sym, byteCodeGenerator, funcInfo);
                 EmitReference(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo);
             }
@@ -6034,9 +6043,6 @@ void EmitDestructuredElement(ParseNode *elem, Js::RegSlot sourceLocation, ByteCo
     case knopConstDecl:
         // We manually need to set NeedDeclaration since the node won't be visited.
         elem->sxVar.sym->SetNeedDeclaration(false);
-        break;
-
-    case knopName:
         break;
 
     default:
@@ -8862,7 +8868,7 @@ void EmitUseBeforeDeclarationRuntimeError(ByteCodeGenerator * byteCodeGenerator,
     }
 }
 
-bool EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
+void EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
 {
     // Don't emit static use-before-declaration error in a closure or dynamic scope case. We detect such cases with dynamic checks,
     // if necessary.
@@ -8873,10 +8879,7 @@ bool EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator,
         sym->GetScope()->GetFunc() == funcInfo)
     {
         EmitUseBeforeDeclarationRuntimeError(byteCodeGenerator, Js::Constants::NoRegister);
-        return true;
     }
-
-    return false;
 }
 
 void EmitBinary(Js::OpCode opcode, ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
