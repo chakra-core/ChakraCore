@@ -42,6 +42,9 @@ def report_incorrect(file_name, pairs):
 linecount = 0
 pairs = []
 with open(file_name, 'r') as sourcefile:
+    hashbang = sourcefile.readline()
+    if not hashbang.startswith("#!"):
+        sourcefile.seek(0)
     pairs += zip(regexes, sourcefile)
 
 for (regex, line) in pairs:
