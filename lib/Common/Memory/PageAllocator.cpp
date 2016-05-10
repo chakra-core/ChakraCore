@@ -468,15 +468,15 @@ PageSegmentBase<T>::PartialDecommitPages(__in void * address, size_t totalPageCo
 
     Assert(address >= this->address && address < this->GetEndAddress());
     Assert(addressToDecommit >= this->address && addressToDecommit < this->GetEndAddress());
-    Assert(totalPageCount <= allocator->maxAllocPageCount);
-    Assert(((uintptr_t)(((char *)address) - this->address)) <= (allocator->maxAllocPageCount - totalPageCount) * AutoSystemInfo::PageSize);
+    Assert(totalPageCount <= this->allocator->maxAllocPageCount);
+    Assert(((uintptr_t)(((char *)address) - this->address)) <= (this->allocator->maxAllocPageCount - totalPageCount) * AutoSystemInfo::PageSize);
 
     Assert(!IsFreeOrDecommitted(address, (uint)totalPageCount));
     uint base = this->GetBitRangeBase(address);
 
     this->SetRangeInDecommitPagesBitVector(base, (uint)totalPageCount);
     this->decommitPageCount += (uint)totalPageCount;
-    GetAllocator()->GetVirtualAllocator()->Free(addressToDecommit, pageCountToDecommit * AutoSystemInfo::PageSize, MEM_DECOMMIT);
+    this->GetAllocator()->GetVirtualAllocator()->Free(addressToDecommit, pageCountToDecommit * AutoSystemInfo::PageSize, MEM_DECOMMIT);
 
     Assert(this->decommitPageCount == (uint)this->GetCountOfDecommitPages());
 }
