@@ -2501,7 +2501,7 @@ CommonNumber:
             {
                 break;
             }
-            object = JavascriptOperators::GetPrototypeNoTrap(object);
+            object = JavascriptOperators::GetPrototype(object);
         }
         return FALSE;
     }
