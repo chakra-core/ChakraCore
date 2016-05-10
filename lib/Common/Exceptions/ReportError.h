@@ -20,7 +20,7 @@ enum ErrorReason
     EnterScript_FromDOM_NoScriptScope = 12,
     Fatal_FailedToBox_OUTOFMEMORY = 13,
     Fatal_Recycler_MemoryCorruption = 14,
-    Fatal_Debugger_AttachDetach_Failure = 15
+    Fatal_Debugger_AttachDetach_Failure = 15,
     Fatal_EntryExitRecordCorruption = 16,
     Fatal_UnexpectedExceptionHandling = 17
 };
