@@ -642,10 +642,8 @@ namespace Js
             // 0xE06D7363 is C++ exception code
             if (exceptionCode != 0 && !IsDebuggerPresent() && exceptionCode != 0xE06D7363 && exceptionAction != EXCEPTION_CONTINUE_EXECUTION)
             {
-                exceptionInfo;
-
                 // ensure that hosts are not doing SEH across Chakra frames, as that can lead to bad state (e.g. destructors not being called)
-                RaiseFailFastException(NULL, NULL, NULL);
+                UnexpectedExceptionHandling_fatal_error(&exceptionInfo);
             }
         }
         //ret should never be null here

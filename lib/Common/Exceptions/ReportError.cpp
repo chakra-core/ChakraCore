@@ -106,4 +106,16 @@ __declspec(noinline) void FromDOM_NoScriptScope_fatal_error()
     ReportFatalException(NULL, E_UNEXPECTED, EnterScript_FromDOM_NoScriptScope, scenario);
 }
 
+__declspec(noinline) void EntryExitRecord_Corrupted_fatal_error()
+{
+    int scenario = 6;
+    ReportFatalException(NULL, E_UNEXPECTED, Fatal_EntryExitRecordCorruption, scenario);
+}
+
+__declspec(noinline) void UnexpectedExceptionHandling_fatal_error(EXCEPTION_POINTERS * originalException)
+{
+    int scenario = 7;
+    ReportFatalException(NULL, E_UNEXPECTED, Fatal_UnexpectedExceptionHandling, scenario);
+}
+
 #pragma optimize("",on)
