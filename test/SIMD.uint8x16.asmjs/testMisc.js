@@ -306,8 +306,8 @@ var i4 = stdlib.SIMD.Int32x4;
         while ( (loopIndex|0) < (loopCOUNT|0)) {
             x = u16min(x, u16fi16(b));
             y = u16max(y, u16fi16(d));
-            x = u16shiftLeftByScalar(x, loopIndex>>>0);
-            y = u16shiftRightByScalar(y, loopIndex>>>0);
+            x = u16shiftLeftByScalar(x, loopIndex);
+            y = u16shiftRightByScalar(y, loopIndex);
             
             loopIndex = (loopIndex + 1) | 0;
         }
