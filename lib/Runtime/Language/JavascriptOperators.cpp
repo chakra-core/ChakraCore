@@ -5044,12 +5044,17 @@ CommonNumber:
             return false;
         }
 
-        if (JavascriptProxy::Is(instance) || instance->IsExternal())
+        TypeId typeId = instance->GetTypeId();
+        if (typeId == TypeIds_Proxy || typeId == TypeIds_HostDispatch)
         {
             return false;
         }
-        if (DynamicType::Is(instance->GetTypeId()) && 
+        if (DynamicType::Is(typeId) && 
             static_cast<DynamicObject*>(instance)->GetTypeHandler()->IsStringTypeHandler())
+        {
+            return false;
+        }
+        if (instance->IsExternal())
         {
             return false;
         }
