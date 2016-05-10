@@ -16,6 +16,7 @@
 #include "Library/JavascriptRegExpConstructor.h"
 #include "Library/SameValueComparer.h"
 #include "Library/MapOrSetDataList.h"
+#include "Library/JavascriptPromise.h"
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptMap.h"
 #include "Library/JavascriptSet.h"
@@ -2514,6 +2515,15 @@ namespace Js
                         RecyclableWeakSetObjectWalker *pWeakSetWalker = Anew(arena, RecyclableWeakSetObjectWalker, scriptContext, weakSet);
                         fakeGroupObjectWalkerList->Add(pWeakSetWalker);
                     }
+                    else if (typeId == TypeIds_Promise)
+                    {
+                        // Provide [Promise] group object.
+                        EnsureFakeGroupObjectWalkerList();
+
+                        JavascriptPromise* promise = JavascriptPromise::FromVar(object);
+                        RecyclablePromiseObjectWalker *pPromiseWalker = Anew(arena, RecyclablePromiseObjectWalker, scriptContext, promise);
+                        fakeGroupObjectWalkerList->Add(pPromiseWalker);
+                    }
                     else if (Js::DynamicType::Is(typeId))
                     {
                         DynamicObject *const dynamicObject = Js::DynamicObject::FromVar(instance);
@@ -3653,6 +3663,96 @@ namespace Js
             Js::PropertyIds::Proxy,
             pResolvedObject->obj,
             false /*isInDeadZone*/);
+
+        return TRUE;
+    }
+
+    //--------------------------
+    // RecyclablePromiseObjectDisplay
+
+    RecyclablePromiseObjectDisplay::RecyclablePromiseObjectDisplay(ResolvedObject* resolvedObject)
+        : RecyclableObjectDisplay(resolvedObject)
+    {
+    }
+
+    WeakArenaReference<IDiagObjectModelWalkerBase>* RecyclablePromiseObjectDisplay::CreateWalker()
+    {
+        ReferencedArenaAdapter* pRefArena = scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticArena();
+        if (pRefArena)
+        {
+            IDiagObjectModelWalkerBase* pOMWalker = Anew(pRefArena->Arena(), RecyclablePromiseObjectWalker, scriptContext, instance);
+            return HeapNew(WeakArenaReference<IDiagObjectModelWalkerBase>, pRefArena, pOMWalker);
+        }
+        return nullptr;
+    }
+
+    //--------------------------
+    // RecyclablePromiseObjectWalker
+
+    RecyclablePromiseObjectWalker::RecyclablePromiseObjectWalker(ScriptContext* pContext, Var _instance)
+        : RecyclableObjectWalker(pContext, _instance)
+    {
+    }
+
+    BOOL RecyclablePromiseObjectWalker::GetGroupObject(ResolvedObject* pResolvedObject)
+    {
+        pResolvedObject->name = _u("[Promise]");
+        pResolvedObject->propId = Constants::NoProperty;
+        pResolvedObject->obj = instance;
+        pResolvedObject->scriptContext = scriptContext;
+        pResolvedObject->typeId = JavascriptOperators::GetTypeId(pResolvedObject->obj);
+        pResolvedObject->address = nullptr;
+
+        pResolvedObject->objectDisplay = Anew(GetArenaFromContext(scriptContext), RecyclablePromiseObjectDisplay, pResolvedObject);
+        pResolvedObject->objectDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY | DBGPROP_ATTRIB_VALUE_IS_FAKE);
+        return TRUE;
+    }
+
+    BOOL RecyclablePromiseObjectWalker::Get(int i, ResolvedObject* pResolvedObject)
+    {
+        JavascriptPromise* promise = JavascriptPromise::FromVar(instance);
+
+        if (i == 0)
+        {
+            pResolvedObject->name = _u("[status]");
+
+            switch (promise->GetStatus())
+            {
+            case JavascriptPromise::PromiseStatusCode_Undefined:
+                pResolvedObject->obj = scriptContext->GetLibrary()->GetUndefinedDisplayString();
+                break;
+            case JavascriptPromise::PromiseStatusCode_Unresolved:
+                pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("pending"));
+            case JavascriptPromise::PromiseStatusCode_HasResolution:
+                pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("resolved"));
+                break;
+            case JavascriptPromise::PromiseStatusCode_HasRejection:
+                pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("rejected"));
+                break;
+            default:
+                AssertMsg(false, "New PromiseStatusCode not handled in debugger");
+                pResolvedObject->obj = scriptContext->GetLibrary()->GetUndefinedDisplayString();
+                break;
+            }
+        }
+        else if (i == 1)
+        {
+            pResolvedObject->name = _u("[value]");
+            Var result = promise->GetResult();
+            pResolvedObject->obj = result != nullptr ? result : scriptContext->GetLibrary()->GetUndefinedDisplayString();
+        }
+        else
+        {
+            Assert(false);
+            return FALSE;
+        }
+
+        pResolvedObject->propId = Constants::NoProperty;
+        pResolvedObject->scriptContext = scriptContext;
+        pResolvedObject->typeId = JavascriptOperators::GetTypeId(pResolvedObject->obj);
+        pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
+        pResolvedObject->objectDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY | DBGPROP_ATTRIB_VALUE_IS_FAKE);
+        pResolvedObject->address = nullptr;
 
         return TRUE;
     }

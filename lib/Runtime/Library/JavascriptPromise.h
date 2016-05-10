@@ -363,7 +363,6 @@ namespace Js
         static Var TryCallResolveOrRejectHandler(Var handler, Var value, ScriptContext* scriptContext);
         static Var TryRejectWithExceptionObject(JavascriptExceptionObject* exceptionObject, Var handler, ScriptContext* scriptContext);
 
-    protected:
         enum PromiseStatus
         {
             PromiseStatusCode_Undefined,
@@ -372,6 +371,10 @@ namespace Js
             PromiseStatusCode_HasRejection
         };
 
+        PromiseStatus GetStatus() const { return status; }
+        Var GetResult() const { return result; }
+
+    protected:
         PromiseStatus status;
         Var result;
         JavascriptPromiseReactionList* resolveReactions;
