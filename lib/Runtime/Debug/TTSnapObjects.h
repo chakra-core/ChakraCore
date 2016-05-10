@@ -63,9 +63,6 @@ namespace TTD
             //The numeric indexed properties associated with the object (or invalid if no associated array)
             TTD_PTR_ID OptIndexedObjectArray;
 
-            //The tag given to uniquely identify this object accross time (for logging and callback uses)
-            TTD_LOG_TAG ObjectLogTag;
-
             //Objects this depends on when creating (or nullptr if no dependencies) 
             DependsOnInfo* OptDependsOnInfo;
 
@@ -92,7 +89,7 @@ namespace TTD
         }
 
         //The main method that should be called to extract the information from a snap object
-        void ExtractCompoundObject(NSSnapObjects::SnapObject* sobj, Js::RecyclableObject* obj, bool isWellKnown, bool isLogged, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc);
+        void ExtractCompoundObject(NSSnapObjects::SnapObject* sobj, Js::RecyclableObject* obj, bool isWellKnown, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc);
 
         //Extract the basic information for a snap object (helpers)
         void StdPropertyExtract_StaticType(SnapObject* snpObject, Js::RecyclableObject* obj);

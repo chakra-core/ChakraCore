@@ -1060,6 +1060,18 @@ private:
 
         //Keep track of roots, loaded script, and the current debugger state
         TTD::ObjectPinSet* m_ttdRootSet;
+        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, RecyclableObject*, HeapAllocator> m_ttdRootTagIdMap;
+
+        //
+        //TODO: this results in a memory leak for programs with weak collections -- we should fix this
+        //
+        TTD::ObjectPinSet* TTDWeakReferencePinSet;
+
+#if ENABLE_TTD_DEBUGGING
+        //In replay pin all the local roots live
+        TTD::ObjectPinSet* m_ttdLocalRootSet;
+        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, RecyclableObject*, HeapAllocator> m_ttdLocalRootTagIdMap;
+#endif
 
         //The lists containing the top-level code that is loaded in this context
         JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelScriptLoad;
@@ -1074,7 +1086,7 @@ private:
         TTD::TTDMode m_ttdMode;
 
         //The LogTag for this script context (the same as the tag for the global object but we put it here for fast lookup)
-        TTD_LOG_TAG ScriptContextLogTag;
+        TTD_LOG_PTR_ID ScriptContextLogTag;
 
         //Additional runtime context that we only care about if TTD is running (or will be running)
         TTD::RuntimeContextInfo* m_ttdAddtlRuntimeContext;
@@ -1084,24 +1096,24 @@ private:
 
         ////
 
-		//Use this to check specifically if we are in record AND this code is being run on behalf of the user application
-		bool ShouldPerformRecordAction() const
-		{
-			//return true if RecordEnabled and ~ExcludedExecution
-			return (this->m_ttdMode & TTD::TTDMode::TTDShouldRecordActionMask) == TTD::TTDMode::RecordEnabled;
-		}
+        //Use this to check specifically if we are in record AND this code is being run on behalf of the user application
+        bool ShouldPerformRecordAction() const
+        {
+            //return true if RecordEnabled and ~ExcludedExecution
+            return (this->m_ttdMode & TTD::TTDMode::TTDShouldRecordActionMask) == TTD::TTDMode::RecordEnabled;
+        }
 
-		//Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
-		bool ShouldPerformDebugAction() const
-		{
+        //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
+        bool ShouldPerformDebugAction() const
+        {
 #if ENABLE_TTD_DEBUGGING
-			//return true if DebuggingEnabled and ~ExcludedExecution
-			return (this->m_ttdMode & TTD::TTDMode::TTDShouldDebugActionMask) == TTD::TTDMode::DebuggingEnabled;
+            //return true if DebuggingEnabled and ~ExcludedExecution
+            return (this->m_ttdMode & TTD::TTDMode::TTDShouldDebugActionMask) == TTD::TTDMode::DebuggingEnabled;
 
 #else
-			return false;
+            return false;
 #endif
-		}
+        }
 
         //Use this to check if the TTD has been set into record/replay mode (although we still need to check if we should do any record ro replay)
         bool IsTTDActive() const
@@ -1126,12 +1138,16 @@ private:
         }
 
         //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
-        bool IsRootTrackedObject_TTD(Js::RecyclableObject* newRoot);
-        void AddTrackedRoot_TTD(Js::RecyclableObject* newRoot);
-        void RemoveTrackedRoot_TTD(Js::RecyclableObject* deleteRoot);
+        void AddTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
+        void RemoveTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot);
 
+#if ENABLE_TTD_DEBUGGING
+        void AddLocalRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
+        void ClearLocalRoots_TTD();
+#endif
+
+        Js::RecyclableObject* LookupObjectForLogID(TTD_LOG_PTR_ID origId);
         void ClearRootsForSnapRestore_TTD();
-        void ExtractSnapshotRoots_TTD(JsUtil::List<Js::Var, HeapAllocator>& rootList) const;
 
         //Mark all the well-known objects/values/types from this script context
         void MarkWellKnownObjects_TTD(TTD::MarkTable& marks) const;

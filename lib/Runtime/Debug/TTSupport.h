@@ -43,6 +43,12 @@ typedef uint64 TTD_PTR_ID;
 #define TTD_COERCE_PTR_ID_TO_VAR(X) (reinterpret_cast<Js::Var>(X))
 #define TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(X) (reinterpret_cast<Js::FunctionBody*>(X))
 
+//The representation of LOG ids (based on object pointers)
+typedef uint64 TTD_LOG_PTR_ID;
+#define TTD_INVALID_LOG_PTR_ID 0ul
+
+#define TTD_CONVERT_OBJ_TO_LOG_PTR_ID(X) reinterpret_cast<TTD_LOG_PTR_ID>(X)
+
 //The representation of an identifier (currently access path) for a well known object/primitive/function body/etc. in the JS engine or HOST
 typedef LPCWSTR TTD_WELLKNOWN_TOKEN;
 #define TTD_INVALID_WELLKNOWN_TOKEN nullptr
@@ -1160,7 +1166,6 @@ namespace TTD
         AllKindMask = 0xF,
         //
         JsWellKnownObj = 0x10, //mark for objects that the JS runtime creates and are well known (Array, Undefined, ...)
-        LogTaggedObj = 0x20, //mark for objects that are log tagged
         SpecialTagMask = 0xF0
     };
     DEFINE_ENUM_FLAG_OPERATORS(MarkTableTag);
@@ -1321,11 +1326,6 @@ namespace TTD
         bool GetTagValueIsWellKnown() const
         {
             return (this->m_markArray[this->m_iterPos] & MarkTableTag::JsWellKnownObj) != MarkTableTag::Clear;
-        }
-
-        bool GetTagValueIsLogged() const
-        {
-            return (this->m_markArray[this->m_iterPos] & MarkTableTag::LogTaggedObj) != MarkTableTag::Clear;
         }
 
         template<typename T>

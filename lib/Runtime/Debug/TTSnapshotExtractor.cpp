@@ -98,7 +98,7 @@ namespace TTD
 
             Js::ScopeSlots slots(scope);
             slotInfo->SlotId = TTD_CONVERT_VAR_TO_PTR_ID(scope);
-            slotInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+            slotInfo->ScriptContextTag = ctx->ScriptContextLogTag;
 
             slotInfo->SlotCount = slots.GetCount();
             slotInfo->Slots = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<TTDVar>(slotInfo->SlotCount);
@@ -152,7 +152,7 @@ namespace TTD
 
             NSSnapValues::ScriptFunctionScopeInfo* funcScopeInfo = this->m_pendingSnap->GetNextAvailableFunctionScopeEntry();
             funcScopeInfo->ScopeId = TTD_CONVERT_ENV_TO_PTR_ID(environment);
-            funcScopeInfo->ScriptContextTag = funcScopeInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+            funcScopeInfo->ScriptContextTag = funcScopeInfo->ScriptContextTag = ctx->ScriptContextLogTag;
 
             funcScopeInfo->ScopeCount = environment->GetLength();
             funcScopeInfo->ScopeArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<NSSnapValues::ScopeInfoEntry>(funcScopeInfo->ScopeCount);
@@ -379,9 +379,6 @@ namespace TTD
             ctxs.Item(i)->MarkWellKnownObjects_TTD(this->m_marks);
         }
 
-        //Mark any types that are logged
-        threadContext->MarkLoggedObjects_TTD(this->m_marks);
-
         double endTime = timer.Now();
         this->m_pendingSnap->MarkTime = (endTime - startTime) / 1000.0;
     }
@@ -456,7 +453,7 @@ namespace TTD
                 {
                     this->ExtractScriptFunctionEnvironmentIfNeeded(this->m_marks.GetPtrValue<Js::ScriptFunction*>());
                 }
-                NSSnapObjects::ExtractCompoundObject(snap->GetNextAvailableCompoundObjectEntry(), this->m_marks.GetPtrValue<Js::RecyclableObject*>(), this->m_marks.GetTagValueIsWellKnown(), this->m_marks.GetTagValueIsLogged(), this->m_idToTypeMap, alloc);
+                NSSnapObjects::ExtractCompoundObject(snap->GetNextAvailableCompoundObjectEntry(), this->m_marks.GetPtrValue<Js::RecyclableObject*>(), this->m_marks.GetTagValueIsWellKnown(), this->m_idToTypeMap, alloc);
                 break;
             }
             case MarkTableTag::FunctionBodyTag:

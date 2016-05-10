@@ -9,74 +9,12 @@
 
 #if ENABLE_TTD
 
-//A default capacity to use for our tag maps
-#define TTD_TAG_MAP_DEFAULT_CAPACITY 512
-
-//A default capacity to use for the 
-#define TTD_PROPERTY_SET_DEFAULT_CAPACITY 1024
-
 //default capcities for our core object maps/lists
 #define TTD_CORE_OBJECT_COUNT 1028
 #define TTD_CORE_FUNCTION_BODY_COUNT 512
 
 namespace TTD
 {
-    //This class implements a data structure for tracking tagged object & pinned properties in the ThreadContext
-    class RuntimeThreadInfo
-    {
-    private:
-        //The counter we use for the tagging (and the counter we use for identity tagging)
-        TTD_LOG_TAG m_logTagCtr;
-
-        //Maps of objects that we log and track accross host/engine
-        JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_TAG, ArenaAllocator> m_loggedObjectToTagMap;
-        JsUtil::BaseDictionary<TTD_LOG_TAG, Js::RecyclableObject*, ArenaAllocator> m_tagToLoggedObjectMap;
-
-        //Memory allocators that everyone uses
-        ArenaAllocator* m_generalAllocator;
-        ArenaAllocator* m_bulkAllocator;
-
-        ArenaAllocator* m_taggingAllocator;
-
-    public:
-        RuntimeThreadInfo(ThreadContext* threadContext, ArenaAllocator* generalAllocator, ArenaAllocator* bulkAllocator, ArenaAllocator* taggingAllocator);
-        ~RuntimeThreadInfo();
-
-        ArenaAllocator* GetGeneralAllocator() { return this->m_generalAllocator; }
-        ArenaAllocator* GetBulkAllocator() { return this->m_bulkAllocator; }
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        TTD_LOG_TAG GetLogTagValueForDiagnostics() const { return this->m_logTagCtr; }
-#endif
-
-        //When reset the object tagging
-        void GetTagsForSnapshot(TTD_LOG_TAG* logTag) const;
-        void ResetTagsForRestore_TTD(TTD_LOG_TAG logTag);
-
-        //Set a specific tag for an object (snapshot inflate) -- if log tag is invalid then we don't add it to any of the tracked maps
-        void SetObjectTrackingTagSnapAndInflate_TTD(TTD_LOG_TAG logTag, Js::RecyclableObject* obj);
-
-        //Add/remove an object to the tracked tag map 
-        void TrackTagObject(Js::RecyclableObject* obj);
-        void UnTrackTagObject(Js::RecyclableObject* obj);
-
-        //Lookup objects for tags and tags for objects
-        TTD_LOG_TAG LookupTagForObject(Js::RecyclableObject* obj) const;
-        Js::RecyclableObject* LookupObjectForTag(TTD_LOG_TAG tag) const;
-
-        //Mark all of the logged objects with their special tag
-        void MarkLoggedObjects(MarkTable& marks) const;
-
-        //Do any cross host/engine object tagging -- handles all cases so call this from all the JsRT APIs
-        //Not enabled
-        //Enabled but not running record/debug yet
-        //Enabled and in record/debug 
-        //Detached
-        static void JsRTTagObject(ThreadContext* threadContext, Js::Var value);
-    };
-
-    //////////////////
-
     //This class implements the data structures and algorithms needed by the ScriptContext
     class RuntimeContextInfo
     {

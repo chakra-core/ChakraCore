@@ -912,7 +912,7 @@ namespace TTD
 
         void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen, SlabAllocator& alloc)
         {
-            fbInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(fb->GetScriptContext());
+            fbInfo->ScriptContextTag = fb->GetScriptContext()->ScriptContextLogTag;
             fbInfo->TopLevelBodyCtr = topLevelCtr;
 
             alloc.CopyNullTermStringInto(fb->GetDisplayName(), fbInfo->FunctionName);
@@ -1221,7 +1221,7 @@ namespace TTD
         void ExtractFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, bool isWellKnown, SlabAllocator& alloc)
         {
             fbInfo->FunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
-            fbInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(fb->GetScriptContext());
+            fbInfo->ScriptContextTag = fb->GetScriptContext()->ScriptContextLogTag;
 
             alloc.CopyStringIntoWLength(fb->GetDisplayName(), fb->GetDisplayNameLength(), fbInfo->FunctionName);
             AssertMsg(wcscmp(fbInfo->FunctionName.Contents, Js::Constants::GlobalCode) != 0, "Why are we snapshotting global code??");
@@ -1412,7 +1412,7 @@ namespace TTD
 
         void ExtractScriptContext(SnapContext* snapCtx, Js::ScriptContext* ctx, SlabAllocator& alloc)
         {
-            snapCtx->m_scriptContextTagId = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+            snapCtx->m_scriptContextTagId = ctx->ScriptContextLogTag;
 
             snapCtx->m_isPNRGSeeded = ctx->GetLibrary()->IsPRNGSeeded();
             snapCtx->m_randomSeed0 = ctx->GetLibrary()->GetRandSeed0();
@@ -1446,6 +1446,7 @@ namespace TTD
                 snapCtx->m_evalTopLevelScriptArray[i] = topLevelEval.Item(i);
             }
 
+            asdf; //get this working with the updated root sets/maps
             snapCtx->m_rootCount = ctx->m_ttdRootSet->Count();
             snapCtx->m_rootArray = (snapCtx->m_rootCount != 0) ? alloc.SlabAllocateArray<TTD_PTR_ID>(snapCtx->m_rootCount) : nullptr;
 

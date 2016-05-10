@@ -189,7 +189,7 @@ namespace Js
 
         sType->PrototypeVar = this->GetPrototype();
 
-        sType->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(this->GetScriptContext());
+        sType->ScriptContextTag = this->GetScriptContext()->ScriptContextLogTag;
         sType->TypeHandlerInfo = optHandler;
 
         sType->HasNoEnumerableProperties = false;

@@ -977,8 +977,6 @@ public:
     void BeginCtxTimeTravel(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor);
     void EndCtxTimeTravel(Js::ScriptContext* ctx);
 
-    void MarkLoggedObjects_TTD(TTD::MarkTable& marks) const;
-
     //Emit the TT Log
     void EmitTTDLogIfNeeded();
 

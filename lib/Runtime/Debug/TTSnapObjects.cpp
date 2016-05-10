@@ -10,7 +10,7 @@ namespace TTD
 {
     namespace NSSnapObjects
     {
-        void ExtractCompoundObject(NSSnapObjects::SnapObject* sobj, Js::RecyclableObject* obj, bool isWellKnown, bool isLogged, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc)
+        void ExtractCompoundObject(NSSnapObjects::SnapObject* sobj, Js::RecyclableObject* obj, bool isWellKnown, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc)
         {
             AssertMsg(!obj->CanHaveInterceptors(), "We are not prepared for custom external objects yet");
 
@@ -20,8 +20,6 @@ namespace TTD
 
             Js::Type* objType = obj->GetType();
             sobj->SnapType = idToTypeMap.LookupKnownItem(TTD_CONVERT_TYPEINFO_TO_PTR_ID(objType));
-
-            sobj->ObjectLogTag = isLogged ? obj->GetScriptContext()->GetThreadContext()->TTDInfo->LookupTagForObject(obj) : TTD_INVALID_LOG_TAG;
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
             InitializeDiagnosticOriginInformation(sobj->DiagOriginInfo);
@@ -348,8 +346,6 @@ namespace TTD
                 writer->WriteSequenceEnd();
             }
 
-            writer->WriteLogTag(NSTokens::Key::logTag, snpObject->ObjectLogTag, NSTokens::Separator::CommaSeparator);
-
             if(Js::DynamicType::Is(snpObject->SnapType->JsTypeId))
             {
                 const NSSnapType::SnapHandler* handler = snpObject->SnapType->TypeHandlerInfo;
@@ -442,8 +438,6 @@ namespace TTD
                 }
                 reader->ReadSequenceEnd();
             }
-
-            snpObject->ObjectLogTag = reader->ReadLogTag(NSTokens::Key::logTag, true);
 
             if(Js::DynamicType::Is(snpObject->SnapType->JsTypeId))
             {

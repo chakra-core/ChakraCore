@@ -1877,11 +1877,6 @@ void ThreadContext::EndCtxTimeTravel(Js::ScriptContext* ctx)
     this->TTDLog->StopTimeTravelOnScript(ctx);
 }
 
-void ThreadContext::MarkLoggedObjects_TTD(TTD::MarkTable& marks) const
-{
-    this->TTDInfo->MarkLoggedObjects(marks);
-}
-
 void ThreadContext::EmitTTDLogIfNeeded()
 {
     this->TTDLog->EmitLogIfNeeded();
