@@ -28,12 +28,9 @@ function asmModule(stdlib, imports) {
     var i4or = i4.or;
     var i4xor = i4.xor;
     var i4not = i4.not;
-    var i4extractLane = i4.extractLane;
     //var i4shiftLeftByScalar = i4.shiftLeftByScalar;
     //var i4shiftRightByScalar = i4.shiftRightByScalar;
     //var i4shiftRightArithmeticByScalar = i4.shiftRightArithmeticByScalar;
-    var i16 = stdlib.SIMD.Int8x16;
-    var i16check = i16.check;
 
     var f4 = stdlib.SIMD.Float32x4;  
     var f4check = f4.check;
@@ -63,10 +60,6 @@ function asmModule(stdlib, imports) {
     var f4greaterThanOrEqual = f4.greaterThanOrEqual;
 
     var f4select = f4.select;
-    var f4and = f4.and;
-    var f4or = f4.or;
-    var f4xor = f4.xor;
-    var f4not = f4.not;
 
     
 
@@ -177,38 +170,8 @@ function asmModule(stdlib, imports) {
 
         return +ret;
     }
-
-    function fctest(a)
-    {
-        a = i16check(a);
-        return a;
-    }
-    function fcBug_1()
-    {
-        var x = i4(-1, -2, -3, -4);
-        var k = i16(1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8);
-        k = i16check(fctest(k));
-        return i4check(x);
-    }
-    function fcBug_2()
-    {
-        var x = i4(-1, -2, -3, -4);
-        var k = i16(1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8);
-        x = i4check(fcBug_1());
-        return i16check(k);
-    }
-
-    //Validation will fail with the bug
-    function retValueCoercionBug()
-    {
-        var ret = 0.0;
-        var ret1 = 0;
-        var a = i4(1, 2, 3, 4);
-        ret = +i4extractLane(a, 0);
-        ret1 = (i4extractLane(a, 0))|0;
-    }
-
-    return {func1:func1, func2:func2, func3:func3, func4:func4, fcBug_2:fcBug_2, fcBug_1:fcBug_1};
+    
+    return {func1:func1, func2:func2, func3:func3, func4:func4/*, func5:func5, func6:func6*/};
 }
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
@@ -226,16 +189,11 @@ var ret1 = m.func1(s1, s2);
 var ret2 = m.func2(s1, s2, s3, s4);
 var ret3 = m.func3(s1, s2, s3, s4, s5, s6, s7, s8);
 var ret4 = m.func4();
-var ret5 = m.fcBug_1();
-var ret6 = m.fcBug_2();
 
 
 equalSimd([2, 4, 6, 8], ret1, SIMD.Int32x4, "TestCalls");
 equalSimd([4, 8, 12, 16], ret2, SIMD.Int32x4, "TestCalls");
 equalSimd([8, 16, 24, 32], ret3, SIMD.Int32x4, "TestCalls");
 equalSimd([301, 301, 301, 301], ret4, SIMD.Int32x4, "TestCalls");
-equalSimd([-1, -2, -3, -4], ret5, SIMD.Int32x4, "testBug1");
-equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8], ret6, SIMD.Int8x16, "testBug1");
-
 print("PASS");
 

@@ -69,7 +69,6 @@ bool LowererMD::Simd128TryLowerMappedInstruction(IR::Instr *instr)
         break;
 #endif // 0
 
-    case Js::OpCode::Simd128_Not_F4:
     case Js::OpCode::Simd128_Not_I4:
     case Js::OpCode::Simd128_Not_I16:
     case Js::OpCode::Simd128_Not_I8:
@@ -342,16 +341,6 @@ IR::Instr* LowererMD::Simd128LowerUnMappedInstruction(IR::Instr *instr)
     case Js::OpCode::Simd128_GtEq_I8:
     case Js::OpCode::Simd128_GtEq_I16:
         return Simd128LowerGreaterThanOrEqual(instr);
-
-    case Js::OpCode::Simd128_Min_I4:
-    case Js::OpCode::Simd128_Max_I4:
-    case Js::OpCode::Simd128_Min_I16:
-    case Js::OpCode::Simd128_Max_I16:
-    case Js::OpCode::Simd128_Min_U4:
-    case Js::OpCode::Simd128_Max_U4:
-    case Js::OpCode::Simd128_Min_U8:
-    case Js::OpCode::Simd128_Max_U8:
-        return Simd128LowerMinMax(instr);
 
     case Js::OpCode::Simd128_Min_F4:
     case Js::OpCode::Simd128_Max_F4:
@@ -2189,143 +2178,6 @@ IR::Instr* LowererMD::Simd128LowerGreaterThanOrEqual(IR::Instr* instr)
     return pInstr;
 }
 
-IR::Instr* LowererMD::Simd128LowerMinMax(IR::Instr* instr)
-{
-    Assert(instr->m_opcode == Js::OpCode::Simd128_Min_I4 || instr->m_opcode == Js::OpCode::Simd128_Max_I4 ||
-        instr->m_opcode == Js::OpCode::Simd128_Min_I16 || instr->m_opcode == Js::OpCode::Simd128_Max_I16 ||
-        instr->m_opcode == Js::OpCode::Simd128_Min_U4 || instr->m_opcode == Js::OpCode::Simd128_Max_U4 ||
-        instr->m_opcode == Js::OpCode::Simd128_Min_U8 || instr->m_opcode == Js::OpCode::Simd128_Max_U8 );
-
-    IR::Instr *pInstr;
-    IR::Opnd* dst = instr->GetDst();
-    IR::Opnd* src1 = instr->GetSrc1();
-    IR::Opnd* src2 = instr->GetSrc2();
-    Assert(dst->IsRegOpnd() && dst->IsSimd128());
-    Assert(src1->IsRegOpnd() && src1->IsSimd128());
-    Assert(src2->IsRegOpnd() && src2->IsSimd128());
-    IR::RegOpnd* tmp1 = IR::RegOpnd::New(src1->GetType(), m_func);
-    IR::RegOpnd* tmp2 = IR::RegOpnd::New(src1->GetType(), m_func);
-    IR::RegOpnd* mask = IR::RegOpnd::New(src1->GetType(), m_func);
-    IR::RegOpnd* tmpT = IR::RegOpnd::New(src1->GetType(), m_func);
-    IR::RegOpnd* tmpF = IR::RegOpnd::New(src1->GetType(), m_func);
-
-    if (instr->m_opcode == Js::OpCode::Simd128_Min_I4 || instr->m_opcode == Js::OpCode::Simd128_Max_I4 ||
-        instr->m_opcode == Js::OpCode::Simd128_Min_I16 || instr->m_opcode == Js::OpCode::Simd128_Max_I16 ||
-        instr->m_opcode == Js::OpCode::Simd128_Min_U4 || instr->m_opcode == Js::OpCode::Simd128_Max_U4)
-    {
-        // uint32x4.min/max:
-        // tmp1 = pxor src1, xmmword ptr [__xmm@X86_DWORD_SIGNBITS]
-        // tmp2 = pxor src2, xmmword ptr [__xmm@X86_DWORD_SIGNBITS]
-
-        // int32x4.min/max or int8x16.min/max:
-        // movaps tmp1, src1
-        // movaps tmp2, src2
-
-        if (instr->m_opcode == Js::OpCode::Simd128_Min_U4 || instr->m_opcode == Js::OpCode::Simd128_Max_U4)
-        {
-            pInstr = IR::Instr::New(Js::OpCode::PXOR, tmp1, src1, IR::MemRefOpnd::New((void*)&X86_DWORD_SIGNBITS, TySimd128I4, m_func), m_func);
-            instr->InsertBefore(pInstr);
-            Legalize(pInstr);
-
-            pInstr = IR::Instr::New(Js::OpCode::PXOR, tmp2, src2, IR::MemRefOpnd::New((void*)&X86_DWORD_SIGNBITS, TySimd128I4, m_func), m_func);
-            instr->InsertBefore(pInstr);
-            Legalize(pInstr);
-        }
-        else
-        {
-            pInstr = IR::Instr::New(Js::OpCode::MOVAPS, tmp1, src1, m_func);
-            instr->InsertBefore(pInstr);
-            Legalize(pInstr);
-
-            pInstr = IR::Instr::New(Js::OpCode::MOVAPS, tmp2, src2, m_func);
-            instr->InsertBefore(pInstr);
-            Legalize(pInstr);
-        }
-
-        // mask = pcmpgtd tmp1, tmp2 (swap src for Min, pcmpgtb: int8x16)
-        // tmpT = pand    mask, tmp1
-        // tmpF = pandn   mask, tmp2
-        // dst  = por     tmpT, tmpF
-        Js::OpCode cmpOpcode = Js::OpCode::PCMPGTD;
-        if (instr->m_opcode == Js::OpCode::Simd128_Min_I16 || instr->m_opcode == Js::OpCode::Simd128_Max_I16)
-        {
-            cmpOpcode = Js::OpCode::PCMPGTB;
-        }
-
-        // mask = pcmpgtd src1, src2 [pcmpgtb]
-        if (instr->m_opcode == Js::OpCode::Simd128_Min_I4 || instr->m_opcode == Js::OpCode::Simd128_Min_I16 ||
-            instr->m_opcode == Js::OpCode::Simd128_Min_U4)
-        {
-            pInstr = IR::Instr::New(cmpOpcode, mask, tmp2, tmp1, m_func); //swap src when is Min() case
-        }
-        else
-        {
-            pInstr = IR::Instr::New(cmpOpcode, mask, tmp1, tmp2, m_func);
-        }
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // tmpT = pand    mask, src1
-        pInstr = IR::Instr::New(Js::OpCode::PAND, tmpT, mask, src1, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // tmpF = pandn   mask, src2
-        pInstr = IR::Instr::New(Js::OpCode::PANDN, tmpF, mask, src2, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // dst  = por     tmpT, tmpF
-        pInstr = IR::Instr::New(Js::OpCode::POR, dst, tmpT, tmpF, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-    }
-    else
-    {
-        Js::OpCode cmpOpcode = Js::OpCode::PMINSW;
-        if (instr->m_opcode == Js::OpCode::Simd128_Max_U8)
-        {
-            cmpOpcode = Js::OpCode::PMAXSW;
-        }
-        // uint16x8.min/max:
-        // movaps mask,  xmmword ptr [@X86_WORD_SIGNBITS]
-        // tmp1 = pxor src1, mask
-        // tmp2 = pxor src2, mask
-        // dst  = PMINSW tmp1, tmp2 [or PMAXSW]
-        // dst  = pxor dst, mask
-
-        // movaps mask,  xmmword ptr [@X86_WORD_SIGNBITS]
-        pInstr = IR::Instr::New(Js::OpCode::MOVAPS, mask, IR::MemRefOpnd::New((void*)&X86_WORD_SIGNBITS, TySimd128I4, m_func), m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // tmp1 = pxor src1, mask
-        pInstr = IR::Instr::New(Js::OpCode::PXOR, tmp1, src1, mask, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // tmp2 = pxor src2, mask
-        pInstr = IR::Instr::New(Js::OpCode::PXOR, tmp2, src2, mask, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // dst  = PMINSW tmp1, tmp2 [or PMAXSW]
-        pInstr = IR::Instr::New(cmpOpcode, dst, tmp1, tmp2, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // dst  = pxor dst, mask
-        pInstr = IR::Instr::New(Js::OpCode::PXOR, dst, dst, mask, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-    }
-
-    pInstr = instr->m_prev;
-    instr->Remove();
-
-    return pInstr;
-}
-
 IR::Instr* LowererMD::Simd128LowerMinMax_F4(IR::Instr* instr)
 {
     IR::Instr *pInstr;
@@ -3387,10 +3239,7 @@ void LowererMD::Simd128InitOpcodeMap()
     SET_SIMDOPCODE(Simd128_Neq_F4                , CMPNEQPS); // CMPNEQPS
     SET_SIMDOPCODE(Simd128_Gt_F4                 , CMPLTPS); // CMPLTPS (swap srcs)
     SET_SIMDOPCODE(Simd128_GtEq_F4               , CMPLEPS); // CMPLEPS (swap srcs)
-    SET_SIMDOPCODE(Simd128_And_F4                , ANDPS);
-    SET_SIMDOPCODE(Simd128_Or_F4                 , ORPS);
-    SET_SIMDOPCODE(Simd128_Xor_F4                , XORPS );
-    SET_SIMDOPCODE(Simd128_Not_F4                , XORPS );
+
 
 #if 0
     SET_SIMDOPCODE(Simd128_FromFloat32x4_D2, CVTPS2PD);
@@ -3421,8 +3270,6 @@ void LowererMD::Simd128InitOpcodeMap()
     SET_SIMDOPCODE(Simd128_Add_I8               , PADDW);
     SET_SIMDOPCODE(Simd128_Sub_I8               , PSUBW);
     SET_SIMDOPCODE(Simd128_Mul_I8               , PMULLW);
-    SET_SIMDOPCODE(Simd128_Min_I8               , PMINSW);
-    SET_SIMDOPCODE(Simd128_Max_I8               , PMAXSW);
     SET_SIMDOPCODE(Simd128_Eq_I8                , PCMPEQW);
     SET_SIMDOPCODE(Simd128_Lt_I8                , PCMPGTW); // (swap srcs)
     SET_SIMDOPCODE(Simd128_Gt_I8                , PCMPGTW);
@@ -3457,8 +3304,7 @@ void LowererMD::Simd128InitOpcodeMap()
     SET_SIMDOPCODE(Simd128_Not_U16              , XORPS);
     SET_SIMDOPCODE(Simd128_Add_U16              , PADDB);
     SET_SIMDOPCODE(Simd128_Sub_U16              , PSUBB);
-    SET_SIMDOPCODE(Simd128_Min_U16              , PMINUB);
-    SET_SIMDOPCODE(Simd128_Max_U16              , PMAXUB);
+
     SET_SIMDOPCODE(Simd128_Eq_U16               , PCMPEQB); // same as int8x16.equal
     SET_SIMDOPCODE(Simd128_AddSaturate_U16      , PADDUSB);
     SET_SIMDOPCODE(Simd128_SubSaturate_U16      , PSUBUSB);
