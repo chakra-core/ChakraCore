@@ -1872,6 +1872,12 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
         Assert(lastRecord->leaveForHost || lastRecord->leaveForAsyncHostOperation);
         lastRecord->hasReentered = true;
         record->next = lastRecord;
+
+        // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+        if (!IsOnStack(lastRecord) || (uintptr_t)record >= (uintptr_t)lastRecord)
+        {
+            EntryExitRecord_Corrupted_fatal_error();
+        }
     }
 
     this->entryExitRecord = record;
@@ -1881,7 +1887,14 @@ void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
 {
     AssertMsg(record && record == this->entryExitRecord, "Mismatch script entry/exit");
 
-    this->entryExitRecord = this->entryExitRecord->next;
+    // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+    Js::ScriptEntryExitRecord * next = this->entryExitRecord->next;
+    if (next && (!IsOnStack(next) || (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
+    {
+        EntryExitRecord_Corrupted_fatal_error();
+    }
+
+    this->entryExitRecord = next;
 }
 
 BOOL ThreadContext::ReserveStaticTypeIds(__in int first, __in int last)
