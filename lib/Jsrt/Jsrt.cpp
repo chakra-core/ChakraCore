@@ -25,10 +25,13 @@
 
 #if !ENABLE_TTD
 #define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) false
-#define PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(CTX, ACTION_CODE)
-#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX)
 
-#define PERFORM_JSRT_TTD_TAG_ACTION(CTX, VAL)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NORESULT(CTX, ACTION_CODE) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(CTX, ACTION_CODE) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(RESULT) 
+
+//TODO: find and replace all of the occourences of this in jsrt.cpp
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) 
 #endif
 
 JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, bool allowInObjectBeforeCollectCallback)
@@ -352,15 +355,13 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
 #if ENABLE_TTD
         if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
         {
-            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
-
-            TTD::NSLogEvents::JsRTCallFunctionAction* callAction = elog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, jsFunction, cargs, jsArgs.Values);
-            TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext, callAction);
-            
+            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, jsFunction, cargs, jsArgs.Values);
+            TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext, callEvent);
             
             if(scriptContext->TTDRootNestingCount == 0)
             {
-                elog->ResetCallStackForTopLevelCall(callAction->AdditionalInfo->TopLevelCallbackEventTime, hostCallbackId);
+                TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+                elog->ResetCallStackForTopLevelCall(elog->GetLastEventTime(), hostCallbackId);
             }
 
             Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
@@ -382,12 +383,12 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
             }
         }
 
-        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
-
         //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
         //May want to look into more sophisticated means for making this decision later
         if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && scriptContext->TTDRootNestingCount == 0)
         {
+            asdf; //move this to yield point action
+
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
             if(elog->IsTimeForSnapshot())
             {
@@ -596,6 +597,8 @@ STDAPI_(JsErrorCode) JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
             Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
             if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
             {
+                asdf; //wrong test above need to do this anytime Recording is running or pending
+
                 if(*count == 1)
                 {
                     scriptContext->GetThreadContext()->TTDLog->RecordJsRTAddRootRef(scriptContext, (Js::Var)ref);
@@ -657,6 +660,8 @@ STDAPI_(JsErrorCode) JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
             Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
             if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
             {
+                asdf; //wrong test above need to do this anytime Recording is running or pending
+
                 if(*count == 0)
                 {
                     scriptContext->GetThreadContext()->TTDLog->RecordJsRTRemoveRootRef(scriptContext, (Js::Var)ref);
@@ -2424,21 +2429,13 @@ STDAPI_(JsErrorCode) JsGetAndClearException(_Out_ JsValueRef *exception)
     HRESULT hr = S_OK;
     Js::JavascriptExceptionObject *recordedException = nullptr;
 
-#if ENABLE_TTD
-    BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(currentContext->GetScriptContext())
-    {
-        PERFORM_JSRT_TTD_RECORD_ACTION_SIMPLE(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetAndClearException(scriptContext));
-    }
-    END_JS_RUNTIME_CALL(currentContext->GetScriptContext())
-#endif
-
     BEGIN_TRANSLATE_OOM_TO_HRESULT
       recordedException = scriptContext->GetAndClearRecordedException();
     END_TRANSLATE_OOM_TO_HRESULT(hr)
 
-    if (hr == E_OUTOFMEMORY)
+    if(hr == E_OUTOFMEMORY)
     {
-      recordedException = scriptContext->GetThreadContext()->GetRecordedException();
+        recordedException = scriptContext->GetThreadContext()->GetRecordedException();
     }
     if (recordedException == nullptr)
     {
@@ -2454,7 +2451,8 @@ STDAPI_(JsErrorCode) JsGetAndClearException(_Out_ JsValueRef *exception)
 #if ENABLE_TTD
     BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(currentContext->GetScriptContext())
     {
-        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, exception);
+        PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetAndClearException(scriptContext, __ttd_resultPtr));
+        PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(exception);
     }
     END_JS_RUNTIME_CALL(currentContext->GetScriptContext())
 #endif
@@ -2872,12 +2870,9 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             //
             AssertMsg(!isSourceModule, "Modules not implemented in TTD yet!!!");
 
-            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, bodyCtrId, loadScriptFlag, scriptFunction, script, sourceUrl);
+            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, bodyCtrId, loadScriptFlag, scriptFunction, script, sourceUrl, scriptFunction);
         }
 #endif
-
-        PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, &scriptFunction);
-
         if (parseOnly)
         {
             PARAM_NOT_NULL(result);
@@ -2900,14 +2895,13 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 #if ENABLE_TTD
             if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
             {
-                TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
-
-                TTD::NSLogEvents::JsRTCallFunctionAction* callAction = elog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, jsFunction, cargs, jsArgs.Values);
-                TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext, callAction);
+                TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, scriptFunction, args.Info.Count, args.Values);
+                TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext, callEvent);
 
                 if(scriptContext->TTDRootNestingCount == 0)
                 {
-                    scriptContext->GetThreadContext()->TTDLog->ResetCallStackForTopLevelCall(callAction->AdditionalInfo->TopLevelCallbackEventTime, hostCallbackId);
+                    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+                    elog->ResetCallStackForTopLevelCall(elog->GetLastEventTime(), hostCallbackId);
                 }
 
                 Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
@@ -2920,7 +2914,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             }
             else
             {
-            Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
+                Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
 
                 if(result != nullptr)
                 {
@@ -2928,12 +2922,13 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
                 }
             }
 
-            PERFORM_JSRT_TTD_TAG_ACTION(scriptContext, result);
 
             //Put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
             //May want to look into more sophisticated means for making this decision later
             if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && scriptContext->TTDRootNestingCount == 0)
             {
+                asdf; //move this to yield point action
+
                 if(threadContext->TTDLog->IsTimeForSnapshot())
                 {
                     threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
@@ -3484,7 +3479,7 @@ STDAPI_(JsErrorCode) JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCancel, boo
 
     if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
     {
-        Js::JavascriptFunction *jsFunction = (function != nullptr) ? Js::JavascriptFunction::FromVar(function) : nullptr;
+        Js::JavascriptFunction* jsFunction = (function != nullptr) ? Js::JavascriptFunction::FromVar(function) : nullptr;
 
         scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallbackOperation(scriptContext, isCancel, isRepeating, jsFunction, callbackId);
     }

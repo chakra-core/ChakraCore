@@ -17,10 +17,13 @@
 #define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX)) { AssertMsg(false, "Need to implement support here!!!"); }
 #else
 #define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) false
-#define PERFORM_JSRT_TTD_RECORD_ACTION(ACTION_CODE)
-#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX)
 
-#define PERFORM_JSRT_TTD_TAG_ACTION(CTX, VAL)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NORESULT(CTX, ACTION_CODE) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(CTX, ACTION_CODE) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(RESULT) 
+
+//TODO: find and replace all of the occourences of this in jsrt.cpp
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) 
 #endif
 
 ////
@@ -75,16 +78,6 @@ namespace TTD
         void NormalReturn(Js::Var returnValue);
     };
 
-    //A struct that we use for our pseudo v-table on the EventLogEntry data
-    struct EventLogEntryVTableEntry
-    {
-        NSLogEvents::fPtr_EventLogActionEntryInfoExecute ExecuteFP;
-
-        NSLogEvents::fPtr_EventLogEntryInfoUnload UnloadFP;
-        NSLogEvents::fPtr_EventLogEntryInfoEmit EmitFP;
-        NSLogEvents::fPtr_EventLogEntryInfoParse ParseFP;
-    };
-
     //A list class for the events that we accumulate in the event log
     class TTEventList
     {
@@ -115,14 +108,14 @@ namespace TTD
 
     public:
         TTEventList(UnlinkableSlabAllocator* alloc);
-        void UnloadEventList(EventLogEntryVTableEntry* vtable);
+        void UnloadEventList(NSLogEvents::EventLogEntryVTableEntry* vtable);
 
         //Add the entry to the list
         NSLogEvents::EventLogEntry* GetNextAvailableEntry();
 
         //Delete the entry from the list (must always be the first link/entry in the list)
         //This also calls unload on the entry
-        void DeleteFirstEntry(TTEventListLink* block, NSLogEvents::EventLogEntry* data, EventLogEntryVTableEntry* vtable);
+        void DeleteFirstEntry(TTEventListLink* block, NSLogEvents::EventLogEntry* data, NSLogEvents::EventLogEntryVTableEntry* vtable);
 
         //Return true if this is empty
         bool IsEmpty() const;
@@ -189,7 +182,7 @@ namespace TTD
 
         //The list of all the events and the iterator we use during replay
         TTEventList m_eventList;
-        EventLogEntryVTableEntry* m_eventListVTable;
+        NSLogEvents::EventLogEntryVTableEntry* m_eventListVTable;
         TTEventList::Iterator m_currentReplayEventIterator;
 
         //Array of call counters (used as stack)
@@ -266,7 +259,7 @@ namespace TTD
         void UnloadRetainedData();
 
         //A helper for extracting snapshots
-        void DoSnapshotExtract_Helper(SnapShot** snap);
+        SnapShot* DoSnapshotExtract_Helper();
 
         //Replay a snapshot event -- either just advance the event position or, if running diagnostics, take new snapshot and compare
         void ReplaySnapshotEvent();
@@ -585,7 +578,7 @@ namespace TTD
         void RecordJsRTAllocateFunction(Js::ScriptContext* ctx, bool isNamed, Js::Var optName, TTDVar* resultVarPtr);
 
         //Record GetAndClearException
-        void RecordJsRTGetAndClearException(Js::ScriptContext* ctx);
+        void RecordJsRTGetAndClearException(Js::ScriptContext* ctx, TTDVar* resultVarPtr);
 
         //Record Object Getters
         void RecordJsRTGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar* resultVarPtr);
@@ -611,11 +604,10 @@ namespace TTD
         void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 callbackId);
 
         //Record code parse
-        void RecordJsRTCodeParse(Js::ScriptContext* ctx, uint64 bodyCtrId, LoadScriptFlag loadFlag, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri);
+        void RecordJsRTCodeParse(Js::ScriptContext* ctx, uint64 bodyCtrId, LoadScriptFlag loadFlag, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri, Js::JavascriptFunction* resultFunction);
 
         //Record callback of an existing function
-        JsRTCallFunctionBeginAction* RecordJsRTCallFunctionBegin(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, double beginTime, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);
-        void RecordJsRTCallFunctionEnd(Js::ScriptContext* ctx, int64 matchingBeginTime, bool hasScriptException, bool hasTerminatingException, int32 callbackDepth, double endTime);
+        NSLogEvents::EventLogEntry* RecordJsRTCallFunction(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);
 
         //Replay a sequence of JsRT actions to get to the next event log item
         void ReplayActionLoopStep();

@@ -21,6 +21,55 @@ namespace TTD
             }
         }
 
+        bool IsJsRTActionRootCall(const EventLogEntry* evt)
+        {
+            if(evt->EventKind != NSLogEvents::EventKind::CallExistingFunctionActionTag)
+            {
+                return false;
+            }
+
+            const JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
+            return cfAction->CallbackDepth == 0;
+        }
+
+        int64 AccessTimeInRootCallOrSnapshot(const EventLogEntry* evt, bool& isSnap, bool& isRoot, bool& hasRtrSnap)
+        {
+            isSnap = false;
+            isRoot = false;
+            hasRtrSnap = false;
+
+            if(evt->EventKind == NSLogEvents::EventKind::SnapshotTag)
+            {
+                const NSLogEvents::SnapshotEventLogEntry* snapEvent = NSLogEvents::GetInlineEventDataAs<NSLogEvents::SnapshotEventLogEntry, NSLogEvents::EventKind::SnapshotTag>(evt);
+
+                isSnap = true;
+                return snapEvent->RestoreTimestamp;
+            }
+
+            if(NSLogEvents::IsJsRTActionRootCall(evt))
+            {
+                const NSLogEvents::JsRTCallFunctionAction* rootEntry = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(evt);
+
+                isRoot = true;
+                hasRtrSnap = rootEntry->AdditionalInfo->RtRSnap != nullptr;
+                return rootEntry->AdditionalInfo->CallEventTime;
+            }
+
+            return -10;
+        }
+
+        int64 GetTimeFromRootCallOrSnapshot(const EventLogEntry* evt)
+        {
+            bool isSnap = false;
+            bool isRoot = false;
+            bool hasRtrSnap = false;
+
+            int64 time = AccessTimeInRootCallOrSnapshot(evt, isSnap, isRoot, hasRtrSnap);
+            AssertMsg(isSnap || isRoot, "Not snap or root?");
+
+            return time;
+        }
+
 #if !INT32VAR
         void CreateInt_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
@@ -584,11 +633,6 @@ namespace TTD
                 alloc.UnlinkString(cpInfo->SourceUri);
             }
 
-            if(!IsNullPtrTTString(cpInfo->SourceFile))
-            {
-                alloc.UnlinkString(cpInfo->SourceFile);
-            }
-
             if(!IsNullPtrTTString(cpInfo->SrcDir))
             {
                 alloc.UnlinkString(cpInfo->SrcDir);
@@ -611,7 +655,6 @@ namespace TTD
             writer->WriteUInt64(NSTokens::Key::bodyCounterId, cpAction->BodyCtrId, NSTokens::Separator::CommaSeparator);
 
             writer->WriteString(NSTokens::Key::logDir, cpInfo->SrcDir, NSTokens::Separator::CommaSeparator);
-            writer->WriteString(NSTokens::Key::src, cpInfo->SourceFile, NSTokens::Separator::CommaSeparator);
             writer->WriteString(NSTokens::Key::uri, cpInfo->SourceUri, NSTokens::Separator::CommaSeparator);
 
             writer->WriteLengthValue(cpInfo->SourceCode.Length, NSTokens::Separator::CommaSeparator);
@@ -639,7 +682,6 @@ namespace TTD
             cpAction->BodyCtrId = reader->ReadUInt64(NSTokens::Key::bodyCounterId, true);
 
             reader->ReadString(NSTokens::Key::logDir, alloc, cpInfo->SrcDir, true);
-            reader->ReadString(NSTokens::Key::src, alloc, cpInfo->SourceFile, true);
             reader->ReadString(NSTokens::Key::uri, alloc, cpInfo->SourceUri, true);
 
             cpInfo->SourceCode.Length = reader->ReadLengthValue(true);
@@ -653,6 +695,13 @@ namespace TTD
         }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        int64 JsRTCallFunctionAction_GetLastNestedEventTime(const EventLogEntry* evt)
+        {
+            const JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
+
+            return cfAction->AdditionalInfo->LastNestedEvent;
+        }
+
         void JsRTCallFunctionAction_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc)
         {
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);

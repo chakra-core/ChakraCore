@@ -14,6 +14,13 @@ namespace TTD
         //true if this is exectued in the script context JsRT wrapper
         bool IsJsRTActionExecutedInScriptWrapper(EventKind tag);
 
+        //true if this is a root call function
+        bool IsJsRTActionRootCall(const EventLogEntry* evt);
+
+        //We have a number of loops where we look for a snapshot or root with a given time value -- this encapsulates the access logic
+        int64 AccessTimeInRootCallOrSnapshot(const EventLogEntry* evt, bool& isSnap, bool& isRoot, bool& hasRtrSnap);
+        int64 GetTimeFromRootCallOrSnapshot(const EventLogEntry* evt);
+
         //Handle the replay of the result of an action for the the given action type and tag
         template <typename T, EventKind tag>
         void JsRTActionHandleResultForReplay(Js::ScriptContext* ctx, const EventLogEntry* evt, Js::Var result)
@@ -293,7 +300,7 @@ namespace TTD
         void AllocateExternalArrayBufferAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void AllocateFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
-        void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx, TTDVar* resultVarPtr);
 
         void GetPropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void GetIndexAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
@@ -366,7 +373,7 @@ namespace TTD
             //The actual source code
             TTString SourceCode;
 
-            //If this is from a URI
+            //The URI the souce code was loaded from and the document id we gave it internally
             TTString SourceUri;
             DWORD_PTR DocumentID;
 
@@ -374,7 +381,6 @@ namespace TTD
             LoadScriptFlag LoadFlag;
 
             //The directory to write the source files out to (if needed)
-            TTString SourceFile;
             TTString SrcDir;
         };
 
@@ -453,6 +459,8 @@ namespace TTD
         };
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        int64 JsRTCallFunctionAction_GetLastNestedEventTime(const EventLogEntry* evt);
+
         void JsRTCallFunctionAction_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc);
         void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, double wallTime, int64 lastNestedEvent);
 #endif

@@ -291,7 +291,7 @@ namespace TTD
 #endif
         }
 
-        void EventLogEntry_Emit(const EventLogEntry* evt, fPtr_EventLogEntryInfoEmit emitFP, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext, NSTokens::Separator separator)
+        void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext, NSTokens::Separator separator)
         {
             writer->WriteRecordStart(separator);
 
@@ -301,6 +301,7 @@ namespace TTD
             writer->WriteInt64(NSTokens::Key::eventTime, evt->EventTimeStamp, NSTokens::Separator::CommaSeparator);
 #endif
 
+            auto emitFP = evtFPVTable[(uint32)evt->EventKind].EmitFP;
             if(emitFP != nullptr)
             {
                 emitFP(evt, writer, uri, threadContext);
@@ -309,7 +310,7 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void EventLogEntry_Parse(EventLogEntry* evt, fPtr_EventLogEntryInfoParse parseFP, bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        void EventLogEntry_Parse(EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
         {
             reader->ReadRecordStart(readSeperator);
 
@@ -319,6 +320,7 @@ namespace TTD
             evt->EventTimeStamp = reader->ReadInt64(NSTokens::Key::eventTime, true);
 #endif
 
+            auto parseFP = evtFPVTable[(uint32)evt->EventKind].ParseFP;
             if(parseFP != nullptr)
             {
                 parseFP(evt, threadContext, reader, alloc);
@@ -559,6 +561,13 @@ namespace TTD
         //////////////////
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt)
+        {
+            const ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
+
+            return callEvt->DiagInfo->LastNestedEvent;
+        }
+
         void ExternalCallEventLogEntry_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);

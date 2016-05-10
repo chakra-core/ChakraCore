@@ -172,7 +172,7 @@ namespace TTD
         ;
     }
 
-    void TTEventList::UnloadEventList(EventLogEntryVTableEntry* vtable)
+    void TTEventList::UnloadEventList(NSLogEvents::EventLogEntryVTableEntry* vtable)
     {
         if(this->m_headBlock == nullptr)
         {
@@ -191,7 +191,7 @@ namespace TTD
             for(uint32 i = curr->StartPos; i < curr->CurrPos; ++i)
             {
                 const NSLogEvents::EventLogEntry* entry = curr->BlockData + i;
-                NSLogEvents::fPtr_EventLogEntryInfoUnload unloadFP = vtable[(uint32)entry->EventKind].UnloadFP; //use vtable magic here
+                auto unloadFP = vtable[(uint32)entry->EventKind].UnloadFP; //use vtable magic here
 
                 if(unloadFP != nullptr)
                 {
@@ -221,13 +221,13 @@ namespace TTD
         return entry;
     }
 
-    void TTEventList::DeleteFirstEntry(TTEventListLink* block, NSLogEvents::EventLogEntry* data, EventLogEntryVTableEntry* vtable)
+    void TTEventList::DeleteFirstEntry(TTEventListLink* block, NSLogEvents::EventLogEntry* data, NSLogEvents::EventLogEntryVTableEntry* vtable)
     {
         AssertMsg(block->Previous == nullptr, "Not first event block in log!!!");
         AssertMsg((block->BlockData + block->StartPos) == data, "Not the data at the start of the list!!!");
 
-        NSLogEvents::fPtr_EventLogEntryInfoUnload unloadFP = vtable[(uint32)data->EventKind].UnloadFP; //use vtable magic here
-        
+        auto unloadFP = vtable[(uint32)data->EventKind].UnloadFP; //use vtable magic here
+
         if(unloadFP != nullptr)
         {
             unloadFP(data, *(this->m_alloc));
@@ -432,7 +432,7 @@ namespace TTD
         }
     }
 
-    void EventLog::DoSnapshotExtract_Helper(SnapShot** snap)
+    SnapShot* EventLog::DoSnapshotExtract_Helper()
     {
         AssertMsg(this->m_ttdContext != nullptr, "We aren't actually tracking anything!!!");
 
@@ -454,7 +454,7 @@ namespace TTD
         ///////////////////////////
         //Phase 3: Complete and return snapshot
 
-        *snap = this->m_snapExtractor.CompleteSnapshot();
+        return this->m_snapExtractor.CompleteSnapshot();
     }
 
     void EventLog::ReplaySnapshotEvent()
@@ -499,7 +499,7 @@ namespace TTD
 
     void EventLog::InitializeEventListVTable()
     {
-        this->m_eventListVTable = this->m_miscSlabAllocator.SlabAllocateArray<EventLogEntryVTableEntry>((uint32)NSLogEvents::EventKind::Count);
+        this->m_eventListVTable = this->m_miscSlabAllocator.SlabAllocateArray<NSLogEvents::EventLogEntryVTableEntry>((uint32)NSLogEvents::EventKind::Count);
 
         asdf;
     }
@@ -1355,17 +1355,13 @@ namespace TTD
         uint32 topLevelCount = 0;
         for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
         {
-            if(iter.Current()->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag)
+            if(NSLogEvents::IsJsRTActionRootCall(iter.Current()))
             {
-                NSLogEvents::JsRTCallFunctionAction* callAction = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(iter.Current());
-                if(callAction->CallbackDepth != 0)
-                {
-                    topLevelCount++;
+                topLevelCount++;
 
-                    if(topLevelCount == k)
-                    {
-                        return callAction->AdditionalInfo->CallEventTime;
-                    }
+                if(topLevelCount == k)
+                {
+                    return NSLogEvents::GetTimeFromRootCallOrSnapshot(iter.Current());
                 }
             }
         }
@@ -1410,18 +1406,11 @@ namespace TTD
     {
         AssertMsg(this->m_ttdContext != nullptr, "We aren't actually tracking anything!!!");
 
-        SnapShot* snap = nullptr;
-        TTD_LOG_TAG logTag = TTD_INVALID_LOG_TAG;
-
-        this->DoSnapshotExtract_Helper(&snap, &logTag);
-
         ///////////////////////////
-        //Create the event object and addi it to the log
-
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-
-        SnapshotEventLogEntry* sevent = this->m_eventSlabAllocator.SlabNew<SnapshotEventLogEntry>(etime, snap, etime, logTag);
-        this->InsertEventAtHead(sevent);
+        //Create the event object and add it to the log
+        NSLogEvents::SnapshotEventLogEntry* snapEvent = this->RecordGetInitializedEvent_Helper<NSLogEvents::SnapshotEventLogEntry, NSLogEvents::EventKind::SnapshotTag>();
+        snapEvent->RestoreTimestamp = this->GetLastEventTime();
+        snapEvent->Snap = this->DoSnapshotExtract_Helper();
 
         this->m_elapsedExecutionTimeSinceSnapshot = 0.0;
 
@@ -1433,18 +1422,12 @@ namespace TTD
     void EventLog::DoRtrSnapIfNeeded()
     {
         AssertMsg(this->m_ttdContext != nullptr, "We aren't actually tracking anything!!!");
-        AssertMsg(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag, "Something in wrong with the event position.");
-        AssertMsg(JsRTActionLogEntry::As(this->m_currentReplayEventIterator.Current())->IsRootCallBegin(), "Something in wrong with the event position.");
+        AssertMsg(this->m_currentReplayEventIterator.IsValid() && NSLogEvents::IsJsRTActionRootCall(this->m_currentReplayEventIterator.Current()), "Something in wrong with the event position.");
 
-        JsRTCallFunctionBeginAction* rootCall = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(this->m_currentReplayEventIterator.Current()));
-
-        if(!rootCall->HasReadyToRunSnapshotInfo())
+        NSLogEvents::JsRTCallFunctionAction* rootCall = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(this->m_currentReplayEventIterator.Current());
+        if(rootCall->AdditionalInfo->RtRSnap == nullptr)
         {
-            SnapShot* snap = nullptr;
-            TTD_LOG_TAG logTag = TTD_INVALID_LOG_TAG;
-            this->DoSnapshotExtract_Helper(&snap, &logTag);
-
-            rootCall->SetReadyToRunSnapshotInfo(snap, logTag);
+            rootCall->AdditionalInfo->RtRSnap = this->DoSnapshotExtract_Helper();
         }
     }
 
@@ -1455,24 +1438,16 @@ namespace TTD
 
         for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
         {
-            if(iter.Current()->GetEventTime() <= targetTime)
+            bool isSnap = false;
+            bool isRoot = false;
+            bool hasRtrSnap = false;
+            int64 time = NSLogEvents::AccessTimeInRootCallOrSnapshot(iter.Current(), isSnap, isRoot, hasRtrSnap);
+
+            bool validSnap = isSnap | (isRoot & hasRtrSnap);
+            if(validSnap && time <= targetTime)
             {
-                if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::SnapshotTag)
-                {
-                    snapTime = iter.Current()->GetEventTime();
-                    break;
-                }
-
-                if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(iter.Current())->IsRootCallBegin())
-                {
-                    JsRTCallFunctionBeginAction* rootEntry = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(iter.Current()));
-
-                    if(rootEntry->HasReadyToRunSnapshotInfo())
-                    {
-                        snapTime = iter.Current()->GetEventTime();
-                        break;
-                    }
-                }
+                snapTime = time;
+                break;
             }
         }
 
@@ -1503,34 +1478,33 @@ namespace TTD
 
         const SnapShot* snap = nullptr;
         int64 restoreEventTime = -1;
-        TTD_LOG_TAG restoreLogTagCtr = TTD_INVALID_LOG_TAG;
 
         for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
         {
-            if(iter.Current()->GetEventTime() == etime)
+            NSLogEvents::EventLogEntry* evt = iter.Current();
+            if(evt->EventKind == NSLogEvents::EventKind::SnapshotTag)
             {
-                if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::SnapshotTag)
+                NSLogEvents::SnapshotEventLogEntry* snapEvent = NSLogEvents::GetInlineEventDataAs<NSLogEvents::SnapshotEventLogEntry, NSLogEvents::EventKind::SnapshotTag>(evt);
+                if(snapEvent->RestoreTimestamp == etime)
                 {
-                    SnapshotEventLogEntry* snpEntry = SnapshotEventLogEntry::As(iter.Current());
-                    snpEntry->EnsureSnapshotDeserialized(this->m_logInfoRootDir.Contents, this->m_threadContext);
+                    NSLogEvents::SnapshotEventLogEntry_EnsureSnapshotDeserialized(evt, this->m_logInfoRootDir.Contents, this->m_threadContext);
 
-                    restoreEventTime = snpEntry->GetRestoreEventTime();
-                    restoreLogTagCtr = snpEntry->GetRestoreLogTag();
-
-                    snap = snpEntry->GetSnapshot();
+                    restoreEventTime = snapEvent->RestoreTimestamp;
+                    snap = snapEvent->Snap;
+                    break;
                 }
-                else
+            }
+
+            if(NSLogEvents::IsJsRTActionRootCall(evt))
+            {
+                const NSLogEvents::JsRTCallFunctionAction* rootEntry = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(evt);
+
+                if(rootEntry->AdditionalInfo->CallEventTime == etime)
                 {
-                    JsRTCallFunctionBeginAction* rootEntry = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(iter.Current()));
-
-                    SnapShot* ncSnap = nullptr;
-                    rootEntry->GetReadyToRunSnapshotInfo(&ncSnap, &restoreLogTagCtr);
-                    snap = ncSnap;
-
-                    restoreEventTime = rootEntry->GetEventTime();
+                    restoreEventTime = rootEntry->AdditionalInfo->CallEventTime;
+                    snap = rootEntry->AdditionalInfo->RtRSnap;
+                    break;
                 }
-
-                break;
             }
         }
         AssertMsg(snap != nullptr, "Log should start with a snapshot!!!");
@@ -1580,9 +1554,22 @@ namespace TTD
             //We don't want to have a bunch of snapshots in memory (that will get big fast) so unload all but the current one
             for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
             {
-                if(iter.Current()->GetEventTime() != etime)
+                bool isSnap = false;
+                bool isRoot = false;
+                bool hasRtrSnap = false;
+                int64 time = NSLogEvents::AccessTimeInRootCallOrSnapshot(iter.Current(), isSnap, isRoot, hasRtrSnap);
+
+                bool hasSnap = isSnap | (isRoot & hasRtrSnap);
+                if(hasSnap && time != etime)
                 {
-                    iter.Current()->UnloadSnapshot();
+                    if(isSnap)
+                    {
+                        NSLogEvents::SnapshotEventLogEntry_UnloadSnapshot(iter.Current());
+                    }
+                    else
+                    {
+                        NSLogEvents::JsRTCallFunctionAction_UnloadSnapshot(iter.Current());
+                    }
                 }
             }
         }
@@ -1597,13 +1584,24 @@ namespace TTD
         if(!this->m_eventList.IsEmpty())
         {
             this->m_currentReplayEventIterator = this->m_eventList.GetIteratorAtLast();
-            while(this->m_currentReplayEventIterator.Current()->GetEventTime() != this->m_eventTimeCtr)
+
+            while(true)
             {
+                bool isSnap = false;
+                bool isRoot = false;
+                bool hasRtrSnap = false;
+                int64 time = NSLogEvents::AccessTimeInRootCallOrSnapshot(this->m_currentReplayEventIterator.Current(), isSnap, isRoot, hasRtrSnap);
+
+                if((isSnap | isRoot) && time == this->m_eventTimeCtr)
+                {
+                    break;
+                }
+
                 this->m_currentReplayEventIterator.MovePrevious();
             }
 
             //we want to advance to the event immediately after the snapshot as well so do that
-            if(this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::SnapshotTag)
+            if(this->m_currentReplayEventIterator.Current()->EventKind == NSLogEvents::EventKind::SnapshotTag)
             {
                 this->m_eventTimeCtr++;
                 this->m_currentReplayEventIterator.MoveNext();
@@ -1640,14 +1638,17 @@ namespace TTD
 
     void EventLog::ReplayToTime(int64 eventTime)
     {
-        AssertMsg(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventTime() <= eventTime, "This isn't going to work.");
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        AssertMsg(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventTimeStamp <= eventTime, "This isn't going to work.");
+#endif
 
-        //Note use of == in test as we want a specific root event not just sometime later
-        while(this->m_currentReplayEventIterator.Current()->GetEventTime() != eventTime)
+        while(!NSLogEvents::IsJsRTActionRootCall(this->m_currentReplayEventIterator.Current()) || NSLogEvents::GetTimeFromRootCallOrSnapshot(this->m_currentReplayEventIterator.Current()) != eventTime)
         {
             this->ReplaySingleEntry();
 
-            AssertMsg(this->m_currentReplayEventIterator.IsValid() && m_currentReplayEventIterator.Current()->GetEventTime() <= eventTime, "Something is not lined up correctly.");
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            AssertMsg(this->m_currentReplayEventIterator.IsValid() && m_currentReplayEventIterator.Current()->EventTimeStamp <= eventTime, "Something is not lined up correctly.");
+#endif
         }
     }
 
@@ -1787,14 +1788,10 @@ namespace TTD
         cAction->u_bVal = isNamed ? TRUE : FALSE;
     }
 
-    void EventLog::RecordJsRTGetAndClearException(Js::ScriptContext* ctx)
+    void EventLog::RecordJsRTGetAndClearException(Js::ScriptContext* ctx, TTDVar* resultVarPtr)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        JsRTGetAndClearExceptionAction* exceptionEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetAndClearExceptionAction>(etime, ctxTag);
-
-        this->InsertEventAtHead(exceptionEvent);
+        NSLogEvents::JsRTVarsArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetAndClearExceptionActionTag>(resultVarPtr);
+        //TODO: later we need to fill in additional the info for the action we want to track
     }
 
     void EventLog::RecordJsRTGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar* resultVarPtr)
@@ -1900,97 +1897,70 @@ namespace TTD
         this->InsertEventAtHead(createAction);
     }
 
-    void EventLog::RecordJsRTCodeParse(Js::ScriptContext* ctx, uint64 bodyCtrId, LoadScriptFlag loadFlag, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri)
+    void EventLog::RecordJsRTCodeParse(Js::ScriptContext* ctx, uint64 bodyCtrId, LoadScriptFlag loadFlag, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri, Js::JavascriptFunction* resultFunction)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+        NSLogEvents::JsRTCodeParseAction* cpAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTCodeParseAction, NSLogEvents::EventKind::CodeParseActionTag>();
+        cpAction->AdditionalInfo = this->m_eventSlabAllocator.SlabAllocateStruct<NSLogEvents::JsRTCodeParseAction_AdditionalInfo>();
+
+        cpAction->BodyCtrId = bodyCtrId;
+        cpAction->Result = TTD_CONVERT_JSVAR_TO_TTDVAR(resultFunction);
 
         Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(func->GetFunctionBody());
 
-        TTString optSrcUri;
-        this->m_eventSlabAllocator.CopyNullTermStringInto(fb->GetSourceContextInfo()->url, optSrcUri);
+        this->m_eventSlabAllocator.CopyNullTermStringInto(srcCode, cpAction->AdditionalInfo->SourceCode);
 
-        DWORD_PTR optDocumentID = fb->GetUtf8SourceInfo()->GetSourceInfoId();
+        this->m_eventSlabAllocator.CopyNullTermStringInto(fb->GetSourceContextInfo()->url, cpAction->AdditionalInfo->SourceUri);
+        cpAction->AdditionalInfo->DocumentID = fb->GetUtf8SourceInfo()->GetSourceInfoId();
 
-        TTString sourceCode;
-        this->m_eventSlabAllocator.CopyNullTermStringInto(srcCode, sourceCode);
+        cpAction->AdditionalInfo->LoadFlag = loadFlag;
 
-        TTString dir;
-        this->m_eventSlabAllocator.CopyStringIntoWLength(this->m_logInfoRootDir.Contents, this->m_logInfoRootDir.Length, dir);
-
-        TTString ssUri;
-        this->m_eventSlabAllocator.CopyNullTermStringInto(sourceUri, ssUri);
-
-        JsRTCodeParseAction* parseEvent = this->m_eventSlabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, sourceCode, bodyCtrId, loadFlag, optDocumentID, optSrcUri, dir, ssUri);
-
-        this->InsertEventAtHead(parseEvent);
+        this->m_eventSlabAllocator.CopyStringIntoWLength(this->m_logInfoRootDir.Contents, this->m_logInfoRootDir.Length, cpAction->AdditionalInfo->SrcDir);
     }
 
-    JsRTCallFunctionBeginAction* EventLog::RecordJsRTCallFunctionBegin(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, double beginTime, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args)
+    NSLogEvents::EventLogEntry* EventLog::RecordJsRTCallFunction(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args)
     {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-        TTD_LOG_TAG fTag = ctx->GetThreadContext()->TTDInfo->LookupTagForObject(func);
+        NSLogEvents::EventLogEntry* evt = nullptr;
+        NSLogEvents::JsRTCallFunctionAction* cfAction = this->RecordGetInitializedEvent_HelperWithMainEvent<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(&evt);
 
-        NSLogValue::ArgRetValue* argArray = (argCount != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<NSLogValue::ArgRetValue>(argCount) : 0;
-        for(uint32 i = 0; i < argCount; ++i)
-        {
-            Js::Var arg = args[i];
-            NSLogValue::ExtractArgRetValueFromVar(arg, argArray[i], this->m_eventSlabAllocator);
-        }
-        Js::Var* execArgs = (argCount != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<Js::Var>(argCount) : nullptr;
-
-        JsRTCallFunctionBeginAction* callEvent = this->m_eventSlabAllocator.SlabNew<JsRTCallFunctionBeginAction>(etime, ctxTag, rootDepth, hostCallbackId, beginTime, fTag, argCount, argArray, execArgs);
+        int64 evtTime = this->GetLastEventTime();
+        double wallTime = this->m_timer.Now();
+        NSLogEvents::JsRTCallFunctionAction_ProcessArgs(evt, rootDepth, evtTime, func, argCount, args, wallTime, hostCallbackId, this->m_topLevelCallbackEventTime, this->m_eventSlabAllocator);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        TTString fname;
-        Js::JavascriptString* dname = func->GetDisplayName();
-        this->m_eventSlabAllocator.CopyStringIntoWLength(dname->GetSz(), dname->GetLength(), fname);
-        callEvent->SetFunctionName(fname);
+        NSLogEvents::JsRTCallFunctionAction_ProcessDiagInfoPre(evt, func, this->m_eventSlabAllocator);
 #endif
 
-        this->InsertEventAtHead(callEvent);
-
-        return callEvent;
-    }
-
-    void EventLog::RecordJsRTCallFunctionEnd(Js::ScriptContext* ctx, int64 matchingBeginTime, bool hasScriptException, bool hasTerminatingException, int32 callbackDepth, double endTime)
-    {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        JsRTCallFunctionEndAction* callEvent = this->m_eventSlabAllocator.SlabNew<JsRTCallFunctionEndAction>(etime, ctxTag, matchingBeginTime, hasScriptException, hasTerminatingException, callbackDepth, endTime);
-
-        this->InsertEventAtHead(callEvent);
+        return evt;
     }
 
     void EventLog::ReplayActionLoopStep()
     {
-        AssertMsg(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag, "Should check this first!");
+        AssertMsg(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventKind > NSLogEvents::EventKind::JsRTActionTag, "Should check this first!");
 
         bool nextActionValid = false;
         bool nextActionRootCall = false;
         do
         {
-            JsRTActionLogEntry* action = JsRTActionLogEntry::As(this->m_currentReplayEventIterator.Current());
+            NSLogEvents::EventLogEntry* evt = this->m_currentReplayEventIterator.Current();
             this->AdvanceTimeAndPositionForReplay();
 
-            Js::ScriptContext* ctx = action->GetScriptContextForAction(this->m_threadContext);
-            if(action->IsExecutedInScriptWrapper())
+            auto executeFP = this->m_eventListVTable[(uint32)evt->EventKind].ExecuteFP;
+            Js::ScriptContext* ctx = this->m_ttdContext;
+            if(NSLogEvents::IsJsRTActionExecutedInScriptWrapper(evt->EventKind))
             {
                 BEGIN_ENTER_SCRIPT(ctx, true, true, true);
                 {
-                    action->ExecuteAction(this->m_threadContext);
+                    executeFP(evt, ctx);
                 }
                 END_ENTER_SCRIPT;
             }
             else
             {
-                action->ExecuteAction(this->m_threadContext);
+                executeFP(evt, ctx);
             }
 
-            nextActionValid = (this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag);
-            nextActionRootCall = (nextActionValid && JsRTActionLogEntry::As(this->m_currentReplayEventIterator.Current())->IsRootCallBegin());
+            nextActionValid = (this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventKind == NSLogEvents::EventKind::JsRTActionTag);
+            nextActionRootCall = (nextActionValid && NSLogEvents::IsJsRTActionRootCall(this->m_currentReplayEventIterator.Current()));
 
         } while(nextActionValid & !nextActionRootCall);
     }
@@ -2044,27 +2014,44 @@ namespace TTD
         uint32 ecount = this->m_eventList.Count();
         writer.WriteLengthValue(ecount, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
+        JsUtil::Stack<int64, HeapAllocator> callNestingStack(&HeapAllocator::Instance);
         bool firstEvent = true;
         writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
         writer.AdjustIndent(1);
         for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
         {
-            bool isJsRTEndCall = (iter.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(iter.Current())->GetActionTypeTag() == JsRTActionType::CallExistingFunctionEnd);
-            bool isExternalEndCall = (iter.Current()->GetEventKind() == EventLogEntry::EventKind::ExternalCallEndTag);
-            if(isJsRTEndCall | isExternalEndCall)
-            {
-                writer.AdjustIndent(-1);
-            }
-
-            iter.Current()->EmitEvent(this->m_logInfoRootDir.Contents, &writer, this->m_threadContext, !firstEvent ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator);
+            const NSLogEvents::EventLogEntry* evt = iter.Current();
+            NSLogEvents::EventLogEntry_Emit(evt, this->m_eventListVTable, &writer, this->m_logInfoRootDir.Contents, this->m_threadContext, !firstEvent ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator);
             firstEvent = false;
 
-            bool isJsRTBeginCall = (iter.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(iter.Current())->GetActionTypeTag() == JsRTActionType::CallExistingFunctionBegin);
-            bool isExternalBeginCall = (iter.Current()->GetEventKind() == EventLogEntry::EventKind::ExternalCallBeginTag);
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            bool isJsRTBeginCall = (evt->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag);
+            bool isExternalBeginCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
             if(isJsRTBeginCall | isExternalBeginCall)
             {
+                writer.WriteSequenceStart(NSTokens::Separator::CommaSeparator);
+                if(isJsRTBeginCall)
+                {
+                    int64 lastNestedTime = NSLogEvents::JsRTCallFunctionAction_GetLastNestedEventTime(evt);
+                    callNestingStack.Push(lastNestedTime);
+                }
+                else
+                {
+                    int64 lastNestedTime = NSLogEvents::ExternalCallEventLogEntry_GetLastNestedEventTime(evt);
+                    callNestingStack.Push(lastNestedTime);
+                }
+
                 writer.AdjustIndent(1);
             }
+
+            if(evt->EventTimeStamp == callNestingStack.Peek())
+            {
+                writer.AdjustIndent(-1);
+
+                callNestingStack.Pop();
+                writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
+            }
+#endif
         }
         writer.AdjustIndent(-1);
         writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
@@ -2184,13 +2171,38 @@ namespace TTD
         reader.ReadUInt64(NSTokens::Key::usedMemory, true);
         reader.ReadUInt64(NSTokens::Key::reservedMemory, true);
 
+        JsUtil::Stack<int64, HeapAllocator> callNestingStack(&HeapAllocator::Instance);
         uint32 ecount = reader.ReadLengthValue(true);
         reader.ReadSequenceStart_WDefaultKey(true);
         for(uint32 i = 0; i < ecount; ++i)
         {
-            EventLogEntry* curr = EventLogEntry::Parse(i != 0, this->m_threadContext, &reader, this->m_eventSlabAllocator);
+            NSLogEvents::EventLogEntry* evt = this->m_eventList.GetNextAvailableEntry();
+            NSLogEvents::EventLogEntry_Parse(evt, this->m_eventListVTable, i != 0, this->m_threadContext, &reader, this->m_eventSlabAllocator);
 
-            this->m_eventList.AddEntry(curr);
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            bool isJsRTBeginCall = (evt->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag);
+            bool isExternalBeginCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
+            if(isJsRTBeginCall | isExternalBeginCall)
+            {
+                reader.ReadSequenceStart(true);
+                if(isJsRTBeginCall)
+                {
+                    int64 lastNestedTime = NSLogEvents::JsRTCallFunctionAction_GetLastNestedEventTime(evt);
+                    callNestingStack.Push(lastNestedTime);
+                }
+                else
+                {
+                    int64 lastNestedTime = NSLogEvents::ExternalCallEventLogEntry_GetLastNestedEventTime(evt);
+                    callNestingStack.Push(lastNestedTime);
+                }
+            }
+
+            if(evt->EventTimeStamp == callNestingStack.Peek())
+            {
+                callNestingStack.Pop();
+                reader.ReadSequenceEnd();
+            }
+#endif
         }
         reader.ReadSequenceEnd();
 

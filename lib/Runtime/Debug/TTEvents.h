@@ -191,6 +191,16 @@ namespace TTD
         typedef void(*fPtr_EventLogEntryInfoEmit)(const EventLogEntry* evt, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext);
         typedef void(*fPtr_EventLogEntryInfoParse)(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
+        //A struct that we use for our pseudo v-table on the EventLogEntry data
+        struct EventLogEntryVTableEntry
+        {
+            fPtr_EventLogActionEntryInfoExecute ExecuteFP;
+
+            fPtr_EventLogEntryInfoUnload UnloadFP;
+            fPtr_EventLogEntryInfoEmit EmitFP;
+            fPtr_EventLogEntryInfoParse ParseFP;
+        };
+
         //A base struct for our event log entries -- we will use the kind tags as v-table values 
         struct EventLogEntry
         {
@@ -225,8 +235,8 @@ namespace TTD
 
         //Helpers for initializing, emitting and parsing the basic event data
         void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime);
-        void EventLogEntry_Emit(const EventLogEntry* evt, fPtr_EventLogEntryInfoEmit emitFP, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext, NSTokens::Separator separator);
-        void EventLogEntry_Parse(EventLogEntry* evt, fPtr_EventLogEntryInfoParse parseFP, bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+        void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext, NSTokens::Separator separator);
+        void EventLogEntry_Parse(EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
 
@@ -389,6 +399,8 @@ namespace TTD
         };
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
+
         void ExternalCallEventLogEntry_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc);
         void ExternalCallEventLogEntry_ProcessDiagInfoPost(EventLogEntry* evt, int64 lastNestedEvent);
 #endif
