@@ -88,7 +88,7 @@ function asmModule(stdlib, imports) {
     var i8fromU8bits = i8.fromUint16x8Bits;
 
     var u8fromI8bits = u8.fromInt16x8Bits;
-    
+    var u8extractLane = u8.extractLane;
     var i16 = stdlib.SIMD.Int8x16;
     var i16check = i16.check;
     var i16fromU16bits = i16.fromUint8x16Bits;
@@ -208,6 +208,16 @@ function asmModule(stdlib, imports) {
         var k = u16(1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8);
         x = u8fromI8bits(i8check(fcBug_1()));
         return i16check(i16fromU16bits(k));
+    }
+
+    //Validation will fail with the bug
+    function retValueCoercionBug()
+    {
+        var ret = 0.0;
+        var ret1 = 0;
+        var a = u8(1,2,3,4,5,6,7,8);
+        ret = +u8extractLane(a, 0);
+        ret1 = (u8extractLane(a, 0))|0;
     }
 
     return {func1:func1, func2:func2, func3:func3, func4:func4, func5:fcBug_1, func6:fcBug_2};

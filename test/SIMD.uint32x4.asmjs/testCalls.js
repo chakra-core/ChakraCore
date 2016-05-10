@@ -33,6 +33,7 @@ function asmModule(stdlib, imports) {
     var u4 = stdlib.SIMD.Uint32x4;
     var u4check = u4.check;
 
+    var u4extractLane = u4.extractLane;
     var f4 = stdlib.SIMD.Float32x4;  
     var f4check = f4.check;
     var f4splat = f4.splat;
@@ -197,6 +198,16 @@ function asmModule(stdlib, imports) {
         var k = u4(1, 2, 3, 4);
         x = i4check(fcBug_1());
         return i4check(i4fu4(k));
+    }
+
+    //Validation will fail with the bug
+    function retValueCoercionBug()
+    {
+        var ret = 0.0;
+        var ret1 = 0;
+        var a = u4(1, 2, 3, 4);
+        ret = +u4extractLane(a, 0);
+        ret1 = (u4extractLane(a, 0))|0;
     }
 
     return {func1:func1, func2:func2, func3:func3, func4:func4, func5:fcBug_1, func6:fcBug_2};

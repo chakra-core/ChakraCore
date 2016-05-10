@@ -73,6 +73,14 @@ function asmModule(stdlib, imports) {
         return b4check(result);
     }
 
+    //Validation will fail with the bug
+    function retValueCoercionBug()
+    {
+        var ret1 = 0;
+        var a = b4(1,2,3,4);
+        ret1 = (b4extractLane(a, 0))|0;
+    }
+
     return {testConstructor:testConstructor,
     testSplat:testSplat,
     testLaneAccess: testLaneAccess};

@@ -67,7 +67,7 @@ function asmModule(stdlib, imports) {
     var f4xor = f4.xor;
     var f4not = f4.not;
 
-    
+    var i16extractLane = i16.extractLane;
 
     var fround = stdlib.Math.fround;
 
@@ -198,6 +198,16 @@ function asmModule(stdlib, imports) {
         var k = i16(1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8);
         x = f4check(fcBug_1());
         return i16check(k);
+    }
+
+    //Validation will fail with the bug
+    function retValueCoercionBug()
+    {
+        var ret = 0.0;
+        var ret1 = 0;
+        var a = i16(1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4);
+        ret = +i16extractLane(a, 0);
+        ret1 = (i16extractLane(a, 0))|0;
     }
 
     return {func1:func1, func2:func2, func3:func3, func4:func4, func5:fcBug_1, func6:fcBug_2};

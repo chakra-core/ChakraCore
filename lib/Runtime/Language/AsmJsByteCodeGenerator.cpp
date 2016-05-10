@@ -913,9 +913,48 @@ namespace Js
         mWriter.AsmBr( mFunction->GetFuncInfo()->singleExit );
         return emitInfo;
     }
+
     bool AsmJSByteCodeGenerator::IsFRound(AsmJsMathFunction* sym)
     {
         return (sym && sym->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround);
+    }
+
+    bool AsmJSByteCodeGenerator::IsValidSimdFcnRetType(AsmJsSIMDFunction& simdFunction, const AsmJsRetType& expectedType, const AsmJsRetType& retType)
+    {
+        // Return types of simd builtins can be coereced to other asmjs types when a valid coercion exists
+        // e.g.
+        //     float    -> double           var d = 0.0; d = +float32x4ExtractLane(...)
+        //     signed   -> double           var d = 0.0; d = +int32x4ExtractLane(...)
+        //     unsigned -> double           var d = 0.0; d = +uint32x4ExtractLane(...)
+
+        // If a simd built-in is used without coercion, then expectedType is Void.
+        // All SIMD ops are allowed without coercion except a few that return bool. E.g. b4anyTrue()
+        // Unsigned and Bools are represented as Signed in AsmJs
+        if (expectedType == AsmJsRetType::Void)
+        {
+            return true;
+        }
+        else if (expectedType == retType)
+        {
+            Assert(expectedType == AsmJsRetType::Float   ||
+                   expectedType == AsmJsRetType::Signed  ||
+                   expectedType == AsmJsRetType::Unsigned||
+                   expectedType.toType().isSIMDType() );
+            return true;
+        }
+        else if (expectedType == AsmJsRetType::Double)
+        {
+            return (retType == AsmJsRetType::Float  ||
+                    retType == AsmJsRetType::Signed ||
+                    retType == AsmJsRetType::Unsigned);
+        }
+        else if (expectedType == AsmJsRetType::Signed)
+        {
+            //Unsigned and Bools are represented as Signed in AsmJs
+            return (retType == AsmJsRetType::Unsigned ||
+                    simdFunction.ReturnsBool());
+        }
+        return false;
     }
 
     // First set of opcode are for External calls, second set is for internal calls
@@ -1642,12 +1681,7 @@ namespace Js
             throw AsmJsCompilationException(_u("SIMD builtin function doesn't support arguments"));
         }
 
-        // If a simd built-in is used without coercion, then expectedType is Void
-        // All SIMD ops are allowed without coercion except a few that return bool. E.g. b4anyTrue()
-        if ( 
-             (simdFunction->ReturnsBool() && expectedType != AsmJsRetType::Signed) ||
-             (expectedType != AsmJsRetType::Void && retType != expectedType)
-           )
+        if (!IsValidSimdFcnRetType(*simdFunction, expectedType, retType))
         {
             throw AsmJsCompilationException(_u("SIMD builtin function returns wrong type"));
         }
