@@ -793,6 +793,7 @@ LowererMDArch::LowerCallPut(IR::Instr *callInstr)
 IR::Instr *
 LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
 {
+    UNREFERENCED_PARAMETER(argCount);
     IR::Instr *retInstr = callInstr;
     callInstr->m_opcode = Js::OpCode::CALL;
 
