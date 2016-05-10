@@ -233,6 +233,35 @@ typedef unsigned char* ChakraBytePtr;
         ///     A hosting API was called with object created on different javascript runtime.
         /// </summary>
         JsErrorWrongRuntime,
+
+        /// <summary>
+        ///     Category of errors that are related to failures during diagnostic operations.
+        /// </summary>
+        JsErrorCategoryDiagError = 0x50000,
+        /// <summary>
+        ///     The object for which the debugging API was called was not found
+        /// </summary>
+        JsErrorDiagAlreadyInDebugMode,
+        /// <summary>
+        ///     The debugging API can only be called when VM is in debug mode
+        /// </summary>
+        JsErrorDiagNotInDebugMode,
+        /// <summary>
+        ///     The debugging API can only be called when VM is at a break
+        /// </summary>
+        JsErrorDiagNotAtBreak,
+        /// <summary>
+        ///     Debugging API was called with an invalid handle.
+        /// </summary>
+        JsErrorDiagInvalidHandle,
+        /// <summary>
+        ///     The object for which the debugging API was called was not found
+        /// </summary>
+        JsErrorDiagObjectNotFound,
+        /// <summary>
+        ///     VM was unable to perfom the request action
+        /// </summary>
+        JsErrorDiagUnableToPerformAction,
     } JsErrorCode;
 
     /// <summary>
