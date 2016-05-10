@@ -701,7 +701,7 @@ namespace Js
             // Executing the eval causes the scope chain to escape.
             pfuncScript->InvalidateCachedScopeChain();
         }
-        Var varResult = pfuncScript->GetEntryPoint()(pfuncScript, CallInfo(CallFlags_Eval, 1), varThis);
+        Var varResult = CALL_FUNCTION(pfuncScript, CallInfo(CallFlags_Eval, 1), varThis);
         pfuncScript->SetEnvironment(nullptr);
         return varResult;
     }

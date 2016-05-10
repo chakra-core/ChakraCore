@@ -13,11 +13,32 @@
 //      [Return Address] [function] [callInfo] [arg0] [arg1] ...
 //
 #define VA_LIST_TO_VARARRAY(vl, va, callInfo)                              \
-    Js::Var* va = reinterpret_cast<Js::Var*>(_AddressOfReturnAddress()) + 3;
+    Js::Var* va = reinterpret_cast<Js::Var*>(_AddressOfReturnAddress()) + 3; \
+    Assert(*reinterpret_cast<Js::CallInfo*>(va - 1) == callInfo);
 #else
 #error Not yet implemented
 #endif
 #endif
+
+
+#ifdef _WIN32
+#define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
+    entryPoint(function, callInfo, ##__VA_ARGS__)
+#elif _M_X64
+// Call an entryPoint (JavascriptMethod) with custom calling convention.
+//  RDI == function, RSI == callInfo, (RDX/RCX/R8/R9==null/unused),
+//  all parameters on stack.
+#define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
+    entryPoint(function, callInfo, nullptr, nullptr, nullptr, nullptr, \
+               function, callInfo, ##__VA_ARGS__)
+#else
+#error CALL_ENTRYPOINT not yet implemented
+#endif
+
+#define CALL_FUNCTION(function, callInfo, ...) \
+    CALL_ENTRYPOINT(function->GetEntryPoint(), \
+                    function, callInfo, ##__VA_ARGS__)
+
 
 /*
  * RUNTIME_ARGUMENTS is a simple wrapper around the variadic calling convention
@@ -45,7 +66,11 @@ namespace Js
         Arguments(CallInfo callInfo, Var* values) :
             Info(callInfo), Values(values) {}
 
+        Arguments(ushort count, Var* values) :
+            Info(count), Values(values) {}
+
         Arguments(VirtualTableInfoCtorEnum v) : Info(v) {}
+
         Var operator [](int idxArg) { return const_cast<Var>(static_cast<const Arguments&>(*this)[idxArg]); }
         const Var operator [](int idxArg) const
         {

@@ -451,7 +451,7 @@ namespace Js
                         (iteratorFn != scriptContext->GetLibrary()->GetArrayPrototypeValuesFunction() ||
                             !JavascriptArray::Is(firstArgument) || JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext)))
                     {
-                        Var iterator = iteratorFn->GetEntryPoint()(iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
+                        Var iterator = CALL_FUNCTION(iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
 
                         if (!JavascriptOperators::IsObject(iterator))
                         {
@@ -2059,7 +2059,7 @@ namespace Js
                 // We know that the TypedArray.HasItem will be true because k < length and we can skip the check in the TypedArray version of filter.
                 element = typedArrayBase->DirectGetItem(k);
 
-                selected = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                selected = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     typedArrayBase);
@@ -2208,7 +2208,7 @@ namespace Js
 
             element = typedArrayBase->DirectGetItem(k);
 
-            callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+            CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                 element,
                 JavascriptNumber::ToVar(k, scriptContext),
                 typedArrayBase);
@@ -2614,7 +2614,7 @@ namespace Js
             ScriptContext* scriptContext = compFn->GetScriptContext();
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
             double dblResult;
-            Var retVal = compFn->GetEntryPoint()(compFn, CallInfo(CallFlags_Value, 3),
+            Var retVal = CALL_FUNCTION(compFn, CallInfo(CallFlags_Value, 3),
                 undefined,
                 JavascriptNumber::ToVarWithCheck((double)x, scriptContext),
                 JavascriptNumber::ToVarWithCheck((double)y, scriptContext));

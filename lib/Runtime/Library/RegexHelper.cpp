@@ -1398,7 +1398,7 @@ namespace Js
         if (indexMatched != CharCountFlag)
         {
             Var pThis = scriptContext->GetLibrary()->GetUndefined();
-            JavascriptString* replace = JavascriptConversion::ToString(replacefn->GetEntryPoint()(replacefn, 4, pThis, match, JavascriptNumber::ToVar((int)indexMatched, scriptContext), input), scriptContext);
+            JavascriptString* replace = JavascriptConversion::ToString(CALL_FUNCTION(replacefn, CallInfo(4), pThis, match, JavascriptNumber::ToVar((int)indexMatched, scriptContext), input), scriptContext);
             const char16* inputStr = input->GetString();
             const char16* prefixStr = inputStr;
             CharCount prefixLength = indexMatched;

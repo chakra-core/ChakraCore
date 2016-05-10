@@ -524,7 +524,7 @@ CommonNumber:
                 Assert(!ThreadContext::IsOnStack(recyclableObject));
 
                 // Let result be the result of calling the[[Call]] internal method of exoticToPrim, with input as thisArgument and(hint) as argumentsList.
-                return  exoticToPrim->GetEntryPoint()(exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
+                return CALL_FUNCTION(exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
             });
 
             Assert(!CrossSite::NeedMarshalVar(result, requestContext));
@@ -691,7 +691,7 @@ CommonNumber:
                 return JavascriptString::FromVar(simdObject->ToString(scriptContext));
             }
 #endif
-            
+
             case TypeIds_GlobalObject:
                 aValue = static_cast<Js::GlobalObject*>(aValue)->ToThis();
                 // fall through
@@ -754,7 +754,7 @@ CommonNumber:
                 if (JavascriptConversion::IsCallable(value))
                 {
                     RecyclableObject* toLocaleStringFunction = RecyclableObject::FromVar(value);
-                    Var aResult = toLocaleStringFunction->GetEntryPoint()(toLocaleStringFunction, 1, aValue);
+                    Var aResult = CALL_FUNCTION(toLocaleStringFunction, CallInfo(1), aValue);
                     if (JavascriptString::Is(aResult))
                     {
                         return JavascriptString::FromVar(aResult);
@@ -848,7 +848,7 @@ CommonNumber:
             return true;
         }
 #endif
-        
+
         default:
             {
                 AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToBoolean");
@@ -958,7 +958,7 @@ CommonNumber:
             case TypeIds_SIMDUint8x16:
                 JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 #endif
-                
+
             default:
                 {
                     AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToInteger");
@@ -1027,7 +1027,7 @@ CommonNumber:
             case TypeIds_SIMDUint8x16:
                 JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 #endif
-                
+
             default:
                 {
                     AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToInteger");
@@ -1129,7 +1129,7 @@ CommonNumber:
         case TypeIds_SIMDUint8x16:
             JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 #endif
-            
+
         default:
             AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToInteger32");
             aValue = ToPrimitive(aValue, JavascriptHint::HintNumber, scriptContext);
@@ -1244,7 +1244,7 @@ CommonNumber:
             case TypeIds_SIMDUint8x16:
                 JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 #endif
-                
+
             default:
                 {
                     AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToInteger32");
@@ -1395,7 +1395,7 @@ CommonNumber:
             case TypeIds_SIMDUint8x16:
                 JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 #endif
-                
+
             default:
                 {
                     AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToUInt32");
@@ -1484,7 +1484,7 @@ CommonNumber:
             case TypeIds_SIMDUint8x16:
                 JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 #endif
-                
+
             default:
                 {
                     AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToUIn16");
