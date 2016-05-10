@@ -5630,8 +5630,8 @@ Recycler::ThreadProc()
 #ifdef ENABLE_JS_ETW
     // Create an ETW ActivityId for this thread, to help tools correlate ETW events we generate
     GUID activityId = { 0 };
-    auto result = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
-    Assert(result == ERROR_SUCCESS);
+    auto eventActivityIdControlResult = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
+    Assert(eventActivityIdControlResult == ERROR_SUCCESS);
 #endif
 
     // Signal that the thread has started
@@ -6168,8 +6168,8 @@ RecyclerParallelThread::StaticThreadProc(LPVOID lpParameter)
 #ifdef ENABLE_JS_ETW
         // Create an ETW ActivityId for this thread, to help tools correlate ETW events we generate
         GUID activityId = { 0 };
-        auto result = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
-        Assert(result == ERROR_SUCCESS);
+        auto eventActivityIdControlResult = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
+        Assert(eventActivityIdControlResult == ERROR_SUCCESS);
 #endif
 
         // If this thread is created on demand we already have work to process and do not need to wait

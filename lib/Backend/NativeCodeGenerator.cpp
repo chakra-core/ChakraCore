@@ -1880,7 +1880,6 @@ NativeCodeGenerator::GatherCodeGenData(
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
                 {
-                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
                     Js::PropertyRecord const * const propertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
@@ -2055,7 +2054,6 @@ NativeCodeGenerator::GatherCodeGenData(
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                             if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
                             {
-                                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                                 char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
                                 Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
@@ -2098,6 +2096,7 @@ NativeCodeGenerator::GatherCodeGenData(
 
                 if (polymorphicInlineCache != nullptr)
                 {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                     if (PHASE_VERBOSE_TRACE1(Js::PolymorphicInlineCachePhase))
                     {
                         if (IsInlinee) Output::Print(_u("\t"));
@@ -2108,12 +2107,12 @@ NativeCodeGenerator::GatherCodeGenData(
                     }
                     else if (PHASE_TRACE1(Js::PolymorphicInlineCachePhase))
                     {
-                        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                         Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
                         Js::PropertyRecord const * const propertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
                         Output::Print(_u("Trace PIC JIT function %s (%s) field: %s (index: %d) \n"), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer),
                             propertyRecord->GetBuffer(), i);
                     }
+#endif
 
                     byte polyCacheUtil = profileData->GetFldInfo(functionBody, i)->polymorphicInlineCacheUtilization;
                     entryPoint->GetPolymorphicInlineCacheInfo()->SetPolymorphicInlineCache(functionBody, i, polymorphicInlineCache, IsInlinee, polyCacheUtil);
@@ -2450,7 +2449,6 @@ NativeCodeGenerator::GatherCodeGenData(
 #ifdef FIELD_ACCESS_STATS
     if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
     {
-        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         if (jitTimeData->inlineCacheStats)
         {
             Output::Print(_u("ObTypeSpec: gathered code gen data for function %s (#%u) inlined %s (#%u): inline cache stats:\n"),

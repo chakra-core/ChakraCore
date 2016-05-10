@@ -569,18 +569,20 @@ namespace Js
                 VerifyExecutionModeLimits();
             }
 
-            if(IsEnabled(SimpleJitAfterFlag))
+            if (IsEnabled(SimpleJitAfterFlag))
             {
                 Enable(AutoProfilingInterpreter0LimitFlag);
                 Enable(ProfilingInterpreter0LimitFlag);
                 Enable(AutoProfilingInterpreter1LimitFlag);
                 Enable(EnforceExecutionModeLimitsFlag);
 
-                Js::Number iterationsNeeded = SimpleJitAfter;
-                ProfilingInterpreter0Limit = min(ProfilingInterpreter0Limit, iterationsNeeded);
-                iterationsNeeded -= ProfilingInterpreter0Limit;
-                AutoProfilingInterpreter0Limit = iterationsNeeded;
-                AutoProfilingInterpreter1Limit = 0;
+                {
+                    Js::Number iterationsNeeded = SimpleJitAfter;
+                    ProfilingInterpreter0Limit = min(ProfilingInterpreter0Limit, iterationsNeeded);
+                    iterationsNeeded -= ProfilingInterpreter0Limit;
+                    AutoProfilingInterpreter0Limit = iterationsNeeded;
+                    AutoProfilingInterpreter1Limit = 0;
+                }
 
                 if(IsEnabled(FullJitAfterFlag))
                 {

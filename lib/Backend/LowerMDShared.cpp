@@ -7079,7 +7079,7 @@ LowererMD::EnsureAdjacentArgs(IR::Instr * instrArg)
     while (opnd->IsSymOpnd())
     {
         sym = opnd->AsSymOpnd()->m_sym->AsStackSym();
-        IR::Instr * instrNextArg = sym->m_instrDef;
+        instrNextArg = sym->m_instrDef;
         Assert(instrNextArg);
         instrNextArg->SinkInstrBefore(instrArg);
         instrArg = instrNextArg;
@@ -7700,7 +7700,7 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
         IR::Opnd* dstOpnd = intOpnd;
 #endif
         // CVTTSD2SI dst, floatOpnd
-        IR::Instr* instr = IR::Instr::New(floatOpnd->IsFloat64() ? Js::OpCode::CVTTSD2SI : Js::OpCode::CVTTSS2SI, dstOpnd, floatOpnd, this->m_func);
+        instr = IR::Instr::New(floatOpnd->IsFloat64() ? Js::OpCode::CVTTSD2SI : Js::OpCode::CVTTSS2SI, dstOpnd, floatOpnd, this->m_func);
         instInsert->InsertBefore(instr);
 
         // CMP dst, 0x80000000 {0x8000000000000000 on x64}    -- Check for overflow
@@ -7741,7 +7741,7 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
         if (floatOpnd->IsFloat32())
         {
             float64Opnd = IR::RegOpnd::New(TyFloat64, m_func);
-            IR::Instr* instr = IR::Instr::New(Js::OpCode::CVTSS2SD, float64Opnd, floatOpnd, m_func);
+            instr = IR::Instr::New(Js::OpCode::CVTSS2SD, float64Opnd, floatOpnd, m_func);
             instInsert->InsertBefore(instr);
         }
         else
@@ -7752,7 +7752,7 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
         if (float64Opnd->IsRegOpnd())
         {
             floatStackOpnd = IR::SymOpnd::New(tempSymDouble, TyMachDouble, m_func);
-            IR::Instr* instr = IR::Instr::New(Js::OpCode::MOVSD, floatStackOpnd, float64Opnd, m_func);
+            instr = IR::Instr::New(Js::OpCode::MOVSD, floatStackOpnd, float64Opnd, m_func);
             instInsert->InsertBefore(instr);
         }
         else

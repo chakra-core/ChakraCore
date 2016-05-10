@@ -4584,8 +4584,8 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
     case knopAsg:
         {
-        Symbol * sym = pnode->sxBin.pnode1->nop == knopName ? pnode->sxBin.pnode1->sxPid.sym : nullptr;
-            CheckFuncAssignment(sym, pnode->sxBin.pnode2, byteCodeGenerator);
+            Symbol * symName = pnode->sxBin.pnode1->nop == knopName ? pnode->sxBin.pnode1->sxPid.sym : nullptr;
+            CheckFuncAssignment(symName, pnode->sxBin.pnode2, byteCodeGenerator);
 
             if (pnode->IsInList())
             {

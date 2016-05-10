@@ -705,17 +705,19 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         Assert(UNREACHED);
     }
 
-    IR::Opnd* tmp = src1;
-    if (laneIndex != 0)
     {
-        // tmp = PSRLDQ src1, shamt
-        tmp = IR::RegOpnd::New(src1->GetType(), m_func);
-        IR::Instr *shiftInstr = IR::Instr::New(Js::OpCode::PSRLDQ, tmp, src1, IR::IntConstOpnd::New(laneWidth * laneIndex, TyInt8, m_func, true), m_func);
-        instr->InsertBefore(shiftInstr);
-        Legalize(shiftInstr);
+        IR::Opnd* tmp = src1;
+        if (laneIndex != 0)
+        {
+            // tmp = PSRLDQ src1, shamt
+            tmp = IR::RegOpnd::New(src1->GetType(), m_func);
+            IR::Instr *shiftInstr = IR::Instr::New(Js::OpCode::PSRLDQ, tmp, src1, IR::IntConstOpnd::New(laneWidth * laneIndex, TyInt8, m_func, true), m_func);
+            instr->InsertBefore(shiftInstr);
+            Legalize(shiftInstr);
+        }
+        // MOVSS/MOVSD/MOVD dst, tmp
+        instr->InsertBefore(IR::Instr::New(movOpcode, dst, tmp, m_func));
     }
-    // MOVSS/MOVSD/MOVD dst, tmp
-    instr->InsertBefore(IR::Instr::New(movOpcode, dst, tmp, m_func));
 
     // dst has the 4-byte lane
     if (instr->m_opcode == Js::OpCode::Simd128_ExtractLane_I8 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_U8 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 ||
@@ -1654,10 +1656,10 @@ IR::Instr* LowererMD::Simd128LowerShuffle_4(IR::Instr* instr)
     IR::Opnd *dst = args->Pop();
     IR::Opnd *srcs[6] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
-    int i = 0;
-    while (!args->Empty() && i < 6)
+    int j = 0;
+    while (!args->Empty() && j < 6)
     {
-        srcs[i++] = args->Pop();
+        srcs[j++] = args->Pop();
     }
 
     uint8 lanes[4], lanesSrc[4];

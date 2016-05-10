@@ -2437,11 +2437,11 @@ namespace Js
                                     bool isUnscoped = false;
                                     bool isConst = true;
                                     count = regExp->GetSpecialEnumerablePropertyCount();
-                                    PropertyId const * specialPropertyIds = regExp->GetSpecialEnumerablePropertyIds();
+                                    PropertyId const * specialEnumerablePropertyIds = regExp->GetSpecialEnumerablePropertyIds();
 
                                     for (int i = 0; i < count; i++)
                                     {
-                                        Js::PropertyId propertyId = specialPropertyIds[i];
+                                        Js::PropertyId propertyId = specialEnumerablePropertyIds[i];
 
                                         InsertItem(originalObject, object, propertyId, isConst, isUnscoped, &pMethodsGroupWalker);
                                     }

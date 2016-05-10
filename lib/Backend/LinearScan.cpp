@@ -1349,9 +1349,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     Func * bailOutFunc = bailOutInfo->bailOutFunc;
     uint funcCount = bailOutFunc->inlineDepth + 1;
     FuncBailOutData * funcBailOutData = AnewArray(this->tempAlloc, FuncBailOutData, funcCount);
-    uint index = funcCount - 1;
-    funcBailOutData[index].Initialize(bailOutFunc, this->tempAlloc);
-    funcBailOutData[index].bailOutRecord = bailOutInfo->bailOutRecord;
+    uint funcIndex = funcCount - 1;
+    funcBailOutData[funcIndex].Initialize(bailOutFunc, this->tempAlloc);
+    funcBailOutData[funcIndex].bailOutRecord = bailOutInfo->bailOutRecord;
     bailOutInfo->bailOutRecord->m_bailOutRecordId = m_bailOutRecordCount++;
     bailOutInfo->bailOutRecord->globalBailOutRecordTable = EnsureGlobalBailOutRecordTable(bailOutFunc);
 
@@ -1371,7 +1371,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     uint bailOutOffset = bailOutFunc->postCallByteCodeOffset;
     while (currentFunc != nullptr)
     {
-        Assert(index > 0);
+        Assert(funcIndex > 0);
         Assert(bailOutOffset != Js::Constants::NoByteCodeOffset);
         BailOutRecord * bailOutRecord = NativeCodeDataNewZ(allocator, BailOutRecord, bailOutOffset, (uint)-1, IR::BailOutInvalid, currentFunc);
         bailOutRecord->m_bailOutRecordId = m_bailOutRecordCount++;
@@ -1380,16 +1380,16 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         // To indicate this is a subsequent bailout from an inlinee
         bailOutRecord->bailOutOpcode = Js::OpCode::InlineeEnd;
 #endif
-        funcBailOutData[index].bailOutRecord->parent = bailOutRecord;
-        index--;
-        funcBailOutData[index].bailOutRecord = bailOutRecord;
-        funcBailOutData[index].Initialize(currentFunc, this->tempAlloc);
+        funcBailOutData[funcIndex].bailOutRecord->parent = bailOutRecord;
+        funcIndex--;
+        funcBailOutData[funcIndex].bailOutRecord = bailOutRecord;
+        funcBailOutData[funcIndex].Initialize(currentFunc, this->tempAlloc);
 
         bailOutOffset = currentFunc->postCallByteCodeOffset;
         currentFunc = currentFunc->GetParentFunc();
     }
 
-    Assert(index == 0);
+    Assert(funcIndex == 0);
     Assert(bailOutOffset == Js::Constants::NoByteCodeOffset);
 
     FillBailOutState state(this->tempAlloc);
@@ -1397,7 +1397,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     memset(state.registerSaveSyms, 0, sizeof(state.registerSaveSyms));
 
     // Fill in the constants
-    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->usedCapturedValues.constantValues, iterator)
+    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->usedCapturedValues.constantValues, constantValuesIterator)
     {
         AssertMsg(bailOutInfo->bailOutRecord->bailOutKind != IR::BailOutForGeneratorYield, "constant prop syms unexpected for bail-in for generator yield");
         StackSym * stackSym = value.Key();
@@ -1435,12 +1435,12 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             Output::Print(_u(" (0x%p (Var) Offset: %d)\n"), varValue, funcBailOutData[index].localOffsets[i]);
         }
 #endif
-        iterator.RemoveCurrent(this->func->m_alloc);
+        constantValuesIterator.RemoveCurrent(this->func->m_alloc);
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
 
     // Fill in the copy prop syms
-    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->usedCapturedValues.copyPropSyms, iter)
+    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->usedCapturedValues.copyPropSyms, copyPropSymsIter)
     {
         AssertMsg(bailOutInfo->bailOutRecord->bailOutKind != IR::BailOutForGeneratorYield, "copy prop syms unexpected for bail-in for generator yield");
         StackSym * stackSym = copyPropSyms.Key();
@@ -1513,7 +1513,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         {
             funcBailOutData[index].simd128B16Syms->Set(i);
         }
-        iter.RemoveCurrent(this->func->m_alloc);
+        copyPropSymsIter.RemoveCurrent(this->func->m_alloc);
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
 
@@ -4907,10 +4907,12 @@ IR::Instr * LinearScan::GetIncInsertionPoint(IR::Instr *instr)
 }
 
 void LinearScan::DynamicStatsInstrument()
-{
-    IR::Instr *firstInstr = this->func->m_headInstr;
-    IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(&(this->func->GetJnFunction()->callCountStats), TyUint32, this->func);
-    firstInstr->InsertAfter(IR::Instr::New(Js::OpCode::INC, memRefOpnd, memRefOpnd, this->func));
+{    
+    {
+        IR::Instr *firstInstr = this->func->m_headInstr;
+        IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(&(this->func->GetJnFunction()->callCountStats), TyUint32, this->func);
+        firstInstr->InsertAfter(IR::Instr::New(Js::OpCode::INC, memRefOpnd, memRefOpnd, this->func));
+    }
 
     FOREACH_INSTR_IN_FUNC(instr, this->func)
     {
