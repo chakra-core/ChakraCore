@@ -55,7 +55,7 @@ private:
     AllocationPolicyManager m_policyManager;
     CodeGenAllocators m_codeGenAlloc;
 
-    ThreadContextData * m_threadContextData;
+    ThreadContextData m_threadContextData;
 
     intptr_t m_localChakraBaseAddress;
     bool m_isAllJITCodeInPreReservedRegion;

@@ -492,6 +492,10 @@ namespace Js
         // If we pin types this array contains strong references to types, otherwise it holds weak references.
         void **runtimeTypeRefs;
 
+#if _M_AMD64 || _M_ARM32_OR_ARM64
+        XDataInfo * xdataInfo;
+#endif
+
         uint32 pendingPolymorphicCacheState;
 #endif
         State state; // Single state member so users can query state w/o a lock
@@ -557,7 +561,8 @@ namespace Js
 
         JitTransferData* GetJitTransferData() { return this->jitTransferData; }
         JitTransferData* EnsureJitTransferData(Recycler* recycler);
-
+        XDataInfo* GetXDataInfo() { return this->xdataInfo; }
+        void SetXDataInfo(XDataInfo* xdataInfo) { this->xdataInfo = xdataInfo; }
 #ifdef FIELD_ACCESS_STATS
         FieldAccessStats* GetFieldAccessStats() { return this->fieldAccessStats; }
         FieldAccessStats* EnsureFieldAccessStats(Recycler* recycler);

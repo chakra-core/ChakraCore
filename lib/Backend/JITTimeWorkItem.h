@@ -39,7 +39,6 @@ private:
 
 public: // TODO: (michhol) remove these. currently needed to compile
     Js::EntryPointInfo * GetEntryPoint() { __debugbreak(); return nullptr; }
-    void FinalizeNativeCode(...) { __debugbreak(); }
     void DumpNativeOffsetMaps() { __debugbreak(); }
     void DumpNativeThrowSpanSequence() { __debugbreak(); }
     void RecordNativeMap(...) { __debugbreak(); }

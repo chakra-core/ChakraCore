@@ -8693,6 +8693,14 @@ namespace Js
             }
 #endif
 
+#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+            if (this->xdataInfo != nullptr)
+            {
+                XDataAllocator::Unregister(this->xdataInfo);
+                HeapDelete(this->xdataInfo);
+                this->xdataInfo = nullptr;
+            }
+#endif
             // This is how we set the CleanedUp state
             this->workItem = nullptr;
             this->nativeAddress = nullptr;

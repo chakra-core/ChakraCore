@@ -203,7 +203,8 @@ typedef struct JITOutputData
 {
     EntryPointInfoJITWriteData writeableEPData;
     __int3264 codeAddress;
-    __int3264 codeSize;
+    __int3264 xdataAddr;
+    unsigned int codeSize;
     unsigned short pdataCount;
     unsigned short xdataSize;
     boolean isInPrereservedRegion;

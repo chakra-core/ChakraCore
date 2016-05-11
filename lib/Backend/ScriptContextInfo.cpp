@@ -6,42 +6,42 @@
 #include "Backend.h"
 
 ScriptContextInfo::ScriptContextInfo(ScriptContextData * contextData)
-    : m_contextData(contextData)
+    : m_contextData(*contextData)
 {
 }
 
 intptr_t
 ScriptContextInfo::GetNullAddr() const
 {
-    return m_contextData->nullAddr;
+    return m_contextData.nullAddr;
 }
 
 intptr_t
 ScriptContextInfo::GetUndefinedAddr() const
 {
-    return m_contextData->undefinedAddr;
+    return m_contextData.undefinedAddr;
 }
 
 intptr_t
 ScriptContextInfo::GetTrueAddr() const
 {
-    return m_contextData->trueAddr;
+    return m_contextData.trueAddr;
 }
 
 intptr_t
 ScriptContextInfo::GetFalseAddr() const
 {
-    return m_contextData->falseAddr;
+    return m_contextData.falseAddr;
 }
 
 intptr_t
 ScriptContextInfo::GetUndeclBlockVarAddr() const
 {
-    return m_contextData->undeclBlockVarAddr;
+    return m_contextData.undeclBlockVarAddr;
 }
 
 intptr_t
 ScriptContextInfo::GetAddr() const
 {
-    return m_contextData->scriptContextAddr;
+    return m_contextData.scriptContextAddr;
 }

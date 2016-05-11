@@ -9,7 +9,6 @@ class ScriptContextInfo
 {
 public:
     ScriptContextInfo(ScriptContextData * contextData);
-
     intptr_t GetNullAddr() const;
     intptr_t GetUndefinedAddr() const;
     intptr_t GetTrueAddr() const;
@@ -19,5 +18,5 @@ public:
 
 
 private:
-    ScriptContextData * m_contextData;
+    ScriptContextData m_contextData;
 };

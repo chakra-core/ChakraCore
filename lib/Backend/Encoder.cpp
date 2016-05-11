@@ -292,6 +292,7 @@ Encoder::Encode()
 
 #ifdef _M_X64
     m_func->m_prologEncoder.FinalizeUnwindInfo();
+    
     m_func->GetJITOutput()->RecordUnwindInfo(
         0,
         m_func->m_prologEncoder.GetUnwindInfo(),

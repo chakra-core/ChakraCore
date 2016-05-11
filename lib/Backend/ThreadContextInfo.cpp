@@ -5,7 +5,7 @@
 #include "Backend.h"
 
 ThreadContextInfo::ThreadContextInfo(ThreadContextData * data) :
-    m_threadContextData(data),
+    m_threadContextData(*data),
     m_policyManager(true),
     m_pageAlloc(&m_policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
@@ -151,19 +151,19 @@ ThreadContextInfo::GetNativeFloatArrayMissingItemAddr() const
 intptr_t
 ThreadContextInfo::GetThreadStackLimitAddr() const
 {
-    return static_cast<intptr_t>(m_threadContextData->threadStackLimitAddr);
+    return static_cast<intptr_t>(m_threadContextData.threadStackLimitAddr);
 }
 
 size_t
 ThreadContextInfo::GetScriptStackLimit() const
 {
-    return static_cast<size_t>(m_threadContextData->scriptStackLimit);
+    return static_cast<size_t>(m_threadContextData.scriptStackLimit);
 }
 
 bool
 ThreadContextInfo::IsThreadBound() const
 {
-    return m_threadContextData->isThreadBound != FALSE;
+    return m_threadContextData.isThreadBound != FALSE;
 }
 
 PageAllocator *
@@ -187,7 +187,7 @@ ThreadContextInfo::GetAllocationPolicyManager()
 HANDLE
 ThreadContextInfo::GetProcessHandle() const
 {
-    return reinterpret_cast<HANDLE>(m_threadContextData->processHandle);
+    return reinterpret_cast<HANDLE>(m_threadContextData.processHandle);
 }
 
 bool
@@ -205,7 +205,7 @@ ThreadContextInfo::ResetIsAllJITCodeInPreReservedRegion()
 intptr_t
 ThreadContextInfo::GetRuntimeChakraBaseAddress() const
 {
-    return static_cast<intptr_t>(m_threadContextData->chakraBaseAddress);
+    return static_cast<intptr_t>(m_threadContextData.chakraBaseAddress);
 }
 
 ptrdiff_t

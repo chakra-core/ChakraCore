@@ -74,6 +74,13 @@ struct SecondaryAllocation
     }
 };
 
+#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+struct XDataInfo
+{
+    RUNTIME_FUNCTION pdata;
+    FunctionTableHandle functionTable;
+};
+#endif
 
 //
 // For every page segment a page allocator can create a secondary allocator which can have a specified

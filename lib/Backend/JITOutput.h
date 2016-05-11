@@ -17,7 +17,7 @@ public:
 
     intptr_t GetCodeAddress() const;
 
-    EmitBufferAllocation * RecordNativeCodeSize(Func *func, size_t bytes, ushort pdataCount, ushort xdataSize);
+    EmitBufferAllocation * RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize);
     void RecordNativeCode(Func *func, const BYTE* sourceBuffer, EmitBufferAllocation * alloc);
 
 #if _M_X64 || _M_ARM

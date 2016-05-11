@@ -90,15 +90,7 @@ ServerInitializeThreadContext(
 {
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    AllocationPolicyManager * policyManager = HeapNew(AllocationPolicyManager, true);
-
     ThreadContextInfo * contextInfo = HeapNew(ThreadContextInfo, threadContextData);
-
-    PageAllocator backgroundPageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
-        (AutoSystemInfo::Data.IsLowMemoryProcess() ?
-            PageAllocator::DefaultLowMaxFreePageCount :
-            PageAllocator::DefaultMaxFreePageCount));
-    HeapNew(CodeGenAllocators, policyManager, nullptr, nullptr);
 
     *threadContextRoot = (intptr_t)contextInfo;
     return S_OK;
@@ -109,10 +101,14 @@ ServerCleanupThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 threadContextRoot)
 {
+    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+
     ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextRoot);
-    CloseHandle(threadContextInfo->GetProcessHandle());
+    HANDLE processHandle = threadContextInfo->GetProcessHandle();
 
     HeapDelete(threadContextInfo);
+
+    CloseHandle(processHandle);
     return S_OK;
 }
 
@@ -158,8 +154,12 @@ ServerRemoteCodeGen(
 
     JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 
-    JITTimeProfileInfo profileInfo(profileData);
-    Func func(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, nullptr, threadContextInfo->GetCodeGenAllocators(), nullptr, &profileInfo, nullptr, true);
+    JITTimeProfileInfo * profileInfo = nullptr;
+    if (profileData != nullptr)
+    {
+        profileInfo = Anew(&jitArena, JITTimeProfileInfo, profileData);
+    }
+    Func func(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, nullptr, threadContextInfo->GetCodeGenAllocators(), nullptr, profileInfo, nullptr, true);
     func.m_symTable->SetStartingID(static_cast<SymID>(jitWorkItem->GetJITFunctionBody()->GetLocalsCount() + 1));
     func.Codegen();
     return S_OK;

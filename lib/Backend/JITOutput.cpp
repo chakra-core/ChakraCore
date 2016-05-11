@@ -39,7 +39,7 @@ JITOutput::GetCodeAddress() const
 }
 
 EmitBufferAllocation *
-JITOutput::RecordNativeCodeSize(Func *func, size_t bytes, ushort pdataCount, ushort xdataSize)
+JITOutput::RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize)
 {
     BYTE *buffer;
 
@@ -86,6 +86,7 @@ JITOutput::RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE *
     Assert(offset == 0);
     Assert(XDATA_SIZE >= size);
     ChakraMemCopy(xdataAddr, XDATA_SIZE, unwindInfo, size, processHandle);
+    m_outputData->xdataAddr = (intptr_t)xdataAddr;
     return 0;
 }
 #elif _M_ARM

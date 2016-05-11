@@ -867,34 +867,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     do
     {
-        // the number allocator needs to be on the stack so that if we are doing foreground JIT
-        // the chunk allocated from the recycler will be stacked pinned
-        CodeGenNumberAllocator numberAllocator(
-            foreground? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
-            scriptContext->GetRecycler());
-
-        JITTimeWorkItem * jitWorkItem = JitAnew(&funcAlloc, JITTimeWorkItem, workItem->GetJITData());
-
-        auto funcEPInfo = (Js::FunctionEntryPointInfo*)workItem->GetEntryPoint();
-        workItem->GetJITData()->readOnlyEPData.callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
-
-        JITOutputData jitWriteData;
-        ProfileData profileData;
-        JITTimeProfileInfo::InitializeJITProfileData(body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr, body, &profileData);
-        HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
-            workItem->GetJITData(),
-            body->HasDynamicProfileInfo() ? &profileData : nullptr,
-            scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
-            scriptContext->GetRemoteScriptAddr(),
-            &jitWriteData);
-        if (hr != S_OK)
-        {
-            __fastfail((uint)-1);
-        }
-        scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
-        workItem->SetCodeAddress(jitWriteData.codeAddress);
-
-        workItem->GetEntryPoint()->SetCodeGenRecorded((PVOID)jitWriteData.codeAddress, jitWriteData.codeSize, nullptr, nullptr, nullptr);
         try
         {
             {
@@ -1017,6 +989,39 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
                 throw Js::OperationAbortedException();
             }
+
+            // the number allocator needs to be on the stack so that if we are doing foreground JIT
+            // the chunk allocated from the recycler will be stacked pinned
+            CodeGenNumberAllocator numberAllocator(
+                foreground? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
+                scriptContext->GetRecycler());
+
+            JITTimeWorkItem * jitWorkItem = JitAnew(&funcAlloc, JITTimeWorkItem, workItem->GetJITData());
+
+            auto funcEPInfo = (Js::FunctionEntryPointInfo*)workItem->GetEntryPoint();
+            workItem->GetJITData()->readOnlyEPData.callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
+
+            JITOutputData jitWriteData;
+            ProfileData profileData;
+            JITTimeProfileInfo::InitializeJITProfileData(body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr, body, &profileData);
+            HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
+                workItem->GetJITData(),
+                body->HasDynamicProfileInfo() ? &profileData : nullptr,
+                scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
+                scriptContext->GetRemoteScriptAddr(),
+                &jitWriteData);
+            if (hr != S_OK)
+            {
+                __fastfail((uint)-1);
+            }
+#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+            XDataInfo * xdataInfo = XDataAllocator::Register(jitWriteData.xdataAddr, jitWriteData.codeAddress, jitWriteData.codeSize);
+            funcEPInfo->SetXDataInfo(xdataInfo);
+#endif
+            scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
+            workItem->SetCodeAddress(jitWriteData.codeAddress);
+
+            workItem->GetEntryPoint()->SetCodeGenRecorded((PVOID)jitWriteData.codeAddress, jitWriteData.codeSize, nullptr, nullptr, nullptr);
 
             {
                 if (IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_STOP()))

@@ -301,7 +301,6 @@ Func::Codegen()
             this->m_fg = nullptr;
         }
 
-        Dump();
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::GlobOptPhase);
 #endif /* IR_VIEWER */
@@ -312,7 +311,6 @@ Func::Codegen()
         lowerer.Lower();
         END_CODEGEN_PHASE(this, Js::LowererPhase);
 
-        Dump();
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::LowererPhase);
 #endif /* IR_VIEWER */
@@ -390,7 +388,6 @@ Func::Codegen()
         lowerer.FinalLower();
         END_CODEGEN_PHASE(this, Js::FinalLowerPhase);
 
-        Dump();
         // Encoder
         BEGIN_CODEGEN_PHASE(this, Js::EncoderPhase);
 
@@ -398,7 +395,7 @@ Func::Codegen()
         encoder.Encode();
 
         END_CODEGEN_PHASE_NO_DUMP(this, Js::EncoderPhase);
-
+        Dump();
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::EncoderPhase);
 #endif /* IR_VIEWER */
