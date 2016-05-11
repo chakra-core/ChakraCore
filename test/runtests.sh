@@ -13,8 +13,7 @@ hello_path="$test_path/Basics/hello.js"
 
 if [ ! -f $ch_path ]; then
     echo 'ch not found- exiting'
-    # TODO change this to exit 1 once clang requirement on build machines is satisfied
-    exit 0
+    exit 1
 fi
 
 output=`$ch_path $hello_path 2>&1 | tail -n 1`
