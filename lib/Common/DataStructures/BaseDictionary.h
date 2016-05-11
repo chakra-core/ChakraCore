@@ -724,8 +724,10 @@ namespace JsUtil
             {
                 if(buckets[i] != -1)
                 {
-                    for (int currentIndex = buckets[i] ; currentIndex != -1 ; currentIndex = entries[currentIndex].next)
+                    int nextIndex = -1;
+                    for (int currentIndex = buckets[i] ; currentIndex != -1 ; currentIndex = nextIndex)
                     {
+                        nextIndex = entries[currentIndex].next;
                         if (fn(entries[currentIndex]))
                         {
                             return true; // fn condition succeeds
