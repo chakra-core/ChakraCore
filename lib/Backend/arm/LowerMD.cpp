@@ -8399,17 +8399,9 @@ LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
     IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
     this->m_lowerer->InsertMove(floatOpnd, src, instr);
 
-    IR::LabelInstr * bailoutLabel;
+    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);;
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-    if(sharedBailout)
-    {
-        bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
-    }
-    else
-    {
-        bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    }
-
+    
     // NaN check
     IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::VCMPF64, this->m_func);
     instrCmp->SetSrc1(floatOpnd);
@@ -8481,7 +8473,10 @@ LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
     {
         instr->InsertBefore(bailoutLabel);
     }
-    this->m_lowerer->GenerateBailOut(instr);
+
+    // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
+    // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
+    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
 
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
@@ -8502,16 +8497,8 @@ LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
     IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
     this->m_lowerer->InsertMove(floatOpnd, src, instr);
 
-    IR::LabelInstr * bailoutLabel;
+    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);;
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-    if(sharedBailout)
-    {
-        bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
-    }
-    else
-    {
-        bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    }
 
     // NaN check
     IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::VCMPF64, this->m_func);
@@ -8589,7 +8576,10 @@ LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
     {
         instr->InsertBefore(bailoutLabel);
     }
-    this->m_lowerer->GenerateBailOut(instr);
+
+    // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
+    // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
+    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
 
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
@@ -8610,17 +8600,9 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
     this->m_lowerer->InsertMove(floatOpnd, src, instr);
 
-    IR::LabelInstr * bailoutLabel;
+    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);;
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-    if(sharedBailout)
-    {
-        bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
-    }
-    else
-    {
-        bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    }
-
+    
     // NaN check
     IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::VCMPF64, this->m_func);
     instrCmp->SetSrc1(floatOpnd);
@@ -8701,7 +8683,10 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     {
         instr->InsertBefore(bailoutLabel);
     }
-    this->m_lowerer->GenerateBailOut(instr);
+
+    // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
+    // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
+    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
 
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
