@@ -93,15 +93,6 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::AggregateBucketStats(HeapBucketStat
 }
 #endif
 
-template void SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
-template void SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
-
-#ifdef RECYCLER_WRITE_BARRIER
-template void SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
-template void SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
-#endif
-
-
 template<class TBlockType>
 void
 SmallFinalizableHeapBucketBaseT<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)

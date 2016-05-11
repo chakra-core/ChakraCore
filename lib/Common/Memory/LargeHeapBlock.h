@@ -263,14 +263,19 @@ private:
 #ifdef RECYCLER_PAGE_HEAP
     PageHeapMode pageHeapMode;
     char* guardPageAddress;
+#ifdef STACK_BACK_TRACE
     StackBackTrace* pageHeapAllocStack;
     StackBackTrace* pageHeapFreeStack;
-
+#endif
+    
 public:
     __inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
+
     void CapturePageHeapAllocStack();
     void CapturePageHeapFreeStack();
+#ifdef STACK_BACK_TRACE
     const static StackBackTrace* s_StackTraceAllocFailed;
+#endif
 #endif
 
 #if DBG
