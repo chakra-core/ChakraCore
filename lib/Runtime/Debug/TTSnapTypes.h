@@ -118,7 +118,7 @@ namespace TTD
             TTDVar PrototypeVar;
 
             //The id of the script context that this object is associated with
-            TTD_LOG_TAG ScriptContextTag;
+            TTD_LOG_PTR_ID ScriptContextLogId;
 
             //The type descriptor which contains information on property layouts and other type information
             SnapHandler* TypeHandlerInfo;

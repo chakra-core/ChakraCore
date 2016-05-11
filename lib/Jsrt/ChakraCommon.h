@@ -2889,6 +2889,7 @@
     /// <summary>
     ///     Notify the Js runtime that the host as created/canceled a callback with the given function and id.
     /// </summary>
+    /// <param name="isCancel">True if the action is to create the callback with the callbackId.</param>
     /// <param name="isCancel">True if the action is to cancel the callback with the callbackId.</param>
     /// <param name="isRepeating">True if the action is to create a repeating callback (e.g., setInterval).</param>
     /// <param name="function">The function associated with the callbackId.</param>
@@ -2896,10 +2897,18 @@
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     STDAPI_(JsErrorCode) 
         JsTTDNotifyHostCallbackCreatedOrCanceled(
+            _In_ bool isCreated,
             _In_ bool isCancel, 
             _In_ bool isRepeating, 
             _In_ JsValueRef function, 
             _In_ INT64 callbackId);
+
+    /// <summary>
+    ///     Notify the Js runtime we are at a safe yield point in the event loop (i.e. no locals on the stack and we can proccess as desired).
+    /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
+    STDAPI_(JsErrorCode)
+        JsTTDNotifyYield();
 
     /// <summary>
     ///     Before calling JsTTDMoveToTopLevelEvent (which inflates a snapshot and replays) check to see if we want to reset the script context.

@@ -24,6 +24,7 @@
 
 //Convert from Js::Var to TTDVar 
 #define TTD_CONVERT_JSVAR_TO_TTDVAR(X) ((TTD::TTDVar)(X))
+#define TTD_CONVERT_TTDVAR_TO_JSVAR(X) ((Js::Var)(X))
 
 //The ids for objects in a snapshot
 typedef uint64 TTD_PTR_ID;

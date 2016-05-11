@@ -1058,20 +1058,15 @@ private:
         void SetCallbackFunctor_TTD(const HostScriptContextCallbackFunctor& functor);
         const HostScriptContextCallbackFunctor& GetCallbackFunctor_TTD() const;
 
-        //Keep track of roots, loaded script, and the current debugger state
+        //Keep track of roots (and local roots as needed)
         TTD::ObjectPinSet* m_ttdRootSet;
+        TTD::ObjectPinSet* m_ttdLocalRootSet;
         JsUtil::BaseDictionary<TTD_LOG_PTR_ID, RecyclableObject*, HeapAllocator> m_ttdRootTagIdMap;
 
         //
         //TODO: this results in a memory leak for programs with weak collections -- we should fix this
         //
         TTD::ObjectPinSet* TTDWeakReferencePinSet;
-
-#if ENABLE_TTD_DEBUGGING
-        //In replay pin all the local roots live
-        TTD::ObjectPinSet* m_ttdLocalRootSet;
-        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, RecyclableObject*, HeapAllocator> m_ttdLocalRootTagIdMap;
-#endif
 
         //The lists containing the top-level code that is loaded in this context
         JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelScriptLoad;
@@ -1137,14 +1132,23 @@ private:
             return ((modeIsPending | modeIsRecord) & inDebugableCode);
         }
 
+        //A special record check because we want to record root add/remove ref even if we aren't actively logging (but are planning to do so in the future)
+        bool ShouldPerformRootAddOrRemoveRefAction() const
+        {
+            bool modeIsPending = (this->m_ttdMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
+            bool modeIsRecord = (this->m_ttdMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
+            bool inDebugableCode = (this->m_ttdMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
+
+            return ((modeIsPending | modeIsRecord) & inDebugableCode);
+        }
+
         //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
         void AddTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
         void RemoveTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot);
 
-#if ENABLE_TTD_DEBUGGING
         void AddLocalRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
-        void ClearLocalRoots_TTD();
-#endif
+        void ClearLocalRootsAndRefreshMap_TTD();
+        void ExtractSnapshotRoots_TTD(JsUtil::List<Js::Var, HeapAllocator>& roots);
 
         Js::RecyclableObject* LookupObjectForLogID(TTD_LOG_PTR_ID origId);
         void ClearRootsForSnapRestore_TTD();

@@ -56,7 +56,7 @@ namespace TTD
         }
 
         template <EventKind tag>
-        void JsRT3VarsArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        void JsRTVarsArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
         {
             JsRTVarsArgumentAction* vAction = GetInlineEventDataAs<JsRTVarsArgumentAction, tag>(evt);
 
@@ -300,7 +300,7 @@ namespace TTD
         void AllocateExternalArrayBufferAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void AllocateFunctionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
-        void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx, TTDVar* resultVarPtr);
+        void GetAndClearExceptionAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
         void GetPropertyAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void GetIndexAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);

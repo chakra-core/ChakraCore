@@ -111,7 +111,7 @@ namespace TTD
             TTD_PTR_ID SlotId;
 
             //The tag of the script context that this slot array is associated with
-            TTD_LOG_TAG ScriptContextTag;
+            TTD_LOG_PTR_ID ScriptContextLogId;
 
             //The number of slots in the scope array
             uint32 SlotCount;
@@ -157,7 +157,7 @@ namespace TTD
             TTD_PTR_ID ScopeId;
 
             //The id of the script context that this slot array is associated with
-            TTD_LOG_TAG ScriptContextTag;
+            TTD_LOG_PTR_ID ScriptContextLogId;
 
             //The number of scope entries
             uint16 ScopeCount;
@@ -222,7 +222,7 @@ namespace TTD
         struct TopLevelCommonBodyResolveInfo
         {
             //The context this body is associated with
-            TTD_LOG_TAG ScriptContextTag;
+            TTD_LOG_PTR_ID ScriptContextLogId;
 
             //A unique counter we produce for every top-level body as it is loaded
             uint64 TopLevelBodyCtr;
@@ -323,7 +323,7 @@ namespace TTD
             TTD_PTR_ID FunctionBodyId;
 
             //The context this body is associated with
-            TTD_LOG_TAG ScriptContextTag;
+            TTD_LOG_PTR_ID ScriptContextLogId;
 
             //The string name of the function
             TTString FunctionName;
@@ -353,11 +353,20 @@ namespace TTD
 
         //////////////////
 
+        struct SnapRootPinEntry
+        {
+            //The log id value 
+            TTD_LOG_PTR_ID LogId;
+
+            //The object that this log id is mapped to
+            TTD_PTR_ID LogObject;
+        };
+
         //A structure for serializing/tracking script contexts
         struct SnapContext
         {
             //The tag id of the script context (actually the global object associated with this context)
-            TTD_LOG_TAG m_scriptContextTagId;
+            TTD_LOG_PTR_ID m_scriptContextLogId;
 
             //The random seed for the context
             bool m_isPNRGSeeded;
@@ -377,9 +386,13 @@ namespace TTD
             uint32 m_evalTopLevelScriptCount;
             TopLevelFunctionInContextRelation* m_evalTopLevelScriptArray;
 
-            //A list of all the root objects in this context
-            uint32 m_rootCount;
-            TTD_PTR_ID* m_rootArray;
+            //A list of all the global root objects in this context
+            uint32 m_globalRootCount;
+            SnapRootPinEntry* m_globalRootArray;
+
+            //A list of all the local root objects in this context
+            uint32 m_localRootCount;
+            SnapRootPinEntry* m_localRootArray;
         };
 
         void ExtractScriptContext(SnapContext* snapCtx, Js::ScriptContext* ctx, SlabAllocator& alloc);

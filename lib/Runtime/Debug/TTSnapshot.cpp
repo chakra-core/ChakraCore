@@ -194,9 +194,6 @@ namespace TTD
             res = inflateFPtr(snpObject, inflator);
         }
 
-        Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
-        ctx->GetThreadContext()->TTDInfo->SetObjectTrackingTagSnapAndInflate_TTD(snpObject->ObjectLogTag, res);
-
         inflator->AddObject(snpObject->ObjectPtrId, res);
     }
 

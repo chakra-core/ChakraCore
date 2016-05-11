@@ -231,8 +231,8 @@ namespace TTD
         virtual void WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
         void WriteAddr(NSTokens::Key key, TTD_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
 
-        virtual void WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
-        void WriteLogTag(NSTokens::Key key, TTD_LOG_TAG val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
+        virtual void WriteNakedLogTag(TTD_LOG_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
+        void WriteLogTag(NSTokens::Key key, TTD_LOG_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
 
         virtual void WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
 
@@ -293,7 +293,7 @@ namespace TTD
         virtual void WriteNakedUInt64(uint64 val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
         virtual void WriteNakedDouble(double val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
         virtual void WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
-        virtual void WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteNakedLogTag(TTD_LOG_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
@@ -337,7 +337,7 @@ namespace TTD
         virtual void WriteNakedUInt64(uint64 val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
         virtual void WriteNakedDouble(double val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
         virtual void WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
-        virtual void WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+        virtual void WriteNakedLogTag(TTD_LOG_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
@@ -537,8 +537,8 @@ namespace TTD
         virtual TTD_PTR_ID ReadNakedAddr(bool readSeparator = false) = 0;
         TTD_PTR_ID ReadAddr(NSTokens::Key keyCheck, bool readSeparator = false);
 
-        virtual TTD_LOG_TAG ReadNakedLogTag(bool readSeparator = false) = 0;
-        TTD_LOG_TAG ReadLogTag(NSTokens::Key keyCheck, bool readSeparator = false);
+        virtual TTD_LOG_PTR_ID ReadNakedLogTag(bool readSeparator = false) = 0;
+        TTD_LOG_PTR_ID ReadLogTag(NSTokens::Key keyCheck, bool readSeparator = false);
 
         virtual uint32 ReadNakedTag(bool readSeparator = false) = 0;
 
@@ -630,7 +630,7 @@ namespace TTD
         virtual uint64 ReadNakedUInt64(bool readSeparator = false) override;
         virtual double ReadNakedDouble(bool readSeparator = false) override;
         virtual TTD_PTR_ID ReadNakedAddr(bool readSeparator = false) override;
-        virtual TTD_LOG_TAG ReadNakedLogTag(bool readSeparator = false) override;
+        virtual TTD_LOG_PTR_ID ReadNakedLogTag(bool readSeparator = false) override;
 
         virtual uint32 ReadNakedTag(bool readSeparator = false) override;
 
@@ -670,7 +670,7 @@ namespace TTD
         virtual uint64 ReadNakedUInt64(bool readSeparator = false) override;
         virtual double ReadNakedDouble(bool readSeparator = false) override;
         virtual TTD_PTR_ID ReadNakedAddr(bool readSeparator = false) override;
-        virtual TTD_LOG_TAG ReadNakedLogTag(bool readSeparator = false) override;
+        virtual TTD_LOG_PTR_ID ReadNakedLogTag(bool readSeparator = false) override;
 
         virtual uint32 ReadNakedTag(bool readSeparator = false) override;
 

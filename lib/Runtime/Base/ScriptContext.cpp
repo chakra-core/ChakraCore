@@ -139,12 +139,9 @@ namespace Js
 #if ENABLE_TTD
         , m_ttdHostCallbackFunctor()
         , m_ttdRootSet(nullptr)
+        , m_ttdLocalRootSet(nullptr)
         , m_ttdRootTagIdMap(&HeapAllocator::Instance)
         , TTDWeakReferencePinSet(nullptr)
-#if ENABLE_TTD_DEBUGGING
-        , m_ttdLocalRootSet(nullptr)
-        , m_ttdLocalRootTagIdMap(&HeapAllocator::Instance)
-#endif
         , m_ttdTopLevelScriptLoad(&HeapAllocator::Instance)
         , m_ttdTopLevelNewFunction(&HeapAllocator::Instance)
         , m_ttdTopLevelEval(&HeapAllocator::Instance)
@@ -577,13 +574,11 @@ namespace Js
             this->TTDWeakReferencePinSet = nullptr;
         }
 
-#if ENABLE_TTD_DEBUGGING
         if(this->m_ttdLocalRootSet != nullptr)
         {
             this->m_ttdLocalRootSet->GetAllocator()->RootRelease(this->m_ttdLocalRootSet);
             this->m_ttdLocalRootSet = nullptr;
         }
-#endif
 
         this->m_ttdTopLevelScriptLoad.Clear();
         this->m_ttdTopLevelNewFunction.Clear();
@@ -1201,13 +1196,11 @@ namespace Js
             this->recycler->RootAddRef(this->TTDWeakReferencePinSet);
         }
 
-#if ENABLE_TTD_DEBUGGING
         if(this->m_ttdLocalRootSet == nullptr)
         {
             this->m_ttdLocalRootSet = RecyclerNew(this->recycler, TTD::ObjectPinSet, this->recycler);
             this->recycler->RootAddRef(this->m_ttdLocalRootSet);
         }
-#endif
 #endif
 
         Tick::InitType();
@@ -2412,42 +2405,61 @@ namespace Js
 
     void ScriptContext::AddTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
     {
-        AssertMsg(!this->m_ttdRootTagIdMap.ContainsKey(origId) && !this->m_ttdRootSet->ContainsKey(newRoot), "Hmm this is strange.");
+        AssertMsg(!this->m_ttdRootSet->ContainsKey(newRoot), "Hmm this is strange.");
 
-        this->m_ttdRootTagIdMap.AddNew(origId, newRoot);
         this->m_ttdRootSet->AddNew(newRoot);
+        this->m_ttdRootTagIdMap.Add(origId, newRoot);
     }
 
     void ScriptContext::RemoveTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot)
     {
-        AssertMsg(this->m_ttdRootTagIdMap.ContainsKey(origId) && this->m_ttdRootSet->ContainsKey(deleteRoot), "Hmm this is strange.");
+        AssertMsg(this->m_ttdRootSet->ContainsKey(deleteRoot), "Hmm this is strange.");
 
-        this->m_ttdRootTagIdMap.Remove(origId);
         this->m_ttdRootSet->Remove(deleteRoot);
+        if(!this->m_ttdLocalRootSet->ContainsKey(deleteRoot))
+        {
+            this->m_ttdRootTagIdMap.Remove(origId);
+        }
     }
 
-#if ENABLE_TTD_DEBUGGING
     void ScriptContext::AddLocalRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
     {
-        this->m_ttdLocalRootTagIdMap.Add(origId, newRoot);
         this->m_ttdLocalRootSet->Add(newRoot);
+        this->m_ttdRootTagIdMap.Add(origId, newRoot);
     }
 
-    void ScriptContext::ClearLocalRoots_TTD()
+    void ScriptContext::ClearLocalRootsAndRefreshMap_TTD()
     {
-        this->m_ttdLocalRootTagIdMap.Clear();
         this->m_ttdLocalRootSet->Clear();
 
-        //Ensure local root always has all the mappings
-        this->m_ttdLocalRootTagIdMap.Copy(&this->m_ttdRootTagIdMap);
-        this->m_ttdLocalRootSet->Copy(this->m_ttdRootSet);
+        this->m_ttdRootTagIdMap.MapAndRemoveIf([&](TTD_LOG_PTR_ID key, Js::RecyclableObject* value) -> bool
+        {
+            return !this->m_ttdRootSet->Contains(value);
+        });
     }
-#endif
+
+    void ScriptContext::ExtractSnapshotRoots_TTD(JsUtil::List<Js::Var, HeapAllocator>& roots)
+    {
+        for(auto rootIter = this->m_ttdRootSet->GetIterator(); rootIter.IsValid(); rootIter.MoveNext())
+        {
+            Js::RecyclableObject* obj = rootIter.CurrentValue();
+            roots.Add(obj);
+        }
+
+        for(auto localIter = this->m_ttdLocalRootSet->GetIterator(); localIter.IsValid(); localIter.MoveNext())
+        {
+            Js::RecyclableObject* obj = localIter.CurrentValue();
+            if(!this->m_ttdRootSet->Contains(obj))
+            {
+                roots.Add(obj);
+            }
+        }
+    }
 
     Js::RecyclableObject* ScriptContext::LookupObjectForLogID(TTD_LOG_PTR_ID origId)
     {
         //Local root always has mappings for all the ids
-        RecyclableObject* res = this->m_ttdLocalRootTagIdMap.LookupWithKey(origId, nullptr);
+        RecyclableObject* res = this->m_ttdRootTagIdMap.LookupWithKey(origId, nullptr);
         AssertMsg(res != nullptr, "We lost an id somewhere");
 
         return res;
@@ -2455,13 +2467,10 @@ namespace Js
 
     void ScriptContext::ClearRootsForSnapRestore_TTD()
     {
-        this->m_ttdRootTagIdMap.Clear();
         this->m_ttdRootSet->Clear();
-
-#if ENABLE_TTD_DEBUGGING
-        this->m_ttdLocalRootTagIdMap.Clear();
         this->m_ttdLocalRootSet->Clear();
-#endif
+
+        this->m_ttdRootTagIdMap.Clear();
     }
 
     void ScriptContext::MarkWellKnownObjects_TTD(TTD::MarkTable& marks) const

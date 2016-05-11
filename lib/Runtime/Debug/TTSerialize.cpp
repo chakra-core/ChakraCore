@@ -143,7 +143,7 @@ namespace TTD
         this->WriteNakedAddr(val);
     }
 
-    void FileWriter::WriteLogTag(NSTokens::Key key, TTD_LOG_TAG val, NSTokens::Separator separator)
+    void FileWriter::WriteLogTag(NSTokens::Key key, TTD_LOG_PTR_ID val, NSTokens::Separator separator)
     {
         this->WriteKey(key, separator);
         this->WriteNakedLogTag(val);
@@ -363,7 +363,7 @@ namespace TTD
         this->WriteFormattedCharData(_u("*%I64u"), val);
     }
 
-    void TextFormatWriter::WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator)
+    void TextFormatWriter::WriteNakedLogTag(TTD_LOG_PTR_ID val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
         this->WriteFormattedCharData(_u("!%I64i"), val);
@@ -517,10 +517,10 @@ namespace TTD
         this->WriteRawByteBuff_Fixed<TTD_PTR_ID>(val);
     }
 
-    void BinaryFormatWriter::WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator)
+    void BinaryFormatWriter::WriteNakedLogTag(TTD_LOG_PTR_ID val, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
-        this->WriteRawByteBuff_Fixed<TTD_LOG_TAG>(val);
+        this->WriteRawByteBuff_Fixed<TTD_LOG_PTR_ID>(val);
     }
 
     void BinaryFormatWriter::WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator)
@@ -654,7 +654,7 @@ namespace TTD
         return this->ReadNakedAddr();
     }
 
-    TTD_LOG_TAG FileReader::ReadLogTag(NSTokens::Key keyCheck, bool readSeparator)
+    TTD_LOG_PTR_ID FileReader::ReadLogTag(NSTokens::Key keyCheck, bool readSeparator)
     {
         this->ReadKey(keyCheck, readSeparator);
         return this->ReadNakedLogTag();
@@ -1336,7 +1336,7 @@ namespace TTD
         return (TTD_PTR_ID)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
-    TTD_LOG_TAG TextFormatReader::ReadNakedLogTag(bool readSeparator)
+    TTD_LOG_PTR_ID TextFormatReader::ReadNakedLogTag(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
@@ -1344,7 +1344,7 @@ namespace TTD
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::LogTag);
 
         this->m_charListOpt.Add(_u('\0')); //add terminator
-        return (TTD_LOG_TAG)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
+        return (TTD_LOG_PTR_ID)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
     uint32 TextFormatReader::ReadNakedTag(bool readSeparator)
@@ -1577,12 +1577,12 @@ namespace TTD
         return addr;
     }
 
-    TTD_LOG_TAG BinaryFormatReader::ReadNakedLogTag(bool readSeparator)
+    TTD_LOG_PTR_ID BinaryFormatReader::ReadNakedLogTag(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
-        TTD_LOG_TAG tag;
-        this->ReadBytesInto_Fixed<TTD_LOG_TAG>(tag);
+        TTD_LOG_PTR_ID tag;
+        this->ReadBytesInto_Fixed<TTD_LOG_PTR_ID>(tag);
 
         return tag;
     }

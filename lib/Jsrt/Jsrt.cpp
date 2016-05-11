@@ -384,11 +384,9 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         }
 
         //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
-        //May want to look into more sophisticated means for making this decision later
+        //May want to look into more sophisticated means for making this decision later -- e.g. move to yield point 
         if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && scriptContext->TTDRootNestingCount == 0)
         {
-            asdf; //move this to yield point action
-
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
             if(elog->IsTimeForSnapshot())
             {
@@ -595,11 +593,12 @@ STDAPI_(JsErrorCode) JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
 
 #if ENABLE_TTD
             Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-            if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+            if((*count == 1) & Js::RecyclableObject::Is(ref) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
             {
-                asdf; //wrong test above need to do this anytime Recording is running or pending
+                Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
+                scriptContext->AddTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
 
-                if(*count == 1)
+                if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
                 {
                     scriptContext->GetThreadContext()->TTDLog->RecordJsRTAddRootRef(scriptContext, (Js::Var)ref);
                 }
@@ -658,11 +657,12 @@ STDAPI_(JsErrorCode) JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
 
 #if ENABLE_TTD
             Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-            if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+            if((*count == 0) & Js::RecyclableObject::Is(ref) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
             {
-                asdf; //wrong test above need to do this anytime Recording is running or pending
+                Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
+                scriptContext->RemoveTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
 
-                if(*count == 0)
+                if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
                 {
                     scriptContext->GetThreadContext()->TTDLog->RecordJsRTRemoveRootRef(scriptContext, (Js::Var)ref);
                 }
@@ -2924,11 +2924,9 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 
 
             //Put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
-            //May want to look into more sophisticated means for making this decision later
+            //May want to look into more sophisticated means for making this decision later -- e.g. move to yield point
             if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && scriptContext->TTDRootNestingCount == 0)
             {
-                asdf; //move this to yield point action
-
                 if(threadContext->TTDLog->IsTimeForSnapshot())
                 {
                     threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
@@ -3469,9 +3467,9 @@ STDAPI_(JsErrorCode) JsTTDReStartTimeTravelAfterRuntimeOperation()
 #endif
 }
 
-STDAPI_(JsErrorCode) JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCancel, bool isRepeating, JsValueRef function, INT64 callbackId)
+STDAPI_(JsErrorCode) JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCreated, bool isCancel, bool isRepeating, JsValueRef function, INT64 callbackId)
 {
-#if !ENABLE_TTD_DEBUGGING
+#if !ENABLE_TTD
     return JsErrorCategoryUsage;
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
@@ -3481,7 +3479,24 @@ STDAPI_(JsErrorCode) JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCancel, boo
     {
         Js::JavascriptFunction* jsFunction = (function != nullptr) ? Js::JavascriptFunction::FromVar(function) : nullptr;
 
-        scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallbackOperation(scriptContext, isCancel, isRepeating, jsFunction, callbackId);
+        scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallbackOperation(scriptContext, isCreated, isCancel, isRepeating, jsFunction, callbackId);
+    }
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDNotifyYield()
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+    {
+        scriptContext->GetThreadContext()->TTDLog->RecordJsRTEventLoopYieldPoint(scriptContext);
     }
 
     return JsNoError;

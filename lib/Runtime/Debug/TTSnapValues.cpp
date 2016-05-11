@@ -346,7 +346,7 @@ namespace TTD
 
         void InflateSnapPrimitiveValue(const SnapPrimitiveValue* snapValue, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snapValue->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snapValue->SnapType->ScriptContextLogId);
             Js::JavascriptLibrary* jslib = ctx->GetLibrary();
 
             Js::Var res = nullptr;
@@ -545,7 +545,7 @@ namespace TTD
 
         Js::Var* InflateSlotArrayInfo(const SlotArrayInfo* slotInfo, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(slotInfo->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(slotInfo->ScriptContextLogId);
             Js::Var* slotArray = RecyclerNewArray(ctx->GetRecycler(), Js::Var, slotInfo->SlotCount + Js::ScopeSlots::FirstSlotIndex);
 
             Js::ScopeSlots scopeSlots(slotArray);
@@ -577,7 +577,7 @@ namespace TTD
             writer->AdjustIndent(1);
 
             writer->WriteAddr(NSTokens::Key::slotId, slotInfo->SlotId, NSTokens::Separator::BigSpaceSeparator);
-            writer->WriteAddr(NSTokens::Key::ctxTag, slotInfo->ScriptContextTag, NSTokens::Separator::CommaSeparator);
+            writer->WriteLogTag(NSTokens::Key::ctxTag, slotInfo->ScriptContextLogId, NSTokens::Separator::CommaSeparator);
 
             writer->WriteBool(NSTokens::Key::isFunctionMetaData, slotInfo->isFunctionBodyMetaData, NSTokens::Separator::CommaSeparator);
             if(slotInfo->isFunctionBodyMetaData)
@@ -622,7 +622,7 @@ namespace TTD
             reader->ReadRecordStart(readSeperator);
 
             slotInfo->SlotId = reader->ReadAddr(NSTokens::Key::slotId);
-            slotInfo->ScriptContextTag = reader->ReadAddr(NSTokens::Key::ctxTag, true);
+            slotInfo->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
 
             slotInfo->isFunctionBodyMetaData = reader->ReadBool(NSTokens::Key::isFunctionMetaData, true);
             slotInfo->OptFunctionBodyId = TTD_INVALID_PTR_ID;
@@ -670,7 +670,7 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const SlotArrayInfo* sai1, const SlotArrayInfo* sai2, TTDCompareMap& compareMap)
         {
-            compareMap.DiagnosticAssert(sai1->ScriptContextTag == sai2->ScriptContextTag);
+            compareMap.DiagnosticAssert(sai1->ScriptContextLogId == sai2->ScriptContextLogId);
 
             compareMap.DiagnosticAssert(sai1->isFunctionBodyMetaData == sai2->isFunctionBodyMetaData);
             if(sai1->isFunctionBodyMetaData)
@@ -696,7 +696,7 @@ namespace TTD
 
         Js::FrameDisplay* InflateScriptFunctionScopeInfo(const ScriptFunctionScopeInfo* funcScopeInfo, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(funcScopeInfo->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(funcScopeInfo->ScriptContextLogId);
 
             Js::FrameDisplay* environment = RecyclerNewPlus(ctx->GetRecycler(), funcScopeInfo->ScopeCount * sizeof(Js::Var), Js::FrameDisplay, funcScopeInfo->ScopeCount);
 
@@ -733,7 +733,7 @@ namespace TTD
             writer->WriteRecordStart(separator);
 
             writer->WriteAddr(NSTokens::Key::scopeId, funcScopeInfo->ScopeId);
-            writer->WriteAddr(NSTokens::Key::ctxTag, funcScopeInfo->ScriptContextTag, NSTokens::Separator::CommaSeparator);
+            writer->WriteLogTag(NSTokens::Key::ctxTag, funcScopeInfo->ScriptContextLogId, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt32(NSTokens::Key::count, funcScopeInfo->ScopeCount, NSTokens::Separator::CommaSeparator);
 
             writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
@@ -758,7 +758,7 @@ namespace TTD
             reader->ReadRecordStart(readSeperator);
 
             funcScopeInfo->ScopeId = reader->ReadAddr(NSTokens::Key::scopeId);
-            funcScopeInfo->ScriptContextTag = reader->ReadAddr(NSTokens::Key::ctxTag, true);
+            funcScopeInfo->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
             funcScopeInfo->ScopeCount = (uint16)reader->ReadUInt32(NSTokens::Key::count, true);
 
             reader->ReadSequenceStart_WDefaultKey(true);
@@ -782,7 +782,7 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const ScriptFunctionScopeInfo* funcScopeInfo1, const ScriptFunctionScopeInfo* funcScopeInfo2, TTDCompareMap& compareMap)
         {
-            compareMap.DiagnosticAssert(funcScopeInfo1->ScriptContextTag == funcScopeInfo2->ScriptContextTag);
+            compareMap.DiagnosticAssert(funcScopeInfo1->ScriptContextLogId == funcScopeInfo2->ScriptContextLogId);
 
             compareMap.DiagnosticAssert(funcScopeInfo1->ScopeCount == funcScopeInfo2->ScopeCount);
             for(uint32 i = 0; i < funcScopeInfo1->ScopeCount; ++i)
@@ -912,7 +912,7 @@ namespace TTD
 
         void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen, SlabAllocator& alloc)
         {
-            fbInfo->ScriptContextTag = fb->GetScriptContext()->ScriptContextLogTag;
+            fbInfo->ScriptContextLogId = fb->GetScriptContext()->ScriptContextLogTag;
             fbInfo->TopLevelBodyCtr = topLevelCtr;
 
             alloc.CopyNullTermStringInto(fb->GetDisplayName(), fbInfo->FunctionName);
@@ -933,7 +933,7 @@ namespace TTD
         {
             writer->WriteRecordStart(separator);
             writer->WriteUInt64(NSTokens::Key::functionBodyId, fbInfo->TopLevelBodyCtr);
-            writer->WriteAddr(NSTokens::Key::ctxTag, fbInfo->ScriptContextTag, NSTokens::Separator::CommaSeparator);
+            writer->WriteLogTag(NSTokens::Key::ctxTag, fbInfo->ScriptContextLogId, NSTokens::Separator::CommaSeparator);
 
             writer->WriteString(NSTokens::Key::name, fbInfo->FunctionName, NSTokens::Separator::CommaSeparator);
 
@@ -960,7 +960,7 @@ namespace TTD
         {
             reader->ReadRecordStart(readSeperator);
             fbInfo->TopLevelBodyCtr = reader->ReadUInt64(NSTokens::Key::functionBodyId);
-            fbInfo->ScriptContextTag = reader->ReadAddr(NSTokens::Key::ctxTag, true);
+            fbInfo->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
 
             reader->ReadString(NSTokens::Key::name, alloc, fbInfo->FunctionName, true);
 
@@ -987,7 +987,7 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const TopLevelCommonBodyResolveInfo* fbInfo1, const TopLevelCommonBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap)
         {
-            compareMap.DiagnosticAssert(fbInfo1->ScriptContextTag == fbInfo2->ScriptContextTag);
+            compareMap.DiagnosticAssert(fbInfo1->ScriptContextLogId == fbInfo2->ScriptContextLogId);
             compareMap.DiagnosticAssert(fbInfo1->TopLevelBodyCtr == fbInfo2->TopLevelBodyCtr);
             compareMap.DiagnosticAssert(TTStringEQForDiagnostics(fbInfo1->FunctionName, fbInfo2->FunctionName));
 
@@ -1221,7 +1221,7 @@ namespace TTD
         void ExtractFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, bool isWellKnown, SlabAllocator& alloc)
         {
             fbInfo->FunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
-            fbInfo->ScriptContextTag = fb->GetScriptContext()->ScriptContextLogTag;
+            fbInfo->ScriptContextLogId = fb->GetScriptContext()->ScriptContextLogTag;
 
             alloc.CopyStringIntoWLength(fb->GetDisplayName(), fb->GetDisplayNameLength(), fbInfo->FunctionName);
             AssertMsg(wcscmp(fbInfo->FunctionName.Contents, Js::Constants::GlobalCode) != 0, "Why are we snapshotting global code??");
@@ -1254,7 +1254,7 @@ namespace TTD
                 return;
             }
 
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(fbInfo->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(fbInfo->ScriptContextLogId);
 
             Js::FunctionBody* resfb = nullptr;
             if(fbInfo->OptKnownPath != TTD_INVALID_WELLKNOWN_TOKEN)
@@ -1344,7 +1344,7 @@ namespace TTD
         {
             writer->WriteRecordStart(separator);
             writer->WriteAddr(NSTokens::Key::functionBodyId, fbInfo->FunctionBodyId);
-            writer->WriteLogTag(NSTokens::Key::ctxTag, fbInfo->ScriptContextTag, NSTokens::Separator::CommaSeparator);
+            writer->WriteLogTag(NSTokens::Key::ctxTag, fbInfo->ScriptContextLogId, NSTokens::Separator::CommaSeparator);
             writer->WriteString(NSTokens::Key::name, fbInfo->FunctionName, NSTokens::Separator::CommaSeparator);
 
             writer->WriteBool(NSTokens::Key::isWellKnownToken, fbInfo->OptKnownPath != nullptr, NSTokens::Separator::CommaSeparator);
@@ -1367,7 +1367,7 @@ namespace TTD
             reader->ReadRecordStart(readSeperator);
 
             fbInfo->FunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId);
-            fbInfo->ScriptContextTag = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
+            fbInfo->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
             reader->ReadString(NSTokens::Key::name, alloc, fbInfo->FunctionName, true);
 
             bool isWellKnown = reader->ReadBool(NSTokens::Key::isWellKnownToken, true);
@@ -1394,7 +1394,7 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const FunctionBodyResolveInfo* fbInfo1, const FunctionBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap)
         {
-            compareMap.DiagnosticAssert(fbInfo1->ScriptContextTag == fbInfo2->ScriptContextTag);
+            compareMap.DiagnosticAssert(fbInfo1->ScriptContextLogId == fbInfo2->ScriptContextLogId);
             compareMap.DiagnosticAssert(TTStringEQForDiagnostics(fbInfo1->FunctionName, fbInfo2->FunctionName));
 
             compareMap.DiagnosticAssert(TTD_DIAGNOSTIC_COMPARE_WELLKNOWN_TOKENS(fbInfo1->OptKnownPath, fbInfo2->OptKnownPath));
@@ -1412,7 +1412,7 @@ namespace TTD
 
         void ExtractScriptContext(SnapContext* snapCtx, Js::ScriptContext* ctx, SlabAllocator& alloc)
         {
-            snapCtx->m_scriptContextTagId = ctx->ScriptContextLogTag;
+            snapCtx->m_scriptContextLogId = ctx->ScriptContextLogTag;
 
             snapCtx->m_isPNRGSeeded = ctx->GetLibrary()->IsPRNGSeeded();
             snapCtx->m_randomSeed0 = ctx->GetLibrary()->GetRandSeed0();
@@ -1446,17 +1446,41 @@ namespace TTD
                 snapCtx->m_evalTopLevelScriptArray[i] = topLevelEval.Item(i);
             }
 
-            asdf; //get this working with the updated root sets/maps
-            snapCtx->m_rootCount = ctx->m_ttdRootSet->Count();
-            snapCtx->m_rootArray = (snapCtx->m_rootCount != 0) ? alloc.SlabAllocateArray<TTD_PTR_ID>(snapCtx->m_rootCount) : nullptr;
+            //invert the root map for extracting
+            JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator> objToLogIdMap(&HeapAllocator::Instance);
+            for(auto iter = ctx->m_ttdRootTagIdMap.GetIterator(); iter.IsValid(); iter.MoveNext())
+            {
+                objToLogIdMap.AddNew(iter.CurrentValue(), iter.CurrentKey());
+            }
+
+            //Extract global roots
+            snapCtx->m_globalRootCount = ctx->m_ttdRootSet->Count();
+            snapCtx->m_globalRootArray = (snapCtx->m_globalRootCount != 0) ? alloc.SlabAllocateArray<SnapRootPinEntry>(snapCtx->m_globalRootCount) : nullptr;
 
             int32 i = 0;
             for(auto iter = ctx->m_ttdRootSet->GetIterator(); iter.IsValid(); iter.MoveNext())
             {
-                Js::RecyclableObject* robj = static_cast<Js::RecyclableObject*>(iter.CurrentKey());
-                snapCtx->m_rootArray[i] = TTD_CONVERT_VAR_TO_PTR_ID(robj);
+                AssertMsg(objToLogIdMap.ContainsKey(iter.CurrentValue()), "We are missing a value mapping!!!");
+
+                snapCtx->m_globalRootArray[i].LogId = objToLogIdMap.LookupWithKey(iter.CurrentValue(), TTD_INVALID_LOG_PTR_ID);
+                snapCtx->m_globalRootArray[i].LogId = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(iter.CurrentValue());
 
                 i++;
+            }
+
+            //Extract local roots
+            snapCtx->m_localRootCount = ctx->m_ttdRootSet->Count();
+            snapCtx->m_localRootArray = (snapCtx->m_localRootCount != 0) ? alloc.SlabAllocateArray<SnapRootPinEntry>(snapCtx->m_localRootCount) : nullptr;
+
+            int32 j = 0;
+            for(auto iter = ctx->m_ttdLocalRootSet->GetIterator(); iter.IsValid(); iter.MoveNext())
+            {
+                AssertMsg(objToLogIdMap.ContainsKey(iter.CurrentValue()), "We are missing a value mapping!!!");
+
+                snapCtx->m_localRootArray[j].LogId = objToLogIdMap.LookupWithKey(iter.CurrentValue(), TTD_INVALID_LOG_PTR_ID);
+                snapCtx->m_localRootArray[j].LogId = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(iter.CurrentValue());
+
+                j++;
             }
         }
 
@@ -1470,7 +1494,7 @@ namespace TTD
             intoCtx->GetLibrary()->SetIsPRNGSeeded(snpCtx->m_isPNRGSeeded);
             intoCtx->GetLibrary()->SetRandSeed0(snpCtx->m_randomSeed0);
             intoCtx->GetLibrary()->SetRandSeed1(snpCtx->m_randomSeed1);
-            inflator->AddScriptContext(snpCtx->m_scriptContextTagId, intoCtx);
+            inflator->AddScriptContext(snpCtx->m_scriptContextLogId, intoCtx);
 
             for(uint32 i = 0; i < snpCtx->m_loadedTopLevelScriptCount; ++i)
             {
@@ -1516,12 +1540,20 @@ namespace TTD
         {
             intoCtx->ClearRootsForSnapRestore_TTD();
 
-            for(uint32 i = 0; i < snpCtx->m_rootCount; ++i)
+            for(uint32 i = 0; i < snpCtx->m_globalRootCount; ++i)
             {
-                TTD_PTR_ID oid = snpCtx->m_rootArray[i];
-                Js::RecyclableObject* robj = inflator->LookupObject(oid);
+                const SnapRootPinEntry& rootEntry = snpCtx->m_globalRootArray[i];
+                Js::RecyclableObject* rootObj = inflator->LookupObject(rootEntry.LogObject);
 
-                intoCtx->m_ttdRootSet->AddNew(robj);
+                intoCtx->AddTrackedRoot_TTD(rootEntry.LogId, rootObj);
+            }
+
+            for(uint32 i = 0; i < snpCtx->m_localRootCount; ++i)
+            {
+                const SnapRootPinEntry& rootEntry = snpCtx->m_localRootArray[i];
+                Js::RecyclableObject* rootObj = inflator->LookupObject(rootEntry.LogObject);
+
+                intoCtx->AddLocalRoot_TTD(rootEntry.LogId, rootObj);
             }
         }
 
@@ -1529,7 +1561,7 @@ namespace TTD
         {
             writer->WriteRecordStart(separator);
 
-            writer->WriteLogTag(NSTokens::Key::ctxTag, snapCtx->m_scriptContextTagId);
+            writer->WriteLogTag(NSTokens::Key::ctxTag, snapCtx->m_scriptContextLogId);
             writer->WriteBool(NSTokens::Key::boolVal, snapCtx->m_isPNRGSeeded, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt64(NSTokens::Key::u64Val, snapCtx->m_randomSeed0, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt64(NSTokens::Key::u64Val, snapCtx->m_randomSeed1, NSTokens::Separator::CommaSeparator);
@@ -1577,12 +1609,27 @@ namespace TTD
             }
             writer->WriteSequenceEnd();
 
-            writer->WriteLengthValue(snapCtx->m_rootCount, NSTokens::Separator::CommaSeparator);
+            writer->WriteLengthValue(snapCtx->m_globalRootCount, NSTokens::Separator::CommaSeparator);
             writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-            for(uint32 i = 0; i < snapCtx->m_rootCount; ++i)
+            for(uint32 i = 0; i < snapCtx->m_globalRootCount; ++i)
             {
                 NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
-                writer->WriteNakedAddr(snapCtx->m_rootArray[i], sep);
+                writer->WriteRecordStart(sep);
+                writer->WriteLogTag(NSTokens::Key::logTag, snapCtx->m_globalRootArray[i].LogId);
+                writer->WriteAddr(NSTokens::Key::objectId, snapCtx->m_globalRootArray[i].LogObject, NSTokens::Separator::CommaSeparator);
+                writer->WriteRecordEnd();
+            }
+            writer->WriteSequenceEnd();
+
+            writer->WriteLengthValue(snapCtx->m_localRootCount, NSTokens::Separator::CommaSeparator);
+            writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+            for(uint32 i = 0; i < snapCtx->m_localRootCount; ++i)
+            {
+                NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
+                writer->WriteRecordStart(sep);
+                writer->WriteLogTag(NSTokens::Key::logTag, snapCtx->m_localRootArray[i].LogId);
+                writer->WriteAddr(NSTokens::Key::objectId, snapCtx->m_localRootArray[i].LogObject, NSTokens::Separator::CommaSeparator);
+                writer->WriteRecordEnd();
             }
             writer->WriteSequenceEnd();
 
@@ -1593,7 +1640,7 @@ namespace TTD
         {
             reader->ReadRecordStart(readSeperator);
 
-            intoCtx->m_scriptContextTagId = reader->ReadLogTag(NSTokens::Key::ctxTag);
+            intoCtx->m_scriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag);
             intoCtx->m_isPNRGSeeded = reader->ReadBool(NSTokens::Key::boolVal, true);
             intoCtx->m_randomSeed0 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
             intoCtx->m_randomSeed1 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
@@ -1641,13 +1688,29 @@ namespace TTD
             }
             reader->ReadSequenceEnd();
 
-            intoCtx->m_rootCount = reader->ReadLengthValue(true);
-            intoCtx->m_rootArray = (intoCtx->m_rootCount != 0) ? alloc.SlabAllocateArray<TTD_PTR_ID>(intoCtx->m_rootCount) : nullptr;
+            intoCtx->m_globalRootCount = reader->ReadLengthValue(true);
+            intoCtx->m_globalRootArray = (intoCtx->m_globalRootCount != 0) ? alloc.SlabAllocateArray<SnapRootPinEntry>(intoCtx->m_globalRootCount) : nullptr;
 
             reader->ReadSequenceStart_WDefaultKey(true);
-            for(uint32 i = 0; i < intoCtx->m_rootCount; ++i)
+            for(uint32 i = 0; i < intoCtx->m_globalRootCount; ++i)
             {
-                intoCtx->m_rootArray[i] = reader->ReadNakedAddr(i != 0);
+                reader->ReadRecordStart(i != 0);
+                intoCtx->m_globalRootArray[i].LogId = reader->ReadLogTag(NSTokens::Key::logTag);
+                intoCtx->m_globalRootArray[i].LogObject, reader->ReadAddr(NSTokens::Key::objectId, true);
+                reader->ReadRecordEnd();
+            }
+            reader->ReadSequenceEnd();
+
+            intoCtx->m_localRootCount = reader->ReadLengthValue(true);
+            intoCtx->m_localRootArray = (intoCtx->m_localRootCount != 0) ? alloc.SlabAllocateArray<SnapRootPinEntry>(intoCtx->m_localRootCount) : nullptr;
+
+            reader->ReadSequenceStart_WDefaultKey(true);
+            for(uint32 i = 0; i < intoCtx->m_localRootCount; ++i)
+            {
+                reader->ReadRecordStart(i != 0);
+                intoCtx->m_localRootArray[i].LogId = reader->ReadLogTag(NSTokens::Key::logTag);
+                intoCtx->m_localRootArray[i].LogObject, reader->ReadAddr(NSTokens::Key::objectId, true);
+                reader->ReadRecordEnd();
             }
             reader->ReadSequenceEnd();
 
@@ -1657,7 +1720,7 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const SnapContext* snapCtx1, const SnapContext* snapCtx2, TTDCompareMap& compareMap)
         {
-            compareMap.DiagnosticAssert(snapCtx1->m_scriptContextTagId == snapCtx2->m_scriptContextTagId);
+            compareMap.DiagnosticAssert(snapCtx1->m_scriptContextLogId == snapCtx2->m_scriptContextLogId);
 
             compareMap.DiagnosticAssert(snapCtx1->m_isPNRGSeeded == snapCtx2->m_isPNRGSeeded);
             compareMap.DiagnosticAssert(snapCtx1->m_randomSeed0 == snapCtx2->m_randomSeed0);
@@ -1670,36 +1733,47 @@ namespace TTD
             //      For now just sanity check the number of top-level functions and let the FunctionBody matching drive any matching.
             //
 
-            compareMap.DiagnosticAssert(snapCtx1->m_loadedScriptCount == snapCtx2->m_loadedScriptCount);
+            compareMap.DiagnosticAssert(snapCtx1->m_loadedTopLevelScriptCount == snapCtx2->m_loadedTopLevelScriptCount);
             //TopLevelScriptLoadFunctionBodyResolveInfo* m_loadedScriptArray;
 
-            compareMap.DiagnosticAssert(snapCtx1->m_newScriptCount == snapCtx2->m_newScriptCount);
+            compareMap.DiagnosticAssert(snapCtx1->m_newFunctionTopLevelScriptCount == snapCtx2->m_newFunctionTopLevelScriptCount);
             //TopLevelNewFunctionBodyResolveInfo* m_newScriptArray;
 
-            compareMap.DiagnosticAssert(snapCtx1->m_evalScriptCount == snapCtx2->m_evalScriptCount);
+            compareMap.DiagnosticAssert(snapCtx1->m_evalTopLevelScriptCount == snapCtx2->m_evalTopLevelScriptCount);
             //TopLevelEvalFunctionBodyResolveInfo* m_evalScriptArray;
 
-            compareMap.DiagnosticAssert(snapCtx1->m_rootCount == snapCtx2->m_rootCount);
+            compareMap.DiagnosticAssert(snapCtx1->m_globalRootCount == snapCtx2->m_globalRootCount);
 
-            JsUtil::BaseDictionary<TTD_LOG_TAG, TTD_PTR_ID, HeapAllocator> rootMap1(&HeapAllocator::Instance);
-            for(uint32 i = 0; i < snapCtx1->m_rootCount; ++i)
+            JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator> globalRootMap1(&HeapAllocator::Instance);
+            for(uint32 i = 0; i < snapCtx1->m_globalRootCount; ++i)
             {
-                TTD_LOG_TAG ltag = compareMap.H1TagMap.Lookup(snapCtx1->m_rootArray[i], TTD_INVALID_LOG_TAG);
-                AssertMsg(ltag != TTD_INVALID_LOG_TAG, "Missing log tag!!!");
-
-                rootMap1.AddNew(ltag, snapCtx1->m_rootArray[i]);
+                const SnapRootPinEntry& rootEntry1 = snapCtx1->m_globalRootArray[i];
+                globalRootMap1.AddNew(rootEntry1.LogId, rootEntry1.LogObject);
             }
 
-            for(uint32 i = 0; i < snapCtx2->m_rootCount; ++i)
+            for(uint32 i = 0; i < snapCtx2->m_globalRootCount; ++i)
             {
-                TTD_PTR_ID h2PtrId = snapCtx2->m_rootArray[i];
-                TTD_LOG_TAG h2LogTag = compareMap.H2TagMap.Lookup(h2PtrId, TTD_INITIAL_LOG_TAG);
-                AssertMsg(h2LogTag != TTD_INVALID_LOG_TAG, "Missing log tag!!!");
+                const SnapRootPinEntry& rootEntry2 = snapCtx2->m_globalRootArray[i];
 
-                TTD_PTR_ID h1PtrId = rootMap1.Lookup(h2LogTag, TTD_INVALID_PTR_ID);
-                AssertMsg(h1PtrId != TTD_INVALID_PTR_ID, "Missing pointer id!!!");
+                TTD_PTR_ID id1 = globalRootMap1.LookupWithKey(rootEntry2.LogId, TTD_INVALID_PTR_ID);
+                compareMap.CheckConsistentAndAddPtrIdMapping_Root(id1, rootEntry2.LogObject, rootEntry2.LogId);
+            }
 
-                compareMap.CheckConsistentAndAddPtrIdMapping_Root(h1PtrId, h2PtrId, h2LogTag);
+            compareMap.DiagnosticAssert(snapCtx1->m_localRootCount == snapCtx2->m_localRootCount);
+
+            JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator> localRootMap1(&HeapAllocator::Instance);
+            for(uint32 i = 0; i < snapCtx1->m_localRootCount; ++i)
+            {
+                const SnapRootPinEntry& rootEntry1 = snapCtx1->m_localRootArray[i];
+                localRootMap1.AddNew(rootEntry1.LogId, rootEntry1.LogObject);
+            }
+
+            for(uint32 i = 0; i < snapCtx2->m_localRootCount; ++i)
+            {
+                const SnapRootPinEntry& rootEntry2 = snapCtx2->m_localRootArray[i];
+
+                TTD_PTR_ID id1 = localRootMap1.LookupWithKey(rootEntry2.LogId, TTD_INVALID_PTR_ID);
+                compareMap.CheckConsistentAndAddPtrIdMapping_Root(id1, rootEntry2.LogObject, rootEntry2.LogId);
             }
         }
 #endif

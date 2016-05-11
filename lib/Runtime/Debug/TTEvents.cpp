@@ -264,7 +264,7 @@ namespace TTD
 
             if(replayVar != nullptr && TTD::JsSupport::IsVarPtrValued(replayVar))
             {
-                ctx->GetThreadContext()->TTDInfo->TrackTagObject(origVar, Js::RecyclableObject::FromVar(replayVar));
+                ctx->AddLocalRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar), Js::RecyclableObject::FromVar(replayVar));
             }
         }
 
@@ -274,11 +274,11 @@ namespace TTD
 
             if(origVar == nullptr || TTD::JsSupport::IsVarTaggedInline(origVar))
             {
-                return (Js::Var)origVar;
+                return TTD_CONVERT_TTDVAR_TO_JSVAR(origVar);
             }
             else
             {
-                return ctx->GetThreadContext()->TTDInfo->LookupObjectForTag(origVar);
+                return ctx->LookupObjectForLogID(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar));
             }
         }
 
@@ -304,7 +304,7 @@ namespace TTD
             auto emitFP = evtFPVTable[(uint32)evt->EventKind].EmitFP;
             if(emitFP != nullptr)
             {
-                emitFP(evt, writer, uri, threadContext);
+                emitFP(evt, uri, writer, threadContext);
             }
 
             writer->WriteRecordEnd();

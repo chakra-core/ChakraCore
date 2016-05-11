@@ -278,7 +278,7 @@ static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callback
     WScriptJsrt::CallbackMessage *msg = new WScriptJsrt::CallbackMessage(0, task);
 
 #if ENABLE_TTD
-    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(false, false, task, msg->GetId());
+    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(true, false, false, task, msg->GetId());
 #endif
 
     messageQueue->Push(msg);
@@ -668,14 +668,14 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, char16
     }
     else
     {
-    Assert(fileContents != nullptr || bcBuffer != nullptr);
-    JsErrorCode runScript;
+        Assert(fileContents != nullptr || bcBuffer != nullptr);
+        JsErrorCode runScript;
         if(bcBuffer != nullptr)
-    {
-        runScript = ChakraRTInterface::JsRunSerializedScript(fileContents, bcBuffer, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
-    }
-    else
-    {
+        {
+            runScript = ChakraRTInterface::JsRunSerializedScript(fileContents, bcBuffer, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+        }
+        else
+        {
 #if ENABLE_TTD
             if(doTTRecord)
             {
@@ -684,21 +684,21 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, char16
 
             runScript = ChakraRTInterface::JsTTDRunScript(-1, fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
 #else
-        runScript = ChakraRTInterface::JsRunScript(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+            runScript = ChakraRTInterface::JsRunScript(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
 #endif
-    }
+        }
 
         if(runScript != JsNoError)
-    {
-        WScriptJsrt::PrintException(fileName, runScript);
-    }
-    else
-    {
-        // Repeatedly flush the message queue until it's empty. It is necessary to loop on this
-        // because setTimeout can add scripts to execute.
-        do
         {
-            IfFailGo(messageQueue->ProcessAll(fileName));
+            WScriptJsrt::PrintException(fileName, runScript);
+        }
+        else
+        {
+            // Repeatedly flush the message queue until it's empty. It is necessary to loop on this
+            // because setTimeout can add scripts to execute.
+            do
+            {
+                IfFailGo(messageQueue->ProcessAll(fileName));
             } while(!messageQueue->IsEmpty());
         }
     }

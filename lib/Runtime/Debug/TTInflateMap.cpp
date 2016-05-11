@@ -166,7 +166,7 @@ namespace TTD
         return this->m_typeMap.LookupKnownItem(typeId);
     }
 
-    Js::ScriptContext* InflateMap::LookupScriptContext(TTD_LOG_TAG sctag) const
+    Js::ScriptContext* InflateMap::LookupScriptContext(TTD_LOG_PTR_ID sctag) const
     {
         return this->m_tagToGlobalObjectMap.LookupKnownItem(sctag)->GetScriptContext();
     }
@@ -201,7 +201,7 @@ namespace TTD
         this->m_typeMap.AddItem(typeId, value);
     }
 
-    void InflateMap::AddScriptContext(TTD_LOG_TAG sctag, Js::ScriptContext* value)
+    void InflateMap::AddScriptContext(TTD_LOG_PTR_ID sctag, Js::ScriptContext* value)
     {
         Js::GlobalObject* globalObj = value->GetGlobalObject();
 
@@ -333,12 +333,10 @@ namespace TTD
         : H1PtrIdWorklist(&HeapAllocator::Instance), H1PtrToH2PtrMap(&HeapAllocator::Instance), SnapObjCmpVTable(nullptr), H1PtrToPathMap(&HeapAllocator::Instance), 
         CurrentPath(nullptr), CurrentH1Ptr(TTD_INVALID_PTR_ID), CurrentH2Ptr(TTD_INVALID_PTR_ID), Context(threadContext),
         //
-        H1TagMap(&HeapAllocator::Instance), 
         H1ValueMap(&HeapAllocator::Instance), H1SlotArrayMap(&HeapAllocator::Instance), H1FunctionScopeInfoMap(&HeapAllocator::Instance),
         H1FunctionTopLevelLoadMap(&HeapAllocator::Instance), H1FunctionTopLevelNewMap(&HeapAllocator::Instance), H1FunctionTopLevelEvalMap(&HeapAllocator::Instance),
         H1FunctionBodyMap(&HeapAllocator::Instance), H1ObjectMap(&HeapAllocator::Instance),
         //
-        H2TagMap(&HeapAllocator::Instance), 
         H2ValueMap(&HeapAllocator::Instance), H2SlotArrayMap(&HeapAllocator::Instance), H2FunctionScopeInfoMap(&HeapAllocator::Instance),
         H2FunctionTopLevelLoadMap(&HeapAllocator::Instance), H2FunctionTopLevelNewMap(&HeapAllocator::Instance), H2FunctionTopLevelEvalMap(&HeapAllocator::Instance),
         H2FunctionBodyMap(&HeapAllocator::Instance), H2ObjectMap(&HeapAllocator::Instance)
@@ -445,7 +443,7 @@ namespace TTD
         this->CheckConsistentAndAddPtrIdMapping_Helper(h1PtrId, h2PtrId, TTDComparePath::StepKind::Special, next);
     }
 
-    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_Root(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, TTD_LOG_TAG tag)
+    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_Root(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, TTD_LOG_PTR_ID tag)
     {
         TTDComparePath::PathEntry next{ (uint32)tag, nullptr };
         this->CheckConsistentAndAddPtrIdMapping_Helper(h1PtrId, h2PtrId, TTDComparePath::StepKind::Root, next);

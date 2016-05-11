@@ -370,7 +370,7 @@ JsValueRef WScriptJsrt::SetTimeoutCallback(JsValueRef callee, bool isConstructCa
     messageQueue->Push(msg);
 
 #if ENABLE_TTD
-    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(false, false, function, msg->GetId());
+    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(true, false, false, function, msg->GetId());
 #endif
 
     IfJsrtError(ChakraRTInterface::JsDoubleToNumber(static_cast<double>(msg->GetId()), &timerId));
@@ -415,7 +415,7 @@ JsValueRef WScriptJsrt::ClearTimeoutCallback(JsValueRef callee, bool isConstruct
     messageQueue->RemoveById(timerId);
 
 #if ENABLE_TTD
-    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(true, false, nullptr, timerId);
+    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(false, true, false, nullptr, timerId);
 #endif
 
     IfJsrtError(ChakraRTInterface::JsGetGlobalObject(&global));

@@ -16,7 +16,7 @@ namespace TTD
         TTDIdentifierDictionary<TTD_PTR_ID, Js::Type*> m_typeMap;
 
         //The maps for script contexts and objects 
-        TTDIdentifierDictionary<TTD_LOG_TAG, Js::GlobalObject*> m_tagToGlobalObjectMap; //get the script context from here
+        TTDIdentifierDictionary<TTD_LOG_PTR_ID, Js::GlobalObject*> m_tagToGlobalObjectMap; //get the script context from here
         TTDIdentifierDictionary<TTD_PTR_ID, Js::RecyclableObject*> m_objectMap;
 
         //The maps for inflated function bodies
@@ -60,7 +60,7 @@ namespace TTD
         Js::DynamicTypeHandler* LookupHandler(TTD_PTR_ID handlerId) const;
         Js::Type* LookupType(TTD_PTR_ID typeId) const;
 
-        Js::ScriptContext* LookupScriptContext(TTD_LOG_TAG sctag) const;
+        Js::ScriptContext* LookupScriptContext(TTD_LOG_PTR_ID sctag) const;
         Js::RecyclableObject* LookupObject(TTD_PTR_ID objid) const;
 
         Js::FunctionBody* LookupFunctionBody(TTD_PTR_ID functionId) const;
@@ -72,7 +72,7 @@ namespace TTD
         void AddDynamicHandler(TTD_PTR_ID handlerId, Js::DynamicTypeHandler* value);
         void AddType(TTD_PTR_ID typeId, Js::Type* value);
 
-        void AddScriptContext(TTD_LOG_TAG sctag, Js::ScriptContext* value);
+        void AddScriptContext(TTD_LOG_PTR_ID sctag, Js::ScriptContext* value);
         void AddObject(TTD_PTR_ID objid, Js::RecyclableObject* value);
 
         void AddInflationFunctionBody(TTD_PTR_ID functionId, Js::FunctionBody* value);
@@ -184,8 +184,6 @@ namespace TTD
 
         ////
         //H1 Maps
-        JsUtil::BaseDictionary<TTD_PTR_ID, TTD_LOG_TAG, HeapAllocator> H1TagMap;
-
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::SnapPrimitiveValue*, HeapAllocator> H1ValueMap;
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::SlotArrayInfo*, HeapAllocator> H1SlotArrayMap;
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::ScriptFunctionScopeInfo*, HeapAllocator> H1FunctionScopeInfoMap;
@@ -198,8 +196,6 @@ namespace TTD
 
         ////
         //H2 Maps
-        JsUtil::BaseDictionary<TTD_PTR_ID, TTD_LOG_TAG, HeapAllocator> H2TagMap;
-
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::SnapPrimitiveValue*, HeapAllocator> H2ValueMap;
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::SlotArrayInfo*, HeapAllocator> H2SlotArrayMap;
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::ScriptFunctionScopeInfo*, HeapAllocator> H2FunctionScopeInfoMap;
@@ -225,7 +221,7 @@ namespace TTD
         void CheckConsistentAndAddPtrIdMapping_Scope(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, uint32 index);
         void CheckConsistentAndAddPtrIdMapping_FunctionBody(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId);
         void CheckConsistentAndAddPtrIdMapping_Special(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, LPCWSTR specialField);
-        void CheckConsistentAndAddPtrIdMapping_Root(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, TTD_LOG_TAG tag);
+        void CheckConsistentAndAddPtrIdMapping_Root(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, TTD_LOG_PTR_ID tag);
 
         //Check if the given mapping is consistent but do not enqueue or try to lookup ptr id in any of the maps (used mainly for heap allocated promise info that may be shared)
         void CheckConsistentAndAddPtrIdMapping_NoEnqueue(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId);

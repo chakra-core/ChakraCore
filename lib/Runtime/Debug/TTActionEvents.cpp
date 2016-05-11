@@ -170,9 +170,13 @@ namespace TTD
         void AddRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::AddRootRefActionTag>(evt);
-            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
-            asdf; //need to do the add ref and monitor in my TTD code
+            TTD_LOG_PTR_ID origId = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(TTD_CONVERT_TTDVAR_TO_JSVAR(action->Var1));
+
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
+            Js::RecyclableObject* newObj = Js::RecyclableObject::FromVar(var);
+
+            ctx->AddTrackedRoot_TTD(origId, newObj);
         }
 
         void RemoveRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
@@ -180,12 +184,17 @@ namespace TTD
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::RemoveRootRefActionTag>(evt);
             Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
-            asdf; //need to do the add ref and monitor in my TTD code
+            TTD_LOG_PTR_ID origId = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(TTD_CONVERT_TTDVAR_TO_JSVAR(action->Var1));
+
+            Js::Var var = InflateVarInReplay(ctx, action->Var1);
+            Js::RecyclableObject* deleteObj = Js::RecyclableObject::FromVar(var);
+
+            ctx->RemoveTrackedRoot_TTD(origId, deleteObj);
         }
 
         void EventLoopYieldPointAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
-            asdf;
+            ctx->ClearLocalRootsAndRefreshMap_TTD();
         }
 
         void AllocateObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)

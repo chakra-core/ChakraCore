@@ -119,6 +119,7 @@
     JsTTDPauseTimeTravelBeforeRuntimeOperation
     JsTTDReStartTimeTravelAfterRuntimeOperation
     JsTTDNotifyHostCallbackCreatedOrCanceled
+    JsTTDNotifyYield
     JsTTDPrepContextsForTopLevelEventMove
     JsTTDMoveToTopLevelEvent
     JsTTDReplayExecution

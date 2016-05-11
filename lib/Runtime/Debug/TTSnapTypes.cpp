@@ -234,7 +234,7 @@ namespace TTD
             writer->WriteAddr(NSTokens::Key::typeId, sType->TypePtrId);
 
             writer->WriteTag<Js::TypeId>(NSTokens::Key::jsTypeId, sType->JsTypeId, NSTokens::Separator::CommaSeparator);
-            writer->WriteLogTag(NSTokens::Key::ctxTag, sType->ScriptContextTag, NSTokens::Separator::CommaSeparator);
+            writer->WriteLogTag(NSTokens::Key::ctxTag, sType->ScriptContextLogId, NSTokens::Separator::CommaSeparator);
 
             writer->WriteKey(NSTokens::Key::prototypeVar, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(sType->PrototypeVar, writer, NSTokens::Separator::NoSeparator);
@@ -254,7 +254,7 @@ namespace TTD
             sType->TypePtrId = reader->ReadAddr(NSTokens::Key::typeId);
 
             sType->JsTypeId = reader->ReadTag<Js::TypeId>(NSTokens::Key::jsTypeId, true);
-            sType->ScriptContextTag = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
+            sType->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
 
             reader->ReadKey(NSTokens::Key::prototypeVar, true);
             sType->PrototypeVar = NSSnapValues::ParseTTDVar(false, reader);
