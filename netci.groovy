@@ -29,7 +29,7 @@ def dailyRegex = 'dailies'
 // Only generate PR check triggers for the version of netci.groovy in the master branch
 // since those PR checks will apply for all branches.
 def jobTypesToGenerate = [false]
-if (branch == 'master') {
+if (branch.startsWith('master')) {
     // OK to generate PR checks (this ensures we only generate one set of them)
     jobTypesToGenerate += true
 }
@@ -252,7 +252,7 @@ CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 
 // LINUX BUILD TASKS
 // -----------------
 
-if (branch == 'linux') {
+if (branch.startsWith('linux')) {
     osString = 'Ubuntu16.04'
 
     // PR checks
