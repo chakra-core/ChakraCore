@@ -122,6 +122,8 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
             // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
             def jobName = Utilities.getFullJobName(project, config, isPR)
 
+            def testableConfig = buildType in ['debug']
+
             def infoScript = 'bash jenkins/get_system_info.sh'
             def debugFlag = buildType == 'debug' ? '--debug' : ''
             def buildScript = "bash ./build.sh -j=`nproc` ${debugFlag} --cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
@@ -131,7 +133,9 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
                 steps {
                     shell(infoScript)
                     shell(buildScript)
-                    shell(testScript)
+                    if (testableConfig) {
+                        shell(testScript)
+                    }
                 }
             }
 
