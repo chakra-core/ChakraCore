@@ -8858,14 +8858,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             if (instr->GetDst()->IsInt32())
             {
                 sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-                if (sharedBailout)
-                {
-                    bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
-                }
-                else
-                {
-                    bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);
-                }
+                bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);
             }
 
             IR::Opnd * zero;
@@ -9080,7 +9073,10 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 {
                     instr->InsertBefore(bailoutLabel);
                 }
-                this->m_lowerer->GenerateBailOut(instr);
+
+                // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
+                // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
+                this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
             }
             else
             {
