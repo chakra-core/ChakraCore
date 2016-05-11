@@ -321,7 +321,7 @@ namespace Js
         }
 
         RecyclableObject* toStringFunc = RecyclableObject::FromVar(toStringVar);
-        return toStringFunc->GetEntryPoint()(toStringFunc, CallInfo(CallFlags_Value, 1), thisValue);
+        return CALL_FUNCTION(toStringFunc, CallInfo(CallFlags_Value, 1), thisValue);
     }
 
     Var JavascriptObject::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)

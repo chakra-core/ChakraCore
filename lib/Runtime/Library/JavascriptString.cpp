@@ -1743,7 +1743,7 @@ case_2:
     Var JavascriptString::CallRegExFunction<1>(RecyclableObject* fnObj, Var regExp, Arguments& args)
     {
         // args[0]: String
-        return fnObj->GetEntryPoint()(fnObj, CallInfo(CallFlags_Value, 2), regExp, args[0]);
+        return CALL_FUNCTION(fnObj, CallInfo(CallFlags_Value, 2), regExp, args[0]);
     }
 
     template<>
@@ -1758,7 +1758,7 @@ case_2:
             return CallRegExFunction<1>(fnObj, regExp, args);
         }
 
-        return fnObj->GetEntryPoint()(fnObj, CallInfo(CallFlags_Value, 3), regExp, args[0], args[2]);
+        return CALL_FUNCTION(fnObj, CallInfo(CallFlags_Value, 3), regExp, args[0], args[2]);
     }
 
     Var JavascriptString::EntrySlice(RecyclableObject* function, CallInfo callInfo, ...)

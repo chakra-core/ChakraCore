@@ -582,7 +582,7 @@ namespace Js
             return StrictEqualSIMD(aLeft, aRight, requestContext);
         }
 #endif
-        
+
         if (RecyclableObject::FromVar(aLeft)->Equals(aRight, &result, requestContext))
         {
             return result;
@@ -1382,7 +1382,7 @@ CommonNumber:
             return aRight;
         }
 
-        Var iteratorVar = function->GetEntryPoint()(function, CallInfo(Js::CallFlags_Value, 1), aRight);
+        Var iteratorVar = CALL_FUNCTION(function, CallInfo(Js::CallFlags_Value, 1), aRight);
 
         if (!JavascriptOperators::IsObject(iteratorVar))
         {
@@ -5801,7 +5801,7 @@ CommonNumber:
             JavascriptOperators::NewScObjectCommon(object, functionInfo, requestContext) :
             JavascriptOperators::NewScObjectHostDispatchOrProxy(object, requestContext);
 
-        Var returnVar = object->GetEntryPoint()(object, CallInfo(CallFlags_New, 1), newObject);
+        Var returnVar = CALL_FUNCTION(object, CallInfo(CallFlags_New, 1), newObject);
         if (JavascriptOperators::IsObject(returnVar))
         {
             newObject = returnVar;
@@ -9268,12 +9268,7 @@ CommonNumber:
             Var thisVar = RootToThisObject(object, scriptContext);
 
             RecyclableObject* marshalledFunction = RecyclableObject::FromVar(CrossSite::MarshalVar(requestContext, function));
-#ifdef _WIN32
-            Var result = marshalledFunction->GetEntryPoint()(function, CallInfo(flags, 1), thisVar);
-#else
-            Var result = JavascriptFunction::CallFunction<false>(
-                    function, marshalledFunction->GetEntryPoint(), Arguments(CallInfo(flags, 1), &thisVar));
-#endif
+            Var result = CALL_ENTRYPOINT(marshalledFunction->GetEntryPoint(), function, CallInfo(flags, 1), thisVar);
             result = CrossSite::MarshalVar(requestContext, result);
 
             return result;
@@ -9315,13 +9310,7 @@ CommonNumber:
                 marshalledFunction = RecyclableObject::FromVar(CrossSite::MarshalVar(requestContext, function));
             }
 
-#ifdef _WIN32
-            Var result = marshalledFunction->GetEntryPoint()(function, CallInfo(flags, 2), thisVar, putValue);
-#else
-            Var args[] = { thisVar, putValue };
-            Var result = JavascriptFunction::CallFunction<false>(
-                    function, marshalledFunction->GetEntryPoint(), Arguments(CallInfo(flags, 2), args));
-#endif
+            Var result = CALL_ENTRYPOINT(marshalledFunction->GetEntryPoint(), function, CallInfo(flags, 2), thisVar, putValue);
             Assert(result);
             return nullptr;
         });
@@ -9691,7 +9680,7 @@ CommonNumber:
 
         try
         {
-            executor->GetEntryPoint()(executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
+            CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
         }
         catch (JavascriptExceptionObject* ex)
         {
@@ -10442,7 +10431,7 @@ CommonNumber:
             return nullptr;
         }
 
-        Var iterator = function->GetEntryPoint()(function, CallInfo(Js::CallFlags_Value, 1), instance);
+        Var iterator = CALL_FUNCTION(function, CallInfo(Js::CallFlags_Value, 1), instance);
 
         if (!JavascriptOperators::IsObject(iterator))
         {

@@ -2453,7 +2453,7 @@ LABEL1:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction();
-                *value = accessor->GetEntryPoint()(accessor, 1, originalInstance);
+                *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
             }
             return true;
         }
@@ -2528,7 +2528,7 @@ LABEL1:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
-                *value = accessor->GetEntryPoint()(accessor, 1, originalInstance);
+                *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
             }
             return true;
         }

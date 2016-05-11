@@ -29,7 +29,7 @@ namespace Js
          * to pass this object by reference. Interpreter stack setup code expects
          * CallInfo to be passed by value.
          */
-        CallInfo(ushort count)
+        explicit CallInfo(ushort count)
             : Flags(CallFlags_None)
             , Count(count)
 #ifdef _WIN64
@@ -62,6 +62,12 @@ namespace Js
         unsigned unused : 32;
 #endif
 
+#if DBG
+        bool operator==(CallInfo other) const
+        {
+            return this->Count == other.Count && this->Flags == other.Flags;
+        }
+#endif
     public:
         static const ushort ksizeofCount;
         static const ushort ksizeofCallFlags;

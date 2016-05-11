@@ -6016,11 +6016,11 @@ Case0:
             {
                 Var leftVar = CrossSite::MarshalVar(scriptContext, *(Var*)aRef);
                 Var rightVar = CrossSite::MarshalVar(scriptContext, *(Var*)bRef);
-                retVal = compFn->GetEntryPoint()(compFn, CallInfo(flags, 3), undefined, leftVar, rightVar);
+                retVal = CALL_FUNCTION(compFn, CallInfo(flags, 3), undefined, leftVar, rightVar);
             }
             else
             {
-                retVal = compFn->GetEntryPoint()(compFn, CallInfo(flags, 3), undefined, *(Var*)aRef, *(Var*)bRef);
+                retVal = CALL_FUNCTION(compFn, CallInfo(flags, 3), undefined, *(Var*)aRef, *(Var*)bRef);
             }
 
             if (TaggedInt::Is(retVal))
@@ -7540,7 +7540,7 @@ Case0:
 
                 // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
                 CallFlags flags = CallFlags_Value;
-                return func->GetEntryPoint()(func, CallInfo(flags, 1), obj);
+                return CALL_FUNCTION(func, CallInfo(flags, 1), obj);
             });
 
             if(!result)
@@ -7555,7 +7555,7 @@ Case0:
         else
         {
             // call built-in Object.prototype.toString
-            return JavascriptObject::EntryToString(function, 1, obj);
+            return CALL_ENTRYPOINT(JavascriptObject::EntryToString, function, CallInfo(1), obj);
         }
     }
 
@@ -7630,7 +7630,7 @@ Case0:
         }
 #else
         // xplat-todo: Support locale-specific seperator
-        return scriptContext->GetLibrary()->GetCommaSpaceDisplayString();        
+        return scriptContext->GetLibrary()->GetCommaSpaceDisplayString();
 #endif
     }
 
@@ -7809,7 +7809,7 @@ Case0:
 
                 Var index = JavascriptNumber::ToVar(k, scriptContext);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     index,
                     pArr);
@@ -7828,7 +7828,7 @@ Case0:
 
                 Var index = JavascriptNumber::ToVar(k, scriptContext);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     index,
                     typedArrayBase);
@@ -7847,7 +7847,7 @@ Case0:
                 JavascriptOperators::GetItem(obj, k, &element, scriptContext);
                 Var index = JavascriptNumber::ToVar(k, scriptContext);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     index,
                     obj);
@@ -8106,7 +8106,7 @@ Case0:
                     continue;
                 }
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     pArr);
@@ -8130,7 +8130,7 @@ Case0:
 
                 element = typedArrayBase->DirectGetItem(k);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     typedArrayBase);
@@ -8153,7 +8153,7 @@ Case0:
                 BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
                 Assert(getResult);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     obj);
@@ -8279,7 +8279,7 @@ Case0:
                     continue;
                 }
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     pArr);
@@ -8306,7 +8306,7 @@ Case0:
 
                 element = typedArrayBase->DirectGetItem(k);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     typedArrayBase);
@@ -8327,7 +8327,7 @@ Case0:
                 }
                 BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
                 Assert(getResult);
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     obj);
@@ -8425,7 +8425,7 @@ Case0:
 
         auto fn32 = [dynamicObject, callBackFn, flags, thisArg, scriptContext](uint32 k, Var element)
         {
-            callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+            CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                 element,
                 JavascriptNumber::ToVar(k, scriptContext),
                 dynamicObject);
@@ -8433,7 +8433,7 @@ Case0:
 
         auto fn64 = [dynamicObject, callBackFn, flags, thisArg, scriptContext](uint64 k, Var element)
         {
-            callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+            CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                 element,
                 JavascriptNumber::ToVar(k, scriptContext),
                 dynamicObject);
@@ -8916,7 +8916,7 @@ Case0:
                     continue;
                 }
 
-                mappedValue = callBackFn->GetEntryPoint()(callBackFn, callBackFnInfo, thisArg,
+                mappedValue = CALL_FUNCTION(callBackFn, callBackFnInfo, thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     pArr);
@@ -8956,7 +8956,7 @@ Case0:
                 }
 
                 element = typedArrayBase->DirectGetItem(k);
-                mappedValue = callBackFn->GetEntryPoint()(callBackFn, callBackFnInfo, thisArg,
+                mappedValue = CALL_FUNCTION(callBackFn, callBackFnInfo, thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     obj);
@@ -8988,7 +8988,7 @@ Case0:
 
                 BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
                 Assert(getResult);
-                mappedValue = callBackFn->GetEntryPoint()(callBackFn, callBackFnInfo, thisArg,
+                mappedValue = CALL_FUNCTION(callBackFn, callBackFnInfo, thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     obj);
@@ -9121,7 +9121,7 @@ Case0:
                     continue;
                 }
 
-                selected = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                selected = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                                                                 element,
                                                                 JavascriptNumber::ToVar(k, scriptContext),
                                                                 pArr);
@@ -9151,7 +9151,7 @@ Case0:
                 }
                 BOOL getResult = JavascriptOperators::GetItem(dynamicObject, k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex(), &element, scriptContext);
                 Assert(getResult);
-                selected = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                selected = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                                                                 element,
                                                                 JavascriptNumber::ToVar(k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex(), scriptContext),
                                                                 dynamicObject);
@@ -9339,7 +9339,7 @@ Case0:
                     continue;
                 }
 
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
                     accumulator,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
@@ -9358,7 +9358,7 @@ Case0:
 
                 element = typedArrayBase->DirectGetItem((uint32)k);
 
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
                     accumulator,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
@@ -9376,7 +9376,7 @@ Case0:
                 BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
                 Assert(getResult);
 
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
                     accumulator,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
@@ -9549,7 +9549,7 @@ Case0:
                     continue;
                 }
 
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
                     accumulator,
                     element,
                     JavascriptNumber::ToVar(index, scriptContext),
@@ -9569,7 +9569,7 @@ Case0:
 
                 element = typedArrayBase->DirectGetItem((uint32)index);
 
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
                     accumulator,
                     element,
                     JavascriptNumber::ToVar(index, scriptContext),
@@ -9588,7 +9588,7 @@ Case0:
 
                 BOOL getResult = JavascriptOperators::GetItem(obj, index, &element, scriptContext);
                 Assert(getResult);
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
                     accumulator,
                     element,
                     JavascriptNumber::ToVar(index, scriptContext),

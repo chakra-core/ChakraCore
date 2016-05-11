@@ -861,7 +861,7 @@ namespace Js
         if (JavascriptConversion::IsCallable(exec))
         {
             RecyclableObject* execFn = RecyclableObject::FromVar(exec);
-            Var result = execFn->GetEntryPoint()(execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
+            Var result = CALL_FUNCTION(execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
 
             if (!JavascriptOperators::IsObjectOrNull(result))
             {
