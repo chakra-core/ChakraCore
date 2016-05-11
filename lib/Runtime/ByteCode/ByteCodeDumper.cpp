@@ -822,7 +822,7 @@ namespace Js
             case OpCode::NewInnerScFunc:
             case OpCode::NewInnerScGenFunc:
             {
-                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunc((uint)data->SlotIndex)->GetFunctionProxy();
+                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunc((uint)data->SlotIndex);
                 Output::Print(_u(" R%d = env:R%d, %s()"), data->Value, data->Instance,
                         pfuncActual->EnsureDeserialized()->GetDisplayName());
                 break;
@@ -872,7 +872,7 @@ namespace Js
             case OpCode::NewStackScFunc:
             case OpCode::NewScGenFunc:
             {
-                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunc((uint)data->SlotIndex)->GetFunctionProxy();
+                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunc((uint)data->SlotIndex);
                 Output::Print(_u(" R%d = %s()"), data->Value,
                         pfuncActual->EnsureDeserialized()->GetDisplayName());
                 break;
