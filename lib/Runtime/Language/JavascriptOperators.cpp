@@ -5549,13 +5549,6 @@ CommonNumber:
                 ScriptFunction *func = entry->func;
 
                 FunctionProxy * proxy = func->GetFunctionProxy();
-                if (proxy != proxy->GetFunctionProxy())
-                {
-                    // The FunctionProxy has changed since the object was cached, e.g., due to execution
-                    // of a deferred function through a different object.
-                    proxy = proxy->GetFunctionProxy();
-                    func->SetFunctionInfo(proxy);
-                }
 
                 // Reset the function's type to the default type with no properties
                 // Use the cached type on the function proxy rather than the type in the func cache entry
@@ -5581,7 +5574,7 @@ CommonNumber:
             uint nestedIndex = entry->nestedIndex;
             uint scopeSlot = entry->scopeSlot;
 
-            FunctionProxy * proxy = funcParent->GetFunctionBody()->GetNestedFunc(nestedIndex);
+            FunctionProxy * proxy = funcParent->GetFunctionBody()->GetNestedFunctionProxy(nestedIndex);
 
             ScriptFunction *func = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
 
@@ -9824,10 +9817,7 @@ CommonNumber:
     JavascriptOperators::GetDeferredDeserializedFunctionProxy(JavascriptFunction* func)
     {
         FunctionProxy* proxy = func->GetFunctionProxy();
-        if (proxy->GetFunctionProxy() != proxy)
-        {
-            proxy = proxy->GetFunctionProxy();
-        }
+        Assert(proxy->GetFunctionInfo()->GetFunctionProxy() != proxy);
         return proxy;
     }
 
