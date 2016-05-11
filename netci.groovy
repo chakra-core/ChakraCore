@@ -211,29 +211,31 @@ CreateBuildTasks('Windows_NT', null, null, null, true, null, null)
 // DAILY BUILD TASKS
 // -----------------
 
-// build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
-CreateBuildTasks('Windows 7', 'daily_dev12', 'msbuild12', '-win7 -includeSlow', false,
-    /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
-    /* nonDefaultTaskSetup */ { newJob, isPR, config ->
-        DailyBuildTaskSetup(newJob, isPR,
-            "Windows 7 ${config}",
-            '(dev12|legacy)\\s+tests')})
+if (!branch.endsWith('-ci')) {
+    // build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
+    CreateBuildTasks('Windows 7', 'daily_dev12', 'msbuild12', '-win7 -includeSlow', false,
+        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows 7 ${config}",
+                '(dev12|legacy)\\s+tests')})
 
-// build and test on the usual configuration (VS 2015) with -includeSlow
-CreateBuildTasks('Windows_NT', 'daily_slow', null, '-includeSlow', false,
-    /* excludeConfigIf */ null,
-    /* nonDefaultTaskSetup */ { newJob, isPR, config ->
-        DailyBuildTaskSetup(newJob, isPR,
-            "Windows ${config}",
-            'slow\\s+tests')})
+    // build and test on the usual configuration (VS 2015) with -includeSlow
+    CreateBuildTasks('Windows_NT', 'daily_slow', null, '-includeSlow', false,
+        /* excludeConfigIf */ null,
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows ${config}",
+                'slow\\s+tests')})
 
-// build and test on the usual configuration (VS 2015) with JIT disabled
-CreateBuildTasks('Windows_NT', 'daily_disablejit', '"/p:BuildJIT=false"', '-disablejit', true,
-    /* excludeConfigIf */ null,
-    /* nonDefaultTaskSetup */ { newJob, isPR, config ->
-        DailyBuildTaskSetup(newJob, isPR,
-            "Windows ${config}",
-            '(disablejit|nojit)\\s+tests')})
+    // build and test on the usual configuration (VS 2015) with JIT disabled
+    CreateBuildTasks('Windows_NT', 'daily_disablejit', '"/p:BuildJIT=false"', '-disablejit', true,
+        /* excludeConfigIf */ null,
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows ${config}",
+                '(disablejit|nojit)\\s+tests')})
+}
 
 // ----------------
 // CODE STYLE TASKS
@@ -253,9 +255,11 @@ if (branch == 'linux') {
     CreateLinuxBuildTasks(osString, "ubuntu", branch, null)
 
     // daily builds
-    CreateLinuxBuildTasks(osString, "daily_ubuntu", branch,
-        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
-            DailyBuildTaskSetup(newJob, isPR,
-                "Ubuntu ${config}",
-                'linux\\s+tests')})
+    if (!branch.endsWith('-ci')) {
+        CreateLinuxBuildTasks(osString, "daily_ubuntu", branch,
+            /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+                DailyBuildTaskSetup(newJob, isPR,
+                    "Ubuntu ${config}",
+                    'linux\\s+tests')})
+    }
 }
