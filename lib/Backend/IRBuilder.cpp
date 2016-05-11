@@ -6851,15 +6851,15 @@ IRBuilder::ResolveVirtualLongBranch(IR::BranchInstr * branchInstr, uint offset)
         branchInstr->InsertBefore(returnIPInstr);
 
         // Any jump to this branch to jump to the return IP load instr first
-        uint32 offset = branchInstr->GetByteCodeOffset();
-        if (this->m_offsetToInstruction[offset] == branchInstr)
+        uint32 branchInstrByteCodeOffset = branchInstr->GetByteCodeOffset();
+        if (this->m_offsetToInstruction[branchInstrByteCodeOffset] == branchInstr)
         {
-            this->m_offsetToInstruction[offset] = returnIPInstr;
+            this->m_offsetToInstruction[branchInstrByteCodeOffset] = returnIPInstr;
         }
         else
         {
-            Assert(this->m_offsetToInstruction[offset]->HasBailOutInfo() &&
-                   this->m_offsetToInstruction[offset]->GetBailOutKind() == IR::BailOutInjected);
+            Assert(this->m_offsetToInstruction[branchInstrByteCodeOffset]->HasBailOutInfo() &&
+                   this->m_offsetToInstruction[branchInstrByteCodeOffset]->GetBailOutKind() == IR::BailOutInjected);
         }
     }
     return GetLoopBodyExitInstrOffset();

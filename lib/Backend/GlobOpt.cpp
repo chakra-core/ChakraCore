@@ -18545,14 +18545,14 @@ GlobOpt::OptHoistInvariant(
 
             if (instr->HasBailOutInfo())
             {
-                IR::BailOutKind bailoutKind = instr->GetBailOutKind();
-                Assert(bailoutKind == IR::BailOutIntOnly ||
-                    bailoutKind == IR::BailOutExpectingInteger ||
-                    bailoutKind == IR::BailOutOnNotPrimitive ||
-                    bailoutKind == IR::BailOutNumberOnly ||
-                    bailoutKind == IR::BailOutPrimitiveButString ||
-                    bailoutKind == IR::BailOutSimd128F4Only ||
-                    bailoutKind == IR::BailOutSimd128I4Only);
+                IR::BailOutKind instrBailoutKind = instr->GetBailOutKind();
+                Assert(instrBailoutKind == IR::BailOutIntOnly ||
+                    instrBailoutKind == IR::BailOutExpectingInteger ||
+                    instrBailoutKind == IR::BailOutOnNotPrimitive ||
+                    instrBailoutKind == IR::BailOutNumberOnly ||
+                    instrBailoutKind == IR::BailOutPrimitiveButString ||
+                    instrBailoutKind == IR::BailOutSimd128F4Only ||
+                    instrBailoutKind == IR::BailOutSimd128I4Only);
             }
             else if (src1StackSym && bailoutKind != IR::BailOutInvalid)
             {
