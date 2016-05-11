@@ -1766,60 +1766,11 @@ BOOL SmallAllocationBlockAttributes::IsAlignedObjectSize(size_t sizeCat)
 {
     return HeapInfo::IsAlignedSmallObjectSize(sizeCat);
 }
-/* static */
-uint SmallAllocationBlockAttributes::GetUnusablePageCount(size_t sizeCat)
-{
-    UNREFERENCED_PARAMETER(sizeCat);
-    return 0;
-}
-/* static */
-void SmallAllocationBlockAttributes::ProtectUnusablePages(HeapBlock* heapBlock)
-{
-    UNREFERENCED_PARAMETER(heapBlock);
-}
-/* static */
-BOOL SmallAllocationBlockAttributes::RestoreUnusablePages(HeapBlock* heapBlock)
-{
-    UNREFERENCED_PARAMETER(heapBlock);
-    return TRUE;
-}
 
 /* static */
 BOOL MediumAllocationBlockAttributes::IsAlignedObjectSize(size_t sizeCat)
 {
     return HeapInfo::IsAlignedMediumObjectSize(sizeCat);
-}
-/* static */
-uint MediumAllocationBlockAttributes::GetUnusablePageCount(size_t sizeCat)
-{
-    return ((MediumAllocationBlockAttributes::PageCount*AutoSystemInfo::PageSize) % sizeCat) / AutoSystemInfo::PageSize;
-}
-/* static */
-void MediumAllocationBlockAttributes::ProtectUnusablePages(HeapBlock* heapBlock)
-{
-    size_t count = MediumAllocationBlockAttributes::GetUnusablePageCount(heapBlock->GetObjectSize(nullptr));
-    if (count > 0)
-    {
-        char* startPage = heapBlock->address + (MediumAllocationBlockAttributes::PageCount - count)*AutoSystemInfo::PageSize;
-        DWORD oldProtect;
-        BOOL ret = ::VirtualProtect(startPage, count*AutoSystemInfo::PageSize, PAGE_READONLY, &oldProtect);
-        Assert(ret && oldProtect == PAGE_READWRITE);
-
-        ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
-    }
-}
-/* static */
-BOOL MediumAllocationBlockAttributes::RestoreUnusablePages(HeapBlock* heapBlock)
-{
-    size_t count = MediumAllocationBlockAttributes::GetUnusablePageCount(heapBlock->GetObjectSize(nullptr));
-    if (count > 0)
-    {
-        char* startPage = (char*)heapBlock->address + (MediumAllocationBlockAttributes::PageCount - count)*AutoSystemInfo::PageSize;
-        DWORD oldProtect;
-        BOOL ret = ::VirtualProtect(startPage, count*AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
-        Assert(ret && oldProtect == PAGE_READONLY);
-    }
-    return TRUE;
 }
 
 template class HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>;

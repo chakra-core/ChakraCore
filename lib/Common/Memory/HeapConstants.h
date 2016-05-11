@@ -26,10 +26,6 @@ public:
     static const uint MediumBucketCount = (MaxMediumObjectSize - MaxSmallObjectSize) / MediumObjectGranularity;
 #endif
 };
-namespace Memory
-{
-    class HeapBlock;
-}
 
 ///
 /// BlockAttributes are used to determine the allocation characteristics of a heap block
@@ -65,9 +61,6 @@ public:
     static const bool IsLargeBlock = false;
 
     static BOOL IsAlignedObjectSize(size_t sizeCat);
-    static uint GetUnusablePageCount(size_t sizeCat);
-    static void ProtectUnusablePages(Memory::HeapBlock* heapBlock);
-    static BOOL RestoreUnusablePages(Memory::HeapBlock* heapBlock);
 };
 
 class MediumAllocationBlockAttributes
@@ -90,9 +83,6 @@ public:
     static const bool IsLargeBlock = false;
 
     static BOOL IsAlignedObjectSize(size_t sizeCat);
-    static uint GetUnusablePageCount(size_t sizeCat);
-    static void ProtectUnusablePages(Memory::HeapBlock* heapBlock);
-    static BOOL RestoreUnusablePages(Memory::HeapBlock* heapBlock);
 };
 
 class LargeAllocationBlockAttributes

@@ -212,7 +212,6 @@ template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
 class RecyclerHeapObjectInfo;
 class HeapBlock
 {
-    friend MediumAllocationBlockAttributes;
 public:
     enum HeapBlockType : byte
     {
@@ -445,20 +444,9 @@ public:
 public:
     ~SmallHeapBlockT();
 
-    void ProtectUnusablePages()
-    {
-        TBlockAttributes::ProtectUnusablePages(this);
-    }
-
-    BOOL RestoreUnusablePages()
-    {
-        return TBlockAttributes::RestoreUnusablePages(this);
-    }
-
-    uint GetUnusablePageCount()
-    {
-        return TBlockAttributes::GetUnusablePageCount(this->objectSize);
-    }
+    void ProtectUnusablePages();
+    void RestoreUnusablePages();
+    uint GetUnusablePageCount();
 
 #ifdef RECYCLER_WRITE_BARRIER
     bool IsWithBarrier() const;
