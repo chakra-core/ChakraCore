@@ -4,6 +4,5 @@ HasFuncAssignment: y
 HasMaybeEscapedUse: y
 HasMaybeEscapedNestedFunc (MaybeEscapedUse): test (function  (#1.1), #2)
 HasMaybeEscapedUse: x
-RestoreHasFuncAssignment: y
 test1
 test2

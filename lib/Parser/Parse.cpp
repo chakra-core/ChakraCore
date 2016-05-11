@@ -280,6 +280,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
         ParseNode *pnodeFnc = CreateNode(knopFncDecl);
         pnodeFnc->sxFnc.ClearFlags();
         pnodeFnc->sxFnc.SetDeclaration(false);
+        pnodeFnc->sxFnc.functionId   = 0;
         pnodeFnc->sxFnc.astSize      = 0;
         pnodeFnc->sxFnc.pnodeVars    = nullptr;
         pnodeFnc->sxFnc.pnodeParams  = nullptr;
@@ -812,7 +813,7 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         blockInfo = blockInfo->pBlockInfoOuter;
     }
 
-    refForDecl = this->FindOrAddPidRef(pid, blockInfo->pnodeBlock->sxBlock.blockId);
+    refForDecl = this->FindOrAddPidRef(pid, blockInfo->pnodeBlock->sxBlock.blockId, GetCurrentFunctionNode()->sxFnc.functionId);
 
     if (refForDecl == nullptr)
     {
@@ -1679,6 +1680,7 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
 void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint maxBlockId)
 {
     PidRefStack *ref, *nextRef, *lastRef = nullptr;
+    Js::LocalFunctionId funcId = GetCurrentFunctionNode()->sxFnc.functionId;
     Assert(sym);
 
     for (ref = pid->GetTopRef(); ref && ref->GetScopeId() >= blockId; ref = nextRef)
@@ -1708,6 +1710,12 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
         {
             Assert(sym->GetIsGlobal());
             sym->SetIsModuleExportStorage(true);
+        }
+
+        if (ref->GetFuncScopeId() != funcId && !sym->GetIsGlobal())
+        {
+            Assert(ref->GetFuncScopeId() > funcId);
+            sym->SetHasNonLocalReference();
         }
 
         if (ref->GetScopeId() == blockId)
@@ -4366,8 +4374,6 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
 
     ParseNodePtr pnodeFnc = nullptr;
     ParseNodePtr *ppnodeVarSave = nullptr;
-    ParseNodePtr pnodeFncSave = nullptr;
-    ParseNodePtr pnodeFncSaveNonLambda = nullptr;
     ParseNodePtr pnodeFncBlockScope = nullptr;
     ParseNodePtr *ppnodeScopeSave = nullptr;
     ParseNodePtr *ppnodeExprScopeSave = nullptr;
@@ -4396,7 +4402,6 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     uint scopeCountNoAstSave = m_scopeCountNoAst;
     m_scopeCountNoAst = 0;
 
-    int32* pAstSizeSave = m_pCurrentAstSize;
     bool noStmtContext = false;
 
     if (fDeclaration)
@@ -4461,38 +4466,14 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
         pnodeFnc->sxFnc.firstDefaultArg = 0;
 
         m_pCurrentAstSize = &pnodeFnc->sxFnc.astSize;
-
-        // Make this the current function and start its sub-function list.
-        pnodeFncSave = m_currentNodeFunc;
-        m_currentNodeFunc = pnodeFnc;
-
-        Assert(m_currentNodeDeferredFunc == nullptr);
-
-        if (!fLambda)
-        {
-            pnodeFncSaveNonLambda = m_currentNodeNonLambdaFunc;
-            m_currentNodeNonLambdaFunc = pnodeFnc;
-        }
-
-        m_pnestedCount = &pnodeFnc->sxFnc.nestedCount;
     }
     else // if !buildAST
     {
         wasInDeferredNestedFunc = m_inDeferredNestedFunc;
         m_inDeferredNestedFunc = true;
-
-        AnalysisAssert(pnodeFnc);
-
-        if (!fLambda)
-        {
-            pnodeFncSaveNonLambda = m_currentNodeNonLambdaDeferredFunc;
-            m_currentNodeNonLambdaDeferredFunc = pnodeFnc;
-        }
-
-        pnodeFncSave = m_currentNodeDeferredFunc;
-        m_currentNodeDeferredFunc = pnodeFnc;
-        m_pnestedCount = &pnodeFnc->sxFnc.nestedCount;
     }
+
+    m_pnestedCount = &pnodeFnc->sxFnc.nestedCount;
 
     AnalysisAssert(pnodeFnc);
     pnodeFnc->sxFnc.SetIsAsync((flags & fFncAsync) != 0);
@@ -4501,7 +4482,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     pnodeFnc->sxFnc.SetIsClassMember((flags & fFncClassMember) != 0);
 
     bool needScanRCurly = true;
-    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pnodeFncSave, pNameHint, flags, &funcHasName, fUnaryOrParen, noStmtContext, &needScanRCurly);
+    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pNameHint, flags, &funcHasName, fUnaryOrParen, noStmtContext, &needScanRCurly);
     if (!result)
     {
         Assert(!pnodeFncBlockScope);
@@ -4514,38 +4495,12 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     *m_ppnodeVar = nullptr;
     m_ppnodeVar = ppnodeVarSave;
 
-    // Restore the current function.
-    if (buildAST)
-    {
-        Assert(pnodeFnc == m_currentNodeFunc);
-
-        m_currentNodeFunc = pnodeFncSave;
-        m_pCurrentAstSize = pAstSizeSave;
-
-        if (!fLambda)
-        {
-            Assert(pnodeFnc == m_currentNodeNonLambdaFunc);
-            m_currentNodeNonLambdaFunc = pnodeFncSaveNonLambda;
-        }
-    }
-    else
-    {
-        Assert(pnodeFnc == m_currentNodeDeferredFunc);
-        if (!fLambda)
-        {
-            Assert(pnodeFnc == m_currentNodeNonLambdaDeferredFunc);
-            m_currentNodeNonLambdaDeferredFunc = pnodeFncSaveNonLambda;
-        }
-        m_currentNodeDeferredFunc = pnodeFncSave;
-        if (m_currentNodeFunc && pnodeFnc->sxFnc.HasWithStmt())
-        {
-            GetCurrentFunctionNode()->sxFnc.SetHasWithStmt(true);
-        }
-    }
     if (m_currentNodeFunc && (pnodeFnc->sxFnc.CallsEval() || pnodeFnc->sxFnc.ChildCallsEval()))
     {
         GetCurrentFunctionNode()->sxFnc.SetChildCallsEval(true);
     }
+
+    ParseNodePtr pnodeFncParent = buildAST ? m_currentNodeFunc : m_currentNodeDeferredFunc;
 
     // Lambdas do not have "arguments" and instead capture their parent's
     // binding of "arguments.  To ensure the arguments object of the enclosing
@@ -4553,9 +4508,9 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     // the parent function
     if ((flags & fFncLambda) != 0 && pnodeFnc->sxFnc.UsesArguments())
     {
-        if (pnodeFncSave != nullptr)
+        if (pnodeFncParent != nullptr)
         {
-            pnodeFncSave->sxFnc.SetUsesArguments();
+            pnodeFncParent->sxFnc.SetUsesArguments();
         }
         else
         {
@@ -4702,8 +4657,12 @@ void Parser::AppendFunctionToScopeList(bool fDeclaration, ParseNodePtr pnodeFnc)
 Parse a function definition.
 ***************************************************************************/
 template<bool buildAST>
-bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly)
+bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly)
 {
+    ParseNodePtr pnodeFncSave = buildAST ? m_currentNodeFunc : m_currentNodeDeferredFunc;
+    ParseNodePtr pnodeFncSaveNonLambda = buildAST ? m_currentNodeNonLambdaFunc : m_currentNodeNonLambdaDeferredFunc;
+    int32* pAstSizeSave = m_pCurrentAstSize;
+
     bool fDeclaration = (flags & fFncDeclaration) != 0;
     bool fLambda = (flags & fFncLambda) != 0;
     bool fAsync = (flags & fFncAsync) != 0;
@@ -4722,15 +4681,28 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     RestorePoint beginNameHint;
     m_pscan->Capture(&beginNameHint);
 
-    ParseNodePtr pnodeFncExprScope = nullptr;
+    ParseNodePtr pnodeFncExprScope = nullptr;    
     Scope *fncExprScope = nullptr;
     if (!fDeclaration)
     {
         pnodeFncExprScope = StartParseBlock<buildAST>(PnodeBlockType::Function, ScopeType_FuncExpr);
         fncExprScope = pnodeFncExprScope->sxBlock.scope;
+
+        // Function expression: push the new function onto the stack now so that the name (if any) will be
+        // local to the new function.
+
+        this->UpdateCurrentNodeFunc<buildAST>(pnodeFnc, fLambda);
     }
 
-    *pHasName = !fLambda && this->ParseFncNames<buildAST>(pnodeFnc, pnodeFncParent, flags, &lastNodeRef);
+    *pHasName = !fLambda && this->ParseFncNames<buildAST>(pnodeFnc, pnodeFncSave, flags, &lastNodeRef);
+
+    if (fDeclaration)
+    {
+        // Declaration statement: push the new function now, after parsing the name, so the name is local to the
+        // enclosing function.
+
+        this->UpdateCurrentNodeFunc<buildAST>(pnodeFnc, fLambda);
+    }
 
     if (noStmtContext && pnodeFnc->sxFnc.IsGenerator())
     {
@@ -4781,7 +4753,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
         isEnclosedInParamScope = this->m_currentScope->GetEnclosingScope() && this->m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter;
     }
 
-    Assert(!isEnclosedInParamScope || pnodeFncParent->sxFnc.HasNonSimpleParameterList());
+    Assert(!isEnclosedInParamScope || pnodeFncSave->sxFnc.HasNonSimpleParameterList());
 
     RestorePoint beginFormals;
     m_pscan->Capture(&beginFormals);
@@ -4843,7 +4815,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             !isLikelyModulePattern &&
             !this->IsBackgroundParser() &&
             !this->m_doingFastScan &&
-            !(pnodeFncParent && m_currDeferredStub) &&
+            !(pnodeFncSave && m_currDeferredStub) &&
             !(this->m_parseType == ParseType_Deferred && this->m_functionBody && this->m_functionBody->GetScopeInfo() && !isTopLevelDeferredFunc))
         {
             doParallel = DoParallelParse(pnodeFnc);
@@ -5022,7 +4994,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             AssertMsg(!fLambda, "Deferring function parsing of a function does not handle lambda syntax");
             fDeferred = true;
 
-            this->ParseTopLevelDeferredFunc(pnodeFnc, pnodeFncParent, pNameHint);
+            this->ParseTopLevelDeferredFunc(pnodeFnc, pnodeFncSave, pNameHint);
         }
         else
         {
@@ -5101,7 +5073,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                     // if the enclosed scope is the param scope we would not have created the deferred stub.
                     m_currDeferredStub = nullptr;
                 }
-                else if (pnodeFncParent && m_currDeferredStub)
+                else if (pnodeFncSave && m_currDeferredStub)
                 {
                     // the Deferred stub will not match for the function which are defined on lambda formals.
                     // Since this is not determined upfront that the current function is a part of outer function or part of lambda formal until we have seen the Arrow token.
@@ -5109,14 +5081,14 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                     // the function start with the stub. Because they should match. We need to have previous sibling concept as the lambda formals can have more than one
                     // functions and we want to avoid getting wrong stub.
 
-                    if (pnodeFncParent->sxFnc.nestedCount == 1)
+                    if (pnodeFncSave->sxFnc.nestedCount == 1)
                     {
                         m_prevSiblingDeferredStub = nullptr;
                     }
 
                     if (m_prevSiblingDeferredStub == nullptr)
                     {
-                        m_prevSiblingDeferredStub = (m_currDeferredStub + (pnodeFncParent->sxFnc.nestedCount - 1));
+                        m_prevSiblingDeferredStub = (m_currDeferredStub + (pnodeFncSave->sxFnc.nestedCount - 1));
                     }
 
                     if (m_prevSiblingDeferredStub->ichMin == pnodeFnc->ichMin)
@@ -5270,7 +5242,64 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     m_pscan->SetYieldIsKeyword(fPreviousYieldIsKeyword);
     m_pscan->SetAwaitIsKeyword(fPreviousAwaitIsKeyword);
 
+    // Restore the current function.
+    if (buildAST)
+    {
+        Assert(pnodeFnc == m_currentNodeFunc);
+
+        m_currentNodeFunc = pnodeFncSave;
+        m_pCurrentAstSize = pAstSizeSave;
+
+        if (!fLambda)
+        {
+            Assert(pnodeFnc == m_currentNodeNonLambdaFunc);
+            m_currentNodeNonLambdaFunc = pnodeFncSaveNonLambda;
+        }
+    }
+    else
+    {
+        Assert(pnodeFnc == m_currentNodeDeferredFunc);
+        if (!fLambda)
+        {
+            Assert(pnodeFnc == m_currentNodeNonLambdaDeferredFunc);
+            m_currentNodeNonLambdaDeferredFunc = pnodeFncSaveNonLambda;
+        }
+        m_currentNodeDeferredFunc = pnodeFncSave;
+        if (m_currentNodeFunc && pnodeFnc->sxFnc.HasWithStmt())
+        {
+            GetCurrentFunctionNode()->sxFnc.SetHasWithStmt(true);
+        }
+    }
+
     return true;
+}
+
+template<bool buildAST>
+void Parser::UpdateCurrentNodeFunc(ParseNodePtr pnodeFnc, bool fLambda)
+{
+    if (buildAST)
+    {
+        // Make this the current function and start its sub-function list.
+        m_currentNodeFunc = pnodeFnc;
+
+        Assert(m_currentNodeDeferredFunc == nullptr);
+
+        if (!fLambda)
+        {
+            m_currentNodeNonLambdaFunc = pnodeFnc;
+        }
+    }
+    else // if !buildAST
+    {
+        AnalysisAssert(pnodeFnc);
+
+        if (!fLambda)
+        {
+            m_currentNodeNonLambdaDeferredFunc = pnodeFnc;
+        }
+
+        m_currentNodeDeferredFunc = pnodeFnc;
+    }
 }
 
 void Parser::ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint)
@@ -8524,28 +8553,30 @@ PidRefStack* Parser::PushPidRef(IdentPtr pid)
         // NOTE: the phase check is here to protect perf. See OSG 1020424.
         // In some LS AST-rewrite cases we lose a lot of perf searching the PID ref stack rather
         // than just pushing on the top. This hasn't shown up as a perf issue in non-LS benchmarks.
-        return pid->FindOrAddPidRef(&m_nodeAllocator, GetCurrentBlock()->sxBlock.blockId);
+        return pid->FindOrAddPidRef(&m_nodeAllocator, GetCurrentBlock()->sxBlock.blockId, GetCurrentFunctionNode()->sxFnc.functionId);
     }
 
     Assert(GetCurrentBlock() != nullptr);
     AssertMsg(pid != nullptr, "PID should be created");
     PidRefStack *ref = pid->GetTopRef();
-    if (!ref || (ref->GetScopeId() < GetCurrentBlock()->sxBlock.blockId))
+    int blockId = GetCurrentBlock()->sxBlock.blockId;
+    int funcId = GetCurrentFunctionNode()->sxFnc.functionId;
+    if (!ref || (ref->GetScopeId() < blockId))
     {
         ref = Anew(&m_nodeAllocator, PidRefStack);
         if (ref == nullptr)
         {
             Error(ERRnoMemory);
         }
-        pid->PushPidRef(GetCurrentBlock()->sxBlock.blockId, ref);
+        pid->PushPidRef(blockId, funcId, ref);
     }
 
     return ref;
 }
 
-PidRefStack* Parser::FindOrAddPidRef(IdentPtr pid, int scopeId)
+PidRefStack* Parser::FindOrAddPidRef(IdentPtr pid, int scopeId, Js::LocalFunctionId funcId)
 {
-    PidRefStack *ref = pid->FindOrAddPidRef(&m_nodeAllocator, scopeId);
+    PidRefStack *ref = pid->FindOrAddPidRef(&m_nodeAllocator, scopeId, funcId);
     if (ref == NULL)
     {
         Error(ERRnoMemory);
@@ -10845,6 +10876,13 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
         scopeInfo = m_functionBody->GetScopeInfo();
         if (scopeInfo)
         {
+            // Create an enclosing function context.
+            m_currentNodeFunc = CreateNode(knopFncDecl);
+            m_currentNodeFunc->sxFnc.pnodeName = nullptr;
+            m_currentNodeFunc->sxFnc.functionId = m_functionBody->GetLocalFunctionId();
+            m_currentNodeFunc->sxFnc.nestedCount = m_functionBody->GetNestedCount();
+            m_currentNodeFunc->sxFnc.SetStrictMode(!!this->m_fUseStrictMode);
+
             this->RestoreScopeInfo(scopeInfo->GetParent());
         }
     }

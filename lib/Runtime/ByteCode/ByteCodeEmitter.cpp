@@ -1137,7 +1137,7 @@ void EmitAssignmentToFuncName(ParseNode *pnodeFnc, ByteCodeGenerator *byteCodeGe
     // Assign the location holding the func object reference to the given name.
     Symbol *sym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
 
-    if (sym != nullptr && !sym->GetFuncExpr())
+    if (sym != nullptr && !sym->GetIsFuncExpr())
     {
         if (sym->GetIsModuleExportStorage())
         {
@@ -2020,7 +2020,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     // load the function object at runtime to its activation object.
     //
     sym = funcInfo->root->sxFnc.GetFuncSymbol();
-    bool funcExprWithName = !funcInfo->IsGlobalFunction() && sym && sym->GetFuncExpr();
+    bool funcExprWithName = !funcInfo->IsGlobalFunction() && sym && sym->GetIsFuncExpr();
 
     if (funcExprWithName)
     {
@@ -2041,7 +2041,6 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
 
             if (sym->IsInSlot(funcInfo))
             {
-                Assert(!this->TopFuncInfo()->GetParsedFunctionBody()->DoStackNestedFunc());
                 Js::RegSlot scopeLocation;
                 AnalysisAssert(funcInfo->funcExprScope);
 
@@ -2051,10 +2050,16 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
                     this->m_writer.Property(Js::OpCode::StFuncExpr, sym->GetLocation(), scopeLocation,
                         funcInfo->FindOrAddReferencedPropertyId(sym->GetPosition()));
                 }
-                else
+                else if (funcInfo->bodyScope->GetIsObject())
                 {
                     this->m_writer.ElementU(Js::OpCode::StLocalFuncExpr, sym->GetLocation(),
                         funcInfo->FindOrAddReferencedPropertyId(sym->GetPosition()));
+                }
+                else
+                {
+                    Assert(sym->HasScopeSlot());
+                    this->m_writer.SlotI1(Js::OpCode::StLocalSlot, sym->GetLocation(),
+                                          sym->GetScopeSlot() + Js::ScopeSlots::FirstSlotIndex);
                 }
             }
             else if (ShouldTrackDebuggerMetadata())
@@ -2532,7 +2537,7 @@ void ByteCodeGenerator::GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &
         {
             envIndex++;
         }
-        if (((scope == scope->GetFunc()->GetBodyScope() || scope == scope->GetFunc()->GetParamScope()) && !scope->GetFunc()->IsLambda()) || scope->IsGlobalEvalBlockScope())
+        if ((((scope == scope->GetFunc()->GetBodyScope() && (!scope->GetFunc()->GetParamScope() || scope->GetFunc()->GetParamScope()->GetCanMergeWithBodyScope())) || scope == scope->GetFunc()->GetParamScope()) && !scope->GetFunc()->IsLambda()) || scope->IsGlobalEvalBlockScope())
         {
             break;
         }
@@ -3775,6 +3780,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             {
                 funcInfo->paramScope->AddSymbol(sym);
             }
+            sym->EnsureScopeSlot(funcInfo);
         }
     }
 
@@ -3824,7 +3830,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             {
                 Assert(funcInfo->funcObjRegister == Js::Constants::NoRegister);
                 Symbol *funcSym = funcInfo->root->sxFnc.GetFuncSymbol();
-                if (funcSym && funcSym->GetFuncExpr())
+                if (funcSym && funcSym->GetIsFuncExpr())
                 {
                     if (funcSym->GetLocation() == Js::Constants::NoRegister)
                     {
@@ -3845,10 +3851,6 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             ParseNode *pnode;
             Symbol *sym;
 
-            // Turns on capturesAll temporarily if func has deferred child, so that the following EnsureScopeSlot
-            // will allocate scope slots no matter if symbol hasNonLocalRefence or not.
-            Js::ScopeInfo::AutoCapturesAllScope autoCapturesAllScope(bodyScope, funcInfo->HasDeferredChild());
-
             if (funcInfo->GetHasArguments())
             {
                 // Process function's formal parameters
@@ -3867,7 +3869,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 // outer function's arguments directly.
                 sym = funcInfo->GetArgumentsSymbol();
                 Assert(sym);
-                if (sym->GetHasNonLocalReference() || autoCapturesAllScope.OldCapturesAll())
+                if (sym->NeedsSlotAlloc(funcInfo))
                 {
                     sym->EnsureScopeSlot(funcInfo);
                 }
@@ -4134,14 +4136,14 @@ void ByteCodeGenerator::EmitAssignmentToDefaultModuleExport(ParseNode* pnode, Fu
 
 void ByteCodeGenerator::EnsureLetConstScopeSlots(ParseNode *pnodeBlock, FuncInfo *funcInfo)
 {
-    bool hasNonLocalReference = pnodeBlock->sxBlock.GetCallsEval() || pnodeBlock->sxBlock.GetChildCallsEval();
-    auto ensureLetConstSlots = ([this, pnodeBlock, funcInfo, hasNonLocalReference](ParseNode *pnode)
+    bool callsEval = pnodeBlock->sxBlock.GetCallsEval() || pnodeBlock->sxBlock.GetChildCallsEval();
+    auto ensureLetConstSlots = ([this, funcInfo, callsEval](ParseNode *pnode)
     {
         Symbol *sym = pnode->sxVar.sym;
-        sym->EnsureScopeSlot(funcInfo);
-        if (hasNonLocalReference)
+        if (callsEval || sym->NeedsSlotAlloc(funcInfo))
         {
-            sym->SetHasNonLocalReference(true, this);
+            sym->EnsureScopeSlot(funcInfo);
+            this->ProcessCapturedSym(sym);
         }
     });
     IterateBlockScopedVariables(pnodeBlock, ensureLetConstSlots);
@@ -4254,10 +4256,13 @@ void ByteCodeGenerator::StartEmitCatch(ParseNode *pnodeCatch)
 
         if (scope->GetMustInstantiate())
         {
-            // Since there is only one symbol we are pushing to slot.
-            // Also in order to make IsInSlot to return true - forcing the sym-has-non-local-reference.
-            sym->SetHasNonLocalReference(true, this);
-            sym->EnsureScopeSlot(funcInfo);
+            if (sym->IsInSlot(funcInfo))
+            {
+                // Since there is only one symbol we are pushing to slot.
+                // Also in order to make IsInSlot to return true - forcing the sym-has-non-local-reference.
+                this->ProcessCapturedSym(sym);
+                sym->EnsureScopeSlot(funcInfo);
+            }
         }
 
         PushScope(scope);
@@ -4930,7 +4935,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
             this->EmitPatchableRootProperty(GetStFldOpCode(funcInfo, true, isLetDecl, isConstDecl, false), rhsLocation, propertyId, false, true, funcInfo);
         }
     }
-    else if (sym->GetFuncExpr())
+    else if (sym->GetIsFuncExpr())
     {
         // Store to function expr variable.
 
@@ -11370,7 +11375,14 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         {
             Parser::MapBindIdentifier(pnodeObj->sxParamPattern.pnode1, [&](ParseNodePtr item)
             {
-                ParamTrackAndInitialization(item->sxVar.sym, false /*initializeParam*/, item->sxVar.sym->GetLocation());
+                Js::RegSlot itemLocation = item->sxVar.sym->GetLocation();
+                if (itemLocation == Js::Constants::NoRegister)
+                {
+                    // The var has no assigned register, meaning it's captured, so we have no reg to write to.
+                    // Emit the designated return reg in the byte code to avoid asserting on bad register.
+                    itemLocation = ByteCodeGenerator::ReturnRegister;
+                }
+                ParamTrackAndInitialization(item->sxVar.sym, false /*initializeParam*/, itemLocation);
             });
             byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(true);
 

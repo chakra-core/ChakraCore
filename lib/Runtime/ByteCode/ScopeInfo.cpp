@@ -12,19 +12,16 @@ namespace Js
     void ScopeInfo::SaveSymbolInfo(Symbol* sym, MapSymbolData* mapSymbolData)
     {
         // We don't need to create slot for or save "arguments"
-        if (!sym->GetIsArguments()
-            // Function expression may not have nonLocalReference, exclude them.
-            && (!sym->GetFuncExpr() || sym->GetHasNonLocalReference()))
+        if (!sym->GetIsArguments() && sym->GetHasNonLocalReference())
         {
             // Any symbol may have non-local ref from deferred child. Allocate slot for it.
-            Assert(sym->GetHasNonLocalReference());
             Js::PropertyId scopeSlot = sym->EnsureScopeSlot(mapSymbolData->func);
-
             Js::PropertyId propertyId = sym->EnsurePosition(mapSymbolData->func);
             this->SetSymbolId(scopeSlot, propertyId);
             this->SetSymbolType(scopeSlot, sym->GetSymbolType());
             this->SetHasFuncAssignment(scopeSlot, sym->GetHasFuncAssignment());
             this->SetIsBlockVariable(scopeSlot, sym->GetIsBlockVar());
+            this->SetIsFuncExpr(scopeSlot, sym->GetIsFuncExpr());
         }
 
         TRACE_BYTECODE(_u("%12s %d\n"), sym->GetName().GetBuffer(), sym->GetScopeSlot());
@@ -174,7 +171,7 @@ namespace Js
         Scope* bodyScope = func->IsGlobalFunction() ? func->GetGlobalEvalBlockScope() : func->GetBodyScope();
         ScopeInfo* paramScopeInfo = nullptr;
         Scope* paramScope = func->GetParamScope();
-        if (paramScope && bodyScope->GetMustInstantiate())
+        if (paramScope && !paramScope->GetCanMergeWithBodyScope())
         {
             paramScopeInfo = FromScope(byteCodeGenerator, parent, paramScope, funcBody->GetScriptContext());
         }
@@ -232,7 +229,7 @@ namespace Js
                     else
                     { 
                         Assert(currentScope->GetEnclosingScope() ==
-                            (parentFunc->IsGlobalFunction() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
+                            (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
                     }
                 }
 #endif
@@ -330,15 +327,15 @@ namespace Js
 
                 sym->SetScopeSlot(static_cast<PropertyId>(i));
                 sym->SetIsBlockVar(GetIsBlockVariable(i));
+                sym->SetIsFuncExpr(GetIsFuncExpr(i));
                 if (GetHasFuncAssignment(i))
                 {
                     sym->RestoreHasFuncAssignment();
                 }
                 scope->AddNewSymbol(sym);
-                if (parser)
-                {
-                    parser->RestorePidRefForSym(sym);
-                }
+                sym->SetHasNonLocalReference();
+                Assert(parser);
+                parser->RestorePidRefForSym(sym);
 
                 TRACE_BYTECODE(_u("%12s %d\n"), sym->GetName().GetBuffer(), sym->GetScopeSlot());
             }

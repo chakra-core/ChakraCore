@@ -430,7 +430,7 @@ LowererMDArch::LoadFuncExpression(IR::Instr *instrFuncExpr)
         paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, this->m_func);
     }
 
-    if (this->m_func->GetJnFunction()->IsGenerator())
+    if (instrFuncExpr->m_func->GetJnFunction()->IsGenerator())
     {
         // the function object for generator calls is a GeneratorVirtualScriptFunction object
         // and we need to return the real JavascriptGeneratorFunction object so grab it before

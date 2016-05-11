@@ -19,15 +19,12 @@ HasFuncDecl: v0
 HasFuncDecl: v2
 DoStackNestedFunc: Anonymous function (function  (#1.7), #5)
 HasFuncDecl: v0
-RestoreHasFuncAssignment: v0
 HasFuncDecl: v2
 HasMaybeEscapedUse: arguments
 DoStackNestedFunc: v0 (function  (#1.8), #10)
 StackScriptFunction (callee): box and disable stack function: v0 (function  (#1.8), #10)
 Boxing StackScriptFunction Object: v0 (function Id:  (#1.8), #10)
 Boxing Frame [Native]: Anonymous function  (#1.7), #5
-HasFuncDecl: v0
-RestoreHasFuncAssignment: v0
 HasFuncDecl: v2
 DoStackNestedFunc: Anonymous function (function  (#1.9), #11)
 function eval() { [native code] }
