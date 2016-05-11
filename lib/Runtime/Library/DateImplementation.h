@@ -144,7 +144,9 @@ namespace Js {
         static JavascriptString* ConvertVariantDateToString(double variantDateDouble, ScriptContext* scriptContext);
         static JavascriptString* GetDateDefaultString(Js::YMD *pymd, TZD *ptzd,DateTimeFlag noDateTime,ScriptContext* scriptContext);
         static JavascriptString* GetDateGmtString(Js::YMD *pymd,ScriptContext* scriptContext);
+#ifdef ENABLE_GLOBALIZATION
         static JavascriptString* GetDateLocaleString(Js::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime,ScriptContext* scriptContext);
+#endif
 
         static double DateFncUTC(ScriptContext* scriptContext, Arguments args);
         static bool FBig(char16 ch);
@@ -343,8 +345,6 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
 
-        // xplat-todo: Implement DaylightTimeHelper functions on Linux
-#ifdef _WIN32
         int bias;
         int offset;
         bool isDaylightSavings;
@@ -356,9 +356,6 @@ namespace Js {
             ptzd->fDst = isDaylightSavings;
         }
         return tvLcl;
-#else
-        Js::Throw::NotImplemented();
-#endif
     }
 
     ///
@@ -376,8 +373,6 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
 
-        // xplat-todo: Implement DaylightTimeHelper functions on Linux
-#ifdef _WIN32
         tvUtc = scriptContext->GetDaylightTimeHelper()->LocalToUtc(tv);
         // See if we're out of range after conversion (UTC time value must be within this range)
         if (JavascriptNumber::IsNan(tvUtc) || !NumberUtilities::IsFinite(tv) || tvUtc < ktvMin || tvUtc > ktvMax)
@@ -385,9 +380,6 @@ namespace Js {
             return JavascriptNumber::NaN;
         }
         return tvUtc;
-#else
-        Js::Throw::NotImplemented();
-#endif
     }
 
     //
@@ -429,7 +421,6 @@ namespace Js {
         return GetDateDefaultString<StringBuilder>(&ymd, &tzd, DateTimeFlag::None, scriptContext, newStringBuilder);
     }
 
-#ifdef ENABLE_GLOBALIZATION
     //
     // Get default date string, shared with hybrid debugging.
     //  StringBuilder: A Js::StringBuilder/CompoundString like class, used to build strings.
@@ -528,6 +519,5 @@ namespace Js {
 
         return bs;
     }
-#endif // ENABLE_GLOBALIZATION
 
 } // namespace Js

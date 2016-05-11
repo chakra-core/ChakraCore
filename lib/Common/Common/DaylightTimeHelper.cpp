@@ -37,7 +37,6 @@ namespace Js {
     static DateConversionFunction sysLocalToUtc = NULL;
     static DateConversionFunction sysUtcToLocal = NULL;
 
-
     // Cache should be invalid at the moment of creation
     // if january1 > nextJanuary1 cache is always invalid, so we don't care about other fields, because cache will be updated.
     DaylightTimeHelper::TimeZoneInfo::TimeZoneInfo()
@@ -68,27 +67,31 @@ namespace Js {
             yearForInfo = 2100;
         }
         TIME_ZONE_INFORMATION timeZoneInfo;
-        GetTimeZoneInformationForYear((USHORT)yearForInfo, NULL, &timeZoneInfo);
-        isDaylightTimeApplicable = timeZoneInfo.StandardDate.wMonth != 0 && timeZoneInfo.DaylightDate.wMonth != 0;
+        if (GetTimeZoneInformationForYear((USHORT)yearForInfo, NULL, &timeZoneInfo))
+        {
+            isDaylightTimeApplicable = timeZoneInfo.StandardDate.wMonth != 0 && timeZoneInfo.DaylightDate.wMonth != 0;
 
-        bias = timeZoneInfo.Bias;
-        daylightBias = timeZoneInfo.DaylightBias;
-        standardBias = timeZoneInfo.StandardBias;
+            bias = timeZoneInfo.Bias;
+            daylightBias = timeZoneInfo.DaylightBias;
+            standardBias = timeZoneInfo.StandardBias;
 
-        double day = DaylightTimeHelper::DayNumber(yearType, timeZoneInfo.DaylightDate);
-        double time = DateUtilities::DayTimeFromSt(&timeZoneInfo.DaylightDate);
-        daylightDate = DateUtilities::TvFromDate(year, timeZoneInfo.DaylightDate.wMonth-1, day-1, time);
+            double day = DaylightTimeHelper::DayNumber(yearType, timeZoneInfo.DaylightDate);
+            double time = DateUtilities::DayTimeFromSt(&timeZoneInfo.DaylightDate);
+            daylightDate = DateUtilities::TvFromDate(year, timeZoneInfo.DaylightDate.wMonth-1, day-1, time);
 
-        day = DayNumber(yearType, timeZoneInfo.StandardDate);
-        time = DateUtilities::DayTimeFromSt(&timeZoneInfo.StandardDate);
-        standardDate = DateUtilities::TvFromDate(year, timeZoneInfo.StandardDate.wMonth-1, day-1, time);
+            day = DayNumber(yearType, timeZoneInfo.StandardDate);
+            time = DateUtilities::DayTimeFromSt(&timeZoneInfo.StandardDate);
+            standardDate = DateUtilities::TvFromDate(year, timeZoneInfo.StandardDate.wMonth-1, day-1, time);
 
-        GetTimeZoneInformationForYear((USHORT)yearForInfo-1, NULL, &timeZoneInfo);
-        isJanuary1Critical = timeZoneInfo.Bias + timeZoneInfo.DaylightBias + timeZoneInfo.StandardBias != bias + daylightBias + standardBias;
+            if (GetTimeZoneInformationForYear((USHORT)yearForInfo-1, NULL, &timeZoneInfo))
+            {
+                isJanuary1Critical = timeZoneInfo.Bias + timeZoneInfo.DaylightBias + timeZoneInfo.StandardBias != bias + daylightBias + standardBias;
 
-        january1 = DateUtilities::TvFromDate(year, 0, 0, 0);
-        nextJanuary1 = january1 + TicksPerNonLeapYear + DateUtilities::FLeap(year) * TicksPerDay;
-        lastUpdateTickCount = GetTickCount();
+                january1 = DateUtilities::TvFromDate(year, 0, 0, 0);
+                nextJanuary1 = january1 + TicksPerNonLeapYear + DateUtilities::FLeap(year) * TicksPerDay;
+                lastUpdateTickCount = GetTickCount();
+            }
+        }
     }
 
     DaylightTimeHelper::TimeZoneInfo* DaylightTimeHelper::GetTimeZoneInfo(double time)
@@ -112,6 +115,9 @@ namespace Js {
 
     HINSTANCE DaylightTimeHelper::TryLoadLibrary()
     {
+#ifndef _WIN32
+        return NULL;
+#else
         if (g_timezonedll == NULL)
         {
             HMODULE hLocal = LoadLibraryExW(_u("api-ms-win-core-timezone-l1-1-0.dll"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -136,6 +142,7 @@ namespace Js {
             }
         }
         return g_timezonedll;
+#endif
     }
 
     BOOL DaylightTimeHelper::SysLocalToUtc(SYSTEMTIME *local, SYSTEMTIME *utc)
@@ -362,8 +369,8 @@ namespace Js {
     bool DaylightTimeHelper::IsCritical(double time, TimeZoneInfo *timeZoneInfo)
     {
         return time > criticalMin && time < criticalMax &&
-            (abs(time - timeZoneInfo->daylightDate) < TicksPerLargestTZOffset ||
-            abs(time - timeZoneInfo->standardDate) < TicksPerLargestTZOffset ||
+            (fabs(time - timeZoneInfo->daylightDate) < TicksPerLargestTZOffset ||
+            fabs(time - timeZoneInfo->standardDate) < TicksPerLargestTZOffset ||
             time > timeZoneInfo->january1 + TicksPerSafeEndOfYear ||
             (timeZoneInfo->isJanuary1Critical && time - timeZoneInfo->january1 < TicksPerLargestTZOffset));
      }

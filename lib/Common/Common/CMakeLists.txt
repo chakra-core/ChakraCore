@@ -3,7 +3,7 @@ add_library (Chakra.Common.Common STATIC
     CfgLogger.cpp
     CommonCommonPch.cpp
     DateUtilities.cpp
-    # DaylightTimeHelper.cpp
+    DaylightTimeHelper.cpp
     Event.cpp
     Int32Math.cpp
     Int64Math.cpp
