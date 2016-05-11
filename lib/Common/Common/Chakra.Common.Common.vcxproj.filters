@@ -12,7 +12,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Tick.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vtinfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CfgLogger.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)DaylightTimeHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NumberUtilities_strtod.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SmartFpuControl.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonCommonPch.cpp" />
@@ -32,7 +31,6 @@
     <ClInclude Include="UInt32Math.h" />
     <ClInclude Include="vtinfo.h" />
     <ClInclude Include="CfgLogger.h" />
-    <ClInclude Include="DaylightTimeHelper.h" />
     <ClInclude Include="vtregistry.h" />
     <ClInclude Include="NumberUtilities.inl" />
     <ClInclude Include="ByteSwap.h" />

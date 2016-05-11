@@ -6143,8 +6143,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define vfprintf      PAL_vfprintf
 #define vfwprintf     PAL_vfwprintf
 #define ctime         PAL_ctime
-#define localtime     PAL_localtime
-#define mktime        PAL_mktime
 #define rand          PAL_rand
 #define getenv        PAL_getenv
 #define fgets         PAL_fgets
@@ -6486,8 +6484,6 @@ struct tm {
         int tm_isdst;   /* daylight savings time flag */
         };
 
-PALIMPORT struct tm * __cdecl localtime(const time_t *);
-PALIMPORT time_t __cdecl mktime(struct tm *);
 PALIMPORT char * __cdecl ctime(const time_t *);
 #endif // !PAL_STDCPP_COMPAT
 

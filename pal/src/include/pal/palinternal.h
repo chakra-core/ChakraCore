@@ -395,7 +395,6 @@ function_name() to call the system's implementation
 #undef time
 #undef tm
 #undef localtime
-#undef mktime
 #undef FILE
 #undef fclose
 #undef setbuf
