@@ -278,7 +278,7 @@ namespace TTD
         void AssertSnapEquiv(const SnapType* t1, const SnapType* t2, TTDCompareMap& compareMap)
         {
             compareMap.DiagnosticAssert(t1->JsTypeId == t2->JsTypeId);
-            compareMap.DiagnosticAssert(t1->ScriptContextTag == t2->ScriptContextTag);
+            compareMap.DiagnosticAssert(t1->ScriptContextLogId == t2->ScriptContextLogId);
 
             NSSnapValues::AssertSnapEquivTTDVar_Special(t1->PrototypeVar, t2->PrototypeVar, compareMap, _u("prototype"));
 

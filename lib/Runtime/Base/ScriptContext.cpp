@@ -2432,9 +2432,10 @@ namespace Js
     {
         this->m_ttdLocalRootSet->Clear();
 
-        this->m_ttdRootTagIdMap.MapAndRemoveIf([&](TTD_LOG_PTR_ID key, Js::RecyclableObject* value) -> bool
+        this->m_ttdRootTagIdMap.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_LOG_PTR_ID, Js::RecyclableObject*>& entry) -> bool
         {
-            return !this->m_ttdRootSet->Contains(value);
+            Js::RecyclableObject* obj = entry.Value();
+            return !this->m_ttdRootSet->Contains(obj);
         });
     }
 

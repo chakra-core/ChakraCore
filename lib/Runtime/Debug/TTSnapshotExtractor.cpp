@@ -98,7 +98,7 @@ namespace TTD
 
             Js::ScopeSlots slots(scope);
             slotInfo->SlotId = TTD_CONVERT_VAR_TO_PTR_ID(scope);
-            slotInfo->ScriptContextTag = ctx->ScriptContextLogTag;
+            slotInfo->ScriptContextLogId = ctx->ScriptContextLogTag;
 
             slotInfo->SlotCount = slots.GetCount();
             slotInfo->Slots = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<TTDVar>(slotInfo->SlotCount);
@@ -152,7 +152,7 @@ namespace TTD
 
             NSSnapValues::ScriptFunctionScopeInfo* funcScopeInfo = this->m_pendingSnap->GetNextAvailableFunctionScopeEntry();
             funcScopeInfo->ScopeId = TTD_CONVERT_ENV_TO_PTR_ID(environment);
-            funcScopeInfo->ScriptContextTag = funcScopeInfo->ScriptContextTag = ctx->ScriptContextLogTag;
+            funcScopeInfo->ScriptContextLogId = ctx->ScriptContextLogTag;
 
             funcScopeInfo->ScopeCount = environment->GetLength();
             funcScopeInfo->ScopeArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<NSSnapValues::ScopeInfoEntry>(funcScopeInfo->ScopeCount);

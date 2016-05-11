@@ -565,30 +565,29 @@ namespace TTD
         {
             const ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
-            return callEvt->DiagInfo->LastNestedEvent;
+            return callEvt->AdditionalInfo->LastNestedEvent;
         }
 
         void ExternalCallEventLogEntry_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
-            callEvt->DiagInfo = alloc.SlabAllocateStruct<ExternalCallEventLogEntryDiagInfo>();
-
             Js::JavascriptString* displayName = function->GetDisplayName();
-            alloc.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), callEvt->DiagInfo->FunctionName);
+            alloc.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), callEvt->AdditionalInfo->FunctionName);
         }
 
         void ExternalCallEventLogEntry_ProcessDiagInfoPost(EventLogEntry* evt, int64 lastNestedEvent)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
-            callEvt->DiagInfo->LastNestedEvent = lastNestedEvent;
+            callEvt->AdditionalInfo->LastNestedEvent = lastNestedEvent;
         }
 #endif
 
         void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
+            callEvt->AdditionalInfo = alloc.SlabAllocateStruct<ExternalCallEventLogEntry_AdditionalInfo>();
 
             callEvt->RootNestingDepth = rootDepth;
             callEvt->ArgCount = argc + 1;
@@ -605,8 +604,8 @@ namespace TTD
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
             callEvt->ReturnValue = TTD_CONVERT_JSVAR_TO_TTDVAR(res);
-            callEvt->HasScriptException = hasScriptException;
-            callEvt->HasTerminiatingException = hasTerminiatingException;
+            callEvt->AdditionalInfo->HasScriptException = hasScriptException;
+            callEvt->AdditionalInfo->HasTerminiatingException = hasTerminiatingException;
         }
 
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc)
@@ -616,9 +615,10 @@ namespace TTD
             alloc.UnlinkAllocation(callEvt->ArgArray);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            alloc.UnlinkString(callEvt->DiagInfo->FunctionName);
-            alloc.UnlinkAllocation(callEvt->DiagInfo);
+            alloc.UnlinkString(callEvt->AdditionalInfo->FunctionName);
 #endif
+
+            alloc.UnlinkAllocation(callEvt->AdditionalInfo);
         }
 
         void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
@@ -626,8 +626,8 @@ namespace TTD
             const ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            writer->WriteString(NSTokens::Key::name, callEvt->DiagInfo->FunctionName, NSTokens::Separator::CommaSeparator);
-            writer->WriteInt64(NSTokens::Key::i64Val, callEvt->DiagInfo->LastNestedEvent, NSTokens::Separator::CommaSeparator);
+            writer->WriteString(NSTokens::Key::name, callEvt->AdditionalInfo->FunctionName, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt64(NSTokens::Key::i64Val, callEvt->AdditionalInfo->LastNestedEvent, NSTokens::Separator::CommaSeparator);
 #endif
 
             writer->WriteInt32(NSTokens::Key::rootNestingDepth, callEvt->RootNestingDepth, NSTokens::Separator::CommaSeparator);
@@ -644,21 +644,21 @@ namespace TTD
             writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(callEvt->ReturnValue, writer, NSTokens::Separator::NoSeparator);
 
-            writer->WriteBool(NSTokens::Key::boolVal, callEvt->HasScriptException, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, callEvt->HasTerminiatingException, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, callEvt->AdditionalInfo->HasScriptException, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, callEvt->AdditionalInfo->HasTerminiatingException, NSTokens::Separator::CommaSeparator);
         }
 
         void ExternalCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
+            callEvt->AdditionalInfo = alloc.SlabAllocateStruct<ExternalCallEventLogEntry_AdditionalInfo>();
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            callEvt->DiagInfo = alloc.SlabAllocateStruct<ExternalCallEventLogEntryDiagInfo>();
-            reader->ReadString(NSTokens::Key::name, alloc, callEvt->DiagInfo->FunctionName, true);
-            callEvt->DiagInfo->LastNestedEvent = reader->ReadInt64(NSTokens::Key::i64Val, true);
+            reader->ReadString(NSTokens::Key::name, alloc, callEvt->AdditionalInfo->FunctionName, true);
+            callEvt->AdditionalInfo->LastNestedEvent = reader->ReadInt64(NSTokens::Key::i64Val, true);
 #endif
 
-            int32 nestingDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
+            callEvt->RootNestingDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
 
             callEvt->ArgCount = reader->ReadLengthValue(true);
             callEvt->ArgArray = alloc.SlabAllocateArray<TTDVar>(callEvt->ArgCount);
@@ -673,8 +673,8 @@ namespace TTD
             reader->ReadKey(NSTokens::Key::argRetVal, true);
             callEvt->ReturnValue = NSSnapValues::ParseTTDVar(false, reader);
 
-            callEvt->HasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);
-            callEvt->HasTerminiatingException = reader->ReadBool(NSTokens::Key::boolVal, true);
+            callEvt->AdditionalInfo->HasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);
+            callEvt->AdditionalInfo->HasTerminiatingException = reader->ReadBool(NSTokens::Key::boolVal, true);
         }
     }
 }

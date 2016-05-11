@@ -1680,23 +1680,24 @@ STDAPI_(JsErrorCode) JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ J
             *byteLength = typedArrayBase->GetByteLength();
         }
     }
-    END_JSRT_NO_EXCEPTION
 
 #if ENABLE_TTD
-        Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+    Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
+    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+    {
+        if(arrayBuffer != nullptr)
         {
-            if(arrayBuffer != nullptr)
+            BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
             {
-                BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
-                {
-                    PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetTypedArrayInfo(scriptContext, typedArray, __ttd_resultPtr));
-                    PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(arrayBuffer);
-                }
-                END_JS_RUNTIME_CALL(scriptContext);
+                PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetTypedArrayInfo(scriptContext, typedArray, __ttd_resultPtr));
+                PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(arrayBuffer);
             }
+            END_JS_RUNTIME_CALL(scriptContext);
         }
+    }
 #endif
+
+    END_JSRT_NO_EXCEPTION
 }
 
 STDAPI_(JsErrorCode) JsGetArrayBufferStorage(_In_ JsValueRef instance, _Outptr_result_bytebuffer_(*bufferLength) BYTE **buffer,

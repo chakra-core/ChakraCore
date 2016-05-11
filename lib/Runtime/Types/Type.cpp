@@ -189,7 +189,7 @@ namespace Js
 
         sType->PrototypeVar = this->GetPrototype();
 
-        sType->ScriptContextTag = this->GetScriptContext()->ScriptContextLogTag;
+        sType->ScriptContextLogId = this->GetScriptContext()->ScriptContextLogTag;
         sType->TypeHandlerInfo = optHandler;
 
         sType->HasNoEnumerableProperties = false;

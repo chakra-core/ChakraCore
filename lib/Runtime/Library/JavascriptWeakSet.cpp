@@ -112,7 +112,7 @@ namespace Js
         //
         if(scriptContext->ShouldPerformDebugAction() | scriptContext->ShouldPerformRecordAction())
         {
-            scriptContext->GetThreadContext()->TTDInfo->TrackTagObject(keyObj);
+            scriptContext->TTDWeakReferencePinSet->Add(keyObj);
         }
 #endif
 

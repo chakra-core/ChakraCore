@@ -221,7 +221,7 @@ namespace TTD
             static_assert(sizeof(T) < EVENT_INLINE_DATA_BYTE_COUNT, "Data is too large for inline representation!!!");
             AssertMsg(evt->EventKind == tag, "Bad tag match!");
 
-            return static_cast<T*>(evt->EventData);
+            return reinterpret_cast<const T*>(evt->EventData);
         }
 
         template <typename T, EventKind tag>
@@ -230,7 +230,7 @@ namespace TTD
             static_assert(sizeof(T) < EVENT_INLINE_DATA_BYTE_COUNT, "Data is too large for inline representation!!!");
             AssertMsg(evt->EventKind == tag, "Bad tag match!");
 
-            return static_cast<T*>(event->EventData);
+            return reinterpret_cast<T*>(evt->EventData);
         }
 
         //Helpers for initializing, emitting and parsing the basic event data
@@ -362,17 +362,24 @@ namespace TTD
 
         //////////////////
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+
     //A struct containing additional information on the external call
-        struct ExternalCallEventLogEntryDiagInfo
+        struct ExternalCallEventLogEntry_AdditionalInfo
         {
+            //
+            //TODO: later we should record more detail on the script exception for inflation if needed
+            //
+            bool HasScriptException;
+            bool HasTerminiatingException;
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             //the function name for the function that is invoked
             TTString FunctionName;
 
             //The last event time that is nested in this external call
             int64 LastNestedEvent;
-        };
 #endif
+        };
 
         //A struct for logging calls from Chakra to an external function (e.g., record start of external execution and later any argument information)
         struct ExternalCallEventLogEntry
@@ -387,15 +394,7 @@ namespace TTD
             //The return value of the external call
             TTDVar ReturnValue;
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            ExternalCallEventLogEntryDiagInfo* DiagInfo;
-#endif
-
-            //
-            //TODO: later we should record more detail on the script exception for inflation if needed
-            //
-            bool HasScriptException;
-            bool HasTerminiatingException;
+            ExternalCallEventLogEntry_AdditionalInfo* AdditionalInfo;
         };
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS

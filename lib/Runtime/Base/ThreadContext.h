@@ -967,7 +967,6 @@ public:
 
     //The event log for time-travel (or null if TTD is not turned on)
     TTD::EventLog* TTDLog;
-    TTD::RuntimeThreadInfo* TTDInfo;
 
     //return true if thread context is initialized for TTD
     bool IsTTDInitialized() const;

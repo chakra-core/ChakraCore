@@ -278,9 +278,9 @@ namespace TTD
         T* RecordGetInitializedEvent_HelperWithMainEvent(NSLogEvents::EventLogEntry** evt)
         {
             *evt = this->m_eventList.GetNextAvailableEntry();
-            NSLogEvents::EventLogEntry_Initialize(evt, tag, this->GetCurrentEventTimeAndAdvance());
+            NSLogEvents::EventLogEntry_Initialize(*evt, tag, this->GetCurrentEventTimeAndAdvance());
 
-            return NSLogEvents::GetInlineEventDataAs<T, tag>(evt);
+            return NSLogEvents::GetInlineEventDataAs<T, tag>(*evt);
         }
 
         template <typename T, NSLogEvents::EventKind tag>
@@ -289,7 +289,8 @@ namespace TTD
             NSLogEvents::EventLogEntry* evt = this->m_eventList.GetNextAvailableEntry();
             NSLogEvents::EventLogEntry_Initialize(evt, tag, this->GetCurrentEventTimeAndAdvance());
 
-            resultPtr = &(GetInlineEventDataAs<T, tag>(evt)->Result);
+            T* eventData = NSLogEvents::GetInlineEventDataAs<T, tag>(evt);
+            resultPtr = &(eventData->Result);
 
             return NSLogEvents::GetInlineEventDataAs<T, tag>(evt);
         }

@@ -460,18 +460,17 @@ namespace TTD
     void EventLog::ReplaySnapshotEvent()
     {
 #if ENABLE_SNAPSHOT_COMPARE
-        SnapShot* snap = nullptr;
-        TTD_LOG_TAG logTag = TTD_INVALID_LOG_TAG;
-
         BEGIN_ENTER_SCRIPT(this->m_ttdContext, true, true, true);
         {
             //this->m_threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
 
-            this->DoSnapshotExtract_Helper(&snap, &logTag);
+            NSLogEvents::EventLogEntry* evt = this->m_currentReplayEventIterator.Current();
+            NSLogEvents::SnapshotEventLogEntry_EnsureSnapshotDeserialized(evt, this->m_logInfoRootDir.Contents, this->m_threadContext);
 
-            const SnapshotEventLogEntry* recordedSnapEntry = SnapshotEventLogEntry::As(this->m_currentReplayEventIterator.Current());
-            recordedSnapEntry->EnsureSnapshotDeserialized(this->m_logInfoRootDir.Contents, this->m_threadContext);
-            const SnapShot* recordedSnap = recordedSnapEntry->GetSnapshot();
+            SnapShot* snap = this->DoSnapshotExtract_Helper();
+
+            const NSLogEvents::SnapshotEventLogEntry* recordedSnapEntry = NSLogEvents::GetInlineEventDataAs<NSLogEvents::SnapshotEventLogEntry, NSLogEvents::EventKind::SnapshotTag>(evt);
+            const SnapShot* recordedSnap = recordedSnapEntry->Snap;
 
             TTDCompareMap compareMap(this->m_threadContext);
             SnapShot::InitializeForSnapshotCompare(recordedSnap, snap, compareMap);
@@ -879,7 +878,7 @@ namespace TTD
     NSLogEvents::EventLogEntry* EventLog::RecordExternalCallEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv)
     {
         NSLogEvents::EventLogEntry* evt = nullptr;
-        NSLogEvents::ExternalCallEventLogEntry* ecEvent = this->RecordGetInitializedEvent_HelperWithMainEvent<NSLogEvents::ExternalCallEventLogEntry, NSLogEvents::EventKind::ExternalCallTag>(&evt);
+        this->RecordGetInitializedEvent_HelperWithMainEvent<NSLogEvents::ExternalCallEventLogEntry, NSLogEvents::EventKind::ExternalCallTag>(&evt);
 
         NSLogEvents::ExternalCallEventLogEntry_ProcessArgs(evt, rootDepth, func, argc, argv, this->m_eventSlabAllocator);
 
@@ -1797,7 +1796,7 @@ namespace TTD
 
     void EventLog::RecordJsRTEventLoopYieldPoint(Js::ScriptContext* ctx)
     {
-        NSLogEvents::JsRTVarsArgumentAction* yieldAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::RemoveRootRefActionTag>();
+        this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::EventLoopYieldPointActionTag>();
 
         //
         //TODO: maybe we want to include snapshot checks here instead of after handlers if these are sufficiently regular
@@ -1806,12 +1805,12 @@ namespace TTD
 
     void EventLog::RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, TTDVar* resultVarPtr)
     {
-        NSLogEvents::JsRTVarsArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::AllocateObjectActionTag>(resultVarPtr);
+        this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::AllocateObjectActionTag>(resultVarPtr);
     }
 
     void EventLog::RecordJsRTAllocateExternalObject(Js::ScriptContext* ctx, TTDVar* resultVarPtr)
     {
-        NSLogEvents::JsRTVarsArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::AllocateExternalObjectActionTag>(resultVarPtr);
+        this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::AllocateExternalObjectActionTag>(resultVarPtr);
     }
 
     void EventLog::RecordJsRTAllocateBasicArray(Js::ScriptContext* ctx, uint32 length, TTDVar* resultVarPtr)
@@ -1844,7 +1843,7 @@ namespace TTD
 
     void EventLog::RecordJsRTGetAndClearException(Js::ScriptContext* ctx, TTDVar* resultVarPtr)
     {
-        NSLogEvents::JsRTVarsArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetAndClearExceptionActionTag>(resultVarPtr);
+        this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetAndClearExceptionActionTag>(resultVarPtr);
         //TODO: later we need to fill in additional the info for the action we want to track
     }
 
@@ -1948,9 +1947,9 @@ namespace TTD
 
         //Register location is blank in record -- we only fill it in during debug replay
 
-        cbrAction->IsCreate = isCreate ? TRUE : FALSE;
-        cbrAction->IsCancel = isCancel ? TRUE : FALSE;
-        cbrAction->IsRepeating = isRepeating ? TRUE : FALSE;
+        cbrAction->IsCreate = isCreate;
+        cbrAction->IsCancel = isCancel;
+        cbrAction->IsRepeating = isRepeating;
     }
 
     void EventLog::RecordJsRTCodeParse(Js::ScriptContext* ctx, uint64 bodyCtrId, LoadScriptFlag loadFlag, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri, Js::JavascriptFunction* resultFunction)
@@ -1976,7 +1975,7 @@ namespace TTD
     NSLogEvents::EventLogEntry* EventLog::RecordJsRTCallFunction(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args)
     {
         NSLogEvents::EventLogEntry* evt = nullptr;
-        NSLogEvents::JsRTCallFunctionAction* cfAction = this->RecordGetInitializedEvent_HelperWithMainEvent<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(&evt);
+        this->RecordGetInitializedEvent_HelperWithMainEvent<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(&evt);
 
         int64 evtTime = this->GetLastEventTime();
         double wallTime = this->m_timer.Now();

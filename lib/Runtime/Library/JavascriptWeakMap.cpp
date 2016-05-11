@@ -249,11 +249,11 @@ namespace Js
 #if ENABLE_TTD
         //
         //TODO: This makes the map decidedly less weak -- forces it to only release when we clean the tracking set but determinizes the behavior nicely
-		//      We want to improve this.
+        //      We want to improve this.
         //
         if(scriptContext->ShouldPerformDebugAction() | scriptContext->ShouldPerformRecordAction())
         {
-            scriptContext->GetThreadContext()->TTDInfo->TrackTagObject(keyObj);
+            scriptContext->TTDWeakReferencePinSet->Add(keyObj);
         }
 #endif
 

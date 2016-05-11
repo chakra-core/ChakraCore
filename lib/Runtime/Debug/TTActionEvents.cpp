@@ -182,7 +182,6 @@ namespace TTD
         void RemoveRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             const JsRTVarsArgumentAction* action = GetInlineEventDataAs<JsRTVarsArgumentAction, EventKind::RemoveRootRefActionTag>(evt);
-            Js::Var var = InflateVarInReplay(ctx, action->Var1);
 
             TTD_LOG_PTR_ID origId = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(TTD_CONVERT_TTDVAR_TO_JSVAR(action->Var1));
 
@@ -224,8 +223,8 @@ namespace TTD
         {
             const JsRTVarsWithIntegralUnionArgumentAction* action = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, EventKind::AllocateArrayBufferActionTag>(evt);
 
-            Js::ArrayBuffer* abuff = ctx->GetLibrary()->CreateArrayBuffer(action->u_iVal);
-            AssertMsg(abuff->GetByteLength() == action->u_iVal, "Something is wrong with our sizes.");
+            Js::ArrayBuffer* abuff = ctx->GetLibrary()->CreateArrayBuffer((uint32)action->u_iVal);
+            AssertMsg(abuff->GetByteLength() == (uint32)action->u_iVal, "Something is wrong with our sizes.");
 
             JsRTActionHandleResultForReplay<JsRTVarsWithIntegralUnionArgumentAction, EventKind::AllocateArrayBufferActionTag>(ctx, evt, (Js::Var)abuff);
         }
@@ -496,7 +495,7 @@ namespace TTD
             reader->ReadSequenceEnd();
 
 #if ENABLE_TTD_DEBUGGING
-            Js::Var* execArgs = alloc.SlabAllocateArray<Js::Var>(ccAction->ArgCount - 1); //we use an extra space for the function
+            ccAction->ExecArgs = alloc.SlabAllocateArray<Js::Var>(ccAction->ArgCount - 1); //we use an extra space for the function
 #endif
         }
 
@@ -534,9 +533,9 @@ namespace TTD
         {
             const JsRTCallbackAction* cbAction = GetInlineEventDataAs<JsRTCallbackAction, EventKind::CallbackOpActionTag>(evt);
 
-            writer->WriteBool(NSTokens::Key::boolVal, cbAction->IsCreate ? true : false, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, cbAction->IsCancel ? true : false, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, cbAction->IsRepeating ? true : false, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, cbAction->IsCreate, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, cbAction->IsCancel, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, cbAction->IsRepeating, NSTokens::Separator::CommaSeparator);
 
             writer->WriteInt64(NSTokens::Key::hostCallbackId, cbAction->CurrentCallbackId, NSTokens::Separator::CommaSeparator);
             writer->WriteInt64(NSTokens::Key::newCallbackId, cbAction->NewCallbackId, NSTokens::Separator::CommaSeparator);
@@ -546,9 +545,9 @@ namespace TTD
         {
             JsRTCallbackAction* cbAction = GetInlineEventDataAs<JsRTCallbackAction, EventKind::CallbackOpActionTag>(evt);
 
-            cbAction->IsCreate = reader->ReadBool(NSTokens::Key::boolVal, true) ? TRUE : FALSE;
-            cbAction->IsCancel = reader->ReadBool(NSTokens::Key::boolVal, true) ? TRUE : FALSE;
-            cbAction->IsRepeating = reader->ReadBool(NSTokens::Key::boolVal, true) ? TRUE : FALSE;
+            cbAction->IsCreate = reader->ReadBool(NSTokens::Key::boolVal, true);
+            cbAction->IsCancel = reader->ReadBool(NSTokens::Key::boolVal, true);
+            cbAction->IsRepeating = reader->ReadBool(NSTokens::Key::boolVal, true);
 
             cbAction->CurrentCallbackId = reader->ReadInt64(NSTokens::Key::hostCallbackId, true);
             cbAction->NewCallbackId = reader->ReadInt64(NSTokens::Key::newCallbackId, true);

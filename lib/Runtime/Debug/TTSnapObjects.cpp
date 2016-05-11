@@ -505,8 +505,6 @@ namespace TTD
             //But for sanity assert same counts.
             compareMap.DiagnosticAssert((sobj1->OptDependsOnInfo == nullptr && sobj2->OptDependsOnInfo == nullptr) || (sobj1->OptDependsOnInfo->DepOnCount == sobj2->OptDependsOnInfo->DepOnCount));
 
-            compareMap.DiagnosticAssert(sobj1->ObjectLogTag == sobj2->ObjectLogTag);
-
 #if ENABLE_OBJECT_SOURCE_TRACKING
             compareMap.DiagnosticAssert(sobj1->DiagOriginInfo.SourceLine == sobj2->DiagOriginInfo.SourceLine);
             compareMap.DiagnosticAssert(sobj1->DiagOriginInfo.EventTime == sobj2->DiagOriginInfo.EventTime);
@@ -579,7 +577,7 @@ namespace TTD
             }
             else
             {
-                Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+                Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
                 return ctx->GetLibrary()->CreateObject();
             }
         }
@@ -595,7 +593,7 @@ namespace TTD
             }
             else
             {
-                Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+                Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
                 SnapScriptFunctionInfo* snapFuncInfo = SnapObjectGetAddtlInfoAs<SnapScriptFunctionInfo*, SnapObjectType::SnapScriptFunctionObject>(snpObject);
 
                 Js::FunctionBody* fbody = inflator->LookupFunctionBody(snapFuncInfo->BodyRefId);
@@ -704,7 +702,7 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapExternalFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
             TTString* snapName = SnapObjectGetAddtlInfoAs<TTString*, SnapObjectType::SnapExternalFunctionObject>(snpObject);
 
             Js::JavascriptString* fname = Js::JavascriptString::NewCopyBuffer(snapName->Contents, (charcount_t)snapName->Length, ctx);
@@ -739,7 +737,7 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapRevokerFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             TTD_PTR_ID* proxyId = SnapObjectGetAddtlInfoAs<TTD_PTR_ID*, SnapObjectType::SnapRuntimeRevokerFunctionObject>(snpObject);
             Js::RecyclableObject* proxyObj = nullptr;
@@ -785,7 +783,7 @@ namespace TTD
             //Bound functions are not too common and have special internal state so it seems easiest to always re-create them.
             //We can re-evaluate this choice later if needed.
 
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
             SnapBoundFunctionInfo* snapBoundInfo = SnapObjectGetAddtlInfoAs<SnapBoundFunctionInfo*, SnapObjectType::SnapBoundFunctionObject>(snpObject);
 
             Js::RecyclableObject* bFunction = inflator->LookupObject(snapBoundInfo->TargetFunction);
@@ -871,35 +869,35 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapActivationInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             return ctx->GetLibrary()->CreateActivationObject();
         }
 
         Js::RecyclableObject* DoObjectInflation_SnapBlockActivationObject(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             return ctx->GetLibrary()->CreateBlockActivationObject();
         }
 
         Js::RecyclableObject* DoObjectInflation_SnapPseudoActivationObject(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             return ctx->GetLibrary()->CreatePseudoActivationObject();
         }
 
         Js::RecyclableObject* DoObjectInflation_SnapConsoleScopeActivationObject(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             return ctx->GetLibrary()->CreateConsoleScopeActivationObject();
         }
 
         Js::RecyclableObject* DoObjectInflation_SnapActivationExInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             //
             //TODO: I am going to assume the cached info is an optimization only so we just return a regular activation object here
@@ -912,7 +910,7 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapHeapArgumentsInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             SnapHeapArgumentsInfo* argsInfo = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(snpObject);
 
@@ -937,7 +935,7 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapES5HeapArgumentsInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             SnapHeapArgumentsInfo* argsInfo = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapES5HeapArgumentsObject>(snpObject);
 
@@ -968,7 +966,7 @@ namespace TTD
         Js::RecyclableObject* DoObjectInflation_SnapPromiseInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
             const SnapPromiseInfo* promiseInfo = SnapObjectGetAddtlInfoAs<SnapPromiseInfo*, SnapObjectType::SnapPromiseObject>(snpObject);
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             Js::Var result = (promiseInfo->Result != nullptr) ? inflator->InflateTTDVar(promiseInfo->Result) : nullptr;
 
@@ -1088,7 +1086,7 @@ namespace TTD
         Js::RecyclableObject* DoObjectInflation_SnapPromiseResolveOrRejectFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
             const SnapPromiseResolveOrRejectFunctionInfo* rrfInfo = SnapObjectGetAddtlInfoAs<SnapPromiseResolveOrRejectFunctionInfo*, SnapObjectType::SnapPromiseResolveOrRejectFunctionObject>(snpObject);
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             Js::RecyclableObject* promise = inflator->LookupObject(rrfInfo->PromiseId);
 
@@ -1147,7 +1145,7 @@ namespace TTD
         Js::RecyclableObject* DoObjectInflation_SnapPromiseReactionTaskFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
             const SnapPromiseReactionTaskFunctionInfo* rInfo = SnapObjectGetAddtlInfoAs<SnapPromiseReactionTaskFunctionInfo*, SnapObjectType::SnapPromiseReactionTaskFunctionObject>(snpObject);
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             Js::JavascriptPromiseReaction* reaction = NSSnapValues::InflatePromiseReactionInfo(&rInfo->Reaction, ctx, inflator);
             Js::Var argument = inflator->InflateTTDVar(rInfo->Argument);
@@ -1198,7 +1196,7 @@ namespace TTD
             //Boxed values are not too common and have special internal state so it seems easiest to always re-create them.
             //We can re-evaluate this choice later if needed.
 
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
             Js::JavascriptLibrary* jslib = ctx->GetLibrary();
 
             TTDVar snapBoxedVar = SnapObjectGetAddtlInfoAs<TTDVar, SnapObjectType::SnapBoxedValueObject>(snpObject);
@@ -1271,7 +1269,7 @@ namespace TTD
             //Dates are not too common and have some mutable state so it seems easiest to always re-create them.
             //We can re-evaluate this choice later if needed.
 
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
             double* dateInfo = SnapObjectGetAddtlInfoAs<double*, SnapObjectType::SnapDateObject>(snpObject);
 
             return ctx->GetLibrary()->CreateDate_TTD(*dateInfo);
@@ -1306,7 +1304,7 @@ namespace TTD
             //Regexes are not too common and have some mutable state so it seems easiest to always re-create them.
             //We can re-evaluate this choice later if needed.
 
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
             SnapRegexInfo* regexInfo = SnapObjectGetAddtlInfoAs<SnapRegexInfo*, SnapObjectType::SnapRegexObject>(snpObject);
 
             return ctx->GetLibrary()->CreateRegex_TTD(regexInfo->RegexStr.Contents, regexInfo->RegexStr.Length, regexInfo->Flags, regexInfo->LastIndexOrFlag);
@@ -1348,7 +1346,7 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapError(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             //
             //TODO: This is not great we just create a generic error
@@ -1405,7 +1403,7 @@ namespace TTD
             //Arrays can change type on us so seems easiest to always re-create them.
             //We can re-evaluate this choice later if needed and add checks for same type-ness.
 
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             if(snpObject->SnapType->JsTypeId == Js::TypeIds_Array)
             {
@@ -1430,7 +1428,7 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapES5ArrayInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             return ctx->GetLibrary()->CreateES5Array_TTD();
         }
@@ -1565,7 +1563,7 @@ namespace TTD
             //ArrayBuffers can change on us so seems easiest to always re-create them.
             //We can re-evaluate this choice later if needed.
 
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
             SnapArrayBufferInfo* buffInfo = SnapObjectGetAddtlInfoAs<SnapArrayBufferInfo*, SnapObjectType::SnapArrayBufferObject>(snpObject);
 
             Js::ArrayBuffer* abuff = ctx->GetLibrary()->CreateArrayBuffer(buffInfo->Length);
@@ -1648,7 +1646,7 @@ namespace TTD
             //I am lazy and always re-create typed arrays.
             //We can re-evaluate this choice later if needed.
 
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
             SnapTypedArrayInfo* typedArrayInfo = SnapObjectGetAddtlInfoAs<SnapTypedArrayInfo*, SnapObjectType::SnapTypedArrayObject>(snpObject);
 
             Js::JavascriptLibrary* jslib = ctx->GetLibrary();
@@ -1742,7 +1740,7 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapSetInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             if(snpObject->SnapType->JsTypeId == Js::TypeIds_Set)
             {
@@ -1841,7 +1839,7 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapMapInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             if(snpObject->SnapType->JsTypeId == Js::TypeIds_Map)
             {
@@ -1951,7 +1949,7 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapProxyInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
 
             SnapProxyInfo* proxyInfo = SnapObjectGetAddtlInfoAs<SnapProxyInfo*, SnapObjectType::SnapProxyObject>(snpObject);
 

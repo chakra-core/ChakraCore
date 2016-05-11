@@ -98,7 +98,7 @@ namespace TTD
         template <EventKind tag>
         void JsRTVarsWithIntegralUnionArgumentAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
         {
-            JsRTVarsWithIntegralUnionArgumentAction* strAction = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, tag>(evt);
+            JsRTVarsWithIntegralUnionArgumentAction* vAction = GetInlineEventDataAs<JsRTVarsWithIntegralUnionArgumentAction, tag>(evt);
 
             reader->ReadKey(NSTokens::Key::argRetVal, true);
             vAction->Result = NSSnapValues::ParseTTDVar(false, reader);
@@ -243,7 +243,7 @@ namespace TTD
             const JsRTByteBufferAction* bufferAction = GetInlineEventDataAs<JsRTByteBufferAction, tag>(evt);
 
             writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
-            NSSnapValues::EmitTTDVar(svarAction->Result, writer, NSTokens::Separator::NoSeparator);
+            NSSnapValues::EmitTTDVar(bufferAction->Result, writer, NSTokens::Separator::NoSeparator);
 
             writer->WriteLengthValue(bufferAction->Length, NSTokens::Separator::CommaSeparator);
             writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
@@ -251,7 +251,7 @@ namespace TTD
             {
                 writer->WriteNakedByte(bufferAction->Buffer[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
             }
-            writer->WriteSeperator();
+            writer->WriteSequenceEnd();
         }
 
         template <EventKind tag>
@@ -260,7 +260,7 @@ namespace TTD
             JsRTByteBufferAction* bufferAction = GetInlineEventDataAs<JsRTByteBufferAction, tag>(evt);
 
             reader->ReadKey(NSTokens::Key::argRetVal, true);
-            svarAction->Result = NSSnapValues::ParseTTDVar(false, reader);
+            bufferAction->Result = NSSnapValues::ParseTTDVar(false, reader);
 
             bufferAction->Length = reader->ReadLengthValue(true);
             bufferAction->Buffer = alloc.SlabAllocateArray<byte>(bufferAction->Length);
@@ -270,7 +270,7 @@ namespace TTD
             {
                 bufferAction->Buffer[i] = reader->ReadNakedByte(i != 0);
             }
-            reader->ReadSeperator();
+            reader->ReadSequenceEnd();
         }
         
         //////////////////
@@ -351,9 +351,9 @@ namespace TTD
             TTDebuggerSourceLocation* RegisterLocation;
 
             //true if this is a cancelation/repeating action -- otherwise this is a 
-            BOOL IsCreate;
-            BOOL IsCancel;
-            BOOL IsRepeating;
+            bool IsCreate;
+            bool IsCancel;
+            bool IsRepeating;
         };
 
         void JsRTCallbackAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
