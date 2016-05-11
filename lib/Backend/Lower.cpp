@@ -12162,11 +12162,10 @@ Lowerer::GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBa
 }
 
 IR::LabelInstr *
-Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::LabelInstr *bailOutLabel)
+Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::LabelInstr *bailOutLabel, IR::LabelInstr * collectRuntimeStatsLabel)
 {
     BailOutInfo * bailOutInfo = instr->GetBailOutInfo();
     IR::Instr * bailOutInstr = bailOutInfo->bailOutInstr;
-    IR::LabelInstr *collectRuntimeStatsLabel = nullptr;
     if (instr->IsCloned())
     {
         Assert(bailOutInstr != instr);
@@ -12179,13 +12178,17 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         return bailOutLabel;
     }
 
+    // Add helper label to trigger layout.
+    if (!collectRuntimeStatsLabel)
+    {
+        collectRuntimeStatsLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+    }
+    Assert(!collectRuntimeStatsLabel->IsLinked());
+    instr->InsertBefore(collectRuntimeStatsLabel);
+
     if (bailOutInstr != instr)
     {
         // this bailOutInfo is shared, just jump to the bailout target
-
-        // Add helper label to trigger layout.
-        collectRuntimeStatsLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-        instr->InsertBefore(collectRuntimeStatsLabel);
 
         IR::MemRefOpnd *pIndexOpndForBailOutKind =
             IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + BailOutRecord::GetOffsetOfBailOutKind(), TyUint32, this->m_func, IR::AddrOpndKindDynamicBailOutKindRef);
@@ -12233,10 +12236,6 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
 
     // The bailout hasn't be generated yet.
     Assert(!bailOutInstr->IsLabelInstr());
-
-    // Add helper label to trigger layout.
-    collectRuntimeStatsLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    instr->InsertBefore(collectRuntimeStatsLabel);
 
     // capture the condition for this bailout
     if (bailOutLabel == nullptr)
