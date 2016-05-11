@@ -229,9 +229,6 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::RescanTrackedObject(FinalizableObj
 }
 #endif
 
-template SweepState SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable);
-template SweepState SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable);
-
 template <class TBlockAttributes>
 SweepState
 SmallFinalizableHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable)

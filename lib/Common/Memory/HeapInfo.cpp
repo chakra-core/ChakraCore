@@ -12,7 +12,12 @@
 #error "Platform is not handled"
 #endif
 
+#ifdef _MSC_VER
 template __forceinline char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat, size_t size);
+#else
+template __attribute__((always_inline)) char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat, size_t size);
+#endif
+
 const uint SmallAllocationBlockAttributes::MaxSmallObjectCount;
 const uint MediumAllocationBlockAttributes::MaxSmallObjectCount;
 
