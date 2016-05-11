@@ -1451,13 +1451,15 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             if(instr->m_opcode == Js::OpCode::MOV)
             {
                 uint src1Forms = L_Reg | L_Mem | L_Ptr;     // Allow 64 bit values in x64 as well
-#if _M_X64
                 if (dst->IsMemoryOpnd())
                 {
+#if _M_X64
                     // Only allow <= 32 bit values
                     src1Forms = L_Reg | L_Imm32;
-                }
+#else
+                    src1Forms = L_Reg | L_Ptr;
 #endif
+                }
                 LegalizeOpnds<verify>(
                     instr,
                     L_Reg | L_Mem,

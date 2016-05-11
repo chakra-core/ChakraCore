@@ -68,8 +68,7 @@ namespace Js
 #endif
 
     // FunctionProxy methods
-    FunctionProxy::FunctionProxy(JavascriptMethod entryPoint, Attributes attributes, LocalFunctionId functionId, ScriptContext* scriptContext, Utf8SourceInfo* utf8SourceInfo, uint functionNumber):
-        FunctionInfo(entryPoint, attributes, functionId, (FunctionBody*) this),
+    FunctionProxy::FunctionProxy(ScriptContext* scriptContext, Utf8SourceInfo* utf8SourceInfo, uint functionNumber):
         m_isTopLevel(false),
         m_isPublicLibraryCode(false),
         m_scriptContext(scriptContext),
@@ -392,14 +391,14 @@ namespace Js
     }
 
     FunctionBody * FunctionBody::NewFromRecycler(ScriptContext * scriptContext, const char16 * displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
-        Utf8SourceInfo* sourceInfo, uint uScriptId, Js::LocalFunctionId functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes
+        Utf8SourceInfo* sourceInfo, uint uScriptId, Js::LocalFunctionId functionId, Js::PropertyRecordList* boundPropertyRecords, FunctionInfo::Attributes attributes
 #ifdef PERF_COUNTERS
             , bool isDeserializedFunction
 #endif
             )
     {
             return FunctionBody::NewFromRecycler(scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo,
-            scriptContext->GetThreadContext()->NewFunctionNumber(), uScriptId, functionId, boundPropertyRecords, attributes
+        scriptContext->GetThreadContext()->NewFunctionNumber(), uScriptId, functionId, boundPropertyRecords, attributes
 #ifdef PERF_COUNTERS
             , isDeserializedFunction
 #endif
@@ -407,7 +406,7 @@ namespace Js
     }
 
     FunctionBody * FunctionBody::NewFromRecycler(ScriptContext * scriptContext, const char16 * displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
-        Utf8SourceInfo* sourceInfo, uint uFunctionNumber, uint uScriptId, Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes
+        Utf8SourceInfo* sourceInfo, uint uFunctionNumber, uint uScriptId, Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, FunctionInfo::Attributes attributes
 #ifdef PERF_COUNTERS
             , bool isDeserializedFunction
 #endif
@@ -423,7 +422,7 @@ namespace Js
 
     FunctionBody::FunctionBody(ScriptContext* scriptContext, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
         Utf8SourceInfo* utf8SourceInfo, uint uFunctionNumber, uint uScriptId,
-        Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes
+        Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, FunctionInfo::Attributes attributes
 #ifdef PERF_COUNTERS
         , bool isDeserializedFunction
 #endif
@@ -854,7 +853,7 @@ namespace Js
 
     BOOL FunctionBody::IsInterpreterThunk() const
     {
-        bool isInterpreterThunk = this->originalEntryPoint == DefaultEntryThunk;
+        bool isInterpreterThunk = this->GetOriginalEntryPoint_Unchecked() == DefaultEntryThunk;
 #if DYNAMIC_INTERPRETER_THUNK
         isInterpreterThunk = isInterpreterThunk || IsDynamicInterpreterThunk();
 #endif
@@ -864,7 +863,7 @@ namespace Js
     BOOL FunctionBody::IsDynamicInterpreterThunk() const
     {
 #if DYNAMIC_INTERPRETER_THUNK
-        return this->GetScriptContext()->IsDynamicInterpreterThunk(this->originalEntryPoint);
+        return this->GetScriptContext()->IsDynamicInterpreterThunk(this->GetOriginalEntryPoint_Unchecked());
 #else
         return FALSE;
 #endif
@@ -1091,21 +1090,22 @@ namespace Js
 
     // DeferDeserializeFunctionInfo methods
 
-    DeferDeserializeFunctionInfo::DeferDeserializeFunctionInfo(int nestedCount, LocalFunctionId functionId, ByteCodeCache* byteCodeCache, const byte* serializedFunction, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, NativeModule *nativeModule, Attributes attributes) :
-        FunctionProxy(DefaultDeferredDeserializeThunk, (Attributes)(attributes | DeferredDeserialize), functionId, scriptContext, sourceInfo, functionNumber),
+    DeferDeserializeFunctionInfo::DeferDeserializeFunctionInfo(int nestedCount, LocalFunctionId functionId, ByteCodeCache* byteCodeCache, const byte* serializedFunction, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, NativeModule *nativeModule, FunctionInfo::Attributes attributes) :
+        FunctionProxy(scriptContext, sourceInfo, functionNumber),
         m_cache(byteCodeCache),
         m_functionBytes(serializedFunction),
         m_displayName(nullptr),
         m_displayNameLength(0),
         m_nativeModule(nativeModule)
     {
+        this->functionInfo = RecyclerNew(scriptContext->GetRecycler(), FunctionInfo, DefaultDeferredDeserializeThunk, (FunctionInfo::Attributes)(attributes | FunctionInfo::Attributes::DeferredDeserialize), functionId, this);
         this->m_defaultEntryPointInfo = RecyclerNew(scriptContext->GetRecycler(), ProxyEntryPointInfo, DefaultDeferredDeserializeThunk);
         PERF_COUNTER_INC(Code, DeferDeserializeFunctionProxy);
 
         SetDisplayName(displayName, displayNameLength, displayShortNameOffset, FunctionProxy::SetDisplayNameFlagsDontCopy);
     }
 
-    DeferDeserializeFunctionInfo* DeferDeserializeFunctionInfo::New(ScriptContext* scriptContext, int nestedCount, LocalFunctionId functionId, ByteCodeCache* byteCodeCache, const byte* serializedFunction, Utf8SourceInfo* sourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, NativeModule *nativeModule, Attributes attributes)
+    DeferDeserializeFunctionInfo* DeferDeserializeFunctionInfo::New(ScriptContext* scriptContext, int nestedCount, LocalFunctionId functionId, ByteCodeCache* byteCodeCache, const byte* serializedFunction, Utf8SourceInfo* sourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, NativeModule *nativeModule, FunctionInfo::Attributes attributes)
     {
         return RecyclerNewFinalized(scriptContext->GetRecycler(),
             DeferDeserializeFunctionInfo,
@@ -1132,8 +1132,8 @@ namespace Js
     // ParseableFunctionInfo methods
     ParseableFunctionInfo::ParseableFunctionInfo(JavascriptMethod entryPoint, int nestedCount,
         LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber,
-        const char16* displayName, uint displayNameLength, uint displayShortNameOffset, Attributes attributes, Js::PropertyRecordList* propertyRecords) :
-      FunctionProxy(entryPoint, attributes, functionId, scriptContext, sourceInfo, functionNumber),
+        const char16* displayName, uint displayNameLength, uint displayShortNameOffset, FunctionInfo::Attributes attributes, Js::PropertyRecordList* propertyRecords) :
+      FunctionProxy(scriptContext, sourceInfo, functionNumber),
 #if DYNAMIC_INTERPRETER_THUNK
       m_dynamicInterpreterThunk(nullptr),
 #endif
@@ -1174,6 +1174,8 @@ namespace Js
       ,scopeObjectSize(0)
 #endif
     {
+        this->functionInfo = RecyclerNew(scriptContext->GetRecycler(), FunctionInfo, entryPoint, attributes, functionId, this);
+
         if (nestedCount > 0)
         {
             nestedArray = RecyclerNewPlusZ(m_scriptContext->GetRecycler(),
@@ -1202,11 +1204,11 @@ namespace Js
         }
 
         SetDisplayName(displayName, displayNameLength, displayShortNameOffset);
-        this->originalEntryPoint = DefaultEntryThunk;
+        this->SetOriginalEntryPoint(DefaultEntryThunk);
     }
 
     ParseableFunctionInfo* ParseableFunctionInfo::New(ScriptContext* scriptContext, int nestedCount,
-        LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, Js::PropertyRecordList* propertyRecords, Attributes attributes)
+        LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, Js::PropertyRecordList* propertyRecords, FunctionInfo::Attributes attributes)
     {
 #ifdef ENABLE_SCRIPT_PROFILING
         Assert(
@@ -1241,7 +1243,7 @@ namespace Js
             displayName,
             displayNameLength,
             displayShortNameOffset,
-            (Attributes)(attributes | DeferredParse),
+            (FunctionInfo::Attributes)(attributes | FunctionInfo::Attributes::DeferredParse),
             propertyRecords);
     }
 
@@ -1469,10 +1471,12 @@ namespace Js
     void
     FunctionProxy::UpdateFunctionBodyImpl(FunctionBody * body)
     {
-        Assert(functionBodyImpl == ((FunctionProxy*) this));
+        FunctionInfo *functionInfo = this->GetFunctionInfo();
+        Assert(functionInfo->GetFunctionProxy() == this);
         Assert(!this->IsFunctionBody() || body == this);
-        this->functionBodyImpl = body;
-        this->attributes = (Attributes)(this->attributes & ~(DeferredParse | DeferredDeserialize));
+        functionInfo->SetFunctionProxy(body);
+        body->SetFunctionInfo(functionInfo);
+        body->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() & ~(FunctionInfo::Attributes::DeferredParse | FunctionInfo::Attributes::DeferredDeserialize)));
         this->UpdateReferenceInParentFunction(body);
     }
 
@@ -1496,17 +1500,18 @@ namespace Js
     //
     ParseableFunctionInfo * FunctionProxy::EnsureDeserialized()
     {
-        FunctionProxy * executionFunctionBody = this->functionBodyImpl;
+        Assert(this == this->GetFunctionInfo()->GetFunctionProxy());
+        FunctionProxy * executionFunctionBody = this;
 
-        if (executionFunctionBody == this && IsDeferredDeserializeFunction())
+        if (IsDeferredDeserializeFunction())
         {
             // No need to deserialize function body if scriptContext closed because we can't execute it.
             // Bigger problem is the script engine might have released bytecode file mapping and we can't deserialize.
             Assert(!m_scriptContext->IsClosed());
 
             executionFunctionBody = ((DeferDeserializeFunctionInfo*) this)->Deserialize();
-            this->functionBodyImpl = executionFunctionBody;
-            Assert(executionFunctionBody->HasBody());
+            this->GetFunctionInfo()->SetFunctionProxy(executionFunctionBody);
+            Assert(executionFunctionBody->GetFunctionInfo()->HasBody());
             Assert(executionFunctionBody != this);
         }
 
@@ -1520,7 +1525,7 @@ namespace Js
 
     ScriptFunctionType * FunctionProxy::EnsureDeferredPrototypeType()
     {
-        Assert(this->GetFunctionProxy() == this);
+        Assert(this->GetFunctionInfo()->GetFunctionProxy() == this);
         return deferredPrototypeType != nullptr ?
             static_cast<ScriptFunctionType*>(deferredPrototypeType) : AllocDeferredPrototypeType();
     }
@@ -1627,14 +1632,16 @@ namespace Js
 
     FunctionBody* DeferDeserializeFunctionInfo::Deserialize()
     {
-        if (functionBodyImpl == (FunctionBody*) this)
-        {
-            FunctionBody * body = ByteCodeSerializer::DeserializeFunction(this->m_scriptContext, this);
-            this->Copy(body);
-            this->UpdateFunctionBodyImpl(body);
-        }
+        Assert(this->GetFunctionInfo()->GetFunctionProxy() == this);
 
-        return GetFunctionBody();
+        FunctionBody * body = ByteCodeSerializer::DeserializeFunction(this->m_scriptContext, this);
+        this->SetLocalFunctionId(body->GetLocalFunctionId());
+        this->SetOriginalEntryPoint(body->GetOriginalEntryPoint());
+        this->Copy(body);
+        this->UpdateFunctionBodyImpl(body);
+
+        Assert(body->GetFunctionBody() == body);
+        return body;
     }
 
     //
@@ -1683,7 +1690,8 @@ namespace Js
 
     FunctionBody* ParseableFunctionInfo::Parse(ScriptFunction ** functionRef, bool isByteCodeDeserialization)
     {
-        if ((functionBodyImpl != (FunctionBody*) this) || !IsDeferredParseFunction())
+        Assert(this == this->GetFunctionInfo()->GetFunctionProxy());
+        if (!IsDeferredParseFunction())
         {
             // If not deferredparsed, the functionBodyImpl and this will be the same, just return the current functionBody.
             Assert(GetFunctionBody()->IsFunctionParsed());
@@ -1714,10 +1722,10 @@ namespace Js
                 this->GetNestedCount(),
                 this->GetUtf8SourceInfo(),
                 this->m_functionNumber,
-                this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId, /* script id */
-                this->functionId, /* function id */
+                this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId,
+                this->GetLocalFunctionId(),
                 propertyRecordList,
-                (Attributes)(this->GetAttributes() & ~(Attributes::DeferredDeserialize | Attributes::DeferredParse))
+                (FunctionInfo::Attributes)(this->GetAttributes() & ~(FunctionInfo::Attributes::DeferredDeserialize | FunctionInfo::Attributes::DeferredParse))
 #ifdef PERF_COUNTERS
                 , false /* is function from deferred deserialized proxy */
 #endif
@@ -1950,9 +1958,12 @@ namespace Js
 
             this->UpdateFunctionBodyImpl(funcBody);
             this->m_hasBeenParsed = true;
+            returnFunctionBody = funcBody;
         }
-
-        returnFunctionBody = GetFunctionBody();
+        else
+        {
+            returnFunctionBody = this->GetFunctionBody();
+        }
 
         LEAVE_PINNED_SCOPE();
 
@@ -1980,10 +1991,10 @@ namespace Js
             this->GetNestedCount(),
             this->GetUtf8SourceInfo(),
             this->m_functionNumber,
-            this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId, /* script id */
-            this->functionId, /* function id */
+            this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId,
+            this->GetLocalFunctionId(),
             propertyRecordList,
-            (Attributes)(this->GetAttributes() & ~(Attributes::DeferredDeserialize | Attributes::DeferredParse))
+            (FunctionInfo::Attributes)(this->GetAttributes() & ~(FunctionInfo::Attributes::DeferredDeserialize | FunctionInfo::Attributes::DeferredParse))
 #ifdef PERF_COUNTERS
             , false /* is function from deferred deserialized proxy */
 #endif
@@ -2052,7 +2063,9 @@ namespace Js
         UpdateFunctionBodyImpl(funcBody);
         m_hasBeenParsed = true;
 
-        returnFunctionBody = GetFunctionBody();
+        Assert(funcBody->GetFunctionBody() == funcBody);
+
+        returnFunctionBody = funcBody;
 
         LEAVE_PINNED_SCOPE();
 
@@ -2301,17 +2314,14 @@ namespace Js
 #if DBG_DUMP
         if (PHASE_TRACE1(Js::FunctionSourceInfoParsePhase))
         {
-            if (this->HasBody())
+            Assert(this->GetFunctionInfo()->HasBody());
+            if (this->IsFunctionBody())
             {
-                FunctionProxy* proxy = this->GetFunctionProxy();
-                if (proxy->IsFunctionBody())
-                {
-                    FunctionBody* functionBody = this->GetFunctionBody();
-                    Assert( functionBody != nullptr );
+                FunctionBody* functionBody = this->GetFunctionBody();
+                Assert( functionBody != nullptr );
 
-                    functionBody->PrintStatementSourceLineFromStartOffset(functionBody->StartInDocument());
-                    Output::Flush();
-                }
+                functionBody->PrintStatementSourceLineFromStartOffset(functionBody->StartInDocument());
+                Output::Flush();
             }
         }
 #endif
@@ -2893,7 +2903,7 @@ namespace Js
     BOOL FunctionBody::IsNativeOriginalEntryPoint() const
     {
 #if ENABLE_NATIVE_CODEGEN
-        return this->GetScriptContext()->IsNativeAddress(this->originalEntryPoint);
+        return this->GetScriptContext()->IsNativeAddress(this->GetOriginalEntryPoint_Unchecked());
 #else
         return false;
 #endif
@@ -2904,13 +2914,11 @@ namespace Js
         const FunctionEntryPointInfo *const simpleJitEntryPointInfo = GetSimpleJitEntryPointInfo();
         return
             simpleJitEntryPointInfo &&
-            reinterpret_cast<Js::JavascriptMethod>(simpleJitEntryPointInfo->GetNativeAddress()) == originalEntryPoint;
+            reinterpret_cast<Js::JavascriptMethod>(simpleJitEntryPointInfo->GetNativeAddress()) == GetOriginalEntryPoint_Unchecked();
     }
 
     void FunctionProxy::Finalize(bool isShutdown)
     {
-        __super::Finalize(isShutdown);
-
         this->CleanupFunctionProxyCounters();
     }
 
@@ -2954,7 +2962,7 @@ namespace Js
     bool FunctionProxy::HasValidNonProfileEntryPoint() const
     {
         JavascriptMethod directEntryPoint = this->GetDefaultEntryPointInfo()->jsMethod;
-        JavascriptMethod originalEntryPoint = this->originalEntryPoint;
+        JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
 
         // Check the direct entry point to see if it is codegen thunk
         // if it is not, the background codegen thread has updated both original entry point and direct entry point
@@ -2975,11 +2983,13 @@ namespace Js
     bool FunctionProxy::HasValidProfileEntryPoint() const
     {
         JavascriptMethod directEntryPoint = this->GetDefaultEntryPointInfo()->jsMethod;
-        if (this->originalEntryPoint == DefaultDeferredParsingThunk)
+        JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
+
+        if (originalEntryPoint == DefaultDeferredParsingThunk)
         {
             return directEntryPoint == ProfileDeferredParsingThunk;
         }
-        if (this->originalEntryPoint == DefaultDeferredDeserializeThunk)
+        if (originalEntryPoint == DefaultDeferredDeserializeThunk)
         {
             return directEntryPoint == ProfileDeferredDeserializeThunk;
         }
@@ -3036,28 +3046,31 @@ namespace Js
 #endif
 
         this->SetEntryPoint(this->GetDefaultEntryPointInfo(), m_scriptContext->DeferredParsingThunk);
-        originalEntryPoint = DefaultDeferredParsingThunk;
+        this->SetOriginalEntryPoint(DefaultDeferredParsingThunk);
     }
 
     void ParseableFunctionInfo::SetInitialDefaultEntryPoint()
     {
 #ifdef ENABLE_SCRIPT_PROFILING
         Assert(m_scriptContext->CurrentThunk == ProfileEntryThunk || m_scriptContext->CurrentThunk == DefaultEntryThunk);
-        Assert(originalEntryPoint == DefaultDeferredParsingThunk || originalEntryPoint == ProfileDeferredParsingThunk ||
-               originalEntryPoint == DefaultDeferredDeserializeThunk || originalEntryPoint == ProfileDeferredDeserializeThunk ||
-               originalEntryPoint == DefaultEntryThunk || originalEntryPoint == ProfileEntryThunk);
+        Assert(this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredParsingThunk || 
+               this->GetOriginalEntryPoint_Unchecked() == ProfileDeferredParsingThunk ||
+               this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredDeserializeThunk || 
+               this->GetOriginalEntryPoint_Unchecked() == ProfileDeferredDeserializeThunk ||
+               this->GetOriginalEntryPoint_Unchecked() == DefaultEntryThunk || 
+               this->GetOriginalEntryPoint_Unchecked() == ProfileEntryThunk);
 #else
         Assert(m_scriptContext->CurrentThunk == DefaultEntryThunk);
-        Assert(originalEntryPoint == DefaultDeferredParsingThunk ||
-               originalEntryPoint == DefaultDeferredDeserializeThunk ||
-               originalEntryPoint == DefaultEntryThunk);
+        Assert(this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredParsingThunk ||
+               this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredDeserializeThunk ||
+               this->GetOriginalEntryPoint_Unchecked() == DefaultEntryThunk);
 #endif
         Assert(this->m_defaultEntryPointInfo != nullptr);
 
         // CONSIDER: we can optimize this to generate the dynamic interpreter thunk up front
         // If we know that we are in the defer parsing thunk already
         this->SetEntryPoint(this->GetDefaultEntryPointInfo(), m_scriptContext->CurrentThunk);
-        this->originalEntryPoint = DefaultEntryThunk;
+        this->SetOriginalEntryPoint(DefaultEntryThunk);
     }
 
     void FunctionBody::SetCheckCodeGenEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint)
@@ -3083,17 +3096,17 @@ namespace Js
 
             if (m_isAsmJsFunction)
             {
-                this->originalEntryPoint = this->m_scriptContext->GetNextDynamicAsmJsInterpreterThunk(&this->m_dynamicInterpreterThunk);
+                this->SetOriginalEntryPoint(this->m_scriptContext->GetNextDynamicAsmJsInterpreterThunk(&this->m_dynamicInterpreterThunk));
             }
             else
             {
-                this->originalEntryPoint = this->m_scriptContext->GetNextDynamicInterpreterThunk(&this->m_dynamicInterpreterThunk);
+                this->SetOriginalEntryPoint(this->m_scriptContext->GetNextDynamicInterpreterThunk(&this->m_dynamicInterpreterThunk));
             }
             JS_ETW(EtwTrace::LogMethodInterpreterThunkLoadEvent(this));
         }
         else
         {
-            this->originalEntryPoint = (JavascriptMethod)InterpreterThunkEmitter::ConvertToEntryPoint(this->m_dynamicInterpreterThunk);
+            this->SetOriginalEntryPoint((JavascriptMethod)InterpreterThunkEmitter::ConvertToEntryPoint(this->m_dynamicInterpreterThunk));
         }
     }
 
@@ -3111,18 +3124,18 @@ namespace Js
         if (InterpreterStackFrame::IsDelayDynamicInterpreterThunk(this->GetEntryPoint(entryPointInfo)))
         {
             // We are not doing code gen on this function, just change the entry point directly
-            Assert(InterpreterStackFrame::IsDelayDynamicInterpreterThunk(originalEntryPoint));
+            Assert(InterpreterStackFrame::IsDelayDynamicInterpreterThunk(this->GetOriginalEntryPoint_Unchecked()));
             GenerateDynamicInterpreterThunk();
-            this->SetEntryPoint(entryPointInfo, originalEntryPoint);
+            this->SetEntryPoint(entryPointInfo, this->GetOriginalEntryPoint_Unchecked());
         }
         else if (this->GetEntryPoint(entryPointInfo) == ProfileEntryThunk)
         {
             // We are not doing codegen on this function, just change the entry point directly
             // Don't replace the profile entry thunk
-            Assert(InterpreterStackFrame::IsDelayDynamicInterpreterThunk(originalEntryPoint));
+            Assert(InterpreterStackFrame::IsDelayDynamicInterpreterThunk(this->GetOriginalEntryPoint_Unchecked()));
             GenerateDynamicInterpreterThunk();
         }
-        else if (InterpreterStackFrame::IsDelayDynamicInterpreterThunk(originalEntryPoint))
+        else if (InterpreterStackFrame::IsDelayDynamicInterpreterThunk(this->GetOriginalEntryPoint_Unchecked()))
         {
             JsUtil::JobProcessor * jobProcessor = this->GetScriptContext()->GetThreadContext()->GetJobProcessor();
             if (jobProcessor->ProcessesInBackground())
@@ -3130,7 +3143,7 @@ namespace Js
                 JsUtil::BackgroundJobProcessor * backgroundJobProcessor = static_cast<JsUtil::BackgroundJobProcessor *>(jobProcessor);
                 AutoCriticalSection autocs(backgroundJobProcessor->GetCriticalSection());
                 // Check again under lock
-                if (InterpreterStackFrame::IsDelayDynamicInterpreterThunk(originalEntryPoint))
+                if (InterpreterStackFrame::IsDelayDynamicInterpreterThunk(this->GetOriginalEntryPoint_Unchecked()))
                 {
                     // If the original entry point is DelayDynamicInterpreterThunk then there must be a version of this
                     // function being codegen'd.
@@ -3146,7 +3159,7 @@ namespace Js
                 GenerateDynamicInterpreterThunk();
             }
         }
-        return this->originalEntryPoint;
+        return this->GetOriginalEntryPoint_Unchecked();
     }
 #endif
 
@@ -3164,7 +3177,7 @@ namespace Js
         // keep originalEntryPoint updated with the latest known good native entry point
         if (entryPointInfo == this->GetDefaultEntryPointInfo())
         {
-            this->originalEntryPoint = originalEntryPoint;
+            this->SetOriginalEntryPoint(originalEntryPoint);
         }
 
         if (entryPointInfo->entryPointIndex == 0 && this->NeedEnsureDynamicProfileInfo())
@@ -4240,11 +4253,11 @@ namespace Js
         if (!IsIntermediateCodeGenThunk(defaultEntryPointInfo->jsMethod)
             && defaultEntryPointInfo->jsMethod != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)
         {
-            if (this->originalEntryPoint == DefaultDeferredParsingThunk)
+            if (this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredParsingThunk)
             {
                 defaultEntryPointInfo->jsMethod = ProfileDeferredParsingThunk;
             }
-            else if (this->originalEntryPoint == DefaultDeferredDeserializeThunk)
+            else if (this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredDeserializeThunk)
             {
                 defaultEntryPointInfo->jsMethod = ProfileDeferredDeserializeThunk;
             }
@@ -4266,7 +4279,7 @@ namespace Js
         if (!this->HasValidEntryPoint())
         {
             OUTPUT_TRACE_DEBUGONLY(Js::ScriptProfilerPhase, _u("FunctionBody::SetEntryToProfileMode, Assert due to HasValidEntryPoint(), directEntrypoint : 0x%0IX, originalentrypoint : 0x%0IX\n"),
-                this->GetDefaultEntryPointInfo()->jsMethod, this->originalEntryPoint);
+                this->GetDefaultEntryPointInfo()->jsMethod, this->GetOriginalEntryPoint());
 
             AssertMsg(false, "Not a valid EntryPoint");
         }
@@ -4315,9 +4328,9 @@ namespace Js
 #endif
 
         // Store the originalEntryPoint to restore it back immediately.
-        JavascriptMethod originalEntryPoint = this->originalEntryPoint;
+        JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
         this->CreateNewDefaultEntryPoint();
-        this->originalEntryPoint = originalEntryPoint;
+        this->SetOriginalEntryPoint(originalEntryPoint);
         if (this->m_defaultEntryPointInfo)
         {
             this->GetDefaultFunctionEntryPointInfo()->entryPointIndex = 0;
@@ -4454,11 +4467,11 @@ namespace Js
                 defaultEntryPointInfo->jsMethod = DefaultDeferredParsingThunk;
             }
 
-            this->originalEntryPoint = DefaultDeferredParsingThunk;
+            this->SetOriginalEntryPoint(DefaultDeferredParsingThunk);
 
             // Abandon the shared type so a new function will get a new one
             this->deferredPrototypeType = nullptr;
-            this->attributes = (FunctionInfo::Attributes) (this->attributes | FunctionInfo::Attributes::DeferredParse);
+            this->SetAttributes((FunctionInfo::Attributes) (this->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
         }
 
         // Set other state back to before parse as well
@@ -4502,7 +4515,7 @@ namespace Js
 
         this->entryPoints->ClearAndZero();
         this->CreateNewDefaultEntryPoint();
-        this->originalEntryPoint = DefaultEntryThunk;
+        this->SetOriginalEntryPoint(DefaultEntryThunk);
         m_defaultEntryPointInfo->jsMethod = m_scriptContext->CurrentThunk;
 
         if (this->deferredPrototypeType)
@@ -4517,12 +4530,12 @@ namespace Js
 
     void FunctionBody::AddDeferParseAttribute()
     {
-        this->attributes = (FunctionInfo::Attributes) (this->attributes | DeferredParse);
+        this->SetAttributes((FunctionInfo::Attributes) (this->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
     }
 
     void FunctionBody::RemoveDeferParseAttribute()
     {
-        this->attributes = (FunctionInfo::Attributes) (this->attributes & (~DeferredParse));
+        this->SetAttributes((FunctionInfo::Attributes) (this->GetAttributes() & (~FunctionInfo::Attributes::DeferredParse)));
     }
 
     Js::DebuggerScope * FunctionBody::GetDiagCatchScopeObjectAt(int byteCodeOffset)
@@ -7390,7 +7403,7 @@ namespace Js
     void FunctionBody::InitDisableInlineApply()
     {
         SetDisableInlineApply(
-            (this->functionId != Js::Constants::NoFunctionId && PHASE_OFF(Js::InlinePhase, this)) ||
+            (this->GetLocalFunctionId() != Js::Constants::NoFunctionId && PHASE_OFF(Js::InlinePhase, this)) ||
             PHASE_OFF(Js::InlineApplyPhase, this));
     }
 
@@ -8660,7 +8673,7 @@ namespace Js
     {
         if (this->IsCodeGenDone())
         {
-            Assert(this->functionProxy->HasBody());
+            Assert(this->functionProxy->GetFunctionInfo()->HasBody());
 #if ENABLE_NATIVE_CODEGEN
             if (nullptr != this->inlineeFrameMap)
             {

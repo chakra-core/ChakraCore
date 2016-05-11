@@ -2231,7 +2231,7 @@ NativeCodeGenerator::GatherCodeGenData(
 
                     if (!isJitTimeDataComputed)
                     {
-                        Js::FunctionCodeGenJitTimeData  *inlineeJitTimeData = jitTimeData->AddInlinee(recycler, profiledCallSiteId, inlineeFunctionBodyArray[id], isInlined);
+                        Js::FunctionCodeGenJitTimeData  *inlineeJitTimeData = jitTimeData->AddInlinee(recycler, profiledCallSiteId, inlineeFunctionBodyArray[id]->GetFunctionInfo(), isInlined);
                         if (isInlined)
                         {
                             GatherCodeGenData<true>(
@@ -2525,7 +2525,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 
     const auto recycler = scriptContext->GetRecycler();
     {
-        const auto jitTimeData = RecyclerNew(recycler, Js::FunctionCodeGenJitTimeData, functionBody, entryPoint);
+        const auto jitTimeData = RecyclerNew(recycler, Js::FunctionCodeGenJitTimeData, functionBody->GetFunctionInfo(), entryPoint);
         InliningDecider inliningDecider(functionBody, workItem->Type() == JsLoopBodyWorkItemType, functionBody->IsInDebugMode(), workItem->GetJitMode());
 
         BEGIN_TEMP_ALLOCATOR(gatherCodeGenDataAllocator, scriptContext, _u("GatherCodeGenData"));
@@ -3145,7 +3145,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
         }
         else
         {
-            inlinee = inliningDecider.Inline(inlineeFunctionBody, inlinee, isConstructorCall, false, inliningDecider.GetConstantArgInfo(inlineeFunctionBody, profiledCallSiteId), profiledCallSiteId, inlineeFunctionBody == inlinee ? recursiveInlineDepth + 1 : 0, true);
+            inlinee = inliningDecider.Inline(inlineeFunctionBody, inlinee, isConstructorCall, false, inliningDecider.GetConstantArgInfo(inlineeFunctionBody, profiledCallSiteId), profiledCallSiteId, inlineeFunctionBody->GetFunctionInfo() == inlinee ? recursiveInlineDepth + 1 : 0, true);
             if (!inlinee)
             {
                 return false;

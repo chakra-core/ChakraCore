@@ -39,9 +39,14 @@ namespace Js
             Module                         = 0x20000, // The function is the function body wrapper for a module
             EnclosedByGlobalFunc           = 0x40000,
         };
-        FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionBody* functionBodyImpl = NULL);
+        FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
 
         static DWORD GetFunctionBodyImplOffset() { return offsetof(FunctionInfo, functionBodyImpl); }
+        static BYTE GetOffsetOfFunctionProxy()
+        {
+            CompileAssert(offsetof(FunctionInfo, functionBodyImpl) <= UCHAR_MAX);
+            return offsetof(FunctionInfo, functionBodyImpl);
+        }
         static DWORD GetAttributesOffset() { return offsetof(FunctionInfo, attributes); }
 
         void VerifyOriginalEntryPoint() const;
@@ -67,10 +72,14 @@ namespace Js
         {
             return functionBodyImpl;
         }
+        void SetFunctionProxy(FunctionProxy * proxy)
+        {
+            functionBodyImpl = proxy;
+        }
         ParseableFunctionInfo* GetParseableFunctionInfo() const
         {
-            Assert(functionBodyImpl == NULL || !IsDeferredDeserializeFunction());
-            return (ParseableFunctionInfo*) functionBodyImpl;
+            Assert(functionBodyImpl == nullptr || !IsDeferredDeserializeFunction());
+            return (ParseableFunctionInfo*)functionBodyImpl;
         }
         ParseableFunctionInfo** GetParseableFunctionInfoRef() const
         {
@@ -79,19 +88,23 @@ namespace Js
         }
         DeferDeserializeFunctionInfo* GetDeferDeserializeFunctionInfo() const
         {
-            Assert(functionBodyImpl == NULL || IsDeferredDeserializeFunction());
+            Assert(functionBodyImpl == nullptr || IsDeferredDeserializeFunction());
             return (DeferDeserializeFunctionInfo*)functionBodyImpl;
         }
         FunctionBody * GetFunctionBody() const;
 
         Attributes GetAttributes() const { return attributes; }
         static Attributes GetAttributes(Js::RecyclableObject * function);
-        Js::LocalFunctionId GetLocalFunctionId() const { return functionId; }
-        virtual void Finalize(bool isShutdown)
+        void SetAttributes(Attributes attr) { attributes = attr; }
+
+        LocalFunctionId GetLocalFunctionId() const { return functionId; }
+        void SetLocalFunctionId(LocalFunctionId functionId) { this->functionId = functionId; }
+
+        virtual void Finalize(bool isShutdown) override
         {
         }
 
-        virtual void Dispose(bool isShutdown)
+        virtual void Dispose(bool isShutdown) override
         {
         }
 
@@ -99,6 +112,10 @@ namespace Js
 
         BOOL IsDeferredDeserializeFunction() const { return ((this->attributes & DeferredDeserialize) == DeferredDeserialize); }
         BOOL IsDeferredParseFunction() const { return ((this->attributes & DeferredParse) == DeferredParse); }
+        void SetCapturesThis() { attributes = (Attributes)(attributes | Attributes::CapturesThis); }
+        bool GetCapturesThis() const { return (attributes & Attributes::CapturesThis) != 0; }
+        void SetEnclosedByGlobalFunc() { attributes = (Attributes)(attributes | Attributes::EnclosedByGlobalFunc ); }
+        bool GetEnclosedByGlobalFunc() const { return (attributes & Attributes::EnclosedByGlobalFunc) != 0; }
 
     protected:
         JavascriptMethod originalEntryPoint;

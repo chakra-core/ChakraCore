@@ -2128,7 +2128,7 @@ if (!sourceList)
         dict->Add(key, pFuncScript);
     }
 
-    bool ScriptContext::IsInNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo **ppFuncBody)
+    bool ScriptContext::IsInNewFunctionMap(EvalMapString const& key, FunctionInfo **ppFuncInfo)
     {
         if (this->cache->newFunctionCache == nullptr)
         {
@@ -2136,7 +2136,7 @@ if (!sourceList)
         }
 
         // If eval map cleanup is false, to preserve existing behavior, add it to the eval map MRU list
-        bool success = this->cache->newFunctionCache->TryGetValue(key, ppFuncBody);
+        bool success = this->cache->newFunctionCache->TryGetValue(key, ppFuncInfo);
         if (success)
         {
             this->cache->newFunctionCache->NotifyAdd(key);
@@ -2150,13 +2150,13 @@ if (!sourceList)
         return success;
     }
 
-    void ScriptContext::AddToNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo *pFuncBody)
+    void ScriptContext::AddToNewFunctionMap(EvalMapString const& key, FunctionInfo *pFuncInfo)
     {
         if (this->cache->newFunctionCache == nullptr)
         {
             this->cache->newFunctionCache = RecyclerNew(this->recycler, NewFunctionCache, this->recycler);
         }
-        this->cache->newFunctionCache->Add(key, pFuncBody);
+        this->cache->newFunctionCache->Add(key, pFuncInfo);
     }
 
 
@@ -3192,6 +3192,8 @@ if (!sourceList)
         JavascriptMethod entryPoint = pFunction->GetEntryPoint();
         FunctionInfo * info = pFunction->GetFunctionInfo();
         FunctionProxy * proxy = info->GetFunctionProxy();
+
+#if 0
         if (proxy != info)
         {
 #ifdef ENABLE_SCRIPT_PROFILING
@@ -3236,6 +3238,13 @@ if (!sourceList)
 
             return;
         }
+#else
+        if (proxy == nullptr)
+        {
+            return;
+        }
+        Assert(proxy->GetFunctionInfo() == info);
+#endif
 
         if (!proxy->IsFunctionBody())
         {
@@ -3337,27 +3346,6 @@ if (!sourceList)
                 IsTrueOrFalse(IsIntermediateCodeGenThunk(entryPoint)), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
 #endif
             OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\n"));
-
-            FunctionInfo * info = pFunction->GetFunctionInfo();
-            if (proxy != info)
-            {
-                // The thunk can deal with moving to the function body
-#ifdef ENABLE_SCRIPT_PROFILING
-                Assert(entryPoint == DefaultDeferredParsingThunk || entryPoint == ProfileDeferredParsingThunk
-                    || entryPoint == DefaultDeferredDeserializeThunk || entryPoint == ProfileDeferredDeserializeThunk
-                    || entryPoint == CrossSite::DefaultThunk || entryPoint == CrossSite::ProfileThunk);
-#else
-                Assert(entryPoint == DefaultDeferredParsingThunk
-                    || entryPoint == DefaultDeferredDeserializeThunk
-                    || entryPoint == CrossSite::DefaultThunk);
-#endif
-
-                Assert(!proxy->IsDeferred());
-                Assert(proxy->GetFunctionBody()->GetProfileSession() == proxy->GetScriptContext()->GetProfileSession());
-
-                return;
-            }
-
 
 #if ENABLE_NATIVE_CODEGEN
             if (!IsIntermediateCodeGenThunk(entryPoint) && entryPoint != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)

@@ -32,11 +32,11 @@ namespace Js
     {}
 
     ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
-        : ScriptFunctionBase(deferredPrototypeType, proxy),
+        : ScriptFunctionBase(deferredPrototypeType, proxy->GetFunctionInfo()),
         environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr), homeObj(nullptr),
         hasInlineCaches(false), hasSuperReference(false), isActiveScript(false)
     {
-        Assert(proxy->GetFunctionProxy() == proxy);
+        Assert(proxy->GetFunctionInfo()->GetFunctionProxy() == proxy);
         Assert(proxy->EnsureDeferredPrototypeType() == deferredPrototypeType);
         DebugOnly(VerifyEntryPoint());
 
@@ -260,31 +260,25 @@ namespace Js
     FunctionProxy * ScriptFunction::GetFunctionProxy() const
     {
         Assert(this->functionInfo->HasBody());
-        return reinterpret_cast<FunctionProxy *>(this->functionInfo);
+        return this->functionInfo->GetFunctionProxy();
     }
     JavascriptMethod ScriptFunction::UpdateUndeferredBody(FunctionBody* newFunctionInfo)
     {
         // Update deferred parsed/serialized function to the real function body
         Assert(this->functionInfo->HasBody());
-        if (this->functionInfo != newFunctionInfo)
+        Assert(this->functionInfo->GetFunctionBody() == newFunctionInfo);
+        Assert(!newFunctionInfo->IsDeferred());
+
+        DynamicType * type = this->GetDynamicType();
+
+        // If the type is shared, it must be the shared one in the old function proxy
+
+        this->functionInfo = newFunctionInfo->GetFunctionInfo();
+
+        if (type->GetIsShared())
         {
-            Assert(this->functionInfo->GetFunctionBody() == newFunctionInfo);
-            Assert(!newFunctionInfo->IsDeferred());
-            DynamicType * type = this->GetDynamicType();
-
-            // If the type is shared, it must be the shared one in the old function proxy
-
-            DebugOnly(FunctionProxy * oldProxy = this->GetFunctionProxy());
-            this->functionInfo = newFunctionInfo;
-
-            if (type->GetIsShared())
-            {
-                // if it is shared, it must still be the deferred prototype from the old proxy
-                Assert(type == oldProxy->GetDeferredPrototypeType());
-
-                // the type is still shared, we can't modify it, just migrate to the shared one in the function body
-                this->ReplaceType(newFunctionInfo->EnsureDeferredPrototypeType());
-            }
+            // the type is still shared, we can't modify it, just migrate to the shared one in the function body
+            this->ReplaceType(newFunctionInfo->EnsureDeferredPrototypeType());
         }
 
         // The type has change from the default, it is not share, just use that one.
@@ -297,8 +291,7 @@ namespace Js
 #endif
 
         Js::FunctionEntryPointInfo* defaultEntryPointInfo = newFunctionInfo->GetDefaultFunctionEntryPointInfo();
-        JavascriptMethod thunkEntryPoint = this->UpdateThunkEntryPoint(defaultEntryPointInfo,
-                directEntryPoint);
+        JavascriptMethod thunkEntryPoint = this->UpdateThunkEntryPoint(defaultEntryPointInfo, directEntryPoint);
 
         this->GetScriptFunctionType()->SetEntryPointInfo(defaultEntryPointInfo);
 

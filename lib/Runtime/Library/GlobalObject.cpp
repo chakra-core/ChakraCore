@@ -764,6 +764,7 @@ namespace Js
         {
             // This could happen if the top level function is marked as deferred, we need to parse this to generate the script compile information (RegisterScript depends on that)
             Js::JavascriptFunction::DeferredParse(&pEvalFunction);
+            proxy = pEvalFunction->GetFunctionProxy();
         }
 
         scriptContext->RegisterScript(proxy);
@@ -984,7 +985,7 @@ namespace Js
                 {
                     FunctionBody* parentFuncBody = pfuncCaller->GetFunctionBody();
                     Utf8SourceInfo* parentUtf8SourceInfo = parentFuncBody->GetUtf8SourceInfo();
-                    Utf8SourceInfo* utf8SourceInfo = funcBody->GetFunctionProxy()->GetUtf8SourceInfo();
+                    Utf8SourceInfo* utf8SourceInfo = funcBody->GetUtf8SourceInfo();
                     utf8SourceInfo->SetCallerUtf8SourceInfo(parentUtf8SourceInfo);
                 }
             }

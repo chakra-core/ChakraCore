@@ -6,14 +6,15 @@
 
 #ifdef ENABLE_NATIVE_CODEGEN
 #ifdef _M_X64
-const BYTE InterpreterThunkEmitter::FunctionBodyOffset = 23;
-const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 27;
-const BYTE InterpreterThunkEmitter::CallBlockStartAddrOffset = 37;
-const BYTE InterpreterThunkEmitter::ThunkSizeOffset = 51;
-const BYTE InterpreterThunkEmitter::ErrorOffset = 60;
-const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 77;
+const BYTE InterpreterThunkEmitter::FunctionInfoOffset = 23;
+const BYTE InterpreterThunkEmitter::FunctionProxyOffset = 27;
+const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 31;
+const BYTE InterpreterThunkEmitter::CallBlockStartAddrOffset = 41;
+const BYTE InterpreterThunkEmitter::ThunkSizeOffset = 55;
+const BYTE InterpreterThunkEmitter::ErrorOffset = 64;
+const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 81;
 
-const BYTE InterpreterThunkEmitter::PrologSize = 76;
+const BYTE InterpreterThunkEmitter::PrologSize = 80;
 const BYTE InterpreterThunkEmitter::StackAllocSize = 0x28;
 
 //
@@ -28,8 +29,9 @@ const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
     0x48, 0x89, 0x4C, 0x24, 0x08,                                  // mov         qword ptr [rsp+8],rcx
     0x4C, 0x89, 0x44, 0x24, 0x18,                                  // mov         qword ptr [rsp+18h],r8
     0x4C, 0x89, 0x4C, 0x24, 0x20,                                  // mov         qword ptr [rsp+20h],r9
-    0x48, 0x8B, 0x41, 0x00,                                        // mov         rax, qword ptr [rcx+FunctionBodyOffset]
-    0x48, 0x8B, 0x50, 0x00,                                        // mov         rdx, qword ptr [rax+DynamicThunkAddressOffset]
+    0x48, 0x8B, 0x41, 0x00,                                        // mov         rax, qword ptr [rcx+FunctionInfoOffset]
+    0x48, 0x8B, 0x48, 0x00,                                        // mov         rcx, qword ptr [rax+FunctionProxyOffset]
+    0x48, 0x8B, 0x51, 0x00,                                        // mov         rdx, qword ptr [rcx+DynamicThunkAddressOffset]
                                                                    // Range Check for Valid call target
     0x48, 0x83, 0xE2, 0xF8,                                        // and         rdx, 0xFFFFFFFFFFFFFFF8h  ;Force 8 byte alignment
     0x48, 0x8b, 0xca,                                              // mov         rcx, rdx
@@ -45,7 +47,7 @@ const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
     0x48, 0x83, 0xEC, StackAllocSize,                              // sub         rsp,28h
     0x48, 0xB8, 0x00, 0x00, 0x00 ,0x00, 0x00, 0x00, 0x00, 0x00,    // mov         rax, <thunk>
     0xFF, 0xE2,                                                    // jmp         rdx
-    0xCC                                                           // int         3                           ;for alignment to size of 8 we are adding this
+    0xCC, 0xCC, 0xCC, 0xCC, 0xCC                                   // int         3                           ;for alignment to size of 8 we are adding this
 };
 
 const BYTE InterpreterThunkEmitter::Epilog[] = {
@@ -54,11 +56,12 @@ const BYTE InterpreterThunkEmitter::Epilog[] = {
 };
 #elif defined(_M_ARM)
 const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 8;
-const BYTE InterpreterThunkEmitter::FunctionBodyOffset = 18;
-const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 22;
-const BYTE InterpreterThunkEmitter::CallBlockStartAddressInstrOffset = 38;
-const BYTE InterpreterThunkEmitter::CallThunkSizeInstrOffset = 50;
-const BYTE InterpreterThunkEmitter::ErrorOffset = 60;
+const BYTE InterpreterThunkEmitter::FunctionInfoOffset = 18;
+const BYTE InterpreterThunkEmitter::FunctionProxyOffset = 22;
+const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 26;
+const BYTE InterpreterThunkEmitter::CallBlockStartAddressInstrOffset = 42;
+const BYTE InterpreterThunkEmitter::CallThunkSizeInstrOffset = 54;
+const BYTE InterpreterThunkEmitter::ErrorOffset = 64;
 
 const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
     0x0F, 0xB4,                                                      // push        {r0-r3}
@@ -67,7 +70,8 @@ const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
     0x00, 0x00, 0x00, 0x00,                                          // movw        r1,ThunkAddress
     0x00, 0x00, 0x00, 0x00,                                          // movt        r1,ThunkAddress
     0xD0, 0xF8, 0x00, 0x20,                                          // ldr.w       r2,[r0,#0x00]
-    0xD2, 0xF8, 0x00, 0x30,                                          // ldr.w       r3,[r2,#0x00]
+    0xD2, 0xF8, 0x00, 0x00,                                          // ldr.w       r0,[r2,#0x00]
+    0xD0, 0xF8, 0x00, 0x30,                                          // ldr.w       r3,[r0,#0x00]
     0x4F, 0xF6, 0xF9, 0x70,                                          // mov         r0,#0xFFF9
     0xCF, 0xF6, 0xFF, 0x70,                                          // movt        r0,#0xFFFF
     0x03, 0xEA, 0x00, 0x03,                                          // and         r3,r3,r0
@@ -83,9 +87,7 @@ const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
 
     //$safe:
     0x02, 0xA8,                                                      // add         r0,sp,#8
-    0x18, 0x47,                                                      // bx          r3
-    0xFE, 0xDE,                                                      // int         3       ;Required for alignment
-    0xFE, 0xDE                                                       // int         3       ;Required for alignment
+    0x18, 0x47                                                       // bx          r3
 };
 
 const BYTE InterpreterThunkEmitter::JmpOffset = 2;
@@ -101,9 +103,10 @@ const BYTE InterpreterThunkEmitter::Epilog[] = {
     0x5D, 0xF8, 0x14, 0xFB                                          // ldr         pc,[sp],#0x14
 };
 #elif defined(_M_ARM64)
-const BYTE InterpreterThunkEmitter::FunctionBodyOffset = 24;
-const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 28;
-const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 32;
+const BYTE InterpreterThunkEmitter::FunctionInfoOffset = 24;
+const BYTE InterpreterThunkEmitter::FunctionProxyOffset = 28;
+const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 32;
+const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 36;
 
 //TODO: saravind :Implement Range Check for ARM64
 const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
@@ -114,7 +117,8 @@ const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
     0xE4, 0x17, 0x03, 0xA9,                                         //stp         x4, x5, [sp, #48]
     0xE6, 0x1F, 0x04, 0xA9,                                         //stp         x6, x7, [sp, #64]
     0x02, 0x00, 0x40, 0xF9,                                         //ldr         x2, [x0, #0x00]       ;offset will be replaced with Offset of FunctionInfo
-    0x43, 0x00, 0x40, 0xF9,                                         //ldr         x3, [x2, #0x00]       ;offset will be replaced with offset of DynamicInterpreterThunk
+    0x40, 0x00, 0x40, 0xF9,                                         //ldr         x0, [x2, #0x00]       ;offset will be replaced with Offset of FunctionProxy
+    0x03, 0x00, 0x40, 0xF9,                                         //ldr         x3, [x0, #0x00]       ;offset will be replaced with offset of DynamicInterpreterThunk
                                                                     //Following 4 MOV Instrs are to move the 64-bit address of the InterpreterThunk address into register x1.
     0x00, 0x00, 0x00, 0x00,                                         //movz        x1, #0x00             ;This is overwritten with the actual thunk address(16 - 0 bits) move
     0x00, 0x00, 0x00, 0x00,                                         //movk        x1, #0x00, lsl #16    ;This is overwritten with the actual thunk address(32 - 16 bits) move
@@ -136,18 +140,20 @@ const BYTE InterpreterThunkEmitter::Epilog[] = {
     0xc0, 0x03, 0x5f, 0xd6                                          // ret
 };
 #else
-const BYTE InterpreterThunkEmitter::FunctionBodyOffset = 8;
-const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 11;
-const BYTE InterpreterThunkEmitter::CallBlockStartAddrOffset = 18;
-const BYTE InterpreterThunkEmitter::ThunkSizeOffset = 23;
-const BYTE InterpreterThunkEmitter::ErrorOffset = 30;
-const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 41;
+const BYTE InterpreterThunkEmitter::FunctionInfoOffset = 8;
+const BYTE InterpreterThunkEmitter::FunctionProxyOffset = 11;
+const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 14;
+const BYTE InterpreterThunkEmitter::CallBlockStartAddrOffset = 21;
+const BYTE InterpreterThunkEmitter::ThunkSizeOffset = 26;
+const BYTE InterpreterThunkEmitter::ErrorOffset = 33;
+const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 44;
 
 const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
     0x55,                                                           //   push        ebp                ;Prolog - setup the stack frame
     0x8B, 0xEC,                                                     //   mov         ebp,esp
     0x8B, 0x45, 0x08,                                               //   mov         eax, dword ptr [ebp+8]
-    0x8B, 0x40, 0x00,                                               //   mov         eax, dword ptr [eax+FunctionBodyOffset]
+    0x8B, 0x40, 0x00,                                               //   mov         eax, dword ptr [eax+FunctionInfoOffset]
+    0x8B, 0x40, 0x00,                                               //   mov         eax, dword ptr [eax+FunctionProxyOffset]
     0x8B, 0x48, 0x00,                                               //   mov         ecx, dword ptr [eax+DynamicThunkAddressOffset]
                                                                     //   Range Check for Valid call target
     0x83, 0xE1, 0xF8,                                               //   and         ecx, 0FFFFFFF8h
@@ -163,7 +169,7 @@ const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
     0x50,                                                           //   push        eax
     0xB8, 0x00, 0x00, 0x00, 0x00,                                   //   mov         eax, <thunk>
     0xFF, 0xE1,                                                     //   jmp         ecx
-    0xCC                                                            //   int 3 for 8byte alignment
+    0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC                              //   int 3 for 8byte alignment
 };
 
 const BYTE InterpreterThunkEmitter::Epilog[] = {
@@ -387,7 +393,8 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE
     Emit(thunkBuffer, ThunkAddressOffset + sizeof(movW), movT);
 
     // Encode LDR - Load of function Body
-    thunkBuffer[FunctionBodyOffset] = Js::JavascriptFunction::GetOffsetOfFunctionInfo();
+    thunkBuffer[FunctionInfoOffset] = Js::JavascriptFunction::GetOffsetOfFunctionInfo();
+    thunkBuffer[FunctionProxyOffset] = Js::FunctionInfo::GetOffsetOfFunctionProxy();
 
     // Encode LDR - Load of interpreter thunk number
     thunkBuffer[DynamicThunkAddressOffset] = Js::FunctionBody::GetOffsetOfDynamicInterpreterThunk();
@@ -480,6 +487,11 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE
     AssertMsg(offsetOfFunctionInfo < 0x8000, "Immediate offset for LDR must be less than 0x8000");
     *(PULONG)&thunkBuffer[FunctionBodyOffset] |= (offsetOfFunctionInfo / 8) << 10;
 
+    ULONG offsetOfFunctionProxy = Js::FunctionInfo::GetOffsetOfFunctionProxy();
+    AssertMsg(offsetOfFunctionProxy % 8 == 0, "Immediate offset for LDR must be 8 byte aligned");
+    AssertMsg(offsetOfFunctionProxy < 0x8000, "Immediate offset for LDR must be less than 0x8000");
+    *(PULONG)&thunkBuffer[FunctionProxyOffset] |= (offsetOfFunctionInfo / 8) << 10;
+
     // Encode LDR - Load of interpreter thunk number
     ULONG offsetOfDynamicInterpreterThunk = Js::FunctionBody::GetOffsetOfDynamicInterpreterThunk();
     AssertMsg(offsetOfDynamicInterpreterThunk % 8 == 0, "Immediate offset for LDR must be 8 byte aligned");
@@ -517,7 +529,8 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(__in_bcount(thunkSize) BYTE
     _Analysis_assume_(thunkSize == HeaderSize);
     Emit(thunkBuffer, ThunkAddressOffset, (uintptr_t)interpreterThunk);
     thunkBuffer[DynamicThunkAddressOffset] = Js::FunctionBody::GetOffsetOfDynamicInterpreterThunk();
-    thunkBuffer[FunctionBodyOffset] = Js::JavascriptFunction::GetOffsetOfFunctionInfo();
+    thunkBuffer[FunctionInfoOffset] = Js::JavascriptFunction::GetOffsetOfFunctionInfo();
+    thunkBuffer[FunctionProxyOffset] = Js::FunctionInfo::GetOffsetOfFunctionProxy();
     Emit(thunkBuffer, CallBlockStartAddrOffset, (uintptr_t) thunkBufferStartAddress + HeaderSize);
     uint totalThunkSize = (uint)(epilogStart - (thunkBufferStartAddress + HeaderSize));
     Emit(thunkBuffer, ThunkSizeOffset, totalThunkSize);

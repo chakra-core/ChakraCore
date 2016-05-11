@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    FunctionInfo::FunctionInfo(JavascriptMethod entryPoint, Attributes attributes, LocalFunctionId functionId, FunctionBody* functionBodyImpl)
+    FunctionInfo::FunctionInfo(JavascriptMethod entryPoint, Attributes attributes, LocalFunctionId functionId, FunctionProxy* functionBodyImpl)
         : originalEntryPoint(entryPoint), attributes(attributes), functionBodyImpl(functionBodyImpl), functionId(functionId)
     {
 #if !DYNAMIC_INTERPRETER_THUNK
@@ -40,8 +40,7 @@ namespace Js
     FunctionBody *
     FunctionInfo::GetFunctionBody() const
     {
-        Assert(functionBodyImpl == nullptr || functionBodyImpl->IsFunctionBody());
-        return (FunctionBody *)functionBodyImpl;
+        return functionBodyImpl == nullptr ? nullptr : functionBodyImpl->GetFunctionBody();
     }
 
     FunctionInfo::Attributes FunctionInfo::GetAttributes(Js::RecyclableObject * function)

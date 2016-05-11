@@ -3067,6 +3067,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
 {
     char16 *buffer = description;
     size_t n = count;
+    Js::FunctionBody *functionBody = nullptr;
 
     if (address)
     {
@@ -3231,14 +3232,20 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             WriteToBuffer(&buffer, &n, _u(" (&RecyclerAllocatorFreeList)"));
             break;
 
-        case IR::AddrOpndKindDynamicFunctionBody:
+        case IR::AddrOpndKindDynamicFunctionInfo:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             DumpFunctionInfo(&buffer, &n, (Js::FunctionInfo *)address, printToConsole);
             break;
 
+        case IR::AddrOpndKindDynamicFunctionBody:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            DumpFunctionInfo(&buffer, &n, ((Js::FunctionBody *)address)->GetFunctionInfo(), printToConsole);
+            break;
+
         case IR::AddrOpndKindDynamicFunctionBodyWeakRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, _u("FunctionBodyWeakRef"));
+            functionBody = ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet();
+            DumpFunctionInfo(&buffer, &n, functionBody == nullptr ? nullptr : functionBody->GetFunctionInfo(), printToConsole, _u("FunctionBodyWeakRef"));
             break;
 
         case IR::AddrOpndKindDynamicFunctionEnvironmentRef:

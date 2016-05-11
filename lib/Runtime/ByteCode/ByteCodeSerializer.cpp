@@ -2222,7 +2222,7 @@ public:
             ;
 
         PrependInt32(builder, _u("BitFlags"), bitFlags);
-        PrependInt32(builder, _u("Relative Function ID"), function->functionId - topFunctionId); // Serialized function ids are relative to the top function ID
+        PrependInt32(builder, _u("Relative Function ID"), function->GetLocalFunctionId() - topFunctionId); // Serialized function ids are relative to the top function ID
         PrependInt32(builder, _u("Attributes"), function->GetAttributes());
         AssertMsg((function->GetAttributes() &
                 ~(FunctionInfo::Attributes::ErrorOnNew
@@ -2413,7 +2413,7 @@ public:
 
     HRESULT AddTopFunctionBody(FunctionBody * function, SRCINFO const * srcInfo)
     {
-        topFunctionId = function->functionId;
+        topFunctionId = function->GetLocalFunctionId();
         return AddFunctionBody(functionsTable, function, srcInfo);
     }
 

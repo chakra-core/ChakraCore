@@ -324,7 +324,7 @@ namespace Js
     typedef JsUtil::BaseDictionary<EvalMapString, ScriptFunction*, RecyclerNonLeafAllocator, PrimeSizePolicy> SecondLevelEvalCache;
     typedef TwoLevelHashRecord<FastEvalMapString, ScriptFunction*, SecondLevelEvalCache, EvalMapString> EvalMapRecord;
     typedef JsUtil::Cache<FastEvalMapString, EvalMapRecord*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<FastEvalMapString, EvalMRUSize>, FastEvalMapStringComparer> EvalCacheTopLevelDictionary;
-    typedef JsUtil::Cache<EvalMapString, ParseableFunctionInfo*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<EvalMapString, EvalMRUSize>> NewFunctionCache;
+    typedef JsUtil::Cache<EvalMapString, FunctionInfo*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<EvalMapString, EvalMRUSize>> NewFunctionCache;
     typedef JsUtil::BaseDictionary<ParseableFunctionInfo*, ParseableFunctionInfo*, Recycler, PrimeSizePolicy, RecyclerPointerComparer> ParseableFunctionInfoMap;
     // This is the dictionary used by script context to cache the eval.
     typedef TwoLevelHashDictionary<FastEvalMapString, ScriptFunction*, EvalMapRecord, EvalCacheTopLevelDictionary, EvalMapString> EvalCacheDictionary;
@@ -1021,8 +1021,8 @@ private:
         inline bool EnableEvalMapCleanup() { return CONFIG_FLAG(EnableEvalMapCleanup); };
         uint GetNextSourceContextId();
 
-        bool IsInNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo **ppFuncBody);
-        void AddToNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo *pFuncBody);
+        bool IsInNewFunctionMap(EvalMapString const& key, FunctionInfo **ppFuncInfo);
+        void AddToNewFunctionMap(EvalMapString const& key, FunctionInfo *pFuncInfo);
 
         SourceContextInfo * GetSourceContextInfo(DWORD_PTR hostSourceContext, IActiveScriptDataCache* profileDataCache);
         SourceContextInfo * GetSourceContextInfo(uint hash);

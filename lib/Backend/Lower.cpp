@@ -6164,7 +6164,16 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfConstructorCache(),
         LoadLibraryValueOpnd(insertBeforeInstr, LibraryValue::ValueConstructorCacheDefaultInstance),
         insertBeforeInstr, isZeroed);
-    GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfFunctionInfo(), functionProxyOpnd, insertBeforeInstr, isZeroed);
+    IR::Opnd *functionInfoOpnd;
+    if (functionProxyOpnd->IsRegOpnd())
+    {
+        functionInfoOpnd = IR::IndirOpnd::New(functionProxyOpnd->AsRegOpnd(), Js::FunctionProxy::GetOffsetOfFunctionInfo(), TyMachReg, func);
+    }
+    else
+    {
+        functionInfoOpnd = IR::MemRefOpnd::New((BYTE*)functionProxyOpnd->AsAddrOpnd()->m_address + Js::FunctionProxy::GetOffsetOfFunctionInfo(), TyMachReg, func);
+    }
+    GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfFunctionInfo(), functionInfoOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfEnvironment(), envOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInitNull(regOpnd, Js::ScriptFunction::GetOffsetOfCachedScopeObj(), insertBeforeInstr, isZeroed);
     GenerateMemInitNull(regOpnd, Js::ScriptFunction::GetOffsetOfHasInlineCaches(), insertBeforeInstr, isZeroed);
