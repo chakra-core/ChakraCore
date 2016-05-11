@@ -144,10 +144,10 @@ private:
     void            EnsureZeroLastStackFunctionNext();
     void            AllocStackClosure();
     IR::Instr *     GenerateNewStackScFunc(IR::Instr * newScFuncInstr, IR::RegOpnd ** ppEnvOpnd);
-    void            GenerateStackScriptFunctionInit(StackSym * stackSym, intptr_t nestedProxy);
+    void            GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionInfoPtrPtr nestedInfo);
     void            GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddressOpnd,
-                        intptr_t nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr, bool isZeroed = false);
-    void            GenerateStackScriptFunctionInit(IR::RegOpnd * regOpnd, intptr_t nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr);
+                        Js::FunctionInfoPtrPtr nestedInfo, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr, bool isZeroed = false);
+    void            GenerateStackScriptFunctionInit(IR::RegOpnd * regOpnd, Js::FunctionInfoPtrPtr nestedInfo, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr);
     IR::Instr *     LowerProfiledStFld(IR::JitProfilingInstr * instr, Js::PropertyOperationFlags flags);
     IR::Instr *     LowerStFld(IR::Instr * stFldInstr, IR::JnHelperMethod helperMethod, IR::JnHelperMethod polymorphicHelperMethod, bool withInlineCache, IR::LabelInstr *ppBailOutLabel = nullptr, bool isHelper = false, bool withPutFlags = false, Js::PropertyOperationFlags flags = Js::PropertyOperation_None);
     IR::Instr *     LowerScopedStFld(IR::Instr * stFldInstr, IR::JnHelperMethod helperMethod, bool withInlineCache,
@@ -327,8 +327,7 @@ public:
     static IR::Instr *          InsertConvertFloat64ToFloat32(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr);
 
 public:
-    static void InsertIncUInt8PreventOverflow(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, IR::Instr * *const onOverflowInsertBeforeInstrRef = nullptr);
-    static void InsertDecUInt8PreventOverflow(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, IR::Instr * *const onOverflowInsertBeforeInstrRef = nullptr);
+    static void InsertDecUInt32PreventOverflow(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, IR::Instr * *const onOverflowInsertBeforeInstrRef = nullptr);
     void InsertFloatCheckForZeroOrNanBranch(IR::Opnd *const src, const bool branchOnZeroOrNan, IR::LabelInstr *const target, IR::LabelInstr *const fallthroughLabel, IR::Instr *const insertBeforeInstr);
 
 public:

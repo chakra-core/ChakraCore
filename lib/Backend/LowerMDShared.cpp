@@ -1445,13 +1445,15 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             if(instr->m_opcode == Js::OpCode::MOV)
             {
                 uint src1Forms = L_Reg | L_Mem | L_Ptr;     // Allow 64 bit values in x64 as well
-#if _M_X64
                 if (dst->IsMemoryOpnd())
                 {
+#if _M_X64
                     // Only allow <= 32 bit values
                     src1Forms = L_Reg | L_Imm32;
-                }
+#else
+                    src1Forms = L_Reg | L_Ptr;
 #endif
+                }
                 LegalizeOpnds<verify>(
                     instr,
                     L_Reg | L_Mem,
@@ -4750,83 +4752,6 @@ LowererMD::GenerateStFldFromLocalInlineCache(
     // JMP $fallthru
     instr = IR::BranchInstr::New(Js::OpCode::JMP, labelFallThru, instrStFld->m_func);
     instrStFld->InsertBefore(instr);
-}
-
-void LowererMD::InsertIncUInt8PreventOverflow(
-    IR::Opnd *const dst,
-    IR::Opnd *const src,
-    IR::Instr *const insertBeforeInstr,
-    IR::Instr * *const onOverflowInsertBeforeInstrRef)
-{
-    Assert(dst);
-    Assert(dst->GetType() == TyUint8);
-    Assert(src);
-    Assert(src->GetType() == TyUint8);
-    Assert(insertBeforeInstr);
-
-    Func *const func = insertBeforeInstr->m_func;
-
-    // Generate:
-    //       cmp src, static_cast<uint8>(-1)
-    //       jeq $done
-    // dst = add src, 1
-    //   $noOverflow:
-
-    IR::LabelInstr *const noOverflowLabel = Lowerer::InsertLabel(false, insertBeforeInstr);
-
-    Lowerer::InsertCompareBranch(src, IR::IntConstOpnd::New(static_cast<uint8>(-1), TyUint8, func, true),
-        Js::OpCode::BrEq_A, noOverflowLabel, noOverflowLabel);
-
-    //     inc dst, src
-    Lowerer::InsertAdd(true, dst, src, IR::IntConstOpnd::New(1, TyUint8, func, true), noOverflowLabel);
-
-    //   $done:
-
-    if(onOverflowInsertBeforeInstrRef)
-    {
-        *onOverflowInsertBeforeInstrRef = noOverflowLabel;
-    }
-}
-
-void LowererMD::InsertDecUInt8PreventOverflow(
-    IR::Opnd *const dst,
-    IR::Opnd *const src,
-    IR::Instr *const insertBeforeInstr,
-    IR::Instr * *const onOverflowInsertBeforeInstrRef)
-{
-    Assert(dst);
-    Assert(dst->GetType() == TyUint8);
-    Assert(src);
-    Assert(src->GetType() == TyUint8);
-    Assert(insertBeforeInstr);
-
-    Func *const func = insertBeforeInstr->m_func;
-
-    // Generate:
-    //     sub dst, src, 1
-    //     jnc $noOverflow
-    //     mov dst, 0
-    //   $noOverflow:
-
-    IR::LabelInstr *const noOverflowLabel = Lowerer::InsertLabel(false, insertBeforeInstr);
-
-    //     sub dst, src, 1
-    IR::Instr *const instr = IR::Instr::New(Js::OpCode::SUB, dst, src, IR::IntConstOpnd::New(1, TyUint8, func, true), func);
-    noOverflowLabel->InsertBefore(instr);
-    MakeDstEquSrc1(instr);
-
-    //     jnc $noOverflow
-    Lowerer::InsertBranch(Js::OpCode::BrGe_A, true, noOverflowLabel, noOverflowLabel);
-
-    //     mov dst, 0
-    Lowerer::InsertMove(dst, IR::IntConstOpnd::New(0, TyUint8, func, true), noOverflowLabel);
-
-    //   $noOverflow:
-
-    if(onOverflowInsertBeforeInstrRef)
-    {
-        *onOverflowInsertBeforeInstrRef = noOverflowLabel;
-    }
 }
 
 //----------------------------------------------------------------------------

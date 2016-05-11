@@ -21,7 +21,7 @@ namespace Js
 
     ScriptFunctionType * ScriptFunctionType::New(FunctionProxy * proxy, bool isShared)
     {
-        Assert(proxy->GetFunctionProxy() == proxy);
+        Assert(proxy->GetFunctionInfo()->GetFunctionProxy() == proxy);
         ScriptContext * scriptContext = proxy->GetScriptContext();
         JavascriptLibrary * library = scriptContext->GetLibrary();
         DynamicObject * functionPrototype = proxy->IsAsync() ? library->GetAsyncFunctionPrototype() : library->GetFunctionPrototype();

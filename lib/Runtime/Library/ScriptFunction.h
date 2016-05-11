@@ -47,7 +47,7 @@ namespace Js
         ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
         static bool Is(Var func);
         static ScriptFunction * FromVar(Var func);
-        static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionProxy** proxyRef);
+        static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
         ProxyEntryPointInfo* GetEntryPointInfo() const;
         FunctionEntryPointInfo* GetFunctionEntryPointInfo() const

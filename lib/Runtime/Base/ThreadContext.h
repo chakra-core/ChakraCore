@@ -14,6 +14,8 @@ namespace Js
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
 }
 
+typedef BVSparse<ArenaAllocator> ActiveFunctionSet;
+
 using namespace PlatformAgnostic;
 
 struct IAuthorFileContext;
@@ -648,6 +650,22 @@ private:
     uint functionCount;
     uint sourceInfoCount;
 
+    enum RedeferralState
+    {
+        InitialRedeferralState,
+        StartupRedeferralState,
+        MainRedeferralState
+    };
+    RedeferralState redeferralState;
+    uint gcSinceLastRedeferral;
+    uint gcSinceCallCountsCollected;
+
+    static const uint InitialRedeferralDelay = 5;
+    static const uint StartupRedeferralCheckInterval = 10;
+    static const uint StartupRedeferralInactiveThreshold = 5;
+    static const uint MainRedeferralCheckInterval = 20;
+    static const uint MainRedeferralInactiveThreshold = 10;
+
     Js::TypeId nextTypeId;
     uint32 polymorphicCacheState;
 
@@ -1131,6 +1149,14 @@ public:
     size_t  GetCodeSize() { return nativeCodeSize; }
     static size_t  GetProcessCodeSize() { return processNativeCodeSize; }
     size_t GetSourceSize() { return sourceCodeSize; }
+
+    bool DoTryRedeferral() const;
+    void TryRedeferral();
+    bool DoRedeferFunctionBodies() const;
+    void UpdateRedeferralState();
+    uint GetRedeferralCollectionInterval() const;
+    uint GetRedeferralInactiveThreshold() const;
+    void GetActiveFunctions(ActiveFunctionSet * pActive);
 
     Js::ScriptEntryExitRecord * GetScriptEntryExit() const { return entryExitRecord; }
     void RegisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
