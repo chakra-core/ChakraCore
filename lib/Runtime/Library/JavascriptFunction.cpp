@@ -898,7 +898,7 @@ namespace Js
         Var functionResult;
         if (spreadIndices != nullptr)
         {
-            functionResult = CallSpreadFunction(functionObj, functionObj->GetEntryPoint(), newArgs, spreadIndices);
+            functionResult = CallSpreadFunction(functionObj, newArgs, spreadIndices);
         }
         else
         {
@@ -941,7 +941,7 @@ namespace Js
 
         RUNTIME_ARGUMENTS(args, callInfo);
 
-        return JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices);
+        return JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
     }
 
     uint32 JavascriptFunction::GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
@@ -1082,7 +1082,7 @@ namespace Js
         }
     }
 
-    Var JavascriptFunction::CallSpreadFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args, const Js::AuxArray<uint32> *spreadIndices)
+    Var JavascriptFunction::CallSpreadFunction(RecyclableObject* function, Arguments args, const Js::AuxArray<uint32> *spreadIndices)
     {
         ScriptContext* scriptContext = function->GetScriptContext();
 
@@ -1109,7 +1109,7 @@ namespace Js
 
         SpreadArgs(args, outArgs, spreadIndices, scriptContext);
 
-        return JavascriptFunction::CallFunction<true>(function, entryPoint, outArgs);
+        return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), outArgs);
     }
 
     Var JavascriptFunction::CallFunction(Arguments args)

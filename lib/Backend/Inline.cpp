@@ -497,7 +497,7 @@ uint Inline::FillInlineesDataArray(
         }
 
         Js::FunctionBody *inlineeFunctionBody = inlineeJitTimeData->GetFunctionBody();
-        if (!PHASE_OFF(Js::PolymorphicInlinePhase, inlineeFunctionBody))
+        if (inlineeFunctionBody && !PHASE_OFF(Js::PolymorphicInlinePhase, inlineeFunctionBody))
         {
             const Js::FunctionCodeGenJitTimeData* rightInlineeJitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfo(inlineeFunctionBody->GetFunctionInfo());
             const Js::FunctionCodeGenRuntimeData* rightInlineeRuntimeData = inlineeRuntimeData->GetRuntimeDataFromFunctionInfo(inlineeFunctionBody->GetFunctionInfo());
@@ -549,14 +549,15 @@ void Inline::FillInlineesDataArrayUsingFixedMethods(
     while (inlineeJitTimeData)
     {
         inlineeFuncBody = inlineeJitTimeData->GetFunctionBody();
-        if (!PHASE_OFF(Js::PolymorphicInlinePhase, inlineeFuncBody) && !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, inlineeFuncBody))
+        if (inlineeFuncBody && !PHASE_OFF(Js::PolymorphicInlinePhase, inlineeFuncBody) && !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, inlineeFuncBody))
         {
             const Js::FunctionCodeGenJitTimeData* jitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfo(inlineeFuncBody->GetFunctionInfo());
             if (jitTimeData)
             {
                 for (uint16 i = 0; i < cachedFixedInlineeCount; i++)
                 {
-                    if (inlineeFuncBody == ((Js::JavascriptFunction*)(fixedFieldInfoArray[i].fieldValue))->GetFunctionBody())
+                    Js::ParseableFunctionInfo *info = ((Js::JavascriptFunction*)(fixedFieldInfoArray[i].fieldValue))->GetParseableFunctionInfo();
+                    if (info->IsFunctionBody() && inlineeFuncBody == info->GetFunctionBody())
                     {
                         inlineesDataArray[i].inlineeJitTimeData = inlineeJitTimeData->GetJitTimeDataFromFunctionInfo(inlineeFuncBody->GetFunctionInfo());
                         inlineesDataArray[i].inlineeRuntimeData = inlineeRuntimeData->GetRuntimeDataFromFunctionInfo(inlineeFuncBody->GetFunctionInfo());

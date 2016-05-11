@@ -425,6 +425,7 @@ namespace Js
 
         const ScriptContextBase* GetScriptContextBase() const { return static_cast<const ScriptContextBase*>(this); }
 
+        void RedeferFunctionBodies(ActiveFunctionSet *pActive);
         bool DoUndeferGlobalFunctions() const;
 
         bool IsUndeclBlockVar(Var var) const { return this->javascriptLibrary->IsUndeclBlockVar(var); }

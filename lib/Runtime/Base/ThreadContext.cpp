@@ -1601,6 +1601,14 @@ ThreadContext::ProbeStackNoDispose(size_t size, Js::ScriptContext *scriptContext
             this->CheckInterruptPoll();
         }
     }
+
+    if (PHASE_STRESS1(Js::RedeferralPhase))
+    {
+        if (JsUtil::ExternalApi::IsScriptActiveOnCurrentThreadContext())
+        {
+            this->RedeferFunctionBodies();
+        }
+    }
 }
 
 void
@@ -2333,6 +2341,7 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
 #ifdef PERF_COUNTERS
     PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: deferparse - # of func: %d # deferparsed: %d\n"), PerfCounter::CodeCounterSet::GetTotalFunctionCounter().GetValue(), PerfCounter::CodeCounterSet::GetDeferredFunctionCounter().GetValue());
 #endif
+
     // This needs to be done before ClearInlineCaches since that method can empty the list of
     // script contexts with inline caches
     this->ClearScriptContextCaches();
@@ -2409,12 +2418,69 @@ ThreadContext::PostCollectionCallBack()
 
     // Recycler is null in the case where the ThreadContext is in the process of creating the recycler and
     // we have a GC triggered (say because the -recyclerStress flag is passed in)
-    if (this->recycler != NULL && this->recycler->InCacheCleanupCollection())
+    if (this->recycler != NULL)
     {
-        this->recycler->ClearCacheCleanupCollection();
-        for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext; scriptContext = scriptContext->next)
+        if (this->recycler->InCacheCleanupCollection())
         {
-            scriptContext->CleanupWeakReferenceDictionaries();
+            this->recycler->ClearCacheCleanupCollection();
+            for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext; scriptContext = scriptContext->next)
+            {
+                scriptContext->CleanupWeakReferenceDictionaries();
+            }
+        }
+
+        HRESULT hr = S_OK;
+        BEGIN_TRANSLATE_OOM_TO_HRESULT
+        {
+            this->RedeferFunctionBodies();
+        }
+        END_TRANSLATE_OOM_TO_HRESULT(hr);
+    }
+}
+
+void
+ThreadContext::RedeferFunctionBodies()
+{
+    // TODO: Heuristic to decide whether we need/want to redefer now.
+    if (!PHASE_ON1(Js::RedeferralPhase))
+    {
+        return;
+    }
+
+    // Collect the set of active functions.
+    ActiveFunctionSet *pActiveFuncs = nullptr;
+    pActiveFuncs = Anew(this->GetThreadAlloc(), ActiveFunctionSet, this->GetThreadAlloc());
+    this->GetActiveFunctions(pActiveFuncs);
+
+    Js::ScriptContext *scriptContext;
+    for (scriptContext = GetScriptContextList(); scriptContext; scriptContext = scriptContext->next)
+    {
+        if (scriptContext->IsClosed())
+        {
+            continue;
+        }
+        scriptContext->RedeferFunctionBodies(pActiveFuncs);
+    }
+
+    Adelete(this->GetThreadAlloc(), pActiveFuncs);
+}
+
+void
+ThreadContext::GetActiveFunctions(ActiveFunctionSet * pActiveFuncs)
+{
+    if (!this->IsInScript())
+    {
+        return;
+    }
+
+    Js::JavascriptStackWalker walker(GetScriptContextList(), TRUE, NULL, true);
+    Js::JavascriptFunction *function = nullptr;
+    while (walker.GetCallerWithoutInlinedFrames(&function))
+    {
+        if (function->GetFunctionInfo()->HasBody())
+        {
+            Js::FunctionBody *body = function->GetFunctionInfo()->GetFunctionBody();
+            body->UpdateActiveFunctionSet(pActiveFuncs);
         }
     }
 }

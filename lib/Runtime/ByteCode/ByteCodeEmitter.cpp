@@ -3228,7 +3228,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
                 Js::FunctionProxy * nested = byteCodeFunction->GetNestedFunc(i);
                 if (nested->IsFunctionBody())
                 {
-                    nested->GetFunctionBody()->SetStackNestedFuncParent(byteCodeFunction);
+                    nested->GetFunctionBody()->SetStackNestedFuncParent(byteCodeFunction->GetFunctionInfo());
                 }
             }
         }

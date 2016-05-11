@@ -1018,6 +1018,20 @@ namespace Js
     }
 #endif
 
+    void ScriptContext::RedeferFunctionBodies(ActiveFunctionSet *pActiveFuncs)
+    {
+        Assert(!this->IsClosed());
+
+        auto fn = [&](FunctionBody *functionBody) {
+            if (functionBody->GetFunctionInfo()->GetFunctionProxy() == functionBody && functionBody->CanBeDeferred() && !pActiveFuncs->Test(functionBody->GetFunctionNumber()) && functionBody->GetByteCode() != nullptr && functionBody->GetCanDefer())
+            {
+                functionBody->RedeferFunction();
+            }
+        };
+
+        this->MapFunction(fn);
+    }
+
     bool ScriptContext::DoUndeferGlobalFunctions() const
     {
         return CONFIG_FLAG(DeferTopLevelTillFirstCall) && !AutoSystemInfo::Data.IsLowMemoryProcess();

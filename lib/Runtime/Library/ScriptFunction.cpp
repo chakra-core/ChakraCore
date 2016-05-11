@@ -703,7 +703,7 @@ namespace Js
         uint totalCacheCount = isInstInlineCacheStart + isInstInlineCacheCount;
         if (this->GetHasInlineCaches() && this->m_inlineCaches && this->hasOwnInlineCaches)
         {
-            Js::ScriptContext* scriptContext = this->GetFunctionBody()->GetScriptContext();
+            Js::ScriptContext* scriptContext = this->GetParseableFunctionInfo()->GetScriptContext();
             uint i = 0;
             uint unregisteredInlineCacheCount = 0;
             uint plainInlineCacheEnd = rootObjectLoadInlineCacheStart;

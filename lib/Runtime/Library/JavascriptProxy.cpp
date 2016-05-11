@@ -1924,7 +1924,7 @@ namespace Js
         Var functionResult;
         if (spreadIndices != nullptr)
         {
-            functionResult = JavascriptFunction::CallSpreadFunction(this, this->GetEntryPoint(), args, spreadIndices);
+            functionResult = JavascriptFunction::CallSpreadFunction(this, args, spreadIndices);
         }
         else
         {

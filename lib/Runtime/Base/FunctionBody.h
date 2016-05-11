@@ -1324,6 +1324,7 @@ namespace Js
         void SetCapturesThis();
         bool GetEnclosedByGlobalFunc() const;
         void SetEnclosedByGlobalFunc();
+        bool CanBeDeferred() const;
         BOOL IsDeferredDeserializeFunction() const;
         BOOL IsDeferredParseFunction() const;
         FunctionInfo::Attributes GetAttributes() const;
@@ -1362,6 +1363,8 @@ namespace Js
 
         // Function object type list methods
         FunctionTypeWeakRefList* EnsureFunctionObjectTypeList();
+        FunctionTypeWeakRefList* GetFunctionObjectTypeList() const;
+        void SetFunctionObjectTypeList(FunctionTypeWeakRefList* list);
         void RegisterFunctionObjectType(DynamicType* functionType);
         template <typename Fn>
         void MapFunctionObjectTypes(Fn func);
@@ -1437,6 +1440,7 @@ namespace Js
 
         bool m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
         bool m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
+        bool m_canBeDeferred : 1;
         void CleanupFunctionProxyCounters()
         {
             PERF_COUNTER_DEC(Code, TotalFunction);
@@ -1603,6 +1607,13 @@ namespace Js
         return GetFunctionInfo()->IsLambda();
     }
 
+    inline bool FunctionProxy::CanBeDeferred() const
+    {
+        Assert(GetFunctionInfo());
+        Assert(GetFunctionInfo()->GetFunctionProxy() == this);
+        return GetFunctionInfo()->CanBeDeferred();
+    }
+
     inline bool FunctionProxy::IsClassConstructor() const
     {
         Assert(GetFunctionInfo());
@@ -1678,6 +1689,8 @@ namespace Js
     protected:
         ParseableFunctionInfo(JavascriptMethod method, int nestedFunctionCount, LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber, const char16* displayName, uint m_displayNameLength, uint displayShortNameOffset, FunctionInfo::Attributes attributes, Js::PropertyRecordList* propertyRecordList);
 
+        ParseableFunctionInfo(ParseableFunctionInfo * proxy);
+
     public:
         struct NestedArray
         {
@@ -1706,12 +1719,51 @@ namespace Js
 
     public:
         static ParseableFunctionInfo* New(ScriptContext* scriptContext, int nestedFunctionCount, LocalFunctionId functionId, Utf8SourceInfo* utf8SourceInfo, const char16* displayName, uint m_displayNameLength, uint displayShortNameOffset, Js::PropertyRecordList* propertyRecordList, FunctionInfo::Attributes attributes);
+        static ParseableFunctionInfo* NewDeferredFunctionFromFunctionBody(FunctionBody *functionBody);
 
         DEFINE_VTABLE_CTOR_NO_REGISTER(ParseableFunctionInfo, FunctionProxy);
         FunctionBody* Parse(ScriptFunction ** functionRef = nullptr, bool isByteCodeDeserialization = false);
 #ifndef TEMP_DISABLE_ASMJS
         FunctionBody* ParseAsmJs(Parser * p, __out CompileScriptException * se, __out ParseNodePtr * ptree);
 #endif
+
+        enum FunctionBodyFlags : byte
+        {
+            Flags_None                     = 0x00,
+            Flags_StackNestedFunc          = 0x01,
+            Flags_HasOrParentHasArguments  = 0x02,
+            Flags_HasTry                   = 0x04,
+            Flags_HasThis                  = 0x08,
+            Flags_NonUserCode              = 0x10,
+            Flags_HasOnlyThisStatements    = 0x20,
+            Flags_HasNoExplicitReturnValue = 0x40,   // Returns undefined, i.e. has no return statements or return with no expression
+            Flags_HasRestParameter         = 0x80
+        };
+
+        bool GetHasThis() const { return (flags & Flags_HasThis) != 0; }
+        void SetHasThis(bool has) { SetFlags(has, Flags_HasThis); }
+
+        bool GetHasTry() const { return (flags & Flags_HasTry) != 0; }
+        void SetHasTry(bool has) { SetFlags(has, Flags_HasTry); }
+
+        bool GetHasOrParentHasArguments() const { return (flags & Flags_HasOrParentHasArguments) != 0; }
+        void SetHasOrParentHasArguments(bool has) { SetFlags(has, Flags_HasOrParentHasArguments); }
+
+        bool DoStackNestedFunc() const { return (flags & Flags_StackNestedFunc) != 0; }
+        void SetStackNestedFunc(bool does) { SetFlags(does, Flags_StackNestedFunc); }
+
+        bool IsNonUserCode() const { return (flags & Flags_NonUserCode) != 0; }
+        void SetIsNonUserCode(bool set);
+
+        bool GetHasNoExplicitReturnValue() { return (flags & Flags_HasNoExplicitReturnValue) != 0; }
+        void SetHasNoExplicitReturnValue(bool has) { SetFlags(has, Flags_HasNoExplicitReturnValue); }
+
+        bool GetHasOnlyThisStmts() const { return (flags & Flags_HasOnlyThisStatements) != 0; }
+        void SetHasOnlyThisStmts(bool has) { SetFlags(has, Flags_HasOnlyThisStatements); }
+
+        bool GetHasRestParameter() const { return (flags & Flags_HasRestParameter) != 0; }
+        void SetHasRestParameter() { SetFlags(true, Flags_HasRestParameter); }
+
         virtual uint GetDisplayNameLength() const { return m_displayNameLength; }
         virtual uint GetShortDisplayNameOffset() const { return m_displayShortNameOffset; }
         bool GetIsDeclaration() const { return m_isDeclaration; }
@@ -1855,6 +1907,7 @@ namespace Js
         }
 
         void SetSourceInfo(uint sourceIndex, ParseNodePtr node, bool isEval, bool isDynamicFunction);
+        void Copy(ParseableFunctionInfo * proxy);
         void Copy(FunctionBody* other);
 
         const char16* GetExternalDisplayName() const;
@@ -1891,13 +1944,24 @@ namespace Js
         ParseableFunctionInfo* GetNestedFunctionForExecution(uint index);
         void SetNestedFunc(FunctionProxy* nestedFunc, uint index, uint32 flags);
         void ClearNestedFunctionParentFunctionReference();
-
         void BuildDeferredStubs(ParseNode *pnodeFnc);
         DeferredFunctionStub *GetDeferredStubs() const { return static_cast<DeferredFunctionStub *>(this->GetAuxPtr(AuxPointerType::DeferredStubs)); }
         void SetDeferredStubs(DeferredFunctionStub *stub) { this->SetAuxPtr(AuxPointerType::DeferredStubs, stub); }
         void RegisterFuncToDiag(ScriptContext * scriptContext, char16 const * pszTitle);
     protected:
         static HRESULT MapDeferredReparseError(HRESULT& hrParse, const CompileScriptException& se);
+
+        void SetFlags(bool does, FunctionBodyFlags newFlags)
+        {
+            if (does)
+            {
+                flags = (FunctionBodyFlags)(flags | newFlags);
+            }
+            else
+            {
+                flags = (FunctionBodyFlags)(flags & ~newFlags);
+            }
+        }
 
         bool m_hasBeenParsed : 1;       // Has function body been parsed- true for actual function bodies, false for deferparse
         bool m_isDeclaration : 1;
@@ -2205,19 +2269,6 @@ namespace Js
         // This value be set on the stack (on a particular offset), when the frame value got changed.
         static const int LocalsChangeDirtyValue = 1;
 
-        enum FunctionBodyFlags : byte
-        {
-            Flags_None                     = 0x00,
-            Flags_StackNestedFunc          = 0x01,
-            Flags_HasOrParentHasArguments  = 0x02,
-            Flags_HasTry                   = 0x04,
-            Flags_HasThis                  = 0x08,
-            Flags_NonUserCode              = 0x10,
-            Flags_HasOnlyThisStatements    = 0x20,
-            Flags_HasNoExplicitReturnValue = 0x40,   // Returns undefined, i.e. has no return statements or return with no expression
-            Flags_HasRestParameter         = 0x80
-        };
-
 #define DEFINE_FUNCTION_BODY_FIELDS 1
 #define CURRENT_ACCESS_MODIFIER public:
 #include "SerializableFunctionFields.h"
@@ -2383,6 +2434,9 @@ namespace Js
 
         FunctionEntryPointInfo * GetEntryPointInfo(int index) const;
         FunctionEntryPointInfo * TryGetEntryPointInfo(int index) const;
+
+        void RedeferFunction();
+        void UpdateActiveFunctionSet(BVSparse<ArenaAllocator> *pActiveFuncs) const;
 
         Js::RootObjectBase * LoadRootObject() const;
         Js::RootObjectBase * GetRootObject() const;
@@ -2756,6 +2810,7 @@ namespace Js
         // Field accessors
         bool GetHasBailoutInstrInJittedCode() const { return this->m_hasBailoutInstrInJittedCode; }
         void SetHasBailoutInstrInJittedCode(bool hasBailout) { this->m_hasBailoutInstrInJittedCode = hasBailout; }
+        bool GetCanDefer() const { return this->functionInfo->CanBeDeferred() && this->m_depth == 0; }
         bool GetCanReleaseLoopHeaders() const { return (this->m_depth == 0); }
         void SetPendingLoopHeaderRelease(bool pendingLoopHeaderRelease) { this->m_pendingLoopHeaderRelease = pendingLoopHeaderRelease; }
 
@@ -2923,44 +2978,22 @@ namespace Js
     private:
         void ResetProfileIds();
 
-        void SetFlags(bool does, FunctionBodyFlags newFlags)
-        {
-            if (does)
-            {
-                flags = (FunctionBodyFlags)(flags | newFlags);
-            }
-            else
-            {
-                flags = (FunctionBodyFlags)(flags & ~newFlags);
-            }
-        }
     public:
-        bool GetHasThis() const { return (flags & Flags_HasThis) != 0; }
-        void SetHasThis(bool has) { SetFlags(has, Flags_HasThis); }
-
-        bool GetHasTry() const { return (flags & Flags_HasTry) != 0; }
-        void SetHasTry(bool has) { SetFlags(has, Flags_HasTry); }
-
         bool GetHasFinally() const { return m_hasFinally; }
         void SetHasFinally(bool has){ m_hasFinally = has; }
 
         bool GetFuncEscapes() const { return funcEscapes; }
         void SetFuncEscapes(bool does) { funcEscapes = does; }
 
-        bool GetHasOrParentHasArguments() const { return (flags & Flags_HasOrParentHasArguments) != 0; }
-        void SetHasOrParentHasArguments(bool has) { SetFlags(has, Flags_HasOrParentHasArguments); }
-
-        bool DoStackNestedFunc() const { return (flags & Flags_StackNestedFunc) != 0; }
-        void SetStackNestedFunc(bool does) { SetFlags(does, Flags_StackNestedFunc); }
 #if DBG
         bool CanDoStackNestedFunc() const { return m_canDoStackNestedFunc; }
         void SetCanDoStackNestedFunc() { m_canDoStackNestedFunc = true; }
 #endif
-        RecyclerWeakReference<FunctionBody> * GetStackNestedFuncParent();
-        FunctionBody * GetStackNestedFuncParentStrongRef();
-        FunctionBody * GetAndClearStackNestedFuncParent();
+        RecyclerWeakReference<FunctionInfo> * GetStackNestedFuncParent();
+        FunctionInfo * GetStackNestedFuncParentStrongRef();
+        FunctionInfo * GetAndClearStackNestedFuncParent();
         void ClearStackNestedFuncParent();
-        void SetStackNestedFuncParent(FunctionBody * parentFunctionBody);
+        void SetStackNestedFuncParent(FunctionInfo * parentFunctionInfo);
 #if defined(_M_IX86) || defined(_M_X64)
         bool DoStackClosure() const
         {
@@ -2975,23 +3008,11 @@ namespace Js
         bool DoStackFrameDisplay() const { return DoStackClosure(); }
         bool DoStackScopeSlots() const { return DoStackClosure(); }
 
-        bool IsNonUserCode() const { return (flags & Flags_NonUserCode) != 0; }
-        void SetIsNonUserCode(bool set);
-
-        bool GetHasNoExplicitReturnValue() { return (flags & Flags_HasNoExplicitReturnValue) != 0; }
-        void SetHasNoExplicitReturnValue(bool has) { SetFlags(has, Flags_HasNoExplicitReturnValue); }
-
-        bool GetHasOnlyThisStmts() const { return (flags & Flags_HasOnlyThisStatements) != 0; }
-        void SetHasOnlyThisStmts(bool has) { SetFlags(has, Flags_HasOnlyThisStatements); }
-
         bool GetIsFirstFunctionObject() const { return m_firstFunctionObject; }
         void SetIsNotFirstFunctionObject() { m_firstFunctionObject = false; }
 
         bool GetInlineCachesOnFunctionObject() { return m_inlineCachesOnFunctionObject; }
         void SetInlineCachesOnFunctionObject(bool has) { m_inlineCachesOnFunctionObject = has; }
-
-        bool GetHasRestParameter() const { return (flags & Flags_HasRestParameter) != 0; }
-        void SetHasRestParameter() { SetFlags(true, Flags_HasRestParameter); }
 
         bool NeedScopeObjectForArguments(bool hasNonSimpleParams)
         {

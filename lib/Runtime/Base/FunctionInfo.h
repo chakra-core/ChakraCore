@@ -38,6 +38,7 @@ namespace Js
             Async                          = 0x10000,
             Module                         = 0x20000, // The function is the function body wrapper for a module
             EnclosedByGlobalFunc           = 0x40000,
+            CanDefer                       = 0x80000
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
 
@@ -63,6 +64,7 @@ namespace Js
         bool IsClassMethod() const { return ((this->attributes & ClassMethod) != 0); }
         bool IsModule() const { return ((this->attributes & Module) != 0); }
         bool HasSuperReference() const { return ((this->attributes & SuperReference) != 0); }
+        bool CanBeDeferred() const { return ((this->attributes & CanDefer) != 0); }
         bool IsCoroutine() const { return ((this->attributes & (Async | Generator)) != 0); }
 
         BOOL HasBody() const { return functionBodyImpl != NULL; }

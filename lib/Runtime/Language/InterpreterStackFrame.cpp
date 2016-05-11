@@ -1801,6 +1801,8 @@ namespace Js
         AssertMsg(!executeFunction->IsDeferredParseFunction(),
             "Non-intrinsic functions must provide byte-code to execute");
 
+        executeFunction->BeginExecution();
+
         bool fReleaseAlloc = false;
         InterpreterStackFrame* newInstance = nullptr;
         Var* allocation = nullptr;
@@ -1929,8 +1931,6 @@ namespace Js
             exceptionFramePopper.PushInfo(threadContext->TTDLog, function);
         }
 #endif
-
-        executeFunction->BeginExecution();
 
         Var aReturn = nullptr;
 
@@ -3803,7 +3803,7 @@ namespace Js
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
             if (spreadIndices != nullptr)
             {
-                JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices);
+                JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
             }
             else
             {
@@ -3817,7 +3817,7 @@ namespace Js
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
             if (spreadIndices != nullptr)
             {
-                SetReg((RegSlot)playout->Return, JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices));
+                SetReg((RegSlot)playout->Return, JavascriptFunction::CallSpreadFunction(function, args, spreadIndices));
             }
             else
             {

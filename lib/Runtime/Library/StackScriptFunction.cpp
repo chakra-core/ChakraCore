@@ -76,8 +76,9 @@ namespace Js
         Assert(ThreadContext::IsOnStack(stackScriptFunction));
         Assert(stackScriptFunction->boxedScriptFunction == nullptr);
 
-        FunctionBody * functionParent = stackScriptFunction->GetFunctionBody()->GetStackNestedFuncParentStrongRef();
-        Assert(functionParent != nullptr);
+        FunctionInfo * functionInfoParent = stackScriptFunction->GetFunctionBody()->GetStackNestedFuncParentStrongRef();
+        Assert(functionInfoParent != nullptr);
+        FunctionBody * functionParent = functionInfoParent->GetFunctionBody();
 
         ScriptContext * scriptContext = stackScriptFunction->GetScriptContext();
         ScriptFunction * boxedFunction;
@@ -131,7 +132,8 @@ namespace Js
                     nested->GetFunctionBody()->ClearStackNestedFuncParent();
                 }
             }
-            current = current->GetAndClearStackNestedFuncParent();
+            FunctionInfo * functionInfo = current->GetAndClearStackNestedFuncParent();
+            current = functionInfo ? functionInfo->GetFunctionBody() : nullptr;
         }
         while (current && current->DoStackNestedFunc());
     }

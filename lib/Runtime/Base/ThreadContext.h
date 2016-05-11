@@ -14,6 +14,8 @@ namespace Js
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
 }
 
+typedef BVSparse<ArenaAllocator> ActiveFunctionSet;
+
 using namespace PlatformAgnostic;
 
 struct IAuthorFileContext;
@@ -1187,6 +1189,9 @@ public:
     size_t  GetCodeSize() { return nativeCodeSize; }
     static size_t  GetProcessCodeSize() { return processNativeCodeSize; }
     size_t GetSourceSize() { return sourceCodeSize; }
+
+    void RedeferFunctionBodies();
+    void GetActiveFunctions(ActiveFunctionSet * ppActive);
 
     Js::ScriptEntryExitRecord * GetScriptEntryExit() const { return entryExitRecord; }
     void RegisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
