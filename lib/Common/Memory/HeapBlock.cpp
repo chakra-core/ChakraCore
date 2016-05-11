@@ -154,6 +154,63 @@ SmallHeapBlockT<TBlockAttributes>::GetPageCount() const
     return TBlockAttributes::PageCount;
 }
 
+template <>
+uint
+SmallHeapBlockT<SmallAllocationBlockAttributes>::GetUnusablePageCount()
+{
+    return 0;
+}
+
+template <>
+void
+SmallHeapBlockT<SmallAllocationBlockAttributes>::ProtectUnusablePages()
+{
+}
+
+template <>
+void
+SmallHeapBlockT<SmallAllocationBlockAttributes>::RestoreUnusablePages()
+{
+}
+
+template <>
+uint
+SmallHeapBlockT<MediumAllocationBlockAttributes>::GetUnusablePageCount()
+{
+    return ((MediumAllocationBlockAttributes::PageCount * AutoSystemInfo::PageSize) % this->objectSize) / AutoSystemInfo::PageSize;
+}
+
+template <>
+void
+SmallHeapBlockT<MediumAllocationBlockAttributes>::ProtectUnusablePages()
+{
+    size_t count = this->GetUnusablePageCount();
+    if (count > 0)
+    {
+        char* startPage = this->address + (MediumAllocationBlockAttributes::PageCount - count) * AutoSystemInfo::PageSize;
+        DWORD oldProtect;
+        BOOL ret = ::VirtualProtect(startPage, count * AutoSystemInfo::PageSize, PAGE_READONLY, &oldProtect);
+        Assert(ret && oldProtect == PAGE_READWRITE);
+
+        ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
+    }
+}
+
+template <>
+void
+SmallHeapBlockT<MediumAllocationBlockAttributes>::RestoreUnusablePages()
+{
+    size_t count = this->GetUnusablePageCount();
+    if (count > 0)
+    {
+        char* startPage = (char*)this->address + (MediumAllocationBlockAttributes::PageCount - count) * AutoSystemInfo::PageSize;
+        DWORD oldProtect;
+        BOOL ret = ::VirtualProtect(startPage, count * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
+        Assert(ret && oldProtect == PAGE_READONLY);
+    }
+}
+
+
 template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::ClearObjectInfoList()
