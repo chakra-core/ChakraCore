@@ -12084,14 +12084,26 @@ Case0:
 
         if (this->length < 10)
         {
-            BEGIN_JS_RUNTIME_CALL(requestContext);
+            auto funcPtr = [&]()
             {
                 ENTER_PINNED_SCOPE(JavascriptString, valueStr);
                 valueStr = JavascriptArray::JoinHelper(this, GetLibrary()->GetCommaDisplayString(), requestContext);
                 stringBuilder->Append(valueStr->GetString(), valueStr->GetLength());
                 LEAVE_PINNED_SCOPE();
+            };
+
+            if (!requestContext->GetThreadContext()->IsScriptActive())
+            {
+                BEGIN_JS_RUNTIME_CALL(requestContext);
+                {
+                    funcPtr();
+                }
+                END_JS_RUNTIME_CALL(requestContext);
             }
-            END_JS_RUNTIME_CALL(requestContext);
+            else
+            {
+                funcPtr();
+            }
         }
         else
         {
