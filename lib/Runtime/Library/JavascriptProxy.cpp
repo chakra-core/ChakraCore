@@ -894,7 +894,7 @@ namespace Js
             // the proxy has been revoked; TypeError.
             if (!threadContext->RecordImplicitException())
                 return FALSE;
-            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u("enumerate"));
+            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u("ownKeys"));
         }
 
         //4. Let trap be the result of GetMethod(handler, "enumerate").
@@ -905,7 +905,7 @@ namespace Js
         //8. ReturnIfAbrupt(trapResult).
         //9. If Type(trapResult) is not Object, then throw a TypeError exception.
         //10. Return trapResult.
-        JavascriptFunction* getEnumeratorMethod = GetMethodHelper(PropertyIds::enumerate, scriptContext);
+        JavascriptFunction* getEnumeratorMethod = GetMethodHelper(PropertyIds::ownKeys, scriptContext);
         Assert(!GetScriptContext()->IsHeapEnumInProgress());
         if (nullptr == getEnumeratorMethod)
         {
@@ -922,11 +922,14 @@ namespace Js
         Var trapResult = getEnumeratorMethod->CallFunction(arguments);
         threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
 
-        if (!JavascriptOperators::IsObject(trapResult))
+        if (!JavascriptOperators::IsArray(trapResult))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("enumerate"));
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
         }
-        *enumerator = IteratorObjectEnumerator::Create(scriptContext, trapResult);
+
+        Var arrayIterator = JavascriptOperators::GetIterator(RecyclableObject::FromVar(trapResult), scriptContext);
+        *enumerator = IteratorObjectEnumerator::Create(scriptContext, arrayIterator);
+
         return TRUE;
     }
 

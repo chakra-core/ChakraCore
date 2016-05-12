@@ -3059,8 +3059,6 @@ namespace Js
             library->AddFunctionToLibraryObject(reflectObject, PropertyIds::defineProperty, &JavascriptReflect::EntryInfo::DefineProperty, 3));
         scriptContext->SetBuiltInLibraryFunction(JavascriptReflect::EntryInfo::DeleteProperty.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(reflectObject, PropertyIds::deleteProperty, &JavascriptReflect::EntryInfo::DeleteProperty, 2));
-        scriptContext->SetBuiltInLibraryFunction(JavascriptReflect::EntryInfo::Enumerate.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(reflectObject, PropertyIds::enumerate, &JavascriptReflect::EntryInfo::Enumerate, 1));
         scriptContext->SetBuiltInLibraryFunction(JavascriptReflect::EntryInfo::Get.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(reflectObject, PropertyIds::get, &JavascriptReflect::EntryInfo::Get, 2));
         scriptContext->SetBuiltInLibraryFunction(JavascriptReflect::EntryInfo::GetOwnPropertyDescriptor.GetOriginalEntryPoint(),
@@ -7338,7 +7336,6 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(defineProperty, JavascriptReflect::EntryDefineProperty);
         REG_OBJECTS_LIB_FUNC(deleteProperty, JavascriptReflect::EntryDeleteProperty);
-        REG_OBJECTS_LIB_FUNC(enumerate, JavascriptReflect::EntryEnumerate);
         REG_OBJECTS_LIB_FUNC(get, JavascriptReflect::EntryGet);
         REG_OBJECTS_LIB_FUNC(getOwnPropertyDescriptor, JavascriptReflect::EntryGetOwnPropertyDescriptor);
         REG_OBJECTS_LIB_FUNC(getPrototypeOf, JavascriptReflect::EntryGetPrototypeOf);
