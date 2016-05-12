@@ -203,7 +203,7 @@ enum FncFlags
     kFunctionIsAsync                            = 1 << 28, // function is async
     kFunctionHasDirectSuper                     = 1 << 29, // super()
     kFunctionIsDefaultModuleExport              = 1 << 30, // function is the default export of a module
-    kFunctionHasAnyWriteToFormals               = 1 << 31
+    kFunctionHasAnyWriteToFormals               = 1 << 31 // TODO: Verify if this will work on x86?
 };
 
 struct RestorePoint;
