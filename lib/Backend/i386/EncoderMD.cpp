@@ -1197,7 +1197,7 @@ modrm:
             uint valueImm = 0;
             if (src2 &&src2->IsIntConstOpnd())
             {
-                valueImm = src2->AsIntConstOpnd()->GetImmediateValue();
+                valueImm = src2->AsIntConstOpnd()->GetImmediateValue(instr->m_func);
             }
             else
             {

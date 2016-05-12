@@ -6102,7 +6102,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
             }
             IR::IntConstOpnd *intOpnd = IR::IntConstOpnd::New(constVal, opndType, instr->m_func);
 
-            GOPT_TRACE_OPND(opnd, L"Constant prop %d (value:%d)\n", intOpnd->GetImmediateValue(), intConstantValue);
+            GOPT_TRACE_OPND(opnd, L"Constant prop %d (value:%d)\n", intOpnd->GetImmediateValue(instr->m_func), intConstantValue);
             constOpnd = intOpnd;
         }
 

@@ -201,7 +201,7 @@ public:
     bool                IsWriteBarrierTriggerableValue();
     void                SetIsDead(const bool isDead = true)   { this->m_isDead = isDead; }
     bool                GetIsDead()   { return this->m_isDead; }
-    intptr_t            GetImmediateValue();
+    intptr_t            GetImmediateValue(Func * func);
     BailoutConstantValue GetConstValue();
     bool                GetIsJITOptimizedReg() const { return m_isJITOptimizedReg; }
     void                SetIsJITOptimizedReg(bool value) { Assert(!value || !this->IsIndirOpnd()); m_isJITOptimizedReg = value; }

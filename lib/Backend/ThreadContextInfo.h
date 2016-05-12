@@ -47,16 +47,28 @@ public:
     void ResetIsAllJITCodeInPreReservedRegion();
     bool IsAllJITCodeInPreReservedRegion() const;
 
+    ptrdiff_t GetChakraBaseAddressDifference() const;
+    ptrdiff_t GetCRTBaseAddressDifference() const;
+
+    bool IsCFGEnabled();
 private:
     intptr_t GetRuntimeChakraBaseAddress() const;
-    ptrdiff_t GetBaseAddressDifference() const;
+    intptr_t GetRuntimeCRTBaseAddress() const;
 
+    Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
     PageAllocator m_pageAlloc;
     AllocationPolicyManager m_policyManager;
     CodeGenAllocators m_codeGenAlloc;
 
     ThreadContextData m_threadContextData;
 
-    intptr_t m_localChakraBaseAddress;
+    intptr_t m_jitChakraBaseAddress;
+    intptr_t m_jitCRTBaseAddress;
     bool m_isAllJITCodeInPreReservedRegion;
 };
+
+#define SHIFT_ADDR(context, address) \
+    (intptr_t)address - context->GetChakraBaseAddressDifference()
+
+#define SHIFT_CRT_ADDR(context, address) \
+    (intptr_t)address - context->GetCRTBaseAddressDifference()

@@ -267,6 +267,25 @@ JITManager::CleanupScriptContext(
 }
 
 HRESULT
+JITManager::FreeAllocation(
+    __in intptr_t threadContextInfoAddress,
+    __in intptr_t address)
+{
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, address);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
+HRESULT
 JITManager::RemoteCodeGenCall(
     __in CodeGenWorkItemJITData *workItemData,
     __in ProfileData * profileData,

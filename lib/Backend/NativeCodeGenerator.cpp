@@ -2944,7 +2944,10 @@ NativeCodeGenerator::FreeNativeCodeGenAllocation(void* address)
 {
     if(this->backgroundAllocators)
     {
-        this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
+        ThreadContext * context = this->scriptContext->GetThreadContext();
+        context->m_codeGenManager.FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
+        // TODO: OOP JIT, add following condition back in case we are in-proc
+        // this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
     }
 }
 
@@ -2962,8 +2965,11 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
     ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(address, false);
 
     // The foreground allocators may have been used
-    if(this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(address))
+    ThreadContext * context = this->scriptContext->GetThreadContext();
+    if(this->foregroundAllocators && context->m_codeGenManager.FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address))
     {
+        // TODO: OOP JIT, add following condition back in case we are in-proc
+        //if(this->foregroundAllocators->emitBufferManager.FreeAllocation(address)
         return;
     }
 

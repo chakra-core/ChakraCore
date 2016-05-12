@@ -669,7 +669,7 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
     if (helperCallOpnd->IsDiagHelperCallOpnd())
     {
         // Load arguments for the wrapper.
-        this->LoadHelperArgument(callInstr, IR::AddrOpnd::New((Js::Var)IR::GetMethodOriginalAddress(helperMethod), IR::AddrOpndKindDynamicMisc, m_func));
+        this->LoadHelperArgument(callInstr, IR::AddrOpnd::New((Js::Var)IR::GetMethodOriginalAddress(m_func->GetThreadContextInfo(), helperMethod), IR::AddrOpndKindDynamicMisc, m_func));
         this->m_lowerer->LoadScriptContext(callInstr);
     }
     callInstr->SetSrc1(helperCallOpnd);
@@ -1192,7 +1192,7 @@ void LowererMD::ChangeToMul(IR::Instr *const instr, bool hasOverflowCheck)
             // MOV reg, imm
             temp2 = IR::RegOpnd::New(TyInt32, instr->m_func);
             instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, temp2,
-                IR::IntConstOpnd::New((IntConstType)instr->GetSrc2()->GetImmediateValue(), TyInt32, instr->m_func, true),
+                IR::IntConstOpnd::New((IntConstType)instr->GetSrc2()->GetImmediateValue(instr->m_func), TyInt32, instr->m_func, true),
                 instr->m_func));
         }
         // eax = IMUL eax, reg
@@ -1698,7 +1698,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
 
     // Non-MOV (second operand) immediate need to fit in DWORD for AMD64
     Assert(!instr->GetSrc2() || !instr->GetSrc2()->IsImmediateOpnd()
-        || (TySize[instr->GetSrc2()->GetType()] != 8) || Math::FitsInDWord(instr->GetSrc2()->GetImmediateValue()));
+        || (TySize[instr->GetSrc2()->GetType()] != 8) || Math::FitsInDWord(instr->GetSrc2()->GetImmediateValue(instr->m_func)));
 #endif
 }
 
@@ -8686,7 +8686,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 #else
             // s1 = MOV helperAddr
             IR::RegOpnd* s1 = IR::RegOpnd::New(TyMachReg, this->m_func);
-            IR::AddrOpnd* helperAddr = IR::AddrOpnd::New((Js::Var)IR::GetMethodOriginalAddress(helperMethod), IR::AddrOpndKind::AddrOpndKindDynamicMisc, this->m_func);
+            IR::AddrOpnd* helperAddr = IR::AddrOpnd::New((Js::Var)IR::GetMethodOriginalAddress(m_func->GetThreadContextInfo(), helperMethod), IR::AddrOpndKind::AddrOpndKindDynamicMisc, this->m_func);
             IR::Instr* mov = IR::Instr::New(Js::OpCode::MOV, s1, helperAddr, this->m_func);
             instr->InsertBefore(mov);
 

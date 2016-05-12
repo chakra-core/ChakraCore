@@ -57,7 +57,7 @@ PeepsMD::PeepAssign(IR::Instr *instr)
     IR::Opnd* src = instr->GetSrc1();
     if(dst->IsRegOpnd() && instr->m_opcode == Js::OpCode::MOV)
     {
-        if (src->IsImmediateOpnd() && src->GetImmediateValue() == 0)
+        if (src->IsImmediateOpnd() && src->GetImmediateValue(instr->m_func) == 0)
         {
             Assert(instr->GetSrc2() == NULL);
 

@@ -92,6 +92,7 @@ typedef struct ThreadContextData
 {
     __int3264 processHandle;
     __int3264 chakraBaseAddress;
+    __int3264 crtBaseAddress;
     __int3264 threadStackLimitAddr;
     __int3264 scriptStackLimit;
     boolean isThreadBound;
@@ -235,6 +236,11 @@ interface IChakraJIT
     HRESULT CleanupScriptContext(
         [in] handle_t binding,
         [in] __int3264 scriptContextInfoAddress);
+
+    HRESULT FreeAllocation(
+        [in] handle_t binding,
+        [in] __int3264 threadContextInfoAddress,
+        [in] __int3264 address);
 
     HRESULT RemoteCodeGen(
         [in] handle_t binding,

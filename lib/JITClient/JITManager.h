@@ -26,6 +26,10 @@ public:
     HRESULT CleanupScriptContext(
         __in intptr_t scriptContextInfoAddress);
 
+    HRESULT FreeAllocation(
+        __in intptr_t threadContextInfoAddress,
+        __in intptr_t address);
+
     HRESULT RemoteCodeGenCall(
         __in CodeGenWorkItemJITData *workItemData,
         __in ProfileData * profileData,

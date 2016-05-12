@@ -4935,7 +4935,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
     IR::Opnd *opndSrc1 = newObjInstr->UnlinkSrc1();
     if (opndSrc1->IsImmediateOpnd())
     {
-        intptr_t length = opndSrc1->GetImmediateValue();
+        intptr_t length = opndSrc1->GetImmediateValue(m_func);
         if (length >= 0 && length <= 8)
         {
             GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, weakFuncRef, (uint32)length);

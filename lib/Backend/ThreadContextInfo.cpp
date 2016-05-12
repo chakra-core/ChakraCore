@@ -12,140 +12,143 @@ ThreadContextInfo::ThreadContextInfo(ThreadContextData * data) :
             PageAllocator::DefaultLowMaxFreePageCount :
             PageAllocator::DefaultMaxFreePageCount),
     m_codeGenAlloc(&m_policyManager, nullptr, (HANDLE)data->processHandle),
-    m_isAllJITCodeInPreReservedRegion(true)
+    m_isAllJITCodeInPreReservedRegion(true),
+    m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"Chakra.dll")), // TODO: OOP JIT, don't hardcode name
+    m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName)),
+    m_delayLoadWinCoreProcessThreads()
 {
 }
 
 intptr_t
 ThreadContextInfo::GetNullFrameDisplayAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::NullFrameDisplay) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::NullFrameDisplay);
 }
 
 intptr_t
 ThreadContextInfo::GetStrictNullFrameDisplayAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::StrictNullFrameDisplay) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::StrictNullFrameDisplay);
 }
 
 intptr_t
 ThreadContextInfo::GetAbsDoubleCstAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::AbsDoubleCst) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::AbsDoubleCst);
 }
 
 intptr_t
 ThreadContextInfo::GetAbsFloatCstAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::AbsFloatCst) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::AbsFloatCst);
 }
 
 intptr_t
 ThreadContextInfo::GetMaskNegFloatAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::MaskNegFloat) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::MaskNegFloat);
 }
 
 intptr_t
 ThreadContextInfo::GetMaskNegDoubleAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::MaskNegDouble) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::MaskNegDouble);
 }
 
 intptr_t
 ThreadContextInfo::GetUIntConvertConstAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::UIntConvertConst) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::UIntConvertConst);
 }
 
 intptr_t
 ThreadContextInfo::GetUint8ClampedArraySetItemAddr() const
 {
-    return reinterpret_cast<intptr_t>((BOOL(*)(Js::Uint8ClampedArray * arr, uint32 index, Js::Var value))&Js::Uint8ClampedArray::DirectSetItem) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, (BOOL(*)(Js::Uint8ClampedArray * arr, uint32 index, Js::Var value))&Js::Uint8ClampedArray::DirectSetItem);
 }
 
 intptr_t
 ThreadContextInfo::GetConstructorCacheDefaultInstanceAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::ConstructorCache::DefaultInstance) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::ConstructorCache::DefaultInstance);
 }
 
 intptr_t
 ThreadContextInfo::GetJavascriptObjectNewInstanceAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptObject::EntryInfo::NewInstance) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptObject::EntryInfo::NewInstance);
 }
 
 intptr_t
 ThreadContextInfo::GetDoubleOnePointZeroAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::ONE_POINT_ZERO) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::ONE_POINT_ZERO);
 }
 
 intptr_t
 ThreadContextInfo::GetDoublePointFiveAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_PointFive) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_PointFive);
 }
 
 intptr_t
 ThreadContextInfo::GetFloatPointFiveAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Float32PointFive) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Float32PointFive);
 }
 
 intptr_t
 ThreadContextInfo::GetDoubleNegPointFiveAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_NegPointFive) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_NegPointFive);
 }
 
 intptr_t
 ThreadContextInfo::GetFloatNegPointFiveAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Float32NegPointFive) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Float32NegPointFive);
 }
 
 intptr_t
 ThreadContextInfo::GetDoubleTwoToFractionAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_TwoToFraction) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_TwoToFraction);
 }
 
 intptr_t
 ThreadContextInfo::GetFloatTwoToFractionAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Float32TwoToFraction) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Float32TwoToFraction);
 }
 
 intptr_t
 ThreadContextInfo::GetDoubleNegTwoToFractionAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_NegTwoToFraction) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_NegTwoToFraction);
 }
 
 intptr_t
 ThreadContextInfo::GetFloatNegTwoToFractionAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Float32NegTwoToFraction) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Float32NegTwoToFraction);
 }
 
 intptr_t
 ThreadContextInfo::GetDoubleZeroAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Zero) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Zero);
 }
 
 intptr_t
 ThreadContextInfo::GetFloatZeroAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Float32Zero) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Float32Zero);
 }
 
 intptr_t
 ThreadContextInfo::GetNativeFloatArrayMissingItemAddr() const
 {
-    return reinterpret_cast<intptr_t>(&Js::JavascriptNativeFloatArray::MissingItem) - GetBaseAddressDifference();
+    return SHIFT_ADDR(this, &Js::JavascriptNativeFloatArray::MissingItem);
 }
 
 intptr_t
@@ -208,8 +211,38 @@ ThreadContextInfo::GetRuntimeChakraBaseAddress() const
     return static_cast<intptr_t>(m_threadContextData.chakraBaseAddress);
 }
 
-ptrdiff_t
-ThreadContextInfo::GetBaseAddressDifference() const
+intptr_t
+ThreadContextInfo::GetRuntimeCRTBaseAddress() const
 {
-    return m_localChakraBaseAddress - GetRuntimeChakraBaseAddress();
+    return static_cast<intptr_t>(m_threadContextData.crtBaseAddress);
+}
+
+ptrdiff_t
+ThreadContextInfo::GetChakraBaseAddressDifference() const
+{
+    return m_jitChakraBaseAddress - GetRuntimeChakraBaseAddress();
+}
+
+ptrdiff_t
+ThreadContextInfo::GetCRTBaseAddressDifference() const
+{
+    return m_jitCRTBaseAddress - GetRuntimeCRTBaseAddress();
+}
+
+bool
+ThreadContextInfo::IsCFGEnabled()
+{
+#if defined(_CONTROL_FLOW_GUARD)
+    PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY CfgPolicy;
+    m_delayLoadWinCoreProcessThreads.EnsureFromSystemDirOnly();
+    BOOL isGetMitigationPolicySucceeded = m_delayLoadWinCoreProcessThreads.GetMitigationPolicyForProcess(
+        this->GetProcessHandle(),
+        ProcessControlFlowGuardPolicy,
+        &CfgPolicy,
+        sizeof(CfgPolicy));
+    Assert(isGetMitigationPolicySucceeded || !AutoSystemInfo::Data.IsCFGEnabled());
+    return CfgPolicy.EnableControlFlowGuard && AutoSystemInfo::Data.IsCFGEnabled();
+#else
+    return false;
+#endif
 }

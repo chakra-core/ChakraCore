@@ -524,7 +524,9 @@ public:
             Js::Throw::InternalError();
         }
         contextData.processHandle = (intptr_t)targetHandle;
+        // TODO: OOP JIT, use more generic method for getting name, e.g. in case of ChakraTest.dll
         contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"Chakra.dll");
+        contextData.crtBaseAddress = (intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName);
         contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
         contextData.scriptStackLimit = reinterpret_cast<size_t>(GetScriptStackLimit());
         contextData.isThreadBound = GetIsThreadBound();

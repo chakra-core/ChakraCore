@@ -340,7 +340,7 @@ Opnd::GetStackSym() const
 }
 
 intptr_t
-Opnd::GetImmediateValue()
+Opnd::GetImmediateValue(Func* func)
 {
     switch (this->GetKind())
     {
@@ -351,7 +351,7 @@ Opnd::GetImmediateValue()
         return (intptr_t)this->AsAddrOpnd()->m_address;
 
     case OpndKindHelperCall:
-        return (intptr_t)IR::GetMethodAddress(this->AsHelperCallOpnd());
+        return (intptr_t)IR::GetMethodAddress(func->GetThreadContextInfo(), this->AsHelperCallOpnd());
 
     default:
         AssertMsg(UNREACHED, "Unexpected immediate opnd kind");

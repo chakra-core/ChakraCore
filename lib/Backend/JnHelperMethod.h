@@ -32,15 +32,15 @@ enum JnHelperMethod
 class HelperCallOpnd;
 
 // Verify the table is read-only.
-void CheckJnHelperTable(const void * const *table);
+void CheckJnHelperTable(intptr_t const *table);
 
 // Return address of the helper which can be intercepted by debugger wrapper.
-void const* GetMethodAddress(HelperCallOpnd* opnd);
+intptr_t GetMethodAddress(ThreadContextInfo * context, HelperCallOpnd* opnd);
 
-void * const GetNonTableMethodAddress(JnHelperMethod helperMethod);
+intptr_t GetNonTableMethodAddress(ThreadContextInfo * context, JnHelperMethod helperMethod);
 
 // Returns the original address of the helper, this one is never the intercepted by debugger helper.
-void const* GetMethodOriginalAddress(JnHelperMethod helperMethod);
+intptr_t GetMethodOriginalAddress(ThreadContextInfo * context, JnHelperMethod helperMethod);
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 

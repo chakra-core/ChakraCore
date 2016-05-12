@@ -136,6 +136,17 @@ ServerCleanupScriptContext(
 }
 
 HRESULT
+ServerFreeAllocation(
+    /* [in] */ handle_t binding,
+    /* [in] */ __int3264 threadContextInfo,
+    /* [in] */ __int3264 address)
+{
+    ThreadContextInfo * context = reinterpret_cast<ThreadContextInfo*>(threadContextInfo);
+    bool succeeded = context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
+    return succeeded ? S_OK : E_FAIL;
+}
+
+HRESULT
 ServerRemoteCodeGen(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 threadContextInfoAddress,

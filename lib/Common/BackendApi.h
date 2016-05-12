@@ -27,7 +27,7 @@ class NativeCodeGenerator;
 class ThreadContext;
 struct CodeGenWorkItem;
 class NativeCodeData;
-
+class ThreadContextInfo;
 class StackSym;
 class Func;
 struct InlinedFrameLayout;
