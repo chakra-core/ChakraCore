@@ -1733,6 +1733,10 @@ void Parser::BindPidRefsInScopeImpl(IdentPtr pid, Symbol *sym, int blockId, uint
         if (ref->IsAssignment())
         {
             sym->PromoteAssignmentState();
+            if (m_currentNodeFunc && sym->GetIsFormal())
+            {
+                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);                
+            }
         }
 
         if (ref->IsModuleExport())
