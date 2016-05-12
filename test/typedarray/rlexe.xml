@@ -322,4 +322,9 @@ Below test fails with difference in space. Investigate the cause and re-enable t
       <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -mmoc:0</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS_6911900.js</files>
+    </default>
+  </test>
 </regress-exe>
