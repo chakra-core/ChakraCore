@@ -203,6 +203,7 @@ namespace Js
             return PathTypeHandlerBase::GetItem(instance, originalInstance, indexVal, value, requestContext);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -223,6 +224,7 @@ namespace Js
             requestContext->FindPropertyRecord(propertyName, propertyNameLength, &propertyRecord);
             if (propertyRecord == nullptr)
             {
+                *value = requestContext->GetMissingPropertyResult();
                 return false;
             }
         }
