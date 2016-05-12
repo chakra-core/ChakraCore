@@ -1727,18 +1727,20 @@ void Parser::BindPidRefsInScopeImpl(IdentPtr pid, Symbol *sym, int blockId, uint
             continue;
         }
         ref->SetSym(sym);
-        
         this->RemovePrevPidRef(pid, lastRef);
-
-        if (ref->IsAssignment())
-        {
-            sym->PromoteAssignmentState();
-        }
 
         if (ref->IsModuleExport())
         {
+<<<<<<< f70638af04e47164dddc121b9471763c2248a50a
             Assert(sym->GetIsGlobal());
             sym->SetIsModuleExportStorage(true);
+=======
+            if (m_currentNodeFunc && sym->GetIsFormal())
+            {
+                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);
+            }
+            sym->PromoteAssignmentState();
+>>>>>>> Stack Arguments Optimization extended - With Formal's presence.
         }
 
         if (ref->GetScopeId() == blockId)
@@ -5008,31 +5010,26 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
         }
 
         Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes ? pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope : nullptr;
-        if (paramScope != nullptr && !fAsync)
+        if (paramScope != nullptr && pnodeFnc->sxFnc.HasNonSimpleParameterList() && !fAsync)
         {
-            if (CONFIG_FLAG(ForceSplitScope))
+            Assert(paramScope != nullptr);
+
+            if (paramScope->GetCanMergeWithBodyScope())
             {
-                paramScope->SetCannotMergeWithBodyScope();
-            }
-            else if (pnodeFnc->sxFnc.HasNonSimpleParameterList())
-            {
-                if (paramScope->GetCanMergeWithBodyScope())
-                {
-                    paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
-                        if (sym->GetPid()->GetTopRef()->sym == nullptr)
-                        {
-                            // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
-                            paramScope->SetCannotMergeWithBodyScope();
-                            return true;
-                        }
-                        else
-                        {
-                            // If no non-local references are there then the top of the ref stack should point to the same symbol.
-                            Assert(sym->GetPid()->GetTopRef()->sym == sym);
-                        }
-                        return false;
-                    });
-                }
+                paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
+                    if (sym->GetPid()->GetTopRef()->sym == nullptr)
+                    {
+                        // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
+                        paramScope->SetCannotMergeWithBodyScope();
+                        return true;
+                    }
+                    else
+                    {
+                        // If no non-local references are there then the top of the ref stack should point to the same symbol.
+                        Assert(sym->GetPid()->GetTopRef()->sym == sym);
+                    }
+                    return false;
+                });
             }
         }
 
@@ -8053,7 +8050,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 {
                     Error(JSERR_CantAssignTo);
                 }
-                TrackAssignment<buildAST>(pnodeT, &operandToken, ichMin, m_pscan->IchLimTok());
+
                 if (buildAST)
                 {
                     if (IsStrictMode() && pnodeT->nop == knopName)
@@ -8208,7 +8205,6 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 Error(JSERR_CantAssignTo);
             }
-            TrackAssignment<buildAST>(pnode, &term, ichMin, m_pscan->IchLimTok());
             fCanAssign = FALSE;
             if (buildAST)
             {
@@ -8256,7 +8252,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binary operators. We also need to special case the left
                 // operand - it should only be a LeftHandSideExpression.
                 Assert(ParseNode::Grfnop(nop) & fnopAsg || nop == knopFncDecl);
-                TrackAssignment<buildAST>(pnode, &term, ichMin, m_pscan->IchLimTok());
+
                 if (buildAST)
                 {
                     if (IsStrictMode() && pnode->nop == knopName)
@@ -8452,7 +8448,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 Assert(lhs);
                 if (lhs->nop == knopDot)
                 {
-                    ParseNodePtr propertyNode = lhs->sxBin.pnode2;
+                    ParseNodePtr propertyNode = lhs->sxBin.pnode2;                    
                     if (propertyNode->nop == knopName)
                     {
                         propertyNode->sxPid.pid->PromoteAssignmentState();
@@ -8476,46 +8472,6 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     }
 
     return pnode;
-}
-
-template<bool buildAST>
-void Parser::TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken, charcount_t ichMin, charcount_t ichLim)
-{
-    if (buildAST)
-    {
-        Assert(pnodeT != NULL);
-        if (pnodeT->nop == knopName)
-        {
-            PidRefStack *ref = pnodeT->sxPid.pid->GetTopRef();
-            Assert(ref);
-            ref->TrackAssignment(pnodeT->ichMin, pnodeT->ichLim);
-        }
-    }
-    else
-    {
-        Assert(pToken != NULL);
-        if (pToken->tk == tkID)
-        {
-            PidRefStack *ref = pToken->pid->GetTopRef();
-            Assert(ref);
-            ref->TrackAssignment(ichMin, ichLim);
-        }
-    }
-}
-
-void PidRefStack::TrackAssignment(charcount_t ichMin, charcount_t ichLim)
-{
-    if (this->isAsg)
-    {
-        if (this->GetIchMin() <= ichMin)
-        {
-            return;
-        }
-        Assert(ichMin <= this->GetIchMin() && this->GetIchLim() <= ichLim);
-    }
-
-    this->isAsg = true;
-    this->span.Set(ichMin, ichLim);
 }
 
 void PnPid::SetSymRef(PidRefStack *ref)
@@ -11212,7 +11168,9 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
 
         // Append block as body of pnodeProg
         FinishParseBlock(pnodeBlock);
+
     }
+
     catch(ParseExceptionObject& e)
     {
         m_err.m_hr = e.GetError();
@@ -12969,12 +12927,6 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       PrintFormalsWIndent(pnode->sxFnc.pnodeParams, indentAmt + INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxFnc.pnodeRest, indentAmt + INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxFnc.pnodeBody, indentAmt + INDENT_SIZE);
-      if (pnode->sxFnc.pnodeBody == nullptr)
-      {
-          Output::Print(_u("[%4d, %4d): "), pnode->ichMin, pnode->ichLim);
-          Indent(indentAmt + INDENT_SIZE);
-          Output::Print(_u("<parse deferred body>\n"));
-      }
       break;
       //PTNODE(knopProg       , "program"    ,None    ,Fnc  ,fnopNone)
   case knopProg:

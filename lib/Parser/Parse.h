@@ -927,6 +927,7 @@ public:
 
 private:
     void DeferOrEmitPotentialSpreadError(ParseNodePtr pnodeT);
+    template<bool buildAST> void TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken, charcount_t ichMin, charcount_t ichLim);
     PidRefStack* PushPidRef(IdentPtr pid);
     PidRefStack* FindOrAddPidRef(IdentPtr pid, int blockId);
     void RemovePrevPidRef(IdentPtr pid, PidRefStack *lastRef);
