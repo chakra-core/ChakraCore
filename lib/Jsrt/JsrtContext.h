@@ -71,7 +71,7 @@ private:
     Js::JavascriptLibrary * javascriptLibrary;
 
     JsrtRuntime * runtime;
-    GC_MARKED_OBJECT<void> externalData = nullptr;
+    void* externalData = nullptr;
     GC_MARKED_OBJECT<JsrtContext> previous;
     GC_MARKED_OBJECT<JsrtContext> next;
 };
