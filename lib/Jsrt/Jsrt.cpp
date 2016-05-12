@@ -353,15 +353,19 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
 
 #if ENABLE_TTD
+        double ttdStartTime = -1.0;
+
         if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
         {
             TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, jsFunction, cargs, jsArgs.Values);
             TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext, callEvent);
-            
+
             if(scriptContext->TTDRootNestingCount == 0)
             {
                 TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
                 elog->ResetCallStackForTopLevelCall(elog->GetLastEventTime(), hostCallbackId);
+
+                ttdStartTime = elog->GetCurrentWallTime();
             }
 
             Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
@@ -388,6 +392,10 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && scriptContext->TTDRootNestingCount == 0)
         {
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+            double ttdEndTime = elog->GetCurrentWallTime();
+            elog->IncrementElapsedSnapshotTime(ttdEndTime - ttdStartTime);
+
             if(elog->IsTimeForSnapshot())
             {
                 elog->PushMode(TTD::TTDMode::ExcludedExecution);
@@ -589,11 +597,16 @@ STDAPI_(JsErrorCode) JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
                 return JsNoError;
             }
 
-            recycler->RootAddRef(ref, count);
-
 #if ENABLE_TTD
+            unsigned int lCount = 0;
+            recycler->RootAddRef(ref, &lCount);
+            if(count != nullptr)
+            {
+                *count = lCount;
+            }
+
             Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-            if((*count == 1) & Js::RecyclableObject::Is(ref) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
+            if((lCount == 1) & Js::RecyclableObject::Is(ref) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
             {
                 Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
                 scriptContext->AddTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
@@ -603,6 +616,8 @@ STDAPI_(JsErrorCode) JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
                     scriptContext->GetThreadContext()->TTDLog->RecordJsRTAddRootRef(scriptContext, (Js::Var)ref);
                 }
             }
+#else
+            recycler->RootAddRef(ref, count);
 #endif
 
             return JsNoError;
@@ -653,11 +668,16 @@ STDAPI_(JsErrorCode) JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
                 return JsNoError;
             }
 
-            recycler->RootRelease(ref, count);
-
 #if ENABLE_TTD
+            unsigned int lCount = 0;
+            recycler->RootRelease(ref, &lCount);
+            if(count != nullptr)
+            {
+                *count = lCount;
+            }
+
             Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-            if((*count == 0) & Js::RecyclableObject::Is(ref) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
+            if((lCount == 0) & Js::RecyclableObject::Is(ref) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
             {
                 Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
                 scriptContext->RemoveTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
@@ -667,6 +687,8 @@ STDAPI_(JsErrorCode) JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
                     scriptContext->GetThreadContext()->TTDLog->RecordJsRTRemoveRootRef(scriptContext, (Js::Var)ref);
                 }
             }
+#else
+            recycler->RootRelease(ref, count);
 #endif
 
             return JsNoError;
@@ -2894,6 +2916,8 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 #endif
 
 #if ENABLE_TTD
+            double ttdStartTime = -1.0;
+
             if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
             {
                 TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, scriptFunction, args.Info.Count, args.Values);
@@ -2903,6 +2927,8 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
                 {
                     TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
                     elog->ResetCallStackForTopLevelCall(elog->GetLastEventTime(), hostCallbackId);
+
+                    ttdStartTime = elog->GetCurrentWallTime();
                 }
 
                 Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
@@ -2928,12 +2954,17 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             //May want to look into more sophisticated means for making this decision later -- e.g. move to yield point
             if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && scriptContext->TTDRootNestingCount == 0)
             {
-                if(threadContext->TTDLog->IsTimeForSnapshot())
+                TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+                double ttdEndTime = elog->GetCurrentWallTime();
+                elog->IncrementElapsedSnapshotTime(ttdEndTime - ttdStartTime);
+
+                if(elog->IsTimeForSnapshot())
                 {
-                    threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
-                    threadContext->TTDLog->DoSnapshotExtract();
-                    threadContext->TTDLog->PruneLogLength();
-                    threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+                    elog->PushMode(TTD::TTDMode::ExcludedExecution);
+                    elog->DoSnapshotExtract();
+                    elog->PruneLogLength();
+                    elog->PopMode(TTD::TTDMode::ExcludedExecution);
                 }
             }
 #else

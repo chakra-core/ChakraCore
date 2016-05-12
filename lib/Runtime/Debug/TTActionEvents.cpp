@@ -738,7 +738,7 @@ namespace TTD
             static_assert(sizeof(TTDVar) == sizeof(Js::Var), "These need to be the same size (and have same bit layout) for this to work!");
 
             cfAction->ArgArray = alloc.SlabAllocateArray<TTDVar>(cfAction->ArgCount);
-            cfAction->ArgArray[0] = static_cast<TTDVar>(function);
+            cfAction->ArgArray[0] = TTD_CONVERT_JSVAR_TO_TTDVAR(function);
             js_memcpy_s(cfAction->ArgArray + 1, (cfAction->ArgCount -1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
 
             cfAction->AdditionalInfo->BeginTime = wallTime;
@@ -748,6 +748,13 @@ namespace TTD
 
             cfAction->AdditionalInfo->HostCallbackId = hostCallbackId;
             cfAction->AdditionalInfo->TopLevelCallbackEventTime = topLevelCallbackEventTime;
+
+#if ENABLE_TTD_DEBUGGING
+            cfAction->AdditionalInfo->RtRSnap = nullptr;
+            cfAction->AdditionalInfo->ExecArgs = nullptr;
+
+            cfAction->AdditionalInfo->LastExecutedLocation.Clear();
+#endif
         }
 
         void JsRTCallFunctionAction_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException)

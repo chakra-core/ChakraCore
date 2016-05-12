@@ -2070,21 +2070,27 @@ namespace TTD
         writer.WriteLengthValue(ecount, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
         JsUtil::Stack<int64, HeapAllocator> callNestingStack(&HeapAllocator::Instance);
-        bool firstEvent = true;
+        bool doSep = false;
+
         writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
         writer.AdjustIndent(1);
+        writer.WriteSeperator(NSTokens::Separator::BigSpaceSeparator);
         for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
         {
             const NSLogEvents::EventLogEntry* evt = iter.Current();
-            NSLogEvents::EventLogEntry_Emit(evt, this->m_eventListVTable, &writer, this->m_logInfoRootDir.Contents, this->m_threadContext, !firstEvent ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator);
-            firstEvent = false;
+            NSTokens::Separator sep = doSep ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::NoSeparator;
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            NSLogEvents::EventLogEntry_Emit(evt, this->m_eventListVTable, &writer, this->m_logInfoRootDir.Contents, this->m_threadContext, sep);
+
+#if !ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            doSep = true;
+#else
             bool isJsRTBeginCall = (evt->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag);
             bool isExternalBeginCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
             if(isJsRTBeginCall | isExternalBeginCall)
             {
-                writer.WriteSequenceStart(NSTokens::Separator::CommaSeparator);
+                writer.WriteSequenceStart(NSTokens::Separator::CommaAndBigSpaceSeparator);
+
                 if(isJsRTBeginCall)
                 {
                     int64 lastNestedTime = NSLogEvents::JsRTCallFunctionAction_GetLastNestedEventTime(evt);
@@ -2097,9 +2103,12 @@ namespace TTD
                 }
 
                 writer.AdjustIndent(1);
+                writer.WriteSeperator(NSTokens::Separator::BigSpaceSeparator);
             }
 
-            if(evt->EventTimeStamp == callNestingStack.Peek())
+            doSep = (!isJsRTBeginCall & !isExternalBeginCall);
+
+            if(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
             {
                 writer.AdjustIndent(-1);
 
@@ -2227,19 +2236,22 @@ namespace TTD
         reader.ReadUInt64(NSTokens::Key::reservedMemory, true);
 
         JsUtil::Stack<int64, HeapAllocator> callNestingStack(&HeapAllocator::Instance);
+        bool doSep = false;
+
         uint32 ecount = reader.ReadLengthValue(true);
         reader.ReadSequenceStart_WDefaultKey(true);
         for(uint32 i = 0; i < ecount; ++i)
         {
             NSLogEvents::EventLogEntry* evt = this->m_eventList.GetNextAvailableEntry();
-            NSLogEvents::EventLogEntry_Parse(evt, this->m_eventListVTable, i != 0, this->m_threadContext, &reader, this->m_eventSlabAllocator);
+            NSLogEvents::EventLogEntry_Parse(evt, this->m_eventListVTable, doSep, this->m_threadContext, &reader, this->m_eventSlabAllocator);
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+#if !ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            doSep = true;
+#else
             bool isJsRTBeginCall = (evt->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag);
             bool isExternalBeginCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
             if(isJsRTBeginCall | isExternalBeginCall)
             {
-                reader.ReadSequenceStart(true);
                 if(isJsRTBeginCall)
                 {
                     int64 lastNestedTime = NSLogEvents::JsRTCallFunctionAction_GetLastNestedEventTime(evt);
@@ -2252,7 +2264,9 @@ namespace TTD
                 }
             }
 
-            if(evt->EventTimeStamp == callNestingStack.Peek())
+            doSep = (!isJsRTBeginCall & !isExternalBeginCall);
+
+            if(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
             {
                 callNestingStack.Pop();
                 reader.ReadSequenceEnd();
