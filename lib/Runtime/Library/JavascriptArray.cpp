@@ -5184,8 +5184,8 @@ Case0:
                     lowerExists = typedArrayBase->HasItem(lower);
                     upperExists = typedArrayBase->HasItem(upper);
 
-                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue, false));
-                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue, false));
+                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
+                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                 }
             }
             else
@@ -5204,21 +5204,21 @@ Case0:
                     {
                         if (upperExists)
                         {
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue, false));
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue, false));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                         }
                         else
                         {
                             // This will always fail for a TypedArray if lower < length
                             h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(lower, PropertyOperation_ThrowIfNotExtensible));
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue, false));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                         }
                     }
                     else
                     {
                         if (upperExists)
                         {
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue, false));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
                             // This will always fail for a TypedArray if upper < length
                             h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(upper, PropertyOperation_ThrowIfNotExtensible));
                         }
@@ -5930,7 +5930,7 @@ Case0:
                 // The object we got back from the constructor might not be a TypedArray. In fact, it could be any object.
                 if (newTypedArray)
                 {
-                    newTypedArray->DirectSetItem(i, element, false);
+                    newTypedArray->DirectSetItem(i, element);
                 }
                 else if (newArr)
                 {
@@ -8567,7 +8567,7 @@ Case0:
                     {
                         Var val = typedArrayBase->DirectGetItem(fromIndex);
 
-                        typedArrayBase->DirectSetItem(toIndex, val, false);
+                        typedArrayBase->DirectSetItem(toIndex, val);
                     }
                     else if (pArr)
                     {
@@ -8679,7 +8679,7 @@ Case0:
             {
                 if (typedArrayBase)
                 {
-                    typedArrayBase->DirectSetItem(u32k, fillValue, false);
+                    typedArrayBase->DirectSetItem(u32k, fillValue);
                 }
                 else if (pArr)
                 {
@@ -8934,7 +8934,7 @@ Case0:
                 // the normal Set path.
                 if (newTypedArray)
                 {
-                    newTypedArray->DirectSetItem(k, mappedValue, false);
+                    newTypedArray->DirectSetItem(k, mappedValue);
                 }
                 else if (newArr)
                 {
@@ -9824,7 +9824,7 @@ Case0:
             {
                 Var kValue = args[k + 1];
 
-                newTypedArray->DirectSetItem(k, kValue, false);
+                newTypedArray->DirectSetItem(k, kValue);
             }
         }
         else
