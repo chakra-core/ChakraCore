@@ -12915,6 +12915,12 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       PrintFormalsWIndent(pnode->sxFnc.pnodeParams, indentAmt + INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxFnc.pnodeRest, indentAmt + INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxFnc.pnodeBody, indentAmt + INDENT_SIZE);
+      if (pnode->sxFnc.pnodeBody == nullptr)
+      {
+          Output::Print(_u("[%4d, %4d): "), pnode->ichMin, pnode->ichLim);
+          Indent(indentAmt + INDENT_SIZE);
+          Output::Print(_u("<parse deferred body>\n"));
+      }
       break;
       //PTNODE(knopProg       , "program"    ,None    ,Fnc  ,fnopNone)
   case knopProg:
