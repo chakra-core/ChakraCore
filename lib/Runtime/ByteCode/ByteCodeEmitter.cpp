@@ -12,8 +12,8 @@ void EmitLoad(ParseNode *rhs, ByteCodeGenerator *byteCodeGenerator, FuncInfo *fu
 void EmitCall(ParseNode* pnode, Js::RegSlot rhsLocation, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue, BOOL fEvaluateComponents, BOOL fHasNewTarget, Js::RegSlot overrideThisLocation = Js::Constants::NoRegister);
 void EmitSuperFieldPatch(FuncInfo* funcInfo, ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator);
 
-bool EmitUseBeforeDeclaration(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
-void EmitUseBeforeDeclarationRuntimeError(ByteCodeGenerator *byteCodeGenerator, Js::RegSlot location, bool fLoadUndef = true);
+void EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
+void EmitUseBeforeDeclarationRuntimeError(ByteCodeGenerator *byteCodeGenerator, Js::RegSlot location);
 void VisitClearTmpRegs(ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator, FuncInfo * funcInfo);
 
 bool CallTargetIsArray(ParseNode *pnode)
@@ -2220,7 +2220,7 @@ void ByteCodeGenerator::EmitScopeSlotLoadThis(FuncInfo *funcInfo, Js::RegSlot re
             // been called inside a lambda so we can check to see if we called
             // super and assigned to the this register already. If not, this should trigger
             // a ReferenceError.
-            EmitUseBeforeDeclarationRuntimeError(this, regLoc, false);
+            EmitUseBeforeDeclarationRuntimeError(this, Js::Constants::NoRegister);
         }
     }
     else if (this->flags & fscrEval && (funcInfo->IsGlobalFunction() || (funcInfo->IsLambda() && nonLambdaFunc->IsGlobalFunction()))
@@ -2397,7 +2397,7 @@ void ByteCodeGenerator::EmitClassConstructorEndCode(FuncInfo *funcInfo)
     {
         // This is the case where we don't have any references to this or super in the constructor or any nested lambda functions.
         // We know 'this' must be undecl so let's just emit the ReferenceError as part of the fallthrough.
-        EmitUseBeforeDeclarationRuntimeError(this, ByteCodeGenerator::ReturnRegister, true);
+        EmitUseBeforeDeclarationRuntimeError(this, ByteCodeGenerator::ReturnRegister);
     }
 }
 
@@ -2694,7 +2694,12 @@ void ByteCodeGenerator::EmitFunctionBody(FuncInfo *funcInfo)
                         Output::Print(_u("--- DelayCapture: Committed symbol '%s' to slot.\n"), sym->GetName());
                         Output::Flush();
                     }
+                    // REVIEW[ianhall]: HACK to work around this causing an error due to sym not yet being initialized
+                    // what is this doing? Why are we assigning sym to itself?
+                    bool old = sym->GetNeedDeclaration();
+                    sym->SetNeedDeclaration(false);
                     this->EmitPropStore(sym->GetLocation(), sym, sym->GetPid(), funcInfo, decl->nop == knopLetDecl, decl->nop == knopConstDecl);
+                    sym->SetNeedDeclaration(old);
                 }
             }
             NEXT_SLIST_ENTRY;
@@ -2824,9 +2829,9 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
             if (pnodeArg->sxVar.pnodeInit == nullptr)
             {
                 // Since the formal hasn't been initialized in LdLetHeapArguments, we'll initialize it here.
+                pnodeArg->sxVar.sym->SetNeedDeclaration(false);
                 EmitPropStore(location, pnodeArg->sxVar.sym, pnodeArg->sxVar.pid, funcInfo, true);
 
-                pnodeArg->sxVar.sym->SetNeedDeclaration(false);
                 return;
             }
 
@@ -4875,6 +4880,17 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
     }
 
     // Arrived at the scope in which the property was defined.
+    if (sym && sym->GetNeedDeclaration() && scope->GetFunc() == funcInfo)
+    {
+        EmitUseBeforeDeclarationRuntimeError(this, Js::Constants::NoRegister);
+        // Intentionally continue on to do normal EmitPropStore behavior so
+        // that the bytecode ends up well-formed for the backend.  This is
+        // in contrast to EmitPropLoad and EmitPropTypeof where they both
+        // tell EmitUseBeforeDeclarationRuntimeError to emit a LdUndef in place
+        // of their load and then they skip emitting their own bytecode.
+        // Potayto potahto.
+    }
+
     if (sym == nullptr || sym->GetIsGlobal())
     {
         Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
@@ -5981,6 +5997,10 @@ void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncI
             }
             else
             {
+                // EmitLoad will check for needsDeclaration and emit the Use Before Declaration error
+                // bytecode op as necessary, but EmitReference does not check this (by design). So we
+                // must manually check here.
+                EmitUseBeforeDeclaration(pnode->sxCall.pnodeTarget->sxPid.sym, byteCodeGenerator, funcInfo);
                 EmitReference(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo);
             }
             break;
@@ -6023,19 +6043,6 @@ void EmitDestructuredElement(ParseNode *elem, Js::RegSlot sourceLocation, ByteCo
     case knopConstDecl:
         // We manually need to set NeedDeclaration since the node won't be visited.
         elem->sxVar.sym->SetNeedDeclaration(false);
-        break;
-
-    case knopName:
-        if (elem->sxPid.sym != nullptr && elem->sxPid.sym->GetNeedDeclaration())
-        {
-            bool needToRelease = elem->location == Js::Constants::NoRegister;
-            EmitUseBeforeDeclaration(elem, byteCodeGenerator, funcInfo);
-            if (needToRelease && elem->location != Js::Constants::NoRegister)
-            {
-                // We have acquired register as a part of EmitUseBeforeDeclaration. We need to release that.
-                funcInfo->ReleaseTmpRegister(elem->location);
-            }
-        }
         break;
 
     default:
@@ -6614,7 +6621,7 @@ void EmitLoad(
     case knopCall:
         funcInfo->AcquireLoc(lhs);
         EmitReference(lhs, byteCodeGenerator, funcInfo);
-        EmitCall(lhs, /*rhs=*/ Js::Constants::NoRegister, byteCodeGenerator, funcInfo, /*fReturnValue=*/ false, /*fAssignRegs=*/ false, /*fHasNewTarget=*/ false);
+        EmitCall(lhs, /*rhs=*/ Js::Constants::NoRegister, byteCodeGenerator, funcInfo, /*fReturnValue=*/ false, /*fEvaluateComponents=*/ false, /*fHasNewTarget=*/ false);
         break;
 
     default:
@@ -7087,7 +7094,7 @@ void EmitMethodFld(ParseNode *pnode, Js::RegSlot callObjLocation, Js::PropertyId
 }
 
 // lhs.apply(this, arguments);
-void EmitApplyCall(ParseNode* pnode, Js::RegSlot rhsLocation, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue, BOOL fAssignRegs)
+void EmitApplyCall(ParseNode* pnode, Js::RegSlot rhsLocation, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue)
 {
     ParseNode* applyNode = pnode->sxCall.pnodeTarget;
     ParseNode* thisNode = pnode->sxCall.pnodeArgs->sxBin.pnode1;
@@ -7153,7 +7160,7 @@ void EmitApplyCall(ParseNode* pnode, Js::RegSlot rhsLocation, ByteCodeGenerator*
     byteCodeGenerator->LoadHeapArguments(funcInfo);
 
     byteCodeGenerator->Writer()->MarkLabel(argsAlreadyCreated);
-    EmitCall(pnode, rhsLocation, byteCodeGenerator, funcInfo, fReturnValue, fAssignRegs,/*fHasNewTarget*/false);
+    EmitCall(pnode, rhsLocation, byteCodeGenerator, funcInfo, fReturnValue, /*fEvaluateComponents*/true, /*fHasNewTarget*/false);
     byteCodeGenerator->Writer()->MarkLabel(afterSlowPath);
 }
 
@@ -7201,7 +7208,6 @@ void EmitCallTargetNoEvalComponents(
             *thisLocation = funcInfo->undefinedConstantRegister;
         }
 
-        EmitUseBeforeDeclaration(pnodeTarget, byteCodeGenerator, funcInfo);
         break;
 
     default:
@@ -8663,7 +8669,8 @@ void EmitForInOrForOf(ParseNode *loopNode, ByteCodeGenerator *byteCodeGenerator,
     }
 
     if (loopNode->sxForInOrForOf.pnodeLval->nop != knopVarDecl &&
-        loopNode->sxForInOrForOf.pnodeLval->nop != knopLetDecl)
+        loopNode->sxForInOrForOf.pnodeLval->nop != knopLetDecl &&
+        loopNode->sxForInOrForOf.pnodeLval->nop != knopConstDecl)
     {
         EmitReference(loopNode->sxForInOrForOf.pnodeLval, byteCodeGenerator, funcInfo);
     }
@@ -8850,54 +8857,29 @@ void EmitBinaryReference(ParseNode *pnode1, ParseNode *pnode2, ByteCodeGenerator
     Emit(pnode2, byteCodeGenerator, funcInfo, false);
 }
 
-void EmitUseBeforeDeclarationRuntimeError(ByteCodeGenerator * byteCodeGenerator, Js::RegSlot location, bool fLoadUndef)
+void EmitUseBeforeDeclarationRuntimeError(ByteCodeGenerator * byteCodeGenerator, Js::RegSlot location)
 {
     byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_UseBeforeDeclaration));
-    // Load something into register in order to do not confuse IRBuilder. This value will never be used.
-    if (fLoadUndef)
+
+    if (location != Js::Constants::NoRegister)
     {
+        // Optionally load something into register in order to do not confuse IRBuilder. This value will never be used.
         byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, location);
     }
 }
 
-bool EmitUseBeforeDeclaration(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
+void EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
 {
-    Symbol *sym = nullptr;
-    bool fAcquireLoc = true;
-    if (pnode->nop == knopName)
-    {
-        sym = pnode->sxPid.sym;
-    }
-    else if (pnode->nop == knopVarDecl)
-    {
-        fAcquireLoc = false;
-        sym = pnode->sxVar.sym;
-    }
-    else if ((ParseNode::Grfnop(pnode->nop) & fnopAsg) != 0)
-    {
-        if ((ParseNode::Grfnop(pnode->nop) & fnopBin) != 0 && pnode->sxBin.pnode1->nop == knopName)
-        {
-            sym = pnode->sxBin.pnode1->sxPid.sym;
-        }
-        if ((ParseNode::Grfnop(pnode->nop) & fnopUni) != 0 && pnode->sxUni.pnode1->nop == knopName)
-        {
-            sym = pnode->sxUni.pnode1->sxPid.sym;
-        }
-    }
-
     // Don't emit static use-before-declaration error in a closure or dynamic scope case. We detect such cases with dynamic checks,
     // if necessary.
-    if (sym != nullptr && !sym->GetIsModuleExportStorage() && sym->GetNeedDeclaration() && byteCodeGenerator->GetCurrentScope()->HasStaticPathToAncestor(sym->GetScope()) && sym->GetScope()->GetFunc() == funcInfo)
+    if (sym != nullptr &&
+        !sym->GetIsModuleExportStorage() &&
+        sym->GetNeedDeclaration() &&
+        byteCodeGenerator->GetCurrentScope()->HasStaticPathToAncestor(sym->GetScope()) &&
+        sym->GetScope()->GetFunc() == funcInfo)
     {
-        if (fAcquireLoc)
-        {
-            funcInfo->AcquireLoc(pnode);
-        }
-        EmitUseBeforeDeclarationRuntimeError(byteCodeGenerator, pnode->location, fAcquireLoc);
-        return true;
+        EmitUseBeforeDeclarationRuntimeError(byteCodeGenerator, Js::Constants::NoRegister);
     }
-
-    return false;
 }
 
 void EmitBinary(Js::OpCode opcode, ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
@@ -9314,31 +9296,19 @@ void TrackMemberNodesInObjectForIntConstants(ByteCodeGenerator *byteCodeGenerato
 
     ParseNodePtr memberList = objNode->sxUni.pnode1;
 
-    if (memberList != nullptr)
+    while (memberList != nullptr)
     {
-        // Iterate through all the member nodes
-        while (memberList->nop == knopList)
-        {
-            ParseNodePtr memberNode = memberList->sxBin.pnode1;
-            ParseNodePtr memberNameNode = memberNode->sxBin.pnode1;
-            ParseNodePtr memberValNode = memberNode->sxBin.pnode2;
-
-            if (memberNameNode->nop != knopComputedName && memberValNode->nop == knopInt)
-            {
-                Js::PropertyId propertyId = memberNameNode->sxPid.PropertyIdFromNameNode();
-                TrackIntConstantsOnGlobalUserObject(byteCodeGenerator, true, propertyId);
-            }
-            memberList = memberList->sxBin.pnode2;
-        }
-
-        ParseNode *memberNameNode = memberList->sxBin.pnode1;
-        ParseNode *memberValNode = memberList->sxBin.pnode2;
+        ParseNodePtr memberNode = memberList->nop == knopList ? memberList->sxBin.pnode1 : memberList;
+        ParseNodePtr memberNameNode = memberNode->sxBin.pnode1;
+        ParseNodePtr memberValNode = memberNode->sxBin.pnode2;
 
         if (memberNameNode->nop != knopComputedName && memberValNode->nop == knopInt)
         {
             Js::PropertyId propertyId = memberNameNode->sxPid.PropertyIdFromNameNode();
             TrackIntConstantsOnGlobalUserObject(byteCodeGenerator, true, propertyId);
         }
+
+        memberList = memberList->nop == knopList ? memberList->sxBin.pnode2 : nullptr;
     }
 }
 
@@ -9426,22 +9396,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 {
     if (pnode == nullptr)
     {
-        return;
-    }
-
-    if (EmitUseBeforeDeclaration(pnode, byteCodeGenerator, funcInfo))
-    {
-        if (fReturnValue && IsExpressionStatement(pnode, byteCodeGenerator->GetScriptContext()))
-        {
-            // If this statement may produce the global function's return value, make sure we load something to the
-            // return register for the JIT.
-
-            // fReturnValue implies global function, which implies that "return" is a parse error.
-            Assert(funcInfo->IsGlobalFunction());
-            Assert(pnode->nop != knopReturn);
-            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, ByteCodeGenerator::ReturnRegister);
-        }
-
         return;
     }
 
@@ -9983,7 +9937,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             if (pnode->sxCall.isApplyCall && funcInfo->GetApplyEnclosesArgs())
             {
                 // TODO[ianhall]: Can we remove the ApplyCall bytecode gen time optimization?
-                EmitApplyCall(pnode, Js::Constants::NoRegister, byteCodeGenerator, funcInfo, fReturnValue, true);
+                EmitApplyCall(pnode, Js::Constants::NoRegister, byteCodeGenerator, funcInfo, fReturnValue);
             }
             else
             {
@@ -10290,91 +10244,52 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
     // PTNODE(knopVarDecl    , "varDcl"    ,None    ,Var  ,fnopNone)
     case knopVarDecl:
+    case knopConstDecl:
+    case knopLetDecl:
     {
         // Emit initialization code
         ParseNodePtr initNode = pnode->sxVar.pnodeInit;
+        AssertMsg(pnode->nop != knopConstDecl || initNode != nullptr, "knopConstDecl expected to have an initializer");
 
-        if (initNode != nullptr)
+        if (initNode != nullptr || pnode->nop == knopLetDecl)
         {
-            byteCodeGenerator->StartStatement(pnode);
-            Emit(pnode->sxVar.pnodeInit, byteCodeGenerator, funcInfo, false);
-            EmitAssignment(nullptr, pnode, pnode->sxVar.pnodeInit->location, byteCodeGenerator, funcInfo);
-            funcInfo->ReleaseLoc(pnode->sxVar.pnodeInit);
-            byteCodeGenerator->EndStatement(pnode);
-
             Symbol *sym = pnode->sxVar.sym;
-            if (pnode->sxVar.pnodeInit->nop == knopObject && (ParseNode::Grfnop(pnode->sxVar.pnodeInit->nop) & fnopUni))
+            Js::RegSlot rhsLocation;
+
+            byteCodeGenerator->StartStatement(pnode);
+
+            if (initNode != nullptr)
             {
-                TrackMemberNodesInObjectForIntConstants(byteCodeGenerator, pnode->sxVar.pnodeInit);
+                Emit(initNode, byteCodeGenerator, funcInfo, false);
+                rhsLocation = initNode->location;
+
+                if (initNode->nop == knopObject)
+                {
+                    TrackMemberNodesInObjectForIntConstants(byteCodeGenerator, initNode);
+                }
+                else if (initNode->nop == knopInt)
+                {
+                    TrackIntConstantsOnGlobalObject(byteCodeGenerator, sym);
+                }
             }
-            else if (initNode->nop == knopInt)
+            else
             {
-                TrackIntConstantsOnGlobalObject(byteCodeGenerator, sym);
+                Assert(pnode->nop == knopLetDecl);
+                rhsLocation = funcInfo->AcquireTmpRegister();
+                byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, rhsLocation);
             }
-        }
-        break;
-    }
-    case knopConstDecl:
-    {
-        ParseNodePtr initNode = pnode->sxVar.pnodeInit;
-        Symbol * sym = pnode->sxVar.sym;
 
-        byteCodeGenerator->StartStatement(pnode);
-
-        if (initNode)
-        {
-            Emit(initNode, byteCodeGenerator, funcInfo, false);
-
-            byteCodeGenerator->EmitPropStore(initNode->location, sym, nullptr, funcInfo, false, true);
-            funcInfo->ReleaseLoc(pnode->sxVar.pnodeInit);
-
-            if (initNode->nop == knopInt)
+            if (pnode->nop != knopVarDecl)
             {
-                TrackIntConstantsOnGlobalObject(byteCodeGenerator, sym);
+                Assert(sym->GetDecl() == pnode);
+                sym->SetNeedDeclaration(false);
             }
+
+            EmitAssignment(nullptr, pnode, rhsLocation, byteCodeGenerator, funcInfo);
+            funcInfo->ReleaseTmpRegister(rhsLocation);
+
+            byteCodeGenerator->EndStatement(pnode);
         }
-
-        byteCodeGenerator->EndStatement(pnode);
-
-        // Set NeedDeclaration to false AFTER emitting the initializer, otherwise we won't have "Use Before Declaration"
-        // errors reported in the initializer for code like this:
-        // { const a = a; }
-        sym->SetNeedDeclaration(false);
-
-        break;
-    }
-    case knopLetDecl:
-    {
-        ParseNodePtr initNode = pnode->sxVar.pnodeInit;
-        byteCodeGenerator->StartStatement(pnode);
-
-        Symbol * sym = pnode->sxVar.sym;
-        Js::RegSlot rhsLocation;
-        if (pnode->sxVar.pnodeInit != nullptr)
-        {
-            Emit(pnode->sxVar.pnodeInit, byteCodeGenerator, funcInfo, false);
-            rhsLocation = pnode->sxVar.pnodeInit->location;
-            if (initNode->nop == knopInt)
-            {
-                TrackIntConstantsOnGlobalObject(byteCodeGenerator, sym);
-            }
-        }
-        else
-        {
-            rhsLocation = funcInfo->AcquireTmpRegister();
-            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, rhsLocation);
-        }
-
-        // Set NeedDeclaration to false AFTER emitting the initializer, otherwise we won't have "Use Before Declaration"
-        // errors reported in the initializer for code like this:
-        // { let a = a; }
-        sym->SetNeedDeclaration(false);
-
-        byteCodeGenerator->EmitPropStore(rhsLocation, sym, nullptr, funcInfo, true, false);
-
-        funcInfo->ReleaseTmpRegister(rhsLocation);
-        byteCodeGenerator->EndStatement(pnode);
-
         break;
     }
     // PTNODE(knopFncDecl    , "fncDcl"    ,None    ,Fnc  ,fnopLeaf)
