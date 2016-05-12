@@ -2408,7 +2408,7 @@ namespace Js
         AssertMsg(!this->m_ttdRootSet->ContainsKey(newRoot), "Hmm this is strange.");
 
         this->m_ttdRootSet->AddNew(newRoot);
-        this->m_ttdRootTagIdMap.Add(origId, newRoot);
+        this->m_ttdRootTagIdMap.Item(origId, newRoot);
     }
 
     void ScriptContext::RemoveTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot)
@@ -2424,8 +2424,8 @@ namespace Js
 
     void ScriptContext::AddLocalRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
     {
-        this->m_ttdLocalRootSet->Add(newRoot);
-        this->m_ttdRootTagIdMap.Add(origId, newRoot);
+        this->m_ttdLocalRootSet->AddNew(newRoot);
+        this->m_ttdRootTagIdMap.Item(origId, newRoot);
     }
 
     void ScriptContext::ClearLocalRootsAndRefreshMap_TTD()

@@ -429,7 +429,7 @@ namespace TTD
             Js::CallInfo callInfo(Js::CallFlags::CallFlags_New, (ushort)(ccAction->ArgCount - 1)); 
             for(uint32 i = 1; i < ccAction->ArgCount; ++i)
             {
-                ccAction->ExecArgs[i] = InflateVarInReplay(ctx, ccAction->ArgArray[i]);
+                ccAction->ExecArgs[i - 1] = InflateVarInReplay(ctx, ccAction->ArgArray[i]);
             }
             Js::Arguments jsArgs(callInfo, ccAction->ExecArgs);
 
@@ -495,7 +495,7 @@ namespace TTD
             reader->ReadSequenceEnd();
 
 #if ENABLE_TTD_DEBUGGING
-            ccAction->ExecArgs = alloc.SlabAllocateArray<Js::Var>(ccAction->ArgCount - 1); //we use an extra space for the function
+            ccAction->ExecArgs = (ccAction->ArgCount > 1) ? alloc.SlabAllocateArray<Js::Var>(ccAction->ArgCount - 1) : nullptr; //ArgCount includes slot for function which we don't use in exec
 #endif
         }
 
@@ -782,7 +782,7 @@ namespace TTD
             Js::CallInfo callInfo((ushort)(cfAction->ArgCount - 1));
             for(uint32 i = 1; i < cfAction->ArgCount; ++i)
             {
-                cfAction->AdditionalInfo->ExecArgs[i] = InflateVarInReplay(ctx, cfAction->ArgArray[i]);
+                cfAction->AdditionalInfo->ExecArgs[i - 1] = InflateVarInReplay(ctx, cfAction->ArgArray[i]);
             }
             Js::Arguments jsArgs(callInfo, cfAction->AdditionalInfo->ExecArgs);
 
@@ -914,6 +914,7 @@ namespace TTD
             cfAction->CallbackDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
 
             cfAction->ArgCount = reader->ReadLengthValue(true);
+            cfAction->ArgArray = alloc.SlabAllocateArray<TTDVar>(cfAction->ArgCount);
 
             reader->ReadSequenceStart_WDefaultKey(true);
             for(uint32 i = 0; i < cfAction->ArgCount; ++i)
@@ -936,7 +937,7 @@ namespace TTD
 
 #if ENABLE_TTD_DEBUGGING
             cfInfo->RtRSnap = nullptr;
-            cfInfo->ExecArgs = alloc.SlabAllocateArray<Js::Var>(cfAction->ArgCount - 1); //we use an extra space for the function
+            cfInfo->ExecArgs = (cfAction->ArgCount > 1) ? alloc.SlabAllocateArray<Js::Var>(cfAction->ArgCount - 1) : nullptr; //ArgCount includes slot for function which we don't use in exec
 
             cfInfo->LastExecutedLocation.Clear();
 #endif

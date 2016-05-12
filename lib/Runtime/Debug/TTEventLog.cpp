@@ -1676,16 +1676,16 @@ namespace TTD
             this->AbortReplayReturnToHost();
         }
 
-        switch(this->m_currentReplayEventIterator.Current()->EventKind)
+        NSLogEvents::EventKind eKind = this->m_currentReplayEventIterator.Current()->EventKind;
+        if(eKind == NSLogEvents::EventKind::SnapshotTag)
         {
-            case NSLogEvents::EventKind::SnapshotTag:
-                this->ReplaySnapshotEvent();
-                break;
-            case NSLogEvents::EventKind::JsRTActionTag:
-                this->ReplayActionLoopStep(); 
-                break;
-            default:
-                AssertMsg(false, "Either this is an invalid tag to replay directly (should be driven internally) or it is not known!!!");
+            this->ReplaySnapshotEvent();
+        }
+        else
+        {
+            AssertMsg(eKind > NSLogEvents::EventKind::JsRTActionTag, "Either this is an invalid tag to replay directly (should be driven internally) or it is not known!!!");
+
+            this->ReplayActionLoopStep();
         }
     }
 
@@ -2108,7 +2108,7 @@ namespace TTD
 
             doSep = (!isJsRTBeginCall & !isExternalBeginCall);
 
-            if(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
+            while(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
             {
                 writer.AdjustIndent(-1);
 
@@ -2252,6 +2252,8 @@ namespace TTD
             bool isExternalBeginCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
             if(isJsRTBeginCall | isExternalBeginCall)
             {
+                reader.ReadSequenceStart(true);
+
                 if(isJsRTBeginCall)
                 {
                     int64 lastNestedTime = NSLogEvents::JsRTCallFunctionAction_GetLastNestedEventTime(evt);
@@ -2266,7 +2268,7 @@ namespace TTD
 
             doSep = (!isJsRTBeginCall & !isExternalBeginCall);
 
-            if(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
+            while(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
             {
                 callNestingStack.Pop();
                 reader.ReadSequenceEnd();

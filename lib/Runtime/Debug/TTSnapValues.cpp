@@ -1447,6 +1447,7 @@ namespace TTD
             }
 
             //invert the root map for extracting
+
             JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator> objToLogIdMap(&HeapAllocator::Instance);
             for(auto iter = ctx->m_ttdRootTagIdMap.GetIterator(); iter.IsValid(); iter.MoveNext())
             {
@@ -1462,14 +1463,14 @@ namespace TTD
             {
                 AssertMsg(objToLogIdMap.ContainsKey(iter.CurrentValue()), "We are missing a value mapping!!!");
 
-                snapCtx->m_globalRootArray[i].LogId = objToLogIdMap.LookupWithKey(iter.CurrentValue(), TTD_INVALID_LOG_PTR_ID);
-                snapCtx->m_globalRootArray[i].LogId = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(iter.CurrentValue());
+                snapCtx->m_globalRootArray[i].LogObject = TTD_CONVERT_VAR_TO_PTR_ID(iter.CurrentValue());
+                snapCtx->m_globalRootArray[i].LogId = objToLogIdMap.LookupWithKey(iter.CurrentValue(), TTD_INVALID_PTR_ID);
 
                 i++;
             }
 
             //Extract local roots
-            snapCtx->m_localRootCount = ctx->m_ttdRootSet->Count();
+            snapCtx->m_localRootCount = ctx->m_ttdLocalRootSet->Count();
             snapCtx->m_localRootArray = (snapCtx->m_localRootCount != 0) ? alloc.SlabAllocateArray<SnapRootPinEntry>(snapCtx->m_localRootCount) : nullptr;
 
             int32 j = 0;
@@ -1477,8 +1478,8 @@ namespace TTD
             {
                 AssertMsg(objToLogIdMap.ContainsKey(iter.CurrentValue()), "We are missing a value mapping!!!");
 
+                snapCtx->m_localRootArray[j].LogObject = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(iter.CurrentValue()); 
                 snapCtx->m_localRootArray[j].LogId = objToLogIdMap.LookupWithKey(iter.CurrentValue(), TTD_INVALID_LOG_PTR_ID);
-                snapCtx->m_localRootArray[j].LogId = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(iter.CurrentValue());
 
                 j++;
             }
@@ -1696,7 +1697,7 @@ namespace TTD
             {
                 reader->ReadRecordStart(i != 0);
                 intoCtx->m_globalRootArray[i].LogId = reader->ReadLogTag(NSTokens::Key::logTag);
-                intoCtx->m_globalRootArray[i].LogObject, reader->ReadAddr(NSTokens::Key::objectId, true);
+                intoCtx->m_globalRootArray[i].LogObject = reader->ReadAddr(NSTokens::Key::objectId, true);
                 reader->ReadRecordEnd();
             }
             reader->ReadSequenceEnd();
@@ -1709,7 +1710,7 @@ namespace TTD
             {
                 reader->ReadRecordStart(i != 0);
                 intoCtx->m_localRootArray[i].LogId = reader->ReadLogTag(NSTokens::Key::logTag);
-                intoCtx->m_localRootArray[i].LogObject, reader->ReadAddr(NSTokens::Key::objectId, true);
+                intoCtx->m_localRootArray[i].LogObject = reader->ReadAddr(NSTokens::Key::objectId, true);
                 reader->ReadRecordEnd();
             }
             reader->ReadSequenceEnd();
