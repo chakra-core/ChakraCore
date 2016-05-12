@@ -572,6 +572,34 @@ namespace Js
         SetOriginalEntryPoint(originalEntryPoint);
     }
 
+    Var
+    FunctionBody::GetFormalsPropIdArrayOrNullObj()
+    {
+        Var formalsPropIdArray = this->GetAuxPtr(AuxPointerType::FormalsPropIdArray);
+        if (formalsPropIdArray == nullptr)
+        {
+            return GetScriptContext()->GetLibrary()->GetNull();
+        }
+        return formalsPropIdArray;
+    }
+
+    PropertyIdArray*
+    FunctionBody::GetFormalsPropIdArray(bool checkForNull)
+    {
+        if (checkForNull)
+        {
+            Assert(this->GetAuxPtr(AuxPointerType::FormalsPropIdArray));
+        }
+        return static_cast<PropertyIdArray*>(this->GetAuxPtr(AuxPointerType::FormalsPropIdArray));
+    }
+
+    void 
+    FunctionBody::SetFormalsPropIdArray(PropertyIdArray * propIdArray)
+    {
+        AssertMsg(propIdArray == nullptr || this->GetAuxPtr(AuxPointerType::FormalsPropIdArray) == nullptr, "Already set?");
+        this->SetAuxPtr(AuxPointerType::FormalsPropIdArray, propIdArray);
+    }
+
     ByteBlock*
     FunctionBody::GetByteCode()
     {
@@ -3447,6 +3475,7 @@ namespace Js
 
         newFunctionBody->cacheIdToPropertyIdMap = this->cacheIdToPropertyIdMap;
         newFunctionBody->SetReferencedPropertyIdMap(this->GetReferencedPropertyIdMap());
+        newFunctionBody->SetFormalsPropIdArray(this->GetFormalsPropIdArray());
         newFunctionBody->SetPropertyIdsForScopeSlotArray(this->GetPropertyIdsForScopeSlotArray(), this->scopeSlotArraySize);
         newFunctionBody->SetPropertyIdOnRegSlotsContainer(this->GetPropertyIdOnRegSlotsContainer());
 
@@ -4739,6 +4768,7 @@ namespace Js
         this->SetScopeInfo(nullptr);
         this->SetCodeGenRuntimeData(nullptr);
         this->cacheIdToPropertyIdMap = nullptr;
+        this->SetFormalsPropIdArray(nullptr);
         this->SetReferencedPropertyIdMap(nullptr);
         this->SetLiteralRegexs(nullptr);
         this->SetPropertyIdsForScopeSlotArray(nullptr, 0);
@@ -6021,6 +6051,14 @@ namespace Js
         return this->GetAsmJsModuleInfo();
     }
 #endif
+
+    PropertyIdArray * FunctionBody::AllocatePropertyIdArrayForFormals(uint32 size, uint32 count)
+    {
+        //TODO: saravind: Should the allocation be a Leaf Allocation?
+        PropertyIdArray * formalsPropIdArray = RecyclerNewPlus(GetScriptContext()->GetRecycler(), size, Js::PropertyIdArray, count);
+        SetFormalsPropIdArray(formalsPropIdArray);
+        return formalsPropIdArray;
+    }
 
     UnifiedRegex::RegexPattern *FunctionBody::GetLiteralRegex(const uint index)
     {
@@ -7686,6 +7724,7 @@ namespace Js
         this->polymorphicInlineCaches.Reset();
         this->SetPolymorphicInlineCachesHead(nullptr);
         this->cacheIdToPropertyIdMap = nullptr;
+        this->SetFormalsPropIdArray(nullptr);
         this->SetReferencedPropertyIdMap(nullptr);
         this->SetLiteralRegexs(nullptr);
         this->SetPropertyIdsForScopeSlotArray(nullptr, 0);

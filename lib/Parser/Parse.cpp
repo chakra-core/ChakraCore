@@ -1695,6 +1695,15 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
         ref->SetSym(sym);
         this->RemovePrevPidRef(pid, lastRef);
 
+        if (ref->IsAssignment())
+        {
+            sym->PromoteAssignmentState();
+            if (m_currentNodeFunc && sym->GetIsFormal())
+            {
+                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);                
+            }
+        }
+
         if (ref->IsModuleExport())
         {
             Assert(sym->GetIsGlobal());
@@ -8038,7 +8047,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 {
                     Error(JSERR_CantAssignTo);
                 }
-
+                TrackAssignment<buildAST>(pnodeT, &operandToken);
                 if (buildAST)
                 {
                     if (IsStrictMode() && pnodeT->nop == knopName)
@@ -8193,6 +8202,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 Error(JSERR_CantAssignTo);
             }
+            TrackAssignment<buildAST>(pnode, &term);
             fCanAssign = FALSE;
             if (buildAST)
             {
@@ -8240,7 +8250,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binary operators. We also need to special case the left
                 // operand - it should only be a LeftHandSideExpression.
                 Assert(ParseNode::Grfnop(nop) & fnopAsg || nop == knopFncDecl);
-
+                TrackAssignment<buildAST>(pnode, &term);
                 if (buildAST)
                 {
                     if (IsStrictMode() && pnode->nop == knopName)
@@ -8458,8 +8468,32 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             }
         }
     }
-
     return pnode;
+}
+
+template<bool buildAST>
+void Parser::TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken)
+{
+    if (buildAST)
+    {
+        Assert(pnodeT != nullptr);
+        if (pnodeT->nop == knopName)
+        {
+            PidRefStack *ref = pnodeT->sxPid.pid->GetTopRef();
+            Assert(ref);
+            ref->isAsg = true;
+        }
+    }
+    else
+    {
+        Assert(pToken != nullptr);
+        if (pToken->tk == tkID)
+        {
+            PidRefStack *ref = pToken->pid->GetTopRef();
+            Assert(ref);
+            ref->isAsg = true;
+        }
+    }
 }
 
 void PnPid::SetSymRef(PidRefStack *ref)
@@ -8692,6 +8726,10 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                 if (pnodeThis && pnodeThis->sxVar.pnodeInit != nullptr)
                 {
                     pnodeThis->sxVar.sym->PromoteAssignmentState();
+                    if (m_currentNodeFunc && pnodeThis->sxVar.sym->GetIsFormal())
+                    {
+                        m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);
+                    }
                 }
             }
             else if (declarationType == tkCONST /*pnodeThis->nop == knopConstDecl*/
@@ -9369,6 +9407,8 @@ LDefaultTokenFor:
                 pnode->sxForInOrForOf.pnodeLval = pnodeT;
                 pnode->sxForInOrForOf.pnodeObj = pnodeObj;
                 pnode->ichLim = ichLim;
+                
+                TrackAssignment<true>(pnodeT, nullptr);
             }
             PushStmt<buildAST>(&stmt, pnode, isForOf ? knopForOf : knopForIn, pnodeLabel, pLabelIdList);
             ParseNodePtr pnodeBody = ParseStatement<buildAST>();
@@ -11152,9 +11192,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
 
         // Append block as body of pnodeProg
         FinishParseBlock(pnodeBlock);
-
     }
-
     catch(ParseExceptionObject& e)
     {
         m_err.m_hr = e.GetError();
@@ -11788,6 +11826,10 @@ ParseNodePtr Parser::ConvertArrayToArrayPattern(ParseNodePtr pnode)
         {
             *itemRef = ConvertObjectToObjectPattern(item);
         }
+        else if (item->nop == knopName)
+        {
+            TrackAssignment<true>(item, nullptr);
+        }
     });
 
     return pnode;
@@ -11838,6 +11880,10 @@ ParseNodePtr Parser::GetRightSideNodeFromPattern(ParseNodePtr pnode)
     else
     {
         rightNode = pnode;
+        if (op == knopName)
+        {
+            TrackAssignment<true>(pnode, nullptr);
+        }
     }
 
     return rightNode;

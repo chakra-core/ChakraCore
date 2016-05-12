@@ -2354,7 +2354,7 @@ StoreCommon:
         //
         // Write the buffer's contents
         //
-
+        
         Assert(byteOffset < m_auxiliaryData.GetCurrentOffset());
 
         OpLayoutAuxNoReg data;

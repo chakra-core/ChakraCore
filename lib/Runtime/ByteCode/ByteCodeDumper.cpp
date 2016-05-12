@@ -328,6 +328,26 @@ namespace Js
     }
     void ByteCodeDumper::DumpEmpty(OpCode op, const unaligned OpLayoutEmpty * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
+        switch (op)
+        {
+            case OpCode::CommitScope:
+            {
+                const Js::PropertyIdArray *propIds = dumpFunction->GetFormalsPropIdArray();
+                ScriptContext* scriptContext = dumpFunction->GetScriptContext();
+                Output::Print(_u(" %d ["), propIds->count);
+                for (uint i = 0; i < propIds->count && i < 3; i++)
+                {
+                    PropertyRecord const * pPropertyName = scriptContext->GetPropertyName(propIds->elements[i]);
+                    if (i != 0)
+                    {
+                        Output::Print(_u(", "));
+                    }
+                    Output::Print(_u("%s"), pPropertyName->GetBuffer());
+                }
+                Output::Print(_u("]"));
+                break;
+            }
+        }
     }
     template <class T>
     void ByteCodeDumper::DumpCallI(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
@@ -1255,23 +1275,6 @@ namespace Js
     {
         switch (op)
         {
-            case OpCode::CommitScope:
-            {
-                const Js::PropertyIdArray *propIds = reader.ReadPropertyIdArray(playout->Offset, dumpFunction);
-                ScriptContext* scriptContext = dumpFunction->GetScriptContext();
-                Output::Print(_u(" %d ["), propIds->count);
-                for (uint i=0; i < propIds->count && i < 3; i++)
-                {
-                    PropertyRecord const * pPropertyName = scriptContext->GetPropertyName(propIds->elements[i]);
-                    if (i != 0)
-                    {
-                        Output::Print(_u(", "));
-                    }
-                    Output::Print(_u("%s"), pPropertyName->GetBuffer());
-                }
-                Output::Print(_u("]"));
-                break;
-            }
             case Js::OpCode::InitCachedFuncs:
             {
                 const Js::FuncInfoArray *arr = reader.ReadAuxArray<FuncInfoEntry>(playout->Offset, dumpFunction);

@@ -5415,15 +5415,15 @@ namespace Js
         return entry->func;
     }
 
-    void InterpreterStackFrame::OP_CommitScope(const unaligned OpLayoutAuxNoReg * playout)
+    void InterpreterStackFrame::OP_CommitScope()
     {
-        const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArray(playout->Offset, this->GetFunctionBody());
-        this->OP_CommitScopeHelper(playout, propIds);
+        const Js::PropertyIdArray *propIds = this->m_functionBody->GetFormalsPropIdArray();
+        this->OP_CommitScopeHelper(propIds);
     }
 
-    void InterpreterStackFrame::OP_CommitScopeHelper(const unaligned OpLayoutAuxNoReg *playout, const PropertyIdArray *propIds)
+    void InterpreterStackFrame::OP_CommitScopeHelper(const PropertyIdArray *propIds)
     {
-        ActivationObjectEx *obj = (ActivationObjectEx*)ActivationObjectEx::FromVar(/*GetReg(playout->R0)*/this->localClosure);
+        ActivationObjectEx *obj = (ActivationObjectEx*)ActivationObjectEx::FromVar(this->localClosure);
         ScriptFunction *func = obj->GetParentFunc();
 
         Assert(obj->GetParentFunc() == func);
@@ -5482,7 +5482,6 @@ namespace Js
     void InterpreterStackFrame::OP_LdPropIds(const unaligned OpLayoutAuxiliary * playout)
     {
         const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArray(playout->Offset, this->GetFunctionBody());
-
         SetNonVarReg(playout->R0, (Var)propIds);
     }
 
@@ -7118,8 +7117,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         if (m_functionBody->HasCachedScopePropIds())
         {
-            const Js::PropertyIdArray *propIds =
-                Js::ByteCodeReader::ReadPropertyIdArray(0, this->GetFunctionBody(), ActivationObjectEx::ExtraSlotCount());
+            const Js::PropertyIdArray *propIds = this->m_functionBody->GetFormalsPropIdArray();
+                
             Var funcExpr = this->GetFunctionExpression();
             PropertyId objectId = ActivationObjectEx::GetLiteralObjectRef(propIds);
             scopeObject = JavascriptOperators::OP_InitCachedScope(funcExpr, propIds,
@@ -8390,13 +8389,15 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return args;
     }
 
-    Var InterpreterStackFrame::OP_LdHeapArguments(Var argsArray, ScriptContext* scriptContext)
+    Var InterpreterStackFrame::OP_LdHeapArguments(ScriptContext* scriptContext)
     {
+        Var argsArray = m_functionBody->GetFormalsPropIdArrayOrNullObj();
         return LdHeapArgumentsImpl<false>(argsArray, scriptContext);
     }
 
-    Var InterpreterStackFrame::OP_LdLetHeapArguments(Var argsArray, ScriptContext* scriptContext)
+    Var InterpreterStackFrame::OP_LdLetHeapArguments(ScriptContext* scriptContext)
     {
+        Var argsArray = m_functionBody->GetFormalsPropIdArrayOrNullObj();
         return LdHeapArgumentsImpl<true>(argsArray, scriptContext);
     }
 
@@ -8414,6 +8415,84 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Var args = JavascriptOperators::LoadHeapArgsCached(this->function->GetRealFunctionObject(), this->m_inSlotsCount - 1, formalsCount, &this->m_inParams[1], this->localClosure, scriptContext, true);
         this->m_arguments = args;
         return args;
+    }
+
+    HeapArgumentsObject * InterpreterStackFrame::CreateEmptyHeapArgumentsObject(ScriptContext* scriptContext)
+    {
+        HeapArgumentsObject * args = JavascriptOperators::CreateHeapArguments(this->function->GetRealFunctionObject(), this->m_inSlotsCount - 1, 0, nullptr, scriptContext);
+        this->m_arguments = args;
+        return args;
+    }
+
+    void InterpreterStackFrame::TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext, bool hasNonSimpleParams)
+    {
+        ActivationObject * frameObject = (ActivationObject*)GetLocalClosure();
+        uint32 formalsCount = this->m_functionBody->GetInParamsCount() - 1;
+        Js::PropertyIdArray * propIds = nullptr;
+        Js::HeapArgumentsObject* heapArgObj = nullptr;
+
+        //We always set the Frame object to nullptr in BailOutRecord::EnsureArguments for stack args optimization.
+        if (m_arguments != nullptr && ((Js::HeapArgumentsObject*)(m_arguments))->GetFrameObject() == nullptr)
+        {
+            heapArgObj = (Js::HeapArgumentsObject*)m_arguments;
+        }
+
+        bool isCachedScope = false;
+
+        //For Non-simple params, we don't have a scope object created.
+        if (this->m_functionBody->NeedScopeObjectForArguments(hasNonSimpleParams))
+        {
+                isCachedScope = m_functionBody->HasCachedScopePropIds();
+                propIds = this->m_functionBody->GetFormalsPropIdArray();
+
+                if (isCachedScope)
+                {
+                    Js::DynamicType *literalType = nullptr;
+                    Assert(!propIds->hasNonSimpleParams && !hasNonSimpleParams);
+                    frameObject = (ActivationObject*)JavascriptOperators::OP_InitCachedScope(this->GetJavascriptFunction(), propIds, &literalType, hasNonSimpleParams, scriptContext);
+                }
+                else
+                {
+                    frameObject = (ActivationObject*)JavascriptOperators::OP_NewScopeObject(GetScriptContext());
+                }
+                Assert(propIds != nullptr);
+                SetLocalClosure(frameObject);
+                
+                if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase) && m_functionBody->GetInParamsCount() > 1)
+                {
+                    Output::Print(_u("StackArgFormals : %s (%d) :Creating scope object in the bail out path. \n"), m_functionBody->GetDisplayName(), m_functionBody->GetFunctionNumber());
+                    Output::Flush();
+                }
+        }
+        else
+        {
+            //We reached here because, either we don't have any formals or we don't have a scope object (it could be in strict mode or have non-simple param list)
+            Assert(formalsCount == 0 || (m_functionBody->GetIsStrictMode() || hasNonSimpleParams));
+            frameObject = (ActivationObject*)scriptContext->GetLibrary()->GetNull();
+            formalsCount = 0;
+
+            if (PHASE_VERBOSE_TRACE1(Js::StackArgOptPhase))
+            {
+                Output::Print(_u("StackArgOpt : %s (%d) :Creating NULL scope object in the bail out path. \n"), m_functionBody->GetDisplayName(), m_functionBody->GetFunctionNumber());
+                Output::Flush();
+            }
+        }
+        
+        if (heapArgObj)
+        {
+            heapArgObj->SetFormalCount(formalsCount);
+            heapArgObj->SetFrameObject(frameObject);
+            
+            if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && formalsCount > 0)
+            {
+                Output::Print(_u("StackArgFormals : %s (%d) :Attaching the scope object with the heap arguments object in the bail out path. \n"), m_functionBody->GetDisplayName(), m_functionBody->GetFunctionNumber());
+                Output::Flush();
+            }
+        }
+
+        //Fill the Heap arguments and scope object with values
+        // If there is no heap arguments object, then fill only the scope object with actuals.
+        JavascriptOperators::FillScopeObject(this->function->GetRealFunctionObject(), this->m_inSlotsCount - 1, formalsCount, frameObject, &this->m_inParams[1], propIds, heapArgObj, scriptContext, hasNonSimpleParams, isCachedScope);
     }
 
     Var InterpreterStackFrame::OP_LdArgumentsFromFrame()

@@ -185,6 +185,7 @@ public:
     bool            EndsBasicBlock() const;
     bool            HasFallThrough() const;
     bool            DoStackArgsOpt(Func *topFunc) const;
+    bool            HasAnyLoadHeapArgsOpCode();
     bool            IsEqual(IR::Instr *instr) const;
 
     bool            IsCloned() const { return isCloned; }

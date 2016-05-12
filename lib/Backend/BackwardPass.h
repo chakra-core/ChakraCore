@@ -24,6 +24,12 @@ private:
     void ProcessLoopCollectionPass(BasicBlock *const lastBlock);
     void ProcessLoop(BasicBlock * lastBlock);
     void ProcessBlock(BasicBlock * block);
+    bool IsFormalParamSym(Func * func, Sym * sym) const;
+    bool CanDeadStoreInstrForScopeObjRemoval(Sym *sym = nullptr) const;
+    void TraceDeadStoreOfInstrsForScopeObjectRemoval();
+    void InsertArgInsForFormals();
+    void ProcessBailOnStackArgsOutOfActualsRange();
+    bool DeadStoreOrChangeInstrForScopeObjRemoval();
     void ProcessUse(IR::Opnd * opnd);
     bool ProcessDef(IR::Opnd * opnd);
     void ProcessTransfers(IR::Instr * instr);

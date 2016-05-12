@@ -85,20 +85,17 @@ namespace Js
             return scriptContext->GetLibrary()->GetNull();
         }
 
-        Var args = walker->GetPermanentArguments();
-        if (args == NULL)
-        {
-            args = JavascriptOperators::LoadHeapArguments(
-                funcCaller,
-                paramCount - 1,
-                walker->GetJavascriptArgs(),
-                scriptContext->GetLibrary()->GetNull(),
-                scriptContext->GetLibrary()->GetNull(),
-                scriptContext,
-                /* formalsAreLetDecls */ false);
+        // Create new arguments object, everytime this is requested for, with the actuals value.
+        Var args = nullptr;
 
-            walker->SetPermanentArguments(args);
-        }
+        args = JavascriptOperators::LoadHeapArguments(
+            funcCaller,
+            paramCount - 1,
+            walker->GetJavascriptArgs(),
+            scriptContext->GetLibrary()->GetNull(),
+            scriptContext->GetLibrary()->GetNull(),
+            scriptContext,
+            /* formalsAreLetDecls */ false);
 
         return args;
     }

@@ -2333,9 +2333,31 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
         {
             // 3. the function directly references an 'arguments' identifier
             funcInfo->SetHasArguments(true);
+            
             if (pnode->sxFnc.HasHeapArguments())
             {
-                funcInfo->SetHasHeapArguments(true, !pnode->sxFnc.IsGenerator() /*= Optimize arguments in backend*/);
+                bool doStackArgsOpt = !pnode->sxFnc.HasAnyWriteToFormals();
+#ifdef PERF_HINT
+                if (PHASE_TRACE1(Js::PerfHintPhase) && !doStackArgsOpt)
+                {
+                    WritePerfHint(PerfHints::HeapArgumentsDueToWriteToFormals, funcInfo->GetParsedFunctionBody(), 0);
+                }
+#endif
+                //Go conservative if it has any nested functions, or any non-local references.
+                //With statements - need scope object to be present.
+                //Nested funtions - need scope object to be present - LdEnv/LdFrameDisplay needs it.
+                if ((doStackArgsOpt && pnode->sxFnc.funcInfo->GetParamScope()->Count() > 1) && (pnode->sxFnc.funcInfo->HasDeferredChild() || pnode->sxFnc.nestedCount > 0 ||
+                    pnode->sxFnc.HasWithStmt() || byteCodeGenerator->IsInDebugMode() || PHASE_OFF1(Js::StackArgFormalsOptPhase) || PHASE_OFF1(Js::StackArgOptPhase)))
+                {
+                    doStackArgsOpt = false;
+#ifdef PERF_HINT
+                    if (PHASE_TRACE1(Js::PerfHintPhase))
+                    {
+                        WritePerfHint(PerfHints::HeapArgumentsDueToNonLocalRef, funcInfo->GetParsedFunctionBody(), 0);
+                    }
+#endif
+                }
+                funcInfo->SetHasHeapArguments(true, !pnode->sxFnc.IsGenerator() && doStackArgsOpt /*= Optimize arguments in backend*/);
                 if (funcInfo->inArgsCount == 0)
                 {
                     // If no formals to function, no need to create the propertyid array

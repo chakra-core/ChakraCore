@@ -523,8 +523,16 @@ uint32 BailOutRecord::GetArgumentsObjectOffset()
 
 Js::Var BailOutRecord::EnsureArguments(Js::InterpreterStackFrame * newInstance, Js::JavascriptCallStackLayout * layout, Js::ScriptContext* scriptContext, Js::Var* pArgumentsObject) const
 {
-    Js::Var nullObj = scriptContext->GetLibrary()->GetNull();
-    newInstance->OP_LdHeapArguments(nullObj, scriptContext);
+    Assert(globalBailOutRecordTable->hasStackArgOpt);
+    if (PHASE_OFF1(Js::StackArgFormalsOptPhase))
+    {
+        newInstance->OP_LdHeapArguments(scriptContext);
+    }
+    else
+    {
+        newInstance->CreateEmptyHeapArgumentsObject(scriptContext);
+    }
+
     Assert(newInstance->m_arguments);
     *pArgumentsObject = (Js::ArgumentsObject*)newInstance->m_arguments;
     return newInstance->m_arguments;
@@ -1625,7 +1633,12 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
             newInstance->SetNonVarReg(paramClosureReg, nullptr);
         }
     }
-
+    
+    if (bailOutRecord->globalBailOutRecordTable->hasStackArgOpt)
+    {
+        newInstance->TrySetFrameObjectInHeapArgObj(functionScriptContext, bailOutRecord->globalBailOutRecordTable->hasNonSimpleParams);
+    }
+    
     uint32 innerScopeCount = executeFunction->GetInnerScopeCount();
     for (uint32 i = 0; i < innerScopeCount; i++)
     {
@@ -1997,6 +2010,17 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 rejitReason = RejitReason::FailedPolymorphicInlineeTypeCheck;
                 break;
 
+            case IR::BailOnStackArgsOutOfActualsRange:
+                if (profileInfo->IsStackArgOptDisabled())
+                {
+                    reThunk = true;
+                }
+                else
+                {
+                    profileInfo->DisableStackArgOpt();
+                    rejitReason = RejitReason::DisableStackArgOpt;
+                }
+                break;
             case IR::BailOutOnPolymorphicInlineFunction:
             case IR::BailOutFailedInlineTypeCheck:
             case IR::BailOutOnInlineFunction:
@@ -2344,6 +2368,10 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                 profileInfo->DisableSwitchOpt();
                 executeFunction->SetDontRethunkAfterBailout();
                 rejitReason = RejitReason::DisableSwitchOptExpectingString;
+                break;
+            
+            case IR::BailOnStackArgsOutOfActualsRange:
+                AssertMsg(false, "How did we reach here ? Stack args opt is currently disabled in loop body gen.");
                 break;
 
             case IR::BailOnModByPowerOf2:

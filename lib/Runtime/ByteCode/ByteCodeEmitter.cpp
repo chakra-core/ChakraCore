@@ -513,7 +513,7 @@ void ByteCodeGenerator::LoadUncachedHeapArguments(FuncInfo *funcInfo)
     Symbol *argSym = funcInfo->GetArgumentsSymbol();
     Assert(argSym && argSym->GetIsArguments());
     Js::RegSlot argumentsLoc = argSym->GetLocation();
-    Js::RegSlot propIdsLoc = funcInfo->nullConstantRegister;
+    
 
     Js::OpCode opcode = !funcInfo->root->sxFnc.HasNonSimpleParameterList() ? Js::OpCode::LdHeapArguments : Js::OpCode::LdLetHeapArguments;
     bool hasRest = funcInfo->root->sxFnc.pnodeRest != nullptr;
@@ -532,24 +532,12 @@ void ByteCodeGenerator::LoadUncachedHeapArguments(FuncInfo *funcInfo)
     {
         // Pass the frame object and ID array to the runtime, and put the resulting Arguments object
         // at the expected location.
-        propIdsLoc = argumentsLoc;
 
-        Js::PropertyIdArray *propIds = AnewPlus(GetAllocator(), count * sizeof(Js::PropertyId), Js::PropertyIdArray, count);
-
+        Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(count * sizeof(Js::PropertyId), count);
         GetFormalArgsArray(this, funcInfo, propIds);
-
-        // Generate the opcode with propIds
-        Writer()->Auxiliary(
-            Js::OpCode::LdPropIds,
-            propIdsLoc,
-            propIds,
-            sizeof(Js::PropertyIdArray) + count * sizeof(Js::PropertyId),
-            count);
-
-        AdeletePlus(GetAllocator(), count * sizeof(Js::PropertyId), propIds);
     }
 
-    this->m_writer.Reg2(opcode, argumentsLoc, propIdsLoc);
+    this->m_writer.Reg1(opcode, argumentsLoc);
     EmitLocalPropInit(argSym->GetLocation(), argSym, funcInfo);
 }
 
@@ -1546,9 +1534,9 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
 
     // Create and fill the array of local property ID's.
     // They all have slots assigned to them already (if they need them): see StartEmitFunction.
-
-    Js::PropertyIdArray *propIds = AnewPlus(alloc, extraAlloc, Js::PropertyIdArray, slotCount);
-
+    
+    Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(extraAlloc, slotCount);
+    
     ParseNode *pnodeFnc = funcInfo->root;
     ParseNode *pnode;
     Symbol *sym;
@@ -1700,11 +1688,8 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
     slots[3] = funcInfo->GetParsedFunctionBody()->NewObjectLiteral();
 
     propIds->hasNonSimpleParams = funcInfo->root->sxFnc.HasNonSimpleParameterList();
-    funcInfo->localPropIdOffset = m_writer.InsertAuxiliaryData(propIds, sizeof(Js::PropertyIdArray) + extraAlloc);
-    Assert(funcInfo->localPropIdOffset == 0);
+    
     funcInfo->GetParsedFunctionBody()->SetHasCachedScopePropIds(true);
-
-    AdeletePlus(alloc, extraAlloc, propIds);
 }
 
 void ByteCodeGenerator::SetClosureRegisters(FuncInfo* funcInfo, Js::FunctionBody* byteCodeFunction)
@@ -10921,10 +10906,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
         if (funcInfo->GetHasCachedScope())
         {
-            byteCodeGenerator->Writer()->AuxNoReg(
-                Js::OpCode::CommitScope,
-                funcInfo->localPropIdOffset,
-                sizeof(Js::PropertyIdArray) + ((funcInfo->GetBodyScope()->GetScopeSlotCount() + 3) * sizeof(Js::PropertyId)));
+            byteCodeGenerator->Writer()->Empty(Js::OpCode::CommitScope);
         }
         byteCodeGenerator->StartStatement(pnode);
         byteCodeGenerator->Writer()->Empty(Js::OpCode::Ret);

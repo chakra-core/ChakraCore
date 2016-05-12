@@ -273,6 +273,7 @@ void
 GlobOpt::Optimize()
 {
     this->objectTypeSyms = nullptr;
+    this->func->argInsCount = this->func->GetInParamsCount() - 1;   //Don't include "this" pointer in the count.
 
     if (!func->DoGlobOpt())
     {
@@ -3820,6 +3821,115 @@ GlobOpt::TestAnyArgumentsSym()
     return blockData.argObjSyms->TestEmpty();
 }
 
+/*
+*   This is for scope object removal along with Heap Arguments optimization.
+*   We track several instructions to facilitate the removal of scope object.
+*   - LdSlotArr - This instr is tracked to keep track of the formals array (the dest)
+*   - InlineeStart - To keep track of the stack syms for the formals of the inlinee.
+*/
+void
+GlobOpt::TrackInstrsForScopeObjectRemoval(IR::Instr * instr)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+
+    if (instr->m_opcode == Js::OpCode::Ld_A && src1->IsRegOpnd())
+    {
+        AssertMsg(!src1->IsScopeObjOpnd(instr->m_func), "There can be no aliasing for scope object.");
+    }
+
+    // The following is to track formals array for Stack Arguments optimization with Formals
+    if (instr->m_func->IsStackArgsEnabled() && !this->IsLoopPrePass())
+    {
+        if (instr->m_opcode == Js::OpCode::LdSlotArr)
+        {
+            if (instr->GetSrc1()->IsScopeObjOpnd(instr->m_func))
+            {
+                AssertMsg(!instr->m_func->GetJnFunction()->GetHasImplicitArgIns(), "No mapping is required in this case. So it should already be generating ArgIns.");
+                instr->m_func->TrackFormalsArraySym(dst->GetStackSym()->m_id);
+            }
+        }
+        else if (instr->m_opcode == Js::OpCode::InlineeStart)
+        {
+            Assert(instr->m_func->IsInlined());
+            Js::ArgSlot actualsCount = instr->m_func->actualCount - 1;
+            Js::ArgSlot formalsCount = instr->m_func->GetJnFunction()->GetInParamsCount() - 1;
+
+            Func * func = instr->m_func;
+            Func * inlinerFunc = func->GetParentFunc(); //Inliner's func
+
+            IR::Instr * argOutInstr = instr->GetSrc2()->GetStackSym()->GetInstrDef();
+
+            //The argout immediately before the InlineeStart will be the ArgOut for NewScObject
+            //So we don't want to track the stack sym for this argout.- Skipping it here.
+            if (instr->m_func->IsInlinedConstructor())
+            {
+                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef() != nullptr);
+                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::NewScObjectNoCtor);
+                argOutInstr = argOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
+            }
+            if (formalsCount < actualsCount)
+            {
+                Js::ArgSlot extraActuals = actualsCount - formalsCount;
+
+                //Skipping extra actuals passed
+                for (Js::ArgSlot i = 0; i < extraActuals; i++)
+                {
+                    argOutInstr = argOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
+                }
+            }
+
+            StackSym * undefinedSym = nullptr;
+
+            for (Js::ArgSlot param = formalsCount; param > 0; param--)
+            {
+                StackSym * argOutSym = nullptr;
+
+                if (argOutInstr->GetSrc1())
+                {
+                    if (argOutInstr->GetSrc1()->IsRegOpnd())
+                    {
+                        argOutSym = argOutInstr->GetSrc1()->GetStackSym();
+                    }
+                    else
+                    {
+                        // We will always have ArgOut instr - so the source operand will not be removed.
+                        argOutSym = StackSym::New(inlinerFunc);
+                        IR::Opnd * srcOpnd = argOutInstr->GetSrc1();
+                        IR::Opnd * dstOpnd = IR::RegOpnd::New(argOutSym, TyVar, inlinerFunc);
+                        IR::Instr * assignInstr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, inlinerFunc);
+                        instr->InsertBefore(assignInstr);
+                    }
+                }
+
+                Assert(!func->HasStackSymForFormal(param - 1));
+
+                if (param <= actualsCount)
+                {
+                    Assert(argOutSym);
+                    func->TrackStackSymForFormalIndex(param - 1, argOutSym);
+                    argOutInstr = argOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
+                }
+                else
+                {
+                    /*When param is out of range of actuals count, load undefined*/
+                    // TODO: saravind: This will insert undefined for each of the param not having an actual. - Clean up this by having a sym for undefined on func ?
+                    Assert(formalsCount > actualsCount);
+                    if (undefinedSym == nullptr)
+                    {
+                        undefinedSym = StackSym::New(inlinerFunc);
+                        IR::Opnd * srcOpnd = IR::AddrOpnd::New(inlinerFunc->GetScriptContext()->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicMisc, inlinerFunc);
+                        IR::Opnd * dstOpnd = IR::RegOpnd::New(undefinedSym, TyVar, inlinerFunc);
+                        IR::Instr * assignUndefined = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, inlinerFunc);
+                        instr->InsertBefore(assignUndefined);
+                    }
+                    func->TrackStackSymForFormalIndex(param - 1, undefinedSym);
+                }
+            }
+        }
+    }
+}
+
 void
 GlobOpt::OptArguments(IR::Instr *instr)
 {
@@ -3827,25 +3937,40 @@ GlobOpt::OptArguments(IR::Instr *instr)
     IR::Opnd* src1 = instr->GetSrc1();
     IR::Opnd* src2 = instr->GetSrc2();
 
+    TrackInstrsForScopeObjectRemoval(instr);
+
     if (!TrackArgumentsObject())
     {
         return;
-    }
-
-    if (instr->m_opcode == Js::OpCode::LdHeapArguments || instr->m_opcode == Js::OpCode::LdLetHeapArguments)
+    }   
+    
+    if (instr->HasAnyLoadHeapArgsOpCode())
     {
-        // Stackargs optimization is designed to work with only when function doesn't have formals.
-        if (instr->m_func->GetJnFunction()->GetInParamsCount() != 1)
+        if (instr->m_func->IsStackArgsEnabled())
         {
-#ifdef PERF_HINT
-            if (PHASE_TRACE1(Js::PerfHintPhase))
+            if (instr->GetSrc1()->IsRegOpnd() && instr->m_func->GetJnFunction()->GetInParamsCount() > 1)
             {
-                WritePerfHint(PerfHints::HeapArgumentsDueToFormals, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
+                StackSym * scopeObjSym = instr->GetSrc1()->GetStackSym();
+                Assert(scopeObjSym);
+                Assert(scopeObjSym->GetInstrDef()->m_opcode == Js::OpCode::InitCachedScope || scopeObjSym->GetInstrDef()->m_opcode == Js::OpCode::NewScopeObject);
+                instr->m_func->SetScopeObjSym(scopeObjSym);
+
+                if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
+                {
+                    Output::Print(_u("StackArgFormals : %s (%d) :Setting scopeObjSym in forward pass. \n"), instr->m_func->GetJnFunction()->GetDisplayName(), instr->m_func->GetJnFunction()->GetFunctionNumber());
+                    Output::Flush();
+                }
             }
-#endif
+        }
+
+        if (instr->m_func->GetJnFunction()->GetInParamsCount() != 1 && !instr->m_func->IsStackArgsEnabled())
+        {
             CannotAllocateArgumentsObjectOnStack();
         }
-        TrackArgumentsSym(dst->AsRegOpnd());
+        else
+        {
+            TrackArgumentsSym(dst->AsRegOpnd());
+        }
         return;
     }
     // Keep track of arguments objects and its aliases
@@ -4657,6 +4782,12 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     instr = this->PreOptPeep(instr);
 
     this->OptArguments(instr);
+
+    //StackArguments Optimization - We bail out if the index is out of range of actuals.
+    if (instr->m_opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) && !this->IsLoopPrePass())
+    {
+        GenerateBailAtOperation(&instr, IR::BailOnStackArgsOutOfActualsRange);
+    }
 
 #if DBG
     PropertySym *propertySymUseBefore = nullptr;
@@ -5490,8 +5621,6 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     return nullptr;
                 }
 
-
-
                 if (this->IsLoopPrePass() && this->DoFieldPRE(this->rootLoopPrePass))
                 {
                     if (!this->prePassLoop->allFieldsKilled && !this->prePassLoop->fieldKilled->Test(sym->m_id))
@@ -5508,8 +5637,6 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                         }
                     }
                 }
-
-
                 break;
             }
         }

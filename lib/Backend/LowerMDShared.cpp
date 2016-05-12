@@ -185,6 +185,8 @@ LowererMD::LowerCallHelper(IR::Instr *instrCall)
     prevInstr = ChangeToHelperCall(instrCall, helperMethod);
 #endif
 
+    prevInstr = instrCall;
+
     while (argOpnd)
     {
         Assert(argOpnd->IsRegOpnd());
@@ -193,23 +195,28 @@ LowererMD::LowerCallHelper(IR::Instr *instrCall)
         Assert(regArg->m_sym->m_isSingleDef);
         IR::Instr *instrArg = regArg->m_sym->m_instrDef;
 
-        Assert(instrArg->m_opcode == Js::OpCode::ArgOut_A);
-        prevInstr = LoadHelperArgument(instrArg, instrArg->UnlinkSrc1());
+        Assert(instrArg->m_opcode == Js::OpCode::ArgOut_A || 
+            (helperMethod == IR::JnHelperMethod::HelperOP_InitCachedScope && instrArg->m_opcode == Js::OpCode::ExtendArg_A));
+        prevInstr = LoadHelperArgument(prevInstr, instrArg->GetSrc1());
 
-        regArg->Free(this->m_func);
         argOpnd = instrArg->GetSrc2();
-
-        if (argOpnd)
-        {
-            instrArg->UnlinkSrc2();
-        }
 
         if (prevInstr == instrArg)
         {
             prevInstr = prevInstr->m_prev;
         }
 
-        instrArg->Remove();
+        if (instrArg->m_opcode == Js::OpCode::ArgOut_A)
+        {
+            instrArg->UnlinkSrc1();
+            if (argOpnd)
+            {
+                instrArg->UnlinkSrc2();
+            }
+
+            regArg->Free(this->m_func);
+            instrArg->Remove();
+        }
     }
 
     prevInstr = m_lowerer->LoadScriptContext(prevInstr);
@@ -7979,12 +7986,11 @@ LowererMD::LowerCommitScope(IR::Instr *instrCommit)
     opnd = IR::IndirOpnd::New(baseOpnd, Js::ActivationObjectEx::GetOffsetOfCommitFlag(), TyInt8, this->m_func);
     instrCommit->SetDst(opnd);
     instrCommit->SetSrc1(IR::IntConstOpnd::New(1, TyInt8, this->m_func));
-    IR::IntConstOpnd *intConstOpnd = instrCommit->UnlinkSrc2()->AsIntConstOpnd();
+    
     LowererMD::ChangeToAssign(instrCommit);
 
-    const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArrayWithLock(intConstOpnd->AsUint32(), instrCommit->m_func->GetJnFunction());
-    intConstOpnd->Free(this->m_func);
-
+    const Js::PropertyIdArray *propIds = instrCommit->m_func->GetJnFunction()->GetFormalsPropIdArray();
+    
     uint firstVarSlot = (uint)Js::ActivationObjectEx::GetFirstVarSlot(propIds);
     if (firstVarSlot < propIds->count)
     {

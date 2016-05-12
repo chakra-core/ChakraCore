@@ -500,6 +500,7 @@ namespace Js
             bool disableObjTypeSpec_jitLoopBody : 1;
             bool disablePowIntIntTypeSpec : 1;
             bool disableLoopImplicitCallInfo : 1;
+            bool disableStackArgOpt : 1;
         } bits;
 
         uint32 m_recursiveInlineInfo; // Bit is set for each callsites where the function is called recursively
@@ -779,6 +780,8 @@ namespace Js
         void DisableNoProfileBailouts() { this->bits.disableNoProfileBailouts = true; }
         bool IsSwitchOptDisabled() const { return this->bits.disableSwitchOpt; }
         void DisableSwitchOpt() { this->bits.disableSwitchOpt = true; }
+        bool IsStackArgOptDisabled() const { return this->bits.disableStackArgOpt; }
+        void DisableStackArgOpt() { this->bits.disableStackArgOpt = true; }
         bool IsEquivalentObjTypeSpecDisabled() const { return this->bits.disableEquivalentObjTypeSpec; }
         void DisableEquivalentObjTypeSpec() { this->bits.disableEquivalentObjTypeSpec = true; }
         bool IsObjTypeSpecDisabledInJitLoopBody() const { return this->bits.disableObjTypeSpec_jitLoopBody; }

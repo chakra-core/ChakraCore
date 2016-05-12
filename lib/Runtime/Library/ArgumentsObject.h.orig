@@ -118,12 +118,6 @@ namespace Js
         }
 
         ES5HeapArgumentsObject* ConvertToUnmappedArgumentsObject(bool overwriteArgsUsingFrameObject = true);
-        const ActivationObject* const GetFrameObject() { return frameObject; }
-		void SetFrameObject(ActivationObject * value) 
-        { 
-            AssertMsg(frameObject == nullptr, "Setting the frame object again?");
-            frameObject = value; 
-        }
 
     private:
         ES5HeapArgumentsObject* ConvertToES5HeapArgumentsObject(bool overwriteArgsUsingFrameObject = true);
@@ -133,6 +127,9 @@ namespace Js
         BOOL IsFormalArgument(PropertyId propertyId);
         BOOL IsFormalArgument(PropertyId propertyId, uint32* pIndex);    // Checks whether property is numeric, and on success sets that index.
         BOOL IsArgumentDeleted(uint32 index) const;
+    public:
+        const ActivationObject* const GetFrameObject() { return frameObject; }
+<<<<<<< f0a9fa7e49b19880ebb81e44645b23269cdd545c
 
 #if ENABLE_TTD
     public:
@@ -146,6 +143,13 @@ namespace Js
 
         ES5HeapArgumentsObject* ConvertToES5HeapArgumentsObject_TTD();
 #endif
+=======
+        void SetFrameObject(ActivationObject * value) 
+        { 
+            AssertMsg(frameObject == nullptr, "Setting the frame object again?");
+            frameObject = value; 
+        }
+>>>>>>> Stack Arguments Optimization with presence of Formals.
     };
 
     // ES5 version of the HeapArgumentsObject: support for attributes on formal arguments.

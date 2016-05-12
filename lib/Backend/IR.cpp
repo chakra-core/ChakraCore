@@ -69,7 +69,7 @@ Instr::IsPlainInstr() const
 bool
 Instr::DoStackArgsOpt(Func *topFunc) const
 {
-    return this->usesStackArgumentsObject && this->m_func->GetHasStackArgs() && topFunc->GetHasStackArgs();
+    return this->usesStackArgumentsObject && m_func->IsStackArgsEnabled();
 }
 
 bool
@@ -3084,6 +3084,19 @@ Instr::ClearBailOutInfo()
         this->hasBailOutInfo = false;
         this->hasAuxBailOut = false;
     }
+}
+
+bool Instr::HasAnyLoadHeapArgsOpCode()
+{
+    switch (m_opcode)
+    {
+        case Js::OpCode::LdHeapArguments:
+        case Js::OpCode::LdHeapArgsCached:
+        case Js::OpCode::LdLetHeapArguments:
+        case Js::OpCode::LdLetHeapArgsCached:
+            return true;
+    }
+    return false;
 }
 
 bool Instr::CanHaveArgOutChain() const

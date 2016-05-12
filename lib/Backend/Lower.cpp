@@ -41,18 +41,6 @@ Lowerer::Lower()
     bool defaultDoFastPath = this->m_func->DoFastPaths();
     bool loopFastPath = this->m_func->DoLoopFastPaths();
 
-    if (!loopFastPath || !defaultDoFastPath
-#ifdef INLINE_CACHE_STATS
-        || PHASE_STATS1(Js::PolymorphicInlineCachePhase)
-#endif
-        )
-    {
-        //arguments[] access is similar to array fast path hence disable when array fastpath is disabled.
-        //loopFastPath is always true except explicitly disabled
-        //defaultDoFastPath can be false when we the source code size is huge
-        m_func->SetHasStackArgs(false);
-    }
-
     if (m_func->HasAnyStackNestedFunc())
     {
         EnsureStackFunctionListStackSym();
@@ -265,7 +253,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::InvalCachedScope:
             this->LowerBinaryHelper(instr, IR::HelperOP_InvalidateCachedScope);
             break;
-
+        
+        case Js::OpCode::InitCachedScope:
+            instrPrev = this->LowerInitCachedScope(instr);
+            break;
         case Js::OpCode::NewScopeObject:
             m_lowererMD.ChangeToHelperCallMem(instr, IR::HelperOP_NewScopeObject);
             break;
@@ -1622,6 +1613,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
 
             bool instrIsInHelperBlock;
+
             if (!fastPath)
             {
                 this->LowerLdElemI(
@@ -7692,6 +7684,17 @@ Lowerer::LowerUnaryHelperMemWithBoolReference(IR::Instr *instr, IR::JnHelperMeth
     return this->LowerUnaryHelperMem(instr, helperMethod, useBoolForBailout ? boolOpnd : nullptr);
 }
 
+IR::Instr *
+Lowerer::LowerInitCachedScope(IR::Instr* instr)
+{
+    instr->m_opcode = Js::OpCode::CallHelper;
+    IR::HelperCallOpnd *helperOpnd = IR::HelperCallOpnd::New(IR::HelperOP_InitCachedScope, this->m_func);
+    IR::Opnd * src1 = instr->UnlinkSrc1();
+    instr->SetSrc1(helperOpnd);
+    instr->SetSrc2(src1);
+    return instr;
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Lowerer::LowerBinaryHelper
@@ -8197,8 +8200,13 @@ Lowerer::LowerLdElemI(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool i
     {
         IR::LabelInstr * labelLdElem = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func);
         // Pass in null for labelFallThru to only generate the LdHeapArgument call
-        GenerateFastArgumentsLdElemI(instr, labelLdElem, nullptr);
+        GenerateFastArgumentsLdElemI(instr, nullptr);
         instr->InsertBefore(labelLdElem);
+        instr->UnlinkSrc1();
+        instr->UnlinkDst();
+        Assert(instr->HasBailOutInfo() && instr->GetBailOutKind() == IR::BailOutKind::BailOnStackArgsOutOfActualsRange);
+        instr = GenerateBailOut(instr, nullptr, nullptr);
+        return instrPrev;
     }
 
     IR::Opnd *src1 = instr->UnlinkSrc1();
@@ -9295,7 +9303,7 @@ void Lowerer::LowerProfileLdSlot(IR::Opnd *const valueOpnd, Func *const ldSlotFu
     m_lowererMD.LowerCall(callInstr, 0);
 }
 
-IR::Instr *
+void
 Lowerer::LowerLdSlot(IR::Instr *instr)
 {
     IR::Opnd * srcOpnd = instr->UnlinkSrc1();
@@ -9305,7 +9313,6 @@ Lowerer::LowerLdSlot(IR::Instr *instr)
 
     instr->SetSrc1(srcNew);
     m_lowererMD.ChangeToAssign(instr);
-    return instr;
 }
 
 IR::Instr *
@@ -9638,6 +9645,8 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     // ...
     //     s2 = assign param2
     // $done:
+    
+    AnalysisAssert(instrArgIn);
 
     IR::Opnd *restDst = nullptr;
     bool hasRest = instrArgIn->m_opcode == Js::OpCode::ArgIn_Rest;
@@ -9645,7 +9654,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     {
         IR::Instr *restInstr = instrArgIn;
         restDst = restInstr->UnlinkDst();
-        if (m_func->GetJnFunction()->GetHasImplicitArgIns() && m_func->GetInParamsCount() > 1)
+        if (m_func->GetJnFunction()->GetHasImplicitArgIns() && m_func->argInsCount > 0)
         {
             while (instrArgIn->m_opcode != Js::OpCode::ArgIn_A)
             {
@@ -9685,7 +9694,6 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
         }
     }
 
-
     srcOpnd = instrArgIn->GetSrc1();
     symParam = srcOpnd->AsSymOpnd()->m_sym->AsStackSym();
 
@@ -9705,23 +9713,26 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
 
     Js::ArgSlot formalsCount = this->m_func->GetInParamsCount();
 
-    AssertMsg(argIndex == formalsCount, "Expect to see the ArgIn's in numerical order");
+    AssertMsg(argIndex <= formalsCount, "Expect to see the ArgIn's within the range of the formals");
 
     // Because there may be instructions between the ArgIn's, such as saves to the frame object,
     // we find the top of the sequence of ArgIn's and insert everything there. This assumes that
     // ArgIn's use param symbols as src's and not the results of previous instructions.
 
     instrPrev = instrArgIn;
-    instrInsert = instrArgIn->m_next;
-    while (argIndex > 2)
+    Js::ArgSlot currArgInCount = 0;
+    Assert(this->m_func->argInsCount > 0);
+
+    while (currArgInCount < this->m_func->argInsCount - 1)
     {
         instrPrev = instrPrev->m_prev;
         if (instrPrev->m_opcode == Js::OpCode::ArgIn_A)
         {
             srcOpnd = instrPrev->GetSrc1();
             symParam = srcOpnd->AsSymOpnd()->m_sym->AsStackSym();
-            AssertMsg(symParam->GetParamSlotNum() == argIndex - 1, "ArgIn's not in numerical order");
+            AssertMsg(symParam->GetParamSlotNum() < argIndex, "ArgIn's not in numerical order");
             argIndex = symParam->GetParamSlotNum();
+            currArgInCount++;
         }
         else
         {
@@ -9734,6 +9745,8 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     }
     // The loading of parameters will be inserted above this instruction.
     instrInsert = instrPrev;
+
+    AnalysisAssert(instrInsert);
     if (instrResume == nullptr)
     {
         // We found no intervening non-ArgIn's, so lowering can resume at the previous instruction.
@@ -9746,7 +9759,6 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     {
         generatorArgsPtrOpnd = LoadGeneratorArgsPtr(instrInsert);
     }
-
 
     // excessOpnd = (load from param area) - formalCounts
     IR::Instr * instrCount = this->m_lowererMD.LoadInputParamCount(instrInsert, -formalsCount, true);
@@ -9768,6 +9780,18 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     instrInsert->InsertBefore(labelUndef);
     instrInsert->InsertBefore(labelNormal);
 
+
+    //Adjustment for deadstore of ArgIn_A
+    Js::ArgSlot highestSlotNum = instrArgIn->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum();
+    Js::ArgSlot missingSlotNums = this->m_func->GetInParamsCount() - highestSlotNum;
+    Assert(missingSlotNums >= 0);
+    while (missingSlotNums > 0)
+    {
+        InsertAdd(true, excessOpnd, excessOpnd, IR::IntConstOpnd::New(1, TyInt32, this->m_func), labelNormal);
+        Lowerer::InsertBranch(Js::OpCode::BrEq_A, labelNormal, labelNormal);
+        missingSlotNums--;
+    }
+
     // MOV undefReg, undefAddress
     IR::Opnd* opndUndefAddress = this->LoadLibraryValueOpnd(labelNormal, LibraryValue::ValueUndefined);
     opndUndef =  IR::RegOpnd::New(TyMachPtr, this->m_func);
@@ -9775,7 +9799,8 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
 
 
     BVSparse<JitArenaAllocator> *formalsBv = JitAnew(this->m_func->m_alloc, BVSparse<JitArenaAllocator>, this->m_func->m_alloc);
-    while (formalsCount > 2)
+    
+    while (currArgInCount > 0)
     {
         dstOpnd = instrArgIn->GetDst();
 
@@ -9791,10 +9816,10 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
         //     INC excessOpnd
         //     BrEq_A $Ln-1
 
-        formalsCount--;
-        InsertAdd(true, excessOpnd, excessOpnd, IR::IntConstOpnd::New(1, TyInt32, this->m_func), labelNormal);
+        currArgInCount--;
+        
         labelInitNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-        InsertBranch(Js::OpCode::BrEq_A, labelInitNext, labelNormal);
+        
 
         // And insert the "normal" initialization before the "done" label
 
@@ -9806,6 +9831,8 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
 
         instrArgInNext = instrArgIn->m_prev;
         instrArgIn->Unlink();
+
+        Js::ArgSlot prevParamSlotNum = instrArgIn->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum();
 
         //      function foo(x, x)  { use(x); }
         // This should refer to the second 'x'.  Since we reverse the order here however, we need to skip
@@ -9828,7 +9855,20 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
             AssertMsg(instrArgIn, "???");
         }
 
-        AssertMsg(instrArgIn->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum() == formalsCount,
+        //Adjustment for deadstore of ArgIn_A
+        Js::ArgSlot currParamSlotNum = instrArgIn->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum();
+        Js::ArgSlot diffSlotsNum = prevParamSlotNum - currParamSlotNum;
+
+        AssertMsg(diffSlotsNum > 0, "Argins are not in order?");
+
+        while (diffSlotsNum > 0)
+        {
+            InsertAdd(true, excessOpnd, excessOpnd, IR::IntConstOpnd::New(1, TyInt32, this->m_func), labelNormal);
+            InsertBranch(Js::OpCode::BrEq_A, labelInitNext, labelNormal);
+            diffSlotsNum--;
+        }
+
+        AssertMsg(instrArgIn->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum() <= formalsCount,
                   "Expect all ArgIn's to be in numerical order by param slot");
     }
 
@@ -9927,7 +9967,7 @@ Lowerer::LowerArgInAsmJs(IR::Instr * instrArgIn)
 {
     Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
 
-    Js::ArgSlot argCount = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetArgCount();
+    Js::ArgSlot argCount = m_func->argInsCount;
     IR::Instr * instr = instrArgIn;
     for (int argNum = argCount - 1; argNum >= 0; --argNum)
     {
@@ -15031,7 +15071,8 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
 
     if (ldElem->DoStackArgsOpt(this->m_func))
     {
-        emittedFastPath = GenerateFastArgumentsLdElemI(ldElem, labelHelper, labelFallThru);
+        emittedFastPath = GenerateFastArgumentsLdElemI(ldElem, labelFallThru);
+        emitBailout = true;
     }
     else if (GenerateFastStringLdElem(ldElem, labelHelper, labelFallThru))
     {
@@ -16079,7 +16120,9 @@ Lowerer::GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef)
 
     if (ldLen->DoStackArgsOpt(this->m_func))
     {
-        GenerateFastArgumentsLdLen(ldLen, labelHelper, ldLen->GetOrCreateContinueLabel());
+        GenerateFastArgumentsLdLen(ldLen, ldLen->GetOrCreateContinueLabel());
+        ldLen->Remove();
+        return false;
     }
     else
     {
@@ -18074,10 +18117,8 @@ Lowerer::GenerateCheckForArgumentsLength(IR::Instr* ldElem, IR::LabelInstr* labe
 }
 
 bool
-Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr * labelHelper, IR::LabelInstr *labelFallThru)
+Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr *labelFallThru)
 {
-    //  TEST argsSlot, argsSlot
-    //  JNE $helper  // There is an arguments object created jump to helper.
     //  ---GenerateSmIntTest
     //  ---GenerateLdValueFromCheckedIndexOpnd
     //  ---LoadInputParamCount
@@ -18087,7 +18128,7 @@ Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr * labelH
     //  JMP $fallthrough
     //
     //labelCreateHeapArgs:
-    //  ---LoadHeapArguments
+    //  ---Bail out to create Heap Arguments object
 
     Assert(ldElem->DoStackArgsOpt(this->m_func));
 
@@ -18095,26 +18136,14 @@ Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr * labelH
     bool isInlinee = ldElem->m_func->IsInlinee();
     Func *func = ldElem->m_func;
 
-
-    // First check the slot on the frame to see if there is a heap arguments object.
-    IR::Opnd       *cachedArgsObjectSlotOpnd = isInlinee? ldElem->m_func->GetInlineeArgumentsObjectSlotOpnd() : this->m_lowererMD.CreateStackArgumentsSlotOpnd() ;
-    // Re-use the base pointer here so that we're loading the current heap args into the reg we will pass
-    // to the helper if necessary.
-    IR::RegOpnd    *argsObjRegOpnd           = indirOpnd->GetBaseOpnd();
-    LowererMD::CreateAssign(argsObjRegOpnd, cachedArgsObjectSlotOpnd, ldElem);
-
-    InsertTest(argsObjRegOpnd, argsObjRegOpnd, ldElem);
-
     IR::LabelInstr *labelCreateHeapArgs = IR::LabelInstr::New(Js::OpCode::Label, func, true);
-
-    InsertBranch(Js::OpCode::BrNeq_A, labelHelper, ldElem);
 
     // Now load the index and check if it is an integer.
     bool emittedFastPath = false;
     bool isNotInt = false;
-    IntConstType   value     = 0;
+    IntConstType   value = 0;
     IR::RegOpnd   *indexOpnd = indirOpnd->GetIndexOpnd();
-    IR::Opnd      *valueOpnd        = nullptr;
+    IR::Opnd      *valueOpnd = nullptr;
     IR::Opnd      *actualParamOpnd = nullptr;
 
     bool hasIntConstIndex = indirOpnd->TryGetIntConstIndexValue(true, &value, &isNotInt);
@@ -18148,13 +18177,13 @@ Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr * labelH
                 m_lowererMD.LoadNonnegativeIndex(
                     indexOpnd,
                     (
-                    #if INT32VAR
+#if INT32VAR
                         indexOpnd->GetType() == TyUint32
-                    #else
+#else
                         // On 32-bit platforms, skip the negative check since for now, the unsigned upper bound check covers it
                         true
-                    #endif
-                    ),
+#endif
+                        ),
                     labelCreateHeapArgs,
                     labelCreateHeapArgs,
                     ldElem);
@@ -18191,15 +18220,11 @@ Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr * labelH
         ldElem->InsertBefore(labelCreateHeapArgs);
         emittedFastPath = true;
     }
-
-    IR::Opnd *nullOpnd = this->LoadLibraryValueOpnd(ldElem, LibraryValue::ValueNull);
-    IR::Instr *instrArgs = IR::Instr::New(Js::OpCode::LdHeapArguments,
-        indirOpnd->GetBaseOpnd(),
-        nullOpnd,
-        nullOpnd,
-        func);
-    ldElem->InsertBefore(instrArgs);
-    this->m_lowererMD.LoadHeapArguments(instrArgs, true, actualParamOpnd);
+    
+    if (!emittedFastPath)
+    {
+        throw Js::RejitException(RejitReason::DisableStackArgOpt);
+    }
 
     return emittedFastPath;
 }
@@ -18225,7 +18250,7 @@ Lowerer::GenerateFastRealStackArgumentsLdLen(IR::Instr *ldLen)
 }
 
 bool
-Lowerer::GenerateFastArgumentsLdLen(IR::Instr *ldLen, IR::LabelInstr* labelHelper, IR::LabelInstr* labelFallThru)
+Lowerer::GenerateFastArgumentsLdLen(IR::Instr *ldLen, IR::LabelInstr* labelFallThru)
 {
     // TEST argslot, argslot  //Test if the arguments slot is zero
     // JNE $helper
@@ -18240,15 +18265,6 @@ Lowerer::GenerateFastArgumentsLdLen(IR::Instr *ldLen, IR::LabelInstr* labelHelpe
 
     if(ldLen->m_func->IsInlinee())
     {
-        IR::Opnd       *cachedArgsObjectSlotOpnd = ldLen->m_func->GetInlineeArgumentsObjectSlotOpnd();
-        // Re-use the LdLen_A source here so that we're loading the current heap args into the reg we will pass
-        // to the helper if necessary.
-        IR::RegOpnd    *argsObjectRegOpnd        = ldLen->GetSrc1()->AsRegOpnd();
-
-        LowererMD::CreateAssign(argsObjectRegOpnd, cachedArgsObjectSlotOpnd, ldLen);
-        InsertTest(argsObjectRegOpnd, argsObjectRegOpnd, ldLen);
-        InsertBranch(Js::OpCode::BrNeq_A, labelHelper, ldLen);
-
         //Get the length of the arguments
         LowererMD::CreateAssign(ldLen->GetDst(),
                                 IR::AddrOpnd::New(Js::TaggedInt::ToVarUnchecked(ldLen->m_func->actualCount - 1), IR::AddrOpndKindConstantVar, ldLen->m_func), // -1 to exclude this pointer
@@ -18256,22 +18272,12 @@ Lowerer::GenerateFastArgumentsLdLen(IR::Instr *ldLen, IR::LabelInstr* labelHelpe
     }
     else
     {
-        IR::Opnd       *cachedArgsObjectSlotOpnd = this->m_lowererMD.CreateStackArgumentsSlotOpnd();
-        // Re-use the LdLen_A source here so that we're loading the current heap args into the reg we will pass
-        // to the helper if necessary.
-        IR::RegOpnd    *argsObjectRegOpnd        = ldLen->GetSrc1()->AsRegOpnd();
-        LowererMD::CreateAssign(argsObjectRegOpnd, cachedArgsObjectSlotOpnd, ldLen);
-        InsertTest(argsObjectRegOpnd, argsObjectRegOpnd, ldLen);
-        InsertBranch(Js::OpCode::BrNeq_A, labelHelper, ldLen);
-
-
         IR::Instr      *loadInputParamCountInstr = this->m_lowererMD.LoadInputParamCount(ldLen, -1);
         IR::RegOpnd    *actualCountOpnd          = loadInputParamCountInstr->GetDst()->AsRegOpnd();
 
         this->m_lowererMD.GenerateInt32ToVarConversion(actualCountOpnd, ldLen);
         LowererMD::CreateAssign(ldLen->GetDst(), actualCountOpnd, ldLen);
     }
-    InsertBranch(Js::OpCode::Br, labelFallThru, ldLen);
     return true;
 }
 

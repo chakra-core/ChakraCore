@@ -74,12 +74,13 @@ public:
 
 struct PidRefStack
 {
-    PidRefStack() : isDynamic(false), id(0), sym(nullptr), prev(nullptr), isModuleExport(false) {}
-    PidRefStack(int id) : isDynamic(false), id(id), sym(nullptr), prev(nullptr), isModuleExport(false) {}
+    PidRefStack() : isAsg(false), isDynamic(false), id(0), sym(nullptr), prev(nullptr), isModuleExport(false) {}
+    PidRefStack(int id) : isAsg(false), isDynamic(false), id(id), sym(nullptr), prev(nullptr), isModuleExport(false) {}
 
     int GetScopeId() const    { return id; }
     Symbol *GetSym() const    { return sym; }
     void SetSym(Symbol *sym)  { this->sym = sym; }
+    bool IsAssignment() const { return isAsg; }
     bool IsDynamicBinding() const { return isDynamic; }
     void SetDynamicBinding()  { isDynamic = true; }
     bool IsModuleExport() const { return isModuleExport; }
@@ -90,6 +91,7 @@ struct PidRefStack
         return &sym;
     }
 
+    bool           isAsg;
     bool           isDynamic;
     bool           isModuleExport;
     int            id;
