@@ -34,6 +34,8 @@ param (
     [string[]]$pogo = @(),
     [string]$pogoscript = "",
 
+    [string]$buildTypeSuffix = "",
+
     [switch]$noaction
 )
 
@@ -73,7 +75,7 @@ if ($arch -eq "*") {
     WriteMessage "BVT Command  : $bvtcmdpath"
     WriteMessage ""
 
-    $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}_{5}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $binpath, $arch, $flavor);
+    $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}_{5}{6}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $binpath, $arch, $flavor, $buildTypeSuffix);
     $pogocmd = ("{0} {1} {2}" -f $pogoscript, $arch, $flavor);
     $prefastlog = ("{0}\logs\PrefastCheck_{1}_{2}.log" -f $binpath, $arch, $flavor);
     $prefastcmd = "$PSScriptRoot\check_prefast_error.ps1 -directory $objpath -logFile $prefastlog";
