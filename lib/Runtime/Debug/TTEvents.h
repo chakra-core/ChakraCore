@@ -96,6 +96,8 @@ namespace TTD
         TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other);
         ~TTDebuggerSourceLocation();
 
+        void Initialize();
+
         bool HasValue() const;
         void Clear();
         void SetLocation(const TTDebuggerSourceLocation& other);
@@ -376,7 +378,7 @@ namespace TTD
         //////////////////
 
 
-    //A struct containing additional information on the external call
+        //A struct containing additional information on the external call
         struct ExternalCallEventLogEntry_AdditionalInfo
         {
             //

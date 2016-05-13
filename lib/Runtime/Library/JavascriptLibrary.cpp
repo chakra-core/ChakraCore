@@ -4778,11 +4778,9 @@ namespace Js
             if(this->scriptContext->ShouldPerformDebugAction())
             {
                 scriptContext->TTDRootNestingCount++;
-                BEGIN_LEAVE_SCRIPT(this->scriptContext)
-                {
-                    this->scriptContext->GetThreadContext()->TTDLog->ReplayEnqueueTaskEvent(scriptContext, taskVar);
-                }
-                END_LEAVE_SCRIPT(this->scriptContext);
+
+                this->scriptContext->GetThreadContext()->TTDLog->ReplayEnqueueTaskEvent(scriptContext, taskVar);
+
                 scriptContext->TTDRootNestingCount--;
             }
             else if(this->scriptContext->ShouldPerformRecordAction())

@@ -447,12 +447,10 @@ namespace TTD
                 alloc.UnlinkAllocation(ccAction->ArgArray);
             }
 
-#if ENABLE_TTD_DEBUGGING
             if(ccAction->ExecArgs != nullptr)
             {
                 alloc.UnlinkAllocation(ccAction->ExecArgs);
             }
-#endif
         }
 
         void JsRTConstructCallAction_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
@@ -489,18 +487,16 @@ namespace TTD
             }
             reader->ReadSequenceEnd();
 
-#if ENABLE_TTD_DEBUGGING
             ccAction->ExecArgs = (ccAction->ArgCount > 1) ? alloc.SlabAllocateArray<Js::Var>(ccAction->ArgCount - 1) : nullptr; //ArgCount includes slot for function which we don't use in exec
-#endif
         }
 
         void JsRTCallbackAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
-            const JsRTCallbackAction* cbAction = GetInlineEventDataAs<JsRTCallbackAction, EventKind::CallbackOpActionTag>(evt);
-
 #if !ENABLE_TTD_DEBUGGING
             ; //we don't need to do anything
 #else
+            const JsRTCallbackAction* cbAction = GetInlineEventDataAs<JsRTCallbackAction, EventKind::CallbackOpActionTag>(evt);
+
             if(cbAction->RegisterLocation == nullptr)
             {
                 const_cast<JsRTCallbackAction*>(cbAction)->RegisterLocation = HeapNew(TTDebuggerSourceLocation);
@@ -546,6 +542,8 @@ namespace TTD
 
             cbAction->CurrentCallbackId = reader->ReadInt64(NSTokens::Key::hostCallbackId, true);
             cbAction->NewCallbackId = reader->ReadInt64(NSTokens::Key::newCallbackId, true);
+
+            cbAction->RegisterLocation = nullptr;
         }
 
         bool JsRTCallbackAction_GetActionTimeInfoForDebugger(const EventLogEntry* evt, TTDebuggerSourceLocation& sourceLocation)
@@ -744,12 +742,9 @@ namespace TTD
             cfAction->AdditionalInfo->HostCallbackId = hostCallbackId;
             cfAction->AdditionalInfo->TopLevelCallbackEventTime = topLevelCallbackEventTime;
 
-#if ENABLE_TTD_DEBUGGING
             cfAction->AdditionalInfo->RtRSnap = nullptr;
             cfAction->AdditionalInfo->ExecArgs = nullptr;
-
-            cfAction->AdditionalInfo->LastExecutedLocation.Clear();
-#endif
+            cfAction->AdditionalInfo->LastExecutedLocation.Initialize();
         }
 
         void JsRTCallFunctionAction_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException)
@@ -844,7 +839,6 @@ namespace TTD
 
             alloc.UnlinkAllocation(cfAction->ArgArray);
 
-#if ENABLE_TTD_DEBUGGING
             if(cfInfo->ExecArgs != nullptr)
             {
                 alloc.UnlinkAllocation(cfInfo->ExecArgs);
@@ -856,7 +850,6 @@ namespace TTD
             {
                 cfInfo->LastExecutedLocation.Clear();
             }
-#endif
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             alloc.UnlinkString(cfInfo->FunctionName);
@@ -934,12 +927,9 @@ namespace TTD
             cfInfo->HasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);
             cfInfo->HasTerminiatingException = reader->ReadBool(NSTokens::Key::boolVal, true);
 
-#if ENABLE_TTD_DEBUGGING
             cfInfo->RtRSnap = nullptr;
             cfInfo->ExecArgs = (cfAction->ArgCount > 1) ? alloc.SlabAllocateArray<Js::Var>(cfAction->ArgCount - 1) : nullptr; //ArgCount includes slot for function which we don't use in exec
-
-            cfInfo->LastExecutedLocation.Clear();
-#endif
+            cfInfo->LastExecutedLocation.Initialize();
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             cfInfo->LastNestedEvent = reader->ReadInt64(NSTokens::Key::i64Val, true);
@@ -949,7 +939,6 @@ namespace TTD
 
         void JsRTCallFunctionAction_UnloadSnapshot(EventLogEntry* evt)
         {
-#if ENABLE_TTD_DEBUGGING
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
 
@@ -958,7 +947,6 @@ namespace TTD
                 HeapDelete(cfInfo->RtRSnap);
                 cfInfo->RtRSnap = nullptr;
             }
-#endif
         }
 
         void JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(EventLogEntry* evt, const SingleCallCounter& lastSourceLocation)

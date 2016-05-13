@@ -287,15 +287,15 @@ namespace TTD
         }
 
         template <typename T, NSLogEvents::EventKind tag>
-        T* RecordGetInitializedEvent_HelperWithResultPtr(TTDVar* resultPtr)
+        T* RecordGetInitializedEvent_HelperWithResultPtr(TTDVar** resultPtr)
         {
             NSLogEvents::EventLogEntry* evt = this->m_eventList.GetNextAvailableEntry();
             NSLogEvents::EventLogEntry_Initialize(evt, tag, this->GetCurrentEventTimeAndAdvance());
 
             T* eventData = NSLogEvents::GetInlineEventDataAs<T, tag>(evt);
-            resultPtr = &(eventData->Result);
+            *resultPtr = &(eventData->Result);
 
-            return NSLogEvents::GetInlineEventDataAs<T, tag>(evt);
+            return eventData;
         }
 
         //Sometimes we need to abort replay and immediately return to the top-level host (debugger) so it can decide what to do next
@@ -554,19 +554,19 @@ namespace TTD
         int64 GetLastEventTime() const;
 
 #if !INT32VAR
-        void RecordJsRTCreateInteger(Js::ScriptContext* ctx, int value, TTDVar* resultVarPtr);
+        void RecordJsRTCreateInteger(Js::ScriptContext* ctx, int value, TTDVar** resultVarPtr);
 #endif
 
-        void RecordJsRTCreateNumber(Js::ScriptContext* ctx, double value, TTDVar* resultVarPtr);
-        void RecordJsRTCreateBoolean(Js::ScriptContext* ctx, bool value, TTDVar* resultVarPtr);
-        void RecordJsRTCreateString(Js::ScriptContext* ctx, const char16* stringValue, size_t stringLength, TTDVar* resultVarPtr);
-        void RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
+        void RecordJsRTCreateNumber(Js::ScriptContext* ctx, double value, TTDVar** resultVarPtr);
+        void RecordJsRTCreateBoolean(Js::ScriptContext* ctx, bool value, TTDVar** resultVarPtr);
+        void RecordJsRTCreateString(Js::ScriptContext* ctx, const char16* stringValue, size_t stringLength, TTDVar** resultVarPtr);
+        void RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
 
         //Record conversions and symbol creation
-        void RecordJsRTVarToNumberConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
-        void RecordJsRTVarToBooleanConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
-        void RecordJsRTVarToStringConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
-        void RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
+        void RecordJsRTVarToNumberConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
+        void RecordJsRTVarToBooleanConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
+        void RecordJsRTVarToStringConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
+        void RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
 
         //Record lifetime management events
         void RecordJsRTAddRootRef(Js::ScriptContext* ctx, Js::Var var);
@@ -574,35 +574,35 @@ namespace TTD
         void RecordJsRTEventLoopYieldPoint(Js::ScriptContext* ctx);
 
         //Record object allocate operations
-        void RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, TTDVar* resultVarPtr);
-        void RecordJsRTAllocateExternalObject(Js::ScriptContext* ctx, TTDVar* resultVarPtr);
-        void RecordJsRTAllocateBasicArray(Js::ScriptContext* ctx, uint32 length, TTDVar* resultVarPtr);
-        void RecordJsRTAllocateArrayBuffer(Js::ScriptContext* ctx, uint32 size, TTDVar* resultVarPtr);
-        void RecordJsRTAllocateExternalArrayBuffer(Js::ScriptContext* ctx, byte* buff, uint32 size, TTDVar* resultVarPtr);
-        void RecordJsRTAllocateFunction(Js::ScriptContext* ctx, bool isNamed, Js::Var optName, TTDVar* resultVarPtr);
+        void RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, TTDVar** resultVarPtr);
+        void RecordJsRTAllocateExternalObject(Js::ScriptContext* ctx, TTDVar** resultVarPtr);
+        void RecordJsRTAllocateBasicArray(Js::ScriptContext* ctx, uint32 length, TTDVar** resultVarPtr);
+        void RecordJsRTAllocateArrayBuffer(Js::ScriptContext* ctx, uint32 size, TTDVar** resultVarPtr);
+        void RecordJsRTAllocateExternalArrayBuffer(Js::ScriptContext* ctx, byte* buff, uint32 size, TTDVar** resultVarPtr);
+        void RecordJsRTAllocateFunction(Js::ScriptContext* ctx, bool isNamed, Js::Var optName, TTDVar** resultVarPtr);
 
         //Record GetAndClearException
-        void RecordJsRTGetAndClearException(Js::ScriptContext* ctx, TTDVar* resultVarPtr);
+        void RecordJsRTGetAndClearException(Js::ScriptContext* ctx, TTDVar** resultVarPtr);
 
         //Record Object Getters
-        void RecordJsRTGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar* resultVarPtr);
-        void RecordJsRTGetIndex(Js::ScriptContext* ctx, Js::Var index, Js::Var var, TTDVar* resultVarPtr);
-        void RecordJsRTGetOwnPropertyInfo(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar* resultVarPtr);
-        void RecordJsRTGetOwnPropertyNamesInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
-        void RecordJsRTGetOwnPropertySymbolsInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
+        void RecordJsRTGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar** resultVarPtr);
+        void RecordJsRTGetIndex(Js::ScriptContext* ctx, Js::Var index, Js::Var var, TTDVar** resultVarPtr);
+        void RecordJsRTGetOwnPropertyInfo(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar** resultVarPtr);
+        void RecordJsRTGetOwnPropertyNamesInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
+        void RecordJsRTGetOwnPropertySymbolsInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
 
         //Record Object Setters
         void RecordJsRTDefineProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, Js::Var propertyDescriptor);
-        void RecordJsRTDeleteProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, bool useStrictRules, TTDVar* resultVarPtr);
+        void RecordJsRTDeleteProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, bool useStrictRules, TTDVar** resultVarPtr);
         void RecordJsRTSetPrototype(Js::ScriptContext* ctx, Js::Var var, Js::Var proto);
         void RecordJsRTSetProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, Js::Var val, bool useStrictRules);
         void RecordJsRTSetIndex(Js::ScriptContext* ctx, Js::Var var, Js::Var index, Js::Var val);
 
         //Record a get info from a typed array
-        void RecordJsRTGetTypedArrayInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr);
+        void RecordJsRTGetTypedArrayInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr);
 
         //Record a constructor call from JsRT
-        void RecordJsRTConstructCall(Js::ScriptContext* ctx, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args, TTDVar* resultVarPtr);
+        void RecordJsRTConstructCall(Js::ScriptContext* ctx, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args, TTDVar** resultVarPtr);
 
         //Record callback registration/cancelation
         void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCreate, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 callbackId);

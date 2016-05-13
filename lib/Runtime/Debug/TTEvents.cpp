@@ -83,6 +83,21 @@ namespace TTD
         this->Clear();
     }
 
+    void TTDebuggerSourceLocation::Initialize()
+    {
+        this->m_etime = -1;
+        this->m_ftime = 0;
+        this->m_ltime = 0;
+
+        this->m_sourceFile = nullptr;
+        this->m_docid = 0;
+
+        this->m_functionLine = 0;
+        this->m_functionColumn = 0;
+        this->m_line = 0;
+        this->m_column = 0;
+    }
+
     bool TTDebuggerSourceLocation::HasValue() const
     {
         return this->m_etime != -1;
@@ -111,6 +126,10 @@ namespace TTD
 
     void TTDebuggerSourceLocation::SetLocation(const TTDebuggerSourceLocation& other)
     {
+#if !ENABLE_TTD_DEBUGGING
+        AssertMsg(false, "Debugger is not enabled so you shouldn't be calling this");
+        this->Clear();
+#else
         this->m_etime = other.m_etime;
         this->m_ftime = other.m_ftime;
         this->m_ltime = other.m_ltime;
@@ -137,20 +156,30 @@ namespace TTD
             this->m_sourceFile = new wchar[wcharLength];
             js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
         }
+#endif
     }
 
     void TTDebuggerSourceLocation::SetLocation(const SingleCallCounter& callFrame)
     {
+#if !ENABLE_TTD_DEBUGGING
+        AssertMsg(false, "Debugger is not enabled so you shouldn't be calling this");
+        this->Clear();
+#else
         ULONG srcLine = 0;
         LONG srcColumn = -1;
         uint32 startOffset = callFrame.Function->GetStatementStartOffset(callFrame.CurrentStatementIndex);
         callFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
         this->SetLocation(callFrame.EventTime, callFrame.FunctionTime, callFrame.LoopTime, callFrame.Function, (uint32)srcLine, (uint32)srcColumn);
+#endif
     }
 
     void TTDebuggerSourceLocation::SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column)
     {
+#if !ENABLE_TTD_DEBUGGING
+        AssertMsg(false, "Debugger is not enabled so you shouldn't be calling this");
+        this->Clear();
+#else
         this->m_etime = etime;
         this->m_ftime = ftime;
         this->m_ltime = ltime;
@@ -178,6 +207,7 @@ namespace TTD
             this->m_sourceFile = new wchar[wcharLength];
             js_memcpy_s(this->m_sourceFile, byteLength, sourceFile, byteLength);
         }
+#endif
     }
 
     int64 TTDebuggerSourceLocation::GetRootEventTime() const

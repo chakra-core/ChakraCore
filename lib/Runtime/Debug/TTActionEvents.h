@@ -326,10 +326,8 @@ namespace TTD
             uint32 ArgCount;
             TTDVar* ArgArray;
 
-#if ENABLE_TTD_DEBUGGING
             //A buffer we can use for the actual invocation
             Js::Var* ExecArgs;
-#endif
         };
 
         void JsRTConstructCallAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
@@ -421,7 +419,6 @@ namespace TTD
             bool HasScriptException;
             bool HasTerminiatingException;
 
-#if ENABLE_TTD_DEBUGGING
             //ready-to-run snapshot information -- null if not set and if we want to unload it we just throw it away
             SnapShot* RtRSnap;
 
@@ -430,7 +427,6 @@ namespace TTD
 
             //Info on the last executed statement in this call
             TTDebuggerSourceLocation LastExecutedLocation;
-#endif
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             //The last event time that is nested in this call

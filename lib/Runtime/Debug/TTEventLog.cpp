@@ -760,9 +760,11 @@ namespace TTD
 
     void EventLog::ReplayTelemetryLogEvent(Js::JavascriptString* infoStringJs)
     {
+#if !ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        this->AdvanceTimeAndPositionForReplay(); //just eat the telemetry event
+#else
         const NSLogEvents::TelemetryEventLogEntry* tEvent = this->ReplayGetReplayEvent_Helper<NSLogEvents::TelemetryEventLogEntry, NSLogEvents::EventKind::TelemetryLogTag>();
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS        
         uint32 infoStrLength = (uint32)infoStringJs->GetLength();
         LPCWSTR infoStr = infoStringJs->GetSz();
 
@@ -1738,56 +1740,56 @@ namespace TTD
     }
 
 #if !INT32VAR
-    void EventLog::RecordJsRTCreateInteger(Js::ScriptContext* ctx, int value, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTCreateInteger(Js::ScriptContext* ctx, int value, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* iAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::CreateIntegerActionTag>(resultVarPtr);
         iAction->u_iVal = value;
     }
 #endif
 
-    void EventLog::RecordJsRTCreateNumber(Js::ScriptContext* ctx, double value, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTCreateNumber(Js::ScriptContext* ctx, double value, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTDoubleArgumentAction* dAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTDoubleArgumentAction, NSLogEvents::EventKind::CreateNumberActionTag>(resultVarPtr);
         dAction->DoubleValue = value;
     }
 
-    void EventLog::RecordJsRTCreateBoolean(Js::ScriptContext* ctx, bool value, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTCreateBoolean(Js::ScriptContext* ctx, bool value, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* bAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::CreateBooleanActionTag>(resultVarPtr);
         bAction->u_iVal = (value ? TRUE : FALSE);
     }
 
-    void EventLog::RecordJsRTCreateString(Js::ScriptContext* ctx, const char16* stringValue, size_t stringLength, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTCreateString(Js::ScriptContext* ctx, const char16* stringValue, size_t stringLength, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTStringArgumentAction* sAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTStringArgumentAction, NSLogEvents::EventKind::CreateStringActionTag>(resultVarPtr);
         this->m_eventSlabAllocator.CopyStringIntoWLength(stringValue, (uint32)stringLength, sAction->StringValue);
     }
 
-    void EventLog::RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTCreateSymbol(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* sAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::CreateSymbolActionTag>(resultVarPtr);
         sAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
     }
 
-    void EventLog::RecordJsRTVarToNumberConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTVarToNumberConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::VarConvertToNumberActionTag>(resultVarPtr);
         cAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
     }
 
-    void EventLog::RecordJsRTVarToBooleanConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTVarToBooleanConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::VarConvertToBooleanActionTag>(resultVarPtr);
         cAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
     }
 
-    void EventLog::RecordJsRTVarToStringConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTVarToStringConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::VarConvertToStringActionTag>(resultVarPtr);
         cAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
     }
 
-    void EventLog::RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::VarConvertToObjectActionTag>(resultVarPtr);
         cAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
@@ -1826,29 +1828,29 @@ namespace TTD
         }
     }
 
-    void EventLog::RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, TTDVar** resultVarPtr)
     {
         this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::AllocateObjectActionTag>(resultVarPtr);
     }
 
-    void EventLog::RecordJsRTAllocateExternalObject(Js::ScriptContext* ctx, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTAllocateExternalObject(Js::ScriptContext* ctx, TTDVar** resultVarPtr)
     {
         this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::AllocateExternalObjectActionTag>(resultVarPtr);
     }
 
-    void EventLog::RecordJsRTAllocateBasicArray(Js::ScriptContext* ctx, uint32 length, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTAllocateBasicArray(Js::ScriptContext* ctx, uint32 length, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::AllocateArrayActionTag>(resultVarPtr);
         cAction->u_iVal = length;
     }
 
-    void EventLog::RecordJsRTAllocateArrayBuffer(Js::ScriptContext* ctx, uint32 size, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTAllocateArrayBuffer(Js::ScriptContext* ctx, uint32 size, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::AllocateArrayBufferActionTag>(resultVarPtr);
         cAction->u_iVal = size;
     }
 
-    void EventLog::RecordJsRTAllocateExternalArrayBuffer(Js::ScriptContext* ctx, byte* buff, uint32 size, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTAllocateExternalArrayBuffer(Js::ScriptContext* ctx, byte* buff, uint32 size, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTByteBufferAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTByteBufferAction, NSLogEvents::EventKind::AllocateExternalArrayBufferActionTag>(resultVarPtr);
         cAction->Length = size;
@@ -1857,47 +1859,47 @@ namespace TTD
         js_memcpy_s(cAction->Buffer, cAction->Length, buff, size);
     }
 
-    void EventLog::RecordJsRTAllocateFunction(Js::ScriptContext* ctx, bool isNamed, Js::Var optName, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTAllocateFunction(Js::ScriptContext* ctx, bool isNamed, Js::Var optName, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* cAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::AllocateFunctionActionTag>(resultVarPtr);
         cAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(optName);
         cAction->u_bVal = isNamed ? TRUE : FALSE;
     }
 
-    void EventLog::RecordJsRTGetAndClearException(Js::ScriptContext* ctx, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTGetAndClearException(Js::ScriptContext* ctx, TTDVar** resultVarPtr)
     {
         this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetAndClearExceptionActionTag>(resultVarPtr);
         //TODO: later we need to fill in additional the info for the action we want to track
     }
 
-    void EventLog::RecordJsRTGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* gpAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::GetPropertyActionTag>(resultVarPtr);
         gpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
         gpAction->u_pid = pid;
     }
 
-    void EventLog::RecordJsRTGetIndex(Js::ScriptContext* ctx, Js::Var index, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTGetIndex(Js::ScriptContext* ctx, Js::Var index, Js::Var var, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsArgumentAction* giAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetIndexActionTag>(resultVarPtr);
         giAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
         giAction->Var2 = TTD_CONVERT_JSVAR_TO_TTDVAR(index);
     }
 
-    void EventLog::RecordJsRTGetOwnPropertyInfo(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTGetOwnPropertyInfo(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction* gpAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction, NSLogEvents::EventKind::GetOwnPropertyInfoActionTag>(resultVarPtr);
         gpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
         gpAction->u_pid = pid;
     }
 
-    void EventLog::RecordJsRTGetOwnPropertyNamesInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTGetOwnPropertyNamesInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsArgumentAction* gpAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetOwnPropertyNamesInfoActionTag>(resultVarPtr);
         gpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
     }
 
-    void EventLog::RecordJsRTGetOwnPropertySymbolsInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTGetOwnPropertySymbolsInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsArgumentAction* gpAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetOwnPropertySymbolsInfoActionTag>(resultVarPtr);
         gpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
@@ -1911,7 +1913,7 @@ namespace TTD
         dpAction->u_pid = pid;
     }
 
-    void EventLog::RecordJsRTDeleteProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, bool useStrictRules, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTDeleteProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, bool useStrictRules, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTVarsWithBoolAndPIDArgumentAction* dpAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsWithBoolAndPIDArgumentAction, NSLogEvents::EventKind::DeletePropertyActionTag>(resultVarPtr);
         dpAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
@@ -1943,13 +1945,13 @@ namespace TTD
         spAction->Var3 = TTD_CONVERT_JSVAR_TO_TTDVAR(val);
     }
 
-    void EventLog::RecordJsRTGetTypedArrayInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTGetTypedArrayInfo(Js::ScriptContext* ctx, Js::Var var, TTDVar** resultVarPtr)
     {
-        NSLogEvents::JsRTVarsArgumentAction* giAction = this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetTypedArrayInfoActionTag>();
+        NSLogEvents::JsRTVarsArgumentAction* giAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetTypedArrayInfoActionTag>(resultVarPtr);
         giAction->Var1 = TTD_CONVERT_JSVAR_TO_TTDVAR(var);
     }
 
-    void EventLog::RecordJsRTConstructCall(Js::ScriptContext* ctx, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args, TTDVar* resultVarPtr)
+    void EventLog::RecordJsRTConstructCall(Js::ScriptContext* ctx, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args, TTDVar** resultVarPtr)
     {
         NSLogEvents::JsRTConstructCallAction* ccAction = this->RecordGetInitializedEvent_HelperWithResultPtr<NSLogEvents::JsRTConstructCallAction, NSLogEvents::EventKind::ConstructCallActionTag>(resultVarPtr);
         
@@ -1973,6 +1975,8 @@ namespace TTD
         cbrAction->IsCreate = isCreate;
         cbrAction->IsCancel = isCancel;
         cbrAction->IsRepeating = isRepeating;
+
+        cbrAction->RegisterLocation = nullptr;
     }
 
     void EventLog::RecordJsRTCodeParse(Js::ScriptContext* ctx, uint64 bodyCtrId, LoadScriptFlag loadFlag, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri, Js::JavascriptFunction* resultFunction)
