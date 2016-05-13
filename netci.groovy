@@ -29,7 +29,7 @@ def dailyRegex = 'dailies'
 // Only generate PR check triggers for the version of netci.groovy in the master branch
 // since those PR checks will apply for all branches.
 def jobTypesToGenerate = [false]
-if (branch == 'master') {
+if (branch.startsWith('master')) {
     // OK to generate PR checks (this ensures we only generate one set of them)
     jobTypesToGenerate += true
 }
@@ -122,6 +122,8 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
             // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
             def jobName = Utilities.getFullJobName(project, config, isPR)
 
+            def testableConfig = buildType in ['debug']
+
             def infoScript = 'bash jenkins/get_system_info.sh'
             def debugFlag = buildType == 'debug' ? '--debug' : ''
             def buildScript = "bash ./build.sh -j=`nproc` ${debugFlag} --cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
@@ -131,7 +133,9 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
                 steps {
                     shell(infoScript)
                     shell(buildScript)
-                    shell(testScript)
+                    if (testableConfig) {
+                        shell(testScript)
+                    }
                 }
             }
 
@@ -211,29 +215,31 @@ CreateBuildTasks('Windows_NT', null, null, null, true, null, null)
 // DAILY BUILD TASKS
 // -----------------
 
-// build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
-CreateBuildTasks('Windows 7', 'daily_dev12', 'msbuild12', '-win7 -includeSlow', false,
-    /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
-    /* nonDefaultTaskSetup */ { newJob, isPR, config ->
-        DailyBuildTaskSetup(newJob, isPR,
-            "Windows 7 ${config}",
-            '(dev12|legacy)\\s+tests')})
+if (!branch.endsWith('-ci')) {
+    // build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
+    CreateBuildTasks('Windows 7', 'daily_dev12', 'msbuild12', '-win7 -includeSlow', false,
+        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows 7 ${config}",
+                '(dev12|legacy)\\s+tests')})
 
-// build and test on the usual configuration (VS 2015) with -includeSlow
-CreateBuildTasks('Windows_NT', 'daily_slow', null, '-includeSlow', false,
-    /* excludeConfigIf */ null,
-    /* nonDefaultTaskSetup */ { newJob, isPR, config ->
-        DailyBuildTaskSetup(newJob, isPR,
-            "Windows ${config}",
-            'slow\\s+tests')})
+    // build and test on the usual configuration (VS 2015) with -includeSlow
+    CreateBuildTasks('Windows_NT', 'daily_slow', null, '-includeSlow', false,
+        /* excludeConfigIf */ null,
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows ${config}",
+                'slow\\s+tests')})
 
-// build and test on the usual configuration (VS 2015) with JIT disabled
-CreateBuildTasks('Windows_NT', 'daily_disablejit', '"/p:BuildJIT=false"', '-disablejit', true,
-    /* excludeConfigIf */ null,
-    /* nonDefaultTaskSetup */ { newJob, isPR, config ->
-        DailyBuildTaskSetup(newJob, isPR,
-            "Windows ${config}",
-            '(disablejit|nojit)\\s+tests')})
+    // build and test on the usual configuration (VS 2015) with JIT disabled
+    CreateBuildTasks('Windows_NT', 'daily_disablejit', '"/p:BuildJIT=false"', '-disablejit', true,
+        /* excludeConfigIf */ null,
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows ${config}",
+                '(disablejit|nojit)\\s+tests')})
+}
 
 // ----------------
 // CODE STYLE TASKS
@@ -246,16 +252,18 @@ CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 
 // LINUX BUILD TASKS
 // -----------------
 
-if (branch == 'linux') {
+if (branch.startsWith('linux')) {
     osString = 'Ubuntu16.04'
 
     // PR checks
     CreateLinuxBuildTasks(osString, "ubuntu", branch, null)
 
     // daily builds
-    CreateLinuxBuildTasks(osString, "daily_ubuntu", branch,
-        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
-            DailyBuildTaskSetup(newJob, isPR,
-                "Ubuntu ${config}",
-                'linux\\s+tests')})
+    if (!branch.endsWith('-ci')) {
+        CreateLinuxBuildTasks(osString, "daily_ubuntu", branch,
+            /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+                DailyBuildTaskSetup(newJob, isPR,
+                    "Ubuntu ${config}",
+                    'linux\\s+tests')})
+    }
 }

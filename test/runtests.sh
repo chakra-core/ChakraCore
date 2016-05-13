@@ -10,8 +10,7 @@ ch_path="$test_path/../BuildLinux/ch"
 
 if [ ! -f $ch_path ]; then
     echo 'ch not found- exiting'
-    # TODO change this to exit 1 once clang requirement on build machines is satisfied
-    exit 0
+    exit 1
 fi
 
 "$test_path/runtests.py" Basics/hello.js
