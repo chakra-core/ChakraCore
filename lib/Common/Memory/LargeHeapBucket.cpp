@@ -158,8 +158,6 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
         AnalysisAssert(false);
     }
 
-
-
     LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, 1, nullptr);
     if (!heapBlock)
     {
@@ -172,7 +170,11 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
     heapBlock->heapInfo = this->heapInfo;
     heapBlock->actualPageCount = actualPageCount;
     heapBlock->guardPageAddress = guardPageAddress;
-
+    
+    DWORD oldProtect;
+    BOOL ret = ::VirtualProtect(guardPageAddress, AutoSystemInfo::PageSize * guardPageCount, PAGE_NOACCESS, &oldProtect);
+    Assert(ret && oldProtect == PAGE_READWRITE);
+    
     // fill pattern before set pageHeapMode, so background scan stack may verify the pattern
     size_t usedSpace = sizeof(LargeObjectHeader) + size;
     memset(address + usedSpace, 0xF0, pageCount * AutoSystemInfo::PageSize - usedSpace);
@@ -192,14 +194,6 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
     char * memBlock = heapBlock->Alloc(size, attributes);
     Assert(memBlock != nullptr);
 
-
-#pragma prefast(suppress:6250, "This method decommits memory")
-    if (::VirtualFree(guardPageAddress, AutoSystemInfo::PageSize * guardPageCount, MEM_DECOMMIT) == FALSE)
-    {
-        AssertMsg(false, "Unable to decommit guard page.");
-        ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, 2);
-        return nullptr;
-    }
 
     if (this->largePageHeapBlockList)
     {
