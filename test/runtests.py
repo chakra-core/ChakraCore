@@ -7,43 +7,64 @@
 import sys
 import os
 import subprocess as SP
+import argparse, textwrap
+import xml.etree.ElementTree as ET
 
-test_all = True
+parser = argparse.ArgumentParser(
+    description='ChakraCore *nix Test Script',
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog=textwrap.dedent('''\
+        Samples:
+
+        test all folders:
+            {0}
+
+        test only Array:
+            {0} Array
+
+        test a single file:
+            {0} Basics/hello.js
+    '''.format(sys.argv[0]))
+    )
+parser.add_argument('folders', metavar='folder', nargs='*',
+                    help='folder subset to run tests')
+parser.add_argument('-b', '--binary', metavar='binary', help='ch full path');
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='use debug build');
+parser.add_argument('-t', '--test', action='store_true', help='use test build');
+parser.add_argument('--x86', action='store_true', help='use x86 build');
+parser.add_argument('--x64', action='store_true', help='use x64 build');
+args = parser.parse_args()
+
+
 test_root = os.path.dirname(os.path.realpath(__file__))
+repo_root = os.path.dirname(test_root)
 
-# ugly trick
-ch_path = os.path.join(os.path.dirname(test_root), "BuildLinux/ch")
+# arch: x86, x64
+arch = 'x86' if args.x86 else ('x64' if args.x64 else None)
+if arch == None:
+    arch = os.environ.get('_BuildArch', 'x86')
 
-if not os.path.isfile(ch_path):
-    print "BuildLinux/ch not found. Did you run ./build.sh already?"
+# flavor: debug, test, release
+flavor = 'debug' if args.debug else ('test' if args.test else None)
+if flavor == None:
+    flavor = {'chk':'debug', 'test':'test', 'fre':'release'}\
+                    [os.environ.get('_BuildType', 'fre')]
+
+# binary: full ch path
+binary = args.binary
+if binary == None:
+    if sys.platform == 'win32':
+        binary = os.path.join(repo_root,
+            'Build/VcBuild/bin/{}_{}/ch.exe'.format(arch, flavor))
+    else:
+        binary = os.path.join(repo_root, "BuildLinux/ch")
+if not os.path.isfile(binary):
+    print '{} not found. Did you run ./build.sh already?'.format(binary)
     sys.exit(1)
 
-if len(sys.argv) > 1:
-    if sys.argv[1] in ['-?', '--help']:
-        print "ChakraCore *nix Test Script\n"
-
-        print "Usage:"
-        print "test.py <optional test path>\n"
-
-        print "-?, --help    : Show help\n"
-
-        print "Samples:"
-        print "test only Array:"
-        print "\t./test.py Array\n"
-        
-        print "test a single file:"
-        print "\t./test.py Basics/hello.js\n"
-
-        print "test all folders:"
-        print "\t./test.py"
-        sys.exit(0)
-    test_all = None
-
-test_dirs=['']
-if test_all:
-    test_dirs = os.listdir(test_root)
-else:
-    test_dirs[0] = sys.argv[1]
+pass_count = 0
+fail_count = 0
 
 def show_failed(filename, output, exit_code, expected_output):
     print "\nFailed ->", filename
@@ -58,7 +79,7 @@ def show_failed(filename, output, exit_code, expected_output):
         ln = min(len(lst_output), len(lst_expected))
         for i in range(0, ln):
             if lst_output[i] != lst_expected[i]:
-                print "Output: (at line " + str(i) + ")" 
+                print "Output: (at line " + str(i) + ")"
                 print "----------------------------"
                 print lst_output[i]
                 print "----------------------------"
@@ -69,52 +90,88 @@ def show_failed(filename, output, exit_code, expected_output):
                 break
 
     print "exit code:", exit_code
-    print "\nFailed!"
-    sys.exit(exit_code)
+    global fail_count
+    fail_count += 1
 
-def test_path(folder, is_file):
-    files=['']
-    if is_file == False:
-        print "Testing ->", os.path.basename(folder)
-        files = os.listdir(folder)
+def test_path(path):
+    if os.path.isfile(path):
+        folder, file = os.path.dirname(path), os.path.basename(path)
     else:
-        files[0] = folder
-    
-    for js_file in files:
-        if is_file or os.path.splitext(js_file)[1] == '.js':
-            js_file = os.path.join(folder, js_file)
-            js_output = ""
+        folder, file = path, None
 
-            if not os.path.isfile(js_file):
-                print "Javascript file doesn't exist (" + js_file + ")"
-                sys.exit(1)
+    tests = load_tests(folder, file)
+    if len(tests) == 0:
+        return
 
-            p = SP.Popen([ch_path, js_file], stdout=SP.PIPE, stderr=SP.STDOUT, close_fds=True)
-            js_output = p.communicate()[0].replace('\r','')
-            exit_code = p.wait()
+    print "Testing ->", os.path.basename(folder)
+    for test in tests:
+        test_one(folder, test)
 
-            if exit_code != 0:
-                show_failed(js_file, js_output, exit_code, None)
-            else: #compare outputs
-                baseline = os.path.splitext(js_file)[0] + '.baseline'
-                baseline = os.path.join(folder, baseline)
-                if os.path.isfile(baseline):
-                    expected_output = None
-                    with open(baseline, 'r') as bs_file:
-                        expected_output = bs_file.read().replace('\r', '')
-                    # todo: compare line by line and use/implement wild cards support
-                    # todo: by default we discard line endings (xplat), make this optional
-                    if expected_output.replace('\n', '') != js_output.replace('\n', ''):
-                        show_failed(js_file, js_output, exit_code, expected_output)
+def test_one(folder, test):
+    js_file = os.path.join(folder, test['files'])
+    js_output = ""
 
-            if not is_file:
-                print "\tPassed ->", os.path.basename(js_file)
+    cmd = [x for x in [binary,
+            '-WERExceptionSupport',
+            '-ExtendedErrorStackForTestHost',
+            test.get('compile-flags'),
+            js_file]  if x != None]
+    p = SP.Popen(cmd, stdout=SP.PIPE, stderr=SP.STDOUT)
+    js_output = p.communicate()[0].replace('\r','')
+    exit_code = p.wait()
 
-is_file = len(test_dirs) == 1 and os.path.splitext(test_dirs[0])[1] == '.js'
+    if exit_code != 0:
+        return show_failed(js_file, js_output, exit_code, None)
+    else: #compare outputs
+        baseline = os.path.splitext(js_file)[0] + '.baseline'
+        if os.path.isfile(baseline):
+            expected_output = None
+            with open(baseline, 'r') as bs_file:
+                expected_output = bs_file.read().replace('\r', '')
+            # todo: compare line by line and use/implement wild cards support
+            # todo: by default we discard line endings (xplat), make this optional
+            if expected_output.replace('\n', '') != js_output.replace('\n', ''):
+                return show_failed(js_file, js_output, exit_code, expected_output)
 
-for folder in test_dirs:
-    full_path = os.path.join(test_root, folder)
-    if os.path.isdir(full_path) or is_file:
-        test_path(full_path, is_file)
+    print "\tPassed ->", os.path.basename(js_file)
+    global pass_count
+    pass_count += 1
 
-print 'Success!'
+def load_tests(folder, file):
+    try:
+        xmlpath = os.path.join(folder, 'rlexe.xml')
+        xml = ET.parse(xmlpath).getroot()
+    except IOError:
+        return []
+
+    tests = [load_test(x) for x in xml]
+    if file != None:
+        tests = [x for x in tests if x['files'] == file]
+        if len(tests) == 0 and is_jsfile(file):
+            tests = [{'files':file}]
+    return tests
+
+def load_test(testXml):
+    test = dict()
+    for c in testXml.find('default'):
+        test[c.tag] = c.text
+    return test
+
+def is_jsfile(path):
+    return os.path.splitext(path)[1] == '.js'
+
+def main():
+    # By default run all tests
+    if len(args.folders) == 0:
+        args.folders = [os.path.join(test_root, x)
+                        for x in sorted(os.listdir(test_root))]
+
+    for folder in args.folders:
+        test_path(folder)
+
+    print 'Passed:', pass_count, 'Failed:', fail_count
+    print 'Success!' if fail_count == 0 else 'Failed!'
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
