@@ -65,6 +65,7 @@ JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstru
     }
 
     wprintf(_u("\n"));
+    fflush(stdout);
 
     JsValueRef undefinedValue;
     if (ChakraRTInterface::JsGetUndefinedValue(&undefinedValue) == JsNoError)
@@ -107,7 +108,7 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
     JsValueRef returnValue = JS_INVALID_REFERENCE;
     JsErrorCode errorCode = JsNoError;
     LPCWSTR errorMessage = _u("");
-    
+
     if (argumentCount < 2 || argumentCount > 4)
     {
         errorCode = JsErrorInvalidArgument;
@@ -209,7 +210,7 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
                 freeFileName = true;
             }
         }
-        
+
         returnValue = LoadScript(callee, fileName, fileContent, scriptInjectType, isSourceModule);
 
         if (freeFileName)
@@ -246,11 +247,11 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR f
     JsErrorCode innerErrorCode = JsNoError;
     JsContextRef currentContext = JS_INVALID_REFERENCE;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
-    
+
     wchar_t* fullPath = nullptr;
     char fullPathNarrow[_MAX_PATH];
     size_t len = 0;
-    
+
     IfJsrtErrorSetGo(ChakraRTInterface::JsGetCurrentContext(&currentContext));
     IfJsrtErrorSetGo(ChakraRTInterface::JsGetRuntime(currentContext, &runtime));
 
@@ -549,12 +550,12 @@ bool WScriptJsrt::PrintException(LPCSTR fileName, JsErrorCode jsErrorCode)
         {
             LPCWSTR errorMessage = nullptr;
             size_t errorMessageLength = 0;
-            
+
             JsValueRef errorString = JS_INVALID_REFERENCE;
 
             IfJsrtErrorFail(ChakraRTInterface::JsConvertValueToString(exception, &errorString), false);
             IfJsrtErrorFail(ChakraRTInterface::JsStringToPointer(errorString, &errorMessage, &errorMessageLength), false);
-            
+
             if (jsErrorCode == JsErrorCode::JsErrorScriptCompile)
             {
                 JsPropertyIdRef linePropertyId = JS_INVALID_REFERENCE;
@@ -562,10 +563,10 @@ bool WScriptJsrt::PrintException(LPCSTR fileName, JsErrorCode jsErrorCode)
 
                 JsPropertyIdRef columnPropertyId = JS_INVALID_REFERENCE;
                 JsValueRef columnProperty = JS_INVALID_REFERENCE;
-                
+
                 int line;
                 int column;
-                
+
                 IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(_u("line"), &linePropertyId), false);
                 IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(exception, linePropertyId, &lineProperty), false);
                 IfJsrtErrorFail(ChakraRTInterface::JsNumberToInt(lineProperty, &line), false);
