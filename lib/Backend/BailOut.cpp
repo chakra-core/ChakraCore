@@ -1865,17 +1865,33 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 // Check if the implicit call flags in the profile have changed since we last JITed this
                 // function body. If so, and they indicate an implicit call of some sort occurred
                 // then we need to reJIT.
+            {
+                Js::ImplicitCallFlags newFlags = executeFunction->GetScriptContext()->GetThreadContext()->GetImplicitCallFlags();
                 if (executeFunction->GetSavedImplicitCallsFlags() == Js::ImplicitCall_None ||
-                    executeFunction->GetSavedImplicitCallsFlags() == Js::ImplicitCall_HasNoInfo)
+                    executeFunction->GetSavedImplicitCallsFlags() == Js::ImplicitCall_HasNoInfo ||
+                    // if we bailout for ImplicitCall_Accessor and they didn't change since we last JITed, 
+                    // we should update the profile to not ignore ImplicitCall_Accessor and rejit
+                    (executeFunction->GetSavedImplicitCallsFlags() == newFlags && 
+                     newFlags == Js::ImplicitCall_Accessor))
                 {
+                    if (newFlags == Js::ImplicitCall_Accessor)
+                    {
+                        profileInfo->DisableIgnoreImplicitCallFlagAccessor();
+                        rejitReason = RejitReason::ImplicitCallFlagsAccessor;
+                    }
+                    else
+                    {
+                        rejitReason = RejitReason::ImplicitCallFlagsChanged;
+                    }
                     profileInfo->RecordImplicitCallFlags(executeFunction->GetScriptContext()->GetThreadContext()->GetImplicitCallFlags());
-                    rejitReason = RejitReason::ImplicitCallFlagsChanged;
+                    
                 }
                 else
                 {
                     reThunk = true;
                 }
                 break;
+            }
 
             case IR::BailOnModByPowerOf2:
                 rejitReason = RejitReason::ModByPowerOf2;

@@ -1533,6 +1533,7 @@ namespace Js
                 _u(" disableMemOp : %s")
                 _u(" disableTrackIntOverflow : %s")
                 _u(" disableFloatTypeSpec : %s")
+                _u(" disableIgnoreImplicitCallFlagAccessor : %s")
                 _u(" disableCheckThis : %s")
                 _u(" disableArrayCheckHoist : %s")
                 _u(" disableArrayCheckHoist_jitLoopBody : %s")
@@ -1567,6 +1568,7 @@ namespace Js
                 IsTrueOrFalse(this->bits.disableMemOp),
                 IsTrueOrFalse(this->bits.disableTrackCompoundedIntOverflow),
                 IsTrueOrFalse(this->bits.disableFloatTypeSpec),
+                IsTrueOrFalse(this->bits.disableIgnoreImplicitCallFlagAccessor),
                 IsTrueOrFalse(this->bits.disableCheckThis),
                 IsTrueOrFalse(this->bits.disableArrayCheckHoist),
                 IsTrueOrFalse(this->bits.disableArrayCheckHoist_jitLoopBody),

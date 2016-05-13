@@ -28,6 +28,7 @@ namespace Js
             isLossyIntTypeSpecDisabled(false),
             isTrackCompoundedIntOverflowDisabled(false),
             isFloatTypeSpecDisabled(false),
+            isIgnoreImplicitCallFlagAccessorDisabled(false),
             isArrayCheckHoistDisabled(false),
             isArrayCheckHoistDisabled_jitLoopBody(false),
             isArrayMissingValueCheckHoistDisabled(false),
@@ -66,6 +67,7 @@ namespace Js
             this->isLossyIntTypeSpecDisabled = profileInfo->IsLossyIntTypeSpecDisabled();
             this->isTrackCompoundedIntOverflowDisabled = profileInfo->IsTrackCompoundedIntOverflowDisabled();
             this->isFloatTypeSpecDisabled = profileInfo->IsFloatTypeSpecDisabled();
+            this->isIgnoreImplicitCallFlagAccessorDisabled = profileInfo->IsIgnoreImplicitCallFlagAccessorDisabled();
             this->isArrayCheckHoistDisabled = profileInfo->IsArrayCheckHoistDisabled(false);
             this->isArrayCheckHoistDisabled_jitLoopBody = profileInfo->IsArrayCheckHoistDisabled(true);
             this->isArrayMissingValueCheckHoistDisabled = profileInfo->IsArrayMissingValueCheckHoistDisabled(false);
@@ -266,6 +268,11 @@ namespace Js
             return this->isFloatTypeSpecDisabled;
         }
 
+        bool IsIgnoreImplicitCallFlagAccessorDisabled() const
+        {
+            return this->isIgnoreImplicitCallFlagAccessorDisabled;
+        }
+
         bool IsCheckThisDisabled() const
         {
             return this->profileInfo->IsCheckThisDisabled();
@@ -362,6 +369,7 @@ namespace Js
         bool isLossyIntTypeSpecDisabled : 1;
         bool isTrackCompoundedIntOverflowDisabled : 1;
         bool isFloatTypeSpecDisabled : 1;
+        bool isIgnoreImplicitCallFlagAccessorDisabled : 1;
         bool isArrayCheckHoistDisabled : 1;
         bool isArrayCheckHoistDisabled_jitLoopBody : 1;
         bool isArrayMissingValueCheckHoistDisabled : 1;
