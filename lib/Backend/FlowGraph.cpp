@@ -35,7 +35,7 @@ FlowGraph::Build(void)
     // (BailOnSimpleJitToFullJitLoopBody). For that purpose, we need the flow from try to catch.
     if (this->func->HasTry() &&
         (this->func->DoOptimizeTryCatch() ||
-        this->func->IsSimpleJit() && this->func->GetJnFunction()->DoJITLoopBody()
+        this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody()
         )
        )
     {
@@ -802,7 +802,7 @@ bool Loop::EnsureMemOpVariablesInitialized()
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"MemOp skipped: minimum loop count not reached: Function: %s %s,  Loop: %d\n",
                               func->GetWorkItem()->GetDisplayName(),
-                              func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                              func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                               this->GetLoopNumber()
                               );
             }
@@ -1263,7 +1263,7 @@ FlowGraph::Destroy(void)
                     case Js::OpCode::BrOnNoException:
                         Assert(this->func->HasTry() &&
                                ((!this->func->HasFinally() && !this->func->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this->func)) ||
-                               (this->func->IsSimpleJit() && this->func->GetJnFunction()->DoJITLoopBody()))); // should be relaxed as more bailouts are added in Simple Jit
+                               (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody()))); // should be relaxed as more bailouts are added in Simple Jit
 
                         Assert(region->GetType() == RegionTypeTry || region->GetType() == RegionTypeCatch);
                         if (region->GetType() == RegionTypeCatch)

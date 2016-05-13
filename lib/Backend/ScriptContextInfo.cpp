@@ -41,7 +41,68 @@ ScriptContextInfo::GetUndeclBlockVarAddr() const
 }
 
 intptr_t
+ScriptContextInfo::GetEmptyStringAddr() const
+{
+    return m_contextData.emptyStringAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetNegativeZeroAddr() const
+{
+    return m_contextData.negativeZeroAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetNumberTypeStaticAddr() const
+{
+    return m_contextData.numberTypeStaticAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetStringTypeStaticAddr() const
+{
+    return m_contextData.stringTypeStaticAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetObjectTypeAddr() const
+{
+    return m_contextData.objectTypeAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetObjectHeaderInlinedTypeAddr() const
+{
+    return m_contextData.objectHeaderInlinedTypeAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetRegexTypeAddr() const
+{
+    return m_contextData.regexTypeAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetArrayConstructorAddr() const
+{
+    return m_contextData.arrayConstructorAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetCharStringCacheAddr() const
+{
+    return m_contextData.charStringCacheAddr;
+}
+
+intptr_t
 ScriptContextInfo::GetAddr() const
 {
     return m_contextData.scriptContextAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetVTableAddress(VTableValue vtableType) const
+{
+    Assert(vtableType < VTableValue::Count);
+    return m_contextData.vtableAddresses[vtableType];
 }

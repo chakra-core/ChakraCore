@@ -18,12 +18,12 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
         return;
     }
 
-    bool doFixedMethods = !PHASE_OFF(Js::FixedMethodsPhase, func->GetJnFunction());
+    bool doFixedMethods = !PHASE_OFF(Js::FixedMethodsPhase, func);
     const auto inlinerData = func->m_jitTimeData;
 
     bool doInline = (inlinerData->InlineeCount() > 0 || inlinerData->IsLdFldInlineePresent());
     if (PHASE_OFF(Js::InlinePhase, this->topFunc) ||
-        PHASE_OFF(Js::InlinePhase, func->GetJnFunction()) ||
+        PHASE_OFF(Js::InlinePhase, func) ||
         func->IsJitInDebugMode())
     {
         doInline = false;
@@ -171,7 +171,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                     }
 
                     const auto profileId = static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId);
-                    if(profileId >= func->GetJnFunction()->GetProfiledCallSiteCount())
+                    if(profileId >= func->GetJITFunctionBody()->GetProfiledCallSiteCount())
                     {
                         TryResetObjTypeSpecFldInfoOn(methodValueOpnd);
                         TryDisableRuntimePolymorphicCacheOn(methodValueOpnd);
@@ -190,8 +190,8 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                     {
                         isPolymorphic = true;
                         if (isCtor ||
-                            (PHASE_OFF(Js::PolymorphicInlinePhase, this->topFunc) || PHASE_OFF(Js::PolymorphicInlinePhase, func->GetJnFunction())) ||
-                            (this->IsInliningOutSideLoops() && !PHASE_FORCE(Js::InlinePhase, this->topFunc) && !PHASE_FORCE(Js::InlinePhase, func->GetJnFunction())))
+                            (PHASE_OFF(Js::PolymorphicInlinePhase, this->topFunc) || PHASE_OFF(Js::PolymorphicInlinePhase, func)) ||
+                            (this->IsInliningOutSideLoops() && !PHASE_FORCE(Js::InlinePhase, this->topFunc) && !PHASE_FORCE(Js::InlinePhase, func)))
                         {
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
                             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -297,7 +297,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                             }
 
                             uint16 constantArguments = 0;
-                            if (!PHASE_OFF(Js::InlineRecursivePhase, func->GetJnFunction()))
+                            if (!PHASE_OFF(Js::InlineRecursivePhase, func))
                             {
                                 instr->IterateArgInstrs([&](IR::Instr* argInstr) {
                                     IR::Opnd *src1 = argInstr->GetSrc1();
@@ -365,7 +365,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                 }
 
                 const auto profileId = static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId);
-                if (profileId >= func->GetJnFunction()->GetProfiledCallSiteCount())
+                if (profileId >= func->GetJITFunctionBody()->GetProfiledCallSiteCount())
                 {
                     break;
                 }
@@ -1273,9 +1273,9 @@ bool
 Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionInfo* functionInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined, bool &safeThis,
                                             bool dontOptimizeJustCheck, uint i /*i-th inlinee at a polymorphic call site*/)
 {
-    Assert(!callInstr->m_func->GetJnFunction()->GetHasTry());
+    Assert(!callInstr->m_func->GetJITFunctionBody()->HasTry());
 
-    if (PHASE_OFF(Js::FixedMethodsPhase, callInstr->m_func->GetJnFunction()))
+    if (PHASE_OFF(Js::FixedMethodsPhase, callInstr->m_func))
     {
         return false;
     }
@@ -1288,8 +1288,8 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     bool printFixedFieldsTrace =
-        ((PHASE_TRACE(Js::FixedMethodsPhase, callInstr->m_func->GetJnFunction()) || PHASE_TESTTRACE(Js::FixedMethodsPhase, callInstr->m_func->GetJnFunction()) ||
-        (isCtor && PHASE_TRACE(Js::FixedNewObjPhase, callInstr->m_func->GetJnFunction()) || PHASE_TESTTRACE(Js::FixedNewObjPhase, callInstr->m_func->GetJnFunction()))) && !dontOptimizeJustCheck);
+        ((PHASE_TRACE(Js::FixedMethodsPhase, callInstr->m_func) || PHASE_TESTTRACE(Js::FixedMethodsPhase, callInstr->m_func) ||
+        (isCtor && PHASE_TRACE(Js::FixedNewObjPhase, callInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, callInstr->m_func))) && !dontOptimizeJustCheck);
 
     if (printFixedFieldsTrace)
     {
@@ -1359,16 +1359,16 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
     IR::PropertySymOpnd* methodPropertyOpnd = ldMethodFldInstr->GetSrc1()->AsPropertySymOpnd();
 
     if ((isCtor &&
-            ((isInlined && PHASE_OFF(Js::FixedCtorInliningPhase, callInstr->m_func->GetJnFunction())) ||
-            (!isInlined && PHASE_OFF(Js::FixedCtorCallsPhase, callInstr->m_func->GetJnFunction())) ||
+            ((isInlined && PHASE_OFF(Js::FixedCtorInliningPhase, callInstr->m_func)) ||
+            (!isInlined && PHASE_OFF(Js::FixedCtorCallsPhase, callInstr->m_func)) ||
             (methodPropertyOpnd->UsesAccessor()))) ||
         (!isCtor &&
             ((isBuiltIn &&
-                ((isInlined && PHASE_OFF(Js::FixedBuiltInMethodInliningPhase, callInstr->m_func->GetJnFunction())) ||
-                (!isInlined && PHASE_OFF(Js::FixedBuiltInMethodCallsPhase, callInstr->m_func->GetJnFunction())))) ||
+                ((isInlined && PHASE_OFF(Js::FixedBuiltInMethodInliningPhase, callInstr->m_func)) ||
+                (!isInlined && PHASE_OFF(Js::FixedBuiltInMethodCallsPhase, callInstr->m_func)))) ||
             (!isBuiltIn &&
-                ((isInlined && PHASE_OFF(Js::FixedScriptMethodInliningPhase, callInstr->m_func->GetJnFunction())) ||
-                (!isInlined && !PHASE_ON(Js::FixedScriptMethodCallsPhase, callInstr->m_func->GetJnFunction()))))))
+                ((isInlined && PHASE_OFF(Js::FixedScriptMethodInliningPhase, callInstr->m_func)) ||
+                (!isInlined && !PHASE_ON(Js::FixedScriptMethodCallsPhase, callInstr->m_func))))))
        )
     {
 #if TRACE_FIXED_FIELDS
@@ -1494,7 +1494,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
             const wchar_t* profileFunctionName    = profileFunctionBody != nullptr ? profileFunctionBody->GetDisplayName() : L"<unknown>";
             const wchar_t* profileFunctionNumbers = profileFunctionBody ? profileFunctionBody->GetDebugNumberSet(debugStringBuffer3) : L"(null)";
 
-            if (PHASE_TRACE(Js::FixedMethodsPhase, callInstr->m_func->GetJnFunction()))
+            if (PHASE_TRACE(Js::FixedMethodsPhase, callInstr->m_func))
             {
                 Output::Print(L"FixedFields: function %s (#%s): function body mismatch for inlinee: %s (%s) 0x%p->0x%p != %s (%s) 0x%p (cache id: %d, layout: %s, type: 0x%p, proto: 0x%p, proto type: 0x%p).\n",
                     callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer),
@@ -1503,7 +1503,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
                     methodPropertyOpnd->m_inlineCacheIndex, isProto ? L"proto" : isAccessor ? L"accessor" : L"local",
                     methodPropertyOpnd->GetType(), protoObject, protoObject != nullptr ? protoObject->GetType() : nullptr);
             }
-            if (PHASE_TESTTRACE(Js::FixedMethodsPhase, callInstr->m_func->GetJnFunction()))
+            if (PHASE_TESTTRACE(Js::FixedMethodsPhase, callInstr->m_func))
             {
                 Output::Print(L"FixedFields: function %s (%s): function body mismatch for inlinee: %s (%s) != %s (%s) (cache id: %d, layout: %s).\n",
                     callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer),
@@ -1578,7 +1578,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
         {
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            if (PHASE_TRACE(Js::FixedNewObjPhase, callInstr->m_func->GetJnFunction()) || PHASE_TESTTRACE(Js::FixedNewObjPhase, callInstr->m_func->GetJnFunction()))
+            if (PHASE_TRACE(Js::FixedNewObjPhase, callInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, callInstr->m_func))
             {
                 Js::FunctionBody* callerFunctionBody = callInstr->m_func->GetJnFunction();
                 Js::FunctionBody* calleeFunctionBody = functionInfo != nullptr && functionInfo->HasBody() ? functionInfo->GetFunctionBody() : nullptr;
@@ -1617,7 +1617,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
         else
         {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            if (PHASE_TRACE(Js::FixedNewObjPhase, callInstr->m_func->GetJnFunction()) || PHASE_TESTTRACE(Js::FixedNewObjPhase, callInstr->m_func->GetJnFunction()))
+            if (PHASE_TRACE(Js::FixedNewObjPhase, callInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, callInstr->m_func))
             {
                 Js::FunctionBody* callerFunctionBody = callInstr->m_func->GetJnFunction();
                 Js::FunctionBody* calleeFunctionBody = functionInfo != nullptr && functionInfo->HasBody() ? functionInfo->GetFunctionBody() : nullptr;
@@ -1679,8 +1679,8 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
 Js::Var
 Inline::TryOptimizeInstrWithFixedDataProperty(IR::Instr *&instr)
 {
-    if (PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func->GetJnFunction()) ||
-        PHASE_OFF(Js::UseFixedDataPropsInInlinerPhase, instr->m_func->GetJnFunction()))
+    if (PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func) ||
+        PHASE_OFF(Js::UseFixedDataPropsInInlinerPhase, instr->m_func))
     {
         return nullptr;
     }
@@ -2487,7 +2487,7 @@ bool Inline::InlineApplyTarget(IR::Instr *callInstr, const Js::FunctionCodeGenJi
     if (this->isApplyTargetInliningInProgress)
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping apply target inlining, Recursive apply inlining is not supported \tCaller: %s\t(%s) \tTop Func:%s\t(%s)\n", inlinerData->GetFunctionBody()->GetDisplayName(),
-                                inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer), this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer2));
+                                inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer), this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
         return false;
     }
 
@@ -2526,7 +2526,7 @@ bool Inline::InlineApplyTarget(IR::Instr *callInstr, const Js::FunctionCodeGenJi
     if (callInstr->m_func->IsTopFunc())
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping apply target inlining in top func\tCaller: %s\t(%s) \tTop Func:%s\t(%s)\n", inlinerData->GetFunctionBody()->GetDisplayName(),
-            inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer), this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer2));
+            inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer), this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
         return false;
     }
 
@@ -2701,7 +2701,7 @@ Inline::InlineCall(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, const Js::F
     Func *func = callInstr->m_func;
 
     *pIsInlined = false;
-    if (PHASE_OFF(Js::InlineCallPhase, this->topFunc) || PHASE_OFF(Js::InlineCallPhase, func->GetJnFunction())
+    if (PHASE_OFF(Js::InlineCallPhase, this->topFunc) || PHASE_OFF(Js::InlineCallPhase, func)
         || !this->topFunc->GetJITFunctionBody()->GetInParamsCount())
     {
         return callInstr;
@@ -2922,11 +2922,11 @@ Inline::SkipCallApplyTargetInlining_Shared(IR::Instr *callInstr, const Js::Funct
 
     Assert(isApplyTarget ^ isCallTarget);
 
-    if (PHASE_OFF(Js::FixedMethodsPhase, callInstr->m_func->GetJnFunction()))
+    if (PHASE_OFF(Js::FixedMethodsPhase, callInstr->m_func))
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping %s target inlining, Fixed Methods turned off\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n", isApplyTarget ? L"apply" : L"call" ,
             inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer2));
+            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
         return true;
     }
 
@@ -2934,7 +2934,7 @@ Inline::SkipCallApplyTargetInlining_Shared(IR::Instr *callInstr, const Js::Funct
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping %s target inlining, inlineeData not present\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n", isApplyTarget ? L"apply" : L"call",
             inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer2));
+            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
         return true;
     }
 
@@ -2944,7 +2944,7 @@ Inline::SkipCallApplyTargetInlining_Shared(IR::Instr *callInstr, const Js::Funct
         {
             INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping .call inlining, target is a built-in\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n",
                 inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-                this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer2));
+                this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
         }
         return true;
     }
@@ -2954,7 +2954,7 @@ Inline::SkipCallApplyTargetInlining_Shared(IR::Instr *callInstr, const Js::Funct
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping %s target inlining, not registered as a LdFld inlinee \tInlinee: %s (#%d)\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n", isApplyTarget ? L"apply" : L"call",
             inlineeData->GetFunctionBody()->GetDisplayName(), inlineeData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
-            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer3));
+            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer3));
         return true;
     }
 
@@ -2999,7 +2999,7 @@ Inline::TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const Js::Fu
             INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping %s target inlining, did not get fixed method for %s target \tInlinee: %s (#%d)\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n", isApplyTarget ? L"apply" : L"call", isApplyTarget ? L"apply" : L"call",
                 inlineeData->GetFunctionBody()->GetDisplayName(), inlineeData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
-                this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer3));
+                this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer3));
             return false;
         }
     }
@@ -3008,7 +3008,7 @@ Inline::TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const Js::Fu
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping %s target inlining, did not get fixed method for %s \tInlinee: %s (#%d)\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n", isApplyTarget ? L"apply" : L"call", isApplyTarget ? L"apply" : L"call",
             inlineeData->GetFunctionBody()->GetDisplayName(), inlineeData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
-            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer3));
+            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer3));
         return false;
     }
 

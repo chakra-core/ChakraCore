@@ -1280,7 +1280,7 @@ namespace Js
         bool IsJitLoopBodyPhaseEnabled() const
         {
             // Consider: Allow JitLoopBody in generator functions for loops that do not yield.
-            return !PHASE_OFF(JITLoopBodyPhase, this) && DoFullJit() && !this->IsGenerator();
+            return !PHASE_OFF(JITLoopBodyPhase, this) && !PHASE_OFF(FullJitPhase, this) && !this->IsGenerator();
         }
 
         bool IsJitLoopBodyPhaseForced() const
@@ -1297,11 +1297,6 @@ namespace Js
 
         ULONG GetHostStartLine() const;
         ULONG GetHostStartColumn() const;
-
-        bool DoFullJit() const
-        {
-            return !PHASE_OFF(FullJitPhase, this);
-        }
 
     protected:
         // Static method(s)
@@ -2153,7 +2148,6 @@ namespace Js
         void DoTraceExecutionMode(const char *const eventDescription) const;
 
     public:
-        static bool IsNewSimpleJit();
         bool DoSimpleJit() const;
         bool DoSimpleJitDynamicProfile() const;
 

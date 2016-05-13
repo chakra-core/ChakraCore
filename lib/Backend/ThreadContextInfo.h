@@ -36,7 +36,10 @@ public:
     intptr_t GetConstructorCacheDefaultInstanceAddr() const;
     intptr_t GetJavascriptObjectNewInstanceAddr() const;
     intptr_t GetNativeFloatArrayMissingItemAddr() const;
+    intptr_t GetBailOutRegisterSaveSpace() const;
+
     size_t GetScriptStackLimit() const;
+
     bool IsThreadBound() const;
 
     PageAllocator * GetPageAllocator();

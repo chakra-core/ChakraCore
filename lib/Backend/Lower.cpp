@@ -80,7 +80,7 @@ Lowerer::Lower()
 #ifdef DBG
             // Pre-fill all local slots with a pattern. This will help identify non-initialized/garbage var values.
             // Note that in the beginning of the function in bytecode we should initialize all locals to undefined.
-            uint32 localSlotCount = m_func->GetJnFunction()->GetEndNonTempLocalIndex() - m_func->GetJnFunction()->GetFirstNonTempLocalIndex();
+            uint32 localSlotCount = m_func->GetJITFunctionBody()->GetEndNonTempLocalIndex() - m_func->GetJITFunctionBody()->GetFirstNonTempLocalIndex();
             for (uint i = 0; i < localSlotCount; ++i)
             {
                 int offset = m_func->GetLocalVarSlotOffset(i);
@@ -377,7 +377,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
 
         case Js::OpCode::CheckFixedFld:
-            AssertMsg(!PHASE_OFF(Js::FixedMethodsPhase, instr->m_func->GetJnFunction()) || !PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func->GetJnFunction()), "CheckFixedFld with fixed prop(Data|Method) phase disabled?");
+            AssertMsg(!PHASE_OFF(Js::FixedMethodsPhase, instr->m_func) || !PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func), "CheckFixedFld with fixed prop(Data|Method) phase disabled?");
             this->GenerateCheckFixedFld(instr);
             break;
 
@@ -2262,7 +2262,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 }
 
                 // If we turned off fulljit, there's no reason to do this.
-                if (!m_func->GetJnFunction()->DoFullJit())
+                if (PHASE_OFF(Js::FullJitPhase, m_func))
                 {
                     instr->Remove();
                 }
@@ -2310,7 +2310,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 //       Bailout
                 //   }
 
-                if (!m_func->GetJnFunction()->DoFullJit() || !m_func->GetJnFunction()->DoJITLoopBody())
+                if (PHASE_OFF(Js::FullJitPhase, m_func) || !m_func->GetJITFunctionBody()->DoJITLoopBody())
                 {
                     // If we're not doing fulljit, we've turned off JitLoopBodies, or if we don't have loop headers allocated (the function has a Try,  etc)
                     //      just move false to dobailout
@@ -3012,7 +3012,7 @@ Lowerer::LoadScriptContext(IR::Instr * instr)
 IR::Opnd *
 Lowerer::LoadFunctionBodyOpnd(IR::Instr * instr)
 {
-    return IR::AddrOpnd::New(instr->m_func->GetJnFunction(), IR::AddrOpndKindDynamicFunctionBody, instr->m_func);
+    return IR::AddrOpnd::New(instr->m_func->GetJITFunctionBody()->GetAddr(), IR::AddrOpndKindDynamicFunctionBody, instr->m_func);
 }
 
 IR::Opnd *
@@ -3041,47 +3041,47 @@ Lowerer::LoadScriptContextValueOpnd(IR::Instr * instr, ScriptContextValue valueT
 IR::Opnd *
 Lowerer::LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType, RegNum regNum)
 {
-    Js::ScriptContext *scriptContext = instr->m_func->GetScriptContext();
+    ScriptContextInfo *scriptContext = instr->m_func->GetScriptContextInfo();
     switch (valueType)
     {
     case LibraryValue::ValueEmptyString:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetEmptyString(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContext->GetEmptyStringAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueUndeclBlockVar:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetUndeclBlockVar(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContext->GetUndeclBlockVarAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueUndefined:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContext->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueNull:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetNull(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContext->GetNullAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueTrue:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetTrue(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContext->GetTrueAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueFalse:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetFalse(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContext->GetFalseAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueNegativeZero:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetNegativeZero(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContext->GetNegativeZeroAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueNumberTypeStatic:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetNumberTypeStatic(), IR::AddrOpndKindDynamicType, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContext->GetNumberTypeStaticAddr(), IR::AddrOpndKindDynamicType, instr->m_func, true);
     case LibraryValue::ValueStringTypeStatic:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetStringTypeStatic(), IR::AddrOpndKindDynamicType, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContext->GetStringTypeStaticAddr(), IR::AddrOpndKindDynamicType, instr->m_func, true);
     case LibraryValue::ValueObjectType:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetObjectType(), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(scriptContext->GetObjectTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueObjectHeaderInlinedType:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetObjectHeaderInlinedType(), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(scriptContext->GetObjectHeaderInlinedTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueRegexType:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetRegexType(), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(scriptContext->GetRegexTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueArrayConstructor:
-        return IR::AddrOpnd::New(scriptContext->GetLibrary()->GetArrayConstructor(), IR::AddrOpndKindDynamicVar, instr->m_func);
+        return IR::AddrOpnd::New(scriptContext->GetArrayConstructorAddr(), IR::AddrOpndKindDynamicVar, instr->m_func);
     case LibraryValue::ValueJavascriptArrayType:
-        return IR::AddrOpnd::New(Js::JavascriptArray::GetInitialType(scriptContext), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(Js::JavascriptArray::GetInitialType(nullptr), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueNativeIntArrayType:
-        return IR::AddrOpnd::New(Js::JavascriptNativeIntArray::GetInitialType(scriptContext), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(Js::JavascriptNativeIntArray::GetInitialType(nullptr), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueNativeFloatArrayType:
-        return IR::AddrOpnd::New(Js::JavascriptNativeFloatArray::GetInitialType(scriptContext), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(Js::JavascriptNativeFloatArray::GetInitialType(nullptr), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueConstructorCacheDefaultInstance:
         return IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetConstructorCacheDefaultInstanceAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func);
     case LibraryValue::ValueAbsDoubleCst:
         return IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetAbsDoubleCstAddr(), TyMachDouble, instr->m_func, IR::AddrOpndKindDynamicDoubleRef);
     case LibraryValue::ValueCharStringCache:
-        return IR::AddrOpnd::New((Js::Var)&scriptContext->GetLibrary()->GetCharStringCache(), IR::AddrOpndKindDynamicCharStringCache, instr->m_func);
+        return IR::AddrOpnd::New(scriptContext->GetCharStringCacheAddr(), IR::AddrOpndKindDynamicCharStringCache, instr->m_func);
     default:
         Assert(false);
         return nullptr;
@@ -3091,7 +3091,7 @@ Lowerer::LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType, RegNum 
 IR::Opnd *
 Lowerer::LoadVTableValueOpnd(IR::Instr * instr, VTableValue vtableType)
 {
-    return IR::AddrOpnd::New((Js::Var)instr->m_func->GetScriptContext()->GetLibrary()->GetVTableAddresses()[vtableType], IR::AddrOpndKindDynamicVtable, this->m_func);
+    return IR::AddrOpnd::New((Js::Var)instr->m_func->GetScriptContextInfo()->GetVTableAddress(vtableType), IR::AddrOpndKindDynamicVtable, this->m_func);
 }
 
 IR::Opnd *
@@ -4364,7 +4364,7 @@ Lowerer::LowerNewScObject(IR::Instr *newObjInstr, bool callCtor, bool hasArgs, b
         if (newObjInstr->IsJitProfilingInstr())
         {
             Assert(m_func->IsSimpleJit());
-            Assert(!Js::FunctionBody::IsNewSimpleJit());
+            Assert(!CONFIG_FLAG(NewSimpleJit));
 
             // This path skipped calling the Ctor, which skips calling LowerCallI with newObjInstr, meaning that the call will not be profiled.
             //   So we insert it manually here.
@@ -4499,7 +4499,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
     AssertMsg(!PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->m_func) || !newObjInstr->HasBailOutInfo(),
         "Why do we have bailout on NewScObject when ObjTypeSpecNewObj is off?");
 
-    if (PHASE_OFF(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()) && PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->m_func))
+    if (PHASE_OFF(Js::FixedNewObjPhase, newObjInstr->m_func) && PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->m_func))
     {
         return false;
     }
@@ -4533,12 +4533,11 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
 
         if (ctorCache == nullptr)
         {
-            if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()))
+            if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
             {
-                Js::FunctionBody* callerFunctionBody = newObjInstr->m_func->GetJnFunction();
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"FixedNewObj: function %s (%s): lowering non-fixed new script object for %s, because %s.\n",
-                    callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
+                    newObjInstr->m_func->GetWorkItem()->GetDisplayName(), newObjInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
                     newObjInstr->IsProfiledInstr() ? L"constructor cache hasn't been cloned" : L"instruction is not profiled");
                 Output::Flush();
             }
@@ -4556,9 +4555,8 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
     // object and call a specialized helper (or even constructor, directly) avoiding the checks in generic NewScObjectCommon.
     if (ctorCache->skipNewScObject)
     {
-        if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()))
+        if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
         {
-            Js::FunctionBody* callerFunctionBody = newObjInstr->m_func->GetJnFunction();
             const Js::JavascriptFunction* ctor = ctorCache->constructor;
             Js::FunctionBody* ctorBody = ctor->GetFunctionInfo()->HasBody() ? ctor->GetFunctionInfo()->GetFunctionBody() : nullptr;
             const wchar_t* ctorName = ctorBody != nullptr ? ctorBody->GetDisplayName() : L"<unknown>";
@@ -4567,7 +4565,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
             wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
             Output::Print(L"FixedNewObj: function %s (%s): lowering skipped new script object for %s with %s ctor <unknown> (%s %s).\n",
-                callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
+                newObjInstr->m_func->GetWorkItem()->GetDisplayName(), newObjInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
                 newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? L"inlined" : L"called",
                 ctorName, ctorBody ? ctorBody->GetDebugNumberSet(debugStringBuffer) : L"(null)");
             Output::Flush();
@@ -4586,9 +4584,8 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
 
     AssertMsg(ctorCache->type != nullptr, "Why did we hard-code a mismatched, invalidated or polymorphic constructor cache?");
 
-    if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()))
+    if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
     {
-        Js::FunctionBody* callerFunctionBody = newObjInstr->m_func->GetJnFunction();
         const Js::JavascriptFunction* constructor = ctorCache->constructor;
         Js::FunctionBody* constructorBody = constructor->GetFunctionInfo()->HasBody() ? constructor->GetFunctionInfo()->GetFunctionBody() : nullptr;
         const wchar_t* constructorName = constructorBody != nullptr ? constructorBody->GetDisplayName() : L"<unknown>";
@@ -4596,10 +4593,10 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-        if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()))
+        if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
         {
             Output::Print(L"FixedNewObj: function %s (%s): lowering fixed new script object for %s with %s ctor <unknown> (%s %s): type = %p, slots = %d, inlined slots = %d.\n",
-                callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
+                newObjInstr->m_func->GetWorkItem()->GetDisplayName(), newObjInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
                 newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? L"inlined" : L"called",
                 constructorName, constructorBody ? constructorBody->GetDebugNumberSet(debugStringBuffer) : L"(null)",
                 ctorCache->type, ctorCache->slotCount, ctorCache->inlineSlotCount);
@@ -4607,7 +4604,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
         else
         {
             Output::Print(L"FixedNewObj: function %s (%s): lowering fixed new script object for %s with %s ctor <unknown> (%s %s): slots = %d, inlined slots = %d.\n",
-                callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
+                newObjInstr->m_func->GetWorkItem()->GetDisplayName(), newObjInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
                 newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? L"inlined" : L"called",
                 constructorName, debugStringBuffer, ctorCache->slotCount, ctorCache->inlineSlotCount);
         }
@@ -4669,7 +4666,7 @@ Lowerer::GenerateRecyclerAllocAligned(IR::JnHelperMethod allocHelper, size_t all
 {
     IR::LabelInstr * allocDoneLabel = nullptr;
 
-    if (!PHASE_OFF(Js::JitAllocNewObjPhase, insertionPointInstr->m_func->GetJnFunction()) && HeapInfo::IsSmallObject(allocSize))
+    if (!PHASE_OFF(Js::JitAllocNewObjPhase, insertionPointInstr->m_func) && HeapInfo::IsSmallObject(allocSize))
     {
         IR::LabelInstr * allocHelperLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
         allocDoneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, inOpHelper);
@@ -5716,8 +5713,8 @@ Lowerer::GenerateCheckFixedFld(IR::Instr * instrChkFld)
     IR::LabelInstr *labelBailOut = nullptr;
     IR::LabelInstr *labelDone = nullptr;
 
-    AssertMsg(!PHASE_OFF(Js::FixedMethodsPhase, instrChkFld->m_func->GetJnFunction()) ||
-        !PHASE_OFF(Js::UseFixedDataPropsPhase, instrChkFld->m_func->GetJnFunction()), "Lowering a check fixed field with fixed data/method phase disabled?");
+    AssertMsg(!PHASE_OFF(Js::FixedMethodsPhase, instrChkFld->m_func) ||
+        !PHASE_OFF(Js::UseFixedDataPropsPhase, instrChkFld->m_func), "Lowering a check fixed field with fixed data/method phase disabled?");
 
     Assert(instrChkFld->GetSrc1()->IsSymOpnd() && instrChkFld->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd());
     IR::PropertySymOpnd *propertySymOpnd = instrChkFld->GetSrc1()->AsPropertySymOpnd();
@@ -5911,7 +5908,7 @@ Lowerer::GenerateNonConfigurableLdRootFld(IR::Instr * instrLdFld)
         return false;
     }
 
-    Assert(!PHASE_OFF(Js::RootObjectFldFastPathPhase, this->m_func->GetJnFunction()));
+    Assert(!PHASE_OFF(Js::RootObjectFldFastPathPhase, this->m_func));
     Assert(!instrLdFld->HasBailOutInfo());
     IR::Opnd * srcOpnd;
     Js::RootObjectBase * rootObject = this->m_func->GetJnFunction()->GetRootObject();
@@ -6873,7 +6870,7 @@ Lowerer::PinTypeRef(Js::Type* type, void* typeRef, IR::Instr* instr, Js::Propert
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(L"PinnedTypes: function %s(%s) instr %s property %s(#%u) pinned %s reference 0x%p to type 0x%p.\n",
-            this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+            this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             Js::OpCodeUtil::GetOpCodeName(instr->m_opcode), GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId,
             typeRef == type ? L"strong" : L"weak", typeRef, type);
         Output::Flush();
@@ -6974,7 +6971,7 @@ Lowerer::CreateTypePropertyGuardForGuardedProperties(Js::Type* type, IR::Propert
                     wchar_t workItemName[256];
                     this->m_func->m_workItem->GetDisplayName(workItemName, _countof(workItemName));
                     Output::Print(L"ObjTypeSpec: function %s(%s) registered guard 0x%p with value 0x%p for property %s (%u).\n",
-                        workItemName, this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                        workItemName, this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                         guard, guard->GetValue(), this->GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                     Output::Flush();
                 }
@@ -7006,7 +7003,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR:
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"ObjTypeSpec: function %s(%s) registered equivalent type spec guard 0x%p with value 0x%p for property %s (%u).\n",
-                    this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                     guard, guard->GetValue(), GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                 Output::Flush();
             }
@@ -7087,7 +7084,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR:
                     Js::FunctionBody* topFunctionBody = this->m_func->GetJnFunction();
                     Js::ScriptContext* scriptContext = topFunctionBody->GetScriptContext();
                     Output::Print(L"EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) \n",
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), propertyId, scriptContext->GetPropertyNameLocked(propertyId)->GetBuffer());
+                        m_func->GetWorkItem()->GetDisplayName(), m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), propertyId, scriptContext->GetPropertyNameLocked(propertyId)->GetBuffer());
                     Output::Flush();
                 }
                 Assert(propIdCount < propOpCount);
@@ -7142,7 +7139,7 @@ Lowerer::LinkCtorCacheToGuardedProperties(Js::JitTimeConstructorCache* ctorCache
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"ObjTypeSpec: function %s(%s) registered ctor cache 0x%p with value 0x%p for property %s (%u).\n",
-                    this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                     ctorCache->runtimeCache, ctorCache->type, GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                 Output::Flush();
             }
@@ -7199,7 +7196,7 @@ Lowerer::LinkGuardToGuardedProperties(Js::EntryPointInfo* entryPointInfo, const 
                     {
                         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                         Output::Print(L"ObjTypeStore: function %s(%s): no shared property guard for property % (%u).\n",
-                            this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                            this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                             GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                         Output::Flush();
                     }
@@ -10237,8 +10234,7 @@ bool Lowerer::IsNullOrUndefRegOpnd(IR::RegOpnd *opnd) const
         return false;
     }
     Js::Var var = sym->GetConstAddress();
-    Js::TypeId typeId = Js::RecyclableObject::FromVar(var)->GetTypeId();
-    return typeId == Js::TypeIds_Null || typeId == Js::TypeIds_Undefined;
+    return (intptr_t)var == m_func->GetScriptContextInfo()->GetNullAddr() || (intptr_t)var == m_func->GetScriptContextInfo()->GetUndefinedAddr();
 }
 
 bool Lowerer::IsConstRegOpnd(IR::RegOpnd *opnd) const
@@ -15068,7 +15064,7 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
                     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(L"Typed Array Lowering: function: %s (%s): instr %s, not specialized by glob opt due to negative or not likely int index.\n",
                         this->m_func->GetWorkItem()->GetDisplayName(),
-                        this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                        this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                         Js::OpCodeUtil::GetOpCodeName(ldElem->m_opcode));
                     Output::Flush();
                 }
@@ -15248,7 +15244,7 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"Typed Array Lowering: function: %s (%s), instr: %s, base value type: %S, %s.",
                     this->m_func->GetWorkItem()->GetDisplayName(),
-                    this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(ldElem->m_opcode),
                     baseValueTypeStr,
                     (!dst->IsVar() ? L"specialized" : L"not specialized"));
@@ -15531,7 +15527,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"Typed Array Lowering: function: %s (%s): instr %s, not specialized by glob opt due to negative or not likely int index.\n",
                     this->m_func->GetWorkItem()->GetDisplayName(),
-                    this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(stElem->m_opcode));
                 Output::Flush();
             }
@@ -15567,7 +15563,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(L"Typed Array Lowering: function: %s (%s), instr: %s, base value type: %S, %s.",
                 this->m_func->GetWorkItem()->GetDisplayName(),
-                this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(stElem->m_opcode),
                 baseValueTypeStr,
                 (!src->IsVar() ? L"specialized" : L"not specialized"));
@@ -18731,7 +18727,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
                 #endif
                 PHASE_PRINT_TRACE(Js::AddFldFastPathPhase, this->m_func,
                     L"AddFldFastPath: function: %s(%s) property: %s(#%d) no fast path, because the phase is off.\n",
-                    this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                     this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(), propertySym->m_propertyId);
             }
 
@@ -18772,7 +18768,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
 #endif
         PHASE_PRINT_TRACE(Js::AddFldFastPathPhase, this->m_func,
             L"AddFldFastPath: function: %s(%s) property: %s(#%d) %s fast path for %s.\n",
-            this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+            this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(), propertySym->m_propertyId,
             usePolymorphicInlineCache ? L"poly" : L"mono", doStore ? L"store and add" : L"add only");
     }
@@ -20818,11 +20814,10 @@ void Lowerer::LowerFunctionEntry(IR::Instr* funcEntry)
 
     if (m_func->DoSimpleJitDynamicProfile())
     {
-        const auto jn = m_func->GetJnFunction();
         // Only generate the argument profiling if the function expects to have some arguments to profile and only if
         //    it has implicit ArgIns (the latter is a restriction imposed by the Interpreter, so it is mirrored in SimpleJit)
 
-        if (jn->GetInParamsCount() > 1 && m_func->GetJITFunctionBody()->HasImplicitArgIns())
+        if (m_func->GetJITFunctionBody()->GetInParamsCount() > 1 && m_func->GetJITFunctionBody()->HasImplicitArgIns())
         {
             // Call out to the argument profiling helper
             IR::Instr* callInstr = IR::Instr::New(Js::OpCode::Call, m_func);
@@ -20845,7 +20840,7 @@ void Lowerer::LowerFunctionBodyCallCountChange(IR::Instr *const insertBeforeInst
     Func *const func = insertBeforeInstr->m_func;
     const bool isSimpleJit = func->IsSimpleJit();
 
-    if ((isSimpleJit && !func->GetTopFunc()->GetJnFunction()->DoFullJit()))
+    if ((isSimpleJit && PHASE_OFF(Js::FullJitPhase, m_func)))
     {
         return;
     }

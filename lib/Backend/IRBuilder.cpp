@@ -397,7 +397,7 @@ IRBuilder::Build()
     Func * topFunc = this->m_func->GetTopFunc();
     if (topFunc->HasTry() &&
         ((!topFunc->HasFinally() && !topFunc->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, topFunc)) ||
-        (topFunc->IsSimpleJit() && topFunc->GetJnFunction()->DoJITLoopBody()))) // should be relaxed as more bailouts are added in Simple Jit
+        (topFunc->IsSimpleJit() && topFunc->GetJITFunctionBody()->DoJITLoopBody()))) // should be relaxed as more bailouts are added in Simple Jit
     {
         this->catchOffsetStack = JitAnew(m_tempAlloc, SList<uint>, m_tempAlloc);
     }
@@ -933,7 +933,7 @@ IRBuilder::EmitClosureRangeChecks()
     }
 
     // If not a loop, but there are loops and trys, restore scope slot pointer and FD
-    if (!m_func->IsLoopBody() && m_func->HasTry() && m_func->GetJnFunction()->GetByteCodeInLoopCount() != 0)
+    if (!m_func->IsLoopBody() && m_func->HasTry() && m_func->GetJITFunctionBody()->GetByteCodeInLoopCount() != 0)
     {
         BVSparse<JitArenaAllocator> * bv = nullptr;
         if (m_func->GetLocalClosureSym() && m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
@@ -1334,9 +1334,8 @@ IRBuilder::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type, bool isCatchObjectS
 void
 IRBuilder::BuildImplicitArgIns()
 {
-    Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
     Js::RegSlot startReg = m_func->GetJITFunctionBody()->GetConstCount() - 1;
-    for (Js::ArgSlot i = 1; i < functionBody->GetInParamsCount(); i++)
+    for (Js::ArgSlot i = 1; i < m_func->GetJITFunctionBody()->GetInParamsCount(); i++)
     {
         this->BuildArgIn((uint32)-1, startReg + i, i);
     }
@@ -2539,7 +2538,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
 
         case Js::OpCode::ProfiledLoopBodyStart:
         {
-            if (!(m_func->DoSimpleJitDynamicProfile() && m_func->GetJnFunction()->DoJITLoopBody()))
+            if (!(m_func->DoSimpleJitDynamicProfile() && m_func->GetJITFunctionBody()->DoJITLoopBody()))
             {
                 // This opcode is removed from the IR when we aren't doing Profiling SimpleJit or not jitting loop bodies
                 break;
@@ -2577,7 +2576,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
         case Js::OpCode::ProfiledLoopStart:
         {
             // If we're in profiling SimpleJit and jitting loop bodies, we need to keep this until lowering.
-            if (m_func->DoSimpleJitDynamicProfile() && m_func->GetJnFunction()->DoJITLoopBody())
+            if (m_func->DoSimpleJitDynamicProfile() && m_func->GetJITFunctionBody()->DoJITLoopBody())
             {
                 // In order for the JIT engine to correctly allocate registers we need to have this set up before lowering.
 
@@ -2627,7 +2626,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
         case Js::OpCode::ProfiledLoopEnd:
         {
             // TODO: Decide whether we want the implicit loop call flags to be recorded in simplejitted loop bodies
-            if (m_func->DoSimpleJitDynamicProfile() && m_func->GetJnFunction()->DoJITLoopBody())
+            if (m_func->DoSimpleJitDynamicProfile() && m_func->GetJITFunctionBody()->DoJITLoopBody())
             {
                 Assert(this->m_saveLoopImplicitCallFlags[num]);
 
@@ -3136,12 +3135,12 @@ IRBuilder::BuildProfiledSlotLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::Sy
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if(Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::DynamicProfilePhase))
         {
-            Js::FunctionBody * func = this->m_func->GetJnFunction();
+            const JITTimeFunctionBody * func = m_func->GetJITFunctionBody();
             const ValueType valueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
             char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             valueType.ToString(valueTypeStr);
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"TestTrace function %s (#%s) ValueType = %S ", func->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
+            Output::Print(L"TestTrace function %s (#%s) ValueType = %S ", m_func->GetWorkItem()->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
             instr->DumpTestTrace();
         }
 #endif
@@ -3917,9 +3916,7 @@ IRBuilder::BuildProfiledFieldLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::S
 
 Js::RegSlot IRBuilder::GetEnvRegForEvalCode() const
 {
-    Js::FunctionBody * functionBody = m_func->GetJnFunction();
-
-    if (functionBody->GetIsStrictMode() && functionBody->GetIsGlobalFunc())
+    if (m_func->GetJITFunctionBody()->IsStrictMode() && m_func->GetJITFunctionBody()->IsGlobalFunc())
     {
         return m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg();
     }
@@ -5190,7 +5187,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
             if (!this->m_func->HasProfileInfo() ||
                 (
                     PHASE_OFF(Js::TypedArrayPhase, this->m_func->GetTopFunc()) &&
-                    PHASE_OFF(Js::ArrayCheckHoistPhase, this->m_func->GetJnFunction())
+                    PHASE_OFF(Js::ArrayCheckHoistPhase, this->m_func)
                 ))
             {
                 break;
@@ -5206,7 +5203,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
             if (!this->m_func->HasProfileInfo() ||
                 (
                     PHASE_OFF(Js::TypedArrayPhase, this->m_func->GetTopFunc()) &&
-                    PHASE_OFF(Js::ArrayCheckHoistPhase, this->m_func->GetJnFunction())
+                    PHASE_OFF(Js::ArrayCheckHoistPhase, this->m_func)
                 ))
             {
                 break;

@@ -11,6 +11,12 @@ JITTimeFunctionBody::JITTimeFunctionBody(FunctionBodyJITData * bodyData) :
     InitializeStatementMap();
 }
 
+intptr_t
+JITTimeFunctionBody::GetAddr() const
+{
+    return m_bodyData->functionBodyAddr;
+}
+
 uint
 JITTimeFunctionBody::GetFunctionNumber() const
 {
@@ -149,6 +155,27 @@ JITTimeFunctionBody::GetThisRegForEventHandler() const
     return static_cast<Js::RegSlot>(m_bodyData->thisRegisterForEventHandler);
 }
 
+Js::RegSlot
+JITTimeFunctionBody::GetFirstNonTempLocalIndex() const
+{
+    // First local var starts when the const vars end.
+    return GetConstCount();
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetEndNonTempLocalIndex() const
+{
+    // It will give the index on which current non temp locals ends, which is a first temp reg.
+    return GetFirstTmpReg() != Js::Constants::NoRegister ? GetFirstTmpReg() : GetLocalsCount();
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetNonTempLocalVarCount() const
+{
+    Assert(GetEndNonTempLocalIndex() >= GetFirstNonTempLocalIndex());
+    return GetEndNonTempLocalIndex() - GetFirstNonTempLocalIndex();
+}
+
 Js::PropertyId
 JITTimeFunctionBody::GetPropertyIdFromCacheId(uint cacheId) const
 {
@@ -276,6 +303,24 @@ JITTimeFunctionBody::HasRestParameter() const
     return Js::FunctionBody::GetHasRestParameter(GetFlags());
 }
 
+bool
+JITTimeFunctionBody::IsGlobalFunc() const
+{
+    return m_bodyData->isGlobalFunc != FALSE;
+}
+
+bool
+JITTimeFunctionBody::IsNonTempLocalVar(uint32 varIndex) const
+{
+    return GetFirstNonTempLocalIndex() <= varIndex && varIndex < GetEndNonTempLocalIndex();
+}
+
+bool
+JITTimeFunctionBody::DoJITLoopBody() const
+{
+    return m_bodyData->doJITLoopBody != FALSE;
+}
+
 const byte *
 JITTimeFunctionBody::GetByteCodeBuffer() const
 {
@@ -363,4 +408,14 @@ JITTimeFunctionBody::InitializeStatementMap()
             m_bodyData->statementMap.actualOffsetList,
             offsetsLength * sizeof(uint32));
     }
+}
+
+wchar_t*
+JITTimeFunctionBody::GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const
+{
+    // (#%u.%u), #%u --> (source file Id . function Id) , function Number
+    int len = swprintf_s(bufferToWriteTo, MAX_FUNCTION_BODY_DEBUG_STRING_SIZE, L" (#%d.%u), #%u",
+        (int)GetSourceContextId(), GetLocalFunctionId(), GetFunctionNumber());
+    Assert(len > 8);
+    return bufferToWriteTo;
 }

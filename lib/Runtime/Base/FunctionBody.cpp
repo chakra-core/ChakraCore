@@ -6228,7 +6228,7 @@ namespace Js
                 break;
 
             case ExecutionMode::FullJit:
-                Assert(DoFullJit());
+                Assert(!PHASE_OFF(FullJitPhase, this));
                 break;
 
             default:
@@ -6277,7 +6277,7 @@ namespace Js
                 return GetExecutionMode();
 
             case ExecutionMode::SimpleJit:
-                if(IsNewSimpleJit())
+                if(CONFIG_FLAG(NewSimpleJit))
                 {
                     return GetDefaultInterpreterExecutionMode();
                 }
@@ -6412,7 +6412,7 @@ namespace Js
             }
 
             TransitionToFullJit:
-                if(DoFullJit())
+                if(!PHASE_OFF(FullJitPhase, this))
                 {
                     SetExecutionMode(ExecutionMode::FullJit);
                     return true;
@@ -6571,7 +6571,7 @@ namespace Js
             scale += autoProfilingInterpreter0Limit + autoProfilingInterpreter1Limit;
             autoProfilingInterpreter0Limit = 0;
             autoProfilingInterpreter1Limit = 0;
-            if(!IsNewSimpleJit())
+            if(!CONFIG_FLAG(NewSimpleJit))
             {
                 simpleJitLimit += profilingInterpreter0Limit;
                 profilingInterpreter0Limit = 0;
@@ -6579,7 +6579,7 @@ namespace Js
         }
         if(!DoSimpleJit())
         {
-            if(!IsNewSimpleJit() && doInterpreterProfile)
+            if(!CONFIG_FLAG(NewSimpleJit) && doInterpreterProfile)
             {
                 // The old simple JIT is off, but since it does profiling, it will be replaced with the profiling interpreter
                 profilingInterpreter1Limit += simpleJitLimit;
@@ -6590,7 +6590,7 @@ namespace Js
             }
             simpleJitLimit = 0;
         }
-        if(!DoFullJit())
+        if(PHASE_OFF(FullJitPhase, this))
         {
             scale += profilingInterpreter1Limit;
             profilingInterpreter1Limit = 0;
@@ -6705,7 +6705,7 @@ namespace Js
         const bool doSimpleJit = DoSimpleJit();
         const bool doInterpreterProfile = DoInterpreterProfile();
         const bool fullyScaled =
-            IsNewSimpleJit() && doSimpleJit && ScaleLimit(simpleJitLimit) ||
+            CONFIG_FLAG(NewSimpleJit) && doSimpleJit && ScaleLimit(simpleJitLimit) ||
             (
                 doInterpreterProfile
                     ?   DoInterpreterAutoProfile() &&
@@ -6713,7 +6713,7 @@ namespace Js
                     :   ScaleLimit(interpreterLimit)
             ) ||
             (
-                IsNewSimpleJit()
+                CONFIG_FLAG(NewSimpleJit)
                     ?   doInterpreterProfile &&
                         (ScaleLimit(profilingInterpreter1Limit) || ScaleLimit(profilingInterpreter0Limit))
                     :   doInterpreterProfile && ScaleLimit(profilingInterpreter0Limit) ||
@@ -6733,7 +6733,7 @@ namespace Js
                 // Simple JIT code has not yet been generated, and was either requested to be skipped, or the limit was scaled
                 // down too much. Skip simple JIT by moving any remaining iterations to an equivalent interpreter execution
                 // mode.
-                (IsNewSimpleJit() ? autoProfilingInterpreter1Limit : profilingInterpreter1Limit) += simpleJitLimit;
+                (CONFIG_FLAG(NewSimpleJit) ? autoProfilingInterpreter1Limit : profilingInterpreter1Limit) += simpleJitLimit;
                 simpleJitLimit = 0;
                 TryTransitionToNextInterpreterExecutionMode();
             }
@@ -6799,7 +6799,7 @@ namespace Js
         VerifyExecutionModeLimits();
 
         if(&limit == profilingInterpreter0Limit.AddressOf() ||
-            !IsNewSimpleJit() && &limit == simpleJitLimit.AddressOf() ||
+            !CONFIG_FLAG(NewSimpleJit) && &limit == simpleJitLimit.AddressOf() ||
             &limit == profilingInterpreter1Limit.AddressOf())
         {
             const uint16 newCommittedProfiledIterations = committedProfiledIterations + clampedExecutedIterations;
@@ -6880,7 +6880,7 @@ namespace Js
             }
 
             case ExecutionMode::SimpleJit:
-                if(!IsNewSimpleJit())
+                if(!CONFIG_FLAG(NewSimpleJit))
                 {
                     const uint16 newProfiledIterations = profiledIterations + GetSimpleJitExecutedIterations();
                     profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : MAXUINT16;
@@ -6966,11 +6966,6 @@ namespace Js
         Output::Flush();
     }
 
-    bool FunctionBody::IsNewSimpleJit()
-    {
-        return CONFIG_FLAG(NewSimpleJit);
-    }
-
     bool FunctionBody::DoSimpleJit() const
     {
         return
@@ -6978,7 +6973,7 @@ namespace Js
             !GetScriptContext()->GetConfig()->IsNoNative() &&
             !GetScriptContext()->IsInDebugMode() &&
             DoInterpreterProfile() &&
-            (!IsNewSimpleJit() || DoInterpreterAutoProfile()) &&
+            (!CONFIG_FLAG(NewSimpleJit) || DoInterpreterAutoProfile()) &&
             !IsGenerator(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
     }
 
@@ -6986,7 +6981,7 @@ namespace Js
     {
         Assert(DoSimpleJit());
 
-        return !PHASE_OFF(Js::SimpleJitDynamicProfilePhase, this) && !IsNewSimpleJit();
+        return !PHASE_OFF(Js::SimpleJitDynamicProfilePhase, this) && !CONFIG_FLAG(NewSimpleJit);
     }
 
     bool FunctionBody::DoInterpreterProfile() const
@@ -7042,7 +7037,7 @@ namespace Js
             TraceExecutionMode("WasCalledFromLoop (before)");
             if(fullJitThreshold > 1)
             {
-                SetFullJitThreshold(fullJitThreshold / 2, !IsNewSimpleJit());
+                SetFullJitThreshold(fullJitThreshold / 2, !CONFIG_FLAG(NewSimpleJit));
             }
         }
 
@@ -7097,7 +7092,7 @@ namespace Js
     {
         return
             static_cast<uint>(
-                IsNewSimpleJit()
+                CONFIG_FLAG(NewSimpleJit)
                     ? DEFAULT_CONFIG_MinProfileIterations
                     : DEFAULT_CONFIG_MinProfileIterations_OldSimpleJit);
     }

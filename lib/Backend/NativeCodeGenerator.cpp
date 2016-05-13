@@ -1022,6 +1022,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             workItem->SetCodeAddress(jitWriteData.codeAddress);
 
             workItem->GetEntryPoint()->SetCodeGenRecorded((PVOID)jitWriteData.codeAddress, jitWriteData.codeSize, nullptr, nullptr, nullptr);
+            if (jitWriteData.hasBailoutInstr != FALSE)
+            {
+                body->SetHasBailoutInstrInJittedCode(true);
+            }
 
             {
                 if (IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_STOP()))
@@ -1684,11 +1688,11 @@ NativeCodeGenerator::IsInDebugMode() const
 ExecutionMode NativeCodeGenerator::PrejitJitMode(Js::FunctionBody *const functionBody)
 {
     Assert(IS_PREJIT_ON());
-    Assert(functionBody->DoSimpleJit() || functionBody->DoFullJit());
+    Assert(functionBody->DoSimpleJit() || !PHASE_OFF(Js::FullJitPhase, functionBody));
 
     // Prefer full JIT for prejitting unless it's off or simple JIT is forced
     return
-        functionBody->DoFullJit() && !(PHASE_FORCE(Js::Phase::SimpleJitPhase, functionBody) && functionBody->DoSimpleJit())
+        !PHASE_OFF(Js::FullJitPhase, functionBody) && !(PHASE_FORCE(Js::Phase::SimpleJitPhase, functionBody) && functionBody->DoSimpleJit())
             ? ExecutionMode::FullJit
             : ExecutionMode::SimpleJit;
 }

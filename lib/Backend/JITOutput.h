@@ -14,6 +14,7 @@ public:
 
     void SetVarSlotsOffset(int32 offset);
     void SetVarChangedOffset(int32 offset);
+    void SetHasBailoutInstr(bool val);
 
     intptr_t GetCodeAddress() const;
 

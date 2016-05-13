@@ -528,6 +528,7 @@ public:
         contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"Chakra.dll");
         contextData.crtBaseAddress = (intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName);
         contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
+        contextData.threadStackLimitAddr = (intptr_t)bailOutRegisterSaveSpace;
         contextData.scriptStackLimit = reinterpret_cast<size_t>(GetScriptStackLimit());
         contextData.isThreadBound = GetIsThreadBound();
         m_codeGenManager.InitializeThreadContext(&contextData, &m_remoteThreadContextInfo);

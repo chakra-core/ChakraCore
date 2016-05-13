@@ -1009,9 +1009,9 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
                     Js::FunctionBody* functionBody = sym->GetByteCodeFunc()->GetJnFunction();
                     if(functionBody->GetPropertyIdOnRegSlotsContainer())
                     {
-                        if(functionBody->IsNonTempLocalVar(sym->GetByteCodeRegSlot()))
+                        if(sym->GetByteCodeFunc()->IsNonTempLocalVar(sym->GetByteCodeRegSlot()))
                         {
-                            uint index = sym->GetByteCodeRegSlot() - functionBody->GetConstantCount();
+                            uint index = sym->GetByteCodeRegSlot() - sym->GetByteCodeFunc()->GetJITFunctionBody()->GetConstCount();
                             Js::PropertyId propertyId = functionBody->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots[index];
                             Output::Print(L"(%s)", functionBody->GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer());
                         }

@@ -5,6 +5,9 @@
 
 import "wtypes.idl";
 
+// TODO: OOP JIT, how do we make this better?
+#define VTABLE_COUNT 39
+
 typedef struct CallSiteData
 {
     unsigned short bitFields;
@@ -95,17 +98,29 @@ typedef struct ThreadContextData
     __int3264 crtBaseAddress;
     __int3264 threadStackLimitAddr;
     __int3264 scriptStackLimit;
+    __int3264 bailOutRegisterSaveSpace;
     boolean isThreadBound;
 } ThreadContextData;
 
 typedef struct ScriptContextData
 {
+    __int3264 vtableAddresses[VTABLE_COUNT];
+
     __int3264 nullAddr;
     __int3264 undefinedAddr;
     __int3264 trueAddr;
     __int3264 falseAddr;
     __int3264 undeclBlockVarAddr;
     __int3264 scriptContextAddr;
+    __int3264 emptyStringAddr;
+    __int3264 negativeZeroAddr;
+    __int3264 numberTypeStaticAddr;
+    __int3264 stringTypeStaticAddr;
+    __int3264 objectTypeAddr;
+    __int3264 objectHeaderInlinedTypeAddr;
+    __int3264 regexTypeAddr;
+    __int3264 arrayConstructorAddr;
+    __int3264 charStringCacheAddr;
 } ScriptContextData;
 
 typedef struct SmallSpanSequenceData
@@ -132,6 +147,9 @@ typedef struct FunctionBodyJITData
     [size_is(inlineCacheCount)] __int3264 * inlineCaches;
 
     SmallSpanSequenceData statementMap;
+
+    __int3264 functionBodyAddr;
+
     unsigned int funcNumber;
     unsigned int localFuncId;
     unsigned int sourceContextId;
@@ -168,7 +186,8 @@ typedef struct FunctionBodyJITData
     boolean hasCachedScopePropIds;
     boolean inlineCachesOnFunctionObject;
     boolean doInterruptProbe;
-
+    boolean isGlobalFunc;
+    boolean doJITLoopBody;
 } FunctionBodyJITData;
 
 // EntryPointInfo fields, read/write in JIT
@@ -209,6 +228,7 @@ typedef struct JITOutputData
     unsigned short pdataCount;
     unsigned short xdataSize;
     boolean isInPrereservedRegion;
+    boolean hasBailoutInstr;
 } JITOutputData;
 
 [

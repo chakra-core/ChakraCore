@@ -498,8 +498,7 @@ Func::EnsureLocalVarSlots()
 
     if (!this->HasLocalVarSlotCreated())
     {
-        Assert(this->m_jnFunction != nullptr);
-        uint32 localSlotCount = this->m_jnFunction->GetNonTempLocalVarCount();
+        uint32 localSlotCount = GetJITFunctionBody()->GetNonTempLocalVarCount();
         if (localSlotCount && m_localVarSlotsOffset == Js::Constants::InvalidOffset)
         {
             // Allocate the slots.
@@ -581,8 +580,7 @@ Func::IsJitInDebugMode()
 bool
 Func::IsNonTempLocalVar(uint32 slotIndex)
 {
-    Assert(this->m_jnFunction != nullptr);
-    return this->m_jnFunction->IsNonTempLocalVar(slotIndex);
+    return GetJITFunctionBody()->IsNonTempLocalVar(slotIndex);
 }
 
 int32
@@ -601,7 +599,7 @@ Func::AdjustOffsetValue(int32 offset)
 void
 Func::AjustLocalVarSlotOffset()
 {
-    if (m_jnFunction->GetNonTempLocalVarCount())
+    if (GetJITFunctionBody()->GetNonTempLocalVarCount())
     {
         // Turn positive SP-relative base locals offset into negative frame-pointer-relative offset
         // This is changing value for restoring the locals when read due to locals inspection.
@@ -633,7 +631,7 @@ Func::SetDoFastPaths()
 
     bool doFastPaths = false;
 
-    if(!PHASE_OFF(Js::FastPathPhase, this) && (!IsSimpleJit() || Js::FunctionBody::IsNewSimpleJit()))
+    if(!PHASE_OFF(Js::FastPathPhase, this) && (!IsSimpleJit() || CONFIG_FLAG(NewSimpleJit)))
     {
         doFastPaths = true;
     }
@@ -656,7 +654,7 @@ Func::GetLocalsPointer() const
     }
 #endif
 
-    if (this->m_jnFunction->GetHasTry())
+    if (GetJITFunctionBody()->HasTry())
     {
         return ALT_LOCALS_PTR;
     }
@@ -1244,17 +1242,14 @@ Func::LinkCtorCacheToPropertyId(Js::PropertyId propertyId, Js::JitTimeConstructo
 
 Js::JitTimeConstructorCache* Func::GetConstructorCache(const Js::ProfileId profiledCallSiteId)
 {
-    Assert(GetJnFunction() != nullptr);
-    Assert(profiledCallSiteId < GetJnFunction()->GetProfiledCallSiteCount());
+    Assert(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
     Assert(this->constructorCaches != nullptr);
     return this->constructorCaches[profiledCallSiteId];
 }
 
 void Func::SetConstructorCache(const Js::ProfileId profiledCallSiteId, Js::JitTimeConstructorCache* constructorCache)
 {
-    const auto functionBody = this->GetJnFunction();
-    Assert(functionBody != nullptr);
-    Assert(profiledCallSiteId < functionBody->GetProfiledCallSiteCount());
+    Assert(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
     Assert(constructorCache != nullptr);
     Assert(this->constructorCaches != nullptr);
     Assert(this->constructorCaches[profiledCallSiteId] == nullptr);

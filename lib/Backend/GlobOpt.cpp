@@ -14,7 +14,7 @@
             L"Testtrace: %s function %s (%s): ", \
             Js::PhaseNames[phase], \
             instr->m_func->GetWorkItem()->GetDisplayName(), \
-            instr->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer)); \
+            instr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer)); \
         Output::Print(__VA_ARGS__); \
         Output::Flush(); \
     }
@@ -71,7 +71,7 @@
         Output::Print( \
             L"Function %s (%s, line %u)", \
             this->func->GetWorkItem()->GetDisplayName(), \
-            this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), \
+            this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), \
             this->func->GetJnFunction()->GetLineNumber()); \
         if(this->func->IsLoopBody()) \
         { \
@@ -82,7 +82,7 @@
             Output::Print( \
                 L", Inlinee %s (%s, line %u)", \
                 instr->m_func->GetWorkItem()->GetDisplayName(), \
-                instr->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), \
+                instr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), \
                 instr->m_func->GetJnFunction()->GetLineNumber()); \
         } \
         Output::Print(L" - %s\n    ", Js::PhaseNames[phase]); \
@@ -116,14 +116,14 @@
 #endif  // ENABLE_DEBUG_CONFIG_OPTIONS && DBG_DUMP
 
 #if DBG_DUMP
-#define DO_MEMOP_TRACE() (PHASE_TRACE(Js::MemOpPhase, this->func->GetJnFunction()) ||\
-        PHASE_TRACE(Js::MemSetPhase, this->func->GetJnFunction()) ||\
-        PHASE_TRACE(Js::MemCopyPhase, this->func->GetJnFunction()))
-#define DO_MEMOP_TRACE_PHASE(phase) (PHASE_TRACE(Js::MemOpPhase, this->func->GetJnFunction()) || PHASE_TRACE(Js::phase ## Phase, this->func->GetJnFunction()))
+#define DO_MEMOP_TRACE() (PHASE_TRACE(Js::MemOpPhase, this->func) ||\
+        PHASE_TRACE(Js::MemSetPhase, this->func) ||\
+        PHASE_TRACE(Js::MemCopyPhase, this->func))
+#define DO_MEMOP_TRACE_PHASE(phase) (PHASE_TRACE(Js::MemOpPhase, this->func) || PHASE_TRACE(Js::phase ## Phase, this->func))
 
 #define OUTPUT_MEMOP_TRACE(loop, instr, ...) {\
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];\
-    Output::Print(15, L"Function: %s%s, Loop: %u: ", this->func->GetWorkItem()->GetDisplayName(), this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), loop->GetLoopNumber());\
+    Output::Print(15, L"Function: %s%s, Loop: %u: ", this->func->GetWorkItem()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), loop->GetLoopNumber());\
     Output::Print(__VA_ARGS__);\
     IR::Instr* __instr__ = instr;\
     if(__instr__) __instr__->DumpByteCodeOffset();\
@@ -3774,9 +3774,9 @@ GlobOpt::TrackArgumentsSym(IR::RegOpnd* opnd)
         Output::Print(L"Created a new alias s%d for arguments object in function %s(%s) topFunc %s(%s)\n",
             opnd->m_sym->m_id,
             blockData.curFunc->GetWorkItem()->GetDisplayName(),
-            blockData.curFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+            blockData.curFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             this->func->GetWorkItem()->GetDisplayName(),
-            this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer2)
+            this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2)
             );
         Output::Flush();
     }
@@ -5346,7 +5346,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
             IR::AddrOpnd *addrOpnd = opnd->AsAddrOpnd();
             if (addrOpnd->m_isFunction)
             {
-                AssertMsg(!PHASE_OFF(Js::FixedMethodsPhase, instr->m_func->GetJnFunction()), "Fixed function address operand with fixed method calls phase disabled?");
+                AssertMsg(!PHASE_OFF(Js::FixedMethodsPhase, instr->m_func), "Fixed function address operand with fixed method calls phase disabled?");
                 val = NewFixedFunctionValue((Js::JavascriptFunction *)addrOpnd->m_address, addrOpnd);
                 opnd->SetValueType(val->GetValueInfo()->Type());
                 return val;
@@ -5684,7 +5684,7 @@ GlobOpt::TryOptimizeInstrWithFixedDataProperty(IR::Instr ** const pInstr)
     IR::Opnd * src1 = instr->GetSrc1();
     Assert(src1 && src1->IsSymOpnd() && src1->AsSymOpnd()->IsPropertySymOpnd());
 
-    if(PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func->GetJnFunction()))
+    if(PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func))
     {
         return;
     }
@@ -6041,7 +6041,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
 
         if(opnd != instr->GetSrc1() && opnd != instr->GetSrc2())
         {
-            if(PHASE_OFF(Js::IndirCopyPropPhase, instr->m_func->GetJnFunction()))
+            if(PHASE_OFF(Js::IndirCopyPropPhase, instr->m_func))
             {
                 return opnd;
             }
@@ -6627,7 +6627,8 @@ Value *
 GlobOpt::GetVarConstantValue(IR::AddrOpnd *addrOpnd)
 {
     bool isVar = addrOpnd->IsVar();
-    bool isString = isVar && Js::JavascriptString::Is(addrOpnd->m_address);
+    // TODO: OOP JIT, fix string const stuff
+    bool isString = isVar && false;// Js::JavascriptString::Is(addrOpnd->m_address);
     Value *val = nullptr;
     Value *cachedValue;
     if(this->addrConstantToValueMap->TryGetValue(addrOpnd->m_address, &cachedValue))
@@ -7592,14 +7593,14 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
         if(DoTypedArrayTypeSpec() && !IsLoopPrePass())
         {
             GOPT_TRACE_INSTR(instr, L"Didn't specialize array access.\n");
-            if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
+            if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func))
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                 baseValueType.ToString(baseValueTypeStr);
                 Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not type specialize, because %s.\n",
                     this->func->GetWorkItem()->GetDisplayName(),
-                    this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                    this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                     baseValueTypeStr,
                     instr->DoStackArgsOpt(this->func) ? L"instruction uses the arguments object" :
@@ -7708,7 +7709,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
     Assert(toType != TyVar);
 
     GOPT_TRACE_INSTR(instr, L"Type specialized array access.\n");
-    if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
+    if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func))
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
@@ -7717,7 +7718,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
         dstVal->GetValueInfo()->Type().ToString(dstValTypeStr);
         Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, type specialized to %s producing %S",
             this->func->GetWorkItem()->GetDisplayName(),
-            this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+            this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
             baseValueTypeStr,
             toType == TyInt32 ? L"int32" : L"float64",
@@ -8770,6 +8771,11 @@ GlobOpt::GetConstantVar(IR::Opnd *opnd, Value *val)
 bool
 GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Value **pDstVal)
 {
+    if (true)
+    {
+        // TODO: michhol OOP JIT
+        return false;
+    }
     if (!src1Val)
     {
         return false;
@@ -12601,14 +12607,14 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
         !(baseValueType.IsLikelyOptimizedTypedArray() || baseValueType.IsLikelyNativeArray()))
     {
         GOPT_TRACE_INSTR(instr, L"Didn't type specialize array access, because typed array type specialization is disabled, or base is not an optimized typed array.\n");
-        if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
+        if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func))
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because %s.\n",
                 this->func->GetWorkItem()->GetDisplayName(),
-                this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr,
                 instr->DoStackArgsOpt(this->func) ?
@@ -12656,14 +12662,14 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
         else if (!this->IsInt32TypeSpecialized(sym, this->currentBlock) && !this->IsFloat64TypeSpecialized(sym, this->currentBlock))
         {
             GOPT_TRACE_INSTR(instr, L"Didn't specialize array access, because src is not type specialized.\n");
-            if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
+            if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func))
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                 baseValueType.ToString(baseValueTypeStr);
                 Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because src is not specialized.\n",
                               this->func->GetWorkItem()->GetDisplayName(),
-                              this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                              this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                               Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                               baseValueTypeStr);
                 Output::Flush();
@@ -12694,14 +12700,14 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
     if (!ShouldExpectConventionalArrayIndexValue(dst))
     {
         GOPT_TRACE_INSTR(instr, L"Didn't specialize array access, because index is negative or likely not int.\n");
-        if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
+        if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func))
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because index is negative or likely not int.\n",
                 this->func->GetWorkItem()->GetDisplayName(),
-                this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr);
             Output::Flush();
@@ -12793,14 +12799,14 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
     if (toType != TyVar)
     {
         GOPT_TRACE_INSTR(instr, L"Type specialized array access.\n");
-        if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
+        if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func))
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, type specialized to %s.\n",
                 this->func->GetWorkItem()->GetDisplayName(),
-                this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr,
                 toType == TyInt32 ? L"int32" : L"float64");
@@ -12870,14 +12876,14 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
     else
     {
         GOPT_TRACE_INSTR(instr, L"Didn't specialize array access, because the source was not already specialized.\n");
-        if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
+        if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func))
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not type specialize, because of array type.\n",
                 this->func->GetWorkItem()->GetDisplayName(),
-                this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr);
             Output::Flush();
@@ -13362,13 +13368,13 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                         else
                         {
                             Assert(DoAggressiveIntTypeSpec());
-                            if(PHASE_TRACE(Js::BailOutPhase, this->func->GetJnFunction()))
+                            if(PHASE_TRACE(Js::BailOutPhase, this->func))
                             {
                                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                                 Output::Print(
                                     L"BailOut (compile-time): function: %s (%s) varSym: ",
                                     this->func->GetWorkItem()->GetDisplayName(),
-                                    this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                                    this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                                     varSym->m_id);
     #if DBG_DUMP
                                 varSym->Dump();
@@ -13387,7 +13393,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                             {
                                 // Aggressive int type specialization is already off for some reason. Prevent trying to rejit again
                                 // because it won't help and the same thing will happen again. Just abort jitting this function.
-                                if(PHASE_TRACE(Js::BailOutPhase, this->func->GetJnFunction()))
+                                if(PHASE_TRACE(Js::BailOutPhase, this->func))
                                 {
                                     Output::Print(L"    Aborting JIT because AggressiveIntTypeSpec is already off\n");
                                     Output::Flush();
@@ -17625,13 +17631,13 @@ GlobOpt::PrepareForIgnoringIntOverflow(IR::Instr *const instr)
             if(intOverflowCurrentlyMattersInRange)
             {
 #if DBG_DUMP
-                if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func->GetJnFunction()) && !IsLoopPrePass())
+                if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func) && !IsLoopPrePass())
                 {
                     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(
                         L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u, Disabled ignoring overflows\n",
                         func->GetWorkItem()->GetDisplayName(),
-                        func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                        func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                         Js::PhaseNames[Js::ForwardPhase],
                         currentBlock->GetBlockNum());
                     Output::Print(L"    Input sym could not be turned into an int:   %u\n", couldNotConvertSymId);
@@ -17693,13 +17699,13 @@ GlobOpt::PrepareForIgnoringIntOverflow(IR::Instr *const instr)
     intOverflowDoesNotMatterRange->SymsRequiredToBeInt()->Minus(intOverflowDoesNotMatterRange->SymsRequiredToBeLossyInt());
 
 #if DBG_DUMP
-    if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func->GetJnFunction()))
+    if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func))
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(
             L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n",
             func->GetWorkItem()->GetDisplayName(),
-            func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+            func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             Js::PhaseNames[Js::ForwardPhase],
             currentBlock->GetBlockNum());
         Output::Print(L"    Input syms to be int-specialized (lossless): ");
@@ -17752,13 +17758,13 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
     // overflow.
     Assert(!func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
 
-    if(PHASE_TRACE(Js::BailOutPhase, this->func->GetJnFunction()))
+    if(PHASE_TRACE(Js::BailOutPhase, this->func))
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(
             L"BailOut (compile-time): function: %s (%s) instr: ",
             func->GetWorkItem()->GetDisplayName(),
-            func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+            func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
 #if DBG_DUMP
         instr->Dump();
 #else
@@ -17772,7 +17778,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
     {
         // Tracking int overflows is already off for some reason. Prevent trying to rejit again because it won't help and the
         // same thing will happen again and cause an infinite loop. Just abort jitting this function.
-        if(PHASE_TRACE(Js::BailOutPhase, this->func->GetJnFunction()))
+        if(PHASE_TRACE(Js::BailOutPhase, this->func))
         {
             Output::Print(L"    Aborting JIT because TrackIntOverflow is already off\n");
             Output::Flush();
@@ -19334,7 +19340,7 @@ GlobOpt::CannotAllocateArgumentsObjectOnStack()
     if (PHASE_TESTTRACE(Js::StackArgOptPhase, this->func))
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"Stack args disabled for function %s(%s)\n", func->GetWorkItem()->GetDisplayName(), func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(L"Stack args disabled for function %s(%s)\n", func->GetWorkItem()->GetDisplayName(), func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
         Output::Flush();
     }
 #endif

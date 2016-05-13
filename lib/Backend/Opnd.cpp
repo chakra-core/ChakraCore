@@ -3283,7 +3283,8 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
 
         case IR::AddrOpndKindDynamicFunctionBody:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            DumpFunctionInfo(&buffer, &n, (Js::FunctionInfo *)address, printToConsole);
+            // TODO: OOP JIT, allow this when in proc
+            //DumpFunctionInfo(&buffer, &n, (Js::FunctionInfo *)address, printToConsole);
             break;
 
         case IR::AddrOpndKindDynamicFunctionBodyWeakRef:

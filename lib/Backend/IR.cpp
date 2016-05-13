@@ -1289,7 +1289,7 @@ BailOutInstrTemplate<InstrType>::New(Js::OpCode opcode, BailOutKind kind, BailOu
     // If the function has bailout instructions, we keep the loop bodies alive
     // in case we bail out to the interpreter, so that we can reuse the jitted
     // loop bodies
-    func->GetJnFunction()->SetHasBailoutInstrInJittedCode(true);
+    func->GetJITOutput()->SetHasBailoutInstr(true);
 
     return bailOutInstr;
 }
@@ -3918,7 +3918,7 @@ Instr::DumpFieldCopyPropTestTrace()
     case Js::OpCode::TypeofElem:
 
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"TestTrace fieldcopyprop: function %s (%s) ", this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(L"TestTrace fieldcopyprop: function %s (%s) ", this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
         if (this->IsInlined())
         {
             Js::FunctionBody* topFunctionBody = this->m_func->GetTopFunc()->GetJnFunction();
@@ -3974,7 +3974,7 @@ Instr::DumpByteCodeOffset()
     {
         Output::SkipToColumn(78);
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L" Func #%s", this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(L" Func #%s", this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
     }
 #ifdef BAILOUT_INJECTION
     if (this->bailOutByteCodeLocation != (uint)-1)
@@ -4263,7 +4263,7 @@ PrintByteCodeOffsetEtc:
             if (!bailOutInfo->bailOutFunc->IsTopFunc())
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(L" Func %s", bailOutInfo->bailOutFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+                Output::Print(L" Func %s", bailOutInfo->bailOutFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
             }
             Output::Print(L" (%S)", this->GetBailOutKindName());
         }

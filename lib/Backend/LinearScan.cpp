@@ -1281,7 +1281,7 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
         globalBailOutRecordDataTable->isLoopBody = topFunc->IsLoopBody();
         globalBailOutRecordDataTable->returnValueRegSlot = func->returnValueRegSlot;
         globalBailOutRecordDataTable->firstActualStackOffset = -1;
-        globalBailOutRecordDataTable->registerSaveSpace = func->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace();
+        globalBailOutRecordDataTable->registerSaveSpace = (Js::Var*)func->GetThreadContextInfo()->GetBailOutRegisterSaveSpace();
         globalBailOutRecordDataTable->globalBailOutRecordDataRows = nullptr;
 
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
@@ -1527,7 +1527,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 
         if (hasFormalArgs)
         {
-            for (uint32 index = functionBody->GetFirstNonTempLocalIndex(); index < functionBody->GetEndNonTempLocalIndex(); index++)
+            for (uint32 index = func->GetJITFunctionBody()->GetFirstNonTempLocalIndex(); index < func->GetJITFunctionBody()->GetEndNonTempLocalIndex(); index++)
             {
                 StackSym * stackSym = this->func->m_symTable->FindStackSym(index);
                 if (stackSym != nullptr)
@@ -1535,9 +1535,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                     Func * stackSymFunc = stackSym->GetByteCodeFunc();
 
                     Js::RegSlot regSlotId = stackSym->GetByteCodeRegSlot();
-                    if (functionBody->IsNonTempLocalVar(regSlotId))
+                    if (func->IsNonTempLocalVar(regSlotId))
                     {
-                        if (!propertyIdContainer->IsRegSlotFormal(regSlotId - functionBody->GetFirstNonTempLocalIndex()))
+                        if (!propertyIdContainer->IsRegSlotFormal(regSlotId - func->GetJITFunctionBody()->GetFirstNonTempLocalIndex()))
                         {
                             continue;
                         }
@@ -1931,7 +1931,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         if(PHASE_DUMP(Js::BailOutPhase, this->func))
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"Bailout function: %s [%s]\n", funcBailOutData[i].func->GetWorkItem()->GetDisplayName(), funcBailOutData[i].func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), i);
+            Output::Print(L"Bailout function: %s [%s]\n", funcBailOutData[i].func->GetWorkItem()->GetDisplayName(), funcBailOutData[i].func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), i);
             funcBailOutData[i].bailOutRecord->Dump();
         }
 #endif

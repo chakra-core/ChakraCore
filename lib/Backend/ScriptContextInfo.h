@@ -14,7 +14,18 @@ public:
     intptr_t GetTrueAddr() const;
     intptr_t GetFalseAddr() const;
     intptr_t GetUndeclBlockVarAddr() const;
+    intptr_t GetEmptyStringAddr() const;
+    intptr_t GetNegativeZeroAddr() const;
+    intptr_t GetNumberTypeStaticAddr() const;
+    intptr_t GetStringTypeStaticAddr() const;
+    intptr_t GetObjectTypeAddr() const;
+    intptr_t GetObjectHeaderInlinedTypeAddr() const;
+    intptr_t GetRegexTypeAddr() const;
+    intptr_t GetArrayConstructorAddr() const;
+    intptr_t GetCharStringCacheAddr() const;
     intptr_t GetAddr() const;
+
+    intptr_t GetVTableAddress(VTableValue vtableType) const;
 
 
 private:

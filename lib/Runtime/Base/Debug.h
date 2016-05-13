@@ -43,7 +43,7 @@ WCHAR* DumpCallStack(uint frameCount = -1);
         Func->m_workItem->GetDisplayName(workItem, _countof(workItem)); \
         WCHAR prefixValue[512]; \
         swprintf_s(prefixValue, L"%s (#%d.%u, #%u)", workItem, \
-           (int)(Func)->GetJnFunction()->GetSourceContextId(), (Func)->GetJnFunction()->GetLocalFunctionId(), (Func)->GetJnFunction()->GetFunctionNumber()); \
+           (int)(Func)->GetJITFunctionBody()->GetSourceContextId(), (Func)->GetJITFunctionBody()->GetLocalFunctionId(), (Func)->GetJITFunctionBody()->GetFunctionNumber()); \
         Output::TraceWithPrefix((Phase), prefixValue, __VA_ARGS__); \
       }
 #define OUTPUT_VERBOSE_TRACE2(Phase, FunctionBody, ...) \

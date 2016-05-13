@@ -217,6 +217,12 @@ ThreadContextInfo::GetRuntimeCRTBaseAddress() const
     return static_cast<intptr_t>(m_threadContextData.crtBaseAddress);
 }
 
+intptr_t
+ThreadContextInfo::GetBailOutRegisterSaveSpace() const
+{
+    return static_cast<intptr_t>(m_threadContextData.bailOutRegisterSaveSpace);
+}
+
 ptrdiff_t
 ThreadContextInfo::GetChakraBaseAddressDifference() const
 {

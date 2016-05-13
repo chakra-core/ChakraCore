@@ -414,7 +414,17 @@ namespace Js
             contextData.falseAddr = (intptr_t)GetLibrary()->GetFalse();
             contextData.undeclBlockVarAddr = (intptr_t)GetLibrary()->GetUndeclBlockVar();
             contextData.scriptContextAddr = (intptr_t)this;
-
+            contextData.emptyStringAddr = (intptr_t)GetLibrary()->GetEmptyString();
+            contextData.negativeZeroAddr = (intptr_t)GetLibrary()->GetNegativeZero();
+            contextData.numberTypeStaticAddr = (intptr_t)GetLibrary()->GetNumberTypeStatic();
+            contextData.stringTypeStaticAddr = (intptr_t)GetLibrary()->GetStringTypeStatic();
+            contextData.objectTypeAddr = (intptr_t)GetLibrary()->GetObjectType();
+            contextData.objectHeaderInlinedTypeAddr = (intptr_t)GetLibrary()->GetObjectHeaderInlinedType();
+            contextData.regexTypeAddr = (intptr_t)GetLibrary()->GetRegexType();
+            contextData.arrayConstructorAddr = (intptr_t)GetLibrary()->GetArrayConstructor();
+            contextData.charStringCacheAddr = (intptr_t)&GetLibrary()->GetCharStringCache();
+            CompileAssert(VTableValue::Count == 39); // need to update idl chen this changes
+            memcpy_s(contextData.vtableAddresses, 39 * sizeof(intptr_t), GetLibrary()->GetVTableAddresses(), VTableValue::Count * sizeof(INT_PTR));
             this->threadContext->m_codeGenManager.InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
         }
 

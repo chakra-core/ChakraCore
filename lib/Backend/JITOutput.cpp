@@ -32,6 +32,13 @@ JITOutput::SetVarChangedOffset(int32 offset)
     m_outputData->writeableEPData.localVarChangedOffset = offset;
 }
 
+void
+JITOutput::SetHasBailoutInstr(bool val)
+{
+    m_outputData->hasBailoutInstr = val;
+}
+
+
 intptr_t
 JITOutput::GetCodeAddress() const
 {

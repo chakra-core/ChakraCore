@@ -1094,7 +1094,7 @@ ObjectTemp::CanStoreTemp(IR::Instr * instr)
 #endif
         if (opcode == Js::OpCode::NewScObjectNoCtor)
         {
-            if (PHASE_OFF(Js::FixedNewObjPhase, instr->m_func->GetJnFunction()) && PHASE_OFF(Js::ObjTypeSpecNewObjPhase, instr->m_func->GetTopFunc()))
+            if (PHASE_OFF(Js::FixedNewObjPhase, instr->m_func) && PHASE_OFF(Js::ObjTypeSpecNewObjPhase, instr->m_func->GetTopFunc()))
             {
                 return false;
             }

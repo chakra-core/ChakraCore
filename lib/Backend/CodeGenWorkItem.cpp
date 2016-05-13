@@ -92,6 +92,8 @@ CodeGenWorkItem::CodeGenWorkItem(
     }
 
     // body data
+    this->jitData.bodyData.functionBodyAddr = (intptr_t)functionBody;
+
     this->jitData.bodyData.funcNumber = functionBody->GetFunctionNumber();
     this->jitData.bodyData.localFuncId = functionBody->GetLocalFunctionId();
     this->jitData.bodyData.sourceContextId = functionBody->GetSourceContextId();
@@ -131,6 +133,8 @@ CodeGenWorkItem::CodeGenWorkItem(
     this->jitData.bodyData.isLibraryCode = functionBody->GetUtf8SourceInfo()->GetIsLibraryCode();
     this->jitData.bodyData.isAsmJsMode = functionBody->GetIsAsmjsMode();
     this->jitData.bodyData.isStrictMode = functionBody->GetIsStrictMode();
+    this->jitData.bodyData.isGlobalFunc = functionBody->GetIsGlobalFunc();
+    this->jitData.bodyData.doJITLoopBody = functionBody->DoJITLoopBody();
     this->jitData.bodyData.hasScopeObject = functionBody->HasScopeObject();
     this->jitData.bodyData.hasImplicitArgIns = functionBody->GetHasImplicitArgIns();
     this->jitData.bodyData.hasCachedScopePropIds = functionBody->HasCachedScopePropIds();
@@ -161,7 +165,7 @@ CodeGenWorkItem::~CodeGenWorkItem()
 //
 bool CodeGenWorkItem::ShouldSpeculativelyJit(uint byteCodeSizeGenerated) const
 {
-    if(!functionBody->DoFullJit())
+    if(PHASE_OFF(Js::FullJitPhase, this->functionBody))
     {
         return false;
     }

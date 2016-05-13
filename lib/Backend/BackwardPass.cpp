@@ -604,7 +604,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 
             PHASE_PRINT_TRACE(Js::ObjTypeSpecStorePhase, this->func,
                               L"ObjTypeSpecStore: func %s, edge %d => %d: ",
-                              this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                              this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                               block->GetBlockNum(), blockSucc->GetBlockNum());
 
             auto fixupFrom = [block, blockSucc, this](Bucket<AddPropertyCacheBucket> &bucket)
@@ -850,7 +850,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::ObjTypeSpecStorePhase, this->func))
         {
             Output::Print(L"ObjTypeSpecStore: func %s, block %d: ",
-                          this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                          this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                           block->GetBlockNum());
             if (stackSymToFinalType)
             {
@@ -865,7 +865,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::TraceObjTypeSpecTypeGuardsPhase, this->func))
         {
             Output::Print(L"ObjTypeSpec: func %s, block %d, guarded properties:\n",
-                this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
+                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
             if (stackSymToGuardedProperties)
             {
                 stackSymToGuardedProperties->Dump();
@@ -880,7 +880,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
         {
             Output::Print(L"ObjTypeSpec: func %s, block %d, write guards: ",
-                this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
+                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
             if (stackSymToWriteGuardsMap)
             {
                 Output::Print(L"\n");
@@ -5738,13 +5738,13 @@ BackwardPass::EndIntOverflowDoesNotMatterRange()
         currentBlock->intOverflowDoesNotMatterRange->SetFirstInstr(boundaryInstr);
 
 #if DBG_DUMP
-        if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func->GetJnFunction()))
+        if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func))
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(
                 L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n",
                 func->GetWorkItem()->GetDisplayName(),
-                func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::PhaseNames[Js::BackwardPhase],
                 currentBlock->GetBlockNum());
             Output::Print(L"    Input syms to be int-specialized (lossless): ");
@@ -6387,8 +6387,8 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!inlineeStart->m_func->m_hasInlineArgsOpt)
     {
         PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, L"%s[%d]: Skipping inline args optimization: %s[%d] HasCalls: %s 'arguments' access: %s Can do inlinee args opt: %s\n",
-                func->GetJnFunction()->GetExternalDisplayName(), func->GetJnFunction()->GetFunctionNumber(),
-                inlineeStart->m_func->GetJnFunction()->GetExternalDisplayName(), inlineeStart->m_func->GetJnFunction()->GetFunctionNumber(),
+                func->GetWorkItem()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber(),
+                inlineeStart->m_func->GetWorkItem()->GetDisplayName(), inlineeStart->m_func->GetJITFunctionBody()->GetFunctionNumber(),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasCalls()),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasUnoptimizedArgumentsAcccess()),
                 IsTrueOrFalse(inlineeStart->m_func->m_canDoInlineArgsOpt));
@@ -6398,7 +6398,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!inlineeStart->m_func->frameInfo->isRecorded)
     {
         PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, L"%s[%d]: InlineeEnd not found - usually due to a throw or a BailOnNoProfile (stressed, most likely)\n",
-            func->GetJnFunction()->GetExternalDisplayName(), func->GetJnFunction()->GetFunctionNumber());
+            func->GetWorkItem()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber());
         inlineeStart->m_func->DisableCanDoInlineArgOpt();
         return false;
     }
@@ -7273,6 +7273,6 @@ BackwardPass::IsTraceEnabled() const
 {
     return
         Js::Configuration::Global.flags.Trace.IsEnabled(tag, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()) &&
-        (PHASE_TRACE(Js::SimpleJitPhase, func->GetJnFunction()) || !func->IsSimpleJit());
+        (PHASE_TRACE(Js::SimpleJitPhase, func) || !func->IsSimpleJit());
 }
 #endif

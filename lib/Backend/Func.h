@@ -127,19 +127,16 @@ public:
     bool DoLoopFastPaths() const
     {
         return
-            (!IsSimpleJit() || Js::FunctionBody::IsNewSimpleJit()) &&
+            (!IsSimpleJit() || CONFIG_FLAG(NewSimpleJit)) &&
             !PHASE_OFF(Js::FastPathPhase, this) &&
             !PHASE_OFF(Js::LoopFastPathPhase, this);
     }
 
     bool DoGlobOpt() const
     {
-        return false;
-#if 0 // TODO: michhol OOP JIT, enable globopt
         return
             !PHASE_OFF(Js::GlobOptPhase, this) && !IsSimpleJit() &&
             (!GetTopFunc()->HasTry() || GetTopFunc()->CanOptimizeTryCatch());
-#endif
     }
 
     bool DoInline() const
@@ -288,12 +285,12 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     bool IsGlobalFunc() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->GetIsGlobalFunc();
+        return this->GetJITFunctionBody()->IsGlobalFunc();
     }
 
     RecyclerWeakReference<Js::FunctionBody> *GetWeakFuncRef() const;
-    Js::FunctionBody * GetJnFunction() const { return m_jnFunction; }
+    // TODO: OOP JIT, remove this
+    Js::FunctionBody * GetJnFunction() const { Assert(UNREACHED);  return m_jnFunction; }
 
     StackSym *EnsureLoopParamSym();
 

@@ -3970,11 +3970,11 @@ LowererMD::GenerateFlagInlineCacheCheckForGetterSetter(
     IR::LabelInstr * labelNext)
 {
     uint accessorFlagMask;
-    if (PHASE_OFF(Js::InlineGettersPhase, insertBeforeInstr->m_func->GetJnFunction()))
+    if (PHASE_OFF(Js::InlineGettersPhase, insertBeforeInstr->m_func))
     {
         accessorFlagMask = Js::InlineCache::GetSetterFlagMask();
     }
-    else if (PHASE_OFF(Js::InlineSettersPhase, insertBeforeInstr->m_func->GetJnFunction()))
+    else if (PHASE_OFF(Js::InlineSettersPhase, insertBeforeInstr->m_func))
     {
         accessorFlagMask = Js::InlineCache::GetGetterFlagMask();
     }

@@ -168,7 +168,7 @@ public:
     {
         Assert(GetJitMode() == ExecutionMode::SimpleJit || GetJitMode() == ExecutionMode::FullJit);
         Assert(GetJitMode() != ExecutionMode::SimpleJit || GetFunctionBody()->DoSimpleJit());
-        Assert(GetJitMode() != ExecutionMode::FullJit || GetFunctionBody()->DoFullJit());
+        Assert(GetJitMode() != ExecutionMode::FullJit || !PHASE_OFF(Js::FullJitPhase, GetFunctionBody()));
     }
 
     void OnAddToJitQueue();

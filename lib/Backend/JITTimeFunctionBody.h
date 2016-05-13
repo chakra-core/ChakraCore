@@ -10,6 +10,8 @@ class JITTimeFunctionBody
 public:
     JITTimeFunctionBody(FunctionBodyJITData * bodyData);
 
+    intptr_t GetAddr() const;
+
     uint GetFunctionNumber() const;
     uint GetLocalFunctionId() const;
     uint GetSourceContextId() const;
@@ -33,6 +35,9 @@ public:
     Js::RegSlot GetTempCount() const;
     Js::RegSlot GetFuncExprScopeReg() const;
     Js::RegSlot GetThisRegForEventHandler() const;
+    Js::RegSlot GetFirstNonTempLocalIndex() const;
+    Js::RegSlot GetEndNonTempLocalIndex() const;
+    Js::RegSlot GetNonTempLocalVarCount() const;
 
     Js::PropertyId GetPropertyIdFromCacheId(uint cacheId) const;
 
@@ -56,6 +61,9 @@ public:
     bool HasCachedScopePropIds() const;
     bool HasInlineCachesOnFunctionObject() const;
     bool DoInterruptProbe() const;
+    bool IsGlobalFunc() const;
+    bool IsNonTempLocalVar(uint32 varIndex) const;
+    bool DoJITLoopBody() const;
 
     const byte * GetByteCodeBuffer() const;
     Js::SmallSpanSequence * GetStatementMapSpanSequence();
@@ -63,6 +71,8 @@ public:
     intptr_t GetConstantVar(Js::RegSlot location) const;
     intptr_t GetInlineCache(uint index) const;
     Js::TypeId GetConstantType(Js::RegSlot location) const;
+
+    wchar_t* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const;
 
 private:
     Js::FunctionInfo::Attributes GetAttributes() const;
