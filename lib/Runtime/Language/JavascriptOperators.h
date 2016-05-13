@@ -434,9 +434,9 @@ namespace Js
         static FrameDisplay* OP_LdStrictInnerFrameDisplay(void *argHead, void *argEnv, ScriptContext* scriptContext);
         static FrameDisplay* OP_LdStrictInnerFrameDisplayNoParent(void *argHead, ScriptContext* scriptContext);
         static void CheckInnerFrameDisplayArgument(void *argHead);
-        static Var LoadHeapArguments(JavascriptFunction *funcCallee, unsigned int count, Var *pParams, Var frameObj, Var vArray, ScriptContext* scriptContext, bool nonSimpleParamList);
-        static Var LoadHeapArgsCached(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var *pParams, Var frameObj, ScriptContext* scriptContext, bool nonSimpleParamList);
-        static Var JavascriptOperators::CreateHeapArgumentsObjAndFillScopeObject(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, Var * paramAddr, Js::PropertyIdArray *propIds, ScriptContext * scriptContext, bool nonSimpleParamList, bool useCachedScope);
+        static Var LoadHeapArguments(JavascriptFunction *funcCallee, unsigned int count, Var *pParams, Var frameObj, Var vArray, ScriptContext* scriptContext, bool nonSimpleParamList, bool isStackArgsOpt = false);
+        static Var LoadHeapArgsCached(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var *pParams, Var frameObj, ScriptContext* scriptContext, bool nonSimpleParamList, bool isStackArgsOpt = false);
+        static Var JavascriptOperators::CreateHeapArgumentsObjAndFillScopeObject(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, Var * paramAddr, Js::PropertyIdArray *propIds, ScriptContext * scriptContext, bool nonSimpleParamList, bool useCachedScope, bool isStackArgsOpt);
         static HeapArgumentsObject *CreateHeapArguments(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, ScriptContext* scriptContext);
         static Var OP_InitCachedScope(Var varFunc, const PropertyIdArray *propIds, DynamicType ** literalType, bool formalsAreLetDecls, ScriptContext *scriptContext);
         static void OP_InvalidateCachedScope(Var varEnv, int32 envIndex);

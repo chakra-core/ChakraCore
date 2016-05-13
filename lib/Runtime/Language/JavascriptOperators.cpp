@@ -6732,7 +6732,7 @@ CommonNumber:
         return argumentsObject;
     }
 
-    Var JavascriptOperators::LoadHeapArguments(JavascriptFunction *funcCallee, uint32 actualsCount, Var *paramAddr, Var frameObj, Var vArray, ScriptContext* scriptContext, bool nonSimpleParamList)
+    Var JavascriptOperators::LoadHeapArguments(JavascriptFunction *funcCallee, uint32 actualsCount, Var *paramAddr, Var frameObj, Var vArray, ScriptContext* scriptContext, bool nonSimpleParamList, bool isStackArgsOpt)
     {
         AssertMsg(actualsCount != (unsigned int)-1, "Loading the arguments object in the global function?");
 
@@ -6747,21 +6747,29 @@ CommonNumber:
             Assert(formalsCount != 0 && propIds != nullptr);
         }
 
-        return CreateHeapArgumentsObjAndFillScopeObject(funcCallee, actualsCount, formalsCount, frameObj, paramAddr, propIds, scriptContext, nonSimpleParamList, false);
+        return CreateHeapArgumentsObjAndFillScopeObject(funcCallee, actualsCount, formalsCount, frameObj, paramAddr, propIds, scriptContext, nonSimpleParamList, false, isStackArgsOpt);
     }
 
-    Var JavascriptOperators::LoadHeapArgsCached(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var *paramAddr, Var frameObj, ScriptContext* scriptContext, bool nonSimpleParamList)
+    Var JavascriptOperators::LoadHeapArgsCached(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var *paramAddr, Var frameObj, ScriptContext* scriptContext, bool nonSimpleParamList, bool isStackArgsOpt)
     {
         // Disregard the "this" param.
         AssertMsg(actualsCount != (uint32)-1 && formalsCount != (uint32)-1,
                   "Loading the arguments object in the global function?");
 
-        return CreateHeapArgumentsObjAndFillScopeObject(funcCallee, actualsCount, formalsCount, frameObj, paramAddr, nullptr, scriptContext, nonSimpleParamList, true);
+        return CreateHeapArgumentsObjAndFillScopeObject(funcCallee, actualsCount, formalsCount, frameObj, paramAddr, nullptr, scriptContext, nonSimpleParamList, true, isStackArgsOpt);
     }
 
-    Var JavascriptOperators::CreateHeapArgumentsObjAndFillScopeObject(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, Var * paramAddr, Js::PropertyIdArray *propIds, ScriptContext * scriptContext, bool nonSimpleParamList, bool useCachedScope)
+    Var JavascriptOperators::CreateHeapArgumentsObjAndFillScopeObject(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, Var * paramAddr, Js::PropertyIdArray *propIds, ScriptContext * scriptContext, bool nonSimpleParamList, bool useCachedScope, bool isStackArgsOpt)
     {
-        HeapArgumentsObject *argsObj = JavascriptOperators::CreateHeapArguments(funcCallee, actualsCount, formalsCount, frameObj, scriptContext);
+        HeapArgumentsObject *argsObj = nullptr;
+        Assert(frameObj);
+
+        bool disableStackArgsOpt = !isStackArgsOpt || nonSimpleParamList || funcCallee->IsStrictMode();
+
+        if (disableStackArgsOpt)
+        {
+            argsObj = JavascriptOperators::CreateHeapArguments(funcCallee, actualsCount, formalsCount, frameObj, scriptContext);
+        }
 
         // Transfer formal arguments (that were actually passed) from their ArgIn slots to the local frame object.
         uint32 i;
@@ -6815,13 +6823,17 @@ CommonNumber:
             }
         }
 
-        // Transfer the unnamed actual arguments, if any, to the Arguments object itself.
-        for (i = formalsCount, tmpAddr = paramAddr + i; i < actualsCount; i++, tmpAddr++)
+        if (disableStackArgsOpt)
         {
-            // ES5 10.6.11: use [[DefineOwnProperty]] semantics (instead of [[Put]]):
-            // do not check whether property is non-writable/etc in the prototype.
-            // ES3 semantics is same.
-            JavascriptOperators::SetItem(argsObj, argsObj, i, *tmpAddr, scriptContext, PropertyOperation_None, /* skipPrototypeCheck = */ TRUE);
+            Assert(argsObj);
+            // Transfer the unnamed actual arguments, if any, to the Arguments object itself.
+            for (i = formalsCount, tmpAddr = paramAddr + i; i < actualsCount; i++, tmpAddr++)
+            {
+                // ES5 10.6.11: use [[DefineOwnProperty]] semantics (instead of [[Put]]):
+                // do not check whether property is non-writable/etc in the prototype.
+                // ES3 semantics is same.
+                JavascriptOperators::SetItem(argsObj, argsObj, i, *tmpAddr, scriptContext, PropertyOperation_None, /* skipPrototypeCheck = */ TRUE);
+            }
         }
 
         if (funcCallee->IsStrictMode())
