@@ -2926,7 +2926,7 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
         MapFormalsWithoutRest(pnode, emitDefaultArg);
     }
 
-    if (ShouldTrackDebuggerMetadata() && m_writer.GetCurrentOffset() > beginOffset)
+    if (m_writer.GetCurrentOffset() > beginOffset)
     {
         PopulateFormalsScope(beginOffset, funcInfo, pnode);
     }
