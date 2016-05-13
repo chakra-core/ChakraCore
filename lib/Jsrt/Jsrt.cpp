@@ -387,22 +387,13 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
             }
         }
 
-        //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
-        //May want to look into more sophisticated means for making this decision later -- e.g. move to yield point 
-        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && scriptContext->TTDRootNestingCount == 0)
+        //Update the time elapsed since a snapshot if needed
+        if(ttdStartTime >= 0.0)
         {
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
 
             double ttdEndTime = elog->GetCurrentWallTime();
             elog->IncrementElapsedSnapshotTime(ttdEndTime - ttdStartTime);
-
-            if(elog->IsTimeForSnapshot())
-            {
-                elog->PushMode(TTD::TTDMode::ExcludedExecution);
-                elog->DoSnapshotExtract();
-                elog->PruneLogLength();
-                elog->PopMode(TTD::TTDMode::ExcludedExecution);
-            }
         }
 #else
         Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
@@ -2949,23 +2940,13 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
                 }
             }
 
-
-            //Put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
-            //May want to look into more sophisticated means for making this decision later -- e.g. move to yield point
-            if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && scriptContext->TTDRootNestingCount == 0)
+            //Update the time elapsed since a snapshot if needed
+            if(ttdStartTime >= 0.0)
             {
                 TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
 
                 double ttdEndTime = elog->GetCurrentWallTime();
                 elog->IncrementElapsedSnapshotTime(ttdEndTime - ttdStartTime);
-
-                if(elog->IsTimeForSnapshot())
-                {
-                    elog->PushMode(TTD::TTDMode::ExcludedExecution);
-                    elog->DoSnapshotExtract();
-                    elog->PruneLogLength();
-                    elog->PopMode(TTD::TTDMode::ExcludedExecution);
-                }
             }
 #else
             Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);

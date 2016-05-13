@@ -377,6 +377,22 @@ namespace TTD
             }
         }
 
+        void EventLoopYieldPointEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
+        {
+            const EventLoopYieldPointEntry* ypEvt = GetInlineEventDataAs<EventLoopYieldPointEntry, EventKind::EventLoopYieldPointTag>(evt);
+
+            writer->WriteUInt64(NSTokens::Key::eventTime, ypEvt->EventTimeStamp, NSTokens::Separator::CommaSeparator);
+            writer->WriteDouble(NSTokens::Key::loopTime, ypEvt->EventWallTime, NSTokens::Separator::CommaSeparator);
+        }
+
+        void EventLoopYieldPointEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        {
+            EventLoopYieldPointEntry* ypEvt = GetInlineEventDataAs<EventLoopYieldPointEntry, EventKind::EventLoopYieldPointTag>(evt);
+
+            ypEvt->EventTimeStamp = reader->ReadUInt64(NSTokens::Key::eventTime, true);
+            ypEvt->EventWallTime = reader->ReadDouble(NSTokens::Key::loopTime, true);
+        }
+
         //////////////////
 
         void CodeLoadEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)

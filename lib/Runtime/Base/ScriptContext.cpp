@@ -568,16 +568,18 @@ namespace Js
             this->m_ttdRootSet = nullptr;
         }
 
-        if(this->TTDWeakReferencePinSet != nullptr)
-        {
-            this->TTDWeakReferencePinSet->GetAllocator()->RootRelease(this->TTDWeakReferencePinSet);
-            this->TTDWeakReferencePinSet = nullptr;
-        }
-
         if(this->m_ttdLocalRootSet != nullptr)
         {
             this->m_ttdLocalRootSet->GetAllocator()->RootRelease(this->m_ttdLocalRootSet);
             this->m_ttdLocalRootSet = nullptr;
+        }
+
+        this->m_ttdRootTagIdMap.Clear();
+
+        if(this->TTDWeakReferencePinSet != nullptr)
+        {
+            this->TTDWeakReferencePinSet->GetAllocator()->RootRelease(this->TTDWeakReferencePinSet);
+            this->TTDWeakReferencePinSet = nullptr;
         }
 
         this->m_ttdTopLevelScriptLoad.Clear();
@@ -2638,6 +2640,7 @@ namespace Js
         this->ScriptContextLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject());
 
         this->AddTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetUndefined()), this->GetLibrary()->GetUndefined());
+        this->AddTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetNull()), this->GetLibrary()->GetNull());
         this->AddTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetTrue()), this->GetLibrary()->GetTrue());
         this->AddTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetFalse()), this->GetLibrary()->GetFalse());
 

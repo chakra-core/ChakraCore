@@ -191,11 +191,6 @@ namespace TTD
             ctx->RemoveTrackedRoot_TTD(origId, deleteObj);
         }
 
-        void EventLoopYieldPointAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
-        {
-            ctx->ClearLocalRootsAndRefreshMap_TTD();
-        }
-
         void AllocateObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
         {
             Js::RecyclableObject* res = ctx->GetLibrary()->CreateObject();
@@ -856,8 +851,12 @@ namespace TTD
             }
 
             JsRTCallFunctionAction_UnloadSnapshot(evt);
-#endif
 
+            if(cfInfo->LastExecutedLocation.HasValue())
+            {
+                cfInfo->LastExecutedLocation.Clear();
+            }
+#endif
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             alloc.UnlinkString(cfInfo->FunctionName);

@@ -264,6 +264,9 @@ namespace TTD
         //Replay a snapshot event -- either just advance the event position or, if running diagnostics, take new snapshot and compare
         void ReplaySnapshotEvent();
 
+        //Replay an event loop yield point event
+        void ReplayEventLoopYieldPointEvent();
+
         //A helper for initializing and type casting EventLogEntry data for record
         template <typename T, NSLogEvents::EventKind tag>
         T* RecordGetInitializedEvent_Helper()

@@ -1946,11 +1946,11 @@ namespace Js
         executeFunction->EndExecution();
 
 #if ENABLE_TTD_STACK_STMTS
-		if (functionScriptContext->ShouldPerformDebugAction() | functionScriptContext->ShouldPerformRecordAction())
-		{
-			exceptionFramePopper.PopInfo();
-			threadContext->TTDLog->PopCallEvent(function, aReturn);
-		}
+        if(functionScriptContext->ShouldPerformDebugAction() | functionScriptContext->ShouldPerformRecordAction())
+        {
+            exceptionFramePopper.PopInfo();
+            threadContext->TTDLog->PopCallEvent(function, aReturn);
+        }
 #endif
 
         if (fReleaseAlloc)

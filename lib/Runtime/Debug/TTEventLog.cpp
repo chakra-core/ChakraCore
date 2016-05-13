@@ -491,6 +491,13 @@ namespace TTD
         this->AdvanceTimeAndPositionForReplay(); //move along
     }
 
+    void EventLog::ReplayEventLoopYieldPointEvent()
+    {
+        this->m_ttdContext->ClearLocalRootsAndRefreshMap_TTD();
+
+        this->AdvanceTimeAndPositionForReplay(); //move along
+    }
+
     void EventLog::AbortReplayReturnToHost()
     {
         throw TTDebuggerAbortException::CreateAbortEndOfLog(_u("End of log reached -- returning to top-level."));
@@ -501,6 +508,7 @@ namespace TTD
         this->m_eventListVTable = this->m_miscSlabAllocator.SlabAllocateArray<NSLogEvents::EventLogEntryVTableEntry>((uint32)NSLogEvents::EventKind::Count);
 
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::SnapshotTag] = {nullptr, NSLogEvents::SnapshotEventLogEntry_UnloadEventMemory, NSLogEvents::SnapshotEventLogEntry_Emit, NSLogEvents::SnapshotEventLogEntry_Parse};
+        this->m_eventListVTable[(uint32)NSLogEvents::EventKind::EventLoopYieldPointTag] = { nullptr, nullptr, NSLogEvents::EventLoopYieldPointEntry_Emit, NSLogEvents::EventLoopYieldPointEntry_Parse};
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::TopLevelCodeTag] = { nullptr, nullptr, NSLogEvents::CodeLoadEventLogEntry_Emit, NSLogEvents::CodeLoadEventLogEntry_Parse };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::TelemetryLogTag] = { nullptr, NSLogEvents::TelemetryEventLogEntry_UnloadEventMemory, NSLogEvents::TelemetryEventLogEntry_Emit, NSLogEvents::TelemetryEventLogEntry_Parse };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::DoubleTag] = { nullptr, nullptr, NSLogEvents::DoubleEventLogEntry_Emit, NSLogEvents::DoubleEventLogEntry_Parse };
@@ -527,7 +535,6 @@ namespace TTD
 
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::AddRootRefActionTag] = { NSLogEvents::AddRootRef_Execute, nullptr, NSLogEvents::JsRTVarsArgumentAction_Emit<NSLogEvents::EventKind::AddRootRefActionTag>, NSLogEvents::JsRTVarsArgumentAction_Parse<NSLogEvents::EventKind::AddRootRefActionTag> };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::RemoveRootRefActionTag] = { NSLogEvents::RemoveRootRef_Execute, nullptr, NSLogEvents::JsRTVarsArgumentAction_Emit<NSLogEvents::EventKind::RemoveRootRefActionTag>, NSLogEvents::JsRTVarsArgumentAction_Parse<NSLogEvents::EventKind::RemoveRootRefActionTag> };
-        this->m_eventListVTable[(uint32)NSLogEvents::EventKind::EventLoopYieldPointActionTag] = { NSLogEvents::EventLoopYieldPointAction_Execute, nullptr, NSLogEvents::JsRTVarsArgumentAction_Emit<NSLogEvents::EventKind::EventLoopYieldPointActionTag>, NSLogEvents::JsRTVarsArgumentAction_Parse<NSLogEvents::EventKind::EventLoopYieldPointActionTag> };
 
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::AllocateObjectActionTag] = { NSLogEvents::AllocateObject_Execute, nullptr, NSLogEvents::JsRTVarsArgumentAction_Emit<NSLogEvents::EventKind::AllocateObjectActionTag>, NSLogEvents::JsRTVarsArgumentAction_Parse<NSLogEvents::EventKind::AllocateObjectActionTag> };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::AllocateExternalObjectActionTag] = { NSLogEvents::AllocateExternalObject_Execute, nullptr, NSLogEvents::JsRTVarsArgumentAction_Emit<NSLogEvents::EventKind::AllocateExternalObjectActionTag>, NSLogEvents::JsRTVarsArgumentAction_Parse<NSLogEvents::EventKind::AllocateExternalObjectActionTag> };
@@ -1681,6 +1688,10 @@ namespace TTD
         {
             this->ReplaySnapshotEvent();
         }
+        else if(eKind == NSLogEvents::EventKind::EventLoopYieldPointTag)
+        {
+            this->ReplayEventLoopYieldPointEvent();
+        }
         else
         {
             AssertMsg(eKind > NSLogEvents::EventKind::JsRTActionTag, "Either this is an invalid tag to replay directly (should be driven internally) or it is not known!!!");
@@ -1796,11 +1807,23 @@ namespace TTD
 
     void EventLog::RecordJsRTEventLoopYieldPoint(Js::ScriptContext* ctx)
     {
-        this->RecordGetInitializedEvent_Helper<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::EventLoopYieldPointActionTag>();
+        NSLogEvents::EventLoopYieldPointEntry* ypEvt = this->RecordGetInitializedEvent_Helper<NSLogEvents::EventLoopYieldPointEntry, NSLogEvents::EventKind::EventLoopYieldPointTag > ();
+        ypEvt->EventTimeStamp = this->GetLastEventTime();
+        ypEvt->EventWallTime = this->GetCurrentWallTime();
 
-        //
-        //TODO: maybe we want to include snapshot checks here instead of after handlers if these are sufficiently regular
-        //
+        //Put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
+        TTD::EventLog* elog = ctx->GetThreadContext()->TTDLog;
+        if(elog->IsTimeForSnapshot())
+        {
+            BEGIN_ENTER_SCRIPT(ctx, true, true, true);
+            {
+                elog->PushMode(TTD::TTDMode::ExcludedExecution);
+                elog->DoSnapshotExtract();
+                elog->PruneLogLength();
+                elog->PopMode(TTD::TTDMode::ExcludedExecution);
+            }
+            END_ENTER_SCRIPT;
+        }
     }
 
     void EventLog::RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, TTDVar* resultVarPtr)
@@ -2014,7 +2037,7 @@ namespace TTD
                 executeFP(evt, ctx);
             }
 
-            nextActionValid = (this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventKind == NSLogEvents::EventKind::JsRTActionTag);
+            nextActionValid = (this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventKind > NSLogEvents::EventKind::JsRTActionTag);
             nextActionRootCall = (nextActionValid && NSLogEvents::IsJsRTActionRootCall(this->m_currentReplayEventIterator.Current()));
 
         } while(nextActionValid & !nextActionRootCall);

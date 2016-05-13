@@ -285,8 +285,8 @@ namespace Js
         }
         else if(scriptContext->ShouldPerformRecordAction())
         {
-            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths
-            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values);
+            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths -- the increment of nesting is handled by the popper but we need to add 1 to the value we record (so it matches)
+            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
             TTD::TTDRecordExternalFunctionCallActionPopper logPopper(scriptContext, callEvent);
 
             Var result = nullptr;
@@ -376,10 +376,10 @@ namespace Js
         }
         else if(scriptContext->ShouldPerformRecordAction())
         {
-            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths
-            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount, args.Info.Count, args.Values);
+            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths -- the increment of nesting is handled by the popper but we need to add 1 to the value we record (so it matches)
+            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
             TTD::TTDRecordExternalFunctionCallActionPopper logPopper(scriptContext, callEvent);
-            
+
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {
                 result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
@@ -389,14 +389,14 @@ namespace Js
             //exception check is done explicitly below call can have an exception registered
             logPopper.NormalReturn(true, result);
         }
-		else
-		{
-			BEGIN_LEAVE_SCRIPT(scriptContext)
-			{
-				result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
-			}
-			END_LEAVE_SCRIPT(scriptContext);
-		}
+        else
+        {
+            BEGIN_LEAVE_SCRIPT(scriptContext)
+            {
+                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+            }
+            END_LEAVE_SCRIPT(scriptContext);
+        }
 #else
         BEGIN_LEAVE_SCRIPT(scriptContext)
         {

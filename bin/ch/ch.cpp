@@ -688,6 +688,9 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, char16
 #endif
         }
 
+        //Do a yield after the main script body executes
+        ChakraRTInterface::JsTTDNotifyYield();
+
         if(runScript != JsNoError)
         {
             WScriptJsrt::PrintException(fileName, runScript);

@@ -121,6 +121,7 @@ namespace TTD
             Invalid = 0x0,
             //Tags for internal engine events
             SnapshotTag,
+            EventLoopYieldPointTag,
             TopLevelCodeTag,
             TelemetryLogTag,
             DoubleTag,
@@ -148,7 +149,6 @@ namespace TTD
 
             AddRootRefActionTag,
             RemoveRootRefActionTag,
-            EventLoopYieldPointActionTag,
 
             AllocateObjectActionTag,
             AllocateExternalObjectActionTag,
@@ -256,6 +256,19 @@ namespace TTD
 
         void SnapshotEventLogEntry_EnsureSnapshotDeserialized(EventLogEntry* evt, LPCWSTR uri, ThreadContext* threadContext);
         void SnapshotEventLogEntry_UnloadSnapshot(EventLogEntry* evt);
+
+        //A struct that represents snapshot events
+        struct EventLoopYieldPointEntry
+        {
+            //The timestamp of this yieldpoint
+            int64 EventTimeStamp;
+
+            //The wall clock time when this point is reached
+            double EventWallTime;
+        };
+
+        void EventLoopYieldPointEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void EventLoopYieldPointEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
 

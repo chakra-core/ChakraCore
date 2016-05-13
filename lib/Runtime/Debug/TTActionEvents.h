@@ -291,7 +291,6 @@ namespace TTD
 
         void AddRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void RemoveRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
-        void EventLoopYieldPointAction_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
 
         void AllocateObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
         void AllocateExternalObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx);
