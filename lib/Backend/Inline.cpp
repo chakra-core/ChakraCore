@@ -5081,6 +5081,15 @@ Inline::GetInlineeHasArgumentObject(Func * inlinee)
             // Skip nested inlinees
             continue;
         }
+        
+        if (instr->m_opcode == Js::OpCode::LdHeapArguments || instr->m_opcode == Js::OpCode::LdLetHeapArguments ||
+            instr->m_opcode == Js::OpCode::LdHeapArgsCached || instr->m_opcode == Js::OpCode::LdLetHeapArgsCached)
+        {
+            if (instr->IsInlined() && inlinee->GetJnFunction()->GetInParamsCount() - 1 != 0 && !PHASE_OFF1(Js::StackArgFormalsOptPhase))
+            {
+                instr->m_func->DisableCanDoInlineArgOpt();
+            }
+        }
 
         if (instr->m_opcode == Js::OpCode::LdHeapArguments || instr->m_opcode == Js::OpCode::LdLetHeapArguments)
         {

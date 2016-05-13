@@ -3832,17 +3832,22 @@ GlobOpt::OptArguments(IR::Instr *instr)
         return;
     }
 
-    if (instr->m_opcode == Js::OpCode::LdHeapArguments || instr->m_opcode == Js::OpCode::LdLetHeapArguments)
+    if ((instr->m_opcode == Js::OpCode::LdHeapArguments || instr->m_opcode == Js::OpCode::LdLetHeapArguments) && instr->m_func->GetHasStackArgs() && func->GetHasStackArgs() &&
+        !PHASE_OFF1(Js::StackArgFormalsOptPhase))
     {
-        // Stackargs optimization is designed to work with only when function doesn't have formals.
-        if (instr->m_func->GetJnFunction()->GetInParamsCount() != 1)
+        instr->m_func->m_scopeObjOpnd = instr->GetSrc1();
+        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase))
         {
-#ifdef PERF_HINT
-            if (PHASE_TRACE1(Js::PerfHintPhase))
-            {
-                WritePerfHint(PerfHints::HeapArgumentsDueToFormals, instr->m_func->GetJnFunction(), instr->GetByteCodeOffset());
-            }
-#endif
+            Output::Print(L"STACK ARGS WITH FORMALS: Setting frameObject on m_func");
+            Output::Flush();
+        }
+    }
+
+    if (instr->m_opcode == Js::OpCode::LdHeapArguments || instr->m_opcode == Js::OpCode::LdLetHeapArguments ||
+        instr->m_opcode == Js::OpCode::LdHeapArgsCached || instr->m_opcode == Js::OpCode::LdLetHeapArgsCached)
+    {
+        if (instr->m_func->GetJnFunction()->GetInParamsCount() != 1 && PHASE_OFF1(Js::StackArgFormalsOptPhase))
+        {
             CannotAllocateArgumentsObjectOnStack();
         }
         TrackArgumentsSym(dst->AsRegOpnd());

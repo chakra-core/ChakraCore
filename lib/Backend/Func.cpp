@@ -122,6 +122,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     , m_totalJumpTableSizeInBytesForSwitchStatements(0)
     , slotArrayCheckTable(nullptr)
     , frameDisplayCheckTable(nullptr)
+    , m_scopeObjOpnd(nullptr)
 {
     Assert(this->IsInlined() == !!runtimeData);
 

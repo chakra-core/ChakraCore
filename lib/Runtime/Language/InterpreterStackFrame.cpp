@@ -8322,6 +8322,36 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return args;
     }
 
+    void InterpreterStackFrame::TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext)
+    {
+        if (PHASE_OFF1(Js::StackArgFormalsOptPhase))
+        {
+            return;
+        }
+
+        ActivationObject * frameObject = (ActivationObject*)GetLocalClosure();
+        uint32 formalsCount = this->m_functionBody->GetInParamsCount() - 1;
+
+        if (formalsCount != 0 &&
+            this->m_functionBody->HasScopeObject() &&
+            m_arguments != nullptr &&
+            ((Js::HeapArgumentsObject*)(m_arguments))->GetFrameObject() == scriptContext->GetLibrary()->GetNull() &&
+            frameObject != nullptr &&
+            frameObject != scriptContext->GetLibrary()->GetNull()
+            )
+        {
+            Js::HeapArgumentsObject* heapArgObj = (Js::HeapArgumentsObject*)m_arguments;
+            heapArgObj->SetFrameObject(frameObject);
+            heapArgObj->SetFormalCount(formalsCount);
+
+            if (PHASE_TRACE1(Js::StackArgFormalsOptPhase))
+            {
+                Output::Print(L"STACK ARGS WITH FORMALS: Bailing Out - Setting frameObject pointer in the heap arguments object");
+                Output::Flush();
+            }
+        }
+    }
+
     Var InterpreterStackFrame::OP_LdArgumentsFromFrame()
     {
         return this->m_arguments;

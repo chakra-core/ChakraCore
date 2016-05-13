@@ -126,6 +126,7 @@ PHASE(All)
                     #endif
                 PHASE(CheckThis)
                 PHASE(StackArgOpt)
+                PHASE(StackArgFormalsOpt)
                 PHASE(IndirCopyProp)
                 PHASE(ArrayCheckHoist)
                     PHASE(ArrayMissingValueCheckHoist)

@@ -1617,6 +1617,8 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         }
     }
 
+    newInstance->TrySetFrameObjectInHeapArgObj(functionScriptContext);
+
     uint32 innerScopeCount = executeFunction->GetInnerScopeCount();
     for (uint32 i = 0; i < innerScopeCount; i++)
     {
