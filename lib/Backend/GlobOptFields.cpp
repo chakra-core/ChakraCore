@@ -262,17 +262,17 @@ GlobOpt::DoFieldPRE(Loop *loop) const
     return DoFieldOpts(loop);
 }
 
-bool GlobOpt::DoMemOp(Loop *loop)
+bool GlobOpt::HasMemOp(Loop *loop)
 {
 #pragma prefast(suppress: 6285, "logical-or of constants is by design")
     return (
         loop &&
+        loop->doMemOp &&
         (
             !PHASE_OFF(Js::MemSetPhase, this->func) ||
             !PHASE_OFF(Js::MemCopyPhase, this->func)
         ) &&
         loop->memOpInfo &&
-        loop->memOpInfo->doMemOp &&
         loop->memOpInfo->candidates &&
         !loop->memOpInfo->candidates->Empty()
     );
