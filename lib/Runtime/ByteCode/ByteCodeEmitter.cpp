@@ -1799,14 +1799,24 @@ void ByteCodeGenerator::InitScopeSlotArray(FuncInfo * funcInfo)
             propertyIdsForScopeSlotArray[i] = Js::Constants::NoProperty;
         }
 #endif
+        auto setPropertyIdForScopeSlotArray =
+            [scopeSlotCount, propertyIdsForScopeSlotArray]
+            (Js::PropertyId slot, Js::PropertyId propId)
+        {
+            if (slot < 0 || (uint)slot >= scopeSlotCount)
+            {
+                Js::Throw::FatalInternalError();
+            }
+            propertyIdsForScopeSlotArray[slot] = propId;
+        };
 
-        auto setPropIdsForScopeSlotArray = [funcInfo, propertyIdsForScopeSlotArray](Symbol *const sym)
+        auto setPropIdsForScopeSlotArray = [funcInfo, setPropertyIdForScopeSlotArray](Symbol *const sym)
         {
             if (sym->NeedsSlotAlloc(funcInfo))
             {
                 // All properties should get correct propertyId here.
                 Assert(sym->HasScopeSlot()); // We can't allocate scope slot now. Any symbol needing scope slot must have allocated it before this point.
-                propertyIdsForScopeSlotArray[sym->GetScopeSlot()] = sym->EnsurePosition(funcInfo);
+                setPropertyIdForScopeSlotArray(sym->GetScopeSlot(), sym->EnsurePosition(funcInfo));
             }
         };
 
@@ -1814,22 +1824,22 @@ void ByteCodeGenerator::InitScopeSlotArray(FuncInfo * funcInfo)
 
         if (funcInfo->thisScopeSlot != Js::Constants::NoRegister)
         {
-            propertyIdsForScopeSlotArray[funcInfo->thisScopeSlot] = Js::PropertyIds::_lexicalThisSlotSymbol;
+            setPropertyIdForScopeSlotArray(funcInfo->thisScopeSlot, Js::PropertyIds::_lexicalThisSlotSymbol);
         }
 
         if (funcInfo->newTargetScopeSlot != Js::Constants::NoRegister)
         {
-            propertyIdsForScopeSlotArray[funcInfo->newTargetScopeSlot] = Js::PropertyIds::_lexicalNewTargetSymbol;
+            setPropertyIdForScopeSlotArray(funcInfo->newTargetScopeSlot, Js::PropertyIds::_lexicalNewTargetSymbol);
         }
 
         if (funcInfo->superScopeSlot != Js::Constants::NoRegister)
         {
-            propertyIdsForScopeSlotArray[funcInfo->superScopeSlot] = Js::PropertyIds::_superReferenceSymbol;
+            setPropertyIdForScopeSlotArray(funcInfo->superScopeSlot, Js::PropertyIds::_superReferenceSymbol);
         }
 
         if (funcInfo->superCtorScopeSlot != Js::Constants::NoRegister)
         {
-            propertyIdsForScopeSlotArray[funcInfo->superCtorScopeSlot] = Js::PropertyIds::_superCtorReferenceSymbol;
+            setPropertyIdForScopeSlotArray(funcInfo->superCtorScopeSlot, Js::PropertyIds::_superCtorReferenceSymbol);
         }
 
 #if DEBUG
