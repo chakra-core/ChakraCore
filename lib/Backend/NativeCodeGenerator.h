@@ -211,6 +211,7 @@ private:
             : JsUtil::WaitableJobManager(processor)
             , autoClose(true)
             , isClosed(false)
+            , processed(false)
         {
             Processor()->AddManager(this);
         }
@@ -238,7 +239,7 @@ private:
 
         FreeLoopBodyJob* GetJob(FreeLoopBodyJob* job)
         {
-            return job;
+            return this->processed ? nullptr : job;
         }
 
         bool WasAddedToJobProcessor(JsUtil::Job *const job) const
@@ -268,6 +269,8 @@ private:
         {
             FreeLoopBodyJob* freeLoopBodyJob = static_cast<FreeLoopBodyJob*>(job);
 
+            this->processed = true;
+
             if (freeLoopBodyJob->heapAllocated)
             {
                 HeapDelete(freeLoopBodyJob);
@@ -280,6 +283,7 @@ private:
         NativeCodeGenerator* nativeCodeGen;
         bool autoClose;
         bool isClosed;
+        bool processed;
     };
 
     FreeLoopBodyJobManager freeLoopBodyManager;
