@@ -289,7 +289,7 @@ namespace Js
         Assert(scriptContext->GetThreadContext()->IsScriptActive());
 
         // Make sure the callee knows we are a wrapped function thunk
-        args.Info.Flags = (Js::CallFlags) (((long) args.Info.Flags) | CallFlags_Wrapped);
+        args.Info.Flags = (Js::CallFlags) (((int32) args.Info.Flags) | CallFlags_Wrapped);
 
         // don't need to leave script here, ExternalFunctionThunk will
         Assert(externalFunction->wrappedMethod->GetFunctionInfo()->GetOriginalEntryPoint() == JavascriptExternalFunction::ExternalFunctionThunk);

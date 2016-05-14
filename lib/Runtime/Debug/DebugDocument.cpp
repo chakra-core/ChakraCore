@@ -65,7 +65,7 @@ namespace Js
         return BreakpointProbeList::New(arena);
     }
 
-    HRESULT DebugDocument::SetBreakPoint(long ibos, BREAKPOINT_STATE breakpointState)
+    HRESULT DebugDocument::SetBreakPoint(int32 ibos, BREAKPOINT_STATE breakpointState)
     {
         ScriptContext* scriptContext = this->utf8SourceInfo->GetScriptContext();
 
@@ -158,7 +158,7 @@ namespace Js
         }
     }
 
-    BOOL DebugDocument::GetStatementSpan(long ibos, StatementSpan* pStatement)
+    BOOL DebugDocument::GetStatementSpan(int32 ibos, StatementSpan* pStatement)
     {
         StatementLocation statement;
         if (GetStatementLocation(ibos, &statement))
@@ -170,7 +170,7 @@ namespace Js
         return FALSE;
     }
 
-    FunctionBody * DebugDocument::GetFunctionBodyAt(long ibos)
+    FunctionBody * DebugDocument::GetFunctionBodyAt(int32 ibos)
     {
         StatementLocation location = {};
         if (GetStatementLocation(ibos, &location))
@@ -181,12 +181,12 @@ namespace Js
         return nullptr;
     }
 
-    BOOL DebugDocument::HasLineBreak(long _start, long _end)
+    BOOL DebugDocument::HasLineBreak(int32 _start, int32 _end)
     {
         return this->functionBody->HasLineBreak(_start, _end);
     }
 
-    BOOL DebugDocument::GetStatementLocation(long ibos, StatementLocation* plocation)
+    BOOL DebugDocument::GetStatementLocation(int32 ibos, StatementLocation* plocation)
     {
         if (ibos < 0)
         {

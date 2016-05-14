@@ -963,7 +963,7 @@ SECOND_PASS:
 
         const auto isSegmentValid = [length](Js::SparseArraySegment<T>* segment, uint32 startIndex) {
             uint32 end, segmentEnd;
-            // Check the segment is long enough
+            // Check the segment is int32 enough
             return (
                 segment &&
                 !UInt32Math::Add(startIndex, length, &end) &&

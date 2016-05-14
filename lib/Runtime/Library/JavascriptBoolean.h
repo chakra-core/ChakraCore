@@ -50,6 +50,6 @@ namespace Js
 
     private:
         static BOOL Equals(JavascriptBoolean* left, Var right, BOOL* value, ScriptContext * requestContext);
-        static Var TryInvokeRemotelyOrThrow(JavascriptMethod entryPoint, ScriptContext * scriptContext, Arguments & args, long errorCode, PCWSTR varName);
+        static Var TryInvokeRemotelyOrThrow(JavascriptMethod entryPoint, ScriptContext * scriptContext, Arguments & args, int32 errorCode, PCWSTR varName);
     };
 }

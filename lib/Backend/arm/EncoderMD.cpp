@@ -892,7 +892,7 @@ EncoderMD::GetForm(IR::Instr *instr, int32 size)
     return (form);
 }
 
-bool EncoderMD::EncodeImmediate16(long constant, DWORD * result)
+bool EncoderMD::EncodeImmediate16(int32 constant, DWORD * result)
 {
     if (constant > 0xFFFF)
     {
@@ -909,7 +909,7 @@ bool EncoderMD::EncodeImmediate16(long constant, DWORD * result)
 }
 
 ENCODE_32
-EncoderMD::EncodeT2Immediate12(ENCODE_32 encode, long constant)
+EncoderMD::EncodeT2Immediate12(ENCODE_32 encode, int32 constant)
 {
     Assert((constant & 0xFFFFF000) == 0);
 
@@ -987,7 +987,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, IFORM iform, BYTE *pc, int32 size,
     bool fPost;
 
     int done = false;
-    long constant = 0; //UTC IVALTYPE
+    int32 constant = 0; //UTC IVALTYPE
     bool constantValid = false;
     RegNum regNum;
     unsigned int iType = 0, SFlag = 0;
@@ -1438,7 +1438,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, IFORM iform, BYTE *pc, int32 size,
                         if (!constant)
                         {
                             BVUnit32 registers = opndRD->AsRegBVOpnd()->GetValue();
-                            unsigned long regenc;
+                            uint32 regenc;
                             BVIndex index = registers.GetNextBit();
 
                             // Note: only the wide encoding distinguishes between

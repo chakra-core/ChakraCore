@@ -56,7 +56,7 @@ namespace Js
         void SetrequestedModuleList(IdentPtrList* requestModules) { requestedModuleList = requestModules; }
 
         ScriptContext* GetScriptContext() const { return scriptContext; }
-        HRESULT ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8);
+        HRESULT ParseSource(__in_bcount(sourceLength) byte* sourceText, uint32 sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8);
         HRESULT OnHostException(void* errorVar);
 
         static SourceTextModuleRecord* FromHost(void* hostModuleRecord)
@@ -75,7 +75,7 @@ namespace Js
 
         SourceTextModuleRecord* GetChildModuleRecord(LPCOLESTR specifier) const;
 #if DBG
-        void AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, unsigned long specifierLength);
+        void AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, uint32 specifierLength);
 #endif
 
         Utf8SourceInfo* GetSourceInfo() { return this->pSourceInfo; }

@@ -7564,7 +7564,7 @@ Case0:
     {
         uint32 lu, luDig;
 
-        long cch = (long)wcslen(propName);
+        int32 cch = (int32)wcslen(propName);
         char16* pch = const_cast<char16 *>(propName);
 
         lu = *pch - '0';

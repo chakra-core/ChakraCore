@@ -18,7 +18,7 @@ char16 DynamicProfileStorage::catalogFilename[_MAX_PATH];
 CriticalSection DynamicProfileStorage::cs;
 DynamicProfileStorage::InfoMap DynamicProfileStorage::infoMap(&NoCheckHeapAllocator::Instance);
 DWORD DynamicProfileStorage::creationTime = 0;
-long DynamicProfileStorage::lastOffset = 0;
+int32 DynamicProfileStorage::lastOffset = 0;
 DWORD const DynamicProfileStorage::MagicNumber = 20100526;
 DWORD const DynamicProfileStorage::FileFormatVersion = 2;
 DWORD DynamicProfileStorage::nextFileId = 0;
@@ -46,9 +46,9 @@ public:
 
     bool WriteUtf8String(char16 const * str);
 
-    bool Seek(long offset);
+    bool Seek(int32 offset);
     bool SeekToEnd();
-    long Size();
+    int32 Size();
     void Close(bool deleteFile = false);
 
 private:
@@ -92,7 +92,7 @@ template <typename T>
 bool DynamicProfileStorageReaderWriter::ReadArray(T * t, size_t len)
 {
     Assert(file);
-    long pos = ftell(file);
+    int32 pos = ftell(file);
     if (fread(t, sizeof(T), len, file) != len)
     {
         Output::Print(_u("ERROR: DynamicProfileStorage: '%s': File corrupted at %d\n"), filename, pos);
@@ -175,7 +175,7 @@ bool DynamicProfileStorageReaderWriter::WriteUtf8String(char16 const * str)
     return success;
 }
 
-bool DynamicProfileStorageReaderWriter::Seek(long offset)
+bool DynamicProfileStorageReaderWriter::Seek(int32 offset)
 {
     Assert(file);
     return fseek(file, offset, SEEK_SET) == 0;
@@ -187,12 +187,12 @@ bool DynamicProfileStorageReaderWriter::SeekToEnd()
     return fseek(file, 0, SEEK_END) == 0;
 }
 
-long DynamicProfileStorageReaderWriter::Size()
+int32 DynamicProfileStorageReaderWriter::Size()
 {
     Assert(file);
-    long current = ftell(file);
+    int32 current = ftell(file);
     SeekToEnd();
-    long end = ftell(file);
+    int32 end = ftell(file);
     fseek(file, current, SEEK_SET);
     return end;
 }
@@ -235,7 +235,7 @@ char const * DynamicProfileStorage::StorageInfo::ReadRecord() const
         return nullptr;
     }
 
-    long size = reader.Size();
+    int32 size = reader.Size();
     char * record = AllocRecord(size);
     if (record == nullptr)
     {

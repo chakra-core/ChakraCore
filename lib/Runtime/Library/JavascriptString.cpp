@@ -2878,7 +2878,7 @@ case_2:
     bool JavascriptString::ToDouble(double * result)
     {
         const char16* pch;
-        long len = this->m_charLength;
+        int32 len = this->m_charLength;
         if (0 == len)
         {
             *result = 0;
@@ -3301,7 +3301,7 @@ case_2:
 
         const char16 searchLast = searchStr[searchLen-1];
 
-        unsigned long lMatchedJump = searchLen;
+        uint32 lMatchedJump = searchLen;
         if (jmpTable[searchLast].shift > 0)
         {
             lMatchedJump = jmpTable[searchLast].shift;
@@ -3345,7 +3345,7 @@ case_2:
     int JavascriptString::LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, int len, const char16* searchStr, int searchLen, int position)
     {
         const char16 searchFirst = searchStr[0];
-        unsigned long lMatchedJump = searchLen;
+        uint32 lMatchedJump = searchLen;
         if (jmpTable[searchFirst].shift > 0)
         {
             lMatchedJump = jmpTable[searchFirst].shift;
@@ -3395,7 +3395,7 @@ case_2:
             {
                 if ( jmpTable[c].shift == 0 )
                 {
-                    jmpTable[c].shift = (unsigned long)(searchStr + searchLen - 1 - p2);
+                    jmpTable[c].shift = (uint32)(searchStr + searchLen - 1 - p2);
                 }
             }
             else
@@ -3424,7 +3424,7 @@ case_2:
             {
                 if ( jmpTable[c].shift == 0 )
                 {
-                    jmpTable[c].shift = (unsigned long)(p2 - searchStr);
+                    jmpTable[c].shift = (uint32)(p2 - searchStr);
                 }
             }
             else

@@ -101,7 +101,7 @@ namespace Js
     // array 'bUTF8'. uLen is the number of characters in the UTF-8 encoding.
     // This routine assumes that a valid UTF-8 encoding of a character is passed in
     // and does no error checking.
-    unsigned long UriHelper::FromUTF8( BYTE bUTF8[MaxUTF8Len], uint32 uLen )
+    uint32 UriHelper::FromUTF8( BYTE bUTF8[MaxUTF8Len], uint32 uLen )
     {
         Assert( 1 <= uLen && uLen <= MaxUTF8Len );
         if( uLen == 1 )

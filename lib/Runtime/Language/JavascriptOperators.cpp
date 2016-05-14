@@ -8973,7 +8973,7 @@ CommonNumber:
             }
             if (descriptor->WritableSpecified())
             {
-                long hCode = descriptor->IsWritable() ? JSERR_InvalidAttributeTrue : JSERR_InvalidAttributeFalse;
+                int32 hCode = descriptor->IsWritable() ? JSERR_InvalidAttributeTrue : JSERR_InvalidAttributeFalse;
                 JavascriptError::ThrowTypeError(scriptContext, hCode, _u("writable"));
             }
         }
@@ -9113,7 +9113,7 @@ CommonNumber:
         }
     }
 
-    BOOL JavascriptOperators::Reject(bool throwOnError, ScriptContext* scriptContext, long errorCode, PropertyId propertyId)
+    BOOL JavascriptOperators::Reject(bool throwOnError, ScriptContext* scriptContext, int32 errorCode, PropertyId propertyId)
     {
         Assert(scriptContext);
 

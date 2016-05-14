@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #if defined(_M_ARM32_OR_ARM64) || defined(_M_X64)
-const long AstBytecodeRatioEstimate = 4;
+const int32 AstBytecodeRatioEstimate = 4;
 #else
-const long AstBytecodeRatioEstimate = 5;
+const int32 AstBytecodeRatioEstimate = 5;
 #endif
 
 class ByteCodeGenerator
@@ -26,7 +26,7 @@ private:
     // pointer to the root function wrapper that will be invoked by the caller
     Js::ParseableFunctionInfo * pRootFunc;
 
-    long maxAstSize;
+    int32 maxAstSize;
     uint16 envDepth;
     uint sourceIndex;
     uint dynamicScopeCount;

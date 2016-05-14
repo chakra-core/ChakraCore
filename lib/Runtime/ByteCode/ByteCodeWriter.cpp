@@ -20,7 +20,7 @@ namespace Js
         DebugOnly(isInUse = false);
     }
 
-    void ByteCodeWriter::InitData(ArenaAllocator* alloc, long initCodeBufferSize)
+    void ByteCodeWriter::InitData(ArenaAllocator* alloc, int32 initCodeBufferSize)
     {
         Assert(!isInUse);
         Assert(!isInitialized);
@@ -121,7 +121,7 @@ namespace Js
     ///
     ///----------------------------------------------------------------------------
 #ifdef LOG_BYTECODE_AST_RATIO
-    void ByteCodeWriter::End(long currentAstSize, long maxAstSize)
+    void ByteCodeWriter::End(int32 currentAstSize, int32 maxAstSize)
 #else
     void ByteCodeWriter::End()
 #endif

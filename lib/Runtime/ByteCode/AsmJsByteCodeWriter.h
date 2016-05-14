@@ -14,7 +14,7 @@ namespace Js
         using ByteCodeWriter::MarkLabel;
 
     public:
-        void InitData        ( ArenaAllocator* alloc, long initCodeBufferSize );
+        void InitData        ( ArenaAllocator* alloc, int32 initCodeBufferSize );
         void EmptyAsm        ( OpCodeAsmJs op );
         void Conv            ( OpCodeAsmJs op, RegSlot R0, RegSlot R1 );
         void AsmInt1Const1   ( OpCodeAsmJs op, RegSlot R0, int C1 );

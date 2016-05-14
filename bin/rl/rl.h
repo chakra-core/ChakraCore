@@ -24,6 +24,8 @@
 #pragma warning(disable:4127) // expression is constant, e.g., while(TRUE)
 
 #define LOCAL static
+typedef __int32 int32;
+typedef unsigned __int32 uint32;
 
 #define BUFFER_SIZE 1024
 #define MAXQUEUE    10000
@@ -320,7 +322,7 @@ class COutputBuffer;
 
 class CProtectedLong {
     CRITICAL_SECTION    _cs;
-    long                _value;
+    int32                _value;
 
 public:
 
@@ -334,31 +336,31 @@ public:
         DeleteCriticalSection(&_cs);
     }
 
-    long operator++(int)
+    int32 operator++(int)
     {
         EnterCriticalSection(&_cs);
-        long tmp = _value++;
+        int32 tmp = _value++;
         LeaveCriticalSection(&_cs);
         return tmp;
     }
 
-    long operator--(int)
+    int32 operator--(int)
     {
         EnterCriticalSection(&_cs);
-        long tmp = _value--;
+        int32 tmp = _value--;
         LeaveCriticalSection(&_cs);
         return tmp;
     }
 
-    long operator+=(long incr)
+    int32 operator+=(int32 incr)
     {
         EnterCriticalSection(&_cs);
-        long tmp = (_value += incr);
+        int32 tmp = (_value += incr);
         LeaveCriticalSection(&_cs);
         return tmp;
     }
 
-    long operator=(long val)
+    int32 operator=(int32 val)
     {
         EnterCriticalSection(&_cs);
         _value = val;
@@ -371,7 +373,6 @@ public:
         return _value == rhs._value;
     }
 
-    operator long() { return _value; }
     operator int()  { return _value; }
 };
 
@@ -620,9 +621,9 @@ public:
     void SetDiffFlag() { _isDiffDirectory = true; }
 
     void InitStats(int run);
-    long IncRun(int inc = 1);
-    long IncFailures(int inc = 1);
-    long IncDiffs();
+    int32 IncRun(int inc = 1);
+    int32 IncFailures(int inc = 1);
+    int32 IncDiffs();
 
     // Trigger update of directory state.
     void UpdateState();
