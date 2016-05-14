@@ -1308,7 +1308,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         }
 
         // In either case register the function reference
-        scriptContext->RegisterDynamicFunctionReference(parseableFunctionInfo);
+        scriptContext->GetLibrary()->RegisterDynamicFunctionReference(parseableFunctionInfo);
 
 #if DBG
         parseableFunctionInfo->deferredParseNextFunctionId = pnode->sxFnc.deferredParseNextFunctionId;
@@ -5255,7 +5255,7 @@ Js::FunctionBody * ByteCodeGenerator::MakeGlobalFunctionBody(ParseNode *pnode)
             );
 
     func->SetIsGlobalFunc(true);
-    scriptContext->RegisterDynamicFunctionReference(func);
+    scriptContext->GetLibrary()->RegisterDynamicFunctionReference(func);
     LEAVE_PINNED_SCOPE();
 
     return func;
