@@ -597,14 +597,17 @@ STDAPI_(JsErrorCode) JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
             }
 
             Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-            if((lCount == 1) & Js::RecyclableObject::Is(ref) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
+            if((lCount == 1) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
             {
-                Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
-                scriptContext->AddTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
-
-                if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+                if(!scriptContext->GetThreadContext()->TTDLog->IsPropertyRecordRef(ref))
                 {
-                    scriptContext->GetThreadContext()->TTDLog->RecordJsRTAddRootRef(scriptContext, (Js::Var)ref);
+                    Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
+                    scriptContext->AddTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
+
+                    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+                    {
+                        scriptContext->GetThreadContext()->TTDLog->RecordJsRTAddRootRef(scriptContext, (Js::Var)ref);
+                    }
                 }
             }
 #else
@@ -667,15 +670,22 @@ STDAPI_(JsErrorCode) JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
                 *count = lCount;
             }
 
-            Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-            if((lCount == 0) & Js::RecyclableObject::Is(ref) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
+            //At shutdown we may get called when Context is destroyed so don't try and access it and don't do any TTD stuff
+            if(JsrtContext::GetCurrent() != nullptr)
             {
-                Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
-                scriptContext->RemoveTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
-
-                if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+                Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
+                if((lCount == 0) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
                 {
-                    scriptContext->GetThreadContext()->TTDLog->RecordJsRTRemoveRootRef(scriptContext, (Js::Var)ref);
+                    if(!scriptContext->GetThreadContext()->TTDLog->IsPropertyRecordRef(ref))
+                    {
+                        Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
+                        scriptContext->RemoveTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
+
+                        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+                        {
+                            scriptContext->GetThreadContext()->TTDLog->RecordJsRTRemoveRootRef(scriptContext, (Js::Var)ref);
+                        }
+                    }
                 }
             }
 #else

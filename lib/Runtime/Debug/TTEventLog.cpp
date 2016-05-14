@@ -1729,6 +1729,12 @@ namespace TTD
         this->AbortReplayReturnToHost();
     }
 
+    bool EventLog::IsPropertyRecordRef(void* ref) const
+    {
+        //This is an ugly cast but we just want to know if the pointer is in the set so it is ok here
+        return this->m_propertyRecordPinSet->ContainsKey((Js::PropertyRecord*)ref);
+    }
+
     double EventLog::GetCurrentWallTime()
     {
         return this->m_timer.Now();
@@ -2118,29 +2124,39 @@ namespace TTD
             {
                 writer.WriteSequenceStart(NSTokens::Separator::CommaAndBigSpaceSeparator);
 
+                int64 lastNestedTime = -1;
                 if(isJsRTBeginCall)
                 {
-                    int64 lastNestedTime = NSLogEvents::JsRTCallFunctionAction_GetLastNestedEventTime(evt);
-                    callNestingStack.Push(lastNestedTime);
+                    lastNestedTime = NSLogEvents::JsRTCallFunctionAction_GetLastNestedEventTime(evt);
                 }
                 else
                 {
-                    int64 lastNestedTime = NSLogEvents::ExternalCallEventLogEntry_GetLastNestedEventTime(evt);
-                    callNestingStack.Push(lastNestedTime);
+                    lastNestedTime = NSLogEvents::ExternalCallEventLogEntry_GetLastNestedEventTime(evt);
                 }
+                callNestingStack.Push(lastNestedTime);
 
-                writer.AdjustIndent(1);
-                writer.WriteSeperator(NSTokens::Separator::BigSpaceSeparator);
+                if(lastNestedTime != evt->EventTimeStamp)
+                {
+                    writer.AdjustIndent(1);
+                    writer.WriteSeperator(NSTokens::Separator::BigSpaceSeparator);
+                }
             }
 
             doSep = (!isJsRTBeginCall & !isExternalBeginCall);
 
             while(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
             {
-                writer.AdjustIndent(-1);
-
                 callNestingStack.Pop();
-                writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
+                if(doSep)
+                {
+                    writer.AdjustIndent(-1);
+                    writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
+                }
+                else
+                {
+                    writer.WriteSequenceEnd();
+                    doSep = true;
+                }
             }
 #endif
         }
@@ -2298,7 +2314,16 @@ namespace TTD
             while(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
             {
                 callNestingStack.Pop();
-                reader.ReadSequenceEnd();
+
+                if(doSep)
+                {
+                    reader.ReadSequenceEnd();
+                }
+                else
+                {
+                    reader.ReadSequenceEnd();
+                    doSep = true;
+                }
             }
 #endif
         }

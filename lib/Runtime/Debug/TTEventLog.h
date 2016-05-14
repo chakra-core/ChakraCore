@@ -547,6 +547,9 @@ namespace TTD
         ////////////////////////////////
         //Host API record & replay support
 
+        //Return true if this is a propertyRecord reference
+        bool IsPropertyRecordRef(void* ref) const;
+
         //Get the current time from the hi res timer
         double GetCurrentWallTime();
 
