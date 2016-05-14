@@ -704,11 +704,12 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                 if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
                 {
                     wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Js::FunctionBody* topFunctionBody = this->func->GetTopFunc()->GetJnFunction();
-                    Js::FunctionBody* functionBody = this->func->GetJnFunction();
                     Output::Print(L"ObjTypeSpec: top function %s (%s), function %s (%s), write guard symbols on edge %d => %d: ",
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(),
-                        functionBody->GetDebugNumberSet(debugStringBuffer2), block->GetBlockNum(), blockSucc->GetBlockNum());
+                        this->func->GetTopFunc()->GetWorkItem()->GetDisplayName(),
+                        this->func->GetTopFunc()->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetWorkItem()->GetDisplayName(),
+                        this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2), block->GetBlockNum(),
+                        blockSucc->GetBlockNum());
                 }
 #endif
                 if (blockSucc->stackSymToWriteGuardsMap != nullptr)
@@ -751,11 +752,12 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 #if DBG_DUMP
                 if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecTypeGuardsPhase, this->func))
                 {
-                    Js::FunctionBody* topFunctionBody = this->func->GetTopFunc()->GetJnFunction();
-                    Js::FunctionBody* functionBody = this->func->GetJnFunction();
                     wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(L"ObjTypeSpec: top function %s (%s), function %s (%s), guarded property operations on edge %d => %d: \n",
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2),
+                        this->func->GetTopFunc()->GetWorkItem()->GetDisplayName(),
+                        this->func->GetTopFunc()->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetWorkItem()->GetDisplayName(),
+                        this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
                         block->GetBlockNum(), blockSucc->GetBlockNum());
                 }
 #endif
@@ -3969,11 +3971,10 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                     (existingFldInfo->GetSlotIndex() != opnd->GetSlotIndex())))
                 {
                     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Js::FunctionBody* topFunctionBody = this->func->GetJnFunction();
-                    Js::ScriptContext* scriptContext = topFunctionBody->GetScriptContext();
+                    Js::ScriptContext* scriptContext = this->func->GetScriptContext();
 
                     Output::Print(L"EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) on operation %u \n",
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetWorkItem()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                         scriptContext->GetPropertyNameLocked(opnd->GetPropertyId())->GetBuffer(), opnd->GetPropertyId(), opnd->GetObjTypeSpecFldId());
                     Output::Flush();
                 }

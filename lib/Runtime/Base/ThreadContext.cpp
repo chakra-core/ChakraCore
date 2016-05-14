@@ -38,7 +38,7 @@
 #include "Telemetry.h"
 #endif
 
-int TotalNumberOfBuiltInProperties = Js::PropertyIds::_countJSOnlyProperty;
+const int TotalNumberOfBuiltInProperties = Js::PropertyIds::_countJSOnlyProperty;
 
 /*
  * When we aren't adding any additional properties

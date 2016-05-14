@@ -35,9 +35,16 @@ JITOutput::SetVarChangedOffset(int32 offset)
 void
 JITOutput::SetHasBailoutInstr(bool val)
 {
-    m_outputData->hasBailoutInstr = val;
+    m_outputData->writeableBodyData.hasBailoutInstr = val;
 }
 
+void
+JITOutput::SetArgUsedForBranch(uint8 param)
+{
+    Assert(param > 0);
+    Assert(param < Js::Constants::MaximumArgumentCountForConstantArgumentInlining);
+    m_outputData->writeableBodyData.argUsedForBranch |= (1 << (param - 1));
+}
 
 intptr_t
 JITOutput::GetCodeAddress() const

@@ -96,9 +96,9 @@ struct InlineeFrameRecord
 #endif
     {}
 
-    static InlineeFrameRecord* New(NativeCodeData::Allocator* alloc, uint argCount, uint constantCount, Js::FunctionBody* functionBody, InlineeFrameInfo* frameInfo)
+    static InlineeFrameRecord* New(NativeCodeData::Allocator* alloc, uint argCount, uint constantCount, intptr_t functionBodyAddr, InlineeFrameInfo* frameInfo)
     {
-        InlineeFrameRecord* record = NativeCodeDataNewZ(alloc, InlineeFrameRecord, argCount, functionBody, frameInfo);
+        InlineeFrameRecord* record = NativeCodeDataNewZ(alloc, InlineeFrameRecord, argCount, (Js::FunctionBody*)functionBodyAddr, frameInfo);
         record->argOffsets = NativeCodeDataNewArray(alloc, int, argCount);
         record->constants = NativeCodeDataNewArray(alloc, Js::Var, constantCount);
         DebugOnly(record->constantCount = constantCount);
@@ -176,7 +176,7 @@ struct InlineeFrameInfo
             callback(function.sym);
         }
     }
-    void AllocateRecord(Func* func, Js::FunctionBody* functionBody);
+    void AllocateRecord(Func* func, intptr_t functionBodyAddr);
 
 #if DBG_DUMP
     void Dump() const;

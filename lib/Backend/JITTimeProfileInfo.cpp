@@ -46,6 +46,10 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->callSiteData = reinterpret_cast<CallSiteData*>(profileInfo->GetCallSiteInfo());
 
     CompileAssert(sizeof(ValueType) == sizeof(uint16));
+
+    data->profiledSlotCount = functionBody->GetProfiledSlotCount();
+    data->slotData = reinterpret_cast<uint16*>(profileInfo->GetSlotInfo());
+
     data->profiledReturnTypeCount = functionBody->GetProfiledReturnTypeCount();
     data->returnTypeData = reinterpret_cast<uint16*>(profileInfo->GetReturnTypeInfo());
 
@@ -126,6 +130,13 @@ JITTimeProfileInfo::GetFldInfo(uint fieldAccessId) const
 {
     Assert(fieldAccessId < GetProfiledFldCount());
     return &(reinterpret_cast<Js::FldInfo*>(m_profileData->fldData)[fieldAccessId]);
+}
+
+ValueType
+JITTimeProfileInfo::GetSlotLoad(Js::ProfileId slotLoadId) const
+{
+    Assert(slotLoadId < GetProfiledSlotCount());
+    return reinterpret_cast<ValueType*>(m_profileData->slotData)[slotLoadId];
 }
 
 Js::ThisInfo
@@ -425,6 +436,12 @@ Js::ProfileId
 JITTimeProfileInfo::GetProfiledSwitchCount() const
 {
     return static_cast<Js::ProfileId>(m_profileData->profiledSwitchCount);
+}
+
+Js::ProfileId
+JITTimeProfileInfo::GetProfiledSlotCount() const
+{
+    return static_cast<Js::ProfileId>(m_profileData->profiledSlotCount);
 }
 
 Js::ArgSlot

@@ -958,6 +958,10 @@ namespace Js
         bool TryGetResult(Var instance, JavascriptFunction * function, JavascriptBoolean ** result);
         void Cache(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result, ScriptContext * scriptContext);
 
+        static uint32 OffsetOfFunction();
+        static uint32 OffsetOfResult();
+        static uint32 OffsetOfType();
+
     private:
         void Set(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result);
         void Clear();

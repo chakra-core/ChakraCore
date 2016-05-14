@@ -284,7 +284,7 @@ LinearScan::RegAlloc()
 
 #if _M_IX86
 # if ENABLE_DEBUG_CONFIG_OPTIONS
-    if (Js::Configuration::Global.flags.Instrument.IsEnabled(Js::LinearScanPhase, this->func->GetJnFunction()->GetSourceContextId(),this->func->GetJnFunction()->GetLocalFunctionId()))
+    if (Js::Configuration::Global.flags.Instrument.IsEnabled(Js::LinearScanPhase, this->func->GetJITFunctionBody()->GetSourceContextId(),this->func->GetJITFunctionBody()->GetLocalFunctionId()))
     {
         this->DynamicStatsInstrument();
     }
@@ -967,9 +967,7 @@ LinearScan::SetDstReg(IR::Instr *instr)
 // Get the stack offset of the non temp locals from the stack.
 int32 LinearScan::GetStackOffset(Js::RegSlot regSlotId)
 {
-    Assert(this->func->GetJnFunction());
-
-    int32 stackSlotId = regSlotId - this->func->GetJnFunction()->GetFirstNonTempLocalIndex();
+    int32 stackSlotId = regSlotId - this->func->GetJITFunctionBody()->GetFirstNonTempLocalIndex();
     Assert(stackSlotId >= 0);
     return this->func->GetLocalVarSlotOffset(stackSlotId);
 }
@@ -1669,7 +1667,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             if (PHASE_DUMP(Js::BailOutPhase, this->func))
             {
                 Output::Print(L"Bailout function: %s [#%d] \n", currentStartCallFunc->GetWorkItem()->GetDisplayName(),
-                    currentStartCallFunc->GetJnFunction()->GetFunctionNumber());
+                    currentStartCallFunc->GetJITFunctionBody()->GetFunctionNumber());
             }
 #endif
             for (uint j = 0; j < outParamCount; j++, argOutSlot++)
@@ -3392,7 +3390,7 @@ void LinearScan::TrackInlineeArgLifetimes(IR::Instr* instr)
     {
         if (instr->m_func->m_hasInlineArgsOpt)
         {
-            instr->m_func->frameInfo->AllocateRecord(this->func, instr->m_func->GetJnFunction());
+            instr->m_func->frameInfo->AllocateRecord(this->func, instr->m_func->GetJITFunctionBody()->GetAddr());
 
             if(this->currentBlock->inlineeStack.Count() == 0)
             {

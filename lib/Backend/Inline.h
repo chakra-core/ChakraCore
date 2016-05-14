@@ -93,7 +93,7 @@ private:
     IR::PropertySymOpnd* GetMethodLdOpndForCallInstr(IR::Instr* callInstr);
     void        Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * callInstr);
     IR::Instr* InsertInlineeBuiltInStartEndTags(IR::Instr* callInstr, uint actualcount, IR::Instr** builtinStartInstr = nullptr);
-    bool IsInliningOutSideLoops(){return  topFunc->GetJnFunction()->GetHasLoops() && isInLoop == 0; }
+    bool IsInliningOutSideLoops(){ return topFunc->GetJITFunctionBody()->HasLoops() && isInLoop == 0; }
 
     struct InlineeData
     {

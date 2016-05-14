@@ -2654,10 +2654,12 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             // See we are ending an outer loop and load the return IP to the ProfiledLoopEnd opcode
             // instead of following the normal branch
 
-            Js::LoopHeader * loopHeader = this->m_func->GetJnFunction()->GetLoopHeader(num);
-
+            // TODO: OOP JIT, JIT loop bodies
+#if 0
+            JITLoopHeader * loopHeader = m_func->GetJITFunctionBody()->GetLoopHeaderData(num);
             JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-            if (loopHeader != loopBodyCodeGen->loopHeader && loopHeader->Contains(loopBodyCodeGen->loopHeader))
+            if (m_func->GetJITFunctionBody()->GetLoopHeaderAddr(num) != (intptr_t)loopBodyCodeGen->loopHeader &&
+                JITTimeFunctionBody::LoopContains(loopHeader, loopBodyCodeGen->loopHeader))
             {
                 this->InsertLoopBodyReturnIPInstr(offset, offset);
             }
@@ -2665,6 +2667,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             {
                 Assert(loopBodyCodeGen->loopHeader->Contains(loopHeader));
             }
+#endif
             break;
         }
 
@@ -3008,8 +3011,7 @@ void
 IRBuilder::BuildElementScopedC(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlot, Js::PropertyIdIndexType propertyIdIndex)
 {
     IR::Instr *     instr;
-    Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
-    Js::PropertyId  propertyId = functionBody->GetReferencedPropertyId(propertyIdIndex);
+    Js::PropertyId  propertyId = m_func->GetJITFunctionBody()->GetReferencedPropertyId(propertyIdIndex);
     PropertyKind    propertyKind = PropertyKindData;
     IR::RegOpnd * regOpnd;
     Js::RegSlot     fieldRegSlot = this->GetEnvRegForEvalCode();
@@ -3072,8 +3074,7 @@ void
 IRBuilder::BuildElementC(Js::OpCode newOpcode, uint32 offset, Js::RegSlot fieldRegSlot, Js::RegSlot regSlot, Js::PropertyIdIndexType propertyIdIndex)
 {
     IR::Instr *     instr;
-    Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
-    Js::PropertyId  propertyId = functionBody->GetReferencedPropertyId(propertyIdIndex);
+    Js::PropertyId  propertyId = m_func->GetJITFunctionBody()->GetReferencedPropertyId(propertyIdIndex);
     PropertyKind    propertyKind = PropertyKindData;
     IR::SymOpnd *   fieldSymOpnd = this->BuildFieldOpnd(newOpcode, fieldRegSlot, propertyId, propertyIdIndex, propertyKind);
     IR::RegOpnd * regOpnd;
@@ -3126,11 +3127,11 @@ IRBuilder::BuildProfiledSlotLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::Sy
         instr = IR::JitProfilingInstr::New(loadOp, dstOpnd, srcOpnd, m_func);
         instr->AsJitProfilingInstr()->profileId = profileId;
     }
-    else if(this->m_func->GetJnFunction()->HasDynamicProfileInfo())
+    else if(this->m_func->HasProfileInfo())
     {
         instr = IR::ProfiledInstr::New(loadOp, dstOpnd, srcOpnd, m_func);
         instr->AsProfiledInstr()->u.FldInfo().valueType =
-            this->m_func->GetJnFunction()->GetAnyDynamicProfileInfo()->GetSlotLoad(this->m_func->GetJnFunction(), profileId);
+            this->m_func->GetProfileInfo()->GetSlotLoad(profileId);
         *pUnprofiled = instr->AsProfiledInstr()->u.FldInfo().valueType.IsUninitialized();
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if(Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::DynamicProfilePhase))
@@ -4341,7 +4342,6 @@ IRBuilder::BuildElementScopedC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot
 {
     IR::Instr *     instr = nullptr;
 
-    Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
     Js::PropertyId  propertyId;
     IR::RegOpnd *   regOpnd;
     IR::RegOpnd *   value2Opnd;
@@ -4353,7 +4353,7 @@ IRBuilder::BuildElementScopedC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot
     {
     case Js::OpCode::ScopedLdInst:
         {
-            propertyId = functionBody->GetReferencedPropertyId(propertyIdIndex);
+            propertyId = m_func->GetJITFunctionBody()->GetReferencedPropertyId(propertyIdIndex);
             fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instanceSlot, propertyId, propertyIdIndex, PropertyKindData);
             regOpnd = this->BuildDstOpnd(regSlot);
             value2Opnd = this->BuildDstOpnd(value2Slot);
@@ -4502,8 +4502,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
     IR::Instr *     instr;
     IR::RegOpnd *   regOpnd;
     IR::SymOpnd *   fieldSymOpnd;
-    Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
-    Js::PropertyId propertyId = functionBody->GetReferencedPropertyId(propertyIdIndex);
+    Js::PropertyId propertyId = m_func->GetJITFunctionBody()->GetReferencedPropertyId(propertyIdIndex);
 
     switch (newOpcode)
     {
@@ -6861,7 +6860,7 @@ IRBuilder::BuildBrProperty(Js::OpCode newOpcode, uint32 offset)
 
     IR::BranchInstr * branchInstr;
     Js::PropertyId    propertyId =
-        this->m_func->GetJnFunction()->GetReferencedPropertyId(branchInsn->PropertyIdIndex);
+        m_func->GetJITFunctionBody()->GetReferencedPropertyId(branchInsn->PropertyIdIndex);
     unsigned int      targetOffset = m_jnReader.GetCurrentOffset() + branchInsn->RelativeJumpOffset;
     IR::SymOpnd *     fieldSymOpnd = this->BuildFieldOpnd(newOpcode, branchInsn->Instance, propertyId, branchInsn->PropertyIdIndex, PropertyKindData);
 
@@ -6897,7 +6896,7 @@ IRBuilder::BuildBrLocalProperty(Js::OpCode newOpcode, uint32 offset)
 
     IR::BranchInstr * branchInstr;
     Js::PropertyId    propertyId =
-        this->m_func->GetJnFunction()->GetReferencedPropertyId(branchInsn->PropertyIdIndex);
+        m_func->GetJITFunctionBody()->GetReferencedPropertyId(branchInsn->PropertyIdIndex);
     unsigned int      targetOffset = m_jnReader.GetCurrentOffset() + branchInsn->RelativeJumpOffset;
     IR::SymOpnd *     fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJITFunctionBody()->GetLocalClosureReg(), propertyId, branchInsn->PropertyIdIndex, PropertyKindData);
 
@@ -6923,7 +6922,7 @@ IRBuilder::BuildBrEnvProperty(Js::OpCode newOpcode, uint32 offset)
     this->AddInstr(instr, offset);
 
     Js::PropertyId    propertyId =
-        this->m_func->GetJnFunction()->GetReferencedPropertyId(branchInsn->PropertyIdIndex);
+        m_func->GetJITFunctionBody()->GetReferencedPropertyId(branchInsn->PropertyIdIndex);
     unsigned int      targetOffset = m_jnReader.GetCurrentOffset() + branchInsn->RelativeJumpOffset;\
     fieldSym = PropertySym::New(regOpnd->m_sym, propertyId, branchInsn->PropertyIdIndex, (uint)-1, PropertyKindData, m_func);
     fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
@@ -7176,9 +7175,9 @@ IRBuilder::InsertInitLoopBodyLoopCounter(uint loopNum)
 {
     Assert(this->IsLoopBody());
 
-    Js::LoopHeader * loopHeader = this->m_func->GetJnFunction()->GetLoopHeader(loopNum);
+    intptr_t loopHeader = this->m_func->GetJITFunctionBody()->GetLoopHeaderAddr(loopNum);
     JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-    Assert(loopBodyCodeGen->loopHeader == loopHeader);  //Init only once
+    Assert((intptr_t)loopBodyCodeGen->loopHeader == loopHeader);  //Init only once
 
     m_loopCounterSym = StackSym::New(TyVar, this->m_func);
 

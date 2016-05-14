@@ -3918,11 +3918,14 @@ Instr::DumpFieldCopyPropTestTrace()
     case Js::OpCode::TypeofElem:
 
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"TestTrace fieldcopyprop: function %s (%s) ", this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(L"TestTrace fieldcopyprop: function %s (%s) ",
+            this->m_func->GetWorkItem()->GetDisplayName(),
+            this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
         if (this->IsInlined())
         {
-            Js::FunctionBody* topFunctionBody = this->m_func->GetTopFunc()->GetJnFunction();
-            Output::Print(L"inlined caller function %s (%s) ", topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer));
+            Output::Print(L"inlined caller function %s (%s) ",
+                this->m_func->GetTopFunc()->GetWorkItem()->GetDisplayName(),
+                this->m_func->GetTopFunc()->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
         }
         this->DumpTestTrace();
     default:

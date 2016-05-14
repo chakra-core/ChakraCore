@@ -67,6 +67,9 @@ typedef struct ProfileData
     unsigned int inlineCacheCount;
     [size_is(inlineCacheCount)] FldData * fldData;
 
+    unsigned short profiledSlotCount;
+    [size_is(profiledSlotCount)] unsigned short * slotData;
+
     unsigned short profiledCallSiteCount;
     [size_is(profiledCallSiteCount)] CallSiteData * callSiteData;
 
@@ -132,6 +135,13 @@ typedef struct SmallSpanSequenceData
     [size_is(actualOffsetLength)] unsigned int * actualOffsetList;
 } SmallSpanSequenceData;
 
+typedef struct JITLoopHeader
+{
+    unsigned int startOffset;
+    unsigned int endOffset;
+    boolean isNested;
+} JITLoopHeader;
+
 // FunctionBody fields, read only in JIT
 typedef struct FunctionBodyJITData
 {
@@ -146,9 +156,19 @@ typedef struct FunctionBodyJITData
     [size_is(inlineCacheCount)] int * cacheIdToPropertyIdMap;
     [size_is(inlineCacheCount)] __int3264 * inlineCaches;
 
+    __int3264 loopHeaderArrayAddr;
+    unsigned int loopCount;
+    [size_is(loopCount)] JITLoopHeader * loopHeaders;
+
+    unsigned int referencedPropertyIdCount;
+    [size_is(referencedPropertyIdCount)] int * referencedPropertyIdMap;
+
     SmallSpanSequenceData statementMap;
 
     __int3264 functionBodyAddr;
+    __int3264 scriptIdAddr;
+    __int3264 probeCountAddr;
+    __int3264 flagsAddr;
 
     unsigned int funcNumber;
     unsigned int localFuncId;
@@ -159,7 +179,6 @@ typedef struct FunctionBodyJITData
     unsigned int byteCodeCount;
     unsigned int byteCodeInLoopCount;
     unsigned int nonLoadByteCodeCount;
-    unsigned int loopCount;
     unsigned int localFrameDisplayReg;
     unsigned int localClosureReg;
     unsigned int envReg;
@@ -169,6 +188,7 @@ typedef struct FunctionBodyJITData
     unsigned int innerScopeCount;
     unsigned int thisRegisterForEventHandler;
     unsigned int funcExprScopeRegister;
+    unsigned int isInstInlineCacheCount; // TODO: only used in Assert
 
     unsigned short envDepth;
     unsigned short profiledCallSiteCount;
@@ -182,12 +202,14 @@ typedef struct FunctionBodyJITData
     boolean isAsmJsMode;
     boolean hasImplicitArgIns;
     boolean isStrictMode;
+    boolean isEval;
     boolean hasScopeObject;
     boolean hasCachedScopePropIds;
     boolean inlineCachesOnFunctionObject;
     boolean doInterruptProbe;
     boolean isGlobalFunc;
     boolean doJITLoopBody;
+    boolean disableInlineSpread;
 } FunctionBodyJITData;
 
 // EntryPointInfo fields, read/write in JIT
@@ -197,6 +219,13 @@ typedef struct EntryPointInfoJITWriteData
     int localVarChangedOffset; // FunctionEntryPointInfo only
     boolean hasJittedStackClosure;
 } EntryPointInfoJITWriteData;
+
+// FunctionBody fields, written to from JIT
+typedef struct FunctionBodyJITWriteData
+{
+    unsigned short argUsedForBranch;
+    boolean hasBailoutInstr;
+} FunctionBodyJITWriteData;
 
 // EntryPointInfo fields, read only in JIT
 typedef struct EntryPointInfoJITReadData
@@ -222,13 +251,13 @@ typedef struct CodeGenWorkItemJITData
 typedef struct JITOutputData
 {
     EntryPointInfoJITWriteData writeableEPData;
+    FunctionBodyJITWriteData writeableBodyData;
     __int3264 codeAddress;
     __int3264 xdataAddr;
     unsigned int codeSize;
     unsigned short pdataCount;
     unsigned short xdataSize;
     boolean isInPrereservedRegion;
-    boolean hasBailoutInstr;
 } JITOutputData;
 
 [

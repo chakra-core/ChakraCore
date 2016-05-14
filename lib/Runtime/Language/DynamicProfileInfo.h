@@ -366,6 +366,7 @@ namespace Js
 
         void RecordSlotLoad(FunctionBody* functionBody, ProfileId slotLoadId, Var object);
         ValueType GetSlotLoad(FunctionBody* functionBody, ProfileId slotLoadId) const;
+        ValueType * GetSlotInfo() const { return slotInfo; }
 
         void RecordThisInfo(Var object, ThisType thisType);
         ThisInfo GetThisInfo() const;

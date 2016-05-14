@@ -54,7 +54,7 @@ Js::Var BailoutConstantValue::ToVar(Func* func, Js::ScriptContext* scriptContext
 }
 
 
-void InlineeFrameInfo::AllocateRecord(Func* func, Js::FunctionBody* functionBody)
+void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
 {
     uint constantCount = 0;
 
@@ -77,7 +77,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, Js::FunctionBody* functionBody
     // update the record
     if (!this->record)
     {
-        this->record = InlineeFrameRecord::New(func->GetNativeCodeDataAllocator(), (uint)arguments->Count(), constantCount, functionBody, this);
+        this->record = InlineeFrameRecord::New(func->GetNativeCodeDataAllocator(), (uint)arguments->Count(), constantCount, functionBodyAddr, this);
     }
 
     uint i = 0;

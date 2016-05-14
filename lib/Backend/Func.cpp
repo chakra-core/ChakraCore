@@ -617,10 +617,16 @@ Func::AjustLocalVarSlotOffset()
 #endif
 
 bool
-Func::DoGlobOptsForGeneratorFunc()
+Func::DoGlobOptsForGeneratorFunc() const
 {
     // Disable GlobOpt optimizations for generators initially. Will visit and enable each one by one.
     return !GetJITFunctionBody()->IsGenerator();
+}
+
+bool
+Func::DoSimpleJitDynamicProfile() const
+{
+    return IsSimpleJit() && !PHASE_OFF(Js::SimpleJitDynamicProfilePhase, GetTopFunc()) && !CONFIG_FLAG(NewSimpleJit);
 }
 
 void

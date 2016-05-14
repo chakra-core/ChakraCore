@@ -23,6 +23,7 @@ public:
     Js::ArrayCallSiteInfo * GetArrayCallSiteInfo(Js::ProfileId index) const;
     Js::FldInfo * GetFldInfo(uint fieldAccessId) const;
     Js::ThisInfo GetThisInfo() const;
+    ValueType GetSlotLoad(Js::ProfileId slotLoadId) const;
     ValueType GetReturnType(Js::OpCode opcode, Js::ProfileId callSiteId) const;
     ValueType GetDivProfileInfo(Js::ProfileId divideId) const;
     ValueType GetSwitchProfileInfo(Js::ProfileId switchId) const;
@@ -97,6 +98,7 @@ private:
     Js::ProfileId GetProfiledReturnTypeCount() const;
     Js::ProfileId GetProfiledDivOrRemCount() const;
     Js::ProfileId GetProfiledSwitchCount() const;
+    Js::ProfileId GetProfiledSlotCount() const;
     Js::ArgSlot GetProfiledInParamsCount() const;
     uint GetProfiledFldCount() const;
     uint GetLoopCount() const;

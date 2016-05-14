@@ -40,6 +40,7 @@ public:
     Js::RegSlot GetNonTempLocalVarCount() const;
 
     Js::PropertyId GetPropertyIdFromCacheId(uint cacheId) const;
+    Js::PropertyId GetReferencedPropertyId(uint index) const;
 
     uint16 GetEnvDepth() const;
     uint16 GetProfiledIterations() const;
@@ -55,6 +56,7 @@ public:
     bool IsGenerator() const;
     bool IsAsmJsMode() const;
     bool IsStrictMode() const;
+    bool IsEval() const;
     bool HasImplicitArgIns() const;
     bool HasRestParameter() const;
     bool HasScopeObject() const;
@@ -64,13 +66,27 @@ public:
     bool IsGlobalFunc() const;
     bool IsNonTempLocalVar(uint32 varIndex) const;
     bool DoJITLoopBody() const;
+    bool IsInlineSpreadDisabled() const;
+    bool HasLoops() const;
+    bool ForceJITLoopBody() const;
 
     const byte * GetByteCodeBuffer() const;
     Js::SmallSpanSequence * GetStatementMapSpanSequence();
 
     intptr_t GetConstantVar(Js::RegSlot location) const;
     intptr_t GetInlineCache(uint index) const;
+    intptr_t GetIsInstInlineCache(uint index) const;
     Js::TypeId GetConstantType(Js::RegSlot location) const;
+
+    intptr_t GetRootObject() const;
+    intptr_t GetLoopHeaderAddr(uint loopNum) const;
+    JITLoopHeader * GetLoopHeaderData(uint loopNum) const;
+
+    intptr_t GetScriptIdAddr() const;
+    intptr_t GetProbeCountAddr() const;
+    intptr_t GetFlagsAddr() const;
+
+    static bool LoopContains(JITLoopHeader * loop1, JITLoopHeader * loop2);
 
     wchar_t* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const;
 

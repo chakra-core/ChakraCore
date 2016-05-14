@@ -4042,13 +4042,12 @@ GlobOpt::MarkArgumentsUsedForBranch(IR::Instr * instr)
                 if (defSym && defSym->IsSymOpnd() && defSym->AsSymOpnd()->m_sym->IsStackSym()
                     && defSym->AsSymOpnd()->m_sym->AsStackSym()->IsParamSlotSym())
                 {
-                    Js::FunctionBody *funcBody = this->func->GetJnFunction();
                     uint16 param = defSym->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum();
 
                     // We only support functions with 13 arguments to ensure optimal size of callSiteInfo
                     if (param < Js::Constants::MaximumArgumentCountForConstantArgumentInlining)
                     {
-                        funcBody->m_argUsedForBranch = funcBody->m_argUsedForBranch | (1 << (param - 1));
+                        this->func->GetJITOutput()->SetArgUsedForBranch((uint8)param);
                     }
                 }
             }

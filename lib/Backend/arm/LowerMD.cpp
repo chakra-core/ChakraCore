@@ -8023,12 +8023,12 @@ LowererMD::GenerateFastIsInst(IR::Instr * instr)
     IR::RegOpnd * objectReg;
     IR::Opnd * functionSrc;
     IR::RegOpnd * functionReg;
-    Js::IsInstInlineCache * inlineCache;
+    intptr_t inlineCache;
     IR::Instr * instrArg;
 
     // We are going to use the extra ArgOut_A instructions to lower the helper call later,
     // so we leave them alone here and clean them up then.
-    inlineCache = instr->m_func->GetJnFunction()->GetIsInstInlineCache(instr->GetSrc1()->AsIntConstOpnd()->GetValue());
+    inlineCache = instr->m_func->GetJITFunctionBody()->GetIsInstInlineCache(instr->GetSrc1()->AsIntConstOpnd()->GetValue());
     Assert(instr->GetSrc2()->AsRegOpnd()->m_sym->m_isSingleDef);
     instrArg = instr->GetSrc2()->AsRegOpnd()->m_sym->m_instrDef;
 
@@ -8063,7 +8063,7 @@ LowererMD::GenerateFastIsInst(IR::Instr * instr)
     {
         IR::Instr * cmp = IR::Instr::New(Js::OpCode::CMP, m_func);
         cmp->SetSrc1(functionReg);
-        cmp->SetSrc2(IR::MemRefOpnd::New((void*)&(inlineCache->function), TyMachReg, m_func,
+        cmp->SetSrc2(IR::MemRefOpnd::New(inlineCache + Js::IsInstInlineCache::OffsetOfFunction(), TyMachReg, m_func,
             IR::AddrOpndKindDynamicIsInstInlineCacheFunctionRef));
         instr->InsertBefore(cmp);
         LegalizeMD::LegalizeInstr(cmp, false);
@@ -8110,7 +8110,7 @@ LowererMD::GenerateFastIsInst(IR::Instr * instr)
     {
         IR::Instr * cmp = IR::Instr::New(Js::OpCode::CMP, m_func);
         cmp->SetSrc1(typeReg);
-        cmp->SetSrc2(IR::MemRefOpnd::New((void*)&(inlineCache->type), TyMachReg, m_func));
+        cmp->SetSrc2(IR::MemRefOpnd::New(inlineCache + Js::IsInstInlineCache::OffsetOfType(), TyMachReg, m_func));
         instr->InsertBefore(cmp);
         LegalizeMD::LegalizeInstr(cmp, false);
     }
@@ -8120,7 +8120,7 @@ LowererMD::GenerateFastIsInst(IR::Instr * instr)
 
     // LDR dst, [&(inlineCache->result)]
     IR::Instr *result = IR::Instr::New(Js::OpCode::LDR, opndDst,
-        IR::MemRefOpnd::New((void*)&(inlineCache->result), TyMachReg, m_func), m_func);
+        IR::MemRefOpnd::New(inlineCache + Js::IsInstInlineCache::OffsetOfResult(), TyMachReg, m_func), m_func);
     instr->InsertBefore(result);
     LegalizeMD::LegalizeInstr(result, false);
 

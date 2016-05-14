@@ -1022,10 +1022,13 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             workItem->SetCodeAddress(jitWriteData.codeAddress);
 
             workItem->GetEntryPoint()->SetCodeGenRecorded((PVOID)jitWriteData.codeAddress, jitWriteData.codeSize, nullptr, nullptr, nullptr);
-            if (jitWriteData.hasBailoutInstr != FALSE)
+
+            if (jitWriteData.writeableBodyData.hasBailoutInstr != FALSE)
             {
                 body->SetHasBailoutInstrInJittedCode(true);
             }
+
+            body->m_argUsedForBranch |= jitWriteData.writeableBodyData.argUsedForBranch;
 
             {
                 if (IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_STOP()))

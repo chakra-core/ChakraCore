@@ -5185,8 +5185,8 @@ Inline::InlineSpread(IR::Instr *spreadCall)
 {
     Assert(Lowerer::IsSpreadCall(spreadCall));
 
-    if (spreadCall->m_func->GetJnFunction()->IsInlineSpreadDisabled()
-        || this->topFunc->GetJnFunction()->IsInlineSpreadDisabled())
+    if (spreadCall->m_func->GetJITFunctionBody()->IsInlineSpreadDisabled()
+        || this->topFunc->GetJITFunctionBody()->IsInlineSpreadDisabled())
     {
         return spreadCall;
     }

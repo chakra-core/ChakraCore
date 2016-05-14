@@ -71,6 +71,12 @@ JITTimeFunctionBody::GetLoopCount() const
     return m_bodyData->loopCount;
 }
 
+bool
+JITTimeFunctionBody::HasLoops() const
+{
+    return GetLoopCount() != 0;
+}
+
 uint
 JITTimeFunctionBody::GetByteCodeLength() const
 {
@@ -184,6 +190,21 @@ JITTimeFunctionBody::GetPropertyIdFromCacheId(uint cacheId) const
     return static_cast<Js::PropertyId>(m_bodyData->cacheIdToPropertyIdMap[cacheId]);
 }
 
+Js::PropertyId
+JITTimeFunctionBody::GetReferencedPropertyId(uint index) const
+{
+    if (index < (uint)TotalNumberOfBuiltInProperties)
+    {
+        return index;
+    }
+    uint mapIndex = index - TotalNumberOfBuiltInProperties;
+
+    Assert(m_bodyData->referencedPropertyIdMap != nullptr);
+    Assert(mapIndex < m_bodyData->referencedPropertyIdCount);
+
+    return m_bodyData->referencedPropertyIdMap[mapIndex];
+}
+
 uint16
 JITTimeFunctionBody::GetEnvDepth() const
 {
@@ -260,6 +281,12 @@ JITTimeFunctionBody::IsStrictMode() const
 }
 
 bool
+JITTimeFunctionBody::IsEval() const
+{
+    return m_bodyData->isEval != FALSE;
+}
+
+bool
 JITTimeFunctionBody::HasScopeObject() const
 {
     return m_bodyData->hasScopeObject != FALSE;
@@ -321,6 +348,29 @@ JITTimeFunctionBody::DoJITLoopBody() const
     return m_bodyData->doJITLoopBody != FALSE;
 }
 
+bool
+JITTimeFunctionBody::IsInlineSpreadDisabled() const
+{
+    return m_bodyData->disableInlineSpread != FALSE;
+}
+
+bool
+JITTimeFunctionBody::ForceJITLoopBody() const
+{
+    return
+        !PHASE_OFF(Js::JITLoopBodyPhase, this) &&
+        !PHASE_OFF(Js::FullJitPhase, this) &&
+        !this->IsGenerator() &&
+        !this->HasTry() &&
+        (
+            PHASE_FORCE(Js::JITLoopBodyPhase, this)
+#ifdef ENABLE_PREJIT
+            || Js::Configuration::Global.flags.Prejit
+#endif
+        );
+}
+
+
 const byte *
 JITTimeFunctionBody::GetByteCodeBuffer() const
 {
@@ -331,6 +381,24 @@ Js::SmallSpanSequence *
 JITTimeFunctionBody::GetStatementMapSpanSequence()
 {
     return &m_statementMap;
+}
+
+intptr_t
+JITTimeFunctionBody::GetScriptIdAddr() const
+{
+    return m_bodyData->scriptIdAddr;
+}
+
+intptr_t
+JITTimeFunctionBody::GetProbeCountAddr() const
+{
+    return m_bodyData->probeCountAddr;
+}
+
+intptr_t
+JITTimeFunctionBody::GetFlagsAddr() const
+{
+    return m_bodyData->flagsAddr;
 }
 
 intptr_t
@@ -356,6 +424,20 @@ JITTimeFunctionBody::GetInlineCache(uint index) const
     return static_cast<intptr_t>(m_bodyData->inlineCaches[index]);
 }
 
+intptr_t
+JITTimeFunctionBody::GetIsInstInlineCache(uint index) const
+{
+    Assert(m_bodyData->inlineCaches != nullptr);
+    Assert(index < m_bodyData->isInstInlineCacheCount);
+    index += GetInlineCacheCount();
+#if 0 // TODO: michhol OOP JIT, add these asserts
+    Assert(this->m_inlineCacheTypes[index] == InlineCacheTypeNone ||
+        this->m_inlineCacheTypes[index] == InlineCacheTypeIsInst);
+    this->m_inlineCacheTypes[index] = InlineCacheTypeIsInst;
+#endif
+    return static_cast<intptr_t>(m_bodyData->inlineCaches[index]);
+}
+
 Js::TypeId
 JITTimeFunctionBody::GetConstantType(Js::RegSlot location) const
 {
@@ -364,6 +446,36 @@ JITTimeFunctionBody::GetConstantType(Js::RegSlot location) const
     Assert(location != 0);
 
     return static_cast<Js::TypeId>(m_bodyData->constTypeTable[location - Js::FunctionBody::FirstRegSlot]);
+}
+
+intptr_t
+JITTimeFunctionBody::GetRootObject() const
+{
+    Assert(m_bodyData->constTable != nullptr);
+    return m_bodyData->constTable[Js::FunctionBody::RootObjectRegSlot - Js::FunctionBody::FirstRegSlot];
+}
+
+
+intptr_t
+JITTimeFunctionBody::GetLoopHeaderAddr(uint loopNum) const
+{
+    Assert(GetLoopCount() < loopNum);
+    intptr_t baseAddr = m_bodyData->loopHeaderArrayAddr;
+    return baseAddr + (loopNum * sizeof(Js::LoopHeader));
+}
+
+JITLoopHeader *
+JITTimeFunctionBody::GetLoopHeaderData(uint loopNum) const
+{
+    Assert(GetLoopCount() < loopNum);
+    return &m_bodyData->loopHeaders[loopNum];
+}
+
+/* static */
+bool
+JITTimeFunctionBody::LoopContains(JITLoopHeader * loop1, JITLoopHeader * loop2)
+{
+    return (loop1->startOffset <= loop2->startOffset && loop2->endOffset <= loop1->endOffset);
 }
 
 Js::FunctionBody::FunctionBodyFlags

@@ -1172,4 +1172,22 @@ namespace Js
             this->Set(instanceType, function, result);
         }
     }
+
+    /* static */
+    uint32 IsInstInlineCache::OffsetOfFunction()
+    {
+        return offsetof(IsInstInlineCache, function);
+    }
+
+    /* static */
+    uint32 IsInstInlineCache::OffsetOfType()
+    {
+        return offsetof(IsInstInlineCache, type);
+    }
+
+    /* static */
+    uint32 IsInstInlineCache::OffsetOfResult()
+    {
+        return offsetof(IsInstInlineCache, result);
+    }
 }

@@ -2316,7 +2316,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     //      just move false to dobailout
                     this->InsertMove(dobailout, IR::IntConstOpnd::New(0, dobailoutType, m_func, true), instr->m_next);
                 }
-                else if (m_func->GetJnFunction()->ForceJITLoopBody())
+                else if (m_func->GetJITFunctionBody()->ForceJITLoopBody())
                 {
                     // If we're forcing jit loop bodies, move true to dobailout
                     this->InsertMove(dobailout, IR::IntConstOpnd::New(1, dobailoutType, m_func, true), instr->m_next);
@@ -3138,7 +3138,7 @@ Lowerer::LoadNumberAllocatorValueOpnd(IR::Instr *instr, NumberAllocatorValue val
 IR::Opnd *
 Lowerer::LoadIsInstInlineCacheOpnd(IR::Instr * instr, uint inlineCacheIndex)
 {
-    Js::IsInstInlineCache * inlineCache = instr->m_func->GetJnFunction()->GetIsInstInlineCache(inlineCacheIndex);
+    intptr_t inlineCache = instr->m_func->GetJITFunctionBody()->GetIsInstInlineCache(inlineCacheIndex);
     return IR::AddrOpnd::New(inlineCache,  IR::AddrOpndKindDynamicInlineCache, this->m_func);
 }
 
@@ -5911,7 +5911,7 @@ Lowerer::GenerateNonConfigurableLdRootFld(IR::Instr * instrLdFld)
     Assert(!PHASE_OFF(Js::RootObjectFldFastPathPhase, this->m_func));
     Assert(!instrLdFld->HasBailOutInfo());
     IR::Opnd * srcOpnd;
-    Js::RootObjectBase * rootObject = this->m_func->GetJnFunction()->GetRootObject();
+    intptr_t rootObject = this->m_func->GetJITFunctionBody()->GetRootObject();
     if (propertySymOpnd->UsesAuxSlot())
     {
         IR::RegOpnd * auxSlotOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
@@ -6143,7 +6143,7 @@ Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr)
     IR::LabelInstr * labelNoStackFunc = IR::LabelInstr::New(Js::OpCode::Label, func, true);
     IR::LabelInstr * labelDone = IR::LabelInstr::New(Js::OpCode::Label, func);
 
-    InsertTestBranch(IR::MemRefOpnd::New(func->GetJnFunction()->GetAddressOfFlags(), TyInt8, func),
+    InsertTestBranch(IR::MemRefOpnd::New(func->GetJITFunctionBody()->GetFlagsAddr(), TyInt8, func),
         IR::IntConstOpnd::New(Js::FunctionBody::Flags_StackNestedFunc, TyInt8, func, true),
         Js::OpCode::BrEq_A, labelNoStackFunc, newScFuncInstr);
 
@@ -6259,7 +6259,7 @@ Lowerer::LowerScopedLdInst(IR::Instr *instr, IR::JnHelperMethod helperMethod)
 
     // __out Var*. The StackSym is allocated in irbuilder, and here we need to insert a lea
     StackSym* dstSym = src->GetStackSym();
-    IR::Instr *load = this->m_lowererMD.LoadStackAddress(dstSym);
+    IR::Instr *load = m_lowererMD.LoadStackAddress(dstSym);
     instr->InsertBefore(load);
     IR::Opnd* tempOpnd = load->GetDst();
     m_lowererMD.LoadHelperArgument(instr, tempOpnd);
@@ -6267,7 +6267,7 @@ Lowerer::LowerScopedLdInst(IR::Instr *instr, IR::JnHelperMethod helperMethod)
     // now 3rd last argument is the rootObject of the function. Need to add addrOpnd to
     // pass in the address of the roobObject.
     IR::Opnd * srcOpnd;
-    Js::RootObjectBase * rootObject = this->m_func->GetJnFunction()->GetRootObject();
+    intptr_t rootObject = m_func->GetJITFunctionBody()->GetRootObject();
     srcOpnd = IR::AddrOpnd::New(rootObject, IR::AddrOpndKindDynamicVar, instr->m_func, true);
     instrPrev = m_lowererMD.LoadHelperArgument(instr, srcOpnd);
 
@@ -6278,8 +6278,8 @@ Lowerer::LowerScopedLdInst(IR::Instr *instr, IR::JnHelperMethod helperMethod)
 
     instrPrev = m_lowererMD.ChangeToHelperCall(instr, helperMethod);
 
-    IR::RegOpnd* regOpnd = IR::RegOpnd::New(dstSym, TyVar, this->m_func);
-    IR::SymOpnd*symOpnd = IR::SymOpnd::New(dstSym, TyVar, this->m_func);
+    IR::RegOpnd* regOpnd = IR::RegOpnd::New(dstSym, TyVar, m_func);
+    IR::SymOpnd*symOpnd = IR::SymOpnd::New(dstSym, TyVar, m_func);
     this->m_lowererMD.CreateAssign(regOpnd, symOpnd, instrPrev);
 
     return instrPrev;
@@ -9132,7 +9132,7 @@ Lowerer::LowerElementUndefinedMem(IR::Instr * instr, IR::JnHelperMethod helper)
 IR::Instr *
 Lowerer::LowerLdElemUndef(IR::Instr * instr)
 {
-    if (this->m_func->GetJnFunction()->IsEval())
+    if (this->m_func->GetJITFunctionBody()->IsEval())
     {
         return LowerElementUndefinedMem(instr, IR::HelperOp_LdElemUndefDynamic);
     }
@@ -9183,7 +9183,7 @@ Lowerer::LowerStLoopBodyCount(IR::Instr* instr)
 {
     Js::LoopHeader *header = ((JsLoopBodyCodeGen*)m_func->m_workItem)->loopHeader;
 
-    IR::MemRefOpnd *loopBodyCounterOpnd = IR::MemRefOpnd::New((BYTE*)(header) + header->GetOffsetOfProfiledLoopCounter(), TyUint32, this->m_func);
+    IR::MemRefOpnd *loopBodyCounterOpnd = IR::MemRefOpnd::New((BYTE*)(header) + Js::LoopHeader::GetOffsetOfProfiledLoopCounter(), TyUint32, this->m_func);
     instr->SetDst(loopBodyCounterOpnd);
     instr->ReplaceSrc1(instr->GetSrc1()->AsRegOpnd()->UseWithNewType(TyUint32, this->m_func));
     IR::AutoReuseOpnd(loopBodyCounterOpnd, this->m_func);
@@ -10804,7 +10804,7 @@ Lowerer::LowerBailOnEqualOrNotEqual(IR::Instr * instr,
     // BailOutOnImplicitCalls is a post-op bailout. Since we look at the profile info for LdFld/StFld to decide whether the instruction may or may not call an accessor,
     // we need to update this profile information on the bailout path for BailOutOnImplicitCalls if the implicit call was an accessor call.
     if(propSymOpnd && ((instr->GetBailOutKind() & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCalls) && (propSymOpnd->m_inlineCacheIndex != -1) &&
-        instr->m_func->GetJnFunction()->HasDynamicProfileInfo())
+        instr->m_func->HasProfileInfo())
     {
         // result = AND implCallFlags, ~ImplicitCall_None
         //          TST result, ImplicitCall_Accessor
@@ -10821,7 +10821,7 @@ Lowerer::LowerBailOnEqualOrNotEqual(IR::Instr * instr,
         IR::Instr * andInstr = InsertAnd(IR::RegOpnd::New(GetImplicitCallFlagsType(), instr->m_func), implicitCallFlags, maskNoImplicitCall, instr);
         InsertTestBranch(andInstr->GetDst(), accessorImplicitCall, Js::OpCode::BrEq_A, label, instr);
 
-        Js::FldInfo * info = instr->m_func->GetJnFunction()->GetAnyDynamicProfileInfo()->GetFldInfo(instr->m_func->GetJnFunction(), propSymOpnd->m_inlineCacheIndex);
+        Js::FldInfo * info = instr->m_func->GetProfileInfo()->GetFldInfo(propSymOpnd->m_inlineCacheIndex);
 
         IR::Opnd * profiledFlags = IR::MemRefOpnd::New((char*)info + info->GetOffsetOfFlags(), TyInt8, instr->m_func);
 
@@ -11002,8 +11002,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
         {
             // CMP [&functionBody->m_sourceInfo.m_probeCount], 0
             // BNE bailout
-            Js::FunctionBody* body = m_func->GetJnFunction();
-            IR::Opnd* opnd1 = IR::MemRefOpnd::New(&body->GetSourceInfo()->m_probeCount, TyInt32, m_func);
+            IR::Opnd* opnd1 = IR::MemRefOpnd::New(m_func->GetJITFunctionBody()->GetProbeCountAddr(), TyInt32, m_func);
             IR::Opnd* opnd2 = IR::IntConstOpnd::New(0, TyInt32, m_func, /*dontEncode*/ true);
             InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrNeq_A, bailOutLabel, continueBranchInstr);
             bailOutKind ^= IR::BailOutBreakPointInFunction;
@@ -11079,8 +11078,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
             //   CMP CurrentScriptId, [&stepController->ScriptIdWhenSet]
             //   BEQ ContinueLabel
             // bailOutLabel:                // (fallthrough bailOutLabel)
-            Js::FunctionBody* body = m_func->GetJnFunction();
-            IR::Opnd* opnd1 = IR::MemRefOpnd::New(body->GetAddressOfScriptId(), TyInt32, m_func);
+            IR::Opnd* opnd1 = IR::MemRefOpnd::New(m_func->GetJITFunctionBody()->GetScriptIdAddr(), TyInt32, m_func);
 
             IR::Opnd* opnd2 = IR::MemRefOpnd::New(debugManager->stepController.GetAddressOfScriptIdWhenSet(), TyInt32, m_func);
             IR::RegOpnd* reg1 = IR::RegOpnd::New(TyInt32, m_func);
@@ -12506,7 +12504,7 @@ Lowerer::LowerInlineeStart(IR::Instr * inlineeStartInstr)
         startCall = argInstr->GetSrc2()->GetStackSym()->m_instrDef;
         argInstr->FreeSrc2();
 #pragma prefast(suppress:6235, "Non-Zero Constant in Condition")
-        if (!PHASE_ON(Js::EliminateArgoutForInlineePhase, this->m_func) || inlineeStartInstr->m_func->GetJnFunction()->GetHasOrParentHasArguments())
+        if (!PHASE_ON(Js::EliminateArgoutForInlineePhase, this->m_func) || inlineeStartInstr->m_func->GetJITFunctionBody()->HasOrParentHasArguments())
         {
             m_lowererMD.ChangeToAssign(argInstr);
         }
@@ -21380,7 +21378,7 @@ void Lowerer::LowerLdFrameDisplay(IR::Instr *instr, bool doStackFrameDisplay)
 
         // Check whether stack functions have been disabled since we jitted.
         // If they have, then we must allocate closure memory on the heap.
-        InsertTestBranch(IR::MemRefOpnd::New(m_func->GetJnFunction()->GetAddressOfFlags(), TyInt8, m_func),
+        InsertTestBranch(IR::MemRefOpnd::New(m_func->GetJITFunctionBody()->GetFlagsAddr(), TyInt8, m_func),
                          IR::IntConstOpnd::New(Js::FunctionBody::Flags_StackNestedFunc, TyInt8, m_func, true),
                          Js::OpCode::BrEq_A, labelNoStackFunc, insertInstr);
         // allocSize is greater than TyMachPtr and hence changing the initial size to TyMisc
@@ -21449,12 +21447,14 @@ void Lowerer::LowerLdFrameDisplay(IR::Instr *instr, bool doStackFrameDisplay)
 
 IR::AddrOpnd *Lowerer::CreateFunctionBodyOpnd(Func *const func) const
 {
-    return CreateFunctionBodyOpnd(func->GetJnFunction());
+    return IR::AddrOpnd::New(func->GetJITFunctionBody()->GetAddr(), IR::AddrOpndKindDynamicFunctionBody, m_func, true);
 }
 
 IR::AddrOpnd *Lowerer::CreateFunctionBodyOpnd(Js::FunctionBody *const functionBody) const
 {
-    return IR::AddrOpnd::New(functionBody, IR::AddrOpndKindDynamicFunctionBody, m_func, true);
+    // TODO: OOP JIT, we need to deal with this
+    Assert(UNREACHED);
+    return nullptr;
 }
 
 bool

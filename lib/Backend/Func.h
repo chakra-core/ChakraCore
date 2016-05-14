@@ -155,7 +155,7 @@ public:
         return !this->HasFinally() && !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this);
     }
 
-    bool DoSimpleJitDynamicProfile() const { return IsSimpleJit() && GetTopFunc()->GetJnFunction()->DoSimpleJitDynamicProfile(); }
+    bool DoSimpleJitDynamicProfile() const;
     bool IsSimpleJit() const { return m_workItem->GetJitMode() == ExecutionMode::SimpleJit; }
 
     JITTimeWorkItem * GetWorkItem() const
@@ -211,7 +211,7 @@ public:
     void AjustLocalVarSlotOffset();
 #endif
 
-    bool DoGlobOptsForGeneratorFunc();
+    bool DoGlobOptsForGeneratorFunc() const;
 
     static int32 AdjustOffsetValue(int32 offset);
 
