@@ -2103,7 +2103,7 @@ namespace TTD
         writer.WriteLengthValue(ecount, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
         JsUtil::Stack<int64, HeapAllocator> callNestingStack(&HeapAllocator::Instance);
-        bool doSep = false;
+        bool firstElem = true;
 
         writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
         writer.AdjustIndent(1);
@@ -2111,18 +2111,17 @@ namespace TTD
         for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
         {
             const NSLogEvents::EventLogEntry* evt = iter.Current();
-            NSTokens::Separator sep = doSep ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::NoSeparator;
 
+            NSTokens::Separator sep = firstElem ? NSTokens::Separator::NoSeparator : NSTokens::Separator::BigSpaceSeparator;
             NSLogEvents::EventLogEntry_Emit(evt, this->m_eventListVTable, &writer, this->m_logInfoRootDir.Contents, this->m_threadContext, sep);
 
-#if !ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            doSep = true;
-#else
+            firstElem = false;
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             bool isJsRTBeginCall = (evt->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag);
             bool isExternalBeginCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
             if(isJsRTBeginCall | isExternalBeginCall)
             {
-                writer.WriteSequenceStart(NSTokens::Separator::CommaAndBigSpaceSeparator);
+                writer.WriteSequenceStart(NSTokens::Separator::BigSpaceSeparator);
 
                 int64 lastNestedTime = -1;
                 if(isJsRTBeginCall)
@@ -2138,24 +2137,29 @@ namespace TTD
                 if(lastNestedTime != evt->EventTimeStamp)
                 {
                     writer.AdjustIndent(1);
+
                     writer.WriteSeperator(NSTokens::Separator::BigSpaceSeparator);
+                    firstElem = true;
                 }
             }
 
-            doSep = (!isJsRTBeginCall & !isExternalBeginCall);
-
-            while(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
+            if(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
             {
-                callNestingStack.Pop();
-                if(doSep)
+                int64 eTime = callNestingStack.Pop();
+
+                if(!isJsRTBeginCall & !isExternalBeginCall)
                 {
                     writer.AdjustIndent(-1);
-                    writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
+                    writer.WriteSeperator(NSTokens::Separator::BigSpaceSeparator);
                 }
-                else
+                writer.WriteSequenceEnd();
+
+                while(callNestingStack.Count() > 0 && eTime == callNestingStack.Peek())
                 {
-                    writer.WriteSequenceEnd();
-                    doSep = true;
+                    callNestingStack.Pop();
+
+                    writer.AdjustIndent(-1);
+                    writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
                 }
             }
 #endif
@@ -2286,16 +2290,14 @@ namespace TTD
         for(uint32 i = 0; i < ecount; ++i)
         {
             NSLogEvents::EventLogEntry* evt = this->m_eventList.GetNextAvailableEntry();
-            NSLogEvents::EventLogEntry_Parse(evt, this->m_eventListVTable, doSep, this->m_threadContext, &reader, this->m_eventSlabAllocator);
+            NSLogEvents::EventLogEntry_Parse(evt, this->m_eventListVTable, false, this->m_threadContext, &reader, this->m_eventSlabAllocator);
 
-#if !ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            doSep = true;
-#else
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             bool isJsRTBeginCall = (evt->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag);
             bool isExternalBeginCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
             if(isJsRTBeginCall | isExternalBeginCall)
             {
-                reader.ReadSequenceStart(true);
+                reader.ReadSequenceStart(false);
 
                 if(isJsRTBeginCall)
                 {
@@ -2314,16 +2316,7 @@ namespace TTD
             while(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
             {
                 callNestingStack.Pop();
-
-                if(doSep)
-                {
-                    reader.ReadSequenceEnd();
-                }
-                else
-                {
-                    reader.ReadSequenceEnd();
-                    doSep = true;
-                }
+                reader.ReadSequenceEnd();
             }
 #endif
         }
