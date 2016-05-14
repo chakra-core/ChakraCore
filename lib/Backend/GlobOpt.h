@@ -1456,7 +1456,7 @@ private:
     IR::Instr*              FindArraySegmentLoadInstr(IR::Instr* instr);
     void                    RemoveMemOpSrcInstr(IR::Instr* memopInstr, IR::Instr* srcInstr, BasicBlock* block);
     void                    GetMemOpSrcInfo(Loop* loop, IR::Instr* instr, IR::RegOpnd*& base, IR::RegOpnd*& index, IRType& arrayType);
-    bool                    DoMemOp(Loop * loop);
+    bool                    HasMemOp(Loop * loop);
 
 private:
     void                    ChangeValueType(BasicBlock *const block, Value *const value, const ValueType newValueType, const bool preserveSubclassInfo, const bool allowIncompatibleType = false) const;
@@ -1806,7 +1806,6 @@ private:
     IR::Instr *             TrackMarkTempObject(IR::Instr * instrStart, IR::Instr * instrEnd);
     void                    TrackTempObjectSyms(IR::Instr * instr, IR::RegOpnd * opnd);
     IR::Instr *             GenerateBailOutMarkTempObjectIfNeeded(IR::Instr * instr, IR::Opnd * opnd, bool isDst);
-    bool                    IsDefinedInCurrentLoopIteration(Loop *loop, Value *val) const;
 
     void                    KillStateForGeneratorYield();
 

@@ -4192,30 +4192,33 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
     Assert(iv->IsChangeDeterminate() && iv->IsChangeUnidirectional());
     const IntConstantBounds & bounds = iv->ChangeBounds();
 
-    // Only accept induction variables that increments by 1
-    Loop::InductionVariableChangeInfo inductionVariableChangeInfo = { 0, 0 };
-    inductionVariableChangeInfo = loop->memOpInfo->inductionVariableChangeInfoMap->Lookup(indexSymID, inductionVariableChangeInfo);
-
-    if (
-        (bounds.LowerBound() != 1 && bounds.LowerBound() != -1) ||
-        (bounds.UpperBound() != bounds.LowerBound()) ||
-        inductionVariableChangeInfo.unroll > 1 // Must be 0 (not seen yet) or 1 (already seen)
-    )
+    if (loop->memOpInfo)
     {
-        TRACE_MEMOP_VERBOSE(loop, instr, _u("The index does not change by 1: %d><%d, unroll=%d"), bounds.LowerBound(), bounds.UpperBound(), inductionVariableChangeInfo.unroll);
-        return false;
-    }
+        // Only accept induction variables that increments by 1
+        Loop::InductionVariableChangeInfo inductionVariableChangeInfo = { 0, 0 };
+        inductionVariableChangeInfo = loop->memOpInfo->inductionVariableChangeInfoMap->Lookup(indexSymID, inductionVariableChangeInfo);
 
-    // Check if the index is the same in all MemOp optimization in this loop
-    if (!loop->memOpInfo->candidates->Empty())
-    {
-        Loop::MemOpCandidate* previousCandidate = loop->memOpInfo->candidates->Head();
-
-        // All MemOp operations within the same loop must use the same index
-        if (previousCandidate->index != indexSymID)
+        if (
+            (bounds.LowerBound() != 1 && bounds.LowerBound() != -1) ||
+            (bounds.UpperBound() != bounds.LowerBound()) ||
+            inductionVariableChangeInfo.unroll > 1 // Must be 0 (not seen yet) or 1 (already seen)
+        )
         {
-            TRACE_MEMOP_VERBOSE(loop, instr, _u("The index is not the same as other MemOp in the loop"));
+            TRACE_MEMOP_VERBOSE(loop, instr, _u("The index does not change by 1: %d><%d, unroll=%d"), bounds.LowerBound(), bounds.UpperBound(), inductionVariableChangeInfo.unroll);
             return false;
+        }
+
+        // Check if the index is the same in all MemOp optimization in this loop
+        if (!loop->memOpInfo->candidates->Empty())
+        {
+            Loop::MemOpCandidate* previousCandidate = loop->memOpInfo->candidates->Head();
+
+            // All MemOp operations within the same loop must use the same index
+            if (previousCandidate->index != indexSymID)
+            {
+                TRACE_MEMOP_VERBOSE(loop, instr, _u("The index is not the same as other MemOp in the loop"));
+                return false;
+            }
         }
     }
 
@@ -4240,6 +4243,7 @@ GlobOpt::CollectMemcopyLdElementI(IR::Instr *instr, Loop *loop)
     SymID inductionSymID = GetVarSymID(indexOpnd->GetStackSym());
     Assert(IsSymIDInductionVariable(inductionSymID, loop));
 
+    loop->EnsureMemOpVariablesInitialized();
     bool isIndexPreIncr = loop->memOpInfo->inductionVariableChangeInfoMap->ContainsKey(inductionSymID);
 
     IR::Opnd * dst = instr->GetDst();
@@ -4310,6 +4314,7 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
     SymID inductionSymID = GetVarSymID(indexOp->GetStackSym());
     Assert(IsSymIDInductionVariable(inductionSymID, loop));
 
+    loop->EnsureMemOpVariablesInitialized();
     bool isIndexPreIncr = loop->memOpInfo->inductionVariableChangeInfoMap->ContainsKey(inductionSymID);
 
     Loop::MemSetCandidate* memsetInfo = JitAnewStruct(this->func->GetTopFunc()->m_fg->alloc, Loop::MemSetCandidate);
@@ -4325,6 +4330,12 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
 
 bool GlobOpt::CollectMemcopyStElementI(IR::Instr *instr, Loop *loop)
 {
+    if (!loop->memOpInfo || loop->memOpInfo->candidates->Empty())
+    {
+        // There is no ldElem matching this stElem
+        return false;
+    }
+
     Assert(instr->GetDst()->IsIndirOpnd());
     IR::IndirOpnd *dst = instr->GetDst()->AsIndirOpnd();
     IR::Opnd *indexOp = dst->GetIndexOpnd();
@@ -4353,11 +4364,6 @@ bool GlobOpt::CollectMemcopyStElementI(IR::Instr *instr, Loop *loop)
     SymID srcSymID = GetVarSymID(src1->GetStackSym());
 
     // Prepare the memcopyCandidate entry
-    if (loop->memOpInfo->candidates->Empty())
-    {
-        // There is no ldElem matching this stElem
-        return false;
-    }
     Loop::MemOpCandidate* previousCandidate = loop->memOpInfo->candidates->Head();
     if (!previousCandidate->IsMemCopy())
     {
@@ -4422,12 +4428,13 @@ GlobOpt::CollectMemOpInfo(IR::Instr *instr, Value *src1Val, Value *src2Val)
         return false;
     }
 
-    if (!loop->EnsureMemOpVariablesInitialized())
+    if (loop->GetLoopFlags().isInterpreted && !loop->GetLoopFlags().memopMinCountReached)
     {
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("minimum loop count not reached"))
+        loop->doMemOp = false;
         return false;
     }
-
-    Assert(loop->memOpInfo->doMemOp);
+    Assert(loop->doMemOp);
 
     bool isIncr = true, isChangedByOne = false;
     switch (instr->m_opcode)
@@ -4436,14 +4443,14 @@ GlobOpt::CollectMemOpInfo(IR::Instr *instr, Value *src1Val, Value *src2Val)
     case Js::OpCode::StElemI_A_Strict:
         if (!CollectMemOpStElementI(instr, loop))
         {
-            loop->memOpInfo->doMemOp = false;
+            loop->doMemOp = false;
             return false;
         }
         break;
     case Js::OpCode::LdElemI_A:
         if (!CollectMemOpLdElementI(instr, loop))
         {
-            loop->memOpInfo->doMemOp = false;
+            loop->doMemOp = false;
             return false;
         }
         break;
@@ -4500,6 +4507,7 @@ MemOpCheckInductionVariable:
                 }
             }
 
+            loop->EnsureMemOpVariablesInitialized();
             if (!isChangedByOne)
             {
                 Loop::InductionVariableChangeInfo inductionVariableChangeInfo = { Js::Constants::InvalidLoopUnrollFactor, 0 };
@@ -4536,12 +4544,12 @@ MemOpCheckInductionVariable:
     default:
         if (IsInstrInvalidForMemOp(instr, loop, src1Val, src2Val))
         {
-            loop->memOpInfo->doMemOp = false;
+            loop->doMemOp = false;
             return false;
         }
 
         // Make sure this instruction doesn't use the memcopy transfer sym before it is checked by StElemI
-        if (!loop->memOpInfo->candidates->Empty())
+        if (loop->memOpInfo && !loop->memOpInfo->candidates->Empty())
         {
             Loop::MemOpCandidate* prevCandidate = loop->memOpInfo->candidates->Head();
             if (prevCandidate->IsMemCopy())
@@ -4551,7 +4559,7 @@ MemOpCheckInductionVariable:
                 {
                     if (instr->FindRegUse(memcopyCandidate->transferSym))
                     {
-                        loop->memOpInfo->doMemOp = false;
+                        loop->doMemOp = false;
                         TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, _u("Found illegal use of LdElemI value(s%d)"), GetVarSymID(memcopyCandidate->transferSym));
                         return false;
                     }
@@ -4873,7 +4881,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         this->currentBlock->loop && !IsLoopPrePass() &&
         !func->IsJitInDebugMode() &&
         (func->HasProfileInfo() && !func->GetProfileInfo()->IsMemOpDisabled()) &&
-        (!this->currentBlock->loop->memOpInfo || this->currentBlock->loop->memOpInfo->doMemOp))
+        this->currentBlock->loop->doMemOp)
     {
         CollectMemOpInfo(instr, src1Val, src2Val);
     }
@@ -7925,7 +7933,6 @@ GlobOpt::IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue
             !Js::TaggedInt::IsOverflow(intConstantValue) &&
             GetTaggedIntConstantStackSym(intConstantValue) == srcSym
         ) ||
-        this->IsDefinedInCurrentLoopIteration(this->currentBlock->loop, srcValue) ||
         !currentBlock->loop->regAlloc.liveOnBackEdgeSyms->Test(srcSym->m_id);
 }
 
@@ -8019,11 +8026,6 @@ GlobOpt::IsSafeToTransferInPrePass(IR::Opnd *src, Value *srcValue)
     if (this->DoFieldHoisting())
     {
         return false;
-    }
-
-    if (this->IsDefinedInCurrentLoopIteration(this->prePassLoop, srcValue))
-    {
-        return true;
     }
 
     if (src->IsRegOpnd())
@@ -20130,12 +20132,6 @@ ValueInfo::GetIntValMinMax(int *pMin, int *pMax, bool doAggressiveIntTypeSpec)
 }
 
 bool
-GlobOpt::IsDefinedInCurrentLoopIteration(Loop *loop, Value *val) const
-{
-     return false;
-}
-
-bool
 GlobOpt::IsPREInstrCandidateLoad(Js::OpCode opcode)
 {
     switch (opcode)
@@ -21378,7 +21374,7 @@ GlobOpt::ProcessMemOp()
 {
     FOREACH_LOOP_IN_FUNC_EDITING(loop, this->func)
     {
-        if (DoMemOp(loop))
+        if (HasMemOp(loop))
         {
             const int candidateCount = loop->memOpInfo->candidates->Count();
             Assert(candidateCount > 0);
@@ -21389,7 +21385,7 @@ GlobOpt::ProcessMemOp()
             if (!loopCount || !(loopCount->LoopCountMinusOneSym() || loopCount->LoopCountMinusOneConstantValue()))
             {
                 TRACE_MEMOP(loop, nullptr, _u("MemOp skipped for no loop count"));
-                loop->memOpInfo->doMemOp = false;
+                loop->doMemOp = false;
                 loop->memOpInfo->candidates->Clear();
                 continue;
             }
@@ -21418,7 +21414,7 @@ GlobOpt::ProcessMemOp()
                 }
 
                 // One of the memop candidates did not validate. Do not emit for this loop.
-                loop->memOpInfo->doMemOp = false;
+                loop->doMemOp = false;
                 loop->memOpInfo->candidates->Clear();
             }
 
