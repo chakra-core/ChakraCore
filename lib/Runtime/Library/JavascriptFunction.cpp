@@ -139,7 +139,10 @@ namespace Js
     static char16 const funcName[] = _u("function anonymous");
     static char16 const genFuncName[] = _u("function* anonymous");
     static char16 const asyncFuncName[] = _u("async function anonymous");
-    static char16 const bracket[] = _u(" {\012");
+    static char16 const openFormals[] = _u("(");
+    static char16 const closeFormals[] = _u("\012)");
+    static char16 const openFuncBody[] = _u(" {");
+    static char16 const closeFuncBody[] = _u("\012}");
 
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
@@ -157,7 +160,7 @@ namespace Js
         JavascriptString* separator = library->GetCommaDisplayString();
 
         // Gather all the formals into a string like (fml1, fml2, fml3)
-        JavascriptString *formals = library->CreateStringFromCppLiteral(_u("("));
+        JavascriptString *formals = library->CreateStringFromCppLiteral(openFormals);
         for (uint i = 1; i < args.Info.Count - 1; ++i)
         {
             if (i != 1)
@@ -166,8 +169,7 @@ namespace Js
             }
             formals = JavascriptString::Concat(formals, JavascriptConversion::ToString(args.Values[i], scriptContext));
         }
-        formals = JavascriptString::Concat(formals, library->CreateStringFromCppLiteral(_u(")")));
-
+        formals = JavascriptString::Concat(formals, library->CreateStringFromCppLiteral(closeFormals));
         // Function body, last argument to Function(...)
         JavascriptString *fnBody = NULL;
         if (args.Info.Count > 1)
@@ -176,7 +178,12 @@ namespace Js
         }
 
         // Create a string representing the anonymous function
-        Assert(CountNewlines(funcName) + CountNewlines(bracket) == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
+        Assert(
+            CountNewlines(funcName) +
+            CountNewlines(openFormals) +
+            CountNewlines(closeFormals) +
+            CountNewlines(openFuncBody)
+            == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
 
         JavascriptString *bs = functionKind == FunctionKind::Async ?
             library->CreateStringFromCppLiteral(asyncFuncName) :
@@ -184,14 +191,13 @@ namespace Js
             library->CreateStringFromCppLiteral(genFuncName) :
             library->CreateStringFromCppLiteral(funcName);
         bs = JavascriptString::Concat(bs, formals);
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(bracket));
+        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(openFuncBody));
         if (fnBody != NULL)
         {
             bs = JavascriptString::Concat(bs, fnBody);
         }
 
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(_u("\012}")));
-
+        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(closeFuncBody));
         // Bug 1105479. Get the module id from the caller
         ModuleID moduleID = kmodGlobal;
 
