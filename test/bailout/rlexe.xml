@@ -10,7 +10,7 @@
     <default>
       <files>bailout.js</files>
       <compile-flags>-dynamicprofilecache:profile.dpl.bailout.js</compile-flags>
-      <tags>exclude_dynapogo,exclude_fre</tags>
+      <tags>exclude_dynapogo,exclude_test</tags>
       <baseline>bailout.baseline</baseline>
     </default>
   </test>
@@ -18,7 +18,7 @@
     <default>
       <files>bailout.js</files>
       <compile-flags>-off:typespec -bailout:5 -dynamicprofileinput:profile.dpl.bailout.js</compile-flags>
-      <tags>exclude_interpreted,exclude_fre</tags>
+      <tags>exclude_interpreted,exclude_test</tags>
       <baseline>bailout.baseline</baseline>
     </default>
   </test>
@@ -26,7 +26,7 @@
     <default>
       <files>bailout.js</files>
       <compile-flags>-bailout:10 -dynamicprofileinput:profile.dpl.bailout.js</compile-flags>
-      <tags>exclude_interpreted,exclude_fre</tags>
+      <tags>exclude_interpreted,exclude_test</tags>
       <baseline>bailout.baseline</baseline>
     </default>
   </test>
@@ -34,7 +34,7 @@
     <default>
       <files>bailout2.js</files>
       <compile-flags>-bailout:7</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>bailout2.baseline</baseline>
     </default>
   </test>
@@ -42,7 +42,7 @@
     <default>
       <files>bailout3.js</files>
       <compile-flags>-bailout:6 -off:typespec</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>bailout3.baseline</baseline>
     </default>
   </test>
@@ -50,7 +50,7 @@
     <default>
       <files>bailout4.js</files>
       <compile-flags>-bailout:6 -off:typespec</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>bailout4.baseline</baseline>
     </default>
   </test>
@@ -58,7 +58,7 @@
     <default>
       <files>bailout5.js</files>
       <compile-flags>-bailout:9 -off:typespec</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>bailout5.baseline</baseline>
     </default>
   </test>
@@ -66,14 +66,14 @@
     <default>
       <files>bailout6.js</files>
       <compile-flags>-bailoutateverybytecode</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bailout7.js</files>
       <compile-flags>-bailoutbytecode:742 -off:deferparse</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>bailout7.baseline</baseline>
     </default>
   </test>
@@ -81,28 +81,28 @@
     <default>
       <files>bailout_loopbodystart.js</files>
       <compile-flags>-dynamicprofilecache:profile.dpl.bailout_loopbodystart.js</compile-flags>
-      <tags>exclude_dynapogo,exclude_fre</tags>
+      <tags>exclude_dynapogo,exclude_test</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bailout_loopbodystart.js</files>
       <compile-flags>-bailoutbytecode:17 -dynamicprofileinput:profile.dpl.bailout_loopbodystart.js</compile-flags>
-      <tags>exclude_interpreted,exclude_fre</tags>
+      <tags>exclude_interpreted,exclude_test</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bailout_loopbodystart.js</files>
       <compile-flags>-bailoutbytecode:18 -dynamicprofileinput:profile.dpl.bailout_loopbodystart.js</compile-flags>
-      <tags>exclude_interpreted,exclude_fre</tags>
+      <tags>exclude_interpreted,exclude_test</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bailout-eh.js</files>
       <compile-flags>-bailout:6</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>bailout-eh.baseline</baseline>
     </default>
   </test>
@@ -110,7 +110,7 @@
     <default>
       <files>bailout-args.js</files>
       <compile-flags>-bailoutbytecode:1</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>bailout-args.baseline</baseline>
     </default>
   </test>
@@ -126,7 +126,7 @@
     <default>
       <files>bailout-throw.js</files>
       <compile-flags>-bailout:5</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>bailout-throw.baseline</baseline>
     </default>
   </test>
@@ -134,7 +134,7 @@
     <default>
       <files>bailout-floatpref.js</files>
       <compile-flags>-dynamicprofilecache:profile.dpl.bailout-floatpref.js</compile-flags>
-      <tags>exclude_dynapogo,exclude_fre</tags>
+      <tags>exclude_dynapogo,exclude_test</tags>
       <baseline>bailout-floatpref.baseline</baseline>
     </default>
   </test>
@@ -142,7 +142,7 @@
     <default>
       <files>bailout-floatpref.js</files>
       <compile-flags>-bailout:3 -dynamicprofileinput:profile.dpl.bailout-floatpref.js</compile-flags>
-      <tags>exclude_interpreted,exclude_fre</tags>
+      <tags>exclude_interpreted,exclude_test</tags>
       <baseline>bailout-floatpref.baseline</baseline>
     </default>
   </test>
@@ -150,7 +150,7 @@
     <default>
       <files>bailout-floatpref.js</files>
       <compile-flags>-bailoutateverybytecode -dynamicprofileinput:profile.dpl.bailout-floatpref.js</compile-flags>
-      <tags>exclude_interpreted,exclude_fre</tags>
+      <tags>exclude_interpreted,exclude_test</tags>
       <baseline>bailout-floatpref.baseline</baseline>
     </default>
   </test>
@@ -158,7 +158,7 @@
     <default>
       <files>bailout-copyProp1.js</files>
       <compile-flags>-bailout:6</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline>bailout-copyProp1.baseline</baseline>
     </default>
   </test>
@@ -180,7 +180,7 @@
     <default>
       <files>bailout-inlined.js</files>
       <compile-flags>-force:inline</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline />
     </default>
   </test>

@@ -323,15 +323,10 @@ goto :main
     set _DIRS=-all
   )
 
-  set _BuildArchMapped=%_BuildArch%
   set _BuildTypeMapped=%_BuildType%
 
-  :: Map new build arch and type names to old names until rl test tags are
-  :: updated to the new names
-  if "%_BuildArchMapped%" == "x64" set _BuildArchMapped=amd64
-  if "%_BuildTypeMapped%" == "debug" set _BuildTypeMapped=chk
-  if "%_BuildTypeMapped%" == "test" set _BuildTypeMapped=fre
-  if "%_BuildTypeMapped%" == "codecoverage" set _BuildTypeMapped=fre
+  :: codecoverage need to mapped to test config
+  if "%_BuildTypeMapped%" == "codecoverage" set _BuildTypeMapped=test
 
   if "%Disable_JIT%" == "1" (
       set _dynamicprofilecache=
@@ -415,7 +410,7 @@ goto :main
   call :doSilent md %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG%
 
   set _rlArgs=%_Binary%
-  set _rlArgs=%_rlArgs% -target:%_BuildArchMapped%
+  set _rlArgs=%_rlArgs% -target:%_BuildArch%
   set _rlArgs=%_rlArgs% -nottags:fail
   set _rlArgs=%_rlArgs% %_RL_THREAD_FLAGS%
   set _rlArgs=%_rlArgs% %_DIRS%
@@ -427,7 +422,7 @@ goto :main
   set _rlArgs=%_rlArgs% -nottags:fails_%_TESTCONFIG%
   set _rlArgs=%_rlArgs% -nottags:exclude_%_TESTCONFIG%
   set _rlArgs=%_rlArgs% -nottags:exclude_%TARGET_OS%
-  set _rlArgs=%_rlArgs% -nottags:exclude_%_BuildArchMapped%
+  set _rlArgs=%_rlArgs% -nottags:exclude_%_BuildArch%
   set _rlArgs=%_rlArgs% -nottags:exclude_%_BuildTypeMapped%
   set _rlArgs=%_rlArgs% %_exclude_serialized%
   set _rlArgs=%_rlArgs% %_exclude_forcedeferparse%

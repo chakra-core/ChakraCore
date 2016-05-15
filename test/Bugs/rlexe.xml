@@ -29,7 +29,7 @@
     <default>
       <files>Win8_459638.js</files>
       <baseline>Win8_459638.baseline</baseline>
-      <tags>exclude_x86,exclude_amd64</tags>
+      <tags>exclude_x86,exclude_x64</tags>
       <!-- The bug is related to ARM only -->
       <compile-flags>-forceNative -off:simpleJit</compile-flags>
     </default>

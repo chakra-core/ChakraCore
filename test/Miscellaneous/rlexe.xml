@@ -10,7 +10,7 @@
     <default>
       <compile-flags>-recyclerVerify</compile-flags>
       <files>longstring.js</files>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -32,7 +32,7 @@
       <files>oom.js</files>
       <baseline>oom.baseline</baseline>
       <compile-flags>-forcefragmentaddressspace:8000000</compile-flags>
-      <tags>exclude_amd64,fail</tags>
+      <tags>exclude_x64,fail</tags>
     </default>
   </test>
   <test>
@@ -40,7 +40,7 @@
       <files>irviewer.js</files>
       <baseline>irviewer.baseline</baseline>
       <compile-flags>-irviewer</compile-flags>
-      <tags>exclude_amd64,exclude_fre,exclude_arm,exclude_nonative,require_backend</tags>
+      <tags>exclude_x64,exclude_test,exclude_arm,exclude_nonative,require_backend</tags>
     </default>
   </test>
   <test>

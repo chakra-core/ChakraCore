@@ -72,7 +72,7 @@
       <files>initcachedscope.js</files>
       <compile-flags>-recyclerstress -force:cachedscope</compile-flags>
       <baseline>initcachedscope.baseline</baseline>
-      <tags>exclude_fre,Slow</tags>
+      <tags>exclude_test,Slow</tags>
     </default>
   </test>
   <test>
@@ -100,7 +100,7 @@
       <files>invalcachedscope.js</files>
       <compile-flags>-force:deferparse -Intl-</compile-flags>
       <baseline>invalcachedscope.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>

@@ -68,7 +68,7 @@ Re-enable after 190575 is fixed
    <default>
       <files>profiledataobject.js</files>
       <baseline>profiledataobject.baseline</baseline>
-      <tags>exclude_default,exclude_dynapogo,exclude_amd64,exclude_arm,exclude_ship,require_backend</tags>
+      <tags>exclude_default,exclude_dynapogo,exclude_x64,exclude_arm,exclude_ship,require_backend</tags>
           <compile-flags>-nonative -dynamicprofilecache:profile.dpl.profiledataobject.js</compile-flags>
    </default>
 </test>
@@ -79,7 +79,7 @@ Re-enable after 190575 is fixed
    <default>
       <files>profiledataobject.js</files>
       <baseline>profiledataobject.dynapogo.baseline</baseline>
-      <tags>exclude_default,exclude_interpreted,exclude_amd64,exclude_arm,exclude_ship,require_backend</tags>
+      <tags>exclude_default,exclude_interpreted,exclude_x64,exclude_arm,exclude_ship,require_backend</tags>
           <compile-flags>-nonative -dynamicprofileinput:profile.dpl.profiledataobject.js</compile-flags>
    </default>
 </test>
@@ -112,7 +112,7 @@ Re-enable after 190575 is fixed
    <default>
       <files>profiledataobject.js</files>
       <baseline>profiledataobject.arm.baseline</baseline>
-      <tags>exclude_default,exclude_dynapogo,exclude_x86,exclude_amd64,exclude_ship,require_backend</tags>
+      <tags>exclude_default,exclude_dynapogo,exclude_x86,exclude_x64,exclude_ship,require_backend</tags>
           <compile-flags>-nonative -dynamicprofilecache:profile.dpl.profiledataobject.js</compile-flags>
    </default>
 </test>
@@ -123,7 +123,7 @@ Re-enable after 190575 is fixed
    <default>
       <files>profiledataobject.js</files>
       <baseline>profiledataobject.dynapogo.arm.baseline</baseline>
-      <tags>exclude_default,exclude_interpreted,exclude_x86,exclude_amd64,exclude_ship,require_backend</tags>
+      <tags>exclude_default,exclude_interpreted,exclude_x86,exclude_x64,exclude_ship,require_backend</tags>
           <compile-flags>-nonative -dynamicprofileinput:profile.dpl.profiledataobject.js</compile-flags>
    </default>
 </test>
