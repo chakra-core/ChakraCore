@@ -287,7 +287,7 @@ namespace Js
         {
             //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths -- the increment of nesting is handled by the popper but we need to add 1 to the value we record (so it matches)
             TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
-            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(scriptContext, callEvent);
+            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(externalFunction, callEvent);
 
             Var result = nullptr;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
@@ -378,7 +378,7 @@ namespace Js
         {
             //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths -- the increment of nesting is handled by the popper but we need to add 1 to the value we record (so it matches)
             TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
-            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(scriptContext, callEvent);
+            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(externalFunction, callEvent);
 
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {

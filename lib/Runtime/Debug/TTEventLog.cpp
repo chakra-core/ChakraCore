@@ -37,29 +37,20 @@ namespace TTD
         this->m_log = nullptr; //normal pop (no exception) just clear so destructor nops
     }
 
-    TTDRecordExternalFunctionCallActionPopper::TTDRecordExternalFunctionCallActionPopper(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction)
-        : m_ctx(ctx), m_callAction(callAction)
+    TTDRecordExternalFunctionCallActionPopper::TTDRecordExternalFunctionCallActionPopper(Js::JavascriptFunction* function, NSLogEvents::EventLogEntry* callAction)
+        : m_function(function), m_callAction(callAction)
     {
-        this->m_ctx->TTDRootNestingCount++;
+        this->m_function->GetScriptContext()->TTDRootNestingCount++;
     }
 
     TTDRecordExternalFunctionCallActionPopper::~TTDRecordExternalFunctionCallActionPopper()
     {
         if(this->m_callAction != nullptr)
         {
-            //
-            //TODO: we will want to be a bit more detailed on this later
-            //
-            bool hasScriptException = this->m_ctx->HasRecordedException();
-            bool hasTerminalException = false;
+            this->m_function->GetScriptContext()->GetThreadContext()->TTDLog->RecordExternalCallEvent_Complete(this->m_callAction, this->m_function, false, false, nullptr);
 
-            NSLogEvents::ExternalCallEventLogEntry_ProcessReturn(this->m_callAction, nullptr, hasScriptException, hasTerminalException);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            NSLogEvents::ExternalCallEventLogEntry_ProcessDiagInfoPost(this->m_callAction, this->m_ctx->GetThreadContext()->TTDLog->GetLastEventTime());
-#endif
-
-            this->m_ctx->TTDRootNestingCount--;
+            this->m_callAction = nullptr;
+            this->m_function->GetScriptContext()->TTDRootNestingCount--;
         }
     }
 
@@ -67,20 +58,10 @@ namespace TTD
     {
         AssertMsg(this->m_callAction != nullptr, "Should never be null on normal return!");
 
-        //
-        //TODO: we will want to be a bit more detailed on this later
-        //
-        bool hasScriptException = checkException ? this->m_ctx->HasRecordedException() : false;
-        bool hasTerminalException = false;
-
-        NSLogEvents::ExternalCallEventLogEntry_ProcessReturn(this->m_callAction, returnValue, hasScriptException, hasTerminalException);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        NSLogEvents::ExternalCallEventLogEntry_ProcessDiagInfoPost(this->m_callAction, this->m_ctx->GetThreadContext()->TTDLog->GetLastEventTime());
-#endif
+        this->m_function->GetScriptContext()->GetThreadContext()->TTDLog->RecordExternalCallEvent_Complete(this->m_callAction, this->m_function, true, checkException, returnValue);
 
         this->m_callAction = nullptr;
-        this->m_ctx->TTDRootNestingCount--;
+        this->m_function->GetScriptContext()->TTDRootNestingCount--;
     }
 
     TTDRecordJsRTFunctionCallActionPopper::TTDRecordJsRTFunctionCallActionPopper(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction)
@@ -104,6 +85,9 @@ namespace TTD
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             NSLogEvents::JsRTCallFunctionAction_ProcessDiagInfoPost(this->m_callAction, this->m_ctx->GetThreadContext()->TTDLog->GetCurrentWallTime(), this->m_ctx->GetThreadContext()->TTDLog->GetLastEventTime());
 #endif
+
+            this->m_callAction = nullptr;
+            this->m_ctx->TTDRootNestingCount--;
         }
     }
 
@@ -902,6 +886,37 @@ namespace TTD
         return evt;
     }
 
+    void EventLog::RecordExternalCallEvent_Complete(NSLogEvents::EventLogEntry* evt, Js::JavascriptFunction* func, bool normalReturn, bool checkException, Js::Var result)
+    {
+        Js::ScriptContext* ctx = func->GetScriptContext();
+
+        //
+        //TODO: we will want to be a bit more detailed on this later
+        //
+        bool hasScriptException = false;
+        bool hasTerminalException = false;
+        if(normalReturn)
+        {
+            hasScriptException = checkException ? ctx->HasRecordedException() : false;
+            hasTerminalException = false;
+        }
+        else
+        {
+            hasScriptException = true;
+            hasTerminalException = false;
+        }
+
+        NSLogEvents::ExternalCallEventLogEntry_ProcessReturn(evt, result, hasScriptException, hasTerminalException);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        NSLogEvents::ExternalCallEventLogEntry_ProcessDiagInfoPost(evt, this->GetLastEventTime());
+#endif
+
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+        this->m_diagnosticLogger.WriteReturn(func, result);
+#endif
+    }
+
     void EventLog::ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result)
     {
         const NSLogEvents::ExternalCallEventLogEntry* ecEvent = this->ReplayGetReplayEvent_Helper<NSLogEvents::ExternalCallEventLogEntry, NSLogEvents::EventKind::ExternalCallTag>();
@@ -966,7 +981,8 @@ namespace TTD
         ecEvent->CallbackFunction = static_cast<TTDVar>(taskVar);
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteReturn(function, *result);
+        this->m_diagnosticLogger.WriteLiteralMsg("Enqueue Task: ");
+        this->m_diagnosticLogger.WriteVar(taskVar);
 #endif
     }
 

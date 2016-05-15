@@ -2407,7 +2407,8 @@ namespace Js
 
     void ScriptContext::AddTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
     {
-        AssertMsg(!this->m_ttdRootSet->ContainsKey(newRoot), "Hmm this is strange.");
+        //We provide special treatment for undefined, null, true, false, global and may add them multiple times 
+        AssertMsg(!this->m_ttdRootSet->ContainsKey(newRoot) || (newRoot->GetTypeId() <= Js::TypeIds_Boolean) || (newRoot->GetTypeId() == Js::TypeIds_GlobalObject), "Should not have duplicate inserts.");
 
         this->m_ttdRootSet->AddNew(newRoot);
         this->m_ttdRootTagIdMap.Item(origId, newRoot);
@@ -2415,12 +2416,17 @@ namespace Js
 
     void ScriptContext::RemoveTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot)
     {
-        AssertMsg(this->m_ttdRootSet->ContainsKey(deleteRoot), "Hmm this is strange.");
+        AssertMsg(this->m_ttdRootSet->ContainsKey(deleteRoot), "Should not have delete elements that are not in the root set.");
 
-        this->m_ttdRootSet->Remove(deleteRoot);
-        if(!this->m_ttdLocalRootSet->ContainsKey(deleteRoot))
+        //We provide special treatment for undefined, null, true, false, global and want to ensure they are always in the root set and map
+        Js::TypeId tid = deleteRoot->GetTypeId();
+        if((tid > Js::TypeIds_Boolean) & (tid != Js::TypeIds_GlobalObject))
         {
-            this->m_ttdRootTagIdMap.Remove(origId);
+            this->m_ttdRootSet->Remove(deleteRoot);
+            if(!this->m_ttdLocalRootSet->ContainsKey(deleteRoot))
+            {
+                this->m_ttdRootTagIdMap.Remove(origId);
+            }
         }
     }
 

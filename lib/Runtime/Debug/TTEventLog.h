@@ -54,11 +54,11 @@ namespace TTD
     class TTDRecordExternalFunctionCallActionPopper
     {
     private:
-        Js::ScriptContext* m_ctx;
+        Js::JavascriptFunction* m_function;
         NSLogEvents::EventLogEntry* m_callAction;
 
     public:
-        TTDRecordExternalFunctionCallActionPopper(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction);
+        TTDRecordExternalFunctionCallActionPopper(Js::JavascriptFunction* function, NSLogEvents::EventLogEntry* callAction);
         ~TTDRecordExternalFunctionCallActionPopper();
 
         void NormalReturn(bool checkException, Js::Var returnValue);
@@ -421,6 +421,7 @@ namespace TTD
 
         //Log a value event for return from an external call
         NSLogEvents::EventLogEntry* RecordExternalCallEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv);
+        void RecordExternalCallEvent_Complete(NSLogEvents::EventLogEntry* evt, Js::JavascriptFunction* func, bool normalReturn, bool checkException, Js::Var result);
 
         //replay an external return event (which should be the current event)
         void ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result);
