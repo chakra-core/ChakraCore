@@ -2730,7 +2730,6 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
 void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* codeAddress)
 {
     Assert(!this->isClosed);
-    this->processed = false;
 
     FreeLoopBodyJob* job = HeapNewNoThrow(FreeLoopBodyJob, this, codeAddress);
 
@@ -2740,6 +2739,8 @@ void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* cod
 
         {
             AutoOptionalCriticalSection lock(Processor()->GetCriticalSection());
+            this->waitingForStackJob = true;
+            this->stackJobProcessed = false;
             Processor()->AddJob(&stackJob);
         }
         Processor()->PrioritizeJobAndWait(this, &stackJob);
