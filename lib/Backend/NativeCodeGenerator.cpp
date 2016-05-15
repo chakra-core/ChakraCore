@@ -2730,6 +2730,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
 void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* codeAddress)
 {
     Assert(!this->isClosed);
+    this->processed = false;
 
     FreeLoopBodyJob* job = HeapNewNoThrow(FreeLoopBodyJob, this, codeAddress);
 
