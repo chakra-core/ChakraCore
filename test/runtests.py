@@ -9,6 +9,7 @@ import os
 import subprocess as SP
 import argparse
 import xml.etree.ElementTree as ET
+import re
 
 # handle command line args
 parser = argparse.ArgumentParser(
@@ -18,14 +19,14 @@ parser = argparse.ArgumentParser(
 Samples:
 
 test all folders:
-    {0}
+    runtests.py
 
 test only Array:
-    {0} Array
+    runtests.py Array
 
 test a single file:
-    {0} Basics/hello.js
-'''.format(sys.argv[0]))
+    runtests.py Basics/hello.js
+''')
 
 parser.add_argument('folders', metavar='folder', nargs='*',
                     help='folder subset to run tests')
@@ -63,7 +64,6 @@ if binary == None:
 if not os.path.isfile(binary):
     print('{} not found. Did you run ./build.sh already?'.format(binary))
     sys.exit(1)
-
 
 # records pass_count/fail_count
 class PassFailCount(object):
@@ -146,10 +146,15 @@ def test_one(folder, test):
     js_output = ""
 
     flags = test.get('compile-flags')
+
+    working_path = os.path.dirname(js_file)
+    file_name = os.path.basename(js_file)
+
     cmd = [binary, '-WERExceptionSupport', '-ExtendedErrorStackForTestHost'] \
           + (flags.split() if flags else []) \
-          + [js_file]
-    p = SP.Popen(cmd, stdout=SP.PIPE, stderr=SP.STDOUT)
+          + [file_name]
+
+    p = SP.Popen(cmd, stdout=SP.PIPE, stderr=SP.STDOUT, cwd=working_path)
     js_output = p.communicate()[0].replace('\r','')
     exit_code = p.wait()
 
@@ -160,10 +165,15 @@ def test_one(folder, test):
         if os.path.isfile(baseline):
             expected_output = None
             with open(baseline, 'r') as bs_file:
-                expected_output = bs_file.read().replace('\r', '')
-            # todo: compare line by line and use/implement wild cards support
-            # todo: by default we discard line endings (xplat), make this optional
-            if expected_output.replace('\n', '') != js_output.replace('\n', ''):
+                baseline_output = bs_file.read()
+
+            # Cleanup carriage return
+            # todo: remove carriage return at the end of the line
+            #       or better fix ch to output same on all platforms
+            expected_output = re.sub('[\r]+\n', '\n', baseline_output)
+
+            # todo: implement wild cards support
+            if expected_output != js_output:
                 return show_failed(js_file, js_output, exit_code, expected_output)
 
     print("\tPassed -> " + os.path.basename(js_file))
