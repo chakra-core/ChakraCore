@@ -14,9 +14,9 @@ var proxy = new Proxy({}, {
 for(var key in proxy);
 
 // check ownKeys
-var proxy = new Proxy({x:1}, {
+var proxy = new Proxy({"5":1}, {
   ownKeys: function() {
-    return ['a','b'];
+    return ['a', {y:2}, 5, 'b', Symbol.iterator];
   }
 });
 var keys=""
@@ -26,7 +26,7 @@ passed &= keys==="";
 // check property descriptor
 var proxy = new Proxy({b:1,a:2}, {
   ownKeys: function() {
-    return ['a','b'];
+    return ['a', {y:2}, 5, 'b', Symbol.iterator];
   }
 });
 var keys=""
@@ -35,6 +35,7 @@ passed &= keys==="ab";
 
 // check property descriptor trap
 var already_non_enmerable = false;
+var getPrototypeOfCalled = false;
 var proxy = new Proxy({}, {
   ownKeys: function() {
     return ['a','b','a']; // make first a non-enumerable, and second a enumerable, second a won't show up in for-in
@@ -52,11 +53,16 @@ var proxy = new Proxy({}, {
       value: 42, 
       writable: true 
     };
+  },
+  getPrototypeOf: function(){
+    getPrototypeOfCalled = true;
+    return null;
   }
 });
 var keys=""
 for(var key in proxy){ keys += key;}
 passed &= keys==="b";
+passed &= getPrototypeOfCalled;
 
 if (passed) {
   WScript.Echo("PASS");
