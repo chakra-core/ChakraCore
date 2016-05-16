@@ -128,6 +128,10 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -Wno-writable-strings"
     )
+elseif(CMAKE_BUILD_TYPE STREQUAL Test)
+    add_definitions(
+        -DENABLE_DEBUG_CONFIG_OPTIONS=1
+    )
 endif(CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
