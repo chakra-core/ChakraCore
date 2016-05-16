@@ -670,7 +670,6 @@ namespace Js
             guestArena = nullptr;
         }
         cache = nullptr;
-        javascriptLibrary->CleanupForClose();
 
         builtInLibraryFunctions = nullptr;
 
@@ -683,6 +682,7 @@ namespace Js
         // and InternalClose gets called in the destructor code path
         if (javascriptLibrary != nullptr)
         {
+            javascriptLibrary->CleanupForClose();
             javascriptLibrary->Uninitialize();
         }
 
