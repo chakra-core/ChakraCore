@@ -273,6 +273,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     void SetLocalFrameDisplaySym(StackSym *sym) { m_localFrameDisplaySym = sym; }
 
     uint8 *GetCallsCountAddress() const;
+    uint *GetJittedLoopIterationsSinceLastBailoutAddress() const;
 
     void EnsurePinnedTypeRefs();
     void PinTypeRef(void* typeRef);

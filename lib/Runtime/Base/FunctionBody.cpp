@@ -3217,6 +3217,14 @@ namespace Js
         Assert(((LoopEntryPointInfo*) entryPointInfo)->loopHeader == loopHeader);
         Assert(entryPointInfo->address == nullptr);
         entryPointInfo->address = (void*)entryPoint;
+
+        ((Js::LoopEntryPointInfo*)entryPointInfo)->totalJittedLoopIterations = 
+            static_cast<uint8>(
+                min(
+                    static_cast<uint>(static_cast<uint8>(CONFIG_FLAG(MinBailOutsBeforeRejitForLoops))) *
+                    (Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() - 1),
+                    0xffu));
+
         // reset the counter to 1 less than the threshold for TJLoopBody
         if (loopHeader->GetCurrentEntryPointInfo()->GetIsAsmJSFunction())
         {
