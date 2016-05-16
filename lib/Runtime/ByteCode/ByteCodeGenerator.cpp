@@ -2677,7 +2677,11 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 top->GetChildCallsEval() ||
                 (top->GetHasArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode) && pnode->sxFnc.pnodeParams != nullptr) ||
                 top->GetHasLocalInClosure() ||
-                top->funcExprScope && top->funcExprScope->GetMustInstantiate())
+                top->funcExprScope && top->funcExprScope->GetMustInstantiate() ||
+                // When we have split scope normally either eval will be present or the GetHasLocalInClosure will be true as one of the formal is
+                // captured. But when we force split scope or split scope happens due to some other reasons we have to make sure we allocate frame
+                // slot register here.
+                (top->paramScope != nullptr && !top->paramScope->GetCanMergeWithBodyScope()))
             {
                 if (!top->GetCallsEval())
                 {
