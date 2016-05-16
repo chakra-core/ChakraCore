@@ -20,14 +20,15 @@ PRINT_USAGE() {
     echo "  build.sh [options]"
     echo ""
     echo "  options:"
-    echo "    --cxx         : Path to Clang++ (see example below)"
-    echo "    --cc          : Path to Clang   (see example below)"
-    echo "    --debug, -d   : Debug build (by default Release Build)"
-    echo "    --help, -h    : Show help"
-    echo "    --icu         : Path to ICU include folder (see example below)"
-    echo "    --jobs, -j    : Multicore build (i.e. -j=3 for 3 cores)"
-    echo "    --ninja, -n   : Build with ninja instead of make"
-    echo "    --verbose, -v : Display verbose output including all options"
+    echo "    --cxx             : Path to Clang++ (see example below)"
+    echo "    --cc              : Path to Clang   (see example below)"
+    echo "    --debug, -d       : Debug build (by default Release build)"
+    echo "    --help, -h        : Show help"
+    echo "    --icu             : Path to ICU include folder (see example below)"
+    echo "    --jobs, -j        : Multicore build (i.e. -j=3 for 3 cores)"
+    echo "    --ninja, -n       : Build with ninja instead of make"
+    echo "    --test-build, -t  : Test build (by default Release build)"
+    echo "    --verbose, -v     : Display verbose output including all options"
     echo ""
     echo "  example:"
     echo "    ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j=2"
@@ -67,6 +68,10 @@ while [[ $# -gt 0 ]]; do
 
     if [[ "$1" == "--debug" || "$1" == "-d" ]]; then
         BUILD_TYPE="Debug"
+    fi
+
+    if [[ "$1" == "--test-build" || "$1" == "-t" ]]; then
+        BUILD_TYPE="Test"
     fi
 
     if [[ "$1" =~ "-j" ]]; then
