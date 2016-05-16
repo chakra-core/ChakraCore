@@ -127,6 +127,7 @@
     Output::Print(__VA_ARGS__);\
     IR::Instr* __instr__ = instr;\
     if(__instr__) __instr__->DumpByteCodeOffset();\
+    if(__instr__) Output::Print(_u(" (%s)"), Js::OpCodeUtil::GetOpCodeName(__instr__->m_opcode));\
     Output::Print(_u("\n"));\
     Output::Flush(); \
 }
@@ -4528,6 +4529,23 @@ MemOpCheckInductionVariable:
         // Fallthrough if not an induction variable
     }
     default:
+        // List of instruction that are valid with memop (ie: instr that gets removed if memop is emitted)
+        if (
+            this->currentBlock != loop->GetHeadBlock() &&
+            !instr->IsLabelInstr() &&
+            instr->IsRealInstr() &&
+            instr->m_opcode != Js::OpCode::IncrLoopBodyCount &&
+            instr->m_opcode != Js::OpCode::StLoopBodyCount &&
+            instr->m_opcode != Js::OpCode::Ld_A &&
+            instr->m_opcode != Js::OpCode::Ld_I4 &&
+            !(instr->IsBranchInstr() && instr->AsBranchInstr()->IsUnconditional())
+        )
+        {
+            TRACE_MEMOP_VERBOSE(loop, instr, _u("Instruction not accepted for memop"));
+            loop->memOpInfo->doMemOp = false;
+            return false;
+        }
+
         // Check prev instr because it could have been added by an optimization and we won't see it here.
         if (OpCodeAttr::FastFldInstr(instr->m_opcode) || (instr->m_prev && OpCodeAttr::FastFldInstr(instr->m_prev->m_opcode)))
         {
@@ -20887,6 +20905,7 @@ GlobOpt::RemoveMemOpSrcInstr(IR::Instr* memopInstr, IR::Instr* srcInstr, BasicBl
         {
             switch (topInstr->m_prev->m_opcode)
             {
+            case Js::OpCode::BailOnNotArray:
             case Js::OpCode::NoImplicitCallUses:
             case Js::OpCode::ByteCodeUses:
                 topInstr = topInstr->m_prev;
@@ -20904,6 +20923,7 @@ GlobOpt::RemoveMemOpSrcInstr(IR::Instr* memopInstr, IR::Instr* srcInstr, BasicBl
         IR::Instr* removeInstr = topInstr;
         topInstr = topInstr->m_next;
         Assert(
+            removeInstr->m_opcode == Js::OpCode::BailOnNotArray ||
             removeInstr->m_opcode == Js::OpCode::NoImplicitCallUses ||
             removeInstr->m_opcode == Js::OpCode::ByteCodeUses ||
             removeInstr->m_opcode == Js::OpCode::LdIndir ||
