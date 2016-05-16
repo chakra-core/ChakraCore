@@ -13,6 +13,8 @@
 param (
     [string]$envconfig = "ComputedEnvironment.cmd",
 
+    [string[]]$SupportedPogoBuildTypes = @("x64_release", "x86_release"),
+
     [Parameter(Mandatory=$True)]
     [string]$oauth
 )
@@ -24,7 +26,7 @@ if (-not $branch) {
 
 $BranchName = $branch.split('/',3)[2]
 $BranchPath = $BranchName.replace('/','\')
-$CommitHash = ${env:BUILD_SOURCEVERSION}
+$CommitHash = $env:BUILD_SOURCEVERSION
 if (-not $CommitHash) {
     $CommitHash = $(git rev-parse HEAD)
 }
@@ -46,7 +48,7 @@ $remote = $remote.replace("mshttps", "https")
 # Get the pushId and push date time to use that for build number and build date time
 $uri = ("{0}/commits/{1}?api-version=1.0" -f $remote, $commitHash)
 $oauthToken = Get-Content $oauth
-$header = @{Authorization=("Basic {0}" -f $oauthToken) }
+$header = @{ Authorization=("Basic {0}" -f $oauthToken) }
 $info = Invoke-RestMethod -Headers $header -Uri $uri -Method GET
 
 $BuildPushDate = [datetime]$info.push.date
@@ -67,21 +69,15 @@ $PreviewVersionString = "${VersionString}-preview"
 if ($BranchPath.StartsWith("build")) {
     $YearAndMonth = ""
 } else {
-    $YearAndMonth = Get-Date $BuildPushDate -Format yyMM
-}
-
-$YearAndMonthSeparator = ""
-if ($YearAndMonth) {
-    $YearAndMonthSeparator = "\"
+    $YearAndMonth = (Get-Date $BuildPushDate -Format yyMM) + "\"
 }
 
 $BuildIdentifier = "${PushID}_${PushDate}_${Username}_${CommitHash}"
-$OutputPath = "${BranchPath}\${YearAndMonth}${YearAndMonthSeparator}${BuildIdentifier}"
-$FlavorName = "${Env:BuildPlatform}_${Env:BuildConfiguration}"
+$ComputedDropPathSegment = "${BranchPath}\${YearAndMonth}${BuildIdentifier}"
+$BuildType = "${Env:BuildPlatform}_${Env:BuildConfiguration}"
+$BinariesDirectory = "${Env:BUILD_SOURCESDIRECTORY}\Build\VcBuild"
 
-# Create a sentinel file for each build flavor and for the overall build
-# to track whether the build is complete.
-# * build.incomplete                   # will be deleted when the release task completes
+# Create a sentinel file for each build flavor to track whether the build is complete.
 # * ${arch}_${flavor}.incomplete       # will be deleted when the build of this flavor completes
 
 $buildIncompleteFileContentsString = @"
@@ -89,29 +85,21 @@ $buildIncompleteFileContentsString = @"
 The contents of this directory should not be relied on until the build completes.
 "@
 
-$FullOutputPath = Join-Path ${env:DROP_ROOT} ${OutputPath}
-New-Item -ItemType Directory -Force -Path $FullOutputPath
-New-Item -ItemType Directory -Force -Path (Join-Path $Env:BUILD_BINARIESDIRECTORY "buildlogs")
-New-Item -ItemType Directory -Force -Path (Join-Path $Env:BUILD_BINARIESDIRECTORY "logs")
+$DropPath = Join-Path $env:DROP_ROOT $ComputedDropPathSegment
+New-Item -ItemType Directory -Force -Path $DropPath
+New-Item -ItemType Directory -Force -Path (Join-Path $Env:BUILD_SOURCESDIRECTORY "test\logs")
+New-Item -ItemType Directory -Force -Path (Join-Path $BinariesDirectory "testlogs")
+New-Item -ItemType Directory -Force -Path (Join-Path $BinariesDirectory "buildlogs")
+New-Item -ItemType Directory -Force -Path (Join-Path $BinariesDirectory "logs")
 
-$buildIncompleteFile = Join-Path $FullOutputPath "build.incomplete"
-$flavorBuildIncompleteFile = Join-Path $FullOutputPath "${FlavorName}.incomplete"
+$flavorBuildIncompleteFile = Join-Path $DropPath "${BuildType}.incomplete"
 
-if (-not (Test-Path $buildIncompleteFile)) {
-    ($buildIncompleteFileContentsString -f "Build") `
-        | Out-File $buildIncompleteFile -Encoding Ascii
-}
 if (-not (Test-Path $flavorBuildIncompleteFile)) {
-    ($buildIncompleteFileContentsString -f "Build of ${FlavorName}") `
+    ($buildIncompleteFileContentsString -f "Build of ${BuildType}") `
         | Out-File $flavorBuildIncompleteFile -Encoding Ascii
 }
 
-$PogoConfig = "False"
-if (((${Env:BuildPlatform} -eq "x64") -or (${Env:BuildPlatform} -eq "x86")) `
-    -and (${Env:BuildConfiguration} -eq "release"))
-{
-    $PogoConfig = "True"
-}
+$PogoConfig = $SupportedPogoBuildTypes -contains "${Env:BuildPlatform}_${Env:BuildConfiguration}"
 
 # Write the $envconfig script.
 
@@ -129,11 +117,11 @@ set CommitTime=${CommitTime}
 set Username=${Username}
 set CommitHash=${CommitHash}
 
-set OutputPath=${OutputPath}
-set FullOutputPath=${FullOutputPath}
-set FlavorName=${FlavorName}
+set ComputedDropPathSegment=${ComputedDropPathSegment}
+set BinariesDirectory=${BinariesDirectory}
+set DropPath=${DropPath}
+set BuildType=${BuildType}
 
-set BuildIncompleteFile=${buildIncompleteFile}
 set FlavorBuildIncompleteFile=${flavorBuildIncompleteFile}
 
 set PogoConfig=${PogoConfig}
@@ -145,7 +133,9 @@ set PogoConfig=${PogoConfig}
 
 @"
 set TF_BUILD_SOURCEGETVERSION=LG:${branch}:${CommitHash}
-set TF_BUILD_DROPLOCATION=${Env:BUILD_BINARIESDIRECTORY}
+set TF_BUILD_DROPLOCATION=${BinariesDirectory}
+set TF_BUILD_BINARIESDIRECTORY=${BinariesDirectory}
+set TF_BUILD_SOURCESDIRECTORY=${Env:BUILD_SOURCESDIRECTORY}
 
 set TF_BUILD_BUILDDEFINITIONNAME=${Env:BUILD_DEFINITIONNAME}
 set TF_BUILD_BUILDNUMBER=${Env:BUILD_BUILDNUMBER}
@@ -158,15 +148,13 @@ set TF_BUILD_BUILDURI=${Env:BUILD_BUILDURI}
 # https://github.com/Microsoft/vso-agent-tasks/blob/master/docs/authoring/commands.md
 # Lines written to stdout that match this pattern are interpreted with this command syntax.
 
-Write-Output "Setting VSO variable VSO_OutputPath = ${OutputPath}"
-Write-Output "##vso[task.setvariable variable=VSO_OutputPath;]${OutputPath}"
+Write-Output "Setting VSO variable VSO_DropPath = ${DropPath}"
+Write-Output "##vso[task.setvariable variable=VSO_DropPath;]${DropPath}"
 
-Write-Output "Setting VSO variable VSO_FullVersionString = ${FullVersionString}"
-Write-Output "##vso[task.setvariable variable=VSO_FullVersionString;]${FullVersionString}"
+Write-Output "Setting VSO variable VSO_VersionString = ${VersionString}"
+Write-Output "##vso[task.setvariable variable=VSO_VersionString;]${VersionString}"
 
 # TODO (doilij): move this up and assign values
 
 # Inferable Environment (if not specified, inferred by pre_post_util.ps1):
-#   $Env:TF_BUILD_SOURCESDIRECTORY  (a.k.a. $srcpath)
 #   $Env:TF_BUILD_BUILDDIRECTORY    (a.k.a. $objpath)
-#   $Env:TF_BUILD_BINARIESDIRECTORY (a.k.a. $binpath)
