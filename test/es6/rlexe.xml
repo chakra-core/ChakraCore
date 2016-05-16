@@ -95,6 +95,7 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <!-- OS BUG 7117880
   <test>
     <default>
       <files>toStringTag.js</files>
@@ -102,6 +103,7 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>proto_basic.js</files>

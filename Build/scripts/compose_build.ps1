@@ -14,15 +14,6 @@ param (
 )
 
 #
-# Clean up the sentinel which previously marked this build as incomplete.
-#
-
-$buildIncompleteFile = Join-Path $rootPath "build.incomplete"
-if (Test-Path $buildIncompleteFile) {
-    Remove-Item -Path $buildIncompleteFile -Force
-}
-
-#
 # Aggregate build metadata and produce build.json
 #
 

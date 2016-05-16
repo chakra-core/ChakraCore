@@ -9,17 +9,27 @@
 # to clean up and produce metadata about the build.
 
 #
+# Copy _pogo binary folder, if present.
+#
+
+$PogoFolder = Join-Path $Env:BinariesDirectory "bin\${Env:BuildType}_pogo"
+if (Test-Path $PogoFolder) {
+    $BinDropPath = Join-Path $Env:DropPath "bin"
+    Write-Output "Copying `"$PogoFolder`" to `"$BinDropPath`"..."
+    Copy-Item $PogoFolder $BinDropPath -Recurse -Force
+}
+
+#
 # Clean up the sentinel which previously marked this build flavor as incomplete.
 #
 
-Remove-Item -Path ${Env:FlavorBuildIncompleteFile} -Force
+Remove-Item -Path $Env:FlavorBuildIncompleteFile -Force
 
 #
 # Create build status JSON file for this flavor.
 #
 
-$FullOutputPath = Join-Path $Env:DROP_ROOT $Env:OutputPath
-$BuildLogsPath = Join-Path $FullOutputPath "buildlogs"
+$BuildLogsPath = Join-Path $Env:DropPath "buildlogs"
 $buildFlavorErrFile = Join-Path $BuildLogsPath "build_${Env:BuildPlatform}${Env:BuildConfiguration}.err"
 
 # If build_{}{}.err contains any text then there were build errors and we record that the build failed.
@@ -33,7 +43,7 @@ if ($BuildFailed) {
     $status = "failed"
 }
 
-$buildFlavorJsonFile = Join-Path $FullOutputPath "${Env:FlavorName}.json"
+$buildFlavorJsonFile = Join-Path $Env:DropPath "${Env:BuildType}.json"
 $buildFlavorJson = New-Object System.Object
 
 $buildFlavorJson | Add-Member -type NoteProperty -name status -value $status
