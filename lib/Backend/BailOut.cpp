@@ -1732,40 +1732,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
     callsCount = callsCount <= Js::FunctionEntryPointInfo::GetDecrCallCountPerBailout() ? 0 : callsCount - Js::FunctionEntryPointInfo::GetDecrCallCountPerBailout() ;
 
-    if (bailOutKind == IR::BailOutOnNoProfile && executeFunction->IncrementBailOnMisingProfileCount() > CONFIG_FLAG(BailOnNoProfileLimit))
-    {
-        // A rejit here should improve code quality, so lets avoid too many unnecessary bailouts.
-        executeFunction->ResetBailOnMisingProfileCount();
-        bailOutRecordNotConst->bailOutCount = 0;
-        callsCount = 0;
-    }
-    else if (bailOutRecordNotConst->bailOutCount > CONFIG_FLAG(RejitMaxBailOutCount))
-    {
-        switch(bailOutKind)
-        {
-            case IR::BailOutOnPolymorphicInlineFunction:
-            case IR::BailOutOnFailedPolymorphicInlineTypeCheck:
-            case IR::BailOutFailedInlineTypeCheck:
-            case IR::BailOutOnInlineFunction:
-            case IR::BailOutFailedTypeCheck:
-            case IR::BailOutFailedFixedFieldTypeCheck:
-            case IR::BailOutFailedCtorGuardCheck:
-            case IR::BailOutFailedFixedFieldCheck:
-            case IR::BailOutFailedEquivalentTypeCheck:
-            case IR::BailOutFailedEquivalentFixedFieldTypeCheck:
-                {
-                    // If we consistently see RejitMaxBailOutCount bailouts for these kinds, then likely we have stale profile data and it is beneficial to rejit.
-                    // Note you need to include only bailout kinds which don't disable the entire optimizations.
-                    REJIT_KIND_TESTTRACE(bailOutKind, _u("Force rejit as RejitMaxBailoOutCount reached for a bailout record: function: %s, bailOutKindName: (%S), bailOutCount: %d, callCount: %d RejitMaxBailoutCount: %d\r\n"),
-                        function->GetFunctionBody()->GetDisplayName(), ::GetBailOutKindName(bailOutKind), bailOutRecordNotConst->bailOutCount, callsCount, CONFIG_FLAG(RejitMaxBailOutCount));
-
-                    bailOutRecordNotConst->bailOutCount = 0;
-                    callsCount = 0;
-                    break;
-                }
-            default: break;
-        }
-    }
+    CheckPreemptiveRejit(executeFunction, bailOutKind, bailOutRecordNotConst, callsCount, -1);
 
     entryPointInfo->callsCount = callsCount;
 
@@ -2267,41 +2234,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
     uint8 totalJittedLoopIterations = (uint8)entryPointInfo->totalJittedLoopIterations;
     totalJittedLoopIterations = totalJittedLoopIterations <= Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() ? 0 : totalJittedLoopIterations - Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout();
 
-    if (bailOutKind == IR::BailOutOnNoProfile && executeFunction->IncrementBailOnMisingProfileCount() > CONFIG_FLAG(BailOnNoProfileLimit))
-    {
-        // A rejit here should improve code quality, so lets avoid too many unnecessary bailouts.
-        executeFunction->ResetBailOnMisingProfileCount();
-        bailOutRecordNotConst->bailOutCount = 0;
-        totalJittedLoopIterations = 0;
-    }
-    else if (bailOutRecordNotConst->bailOutCount > CONFIG_FLAG(RejitMaxBailOutCount))
-    {
-        switch (bailOutKind)
-        {
-        case IR::BailOutOnPolymorphicInlineFunction:
-        case IR::BailOutOnFailedPolymorphicInlineTypeCheck:
-        case IR::BailOutFailedInlineTypeCheck:
-        case IR::BailOutOnInlineFunction:
-        case IR::BailOutFailedTypeCheck:
-        case IR::BailOutFailedFixedFieldTypeCheck:
-        case IR::BailOutFailedCtorGuardCheck:
-        case IR::BailOutFailedFixedFieldCheck:
-        case IR::BailOutFailedEquivalentTypeCheck:
-        case IR::BailOutFailedEquivalentFixedFieldTypeCheck:
-        {
-            // If we consistently see RejitMaxBailOutCount bailouts for these kinds, then likely we have stale profile data and it is beneficial to rejit.
-            // Note you need to include only bailout kinds which don't disable the entire optimizations.
-            REJIT_KIND_TESTTRACE(bailOutKind, _u("Bailout from loop: function: %s, loopNumber: %d, jittedLoopIterations: %d, bailOutKindName: (%S), reJitReason: %S\r\n"),
-                function->GetFunctionBody()->GetDisplayName(), executeFunction->GetLoopNumber(loopHeader), totalJittedLoopIterations,
-                ::GetBailOutKindName(bailOutKind), RejitReasonNames[rejitReason]);
-
-            bailOutRecordNotConst->bailOutCount = 0;
-            totalJittedLoopIterations = 0;
-            break;
-        }
-        default: break;
-        }
-    }
+    CheckPreemptiveRejit(executeFunction, bailOutKind, bailOutRecordNotConst, totalJittedLoopIterations, interpreterFrame->GetCurrentLoopNum());
     
     entryPointInfo->totalJittedLoopIterations = totalJittedLoopIterations;
     
@@ -2567,6 +2500,51 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
             Output::Flush();
         }
 #endif
+    }
+}
+
+void BailOutRecord::CheckPreemptiveRejit(Js::FunctionBody* executeFunction, IR::BailOutKind bailOutKind, BailOutRecord* bailoutRecord, uint8& callsOrIterationsCount, int loopNumber)
+{
+    if (bailOutKind == IR::BailOutOnNoProfile && executeFunction->IncrementBailOnMisingProfileCount() > CONFIG_FLAG(BailOnNoProfileLimit))
+    {
+        // A rejit here should improve code quality, so lets avoid too many unnecessary bailouts.
+        executeFunction->ResetBailOnMisingProfileCount();
+        bailoutRecord->bailOutCount = 0;
+        callsOrIterationsCount = 0;
+    }
+    else if (bailoutRecord->bailOutCount > CONFIG_FLAG(RejitMaxBailOutCount))
+    {
+        switch (bailOutKind)
+        {
+        case IR::BailOutOnPolymorphicInlineFunction:
+        case IR::BailOutOnFailedPolymorphicInlineTypeCheck:
+        case IR::BailOutFailedInlineTypeCheck:
+        case IR::BailOutOnInlineFunction:
+        case IR::BailOutFailedTypeCheck:
+        case IR::BailOutFailedFixedFieldTypeCheck:
+        case IR::BailOutFailedCtorGuardCheck:
+        case IR::BailOutFailedFixedFieldCheck:
+        case IR::BailOutFailedEquivalentTypeCheck:
+        case IR::BailOutFailedEquivalentFixedFieldTypeCheck:
+        {
+            // If we consistently see RejitMaxBailOutCount bailouts for these kinds, then likely we have stale profile data and it is beneficial to rejit.
+            // Note you need to include only bailout kinds which don't disable the entire optimizations.
+            if (loopNumber == -1)
+            {
+                REJIT_KIND_TESTTRACE(bailOutKind, _u("Force rejit as RejitMaxBailoOutCount reached for a bailout record: function: %s, bailOutKindName: (%S), bailOutCount: %d, callCount: %d RejitMaxBailoutCount: %d\r\n"),
+                    executeFunction->GetDisplayName(), ::GetBailOutKindName(bailOutKind), bailoutRecord->bailOutCount, callsOrIterationsCount, CONFIG_FLAG(RejitMaxBailOutCount));
+            }
+            else
+            {
+                REJIT_KIND_TESTTRACE(bailOutKind, _u("Force rejit as RejitMaxBailoOutCount reached for a bailout record: function: %s, loopNumber: %d, bailOutKindName: (%S), bailOutCount: %d, callCount: %d RejitMaxBailoutCount: %d\r\n"),
+                    executeFunction->GetDisplayName(), loopNumber, ::GetBailOutKindName(bailOutKind), bailoutRecord->bailOutCount, callsOrIterationsCount, CONFIG_FLAG(RejitMaxBailOutCount));
+            }
+            bailoutRecord->bailOutCount = 0;
+            callsOrIterationsCount = 0;
+            break;
+        }
+        default: break;
+        }
     }
 }
 
