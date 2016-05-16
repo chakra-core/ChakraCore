@@ -897,14 +897,7 @@ namespace Js
             JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u("ownKeys"));
         }
 
-        //4. Let trap be the result of GetMethod(handler, "enumerate").
-        //5. ReturnIfAbrupt(trap).
-        //6. If trap is undefined, then
-        //a.Return the result of calling the[[Enumerate]] internal method of target.
-        //7. Let trapResult be the result of calling the[[Call]] internal method of trap with handler as the this value and a new List containing target.
-        //8. ReturnIfAbrupt(trapResult).
-        //9. If Type(trapResult) is not Object, then throw a TypeError exception.
-        //10. Return trapResult.
+        // going through for-in spec
         JavascriptFunction* getEnumeratorMethod = GetMethodHelper(PropertyIds::ownKeys, scriptContext);
         Assert(!GetScriptContext()->IsHeapEnumInProgress());
         if (nullptr == getEnumeratorMethod)
@@ -927,7 +920,31 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
         }
 
-        Var arrayIterator = JavascriptOperators::GetIterator(RecyclableObject::FromVar(trapResult), scriptContext);
+        JavascriptArray* arrTrapResult = JavascriptArray::FromVar(trapResult);        
+        uint32 len = arrTrapResult->GetLength();
+        Var undefined = scriptContext->GetLibrary()->GetUndefined();
+        JsUtil::BaseDictionary<const char16*, Var, Recycler> dict(scriptContext->GetRecycler());
+        JavascriptArray* arrResult = scriptContext->GetLibrary()->CreateArray();
+        int index = 0;
+        arrTrapResult->ForEachItemInRange<false>(0, len, undefined, scriptContext, [&](uint32, Var element)
+        {
+            if (JavascriptString::Is(element))
+            {
+                Js::PropertyDescriptor desc;
+                JavascriptString* str = JavascriptString::FromVar(element);
+                BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(this, str, scriptContext, &desc);
+                if (ret && !dict.ContainsKey(str->GetSz()))
+                {
+                    dict.Add(str->GetSz(), element);
+                    if (desc.IsEnumerable()) 
+                    {
+                        arrResult->SetItem(index++, element, PropertyOperation_None);
+                    }
+                }
+            }
+        });
+
+        Var arrayIterator = JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), scriptContext);
         *enumerator = IteratorObjectEnumerator::Create(scriptContext, arrayIterator);
 
         return TRUE;
