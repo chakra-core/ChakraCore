@@ -5002,26 +5002,31 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
         }
 
         Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes ? pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope : nullptr;
-        if (paramScope != nullptr && pnodeFnc->sxFnc.HasNonSimpleParameterList() && !fAsync)
+        if (paramScope != nullptr && !fAsync)
         {
-            Assert(paramScope != nullptr);
-
-            if (paramScope->GetCanMergeWithBodyScope())
+            if (CONFIG_FLAG(ForceSplitScope))
             {
-                paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
-                    if (sym->GetPid()->GetTopRef()->sym == nullptr)
-                    {
-                        // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
-                        paramScope->SetCannotMergeWithBodyScope();
-                        return true;
-                    }
-                    else
-                    {
-                        // If no non-local references are there then the top of the ref stack should point to the same symbol.
-                        Assert(sym->GetPid()->GetTopRef()->sym == sym);
-                    }
-                    return false;
-                });
+                paramScope->SetCannotMergeWithBodyScope();
+            }
+            else if (pnodeFnc->sxFnc.HasNonSimpleParameterList())
+            {
+                if (paramScope->GetCanMergeWithBodyScope())
+                {
+                    paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
+                        if (sym->GetPid()->GetTopRef()->sym == nullptr)
+                        {
+                            // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
+                            paramScope->SetCannotMergeWithBodyScope();
+                            return true;
+                        }
+                        else
+                        {
+                            // If no non-local references are there then the top of the ref stack should point to the same symbol.
+                            Assert(sym->GetPid()->GetTopRef()->sym == sym);
+                        }
+                        return false;
+                    });
+                }
             }
         }
 
