@@ -56,10 +56,12 @@ performance.now = (function() {
 // arguments are functions that will be invoked before and after
 // running the benchmark, but the running time of these functions will
 // not be accounted for in the benchmark score.
-function Benchmark(name, doWarmup, doDeterministic, run, setup, tearDown, rmsResult, minIterations) {
+function Benchmark(name, doWarmup, doDeterministic, deterministicIterations, 
+                   run, setup, tearDown, rmsResult, minIterations) {
   this.name = name;
   this.doWarmup = doWarmup;
   this.doDeterministic = doDeterministic;
+  this.deterministicIterations = deterministicIterations;
   this.run = run;
   this.Setup = setup ? setup : function() { };
   this.TearDown = tearDown ? tearDown : function() { };
@@ -106,6 +108,16 @@ BenchmarkSuite.suites = [];
 // a new benchmark or change an existing one.
 BenchmarkSuite.version = '9';
 
+
+// Defines global benchsuite running mode that overrides benchmark suite 
+// behavior. Intended to be set by the benchmark driver. Undefined 
+// values here allow a benchmark to define behaviour itself.
+BenchmarkSuite.config = {
+  doWarmup: undefined,
+  doDeterministic: undefined
+};
+
+
 // Override the alert function to throw an exception instead.
 alert = function(s) {
   throw "Alert called with argument: " + s;
@@ -135,7 +147,8 @@ BenchmarkSuite.ResetRNG = function() {
 // each individual benchmark to avoid running for too long in the
 // context of browsers. Once done, the final score is reported to the
 // runner.
-BenchmarkSuite.RunSuites = function(runner) {
+BenchmarkSuite.RunSuites = function(runner, skipBenchmarks) {
+  skipBenchmarks = typeof skipBenchmarks === 'undefined' ? [] : skipBenchmarks;
   var continuation = null;
   var suites = BenchmarkSuite.suites;
   var length = suites.length;
@@ -148,7 +161,11 @@ BenchmarkSuite.RunSuites = function(runner) {
       } else {
         var suite = suites[index++];
         if (runner.NotifyStart) runner.NotifyStart(suite.name);
-        continuation = suite.RunStep(runner);
+        if (skipBenchmarks.indexOf(suite.name) > -1) {
+          suite.NotifySkipped(runner);
+        } else {
+          continuation = suite.RunStep(runner);
+        }
       }
       if (continuation && typeof window != 'undefined' && window.setTimeout) {
         window.setTimeout(RunStep, 25);
@@ -259,6 +276,14 @@ BenchmarkSuite.prototype.NotifyResult = function() {
 }
 
 
+BenchmarkSuite.prototype.NotifySkipped = function(runner) {
+  BenchmarkSuite.scores.push(1);  // push default reference score.
+  if (runner.NotifyResult) {
+    runner.NotifyResult(this.name, "Skipped");
+  }
+}
+
+
 // Notifies the runner that running a benchmark resulted in an error.
 BenchmarkSuite.prototype.NotifyError = function(error) {
   if (this.runner.NotifyError) {
@@ -273,14 +298,22 @@ BenchmarkSuite.prototype.NotifyError = function(error) {
 // Runs a single benchmark for at least a second and computes the
 // average time it takes to run a single iteration.
 BenchmarkSuite.prototype.RunSingleBenchmark = function(benchmark, data) {
+  var config = BenchmarkSuite.config;
+  var doWarmup = config.doWarmup !== undefined 
+                 ? config.doWarmup 
+                 : benchmark.doWarmup;
+  var doDeterministic = config.doDeterministic !== undefined 
+                        ? config.doDeterministic 
+                        : benchmark.doDeterministic;
+
   function Measure(data) {
     var elapsed = 0;
     var start = new Date();
   
   // Run either for 1 second or for the number of iterations specified
   // by minIterations, depending on the config flag doDeterministic.
-    for (var i = 0; (benchmark.doDeterministic ? 
-      i<benchmark.minIterations : elapsed < 1000); i++) {
+    for (var i = 0; (doDeterministic ? 
+      i<benchmark.deterministicIterations : elapsed < 1000); i++) {
       benchmark.run();
       elapsed = new Date() - start;
     }
@@ -291,7 +324,7 @@ BenchmarkSuite.prototype.RunSingleBenchmark = function(benchmark, data) {
   }
 
   // Sets up data in order to skip or not the warmup phase.
-  if (!benchmark.doWarmup && data == null) {
+  if (!doWarmup && data == null) {
     data = { runs: 0, elapsed: 0 };
   }
 
@@ -399,7 +432,7 @@ var pdf_file = "test.pdf";
 var canvas_logs = [];
 
 var PdfJS = new BenchmarkSuite("PdfJS", [10124921], [
-  new Benchmark("PdfJS", false, false, 
+  new Benchmark("PdfJS", false, false, 24,
     runPdfJS, setupPdfJS, tearDownPdfJS, null, 4)
 ]);
 

@@ -833,8 +833,7 @@ namespace JsUtil
     {
         Assert(manager);
 
-        ParallelThreadData *threadDataProcessingCurrentJob = nullptr;
-        WaitableJobManager *waitableManager;
+        ParallelThreadData *threadDataProcessingCurrentJob = nullptr;        
         {
             AutoCriticalSection lock(&criticalSection);
             // Managers must remove themselves. Hence, Close does not remove managers. So, not asserting on !IsClosed().
@@ -928,7 +927,7 @@ namespace JsUtil
                 break;
             }
 
-            waitableManager = static_cast<WaitableJobManager *>(manager);
+            WaitableJobManager * const waitableManager = static_cast<WaitableJobManager *>(manager);
             Assert(!waitableManager->jobBeingWaitedUpon);
 
             waitableManager->jobBeingWaitedUpon = job;

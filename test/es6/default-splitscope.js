@@ -78,6 +78,17 @@ var tests = [
         };
 
         assert.areEqual('string2', f8('string1', undefined, 'string2'), "Function returns the third argument properly");
+        
+        function f9() {
+            var f10 = function (a = function () { c; }, b, c) {
+                assert.areEqual(1, c, "Third argument is properly populated");
+                arguments;
+                function f11() {};
+            };
+            f10(undefined, undefined, 1);
+        }
+        f9();
+        f9();
     } 
  }, 
  { 

@@ -43,8 +43,8 @@ namespace Js
         X86SIMDValue two_31_f4, two_31_i4;
         int mask = 0;
 
-        // any lanes < 0 ?
-        temp.m128_value = _mm_cmplt_ps(v.m128_value, X86_ALL_ZEROS.m128_value);
+        // any lanes <= -1.0 ?
+        temp.m128_value = _mm_cmple_ps(v.m128_value, X86_ALL_NEG_ONES_F4.m128_value);
         mask = _mm_movemask_ps(temp.m128_value);
         // negative value are out of range, caller should throw Range Error
         if (mask)

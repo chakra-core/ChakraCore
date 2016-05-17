@@ -517,7 +517,11 @@ namespace Js
         auto getPropertyId = [&]()->PropertyId {return propertyId; };
         PropertyDescriptor result;
         BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
-        if (foundProperty && result.IsFromProxy())
+        if (!foundProperty)
+        {
+            *value = requestContext->GetMissingPropertyResult();
+        }
+        else if (result.IsFromProxy())
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
@@ -540,7 +544,11 @@ namespace Js
         };
         PropertyDescriptor result;
         BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
-        if (foundProperty && result.IsFromProxy())
+        if (!foundProperty)
+        {
+            *value = requestContext->GetMissingPropertyResult();
+        }
+        else if (result.IsFromProxy())
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
@@ -584,7 +592,11 @@ namespace Js
         auto getPropertyId = [&]() -> PropertyId {return propertyId; };
         PropertyDescriptor result;
         BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
-        if (foundProperty && result.IsFromProxy())
+        if (!foundProperty)
+        {
+            *value = requestContext->GetMissingPropertyResult();
+        }
+        else if (result.IsFromProxy())
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
@@ -805,7 +817,11 @@ namespace Js
         };
         PropertyDescriptor result;
         BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
-        if (foundProperty && result.IsFromProxy())
+        if (!foundProperty)
+        {
+            *value = requestContext->GetMissingItemResult();
+        }
+        else if (result.IsFromProxy())
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
@@ -824,7 +840,11 @@ namespace Js
         };
         PropertyDescriptor result;
         BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
-        if (foundProperty && result.IsFromProxy())
+        if (!foundProperty)
+        {
+            *value = requestContext->GetMissingItemResult();
+        }
+        else if (result.IsFromProxy())
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
@@ -959,7 +979,9 @@ namespace Js
         {
             return FALSE;
         }
-        return propertyDescriptor.IsWritable();
+
+        // If property descriptor has getter/setter we should check if writable is specified before checking IsWritable
+        return propertyDescriptor.WritableSpecified() ? propertyDescriptor.IsWritable() : FALSE;
     }
 
     BOOL JavascriptProxy::IsConfigurable(PropertyId propertyId)
@@ -1179,8 +1201,7 @@ namespace Js
 
         JavascriptArray* resultArray = JavascriptArray::FromVar(resultVar);
 
-        const PropertyRecord* propertyRecord;
-        PropertyDescriptor propertyDescriptor;
+        const PropertyRecord* propertyRecord;        
         if (integrityLevel == IntegrityLevel::IntegrityLevel_sealed)
         {
             //8. If level is "sealed", then
@@ -1224,6 +1245,7 @@ namespace Js
                 AssertMsg(JavascriptSymbol::Is(itemVar) || JavascriptString::Is(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
                 JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord);
                 PropertyId propertyId = propertyRecord->GetPropertyId();
+                PropertyDescriptor propertyDescriptor;
                 if (JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propertyId, scriptContext, propertyDescriptor))
                 {
                     if (propertyDescriptor.IsDataDescriptor())

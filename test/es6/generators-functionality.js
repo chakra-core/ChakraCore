@@ -556,7 +556,7 @@ var tests = [
 
             var g = gf();
 
-            assert.areEqual("function* anonymous() {\nyield 1; return 0;\n}", gf.toString(), "toString of GeneratorFunction constructed function is named anonymous");
+            assert.areEqual("function* anonymous(\n) {yield 1; return 0;\n}", gf.toString(), "toString of GeneratorFunction constructed function is named anonymous");
 
             assert.areEqual({ value: 1, done: false }, g.next(), "gf is a generator function whose body yield's 1 then returns 0");
             assert.areEqual({ value: 0, done: true }, g.next(), "gf is a generator function whose body yield's 1 then returns 0");
@@ -564,7 +564,7 @@ var tests = [
             gf = new GeneratorFunction('a', 'b', 'c', 'yield a; yield b; yield c;');
             g = gf(1, 2, 3);
 
-            assert.areEqual("function* anonymous(a,b,c) {\nyield a; yield b; yield c;\n}", gf.toString(), "toString of GeneratorFunction constructed function is named anonymous with specified parameters");
+            assert.areEqual("function* anonymous(a,b,c\n) {yield a; yield b; yield c;\n}", gf.toString(), "toString of GeneratorFunction constructed function is named anonymous with specified parameters");
 
             assert.areEqual({ value: 1, done: false }, g.next(), "gf is a generator function that takes three parameters and yields each of them in turn");
             assert.areEqual({ value: 2, done: false }, g.next(), "gf is a generator function that takes three parameters and yields each of them in turn");

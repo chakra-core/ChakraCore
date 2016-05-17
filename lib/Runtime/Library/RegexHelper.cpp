@@ -2256,7 +2256,7 @@ namespace Js
     JavascriptString* RegexHelper::GetMatchStrFromResult(RecyclableObject* result, ScriptContext* scriptContext)
     {
         return JavascriptConversion::ToString(
-            JavascriptOperators::GetItem(result, 0, scriptContext),
+            JavascriptOperators::GetItem(result, (uint32)0, scriptContext),
             scriptContext);
     }
 

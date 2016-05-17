@@ -211,6 +211,8 @@ private:
             : JsUtil::WaitableJobManager(processor)
             , autoClose(true)
             , isClosed(false)
+            , stackJobProcessed(false)
+            , waitingForStackJob(false)
         {
             Processor()->AddManager(this);
         }
@@ -238,7 +240,15 @@ private:
 
         FreeLoopBodyJob* GetJob(FreeLoopBodyJob* job)
         {
-            return job;
+            if (this->waitingForStackJob)
+            {
+                Assert(job->heapAllocated == false);
+                return this->stackJobProcessed ? nullptr : job;
+            }
+            else
+            {
+                return job;
+            }
         }
 
         bool WasAddedToJobProcessor(JsUtil::Job *const job) const
@@ -272,6 +282,11 @@ private:
             {
                 HeapDelete(freeLoopBodyJob);
             }
+            else
+            {
+                Assert(this->waitingForStackJob);
+                this->stackJobProcessed = true;
+            }
         }
 
         void QueueFreeLoopBodyJob(void* codeAddress);
@@ -280,6 +295,8 @@ private:
         NativeCodeGenerator* nativeCodeGen;
         bool autoClose;
         bool isClosed;
+        bool stackJobProcessed;
+        bool waitingForStackJob;
     };
 
     FreeLoopBodyJobManager freeLoopBodyManager;

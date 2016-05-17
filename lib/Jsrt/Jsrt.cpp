@@ -238,9 +238,16 @@ CHAKRA_API JsDisposeRuntime(_In_ JsRuntimeHandle runtimeHandle)
             }
         }
 
+        if (runtime->GetJsrtDebugManager() != nullptr)
+        {
+            runtime->GetJsrtDebugManager()->ClearDebuggerObjects();
+        }
+
         // Close any open Contexts.
         // We need to do this before recycler shutdown, because ScriptEngine->Close won't work then.
         runtime->CloseContexts();
+
+        runtime->DeleteJsrtDebugManager();
 
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         bool doFinalGC = false;
@@ -450,6 +457,23 @@ CHAKRA_API JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ JsContextRe
         }
 
         JsrtContext * context = JsrtContext::New(runtime);
+
+        JsrtDebugManager* jsrtDebugManager = runtime->GetJsrtDebugManager();
+
+        if (jsrtDebugManager != nullptr)
+        {
+            Js::ScriptContext* scriptContext = context->GetScriptContext();
+            scriptContext->InitializeDebugging();
+
+            Js::DebugContext* debugContext = scriptContext->GetDebugContext();
+            debugContext->SetHostDebugContext(jsrtDebugManager);
+
+            Js::ProbeContainer* probeContainer = debugContext->GetProbeContainer();
+            probeContainer->InitializeInlineBreakEngine(jsrtDebugManager);
+            probeContainer->InitializeDebuggerScriptOptionCallback(jsrtDebugManager);
+
+            threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
+        }
 
         *newContext = (JsContextRef)context;
         return JsNoError;
@@ -2406,7 +2430,7 @@ JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, 
         scriptFunction = scriptContext->LoadScript((const byte*)script, wcslen(script)* sizeof(wchar_t), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, loadScriptFlag);
 
         JsrtContext * context = JsrtContext::GetCurrent();
-        context->OnScriptLoad(scriptFunction, utf8SourceInfo);
+        context->OnScriptLoad(scriptFunction, utf8SourceInfo, &se);
 
         return JsNoError;
     });
@@ -2671,7 +2695,7 @@ JsErrorCode RunSerializedScriptCore(const wchar_t *script, TLoadCallback scriptL
         function = scriptContext->GetLibrary()->CreateScriptFunction(functionBody);
 
         JsrtContext * context = JsrtContext::GetCurrent();
-        context->OnScriptLoad(function, functionBody->GetUtf8SourceInfo());
+        context->OnScriptLoad(function, functionBody->GetUtf8SourceInfo(), nullptr);
 
         return JsNoError;
     });

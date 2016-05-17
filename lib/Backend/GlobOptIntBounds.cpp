@@ -1728,9 +1728,9 @@ void GlobOpt::DetermineLoopCount(Loop *const loop)
     GlobHashTable *const landingPadSymToValueMap = landingPadBlockData.symToValueMap;
     const InductionVariableSet *const inductionVariables = loop->inductionVariables;
     Assert(inductionVariables);
-    for(auto it = inductionVariables->GetIterator(); it.IsValid(); it.MoveNext())
+    for(auto inductionVariablesIterator = inductionVariables->GetIterator(); inductionVariablesIterator.IsValid(); inductionVariablesIterator.MoveNext())
     {
-        InductionVariable &inductionVariable = it.CurrentValueReference();
+        InductionVariable &inductionVariable = inductionVariablesIterator.CurrentValueReference();
         if(!inductionVariable.IsChangeDeterminate())
         {
             continue;
@@ -2866,9 +2866,9 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         // Look for a relative bound
         if(indexBounds)
         {
-            for(int i = 0; i < 2; ++i)
+            for(int j = 0; j < 2; ++j)
             {
-                const bool searchingRelativeLowerBounds = i == 0;
+                const bool searchingRelativeLowerBounds = j == 0;
                 if(!(searchingRelativeLowerBounds ? searchingLower : searchingUpper))
                 {
                     continue;

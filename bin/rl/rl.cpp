@@ -3037,8 +3037,6 @@ ParseCommandLine(
       // The user didn't specify a log filename, so create one.
 
       if (!FUserSpecifiedDirs || (DirList.first != NULL)) {
-         char tempBuf[MAX_PATH];
-
          strcpy_s(tempBuf, REGRESS);
          strcat_s(tempBuf, "\\logs\\");
          strcat_s(tempBuf, DEFAULT_LOG_FILE);
@@ -3052,8 +3050,6 @@ ParseCommandLine(
       // The user didn't specify a full log filename, so create one.
 
       if (!FUserSpecifiedDirs || (DirList.first != NULL)) {
-         char tempBuf[MAX_PATH];
-
          strcpy_s(tempBuf, REGRESS);
          strcat_s(tempBuf, "\\logs\\");
          strcat_s(tempBuf, DEFAULT_FULL_LOG_FILE);
@@ -3067,8 +3063,6 @@ ParseCommandLine(
       // The user didn't specify a results log filename, so create one.
 
       if (!FUserSpecifiedDirs || (DirList.first != NULL)) {
-         char tempBuf[MAX_PATH];
-
          strcpy_s(tempBuf, REGRESS);
          strcat_s(tempBuf, "\\logs\\");
          strcat_s(tempBuf, DEFAULT_RESULTS_LOG_FILE);

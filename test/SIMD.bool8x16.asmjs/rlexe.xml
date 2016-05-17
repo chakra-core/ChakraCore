@@ -125,5 +125,13 @@
       <tags>exclude_dynapogo,exclude_ship</tags>
       <compile-flags>-bgjit- -asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0 -mic:0</compile-flags>
     </default>
-  </test>  
+  </test>
+    <test>
+     <default>
+        <files>testBug1.js</files>
+        <baseline>testBug1.baseline</baseline>
+        <tags>exclude_dynapogo,exclude_ship</tags>
+        <compile-flags>-off:deferparse -testtrace:asmjs -simdjs -bgjit- -maic:1</compile-flags>
+     </default>
+   </test>
 </regress-exe>

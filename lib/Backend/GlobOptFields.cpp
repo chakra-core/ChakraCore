@@ -421,7 +421,6 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         return;
     }
 
-    Sym *sym;
     IR::Opnd * dstOpnd = instr->GetDst();
     if (dstOpnd)
     {
@@ -463,6 +462,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         return;
     }
 
+    Sym *sym;
     IR::JnHelperMethod fnHelper;
     switch(instr->m_opcode)
     {

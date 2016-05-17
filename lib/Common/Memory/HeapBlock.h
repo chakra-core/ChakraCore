@@ -444,6 +444,9 @@ public:
 public:
     ~SmallHeapBlockT();
 
+    void ProtectUnusablePages();
+    void RestoreUnusablePages();
+    uint GetUnusablePageCount();
 
 #ifdef RECYCLER_WRITE_BARRIER
     bool IsWithBarrier() const;

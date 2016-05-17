@@ -328,18 +328,18 @@ namespace Js {
         //
         // Ensure we can convert losslessly.
         //
-
+#if DBG
         const int64 lnMinTimeDelta = _I64_MIN / ((int64) 1000000);
         const int64 lnMaxTimeDelta = _I64_MAX / ((int64) 1000000);
         AssertMsg((m_lnDelta <= lnMaxTimeDelta) && (m_lnDelta >= lnMinTimeDelta),
                 "Ensure delta can be converted to microseconds losslessly");
-
+#endif
 
         //
         // Compute the microseconds.
         //
 
-        int64 lnFreq = (int64) Tick::s_luFreq;
+        const int64 lnFreq = (int64) Tick::s_luFreq;
         int64 lnTickDelta = (m_lnDelta * ((int64) 1000000)) / lnFreq;
         return lnTickDelta;
     }
