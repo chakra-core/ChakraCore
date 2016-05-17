@@ -5,8 +5,10 @@
 
 #include "Backend.h"
 
-ScriptContextInfo::ScriptContextInfo(ScriptContextData * contextData)
-    : m_contextData(*contextData)
+ScriptContextInfo::ScriptContextInfo(ScriptContextData * contextData) :
+    m_contextData(*contextData),
+    m_isPRNGSeeded(false),
+    m_activeJITCount(0)
 {
 }
 
@@ -32,6 +34,12 @@ intptr_t
 ScriptContextInfo::GetFalseAddr() const
 {
     return m_contextData.falseAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetTrueOrFalseAddr(bool isTrue) const
+{
+    return isTrue ? GetTrueAddr() : GetFalseAddr();
 }
 
 intptr_t
@@ -95,6 +103,36 @@ ScriptContextInfo::GetCharStringCacheAddr() const
 }
 
 intptr_t
+ScriptContextInfo::GetSideEffectsAddr() const
+{
+    return m_contextData.sideEffectsAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetArraySetElementFastPathVtableAddr() const
+{
+    return m_contextData.arraySetElementFastPathVtableAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetIntArraySetElementFastPathVtableAddr() const
+{
+    return m_contextData.intArraySetElementFastPathVtableAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetFloatArraySetElementFastPathVtableAddr() const
+{
+    return m_contextData.floatArraySetElementFastPathVtableAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetLibraryAddr() const
+{
+    return m_contextData.libraryAddr;
+}
+
+intptr_t
 ScriptContextInfo::GetAddr() const
 {
     return m_contextData.scriptContextAddr;
@@ -105,4 +143,28 @@ ScriptContextInfo::GetVTableAddress(VTableValue vtableType) const
 {
     Assert(vtableType < VTableValue::Count);
     return m_contextData.vtableAddresses[vtableType];
+}
+
+bool
+ScriptContextInfo::IsPRNGSeeded() const
+{
+    return m_isPRNGSeeded;
+}
+
+void
+ScriptContextInfo::BeginJIT()
+{
+    InterlockedExchangeAdd(&m_activeJITCount, 1);
+}
+
+void
+ScriptContextInfo::EndJIT()
+{
+    InterlockedExchangeSubtract(&m_activeJITCount, 1);
+}
+
+bool
+ScriptContextInfo::IsJITActive()
+{
+    return m_activeJITCount != 0;
 }

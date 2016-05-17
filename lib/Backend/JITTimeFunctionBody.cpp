@@ -402,6 +402,24 @@ JITTimeFunctionBody::GetFlagsAddr() const
 }
 
 intptr_t
+JITTimeFunctionBody::GetRegAllocLoadCountAddr() const
+{
+    return m_bodyData->regAllocLoadCountAddr;
+}
+
+intptr_t
+JITTimeFunctionBody::GetRegAllocStoreCountAddr() const
+{
+    return m_bodyData->regAllocStoreCountAddr;
+}
+
+intptr_t
+JITTimeFunctionBody::GetCallCountStatsAddr() const
+{
+    return m_bodyData->callCountStatsAddr;
+}
+
+intptr_t
 JITTimeFunctionBody::GetConstantVar(Js::RegSlot location) const
 {
     Assert(m_bodyData->constTable != nullptr);

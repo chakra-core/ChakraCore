@@ -1957,7 +1957,7 @@ GlobOpt::EnsureDisableImplicitCallRegion(Loop * loop)
     Func * bailOutFunc = loop->GetFunc();
     Assert(loop->bailOutInfo->bailOutFunc == bailOutFunc);
 
-    IR::MemRefOpnd * disableImplicitCallAddress = IR::MemRefOpnd::New(this->func->GetScriptContext()->GetThreadContext()->GetAddressOfDisableImplicitFlags(), TyInt8, bailOutFunc);
+    IR::MemRefOpnd * disableImplicitCallAddress = IR::MemRefOpnd::New(this->func->GetThreadContextInfo()->GetDisableImplicitFlagsAddr(), TyInt8, bailOutFunc);
     IR::IntConstOpnd * disableImplicitCallAndExceptionValue = IR::IntConstOpnd::New(DisableImplicitCallAndExceptionFlag, TyInt8, bailOutFunc, true);
     IR::IntConstOpnd * enableImplicitCallAndExceptionValue = IR::IntConstOpnd::New(DisableImplicitNoFlag, TyInt8, bailOutFunc, true);
 

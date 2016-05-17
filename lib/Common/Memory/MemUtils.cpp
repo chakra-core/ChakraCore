@@ -45,8 +45,9 @@ Memory::ChakraMemCopy(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_
     }
     else
     {
-        if (!WriteProcessMemory(processHandle, dst, src, sizeInBytes, NULL))
+        if (!WriteProcessMemory(processHandle, dst, src, count, NULL))
         {
+            wprintf(L"FATAL ERROR: WriteProcessMemory failed, GLE: %d\n", GetLastError());
             Js::Throw::FatalInternalError();
         }
     }

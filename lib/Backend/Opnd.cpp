@@ -3392,6 +3392,38 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             {
                 WriteToBuffer(&buffer, &n, L" (StrictNullFrameDisplay)");
             }
+            else if ((intptr_t)address == func->GetThreadContextInfo()->GetImplicitCallFlagsAddr())
+            {
+                WriteToBuffer(&buffer, &n, L" (&ImplicitCallFlags)");
+            }
+            else if ((intptr_t)address == func->GetThreadContextInfo()->GetDisableImplicitFlagsAddr())
+            {
+                WriteToBuffer(&buffer, &n, L" (&DisableImplicitCallFlags)");
+            }
+            else if ((intptr_t)address == func->GetThreadContextInfo()->GetThreadStackLimitAddr())
+            {
+                WriteToBuffer(&buffer, &n, L" (&StackLimit)");
+            }
+            else if (func->GetWorkItem()->Type() == JsFunctionType && (intptr_t)address == func->GetWorkItem()->GetCallsCountAddress())
+            {
+                WriteToBuffer(&buffer, &n, L" (&CallCount)");
+            }
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetSideEffectsAddr())
+            {
+                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_SideEffects)");
+            }
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetArraySetElementFastPathVtableAddr())
+            {
+                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_ArraySetElementFastPathVtable)");
+            }
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetIntArraySetElementFastPathVtableAddr())
+            {
+                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_IntArraySetElementFastPathVtable)");
+            }
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetFloatArraySetElementFastPathVtableAddr())
+            {
+                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_FloatArraySetElementFastPathVtable)");
+            }
 #if 0 // TODO: michhol reenable dump of addresses
             else if (address == func->GetScriptContext()->GetNumberAllocator())
             {
@@ -3401,43 +3433,11 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             {
                 WriteToBuffer(&buffer, &n, L" (Recycler)");
             }
-            else if (func->GetWorkItem()->Type() == JsFunctionType && (intptr_t)address == func->GetWorkItem()->GetCallsCountAddress())
-            {
-                WriteToBuffer(&buffer, &n, L" (&CallCount)");
-            }
-            else if (address == func->GetScriptContext()->GetThreadContext()->GetAddressOfImplicitCallFlags())
-            {
-                WriteToBuffer(&buffer, &n, L" (&ImplicitCallFlags)");
-            }
-            else if (address == func->GetScriptContext()->GetThreadContext()->GetAddressOfDisableImplicitFlags())
-            {
-                WriteToBuffer(&buffer, &n, L" (&DisableImplicitCallFlags)");
-            }
-            else if (address == func->GetScriptContext()->GetThreadContext()->GetAddressOfStackLimitForCurrentThread())
-            {
-                WriteToBuffer(&buffer, &n, L" (&StackLimit)");
-            }
             else if (func->CanAllocInPreReservedHeapPageSegment() &&
                 func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedRegionPresent() &&
                 address == func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->GetPreReservedEndAddress())
             {
                 WriteToBuffer(&buffer, &n, L" (PreReservedCodeSegmentEnd)");
-            }
-            else if (address == func->GetScriptContext()->optimizationOverrides.GetAddressOfSideEffects())
-            {
-                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_SideEffects)");
-            }
-            else if (address == func->GetScriptContext()->optimizationOverrides.GetAddressOfArraySetElementFastPathVtable())
-            {
-                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_ArraySetElementFastPathVtable)");
-            }
-            else if (address == func->GetScriptContext()->optimizationOverrides.GetAddressOfIntArraySetElementFastPathVtable())
-            {
-                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_IntArraySetElementFastPathVtable)");
-            }
-            else if (address == func->GetScriptContext()->optimizationOverrides.GetAddressOfFloatArraySetElementFastPathVtable())
-            {
-                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_FloatArraySetElementFastPathVtable)");
             }
             else
 #endif

@@ -364,7 +364,7 @@ bool EmitBufferManager<SyncObject>::CommitReadWriteBufferForInterpreter(EmitBuff
         return false;
     }
 
-    FlushInstructionCache(AutoSystemInfo::Data.GetProcessHandle(), pBuffer, bufferSize);
+    FlushInstructionCache(this->processHandle, pBuffer, bufferSize);
 
     return true;
 }
@@ -452,7 +452,7 @@ EmitBufferManager<SyncObject>::CommitBuffer(EmitBufferAllocation* allocation, __
         }
     }
 
-    FlushInstructionCache(AutoSystemInfo::Data.GetProcessHandle(), bufferToFlush, sizeToFlush);
+    FlushInstructionCache(this->processHandle, bufferToFlush, sizeToFlush);
 #if DBG_DUMP
     this->totalBytesCode += bytes;
 #endif

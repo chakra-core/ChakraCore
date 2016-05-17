@@ -19,7 +19,9 @@ XDataAllocator::XDataAllocator(BYTE* address, uint size, HANDLE processHandle) :
     size(size),
     processHandle(processHandle)
 {
+#if DBG
     ChakraMemSet(this->start, Recycler::VerifyMemFill, this->size, this->processHandle);
+#endif
     Assert(size > 0);
     Assert(address != nullptr);
 }

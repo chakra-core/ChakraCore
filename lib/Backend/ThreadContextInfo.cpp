@@ -15,7 +15,8 @@ ThreadContextInfo::ThreadContextInfo(ThreadContextData * data) :
     m_isAllJITCodeInPreReservedRegion(true),
     m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"Chakra.dll")), // TODO: OOP JIT, don't hardcode name
     m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName)),
-    m_delayLoadWinCoreProcessThreads()
+    m_delayLoadWinCoreProcessThreads(),
+    m_activeJITCount(0)
 {
 }
 
@@ -152,9 +153,33 @@ ThreadContextInfo::GetNativeFloatArrayMissingItemAddr() const
 }
 
 intptr_t
+ThreadContextInfo::GetExponentMaskAddr() const
+{
+    return SHIFT_ADDR(this, &Js::Constants::ExponentMask);
+}
+
+intptr_t
+ThreadContextInfo::GetMantissaMaskAddr() const
+{
+    return SHIFT_ADDR(this, &Js::Constants::MantissaMask);
+}
+
+intptr_t
 ThreadContextInfo::GetThreadStackLimitAddr() const
 {
     return static_cast<intptr_t>(m_threadContextData.threadStackLimitAddr);
+}
+
+intptr_t
+ThreadContextInfo::GetDisableImplicitFlagsAddr() const
+{
+    return static_cast<intptr_t>(m_threadContextData.disableImplicitFlagsAddr);
+}
+
+intptr_t
+ThreadContextInfo::GetImplicitCallFlagsAddr() const
+{
+    return static_cast<intptr_t>(m_threadContextData.implicitCallFlagsAddr);
 }
 
 size_t
@@ -223,6 +248,30 @@ ThreadContextInfo::GetBailOutRegisterSaveSpace() const
     return static_cast<intptr_t>(m_threadContextData.bailOutRegisterSaveSpace);
 }
 
+intptr_t
+ThreadContextInfo::GetDebuggingFlagsAddr() const
+{
+    return static_cast<intptr_t>(m_threadContextData.debuggingFlagsAddr);
+}
+
+intptr_t
+ThreadContextInfo::GetDebugStepTypeAddr() const
+{
+    return static_cast<intptr_t>(m_threadContextData.debugStepTypeAddr);
+}
+
+intptr_t
+ThreadContextInfo::GetDebugFrameAddressAddr() const
+{
+    return static_cast<intptr_t>(m_threadContextData.debugFrameAddressAddr);
+}
+
+intptr_t
+ThreadContextInfo::GetDebugScriptIdWhenSetAddr() const
+{
+    return static_cast<intptr_t>(m_threadContextData.debugScriptIdWhenSetAddr);
+}
+
 ptrdiff_t
 ThreadContextInfo::GetChakraBaseAddressDifference() const
 {
@@ -251,4 +300,22 @@ ThreadContextInfo::IsCFGEnabled()
 #else
     return false;
 #endif
+}
+
+void
+ThreadContextInfo::BeginJIT()
+{
+    InterlockedExchangeAdd(&m_activeJITCount, 1);
+}
+
+void
+ThreadContextInfo::EndJIT()
+{
+    InterlockedExchangeSubtract(&m_activeJITCount, 1);
+}
+
+bool
+ThreadContextInfo::IsJITActive()
+{
+    return m_activeJITCount != 0;
 }

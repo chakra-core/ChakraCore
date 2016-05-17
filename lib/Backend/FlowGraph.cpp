@@ -2849,7 +2849,7 @@ Loop::CanDoFieldCopyProp()
         Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostOptPhase))
     {
         Output::Print(L"fieldcopyprop disabled because external: loop count: %d", GetLoopNumber());
-        GetFunc()->GetJnFunction()->DumpFullFunctionName();
+        GetFunc()->DumpFullFunctionName();
         Output::Print(L"\n");
         Output::Flush();
     }

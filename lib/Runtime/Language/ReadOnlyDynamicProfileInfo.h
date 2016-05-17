@@ -341,6 +341,7 @@ namespace Js
         }
 
     private:
+
         const DynamicProfileInfo * profileInfo;
         ArenaAllocator *const backgroundAllocator; // null if the work item is being jitted in the foreground
 

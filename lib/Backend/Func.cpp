@@ -395,7 +395,9 @@ Func::Codegen()
         encoder.Encode();
 
         END_CODEGEN_PHASE_NO_DUMP(this, Js::EncoderPhase);
+#if DBG
         Dump();
+#endif
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::EncoderPhase);
 #endif /* IR_VIEWER */
@@ -1436,6 +1438,16 @@ Func::GetFunctionEntryInsertionPoint()
 
     return insertInsert->m_next;
 }
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+void
+Func::DumpFullFunctionName()
+{
+    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+
+    Output::Print(L"Function %s (%s)", GetWorkItem()->GetDisplayName(), GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+}
+#endif
 
 #if DBG_DUMP
 ///----------------------------------------------------------------------------

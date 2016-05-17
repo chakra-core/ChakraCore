@@ -112,9 +112,10 @@ CodeGenWorkItem::CodeGenWorkItem(
     this->jitData.bodyData.nonLoadByteCodeCount = functionBody->GetByteCodeWithoutLDACount();
     this->jitData.bodyData.loopCount = functionBody->GetLoopCount();
 
-    if (functionBody->GetLoopCount() > 0)
+    if (functionBody->GetHasAllocatedLoopHeaders())
     {
         this->jitData.bodyData.loopHeaderArrayAddr = (intptr_t)functionBody->GetLoopHeaderArrayPtr();
+        this->jitData.bodyData.loopHeaderArrayLength = functionBody->GetLoopCount();
         this->jitData.bodyData.loopHeaders = HeapNewArray(JITLoopHeader, functionBody->GetLoopCount());
         for (uint i = 0; i < functionBody->GetLoopCount(); ++i)
         {
@@ -122,7 +123,13 @@ CodeGenWorkItem::CodeGenWorkItem(
             this->jitData.bodyData.loopHeaders->endOffset = functionBody->GetLoopHeader(i)->endOffset;
             this->jitData.bodyData.loopHeaders->isNested = functionBody->GetLoopHeader(i)->isNested;
         }
-    } // TODO: OOP JIT, in else case, maybe we should pass specific bad data or nullptr to be defensive/help assert we don't use this
+    }
+    else
+    {
+        this->jitData.bodyData.loopHeaderArrayAddr = 0;
+        this->jitData.bodyData.loopHeaderArrayLength = 0;
+        this->jitData.bodyData.loopHeaders = nullptr;
+    }
 
     this->jitData.bodyData.localFrameDisplayReg = functionBody->GetLocalFrameDisplayReg();
     this->jitData.bodyData.localClosureReg = functionBody->GetLocalClosureReg();
@@ -160,6 +167,9 @@ CodeGenWorkItem::CodeGenWorkItem(
     this->jitData.bodyData.scriptIdAddr = (intptr_t)functionBody->GetAddressOfScriptId();
     this->jitData.bodyData.flagsAddr = (intptr_t)functionBody->GetAddressOfFlags();
     this->jitData.bodyData.probeCountAddr = (intptr_t)&functionBody->GetSourceInfo()->m_probeCount;
+    this->jitData.bodyData.regAllocLoadCountAddr = (intptr_t)&functionBody->regAllocLoadCount;
+    this->jitData.bodyData.regAllocStoreCountAddr = (intptr_t)&functionBody->regAllocStoreCount;
+    this->jitData.bodyData.callCountStatsAddr = (intptr_t)&functionBody->callCountStats;
 
     this->jitData.bodyData.referencedPropertyIdCount = functionBody->GetReferencedPropertyIdCount();
     this->jitData.bodyData.referencedPropertyIdMap = functionBody->GetReferencedPropertyIdMap();

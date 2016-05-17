@@ -80,7 +80,8 @@ JITOutput::RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ush
 void
 JITOutput::RecordNativeCode(Func *func, const BYTE* sourceBuffer, EmitBufferAllocation * alloc)
 {
-    if (!func->GetEmitBufferManager()->CommitBuffer(alloc, (BYTE *)alloc->allocation->address, alloc->allocation->size, sourceBuffer))
+    Assert(m_outputData->codeAddress == (intptr_t)alloc->allocation->address);
+    if (!func->GetEmitBufferManager()->CommitBuffer(alloc, (BYTE *)m_outputData->codeAddress, m_outputData->codeSize, sourceBuffer))
     {
         Js::Throw::OutOfMemory();
     }
@@ -88,7 +89,7 @@ JITOutput::RecordNativeCode(Func *func, const BYTE* sourceBuffer, EmitBufferAllo
 #if DBG_DUMP
     if (func->IsLoopBody())
     {
-        func->GetEmitBufferManager()->totalBytesLoopBody += alloc->allocation->size;
+        func->GetEmitBufferManager()->totalBytesLoopBody += m_outputData->codeSize;
     }
 #endif
 }

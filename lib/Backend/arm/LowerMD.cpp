@@ -170,7 +170,7 @@ LowererMD::MDConvertFloat64ToInt32Opcode(const RoundMode roundMode)
 // ARM can't encode direct accesses to physical addresses, so put the address in a register
 // and return an indir. (This facilitates re-use of the loaded address without having to re-load it.)
 IR::Opnd *
-LowererMD::GenerateMemRef(void *addr, IRType type, IR::Instr *instr, bool dontEncode)
+LowererMD::GenerateMemRef(intptr_t addr, IRType type, IR::Instr *instr, bool dontEncode)
 {
     IR::RegOpnd *baseOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
     IR::AddrOpnd *addrOpnd = IR::AddrOpnd::New(addr, IR::AddrOpndKindDynamicMisc, this->m_func, dontEncode);
@@ -933,14 +933,13 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
     IR::RegOpnd *scratchOpnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
     IR::LabelInstr *helperLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, afterProlog);
     IR::Instr *instr;
-    ThreadContext *threadContext = this->m_func->GetScriptContext()->GetThreadContext();
     bool doInterruptProbe = m_func->GetJITFunctionBody()->DoInterruptProbe();
 
     if (doInterruptProbe || !m_func->GetThreadContextInfo()->IsThreadBound())
     {
         // Load the current stack limit and add the current frame allocation.
         {
-            void *pLimit = threadContext->GetAddressOfStackLimitForCurrentThread();
+            intptr_t pLimit = m_func->GetThreadContextInfo()->GetThreadStackLimitAddr();
             this->CreateAssign(scratchOpnd, IR::AddrOpnd::New(pLimit, IR::AddrOpndKindDynamicMisc, this->m_func), insertInstr);
             this->CreateAssign(scratchOpnd, IR::IndirOpnd::New(scratchOpnd, 0, TyMachReg, this->m_func), insertInstr);
         }
@@ -995,7 +994,7 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
     }
     else
     {
-        uint32 scriptStackLimit = (uint32)threadContext->GetScriptStackLimit();
+        uint32 scriptStackLimit = (uint32)m_func->GetThreadContextInfo()->GetScriptStackLimit();
         IR::Opnd *stackLimitOpnd = IR::IntConstOpnd::New(frameSize + scriptStackLimit, TyMachReg, this->m_func);
         this->CreateAssign(scratchOpnd, stackLimitOpnd, insertInstr);
     }
@@ -1370,7 +1369,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     // into account below. Otherwise, the stack will become unbalanced or corrupted.
     //
     // NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE
-    ThreadContext *threadContext = this->m_func->GetScriptContext()->GetThreadContext();
     DWORD stackProbeStackHeight = this->m_func->m_localStackHeight;
 
     // If we've already got calls and we don't have a try, we need to take adjustments

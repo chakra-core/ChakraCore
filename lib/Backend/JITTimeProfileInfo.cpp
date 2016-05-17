@@ -45,6 +45,9 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->profiledCallSiteCount = functionBody->GetProfiledCallSiteCount();
     data->callSiteData = reinterpret_cast<CallSiteData*>(profileInfo->GetCallSiteInfo());
 
+    CompileAssert(sizeof(BVUnitData) == sizeof(BVUnit));
+    data->loopFlags = (BVFixedData*)profileInfo->GetLoopFlags();
+
     CompileAssert(sizeof(ValueType) == sizeof(uint16));
 
     data->profiledSlotCount = functionBody->GetProfiledSlotCount();
@@ -201,9 +204,8 @@ JITTimeProfileInfo::GetImplicitCallFlags() const
 Js::LoopFlags
 JITTimeProfileInfo::GetLoopFlags(uint loopNum) const
 {
-    // TODO: michhol OOP JIT... figure out how to easily move the BVs
-    Assert(UNREACHED);
-    return Js::LoopFlags();
+    Assert(GetLoopFlags() != nullptr);
+    return GetLoopFlags()->GetRange<Js::LoopFlags>(loopNum * Js::LoopFlags::COUNT, Js::LoopFlags::COUNT);
 }
 
 bool
@@ -472,4 +474,10 @@ bool
 JITTimeProfileInfo::TestFlag(ProfileDataFlags flag) const
 {
     return (m_profileData->flags & flag) != 0;
+}
+
+BVFixed *
+JITTimeProfileInfo::GetLoopFlags() const
+{
+    return (BVFixed*)m_profileData->loopFlags;
 }

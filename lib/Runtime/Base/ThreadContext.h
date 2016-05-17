@@ -499,40 +499,7 @@ private:
 
 public:
     JITManager m_codeGenManager;
-    void SetJITConnectionInfo(DWORD processId, UUID connectionId)
-    {
-        m_jitProcessId = processId;
-        m_jitConnectionId = connectionId;
-        // TODO: OOP JIT, check hresults
-        m_codeGenManager.ConnectRpcServer(m_jitProcessId, m_jitConnectionId);
-        // TODO: OOP JIT, do we need to do this initialization in a different place?
-        ThreadContextData contextData;
-        HANDLE targetHandle;
-        HANDLE jitProcHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, m_jitProcessId);
-        BOOL succeeded = DuplicateHandle(
-            GetCurrentProcess(), GetCurrentProcess(),
-            jitProcHandle, &targetHandle,
-            NULL, FALSE, DUPLICATE_SAME_ACCESS);
-
-        if (!succeeded)
-        {
-            // TODO: michhol OOP JIT is this correct?
-            Js::Throw::InternalError();
-        }
-        if (!CloseHandle(jitProcHandle))
-        {
-            Js::Throw::InternalError();
-        }
-        contextData.processHandle = (intptr_t)targetHandle;
-        // TODO: OOP JIT, use more generic method for getting name, e.g. in case of ChakraTest.dll
-        contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"Chakra.dll");
-        contextData.crtBaseAddress = (intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName);
-        contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
-        contextData.threadStackLimitAddr = (intptr_t)bailOutRegisterSaveSpace;
-        contextData.scriptStackLimit = reinterpret_cast<size_t>(GetScriptStackLimit());
-        contextData.isThreadBound = GetIsThreadBound();
-        m_codeGenManager.InitializeThreadContext(&contextData, &m_remoteThreadContextInfo);
-    }
+    void SetJITConnectionInfo(DWORD processId, UUID connectionId);
 
     intptr_t GetRemoteThreadContextAddr() const
     {

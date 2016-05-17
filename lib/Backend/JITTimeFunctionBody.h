@@ -85,6 +85,9 @@ public:
     intptr_t GetScriptIdAddr() const;
     intptr_t GetProbeCountAddr() const;
     intptr_t GetFlagsAddr() const;
+    intptr_t GetRegAllocLoadCountAddr() const;
+    intptr_t GetRegAllocStoreCountAddr() const;
+    intptr_t GetCallCountStatsAddr() const;
 
     static bool LoopContains(JITLoopHeader * loop1, JITLoopHeader * loop2);
 

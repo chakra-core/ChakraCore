@@ -36,7 +36,17 @@ public:
     intptr_t GetConstructorCacheDefaultInstanceAddr() const;
     intptr_t GetJavascriptObjectNewInstanceAddr() const;
     intptr_t GetNativeFloatArrayMissingItemAddr() const;
+    intptr_t GetMantissaMaskAddr() const;
+    intptr_t GetExponentMaskAddr() const;
+
+    intptr_t GetDisableImplicitFlagsAddr() const;
+    intptr_t GetImplicitCallFlagsAddr() const;
     intptr_t GetBailOutRegisterSaveSpace() const;
+
+    intptr_t GetDebuggingFlagsAddr() const;
+    intptr_t GetDebugStepTypeAddr() const;
+    intptr_t GetDebugFrameAddressAddr() const;
+    intptr_t GetDebugScriptIdWhenSetAddr() const;
 
     size_t GetScriptStackLimit() const;
 
@@ -54,9 +64,14 @@ public:
     ptrdiff_t GetCRTBaseAddressDifference() const;
 
     bool IsCFGEnabled();
+
+    void BeginJIT();
+    void EndJIT();
+    bool IsJITActive();
 private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
+    uint m_activeJITCount;
 
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
     PageAllocator m_pageAlloc;

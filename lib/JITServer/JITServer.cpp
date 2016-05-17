@@ -106,6 +106,7 @@ ServerCleanupThreadContext(
     ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextRoot);
     HANDLE processHandle = threadContextInfo->GetProcessHandle();
 
+    while (threadContextInfo->IsJITActive()) { Sleep(30); }
     HeapDelete(threadContextInfo);
 
     CloseHandle(processHandle);
@@ -131,6 +132,7 @@ ServerCleanupScriptContext(
     /* [in] */ __int3264 scriptContextRoot)
 {
     ScriptContextInfo * scriptContextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextRoot);
+    while (scriptContextInfo->IsJITActive()) { Sleep(30); }
     HeapDelete(scriptContextInfo);
     return S_OK;
 }
@@ -160,8 +162,17 @@ ServerRemoteCodeGen(
 
     ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextInfoAddress);
 
-    JitArenaAllocator jitArena(L"JITArena", threadContextInfo->GetPageAllocator(), Js::Throw::OutOfMemory);
+
+    PageAllocator backgroundPageAllocator(threadContextInfo->GetAllocationPolicyManager(), Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
+        (AutoSystemInfo::Data.IsLowMemoryProcess() ?
+            PageAllocator::DefaultLowMaxFreePageCount :
+            PageAllocator::DefaultMaxFreePageCount));
+
+    NoRecoverMemoryJitArenaAllocator jitArena(L"JITArena", &backgroundPageAllocator, Js::Throw::OutOfMemory);
     ScriptContextInfo * scriptContextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextInfoAddress);
+
+    scriptContextInfo->BeginJIT(); // TODO: OOP JIT, improve how we do this
+    threadContextInfo->BeginJIT();
 
     JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 
@@ -173,5 +184,7 @@ ServerRemoteCodeGen(
     Func func(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, nullptr, threadContextInfo->GetCodeGenAllocators(), nullptr, profileInfo, nullptr, true);
     func.m_symTable->SetStartingID(static_cast<SymID>(jitWorkItem->GetJITFunctionBody()->GetLocalsCount() + 1));
     func.Codegen();
+    scriptContextInfo->EndJIT();
+    threadContextInfo->EndJIT();
     return S_OK;
 }

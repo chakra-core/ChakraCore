@@ -3041,35 +3041,35 @@ Lowerer::LoadScriptContextValueOpnd(IR::Instr * instr, ScriptContextValue valueT
 IR::Opnd *
 Lowerer::LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType, RegNum regNum)
 {
-    ScriptContextInfo *scriptContext = instr->m_func->GetScriptContextInfo();
+    ScriptContextInfo *scriptContextInfo = instr->m_func->GetScriptContextInfo();
     switch (valueType)
     {
     case LibraryValue::ValueEmptyString:
-        return IR::AddrOpnd::New(scriptContext->GetEmptyStringAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContextInfo->GetEmptyStringAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueUndeclBlockVar:
-        return IR::AddrOpnd::New(scriptContext->GetUndeclBlockVarAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContextInfo->GetUndeclBlockVarAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueUndefined:
-        return IR::AddrOpnd::New(scriptContext->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContextInfo->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueNull:
-        return IR::AddrOpnd::New(scriptContext->GetNullAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContextInfo->GetNullAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueTrue:
-        return IR::AddrOpnd::New(scriptContext->GetTrueAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContextInfo->GetTrueAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueFalse:
-        return IR::AddrOpnd::New(scriptContext->GetFalseAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContextInfo->GetFalseAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueNegativeZero:
-        return IR::AddrOpnd::New(scriptContext->GetNegativeZeroAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContextInfo->GetNegativeZeroAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
     case LibraryValue::ValueNumberTypeStatic:
-        return IR::AddrOpnd::New(scriptContext->GetNumberTypeStaticAddr(), IR::AddrOpndKindDynamicType, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContextInfo->GetNumberTypeStaticAddr(), IR::AddrOpndKindDynamicType, instr->m_func, true);
     case LibraryValue::ValueStringTypeStatic:
-        return IR::AddrOpnd::New(scriptContext->GetStringTypeStaticAddr(), IR::AddrOpndKindDynamicType, instr->m_func, true);
+        return IR::AddrOpnd::New(scriptContextInfo->GetStringTypeStaticAddr(), IR::AddrOpndKindDynamicType, instr->m_func, true);
     case LibraryValue::ValueObjectType:
-        return IR::AddrOpnd::New(scriptContext->GetObjectTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(scriptContextInfo->GetObjectTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueObjectHeaderInlinedType:
-        return IR::AddrOpnd::New(scriptContext->GetObjectHeaderInlinedTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(scriptContextInfo->GetObjectHeaderInlinedTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueRegexType:
-        return IR::AddrOpnd::New(scriptContext->GetRegexTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(scriptContextInfo->GetRegexTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueArrayConstructor:
-        return IR::AddrOpnd::New(scriptContext->GetArrayConstructorAddr(), IR::AddrOpndKindDynamicVar, instr->m_func);
+        return IR::AddrOpnd::New(scriptContextInfo->GetArrayConstructorAddr(), IR::AddrOpndKindDynamicVar, instr->m_func);
     case LibraryValue::ValueJavascriptArrayType:
         return IR::AddrOpnd::New(Js::JavascriptArray::GetInitialType(nullptr), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueNativeIntArrayType:
@@ -3081,9 +3081,9 @@ Lowerer::LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType, RegNum 
     case LibraryValue::ValueAbsDoubleCst:
         return IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetAbsDoubleCstAddr(), TyMachDouble, instr->m_func, IR::AddrOpndKindDynamicDoubleRef);
     case LibraryValue::ValueCharStringCache:
-        return IR::AddrOpnd::New(scriptContext->GetCharStringCacheAddr(), IR::AddrOpndKindDynamicCharStringCache, instr->m_func);
+        return IR::AddrOpnd::New(scriptContextInfo->GetCharStringCacheAddr(), IR::AddrOpndKindDynamicCharStringCache, instr->m_func);
     default:
-        Assert(false);
+        Assert(UNREACHED);
         return nullptr;
     }
 }
@@ -3097,19 +3097,18 @@ Lowerer::LoadVTableValueOpnd(IR::Instr * instr, VTableValue vtableType)
 IR::Opnd *
 Lowerer::LoadOptimizationOverridesValueOpnd(IR::Instr *instr, OptimizationOverridesValue valueType)
 {
-    Js::ScriptContext *scriptContext = instr->m_func->GetScriptContext();
     switch (valueType)
     {
     case OptimizationOverridesValue::OptimizationOverridesSideEffects:
-        return IR::MemRefOpnd::New(scriptContext->optimizationOverrides.GetAddressOfSideEffects(), TyInt32, instr->m_func);
+        return IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetSideEffectsAddr(), TyInt32, instr->m_func);
     case OptimizationOverridesValue::OptimizationOverridesArraySetElementFastPathVtable:
-        return IR::MemRefOpnd::New(scriptContext->optimizationOverrides.GetAddressOfArraySetElementFastPathVtable(), TyMachPtr, instr->m_func);
+        return IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetArraySetElementFastPathVtableAddr(), TyMachPtr, instr->m_func);
     case OptimizationOverridesValue::OptimizationOverridesIntArraySetElementFastPathVtable:
-        return IR::MemRefOpnd::New(scriptContext->optimizationOverrides.GetAddressOfIntArraySetElementFastPathVtable(), TyMachPtr, instr->m_func);
+        return IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetIntArraySetElementFastPathVtableAddr(), TyMachPtr, instr->m_func);
     case OptimizationOverridesValue::OptimizationOverridesFloatArraySetElementFastPathVtable:
-        return IR::MemRefOpnd::New(scriptContext->optimizationOverrides.GetAddressOfFloatArraySetElementFastPathVtable(), TyMachPtr, instr->m_func);
+        return IR::MemRefOpnd::New(m_func->GetScriptContextInfo()->GetFloatArraySetElementFastPathVtableAddr(), TyMachPtr, instr->m_func);
     default:
-        Assert(false);
+        Assert(UNREACHED);
         return nullptr;
     }
 }
@@ -3263,7 +3262,8 @@ Lowerer::GenerateFastBrConst(IR::BranchInstr *branchInstr, IR::Opnd * constOpnd,
     // JEQ/JNE $L1
     //
 
-    Assert(this->IsConstRegOpnd(branchInstr->GetSrc2()->AsRegOpnd()));
+    // TODO: OOP JIT, enable this assert
+    //Assert(this->IsConstRegOpnd(branchInstr->GetSrc2()->AsRegOpnd()));
 
     IR::Opnd    *opnd    = branchInstr->GetSrc1();
 
@@ -5228,7 +5228,7 @@ Lowerer::InsertOneLoopProbe(IR::Instr *insertInstr, IR::LabelInstr *loopLabel)
     // directly if the probe fails.
 
     IR::Opnd *memRefOpnd = IR::MemRefOpnd::New(
-        this->m_func->GetScriptContext()->GetThreadContext()->GetAddressOfStackLimitForCurrentThread(),
+        m_func->GetThreadContextInfo()->GetThreadStackLimitAddr(),
         TyMachReg, this->m_func);
 
     IR::RegOpnd *regStackPointer = IR::RegOpnd::New(
@@ -10283,11 +10283,8 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
     IR::Opnd* dst = instr->GetDst();
 
 #if defined(_M_X64)
-    if (m_func->GetScriptContext()->GetLibrary()->IsPRNGSeeded())
+    if (m_func->GetScriptContextInfo()->IsPRNGSeeded())
     {
-        const uint64 mExp = 0x3FF0000000000000;
-        const uint64 mMant = 0x000FFFFFFFFFFFFF;
-
         IR::RegOpnd* r0 = IR::RegOpnd::New(TyUint64, m_func);  // s0
         IR::RegOpnd* r1 = IR::RegOpnd::New(TyUint64, m_func);  // s1
         IR::RegOpnd* r3 = IR::RegOpnd::New(TyUint64, m_func);  // helper uint64 reg
@@ -10298,9 +10295,9 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
         // s1 = scriptContext->GetLibrary()->GetRandSeed0();
         // ===========================================================
         this->m_lowererMD.CreateAssign(r0,
-            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, instr->m_func), instr);
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContextInfo()->GetLibraryAddr() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, instr->m_func), instr);
         this->m_lowererMD.CreateAssign(r1,
-            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, instr->m_func), instr);
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContextInfo()->GetLibraryAddr() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, instr->m_func), instr);
 
         // ===========================================================
         // s1 ^= s1 << 23;
@@ -10333,17 +10330,17 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
         // scriptContext->GetLibrary()->SetRandSeed1(s1);
         // ===========================================================
         this->m_lowererMD.CreateAssign(
-            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, m_func), r0, instr);
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContextInfo()->GetLibraryAddr() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, m_func), r0, instr);
         this->m_lowererMD.CreateAssign(
-            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, m_func), r1, instr);
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContextInfo()->GetLibraryAddr() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, m_func), r1, instr);
 
         // ===========================================================
         // dst = bit_cast<float64>(((s0 + s1) & mMant) | mExp);
         // ===========================================================
         this->InsertAdd(false, r1, r1, r0, instr);
-        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mMant, IR::AddrOpndKindConstantVar, m_func, true), instr);
+        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetMantissaMaskAddr(), IR::AddrOpndKindConstantVar, m_func, true), instr);
         this->InsertAnd(r1, r1, r3, instr);
-        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mExp, IR::AddrOpndKindConstantVar, m_func, true), instr);
+        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetExponentMaskAddr(), IR::AddrOpndKindConstantVar, m_func, true), instr);
         this->InsertOr(r1, r1, r3, instr);
         this->InsertMoveBitCast(dst, r1, instr);
 
@@ -10938,8 +10935,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
 
     if (!(bailOutKind & IR::BailOutExplicit))
     {
-        Js::DebugManager* debugManager = this->GetScriptContext()->GetThreadContext()->GetDebugManager();
-        DebuggingFlags* flags = debugManager->GetDebuggingFlags();
+        intptr_t flags = m_func->GetThreadContextInfo()->GetDebuggingFlagsAddr();
 
         // Check 1 (do we need to bail out?)
         // JXX bailoutLabel
@@ -10991,7 +10987,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
             {
                 // CMP [&flags->m_byteCodeOffsetAfterIgnoreException], DebuggingFlags::InvalidByteCodeOffset
                 // BNE bailout
-                IR::Opnd* opnd1 = IR::MemRefOpnd::New((BYTE*)flags + flags->GetByteCodeOffsetAfterIgnoreExceptionOffset(), TyInt32, m_func);
+                IR::Opnd* opnd1 = IR::MemRefOpnd::New((BYTE*)flags + DebuggingFlags::GetByteCodeOffsetAfterIgnoreExceptionOffset(), TyInt32, m_func);
                 IR::Opnd* opnd2 = IR::IntConstOpnd::New(DebuggingFlags::InvalidByteCodeOffset, TyInt32, m_func, /*dontEncode*/ true);
                 InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrNeq_A, bailOutLabel, continueBranchInstr);
                 bailOutKind ^= IR::BailOutIgnoreException;
@@ -11013,13 +11009,13 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
         {
             // TEST STEP_BAILOUT, [&stepController->StepType]
             // BNE BailoutLabel
-            IR::Opnd* opnd1 = IR::MemRefOpnd::New((void*)(debugManager->stepController.GetAddressOfStepType()), TyInt8, m_func);
+            IR::Opnd* opnd1 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
             IR::Opnd* opnd2 = IR::IntConstOpnd::New(Js::STEP_BAILOUT, TyInt8, this->m_func, /*dontEncode*/ true);
             InsertTestBranch(opnd1, opnd2, Js::OpCode::BrNeq_A, bailOutLabel, continueBranchInstr);
 
             // CMP  STEP_DOCUMENT, [&stepController->StepType]
             // BEQ BailoutDocumentLabel
-            opnd1 = IR::MemRefOpnd::New((void*)(debugManager->stepController.GetAddressOfStepType()), TyInt8, m_func);
+            opnd1 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
             opnd2 = IR::IntConstOpnd::New(Js::STEP_DOCUMENT, TyInt8, this->m_func, /*dontEncode*/ true);
             InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrEq_A, /*isUnsigned*/ true, bailOutDocumentLabel, continueBranchInstr);
 
@@ -11040,12 +11036,12 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
             effectiveFrameBaseReg = m_lowererMD.GetRegFramePointer();
 #endif
             IR::Opnd* opnd1 = IR::RegOpnd::New(nullptr, effectiveFrameBaseReg, TyMachReg, m_func);
-            IR::Opnd* opnd2 = IR::MemRefOpnd::New(debugManager->stepController.GetAddressOfFrameAddress(), TyMachReg, m_func);
+            IR::Opnd* opnd2 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugFrameAddressAddr(), TyMachReg, m_func);
             this->InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrGt_A, /*isUnsigned*/ true, bailOutLabel, continueBranchInstr);
 
             // CMP  STEP_DOCUMENT, [&stepController->StepType]
             // BEQ BailoutDocumentLabel
-            opnd1 = IR::MemRefOpnd::New((void*)(debugManager->stepController.GetAddressOfStepType()), TyInt8, m_func);
+            opnd1 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugStepTypeAddr(), TyInt8, m_func);
             opnd2 = IR::IntConstOpnd::New(Js::STEP_DOCUMENT, TyInt8, this->m_func, /*dontEncode*/ true);
             InsertCompareBranch(opnd1, opnd2, Js::OpCode::BrEq_A, /*isUnsigned*/ true, bailOutDocumentLabel, continueBranchInstr);
 
@@ -11080,7 +11076,7 @@ Lowerer::LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper /* = false *
             // bailOutLabel:                // (fallthrough bailOutLabel)
             IR::Opnd* opnd1 = IR::MemRefOpnd::New(m_func->GetJITFunctionBody()->GetScriptIdAddr(), TyInt32, m_func);
 
-            IR::Opnd* opnd2 = IR::MemRefOpnd::New(debugManager->stepController.GetAddressOfScriptIdWhenSet(), TyInt32, m_func);
+            IR::Opnd* opnd2 = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDebugScriptIdWhenSetAddr(), TyInt32, m_func);
             IR::RegOpnd* reg1 = IR::RegOpnd::New(TyInt32, m_func);
             InsertMove(reg1, opnd2, bailOutLabel);
 
@@ -11867,7 +11863,7 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
     {
         const auto disableImplicitCallAddress =
             m_lowererMD.GenerateMemRef(
-                instr->m_func->GetScriptContext()->GetThreadContext()->GetAddressOfDisableImplicitFlags(),
+                instr->m_func->GetThreadContextInfo()->GetDisableImplicitFlagsAddr(),
                 TyInt8,
                 instr);
 
@@ -20886,7 +20882,7 @@ Lowerer::GetImplicitCallFlagsOpnd()
 IR::Opnd*
 Lowerer::GetImplicitCallFlagsOpnd(Func * func)
 {
-    return IR::MemRefOpnd::New(func->GetScriptContext()->GetThreadContext()->GetAddressOfImplicitCallFlags(), GetImplicitCallFlagsType(), func);
+    return IR::MemRefOpnd::New(func->GetThreadContextInfo()->GetImplicitCallFlagsAddr(), GetImplicitCallFlagsType(), func);
 }
 
 IR::Opnd*

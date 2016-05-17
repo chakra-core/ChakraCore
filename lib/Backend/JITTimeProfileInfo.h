@@ -102,6 +102,7 @@ private:
     Js::ArgSlot GetProfiledInParamsCount() const;
     uint GetProfiledFldCount() const;
     uint GetLoopCount() const;
+    BVFixed * GetLoopFlags() const;
 
     bool TestFlag(ProfileDataFlags flag) const;
 

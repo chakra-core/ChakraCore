@@ -59,7 +59,7 @@ LowererMD::IsUnconditionalBranch(const IR::Instr *instr)
 
 // GenerateMemRef: Return an opnd that can be used to access the given address.
 IR::Opnd *
-LowererMD::GenerateMemRef(void *addr, IRType type, IR::Instr *instr, bool dontEncode)
+LowererMD::GenerateMemRef(intptr_t addr, IRType type, IR::Instr *instr, bool dontEncode)
 {
     return IR::MemRefOpnd::New(addr, type, this->m_func);
 }
@@ -2579,8 +2579,8 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr)
     }
 
     bool isNeqOp = instr->m_opcode == Js::OpCode::CmSrNeq_A || instr->m_opcode == Js::OpCode::CmNeq_A;
-    Js::Var notEqualResult = m_func->GetScriptContext()->GetLibrary()->GetTrueOrFalse(isNeqOp);
-    Js::Var equalResult = m_func->GetScriptContext()->GetLibrary()->GetTrueOrFalse(!isNeqOp);
+    intptr_t notEqualResult = m_func->GetScriptContextInfo()->GetTrueOrFalseAddr(isNeqOp);
+    intptr_t equalResult = m_func->GetScriptContextInfo()->GetTrueOrFalseAddr(!isNeqOp);
 
     // Tagged ints?
     bool isTaggedInts = false;

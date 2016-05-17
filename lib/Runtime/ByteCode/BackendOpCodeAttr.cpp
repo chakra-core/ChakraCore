@@ -198,7 +198,7 @@ bool IsInt32(Js::OpCode opcode)
 {
     return ((GetOpCodeAttributes(opcode) & OpIsInt32) != 0);
 }
-bool ProducesNumber(Js::OpCode opcode, Js::ScriptContext *const scriptContext)
+bool ProducesNumber(Js::OpCode opcode)
 {
     return ((GetOpCodeAttributes(opcode) & OpProducesNumber) != 0);
 }

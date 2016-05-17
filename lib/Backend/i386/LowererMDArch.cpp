@@ -1678,7 +1678,6 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
     IR::Instr *insertInstr = entryInstr->m_next;
     IR::Instr *instr;
     IR::Opnd *stackLimitOpnd;
-    ThreadContext *threadContext = this->m_func->GetScriptContext()->GetThreadContext();
     bool doInterruptProbe = m_func->GetJITFunctionBody()->DoInterruptProbe();
 
     if (doInterruptProbe || !m_func->GetThreadContextInfo()->IsThreadBound())
@@ -1687,7 +1686,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
         // current frame. This is the value we'll compare against below.
 
         stackLimitOpnd = IR::RegOpnd::New(nullptr, RegEAX, TyMachReg, this->m_func);
-        void *pLimit = threadContext->GetAddressOfStackLimitForCurrentThread();
+        intptr_t pLimit = m_func->GetThreadContextInfo()->GetThreadStackLimitAddr();
         IR::MemRefOpnd * memOpnd = IR::MemRefOpnd::New(pLimit, TyMachReg, this->m_func);
         this->lowererMD->CreateAssign(stackLimitOpnd, memOpnd, insertInstr);
 
@@ -1705,7 +1704,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
     else
     {
         // The incremented stack limit is a compile-time constant.
-        size_t scriptStackLimit = (size_t)threadContext->GetScriptStackLimit();
+        size_t scriptStackLimit = (size_t)m_func->GetThreadContextInfo()->GetScriptStackLimit();
         stackLimitOpnd = IR::AddrOpnd::New((void *)(frameSize + scriptStackLimit), IR::AddrOpndKindDynamicMisc, this->m_func);
     }
 

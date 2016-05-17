@@ -423,6 +423,11 @@ namespace Js
             contextData.regexTypeAddr = (intptr_t)GetLibrary()->GetRegexType();
             contextData.arrayConstructorAddr = (intptr_t)GetLibrary()->GetArrayConstructor();
             contextData.charStringCacheAddr = (intptr_t)&GetLibrary()->GetCharStringCache();
+            contextData.libraryAddr = (intptr_t)GetLibrary();
+            contextData.sideEffectsAddr = (intptr_t)optimizationOverrides.GetAddressOfSideEffects();
+            contextData.arraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfArraySetElementFastPathVtable();
+            contextData.intArraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfIntArraySetElementFastPathVtable();
+            contextData.floatArraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfFloatArraySetElementFastPathVtable();
             CompileAssert(VTableValue::Count == 39); // need to update idl chen this changes
             memcpy_s(contextData.vtableAddresses, 39 * sizeof(intptr_t), GetLibrary()->GetVTableAddresses(), VTableValue::Count * sizeof(INT_PTR));
             this->threadContext->m_codeGenManager.InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);

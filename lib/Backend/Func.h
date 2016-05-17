@@ -249,7 +249,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     inline Js::ScriptContext* GetScriptContext() const
     {
         // TODO (michhol): remove this
-        Assert(UNREACHED);
+        //Assert(UNREACHED);
 
         return nullptr;
     }
@@ -450,6 +450,12 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 #if DBG_DUMP | defined(VTUNE_PROFILING)
     bool DoRecordNativeMap() const;
 #endif
+
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    void DumpFullFunctionName();
+#endif
+
 public:
     JitArenaAllocator *    m_alloc;
     const Js::FunctionCodeGenJitTimeData *const m_jitTimeData;

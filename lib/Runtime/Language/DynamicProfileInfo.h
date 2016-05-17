@@ -642,6 +642,8 @@ namespace Js
             Assert(loopFlags);
             return loopFlags->GetRange<LoopFlags>(loopNumber * LoopFlags::COUNT, LoopFlags::COUNT);
         }
+        BVFixed * GetLoopFlags() const { return loopFlags; }
+
         void SetLoopInterpreted(int loopNumber) { loopFlags->Set(loopNumber * LoopFlags::COUNT + LoopFlags::INTERPRETED); }
         void SetMemOpMinReached(int loopNumber) { loopFlags->Set(loopNumber * LoopFlags::COUNT + LoopFlags::MEMOP_MIN_COUNT_FOUND); }
         bool IsMemOpDisabled() const { return this->bits.disableMemOp; }

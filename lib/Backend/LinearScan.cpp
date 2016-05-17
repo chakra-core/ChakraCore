@@ -4640,7 +4640,7 @@ void LinearScan::PrintStats() const
 
     Assert(loopNest == 0);
 
-    this->func->GetJnFunction()->DumpFullFunctionName();
+    this->func->DumpFullFunctionName();
     Output::SkipToColumn(45);
 
     Output::Print(L"Instrs:%5d, Lds:%4d, Strs:%4d, WLds: %4d, WStrs: %4d, WRefs: %4d\n",
@@ -4685,7 +4685,7 @@ IR::Instr * LinearScan::GetIncInsertionPoint(IR::Instr *instr)
 void LinearScan::DynamicStatsInstrument()
 {
     IR::Instr *firstInstr = this->func->m_headInstr;
-    IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(&(this->func->GetJnFunction()->callCountStats), TyUint32, this->func);
+    IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(this->func->GetJITFunctionBody()->GetCallCountStatsAddr(), TyUint32, this->func);
     firstInstr->InsertAfter(IR::Instr::New(Js::OpCode::INC, memRefOpnd, memRefOpnd, this->func));
 
     FOREACH_INSTR_IN_FUNC(instr, this->func)
@@ -4704,7 +4704,7 @@ void LinearScan::DynamicStatsInstrument()
         if (dst && dst->IsSymOpnd() && dst->AsSymOpnd()->m_sym->IsStackSym() && dst->AsSymOpnd()->m_sym->AsStackSym()->IsAllocated())
         {
             IR::Instr *insertionInstr = this->GetIncInsertionPoint(instr);
-            IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(&(this->func->GetJnFunction()->regAllocStoreCount), TyUint32, this->func);
+            IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(this->func->GetJITFunctionBody()->GetRegAllocStoreCountAddr(), TyUint32, this->func);
             insertionInstr->InsertBefore(IR::Instr::New(Js::OpCode::INC, memRefOpnd, memRefOpnd, this->func));
         }
         IR::Opnd *src1 = instr->GetSrc1();
@@ -4713,14 +4713,14 @@ void LinearScan::DynamicStatsInstrument()
             if (src1->IsSymOpnd() && src1->AsSymOpnd()->m_sym->IsStackSym() && src1->AsSymOpnd()->m_sym->AsStackSym()->IsAllocated())
             {
                 IR::Instr *insertionInstr = this->GetIncInsertionPoint(instr);
-                IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(&(this->func->GetJnFunction()->regAllocLoadCount), TyUint32, this->func);
+                IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(this->func->GetJITFunctionBody()->GetRegAllocStoreCountAddr(), TyUint32, this->func);
                 insertionInstr->InsertBefore(IR::Instr::New(Js::OpCode::INC, memRefOpnd, memRefOpnd, this->func));
             }
             IR::Opnd *src2 = instr->GetSrc2();
             if (src2 && src2->IsSymOpnd() && src2->AsSymOpnd()->m_sym->IsStackSym() && src2->AsSymOpnd()->m_sym->AsStackSym()->IsAllocated())
             {
                 IR::Instr *insertionInstr = this->GetIncInsertionPoint(instr);
-                IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(&(this->func->GetJnFunction()->regAllocLoadCount), TyUint32, this->func);
+                IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(this->func->GetJITFunctionBody()->GetRegAllocStoreCountAddr(), TyUint32, this->func);
                 insertionInstr->InsertBefore(IR::Instr::New(Js::OpCode::INC, memRefOpnd, memRefOpnd, this->func));
             }
         }

@@ -448,7 +448,7 @@ GlobOpt::ForwardPass()
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldCopyPropPhase) && this->DoFunctionFieldCopyProp())
     {
         Output::Print(L"TRACE: CanDoFieldCopyProp Func: ");
-        this->func->GetJnFunction()->DumpFullFunctionName();
+        this->func->DumpFullFunctionName();
         Output::Print(L"\n");
     }
 #endif
@@ -759,7 +759,7 @@ GlobOpt::OptLoops(Loop *loop)
         !DoFunctionFieldCopyProp() && DoFieldCopyProp(loop))
     {
         Output::Print(L"TRACE: CanDoFieldCopyProp Loop: ");
-        this->func->GetJnFunction()->DumpFullFunctionName();
+        this->func->DumpFullFunctionName();
         uint loopNumber = loop->GetLoopNumber();
         Assert(loopNumber != Js::LoopHeader::NoLoop);
         Output::Print(L" Loop: %d\n", loopNumber);
@@ -6719,7 +6719,7 @@ GlobOpt::HoistConstantLoadAndPropagateValueBackward(Js::Var varConst, IR::Instr 
     // Insert a load of the constant at the top of the function
     StackSym *    dstSym = StackSym::New(this->func);
     IR::RegOpnd * constRegOpnd = IR::RegOpnd::New(dstSym, TyVar, this->func);
-    IR::Instr *   loadInstr = IR::Instr::NewConstantLoad(constRegOpnd, varConst, this->func);
+    IR::Instr *   loadInstr = IR::Instr::NewConstantLoad(constRegOpnd, (intptr_t)varConst, Js::TypeId::TypeIds_Limit, this->func);
     this->func->m_fg->blockList->GetFirstInstr()->InsertAfter(loadInstr);
 
     // Type-spec the load (Support for floats needs to be added when we start hoisting float constants).
@@ -7811,7 +7811,7 @@ GlobOpt::GetPrepassValueTypeForDst(
             // The op always produces an int32, but not always a tagged int
             return ValueType::GetInt(desiredValueType.IsLikelyTaggedInt());
         }
-        if(desiredValueType.IsNumber() && OpCodeAttr::ProducesNumber(instr->m_opcode, func->GetScriptContext()))
+        if(desiredValueType.IsNumber() && OpCodeAttr::ProducesNumber(instr->m_opcode))
         {
             // The op always produces a number, but not always an int
             return desiredValueType.ToDefiniteAnyNumber();
@@ -7868,7 +7868,7 @@ Value *GlobOpt::CreateDstUntransferredIntValue(
     Assert(instr);
     Assert(instr->GetDst());
 
-    Assert(OpCodeAttr::ProducesNumber(instr->m_opcode, this->func->GetScriptContext())
+    Assert(OpCodeAttr::ProducesNumber(instr->m_opcode)
         || (instr->m_opcode == Js::OpCode::Add_A && src1Value->GetValueInfo()->IsNumber()
         && src2Value->GetValueInfo()->IsNumber()));
 
@@ -19158,7 +19158,7 @@ GlobOpt::DoArrayCheckHoist(const ValueType baseValueType, Loop* loop, IR::Instr 
         Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostOptPhase))
     {
         Output::Print(L"DoArrayCheckHoist disabled for JS arrays because of external: ");
-        func->GetJnFunction()->DumpFullFunctionName();
+        func->DumpFullFunctionName();
         Output::Print(L"\n");
         Output::Flush();
     }
@@ -19228,7 +19228,7 @@ GlobOpt::DoTypedArraySegmentLengthHoist(Loop *const loop) const
         Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostOptPhase))
     {
         Output::Print(L"DoArraySegmentLengthHoist disabled for typed arrays because of external: ");
-        func->GetJnFunction()->DumpFullFunctionName();
+        func->DumpFullFunctionName();
         Output::Print(L"\n");
         Output::Flush();
     }
