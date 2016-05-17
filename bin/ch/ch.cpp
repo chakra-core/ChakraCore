@@ -392,7 +392,7 @@ HRESULT ExecuteTest(const char* fileName)
 
     IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
     IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
-    
+
 #ifdef DEBUG
     ChakraRTInterface::SetCheckOpHelpersFlag(true);
 #endif
@@ -583,7 +583,11 @@ int main(int argc, char** argv)
         Helpers::NarrowStringToWideDynamic(argv[i], &args[i]);
     }
 
-    int ret = wmain(argc, args);
+    // Call wmain with a copy of args, as HostConfigFlags may change argv
+    char16** argsCopy = new char16*[argc];
+    memcpy(argsCopy, args, sizeof(args[0]) * argc);
+    int ret = wmain(argc, argsCopy);
+    delete[] argsCopy;
 
     for (int i = 0; i < argc; i++)
     {
