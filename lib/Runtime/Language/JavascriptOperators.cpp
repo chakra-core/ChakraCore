@@ -276,7 +276,7 @@ namespace Js
 
     Var JavascriptOperators::Typeof(Var var, ScriptContext* scriptContext)
     {
-        if (IsSimdType(var) && scriptContext->GetConfig()->IsSimdjsEnabled())
+        if (SIMDUtils::IsSimdType(var) && scriptContext->GetConfig()->IsSimdjsEnabled())
         {
             switch ((JavascriptOperators::GetTypeId(var)))
             {
@@ -574,7 +574,7 @@ namespace Js
                 return result;
             }
         }
-        else if (IsSimdType(aLeft) && IsSimdType(aRight))
+        else if (SIMDUtils::IsSimdType(aLeft) && SIMDUtils::IsSimdType(aRight))
         {
             return StrictEqualSIMD(aLeft, aRight, requestContext);
         }
@@ -625,7 +625,7 @@ namespace Js
 
         double dblLeft, dblRight;
 
-        if (IsSimdType(aLeft) || IsSimdType(aRight))
+        if (SIMDUtils::IsSimdType(aLeft) || SIMDUtils::IsSimdType(aRight))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_SIMDConversion, _u("SIMD type"));
         }
