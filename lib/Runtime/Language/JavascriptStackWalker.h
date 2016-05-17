@@ -322,14 +322,13 @@ namespace Js
         bool                    isInitialFrame              : 1; // If we need to walk the initial frame
         bool                    shouldDetectPartiallyInitializedInterpreterFrame : 1;
         bool                    previousInterpreterFrameIsFromBailout : 1;
-        bool                    ehFramesBeingWalkedFromBailout : 1;
-        bool                    forceFullWalk; // ignoring hasCaller
+        bool                    forceFullWalk               : 1; // ignoring hasCaller
 
-        Var GetThisFromFrame() const;
-        Var GetCurrentArgumentsObject() const;
-        void SetCurrentArgumentsObject(Var args);
-        Var GetCurrentNativeArgumentsObject() const;
-        void SetCurrentNativeArgumentsObject(Var args);
+        Var GetThisFromFrame() const;                   // returns 'this' object from the physical frame
+        Var GetCurrentArgumentsObject() const;          // returns arguments object from the current frame, which may be virtual (belonging to an inlinee)
+        void SetCurrentArgumentsObject(Var args);       // sets arguments object for the current frame, which may be virtual (belonging to an inlinee)
+        Var GetCurrentNativeArgumentsObject() const;    // returns arguments object from the physical native frame
+        void SetCurrentNativeArgumentsObject(Var args); // sets arguments object on the physical native frame
 #if ENABLE_NATIVE_CODEGEN
         InternalFrameInfo lastInternalFrameInfo;
 #endif
