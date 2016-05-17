@@ -515,58 +515,58 @@ namespace Js
         {
             // In case we have a cross site thunk, update the script context
             Js::JavascriptFunction *function = this->GetCurrentFunction();
-
-            // We might've bailed out of an inlinee, so check if there were any inlinees.
-            if (this->interpreterFrame && (this->interpreterFrame->GetFlags() & InterpreterStackFrameFlags_FromBailOut))
+            bool isCurrentPhysicalFrameForLoopBody = this->IsCurrentPhysicalFrameForLoopBody();
+            if (this->interpreterFrame)
             {
-                previousInterpreterFrameIsFromBailout = true;
+                // We might've bailed out of an inlinee, so check if there were any inlinees.
+                if (this->interpreterFrame->GetFlags() & InterpreterStackFrameFlags_FromBailOut)
+                {
+                    previousInterpreterFrameIsFromBailout = true;
 #if ENABLE_NATIVE_CODEGEN
-                bool isCurrentPhysicalFrameForLoopBody = this->IsCurrentPhysicalFrameForLoopBody();
-                Assert(!inlinedFramesBeingWalked);
-                if (includeInlineFrames)
-                {
-                    int loopNum = -1;
-                    if (isCurrentPhysicalFrameForLoopBody)
-                    {
-                        loopNum = this->tempInterpreterFrame->GetCurrentLoopNum();
-                    }
 
-                    bool inlinedFramesOnStack = InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame,
-                        ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this);
-                    if (inlinedFramesOnStack)
+                    Assert(!inlinedFramesBeingWalked);
+                    if (includeInlineFrames)
                     {
-                        // We're now back in the state where currentFrame == physical frame of the inliner, but
-                        // since interpreterFrame != null, we'll pick values from the interpreterFrame (the bailout
-                        // frame of the inliner). Set a flag to tell the stack walker that it needs to start from the
-                        // inlinee frames on the stack when Walk() is called.
-                        inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
-                        Assert(inlinedFramesBeingWalked);
-                        Assert(StackScriptFunction::GetCurrentFunctionObject(this->interpreterFrame->GetJavascriptFunction()) == inlinedFrameWalker.GetFunctionObject());
+                        int loopNum = -1;
+                        if (isCurrentPhysicalFrameForLoopBody)
+                        {
+                            loopNum = this->tempInterpreterFrame->GetCurrentLoopNum();
+                        }
+
+                        bool inlinedFramesOnStack = InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame,
+                            ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this);
+                        if (inlinedFramesOnStack)
+                        {
+                            // We're now back in the state where currentFrame == physical frame of the inliner, but
+                            // since interpreterFrame != null, we'll pick values from the interpreterFrame (the bailout
+                            // frame of the inliner). Set a flag to tell the stack walker that it needs to start from the
+                            // inlinee frames on the stack when Walk() is called.
+                            inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
+                            Assert(inlinedFramesBeingWalked);
+                            Assert(StackScriptFunction::GetCurrentFunctionObject(this->interpreterFrame->GetJavascriptFunction()) == inlinedFrameWalker.GetFunctionObject());
+                        }
+                        else
+                        {
+                            Assert(!isCurrentPhysicalFrameForLoopBody);
+                        }
                     }
-                    else
+                    else if (isCurrentPhysicalFrameForLoopBody)
                     {
-                        Assert(!isCurrentPhysicalFrameForLoopBody);
+                        // Getting here is only possible when the current interpreterFrame is for a function which
+                        // encountered a bailout after getting inlined in a jitted loop body. If we are not including
+                        // inlined frames in the stack walk, we need to set the codeAddress on lastInternalFrameInfo,
+                        // which would have otherwise been set upon closing the inlinedFrameWalker, now.
+                        // Note that we already have an assert in CheckJavascriptFrame to ensure this.
+                        SetCachedInternalFrameInfo(InternalFrameType_LoopBody, InternalFrameType_LoopBody);
                     }
-                }
-                else if (isCurrentPhysicalFrameForLoopBody)
-                {
-                    // Getting here is only possible when the current interpreterFrame is for a function which
-                    // encountered a bailout after getting inlined in a jitted loop body. If we are not including
-                    // inlined frames in the stack walk, we need to set the codeAddress on lastInternalFrameInfo,
-                    // which would have otherwise been set upon closing the inlinedFrameWalker, now.
-                    // Note that we already have an assert in CheckJavascriptFrame to ensure this.
-                    SetCachedInternalFrameInfo(InternalFrameType_LoopBody, InternalFrameType_LoopBody);
-                }
 #else
-                // How did we bail out when JIT was disabled?
-                Assert(false);
+                    // How did we bail out when JIT was disabled?
+                    Assert(false);
 #endif
-            }
-            else
-            {
-                Assert(this->interpreterFrame == nullptr || StackScriptFunction::GetCurrentFunctionObject(this->interpreterFrame->GetJavascriptFunction()) == function);
-                if (this->interpreterFrame)
+                }
+                else
                 {
+                    Assert(StackScriptFunction::GetCurrentFunctionObject(this->interpreterFrame->GetJavascriptFunction()) == function);
                     previousInterpreterFrameIsFromBailout = false;
                 }
             }
@@ -584,7 +584,7 @@ namespace Js
     __declspec(noinline)
     JavascriptStackWalker::JavascriptStackWalker(ScriptContext * scriptContext, bool useEERContext, PVOID returnAddress, bool _forceFullWalk /*=false*/) :
         inlinedFrameCallInfo(CallFlags_None, 0), shouldDetectPartiallyInitializedInterpreterFrame(true), forceFullWalk(_forceFullWalk),
-        previousInterpreterFrameIsFromBailout(false), ehFramesBeingWalkedFromBailout(false)
+        previousInterpreterFrameIsFromBailout(false)
     {
         if (scriptContext == NULL)
         {
