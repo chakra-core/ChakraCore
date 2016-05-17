@@ -28,7 +28,6 @@ amd64_CallWithFakeFrame PROC
 
 chkstk_done:
         ;; The stack walker uses this marker to skip this frame.
-        lea rax, amd64_ReturnFromCallWithFakeFrame
         mov [rsp+8h], rax
 
         mov rax, [rsp + 28h]

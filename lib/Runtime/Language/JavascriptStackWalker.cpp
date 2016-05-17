@@ -490,13 +490,13 @@ namespace Js
                         ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this);
                     if (inlinedFramesOnStack)
                     {
-                        inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
-                        Assert(inlinedFramesBeingWalked);
-                        Assert(StackScriptFunction::GetCurrentFunctionObject(this->interpreterFrame->GetJavascriptFunction()) == inlinedFrameWalker.GetFunctionObject());
                         // We're now back in the state where currentFrame == physical frame of the inliner, but
                         // since interpreterFrame != null, we'll pick values from the interpreterFrame (the bailout
                         // frame of the inliner). Set a flag to tell the stack walker that it needs to start from the
                         // inlinee frames on the stack when Walk() is called.
+                        inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
+                        Assert(inlinedFramesBeingWalked);
+                        Assert(StackScriptFunction::GetCurrentFunctionObject(this->interpreterFrame->GetJavascriptFunction()) == inlinedFrameWalker.GetFunctionObject());
                     }
                     else
                     {
@@ -781,12 +781,14 @@ namespace Js
         void * codeAddr = this->currentFrame.GetInstructionPointer();
         if (this->tempInterpreterFrame && codeAddr == this->tempInterpreterFrame->GetReturnAddress())
         {
+            bool isBailoutInterpreter = (this->tempInterpreterFrame->GetFlags() & Js::InterpreterStackFrameFlags_FromBailOut) != 0;
+
             // We need to skip over the first interpreter frame on the stack if it is the partially initialized frame
             // otherwise it is a real frame and we should continue.
             // For fully initialized frames (PushPopHelper was called) the thunk stack addr is equal or below addressOfReturnAddress
             // as the latter one is obtained in InterpreterStackFrame::InterpreterThunk called by the thunk.
             bool isPartiallyInitializedFrame = this->shouldDetectPartiallyInitializedInterpreterFrame &&
-                this->currentFrame.GetAddressOfReturnAddress(false /*isCurrentContextNative*/, false /*shouldCheckForNativeAddr*/) < this->tempInterpreterFrame->GetAddressOfReturnAddress();
+                this->currentFrame.GetAddressOfReturnAddress(isBailoutInterpreter /*isCurrentContextNative*/, false /*shouldCheckForNativeAddr*/) < this->tempInterpreterFrame->GetAddressOfReturnAddress();
             this->shouldDetectPartiallyInitializedInterpreterFrame = false;
 
             if (isPartiallyInitializedFrame)
@@ -794,20 +796,13 @@ namespace Js
                 return false; // Skip it.
             }
 
-            void ** argv = this->currentFrame.GetArgv(false /*isCurrentContextNative*/, false /*shouldCheckForNativeAddr*/);
+            void ** argv = this->currentFrame.GetArgv(isBailoutInterpreter /*isCurrentContextNative*/, false /*shouldCheckForNativeAddr*/);
             if (argv == nullptr)
             {
                 // NOTE: When we switch to walking the stack ourselves and skip non engine frames, this should never happen.
                 return false;
             }
 
-#if defined(_M_AMD64)
-            if (argv[JavascriptFunctionArgIndex_Function] == amd64_ReturnFromCallWithFakeFrame)
-            {
-                this->ehFramesBeingWalkedFromBailout = true;
-                return false;
-            }
-#endif
             this->interpreterFrame = this->tempInterpreterFrame;
 
             this->tempInterpreterFrame = this->interpreterFrame->GetPreviousFrame();
@@ -867,18 +862,6 @@ namespace Js
                 return false;
             }
 
-#if defined(_M_AMD64)
-            if (argv[JavascriptFunctionArgIndex_Function] == amd64_ReturnFromCallWithFakeFrame)
-            {
-                // There could be nested internal frames in the case of try...catch..finally
-                // let's not set the last internal frame address if it has already been set.
-                if(!this->lastInternalFrameInfo.codeAddress && !this->ehFramesBeingWalkedFromBailout)
-                {
-                    SetCachedInternalFrameInfo(InternalFrameType_EhFrame, InternalFrameType_None);
-                }
-                return false;
-            }
-#endif
             ScriptFunction* funcObj = Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]);
             if (funcObj->GetFunctionBody()->GetIsAsmjsMode())
             {
@@ -912,24 +895,6 @@ namespace Js
             {
                 inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
                 Assert(inlinedFramesBeingWalked);
-            }
-
-            if (this->ehFramesBeingWalkedFromBailout)
-            {
-                AnalysisAssert(this->tempInterpreterFrame != nullptr);
-                this->interpreterFrame = this->tempInterpreterFrame;
-                this->tempInterpreterFrame = this->tempInterpreterFrame->GetPreviousFrame();
-
-                if (!this->interpreterFrame->IsCurrentLoopNativeAddr(this->lastInternalFrameInfo.codeAddress))
-                {
-                    ClearCachedInternalFrameInfo();
-                }
-                else
-                {
-                    Assert(this->lastInternalFrameInfo.codeAddress);
-                    this->lastInternalFrameInfo.frameConsumed = true;
-                }
-                this->ehFramesBeingWalkedFromBailout = false;
             }
 
             return true;
