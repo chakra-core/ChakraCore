@@ -329,7 +329,11 @@ namespace Js
         void SetCurrentArgumentsObject(Var args);       // sets arguments object for the current frame, which may be virtual (belonging to an inlinee)
         Var GetCurrentNativeArgumentsObject() const;    // returns arguments object from the physical native frame
         void SetCurrentNativeArgumentsObject(Var args); // sets arguments object on the physical native frame
+        bool TryGetByteCodeOffsetFromInterpreterFrame(uint32& offset) const;
 #if ENABLE_NATIVE_CODEGEN
+        bool TryGetByteCodeOffsetFromNativeFrame(uint32& offset) const;
+        bool TryGetByteCodeOffsetOfInlinee(Js::JavascriptFunction* function, uint loopNum, DWORD_PTR pCodeAddr, Js::FunctionBody** inlinee, uint32& offset) const;
+        uint GetLoopNumber() const;
         InternalFrameInfo lastInternalFrameInfo;
 #endif
         mutable StackFrame currentFrame;
