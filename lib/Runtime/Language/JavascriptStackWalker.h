@@ -153,15 +153,13 @@ namespace Js
         size_t stackCheckCodeHeight;
         InternalFrameType frameType;
         InternalFrameType loopBodyFrameType;
-        bool frameConsumed;
 
         InternalFrameInfo() :
             codeAddress(nullptr),
             framePointer(nullptr),
             stackCheckCodeHeight((uint)-1),
             frameType(InternalFrameType_None),
-            loopBodyFrameType(InternalFrameType_None),
-            frameConsumed(false)
+            loopBodyFrameType(InternalFrameType_None)
         {
         }
 
@@ -322,6 +320,7 @@ namespace Js
         bool                    isInitialFrame              : 1; // If we need to walk the initial frame
         bool                    shouldDetectPartiallyInitializedInterpreterFrame : 1;
         bool                    previousInterpreterFrameIsFromBailout : 1;
+        bool                    previousInterpreterFrameIsForLoopBody : 1;
         bool                    forceFullWalk               : 1; // ignoring hasCaller
 
         Var GetThisFromFrame() const;                   // returns 'this' object from the physical frame
