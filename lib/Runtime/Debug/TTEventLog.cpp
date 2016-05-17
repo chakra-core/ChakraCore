@@ -531,7 +531,7 @@ namespace TTD
 
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::GetPropertyActionTag] = { NSLogEvents::GetPropertyAction_Execute, nullptr, NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction_Emit<NSLogEvents::EventKind::GetPropertyActionTag>, NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction_Parse<NSLogEvents::EventKind::GetPropertyActionTag> };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::GetIndexActionTag] = { NSLogEvents::GetIndexAction_Execute, nullptr, NSLogEvents::JsRTVarsArgumentAction_Emit<NSLogEvents::EventKind::GetIndexActionTag>, NSLogEvents::JsRTVarsArgumentAction_Parse<NSLogEvents::EventKind::GetIndexActionTag> };
-        this->m_eventListVTable[(uint32)NSLogEvents::EventKind::GetOwnPropertyInfoActionTag] = { NSLogEvents::GetPropertyAction_Execute, nullptr, NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction_Emit<NSLogEvents::EventKind::GetOwnPropertyInfoActionTag>, NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction_Parse<NSLogEvents::EventKind::GetOwnPropertyInfoActionTag> };
+        this->m_eventListVTable[(uint32)NSLogEvents::EventKind::GetOwnPropertyInfoActionTag] = { NSLogEvents::GetOwnPropertyInfoAction_Execute, nullptr, NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction_Emit<NSLogEvents::EventKind::GetOwnPropertyInfoActionTag>, NSLogEvents::JsRTVarsWithIntegralUnionArgumentAction_Parse<NSLogEvents::EventKind::GetOwnPropertyInfoActionTag> };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::GetOwnPropertyNamesInfoActionTag] = { NSLogEvents::GetOwnPropertyNamesInfoAction_Execute, nullptr, NSLogEvents::JsRTVarsArgumentAction_Emit<NSLogEvents::EventKind::GetOwnPropertyNamesInfoActionTag>, NSLogEvents::JsRTVarsArgumentAction_Parse<NSLogEvents::EventKind::GetOwnPropertyNamesInfoActionTag> };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::GetOwnPropertySymbolsInfoActionTag] = { NSLogEvents::GetOwnPropertySymbolsInfoAction_Execute, nullptr, NSLogEvents::JsRTVarsArgumentAction_Emit<NSLogEvents::EventKind::GetOwnPropertySymbolsInfoActionTag>, NSLogEvents::JsRTVarsArgumentAction_Parse<NSLogEvents::EventKind::GetOwnPropertySymbolsInfoActionTag> };
 
@@ -880,7 +880,7 @@ namespace TTD
 #endif
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteCall(func, true, argc, argv);
+        this->m_diagnosticLogger.WriteCall(func, true, argc, argv, this->GetLastEventTime());
 #endif
 
         return evt;
@@ -906,14 +906,10 @@ namespace TTD
             hasTerminalException = false;
         }
 
-        NSLogEvents::ExternalCallEventLogEntry_ProcessReturn(evt, result, hasScriptException, hasTerminalException);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        NSLogEvents::ExternalCallEventLogEntry_ProcessDiagInfoPost(evt, this->GetLastEventTime());
-#endif
+        NSLogEvents::ExternalCallEventLogEntry_ProcessReturn(evt, result, hasScriptException, hasTerminalException, this->GetLastEventTime());
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteReturn(func, result);
+        this->m_diagnosticLogger.WriteReturn(func, result, this->GetLastEventTime());
 #endif
     }
 
@@ -924,7 +920,7 @@ namespace TTD
         Js::ScriptContext* ctx = function->GetScriptContext();
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteCall(function, true, argc, argv);
+        this->m_diagnosticLogger.WriteCall(function, true, argc, argv, this->GetLastEventTime());
 #endif
 
         //make sure we log all of the passed arguments in the replay host
@@ -940,27 +936,21 @@ namespace TTD
             NSLogEvents::PassVarToHostInReplay(ctx, recordedVar, replayVar);
         }
 
-        //replay anything that happens when we are out of the call
-        if(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventKind > NSLogEvents::EventKind::JsRTActionTag)
+        //replay anything that happens in the external call
+        if(ecEvent->AdditionalInfo->LastNestedEventTime >= this->m_eventTimeCtr)
         {
             if(!ctx->GetThreadContext()->IsScriptActive())
             {
-                this->ReplayActionLoopStep();
+                this->ReplayActionLoopRange(ecEvent->AdditionalInfo->LastNestedEventTime);
             }
             else
             {
                 BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
                 {
-                    this->ReplayActionLoopStep();
+                    this->ReplayActionLoopRange(ecEvent->AdditionalInfo->LastNestedEventTime);
                 }
                 END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
             }
-        }
-
-        //May have exited inside the external call without doing anything else
-        if(!this->m_currentReplayEventIterator.IsValid())
-        {
-            this->AbortReplayReturnToHost();
         }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -970,13 +960,14 @@ namespace TTD
         *result = NSLogEvents::InflateVarInReplay(ctx, ecEvent->ReturnValue);
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteReturn(function, *result);
+        this->m_diagnosticLogger.WriteReturn(function, *result, this->GetLastEventTime());
 #endif
     }
 
-    void EventLog::RecordEnqueueTaskEvent(Js::Var taskVar)
+    NSLogEvents::EventLogEntry* EventLog::RecordEnqueueTaskEvent(Js::Var taskVar)
     {
-        NSLogEvents::ExternalCbRegisterCallEventLogEntry* ecEvent = this->RecordGetInitializedEvent_Helper<NSLogEvents::ExternalCbRegisterCallEventLogEntry, NSLogEvents::EventKind::ExternalCbRegisterCall>();
+        NSLogEvents::EventLogEntry* evt = nullptr;
+        NSLogEvents::ExternalCbRegisterCallEventLogEntry* ecEvent = this->RecordGetInitializedEvent_HelperWithMainEvent<NSLogEvents::ExternalCbRegisterCallEventLogEntry, NSLogEvents::EventKind::ExternalCbRegisterCall>(&evt);
 
         ecEvent->CallbackFunction = static_cast<TTDVar>(taskVar);
 
@@ -984,6 +975,15 @@ namespace TTD
         this->m_diagnosticLogger.WriteLiteralMsg("Enqueue Task: ");
         this->m_diagnosticLogger.WriteVar(taskVar);
 #endif
+
+        return evt;
+    }
+
+    void EventLog::RecordEnqueueTaskEvent_Complete(NSLogEvents::EventLogEntry* evt)
+    {
+        NSLogEvents::ExternalCbRegisterCallEventLogEntry* ecEvent = NSLogEvents::GetInlineEventDataAs<NSLogEvents::ExternalCbRegisterCallEventLogEntry, NSLogEvents::EventKind::ExternalCbRegisterCall>(evt);
+
+        ecEvent->LastNestedEventTime = this->GetLastEventTime();
     }
 
     void EventLog::ReplayEnqueueTaskEvent(Js::ScriptContext* ctx, Js::Var taskVar)
@@ -993,17 +993,17 @@ namespace TTD
         NSLogEvents::PassVarToHostInReplay(ctx, ecEvent->CallbackFunction, taskVar);
 
         //replay anything that happens when we are out of the call
-        if(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventKind > NSLogEvents::EventKind::JsRTActionTag)
+        if(ecEvent->LastNestedEventTime >= this->m_eventTimeCtr)
         {
             if(!ctx->GetThreadContext()->IsScriptActive())
             {
-                this->ReplayActionLoopStep();
+                this->ReplayActionLoopRange(ecEvent->LastNestedEventTime);
             }
             else
             {
                 BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
                 {
-                    this->ReplayActionLoopStep();
+                    this->ReplayActionLoopRange(ecEvent->LastNestedEventTime);
                 }
                 END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
             }
@@ -1054,7 +1054,7 @@ namespace TTD
         this->m_callStack.Add(cfinfo);
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteCall(function, false, argc, argv);
+        this->m_diagnosticLogger.WriteCall(function, false, argc, argv, this->m_eventTimeCtr);
 #endif
     }
 
@@ -1071,7 +1071,7 @@ namespace TTD
         this->m_callStack.RemoveAtEnd();
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteReturn(function, result);
+        this->m_diagnosticLogger.WriteReturn(function, result, this->m_eventTimeCtr);
 #endif
     }
 
@@ -1088,7 +1088,7 @@ namespace TTD
         this->m_callStack.RemoveAtEnd();
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteReturnException(function);
+        this->m_diagnosticLogger.WriteReturnException(function, this->m_eventTimeCtr);
 #endif
     }
 
@@ -1714,7 +1714,12 @@ namespace TTD
         {
             AssertMsg(eKind > NSLogEvents::EventKind::JsRTActionTag, "Either this is an invalid tag to replay directly (should be driven internally) or it is not known!!!");
 
-            this->ReplayActionLoopStep();
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+            AssertMsg(this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "We are out of sync here");
+#endif
+
+            //replay a single top-level JsRT action event
+            this->ReplayActionLoopRange(this->m_eventTimeCtr); 
         }
     }
 
@@ -2027,8 +2032,9 @@ namespace TTD
         this->RecordGetInitializedEvent_HelperWithMainEvent<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(&evt);
 
         int64 evtTime = this->GetLastEventTime();
+        int64 topLevelCallTime = (rootDepth == 0) ? evtTime : this->m_topLevelCallbackEventTime;
         double wallTime = this->m_timer.Now();
-        NSLogEvents::JsRTCallFunctionAction_ProcessArgs(evt, rootDepth, evtTime, func, argCount, args, wallTime, hostCallbackId, this->m_topLevelCallbackEventTime, this->m_eventSlabAllocator);
+        NSLogEvents::JsRTCallFunctionAction_ProcessArgs(evt, rootDepth, evtTime, func, argCount, args, wallTime, hostCallbackId, topLevelCallTime, this->m_eventSlabAllocator);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         NSLogEvents::JsRTCallFunctionAction_ProcessDiagInfoPre(evt, func, this->m_eventSlabAllocator);
@@ -2037,12 +2043,11 @@ namespace TTD
         return evt;
     }
 
-    void EventLog::ReplayActionLoopStep()
+    void EventLog::ReplayActionLoopRange(int64 eventTimeLimit)
     {
         AssertMsg(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventKind > NSLogEvents::EventKind::JsRTActionTag, "Should check this first!");
+        AssertMsg(eventTimeLimit >= this->m_eventTimeCtr, "Why are we doing this then???");
 
-        bool nextActionValid = false;
-        bool nextActionRootCall = false;
         do
         {
             NSLogEvents::EventLogEntry* evt = this->m_currentReplayEventIterator.Current();
@@ -2063,10 +2068,7 @@ namespace TTD
                 executeFP(evt, ctx);
             }
 
-            nextActionValid = (this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->EventKind > NSLogEvents::EventKind::JsRTActionTag);
-            nextActionRootCall = (nextActionValid && NSLogEvents::IsJsRTActionRootCall(this->m_currentReplayEventIterator.Current()));
-
-        } while(nextActionValid & !nextActionRootCall);
+        } while(eventTimeLimit >= this->m_eventTimeCtr);
     }
 
     LPCWSTR EventLog::EmitLogIfNeeded()
@@ -2133,20 +2135,25 @@ namespace TTD
 
             firstElem = false;
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            bool isJsRTBeginCall = (evt->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag);
-            bool isExternalBeginCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
-            if(isJsRTBeginCall | isExternalBeginCall)
+            bool isJsRTCall = (evt->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag);
+            bool isExternalCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
+            bool isRegisterCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCbRegisterCall);
+            if(isJsRTCall | isExternalCall | isRegisterCall)
             {
                 writer.WriteSequenceStart(NSTokens::Separator::BigSpaceSeparator);
 
                 int64 lastNestedTime = -1;
-                if(isJsRTBeginCall)
+                if(isJsRTCall)
                 {
                     lastNestedTime = NSLogEvents::JsRTCallFunctionAction_GetLastNestedEventTime(evt);
                 }
-                else
+                else if(isExternalCall)
                 {
                     lastNestedTime = NSLogEvents::ExternalCallEventLogEntry_GetLastNestedEventTime(evt);
+                }
+                else
+                {
+                    lastNestedTime = NSLogEvents::ExternalCbRegisterCallEventLogEntry_GetLastNestedEventTime(evt);
                 }
                 callNestingStack.Push(lastNestedTime);
 
@@ -2163,7 +2170,7 @@ namespace TTD
             {
                 int64 eTime = callNestingStack.Pop();
 
-                if(!isJsRTBeginCall & !isExternalBeginCall)
+                if(!isJsRTCall & !isExternalCall & !isRegisterCall)
                 {
                     writer.AdjustIndent(-1);
                     writer.WriteSeperator(NSTokens::Separator::BigSpaceSeparator);
@@ -2309,25 +2316,30 @@ namespace TTD
             NSLogEvents::EventLogEntry_Parse(evt, this->m_eventListVTable, false, this->m_threadContext, &reader, this->m_eventSlabAllocator);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            bool isJsRTBeginCall = (evt->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag);
-            bool isExternalBeginCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
-            if(isJsRTBeginCall | isExternalBeginCall)
+            bool isJsRTCall = (evt->EventKind == NSLogEvents::EventKind::CallExistingFunctionActionTag);
+            bool isExternalCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCallTag);
+            bool isRegisterCall = (evt->EventKind == NSLogEvents::EventKind::ExternalCbRegisterCall);
+            if(isJsRTCall | isExternalCall | isRegisterCall)
             {
                 reader.ReadSequenceStart(false);
 
-                if(isJsRTBeginCall)
+                int64 lastNestedTime = -1;
+                if(isJsRTCall)
                 {
-                    int64 lastNestedTime = NSLogEvents::JsRTCallFunctionAction_GetLastNestedEventTime(evt);
-                    callNestingStack.Push(lastNestedTime);
+                    lastNestedTime = NSLogEvents::JsRTCallFunctionAction_GetLastNestedEventTime(evt);
+                }
+                else if(isExternalCall)
+                {
+                    lastNestedTime = NSLogEvents::ExternalCallEventLogEntry_GetLastNestedEventTime(evt);
                 }
                 else
                 {
-                    int64 lastNestedTime = NSLogEvents::ExternalCallEventLogEntry_GetLastNestedEventTime(evt);
-                    callNestingStack.Push(lastNestedTime);
+                    lastNestedTime = NSLogEvents::ExternalCbRegisterCallEventLogEntry_GetLastNestedEventTime(evt);
                 }
+                callNestingStack.Push(lastNestedTime);
             }
 
-            doSep = (!isJsRTBeginCall & !isExternalBeginCall);
+            doSep = (!isJsRTCall & !isExternalCall & !isRegisterCall);
 
             while(callNestingStack.Count() > 0 && evt->EventTimeStamp == callNestingStack.Peek())
             {

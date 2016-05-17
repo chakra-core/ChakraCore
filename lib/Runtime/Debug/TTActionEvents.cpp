@@ -323,6 +323,7 @@ namespace TTD
             {
                 res = Js::JavascriptOperators::FromPropertyDescriptor(propertyDescriptorValue, ctx);
             }
+            else
             {
                 res = ctx->GetLibrary()->GetUndefined();
             }

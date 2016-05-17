@@ -590,11 +590,19 @@ namespace TTD
 
         //////////////////
 
+        int64 ExternalCbRegisterCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt)
+        {
+            const ExternalCbRegisterCallEventLogEntry* cbrEvt = GetInlineEventDataAs<ExternalCbRegisterCallEventLogEntry, EventKind::ExternalCbRegisterCall>(evt);
+
+            return cbrEvt->LastNestedEventTime;
+        }
+
         void ExternalCbRegisterCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext)
         {
             const ExternalCbRegisterCallEventLogEntry* cbrEvt = GetInlineEventDataAs<ExternalCbRegisterCallEventLogEntry, EventKind::ExternalCbRegisterCall>(evt);
 
             NSSnapValues::EmitTTDVar(cbrEvt->CallbackFunction, writer, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt64(NSTokens::Key::i64Val, cbrEvt->LastNestedEventTime, NSTokens::Separator::CommaSeparator);
         }
 
         void ExternalCbRegisterCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
@@ -602,18 +610,12 @@ namespace TTD
             ExternalCbRegisterCallEventLogEntry* cbrEvt = GetInlineEventDataAs<ExternalCbRegisterCallEventLogEntry, EventKind::ExternalCbRegisterCall>(evt);
 
             cbrEvt->CallbackFunction = NSSnapValues::ParseTTDVar(true, reader);
+            cbrEvt->LastNestedEventTime = reader->ReadInt64(NSTokens::Key::i64Val, true);
         }
 
         //////////////////
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt)
-        {
-            const ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
-
-            return callEvt->AdditionalInfo->LastNestedEvent;
-        }
-
         void ExternalCallEventLogEntry_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
@@ -621,14 +623,14 @@ namespace TTD
             Js::JavascriptString* displayName = function->GetDisplayName();
             alloc.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), callEvt->AdditionalInfo->FunctionName);
         }
-
-        void ExternalCallEventLogEntry_ProcessDiagInfoPost(EventLogEntry* evt, int64 lastNestedEvent)
-        {
-            ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
-
-            callEvt->AdditionalInfo->LastNestedEvent = lastNestedEvent;
-        }
 #endif
+
+        int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt)
+        {
+            const ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
+
+            return callEvt->AdditionalInfo->LastNestedEventTime;
+        }
 
         void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc)
         {
@@ -645,13 +647,14 @@ namespace TTD
             js_memcpy_s(callEvt->ArgArray + 1, (callEvt->ArgCount - 1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
         }
 
-        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException)
+        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException, int64 lastNestedEvent)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
             callEvt->ReturnValue = TTD_CONVERT_JSVAR_TO_TTDVAR(res);
             callEvt->AdditionalInfo->HasScriptException = hasScriptException;
             callEvt->AdditionalInfo->HasTerminiatingException = hasTerminiatingException;
+            callEvt->AdditionalInfo->LastNestedEventTime = lastNestedEvent;
         }
 
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc)
@@ -673,7 +676,6 @@ namespace TTD
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             writer->WriteString(NSTokens::Key::name, callEvt->AdditionalInfo->FunctionName, NSTokens::Separator::CommaSeparator);
-            writer->WriteInt64(NSTokens::Key::i64Val, callEvt->AdditionalInfo->LastNestedEvent, NSTokens::Separator::CommaSeparator);
 #endif
 
             writer->WriteInt32(NSTokens::Key::rootNestingDepth, callEvt->RootNestingDepth, NSTokens::Separator::CommaSeparator);
@@ -692,6 +694,7 @@ namespace TTD
 
             writer->WriteBool(NSTokens::Key::boolVal, callEvt->AdditionalInfo->HasScriptException, NSTokens::Separator::CommaSeparator);
             writer->WriteBool(NSTokens::Key::boolVal, callEvt->AdditionalInfo->HasTerminiatingException, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt64(NSTokens::Key::i64Val, callEvt->AdditionalInfo->LastNestedEventTime, NSTokens::Separator::CommaSeparator);
         }
 
         void ExternalCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
@@ -701,7 +704,6 @@ namespace TTD
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             reader->ReadString(NSTokens::Key::name, alloc, callEvt->AdditionalInfo->FunctionName, true);
-            callEvt->AdditionalInfo->LastNestedEvent = reader->ReadInt64(NSTokens::Key::i64Val, true);
 #endif
 
             callEvt->RootNestingDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
@@ -721,6 +723,7 @@ namespace TTD
 
             callEvt->AdditionalInfo->HasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);
             callEvt->AdditionalInfo->HasTerminiatingException = reader->ReadBool(NSTokens::Key::boolVal, true);
+            callEvt->AdditionalInfo->LastNestedEventTime = reader->ReadInt64(NSTokens::Key::i64Val, true);
         }
     }
 }

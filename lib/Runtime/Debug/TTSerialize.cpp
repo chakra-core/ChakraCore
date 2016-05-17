@@ -1894,12 +1894,14 @@ namespace TTD
         }
     }
 
-    void TraceLogger::WriteCall(Js::JavascriptFunction* function, bool isExternal, uint32 argc, Js::Var* argv)
+    void TraceLogger::WriteCall(Js::JavascriptFunction* function, bool isExternal, uint32 argc, Js::Var* argv, int64 etime)
     {
         Js::JavascriptString* displayName = function->GetDisplayName();
 
         this->AppendIndent();
-        this->AppendText(displayName->GetSz(), displayName->GetLength());
+        LPCWSTR nameStr = displayName->GetSz();
+        uint32 nameLength = displayName->GetLength();
+        this->AppendText(nameStr, nameLength);
 
         if(isExternal)
         {
@@ -1920,12 +1922,17 @@ namespace TTD
             this->WriteVar(argv[i]);
         }
 
-        this->AppendLiteral(")\n");
+        this->AppendLiteral(")");
+
+        this->AppendLiteral(" @ ");
+        this->AppendInteger(etime);
+
+        this->AppendLiteral("\n");
 
         this->m_indentSize++;
     }
 
-    void TraceLogger::WriteReturn(Js::JavascriptFunction* function, Js::Var res)
+    void TraceLogger::WriteReturn(Js::JavascriptFunction* function, Js::Var res, int64 etime)
     {
         this->m_indentSize--;
 
@@ -1936,10 +1943,14 @@ namespace TTD
         this->AppendText(displayName->GetSz(), displayName->GetLength());
         this->AppendLiteral(") -> ");
         this->WriteVar(res);
+
+        this->AppendLiteral(" @ ");
+        this->AppendInteger(etime);
+
         this->AppendLiteral("\n");
     }
 
-    void TraceLogger::WriteReturnException(Js::JavascriptFunction* function)
+    void TraceLogger::WriteReturnException(Js::JavascriptFunction* function, int64 etime)
     {
         this->m_indentSize--;
 
@@ -1949,6 +1960,10 @@ namespace TTD
         this->AppendLiteral("return(");
         this->AppendText(displayName->GetSz(), displayName->GetLength());
         this->AppendLiteral(") -> !!exception");
+
+        this->AppendLiteral(" @ ");
+        this->AppendInteger(etime);
+
         this->AppendLiteral("\n");
     }
 

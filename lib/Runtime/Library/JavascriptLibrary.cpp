@@ -4786,7 +4786,7 @@ namespace Js
             else if(this->scriptContext->ShouldPerformRecordAction())
             {
                 this->scriptContext->TTDRootNestingCount++;
-                this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskEvent(taskVar);
+                TTD::NSLogEvents::EventLogEntry* evt = this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskEvent(taskVar);
 
                 BEGIN_LEAVE_SCRIPT(this->scriptContext);
                 try
@@ -4802,6 +4802,7 @@ namespace Js
                 }
                 END_LEAVE_SCRIPT(this->scriptContext);
 
+                this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskEvent_Complete(evt);
                 this->scriptContext->TTDRootNestingCount--;
             }
             else

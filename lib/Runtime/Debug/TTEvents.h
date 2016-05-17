@@ -370,7 +370,12 @@ namespace TTD
         {
             //the number of arguments and the argument array -- function is always argument[0]
             TTDVar CallbackFunction;
+
+            //The last event time that is nested in this external call
+            int64 LastNestedEventTime;
         };
+
+        int64 ExternalCbRegisterCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
 
         void ExternalCbRegisterCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
         void ExternalCbRegisterCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
@@ -387,12 +392,12 @@ namespace TTD
             bool HasScriptException;
             bool HasTerminiatingException;
 
+            //The last event time that is nested in this external call
+            int64 LastNestedEventTime;
+
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             //the function name for the function that is invoked
             TTString FunctionName;
-
-            //The last event time that is nested in this external call
-            int64 LastNestedEvent;
 #endif
         };
 
@@ -413,14 +418,13 @@ namespace TTD
         };
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
-
         void ExternalCallEventLogEntry_ProcessDiagInfoPre(EventLogEntry* evt, Js::JavascriptFunction* function, UnlinkableSlabAllocator& alloc);
-        void ExternalCallEventLogEntry_ProcessDiagInfoPost(EventLogEntry* evt, int64 lastNestedEvent);
 #endif
 
+        int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
+
         void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc);
-        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException);
+        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException, int64 lastNestedEvent);
 
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);

@@ -426,7 +426,9 @@ namespace TTD
         //replay an external return event (which should be the current event)
         void ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result);
 
-        void RecordEnqueueTaskEvent(Js::Var taskVar);
+        NSLogEvents::EventLogEntry* RecordEnqueueTaskEvent(Js::Var taskVar);
+        void RecordEnqueueTaskEvent_Complete(NSLogEvents::EventLogEntry* evt);
+
         void ReplayEnqueueTaskEvent(Js::ScriptContext* ctx, Js::Var taskVar);
 
         //Log a function call
@@ -617,8 +619,8 @@ namespace TTD
         //Record callback of an existing function
         NSLogEvents::EventLogEntry* RecordJsRTCallFunction(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);
 
-        //Replay a sequence of JsRT actions to get to the next event log item
-        void ReplayActionLoopStep();
+        //Replay a sequence of JsRT actions until (and including) the one at eventTimeLimit
+        void ReplayActionLoopRange(int64 eventTimeLimit);
 
         ////////////////////////////////
         //Emit code and support
