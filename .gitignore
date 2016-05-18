@@ -6,6 +6,7 @@
 *.opendb
 *.user
 *.i
+*.pyc
 .vscode/
 Build/VCBuild/
 Build/VCBuild.NoJIT/
