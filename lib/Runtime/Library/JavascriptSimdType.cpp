@@ -154,6 +154,8 @@ namespace Js
         {
             return true;
         }
+
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -164,6 +166,7 @@ namespace Js
 
     bool JavascriptSIMDType::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
     {
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 

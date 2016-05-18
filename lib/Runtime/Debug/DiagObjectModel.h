@@ -193,6 +193,7 @@ namespace Js
 
         static BOOL GetReturnedValue(int &index, DiagStackFrame* frame, ResolvedObject* pResolvedObject);
         static int  GetReturnedValueCount(DiagStackFrame* frame);
+        static void GetReturnedValueResolvedObject(ReturnedValue * returnValue, DiagStackFrame* frame, ResolvedObject* pResolvedObject);
 
 #ifdef ENABLE_MUTATION_BREAKPOINT
         static BOOL GetBreakMutationBreakpointValue(int &index, DiagStackFrame* frame, ResolvedObject* pResolvedObject);
@@ -312,7 +313,13 @@ namespace Js
     public:
         LocalsWalker(DiagStackFrame* _frame, DWORD _frameWalkerFlags);
         virtual BOOL Get(int i, ResolvedObject* pResolvedObject) override;
+
         virtual uint32 GetChildrenCount() override;
+        virtual uint32 GetLocalVariablesCount();
+        BOOL GetLocal(int i, ResolvedObject* pResolvedObject);
+
+        BOOL GetScopeObject(int i, ResolvedObject* pResolvedObject);
+        BOOL GetGlobalsObject(ResolvedObject* pResolvedObject);
 
         virtual BOOL GetGroupObject(ResolvedObject* pResolvedObject) {return FALSE; }
 
@@ -367,12 +374,13 @@ namespace Js
             }
             return activeScopeObject;
         }
-
-    private:
         BOOL CreateArgumentsObject(ResolvedObject* pResolvedObject);
+        bool HasUserNotDefinedArguments() const { return hasUserNotDefinedArguments; }
+    private:
         bool ShouldMakeGroups() const { return frameWalkerFlags & FW_MakeGroups; }
         bool ShouldInsertFakeArguments();
         void ExpandArgumentsObject(IDiagObjectModelDisplay * argumentsDisplay);
+        BOOL GetGroupObject(Js::UIGroupType uiGroupType, int i, ResolvedObject* pResolvedObject);
     };
 
     class LocalsDisplay : public IDiagObjectModelDisplay
@@ -844,6 +852,7 @@ namespace Js
         RecyclableKeyValueWalker(ScriptContext* scriptContext, Var key, Var value):scriptContext(scriptContext), key(key), value(value) { }
 
         virtual BOOL Get(int i, ResolvedObject* pResolvedObject) override;
+        // Children count is 2 for 'key' and 'value'
         virtual uint32 GetChildrenCount() override { return 2; }
         virtual BOOL GetGroupObject(ResolvedObject* pResolvedObject) override { return FALSE; }
     };
@@ -863,6 +872,28 @@ namespace Js
         RecyclableProxyObjectWalker(ScriptContext* pContext, Var instance);
 
         virtual BOOL Get(int i, ResolvedObject* pResolvedObject) override;
+
+        // Children count is 2 for '[target]' and '[handler]'
+        virtual uint32 GetChildrenCount() override { return 2; }
+        virtual BOOL GetGroupObject(ResolvedObject* pResolvedObject) override;
+    };
+
+    class RecyclablePromiseObjectDisplay : public RecyclableObjectDisplay
+    {
+    public:
+        RecyclablePromiseObjectDisplay(ResolvedObject* resolvedObject);
+
+        virtual BOOL HasChildren() override { return TRUE; }
+        virtual WeakArenaReference<IDiagObjectModelWalkerBase>* CreateWalker() override;
+    };
+
+    class RecyclablePromiseObjectWalker : public RecyclableObjectWalker
+    {
+    public:
+        RecyclablePromiseObjectWalker(ScriptContext* pContext, Var instance);
+
+        virtual BOOL Get(int i, ResolvedObject* pResolvedObject) override;
+        // Children count is 2 for '[status]' and '[value]'
         virtual uint32 GetChildrenCount() override { return 2; }
         virtual BOOL GetGroupObject(ResolvedObject* pResolvedObject) override;
     };

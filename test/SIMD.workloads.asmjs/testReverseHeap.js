@@ -68,10 +68,6 @@ function asmModule(stdlib, imports, buffer) {
     var f4greaterThanOrEqual = f4.greaterThanOrEqual;
 
     var f4select = f4.select;
-    var f4and = f4.and;
-    var f4or = f4.or;
-    var f4xor = f4.xor;
-    var f4not = f4.not;
 
     var f4load = f4.load;
     var f4load1 = f4.load1;

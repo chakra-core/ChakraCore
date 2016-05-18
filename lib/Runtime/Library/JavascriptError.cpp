@@ -581,7 +581,15 @@ namespace Js
     BOOL JavascriptError::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
         char16 const *pszMessage = nullptr;
-        GetRuntimeErrorWithScriptEnter(this, &pszMessage);
+
+        if (!this->GetScriptContext()->GetThreadContext()->IsScriptActive())
+        {
+            GetRuntimeErrorWithScriptEnter(this, &pszMessage);
+        }
+        else
+        {
+            GetRuntimeError(this, &pszMessage);
+        }
 
         if (pszMessage)
         {

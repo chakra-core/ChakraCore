@@ -328,4 +328,9 @@ Below test fails with difference in space. Investigate the cause and re-enable t
       <tags>BugFix</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS_6911900.js</files>
+    </default>
+  </test>
 </regress-exe>

@@ -138,7 +138,8 @@ namespace Js
         static BOOL IsDetachedTypedArray(Var aValue);
         static HRESULT GetBuffer(Var aValue, ArrayBuffer** outBuffer, uint32* outOffset, uint32* outLength);
 
-        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetItem) = 0;
+        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) = 0;
+        virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) = 0;
         virtual Var  DirectGetItem(__in uint32 index) = 0;
 
         uint32 GetByteLength() const { return length * BYTES_PER_ELEMENT; }
@@ -338,7 +339,6 @@ namespace Js
                 // If we want to start copying past the length of the array, all index are no-op
                 return true;
             }
-
             if (UInt32Math::Add(newStart, newLength) > GetLength())
             {
                 newLength = GetLength() - newStart;
@@ -363,7 +363,7 @@ namespace Js
             return TRUE;
         }
 
-        inline BOOL BaseTypedDirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement, TypeName (*convFunc)(Var value, ScriptContext* scriptContext))
+        inline BOOL BaseTypedDirectSetItem(__in uint32 index, __in Js::Var value, TypeName (*convFunc)(Var value, ScriptContext* scriptContext))
         {
             // This call can potentially invoke user code, and may end up detaching the underlying array (this).
             // Therefore it was brought out and above the IsDetached check
@@ -374,7 +374,7 @@ namespace Js
                 JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_DetachedTypedArray);
             }
 
-            if (skipSetElement)
+            if (index >= GetLength())
             {
                 return FALSE;
             }
@@ -386,9 +386,24 @@ namespace Js
             typedBuffer[index] = typedValue;
 
             return TRUE;
+        }
+
+        inline BOOL BaseTypedDirectSetItemNoSet(__in uint32 index, __in Js::Var value, TypeName (*convFunc)(Var value, ScriptContext* scriptContext))
+        {
+            // This call can potentially invoke user code, and may end up detaching the underlying array (this).
+            // Therefore it was brought out and above the IsDetached check
+            convFunc(value, GetScriptContext());
+
+            if (this->IsDetachedBuffer()) // 9.4.5.9 IntegerIndexedElementSet
+            {
+                JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_DetachedTypedArray);
             }
 
-        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetItem) override sealed;
+            return FALSE;
+        }
+
+        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) override sealed;
+        virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) override sealed;
         virtual Var  DirectGetItem(__in uint32 index) override sealed;
 
 
@@ -396,7 +411,7 @@ namespace Js
         {
             AssertMsg(arr != nullptr, "Array shouldn't be nullptr.");
 
-            return arr->DirectSetItem(index, value, index >= arr->GetLength());
+            return arr->DirectSetItem(index, value);
         }
 
     protected:
@@ -441,7 +456,8 @@ namespace Js
         Var Subarray(uint32 begin, uint32 end);
         static CharArray* FromVar(Var aValue);
 
-        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetItem) override;
+        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) override;
+        virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) override;
         virtual Var  DirectGetItem(__in uint32 index) override;
 
     protected:

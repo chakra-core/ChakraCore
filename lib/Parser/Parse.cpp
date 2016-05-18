@@ -4994,26 +4994,31 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
         }
 
         Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes ? pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope : nullptr;
-        if (paramScope != nullptr && pnodeFnc->sxFnc.HasNonSimpleParameterList() && !fAsync)
+        if (paramScope != nullptr && !fAsync)
         {
-            Assert(paramScope != nullptr);
-
-            if (paramScope->GetCanMergeWithBodyScope())
+            if (CONFIG_FLAG(ForceSplitScope))
             {
-                paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
-                    if (sym->GetPid()->GetTopRef()->sym == nullptr)
-                    {
-                        // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
-                        paramScope->SetCannotMergeWithBodyScope();
-                        return true;
-                    }
-                    else
-                    {
-                        // If no non-local references are there then the top of the ref stack should point to the same symbol.
-                        Assert(sym->GetPid()->GetTopRef()->sym == sym);
-                    }
-                    return false;
-                });
+                paramScope->SetCannotMergeWithBodyScope();
+            }
+            else if (pnodeFnc->sxFnc.HasNonSimpleParameterList())
+            {
+                if (paramScope->GetCanMergeWithBodyScope())
+                {
+                    paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
+                        if (sym->GetPid()->GetTopRef()->sym == nullptr)
+                        {
+                            // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
+                            paramScope->SetCannotMergeWithBodyScope();
+                            return true;
+                        }
+                        else
+                        {
+                            // If no non-local references are there then the top of the ref stack should point to the same symbol.
+                            Assert(sym->GetPid()->GetTopRef()->sym == sym);
+                        }
+                        return false;
+                    });
+                }
             }
         }
 
@@ -9228,7 +9233,7 @@ LFunctionStatement:
                 // reference. The next token determines which.
                 RestorePoint parsedLet;
                 m_pscan->Capture(&parsedLet);
-                auto ichMin = m_pscan->IchMinTok();
+                auto ichMinInner = m_pscan->IchMinTok();
 
                 m_pscan->Scan();
                 if (IsPossiblePatternStart())
@@ -9237,7 +9242,7 @@ LFunctionStatement:
                 }
                 if (this->NextTokenConfirmsLetDecl() && m_token.tk != tkIN)
                 {
-                    pnodeT = ParseVariableDeclaration<buildAST>(tkLET, ichMin
+                    pnodeT = ParseVariableDeclaration<buildAST>(tkLET, ichMinInner
                                                                 , /*fAllowIn = */FALSE
                                                                 , /*pfForInOk = */&fForInOrOfOkay
                                                                 , /*singleDefOnly*/FALSE
@@ -9254,14 +9259,14 @@ LFunctionStatement:
         case tkCONST:
         case tkVAR:
             {
-                auto ichMin = m_pscan->IchMinTok();
+                auto ichMinInner = m_pscan->IchMinTok();
 
                 m_pscan->Scan();
                 if (IsPossiblePatternStart())
                 {
                     m_pscan->Capture(&startExprOrIdentifier);
                 }
-                pnodeT = ParseVariableDeclaration<buildAST>(tok, ichMin
+                pnodeT = ParseVariableDeclaration<buildAST>(tok, ichMinInner
                                                             , /*fAllowIn = */FALSE
                                                             , /*pfForInOk = */&fForInOrOfOkay
                                                             , /*singleDefOnly*/FALSE
@@ -9493,13 +9498,13 @@ LDefaultTokenFor:
                 fSeenDefault = TRUE;
                 charcount_t ichMinT = m_pscan->IchMinTok();
                 m_pscan->Scan();
-                charcount_t ichLim = m_pscan->IchLimTok();
+                charcount_t ichMinInner = m_pscan->IchLimTok();
                 ChkCurTok(tkColon, ERRnoColon);
                 if (buildAST)
                 {
                     pnodeT = CreateNodeWithScanner<knopCase>(ichMinT);
                     pnode->sxSwitch.pnodeDefault = pnodeT;
-                    pnodeT->ichLim = ichLim;
+                    pnodeT->ichLim = ichMinInner;
                     pnodeT->sxCase.pnodeExpr = nullptr;
                 }
                 ParseStmtList<buildAST>(&pnodeBody);
@@ -9998,8 +10003,8 @@ LDefaultToken:
     default:
     {
         // An expression statement or a label.
-        IdentToken tok;
-        pnode = ParseExpr<buildAST>(koplNo, nullptr, TRUE, FALSE, nullptr, nullptr /*hintLength*/, nullptr /*hintOffset*/, &tok);
+        IdentToken tokInner;
+        pnode = ParseExpr<buildAST>(koplNo, nullptr, TRUE, FALSE, nullptr, nullptr /*hintLength*/, nullptr /*hintOffset*/, &tokInner);
 
         if (m_hasDeferredShorthandInitError)
         {
@@ -10034,14 +10039,14 @@ LDefaultToken:
         else
         {
             // Check for a label.
-            if (tkColon == m_token.tk && tok.tk == tkID)
+            if (tkColon == m_token.tk && tokInner.tk == tkID)
             {
-                tok.pid = m_pscan->PidAt(tok.ichMin, tok.ichLim);
-                if (PnodeLabelNoAST(&tok, pLabelIdList))
+                tokInner.pid = m_pscan->PidAt(tokInner.ichMin, tokInner.ichLim);
+                if (PnodeLabelNoAST(&tokInner, pLabelIdList))
                 {
                     Error(ERRbadLabel);
                 }
-                LabelId* pLabelId = CreateLabelId(&tok);
+                LabelId* pLabelId = CreateLabelId(&tokInner);
                 pLabelId->next = pLabelIdList;
                 pLabelIdList = pLabelId;
                 m_pscan->Scan();
@@ -12907,6 +12912,12 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       PrintFormalsWIndent(pnode->sxFnc.pnodeParams, indentAmt + INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxFnc.pnodeRest, indentAmt + INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxFnc.pnodeBody, indentAmt + INDENT_SIZE);
+      if (pnode->sxFnc.pnodeBody == nullptr)
+      {
+          Output::Print(_u("[%4d, %4d): "), pnode->ichMin, pnode->ichLim);
+          Indent(indentAmt + INDENT_SIZE);
+          Output::Print(_u("<parse deferred body>\n"));
+      }
       break;
       //PTNODE(knopProg       , "program"    ,None    ,Fnc  ,fnopNone)
   case knopProg:

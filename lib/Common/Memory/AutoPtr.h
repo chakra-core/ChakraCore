@@ -38,7 +38,7 @@ class AutoArrayPtr : public BasePtr<T>
 protected:
     size_t m_elementCount;
 public:
-    AutoArrayPtr(T * ptr, size_t elementCount) : BasePtr(ptr), m_elementCount(elementCount) {}
+    AutoArrayPtr(T * ptr, size_t elementCount) : BasePtr<T>(ptr), m_elementCount(elementCount) {}
     ~AutoArrayPtr()
     {
         Clear();
@@ -54,10 +54,10 @@ public:
 private:
     void Clear()
     {
-        if (ptr != nullptr)
+        if (this->ptr != nullptr)
         {
-            HeapDeleteArray(m_elementCount, ptr);
-            ptr = nullptr;
+            HeapDeleteArray(m_elementCount, this->ptr);
+            this->ptr = nullptr;
         }
     }
 };

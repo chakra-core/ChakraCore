@@ -27,11 +27,17 @@ JsrtRuntime::JsrtRuntime(ThreadContext * threadContext, bool useIdle, bool dispa
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     serializeByteCodeForLibrary = false;
 #endif
+    this->jsrtDebugManager = nullptr;
 }
 
 JsrtRuntime::~JsrtRuntime()
 {
     HeapDelete(allocationPolicyManager);
+    if (this->jsrtDebugManager != nullptr)
+    {
+        HeapDelete(this->jsrtDebugManager);
+        this->jsrtDebugManager = nullptr;
+    }
 }
 
 // This is called at process detach.
@@ -111,4 +117,27 @@ void JsrtRuntime::RecyclerCollectCallbackStatic(void * context, RecyclerCollectC
 unsigned int JsrtRuntime::Idle()
 {
     return this->threadService.Idle();
+}
+
+void JsrtRuntime::EnsureJsrtDebugManager()
+{
+    if (this->jsrtDebugManager == nullptr)
+    {
+        this->jsrtDebugManager = HeapNew(JsrtDebugManager, this->threadContext);
+    }
+    Assert(this->jsrtDebugManager != nullptr);
+}
+
+void JsrtRuntime::DeleteJsrtDebugManager()
+{
+    if (this->jsrtDebugManager != nullptr)
+    {
+        HeapDelete(this->jsrtDebugManager);
+        this->jsrtDebugManager = nullptr;
+    }
+}
+
+JsrtDebugManager * JsrtRuntime::GetJsrtDebugManager()
+{
+    return this->jsrtDebugManager;
 }

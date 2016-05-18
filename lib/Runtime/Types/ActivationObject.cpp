@@ -129,6 +129,8 @@ namespace Js
     BlockActivationObject* BlockActivationObject::Clone(ScriptContext *scriptContext)
     {
         DynamicType* type = this->GetDynamicType();
+        type->GetTypeHandler()->ClearSingletonInstance(); //We are going to share the type.
+
         BlockActivationObject* blockScopeClone = DynamicObject::NewObject<BlockActivationObject>(scriptContext->GetRecycler(), type);
         int slotCapacity = this->GetTypeHandler()->GetSlotCapacity();
 

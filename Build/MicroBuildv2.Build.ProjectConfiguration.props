@@ -1,12 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(SolutionDir)packages\MicroBuild.Core.0.2.0\build\MicroBuild.Core.props" Condition="Exists('$(SolutionDir)packages\MicroBuild.Core.0.2.0\build\MicroBuild.Core.props')" />
+  <PropertyGroup>
+    <MicroBuildV2Dir>$(SolutionDir)packages\MicroBuild.Core.0.2.0\build</MicroBuildV2Dir>
+    <MicroBuildV2Props>$(MicroBuildV2Dir)\MicroBuild.Core.props</MicroBuildV2Props>
+    <MicroBuildV2Targets>$(MicroBuildV2Dir)\MicroBuild.Core.targets</MicroBuildV2Targets>
+  </PropertyGroup>
+
+  <Import Project="$(MicroBuildV2Props)"
+    Condition="'$(VSO_MICROBUILD_V2)'=='True' AND Exists('$(MicroBuildV2Props)')" />
+
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them. For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('$(SolutionDir)packages\MicroBuild.Core.0.2.0\build\MicroBuild.Core.props')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\MicroBuild.Core.0.2.0\build\MicroBuild.Core.props'))" />
-    <Error Condition="!Exists('$(SolutionDir)packages\MicroBuild.Core.0.2.0\build\MicroBuild.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\MicroBuild.Core.0.2.0\build\MicroBuild.Core.targets'))" />
+    <Error Text="$([System.String]::Format('$(ErrorText)', '$(MicroBuildV2Props)'))"
+      Condition="'$(VSO_MICROBUILD_V2)'=='True' AND !Exists('$(MicroBuildV2Props)')" />
+    <Error Text="$([System.String]::Format('$(ErrorText)', '$(MicroBuildV2Targets)'))"
+      Condition="'$(VSO_MICROBUILD_V2)'=='True' AND !Exists('$(MicroBuildV2Targets)')" />
   </Target>
-  <Import Project="$(SolutionDir)packages\MicroBuild.Core.0.2.0\build\MicroBuild.Core.targets" Condition="Exists('$(SolutionDir)packages\MicroBuild.Core.0.2.0\build\MicroBuild.Core.targets')" />
+
+  <Import Project="$(MicroBuildV2Targets)"
+    Condition="'$(VSO_MICROBUILD_V2)'=='True' AND Exists('$(MicroBuildV2Targets)')" />
 </Project>

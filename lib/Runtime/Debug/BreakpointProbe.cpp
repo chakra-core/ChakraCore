@@ -6,11 +6,12 @@
 
 namespace Js
 {
-    BreakpointProbe::BreakpointProbe(DebugDocument* debugDocument, StatementLocation& statement) :
+    BreakpointProbe::BreakpointProbe(DebugDocument* debugDocument, StatementLocation& statement, int breakpointId) :
         debugDocument(debugDocument),
         functionBody(statement.function),
         characterOffset(statement.statement.begin),
-        byteOffset(statement.bytecodeSpan.begin)
+        byteOffset(statement.bytecodeSpan.begin),
+        breakpointId(breakpointId)
     {
     }
 
@@ -65,5 +66,22 @@ namespace Js
     {
         Assert(this->functionBody);
         return _pBody == functionBody && _characterOffset == characterOffset;
+    }
+
+    bool BreakpointProbe::Matches(StatementLocation statement)
+    {
+        return (this->GetCharacterOffset() == statement.statement.begin) && (this->byteOffset == statement.bytecodeSpan.begin);
+    }
+
+    bool BreakpointProbe::Matches(FunctionBody* _pBody, DebugDocument* debugDocument, int byteOffset)
+    {
+        return (this->functionBody == _pBody) && (this->debugDocument == debugDocument) && (this->byteOffset == byteOffset);
+    }
+
+    void BreakpointProbe::GetStatementLocation(StatementLocation * statement)
+    {
+        statement->bytecodeSpan.begin = this->byteOffset;
+        statement->function = this->functionBody;
+        statement->statement.begin = this->characterOffset;
     }
 }

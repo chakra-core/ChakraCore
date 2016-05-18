@@ -2,6 +2,7 @@ add_executable (ch
   ch.cpp
   ChakraRtInterface.cpp
   CodexAssert.cpp
+  Debugger.cpp
   Helpers.cpp
   HostConfigFlags.cpp
   WScriptJsrt.cpp

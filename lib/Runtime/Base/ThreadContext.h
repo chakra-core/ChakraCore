@@ -56,6 +56,8 @@ class InterruptPoller _ABSTRACT
 public:
     InterruptPoller(ThreadContext *tc);
 
+    virtual ~InterruptPoller() { }
+
     void CheckInterruptPoll();
     void GetStatementCount(ULONG *pluHi, ULONG *pluLo);
     void ResetStatementCount() { lastResetTick = lastPollTick; }

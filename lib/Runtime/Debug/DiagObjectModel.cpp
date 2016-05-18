@@ -16,6 +16,7 @@
 #include "Library/JavascriptRegExpConstructor.h"
 #include "Library/SameValueComparer.h"
 #include "Library/MapOrSetDataList.h"
+#include "Library/JavascriptPromise.h"
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptMap.h"
 #include "Library/JavascriptSet.h"
@@ -34,30 +35,6 @@ namespace Js
 {
 #define RETURN_VALUE_MAX_NAME   255
 #define PENDING_MUTATION_VALUE_MAX_NAME   255
-
-    //
-    // Some helper routines
-
-    int __cdecl ElementsComparer(__in void* context, __in const void* item1, __in const void* item2)
-    {
-        ScriptContext *scriptContext = (ScriptContext *)context;
-        Assert(scriptContext);
-
-        const DWORD_PTR *p1 = reinterpret_cast<const DWORD_PTR*>(item1);
-        const DWORD_PTR *p2 = reinterpret_cast<const DWORD_PTR*>(item2);
-
-        DebuggerPropertyDisplayInfo * pPVItem1 = (DebuggerPropertyDisplayInfo *)(*p1);
-        DebuggerPropertyDisplayInfo * pPVItem2 = (DebuggerPropertyDisplayInfo *)(*p2);
-
-        const Js::PropertyRecord *propertyRecord1 = scriptContext->GetPropertyName(pPVItem1->propId);
-        const Js::PropertyRecord *propertyRecord2 = scriptContext->GetPropertyName(pPVItem2->propId);
-
-        const char16 *str1 = propertyRecord1->GetBuffer();
-        const char16 *str2 = propertyRecord2->GetBuffer();
-
-        // Do the natural comparison, for example test2 comes before test11.
-        return PlatformAgnostic::UnicodeText::LogicalStringCompare(str1, str2);
-    }
 
     ArenaAllocator *GetArenaFromContext(ScriptContext *scriptContext)
     {
@@ -112,6 +89,7 @@ namespace Js
 #endif
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableArrayDisplay, this);
         }
+#ifdef ENABLE_SIMDJS
         else if (Js::JavascriptSIMDInt32x4::Is(obj))
         {
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableSimdInt32x4ObjectDisplay, this);
@@ -152,6 +130,7 @@ namespace Js
         {
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableSimdUint16x8ObjectDisplay, this);
         }
+#endif
         else
         {
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableObjectDisplay, this);
@@ -220,12 +199,9 @@ namespace Js
         if (pRefArena)
         {
             IDiagObjectModelWalkerBase * pOMWalker = nullptr;
-            BEGIN_JS_RUNTIME_CALL_EX(pFrame->GetScriptContext(), false);
-            {
-                IGNORE_STACKWALK_EXCEPTION(scriptContext);
-                pOMWalker = Anew(pRefArena->Arena(), LocalsWalker, pFrame, FrameWalkerFlags::FW_MakeGroups);
-            }
-            END_JS_RUNTIME_CALL(scriptContext);
+
+            IGNORE_STACKWALK_EXCEPTION(scriptContext);
+            pOMWalker = Anew(pRefArena->Arena(), LocalsWalker, pFrame, FrameWalkerFlags::FW_MakeGroups);
 
             return HeapNew(WeakArenaReference<IDiagObjectModelWalkerBase>,pRefArena, pOMWalker);
         }
@@ -276,6 +252,41 @@ namespace Js
     }
 
     /*static*/
+    void VariableWalkerBase::GetReturnedValueResolvedObject(ReturnedValue * returnValue, DiagStackFrame* frame, ResolvedObject* pResolvedObject)
+    {
+        DBGPROP_ATTRIB_FLAGS defaultAttributes = DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE | DBGPROP_ATTRIB_VALUE_IS_FAKE;
+        WCHAR * finalName = AnewArray(GetArenaFromContext(pResolvedObject->scriptContext), WCHAR, RETURN_VALUE_MAX_NAME);
+        if (returnValue->isValueOfReturnStatement)
+        {
+            swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[Return value]"));
+            pResolvedObject->obj = frame->GetRegValue(Js::FunctionBody::ReturnValueRegSlot);
+            pResolvedObject->address = Anew(frame->GetArena(), LocalObjectAddressForRegSlot, frame, Js::FunctionBody::ReturnValueRegSlot, pResolvedObject->obj);
+        }
+        else
+        {
+            if (returnValue->calledFunction->IsScriptFunction())
+            {
+                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), returnValue->calledFunction->GetFunctionBody()->GetDisplayName());
+            }
+            else
+            {
+                Js::JavascriptString *builtInName = returnValue->calledFunction->GetDisplayName();
+                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), builtInName->GetSz());
+            }
+            pResolvedObject->obj = returnValue->returnedValue;
+            defaultAttributes |= DBGPROP_ATTRIB_VALUE_READONLY;
+            pResolvedObject->address = nullptr;
+        }
+        Assert(pResolvedObject->obj != nullptr);
+
+        pResolvedObject->name = finalName;
+        pResolvedObject->typeId = TypeIds_Object;
+
+        pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
+        pResolvedObject->objectDisplay->SetDefaultTypeAttribute(defaultAttributes);
+    }
+
+    /*static*/
     BOOL VariableWalkerBase::GetReturnedValue(int &index, DiagStackFrame* frame, ResolvedObject* pResolvedObject)
     {
         Assert(pResolvedObject);
@@ -288,38 +299,8 @@ namespace Js
         {
             if (index < returnedValueList->Count())
             {
-                DBGPROP_ATTRIB_FLAGS defaultAttributes = DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE | DBGPROP_ATTRIB_VALUE_IS_FAKE;
-                WCHAR * finalName = AnewArray(GetArenaFromContext(pResolvedObject->scriptContext), WCHAR, RETURN_VALUE_MAX_NAME);
                 ReturnedValue * returnValue = returnedValueList->Item(index);
-                if (returnValue->isValueOfReturnStatement)
-                {
-                    swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[Return value]"));
-                    pResolvedObject->obj = frame->GetRegValue(Js::FunctionBody::ReturnValueRegSlot);
-                    pResolvedObject->address = Anew(frame->GetArena(), LocalObjectAddressForRegSlot, frame, Js::FunctionBody::ReturnValueRegSlot, pResolvedObject->obj);
-                }
-                else
-                {
-                    if (returnValue->calledFunction->IsScriptFunction())
-                    {
-                        swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), returnValue->calledFunction->GetFunctionBody()->GetDisplayName());
-                    }
-                    else
-                    {
-                        Js::JavascriptString *builtInName = returnValue->calledFunction->GetDisplayName();
-                        swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), builtInName->GetSz());
-                    }
-                    pResolvedObject->obj = returnValue->returnedValue;
-                    defaultAttributes |= DBGPROP_ATTRIB_VALUE_READONLY;
-                    pResolvedObject->address = nullptr;
-                }
-                Assert(pResolvedObject->obj != nullptr);
-
-                pResolvedObject->name = finalName;
-                pResolvedObject->typeId = TypeIds_Object;
-
-                pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
-                pResolvedObject->objectDisplay->SetDefaultTypeAttribute(defaultAttributes);
-
+                VariableWalkerBase::GetReturnedValueResolvedObject(returnValue, frame, pResolvedObject);
                 return TRUE;
             }
 
@@ -1367,6 +1348,91 @@ namespace Js
         return totalLocalsCount;
     }
 
+    uint32 LocalsWalker::GetLocalVariablesCount()
+    {
+        uint32 localsCount = 0;
+        if (pVarWalkers)
+        {
+            for (int i = 0; i < pVarWalkers->Count(); i++)
+            {
+                VariableWalkerBase* variableWalker = pVarWalkers->Item(i);
+
+                // In the case of making groups, we want to include any variables that aren't
+                // part of a group as part of the local variable count.
+                if (!ShouldMakeGroups() || !variableWalker->IsInGroup())
+                {
+                    localsCount += variableWalker->GetChildrenCount();
+                }
+            }
+        }
+        return localsCount;
+    }
+
+    BOOL LocalsWalker::GetLocal(int i, ResolvedObject* pResolvedObject)
+    {
+        if (!pVarWalkers || pVarWalkers->Count() == 0)
+        {
+            return FALSE;
+        }
+
+        for (int j = 0; j < pVarWalkers->Count(); ++j)
+        {
+            VariableWalkerBase *variableWalker = pVarWalkers->Item(j);
+
+            if (!ShouldMakeGroups() || !variableWalker->IsInGroup())
+            {
+                int count = variableWalker->GetChildrenCount();
+
+                if (i < count)
+                {
+                    return variableWalker->Get(i, pResolvedObject);
+                }
+                i -= count;
+            }
+            else
+            {
+                // We've finished with all walkers for the current locals level so
+                // break out in order to handle the groups.
+                break;
+            }
+        }
+
+        return FALSE;
+    }
+
+    BOOL LocalsWalker::GetGroupObject(Js::UIGroupType uiGroupType, int i, ResolvedObject* pResolvedObject)
+    {
+        if (pVarWalkers)
+        {
+            int scopeCount = 0;
+            for (int j = 0; j < pVarWalkers->Count(); j++)
+            {
+                VariableWalkerBase* variableWalker = pVarWalkers->Item(j);
+
+                if (variableWalker->groupType == uiGroupType)
+                {
+                    scopeCount++;
+                    if (i < scopeCount)
+                    {
+                        return variableWalker->GetGroupObject(pResolvedObject);
+                    }
+                }
+            }
+        }
+        return FALSE;
+    }
+
+    BOOL LocalsWalker::GetScopeObject(int i, ResolvedObject* pResolvedObject)
+    {
+        return this->GetGroupObject(Js::UIGroupType::UIGroupType_Scope, i, pResolvedObject);
+    }
+
+    BOOL LocalsWalker::GetGlobalsObject(ResolvedObject* pResolvedObject)
+    {
+        int i = 0;
+        return this->GetGroupObject(Js::UIGroupType::UIGroupType_Globals, i, pResolvedObject);
+    }
+
     /*static*/
     DebuggerScope * LocalsWalker::GetScopeWhenHaltAtFormals(DiagStackFrame* frame)
     {
@@ -1991,7 +2057,7 @@ namespace Js
 
                 try
                 {
-                    BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
+                    auto funcPtr = [&]()
                     {
                         IGNORE_STACKWALK_EXCEPTION(scriptContext);
                         if (object->CanHaveInterceptors())
@@ -2007,8 +2073,29 @@ namespace Js
                         {
                             return TRUE;
                         }
+
+                        return FALSE;
+                    };
+
+                    BOOL autoFuncReturn = FALSE;
+
+                    if (!scriptContext->GetThreadContext()->IsScriptActive())
+                    {
+                        BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
+                        {
+                            autoFuncReturn = funcPtr();
+                        }
+                        END_JS_RUNTIME_CALL(scriptContext);
                     }
-                    END_JS_RUNTIME_CALL(scriptContext);
+                    else
+                    {
+                        autoFuncReturn = funcPtr();
+                    }
+
+                    if (autoFuncReturn == TRUE)
+                    {
+                        return TRUE;
+                    }
                 }
                 catch (Js::JavascriptExceptionObject* exception)
                 {
@@ -2433,11 +2520,11 @@ namespace Js
                                     bool isUnscoped = false;
                                     bool isConst = true;
                                     count = regExp->GetSpecialEnumerablePropertyCount();
-                                    PropertyId const * specialPropertyIds = regExp->GetSpecialEnumerablePropertyIds();
+                                    PropertyId const * specialEnumerablePropertyIds = regExp->GetSpecialEnumerablePropertyIds();
 
                                     for (int i = 0; i < count; i++)
                                     {
-                                        Js::PropertyId propertyId = specialPropertyIds[i];
+                                        Js::PropertyId propertyId = specialEnumerablePropertyIds[i];
 
                                         InsertItem(originalObject, object, propertyId, isConst, isUnscoped, &pMethodsGroupWalker);
                                     }
@@ -2510,6 +2597,15 @@ namespace Js
                         RecyclableWeakSetObjectWalker *pWeakSetWalker = Anew(arena, RecyclableWeakSetObjectWalker, scriptContext, weakSet);
                         fakeGroupObjectWalkerList->Add(pWeakSetWalker);
                     }
+                    else if (typeId == TypeIds_Promise)
+                    {
+                        // Provide [Promise] group object.
+                        EnsureFakeGroupObjectWalkerList();
+
+                        JavascriptPromise* promise = JavascriptPromise::FromVar(object);
+                        RecyclablePromiseObjectWalker *pPromiseWalker = Anew(arena, RecyclablePromiseObjectWalker, scriptContext, promise);
+                        fakeGroupObjectWalkerList->Add(pPromiseWalker);
+                    }
                     else if (Js::DynamicType::Is(typeId))
                     {
                         DynamicObject *const dynamicObject = Js::DynamicObject::FromVar(instance);
@@ -2541,7 +2637,11 @@ namespace Js
             }
 
             // Sort current pMembersList.
-            pMembersList->Sort(ElementsComparer, scriptContext);
+            HostDebugContext* hostDebugContext = scriptContext->GetDebugContext()->GetHostDebugContext();
+            if (hostDebugContext != nullptr)
+            {
+                hostDebugContext->SortMembersList(pMembersList, scriptContext);
+            }
         }
 
         uint32 childrenCount =
@@ -2606,15 +2706,23 @@ namespace Js
 
         if (JavascriptOperators::GetTypeId(itemObj) == TypeIds_Function)
         {
-            EnsureFakeGroupObjectWalkerList();
-
-            if (*ppMethodsGroupWalker == nullptr)
+            if (scriptContext->GetThreadContext()->GetDebugManager()->IsLocalsDisplayFlagsSet(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods))
             {
-                *ppMethodsGroupWalker = Anew(arena, RecyclableMethodsGroupWalker, scriptContext, instance);
-                fakeGroupObjectWalkerList->Add(*ppMethodsGroupWalker);
+                DebuggerPropertyDisplayInfo *info = Anew(arena, DebuggerPropertyDisplayInfo, propertyId, itemObj, DebuggerPropertyDisplayInfoFlags_Const);
+                pMembersList->Add(info);
             }
+            else 
+            {
+                EnsureFakeGroupObjectWalkerList();
 
-            (*ppMethodsGroupWalker)->AddItem(propertyId, itemObj);
+                if (*ppMethodsGroupWalker == nullptr)
+                {
+                    *ppMethodsGroupWalker = Anew(arena, RecyclableMethodsGroupWalker, scriptContext, instance);
+                    fakeGroupObjectWalkerList->Add(*ppMethodsGroupWalker);
+                }
+
+                (*ppMethodsGroupWalker)->AddItem(propertyId, itemObj);
+            }
         }
         else
         {
@@ -3653,6 +3761,96 @@ namespace Js
         return TRUE;
     }
 
+    //--------------------------
+    // RecyclablePromiseObjectDisplay
+
+    RecyclablePromiseObjectDisplay::RecyclablePromiseObjectDisplay(ResolvedObject* resolvedObject)
+        : RecyclableObjectDisplay(resolvedObject)
+    {
+    }
+
+    WeakArenaReference<IDiagObjectModelWalkerBase>* RecyclablePromiseObjectDisplay::CreateWalker()
+    {
+        ReferencedArenaAdapter* pRefArena = scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticArena();
+        if (pRefArena)
+        {
+            IDiagObjectModelWalkerBase* pOMWalker = Anew(pRefArena->Arena(), RecyclablePromiseObjectWalker, scriptContext, instance);
+            return HeapNew(WeakArenaReference<IDiagObjectModelWalkerBase>, pRefArena, pOMWalker);
+        }
+        return nullptr;
+    }
+
+    //--------------------------
+    // RecyclablePromiseObjectWalker
+
+    RecyclablePromiseObjectWalker::RecyclablePromiseObjectWalker(ScriptContext* pContext, Var _instance)
+        : RecyclableObjectWalker(pContext, _instance)
+    {
+    }
+
+    BOOL RecyclablePromiseObjectWalker::GetGroupObject(ResolvedObject* pResolvedObject)
+    {
+        pResolvedObject->name = _u("[Promise]");
+        pResolvedObject->propId = Constants::NoProperty;
+        pResolvedObject->obj = instance;
+        pResolvedObject->scriptContext = scriptContext;
+        pResolvedObject->typeId = JavascriptOperators::GetTypeId(pResolvedObject->obj);
+        pResolvedObject->address = nullptr;
+
+        pResolvedObject->objectDisplay = Anew(GetArenaFromContext(scriptContext), RecyclablePromiseObjectDisplay, pResolvedObject);
+        pResolvedObject->objectDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY | DBGPROP_ATTRIB_VALUE_IS_FAKE);
+        return TRUE;
+    }
+
+    BOOL RecyclablePromiseObjectWalker::Get(int i, ResolvedObject* pResolvedObject)
+    {
+        JavascriptPromise* promise = JavascriptPromise::FromVar(instance);
+
+        if (i == 0)
+        {
+            pResolvedObject->name = _u("[status]");
+
+            switch (promise->GetStatus())
+            {
+            case JavascriptPromise::PromiseStatusCode_Undefined:
+                pResolvedObject->obj = scriptContext->GetLibrary()->GetUndefinedDisplayString();
+                break;
+            case JavascriptPromise::PromiseStatusCode_Unresolved:
+                pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("pending"));
+            case JavascriptPromise::PromiseStatusCode_HasResolution:
+                pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("resolved"));
+                break;
+            case JavascriptPromise::PromiseStatusCode_HasRejection:
+                pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("rejected"));
+                break;
+            default:
+                AssertMsg(false, "New PromiseStatusCode not handled in debugger");
+                pResolvedObject->obj = scriptContext->GetLibrary()->GetUndefinedDisplayString();
+                break;
+            }
+        }
+        else if (i == 1)
+        {
+            pResolvedObject->name = _u("[value]");
+            Var result = promise->GetResult();
+            pResolvedObject->obj = result != nullptr ? result : scriptContext->GetLibrary()->GetUndefinedDisplayString();
+        }
+        else
+        {
+            Assert(false);
+            return FALSE;
+        }
+
+        pResolvedObject->propId = Constants::NoProperty;
+        pResolvedObject->scriptContext = scriptContext;
+        pResolvedObject->typeId = JavascriptOperators::GetTypeId(pResolvedObject->obj);
+        pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
+        pResolvedObject->objectDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY | DBGPROP_ATTRIB_VALUE_IS_FAKE);
+        pResolvedObject->address = nullptr;
+
+        return TRUE;
+    }
+
     // ---------------------------
     // RecyclableMethodsGroupWalker
     RecyclableMethodsGroupWalker::RecyclableMethodsGroupWalker(ScriptContext* scriptContext, Var instance)
@@ -3704,7 +3902,11 @@ namespace Js
 
     void RecyclableMethodsGroupWalker::Sort()
     {
-        pMembersList->Sort(ElementsComparer, scriptContext);
+        HostDebugContext* hostDebugContext = this->scriptContext->GetDebugContext()->GetHostDebugContext();
+        if (hostDebugContext != nullptr)
+        {
+            hostDebugContext->SortMembersList(pMembersList, scriptContext);
+        }
     }
 
     RecyclableMethodsGroupDisplay::RecyclableMethodsGroupDisplay(RecyclableMethodsGroupWalker *_methodGroupWalker, ResolvedObject* resolvedObject)

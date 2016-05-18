@@ -19,6 +19,10 @@ namespace Js
         {
         }
 
+        virtual ~DetachedStateBase()
+        {
+        }
+
         TypeId GetTypeId() { return typeId; }
 
         bool HasBeenClaimed() { return hasBeenClaimed; }

@@ -107,6 +107,7 @@ namespace Js
             return DynamicTypeHandler::GetItem(instance, originalInstance, indexVal, value, requestContext);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
