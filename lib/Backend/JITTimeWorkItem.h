@@ -20,7 +20,7 @@ public:
     uint GetInterpretedCount() const;
     uint GetLoopNumber() const;
 
-    JITLoopHeader * GetLoopHeader() const;
+    const JITLoopHeader * GetLoopHeader() const;
     intptr_t GetLoopHeaderAddr() const;
 
     bool IsLoopBody() const;

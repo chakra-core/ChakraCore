@@ -1495,9 +1495,9 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody())
     {
         uint16 offset = 2;
-        for (uint16 i = 0; i < m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgCount() && i < 3; i++)
+        for (uint16 i = 0; i < m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetArgCount() && i < 3; i++)
         {
-            switch (m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgType(i).which())
+            switch (m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetArgType(i))
             {
             case Js::AsmJsVarType::Int:
                 this->MovArgFromReg2Stack(entryInstr, i == 0 ? RegRDX : i == 1 ? RegR8 : RegR9, offset, TyInt32);
@@ -1775,7 +1775,7 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
     IR::RegOpnd *retReg = nullptr;
     if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody())
     {
-        switch (m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetReturnType().which())
+        switch (m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetRetType())
         {
         case Js::AsmJsRetType::Double:
         case Js::AsmJsRetType::Float:

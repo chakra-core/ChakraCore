@@ -843,18 +843,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     int nRegs = body->GetLocalsCount();
     AssertMsg((nRegs + 1) == (int)(SymID)(nRegs + 1), "SymID too small...");
 
-#if 0 // TODO: michhol oop jit; what to do?
-    CodeGenAllocators *const allocators =
-        foreground ? EnsureForegroundAllocators(pageAllocator) : GetBackgroundAllocator(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
-
-    Js::ScriptContextProfiler *const codeGenProfiler =
-#ifdef PROFILE_EXEC
-        foreground ? EnsureForegroundCodeGenProfiler() : GetBackgroundCodeGenProfiler(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
-#else
-        nullptr;
-#endif
-#endif
-
     bool rejit;
     ThreadContext *threadContext = scriptContext->GetThreadContext();
     double startTime = threadContext->JITTelemetry.Now();

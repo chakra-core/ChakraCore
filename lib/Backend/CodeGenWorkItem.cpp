@@ -38,23 +38,39 @@ CodeGenWorkItem::CodeGenWorkItem(
         // TODO (michhol): OOP JIT, will be different for asm.js
         this->jitData.bodyData.constTable = (intptr_t *)functionBody->GetConstTable();
 
-        this->jitData.bodyData.constTypeTable = HeapNewArray(int32, functionBody->GetConstantCount());
-        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
+        if (functionBody->GetIsAsmJsFunction())
         {
-            Js::Var varConst = functionBody->GetConstantVar(reg);
-            Assert(varConst != nullptr);
-            if (Js::TaggedInt::Is(varConst) ||
-                varConst == (Js::Var)&Js::NullFrameDisplay ||
-                varConst == (Js::Var)&Js::StrictNullFrameDisplay)
+            // asm.js has const table structured differently and doesn't need type info
+            this->jitData.bodyData.constTypeCount = 0;
+            this->jitData.bodyData.constTypeTable = nullptr;
+        }
+        else
+        {
+            this->jitData.bodyData.constTypeCount = functionBody->GetConstantCount();
+            this->jitData.bodyData.constTypeTable = HeapNewArray(int32, functionBody->GetConstantCount());
+            for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
             {
-                // don't need TypeId for these
-                jitData.bodyData.constTypeTable[reg - Js::FunctionBody::FirstRegSlot] = Js::TypeId::TypeIds_Limit;
-            }
-            else
-            {
-                jitData.bodyData.constTypeTable[reg - Js::FunctionBody::FirstRegSlot] = Js::JavascriptOperators::GetTypeId(varConst);
+                Js::Var varConst = functionBody->GetConstantVar(reg);
+                Assert(varConst != nullptr);
+                if (Js::TaggedInt::Is(varConst) ||
+                    varConst == (Js::Var)&Js::NullFrameDisplay ||
+                    varConst == (Js::Var)&Js::StrictNullFrameDisplay)
+                {
+                    // don't need TypeId for these
+                    jitData.bodyData.constTypeTable[reg - Js::FunctionBody::FirstRegSlot] = Js::TypeId::TypeIds_Limit;
+                }
+                else
+                {
+                    jitData.bodyData.constTypeTable[reg - Js::FunctionBody::FirstRegSlot] = Js::JavascriptOperators::GetTypeId(varConst);
+                }
             }
         }
+    }
+    else
+    {
+        this->jitData.bodyData.constTypeCount = 0;
+        this->jitData.bodyData.constTypeTable = nullptr;
+        this->jitData.bodyData.constTable = nullptr;
     }
 
     // statement map
@@ -89,6 +105,11 @@ CodeGenWorkItem::CodeGenWorkItem(
     {
         this->jitData.bodyData.cacheIdToPropertyIdMap = functionBody->GetCacheIdToPropertyIdMap();
         this->jitData.bodyData.inlineCaches = reinterpret_cast<intptr_t*>(functionBody->GetInlineCaches());
+    }
+    else
+    {
+        this->jitData.bodyData.inlineCaches = nullptr;
+        this->jitData.bodyData.cacheIdToPropertyIdMap = nullptr;
     }
 
     // body data
@@ -184,6 +205,39 @@ CodeGenWorkItem::CodeGenWorkItem(
     this->jitData.bodyData.referencedPropertyIdCount = functionBody->GetReferencedPropertyIdCount();
     this->jitData.bodyData.referencedPropertyIdMap = functionBody->GetReferencedPropertyIdMap();
 
+    if (functionBody->GetIsAsmJsFunction())
+    {
+        this->jitData.bodyData.asmJsData = HeapNew(AsmJsJITData);
+        Js::AsmJsFunctionInfo * asmFuncInfo = functionBody->GetAsmJsFunctionInfo();
+        this->jitData.bodyData.asmJsData->intConstCount = asmFuncInfo->GetIntConstCount();
+        this->jitData.bodyData.asmJsData->doubleConstCount = asmFuncInfo->GetDoubleConstCount();
+        this->jitData.bodyData.asmJsData->floatConstCount = asmFuncInfo->GetFloatConstCount();
+        this->jitData.bodyData.asmJsData->simdConstCount = asmFuncInfo->GetSimdConstCount();
+        this->jitData.bodyData.asmJsData->intTmpCount = asmFuncInfo->GetIntTmpCount();
+        this->jitData.bodyData.asmJsData->doubleTmpCount = asmFuncInfo->GetDoubleTmpCount();
+        this->jitData.bodyData.asmJsData->floatTmpCount = asmFuncInfo->GetFloatTmpCount();
+        this->jitData.bodyData.asmJsData->simdTmpCount = asmFuncInfo->GetSimdTmpCount();
+        this->jitData.bodyData.asmJsData->intVarCount = asmFuncInfo->GetIntVarCount();
+        this->jitData.bodyData.asmJsData->doubleVarCount = asmFuncInfo->GetDoubleVarCount();
+        this->jitData.bodyData.asmJsData->floatVarCount = asmFuncInfo->GetFloatVarCount();
+        this->jitData.bodyData.asmJsData->simdVarCount = asmFuncInfo->GetSimdVarCount();
+        this->jitData.bodyData.asmJsData->intByteOffset = asmFuncInfo->GetIntByteOffset();
+        this->jitData.bodyData.asmJsData->doubleByteOffset = asmFuncInfo->GetDoubleByteOffset();
+        this->jitData.bodyData.asmJsData->floatByteOffset = asmFuncInfo->GetFloatByteOffset();
+        this->jitData.bodyData.asmJsData->simdByteOffset = asmFuncInfo->GetSimdByteOffset();
+        this->jitData.bodyData.asmJsData->argCount = asmFuncInfo->GetArgCount();
+        this->jitData.bodyData.asmJsData->argTypeArray = (byte*)asmFuncInfo->GetArgTypeArray();
+        this->jitData.bodyData.asmJsData->argByteSize = asmFuncInfo->GetArgByteSize();
+        this->jitData.bodyData.asmJsData->retType = asmFuncInfo->GetReturnType().which();
+        this->jitData.bodyData.asmJsData->isHeapBufferConst = asmFuncInfo->IsHeapBufferConst();
+        this->jitData.bodyData.asmJsData->usesHeapBuffer = asmFuncInfo->UsesHeapBuffer();
+        this->jitData.bodyData.asmJsData->totalSizeInBytes = asmFuncInfo->GetTotalSizeinBytes();
+    }
+    else
+    {
+        this->jitData.bodyData.asmJsData = nullptr;
+    }
+
     // work item data
     this->jitData.type = type;
     this->jitData.isJitInDebugMode = isJitInDebugMode;
@@ -199,11 +253,14 @@ CodeGenWorkItem::~CodeGenWorkItem()
     if (this->jitData.bodyData.constTypeTable != nullptr)
     {
         HeapDeleteArray(this->functionBody->GetConstantCount(), this->jitData.bodyData.constTypeTable);
-        
     }
     if (this->jitData.bodyData.loopHeaders != nullptr)
     {
         HeapDeleteArray(functionBody->GetLoopCount(), this->jitData.bodyData.loopHeaders);
+    }
+    if (this->jitData.bodyData.asmJsData != nullptr)
+    {
+        HeapDelete(this->jitData.bodyData.asmJsData);
     }
 }
 

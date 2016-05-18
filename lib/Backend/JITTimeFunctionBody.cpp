@@ -6,7 +6,8 @@
 #include "Backend.h"
 
 JITTimeFunctionBody::JITTimeFunctionBody(FunctionBodyJITData * bodyData) :
-    m_bodyData(bodyData)
+    m_bodyData(bodyData),
+    m_asmJsInfo(bodyData->asmJsData)
 {
     InitializeStatementMap();
 }
@@ -180,6 +181,17 @@ JITTimeFunctionBody::GetNonTempLocalVarCount() const
 {
     Assert(GetEndNonTempLocalIndex() >= GetFirstNonTempLocalIndex());
     return GetEndNonTempLocalIndex() - GetFirstNonTempLocalIndex();
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetRestParamRegSlot() const
+{
+    Js::RegSlot dstRegSlot = GetConstCount();
+    if (HasImplicitArgIns())
+    {
+        dstRegSlot += GetInParamsCount() - 1;
+    }
+    return dstRegSlot;
 }
 
 Js::PropertyId
@@ -466,6 +478,12 @@ JITTimeFunctionBody::GetConstantType(Js::RegSlot location) const
     return static_cast<Js::TypeId>(m_bodyData->constTypeTable[location - Js::FunctionBody::FirstRegSlot]);
 }
 
+void *
+JITTimeFunctionBody::GetConstTable() const
+{
+    return m_bodyData->constTable;
+}
+
 intptr_t
 JITTimeFunctionBody::GetRootObject() const
 {
@@ -489,16 +507,22 @@ JITTimeFunctionBody::GetLoopHeaderAddr(uint loopNum) const
     return baseAddr + (loopNum * sizeof(Js::LoopHeader));
 }
 
-JITLoopHeader *
+const JITLoopHeader *
 JITTimeFunctionBody::GetLoopHeaderData(uint loopNum) const
 {
     Assert(loopNum < GetLoopCount());
     return &m_bodyData->loopHeaders[loopNum];
 }
 
+const AsmJsJITInfo *
+JITTimeFunctionBody::GetAsmJsInfo() const
+{
+    return &m_asmJsInfo;
+}
+
 /* static */
 bool
-JITTimeFunctionBody::LoopContains(JITLoopHeader * loop1, JITLoopHeader * loop2)
+JITTimeFunctionBody::LoopContains(const JITLoopHeader * loop1, const JITLoopHeader * loop2)
 {
     return (loop1->startOffset <= loop2->startOffset && loop2->endOffset <= loop1->endOffset);
 }

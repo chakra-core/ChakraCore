@@ -9217,7 +9217,7 @@ Lowerer::CreateOpndForSlotAccess(IR::Opnd * opnd)
     }
     if (m_func->IsTJLoopBody())
     {
-        offset = offset - m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetTotalSizeinBytes();
+        offset = offset - m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetTotalSizeInBytes();
     }
 
     IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(symOpnd->CreatePropertyOwnerOpnd(m_func),
@@ -9907,7 +9907,7 @@ Lowerer::LowerArgInAsmJs(IR::Instr * instrArgIn)
 {
     Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
 
-    Js::ArgSlot argCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgCount();
+    Js::ArgSlot argCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetArgCount();
     IR::Instr * instr = instrArgIn;
     for (int argNum = argCount - 1; argNum >= 0; --argNum)
     {

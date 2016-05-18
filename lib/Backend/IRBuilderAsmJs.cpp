@@ -99,9 +99,8 @@ IRBuilderAsmJs::Build()
     // Skip the last EndOfBlock opcode
     // EndOfBlock opcode has same value in Asm
     Assert(!OpCodeAttr::HasMultiSizeLayout(Js::OpCode::EndOfBlock));
-    uint32 lastOffset = m_func->GetJnFunction()->GetByteCode()->GetLength() - Js::OpCodeUtil::EncodedSize(Js::OpCode::EndOfBlock, Js::SmallLayout);
+    uint32 lastOffset = m_func->GetJITFunctionBody()->GetByteCodeLength() - Js::OpCodeUtil::EncodedSize(Js::OpCode::EndOfBlock, Js::SmallLayout);
     uint32 offsetToInstructionCount = lastOffset;
-    Js::FunctionBody *funcBody = m_func->GetJnFunction()->GetFunctionBody();
     if (this->IsLoopBody())
     {
         // LdSlot needs to cover all the register, including the temps, because we might treat
@@ -110,9 +109,9 @@ IRBuilderAsmJs::Build()
         this->m_stSlots = BVFixed::New<JitArenaAllocator>(m_firstIntTemp, m_tempAlloc);
         this->m_loopBodyRetIPSym = StackSym::New(TyInt32, this->m_func);
 #if DBG
-        if (funcBody->GetTempCount() != 0)
+        if (m_func->GetJITFunctionBody()->GetTempCount() != 0)
         {
-            this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(funcBody->GetTempCount(), m_tempAlloc);
+            this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(m_func->GetJITFunctionBody()->GetTempCount(), m_tempAlloc);
         }
 #endif
         lastOffset = m_func->GetWorkItem()->GetLoopHeader()->endOffset;
@@ -330,9 +329,9 @@ IRBuilderAsmJs::BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type)
 IR::RegOpnd *
 IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
 {
-    Js::Var * constTable = m_func->GetJnFunction()->GetConstTable();
+    Js::Var * constTable = (Js::Var*)m_func->GetJITFunctionBody()->GetConstTable();
     int * intConstTable = reinterpret_cast<int *>(constTable + Js::AsmJsFunctionMemory::RequiredVarConstants - 1);
-    uint32 intConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetIntConstCount();
+    uint32 intConstCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetIntConstCount();
 
     Assert(regSlot >= Js::FunctionBody::FirstRegSlot && regSlot < intConstCount);
     const int32 value = intConstTable[regSlot];
@@ -691,10 +690,10 @@ IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset)
 void
 IRBuilderAsmJs::BuildConstantLoads()
 {
-    uint32 intConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetIntConstCount();
-    uint32 floatConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetFloatConstCount();
-    uint32 doubleConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetDoubleConstCount();
-    Js::Var * constTable = m_func->GetJnFunction()->GetConstTable();
+    uint32 intConstCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetIntConstCount();
+    uint32 floatConstCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetFloatConstCount();
+    uint32 doubleConstCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetDoubleConstCount();
+    Js::Var * constTable = (Js::Var *)m_func->GetJITFunctionBody()->GetConstTable();
 
     // Load FrameDisplay
     IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::ModuleMemReg, TyVar);
@@ -793,7 +792,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         ++regAllocated;
     }
 
-    uint32 simdConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetSimdConstCount();
+    uint32 simdConstCount = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetSimdConstCount();
     // Space for SIMD0
     ++regAllocated;
     AsmJsSIMDValue *simdConstTable = reinterpret_cast<AsmJsSIMDValue *>(doubleConstTable + doubleConstCount);
@@ -841,7 +840,7 @@ IRBuilderAsmJs::BuildImplicitArgIns()
         IR::RegOpnd * dstOpnd = nullptr;
         IR::Instr * instr = nullptr;
         // TODO: double args are not aligned on stack
-        Js::AsmJsVarType varType = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgType(i - 1);
+        Js::AsmJsVarType varType = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetArgType(i - 1);
         switch (varType.which())
         {
         case Js::AsmJsVarType::Which::Int:
@@ -1007,7 +1006,7 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
     case Js::OpCodeAsmJs::Ret:
         instr = IR::Instr::New(Js::OpCode::Ret, m_func);
 
-        switch (m_asmFuncInfo->GetReturnType().which())
+        switch (m_asmFuncInfo->GetRetType())
         {
         case Js::AsmJsRetType::Which::Signed:
             retSlot = GetRegSlotFromIntReg(0);

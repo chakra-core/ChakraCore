@@ -916,7 +916,7 @@ LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= fal
 
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
 
-    if (m_func->GetJnFunction()->GetAsmJsFunctionInfo()->IsHeapBufferConst())
+    if (m_func->GetJITFunctionBody()->GetAsmJsInfo()->IsHeapBufferConst())
     {
         src1->AsIndirOpnd()->ReplaceBaseOpnd(src1->AsIndirOpnd()->UnlinkIndexOpnd());
         Js::Var* module = (Js::Var*)m_func->m_workItem->GetEntryPoint()->GetModuleAddress();
@@ -992,7 +992,7 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
 
     Lowerer::InsertBranch(Js::OpCode::Br, doneLabel, storeLabel);
 
-    if (m_func->GetJnFunction()->GetAsmJsFunctionInfo()->IsHeapBufferConst())
+    if (m_func->GetJITFunctionBody()->GetAsmJsInfo()->IsHeapBufferConst())
     {
         dst->AsIndirOpnd()->ReplaceBaseOpnd(dst->AsIndirOpnd()->UnlinkIndexOpnd());
         Js::Var* module = (Js::Var*)m_func->m_workItem->GetEntryPoint()->GetModuleAddress();
@@ -1771,33 +1771,30 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     exitInstr = LowerExitInstrCommon(exitInstr);
 
     // get asm.js return type
-    Js::AsmJsRetType asmRetType = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetReturnType();
+    Js::AsmJsRetType::Which asmRetType = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetRetType();
     IRType regType;
-    if (asmRetType.which() == Js::AsmJsRetType::Double)
+    switch (asmRetType)
     {
+    case Js::AsmJsRetType::Double:
         regType = TyFloat64;
-    }
-    else if (asmRetType.which() == Js::AsmJsRetType::Float)
-    {
+        break;
+    case Js::AsmJsRetType::Float:
         regType = TyFloat32;
-    }
-    else if (asmRetType.toVarType().isFloat32x4())
-    {
+        break;
+    case Js::AsmJsRetType::Float32x4:
         regType = TySimd128F4;
-    }
-    else if (asmRetType.toVarType().isInt32x4())
-    {
+        break;
+    case Js::AsmJsRetType::Int32x4:
         regType = TySimd128I4;
-    }
-    else if (asmRetType.toVarType().isFloat64x2())
-    {
+        break;
+    case Js::AsmJsRetType::Float64x2:
         regType = TySimd128D2;
-    }
-    else
-    {
-        Assert(asmRetType.which() == Js::AsmJsRetType::Signed || asmRetType.which() == Js::AsmJsRetType::Void);
+        break;
+    default:
+        Assert(asmRetType == Js::AsmJsRetType::Signed || asmRetType == Js::AsmJsRetType::Void);
         regType = TyInt32;
     }
+
     if (m_func->IsLoopBody())
     {
         // Insert RET
@@ -1812,7 +1809,7 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     {
 
         // Generate RET
-        int32 alignedSize = Math::Align<int32>(m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgByteSize(), MachStackAlignment);
+        int32 alignedSize = Math::Align<int32>(m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetArgByteSize(), MachStackAlignment);
         IR::IntConstOpnd * intSrc = IR::IntConstOpnd::New(alignedSize + MachPtr, TyMachReg, m_func);
         IR::RegOpnd * retReg = IR::RegOpnd::New(nullptr, GetRegReturnAsmJs(regType), regType, m_func);
         IR::Instr *retInstr = IR::Instr::New(Js::OpCode::RET, m_func);

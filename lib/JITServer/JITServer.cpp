@@ -175,12 +175,8 @@ ServerRemoteCodeGen(
     threadContextInfo->BeginJIT();
 
     JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
+    JITTimeProfileInfo * profileInfo = Anew(&jitArena, JITTimeProfileInfo, profileData);
 
-    JITTimeProfileInfo * profileInfo = nullptr;
-    if (profileData != nullptr)
-    {
-        profileInfo = Anew(&jitArena, JITTimeProfileInfo, profileData);
-    }
     Func func(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, nullptr, threadContextInfo->GetCodeGenAllocators(), nullptr, profileInfo, nullptr, true);
     func.m_symTable->SetStartingID(static_cast<SymID>(jitWorkItem->GetJITFunctionBody()->GetLocalsCount() + 1));
     func.Codegen();

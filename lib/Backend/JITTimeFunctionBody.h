@@ -38,6 +38,7 @@ public:
     Js::RegSlot GetFirstNonTempLocalIndex() const;
     Js::RegSlot GetEndNonTempLocalIndex() const;
     Js::RegSlot GetNonTempLocalVarCount() const;
+    Js::RegSlot GetRestParamRegSlot() const;
 
     Js::PropertyId GetPropertyIdFromCacheId(uint cacheId) const;
     Js::PropertyId GetReferencedPropertyId(uint index) const;
@@ -79,10 +80,11 @@ public:
     intptr_t GetInlineCache(uint index) const;
     intptr_t GetIsInstInlineCache(uint index) const;
     Js::TypeId GetConstantType(Js::RegSlot location) const;
+    void * GetConstTable() const;
 
     intptr_t GetRootObject() const;
     intptr_t GetLoopHeaderAddr(uint loopNum) const;
-    JITLoopHeader * GetLoopHeaderData(uint loopNum) const;
+    const JITLoopHeader * GetLoopHeaderData(uint loopNum) const;
 
     intptr_t GetScriptIdAddr() const;
     intptr_t GetProbeCountAddr() const;
@@ -91,7 +93,9 @@ public:
     intptr_t GetRegAllocStoreCountAddr() const;
     intptr_t GetCallCountStatsAddr() const;
 
-    static bool LoopContains(JITLoopHeader * loop1, JITLoopHeader * loop2);
+    const AsmJsJITInfo * GetAsmJsInfo() const;
+
+    static bool LoopContains(const JITLoopHeader * loop1, const JITLoopHeader * loop2);
 
     wchar_t* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const;
 
@@ -101,6 +105,8 @@ private:
 
     void InitializeStatementMap();
 
-    const FunctionBodyJITData * const m_bodyData;
+    AsmJsJITInfo m_asmJsInfo;
     Js::SmallSpanSequence m_statementMap;
+
+    const FunctionBodyJITData * const m_bodyData;
 };

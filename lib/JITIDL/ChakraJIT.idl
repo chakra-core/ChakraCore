@@ -175,6 +175,33 @@ typedef struct JITLoopHeader
     boolean isInTry;
 } JITLoopHeader;
 
+typedef struct AsmJsJITData
+{
+    int intConstCount;
+    int doubleConstCount;
+    int floatConstCount;
+    int simdConstCount;
+    int intTmpCount;
+    int doubleTmpCount;
+    int floatTmpCount;
+    int simdTmpCount;
+    int intVarCount;
+    int doubleVarCount;
+    int floatVarCount;
+    int simdVarCount;
+    int intByteOffset;
+    int doubleByteOffset;
+    int floatByteOffset;
+    int simdByteOffset;
+    int totalSizeInBytes;
+    unsigned short argCount;
+    [size_is(argCount)] byte * argTypeArray;
+    unsigned short argByteSize;
+    int retType;
+    boolean isHeapBufferConst;
+    boolean usesHeapBuffer;
+} AsmJsJITData;
+
 // FunctionBody fields, read only in JIT
 typedef struct FunctionBodyJITData
 {
@@ -183,7 +210,8 @@ typedef struct FunctionBodyJITData
 
     unsigned int constCount;
     [size_is(constCount)] __int3264 * constTable;
-    [size_is(constCount)] int * constTypeTable; // TODO: not needed for asm.js
+    unsigned int constTypeCount;
+    [size_is(constTypeCount)] int * constTypeTable;
 
     unsigned int inlineCacheCount;
     [size_is(inlineCacheCount)] int * cacheIdToPropertyIdMap;
@@ -197,6 +225,8 @@ typedef struct FunctionBodyJITData
     [size_is(referencedPropertyIdCount)] int * referencedPropertyIdMap;
 
     SmallSpanSequenceData statementMap;
+
+    AsmJsJITData * asmJsData;
 
     __int3264 functionBodyAddr;
     __int3264 scriptIdAddr;
@@ -335,6 +365,6 @@ interface IChakraJIT
         [in] __int3264 scriptContextInfoAddress,
         [in] CodeGenWorkItemJITData * workItemData,
         [out] JITOutputData * jitData,
-        [optional, in] ProfileData * profileData);
+        [unique, in] ProfileData * profileData);
 
 }

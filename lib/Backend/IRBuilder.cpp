@@ -2653,7 +2653,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             // See we are ending an outer loop and load the return IP to the ProfiledLoopEnd opcode
             // instead of following the normal branch
 
-            JITLoopHeader * loopHeader = m_func->GetJITFunctionBody()->GetLoopHeaderData(num);
+            const JITLoopHeader * loopHeader = m_func->GetJITFunctionBody()->GetLoopHeaderData(num);
             if (m_func->GetJITFunctionBody()->GetLoopHeaderAddr(num) != m_func->m_workItem->GetLoopHeaderAddr() &&
                 JITTimeFunctionBody::LoopContains(loopHeader, m_func->m_workItem->GetLoopHeader()))
             {
@@ -3896,12 +3896,11 @@ IRBuilder::BuildProfiledFieldLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::S
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if(Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::DynamicProfilePhase))
         {
-            Js::FunctionBody * func = this->m_func->GetJnFunction();
             const ValueType valueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
             char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             valueType.ToString(valueTypeStr);
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"TestTrace function %s (%s) ValueType = %i ", func->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
+            Output::Print(L"TestTrace function %s (%s) ValueType = %i ", m_func->GetWorkItem()->GetDisplayName(), m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
             instr->DumpTestTrace();
         }
 #endif
@@ -4184,7 +4183,7 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
         Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
     }
 
-    propertyId = this->m_func->GetJITFunctionBody()->GetPropertyIdFromCacheId(inlineCacheIndex);
+    propertyId = m_func->GetJITFunctionBody()->GetPropertyIdFromCacheId(inlineCacheIndex);
 
     IR::SymOpnd *   fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
     IR::RegOpnd *   regOpnd;
@@ -4390,7 +4389,6 @@ IRBuilder::BuildElementC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
 {
     IR::Instr *     instr = nullptr;
 
-    Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
     Js::PropertyId  propertyId;
     IR::RegOpnd *   regOpnd;
     IR::RegOpnd *   value2Opnd;
@@ -4404,7 +4402,7 @@ IRBuilder::BuildElementC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
 
     case Js::OpCode::LdSuperFld:
         {
-            propertyId = functionBody->GetPropertyIdFromCacheId(propertyIdIndex);
+            propertyId = m_func->GetJITFunctionBody()->GetPropertyIdFromCacheId(propertyIdIndex);
             fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instanceSlot, propertyId, (Js::PropertyIdIndexType) - 1, PropertyKindData, propertyIdIndex);
             if (fieldSymOpnd->IsPropertySymOpnd())
             {
@@ -4425,7 +4423,7 @@ IRBuilder::BuildElementC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
 
     case Js::OpCode::StSuperFld:
     {
-        propertyId = functionBody->GetPropertyIdFromCacheId(propertyIdIndex);
+        propertyId = m_func->GetJITFunctionBody()->GetPropertyIdFromCacheId(propertyIdIndex);
         fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instanceSlot, propertyId, (Js::PropertyIdIndexType) - 1, PropertyKindData, propertyIdIndex);
         if (fieldSymOpnd->IsPropertySymOpnd())
         {
@@ -5527,8 +5525,7 @@ IRBuilder::BuildArgIn(uint32 offset, Js::RegSlot dstRegSlot, uint16 argument)
 void
 IRBuilder::BuildArgInRest()
 {
-    Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
-    IR::RegOpnd * dstOpnd = this->BuildDstOpnd(functionBody->GetRestParamRegSlot());
+    IR::RegOpnd * dstOpnd = this->BuildDstOpnd(m_func->GetJITFunctionBody()->GetRestParamRegSlot());
     IR::Instr *instr = IR::Instr::New(Js::OpCode::ArgIn_Rest, dstOpnd, m_func);
     this->AddInstr(instr, (uint32)-1);
 }

@@ -473,6 +473,10 @@ JITTimeProfileInfo::GetCallSiteInfo() const
 bool
 JITTimeProfileInfo::TestFlag(ProfileDataFlags flag) const
 {
+    if (!HasProfileInfo())
+    {
+        return false;
+    }
     return (m_profileData->flags & flag) != 0;
 }
 

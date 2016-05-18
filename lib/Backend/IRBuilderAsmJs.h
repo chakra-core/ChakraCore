@@ -28,17 +28,20 @@ public:
         , m_switchAdapter(this)
         , m_switchBuilder(&m_switchAdapter)
     {
-        //func->m_workItem->InitializeReader(m_jnReader, m_statementReader); TODO (michhol): OOP JIT
-        m_asmFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfo();
+        func->m_workItem->InitializeReader(m_jnReader, m_statementReader);
+        m_asmFuncInfo = m_func->GetJITFunctionBody()->GetAsmJsInfo();
+#if 0
+        // templatized JIT loop body
         if (func->IsLoopBody())
         {
-            /* Js::LoopEntryPointInfo* loopEntryPointInfo = (Js::LoopEntryPointInfo*)(func->m_workItem->GetEntryPoint()); TODO (michhol): OOP JIT
+            Js::LoopEntryPointInfo* loopEntryPointInfo = (Js::LoopEntryPointInfo*)(func->m_workItem->GetEntryPoint());
             if (loopEntryPointInfo->GetIsTJMode())
             {
                 m_IsTJLoopBody = true;
                 func->isTJLoopBody = true;
-            }*/
+            }
         }
+#endif
     }
 
     void Build();
@@ -162,7 +165,7 @@ private:
     SymID *                 m_tempMap;
     BVFixed *               m_fbvTempUsed;
     uint32                  m_functionStartOffset;
-    Js::AsmJsFunctionInfo * m_asmFuncInfo;
+    const AsmJsJITInfo *    m_asmFuncInfo;
     StackSym *              m_loopBodyRetIPSym;
     BVFixed *               m_ldSlots;
     BVFixed *               m_stSlots;

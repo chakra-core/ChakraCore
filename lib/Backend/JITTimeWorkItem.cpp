@@ -79,7 +79,7 @@ JITTimeWorkItem::GetCallsCountAddress() const
     return m_workItemData->readOnlyEPData.callsCountAddress;
 }
 
-JITLoopHeader *
+const JITLoopHeader *
 JITTimeWorkItem::GetLoopHeader() const
 {
     return m_jitBody.GetLoopHeaderData(GetLoopNumber());

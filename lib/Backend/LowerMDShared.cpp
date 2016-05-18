@@ -786,35 +786,30 @@ LowererMD::LowerRet(IR::Instr * retInstr)
 
     if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody()) // for loop body ret is the bytecodeoffset
     {
-        Js::AsmJsRetType asmType = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetReturnType();
+        Js::AsmJsRetType::Which asmType = m_func->GetJITFunctionBody()->GetAsmJsInfo()->GetRetType();
         IRType regType = TyInt32;
-        if (asmType.which() == Js::AsmJsRetType::Double)
+        switch (asmType)
         {
+        case Js::AsmJsRetType::Double:
             regType = TyFloat64;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Float)
-        {
+            break;
+        case Js::AsmJsRetType::Float:
             regType = TyFloat32;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Signed || asmType.which() == Js::AsmJsRetType::Void)
-        {
-
+            break;
+        case Js::AsmJsRetType::Signed:
+        case Js::AsmJsRetType::Void:
             regType = TyInt32;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Float32x4)
-        {
+            break;
+        case Js::AsmJsRetType::Float32x4:
             regType = TySimd128F4;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Int32x4)
-        {
+            break;
+        case Js::AsmJsRetType::Int32x4:
             regType = TySimd128I4;
-        }
-        else if (asmType.which() == Js::AsmJsRetType::Float64x2)
-        {
+            break;
+        case Js::AsmJsRetType::Float64x2:
             regType = TySimd128D2;
-        }
-        else
-        {
+            break;
+        default:
             Assert(UNREACHED);
         }
 
