@@ -290,12 +290,12 @@ LPCWSTR Helpers::JsErrorCodeToString(JsErrorCode jsErrorCode)
     }
 }
 
-void Helpers::LogError(__in __nullterminated char16 *msg, ...)
+void Helpers::LogError(__in __nullterminated const char16 *msg, ...)
 {
     va_list args;
     va_start(args, msg);
     wprintf(_u("ERROR: "));
-    vwprintf(msg, args);
+    vfwprintf(stderr, msg, args);
     wprintf(_u("\n"));
     fflush(stdout);
     va_end(args);

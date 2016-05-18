@@ -93,7 +93,7 @@ typedef void * Var;
 do { \
     JsErrorCode jsErrorCode = expr; \
     if ((jsErrorCode) != JsNoError) { \
-        fwprintf(stderr, L"ERROR: " TEXT(#expr) L" failed. JsErrorCode=0x%x (%s)\n", jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
         fflush(stderr); \
         goto Error; \
     } \
@@ -103,7 +103,7 @@ do { \
 do { \
     JsErrorCode jsErrorCode = expr; \
     if ((jsErrorCode) != JsNoError) { \
-        fwprintf(stderr, L"ERROR: " TEXT(#expr) L" failed. JsErrorCode=0x%x (%s)\n", jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
         fflush(stderr); \
         Assert(false); \
         return JS_INVALID_REFERENCE; \
@@ -114,7 +114,7 @@ do { \
 do { \
     JsErrorCode jsErrorCode = expr; \
     if ((jsErrorCode) != JsNoError) { \
-        fwprintf(stderr, L"ERROR: " TEXT(#expr) L" failed. JsErrorCode=0x%x (%s)\n", jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
         fflush(stderr); \
         Assert(false); \
         return false; \
@@ -125,14 +125,14 @@ do { \
 do { \
     JsErrorCode jsErrorCode = expr; \
     if ((jsErrorCode) != JsNoError) { \
-        fwprintf(stderr, L"ERROR: " TEXT(#expr) L" failed. JsErrorCode=0x%x (%s)\n", jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
         fflush(stderr); \
         return (jsErrorCode); \
     } \
 } while (0)
 
 #include "TestHooks.h"
-#include "chakrartinterface.h"
+#include "ChakraRtInterface.h"
 #include "HostConfigFlags.h"
 #include "MessageQueue.h"
 #include "WScriptJsrt.h"

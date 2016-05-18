@@ -157,25 +157,6 @@ SmallHeapBlockT<TBlockAttributes>::GetPageCount() const
 
 template <>
 uint
-SmallHeapBlockT<SmallAllocationBlockAttributes>::GetUnusablePageCount()
-{
-    return 0;
-}
-
-template <>
-void
-SmallHeapBlockT<SmallAllocationBlockAttributes>::ProtectUnusablePages()
-{
-}
-
-template <>
-void
-SmallHeapBlockT<SmallAllocationBlockAttributes>::RestoreUnusablePages()
-{
-}
-
-template <>
-uint
 SmallHeapBlockT<MediumAllocationBlockAttributes>::GetUnusablePageCount()
 {
     return ((MediumAllocationBlockAttributes::PageCount * AutoSystemInfo::PageSize) % this->objectSize) / AutoSystemInfo::PageSize;

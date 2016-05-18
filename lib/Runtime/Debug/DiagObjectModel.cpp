@@ -89,6 +89,7 @@ namespace Js
 #endif
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableArrayDisplay, this);
         }
+#ifdef ENABLE_SIMDJS
         else if (Js::JavascriptSIMDInt32x4::Is(obj))
         {
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableSimdInt32x4ObjectDisplay, this);
@@ -129,6 +130,7 @@ namespace Js
         {
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableSimdUint16x8ObjectDisplay, this);
         }
+#endif
         else
         {
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableObjectDisplay, this);

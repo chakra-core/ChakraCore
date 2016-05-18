@@ -6,7 +6,7 @@
 #include "JsrtPch.h"
 #include "JsrtInternal.h"
 #include "RuntimeDebugPch.h"
-#include "ThreadContextTLSEntry.h"
+#include "ThreadContextTlsEntry.h"
 #include "JsrtDebugUtils.h"
 
 #define VALIDATE_IS_DEBUGGING(jsrtDebugManager) \

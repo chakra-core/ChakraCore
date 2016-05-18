@@ -444,9 +444,13 @@ public:
 public:
     ~SmallHeapBlockT();
 
-    void ProtectUnusablePages();
-    void RestoreUnusablePages();
-    uint GetUnusablePageCount();
+    void ProtectUnusablePages() {}
+    void RestoreUnusablePages() {}
+    
+    uint GetUnusablePageCount() 
+    {
+        return 0; 
+    }
 
 #ifdef RECYCLER_WRITE_BARRIER
     bool IsWithBarrier() const;
@@ -679,6 +683,18 @@ SmallHeapBlockT<MediumAllocationBlockAttributes>::SmallHeapBlockT(HeapBucket * b
 template <>
 uint
 SmallHeapBlockT<MediumAllocationBlockAttributes>::GetObjectBitDeltaForBucketIndex(uint bucketIndex);
+
+template <>
+uint
+SmallHeapBlockT<MediumAllocationBlockAttributes>::GetUnusablePageCount();
+
+template <>
+void
+SmallHeapBlockT<MediumAllocationBlockAttributes>::ProtectUnusablePages();
+
+template <>
+void
+SmallHeapBlockT<MediumAllocationBlockAttributes>::RestoreUnusablePages();
 
 // Declare the class templates
 typedef SmallHeapBlockT<SmallAllocationBlockAttributes>  SmallHeapBlock;

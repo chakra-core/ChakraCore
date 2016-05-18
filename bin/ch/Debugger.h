@@ -4,11 +4,16 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef _WIN32
 static const WCHAR controllerScript[] = {
 #include "DbgController.js.encoded"
     _u('\0')
 };
-
+#else
+// xplat-todo: Need to generate DbgController.js.encoded
+static const WCHAR controllerScript[] = { _u('\0') };
+#endif
+    
 class Debugger
 {
 public:

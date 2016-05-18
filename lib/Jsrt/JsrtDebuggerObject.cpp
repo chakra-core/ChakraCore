@@ -75,7 +75,7 @@ Js::DynamicObject * JsrtDebuggerObjectBase::GetChildren(WeakArenaReference<Js::I
                     resolvedObject.propId = Js::Constants::NoProperty;
                 }
 
-                AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef = resolvedObject.GetObjectDisplay();
+                AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef(resolvedObject.GetObjectDisplay());
                 Js::IDiagObjectModelDisplay* resolvedObjectDisplay = objectDisplayWeakRef->GetStrongReference();
                 if (resolvedObjectDisplay != nullptr)
                 {
@@ -412,7 +412,7 @@ Js::DynamicObject * JsrtDebuggerStackFrame::GetLocalsObject(Js::ScriptContext* s
                     foundGroup = localsWalker->GetScopeObject(index++, &resolvedObject);
                     if (foundGroup == TRUE)
                     {
-                        AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef = resolvedObject.GetObjectDisplay();
+                        AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef(resolvedObject.GetObjectDisplay());
                         JsrtDebuggerObjectBase* debuggerObject = JsrtDebuggerObjectScope::Make(debuggerObjectsManager, objectDisplayWeakRef, scopesCount);
                         Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext);
                         Assert(object != nullptr);

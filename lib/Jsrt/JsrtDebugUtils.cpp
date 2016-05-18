@@ -279,7 +279,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         {
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetObjectTypeDisplayString(), scriptContext);
             addDisplay = true;
-            char16* className = JsrtDebugUtils::GetClassName(typeId);
+            const char16* className = JsrtDebugUtils::GetClassName(typeId);
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::className, className, wcslen(className), scriptContext);
             break;
         }
@@ -295,7 +295,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         {
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetObjectTypeDisplayString(), scriptContext);
             addDisplay = true;
-            char16* className = JsrtDebugUtils::GetClassName(Js::TypeIds_Object);
+            const char16* className = JsrtDebugUtils::GetClassName(Js::TypeIds_Object);
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::className, className, wcslen(className), scriptContext);
         }
         else
@@ -386,7 +386,7 @@ void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPr
     JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, value, scriptContext);
 }
 
-char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
+const char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
 {
     switch (typeId)
     {
@@ -448,7 +448,7 @@ char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     return _u("");
 }
 
-char16 * JsrtDebugUtils::GetDebugPropertyName(JsrtDebugPropertyId propertyId)
+const char16 * JsrtDebugUtils::GetDebugPropertyName(JsrtDebugPropertyId propertyId)
 {
     switch (propertyId)
     {

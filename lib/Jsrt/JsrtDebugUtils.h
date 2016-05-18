@@ -39,6 +39,6 @@ public:
 
 private:
     static void AddVarPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, Js::Var value, Js::ScriptContext* scriptContext);
-    static char16* GetClassName(Js::TypeId typeId);
-    static char16* GetDebugPropertyName(JsrtDebugPropertyId propertyId);
+    static const char16* GetClassName(Js::TypeId typeId);
+    static const char16* GetDebugPropertyName(JsrtDebugPropertyId propertyId);
 };

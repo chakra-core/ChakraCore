@@ -292,6 +292,7 @@ Error:
 
 bool Debugger::SetBaseline()
 {
+#ifdef _WIN32
     LPSTR script = nullptr;
     FILE *file = nullptr;
     int numChars = 0;
@@ -357,6 +358,10 @@ Error:
     }
 
     return hr == S_OK;
+#else
+    // xplat-todo: Implement this on Linux
+    return false;
+#endif
 }
 
 bool Debugger::SetInspectMaxStringLength()

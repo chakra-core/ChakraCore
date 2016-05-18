@@ -12,5 +12,5 @@ public :
     static HRESULT WideStringToNarrowDynamic(LPCWSTR sourceString, LPSTR* destStringPtr);
     static HRESULT NarrowStringToWideDynamic(LPCSTR sourceString, LPWSTR* destStringPtr);
     static LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode);
-    static void LogError(__in __nullterminated char16 *msg, ...);
+    static void LogError(__in __nullterminated const char16 *msg, ...);
 };

@@ -454,12 +454,12 @@ void QueueDebugOperation(JsValueRef function, const DebugOperationFunc& operatio
 
 JsValueRef WScriptJsrt::AttachCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
-    LPWSTR errorMessage = L"WScript.Attach requires a function, like WScript.Attach(foo);";
+    LPCWSTR errorMessage = _u("WScript.Attach requires a function, like WScript.Attach(foo);");
+    JsValueType argumentType = JsUndefined;
     if (argumentCount != 2)
     {
         goto Error;
     }
-    JsValueType argumentType = JsUndefined;
     IfJsrtError(ChakraRTInterface::JsGetValueType(arguments[1], &argumentType));
     if (argumentType != JsFunction)
     {
@@ -495,12 +495,12 @@ Error:
 
 JsValueRef WScriptJsrt::DetachCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
-    LPWSTR errorMessage = L"WScript.Detach requires a function, like WScript.Detach(foo);";
+    LPCWSTR errorMessage = _u("WScript.Detach requires a function, like WScript.Detach(foo);");
+    JsValueType argumentType = JsUndefined;
     if (argumentCount != 2)
     {
         goto Error;
     }
-    JsValueType argumentType = JsUndefined;
     IfJsrtError(ChakraRTInterface::JsGetValueType(arguments[1], &argumentType));
     if (argumentType != JsFunction)
     {
