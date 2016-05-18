@@ -4529,44 +4529,9 @@ MemOpCheckInductionVariable:
         // Fallthrough if not an induction variable
     }
     default:
-        // List of instruction that are valid with memop (ie: instr that gets removed if memop is emitted)
-        if (
-            this->currentBlock != loop->GetHeadBlock() &&
-            !instr->IsLabelInstr() &&
-            instr->IsRealInstr() &&
-            instr->m_opcode != Js::OpCode::IncrLoopBodyCount &&
-            instr->m_opcode != Js::OpCode::StLoopBodyCount &&
-            instr->m_opcode != Js::OpCode::Ld_A &&
-            instr->m_opcode != Js::OpCode::Ld_I4 &&
-            !(instr->IsBranchInstr() && instr->AsBranchInstr()->IsUnconditional())
-        )
-        {
-            TRACE_MEMOP_VERBOSE(loop, instr, _u("Instruction not accepted for memop"));
-            loop->memOpInfo->doMemOp = false;
-            return false;
-        }
-
-        // Check prev instr because it could have been added by an optimization and we won't see it here.
-        if (OpCodeAttr::FastFldInstr(instr->m_opcode) || (instr->m_prev && OpCodeAttr::FastFldInstr(instr->m_prev->m_opcode)))
-        {
-            // Refuse any operations interacting with Fields
-            loop->memOpInfo->doMemOp = false;
-            TRACE_MEMOP_VERBOSE(loop, instr, _u("Field interaction detected"));
-            return false;
-        }
-
-        if (Js::OpCodeUtil::GetOpCodeLayout(instr->m_opcode) == Js::OpLayoutType::ElementSlot)
-        {
-            // Refuse any operations interacting with slots
-            loop->memOpInfo->doMemOp = false;
-            TRACE_MEMOP_VERBOSE(loop, instr, _u("Slot interaction detected"));
-            return false;
-        }
-
-        if (this->MayNeedBailOnImplicitCall(instr, src1Val, src2Val))
+        if (IsInstrInvalidForMemOp(instr, loop, src1Val, src2Val))
         {
             loop->memOpInfo->doMemOp = false;
-            TRACE_MEMOP_VERBOSE(loop, instr, _u("Implicit call bailout detected"));
             return false;
         }
 
@@ -4591,6 +4556,48 @@ MemOpCheckInductionVariable:
     }
 
     return true;
+}
+
+bool
+GlobOpt::IsInstrInvalidForMemOp(IR::Instr *instr, Loop *loop, Value *src1Val, Value *src2Val)
+{
+    // List of instruction that are valid with memop (ie: instr that gets removed if memop is emitted)
+    if (
+        this->currentBlock != loop->GetHeadBlock() &&
+        !instr->IsLabelInstr() &&
+        instr->IsRealInstr() &&
+        instr->m_opcode != Js::OpCode::IncrLoopBodyCount &&
+        instr->m_opcode != Js::OpCode::StLoopBodyCount &&
+        instr->m_opcode != Js::OpCode::Ld_A &&
+        instr->m_opcode != Js::OpCode::Ld_I4 &&
+        !(instr->IsBranchInstr() && instr->AsBranchInstr()->IsUnconditional())
+    )
+    {
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Instruction not accepted for memop"));
+        return true;
+    }
+
+    // Check prev instr because it could have been added by an optimization and we won't see it here.
+    if (OpCodeAttr::FastFldInstr(instr->m_opcode) || (instr->m_prev && OpCodeAttr::FastFldInstr(instr->m_prev->m_opcode)))
+    {
+        // Refuse any operations interacting with Fields
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Field interaction detected"));
+        return true;
+    }
+
+    if (Js::OpCodeUtil::GetOpCodeLayout(instr->m_opcode) == Js::OpLayoutType::ElementSlot)
+    {
+        // Refuse any operations interacting with slots
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Slot interaction detected"));
+        return true;
+    }
+
+    if (this->MayNeedBailOnImplicitCall(instr, src1Val, src2Val))
+    {
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Implicit call bailout detected"));
+        return true;
+    }
+    return false;
 }
 
 IR::Instr *
