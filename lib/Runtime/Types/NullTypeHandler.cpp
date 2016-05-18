@@ -107,6 +107,7 @@ namespace Js
             return DynamicTypeHandler::GetItem(instance, originalInstance, indexVal, value, requestContext);
         }
 
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 

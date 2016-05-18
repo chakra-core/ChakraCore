@@ -349,6 +349,7 @@ namespace Js
             return true;
         }
 
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 
@@ -364,6 +365,7 @@ namespace Js
             return true;
         }
 
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 

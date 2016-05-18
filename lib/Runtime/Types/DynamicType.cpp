@@ -140,7 +140,7 @@ namespace Js
     BOOL DynamicObject::GetInternalProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         Assert(Js::IsInternalPropertyId(propertyId));
-        return GetTypeHandler()->GetProperty(this, originalInstance, propertyId, value, nullptr, nullptr);
+        return GetTypeHandler()->GetProperty(this, originalInstance, propertyId, value, nullptr, requestContext);
     }
 
     BOOL DynamicObject::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)

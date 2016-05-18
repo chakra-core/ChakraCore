@@ -496,7 +496,11 @@ namespace Js
         auto getPropertyId = [&]()->PropertyId {return propertyId; };
         PropertyDescriptor result;
         BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
-        if (foundProperty && result.IsFromProxy())
+        if (!foundProperty)
+        {
+            *value = requestContext->GetLibrary()->GetUndefined();
+        }
+        else if (result.IsFromProxy())
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
@@ -519,7 +523,11 @@ namespace Js
         };
         PropertyDescriptor result;
         BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
-        if (foundProperty && result.IsFromProxy())
+        if (!foundProperty)
+        {
+            *value = requestContext->GetLibrary()->GetUndefined();
+        }
+        else if (result.IsFromProxy())
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
@@ -563,7 +571,11 @@ namespace Js
         auto getPropertyId = [&]() -> PropertyId {return propertyId; };
         PropertyDescriptor result;
         BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
-        if (foundProperty && result.IsFromProxy())
+        if (!foundProperty)
+        {
+            *value = requestContext->GetLibrary()->GetUndefined();
+        }
+        else if (result.IsFromProxy())
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
@@ -784,7 +796,11 @@ namespace Js
         };
         PropertyDescriptor result;
         BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
-        if (foundProperty && result.IsFromProxy())
+        if (!foundProperty)
+        {
+            *value = requestContext->GetLibrary()->GetUndefined();
+        }
+        else if (result.IsFromProxy())
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
@@ -803,7 +819,11 @@ namespace Js
         };
         PropertyDescriptor result;
         BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
-        if (foundProperty && result.IsFromProxy())
+        if (!foundProperty)
+        {
+            *value = requestContext->GetLibrary()->GetUndefined();
+        }
+        else if (result.IsFromProxy())
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }

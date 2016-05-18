@@ -250,6 +250,7 @@ namespace Js
             return str->GetItemAt(index, value);
         }
 
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 

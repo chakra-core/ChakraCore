@@ -72,11 +72,13 @@ namespace Js
 
     BOOL MissingPropertyTypeHandler::GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 
     BOOL MissingPropertyTypeHandler::GetProperty(DynamicObject* instance, Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 

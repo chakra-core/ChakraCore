@@ -547,6 +547,7 @@ namespace Js
             return DictionaryTypeHandlerBase<T>::GetItem(instance, originalInstance, propertyRecord->GetNumericValue(), value, requestContext);
         }
 
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 
@@ -564,6 +565,7 @@ namespace Js
             return GetPropertyFromDescriptor<false>(instance, originalInstance, descriptor, value, info, propertyName, requestContext);
         }
 
+        *value = requestContext->GetLibrary()->GetUndefined();
         return false;
     }
 
