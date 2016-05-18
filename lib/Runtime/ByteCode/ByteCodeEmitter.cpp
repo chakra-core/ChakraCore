@@ -7270,9 +7270,8 @@ void EmitCallTarget(
         }
 
         Emit(pnodeTarget->sxBin.pnode1, byteCodeGenerator, funcInfo, false);
-        Js::PropertyId propertyId = pnodeTarget->sxBin.pnode2->sxPid.PropertyIdFromNameNode();
-        Js::RegSlot callObjLocation = pnodeTarget->sxBin.pnode1->location;
-        Js::RegSlot protoLocation = callObjLocation;
+        Js::PropertyId propertyId = pnodeTarget->sxBin.pnode2->sxPid.PropertyIdFromNameNode();        
+        Js::RegSlot protoLocation = pnodeTarget->sxBin.pnode1->location;
         EmitSuperMethodBegin(pnodeTarget, byteCodeGenerator, funcInfo);
         EmitMethodFld(pnodeTarget, protoLocation, propertyId, byteCodeGenerator, funcInfo);
 
@@ -7295,9 +7294,8 @@ void EmitCallTarget(
         Emit(pnodeTarget->sxBin.pnode1, byteCodeGenerator, funcInfo, false);
         Emit(pnodeTarget->sxBin.pnode2, byteCodeGenerator, funcInfo, false);
 
-        Js::RegSlot indexLocation = pnodeTarget->sxBin.pnode2->location;
-        Js::RegSlot callObjLocation = pnodeTarget->sxBin.pnode1->location;
-        Js::RegSlot protoLocation = callObjLocation;
+        Js::RegSlot indexLocation = pnodeTarget->sxBin.pnode2->location;        
+        Js::RegSlot protoLocation = pnodeTarget->sxBin.pnode1->location;
         EmitSuperMethodBegin(pnodeTarget, byteCodeGenerator, funcInfo);
         EmitMethodElem(pnodeTarget, protoLocation, indexLocation, byteCodeGenerator);
 

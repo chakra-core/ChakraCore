@@ -3070,9 +3070,9 @@ LowererMD::Simd128LoadHeadSegment(IR::IndirOpnd *indirOpnd, ValueType arrType, I
     {
         //  MOV headSegment, [base + offset(head)]
         int32 headOffset = m_lowerer->GetArrayOffsetOfHeadSegment(arrType);
-        IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(arrayRegOpnd, headOffset, TyMachPtr, this->m_func);
+        IR::IndirOpnd * newIndirOpnd = IR::IndirOpnd::New(arrayRegOpnd, headOffset, TyMachPtr, this->m_func);
         headSegmentOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-        m_lowerer->InsertMove(headSegmentOpnd, indirOpnd, instr);
+        m_lowerer->InsertMove(headSegmentOpnd, newIndirOpnd, instr);
     }
 
     // change base to be the head segment instead of the array object
