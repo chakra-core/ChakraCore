@@ -1431,11 +1431,7 @@ ThreadContext::IsOnStack(void const *ptr)
     bool isOnStack = (void*)lowLimit <= ptr && ptr < (void*)highLimit;
     return isOnStack;
 #elif !defined(_MSC_VER)
-    ULONG_PTR lowLimit = 0;
-    ULONG_PTR highLimit = 0;
-    ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
-    bool isOnStack = (void*)lowLimit <= ptr && ptr < (void*)highLimit;
-    return isOnStack;
+    return ::IsAddressOnStack((ULONG_PTR) ptr);
 #else
     AssertMsg(FALSE, "IsOnStack -- not implemented yet case");
     Js::Throw::NotImplemented();

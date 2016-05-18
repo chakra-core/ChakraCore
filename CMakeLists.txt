@@ -110,6 +110,10 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -fdelayed-template-parsing"
     )
 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -fno-omit-frame-pointer"
+    )
+  
     # CXX / CC COMPILER FLAGS
     add_compile_options(
         -fms-extensions
