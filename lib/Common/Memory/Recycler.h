@@ -1417,6 +1417,7 @@ public:
 #endif
 #ifdef RECYCLER_MEMORY_VERIFY
     BOOL VerifyEnabled() const { return verifyEnabled; }
+    uint GetVerifyPad() const { return verifyPad; }
     void Verify(Js::Phase phase);
 
     static void VerifyCheck(BOOL cond, wchar_t const * msg, void * address, void * corruptedAddress);

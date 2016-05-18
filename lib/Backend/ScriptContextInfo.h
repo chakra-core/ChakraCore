@@ -22,6 +22,9 @@ public:
     intptr_t GetObjectTypeAddr() const;
     intptr_t GetObjectHeaderInlinedTypeAddr() const;
     intptr_t GetRegexTypeAddr() const;
+    intptr_t GetArrayTypeAddr() const;
+    intptr_t GetNativeIntArrayTypeAddr() const;
+    intptr_t GetNativeFloatArrayTypeAddr() const;
     intptr_t GetArrayConstructorAddr() const;
     intptr_t GetCharStringCacheAddr() const;
     intptr_t GetSideEffectsAddr() const;
@@ -29,10 +32,15 @@ public:
     intptr_t GetIntArraySetElementFastPathVtableAddr() const;
     intptr_t GetFloatArraySetElementFastPathVtableAddr() const;
     intptr_t GetLibraryAddr() const;
+    intptr_t GetNumberAllocatorAddr() const;
+    intptr_t GetRecyclerAddr() const;
+
     intptr_t GetAddr() const;
 
     intptr_t GetVTableAddress(VTableValue vtableType) const;
 
+    bool IsRecyclerVerifyEnabled() const;
+    uint GetRecyclerVerifyPad() const;
     bool IsPRNGSeeded() const;
 
     void BeginJIT();

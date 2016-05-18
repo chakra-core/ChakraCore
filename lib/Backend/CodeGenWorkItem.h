@@ -229,20 +229,22 @@ struct JsFunctionCodeGen sealed : public CodeGenWorkItem
         bool isJitInDebugMode)
         : CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsFunctionType)
     {
-        size_t sizeInChars = this->GetDisplayName(nullptr, 256);
+        this->nameSizeInChars = this->GetDisplayName(nullptr, 256);
 
-        WCHAR * displayName = HeapNewArray(WCHAR, sizeInChars);
-        this->GetDisplayName(displayName, sizeInChars);
-        if (sizeInChars > UINT32_MAX)
+        WCHAR * displayName = HeapNewArray(WCHAR, this->nameSizeInChars);
+        this->GetDisplayName(displayName, this->nameSizeInChars);
+        if (this->nameSizeInChars > UINT32_MAX)
         {
             Js::Throw::OutOfMemory();
         }
-        this->jitData.nameLength = UInt32Math::Mul<sizeof(WCHAR)>((uint32)sizeInChars);
+        this->jitData.nameLength = UInt32Math::Mul<sizeof(WCHAR)>((uint32)this->nameSizeInChars);
         this->jitData.displayName = displayName;
 
         this->jitData.interpretedCount = GetInterpretedCount();
+        this->jitData.loopNumber = GetLoopNumber();
     }
 
+    size_t nameSizeInChars;
 public:
     uint GetByteCodeCount() const override
     {
@@ -305,32 +307,41 @@ public:
         reader.Create(this->functionBody, 0, IsJitInDebugMode());
         statementReader.Create(this->functionBody, 0, IsJitInDebugMode());
     }
+
+    ~JsFunctionCodeGen()
+    {
+        if (this->jitData.displayName != nullptr)
+        {
+            HeapDeleteArray(this->nameSizeInChars, this->jitData.displayName);
+        }
+    }
 };
 
 struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
 {
     JsLoopBodyCodeGen(
-        JsUtil::JobManager *const manager,
-        Js::FunctionBody *const functionBody,
-        Js::EntryPointInfo* entryPointInfo,
-        bool isJitInDebugMode)
-        : CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsLoopBodyWorkItemType)
-        , symIdToValueTypeMap(nullptr)
+        JsUtil::JobManager *const manager, Js::FunctionBody *const functionBody,
+        Js::EntryPointInfo* entryPointInfo, bool isJitInDebugMode, Js::LoopHeader * loopHeader) :
+        CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsLoopBodyWorkItemType),
+        symIdToValueTypeMap(nullptr),
+        loopHeader(loopHeader)
     {
-        size_t sizeInChars = this->GetDisplayName(nullptr, 256);
+        this->nameSizeInChars = this->GetDisplayName(nullptr, 256);
 
-        WCHAR * displayName = HeapNewArray(WCHAR, sizeInChars);
-        this->GetDisplayName(displayName, sizeInChars);
-        if (sizeInChars > UINT32_MAX)
+        WCHAR * displayName = HeapNewArray(WCHAR, this->nameSizeInChars);
+        this->GetDisplayName(displayName, this->nameSizeInChars);
+        if (this->nameSizeInChars > UINT32_MAX)
         {
             Js::Throw::OutOfMemory();
         }
-        this->jitData.nameLength = UInt32Math::Mul<sizeof(WCHAR)>((uint32)sizeInChars);
+        this->jitData.nameLength = UInt32Math::Mul<sizeof(WCHAR)>((uint32)this->nameSizeInChars);
         this->jitData.displayName = displayName;
 
         this->jitData.interpretedCount = GetInterpretedCount();
+        this->jitData.loopNumber = GetLoopNumber();
     }
 
+    size_t nameSizeInChars;
     Js::LoopHeader * loopHeader;
     typedef JsUtil::BaseDictionary<uint, ValueType, HeapAllocator> SymIdToValueTypeMap;
     SymIdToValueTypeMap *symIdToValueTypeMap;
@@ -399,6 +410,10 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
         {
             HeapDelete(this->symIdToValueTypeMap);
             this->symIdToValueTypeMap = NULL;
+        }
+        if (this->jitData.displayName != nullptr)
+        {
+            HeapDeleteArray(this->GetDisplayName(nullptr, 256), this->jitData.displayName);
         }
     }
 };

@@ -1293,12 +1293,11 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
 
     if (printFixedFieldsTrace)
     {
-        Js::FunctionBody* callerFunctionBody = callInstr->m_func->GetJnFunction();
         Js::FunctionBody* calleeFunctionBody = functionInfo != nullptr && functionInfo->HasBody() ? functionInfo->GetFunctionBody() : nullptr;
         const wchar_t* calleeName = calleeFunctionBody != nullptr ? calleeFunctionBody->GetDisplayName() : L"<unknown>";
 
         Output::Print(L"FixedFields: function %s (%s): considering method <unknown> (%s %s): polymorphic = %d, built-in = %d, ctor = %d, inlined = %d, functionInfo = %p.\n",
-            callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer), calleeName,
+            callInstr->m_func->GetWorkItem()->GetDisplayName(), callInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), calleeName,
             calleeFunctionBody ? calleeFunctionBody->GetDebugNumberSet(debugStringBuffer2) : L"(null)",
             isPolymorphic, isBuiltIn, isCtor, isInlined, functionInfo);
         Output::Flush();
@@ -1316,12 +1315,11 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
 #if TRACE_FIXED_FIELDS
         if (printFixedFieldsTrace)
         {
-            Js::FunctionBody* callerFunctionBody = callInstr->m_func->GetJnFunction();
             Js::FunctionBody* calleeFunctionBody = functionInfo != nullptr && functionInfo->HasBody() ? functionInfo->GetFunctionBody() : nullptr;
             const wchar_t* calleeName = calleeFunctionBody != nullptr ? calleeFunctionBody->GetDisplayName() : L"<unknown>";
 
             Output::Print(L"FixedFields: function %s (%s): %s non-fixed method <unknown> (%s %s), because callee is not single def.\n",
-                callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer),
+                callInstr->m_func->GetWorkItem()->GetDisplayName(), callInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 functionInfo != nullptr ? L"inlining" : L"calling", calleeName,
                 calleeFunctionBody ? calleeFunctionBody->GetDebugNumberSet(debugStringBuffer2) : L"(null)");
             Output::Flush();
@@ -1342,12 +1340,11 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
 #if TRACE_FIXED_FIELDS
         if (printFixedFieldsTrace)
         {
-            Js::FunctionBody* callerFunctionBody = callInstr->m_func->GetJnFunction();
             Js::FunctionBody* calleeFunctionBody = functionInfo != nullptr && functionInfo->HasBody() ? functionInfo->GetFunctionBody() : nullptr;
             const wchar_t* calleeName = calleeFunctionBody != nullptr ? calleeFunctionBody->GetDisplayName() : L"<unknown>";
 
             Output::Print(L"FixedFields: function %s (%s): %s non-fixed method <unknown> (%s %s), because callee does not come from LdMethodFld.\n",
-                callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer),
+                callInstr->m_func->GetWorkItem()->GetDisplayName(), callInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 functionInfo != nullptr ? L"inlining" : L"calling", calleeName,
                 calleeFunctionBody ? calleeFunctionBody->GetDebugNumberSet(debugStringBuffer2) : L"(null)");
             Output::Flush();

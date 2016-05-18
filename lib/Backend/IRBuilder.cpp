@@ -264,15 +264,14 @@ IRBuilder::IsLoopBodyOuterOffset(uint offset) const
         return false;
     }
 
-    JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-    return (offset >= loopBodyCodeGen->loopHeader->endOffset || offset < loopBodyCodeGen->loopHeader->startOffset);
+    return (offset >= m_func->m_workItem->GetLoopHeader()->endOffset || offset < m_func->m_workItem->GetLoopHeader()->startOffset);
 }
 
 uint
 IRBuilder::GetLoopBodyExitInstrOffset() const
 {
     // End of loop body, start of StSlot and Ret instruction at endOffset + 1
-    return ((JsLoopBodyCodeGen*)m_func->m_workItem)->loopHeader->endOffset + 1;
+    return m_func->m_workItem->GetLoopHeader()->endOffset + 1;
 }
 
 Js::RegSlot
@@ -301,7 +300,7 @@ IRBuilder::AddEnvOpndForInnerFrameDisplay(IR::Instr *instr, uint offset)
     {
         IR::RegOpnd *src2Opnd;
         if (envReg == m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg() &&
-            this->m_functionBody->DoStackFrameDisplay() &&
+            m_func->DoStackFrameDisplay() &&
             m_func->IsTopFunc())
         {
             src2Opnd = IR::RegOpnd::New(TyVar, m_func);
@@ -450,8 +449,8 @@ IRBuilder::Build()
             this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(m_func->GetJITFunctionBody()->GetTempCount(), m_tempAlloc);
         }
 #endif
-        JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-        lastOffset = loopBodyCodeGen->loopHeader->endOffset;
+
+        lastOffset = m_func->m_workItem->GetLoopHeader()->endOffset;
         // Ret is created at lastOffset + 1, so we need lastOffset + 2 entries
         offsetToInstructionCount = lastOffset + 2;
 
@@ -2654,20 +2653,16 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             // See we are ending an outer loop and load the return IP to the ProfiledLoopEnd opcode
             // instead of following the normal branch
 
-            // TODO: OOP JIT, JIT loop bodies
-#if 0
             JITLoopHeader * loopHeader = m_func->GetJITFunctionBody()->GetLoopHeaderData(num);
-            JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-            if (m_func->GetJITFunctionBody()->GetLoopHeaderAddr(num) != (intptr_t)loopBodyCodeGen->loopHeader &&
-                JITTimeFunctionBody::LoopContains(loopHeader, loopBodyCodeGen->loopHeader))
+            if (m_func->GetJITFunctionBody()->GetLoopHeaderAddr(num) != m_func->m_workItem->GetLoopHeaderAddr() &&
+                JITTimeFunctionBody::LoopContains(loopHeader, m_func->m_workItem->GetLoopHeader()))
             {
                 this->InsertLoopBodyReturnIPInstr(offset, offset);
             }
             else
             {
-                Assert(loopBodyCodeGen->loopHeader->Contains(loopHeader));
+                Assert(JITTimeFunctionBody::LoopContains(m_func->m_workItem->GetLoopHeader(), loopHeader));
             }
-#endif
             break;
         }
 
@@ -4769,7 +4764,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
 
     case Js::OpCode::NewScObject_A:
         {
-            const Js::VarArrayVarCount *vars = Js::ByteCodeReader::ReadVarArrayVarCount(auxInsn->Offset, m_functionBody);
+            const Js::VarArrayVarCount *vars = Js::ByteCodeReader::ReadVarArrayVarCount(auxInsn->Offset, m_func->GetJnFunction());
 
             int count = Js::TaggedInt::ToInt32(vars->count);
 
@@ -7175,9 +7170,8 @@ IRBuilder::InsertInitLoopBodyLoopCounter(uint loopNum)
 {
     Assert(this->IsLoopBody());
 
-    intptr_t loopHeader = this->m_func->GetJITFunctionBody()->GetLoopHeaderAddr(loopNum);
-    JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-    Assert((intptr_t)loopBodyCodeGen->loopHeader == loopHeader);  //Init only once
+    intptr_t loopHeader = m_func->GetJITFunctionBody()->GetLoopHeaderAddr(loopNum);
+    Assert(m_func->GetWorkItem()->GetLoopHeaderAddr() == loopHeader);  //Init only once
 
     m_loopCounterSym = StackSym::New(TyVar, this->m_func);
 
@@ -7196,17 +7190,17 @@ IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 offset, uint32 a
     switch (auxArrayType)
     {
     case AuxArrayValue::AuxPropertyIdArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadPropertyIdArray(auxArrayOffset, m_functionBody, extraSlots), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadPropertyIdArray(auxArrayOffset, m_func->GetJnFunction(), extraSlots), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxIntArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<int32>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<int32>(auxArrayOffset, m_func->GetJnFunction()), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxFloatArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<double>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<double>(auxArrayOffset, m_func->GetJnFunction()), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxVarsArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<Js::Var>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<Js::Var>(auxArrayOffset, m_func->GetJnFunction()), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxVarArrayVarCount:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadVarArrayVarCount(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadVarArrayVarCount(auxArrayOffset, m_func->GetJnFunction()), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxFuncInfoArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<Js::FuncInfoEntry>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<Js::FuncInfoEntry>(auxArrayOffset, m_func->GetJnFunction()), IR::AddrOpndKindDynamicMisc, m_func);
     default:
         Assert(false);
         return nullptr;

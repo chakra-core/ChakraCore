@@ -5757,7 +5757,9 @@ LowererMD::GenerateClz(IR::Instr * instr)
 void
 LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInsert, bool isHelper)
 {
-    Js::RecyclerJavascriptNumberAllocator * allocator = this->m_lowerer->GetScriptContext()->GetNumberAllocator();
+    size_t alignedAllocSize = Js::RecyclerJavascriptNumberAllocator::GetAlignedAllocSize(
+        m_func->GetScriptContextInfo()->IsRecyclerVerifyEnabled(),
+        m_func->GetScriptContextInfo()->GetRecyclerVerifyPad());
 
     IR::Opnd * endAddressOpnd = m_lowerer->LoadNumberAllocatorValueOpnd(instrInsert, NumberAllocatorValue::NumberAllocatorEndAddress);
     IR::Opnd * freeObjectListOpnd = m_lowerer->LoadNumberAllocatorValueOpnd(instrInsert, NumberAllocatorValue::NumberAllocatorFreeObjectList);
@@ -5769,7 +5771,7 @@ LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInse
     // LEA nextMemBlock, [dst + allocSize]
     IR::RegOpnd * nextMemBlockOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     IR::Instr * loadNextMemBlockInstr = IR::Instr::New(Js::OpCode::LEA, nextMemBlockOpnd,
-        IR::IndirOpnd::New(opndDst, allocator->GetAlignedAllocSize(), TyMachPtr, this->m_func), this->m_func);
+        IR::IndirOpnd::New(opndDst, alignedAllocSize, TyMachPtr, this->m_func), this->m_func);
     instrInsert->InsertBefore(loadNextMemBlockInstr);
 
     // CMP nextMemBlock, allocator->endAddress

@@ -90,8 +90,7 @@ public:
         }
 
         // Note: use original byte code without debugging probes, so that we don't jit BPs inserted by the user.
-        m_functionBody = nullptr; // TODO (michhol): OOP JIT
-        func->m_workItem->InitializeReader(m_jnReader, m_statementReader); // TODO (michhol): bytecode reader
+        func->m_workItem->InitializeReader(m_jnReader, m_statementReader);
     };
 
     ~IRBuilder() {
@@ -317,7 +316,6 @@ private:
     uint32              m_functionStartOffset;
     Js::ByteCodeReader  m_jnReader;
     Js::StatementReader m_statementReader;
-    Js::FunctionBody *  m_functionBody;
     SList<IR::Instr *> *m_argStack;
     SList<BranchReloc*> *branchRelocList;
     SList<uint>         *catchOffsetStack;

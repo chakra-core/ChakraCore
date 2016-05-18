@@ -79,17 +79,30 @@ JITTimeWorkItem::GetCallsCountAddress() const
     return m_workItemData->readOnlyEPData.callsCountAddress;
 }
 
+JITLoopHeader *
+JITTimeWorkItem::GetLoopHeader() const
+{
+    return m_jitBody.GetLoopHeaderData(GetLoopNumber());
+}
+
+intptr_t
+JITTimeWorkItem::GetLoopHeaderAddr() const
+{
+    return m_jitBody.GetLoopHeaderAddr(GetLoopNumber());
+}
+
 void
 JITTimeWorkItem::InitializeReader(
     Js::ByteCodeReader &reader,
     Js::StatementReader &statementReader)
 {
+    uint startOffset = IsLoopBody() ? GetLoopHeader()->startOffset : 0;
 #if DBG
-    reader.Create(m_jitBody.GetByteCodeBuffer(), 0, m_jitBody.GetByteCodeLength());
+    reader.Create(m_jitBody.GetByteCodeBuffer(), startOffset, m_jitBody.GetByteCodeLength());
 #else
-    reader.Create(m_jitBody.GetByteCodeBuffer(), 0);
+    reader.Create(m_jitBody.GetByteCodeBuffer(), startOffset);
 #endif
-    statementReader.Create(m_jitBody.GetByteCodeBuffer(), 0, m_jitBody.GetStatementMapSpanSequence());
+    statementReader.Create(m_jitBody.GetByteCodeBuffer(), startOffset, m_jitBody.GetStatementMapSpanSequence());
 }
 
 JITTimeFunctionBody *

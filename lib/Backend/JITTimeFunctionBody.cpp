@@ -473,11 +473,18 @@ JITTimeFunctionBody::GetRootObject() const
     return m_bodyData->constTable[Js::FunctionBody::RootObjectRegSlot - Js::FunctionBody::FirstRegSlot];
 }
 
+intptr_t
+JITTimeFunctionBody::GetNestedFuncRef(uint index) const
+{
+    Assert(index < GetNestedCount());
+    intptr_t baseAddr = m_bodyData->nestedFuncArrayAddr;
+    return baseAddr + (index * sizeof(void*));
+}
 
 intptr_t
 JITTimeFunctionBody::GetLoopHeaderAddr(uint loopNum) const
 {
-    Assert(GetLoopCount() < loopNum);
+    Assert(loopNum < GetLoopCount());
     intptr_t baseAddr = m_bodyData->loopHeaderArrayAddr;
     return baseAddr + (loopNum * sizeof(Js::LoopHeader));
 }
@@ -485,7 +492,7 @@ JITTimeFunctionBody::GetLoopHeaderAddr(uint loopNum) const
 JITLoopHeader *
 JITTimeFunctionBody::GetLoopHeaderData(uint loopNum) const
 {
-    Assert(GetLoopCount() < loopNum);
+    Assert(loopNum < GetLoopCount());
     return &m_bodyData->loopHeaders[loopNum];
 }
 

@@ -115,8 +115,7 @@ IRBuilderAsmJs::Build()
             this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(funcBody->GetTempCount(), m_tempAlloc);
         }
 #endif
-        JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-        lastOffset = loopBodyCodeGen->loopHeader->endOffset;
+        lastOffset = m_func->GetWorkItem()->GetLoopHeader()->endOffset;
         // Ret is created at lastOffset + 1, so we need lastOffset + 2 entries
         offsetToInstructionCount = lastOffset + 2;
     }
@@ -2844,15 +2843,14 @@ IRBuilderAsmJs::IsLoopBodyOuterOffset(uint offset) const
         return false;
     }
 
-    JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
-    return (offset >= loopBodyCodeGen->loopHeader->endOffset || offset < loopBodyCodeGen->loopHeader->startOffset);
+    return (offset >= m_func->GetWorkItem()->GetLoopHeader()->endOffset || offset < m_func->GetWorkItem()->GetLoopHeader()->startOffset);
 }
 
 uint
 IRBuilderAsmJs::GetLoopBodyExitInstrOffset() const
 {
     // End of loop body, start of StSlot and Ret instruction at endOffset + 1
-    return ((JsLoopBodyCodeGen*)m_func->m_workItem)->loopHeader->endOffset + 1;
+    return m_func->GetWorkItem()->GetLoopHeader()->endOffset + 1;
 }
 
 IR::Instr *

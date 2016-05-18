@@ -73,6 +73,8 @@ public:
     const byte * GetByteCodeBuffer() const;
     Js::SmallSpanSequence * GetStatementMapSpanSequence();
 
+
+    intptr_t GetNestedFuncRef(uint index) const;
     intptr_t GetConstantVar(Js::RegSlot location) const;
     intptr_t GetInlineCache(uint index) const;
     intptr_t GetIsInstInlineCache(uint index) const;

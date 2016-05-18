@@ -98,6 +98,14 @@ CodeGenWorkItem::CodeGenWorkItem(
     this->jitData.bodyData.localFuncId = functionBody->GetLocalFunctionId();
     this->jitData.bodyData.sourceContextId = functionBody->GetSourceContextId();
     this->jitData.bodyData.nestedCount = functionBody->GetNestedCount();
+    if (functionBody->GetNestedCount() > 0)
+    {
+        this->jitData.bodyData.nestedFuncArrayAddr = (intptr_t)functionBody->GetNestedFuncArray();
+    }
+    else
+    {
+        this->jitData.bodyData.nestedFuncArrayAddr = 0;
+    }
     this->jitData.bodyData.scopeSlotArraySize = functionBody->scopeSlotArraySize;
     this->jitData.bodyData.attributes = functionBody->GetAttributes();
     this->jitData.bodyData.isInstInlineCacheCount = functionBody->GetIsInstInlineCacheCount();
@@ -119,9 +127,11 @@ CodeGenWorkItem::CodeGenWorkItem(
         this->jitData.bodyData.loopHeaders = HeapNewArray(JITLoopHeader, functionBody->GetLoopCount());
         for (uint i = 0; i < functionBody->GetLoopCount(); ++i)
         {
-            this->jitData.bodyData.loopHeaders->startOffset = functionBody->GetLoopHeader(i)->startOffset;
-            this->jitData.bodyData.loopHeaders->endOffset = functionBody->GetLoopHeader(i)->endOffset;
-            this->jitData.bodyData.loopHeaders->isNested = functionBody->GetLoopHeader(i)->isNested;
+            this->jitData.bodyData.loopHeaders[i].startOffset = functionBody->GetLoopHeader(i)->startOffset;
+            this->jitData.bodyData.loopHeaders[i].endOffset = functionBody->GetLoopHeader(i)->endOffset;
+            this->jitData.bodyData.loopHeaders[i].isNested = functionBody->GetLoopHeader(i)->isNested;
+            this->jitData.bodyData.loopHeaders[i].isInTry = functionBody->GetLoopHeader(i)->isInTry;
+            this->jitData.bodyData.loopHeaders[i].interpretCount = functionBody->GetLoopInterpretCount(functionBody->GetLoopHeader(i));
         }
     }
     else
@@ -178,8 +188,6 @@ CodeGenWorkItem::CodeGenWorkItem(
     this->jitData.type = type;
     this->jitData.isJitInDebugMode = isJitInDebugMode;
     ResetJitMode();
-
-    this->jitData.loopNumber = GetLoopNumber();
 }
 
 CodeGenWorkItem::~CodeGenWorkItem()
@@ -187,6 +195,15 @@ CodeGenWorkItem::~CodeGenWorkItem()
     if(queuedFullJitWorkItem)
     {
         HeapDelete(queuedFullJitWorkItem);
+    }
+    if (this->jitData.bodyData.constTypeTable != nullptr)
+    {
+        HeapDeleteArray(this->functionBody->GetConstantCount(), this->jitData.bodyData.constTypeTable);
+        
+    }
+    if (this->jitData.bodyData.loopHeaders != nullptr)
+    {
+        HeapDeleteArray(functionBody->GetLoopCount(), this->jitData.bodyData.loopHeaders);
     }
 }
 

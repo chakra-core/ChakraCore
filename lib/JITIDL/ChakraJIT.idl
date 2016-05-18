@@ -141,6 +141,9 @@ typedef struct ScriptContextData
     __int3264 objectTypeAddr;
     __int3264 objectHeaderInlinedTypeAddr;
     __int3264 regexTypeAddr;
+    __int3264 arrayTypeAddr;
+    __int3264 nativeIntArrayTypeAddr;
+    __int3264 nativeFloatArrayTypeAddr;
     __int3264 arrayConstructorAddr;
     __int3264 charStringCacheAddr;
     __int3264 libraryAddr;
@@ -148,6 +151,10 @@ typedef struct ScriptContextData
     __int3264 arraySetElementFastPathVtableAddr;
     __int3264 intArraySetElementFastPathVtableAddr;
     __int3264 floatArraySetElementFastPathVtableAddr;
+    __int3264 numberAllocatorAddr;
+    __int3264 recyclerAddr;
+    unsigned int recyclerVerifyPad;
+    boolean isRecyclerVerifyEnabled;
 } ScriptContextData;
 
 typedef struct SmallSpanSequenceData
@@ -161,9 +168,11 @@ typedef struct SmallSpanSequenceData
 
 typedef struct JITLoopHeader
 {
+    unsigned int interpretCount;
     unsigned int startOffset;
     unsigned int endOffset;
     boolean isNested;
+    boolean isInTry;
 } JITLoopHeader;
 
 // FunctionBody fields, read only in JIT
@@ -196,6 +205,7 @@ typedef struct FunctionBodyJITData
     __int3264 regAllocStoreCountAddr;
     __int3264 regAllocLoadCountAddr;
     __int3264 callCountStatsAddr;
+    __int3264 nestedFuncArrayAddr;
 
     unsigned int funcNumber;
     unsigned int localFuncId;

@@ -2338,26 +2338,16 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     m_lowererMD.LowerCall(isCodeGenDone, 0);
                     this->InsertBranch(LowererMD::MDUncondBranchOpcode, true, checkDoBailout, entryPointIsNull);
 
-                    // If the entry point is null
-                    auto head = m_func->GetJnFunction()->GetLoopHeader(loopNum);
-                    Assert(head);
-
-                    static_assert(sizeof(head->interpretCount) == 4, "Change the type in the following line");
                     const auto type = TyUint32;
-
                     auto countReg = IR::RegOpnd::New(type, m_func);
-                    auto countAddr = IR::MemRefOpnd::New(&head->interpretCount, type, m_func);
+                    auto countAddr = IR::MemRefOpnd::New(m_func->GetJITFunctionBody()->GetLoopHeaderAddr(loopNum) + Js::LoopHeader::GetOffsetOfInterpretCount(), type, m_func);
                     IR::AutoReuseOpnd a(countReg, m_func), b(countAddr, m_func);
                     this->InsertAdd(false, countReg, countAddr, IR::IntConstOpnd::New(1, type, m_func, true), checkDoBailout);
                     this->InsertMove(countAddr, countReg, checkDoBailout);
 
                     this->InsertMove(dobailout, IR::IntConstOpnd::New(0, dobailoutType, m_func, true), checkDoBailout);
 
-                    // GetLoopInterpretCount() is a dynamic quantity. It's computed at simple-JIT time here, but that's okay
-                    // because there would have been sufficient iterations in interpreted mode to get a reasonable value.
-                    const auto threshold = instr->m_func->GetJnFunction()->GetLoopInterpretCount(head);
-
-                    this->InsertCompareBranch(countReg, IR::IntConstOpnd::New(threshold, type, m_func), Js::OpCode::BrLt_A, checkDoBailout, checkDoBailout);
+                    this->InsertCompareBranch(countReg, IR::IntConstOpnd::New(m_func->GetJITFunctionBody()->GetLoopHeaderData(loopNum)->interpretCount, type, m_func), Js::OpCode::BrLt_A, checkDoBailout, checkDoBailout);
                     this->InsertMove(dobailout, IR::IntConstOpnd::New(1, dobailoutType, m_func, true), checkDoBailout);
                     // fallthrough
 
@@ -3024,13 +3014,13 @@ Lowerer::LoadScriptContextOpnd(IR::Instr * instr)
 IR::Opnd *
 Lowerer::LoadScriptContextValueOpnd(IR::Instr * instr, ScriptContextValue valueType)
 {
-    Js::ScriptContext *scriptContext = instr->m_func->GetScriptContext();
+    ScriptContextInfo *scriptContextInfo = instr->m_func->GetScriptContextInfo();
     switch (valueType)
     {
     case ScriptContextValue::ScriptContextNumberAllocator:
-        return IR::AddrOpnd::New(scriptContext->GetNumberAllocator(), IR::AddrOpndKindDynamicMisc, instr->m_func);
+        return IR::AddrOpnd::New(scriptContextInfo->GetNumberAllocatorAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func);
     case ScriptContextValue::ScriptContextRecycler:
-        return IR::AddrOpnd::New(scriptContext->GetRecycler(), IR::AddrOpndKindDynamicMisc, instr->m_func);
+        return IR::AddrOpnd::New(scriptContextInfo->GetRecyclerAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func);
     default:
         Assert(false);
         return nullptr;
@@ -3071,11 +3061,11 @@ Lowerer::LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType, RegNum 
     case LibraryValue::ValueArrayConstructor:
         return IR::AddrOpnd::New(scriptContextInfo->GetArrayConstructorAddr(), IR::AddrOpndKindDynamicVar, instr->m_func);
     case LibraryValue::ValueJavascriptArrayType:
-        return IR::AddrOpnd::New(Js::JavascriptArray::GetInitialType(nullptr), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(scriptContextInfo->GetArrayTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueNativeIntArrayType:
-        return IR::AddrOpnd::New(Js::JavascriptNativeIntArray::GetInitialType(nullptr), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(scriptContextInfo->GetNativeIntArrayTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueNativeFloatArrayType:
-        return IR::AddrOpnd::New(Js::JavascriptNativeFloatArray::GetInitialType(nullptr), IR::AddrOpndKindDynamicType, instr->m_func);
+        return IR::AddrOpnd::New(scriptContextInfo->GetNativeFloatArrayTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueConstructorCacheDefaultInstance:
         return IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetConstructorCacheDefaultInstanceAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func);
     case LibraryValue::ValueAbsDoubleCst:
@@ -3566,9 +3556,7 @@ Lowerer::LowerNewScArray(IR::Instr *arrInstr)
         Assert(weakFuncRef);
 
         Js::ProfileId profileId = static_cast<Js::ProfileId>(arrInstr->AsProfiledInstr()->u.profileId);
-        Js::FunctionBody *functionBody = arrInstr->m_func->GetJnFunction();
-        Js::DynamicProfileInfo *profileInfo = functionBody->GetAnyDynamicProfileInfo();
-        Js::ArrayCallSiteInfo *arrayInfo = profileInfo->GetArrayCallSiteInfo(functionBody, profileId);
+        Js::ArrayCallSiteInfo *arrayInfo = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
 
 
         Assert(arrInstr->GetSrc1()->IsConstOpnd());
@@ -3787,8 +3775,7 @@ Lowerer::GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteI
 #if DBG
     if (instr->AsProfiledInstr()->u.profileId < Js::Constants::NoProfileId)
     {
-        Js::FunctionBody * functionBody = instr->m_func->GetJnFunction();
-        Assert((uint32)(arrayInfo - functionBody->GetAnyDynamicProfileInfo()->GetArrayCallSiteInfo(functionBody, 0)) == arrayCallSiteIndex);
+        Assert((uint32)(arrayInfo - instr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(0)) == arrayCallSiteIndex);
     }
     else
     {
@@ -4025,14 +4012,13 @@ Lowerer::LowerNewScIntArray(IR::Instr *arrInstr)
         RecyclerWeakReference<Js::FunctionBody> *weakFuncRef = arrInstr->m_func->GetWeakFuncRef();
         if (weakFuncRef)
         {
-            Js::FunctionBody *functionBody = arrInstr->m_func->GetJnFunction();
             // Technically a load of the same memory address either way.
             Js::ProfileId profileId =
                 arrInstr->IsJitProfilingInstr()
                     ? arrInstr->AsJitProfilingInstr()->profileId
                     : static_cast<Js::ProfileId>(arrInstr->AsProfiledInstr()->u.profileId);
             Js::ArrayCallSiteInfo *arrayInfo =
-                functionBody->GetAnyDynamicProfileInfo()->GetArrayCallSiteInfo(functionBody, profileId);
+                arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
 
             // Only do fast-path if it isn't a JitProfiling instr and not copy-on-access array
             if (arrInstr->IsProfiledInstr()
@@ -4072,9 +4058,8 @@ Lowerer::LowerNewScFltArray(IR::Instr *arrInstr)
                     ? arrInstr->AsJitProfilingInstr()->profileId
                     : static_cast<Js::ProfileId>(arrInstr->AsProfiledInstr()->u.profileId);
 
-            Js::FunctionBody *functionBody = arrInstr->m_func->GetJnFunction();
             Js::ArrayCallSiteInfo *arrayInfo =
-                functionBody->GetAnyDynamicProfileInfo()->GetArrayCallSiteInfo(functionBody, profileId);
+                arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
 
             // Only do fast-path if it isn't a JitProfiling instr
             if (arrInstr->IsProfiledInstr()) {
@@ -4922,8 +4907,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
     // We may not have profileId if we converted a NewScObject to NewScObjArray
     if (profileId != Js::Constants::NoProfileId)
     {
-        Js::FunctionBody *functionBody = func->GetJnFunction();
-        arrayInfo = functionBody->GetAnyDynamicProfileInfo()->GetArrayCallSiteInfo(functionBody, profileId);
+        arrayInfo = func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
         Assert(arrayInfo);
         weakFuncRef = func->GetWeakFuncRef();
         Assert(weakFuncRef);
@@ -5025,8 +5009,7 @@ Lowerer::LowerNewScObjArrayNoArg(IR::Instr *newObjInstr)
     Js::ProfileId profileId = static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId);
     if (profileId != Js::Constants::NoProfileId)
     {
-        Js::FunctionBody *functionBody = func->GetJnFunction();
-        arrayInfo = functionBody->GetAnyDynamicProfileInfo()->GetArrayCallSiteInfo(functionBody, profileId);
+        arrayInfo = func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
         Assert(arrayInfo);
         weakFuncRef = func->GetWeakFuncRef();
         Assert(weakFuncRef);
@@ -5303,9 +5286,9 @@ Lowerer::LoadFunctionBodyAsArgument(IR::Instr *instr, IR::IntConstOpnd * functio
     // At which point the deferred function proxy may be collect.
     // Just pass it the address where we will find the function proxy/body
 
-    Js::FunctionProxyPtrPtr proxyRef = instr->m_func->GetJnFunction()->GetNestedFuncReference((uint)functionBodySlotOpnd->GetValue());
+    intptr_t proxyRef = instr->m_func->GetJITFunctionBody()->GetNestedFuncRef((uint)functionBodySlotOpnd->GetValue());
     AssertMsg(proxyRef, "Expected FunctionProxy for index of NewScFunc or NewScGenFunc opnd");
-    AssertMsg(*proxyRef, "Expected FunctionProxy for index of NewScFunc or NewScGenFunc opnd");
+    //AssertMsg(*proxyRef, "Expected FunctionProxy for index of NewScFunc or NewScGenFunc opnd");
 
     IR::AddrOpnd * indexOpnd = IR::AddrOpnd::New((Js::Var)proxyRef, IR::AddrOpndKindDynamicMisc, m_func);
     instrPrev = m_lowererMD.LoadHelperArgument(instr, indexOpnd);
@@ -5993,7 +5976,7 @@ Lowerer::LowerIsInst(IR::Instr * isInstInstr, IR::JnHelperMethod helperMethod)
 }
 
 void
-Lowerer::GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionProxyPtrPtr nestedProxy)
+Lowerer::GenerateStackScriptFunctionInit(StackSym * stackSym, intptr_t nestedProxy)
 {
     Func * func = this->m_func;
     Assert(func->HasAnyStackNestedFunc());
@@ -6017,21 +6000,23 @@ Lowerer::GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionProxyP
 
 void
 Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddressOpnd,
-    Js::FunctionProxyPtrPtr nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr, bool isZeroed)
+    intptr_t nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr, bool isZeroed)
 {
     Func * func = this->m_func;
     IR::Opnd * functionProxyOpnd;
-    Js::FunctionProxy * functionProxy = *nestedProxy;
+    //Js::FunctionProxy * functionProxy = *nestedProxy;
     IR::Opnd * typeOpnd = nullptr;
     bool doCheckTypeOpnd = true;
-    if (functionProxy->IsDeferred())
+    //if (functionProxy->IsDeferred())
     {
         functionProxyOpnd = IR::RegOpnd::New(TyMachPtr, func);
-        InsertMove(functionProxyOpnd, IR::MemRefOpnd::New((Js::FunctionProxy**) nestedProxy, TyMachPtr, func), insertBeforeInstr);
+        InsertMove(functionProxyOpnd, IR::MemRefOpnd::New(nestedProxy, TyMachPtr, func), insertBeforeInstr);
         typeOpnd = IR::RegOpnd::New(TyMachPtr, func);
         InsertMove(typeOpnd, IR::IndirOpnd::New(functionProxyOpnd->AsRegOpnd(), Js::FunctionProxy::GetOffsetOfDeferredPrototypeType(),
             TyMachPtr, func), insertBeforeInstr);
     }
+#if 0
+    // TODO: oop jit, make this work
     else
     {
         Js::FunctionBody * functionBody = functionProxy->GetFunctionBody();
@@ -6050,6 +6035,7 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
                 insertBeforeInstr);
         }
     }
+#endif
 
     if (doCheckTypeOpnd)
     {
@@ -6081,7 +6067,7 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
 }
 
 void
-Lowerer::GenerateStackScriptFunctionInit(IR::RegOpnd * regOpnd, Js::FunctionProxyPtrPtr nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr)
+Lowerer::GenerateStackScriptFunctionInit(IR::RegOpnd * regOpnd, intptr_t nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr)
 {
     Func * func = this->m_func;
     GenerateScriptFunctionInit(regOpnd,
@@ -6132,7 +6118,7 @@ Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr)
     uint index = newScFuncInstr->GetSrc1()->AsIntConstOpnd()->AsUint32();
     Assert(index < func->GetJnFunction()->GetNestedCount());
 
-    Js::FunctionProxyPtrPtr nestedProxy = func->GetJnFunction()->GetNestedFuncReference(index);
+    intptr_t nestedProxy = func->GetJITFunctionBody()->GetNestedFuncRef(index);
     // the stackAllocate Call below for this sym is passing a size that is not represented by any IRType and hence passing TyMisc for the constructor
     StackSym * stackSym = StackSym::New(TyMisc, func);
     // ScriptFunction and it's next pointer
@@ -9181,7 +9167,7 @@ Lowerer::LowerElementUndefinedScopedMem(IR::Instr * instr, IR::JnHelperMethod he
 void
 Lowerer::LowerStLoopBodyCount(IR::Instr* instr)
 {
-    Js::LoopHeader *header = ((JsLoopBodyCodeGen*)m_func->m_workItem)->loopHeader;
+    intptr_t header = m_func->m_workItem->GetLoopHeaderAddr();
 
     IR::MemRefOpnd *loopBodyCounterOpnd = IR::MemRefOpnd::New((BYTE*)(header) + Js::LoopHeader::GetOffsetOfProfiledLoopCounter(), TyUint32, this->m_func);
     instr->SetDst(loopBodyCounterOpnd);

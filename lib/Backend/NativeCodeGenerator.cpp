@@ -196,9 +196,9 @@ NativeCodeGenerator::NewFunctionCodeGen(Js::FunctionBody *functionBody, Js::Entr
 }
 
 JsLoopBodyCodeGen *
-NativeCodeGenerator::NewLoopBodyCodeGen(Js::FunctionBody *functionBody, Js::EntryPointInfo* info)
+NativeCodeGenerator::NewLoopBodyCodeGen(Js::FunctionBody *functionBody, Js::EntryPointInfo* info, Js::LoopHeader * loopHeader)
 {
-    return HeapNewNoThrow(JsLoopBodyCodeGen, this, functionBody, info, this->IsInDebugMode());
+    return HeapNewNoThrow(JsLoopBodyCodeGen, this, functionBody, info, this->IsInDebugMode(), loopHeader);
 }
 
 #ifdef ENABLE_PREJIT
@@ -639,7 +639,7 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
         loopEntryPointInfo->SetIsAsmJSFunction(true);
         loopEntryPointInfo->SetModuleAddress(functionEntryPointInfo->GetModuleAddress());
     }
-    JsLoopBodyCodeGen * workitem = this->NewLoopBodyCodeGen(fn, entryPoint);
+    JsLoopBodyCodeGen * workitem = this->NewLoopBodyCodeGen(fn, entryPoint, loopHeader);
     if (!workitem)
     {
         // OOM, just skip this work item and return.
@@ -647,8 +647,6 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
     }
 
     entryPoint->SetCodeGenPending(workitem);
-
-    workitem->loopHeader = loopHeader;
 
     try
     {
@@ -857,10 +855,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #endif
 #endif
 
-    NoRecoverMemoryJitArenaAllocator funcAlloc(L"BE-FuncAlloc", pageAllocator, Js::Throw::OutOfMemory);
-    Js::ReadOnlyDynamicProfileInfo profileInfo(
-        body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr,
-        foreground ? nullptr : &funcAlloc);
     bool rejit;
     ThreadContext *threadContext = scriptContext->GetThreadContext();
     double startTime = threadContext->JITTelemetry.Now();
@@ -996,8 +990,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 foreground? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
                 scriptContext->GetRecycler());
 
-            JITTimeWorkItem * jitWorkItem = JitAnew(&funcAlloc, JITTimeWorkItem, workItem->GetJITData());
-
             auto funcEPInfo = (Js::FunctionEntryPointInfo*)workItem->GetEntryPoint();
             workItem->GetJITData()->readOnlyEPData.callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
 
@@ -1081,7 +1073,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 LARGE_INTEGER end_time;
                 QueryPerformanceCounter(&end_time);
                 QueryPerformanceFrequency(&freq);
-                if (jitWorkItem->IsLoopBody())
+                if (workItem->GetEntryPoint()->IsLoopBody())
                 {
                     Output::Print(
                         L"EndBackEnd - function: %s (%s, line %u), loop: %u, mode: %S, time:%8.6f mSec",
@@ -1127,11 +1119,12 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         }
         catch(Js::RejitException ex)
         {
+            // TODO: OOP JIT, implement RejitException support
             // The work item needs to be rejitted, likely due to some optimization that was too aggressive
             if(ex.Reason() == RejitReason::AggressiveIntTypeSpecDisabled)
             {
                 const bool isJitLoopBody = workItem->Type() == JsLoopBodyWorkItemType;
-                profileInfo.DisableAggressiveIntTypeSpec(isJitLoopBody);
+                //profileInfo.DisableAggressiveIntTypeSpec(isJitLoopBody);
                 if (body->HasDynamicProfileInfo())
                 {
                     body->GetAnyDynamicProfileInfo()->DisableAggressiveIntTypeSpec(isJitLoopBody);
@@ -1148,7 +1141,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             else if(ex.Reason() == RejitReason::DisableSwitchOptExpectingInteger ||
                 ex.Reason() == RejitReason::DisableSwitchOptExpectingString)
             {
-                profileInfo.DisableSwitchOpt();
+                //profileInfo.DisableSwitchOpt();
                 if(body->HasDynamicProfileInfo())
                 {
                     body->GetAnyDynamicProfileInfo()->DisableSwitchOpt();
@@ -1157,7 +1150,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             else
             {
                 Assert(ex.Reason() == RejitReason::TrackIntOverflowDisabled);
-                profileInfo.DisableTrackCompoundedIntOverflow();
+                //profileInfo.DisableTrackCompoundedIntOverflow();
                 if(body->HasDynamicProfileInfo())
                 {
                     body->GetAnyDynamicProfileInfo()->DisableTrackCompoundedIntOverflow();
@@ -1175,10 +1168,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             }
 
             rejit = true;
-            funcAlloc.Reset();
             if(!foreground)
             {
-                profileInfo.OnBackgroundAllocatorReset();
+                //profileInfo.OnBackgroundAllocatorReset();
             }
         }
 

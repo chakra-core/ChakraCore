@@ -20,6 +20,9 @@ public:
     uint GetInterpretedCount() const;
     uint GetLoopNumber() const;
 
+    JITLoopHeader * GetLoopHeader() const;
+    intptr_t GetLoopHeaderAddr() const;
+
     bool IsLoopBody() const;
     bool IsJitInDebugMode() const;
     
@@ -34,7 +37,6 @@ public:
 private:
     CodeGenWorkItemJITData * m_workItemData;
     JITTimeFunctionBody m_jitBody;
-
 
 
 public: // TODO: (michhol) remove these. currently needed to compile

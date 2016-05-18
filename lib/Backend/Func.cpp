@@ -228,7 +228,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 bool
 Func::IsLoopBodyInTry() const
 {
-    return IsLoopBody() && ((JsLoopBodyCodeGen*)this->m_workItem)->loopHeader->isInTry;
+    return IsLoopBody() && m_workItem->GetLoopHeader()->isInTry;
 }
 
 ///----------------------------------------------------------------------------
@@ -396,7 +396,7 @@ Func::Codegen()
 
         END_CODEGEN_PHASE_NO_DUMP(this, Js::EncoderPhase);
 #if DBG
-        Dump();
+        //Dump();
 #endif
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::EncoderPhase);

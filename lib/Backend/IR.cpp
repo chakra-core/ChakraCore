@@ -3437,9 +3437,8 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
             }
             case Js::TypeIds_Number:
             {
-#if 0
                 // TODO (michhol): OOP JIT. we may need to unbox before sending over const table
-                srcOpnd = IR::FloatConstOpnd::New(varConst, TyFloat64, func);
+                srcOpnd = IR::FloatConstOpnd::New((Js::Var)varConst, TyFloat64, func);
                 instr = IR::Instr::New(Js::OpCode::LdC_A_R8, dstOpnd, srcOpnd, func);
                 if (dstOpnd->m_sym->IsSingleDef())
                 {
@@ -3453,9 +3452,6 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
                     dstOpnd->m_sym->m_isNotInt = !Js::JavascriptNumber::IsInt32OrUInt32_NoChecks(varConst);
 #endif
                 }
-#else
-                instr = nullptr;
-#endif
                 break;
             }
             case Js::TypeIds_Undefined:

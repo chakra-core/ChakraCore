@@ -3424,15 +3424,15 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             {
                 WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_FloatArraySetElementFastPathVtable)");
             }
-#if 0 // TODO: michhol reenable dump of addresses
-            else if (address == func->GetScriptContext()->GetNumberAllocator())
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetNumberAllocatorAddr())
             {
                 WriteToBuffer(&buffer, &n, L" (NumberAllocator)");
             }
-            else if (address == func->GetScriptContext()->GetRecycler())
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetRecyclerAddr())
             {
                 WriteToBuffer(&buffer, &n, L" (Recycler)");
             }
+#if 0 // TODO: michhol reenable dump of addresses
             else if (func->CanAllocInPreReservedHeapPageSegment() &&
                 func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedRegionPresent() &&
                 address == func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->GetPreReservedEndAddress())

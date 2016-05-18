@@ -91,6 +91,26 @@ ScriptContextInfo::GetRegexTypeAddr() const
 }
 
 intptr_t
+ScriptContextInfo::GetArrayTypeAddr() const
+{
+    return m_contextData.arrayTypeAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetNativeIntArrayTypeAddr() const
+{
+    return m_contextData.nativeIntArrayTypeAddr;
+
+}
+
+intptr_t
+ScriptContextInfo::GetNativeFloatArrayTypeAddr() const
+{
+    return m_contextData.nativeFloatArrayTypeAddr;
+
+}
+
+intptr_t
 ScriptContextInfo::GetArrayConstructorAddr() const
 {
     return m_contextData.arrayConstructorAddr;
@@ -133,6 +153,18 @@ ScriptContextInfo::GetLibraryAddr() const
 }
 
 intptr_t
+ScriptContextInfo::GetNumberAllocatorAddr() const
+{
+    return m_contextData.numberAllocatorAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetRecyclerAddr() const
+{
+    return m_contextData.recyclerAddr;
+}
+
+intptr_t
 ScriptContextInfo::GetAddr() const
 {
     return m_contextData.scriptContextAddr;
@@ -143,6 +175,18 @@ ScriptContextInfo::GetVTableAddress(VTableValue vtableType) const
 {
     Assert(vtableType < VTableValue::Count);
     return m_contextData.vtableAddresses[vtableType];
+}
+
+bool
+ScriptContextInfo::IsRecyclerVerifyEnabled() const
+{
+    return m_contextData.isRecyclerVerifyEnabled != FALSE;
+}
+
+uint
+ScriptContextInfo::GetRecyclerVerifyPad() const
+{
+    return m_contextData.recyclerVerifyPad;
 }
 
 bool
