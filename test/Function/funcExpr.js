@@ -194,7 +194,20 @@ var Test22 = function F_Test22()
     return e;
 }
 
-var numTests = 23;
+var Test23 = function F_Test23() {
+    var x = 1;
+    new (function g() { 
+        with({}) { 
+            WScript.Echo('typeof g === ' + typeof g);
+            WScript.Echo('typeof F_Test23 === ' + typeof F_Test23);
+            WScript.Echo('typeof x === ' + typeof x);
+            if (!x) 
+                g(); 
+        } 
+    } );
+}
+
+var numTests = 24;
 
 for (var i=0;i<numTests;i++)
 {

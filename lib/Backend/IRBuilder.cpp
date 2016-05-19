@@ -540,24 +540,7 @@ IRBuilder::Build()
             this->AddInstr(instr, offset);
         }
 
-        Js::RegSlot frameDisplayReg = funcBody->GetLocalFrameDisplayRegister();
         Js::RegSlot funcExprScopeReg = funcBody->GetFuncExprScopeRegister();
-        IR::RegOpnd *frameDisplayOpnd = nullptr;
-        if (funcExprScopeReg != Js::Constants::NoRegister)
-        {
-            IR::RegOpnd *funcExprScopeOpnd = BuildDstOpnd(funcExprScopeReg);
-            instr = IR::Instr::New(Js::OpCode::NewPseudoScope, funcExprScopeOpnd, m_func);
-            this->AddInstr(instr, (uint)-1);
-
-            frameDisplayOpnd = BuildDstOpnd(frameDisplayReg);
-            instr = IR::Instr::New(Js::OpCode::LdFrameDisplay, frameDisplayOpnd, funcExprScopeOpnd, m_func);
-            if (envReg != Js::Constants::NoRegister)
-            {
-                instr->SetSrc2(BuildSrcOpnd(envReg));
-            }
-            this->AddInstr(instr, (uint)-1);
-        }
-
         Js::RegSlot closureReg = funcBody->GetLocalClosureRegister();
         IR::RegOpnd *closureOpnd = nullptr;
         if (closureReg != Js::Constants::NoRegister)
@@ -573,6 +556,13 @@ IRBuilder::Build()
             }
             if (funcBody->HasScopeObject())
             {
+                if (funcExprScopeReg != Js::Constants::NoRegister)
+                {
+                    IR::RegOpnd *funcExprScopeOpnd = BuildDstOpnd(funcExprScopeReg);
+                    instr = IR::Instr::New(Js::OpCode::NewPseudoScope, funcExprScopeOpnd, m_func);
+                    this->AddInstr(instr, (uint)-1);
+                }
+
                 if (funcBody->HasCachedScopePropIds())
                 {
                     this->BuildInitCachedScope(0, offset);
@@ -616,11 +606,25 @@ IRBuilder::Build()
             }
         }
 
+        Js::RegSlot frameDisplayReg = funcBody->GetLocalFrameDisplayRegister();
         if (frameDisplayReg != Js::Constants::NoRegister && closureReg != Js::Constants::NoRegister)
         {
             Assert(!this->RegIsConstant(frameDisplayReg));
 
             Js::OpCode op = m_func->DoStackScopeSlots() ? Js::OpCode::NewStackFrameDisplay : Js::OpCode::LdFrameDisplay;
+            IR::RegOpnd * frameDisplayOpnd = nullptr;
+            if (funcExprScopeReg != Js::Constants::NoRegister)
+            {
+                // Insert the function expression scope ahead of any enclosing scopes.
+                IR::RegOpnd * funcExprScopeOpnd = BuildSrcOpnd(funcExprScopeReg);
+                frameDisplayOpnd = IR::RegOpnd::New(TyVar, m_func);
+                instr = IR::Instr::New(Js::OpCode::LdFrameDisplay, frameDisplayOpnd, funcExprScopeOpnd, m_func);
+                if (envReg != Js::Constants::NoRegister)
+                {
+                    instr->SetSrc2(this->BuildSrcOpnd(envReg));
+                }
+                this->AddInstr(instr, (uint)-1);
+            }
 
             IR::RegOpnd *dstOpnd;
             if (m_func->DoStackScopeSlots() && m_func->IsTopFunc())
@@ -634,10 +638,12 @@ IRBuilder::Build()
             IR::Instr *instr = IR::Instr::New(op, dstOpnd, closureOpnd, m_func);
             if (frameDisplayOpnd != nullptr)
             {
+                // We're building on an intermediate LdFrameDisplay result.
                 instr->SetSrc2(frameDisplayOpnd);
             }
             else if (envReg != Js::Constants::NoRegister)
             {
+                // We're building on the environment created by the enclosing function.
                 instr->SetSrc2(this->BuildSrcOpnd(envReg));
             }
             this->AddInstr(instr, offset);
