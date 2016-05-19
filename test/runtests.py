@@ -62,6 +62,9 @@ repo_root = os.path.dirname(test_root)
 arch = 'x86' if args.x86 else ('x64' if args.x64 else None)
 if arch == None:
     arch = os.environ.get('_BuildArch', 'x86')
+if sys.platform != 'win32':
+    arch = 'x64'    # xplat: hard code arch == x64
+arch_alias = 'amd64' if arch == 'x64' else None
 
 # flavor: debug, test, release
 type_flavor = {'chk':'debug', 'test':'test', 'fre':'release'}
@@ -83,7 +86,9 @@ if not os.path.isfile(binary):
 
 # global tags/not_tags
 tags = set(args.tag or [])
-not_tags = set(args.not_tag or []).union(['fail'])
+not_tags = set(args.not_tag or []).union(['fail', 'exclude_' + arch])
+if arch_alias:
+    not_tags.add('exclude_' + arch_alias)
 if args.only_slow:
     tags.add('Slow')
 elif not args.include_slow:
@@ -134,8 +139,6 @@ class TestResult(PassFailCount):
 #   interpreted: -maxInterpretCount:1 -maxSimpleJitRunCount:1 -bgjit-
 #   dynapogo: -forceNative -off:simpleJit -bgJitDelay:0
 class TestVariant(object):
-    MSG_PRINT = 0
-    MSG_TEST_RESULT = 1
     _empty_set = set()
 
     def __init__(self, name, compile_flags=[]):
@@ -144,10 +147,11 @@ class TestVariant(object):
             ['-WERExceptionSupport', '-ExtendedErrorStackForTestHost'] + compile_flags
         self.tags = tags.copy()
         self.not_tags = not_tags.union(
-            ['{}_{}'.format(x, name) for x in 'fails','excludes'])
+            ['{}_{}'.format(x, name) for x in 'fails','exclude'])
 
         self.msg_queue = Manager().Queue() # messages from multi processes
         self.test_result = TestResult()
+        self._print_lines = [] # _print lines buffer
 
     # check if this test variant should run a given test
     def _should_test(self, test):
@@ -159,24 +163,28 @@ class TestVariant(object):
             return False
         return True
 
-    # queue a test result from multi-process runs
-    def _log_result(self, filename, fail=False):
-        self.msg_queue.put((self.MSG_TEST_RESULT, filename, fail))
-
-    # queue output from multiprocessing runs
+    # print output from multi-process run, to be sent with result message
     def _print(self, line):
-        self.msg_queue.put((self.MSG_PRINT, line))
+        self._print_lines.append(line)
+
+    # queue a test result from multi-process runs
+    def _log_result(self, filename, fail, elapsed_time):
+        output = '\n'.join(self._print_lines) # collect buffered _print output
+        self._print_lines = []
+        self.msg_queue.put((filename, fail, elapsed_time, output))
 
     # (on main process) process one queued message
     def _process_msg(self, msg):
-        if msg[0] == self.MSG_TEST_RESULT:
-            tmp,filename,fail = msg
-            self.test_result.log(filename, fail=fail)
-        elif msg[0] == self.MSG_PRINT:
-            print(msg[1])
-        else:
-            print('ERROR: invalid msg! {}'.format(msg))
-            sys.exit(-1)
+        filename, fail, elapsed_time, output = msg
+        self.test_result.log(filename, fail=fail)
+        print('[{}/{} {:4.2f}] {} -> {}'.format(
+            self.test_result.total_count(),
+            self.test_count,
+            elapsed_time,
+            'Failed' if fail else 'Passed',
+            filename))
+        if len(output) > 0:
+            print(output)
 
     # (on main process) wait and process one queued message
     def _process_one_msg(self):
@@ -186,7 +194,6 @@ class TestVariant(object):
     def _show_failed(self, flags, filename,
                     output, exit_code, elapsed_time,
                     expected_output=None, timedout=False):
-        self._print('[{}] Failed -> {}'.format(elapsed_time, filename))
         if timedout:
             self._print('ERROR: Test timed out!')
         self._print('{} {} {}'.format(binary, ' '.join(flags), filename));
@@ -212,7 +219,7 @@ class TestVariant(object):
                     break
 
         self._print("exit code: {}".format(exit_code))
-        self._log_result(filename, fail=True)
+        self._log_result(filename, fail=True, elapsed_time=elapsed_time)
 
     # temp: try find real file name on hard drive if case mismatch
     def _check_file(self, folder, filename):
@@ -248,7 +255,7 @@ class TestVariant(object):
         def timeout_func(timeout_data):
             timeout_data[0].kill()
             timeout_data[1] = True
-        timeout = args.timeout # or specific test timeout override
+        timeout = test.get('timeout', args.timeout) # test override or default
         timer = Timer(timeout, timeout_func, [timeout_data])
         start_time = datetime.now()
         try:
@@ -299,8 +306,7 @@ class TestVariant(object):
                         expected_output=expected_output, **fail_args)
 
         # passed
-        self._print('[{}] Passed -> {}'.format(elapsed_time, js_file))
-        self._log_result(js_file)
+        self._log_result(js_file, fail=False, elapsed_time=elapsed_time)
 
     # run tests under this variant, using given multiprocessing Pool
     def run(self, tests, pool):
@@ -314,11 +320,12 @@ class TestVariant(object):
 
         # filter tests to run
         tests = [x for x in tests if self._should_test(x[1])]
+        self.test_count = len(tests)
 
         # run tests in parallel
         result = pool.map_async(run_one,
                     [(self,folder,test) for folder,test in tests])
-        while self.test_result.total_count() != len(tests):
+        while self.test_result.total_count() != self.test_count:
             self._process_one_msg()
 
     # print test result summary
@@ -375,7 +382,12 @@ def load_tests(folder, file):
     def load_test(testXml):
         test = dict()
         for c in testXml.find('default'):
-            test[c.tag] = c.text
+            if c.tag == 'timeout':                       # timeout seconds
+                test[c.tag] = int(c.text)
+            elif c.tag == 'tags' and c.tag in test:      # merge multiple <tags>
+                test[c.tag] = test[c.tag] + ',' + c.text
+            else:
+                test[c.tag] = c.text
         return test
 
     tests = [load_test(x) for x in xml]
