@@ -321,9 +321,9 @@
   </test>
   <test>
     <default>
-      <files>checkthis.js</files>
+      <files>CheckThis.js</files>
       <compile-flags>-force:inline -force:checkthis</compile-flags>
-      <baseline>checkthis.baseline</baseline>
+      <baseline>CheckThis.baseline</baseline>
       <tags>exclude_ship</tags>
     </default>
   </test>

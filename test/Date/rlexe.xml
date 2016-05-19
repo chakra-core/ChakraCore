@@ -48,8 +48,8 @@
   </test>
   <test>
     <default>
-      <files>DateUTC.js</files>
-      <baseline>DateUTC.baseline</baseline>
+      <files>dateutc.js</files>
+      <baseline>dateutc.baseline</baseline>
     </default>
   </test>
   <test>

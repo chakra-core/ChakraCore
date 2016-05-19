@@ -87,7 +87,7 @@
   <test>
     <default>
       <files>forInArrayAdd.js</files>
-      <baseline>forInArrayAddv3.baseline</baseline>
+      <baseline>forinArrayAddv3.baseline</baseline>
     </default>
   </test>
   <test>
