@@ -6166,9 +6166,10 @@ void EmitDestructuredArray(
             elem = list;
         }
 
-        if (elem->nop == knopEllipsis)
+        if (elem->nop == knopEllipsis
+            || (elem->nop == knopEmpty && list->nop == knopEmpty))
         {
-            // Rest must be the last argument - no need to continue.
+            // Rest and last empty slot do not require any more processing.
             break;
         }
 
@@ -6189,6 +6190,7 @@ void EmitDestructuredArray(
         default:
             break;
         }
+
 
         byteCodeGenerator->StartStatement(elem);
 
