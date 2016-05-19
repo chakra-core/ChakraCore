@@ -86,7 +86,7 @@ namespace Js
     {
         SIMDValue result;
 
-        count = count & SIMDGetShiftAmountMask(2);
+        count = count & SIMDUtils::SIMDGetShiftAmountMask(2);
 
         for (uint idx = 0; idx < 8; ++idx)
         {

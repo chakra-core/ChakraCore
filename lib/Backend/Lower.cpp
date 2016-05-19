@@ -12228,8 +12228,8 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
 #endif
         Assert(bailOutLabel == nullptr || bailOutLabel == bailOutTargetLabel);
 
-        IR::BranchInstr * branchInstr = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, bailOutTargetLabel, this->m_func);
-        instr->InsertAfter(branchInstr);
+        IR::BranchInstr * newBranchInstr = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, bailOutTargetLabel, this->m_func);
+        instr->InsertAfter(newBranchInstr);
         instr->Remove();
         return collectRuntimeStatsLabel ? collectRuntimeStatsLabel : bailOutLabel;
     }
