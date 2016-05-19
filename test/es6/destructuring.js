@@ -581,6 +581,40 @@ var tests = [
         }
         assert.isTrue(foo(), "Array destructuring pattern on for..in is initialized correctly");
       }
+      
+      {
+         let obj1 = {};
+         obj1[Symbol.iterator] = function () {
+            return {
+                next: function() {
+                    assert.fail("next function should not be called");
+                }
+            };
+         };
+         
+         // Empty slot should not call next on the iterator.
+         var [] = obj1;
+      }
+
+      {
+         let obj1 = {};
+         obj1[Symbol.iterator] = function () {
+            return {
+                next: function() {
+                    this.counter++;
+                    if (this.counter > 1)
+                    {
+                        assert.fail("next function should not be called for the second time");
+                    }
+                    return {value : undefined, done: false};
+                },
+                counter : 0
+            };
+         };
+         
+         // Second empty slot should not call next on the iterator.
+         var [,] = obj1;
+      }
 
     }
   }
