@@ -1430,6 +1430,7 @@ private:
     bool                    ShouldExpectConventionalArrayIndexValue(IR::IndirOpnd *const indirOpnd);
     ValueType               GetDivValueType(IR::Instr* instr, Value* src1Val, Value* src2Val, bool specialize);
 
+    bool                    IsInstrInvalidForMemOp(IR::Instr *, Loop *, Value *, Value *);
     bool                    CollectMemOpInfo(IR::Instr *, Value *, Value *);
     bool                    CollectMemOpStElementI(IR::Instr *, Loop *);
     bool                    CollectMemsetStElementI(IR::Instr *, Loop *);

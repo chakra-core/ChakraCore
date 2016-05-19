@@ -1401,6 +1401,7 @@ namespace Js
         }
 
         RegSlot closureReg = executeFunction->GetLocalClosureRegister();
+        Var funcExprScope = nullptr;
         if (closureReg != Js::Constants::NoRegister)
         {
             Assert(closureReg >= executeFunction->GetConstantCount());
@@ -1412,9 +1413,8 @@ namespace Js
                     // t0 = NewPseudoScope
                     // t1 = LdFrameDisplay t0 env
 
-                    Var funcExprScope = JavascriptOperators::OP_NewPseudoScope(GetScriptContext());
+                    funcExprScope = JavascriptOperators::OP_NewPseudoScope(GetScriptContext());
                     SetReg(funcExprScopeReg, funcExprScope);
-                    environment = OP_LdFrameDisplay(funcExprScope, environment, GetScriptContext());
                 }
 
                 this->NewScopeObject();
@@ -1430,6 +1430,11 @@ namespace Js
         if (frameDisplayReg != Js::Constants::NoRegister && closureReg != Js::Constants::NoRegister)
         {
             Assert(frameDisplayReg >= executeFunction->GetConstantCount());
+
+            if (funcExprScope != nullptr)
+            {
+                environment = OP_LdFrameDisplay(funcExprScope, environment, GetScriptContext());
+            }
 
             void *argHead = this->GetLocalClosure();
             this->SetLocalFrameDisplay(this->NewFrameDisplay(argHead, environment));

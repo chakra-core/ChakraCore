@@ -271,3 +271,12 @@ check66: F_Test21(); @'F_Test21' is undefined
 check67: Test22(); @'e' is undefined
 check68: Test22('hello'); @'e' is undefined
 check69: F_Test22(); @'F_Test22' is undefined
+typeof g === function
+typeof F_Test23 === function
+typeof x === number
+check70: Test23(); #undefined
+typeof g === function
+typeof F_Test23 === function
+typeof x === number
+check71: Test23('hello'); #undefined
+check72: F_Test23(); @'F_Test23' is undefined
