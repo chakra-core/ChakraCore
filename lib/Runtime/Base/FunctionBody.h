@@ -986,8 +986,11 @@ namespace Js
         uint jittedLoopIterationsSinceLastBailout; // number of times the loop iterated in the jitted code before bailing out 
         uint totalJittedLoopIterations; // total number of times the loop has iterated in the jitted code for this entry point for a particular invocation of the loop
         LoopEntryPointInfo(LoopHeader* loopHeader, Js::JavascriptLibrary* library, void* validationCookie) :
-            loopHeader(loopHeader), jittedLoopIterationsSinceLastBailout(0), totalJittedLoopIterations(0), mIsTemplatizedJitMode(false),EntryPointInfo(nullptr, library, validationCookie, /*threadContext*/ nullptr, /*isLoopBody*/ true)
-
+            EntryPointInfo(nullptr, library, validationCookie, /*threadContext*/ nullptr, /*isLoopBody*/ true),
+            loopHeader(loopHeader),
+            jittedLoopIterationsSinceLastBailout(0),
+            totalJittedLoopIterations(0),
+            mIsTemplatizedJitMode(false)
 #ifdef BGJIT_STATS
             ,used(false)
 #endif
