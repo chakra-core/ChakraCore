@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-#include <wchar.h>
 
 namespace JSON
 {
@@ -47,12 +46,12 @@ namespace JSON
 
         RangeCharacterPairList* GetCurrentRangeCharacterPairList(void);
 
-        __inline char16 ReadNextChar(void)
+        inline char16 ReadNextChar(void)
         {
             return *currentChar++;
         }
 
-        __inline char16 PeekNextChar(void)
+        inline char16 PeekNextChar(void)
         {
             return *currentChar;
         }

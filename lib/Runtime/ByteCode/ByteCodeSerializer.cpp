@@ -146,11 +146,12 @@ public:
         : byteCount(byteCount), pv(pv)
     { }
 };
+} // namespace Js
 
 template<>
-struct DefaultComparer<ByteBuffer*>
+struct DefaultComparer<Js::ByteBuffer*>
 {
-    static bool Equals(ByteBuffer const * str1, ByteBuffer const * str2)
+    static bool Equals(Js::ByteBuffer const * str1, Js::ByteBuffer const * str2)
     {
         if (str1->byteCount != str2->byteCount)
         {
@@ -159,12 +160,14 @@ struct DefaultComparer<ByteBuffer*>
         return memcmp(str1->pv, str2->pv, str1->byteCount)==0;
     }
 
-    static hash_t GetHashCode(ByteBuffer const * str)
+    static hash_t GetHashCode(Js::ByteBuffer const * str)
     {
         return JsUtil::CharacterBuffer<char>::StaticGetHashCode(str->s8, str->byteCount);
     }
 };
 
+namespace Js
+{
 struct IndexEntry
 {
     BufferBuilderByte* isPropertyRecord;
@@ -1027,7 +1030,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_3);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Bool8x16_1);
-                
+
                 DEFAULT_LAYOUT_WITH_ONEBYTE(AsmSimdTypedArr);
 
 
@@ -1941,7 +1944,7 @@ public:
     }
 
     template <typename TStructType>
-    uint32 PrependStruct(BufferBuilderList & builder, LPWSTR clue, TStructType * value)
+    uint32 PrependStruct(BufferBuilderList & builder, LPCWSTR clue, TStructType * value)
     {
         auto entry = Anew(alloc, ConstantSizedBufferBuilderOf<TStructType>, clue, *value);
         builder.list = builder.list->Prepend(entry, alloc);
@@ -2553,7 +2556,7 @@ public:
         return ReadInt32(buffer, remainingBytes, (int*)value);
     }
 
-    const byte * ReadULong(const byte * buffer, ulong * value)
+    const byte * ReadULong(const byte * buffer, uint32 * value)
     {
         auto remainingBytes = (raw + totalSize) - buffer;
         return ReadInt32(buffer, remainingBytes, (int*)value);
@@ -4183,17 +4186,17 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
     return hr;
 }
 
-HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, ulong scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
 {
     return ByteCodeSerializer::DeserializeFromBufferInternal(scriptContext, scriptFlags, utf8Source, /* sourceHolder */ nullptr, srcInfo, buffer, nativeModule, function, sourceIndex);
 }
 // Deserialize function body from supplied buffer
-HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, ulong scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
 {
     AssertMsg(sourceHolder != nullptr, "SourceHolder can't be null, if you have an empty source then pass ISourceHolder::GetEmptySourceHolder()");
     return ByteCodeSerializer::DeserializeFromBufferInternal(scriptContext, scriptFlags, /* utf8Source */ nullptr, sourceHolder, srcInfo, buffer, nativeModule, function, sourceIndex);
 }
-HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * scriptContext, ulong scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
 {
     //ETW Event start
     JS_ETW(EventWriteJSCRIPT_BYTECODEDESERIALIZE_START(scriptContext, 0));
@@ -4328,4 +4331,4 @@ SerializedFuncInfoArray::SerializedFuncInfoArray( uint offset, int count ) :
 
 }
 
-}
+} // namespace Js

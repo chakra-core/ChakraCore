@@ -140,7 +140,7 @@ PreReservedVirtualAllocWrapper::GetPreReservedStartAddress()
 LPVOID
 PreReservedVirtualAllocWrapper::GetPreReservedEndAddress()
 {
-    Assert(this && IsPreReservedRegionPresent());
+    Assert(IsPreReservedRegionPresent());
     return (char*)preReservedStartAddress + (PreReservedAllocationSegmentCount * AutoSystemInfo::Data.GetAllocationGranularityPageCount() * AutoSystemInfo::PageSize);
 }
 

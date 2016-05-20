@@ -96,3 +96,9 @@
 #include "Library/ConcatString.inl"
 
 #endif // !IsJsDiag
+
+#ifdef IsJsDiag
+#define JS_DIAG_INLINE inline
+#else
+#define JS_DIAG_INLINE
+#endif

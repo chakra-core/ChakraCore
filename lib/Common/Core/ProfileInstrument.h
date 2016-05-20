@@ -164,8 +164,8 @@ namespace Js
 #define ASYNC_HOST_OPERATION_START(threadContext) {Js::Profiler::SuspendRecord __suspendRecord;  bool wasInAsync = threadContext->AsyncHostOperationStart(&__suspendRecord)
 #define ASYNC_HOST_OPERATION_END(threadContext) threadContext->AsyncHostOperationEnd(wasInAsync, &__suspendRecord); }
 #elif DBG
-#define ASYNC_HOST_OPERATION_START(threadContext) { bool wasInAsync = threadContext->AsyncHostOperationStart(null)
-#define ASYNC_HOST_OPERATION_END(threadContext) threadContext->AsyncHostOperationEnd(wasInAsync, null)
+#define ASYNC_HOST_OPERATION_START(threadContext) { bool wasInAsync = threadContext->AsyncHostOperationStart(nullptr)
+#define ASYNC_HOST_OPERATION_END(threadContext) threadContext->AsyncHostOperationEnd(wasInAsync, nullptr); }
 #else
 #define ASYNC_HOST_OPERATION_START(threadContext)
 #define ASYNC_HOST_OPERATION_END(threadContext)

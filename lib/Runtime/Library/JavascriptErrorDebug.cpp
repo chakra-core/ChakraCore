@@ -235,6 +235,10 @@ namespace Js
         memset(proerrstr, 0, sizeof(*proerrstr));
         *pperrinfo = nullptr;
 
+#ifndef _WIN32
+        // xplat-todo: Find out if we can implement richer error info on Linux
+        return hr;
+#else
         // GetErrorInfo returns S_FALSE if there is no rich error info
         // and S_OK if there is.
         IErrorInfo * perrinfo;
@@ -365,6 +369,7 @@ namespace Js
         }
         *pperrinfo = perrinfo;
         return hr;
+#endif
     }
 
     void JavascriptErrorDebug::SetErrorInfo()

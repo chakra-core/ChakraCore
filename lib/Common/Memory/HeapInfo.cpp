@@ -12,7 +12,14 @@
 #error "Platform is not handled"
 #endif
 
+#ifdef _MSC_VER
 template __forceinline char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat, size_t size);
+#else
+template __attribute__((always_inline)) char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat, size_t size);
+#endif
+
+const uint SmallAllocationBlockAttributes::MaxSmallObjectCount;
+const uint MediumAllocationBlockAttributes::MaxSmallObjectCount;
 
 HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>  HeapInfo::smallAllocValidPointersMap;
 HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes> HeapInfo::mediumAllocValidPointersMap;
@@ -82,7 +89,7 @@ void HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMap(Vali
         ushort * validPointers = buffer;
         buffer += TBlockAttributes::MaxSmallObjectCount;
 
-        SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector * invalidBitVector = &invalidTable[i];
+        typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector * invalidBitVector = &invalidTable[i];
         invalidBitVector->SetAll();
 
         uint bucketSize;
@@ -1773,8 +1780,11 @@ BOOL MediumAllocationBlockAttributes::IsAlignedObjectSize(size_t sizeCat)
     return HeapInfo::IsAlignedMediumObjectSize(sizeCat);
 }
 
+namespace Memory
+{
 template class HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>;
 template class ValidPointers<SmallAllocationBlockAttributes>;
 
 template class HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>;
 template class ValidPointers<MediumAllocationBlockAttributes>;
+};

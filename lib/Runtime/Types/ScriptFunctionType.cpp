@@ -25,7 +25,7 @@ namespace Js
         ScriptContext * scriptContext = proxy->GetScriptContext();
         JavascriptLibrary * library = scriptContext->GetLibrary();
         DynamicObject * functionPrototype = proxy->IsAsync() ? library->GetAsyncFunctionPrototype() : library->GetFunctionPrototype();
-        JavascriptMethod address = (JavascriptMethod)proxy->GetDefaultEntryPointInfo()->address;
+        JavascriptMethod address = proxy->GetDefaultEntryPointInfo()->jsMethod;
 
         return RecyclerNew(scriptContext->GetRecycler(), ScriptFunctionType,
             scriptContext, functionPrototype,

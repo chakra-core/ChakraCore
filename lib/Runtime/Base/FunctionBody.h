@@ -316,14 +316,14 @@ namespace Js
     public:
         // These are public because we don't manage them nor their consistency;
         // the user of this class does.
-        void * address;
+        Js::JavascriptMethod jsMethod;
 
-        ProxyEntryPointInfo(void* address, ThreadContext* context = nullptr):
+        ProxyEntryPointInfo(Js::JavascriptMethod jsMethod, ThreadContext* context = nullptr):
             ExpirableObject(context),
-            address(address)
+            jsMethod(jsMethod)
         {
         }
-        static DWORD GetAddressOffset() { return offsetof(ProxyEntryPointInfo, address); }
+        static DWORD GetAddressOffset() { return offsetof(ProxyEntryPointInfo, jsMethod); }
         virtual void Expire()
         {
             AssertMsg(false, "Expire called on object that doesn't support expiration");
@@ -448,7 +448,7 @@ namespace Js
         int equivalentTypeCacheCount;
 #endif
         CodeGenWorkItem * workItem;
-        void * nativeAddress;
+        Js::JavascriptMethod nativeAddress;
         ptrdiff_t codeSize;
         bool isAsmJsFunction; // true if entrypoint is for asmjs function
         uintptr_t  mModuleAddress; //asm Module address
@@ -463,7 +463,7 @@ namespace Js
         typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
         InlineeFrameMap*  inlineeFrameMap;
 #endif
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace*    cleanupStack;
 #endif
 
@@ -515,8 +515,8 @@ namespace Js
         virtual bool IsFunctionEntryPointInfo() const override { return true; }
 
     protected:
-        EntryPointInfo(void* address, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
-            ProxyEntryPointInfo(address, context), 
+        EntryPointInfo(Js::JavascriptMethod method, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
+            ProxyEntryPointInfo(method, context),
 #if ENABLE_NATIVE_CODEGEN
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
@@ -525,8 +525,10 @@ namespace Js
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
 #endif
             library(library), codeSize(0), nativeAddress(nullptr), isAsmJsFunction(false), validationCookie(validationCookie)
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
             , cleanupStack(nullptr)
+#endif
+#if ENABLE_DEBUG_CONFIG_OPTIONS
             , cleanupReason(NotCleanedUp)
 #endif
 #if DBG_DUMP | defined(VTUNE_PROFILING)
@@ -573,7 +575,7 @@ namespace Js
 
         void Cleanup(bool isShutdown, bool captureCleanupStack);
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         void CaptureCleanupStackTrace();
 #endif
 
@@ -717,14 +719,13 @@ namespace Js
             this->state = CodeGenPending;
         }
 
-        void SetCodeGenRecorded(void * nativeAddress, ptrdiff_t codeSize,
+        void SetCodeGenRecorded(Js::JavascriptMethod nativeAddress, ptrdiff_t codeSize,
             NativeCodeData * data, NativeCodeData * transferData, CodeGenNumberChunk * numberChunks)
         {
             Assert(this->GetState() == CodeGenQueued);
-            Assert(nativeAddress != nullptr);
             Assert(codeSize > 0);
             Assert(this->jitTransferData != nullptr || transferData == nullptr);
-            this->nativeAddress = (void *)nativeAddress;
+            this->nativeAddress = nativeAddress;
             this->codeSize = codeSize;
             this->data = data;
             if (transferData != nullptr)
@@ -767,6 +768,7 @@ namespace Js
 
             nativeThrowSpanSequence = seq;
         }
+
         bool IsInNativeAddressRange(DWORD_PTR codeAddress) {
             return (IsNativeCode() &&
                 codeAddress >= GetNativeAddress() &&
@@ -778,7 +780,9 @@ namespace Js
         {
             // need the assert to skip for asmjsFunction as nativeAddress can be interpreter too for asmjs
             Assert(this->GetState() == CodeGenRecorded || this->GetState() == CodeGenDone || this->isAsmJsFunction);
-            return (DWORD_PTR)this->nativeAddress;
+
+            // !! this is illegal, however (by design) `IsInNativeAddressRange` (right above) needs it
+            return reinterpret_cast<DWORD_PTR>(this->nativeAddress);
         }
 
         ptrdiff_t GetCodeSize() const
@@ -810,7 +814,7 @@ namespace Js
             this->codeSize = size;
         }
 
-        void SetNativeAddress(void* address)
+        void SetNativeAddress(Js::JavascriptMethod address)
         {
             Assert(isAsmJsFunction);
             this->nativeAddress = address;
@@ -875,10 +879,10 @@ namespace Js
 #endif
 #if DBG_DUMP
      public:
-#else if defined(VTUNE_PROFILING)
+#elif defined(VTUNE_PROFILING)
      private:
 #endif
-#if DBG_DUMP | defined(VTUNE_PROFILING)
+#if DBG_DUMP || defined(VTUNE_PROFILING)
          // NativeOffsetMap is public for DBG_DUMP, private for VTUNE_PROFILING
          struct NativeOffsetMap
          {
@@ -943,7 +947,7 @@ namespace Js
             return (100 / (uint8)CONFIG_FLAG(CallsToBailoutsRatioForRejit)) + 1;
         }
 
-        FunctionEntryPointInfo(FunctionProxy * functionInfo, void * address, ThreadContext* context, void* validationCookie);
+        FunctionEntryPointInfo(FunctionProxy * functionInfo, Js::JavascriptMethod method, ThreadContext* context, void* validationCookie);
 
 #ifndef TEMP_DISABLE_ASMJS
         //AsmJS Support
@@ -1070,13 +1074,13 @@ namespace Js
             return this->startOffset <= offset && offset < this->endOffset;
         }
 
-        void * GetCurrentEntryPoint() const
+        Js::JavascriptMethod GetCurrentEntryPoint() const
         {
             LoopEntryPointInfo * entryPoint = GetCurrentEntryPointInfo();
 
             if (entryPoint != nullptr)
             {
-                return this->entryPoints->Item(this->GetCurrentEntryPointIndex())->address;
+                return this->entryPoints->Item(this->GetCurrentEntryPointIndex())->jsMethod;
             }
 
             return nullptr;
@@ -1262,7 +1266,9 @@ namespace Js
 
 #if DBG
         bool HasValidEntryPoint() const;
+#ifdef ENABLE_SCRIPT_PROFILING
         bool HasValidProfileEntryPoint() const;
+#endif
         bool HasValidNonProfileEntryPoint() const;
 #endif
         virtual void SetDisplayName(const char16* displayName, uint displayNameLength, uint displayShortNameOffset, SetDisplayNameFlags flags = SetDisplayNameFlagsNone) = 0;
@@ -1420,7 +1426,7 @@ namespace Js
         // Fake global ->
         //    1) new Function code's global code
         //    2) global code generated from the reparsing deferred parse function
-        bool IsFakeGlobalFunc(ulong flags) const;
+        bool IsFakeGlobalFunc(uint32 flags) const;
 
         void SetIsGlobalFunc(bool is) { m_isGlobalFunc = is; }
         bool GetIsStrictMode() const { return m_isStrictMode; }
@@ -1439,8 +1445,8 @@ namespace Js
 
         bool GetHasImplicitArgIns() { return m_hasImplicitArgIns; }
         void SetHasImplicitArgIns(bool has) { m_hasImplicitArgIns = has; }
-        ulong GetGrfscr() const;
-        void SetGrfscr(ulong grfscr);
+        uint32 GetGrfscr() const;
+        void SetGrfscr(uint32 grfscr);
 
         ///----------------------------------------------------------------------------
         ///
@@ -1482,8 +1488,8 @@ namespace Js
         void SetInitialDefaultEntryPoint();
         void SetDeferredParsingEntryPoint();
 
-        void SetEntryPoint(ProxyEntryPointInfo* entryPoint, Js::JavascriptMethod address) {
-            entryPoint->address = address;
+        void SetEntryPoint(ProxyEntryPointInfo* entryPoint, Js::JavascriptMethod jsMethod) {
+            entryPoint->jsMethod = jsMethod;
         }
 
         bool IsDynamicScript() const;
@@ -1570,7 +1576,7 @@ namespace Js
         FunctionProxy* GetNestedFunc(uint index);
         FunctionProxyPtrPtr GetNestedFuncReference(uint index);
         ParseableFunctionInfo* GetNestedFunctionForExecution(uint index);
-        void SetNestedFunc(FunctionProxy* nestedFunc, uint index, ulong flags);
+        void SetNestedFunc(FunctionProxy* nestedFunc, uint index, uint32 flags);
         void ClearNestedFunctionParentFunctionReference();
 
         void SetCapturesThis() { attributes = (Attributes)(attributes | Attributes::CapturesThis); }
@@ -2012,7 +2018,7 @@ namespace Js
 #endif
         WriteBarrierPtr<FunctionEntryPointInfo> defaultFunctionEntryPointInfo;
 
-#if ENABLE_PROFILE_INFO
+#if ENABLE_PROFILE_INFO 
         WriteBarrierPtr<DynamicProfileInfo> dynamicProfileInfo;
 #endif
 
@@ -2036,7 +2042,7 @@ namespace Js
         void GenerateDynamicInterpreterThunk();
 #endif
         void CloneByteCodeInto(ScriptContext * scriptContext, FunctionBody *newFunctionBody, uint sourceIndex);
-        void * GetEntryPoint(ProxyEntryPointInfo* entryPoint) const { return entryPoint->address; }
+        Js::JavascriptMethod GetEntryPoint(ProxyEntryPointInfo* entryPoint) const { return entryPoint->jsMethod; }
         void CaptureDynamicProfileState(FunctionEntryPointInfo* entryPointInfo);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         void DumpRegStats(FunctionBody *funcBody);
@@ -2745,7 +2751,7 @@ namespace Js
         void RecordTrueObject(RegSlot location);
         void RecordFalseObject(RegSlot location);
         void RecordIntConstant(RegSlot location, unsigned int val);
-        void RecordStrConstant(RegSlot location, LPCOLESTR psz, ulong cch);
+        void RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch);
         void RecordFloatConstant(RegSlot location, double d);
         void RecordNullDisplayConstant(RegSlot location);
         void RecordStrictNullDisplayConstant(RegSlot location);
@@ -2885,7 +2891,7 @@ namespace Js
         void ResetByteCodeGenState();
         void ResetByteCodeGenVisitState();
 
-        void FindClosestStatements(long characterOffset, StatementLocation *firstStatementLocation, StatementLocation *secondStatementLocation);
+        void FindClosestStatements(int32 characterOffset, StatementLocation *firstStatementLocation, StatementLocation *secondStatementLocation);
 #if ENABLE_NATIVE_CODEGEN
         const FunctionCodeGenRuntimeData *GetInlineeCodeGenRuntimeData(const ProfileId profiledCallSiteId) const;
         const FunctionCodeGenRuntimeData *GetInlineeCodeGenRuntimeDataForTargetInlinee(const ProfileId profiledCallSiteId, FunctionBody *inlineeFuncBody) const;
@@ -2984,10 +2990,12 @@ namespace Js
             ULONG * line, LONG * col);
 #endif
 
+#ifdef ENABLE_SCRIPT_PROFILING
         HRESULT RegisterFunction(BOOL fChangeMode, BOOL fOnlyCurrent = FALSE);
         HRESULT ReportScriptCompiled();
         HRESULT ReportFunctionCompiled();
         void SetEntryToProfileMode();
+#endif
 
         void CheckAndRegisterFuncToDiag(ScriptContext *scriptContext);
         void SetEntryToDeferParseForDebugger();
@@ -3096,7 +3104,7 @@ namespace Js
     struct ScopeSlots
     {
     public:
-        static uint const MaxEncodedSlotCount = USHORT_MAX;
+        static uint const MaxEncodedSlotCount = Constants::UShortMaxValue;
 
         // The slot index is at the same location as the vtable, so that we can distinguish between scope slot and frame display
         static uint const EncodedSlotCountSlotIndex = 0;

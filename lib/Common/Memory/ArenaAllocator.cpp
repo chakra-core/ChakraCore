@@ -6,7 +6,15 @@
 
 #define ASSERT_THREAD() AssertMsg(this->pageAllocator->ValidThreadAccess(), "Arena allocation should only be used by a single thread")
 
+const uint Memory::StandAloneFreeListPolicy::MaxEntriesGrowth;
+
+#ifdef _MSC_VER
 template __forceinline BVSparseNode * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut, bool create);
+#else
+// Clang/GCC support
+// We need this function to be inlined for perf
+template __attribute__((always_inline)) BVSparseNode * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut, bool create);
+#endif
 
 ArenaData::ArenaData(PageAllocator * pageAllocator) :
     pageAllocator(pageAllocator),
@@ -447,8 +455,13 @@ ReleaseHeapMemory()
     }
 }
 
+#ifdef _MSC_VER
 template __forceinline char *ArenaAllocatorBase<InPlaceFreeListPolicy, 0, 0, 0>::AllocInternal(size_t requestedBytes);
 template __forceinline char *ArenaAllocatorBase<InPlaceFreeListPolicy, 3, 0, 0>::AllocInternal(size_t requestedBytes);
+#else
+template __attribute__((always_inline)) char *ArenaAllocatorBase<InPlaceFreeListPolicy, 0, 0, 0>::AllocInternal(size_t requestedBytes);
+template __attribute__((always_inline)) char *ArenaAllocatorBase<InPlaceFreeListPolicy, 3, 0, 0>::AllocInternal(size_t requestedBytes);
+#endif
 
 template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg, bool RequireObjectAlignment, size_t MaxObjectSize>
 char *
@@ -744,8 +757,15 @@ void * InPlaceFreeListPolicy::Allocate(void * policy, size_t size)
         freeObjectLists[index] = freeObject->next;
 
 #ifdef ARENA_MEMORY_VERIFY
+#ifndef _MSC_VER
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsizeof-pointer-memaccess"
+#endif
         // Make sure the next pointer bytes are also DbgFreeMemFill-ed.
         memset(freeObject, DbgFreeMemFill, sizeof(freeObject->next));
+#ifndef _MSC_VER
+#pragma clang diagnostic pop
+#endif
 #endif
     }
 
@@ -780,7 +800,10 @@ void InPlaceFreeListPolicy::VerifyFreeObjectIsFreeMemFilled(void * object, size_
 }
 #endif
 
-template class ArenaAllocatorBase<InPlaceFreeListPolicy>;
+namespace Memory
+{
+    template class ArenaAllocatorBase<InPlaceFreeListPolicy>;
+}
 
 void * StandAloneFreeListPolicy::New(ArenaAllocatorBase<StandAloneFreeListPolicy> * /*allocator*/)
 {
@@ -916,7 +939,10 @@ bool StandAloneFreeListPolicy::TryEnsureFreeListEntry(StandAloneFreeListPolicy *
     return true;
 }
 
-template class ArenaAllocatorBase<StandAloneFreeListPolicy>;
+namespace Memory
+{
+    template class ArenaAllocatorBase<StandAloneFreeListPolicy>;
+}
 
 #ifdef PERSISTENT_INLINE_CACHES
 
@@ -1012,7 +1038,10 @@ void InlineCacheFreeListPolicy::Release(void * policy)
     }
 }
 
-template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
+namespace Memory
+{
+    template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
+}
 
 #if DBG
 bool InlineCacheAllocator::IsAllZero()
@@ -1417,8 +1446,6 @@ void InlineCacheAllocator::ZeroAll()
 }
 
 #endif
-
-template class ArenaAllocatorBase<IsInstInlineCacheAllocatorTraits>;
 
 #if DBG
 bool IsInstInlineCacheAllocator::IsAllZero()

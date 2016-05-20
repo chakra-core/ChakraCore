@@ -247,8 +247,8 @@ namespace Js
             return;
         }
 
-        __try
-        {
+        TryFinally([&]()
+          {
             InitializeLocation(pHaltState);
             OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchStepHandler: initialized location: pHaltState=%p, pHaltState->IsValid()=%d\n"),
                 pHaltState, pHaltState->IsValid());
@@ -277,11 +277,11 @@ namespace Js
                     }
                 }
             }
-        }
-        __finally
-        {
+          },
+          [&](bool) 
+          {
             DestroyLocation();
-        }
+          });
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchStepHandler: end: pHaltState=%p\n"), pHaltState);
     }
@@ -295,7 +295,7 @@ namespace Js
             return;
         }
 
-        __try
+        TryFinally([&]()
         {
             InitializeLocation(pHaltState, /* We don't need to match script context, stop at any available script function */ false);
             OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchAsyncBreak: initialized location: pHaltState=%p, pHaltState->IsValid()=%d\n"),
@@ -315,11 +315,11 @@ namespace Js
                     debugManager->asyncBreakController.DispatchAndReset(pHaltState);
                 }
             }
-        }
-        __finally
+        },
+        [&](bool)
         {
             DestroyLocation();
-        }
+        });
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchAsyncBreak: end: pHaltState=%p\n"), pHaltState);
     }
@@ -335,7 +335,7 @@ namespace Js
 
         Assert(pHaltState->stopType == STOP_INLINEBREAKPOINT);
 
-        __try
+        TryFinally([&]()
         {
             InitializeLocation(pHaltState);
             OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchInlineBreakpoint: initialized location: pHaltState=%p, pHaltState->IsValid()=%d\n"),
@@ -358,11 +358,12 @@ namespace Js
 
                 haltCallbackProbe->DispatchHalt(pHaltState);
             }
-        }
-        __finally
+        },
+        [&](bool)
         {
             DestroyLocation();
-        }
+        });
+        
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchInlineBreakpoint: end: pHaltState=%p\n"), pHaltState);
     }
 
@@ -384,7 +385,7 @@ namespace Js
         // Will store current offset of the bytecode block.
         int currentOffset = -1;
 
-        __try
+        TryFinally([&]()       
         {
             InitializeLocation(pHaltState, false);
             OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchExceptionBreakpoint: initialized location: pHaltState=%p, IsInterpreterFrame=%d\n"),
@@ -435,8 +436,8 @@ namespace Js
                     fSuccess = true;
                 }
             }
-        }
-        __finally
+        },
+        [&](bool)
         {
             // If the next statement has changed, we need to log that to exception object so that it will not try to advance to next statement again.
             pHaltState->exceptionObject->SetIgnoreAdvanceToNextStatement(IsNextStatementChanged);
@@ -448,7 +449,7 @@ namespace Js
             }
 
             DestroyLocation();
-        }
+        });
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchExceptionBreakpoint: end: pHaltState=%p, fSuccess=%d\n"), pHaltState, fSuccess);
         return fSuccess;
@@ -467,7 +468,7 @@ namespace Js
         // will store Current offset of the bytecode block.
         int currentOffset = -1;
 
-        __try
+        TryFinally([&]()        
         {
             InitializeLocation(pHaltState);
             OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchMutationBreakpoint: initialized location: pHaltState=%p, pHaltState->IsValid()=%d\n"),
@@ -494,8 +495,8 @@ namespace Js
 
                 haltCallbackProbe->DispatchHalt(pHaltState);
             }
-        }
-        __finally
+        },
+        [&](bool)
         {
             // Restore the current offset;
             if (currentOffset != -1 && pHaltState->topFrame->IsInterpreterFrame())
@@ -503,7 +504,7 @@ namespace Js
                 pHaltState->SetCurrentOffset(currentOffset);
             }
             DestroyLocation();
-        }
+        });
 
     }
 
@@ -514,7 +515,7 @@ namespace Js
             return;
         }
 
-         __try
+        TryFinally([&]()        
         {
             InitializeLocation(pHaltState);
 
@@ -554,12 +555,12 @@ namespace Js
                     });
                 }
             }
-        }
-        __finally
+        },
+        [&](bool)
         {
             pendingProbeList->Clear();
             DestroyLocation();
-        }
+        });
     }
 
     void ProbeContainer::UpdateStep(bool fDuringSetupDebugApp/*= false*/)

@@ -8,7 +8,7 @@ template <typename T, typename HeapAllocatorT = HeapAllocator>
 class AutoPtr : public BasePtr<T>
 {
 public:
-    AutoPtr(T * ptr) : BasePtr(ptr) {}
+    AutoPtr(T * ptr) : BasePtr<T>(ptr) {}
     ~AutoPtr()
     {
         Clear();
@@ -24,10 +24,10 @@ public:
 private:
     void Clear()
     {
-        if (ptr != nullptr)
+        if (this->ptr != nullptr)
         {
-            AllocatorDelete(HeapAllocatorT, &HeapAllocatorT::Instance, ptr);
-            ptr = nullptr;
+            AllocatorDelete(HeapAllocatorT, &HeapAllocatorT::Instance, this->ptr);
+            this->ptr = nullptr;
         }
     }
 };
@@ -38,7 +38,7 @@ class AutoArrayPtr : public BasePtr<T>
 protected:
     size_t m_elementCount;
 public:
-    AutoArrayPtr(T * ptr, size_t elementCount) : BasePtr(ptr), m_elementCount(elementCount) {}
+    AutoArrayPtr(T * ptr, size_t elementCount) : BasePtr<T>(ptr), m_elementCount(elementCount) {}
     ~AutoArrayPtr()
     {
         Clear();
@@ -54,10 +54,10 @@ public:
 private:
     void Clear()
     {
-        if (ptr != nullptr)
+        if (this->ptr != nullptr)
         {
-            HeapDeleteArray(m_elementCount, ptr);
-            ptr = nullptr;
+            HeapDeleteArray(m_elementCount, this->ptr);
+            this->ptr = nullptr;
         }
     }
 };
@@ -145,10 +145,10 @@ public:
 };
 
 template <typename T>
-class AutoDiscardPTR : public BasePtr < T >
+class AutoDiscardPTR : public BasePtr<T>
 {
 public:
-    AutoDiscardPTR(T * ptr) : BasePtr(ptr) {}
+    AutoDiscardPTR(T * ptr) : BasePtr<T>(ptr) {}
     ~AutoDiscardPTR()
     {
         Clear();
@@ -164,10 +164,10 @@ public:
 private:
     void Clear()
     {
-        if (ptr != nullptr)
+        if (this->ptr != nullptr)
         {
-            ptr->Discard();
-            ptr = nullptr;
+            this->ptr->Discard();
+            this->ptr = nullptr;
         }
     }
 };

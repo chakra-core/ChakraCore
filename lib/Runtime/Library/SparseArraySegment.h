@@ -50,58 +50,58 @@ namespace Js
 
         T elements[]; // actual elements will follow this determined by size
 
-        inline void FillSegmentBuffer(uint start, uint size);
-        inline T GetElement(uint32 index);
-        inline void SetElement(Recycler *recycler, uint32 index, T value); // sets elements within the segment
-        inline void RemoveElement(Recycler *recycler, uint32 index); // NOTE: RemoveElement calls memmove, for perf reasons use SetElement(index, null)
+        void FillSegmentBuffer(uint start, uint size);
+        T GetElement(uint32 index);
+        void SetElement(Recycler *recycler, uint32 index, T value); // sets elements within the segment
+        void RemoveElement(Recycler *recycler, uint32 index); // NOTE: RemoveElement calls memmove, for perf reasons use SetElement(index, null)
 
-        inline SparseArraySegment<T> *GrowBy(Recycler *recycler, uint32 n);
+        SparseArraySegment<T> *GrowBy(Recycler *recycler, uint32 n);
 
-        inline SparseArraySegment<T>* GrowByMin(Recycler *recycler, uint32 minValue);
-        inline SparseArraySegment<T>* GrowByMinMax(Recycler *recycler, uint32 minValue, uint32 maxValue);
-        inline SparseArraySegment<T>* GrowFrontByMax(Recycler *recycler, uint32 n);
+        SparseArraySegment<T>* GrowByMin(Recycler *recycler, uint32 minValue);
+        SparseArraySegment<T>* GrowByMinMax(Recycler *recycler, uint32 minValue, uint32 maxValue);
+        SparseArraySegment<T>* GrowFrontByMax(Recycler *recycler, uint32 n);
 
-        inline void ReverseSegment(Recycler *recycler);
+        void ReverseSegment(Recycler *recycler);
         void    Truncate(uint32 index);
 
         //following will change the current segment allocation
-        inline SparseArraySegment<T> *SetElementGrow(Recycler *recycler, SparseArraySegmentBase* prev, uint32 index, T value);
+        SparseArraySegment<T> *SetElementGrow(Recycler *recycler, SparseArraySegmentBase* prev, uint32 index, T value);
 
         static SparseArraySegment<T> *AllocateLiteralHeadSegment(Recycler *const recycler, const uint32 length);
-        static inline SparseArraySegment<T> * AllocateSegment(Recycler* recycler, uint32 left, uint32 length, SparseArraySegmentBase *nextSeg);
-        static inline SparseArraySegment<T> * AllocateSegment(Recycler* recycler, uint32 left, uint32 length, uint32 size, SparseArraySegmentBase *nextSeg);
-        static inline SparseArraySegment<T> * AllocateSegment(Recycler* recycler, SparseArraySegmentBase* prev, uint32 index);
+        static SparseArraySegment<T> * AllocateSegment(Recycler* recycler, uint32 left, uint32 length, SparseArraySegmentBase *nextSeg);
+        static SparseArraySegment<T> * AllocateSegment(Recycler* recycler, uint32 left, uint32 length, uint32 size, SparseArraySegmentBase *nextSeg);
+        static SparseArraySegment<T> * AllocateSegment(Recycler* recycler, SparseArraySegmentBase* prev, uint32 index);
         template<bool isLeaf>
-        static inline SparseArraySegment<T> * AllocateSegmentImpl(Recycler* recycler, uint32 left, uint32 length, SparseArraySegmentBase *nextSeg);
+        static SparseArraySegment<T> * AllocateSegmentImpl(Recycler* recycler, uint32 left, uint32 length, SparseArraySegmentBase *nextSeg);
 
         template<bool isLeaf>
-        static inline SparseArraySegment<T> * AllocateSegmentImpl(Recycler* recycler, uint32 left, uint32 length, uint32 size, SparseArraySegmentBase *nextSeg);
+        static SparseArraySegment<T> * AllocateSegmentImpl(Recycler* recycler, uint32 left, uint32 length, uint32 size, SparseArraySegmentBase *nextSeg);
 
         template<bool isLeaf>
-        static inline SparseArraySegment<T> * AllocateSegmentImpl(Recycler* recycler, SparseArraySegmentBase* prev, uint32 index);
+        static SparseArraySegment<T> * AllocateSegmentImpl(Recycler* recycler, SparseArraySegmentBase* prev, uint32 index);
 
         template<bool isLeaf>
         static SparseArraySegment<T> *AllocateLiteralHeadSegmentImpl(Recycler *const recycler, const uint32 length);
 
         static void ClearElements(__out_ecount(len) T* elements, uint32 len);
-        static inline SparseArraySegment<T>* CopySegment(Recycler *recycler, SparseArraySegment<T>* dst, uint32 dstIndex, SparseArraySegment<T>* src, uint32 srcIndex, uint32 inputLen);
+        static SparseArraySegment<T>* CopySegment(Recycler *recycler, SparseArraySegment<T>* dst, uint32 dstIndex, SparseArraySegment<T>* src, uint32 srcIndex, uint32 inputLen);
 
-        static inline T GetMissingItem();
-        static inline bool IsMissingItem(const T* value);
+        static T GetMissingItem();
+        static bool IsMissingItem(const T* value);
 
-        static inline uint32 GetAlignedSize(uint32 size);
+        static uint32 GetAlignedSize(uint32 size);
 
     private:
         template<bool isLeaf>
-        static inline SparseArraySegment<T>* Allocate(Recycler* recycler, uint32 left, uint32 length, uint32 size, uint32 fillStart = 0);
+        static SparseArraySegment<T>* Allocate(Recycler* recycler, uint32 left, uint32 length, uint32 size, uint32 fillStart = 0);
 
         template<bool isLeaf>
-        inline SparseArraySegment<T> *GrowByImpl(Recycler *recycler, uint32 n);
+        SparseArraySegment<T> *GrowByImpl(Recycler *recycler, uint32 n);
 
         template<bool isLeaf>
-        inline SparseArraySegment<T>* GrowFrontByMaxImpl(Recycler *recycler, uint32 n);
+        SparseArraySegment<T>* GrowFrontByMaxImpl(Recycler *recycler, uint32 n);
 
-        inline uint32 GetGrowByFactor();
+        uint32 GetGrowByFactor();
     };
 
     template<typename T>
@@ -111,20 +111,20 @@ namespace Js
     }
 
     template<>
-    int32 SparseArraySegment<int32>::GetMissingItem()
+    inline int32 SparseArraySegment<int32>::GetMissingItem()
     {
         return 0x80000002;
     }
 
     template<>
-    double SparseArraySegment<double>::GetMissingItem()
+    inline double SparseArraySegment<double>::GetMissingItem()
     {
         uint64 u = 0x8000000280000002;
         return *(double*)&u;
     }
 
     template<>
-    bool SparseArraySegment<double>::IsMissingItem(const double* value)
+    inline bool SparseArraySegment<double>::IsMissingItem(const double* value)
     {
         return *(uint64*)value == 0x8000000280000002ull;
     }
@@ -134,5 +134,4 @@ namespace Js
     {
         return *value == SparseArraySegment<T>::GetMissingItem();
     }
-
 } // namespace Js

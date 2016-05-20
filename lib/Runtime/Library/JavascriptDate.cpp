@@ -1282,7 +1282,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, scriptContext->GetPropertyName(PropertyIds::toISOString)->GetBuffer());
         }
         RecyclableObject* toISOFunc = RecyclableObject::FromVar(toISO);
-        return toISOFunc->GetEntryPoint()(toISOFunc, 1, thisObj);
+        return CALL_FUNCTION(toISOFunc, CallInfo(1), thisObj);
     }
 
     Var JavascriptDate::EntryToLocaleDateString(RecyclableObject* function, CallInfo callInfo, ...)

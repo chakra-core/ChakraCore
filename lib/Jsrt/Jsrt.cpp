@@ -6,7 +6,7 @@
 #include "JsrtInternal.h"
 #include "JsrtExternalObject.h"
 #include "JsrtExternalArrayBuffer.h"
-#include "JsrtHelper.h"
+#include "jsrtHelper.h"
 
 #include "JsrtSourceHolder.h"
 #include "ByteCode/ByteCodeSerializer.h"
@@ -2128,10 +2128,10 @@ CHAKRA_API JsGetRuntimeMemoryLimit(_In_ JsRuntimeHandle runtimeHandle, _Out_ siz
     return JsNoError;
 }
 
-C_ASSERT(JsMemoryAllocate == AllocationPolicyManager::MemoryAllocateEvent::MemoryAllocate);
-C_ASSERT(JsMemoryFree == AllocationPolicyManager::MemoryAllocateEvent::MemoryFree);
-C_ASSERT(JsMemoryFailure == AllocationPolicyManager::MemoryAllocateEvent::MemoryFailure);
-C_ASSERT(JsMemoryFailure == AllocationPolicyManager::MemoryAllocateEvent::MemoryMax);
+C_ASSERT(JsMemoryAllocate == (_JsMemoryEventType) AllocationPolicyManager::MemoryAllocateEvent::MemoryAllocate);
+C_ASSERT(JsMemoryFree == (_JsMemoryEventType) AllocationPolicyManager::MemoryAllocateEvent::MemoryFree);
+C_ASSERT(JsMemoryFailure == (_JsMemoryEventType) AllocationPolicyManager::MemoryAllocateEvent::MemoryFailure);
+C_ASSERT(JsMemoryFailure == (_JsMemoryEventType) AllocationPolicyManager::MemoryAllocateEvent::MemoryMax);
 
 CHAKRA_API JsSetRuntimeMemoryAllocationCallback(_In_ JsRuntimeHandle runtime, _In_opt_ void *callbackState, _In_ JsMemoryAllocationCallback allocationCallback)
 {
@@ -2571,7 +2571,7 @@ JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, in
         }
         Js::FunctionBody *functionBody = function->GetFunctionBody();
         const Js::Utf8SourceInfo *sourceInfo = functionBody->GetUtf8SourceInfo();
-        size_t cSourceCodeLength = sourceInfo->GetCbLength(L"JsSerializeScript");
+        size_t cSourceCodeLength = sourceInfo->GetCbLength(_u("JsSerializeScript"));
 
         // truncation of code length can lead to accessing random memory. Reject the call.
         if (cSourceCodeLength > DWORD_MAX)
@@ -2579,13 +2579,13 @@ JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, in
             return JsErrorOutOfMemory;
         }
 
-        LPCUTF8 utf8Code = sourceInfo->GetSource(L"JsSerializeScript");
+        LPCUTF8 utf8Code = sourceInfo->GetSource(_u("JsSerializeScript"));
         DWORD dwFlags = 0;
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         dwFlags = JsrtContext::GetCurrent()->GetRuntime()->IsSerializeByteCodeForLibrary() ? GENERATE_BYTE_CODE_BUFFER_LIBRARY : 0;
 #endif
 
-        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, L"ByteCodeSerializer");
+        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("ByteCodeSerializer"));
         // We cast buffer size to DWORD* because on Windows, DWORD = unsigned long = unsigned int
         // On 64-bit clang on linux, this is not true, unsigned long is larger than unsigned int
         // However, the PAL defines DWORD for us on linux as unsigned int so the cast is safe here.
@@ -2610,8 +2610,9 @@ CHAKRA_API JsSerializeScript(_In_z_ const wchar_t *script, _Out_writes_to_opt_(*
     return JsSerializeScriptCore(script, nullptr, 0, buffer, bufferSize);
 }
 
-JsErrorCode RunSerializedScriptCore(const wchar_t *script, JsSerializedScriptLoadSourceCallback scriptLoadCallback,
-    JsSerializedScriptUnloadCallback scriptUnloadCallback, unsigned char *buffer, JsSourceContext sourceContext,
+template <typename TLoadCallback, typename TUnloadCallback>
+JsErrorCode RunSerializedScriptCore(const wchar_t *script, TLoadCallback scriptLoadCallback,
+    TUnloadCallback scriptUnloadCallback, unsigned char *buffer, JsSourceContext sourceContext,
     const wchar_t *sourceUrl, bool parseOnly, JsValueRef *result)
 {
     Js::JavascriptFunction *function;
@@ -2633,13 +2634,14 @@ JsErrorCode RunSerializedScriptCore(const wchar_t *script, JsSerializedScriptLoa
         {
             Assert(scriptLoadCallback == nullptr);
             Assert(scriptUnloadCallback == nullptr);
-            Js::JsrtSourceHolder::ScriptToUtf8(scriptContext, script, &utf8Source, &utf8Length, &length);
+            Js::JsrtSourceHolder<TLoadCallback, TUnloadCallback>::ScriptToUtf8(scriptContext, script, &utf8Source, &utf8Length, &length);
         }
         else
         {
             PARAM_NOT_NULL(scriptLoadCallback);
             PARAM_NOT_NULL(scriptUnloadCallback);
-            sourceHolder = RecyclerNewFinalized(scriptContext->GetRecycler(), Js::JsrtSourceHolder, scriptLoadCallback, scriptUnloadCallback, sourceContext);
+            typedef Js::JsrtSourceHolder<TLoadCallback, TUnloadCallback> TSourceHolder;
+            sourceHolder = RecyclerNewFinalized(scriptContext->GetRecycler(), TSourceHolder, scriptLoadCallback, scriptUnloadCallback, sourceContext);
         }
 
         SourceContextInfo *sourceContextInfo;
@@ -2667,7 +2669,7 @@ JsErrorCode RunSerializedScriptCore(const wchar_t *script, JsSerializedScriptLoa
             /* grfsi               */ 0
         };
 
-        ulong flags = 0;
+        uint32 flags = 0;
 
         if (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling())
         {
@@ -2721,24 +2723,26 @@ JsErrorCode RunSerializedScriptCore(const wchar_t *script, JsSerializedScriptLoa
     });
 }
 
+#ifdef _WIN32
 CHAKRA_API JsParseSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext,
     _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunSerializedScriptCore(script, nullptr, nullptr, buffer, sourceContext, sourceUrl, true, result);
+    return RunSerializedScriptCore<JsSerializedScriptLoadSourceCallback, JsSerializedScriptUnloadCallback>(script, nullptr, nullptr, buffer, sourceContext, sourceUrl, true, result);
 }
 
 CHAKRA_API JsRunSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext,
     _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunSerializedScriptCore(script, nullptr, nullptr, buffer, sourceContext, sourceUrl, false, result);
+    return RunSerializedScriptCore<JsSerializedScriptLoadSourceCallback, JsSerializedScriptUnloadCallback>(script, nullptr, nullptr, buffer, sourceContext, sourceUrl, false, result);
 }
 
 CHAKRA_API JsParseSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback, _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback, _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunSerializedScriptCore(nullptr, scriptLoadCallback, scriptUnloadCallback, buffer, sourceContext, sourceUrl, true, result);
+    return RunSerializedScriptCore<JsSerializedScriptLoadSourceCallback, JsSerializedScriptUnloadCallback>(nullptr, scriptLoadCallback, scriptUnloadCallback, buffer, sourceContext, sourceUrl, true, result);
 }
 
 CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback, _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback, _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_opt_ JsValueRef * result)
 {
-    return RunSerializedScriptCore(nullptr, scriptLoadCallback, scriptUnloadCallback, buffer, sourceContext, sourceUrl, false, result);
+    return RunSerializedScriptCore<JsSerializedScriptLoadSourceCallback, JsSerializedScriptUnloadCallback>(nullptr, scriptLoadCallback, scriptUnloadCallback, buffer, sourceContext, sourceUrl, false, result);
 }
+#endif // _WIN32

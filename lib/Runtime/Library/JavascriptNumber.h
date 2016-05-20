@@ -48,7 +48,7 @@ namespace Js
         static bool TryToVarFast(int32 nValue, Var* result);
         static bool TryToVarFastWithCheck(double value, Var* result);
 
-        __inline static bool IsNan(double value) { return NumberUtilities::IsNan(value); }
+        inline static bool IsNan(double value) { return NumberUtilities::IsNan(value); }
         static bool IsZero(double value);
         static BOOL IsNegZero(double value);
         static bool IsPosInf(double value);
@@ -119,8 +119,8 @@ namespace Js
         static Var NewCodeGenInstance(CodeGenNumberAllocator *alloc, double value, ScriptContext* scriptContext);
 #endif
 
-        __inline static bool IsSpecial(double value, uint64 nSpecial) { return NumberUtilities::IsSpecial(value, nSpecial); }
-        __inline static uint64 ToSpecial(double value) { return NumberUtilities::ToSpecial(value); }
+        inline static bool IsSpecial(double value, uint64 nSpecial) { return NumberUtilities::IsSpecial(value, nSpecial); }
+        inline static uint64 ToSpecial(double value) { return NumberUtilities::ToSpecial(value); }
 
         static JavascriptString* ToStringNan(ScriptContext* scriptContext);
         static JavascriptString* ToStringRadix10(double dValue, ScriptContext* scriptContext);
@@ -192,7 +192,7 @@ namespace Js
         return ((uint64)aValue >> 50) != 0;
     }
 
-    __inline double JavascriptNumber::GetValue(Var aValue)
+    inline double JavascriptNumber::GetValue(Var aValue)
      {
          AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNumber'");
          double result;
@@ -201,35 +201,35 @@ namespace Js
      }
 #endif
 
-    __inline bool JavascriptNumber::IsZero(double value)
+    inline bool JavascriptNumber::IsZero(double value)
     {
         // succeeds for -0.0 as well
         return value == 0.0;
     }
 
-    __inline bool JavascriptNumber::IsPosInf(double value)
+    inline bool JavascriptNumber::IsPosInf(double value)
     {
         return IsSpecial(value, k_PosInf);
     }
 
-    __inline bool JavascriptNumber::IsNegInf(double value)
+    inline bool JavascriptNumber::IsNegInf(double value)
     {
         return IsSpecial(value, k_NegInf);
     }
 
-    __inline BOOL JavascriptNumber::IsNegZero(double value)
+    inline BOOL JavascriptNumber::IsNegZero(double value)
     {
         return IsSpecial(value, k_NegZero);
     }
 
     template <class Lib>
-    __inline static typename Lib::LibStringType JavascriptNumber::ToStringNan(const Lib& lib)
+    inline typename Lib::LibStringType JavascriptNumber::ToStringNan(const Lib& lib)
     {
         return lib.CreateStringFromCppLiteral(_u("NaN"));
     }
 
     template <class Lib>
-    __inline static typename Lib::LibStringType JavascriptNumber::ToStringNanOrInfinite(double value, const Lib& lib)
+    inline typename Lib::LibStringType JavascriptNumber::ToStringNanOrInfinite(double value, const Lib& lib)
     {
         if(!NumberUtilities::IsFinite(value))
         {

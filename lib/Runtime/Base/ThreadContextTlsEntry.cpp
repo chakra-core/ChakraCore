@@ -5,7 +5,7 @@
 #include "RuntimeBasePch.h"
 #include "Base/ThreadContextTlsEntry.h"
 
-ulong ThreadContextTLSEntry::s_tlsSlot = TLS_OUT_OF_INDEXES;
+uint32 ThreadContextTLSEntry::s_tlsSlot = TLS_OUT_OF_INDEXES;
 
 bool ThreadContextTLSEntry::InitializeProcess()
 {
@@ -127,7 +127,7 @@ void ThreadContextTLSEntry::Delete(ThreadContextTLSEntry * entry)
     HeapDelete(entry);
 }
 
-__inline ThreadContextTLSEntry * ThreadContextTLSEntry::GetEntryForCurrentThread()
+ThreadContextTLSEntry * ThreadContextTLSEntry::GetEntryForCurrentThread()
 {
     Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
     return reinterpret_cast<ThreadContextTLSEntry *>(TlsGetValue(s_tlsSlot));
@@ -146,7 +146,7 @@ ThreadContextTLSEntry * ThreadContextTLSEntry::CreateEntryForCurrentThread()
     return entry;
 }
 
-__inline ThreadContext * ThreadContextTLSEntry::GetThreadContext()
+ThreadContext * ThreadContextTLSEntry::GetThreadContext()
 {
     return this->threadContext;
 }

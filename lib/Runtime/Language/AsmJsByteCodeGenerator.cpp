@@ -96,7 +96,7 @@ namespace Js
     {
         mWriter.Create();
 
-        const long astSize = func->GetFncNode()->sxFnc.astSize/AstBytecodeRatioEstimate;
+        const int32 astSize = func->GetFncNode()->sxFnc.astSize/AstBytecodeRatioEstimate;
         // Use the temp allocator in bytecode write temp buffer.
         mWriter.InitData(&mAllocator, astSize);
 
@@ -1586,7 +1586,7 @@ namespace Js
                             // f4shuffle(v1, v2, [0-7], [0-7], [0-7], [0-7])
                             // f4swizzle(v1, [0-3], [0-3], [0-3], [0-3])
                             bool valid = true;
-                            long laneValue = (int) arg->sxInt.lw;
+                            int32 laneValue = (int) arg->sxInt.lw;
                             int argPos = i;
 
                             switch (simdFunc->GetSimdBuiltInFunction())

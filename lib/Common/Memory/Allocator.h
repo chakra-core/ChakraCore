@@ -220,7 +220,7 @@ void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocat
 }
 
 template <typename TAllocator, typename T>
-void DeleteObjectInline(typename TAllocator * allocator, T * obj)
+void DeleteObjectInline(TAllocator * allocator, T * obj)
 {
     obj->~T();
     allocator->FreeInline(obj, sizeof(T));
@@ -259,7 +259,7 @@ void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocat
 #define ZERO_LENGTH_ARRAY (void *)sizeof(void *)
 template <typename TAllocator, typename T, bool nothrow>
 _When_(nothrow, _Ret_writes_to_maybenull_(count, 0)) _When_(!nothrow, _Ret_writes_to_(count, 0))
-__inline T * AllocateArray(TAllocator * allocator, char * (TAllocator::*AllocFunc)(size_t), size_t count)
+inline T * AllocateArray(TAllocator * allocator, char * (TAllocator::*AllocFunc)(size_t), size_t count)
 {
     if (count == 0 && TAllocator::FakeZeroLengthArray)
     {
@@ -336,7 +336,7 @@ void AssertValue(void * mem, T value, uint byteCount)
 #define __PLACEMENT_NEW_INLINE
 
 _Ret_notnull_
-__inline void * __cdecl
+inline void * __cdecl
 operator new(
 size_t byteSize,
 _In_ void * previousAllocation) throw()
@@ -345,7 +345,7 @@ _In_ void * previousAllocation) throw()
 }
 
 
-__inline  void __cdecl
+inline  void __cdecl
 operator delete(
 void * allocationToFree,                // Allocation to free
 void * previousAllocation               // Previously allocated memory
@@ -371,7 +371,7 @@ operator new(size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc
 }
 
 template <typename TAllocator>
-_Ret_notnull_ __inline void * __cdecl
+_Ret_notnull_ inline void * __cdecl
 operator new[](size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t))
 {
     AssertCanHandleOutOfMemory();
@@ -382,7 +382,7 @@ operator new[](size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFu
 }
 
 template <typename TAllocator>
-_Ret_notnull_ __inline void * __cdecl
+_Ret_notnull_ inline void * __cdecl
 operator new(size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t), size_t plusSize)
 {
     AssertCanHandleOutOfMemory();
@@ -399,7 +399,7 @@ operator new(size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc
 // nothrow operator new overrides
 //----------------------------------------
 template <typename TAllocator>
-_Ret_maybenull_ __inline void * __cdecl
+_Ret_maybenull_ inline void * __cdecl
 operator new(size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t))
 {
     Assert(nothrow);
@@ -410,7 +410,7 @@ operator new(size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocat
 
 
 template <typename TAllocator>
-_Ret_maybenull_ __inline void * __cdecl
+_Ret_maybenull_ inline void * __cdecl
 operator new[](size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t))
 {
     Assert(nothrow);
@@ -421,7 +421,7 @@ operator new[](size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAlloc
 
 
 template <typename TAllocator>
-_Ret_maybenull_ __inline void * __cdecl
+_Ret_maybenull_ inline void * __cdecl
 operator new(size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t), size_t plusSize)
 {
     Assert(nothrow);
@@ -435,7 +435,7 @@ operator new(size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocat
 
 
 template <typename TAllocator>
-_Ret_maybenull_ __inline void * __cdecl
+_Ret_maybenull_ inline void * __cdecl
 operator new(size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t), size_t plusSize, bool prefix)
 {
     Assert(nothrow);

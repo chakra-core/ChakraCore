@@ -13,12 +13,12 @@ using namespace Windows::Foundation::Diagnostics;
 
 namespace Js
 {
-    __inline DelayLoadWinRtString* WindowsFoundationAdapter::GetWinRtStringLibrary(_In_ ScriptContext* scriptContext)
+    inline DelayLoadWinRtString* WindowsFoundationAdapter::GetWinRtStringLibrary(_In_ ScriptContext* scriptContext)
     {
         return scriptContext->GetThreadContext()->GetWinRTStringLibrary();
     }
 
-    __inline DelayLoadWinRtFoundation* WindowsFoundationAdapter::GetWinRtFoundationLibrary(_In_ ScriptContext* scriptContext)
+    inline DelayLoadWinRtFoundation* WindowsFoundationAdapter::GetWinRtFoundationLibrary(_In_ ScriptContext* scriptContext)
     {
         return scriptContext->GetThreadContext()->GetWinRtFoundationLibrary();
     }

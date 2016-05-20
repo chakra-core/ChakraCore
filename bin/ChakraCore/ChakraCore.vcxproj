@@ -125,6 +125,9 @@
     <ProjectReference Include="..\..\lib\Runtime\Base\Chakra.Runtime.Base.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110ee}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\lib\Runtime\PlatformAgnostic\Chakra.Runtime.PlatformAgnostic.vcxproj">
+      <Project>{129ac184-877c-441f-ac49-a692ce700e62}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\lib\Runtime\ByteCode\Chakra.Runtime.ByteCode.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110f5}</Project>
     </ProjectReference>

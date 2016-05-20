@@ -964,22 +964,22 @@ FormatString(
       else {
          switch (*++format) {
             case 'd':
-               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (long)NumDiffsTotal[RLS_TOTAL]);
+               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (int32)NumDiffsTotal[RLS_TOTAL]);
                break;
             case 'f':
-               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (long)NumFailuresTotal[RLS_TOTAL]);
+               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (int32)NumFailuresTotal[RLS_TOTAL]);
                break;
             case 't':
-               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (long)NumVariationsRun[RLS_TOTAL]);
+               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (int32)NumVariationsRun[RLS_TOTAL]);
                break;
             case 'T':
-               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (long)NumVariationsTotal[RLS_TOTAL]);
+               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (int32)NumVariationsTotal[RLS_TOTAL]);
                break;
             case 'p':
-               if ((long)NumVariationsTotal[RLS_TOTAL]) {
+               if ((int32)NumVariationsTotal[RLS_TOTAL]) {
                   i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d",
-                     100 * (long)NumVariationsRun[RLS_TOTAL] /
-                     (long)NumVariationsTotal[RLS_TOTAL]);
+                     100 * (int32)NumVariationsRun[RLS_TOTAL] /
+                     (int32)NumVariationsTotal[RLS_TOTAL]);
                }
                else {
                   i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "--");
@@ -3371,7 +3371,7 @@ IsTimeoutStringValid(char *strTimeout) {
    char *end;
    _set_errno(0);
 
-   unsigned long secTimeout = strtoul(strTimeout, &end, 10);
+   uint32 secTimeout = strtoul(strTimeout, &end, 10);
 
    if (errno != 0 || *end != 0) {
       return FALSE;
@@ -4596,9 +4596,9 @@ RegressDirectory(
    if (FBaseDiff && !pDir->IsBaseline())
       pDir->InitStats(0);
 
-   ASSERTNR((long)pDir->NumVariationsRun == 0);
-   ASSERTNR((long)pDir->NumDiffs == 0);
-   ASSERTNR((long)pDir->NumFailures == 0);
+   ASSERTNR((int32)pDir->NumVariationsRun == 0);
+   ASSERTNR((int32)pDir->NumDiffs == 0);
+   ASSERTNR((int32)pDir->NumFailures == 0);
 
    if (!FNoDirName)
       WriteLog("*** %s ***", dir);
@@ -5002,16 +5002,16 @@ main(int argc, char *argv[])
 
    if (FRLFE) {
       if (Mode == RM_EXE) {
-         RLFEAddRoot(RLS_EXE, (long)NumVariationsTotal[RLS_EXE]);
+         RLFEAddRoot(RLS_EXE, (int32)NumVariationsTotal[RLS_EXE]);
       }
       else {
          if (FBaseline)
-            RLFEAddRoot(RLS_BASELINES, (long)NumVariationsTotal[RLS_BASELINES]);
+            RLFEAddRoot(RLS_BASELINES, (int32)NumVariationsTotal[RLS_BASELINES]);
          if (FDiff)
-            RLFEAddRoot(RLS_DIFFS, (long)NumVariationsTotal[RLS_DIFFS]);
+            RLFEAddRoot(RLS_DIFFS, (int32)NumVariationsTotal[RLS_DIFFS]);
       }
 
-      RLFEAddRoot(RLS_TOTAL, (long)NumVariationsTotal[RLS_TOTAL]);
+      RLFEAddRoot(RLS_TOTAL, (int32)NumVariationsTotal[RLS_TOTAL]);
    }
 
    DirectoryQueue.AdjustWaitForThreadCount();
@@ -5067,5 +5067,5 @@ main(int argc, char *argv[])
    // The return code from RL is 0 for complete success, 1 for any failure.
    // Note that diffs don't count as failures.
 
-   return ((long)NumFailuresTotal[RLS_TOTAL] == 0L) ? 0 : 1;
+   return ((int32)NumFailuresTotal[RLS_TOTAL] == 0L) ? 0 : 1;
 }

@@ -6,7 +6,7 @@
 #include "JsrtPch.h"
 #include "JsrtInternal.h"
 #include "RuntimeDebugPch.h"
-#include "ThreadContextTLSEntry.h"
+#include "ThreadContextTlsEntry.h"
 #include "JsrtDebugUtils.h"
 
 #define VALIDATE_IS_DEBUGGING(jsrtDebugManager) \
@@ -470,10 +470,10 @@ CHAKRA_API JsDiagGetFunctionPosition(
                     {
                         JsrtDebugUtils::AddScriptIdToObject(funcPositionObject, utf8SourceInfo);
                         JsrtDebugUtils::AddFileNameOrScriptTypeToObject(funcPositionObject, utf8SourceInfo);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::line, lineNumber, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::column, columnNumber, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementLine, firstStatementLine, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementColumn, firstStatementColumn, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::line, (uint32) lineNumber, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::column, (uint32) columnNumber, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementLine, (uint32) firstStatementLine, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcPositionObject, JsrtDebugPropertyId::firstStatementColumn, (int32) firstStatementColumn, scriptContext);
 
                         *functionPosition = funcPositionObject;
 

@@ -7,14 +7,37 @@
 #include "CommonBasic.h"
 
 // === C Runtime Header Files ===
+#ifndef USING_PAL_STDLIB
 #pragma warning(push)
 #pragma warning(disable: 4995) /* 'function': name was marked as #pragma deprecated */
 #include <stdio.h>
 #pragma warning(pop)
+#ifdef _WIN32
 #include <intrin.h>
+#endif
+#endif
 
 // === Core Header Files ===
+// In Debug mode, the PALs definition of max and min are insufficient
+// since some of our code expects the template min-max instead, so
+// including that here
+#if defined(DBG) && !defined(_MSC_VER)
+#pragma push_macro("NO_PAL_MINMAX")
+#pragma push_macro("_Post_equal_to")
+#pragma push_macro("_Post_satisfies_")
+#define NO_PAL_MINMAX
+#define _Post_equal_to_(x)
+#define _Post_satisfies_(x)
+#endif
+
 #include "Core/CommonMinMax.h"
+
+// Restore the macros
+#if defined(DBG) && !defined(_MSC_VER)
+#pragma pop_macro("NO_PAL_MINMAX")
+#pragma pop_macro("_Post_equal_to")
+#pragma pop_macro("_Post_satisfies_")
+#endif
 
 #include "EnumHelp.h"
 #include "Core/Assertions.h"
@@ -32,12 +55,16 @@
 #include "Core/Output.h"
 
 // === Basic Memory Header Files ===
-namespace Memory {}
+namespace Memory
+{
+    class ArenaAllocator;
+}
 using namespace Memory;
 #include "Memory/Allocator.h"
 #include "Memory/HeapAllocator.h"
 
 // === Data structures Header Files ===
+#include "DataStructures/DefaultContainerLockPolicy.h"
 #include "DataStructures/Comparer.h"
 #include "DataStructures/SizePolicy.h"
 #include "DataStructures/BitVector.h"
@@ -56,4 +83,3 @@ using namespace Memory;
 #include "Memory/AllocationPolicyManager.h"
 #include "Memory/PageAllocator.h"
 #include "Memory/ArenaAllocator.h"
-

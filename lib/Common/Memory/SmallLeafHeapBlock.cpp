@@ -14,19 +14,19 @@ SmallLeafHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallLeafHeapBlockT<TBloc
 
     ushort objectSize = (ushort)bucket->sizeCat;
     ushort objectCount = (ushort)(TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / objectSize;
-    return NoMemProtectHeapNewNoThrowPlusPrefixZ(GetAllocPlusSize(objectCount), SmallLeafHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount);
+    return NoMemProtectHeapNewNoThrowPlusPrefixZ(Base::GetAllocPlusSize(objectCount), SmallLeafHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount);
 }
 
 template <>
 SmallLeafHeapBlockT<SmallAllocationBlockAttributes>::SmallLeafHeapBlockT(HeapBucketT<SmallLeafHeapBlockT<SmallAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
-    : SmallHeapBlockT<SmallAllocationBlockAttributes>(bucket, objectSize, objectCount, HeapBlockType::SmallLeafBlockType)
+    : Base(bucket, objectSize, objectCount, HeapBlockType::SmallLeafBlockType)
 {
     Assert(objectCount > 1 && objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize)/ objectSize);
 }
 
 template <>
 SmallLeafHeapBlockT<MediumAllocationBlockAttributes>::SmallLeafHeapBlockT(HeapBucketT<SmallLeafHeapBlockT<MediumAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
-: SmallHeapBlockT<MediumAllocationBlockAttributes>(bucket, objectSize, objectCount, HeapBlockType::MediumLeafBlockType)
+    : Base(bucket, objectSize, objectCount, HeapBlockType::MediumLeafBlockType)
 {
     Assert(objectCount > 1 && objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize) / objectSize);
 }
@@ -36,14 +36,14 @@ void
 SmallLeafHeapBlockT<TBlockAttributes>::Delete(SmallLeafHeapBlockT<TBlockAttributes> * heapBlock)
 {
     Assert(heapBlock->IsLeafBlock());
-    NoMemProtectHeapDeletePlusPrefix(GetAllocPlusSize(heapBlock->objectCount), heapBlock);
+    NoMemProtectHeapDeletePlusPrefix(Base::GetAllocPlusSize(heapBlock->objectCount), heapBlock);
 }
 
 template <class TBlockAttributes>
 void
 SmallLeafHeapBlockT<TBlockAttributes>::ScanNewImplicitRoots(Recycler * recycler)
 {
-    __super::ScanNewImplicitRootsBase([](void * object, size_t objectSize){});
+    Base::ScanNewImplicitRootsBase([](void * object, size_t objectSize){});
 }
 
 #ifdef RECYCLER_SLOW_CHECK_ENABLED
@@ -51,10 +51,13 @@ template <class TBlockAttributes>
 bool
 SmallLeafHeapBlockT<TBlockAttributes>::GetFreeObjectListOnAllocator(FreeObject ** freeObjectList)
 {
-    return GetFreeObjectListOnAllocatorImpl<SmallLeafHeapBlockT<TBlockAttributes>>(freeObjectList);
+    return this->template GetFreeObjectListOnAllocatorImpl<SmallLeafHeapBlockT<TBlockAttributes>>(freeObjectList);
 }
 #endif
 
-// Declare the class templates
-template class SmallLeafHeapBlockT<SmallAllocationBlockAttributes>;
-template class SmallLeafHeapBlockT<MediumAllocationBlockAttributes>;
+namespace Memory
+{
+    // Declare the class templates
+    template class SmallLeafHeapBlockT<SmallAllocationBlockAttributes>;
+    template class SmallLeafHeapBlockT<MediumAllocationBlockAttributes>;
+}

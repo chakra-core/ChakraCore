@@ -5,10 +5,77 @@
 #include "stdafx.h"
 #include "Codex/Utf8Codex.h"
 
-HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* isUtf8Out, LPCWSTR* contentsRawOut, UINT* lengthBytesOut, bool printFileOpenError)
+///
+/// Use the codex library to encode a UTF16 string to UTF8.
+/// The caller is responsible for freeing the memory, which is allocated
+/// using malloc.
+/// The returned string is null terminated.
+///
+HRESULT Helpers::WideStringToNarrowDynamic(LPCWSTR sourceString, LPSTR* destStringPtr)
+{
+    size_t cchSourceString = wcslen(sourceString);
+    
+    if (cchSourceString >= MAXUINT32)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    size_t cbDestString = (cchSourceString + 1) * 3;
+
+    // Check for overflow- cbDestString should be >= cchSourceString
+    if (cbDestString < cchSourceString)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    utf8char_t* destString = (utf8char_t*)malloc(cbDestString);
+    if (destString == nullptr)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    size_t cbDecoded = utf8::EncodeIntoAndNullTerminate(destString, sourceString, (charcount_t) cchSourceString);
+    Assert(cbDecoded <= cbDestString);
+    static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
+    *destStringPtr = (char*)destString;
+    return S_OK;
+}
+
+///
+/// Use the codex library to encode a UTF8 string to UTF16.
+/// The caller is responsible for freeing the memory, which is allocated
+/// using malloc.
+/// The returned string is null terminated.
+///
+HRESULT Helpers::NarrowStringToWideDynamic(LPCSTR sourceString, LPWSTR* destStringPtr)
+{
+    size_t cbSourceString = strlen(sourceString);
+    charcount_t cchDestString = utf8::ByteIndexIntoCharacterIndex((LPCUTF8) sourceString, cbSourceString);
+    size_t cbDestString = (cchDestString + 1) * sizeof(WCHAR);
+    
+    // Check for overflow- cbDestString should be >= cchSourceString
+    if (cbDestString < cchDestString)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    WCHAR* destString = (WCHAR*)malloc(cbDestString);
+    if (destString == nullptr)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    utf8::DecodeIntoAndNullTerminate(destString, (LPCUTF8) sourceString, cchDestString);
+    static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
+    *destStringPtr = destString;
+    return S_OK;
+}
+
+HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCWSTR& contents, bool* isUtf8Out, LPCWSTR* contentsRawOut, UINT* lengthBytesOut, bool printFileOpenError)
 {
     HRESULT hr = S_OK;
     LPCWSTR contentsRaw = nullptr;
+    byte * pRawBytes = nullptr;
     UINT lengthBytes = 0;
     bool isUtf8 = false;
     contents = nullptr;
@@ -18,13 +85,14 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
     // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
     // etc.
     //
-    if (_wfopen_s(&file, filename, _u("rb")) != 0)
+    if (fopen_s(&file, filename, "rb") != 0)
     {
         if (printFileOpenError)
         {
+#ifdef _WIN32
             DWORD lastError = GetLastError();
             char16 wszBuff[512];
-            fwprintf(stderr, _u("Error in opening file '%s' "), filename);
+            fprintf(stderr, "Error in opening file '%s' ", filename);
             wszBuff[0] = 0;
             if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
                 nullptr,
@@ -37,6 +105,10 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
                 fwprintf(stderr, _u(": %s"), wszBuff);
             }
             fwprintf(stderr, _u("\n"));
+#elif defined(_POSIX_VERSION)
+            fprintf(stderr, "Error in opening file: ");
+            perror(filename);
+#endif            
             IfFailGo(E_FAIL);
         }
         else
@@ -72,12 +144,12 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
     // This is not a complete read of the encoding. Some encodings like UTF7, UTF1, EBCDIC, SCSU, BOCU could be
     // wrongly classified as ANSI
     //
-    byte * pRawBytes = (byte*)contentsRaw;
+    pRawBytes = (byte*)contentsRaw;
     if ((0xEF == *pRawBytes && 0xBB == *(pRawBytes + 1) && 0xBF == *(pRawBytes + 2)))
     {
         isUtf8 = true;
     }
-    else if (0xFFFE == *contentsRaw || 0x0000 == *contentsRaw && 0xFEFF == *(contentsRaw + 1))
+    else if (0xFFFE == *contentsRaw || (0x0000 == *contentsRaw && 0xFEFF == *(contentsRaw + 1)))
     {
         // unicode unsupported
         fwprintf(stderr, _u("unsupported file encoding"));
@@ -139,7 +211,7 @@ LPCWSTR Helpers::JsErrorCodeToString(JsErrorCode jsErrorCode)
     ChakraRTInterface::JsHasException(&hasException);
     if (hasException)
     {
-        WScriptJsrt::PrintException(_u(""), JsErrorScriptException);
+        WScriptJsrt::PrintException("", JsErrorScriptException);
     }
 
     switch (jsErrorCode)
@@ -218,12 +290,12 @@ LPCWSTR Helpers::JsErrorCodeToString(JsErrorCode jsErrorCode)
     }
 }
 
-void Helpers::LogError(__in __nullterminated char16 *msg, ...)
+void Helpers::LogError(__in __nullterminated const char16 *msg, ...)
 {
     va_list args;
     va_start(args, msg);
     wprintf(_u("ERROR: "));
-    vwprintf(msg, args);
+    vfwprintf(stderr, msg, args);
     wprintf(_u("\n"));
     fflush(stdout);
     va_end(args);

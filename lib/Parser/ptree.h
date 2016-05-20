@@ -97,7 +97,7 @@ struct PnUniSlot : PnUni
 
 struct PnInt
 {
-    long lw;
+    int32 lw;
 };
 
 struct PnFlt
@@ -214,8 +214,8 @@ struct PnFnc
     ParseNodePtr pnodeName;
     IdentPtr pid;
     LPCOLESTR hint;
-    ulong hintLength;
-    ulong hintOffset;
+    uint32 hintLength;
+    uint32 hintOffset;
     bool  isNameIdentifierRef;
     ParseNodePtr pnodeScopes;
     ParseNodePtr pnodeBodyScope;
@@ -233,7 +233,7 @@ struct PnFnc
     uint16 firstDefaultArg; // Position of the first default argument, if any
 
     unsigned int fncFlags;
-    long astSize;
+    int32 astSize;
     size_t cbMin; // Min an Lim UTF8 offsets.
     size_t cbLim;
     ULONG lineNumber;   // Line number relative to the current source buffer of the function declaration.
@@ -245,7 +245,7 @@ struct PnFnc
     RestorePoint *pRestorePoint;
     DeferredFunctionStub *deferredStub;
 
-    static const long MaxStackClosureAST = 800000;
+    static const int32 MaxStackClosureAST = 800000;
 
 private:
     void SetFlags(uint flags, bool set)

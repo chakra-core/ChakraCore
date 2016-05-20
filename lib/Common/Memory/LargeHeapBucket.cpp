@@ -214,7 +214,9 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
 
     if (recycler->ShouldCapturePageHeapAllocStack())
     {
+#ifdef STACK_BACK_TRACE
         heapBlock->CapturePageHeapAllocStack();
+#endif
     }
 
     return memBlock;

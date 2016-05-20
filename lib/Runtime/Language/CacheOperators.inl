@@ -16,7 +16,7 @@ namespace Js
         bool IsInlineCacheAvailable,
         bool IsPolymorphicInlineCacheAvailable,
         bool ReturnOperationInfo>
-    __inline bool CacheOperators::TryGetProperty(
+    inline bool CacheOperators::TryGetProperty(
         Var const instance,
         const bool isRoot,
         RecyclableObject *const object,
@@ -130,7 +130,7 @@ namespace Js
         bool IsInlineCacheAvailable,
         bool IsPolymorphicInlineCacheAvailable,
         bool ReturnOperationInfo>
-    __inline bool CacheOperators::TrySetProperty(
+    inline bool CacheOperators::TrySetProperty(
         RecyclableObject *const object,
         const bool isRoot,
         const PropertyId propertyId,
@@ -237,7 +237,7 @@ namespace Js
     template<
         bool IsInlineCacheAvailable,
         bool IsPolymorphicInlineCacheAvailable>
-    __inline void CacheOperators::PretendTryGetProperty(
+    inline void CacheOperators::PretendTryGetProperty(
         Type *const type,
         PropertyCacheOperationInfo *operationInfo,
         PropertyValueInfo *const propertyValueInfo)
@@ -267,7 +267,7 @@ namespace Js
     template<
         bool IsInlineCacheAvailable,
         bool IsPolymorphicInlineCacheAvailable>
-    __inline void CacheOperators::PretendTrySetProperty(
+    inline void CacheOperators::PretendTrySetProperty(
         Type *const type,
         Type *const oldType,
         PropertyCacheOperationInfo * operationInfo,
@@ -299,7 +299,7 @@ namespace Js
         bool IsAccessor,
         bool IsRead,
         bool IncludeTypePropertyCache>
-    __inline void CacheOperators::Cache(
+    inline void CacheOperators::Cache(
         const bool isProto,
         DynamicObject *const objectWithProperty,
         const bool isRoot,
@@ -435,7 +435,7 @@ namespace Js
             // polymorphic inline cache. Once resized, bailouts would populate only the new set of caches and full JIT would
             // continue to use to old set of caches.
             Assert(!info->AllowResizingPolymorphicInlineCache() || info->GetFunctionBody());
-            if((includeTypePropertyCache && !createTypePropertyCache || info->AllowResizingPolymorphicInlineCache()) &&
+            if(((includeTypePropertyCache && !createTypePropertyCache) || info->AllowResizingPolymorphicInlineCache()) &&
                 polymorphicInlineCache->HasDifferentType<IsAccessor>(isProto, type, typeWithoutProperty))
             {
                 if(info->AllowResizingPolymorphicInlineCache() && polymorphicInlineCache->CanAllocateBigger())

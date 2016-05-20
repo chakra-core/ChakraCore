@@ -6,6 +6,8 @@
 #include "Language/JavascriptMathOperators.h"
 #include "Math/CrtSSE2Math.h"
 
+#include <math.h>
+
 #if defined(_M_IX86) || defined(_M_X64)
 #pragma intrinsic(_mm_round_sd)
 #endif
@@ -349,6 +351,8 @@ namespace Js
             }
 #endif
 
+            // xplat-todo: use intrinsics here on linux
+#ifdef _MSC_VER
 #if defined(_M_IX86) || defined(_M_X64)
             if (AutoSystemInfo::Data.SSE4_1Available())
             {
@@ -378,6 +382,7 @@ namespace Js
                 }
             }
             else
+#endif
 #endif
             {
                 double result = ::ceil(x);
@@ -544,8 +549,10 @@ namespace Js
 
 #pragma warning(push)
 #pragma warning(disable:4700)  // // uninitialized local variable 'output' used, for call to _mm_floor_sd
-    Var __inline Math::FloorDouble(double d, ScriptContext *scriptContext)
+    Var inline Math::FloorDouble(double d, ScriptContext *scriptContext)
     {
+            // xplat-todo: use intrinsics here on linux
+#ifdef _MSC_VER
 #if defined(_M_IX86) || defined(_M_X64)
         if (AutoSystemInfo::Data.SSE4_1Available())
         {
@@ -585,6 +592,7 @@ namespace Js
             }
         }
         else
+#endif
 #endif
         {
             intptr_t intResult;

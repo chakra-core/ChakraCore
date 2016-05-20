@@ -6,28 +6,28 @@
 
 namespace Js
 {
-    __inline bool TaggedInt::IsOverflow(int32 nValue)
+    inline bool TaggedInt::IsOverflow(int32 nValue)
     {
         return (nValue < k_nMinValue) || (nValue > k_nMaxValue);
     }
 
-    __inline bool TaggedInt::IsOverflow(uint32 nValue)
+    inline bool TaggedInt::IsOverflow(uint32 nValue)
     {
         return nValue > k_nMaxValue;
     }
 
-    __inline bool TaggedInt::IsOverflow(int64 nValue)
+    inline bool TaggedInt::IsOverflow(int64 nValue)
     {
         return (nValue < k_nMinValue) || (nValue > k_nMaxValue);
     }
 
-    __inline bool TaggedInt::IsOverflow(uint64 nValue)
+    inline bool TaggedInt::IsOverflow(uint64 nValue)
     {
         return nValue > k_nMaxValue;
     }
 
 #if INT32VAR
-    __inline bool TaggedInt::Is(Var aValue)
+    inline bool TaggedInt::Is(Var aValue)
     {
         bool result = (((uintptr_t) aValue) >> VarTag_Shift) == AtomTag;
         if(result)
@@ -37,7 +37,7 @@ namespace Js
         return result;
     }
 
-    __inline bool TaggedInt::IsPair(Var aLeft, Var aRight)
+    inline bool TaggedInt::IsPair(Var aLeft, Var aRight)
     {
         uint32 tags = (uint32)((uint64)aLeft >> 32 | (uint64)aRight >> 48);
         bool result = (tags == AtomTag_Pair);
@@ -45,21 +45,21 @@ namespace Js
         return result;
     }
 
-    __inline int32 TaggedInt::ToInt32(Var aValue)
+    inline int32 TaggedInt::ToInt32(Var aValue)
     {
         AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         return ::Math::PointerCastToIntegralTruncate<int32>(aValue);
     }
 
-    __inline uint32 TaggedInt::ToUInt32(Var aValue)
+    inline uint32 TaggedInt::ToUInt32(Var aValue)
     {
         AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         return ::Math::PointerCastToIntegralTruncate<uint32>(aValue);
     }
 
-    __inline int64 TaggedInt::ToInt64(Var aValue)
+    inline int64 TaggedInt::ToInt64(Var aValue)
     {
         AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
@@ -70,19 +70,19 @@ namespace Js
         return nValue;
     }
 
-    __inline uint16 TaggedInt::ToUInt16(Var aValue)
+    inline uint16 TaggedInt::ToUInt16(Var aValue)
     {
         AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         return ::Math::PointerCastToIntegralTruncate<uint16>(aValue);
     }
 
-    __inline double TaggedInt::ToDouble(Var aValue)
+    inline double TaggedInt::ToDouble(Var aValue)
     {
         return (double)::Math::PointerCastToIntegralTruncate<int32>(aValue);
     }
 
-    __inline Var TaggedInt::ToVarUnchecked(int nValue)
+    inline Var TaggedInt::ToVarUnchecked(int nValue)
     {
         //
         // To convert to a var we first cast to uint32 to lose the signedness and then
@@ -95,12 +95,12 @@ namespace Js
     }
 
 #else
-    __inline bool TaggedInt::Is(const Var aValue)
+    inline bool TaggedInt::Is(const Var aValue)
     {
         return (((uintptr_t) aValue) & AtomTag) == AtomTag_IntPtr;
     }
 
-    __inline bool TaggedInt::IsPair(Var aLeft, Var aRight)
+    inline bool TaggedInt::IsPair(Var aLeft, Var aRight)
     {
         //
         // Check if both Atoms are tagged as "SmInts":
@@ -113,7 +113,7 @@ namespace Js
         return (((uintptr_t) aLeft) & ((uintptr_t) aRight) & AtomTag) == AtomTag_IntPtr;
     }
 
-    __inline int32 TaggedInt::ToInt32(Var aValue)
+    inline int32 TaggedInt::ToInt32(Var aValue)
     {
         //
         // To convert from a var, must first convert to an 'int32' to properly sign-extend
@@ -125,7 +125,7 @@ namespace Js
         return ((int) aValue) >> VarTag_Shift;
     }
 
-    __inline uint32 TaggedInt::ToUInt32(Var aValue)
+    inline uint32 TaggedInt::ToUInt32(Var aValue)
     {
         //
         // To convert from a var, must use ToInt32() to properly sign-extend negative values, then
@@ -135,7 +135,7 @@ namespace Js
         return (uint32) ToInt32(aValue);
     }
 
-    __inline int64 TaggedInt::ToInt64(Var aValue)
+    inline int64 TaggedInt::ToInt64(Var aValue)
     {
        //
         // To convert from a var, must first convert to an 'int64' to properly sign-extend
@@ -151,19 +151,19 @@ namespace Js
         return nValue;
     }
 
-    __inline uint16 TaggedInt::ToUInt16(Var aValue)
+    inline uint16 TaggedInt::ToUInt16(Var aValue)
     {
         AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         return (uint16)(((int) aValue) >> VarTag_Shift);
     }
 
-    __inline double TaggedInt::ToDouble(Var aValue)
+    inline double TaggedInt::ToDouble(Var aValue)
     {
         return (double) ToInt32(aValue);
     }
 
-    __inline Var TaggedInt::ToVarUnchecked(int nValue)
+    inline Var TaggedInt::ToVarUnchecked(int nValue)
     {
         //
         // To convert to a var, must first multiply (which will be converted into a shift
@@ -179,7 +179,7 @@ namespace Js
 
 
 
-    __inline Var TaggedInt::Add(Var aLeft,Var aRight,ScriptContext* scriptContext)
+    inline Var TaggedInt::Add(Var aLeft,Var aRight,ScriptContext* scriptContext)
 #ifdef DBG
     {
         Var sum = DbgAdd(aLeft, aRight, scriptContext);
@@ -187,7 +187,7 @@ namespace Js
         return sum;
     }
 
-    __inline Var TaggedInt::DbgAdd(Var aLeft,Var aRight,ScriptContext* scriptContext)
+    inline Var TaggedInt::DbgAdd(Var aLeft,Var aRight,ScriptContext* scriptContext)
 #endif
     {
 #if _M_IX86
@@ -260,7 +260,7 @@ LblDone:
     //
     // True if the value is a tagged number representation (for x64 - float & integers) - otherwise false.
     //
-    __inline bool TaggedNumber::Is(const Var aValue)
+    inline bool TaggedNumber::Is(const Var aValue)
     {
         bool isTaggedNumber;
 #if FLOATVAR

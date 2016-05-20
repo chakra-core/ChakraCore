@@ -6,13 +6,15 @@
 
 // strings for builtin names
 #define HASH_NAME(name, hashCS, hashCI) \
-    const StaticSym g_ssym_##name = \
+    const StaticSymLen<sizeof(#name)> g_ssym_##name = \
     { \
         hashCS, \
         sizeof(#name) - 1, \
-        OLESTR(#name) \
-    };
+        _u(#name) \
+    }; \
+    C_ASSERT(offsetof(StaticSymLen<sizeof(#name)>, luHash) == offsetof(StaticSym, luHash)); \
+    C_ASSERT(offsetof(StaticSymLen<sizeof(#name)>, cch) == offsetof(StaticSym, cch)); \
+    C_ASSERT(offsetof(StaticSymLen<sizeof(#name)>, sz) == offsetof(StaticSym, sz)); \
+
 #include "objnames.h"
 #undef HASH_NAME
-
-

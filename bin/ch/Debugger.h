@@ -4,11 +4,16 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef _WIN32
 static const WCHAR controllerScript[] = {
 #include "DbgController.js.encoded"
     _u('\0')
 };
-
+#else
+// xplat-todo: Need to generate DbgController.js.encoded
+static const WCHAR controllerScript[] = { _u('\0') };
+#endif
+    
 class Debugger
 {
 public:
@@ -18,7 +23,7 @@ public:
     bool StartDebugging(JsRuntimeHandle runtime);
     bool StopDebugging(JsRuntimeHandle runtime);
     bool HandleDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef eventData);
-    bool CompareOrWriteBaselineFile(LPCWSTR fileName);
+    bool CompareOrWriteBaselineFile(LPCSTR fileName);
     bool SourceRunDown();
     bool DumpFunctionPosition(JsValueRef functionPosition);
     bool IsDetached() const { return m_isDetached; }

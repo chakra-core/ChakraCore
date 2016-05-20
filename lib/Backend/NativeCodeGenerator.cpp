@@ -540,7 +540,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
         entryPointInfo->SetModuleAddress(oldFuncObjEntryPointInfo->GetModuleAddress());
 
         // Update the native address of the older entry point - this should be either the TJ entrypoint or the Interpreter Entry point
-        entryPointInfo->SetNativeAddress(oldFuncObjEntryPointInfo->address);
+        entryPointInfo->SetNativeAddress(oldFuncObjEntryPointInfo->jsMethod);
         // have a reference to TJ entrypointInfo, this will be queued for collection in checkcodegen
         entryPointInfo->SetOldFunctionEntryPointInfo(oldFuncObjEntryPointInfo);
         Assert(PHASE_ON1(Js::AsmJsJITTemplatePhase) || (!oldFuncObjEntryPointInfo->GetIsTJMode() && !entryPointInfo->GetIsTJMode()));
@@ -608,7 +608,7 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
 {
     ASSERT_THREAD();
     Assert(fn->GetScriptContext()->GetNativeCodeGenerator() == this);
-    Assert(entryPoint->address == nullptr);
+    Assert(entryPoint->jsMethod == nullptr);
 
 #if DBG_DUMP
     if (PHASE_TRACE1(Js::JITLoopBodyPhase))
@@ -858,8 +858,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr,
         foreground ? nullptr : &funcAlloc);
     bool rejit;
+#ifdef ENABLE_BASIC_TELEMETRY
     ThreadContext *threadContext = scriptContext->GetThreadContext();
     double startTime = threadContext->JITTelemetry.Now();
+#endif
 
     do
     {
@@ -967,7 +969,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         }
     } while(rejit);
 
+#ifdef ENABLE_BASIC_TELEMETRY
     threadContext->JITTelemetry.LogTime(threadContext->JITTelemetry.Now() - startTime);
+#endif
 
 #ifdef BGJIT_STATS
     // Must be interlocked because the following data may be modified from the background and foreground threads concurrently
@@ -1215,15 +1219,15 @@ NativeCodeGenerator::CheckCodeGenDone(
     }
 
     // Replace the entry point
-    Js::JavascriptMethod address;
+    Js::JavascriptMethod jsMethod;
     if (!entryPointInfo->IsCodeGenDone())
     {
         if (entryPointInfo->IsPendingCleanup())
         {
             entryPointInfo->Cleanup(false /* isShutdown */, true /* capture cleanup stack */);
         }
-        address = functionBody->GetScriptContext()->CurrentThunk == ProfileEntryThunk ? ProfileEntryThunk : functionBody->GetOriginalEntryPoint();
-        entryPointInfo->address = address;
+        jsMethod = functionBody->GetScriptContext()->CurrentThunk == ProfileEntryThunk ? ProfileEntryThunk : functionBody->GetOriginalEntryPoint();
+        entryPointInfo->jsMethod = jsMethod;
     }
     else
     {
@@ -1231,20 +1235,20 @@ NativeCodeGenerator::CheckCodeGenDone(
             entryPointInfo,
             functionBody,
             reinterpret_cast<Js::JavascriptMethod>(entryPointInfo->GetNativeAddress()));
-        address = (Js::JavascriptMethod) entryPointInfo->address;
+        jsMethod = entryPointInfo->jsMethod;
 
-        Assert(!functionBody->NeedEnsureDynamicProfileInfo() || address == Js::DynamicProfileInfo::EnsureDynamicProfileInfoThunk);
+        Assert(!functionBody->NeedEnsureDynamicProfileInfo() || jsMethod == Js::DynamicProfileInfo::EnsureDynamicProfileInfoThunk);
     }
 
-    Assert(!IsThunk(address));
+    Assert(!IsThunk(jsMethod));
 
     if(function)
     {
-        function->UpdateThunkEntryPoint(entryPointInfo, address);
+        function->UpdateThunkEntryPoint(entryPointInfo, jsMethod);
     }
 
     // call the direct entry point, which will ensure dynamic profile info if necessary
-    return address;
+    return jsMethod;
 }
 
 CodeGenWorkItem *

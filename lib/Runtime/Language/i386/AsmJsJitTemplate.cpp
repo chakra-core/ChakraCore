@@ -471,8 +471,8 @@ namespace Js
 #ifdef BGJIT_STATS
             entryPointInfo->MarkAsUsed();
 #endif
-            Assert(entryPointInfo->address);
-            uint newOffset = CallLoopBody((JavascriptMethod)entryPointInfo->address, function, ebpPtr);
+            Assert(entryPointInfo->jsMethod);
+            uint newOffset = CallLoopBody(entryPointInfo->jsMethod, function, ebpPtr);
             ptrdiff_t value = NULL;
             fn->GetAsmJsFunctionInfo()->mbyteCodeTJMap->TryGetValue(newOffset, &value);
             Assert(value != NULL); // value cannot be null

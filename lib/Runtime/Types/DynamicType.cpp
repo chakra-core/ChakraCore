@@ -298,9 +298,9 @@ namespace Js
             {
                 // Stack object should have a pre-op bail on implicit call.  We shouldn't see them here.
                 Assert(!ThreadContext::IsOnStack(this) || threadContext->HasNoSideEffect(toStringFunction));
-                return toStringFunction->GetEntryPoint()(toStringFunction, CallInfo(CallFlags_Value, 1), this);
+                return CALL_FUNCTION(toStringFunction, CallInfo(CallFlags_Value, 1), this);
             });
- 
+
             if (!aResult)
             {
                 // There was an implicit call and implicit calls are disabled. This would typically cause a bailout.

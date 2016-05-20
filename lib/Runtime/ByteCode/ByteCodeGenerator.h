@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #if defined(_M_ARM32_OR_ARM64) || defined(_M_X64)
-const long AstBytecodeRatioEstimate = 4;
+const int32 AstBytecodeRatioEstimate = 4;
 #else
-const long AstBytecodeRatioEstimate = 5;
+const int32 AstBytecodeRatioEstimate = 5;
 #endif
 
 class ByteCodeGenerator
@@ -13,7 +13,7 @@ class ByteCodeGenerator
 private:
     Js::ScriptContext* scriptContext;
     ArenaAllocator *alloc;
-    ulong flags;
+    uint32 flags;
     Js::PropertyRecordList* propertyRecords;
     SList<FuncInfo*> *funcInfoStack;
     ParseNode *currentBlock;
@@ -26,7 +26,7 @@ private:
     // pointer to the root function wrapper that will be invoked by the caller
     Js::ParseableFunctionInfo * pRootFunc;
 
-    long maxAstSize;
+    int32 maxAstSize;
     uint16 envDepth;
     uint sourceIndex;
     uint dynamicScopeCount;
@@ -93,12 +93,12 @@ public:
         return m_utf8SourceInfo->GetSrcInfo()->moduleID;
     }
 
-    void SetFlags(ulong grfscr)
+    void SetFlags(uint32 grfscr)
     {
         flags = grfscr;
     }
 
-    ulong GetFlags(void)
+    uint32 GetFlags(void)
     {
         return flags;
     }
@@ -336,10 +336,10 @@ public:
 
     bool DoJitLoopBodies(FuncInfo *funcInfo) const;
 
-    static void Generate(__in ParseNode *pnode, ulong grfscr, __in ByteCodeGenerator* byteCodeGenerator, __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction ** functionRef);
+    static void Generate(__in ParseNode *pnode, uint32 grfscr, __in ByteCodeGenerator* byteCodeGenerator, __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction ** functionRef);
     void Begin(
         __in ArenaAllocator *alloc,
-        __in ulong grfscr,
+        __in uint32 grfscr,
         __in Js::ParseableFunctionInfo* pRootFunc);
 
     void SetCurrentSourceIndex(uint sourceIndex) { this->sourceIndex = sourceIndex; }

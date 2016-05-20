@@ -40,7 +40,10 @@ protected:
     HeapBlock * weakRefHeapBlock;
     RecyclerWeakReferenceBase* next;
 #if DBG
+#if ENABLE_RECYCLER_TYPE_TRACKING
     type_info const * typeInfo;
+#endif
+    
 #if defined TRACK_ALLOC && defined(PERF_COUNTERS)
     PerfCounter::Counter * counter;
 #endif
@@ -55,18 +58,18 @@ class RecyclerWeakReference: public RecyclerWeakReferenceBase
 public:
     // Fast get of the strong reference- this might return a wrong result if the recycler is in sweep so callers
     // should never call this during sweep
-    __inline T* FastGet() const
+    inline T* FastGet() const
     {
         return ((T*) strongRef);
     }
 
-    __inline T* Get() const
+    inline T* Get() const
     {
         char * ref = this->strongRef;
         return (T*)ref;
     }
 
-    __inline T** GetAddressOfStrongRef()
+    inline T** GetAddressOfStrongRef()
     {
         return (T**)&strongRef;
     }
@@ -356,7 +359,9 @@ private:
         AddEntry(entry, &buckets[targetBucket]);
         count++;
 #if DBG
+#if ENABLE_RECYCLER_TYPE_TRACKING
         entry->typeInfo = nullptr;
+#endif
 #if defined(TRACK_ALLOC) && defined(PERF_COUNTERS)
         entry->counter = nullptr;
 #endif

@@ -321,7 +321,7 @@ namespace Js
         }
 
         RecyclableObject* toStringFunc = RecyclableObject::FromVar(toStringVar);
-        return toStringFunc->GetEntryPoint()(toStringFunc, CallInfo(CallFlags_Value, 1), thisValue);
+        return CALL_FUNCTION(toStringFunc, CallInfo(CallFlags_Value, 1), thisValue);
     }
 
     Var JavascriptObject::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
@@ -801,7 +801,7 @@ namespace Js
         return JavascriptOperators::FromPropertyDescriptor(propertyDescriptor, scriptContext);
     }
 
-    __inline BOOL JavascriptObject::GetOwnPropertyDescriptorHelper(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor& propertyDescriptor)
+    BOOL JavascriptObject::GetOwnPropertyDescriptorHelper(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor& propertyDescriptor)
     {
         BOOL isPropertyDescriptorDefined;
         if (obj->CanHaveInterceptors())
@@ -857,7 +857,7 @@ namespace Js
         // 1. Let O be RequireObjectCoercible(O).
         // 2. ReturnIfAbrupt(O).
         // 3. If Type(proto) is neither Object or Null, then throw a TypeError exception.
-        long errCode = NOERROR;
+        int32 errCode = NOERROR;
 
         if (args.Info.Count < 2 || !JavascriptConversion::CheckObjectCoercible(args[1], scriptContext))
         {

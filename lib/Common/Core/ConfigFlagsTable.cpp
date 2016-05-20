@@ -65,7 +65,7 @@ namespace Js
         this->pszValue = NULL;
     }
 
-    String::String(__in_opt LPWSTR psz)
+    String::String(__in_opt const char16* psz)
     {
         this->pszValue = NULL;
         Set(psz);
@@ -89,7 +89,7 @@ namespace Js
     ///----------------------------------------------------------------------------
 
     void
-    String::Set(__in_opt LPWSTR pszValue)
+    String::Set(__in_opt const char16* pszValue)
     {
         if(NULL != this->pszValue)
         {
@@ -117,22 +117,22 @@ namespace Js
             (n.sourceContextId <= unit.j.sourceContextId)
             )
         {
-            if ((n.sourceContextId == unit.j.sourceContextId) && (-2 == unit.j.functionId) ||  //#.#-#.* case
-                (n.sourceContextId == unit.i.sourceContextId) && (-2 == unit.i.functionId)     //#.*-#.# case
+            if ((n.sourceContextId == unit.j.sourceContextId && -2 == unit.j.functionId) ||  //#.#-#.* case
+                (n.sourceContextId == unit.i.sourceContextId && -2 == unit.i.functionId)     //#.*-#.# case
                 )
             {
                 return true;
             }
 
-            if ((n.sourceContextId == unit.j.sourceContextId) && (-1 == unit.j.functionId) || //#.#-#.+ case
-                (n.sourceContextId == unit.i.sourceContextId) && (-1 == unit.i.functionId)     //#.+-#.# case
+            if ((n.sourceContextId == unit.j.sourceContextId && -1 == unit.j.functionId) || //#.#-#.+ case
+                (n.sourceContextId == unit.i.sourceContextId && -1 == unit.i.functionId)     //#.+-#.# case
                 )
             {
                 return n.functionId != 0;
             }
 
-            if (((n.sourceContextId == unit.i.sourceContextId) && (n.functionId < unit.i.functionId)) || //excludes all values less than functionId LHS
-                ((n.sourceContextId == unit.j.sourceContextId) && (n.functionId > unit.j.functionId))) ////excludes all values greater than functionId RHS
+            if ((n.sourceContextId == unit.i.sourceContextId && n.functionId < unit.i.functionId) || //excludes all values less than functionId LHS
+                (n.sourceContextId == unit.j.sourceContextId && n.functionId > unit.j.functionId)) ////excludes all values greater than functionId RHS
             {
                 return false;
             }
@@ -204,7 +204,7 @@ namespace Js
 
     const char16* const FlagNames[FlagCount + 1] =
     {
-    #define FLAG(type, name, ...) _u(#name) ,
+    #define FLAG(type, name, ...) _u(#name),
     #include "ConfigFlagsList.h"
         NULL
     #undef FLAG
@@ -449,6 +449,7 @@ namespace Js
         VerifyExecutionModeLimits();
 
     #if ENABLE_DEBUG_CONFIG_OPTIONS
+    #if !DISABLE_JIT
         if(ForceDynamicProfile)
         {
             Force.Enable(DynamicProfilePhase);
@@ -457,11 +458,14 @@ namespace Js
         {
             Force.Enable(JITLoopBodyPhase);
         }
+    #endif
         if(NoDeferParse)
         {
             Off.Enable(DeferParsePhase);
         }
+    #endif
 
+    #if ENABLE_DEBUG_CONFIG_OPTIONS && !DISABLE_JIT
         bool dontEnforceLimitsForSimpleJitAfterOrFullJitAfter = false;
         if((IsEnabled(MinInterpretCountFlag) || IsEnabled(MaxInterpretCountFlag)) &&
             !(IsEnabled(SimpleJitAfterFlag) || IsEnabled(FullJitAfterFlag)))
@@ -491,7 +495,7 @@ namespace Js
                     SimpleJitAfter = MinInterpretCount;
                     dontEnforceLimitsForSimpleJitAfterOrFullJitAfter = true;
                 }
-                if(IsEnabled(MinInterpretCountFlag) && IsEnabled(MinSimpleJitRunCountFlag) ||
+                if((IsEnabled(MinInterpretCountFlag) && IsEnabled(MinSimpleJitRunCountFlag)) ||
                     IsEnabled(MaxSimpleJitRunCountFlag))
                 {
                     Enable(FullJitAfterFlag);
@@ -909,15 +913,18 @@ namespace Js
             case FlagString: \
                 if (GetAsString(name##Flag) != nullptr) \
                 { \
-                    Output::Print(_u(":%s"), *GetAsString(name##Flag)); \
+                    Output::Print(_u(":%s"), (LPCWSTR)*GetAsString(name##Flag)); \
                 } \
                 break; \
             case FlagNumber: \
                 Output::Print(_u(":%d"), *GetAsNumber(name##Flag)); \
                 break; \
+            default: \
+                break; \
             }; \
             Output::Print(_u("\n")); \
         }
+
 #include "ConfigFlagsList.h"
 #undef FLAG
     }

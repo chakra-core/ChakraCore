@@ -11,6 +11,8 @@ namespace UnifiedRegex
     // Compiler (inlines etc)
     // ----------------------------------------------------------------------
 
+    const CharCount Compiler::initInstBufSize;
+
     uint8* Compiler::Emit(size_t size)
     {
         Assert(size <= UINT32_MAX);
@@ -2354,7 +2356,8 @@ namespace UnifiedRegex
                 // The firing condition is not strong enough yet.
                 fires = false;
                 // Check conditions (2) and (3) first because they're faster, then check condition (1).
-                if (numNonEmpty == 0 || isFollowIrrefutable && allSimpleOneChar && totalChars == firstSet->Count())
+                if (numNonEmpty == 0 ||
+                    (isFollowIrrefutable && allSimpleOneChar && totalChars == firstSet->Count()))
                 {
                     fires = true;
                 }

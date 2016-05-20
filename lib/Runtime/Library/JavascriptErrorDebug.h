@@ -7,6 +7,9 @@
 namespace Js
 {
     // Specialized Error Object, containing WinRT specific information.
+    // Not applicable for non-Windows platforms
+    // TODO: Move this out of ChakraCore
+#ifdef _WIN32
     class JavascriptErrorDebug : public JavascriptError
     {
     protected:
@@ -41,7 +44,7 @@ namespace Js
         static void ClearErrorInfo(ScriptContext* scriptContext);
 #endif
 
-        static void SetErrorMessage(JavascriptError *pError, long errCode, PCWSTR varDescription, ScriptContext* scriptContext);
+        static void SetErrorMessage(JavascriptError *pError, HRESULT errCode, PCWSTR varDescription, ScriptContext* scriptContext);
 
         void SetRestrictedErrorStrings(RestrictedErrorStrings * proerrstr)
         {
@@ -90,4 +93,5 @@ namespace Js
         IErrorInfo * pErrorInfo; // reference to the original IErrorInfo object
         static __declspec(thread)  char16 msgBuff[512];
     };
+#endif
 }

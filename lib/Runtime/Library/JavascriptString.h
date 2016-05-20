@@ -8,7 +8,7 @@ namespace Js
 {
     typedef struct
     {
-        unsigned long shift;
+        uint32 shift;
     } Boyer_Moore_Jump;
 
     // Boyer Moore table for only the first character in the search string.
@@ -47,7 +47,7 @@ namespace Js
 #define DECLARE_CONCRETE_STRING_CLASS
 #endif
 
-    class JavascriptString abstract : public RecyclableObject
+    class JavascriptString _ABSTRACT : public RecyclableObject
     {
         friend Lowerer;
         friend LowererMD;
@@ -132,7 +132,9 @@ namespace Js
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
         virtual BOOL BufferEquals(__in_ecount(otherLength) LPCWSTR otherBuffer, __in charcount_t otherLength);
-        virtual char16* GetNormalizedString(NORM_FORM, ArenaAllocator*, charcount_t&);
+#if ENABLE_UNICODE_API
+        char16* GetNormalizedString(PlatformAgnostic::UnicodeText::NormalizationForm, ArenaAllocator*, charcount_t&);
+#endif
 
         static bool Is(Var aValue);
         static JavascriptString* FromVar(Var aValue);
@@ -366,31 +368,31 @@ namespace Js
     template<>
     struct PropertyRecordStringHashComparer<JavascriptString *>
     {
-        __inline static bool Equals(JavascriptString * str1, JavascriptString * str2)
+        inline static bool Equals(JavascriptString * str1, JavascriptString * str2)
         {
             return (str1->GetLength() == str2->GetLength() &&
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetString(), str2->GetString(), str1->GetLength()));
         }
 
-        __inline static bool Equals(JavascriptString * str1, JsUtil::CharacterBuffer<WCHAR> const & str2)
+        inline static bool Equals(JavascriptString * str1, JsUtil::CharacterBuffer<WCHAR> const & str2)
         {
             return (str1->GetLength() == str2.GetLength() &&
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetString(), str2.GetBuffer(), str1->GetLength()));
         }
 
-        __inline static bool Equals(JavascriptString * str1, PropertyRecord const * str2)
+        inline static bool Equals(JavascriptString * str1, PropertyRecord const * str2)
         {
             return (str1->GetLength() == str2->GetLength() && !Js::IsInternalPropertyId(str2->GetPropertyId()) &&
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetString(), str2->GetBuffer(), str1->GetLength()));
         }
 
-        __inline static uint GetHashCode(JavascriptString * str)
+        inline static uint GetHashCode(JavascriptString * str)
         {
             return JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(str->GetString(), str->GetLength());
         }
     };
 
-    __inline bool PropertyRecordStringHashComparer<PropertyRecord const *>::Equals(PropertyRecord const * str1, JavascriptString * str2)
+    inline bool PropertyRecordStringHashComparer<PropertyRecord const *>::Equals(PropertyRecord const * str1, JavascriptString * str2)
     {
         return (str1->GetLength() == str2->GetLength() && !Js::IsInternalPropertyId(str1->GetPropertyId()) &&
             JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetBuffer(), str2->GetString(), str1->GetLength()));
@@ -400,12 +402,12 @@ namespace Js
 template <>
 struct DefaultComparer<Js::JavascriptString*>
 {
-    __inline static bool Equals(Js::JavascriptString * x, Js::JavascriptString * y)
+    inline static bool Equals(Js::JavascriptString * x, Js::JavascriptString * y)
     {
         return Js::JavascriptString::Equals(x, y);
     }
 
-    __inline static uint GetHashCode(Js::JavascriptString * pStr)
+    inline static uint GetHashCode(Js::JavascriptString * pStr)
     {
         return JsUtil::CharacterBuffer<char16>::StaticGetHashCode(pStr->GetString(), pStr->GetLength());
     }

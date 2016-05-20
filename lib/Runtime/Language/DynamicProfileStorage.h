@@ -51,7 +51,7 @@ private:
     static DWORD const MagicNumber;
     static DWORD const FileFormatVersion;
     static DWORD creationTime;
-    static long lastOffset;
+    static int32 lastOffset;
     static HANDLE mutex;
     static CriticalSection cs;
     static DWORD nextFileId;

@@ -40,23 +40,23 @@ namespace Js
             free(m_prglu);
     }
 
-    long BigInt::Clu(void)
+    int32 BigInt::Clu(void)
     {
         return m_clu;
     }
 
-    ulong BigInt::Lu(long ilu)
+    uint32 BigInt::Lu(int32 ilu)
     {
         AssertBi(this);
         Assert(ilu < m_clu);
         return m_prglu[ilu];
     }
 
-    bool BigInt::FResize(long clu)
+    bool BigInt::FResize(int32 clu)
     {
         AssertBiNoVal(this);
 
-        ulong *prglu;
+        uint32 *prglu;
 
         if (clu <= m_cluMax)
             return true;
@@ -64,12 +64,12 @@ namespace Js
         clu += clu;
         if (m_prglu == m_rgluInit)
         {
-            if ((INT_MAX / sizeof(ulong) < clu) || (NULL == (prglu = (ulong *)malloc(clu * sizeof(ulong)))))
+            if ((INT_MAX / sizeof(uint32) < clu) || (NULL == (prglu = (uint32 *)malloc(clu * sizeof(uint32)))))
                 return false;
             if (0 < m_clu)
-                js_memcpy_s(prglu, clu * sizeof(ulong), m_prglu, m_clu * sizeof(ulong));
+                js_memcpy_s(prglu, clu * sizeof(uint32), m_prglu, m_clu * sizeof(uint32));
         }
-        else if (NULL == (prglu = (ulong *)realloc(m_prglu, clu * sizeof(ulong))))
+        else if (NULL == (prglu = (uint32 *)realloc(m_prglu, clu * sizeof(uint32))))
             return false;
 
         m_prglu = prglu;
@@ -79,7 +79,7 @@ namespace Js
         return true;
     }
 
-    bool BigInt::FInitFromRglu(ulong *prglu, long clu)
+    bool BigInt::FInitFromRglu(uint32 *prglu, int32 clu)
     {
         AssertBi(this);
         Assert(clu >= 0);
@@ -89,7 +89,7 @@ namespace Js
             return false;
         m_clu = clu;
         if (clu > 0)
-            js_memcpy_s(m_prglu, m_clu * sizeof(ulong), prglu, clu * sizeof(ulong));
+            js_memcpy_s(m_prglu, m_clu * sizeof(uint32), prglu, clu * sizeof(uint32));
 
         AssertBi(this);
         return true;
@@ -105,16 +105,16 @@ namespace Js
     }
 
     template <typename EncodedChar>
-    bool BigInt::FInitFromDigits(const EncodedChar *prgch, long cch, long *pcchDig)
+    bool BigInt::FInitFromDigits(const EncodedChar *prgch, int32 cch, int32 *pcchDig)
     {
         AssertBi(this);
         Assert(cch >= 0);
         Assert(prgch != 0);
         Assert(pcchDig != 0);
 
-        ulong luAdd;
-        ulong luMul;
-        long clu = (cch + 8) / 9;
+        uint32 luAdd;
+        uint32 luMul;
+        int32 clu = (cch + 8) / 9;
         const EncodedChar *pchLim = prgch + cch;
 
         if (clu > m_cluMax && !FResize(clu))
@@ -147,14 +147,14 @@ namespace Js
         return true;
     }
 
-    bool BigInt::FMulAdd(ulong luMul, ulong luAdd)
+    bool BigInt::FMulAdd(uint32 luMul, uint32 luAdd)
     {
         AssertBi(this);
         Assert(luMul != 0);
 
-        ulong luT;
-        ulong *plu = m_prglu;
-        ulong *pluLim = plu + m_clu;
+        uint32 luT;
+        uint32 *plu = m_prglu;
+        uint32 *pluLim = plu + m_clu;
 
         for (; plu < pluLim; plu++)
         {
@@ -174,14 +174,14 @@ LDone:
         return true;
     }
 
-    bool BigInt::FMulPow5(long c5)
+    bool BigInt::FMulPow5(int32 c5)
     {
         AssertBi(this);
         Assert(c5 >= 0);
 
-        const ulong k5to13 = 1220703125;
-        long clu = (c5 + 12) / 13;
-        ulong luT;
+        const uint32 k5to13 = 1220703125;
+        int32 clu = (c5 + 12) / 13;
+        uint32 luT;
 
         if (0 == m_clu || 0 == c5)
             return true;
@@ -203,14 +203,14 @@ LDone:
         return true;
     }
 
-    bool BigInt::FShiftLeft(long cbit)
+    bool BigInt::FShiftLeft(int32 cbit)
     {
         AssertBi(this);
         Assert(cbit >= 0);
 
-        long ilu;
-        long clu;
-        ulong luExtra;
+        int32 ilu;
+        int32 clu;
+        uint32 luExtra;
 
         if (0 == cbit || 0 == m_clu)
             return true;
@@ -243,9 +243,9 @@ LDone:
 
             if (clu > 0)
             {
-                // Shift the ulongs.
-                memmove(m_prglu + clu, m_prglu, m_clu * sizeof(ulong));
-                memset(m_prglu, 0, clu * sizeof(ulong));
+                // Shift the uint32s.
+                memmove(m_prglu + clu, m_prglu, m_clu * sizeof(uint32));
+                memset(m_prglu, 0, clu * sizeof(uint32));
                 m_clu += clu;
             }
 
@@ -258,7 +258,7 @@ LDone:
         return true;
     }
 
-    void BigInt::ShiftLusRight(long clu)
+    void BigInt::ShiftLusRight(int32 clu)
     {
         AssertBi(this);
         Assert(clu >= 0);
@@ -271,20 +271,20 @@ LDone:
         }
         if (clu > 0)
         {
-            memmove(m_prglu, m_prglu + clu, (m_clu - clu) * sizeof(ulong));
+            memmove(m_prglu, m_prglu + clu, (m_clu - clu) * sizeof(uint32));
             m_clu -= clu;
         }
 
         AssertBi(this);
     }
 
-    void BigInt::ShiftRight(long cbit)
+    void BigInt::ShiftRight(int32 cbit)
     {
         AssertBi(this);
         Assert(cbit >= 0);
 
-        long ilu;
-        long clu = cbit >> 5;
+        int32 ilu;
+        int32 clu = cbit >> 5;
         cbit &= 0x001F;
 
         if (clu > 0)
@@ -317,7 +317,7 @@ LDone:
         AssertBi(this);
         AssertBi(pbi);
 
-        long ilu;
+        int32 ilu;
 
         if (m_clu > pbi->m_clu)
             return 1;
@@ -344,8 +344,8 @@ LDone:
         AssertBi(pbi);
         Assert(this != pbi);
 
-        long cluMax, cluMin;
-        long ilu;
+        int32 cluMax, cluMin;
+        int32 ilu;
         int wCarry;
 
         if ((cluMax = m_clu) < (cluMin = pbi->m_clu))
@@ -397,9 +397,9 @@ LDone:
         AssertBi(pbi);
         Assert(this != pbi);
 
-        long ilu;
+        int32 ilu;
         int wCarry;
-        ulong luT;
+        uint32 luT;
 
         if (m_clu < pbi->m_clu)
             goto LNegative;
@@ -449,11 +449,11 @@ LNegative:
         AssertBi(pbi);
         Assert(this != pbi);
 
-        long ilu, clu;
+        int32 ilu, clu;
         int wCarry;
         int wQuo;
         int wT;
-        ulong luT, luHi, luLo;
+        uint32 luT, luHi, luLo;
 
         clu = pbi->m_clu;
         Assert(m_clu <= clu);
@@ -513,9 +513,9 @@ LNegative:
     double BigInt::GetDbl(void)
     {
         double dbl;
-        ulong luHi, luLo;
-        ulong lu1, lu2, lu3;
-        long ilu;
+        uint32 luHi, luLo;
+        uint32 lu1, lu2, lu3;
+        int32 ilu;
         int cbit;
 
         switch (m_clu)
@@ -591,20 +591,6 @@ LNegative:
         return dbl;
     }
 
-    namespace // anonymous
-    {
-        template <typename EncodedChar>
-        void Reference(void)
-        {
-            BigInt i;
-            i.FInitFromDigits<EncodedChar>(NULL, 0, NULL);
-        }
-
-        void Instantiations(void)
-        {
-            Reference<char16>();
-            Reference<utf8char_t>();
-        }
-    }
-
+    template bool BigInt::FInitFromDigits<char16>(const char16 *prgch, int32 cch, int32 *pcchDig);
+    template bool BigInt::FInitFromDigits<utf8char_t>(const utf8char_t *prgch, int32 cch, int32 *pcchDig);
 }

@@ -28,9 +28,8 @@ public:
 
     static void AddVarPropertyToObject(Js::DynamicObject* object, const char16* propertyName, Js::Var value, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, double value, Js::ScriptContext* scriptContext);
-    static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, UINT value, Js::ScriptContext* scriptContext);
-    static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, ULONG value, Js::ScriptContext* scriptContext);
-    static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, LONG value, Js::ScriptContext* scriptContext);
+    static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, uint32 value, Js::ScriptContext* scriptContext);
+    static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, int32 value, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, const char16 * value, size_t len, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, Js::JavascriptString* jsString, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, bool value, Js::ScriptContext* scriptContext);
@@ -40,6 +39,6 @@ public:
 
 private:
     static void AddVarPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, Js::Var value, Js::ScriptContext* scriptContext);
-    static char16* GetClassName(Js::TypeId typeId);
-    static char16* GetDebugPropertyName(JsrtDebugPropertyId propertyId);
+    static const char16* GetClassName(Js::TypeId typeId);
+    static const char16* GetDebugPropertyName(JsrtDebugPropertyId propertyId);
 };

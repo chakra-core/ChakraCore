@@ -6,6 +6,8 @@
 *.opendb
 *.user
 *.i
+*.pyc
+.vscode/
 Build/VCBuild/
 Build/VCBuild.NoJIT/
 Build/ipch/
@@ -17,6 +19,8 @@ build_*.err
 buildchk.*
 buildfre.*
 Build/swum-cache.txt
+BuildLinux/
+
 ComputedEnvironment.cmd
 packages/
 *.tlog/
@@ -33,3 +37,21 @@ Build/Chakra.Core.VC.opendb
 test/benchmarks/*.txt
 test/benchmarks/*.dpl
 *.nupkg
+
+# CMake Files
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+cmake_install.cmake
+install_manifest.txt
+
+# xcode
+*.xcodeproj
+*.xcworkspace
+
+# additional *nix generated files
+*.a
+*.gch
+Makefile
+pal/src/config.h
+

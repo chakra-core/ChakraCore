@@ -52,7 +52,7 @@ namespace Js
             }
 
             // This does not do check if there is enough space for the copy to succeed.
-            __inline void WriteUnsafe(__in_bcount(byteSize) const void* data, __in uint byteSize)
+            inline void WriteUnsafe(__in_bcount(byteSize) const void* data, __in uint byteSize)
             {
                 AssertMsg(RemainingBytes() >= byteSize, "We do not have enough room");
 
@@ -73,7 +73,7 @@ namespace Js
             uint currentOffset;  // The global offset of last byte written to in the linked data structure
             bool fixedGrowthPolicy;
 
-            __inline uint Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
+            inline uint Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
             __declspec(noinline) void SlowWrite(__in_bcount(byteSize) const void* data, __in uint byteSize);
             void AddChunk(uint byteSize);
 
@@ -104,7 +104,7 @@ namespace Js
             template <> uint EncodeT<SmallLayout>(OpCode op, ByteCodeWriter* writer);
             template <LayoutSize layoutSize> uint EncodeT(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer);
             // asm.js encoding
-            uint Encode(OpCodeAsmJs op, ByteCodeWriter* writer){ return EncodeT<Js::SmallLayout>(op, writer); }
+            uint Encode(OpCodeAsmJs op, ByteCodeWriter* writer){ return EncodeT<Js::SmallLayout>(op, writer, /*isPatching*/false); }
             uint Encode(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false){ return EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer, isPatching); }
             template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching = false);
             template <> uint EncodeT<SmallLayout>(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
@@ -229,10 +229,10 @@ namespace Js
 #endif
 
         void Create();
-        void InitData(ArenaAllocator* alloc, long initCodeBufferSize);
+        void InitData(ArenaAllocator* alloc, int32 initCodeBufferSize);
         void Begin(ByteCodeGenerator* byteCodeGenerator, FunctionBody* functionWrite, ArenaAllocator* alloc, bool doJitLoopBodies, bool hasLoop);
 #ifdef LOG_BYTECODE_AST_RATIO
-        void End(long currentAstSize, long maxAstSize);
+        void End(int32 currentAstSize, int32 maxAstSize);
 #else
         void End();
 #endif

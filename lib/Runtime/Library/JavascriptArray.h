@@ -289,7 +289,7 @@ namespace Js
         static Var EntryPopNonJavascriptArray(ScriptContext * scriptContext, Var object);
 
 #if DEBUG
-        static BOOL GetIndex(const char16* propName, ulong *pIndex);
+        static BOOL GetIndex(const char16* propName, uint32 *pIndex);
 #endif
 
         uint32 GetNextIndex(uint32 index) const;
@@ -562,8 +562,6 @@ namespace Js
 
         // NativeArrays may change it's content type, but not others
         template <typename T> static bool MayChangeType() { return false; }
-        template <> static bool MayChangeType<JavascriptNativeIntArray>() { return true; }
-        template <> static bool MayChangeType<JavascriptNativeFloatArray>() { return true; }
 
         template <bool hasSideEffect, typename T, typename Fn>
         static void TemplatedForEachItemInRange(T * arr, uint32 startIndex, uint32 limitIndex, Var missingItem, ScriptContext * scriptContext, Fn fn)
@@ -576,7 +574,7 @@ namespace Js
                 if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                 {
                     // The function has changed, go to another ForEachItemInRange
-                    JavascriptArray::FromVar(arr)->ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
+                    JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
                     return;
                 }
             }
@@ -595,7 +593,7 @@ namespace Js
                     if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                     {
                         // The function has changed, go to another ForEachItemInRange
-                        JavascriptArray::FromVar(arr)->ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
+                        JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
                         return;
                     }
                 }
@@ -767,10 +765,6 @@ namespace Js
         template<typename T=uint32>
         static RecyclableObject* ArraySpeciesCreate(Var pThisArray, T length, ScriptContext* scriptContext, bool* pIsIntArray = nullptr, bool* pIsFloatArray = nullptr);
         template <typename T, typename R> static R ConvertToIndex(T idxDest, ScriptContext* scriptContext) { Throw::InternalError(); return 0; }
-        template <> static Var ConvertToIndex<uint32, Var>(uint32 idxDest, ScriptContext* scriptContext);
-        template <> static uint32 ConvertToIndex<uint32, uint32>(uint32 idxDest, ScriptContext* scriptContext) { return idxDest; }
-        template <> static Var ConvertToIndex<BigIndex, Var>(BigIndex idxDest, ScriptContext* scriptContext);
-        template <> static uint32 ConvertToIndex<BigIndex, uint32>(BigIndex idxDest, ScriptContext* scriptContext);
         static BOOL SetArrayLikeObjects(RecyclableObject* pDestObj, uint32 idxDest, Var aItem);
         static BOOL SetArrayLikeObjects(RecyclableObject* pDestObj, BigIndex idxDest, Var aItem);
         static void ConcatArgsCallingHelper(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, ::Math::RecordOverflowPolicy &destLengthOverflow);
@@ -1087,4 +1081,13 @@ namespace Js
     private:
         virtual int32 HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext) override;
     };
+
+    template <>
+    inline bool JavascriptArray::MayChangeType<JavascriptNativeIntArray>() { return true; }
+    template <>
+    inline bool JavascriptArray::MayChangeType<JavascriptNativeFloatArray>() { return true; }
+
+    template <>
+    inline uint32 JavascriptArray::ConvertToIndex<uint32, uint32>(uint32 idxDest, ScriptContext* scriptContext) { return idxDest; }
+
 } // namespace Js

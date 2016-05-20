@@ -19,8 +19,8 @@ public:
         CallbackMessage(unsigned int time, JsValueRef function);
         ~CallbackMessage();
 
-        HRESULT Call(LPCWSTR fileName);
-        HRESULT CallFunction(LPCWSTR fileName);
+        HRESULT Call(LPCSTR fileName);
+        HRESULT CallFunction(LPCSTR fileName);
         template <class Func>
         static CallbackMessage* Create(JsValueRef function, const Func& func, unsigned int time = 0)
         {
@@ -29,7 +29,7 @@ public:
     };
 
     static void AddMessageQueue(MessageQueue *messageQueue);
-    static void PushMessage(MessageBase *message) { messageQueue->Push(message); }
+    static void PushMessage(MessageBase *message) { messageQueue->InsertSorted(message); }
 
     static LPCWSTR ConvertErrorCodeToMessage(JsErrorCode errorCode)
     {
@@ -57,12 +57,12 @@ public:
         }
     }
 
-    static bool PrintException(LPCWSTR fileName, JsErrorCode jsErrorCode);
-    static JsValueRef LoadScript(JsValueRef callee, LPCWSTR fileName, size_t fileNameLength, LPCWSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule);
+    static bool PrintException(LPCSTR fileName, JsErrorCode jsErrorCode);
+    static JsValueRef LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule);
     static DWORD_PTR GetNextSourceContext();
     static JsValueRef LoadScriptFileHelper(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, bool isSourceModule);
     static JsValueRef LoadScriptHelper(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState, bool isSourceModule);
-    static bool InstallObjectsOnObject(JsValueRef object, const wchar_t *name, JsNativeFunction nativeFunction);
+    static bool InstallObjectsOnObject(JsValueRef object, const char16* name, JsNativeFunction nativeFunction);
 private:
     static bool CreateArgumentsObject(JsValueRef *argsObject);
     static bool CreateNamedFunction(const char16*, JsNativeFunction callback, JsValueRef* functionVar);

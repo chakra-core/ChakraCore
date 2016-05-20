@@ -327,8 +327,10 @@ HRESULT Parser::ParseSourceInternal(
     AssertPsz(pszSrc);
     AssertMemN(pse);
 
+#ifdef ENABLE_BASIC_TELEMETRY
     double startTime = m_scriptContext->GetThreadContext()->ParserTelemetry.Now();
-
+#endif
+    
     if (this->IsBackgroundParser())
     {
         PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
@@ -445,9 +447,11 @@ HRESULT Parser::ParseSourceInternal(
 #endif
     JS_ETW(EventWriteJSCRIPT_PARSE_STOP(m_scriptContext, 0));
 
+#ifdef ENABLE_BASIC_TELEMETRY
     ThreadContext *threadContext = m_scriptContext->GetThreadContext();
     threadContext->ParserTelemetry.LogTime(threadContext->ParserTelemetry.Now() - startTime);
-
+#endif
+    
     return hr;
 }
 
@@ -682,18 +686,6 @@ void Parser::InitNode(OpCode nop,ParseNodePtr pnode) {
 }
 
 // Create nodes using Arena
-template <OpCode nop>
-ParseNodePtr Parser::StaticCreateNodeT(ArenaAllocator* alloc, charcount_t ichMin, charcount_t ichLim)
-{
-    ParseNodePtr pnode = StaticAllocNode<nop>(alloc);
-    InitNode(nop,pnode);
-    // default - may be changed
-    pnode->ichMin = ichMin;
-    pnode->ichLim = ichLim;
-
-    return pnode;
-}
-
 ParseNodePtr
 Parser::StaticCreateBlockNode(ArenaAllocator* alloc, charcount_t ichMin , charcount_t ichLim, int blockId, PnodeBlockType blockType)
 {
@@ -975,7 +967,7 @@ void Parser::RestorePidRefForSym(Symbol *sym)
     ref->SetSym(sym);
 }
 
-IdentPtr Parser::GenerateIdentPtr(__ecount(len) char16* name, long len)
+IdentPtr Parser::GenerateIdentPtr(__ecount(len) char16* name, int32 len)
 {
     return m_phtbl->PidHashNameLen(name,len);
 }
@@ -1221,7 +1213,7 @@ ParseNodePtr Parser::CreateStrNode(IdentPtr pid)
     return pnode;
 }
 
-ParseNodePtr Parser::CreateIntNode(long lw)
+ParseNodePtr Parser::CreateIntNode(int32 lw)
 {
     ParseNodePtr pnode = CreateNode(knopInt);
     pnode->sxInt.lw = lw;
@@ -1251,10 +1243,10 @@ ParseNodePtr Parser::CreateProgNodeWithScanner(bool isModuleSource)
     {
         pnodeProg = CreateNodeWithScanner<knopModule>();
 
-        // knopModule is not actually handled anywhere since we would need to handle it everywhere we could 
+        // knopModule is not actually handled anywhere since we would need to handle it everywhere we could
         // have knopProg and it would be treated exactly the same except for import/export statements.
         // We are only using it as a way to get the correct size for PnModule.
-        // Consider: Should we add a flag to PnProg which is false but set to true in PnModule? 
+        // Consider: Should we add a flag to PnProg which is false but set to true in PnModule?
         //           If we do, it can't be a virtual method since the parse nodes are all in a union.
         pnodeProg->nop = knopProg;
     }
@@ -1307,7 +1299,7 @@ ParseNodePtr Parser::CreateStrNodeWithScanner(IdentPtr pid)
     return pnode;
 }
 
-ParseNodePtr Parser::CreateIntNodeWithScanner(long lw)
+ParseNodePtr Parser::CreateIntNodeWithScanner(int32 lw)
 {
     Assert(!this->m_deferringAST);
     ParseNodePtr pnode = CreateNodeWithScanner<knopInt>();
@@ -1372,7 +1364,7 @@ ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr localName)
 {
     ParseNodePtr declNode = CreateBlockScopedDeclNode(localName, knopConstDecl);
     Symbol* sym = declNode->sxVar.sym;
-    
+
     sym->SetIsModuleExportStorage(true);
     sym->SetIsModuleImport(true);
 
@@ -1983,7 +1975,7 @@ void Parser::ReduceDeferredScriptLength(size_t chars)
     // and see if this puts us under the deferral threshold.
     if ((m_grfscr & fscrDeferFncParse) &&
         (
-            PHASE_OFF1(Js::DeferEventHandlersPhase) || 
+            PHASE_OFF1(Js::DeferEventHandlersPhase) ||
             (m_grfscr & fscrGlobalCode)
         )
     )
@@ -2130,11 +2122,11 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
         }
         else if (!isExportClause && firstToken != tkID)
         {
-            // If we are parsing an import statement and this ImportSpecifier clause did not have 
+            // If we are parsing an import statement and this ImportSpecifier clause did not have
             // 'as ImportedBinding' at the end of it, identifierName must be a BindingIdentifier.
             Error(ERRsyntax);
         }
-        
+
         if (m_token.tk == tkComma)
         {
             // Consume a trailing comma
@@ -2311,14 +2303,14 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
         if (buildAST)
         {
             IdentPtr localName = m_token.GetIdentifier(m_phtbl);
-            IdentPtr importName = wellKnownPropertyPids.default;
+            IdentPtr importName = wellKnownPropertyPids._default;
 
             CreateModuleImportDeclNode(localName);
             AddModuleImportOrExportEntry(importEntryList, importName, localName, nullptr, nullptr);
         }
-        
+
         break;
-    
+
     case tkLCurly:
         // This begins a list of named imports.
         ParseNamedImportOrExportClause<buildAST>(importEntryList, false);
@@ -2438,7 +2430,7 @@ ParseNodePtr Parser::ParseImportDeclaration()
     return nullptr;
 }
 
-template<bool buildAST> 
+template<bool buildAST>
 IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
 {
     IdentPtr moduleSpecifier = nullptr;
@@ -2465,7 +2457,7 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
     return moduleSpecifier;
 }
 
-template<bool buildAST> 
+template<bool buildAST>
 ParseNodePtr Parser::ParseDefaultExportClause()
 {
     Assert(m_token.tk == tkDEFAULT);
@@ -2473,7 +2465,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
     m_pscan->Scan();
     ParseNodePtr pnode = nullptr;
     ushort flags = fFncNoFlgs;
-    
+
     switch (m_token.tk)
     {
     case tkCLASS:
@@ -2484,8 +2476,8 @@ ParseNodePtr Parser::ParseDefaultExportClause()
             }
 
             // Before we parse the class itself we need to know if the class has an identifier name.
-            // If it does, we'll treat this class as an ordinary class declaration which will bind 
-            // it to that name. Otherwise the class should parse as a nameless class expression and 
+            // If it does, we'll treat this class as an ordinary class declaration which will bind
+            // it to that name. Otherwise the class should parse as a nameless class expression and
             // bind only to the export binding.
             BOOL classHasName = false;
             RestorePoint parsedClass;
@@ -2511,7 +2503,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
             break;
         }
     case tkID:
-        // If we parsed an async token, it could either modify the next token (if it is a 
+        // If we parsed an async token, it could either modify the next token (if it is a
         // function token) or it could be an identifier (let async = 0; export default async;).
         // To handle both cases, when we parse an async token we need to keep the parser state
         // and rewind if the next token is not function.
@@ -2522,12 +2514,12 @@ ParseNodePtr Parser::ParseDefaultExportClause()
             m_pscan->Scan();
             if (m_token.tk == tkFUNCTION)
             {
-                // Token after async is function, consume the async token and continue to parse the 
+                // Token after async is function, consume the async token and continue to parse the
                 // function as an async function.
                 flags |= fFncAsync;
                 goto LFunction;
             }
-            // Token after async is not function, no idea what the async token is supposed to mean 
+            // Token after async is not function, no idea what the async token is supposed to mean
             // so rewind and let the default case handle it.
             m_pscan->SeekTo(parsedAsync);
         }
@@ -2536,8 +2528,8 @@ ParseNodePtr Parser::ParseDefaultExportClause()
     case tkFUNCTION:
         {
 LFunction:
-            // We just parsed a function token but we need to figure out if the function 
-            // has an identifier name or not before we call the helper. 
+            // We just parsed a function token but we need to figure out if the function
+            // has an identifier name or not before we call the helper.
             RestorePoint parsedFunction;
             m_pscan->Capture(&parsedFunction);
             m_pscan->Scan();
@@ -2598,7 +2590,7 @@ LDefault:
         }
     }
 
-    IdentPtr exportName = wellKnownPropertyPids.default;
+    IdentPtr exportName = wellKnownPropertyPids._default;
     IdentPtr localName = wellKnownPropertyPids._starDefaultStar;
     AddModuleImportOrExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, exportName, nullptr);
 
@@ -2694,7 +2686,7 @@ ParseNodePtr Parser::ParseExportDeclaration()
             }
             if (wellKnownPropertyPids.async == pid && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
             {
-                // In module export statements, async token is only valid if it's followed by function. 
+                // In module export statements, async token is only valid if it's followed by function.
                 // We need to check here because ParseStatement would think 'async = 20' is a var decl.
                 RestorePoint parsedAsync;
                 m_pscan->Capture(&parsedAsync);
@@ -2763,7 +2755,7 @@ ParseFunctionDecl:
             }
         }
         break;
-        
+
     case tkDEFAULT:
         {
             pnode = ParseDefaultExportClause<buildAST>();
@@ -2786,8 +2778,8 @@ Parse an expression term.
 template<bool buildAST>
 ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     LPCOLESTR pNameHint,
-    ulong *pHintLength,
-    ulong *pShortNameOffset,
+    uint32 *pHintLength,
+    uint32 *pShortNameOffset,
     _Inout_opt_ IdentToken* pToken /*= nullptr*/,
     bool fUnaryOrParen /*= false*/,
     _Out_opt_ BOOL* pfCanAssign /*= nullptr*/,
@@ -3231,7 +3223,7 @@ BOOL Parser::NodeIsEvalName(ParseNodePtr pnode)
     return pnode->nop == knopName && (pnode->sxPid.pid == wellKnownPropertyPids.eval);
 }
 
-BOOL Parser::NodeEqualsName(ParseNodePtr pnode, LPCOLESTR sz, ulong cch)
+BOOL Parser::NodeEqualsName(ParseNodePtr pnode, LPCOLESTR sz, uint32 cch)
 {
     return pnode->nop == knopName &&
         pnode->sxPid.pid->Cch() == cch &&
@@ -3389,7 +3381,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                        !Js::TaggedInt::IsOverflow(uintValue)) // the optimization is not very useful if the number can't be represented as a TaggedInt
                     {
                         // No need to verify that uintValue != JavascriptArray::InvalidIndex since all nonnegative TaggedInts are valid indexes
-                        auto intNode = CreateIntNodeWithScanner(uintValue); // implicit conversion from uint32 to long
+                        auto intNode = CreateIntNodeWithScanner(uintValue); // implicit conversion from uint32 to int32
                         pnode->sxBin.pnode2 = intNode;
                     }
                     // Field optimization (see GlobOpt::KillLiveElems) checks for value being a Number,
@@ -3809,7 +3801,7 @@ Parser::MemberNameToTypeMap* Parser::CreateMemberNameMap(ArenaAllocator* pAlloca
     return Anew(pAllocator, MemberNameToTypeMap, pAllocator, 5);
 }
 
-template<bool buildAST> void Parser::ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint, ulong *pNameLength, ulong *pShortNameOffset)
+template<bool buildAST> void Parser::ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint, uint32 *pNameLength, uint32 *pShortNameOffset)
 {
     m_pscan->Scan();
     ParseNodePtr pnodeNameExpr = ParseExpr<buildAST>(koplCma, nullptr, TRUE, FALSE, *ppNameHint, pNameLength, pShortNameOffset);
@@ -3904,7 +3896,7 @@ ParseNodePtr Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
             Error(ERRnoMemberIdent);
         }
         LPCOLESTR emptyHint = nullptr;
-        ulong offset = 0;
+        uint32 offset = 0;
         ParseComputedName<buildAST>(&pnodeName, &emptyHint, ppNameHint, &offset);
 
         isComputedName = true;
@@ -3944,15 +3936,15 @@ ParseNodePtr Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
 Parse a list of object members. e.g. { x:foo, 'y me':bar }
 ***************************************************************************/
 template<bool buildAST>
-ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength, tokens declarationType)
+ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLength, tokens declarationType)
 {
     ParseNodePtr pnodeArg = nullptr;
     ParseNodePtr pnodeName = nullptr;
     ParseNodePtr pnodeList = nullptr;
     ParseNodePtr *lastNodeRef = nullptr;
     LPCOLESTR pFullNameHint = nullptr;       // A calculated full name
-    ulong fullNameHintLength = pNameHintLength ? *pNameHintLength : 0;
-    ulong shortNameOffset = 0;
+    uint32 fullNameHintLength = pNameHintLength ? *pNameHintLength : 0;
+    uint32 shortNameOffset = 0;
     bool isProtoDeclared = false;
 
     // we get declaration tkLCurly - when the possible object pattern found under the expression.
@@ -4213,7 +4205,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
                     if (m_scriptContext->GetConfig()->IsES6FunctionNameEnabled())
                     {
                         // displays as "get object.funcname" or "set object.funcname"
-                        ulong getOrSetOffset = 0;
+                        uint32 getOrSetOffset = 0;
                         LPCOLESTR intermediateHint = AppendNameHints(pNameHint, pNameGetOrSet, &fullNameHintLength, &shortNameOffset);
                         pFullNameHint = AppendNameHints(pidHint, intermediateHint, &fullNameHintLength, &getOrSetOffset, true);
                         shortNameOffset += getOrSetOffset;
@@ -4421,7 +4413,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     uint scopeCountNoAstSave = m_scopeCountNoAst;
     m_scopeCountNoAst = 0;
 
-    long* pAstSizeSave = m_pCurrentAstSize;
+    int32* pAstSizeSave = m_pCurrentAstSize;
     bool noStmtContext = false;
 
     if (fDeclaration)
@@ -4797,12 +4789,12 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     pstmtSave = m_pstmtCur;
     SetCurrentStatement(nullptr);
 
-    // Function definition is inside the parent function's parameter scope    
+    // Function definition is inside the parent function's parameter scope
     bool isEnclosedInParamScope = this->m_currentScope->GetScopeType() == ScopeType_Parameter;
 
     if (this->m_currentScope->GetScopeType() == ScopeType_FuncExpr || this->m_currentScope->GetScopeType() == ScopeType_Block)
     {
-        // Or this is a function expression or class enclosed in a parameter scope  
+        // Or this is a function expression or class enclosed in a parameter scope
         isEnclosedInParamScope = this->m_currentScope->GetEnclosingScope() && this->m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter;
     }
 
@@ -5603,7 +5595,7 @@ bool Parser::FastScanFormalsAndBody()
                 if (tempCurlyDepth != (uint)-1)
                 {
                     ParseNodePtr pnodeFncSave = m_currentNodeFunc;
-                    long *pastSizeSave = m_pCurrentAstSize;
+                    int32 *pastSizeSave = m_pCurrentAstSize;
                     uint *pnestedCountSave = m_pnestedCount;
                     ParseNodePtr *ppnodeScopeSave = m_ppnodeScope;
                     ParseNodePtr *ppnodeExprScopeSave = m_ppnodeExprScope;
@@ -6043,8 +6035,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
             {
                 IdentPtr pid = m_token.GetIdentifier(m_phtbl);
                 LPCOLESTR pNameHint = pid->Psz();
-                ulong nameHintLength = pid->Cch();
-                ulong nameHintOffset = 0;
+                uint32 nameHintLength = pid->Cch();
+                uint32 nameHintOffset = 0;
 
                 if (seenRestParameter)
                 {
@@ -6281,7 +6273,7 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
         pnodeFnc->sxFnc.columnNumber = 0;
     }
 
-    long * pAstSizeSave = m_pCurrentAstSize;
+    int32 * pAstSizeSave = m_pCurrentAstSize;
     m_pCurrentAstSize = &(pnodeFnc->sxFnc.astSize);
 
     // Make this the current function.
@@ -6451,7 +6443,7 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
 
     ParseNodePtr pnodeFncSave = m_currentNodeFunc;
     uint *pnestedCountSave = m_pnestedCount;
-    long* pAstSizeSave = m_pCurrentAstSize;
+    int32* pAstSizeSave = m_pCurrentAstSize;
 
     m_currentNodeFunc = pnodeFnc;
     m_pCurrentAstSize = & (pnodeFnc->sxFnc.astSize);
@@ -6594,7 +6586,7 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
 void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef)
 {
     LPCOLESTR name = NULL;
-    JS_ETW(long startAstSize = *m_pCurrentAstSize);
+    JS_ETW(int32 startAstSize = *m_pCurrentAstSize);
     if(IS_JS_ETW(EventEnabledJSCRIPT_PARSE_METHOD_START()) || PHASE_TRACE1(Js::DeferParsePhase))
     {
         name = GetFunctionName(pnodeFnc, pNameHint);
@@ -6633,7 +6625,7 @@ void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNode
     //pnodeFnc->sxFnc.pnodeTmps = *m_ppnodeVar;
 
 #ifdef ENABLE_JS_ETW
-    long astSize = *m_pCurrentAstSize - startAstSize;
+    int32 astSize = *m_pCurrentAstSize - startAstSize;
     EventWriteJSCRIPT_PARSE_METHOD_STOP(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), pnodeFnc->sxFnc.functionId, astSize, m_parseType, name);
 #endif
 }
@@ -6739,7 +6731,7 @@ IdentPtr Parser::ParseClassPropertyName(IdentPtr * pidHint)
     Error(ERRnoMemberIdent);
 }
 
-LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberName, IdentPtr pGetSet, bool isStatic, ulong* nameLength, ulong* pShortNameOffset, bool isComputedName, LPCOLESTR pMemberNameHint)
+LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberName, IdentPtr pGetSet, bool isStatic, uint32* nameLength, uint32* pShortNameOffset, bool isComputedName, LPCOLESTR pMemberNameHint)
 {
     if ((pMemberName == nullptr && !isComputedName) ||
         (pMemberNameHint == nullptr && isComputedName) ||
@@ -6749,8 +6741,8 @@ LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberNa
     }
 
     LPCOLESTR pFinalName = isComputedName? pMemberNameHint : pMemberName->Psz();
-    ulong fullNameHintLength = 0;
-    ulong shortNameOffset = 0;
+    uint32 fullNameHintLength = 0;
+    uint32 shortNameOffset = 0;
     if (!isStatic)
     {
         // Add prototype.
@@ -6759,7 +6751,7 @@ LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberNa
 
     if (pClassName)
     {
-        ulong classNameOffset = 0;
+        uint32 classNameOffset = 0;
         pFinalName = AppendNameHints(pClassName, pFinalName, &fullNameHintLength, &classNameOffset);
         shortNameOffset += classNameOffset;
     }
@@ -6769,7 +6761,7 @@ LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberNa
         if (m_scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
             // displays as get/set prototype.funcname
-            ulong getSetOffset = 0;
+            uint32 getSetOffset = 0;
             pFinalName = AppendNameHints(pGetSet, pFinalName, &fullNameHintLength, &getSetOffset, true);
             shortNameOffset += getSetOffset;
         }
@@ -6811,7 +6803,7 @@ private:
 };
 
 template<bool buildAST>
-ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulong *pHintLength, ulong *pShortNameOffset)
+ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uint32 *pHintLength, uint32 *pShortNameOffset)
 {
     bool hasConstructor = false;
     bool hasExtends = false;
@@ -6823,8 +6815,8 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
     ParseNodePtr *lastMemberNodeRef = nullptr;
     ParseNodePtr pnodeStaticMembers = nullptr;
     ParseNodePtr *lastStaticMemberNodeRef = nullptr;
-    ulong nameHintLength = pHintLength ? *pHintLength : 0;
-    ulong nameHintOffset = pShortNameOffset ? *pShortNameOffset : 0;
+    uint32 nameHintLength = pHintLength ? *pHintLength : 0;
+    uint32 nameHintOffset = pShortNameOffset ? *pShortNameOffset : 0;
 
     ArenaAllocator tempAllocator(_u("ClassMemberNames"), m_nodeAllocator.GetPageAllocator(), Parser::OutOfMemory);
 
@@ -6922,8 +6914,8 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
         IdentPtr pidHint = nullptr;
         IdentPtr memberPid = nullptr;
         LPCOLESTR pMemberNameHint = nullptr;
-        ulong     memberNameHintLength = 0;
-        ulong     memberNameOffset = 0;
+        uint32     memberNameHintLength = 0;
+        uint32     memberNameOffset = 0;
         bool isComputedName = false;
         bool isAsyncMethod = false;
 
@@ -6984,8 +6976,8 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
             }
             hasConstructor = true;
             LPCOLESTR pConstructorName = nullptr;
-            ulong  constructorNameLength = 0;
-            ulong  constructorShortNameHintOffset = 0;
+            uint32  constructorNameLength = 0;
+            uint32  constructorShortNameHintOffset = 0;
             if (pnodeName && pnodeName->sxVar.pid)
             {
                 pConstructorName = pnodeName->sxVar.pid->Psz();
@@ -7244,7 +7236,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
 
         // We are not able to pass more than a ushort worth of arguments to the tag
         // so use that as a logical limit on the number of string constant pieces.
-        if (stringConstantCount >= USHORT_MAX)
+        if (stringConstantCount >= USHRT_MAX)
         {
             Error(ERRnoMemory);
         }
@@ -7396,7 +7388,7 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
     uint scopeCountNoAstSave = m_scopeCountNoAst;
     m_scopeCountNoAst = 0;
 
-    long* pAstSizeSave = m_pCurrentAstSize;
+    int32* pAstSizeSave = m_pCurrentAstSize;
 
     pnodeFncSave = m_currentNodeFunc;
     pnodeDeferredFncSave = m_currentNodeDeferredFunc;
@@ -7582,7 +7574,7 @@ ParseNodePtr Parser::CreateAsyncSpawnGenerator()
     return pnodeFncGenerator;
 }
 
-LPCOLESTR Parser::FormatPropertyString(LPCOLESTR propertyString, ParseNodePtr pNode, ulong *fullNameHintLength, ulong *pShortNameOffset)
+LPCOLESTR Parser::FormatPropertyString(LPCOLESTR propertyString, ParseNodePtr pNode, uint32 *fullNameHintLength, uint32 *pShortNameOffset)
 {
     // propertyString could be null, such as 'this.foo' =
     // propertyString could be empty, found in pattern as in (-1)[""][(x = z)]
@@ -7615,7 +7607,7 @@ LPCOLESTR Parser::FormatPropertyString(LPCOLESTR propertyString, ParseNodePtr pN
     return AppendNameHints(propertyString, rightNode, fullNameHintLength, pShortNameOffset, false, true/*add brackets*/);
 }
 
-LPCOLESTR Parser::ConstructNameHint(ParseNodePtr pNode, ulong* fullNameHintLength, ulong *pShortNameOffset)
+LPCOLESTR Parser::ConstructNameHint(ParseNodePtr pNode, uint32* fullNameHintLength, uint32 *pShortNameOffset)
 {
     Assert(pNode != nullptr);
     Assert(pNode->nop == knopDot || pNode->nop == knopIndex);
@@ -7655,14 +7647,14 @@ LPCOLESTR Parser::ConstructNameHint(ParseNodePtr pNode, ulong* fullNameHintLengt
     return AppendNameHints(leftNode, rightNode, fullNameHintLength, pShortNameOffset, false, wrapWithBrackets);
 }
 
-LPCOLESTR Parser::AppendNameHints(LPCOLESTR leftStr, ulong leftLen, LPCOLESTR rightStr, ulong rightLen, ulong *pNameLength, ulong *pShortNameOffset, bool ignoreAddDotWithSpace, bool wrapInBrackets)
+LPCOLESTR Parser::AppendNameHints(LPCOLESTR leftStr, uint32 leftLen, LPCOLESTR rightStr, uint32 rightLen, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace, bool wrapInBrackets)
 {
     Assert(rightStr != nullptr);
     Assert(leftLen  != 0 || wrapInBrackets);
     Assert(rightLen != 0 || wrapInBrackets);
 
     bool ignoreDot = rightStr[0] == _u('[') && !wrapInBrackets;//if we wrap in brackets it can be a string literal which can have brackets at the first char
-    ulong totalLength = leftLen + rightLen + ((ignoreDot) ? 1 : 2); // 1 (for dot or [) + 1 (for null termination)
+    uint32 totalLength = leftLen + rightLen + ((ignoreDot) ? 1 : 2); // 1 (for dot or [) + 1 (for null termination)
 
     if (wrapInBrackets)
     {
@@ -7706,7 +7698,7 @@ LPCOLESTR Parser::AppendNameHints(LPCOLESTR leftStr, ulong leftLen, LPCOLESTR ri
     return finalName;
 }
 
-WCHAR * Parser::AllocateStringOfLength(ulong length)
+WCHAR * Parser::AllocateStringOfLength(ULONG length)
 {
     Assert(length > 0);
     ULONG totalBytes;
@@ -7722,7 +7714,7 @@ WCHAR * Parser::AllocateStringOfLength(ulong length)
     return finalName;
 }
 
-LPCOLESTR Parser::AppendNameHints(IdentPtr left, IdentPtr right, ulong *pNameLength, ulong *pShortNameOffset, bool ignoreAddDotWithSpace, bool wrapInBrackets)
+LPCOLESTR Parser::AppendNameHints(IdentPtr left, IdentPtr right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace, bool wrapInBrackets)
 {
     if (pShortNameOffset != nullptr)
     {
@@ -7739,7 +7731,7 @@ LPCOLESTR Parser::AppendNameHints(IdentPtr left, IdentPtr right, ulong *pNameLen
         return nullptr;
     }
 
-    ulong leftLen = 0;
+    uint32 leftLen = 0;
     LPCOLESTR leftStr = _u("");
 
     if (left != nullptr) // if wrapInBrackets is true
@@ -7753,14 +7745,14 @@ LPCOLESTR Parser::AppendNameHints(IdentPtr left, IdentPtr right, ulong *pNameLen
         *pNameLength = leftLen;
         return left->Psz();
     }
-    ulong rightLen = right->Cch();
+    uint32 rightLen = right->Cch();
 
     return AppendNameHints(leftStr, leftLen, right->Psz(), rightLen, pNameLength, pShortNameOffset, ignoreAddDotWithSpace, wrapInBrackets);
 }
 
-LPCOLESTR Parser::AppendNameHints(IdentPtr left, LPCOLESTR right, ulong *pNameLength, ulong *pShortNameOffset, bool ignoreAddDotWithSpace, bool wrapInBrackets)
+LPCOLESTR Parser::AppendNameHints(IdentPtr left, LPCOLESTR right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace, bool wrapInBrackets)
 {
-    ulong rightLen = (right == nullptr) ? 0 : (ulong) wcslen(right);
+    uint32 rightLen = (right == nullptr) ? 0 : (uint32) wcslen(right);
 
     if (pShortNameOffset != nullptr)
     {
@@ -7776,7 +7768,7 @@ LPCOLESTR Parser::AppendNameHints(IdentPtr left, LPCOLESTR right, ulong *pNameLe
     }
 
     LPCOLESTR leftStr = _u("");
-    ulong leftLen = 0;
+    uint32 leftLen = 0;
 
     if (left != nullptr) // if wrapInBrackets is true
     {
@@ -7793,9 +7785,9 @@ LPCOLESTR Parser::AppendNameHints(IdentPtr left, LPCOLESTR right, ulong *pNameLe
     return AppendNameHints(leftStr, leftLen, right, rightLen, pNameLength, pShortNameOffset, ignoreAddDotWithSpace, wrapInBrackets);
 }
 
-LPCOLESTR Parser::AppendNameHints(LPCOLESTR left, IdentPtr right, ulong *pNameLength, ulong *pShortNameOffset, bool ignoreAddDotWithSpace, bool wrapInBrackets)
+LPCOLESTR Parser::AppendNameHints(LPCOLESTR left, IdentPtr right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace, bool wrapInBrackets)
 {
-    ulong leftLen = (left == nullptr) ? 0 : (ulong) wcslen(left);
+    uint32 leftLen = (left == nullptr) ? 0 : (uint32) wcslen(left);
 
     if (pShortNameOffset != nullptr)
     {
@@ -7804,7 +7796,7 @@ LPCOLESTR Parser::AppendNameHints(LPCOLESTR left, IdentPtr right, ulong *pNameLe
 
     Assert(leftLen <= ULONG_MAX); // name hints should not exceed ULONG_MAX characters
 
-    if (left == nullptr || leftLen == 0 && !wrapInBrackets)
+    if (left == nullptr || (leftLen == 0 && !wrapInBrackets))
     {
         if (right != nullptr)
         {
@@ -7819,16 +7811,16 @@ LPCOLESTR Parser::AppendNameHints(LPCOLESTR left, IdentPtr right, ulong *pNameLe
         *pNameLength = leftLen;
         return left;
     }
-    ulong rightLen = right->Cch();
+    uint32 rightLen = right->Cch();
 
     return AppendNameHints(left, leftLen, right->Psz(), rightLen, pNameLength, pShortNameOffset, ignoreAddDotWithSpace, wrapInBrackets);
 }
 
 
-LPCOLESTR Parser::AppendNameHints(LPCOLESTR left, LPCOLESTR right, ulong *pNameLength, ulong *pShortNameOffset, bool ignoreAddDotWithSpace, bool wrapInBrackets)
+LPCOLESTR Parser::AppendNameHints(LPCOLESTR left, LPCOLESTR right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace, bool wrapInBrackets)
 {
-    ulong leftLen = (left == nullptr) ? 0 : (ulong) wcslen(left);
-    ulong rightLen = (right == nullptr) ? 0 : (ulong) wcslen(right);
+    uint32 leftLen = (left == nullptr) ? 0 : (uint32) wcslen(left);
+    uint32 rightLen = (right == nullptr) ? 0 : (uint32) wcslen(right);
     if (pShortNameOffset != nullptr)
     {
         *pShortNameOffset = 0;
@@ -7923,8 +7915,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     BOOL fAllowIn,
     BOOL fAllowEllipsis,
     LPCOLESTR pNameHint,
-    ulong *pHintLength,
-    ulong *pShortNameOffset,
+    uint32 *pHintLength,
+    uint32 *pShortNameOffset,
     _Inout_opt_ IdentToken* pToken,
     bool fUnaryOrParen,
     _Inout_opt_ bool* pfLikelyPattern)
@@ -7939,8 +7931,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     bool assignmentStmt = false;
     IdentToken term;
     RestorePoint termStart;
-    ulong hintLength = 0;
-    ulong hintOffset = 0;
+    uint32 hintLength = 0;
+    uint32 hintOffset = 0;
 
     ParserState parserState;
 
@@ -8591,8 +8583,8 @@ ParseNodePtr Parser::ParseVariableDeclaration(
     ParseNodePtr pnodeList = nullptr;
     ParseNodePtr *lastNodeRef = nullptr;
     LPCOLESTR pNameHint = nullptr;
-    ulong     nameHintLength = 0;
-    ulong     nameHintOffset = 0;
+    uint32     nameHintLength = 0;
+    uint32     nameHintOffset = 0;
     Assert(declarationType == tkVAR || declarationType == tkCONST || declarationType == tkLET);
 
     for (;;)
@@ -10140,8 +10132,8 @@ LNeedTerminator:
             pCatch->sxCatch.pnodeNext = nullptr;
 
             // create a fake name for the catch var.
-            WCHAR *uniqueNameStr = _u("__ehobj");
-            IdentPtr uniqueName = m_phtbl->PidHashNameLen(uniqueNameStr, static_cast<long>(wcslen(uniqueNameStr)));
+            const WCHAR *uniqueNameStr = _u("__ehobj");
+            IdentPtr uniqueName = m_phtbl->PidHashNameLen(uniqueNameStr, static_cast<int32>(wcslen(uniqueNameStr)));
 
             pCatch->sxCatch.pnodeParam = CreateNameNode(uniqueName);
 
@@ -10393,7 +10385,7 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
     {
         Assert(pnodeFnc->nop == knopFncDecl);
 
-        // Non-simple params (such as default) require a good amount of logic to put vars on appriopriate scopes. ParseFncDecl handles it 
+        // Non-simple params (such as default) require a good amount of logic to put vars on appriopriate scopes. ParseFncDecl handles it
         // properly (both on defer and non-defer case). This is to avoid write duplicated logic here as well. Function with non-simple-param
         // will remain deferred untill they are called.
         if (pnodeFnc->sxFnc.pnodeBody == nullptr && !pnodeFnc->sxFnc.HasNonSimpleParameterList())
@@ -10547,7 +10539,7 @@ void Parser::InitPids()
     wellKnownPropertyPids.target = m_phtbl->PidHashNameLen(_u("target"), sizeof("target") - 1);
     wellKnownPropertyPids.as = m_phtbl->PidHashNameLen(_u("as"), sizeof("as") - 1);
     wellKnownPropertyPids.from = m_phtbl->PidHashNameLen(_u("from"), sizeof("from") - 1);
-    wellKnownPropertyPids.default = m_phtbl->PidHashNameLen(_u("default"), sizeof("default") - 1);
+    wellKnownPropertyPids._default = m_phtbl->PidHashNameLen(_u("default"), sizeof("default") - 1);
     wellKnownPropertyPids._starDefaultStar = m_phtbl->PidHashNameLen(_u("*default*"), sizeof("*default*") - 1);
     wellKnownPropertyPids._star = m_phtbl->PidHashNameLen(_u("*"), sizeof("*") - 1);
 }
@@ -10724,7 +10716,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     m_pscan->Scan();
 
     // Make the main 'knopProg' node
-    long initSize = 0;
+    int32 initSize = 0;
     m_pCurrentAstSize = &initSize;
     pnodeProg = CreateProgNodeWithScanner(isModuleSource);
     pnodeProg->grfpn = PNodeFlags::fpnNone;
@@ -10903,7 +10895,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 
     m_scriptContext->AddSourceSize(m_length);
 
-    if(!m_parseType != ParseType_Deferred)
+    if (m_parseType != ParseType_Deferred)
     {
         JS_ETW(EventWriteJSCRIPT_PARSE_METHOD_STOP(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), pnodeProg->sxFnc.functionId, *m_pCurrentAstSize, false, Js::Constants::GlobalFunction));
     }
@@ -11691,7 +11683,7 @@ inline bool Parser::IsNaNOrInfinityLiteral(LPCOLESTR str)
     return str &&
            (wcscmp(_u("NaN"), str) == 0 ||
            wcscmp(_u("Infinity"), str) == 0 ||
-           CheckForNegativeInfinity && wcscmp(_u("-Infinity"), str) == 0);
+               (CheckForNegativeInfinity && wcscmp(_u("-Infinity"), str) == 0));
 }
 
 template <bool buildAST>
@@ -11900,7 +11892,7 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
     {
         m_currentNodeDeferredFunc = m_currentNodeFunc;
     }
-    long *pAstSizeSave = m_pCurrentAstSize;
+    int32 *pAstSizeSave = m_pCurrentAstSize;
     uint *pNestedCountSave = m_pnestedCount;
     ParseNodePtr *ppnodeScopeSave = m_ppnodeScope;
     ParseNodePtr *ppnodeExprScopeSave = m_ppnodeExprScope;
@@ -11908,7 +11900,7 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
     ParseNodePtr newTempScope = nullptr;
     m_ppnodeScope = &newTempScope;
 
-    long newTempAstSize = 0;
+    int32 newTempAstSize = 0;
     m_pCurrentAstSize = &newTempAstSize;
 
     uint newTempNestedCount = 0;

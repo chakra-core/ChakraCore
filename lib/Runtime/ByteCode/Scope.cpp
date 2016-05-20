@@ -21,7 +21,8 @@ void Scope::SetHasLocalInClosure(bool has)
     // (Note: if any catch var is closure-captured, we won't merge the catch scope with the function scope.
     // So don't mark the function scope "has local in closure".)
     bool notCatch = this->scopeType != ScopeType_Catch && this->scopeType != ScopeType_CatchParamPattern;
-    if (has && (this == func->GetBodyScope() || this == func->GetParamScope()) || (GetCanMerge() && notCatch))
+    if ((has && (this == func->GetBodyScope() || this == func->GetParamScope())) ||
+        (GetCanMerge() && notCatch))
     {
         func->SetHasLocalInClosure(true);
     }

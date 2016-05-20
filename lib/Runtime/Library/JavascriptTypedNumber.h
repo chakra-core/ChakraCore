@@ -11,7 +11,7 @@ namespace Js
     {
     private:
         T m_value;
-        __inline JavascriptTypedNumber(T value, StaticType * type) : RecyclableObject(type), m_value(value)
+        inline JavascriptTypedNumber(T value, StaticType * type) : RecyclableObject(type), m_value(value)
         {
 #if DBG
             AssertMsg(type->GetTypeId() == TypeIds_Int64Number ||

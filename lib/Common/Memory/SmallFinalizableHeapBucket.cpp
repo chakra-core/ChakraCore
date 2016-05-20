@@ -17,7 +17,7 @@ template <class TBlockType>
 SmallFinalizableHeapBucketBaseT<TBlockType>::~SmallFinalizableHeapBucketBaseT()
 {
     Assert(this->AllocatorsAreEmpty());
-    DeleteHeapBlockList(this->pendingDisposeList);
+    this->DeleteHeapBlockList(this->pendingDisposeList);
     Assert(this->tempPendingDisposeList == nullptr);
 }
 
@@ -60,7 +60,7 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::GetNonEmptyHeapBlockCount(bool chec
     size_t currentHeapBlockCount =  __super::GetNonEmptyHeapBlockCount(false)
         + HeapBlockList::Count(pendingDisposeList)
         + HeapBlockList::Count(tempPendingDisposeList);
-    RECYCLER_SLOW_CHECK(Assert(!checkCount || heapBlockCount == currentHeapBlockCount));
+    RECYCLER_SLOW_CHECK(Assert(!checkCount || this->heapBlockCount == currentHeapBlockCount));
     return currentHeapBlockCount;
 }
 #endif
@@ -92,15 +92,6 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::AggregateBucketStats(HeapBucketStat
     });
 }
 #endif
-
-template void SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
-template void SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
-
-#ifdef RECYCLER_WRITE_BARRIER
-template void SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
-template void SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
-#endif
-
 
 template<class TBlockType>
 void
@@ -170,7 +161,7 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::TransferDisposedObjects()
             heapBlock->TransferDisposedObjects();
 
             // in pageheap, we actually always have free object
-            Assert(heapBlock->HasFreeObject<false>());
+            Assert(heapBlock->template HasFreeObject<false>());
         });
 
         // For partial collect, dispose will modify the object, and we
@@ -223,9 +214,9 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::Verify()
         Assert(false);
     }
 
-    HeapBlockList::ForEach(this->pendingDisposeList, [&recyclerVerifyListConsistencyData](TBlockType * heapBlock)
+    HeapBlockList::ForEach(this->pendingDisposeList, [this, &recyclerVerifyListConsistencyData](TBlockType * heapBlock)
     {
-        DebugOnly(VerifyBlockConsistencyInList(heapBlock, recyclerVerifyListConsistencyData));
+        DebugOnly(this->VerifyBlockConsistencyInList(heapBlock, recyclerVerifyListConsistencyData));
         heapBlock->Verify(true);
     });
 #endif
@@ -247,13 +238,15 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::VerifyMark()
 }
 #endif
 
-template class SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>;
+namespace Memory
+{
+    template class SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>;
 #ifdef RECYCLER_WRITE_BARRIER
-template class SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>;
+    template class SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>;
 #endif
 
-template class SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>;
+    template class SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>;
 #ifdef RECYCLER_WRITE_BARRIER
-template class SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>;
+    template class SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>;
 #endif
-
+}
