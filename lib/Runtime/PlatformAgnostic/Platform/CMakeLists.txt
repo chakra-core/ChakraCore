@@ -2,6 +2,7 @@ project(CHAKRA_PLATFORM_AGNOSTIC)
 
 add_library (Chakra.Runtime.PlatformAgnostic
   Linux/UnicodeText.ICU.cpp
+  Linux/Time.cpp
   Common/UnicodeText.Common.cpp
   )
   

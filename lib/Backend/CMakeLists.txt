@@ -75,4 +75,6 @@ add_library (Chakra.Backend
     )
 
 target_include_directories (
-    Chakra.Backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    Chakra.Backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    ../Runtime/PlatformAgnostic
+    )

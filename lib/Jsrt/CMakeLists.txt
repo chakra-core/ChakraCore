@@ -23,4 +23,5 @@ target_include_directories (
     ../Runtime/Base
     ../Runtime/Debug
     ../Parser
+    ../Runtime/PlatformAgnostic
     )

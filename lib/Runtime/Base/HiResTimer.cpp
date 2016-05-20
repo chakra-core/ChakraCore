@@ -17,6 +17,9 @@ namespace Js
     // bring it inline with a time server.
     double HiResTimer::GetAdjustFactor()
     {
+#ifndef _WIN32
+        return 1; // No adjustment option for *nix (dwTimeAdjustment == 0)
+#else
         DWORD dwTimeAdjustment = 0;
         DWORD dwTimeIncrement = 0;
         BOOL fAdjustmentDisabled = FALSE;
@@ -26,6 +29,7 @@ namespace Js
             return 1;
         }
         return ((double)dwTimeAdjustment) / ((double)dwTimeIncrement);
+#endif
     }
 
     double HiResTimer::Now()

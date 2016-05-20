@@ -22,7 +22,14 @@ namespace Js
 
         double GetAdjustFactor();
     public:
-        HiResTimer(): fInit(false), dBaseTime(0), baseMsCount(0),  fHiResAvailable(true), dLastTime(0), dAdjustFactor(1), fReset(true) {}
+        HiResTimer(): fInit(false), dBaseTime(0), baseMsCount(0),  
+#ifdef _WIN32
+        // xplat-todo: do we really need this for now?
+        fHiResAvailable(true), 
+#else
+        fHiResAvailable(false), 
+#endif
+        dLastTime(0), dAdjustFactor(1), fReset(true) {}
         double Now();
         void Reset() { fReset = true; }
         static double GetSystemTime();

@@ -1,6 +1,7 @@
 project(CHAKRA_COMMON)
 
-include_directories(${CHAKRA_COMMON_SOURCE_DIR})
+include_directories(${CHAKRA_COMMON_SOURCE_DIR}
+    ../Runtime/PlatformAgnostic)
 
 add_subdirectory (Codex)
 add_subdirectory (Common)

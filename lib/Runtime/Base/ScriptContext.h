@@ -739,10 +739,8 @@ private:
         NativeCodeGenerator* nativeCodeGen;
 #endif
 
-#ifdef ENABLE_GLOBALIZATION
         TIME_ZONE_INFORMATION timeZoneInfo;
         uint lastTimeZoneUpdateTickCount;
-#endif // ENABLE_GLOBALIZATION
         DaylightTimeHelper daylightTimeHelper;
 
         HostScriptContext * hostScriptContext;
@@ -968,7 +966,6 @@ private:
 
         ThreadContext * GetThreadContext() const { return threadContext; }
 
-#ifdef ENABLE_GLOBALIZATION
         TIME_ZONE_INFORMATION * GetTimeZoneInfo()
         {
             uint tickCount = GetTickCount();
@@ -979,8 +976,8 @@ private:
             }
             return &timeZoneInfo;
         }
+
         void UpdateTimeZoneInfo();
-#endif // ENABLE_GLOBALIZATION
 
         static const int MaxEvalSourceSize = 400;
 

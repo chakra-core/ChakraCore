@@ -2304,13 +2304,17 @@ if (!sourceList)
             return si;
     }
 
-#ifdef ENABLE_GLOBALIZATION
     void ScriptContext::UpdateTimeZoneInfo()
     {
         GetTimeZoneInformation(&timeZoneInfo);
+        
+        // todo: check possible winrt issue
+        // !defined(__cplusplus_winrt)
+        // see https://msdn.microsoft.com/en-us/library/90s5c885.aspx
+#if defined(_WIN32)
         _tzset();
-    }
 #endif
+    }
 
 #ifdef PROFILE_EXEC
     void

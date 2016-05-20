@@ -7,4 +7,5 @@ target_include_directories (
     ../../Runtime
     ../../Parser
     ../
+    ../../Runtime/PlatformAgnostic
     )

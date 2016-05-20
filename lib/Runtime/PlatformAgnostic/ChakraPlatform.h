@@ -5,3 +5,7 @@
 #pragma once
 
 #include "UnicodeText.h"
+
+#ifndef _WIN32
+#include "Platform/Linux/Time.h"
+#endif

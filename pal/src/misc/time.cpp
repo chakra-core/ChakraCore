@@ -394,4 +394,3 @@ GetTickCount64()
 EXIT:    
     return retval;
 }
-

@@ -5,7 +5,9 @@ add_executable (GCStress
   StubExternalApi.cpp
     )
 
-include_directories(..)
+include_directories(..
+  ../../lib/Runtime/PlatformAgnostic
+  )
 
 target_include_directories (GCStress  
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
