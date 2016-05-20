@@ -920,31 +920,47 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
         }
 
-        JavascriptArray* arrTrapResult = JavascriptArray::FromVar(trapResult);        
-        uint32 len = arrTrapResult->GetLength();
-        Var undefined = scriptContext->GetLibrary()->GetUndefined();
         JsUtil::BaseDictionary<const char16*, Var, Recycler> dict(scriptContext->GetRecycler());
         JavascriptArray* arrResult = scriptContext->GetLibrary()->CreateArray();
         int index = 0;
-        arrTrapResult->ForEachItemInRange<false>(0, len, undefined, scriptContext, [&](uint32, Var element)
+
+        Js::RecyclableObject* arrayIterator = JavascriptOperators::GetIterator(RecyclableObject::FromVar(trapResult), scriptContext);
+        Js::RecyclableObject* next = JavascriptOperators::IteratorNext(arrayIterator, scriptContext);        
+
+        while (RecyclableObject::Is(next))
         {
-            if (JavascriptString::Is(element))
+            if (Js::JavascriptOperators::HasProperty(next, PropertyIds::value))
             {
-                Js::PropertyDescriptor desc;
-                JavascriptString* str = JavascriptString::FromVar(element);
-                BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(this, str, scriptContext, &desc);
-                if (ret && !dict.ContainsKey(str->GetSz()))
+                Js::Var element = JavascriptOperators::GetProperty(next, PropertyIds::value, scriptContext);
+                if (JavascriptString::Is(element))
                 {
-                    dict.Add(str->GetSz(), element);
-                    if (desc.IsEnumerable()) 
+                    Js::PropertyDescriptor desc;
+                    JavascriptString* str = JavascriptString::FromVar(element);
+                    BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(this, str, scriptContext, &desc);
+                    if (ret && !dict.ContainsKey(str->GetSz()))
                     {
-                        arrResult->SetItem(index++, element, PropertyOperation_None);
+                        dict.Add(str->GetSz(), element);
+                        if (desc.IsEnumerable())
+                        {
+                            ret = arrResult->SetItem(index++, element, PropertyOperation_None);
+                            Assert(ret);
+                        }
                     }
                 }
             }
-        });
 
-        Var arrayIterator = JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), scriptContext);
+            if (Js::JavascriptOperators::HasProperty(next, PropertyIds::done))
+            {
+                Js::Var done = JavascriptOperators::GetProperty(next, PropertyIds::done, scriptContext);
+                if (Js::JavascriptConversion::ToBoolean_Full(done, scriptContext))
+                {
+                    break;
+                }
+            }
+            next = JavascriptOperators::IteratorNext(arrayIterator, scriptContext);
+        }
+
+        arrayIterator = JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), scriptContext);
         *enumerator = IteratorObjectEnumerator::Create(scriptContext, arrayIterator);
 
         return TRUE;

@@ -13,29 +13,71 @@ var proxy = new Proxy({}, {
 });
 for(var key in proxy);
 
+var keys=""
+var proxy = new Proxy({x:1,y:2}, {});
+for(var key in proxy){ keys += key;}
+passed &= keys==="xy";
+
 // check ownKeys
+var keys=""
 var proxy = new Proxy({"5":1}, {
   ownKeys: function() {
     return ['a', {y:2}, 5, 'b', Symbol.iterator];
   }
 });
-var keys=""
 for(var key in proxy){ keys += key;}
 passed &= keys==="";
 
 // check property descriptor
+var keys=""
 var proxy = new Proxy({b:1,a:2}, {
   ownKeys: function() {
     return ['a', {y:2}, 5, 'b', Symbol.iterator];
   }
 });
-var keys=""
 for(var key in proxy){ keys += key;}
 passed &= keys==="ab";
 
+var keys=""
+var proxy = new Proxy({b:1,a:2}, {
+  ownKeys: function() {
+    return new Proxy(['a', 'b'],{});
+  }
+});
+for(var key in proxy){ keys += key;}
+passed &= keys==="ab";
+
+var keys=""
+var proxy = new Proxy({c:1,d:2}, {
+  ownKeys: function() {
+    return new Proxy(['a', 'b'],{
+      get(target, propKey, receiver){
+        return Reflect.get(['c', 'd'], propKey, receiver);
+      }
+    });
+  }
+});
+for(var key in proxy){ keys += key;}
+passed &= keys==="cd";
+WScript.Echo(keys)
+
+var keys=""
+var proxy = new Proxy({b:1,a:2}, {
+  ownKeys: function() {
+    return {x:1,y:2};
+  }
+});
+try{
+  for(var key in proxy){ keys += key;}
+  WScript.Echo("should throw");
+  passed = false;
+} catch(e){
+}
+
 // check property descriptor trap
+var keys=""
 var already_non_enmerable = false;
-var getPrototypeOfCalled = false;
+var getPrototypeOfCalled = 0;
 var proxy = new Proxy({}, {
   ownKeys: function() {
     return ['a','b','a']; // make first a non-enumerable, and second a enumerable, second a won't show up in for-in
@@ -55,14 +97,13 @@ var proxy = new Proxy({}, {
     };
   },
   getPrototypeOf: function(){
-    getPrototypeOfCalled = true;
+    getPrototypeOfCalled++;
     return null;
   }
 });
-var keys=""
 for(var key in proxy){ keys += key;}
 passed &= keys==="b";
-passed &= getPrototypeOfCalled;
+passed &= getPrototypeOfCalled===1;
 
 if (passed) {
   WScript.Echo("PASS");
