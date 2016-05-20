@@ -166,8 +166,8 @@
   </test>
   <test>
     <default>
-      <files>LeadTrail.js</files>
-      <baseline>LeadTrail.baseline</baseline>
+      <files>leadtrail.js</files>
+      <baseline>leadtrail.baseline</baseline>
     </default>
   </test>
   <test>

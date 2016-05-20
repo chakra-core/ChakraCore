@@ -1082,7 +1082,7 @@
 
   <test>
     <default>
-      <files>bug_OS3198161.js</files>
+      <files>bug_os3198161.js</files>
       <compile-flags>-es6all</compile-flags>
       <tags>BugFix</tags>
     </default>
@@ -1167,7 +1167,7 @@
 </test>
 <test>
     <default>
-        <files>Expo.js</files>
+        <files>expo.js</files>
         <compile-flags>-args summary -endargs -es7exponentiationoperator</compile-flags>
     </default>
 </test>
@@ -1179,9 +1179,9 @@
 </test>
 <test>
     <default>
-        <files>ES6HasInstance.js</files>
+        <files>es6HasInstance.js</files>
         <compile-flags>-es6HasInstance</compile-flags>
-        <baseline>ES6HasInstance.baseline</baseline>
+        <baseline>es6HasInstance.baseline</baseline>
     </default>
 </test>
 <test>
