@@ -59,7 +59,6 @@ var proxy = new Proxy({c:1,d:2}, {
 });
 for(var key in proxy){ keys += key;}
 passed &= keys==="cd";
-WScript.Echo(keys)
 
 var keys=""
 var proxy = new Proxy({b:1,a:2}, {
