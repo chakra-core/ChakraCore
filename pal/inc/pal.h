@@ -6178,7 +6178,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define labs          PAL_labs
 #define log           PAL_log
 #define log10         PAL_log10
-#define pow           PAL_pow
 #define malloc        PAL_malloc
 #define free          PAL_free
 #define mkstemp       PAL_mkstemp
@@ -6389,7 +6388,6 @@ PALIMPORT double __cdecl sqrt(double);
 PALIMPORT double __cdecl log(double);
 PALIMPORT double __cdecl log10(double);
 PALIMPORT double __cdecl exp(double);
-PALIMPORT double __cdecl pow(double, double);
 PALIMPORT double __cdecl acos(double);
 PALIMPORT double __cdecl asin(double);
 PALIMPORT double __cdecl atan(double);

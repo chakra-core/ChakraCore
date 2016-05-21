@@ -157,8 +157,7 @@ struct StringComparer
 
     inline static int Compare(T str1, T str2)
     {
-        const int result = ::wcscmp(str1, str2);
-        return result > 0 ? 1 : result == 0 ? 0 : -1;
+        return ::wcscmp(str1, str2);
     }
 };
 

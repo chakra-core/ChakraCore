@@ -61,7 +61,9 @@ check(+0, -Infinity, -4);
 
 check(0, 0, 0.1);
 
+check(+Infinity, +0, -3);
 check(+Infinity, +0, -0.1);
+check(+Infinity, -0, -1.1);
 
 check(-0.0, -0, +3);
 check(+0.0, -0, +4);
