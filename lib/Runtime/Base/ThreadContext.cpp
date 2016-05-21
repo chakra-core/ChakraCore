@@ -2687,7 +2687,7 @@ ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
     InlineCacheList* inlineCacheList;
     if (protoInlineCacheByPropId.TryGetValueAndRemove(propertyId, &inlineCacheList))
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     }
 }
 
@@ -2704,12 +2704,12 @@ ThreadContext::InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId)
     InlineCacheList* inlineCacheList;
     if (storeFieldInlineCacheByPropId.TryGetValueAndRemove(propertyId, &inlineCacheList))
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     }
 }
 
 void
-ThreadContext::InvalidateInlineCacheList(InlineCacheList* inlineCacheList)
+ThreadContext::InvalidateAndDeleteInlineCacheList(InlineCacheList* inlineCacheList)
 {
     Assert(inlineCacheList != nullptr);
 
@@ -2729,7 +2729,7 @@ ThreadContext::InvalidateInlineCacheList(InlineCacheList* inlineCacheList)
         }
     }
     NEXT_SLISTBASE_ENTRY;
-    inlineCacheList->Clear();
+    Adelete(&this->inlineCacheThreadInfoAllocator, inlineCacheList);
     this->registeredInlineCacheCount = this->registeredInlineCacheCount > cacheCount ? this->registeredInlineCacheCount - cacheCount : 0;
 }
 
@@ -3052,7 +3052,7 @@ ThreadContext::InvalidateAllProtoInlineCaches()
 {
     protoInlineCacheByPropId.Map([this](Js::PropertyId propertyId, InlineCacheList* inlineCacheList)
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     });
     protoInlineCacheByPropId.ResetNoDelete();
 }
@@ -3068,7 +3068,7 @@ ThreadContext::InvalidateAllStoreFieldInlineCaches()
 {
     storeFieldInlineCacheByPropId.Map([this](Js::PropertyId propertyId, InlineCacheList* inlineCacheList)
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     });
     storeFieldInlineCacheByPropId.ResetNoDelete();
 }
