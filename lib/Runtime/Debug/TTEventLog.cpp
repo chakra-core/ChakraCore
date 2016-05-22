@@ -954,7 +954,7 @@ namespace TTD
         }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        AssertMsg(this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
+        AssertMsg(!this->m_currentReplayEventIterator.IsValid() || this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
 #endif
 
         *result = NSLogEvents::InflateVarInReplay(ctx, ecEvent->ReturnValue);
@@ -1016,7 +1016,7 @@ namespace TTD
         }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        AssertMsg(this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
+        AssertMsg(!this->m_currentReplayEventIterator.IsValid() || this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
 #endif
     }
 
