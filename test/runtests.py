@@ -71,6 +71,7 @@ type_flavor = {'chk':'debug', 'test':'test', 'fre':'release'}
 flavor = 'debug' if args.debug else ('test' if args.test else None)
 if flavor == None:
     flavor = type_flavor[os.environ.get('_BuildType', 'fre')]
+flavor_alias = 'chk' if flavor == 'debug' else 'fre'
 
 # binary: full ch path
 binary = args.binary
@@ -89,6 +90,8 @@ tags = set(args.tag or [])
 not_tags = set(args.not_tag or []).union(['fail', 'exclude_' + arch])
 if arch_alias:
     not_tags.add('exclude_' + arch_alias)
+if flavor_alias:
+    not_tags.add('exclude_' + flavor_alias)
 if args.only_slow:
     tags.add('Slow')
 elif not args.include_slow:
@@ -96,9 +99,13 @@ elif not args.include_slow:
 
 not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 
-# xplat: temp hard coded to exclude tag 'require_backend'
+# xplat: temp hard coded to exclude unsupported tests
 if sys.platform != 'win32':
+    not_tags.add('exclude_serialized')
     not_tags.add('require_backend')
+    not_tags.add('require_debugger')
+not_compile_flags = set(['-serialized', '-simdjs']) \
+    if sys.platform != 'win32' else None
 
 # records pass_count/fail_count
 class PassFailCount(object):
@@ -162,6 +169,11 @@ class TestVariant(object):
             return False
         if self.tags and not self.tags.issubset(tags):
             return False
+        if not_compile_flags: # exclude unsupported compile-flags if any
+            flags = test.get('compile-flags')
+            if flags and \
+                    not not_compile_flags.isdisjoint(flags.lower().split()):
+                return False
         return True
 
     # print output from multi-process run, to be sent with result message
