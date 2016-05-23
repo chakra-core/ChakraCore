@@ -489,9 +489,9 @@ private:
         typedef JsUtil::WeaklyReferencedKeyDictionary<Js::EntryPointInfo, BYTE> EntryPointDictionary;
         // The sharedGuard is strongly referenced and will be kept alive by ThreadContext::propertyGuards until it's invalidated or
         // the property record itself is collected.  If the code using the guard needs access to it after it's been invalidated, it
-        // (the code) is responsible for keeping it alive.  Each unique guard, is weakly referenced, such that it can be reclaimed
-        // if not referenced elsewhere even without being invalidated.  It's up to the owner of that guard to keep it alive as long
-        // as necessary.
+        // (the code) is responsible for keeping it alive.
+        // Each unique guard, is weakly referenced, such that it can be reclaimed if not referenced elsewhere even without being
+        // invalidated.  The entry of a unique guard is removed from the table once the corresponding cache is invalidated.
         Js::PropertyGuard* sharedGuard;
         PropertyGuardHashSet uniqueGuards;
         EntryPointDictionary* entryPoints;
@@ -588,6 +588,8 @@ private:
 
         // Just holding the reference to the returnedValueList of the stepController. This way that list will not get recycled prematurely.
         Js::ReturnedValueList *returnedValueList;
+
+        uint constructorCacheInvalidationCount;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         // use for autoProxy called from Debug.setAutoProxyName. we need to keep the buffer from GetSz() alive.
@@ -1205,7 +1207,7 @@ private:
 #if ENABLE_NATIVE_CODEGEN
     void InvalidateFixedFieldGuard(Js::PropertyGuard* guard);
     PropertyGuardEntry* EnsurePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, bool& foundExistingEntry);
-    void InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry);
+    void InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation);
 #endif
 
 public:
@@ -1256,6 +1258,7 @@ public:
 #ifdef PERSISTENT_INLINE_CACHES
     void ClearInlineCachesWithDeadWeakRefs();
 #endif
+    void ClearInvalidatedUniqueGuards();
     void ClearInlineCaches();
     void ClearIsInstInlineCaches();
     void ClearEquivalentTypeCaches();

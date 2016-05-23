@@ -605,6 +605,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_FuncObjectInlineCacheThreshold   (2) // Maximum number of inline caches a function body may have to allow for inline caches to be allocated on the function object.
 #define DEFAULT_CONFIG_ShareInlineCaches (true)
 #define DEFAULT_CONFIG_InlineCacheInvalidationListCompactionThreshold (4)
+#define DEFAULT_CONFIG_ConstructorCacheInvalidationThreshold (500)
 
 #define DEFAULT_CONFIG_InMemoryTrace                (false)
 #define DEFAULT_CONFIG_InMemoryTraceBufferSize      (1024)
@@ -1315,6 +1316,7 @@ FLAGNR(Number, PRNGSeed1, "Override seed1 for Math.Random()", 0)
 
 FLAGNR(Boolean, ClearInlineCachesOnCollect, "Clear all inline caches on every garbage collection", false)
 FLAGNR(Number, InlineCacheInvalidationListCompactionThreshold, "Compact inline cache invalidation lists if their utilization falls below this threshold", DEFAULT_CONFIG_InlineCacheInvalidationListCompactionThreshold)
+FLAGNR(Number, ConstructorCacheInvalidationThreshold, "Clear uniquePropertyGuard entries from recyclableData if number of invalidations of constructor caches happened are more than the threshold.", DEFAULT_CONFIG_ConstructorCacheInvalidationThreshold)
 
 #ifdef IR_VIEWER
 FLAGNR(Boolean, IRViewer, "Enable IRViewer functionality (improved UI for various stages of IR generation)", false)
