@@ -67,12 +67,9 @@ namespace Js
 
         if (iter != nullptr)
         {
-            Var nextItem;
-
-            while (JavascriptOperators::IteratorStepAndValue(iter, scriptContext, &nextItem))
-            {
+            JavascriptOperators::DoIteratorStepAndValue(iter, scriptContext, [&](Var nextItem) {
                 CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 2), weakSetObject, nextItem);
-            }
+            });
         }
 
         return isCtorSuperCall ?

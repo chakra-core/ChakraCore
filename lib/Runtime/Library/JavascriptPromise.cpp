@@ -201,15 +201,13 @@ namespace Js
         remainingElementsWrapper->remainingElements = 1;
 
         JavascriptExceptionObject* exception = nullptr;
-
         try
         {
             // 4. Let iterator be GetIterator(iterable).
             RecyclableObject* iterator = JavascriptOperators::GetIterator(iterable, scriptContext);
-            Var next;
             values = library->CreateArray(0);
 
-            while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &next))
+            JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var next)
             {
                 Var resolveVar = JavascriptOperators::GetProperty(constructorObject, Js::PropertyIds::resolve, scriptContext);
 
@@ -250,7 +248,7 @@ namespace Js
                     promiseCapability->GetReject());
 
                 index++;
-            }
+            });
         }
         catch (JavascriptExceptionObject* e)
         {
@@ -369,9 +367,8 @@ namespace Js
         {
             // 4. Let iterator be GetIterator(iterable).
             RecyclableObject* iterator = JavascriptOperators::GetIterator(iterable, scriptContext);
-            Var next;
 
-            while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &next))
+            JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var next)
             {
                 Var resolveVar = JavascriptOperators::GetProperty(constructorObject, Js::PropertyIds::resolve, scriptContext);
 
@@ -406,7 +403,8 @@ namespace Js
                     nextPromiseObject,
                     promiseCapability->GetResolve(),
                     promiseCapability->GetReject());
-            }
+
+            });
         }
         catch (JavascriptExceptionObject* e)
         {
