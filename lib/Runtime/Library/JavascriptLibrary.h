@@ -471,18 +471,6 @@ namespace Js
         template <size_t N>
         JavascriptFunction * AddFunctionToLibraryObjectWithPropertyName(DynamicObject* object, const char16(&propertyName)[N], FunctionInfo * functionInfo, int length);
 
-        bool isHybridDebugging; // If this library is in hybrid debugging mode
-        bool isLibraryReadyForHybridDebugging; // If this library is ready for hybrid debugging (library objects using deferred type handler have been un-deferred)
-
-        bool IsHybridDebugging() const { return isHybridDebugging; }
-        void EnsureLibraryReadyForHybridDebugging();
-        DynamicObject* EnsureReadyIfHybridDebugging(DynamicObject* obj);
-        template <class T> T* EnsureReadyIfHybridDebugging(T* obj)
-        {
-            DynamicObject * dynamicObject = obj;
-            return (T*)EnsureReadyIfHybridDebugging(dynamicObject);
-        }
-
         static SimpleTypeHandler<1> SharedPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedFunctionWithoutPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedFunctionWithPrototypeTypeHandlerV11;
@@ -523,8 +511,6 @@ namespace Js
 #if ENABLE_COPYONACCESS_ARRAY
                               cacheForCopyOnAccessArraySegments(nullptr),
 #endif
-                              isHybridDebugging(false),
-                              isLibraryReadyForHybridDebugging(false),
                               referencedPropertyRecords(nullptr),
                               stringTemplateCallsiteObjectList(nullptr),
                               moduleRecordList(nullptr),
@@ -1065,8 +1051,6 @@ namespace Js
         void NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
 
         static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
-
-        HRESULT EnsureReadyIfHybridDebugging(bool isScriptEngineReady = true);
 
         CharStringCache& GetCharStringCache() { return charStringCache;  }
         static JavascriptLibrary * FromCharStringCache(CharStringCache * cache)
