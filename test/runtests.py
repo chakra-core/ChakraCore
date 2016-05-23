@@ -147,11 +147,12 @@ class TestVariant(object):
             ['-WERExceptionSupport', '-ExtendedErrorStackForTestHost'] + compile_flags
         self.tags = tags.copy()
         self.not_tags = not_tags.union(
-            ['{}_{}'.format(x, name) for x in 'fails','exclude'])
+            ['{}_{}'.format(x, name) for x in ('fails','exclude')])
 
         self.msg_queue = Manager().Queue() # messages from multi processes
         self.test_result = TestResult()
         self._print_lines = [] # _print lines buffer
+        self._last_len = 0
 
     # check if this test variant should run a given test
     def _should_test(self, test):
@@ -177,14 +178,22 @@ class TestVariant(object):
     def _process_msg(self, msg):
         filename, fail, elapsed_time, output = msg
         self.test_result.log(filename, fail=fail)
-        print('[{}/{} {:4.2f}] {} -> {}'.format(
+        line = '[{}/{} {:4.2f}] {} -> {}'.format(
             self.test_result.total_count(),
             self.test_count,
             elapsed_time,
             'Failed' if fail else 'Passed',
-            filename))
+            self._short_name(filename))
+        padding = self._last_len - len(line)
+        print(line + ' ' * padding, end='\n' if fail else '\r')
+        self._last_len = len(line) if not fail else 0
         if len(output) > 0:
             print(output)
+
+    # get a shorter test file path for display only
+    def _short_name(self, filename):
+        folder = os.path.basename(os.path.dirname(filename))
+        return os.path.join(folder, os.path.basename(filename))
 
     # (on main process) wait and process one queued message
     def _process_one_msg(self):
