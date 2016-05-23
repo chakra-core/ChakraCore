@@ -4962,13 +4962,13 @@ namespace Js
 #if DEBUG
             if (!function->GetFunctionProxy()->GetIsAnonymousFunction())
             {
-                Assert(!function->GetFunctionInfo()->IsLambda() ?
+                Assert(function->GetFunctionInfo()->IsConstructor() ?
                     function->GetDynamicType()->GetTypeHandler() == JavascriptLibrary::GetDeferredPrototypeFunctionTypeHandler(this->GetScriptContext()) :
                     function->GetDynamicType()->GetTypeHandler() == JavascriptLibrary::GetDeferredFunctionTypeHandler());
             }
             else
             {
-                Assert(!function->GetFunctionInfo()->IsLambda() ?
+                Assert(function->GetFunctionInfo()->IsConstructor() ?
                     function->GetDynamicType()->GetTypeHandler() == JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler() :
                     function->GetDynamicType()->GetTypeHandler() == JavascriptLibrary::GetDeferredAnonymousFunctionTypeHandler());
             }
