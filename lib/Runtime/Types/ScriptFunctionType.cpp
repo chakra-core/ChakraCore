@@ -31,7 +31,7 @@ namespace Js
             scriptContext, functionPrototype,
             address,
             proxy->GetDefaultEntryPointInfo(),
-            library->ScriptFunctionTypeHandler(proxy->IsLambda() || proxy->IsAsync() || proxy->IsClassMethod(), proxy->GetIsAnonymousFunction()),
+            library->ScriptFunctionTypeHandler(!proxy->IsConstructor() || proxy->IsAsync() || proxy->IsClassMethod(), proxy->GetIsAnonymousFunction()),
             isShared, isShared);
     }
 };
