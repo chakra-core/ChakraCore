@@ -71,6 +71,7 @@ type_flavor = {'chk':'debug', 'test':'test', 'fre':'release'}
 flavor = 'debug' if args.debug else ('test' if args.test else None)
 if flavor == None:
     flavor = type_flavor[os.environ.get('_BuildType', 'fre')]
+flavor_alias = 'chk' if flavor == 'debug' else 'fre'
 
 # binary: full ch path
 binary = args.binary
@@ -89,6 +90,8 @@ tags = set(args.tag or [])
 not_tags = set(args.not_tag or []).union(['fail', 'exclude_' + arch])
 if arch_alias:
     not_tags.add('exclude_' + arch_alias)
+if flavor_alias:
+    not_tags.add('exclude_' + flavor_alias)
 if args.only_slow:
     tags.add('Slow')
 elif not args.include_slow:
@@ -96,9 +99,13 @@ elif not args.include_slow:
 
 not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 
-# xplat: temp hard coded to exclude tag 'require_backend'
+# xplat: temp hard coded to exclude unsupported tests
 if sys.platform != 'win32':
+    not_tags.add('exclude_serialized')
     not_tags.add('require_backend')
+    not_tags.add('require_debugger')
+not_compile_flags = set(['-serialized', '-simdjs']) \
+    if sys.platform != 'win32' else None
 
 # records pass_count/fail_count
 class PassFailCount(object):
@@ -147,11 +154,12 @@ class TestVariant(object):
             ['-WERExceptionSupport', '-ExtendedErrorStackForTestHost'] + compile_flags
         self.tags = tags.copy()
         self.not_tags = not_tags.union(
-            ['{}_{}'.format(x, name) for x in 'fails','exclude'])
+            ['{}_{}'.format(x, name) for x in ('fails','exclude')])
 
         self.msg_queue = Manager().Queue() # messages from multi processes
         self.test_result = TestResult()
         self._print_lines = [] # _print lines buffer
+        self._last_len = 0
 
     # check if this test variant should run a given test
     def _should_test(self, test):
@@ -161,6 +169,11 @@ class TestVariant(object):
             return False
         if self.tags and not self.tags.issubset(tags):
             return False
+        if not_compile_flags: # exclude unsupported compile-flags if any
+            flags = test.get('compile-flags')
+            if flags and \
+                    not not_compile_flags.isdisjoint(flags.lower().split()):
+                return False
         return True
 
     # print output from multi-process run, to be sent with result message
@@ -177,14 +190,22 @@ class TestVariant(object):
     def _process_msg(self, msg):
         filename, fail, elapsed_time, output = msg
         self.test_result.log(filename, fail=fail)
-        print('[{}/{} {:4.2f}] {} -> {}'.format(
+        line = '[{}/{} {:4.2f}] {} -> {}'.format(
             self.test_result.total_count(),
             self.test_count,
             elapsed_time,
             'Failed' if fail else 'Passed',
-            filename))
+            self._short_name(filename))
+        padding = self._last_len - len(line)
+        print(line + ' ' * padding, end='\n' if fail else '\r')
+        self._last_len = len(line) if not fail else 0
         if len(output) > 0:
             print(output)
+
+    # get a shorter test file path for display only
+    def _short_name(self, filename):
+        folder = os.path.basename(os.path.dirname(filename))
+        return os.path.join(folder, os.path.basename(filename))
 
     # (on main process) wait and process one queued message
     def _process_one_msg(self):
