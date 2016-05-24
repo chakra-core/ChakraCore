@@ -84,7 +84,7 @@ static int Internal_Convertfwrite(CPalThread *pthrCurrent, const void *buffer, s
             InternalFree(newBuff);
             return -1;
         }
-        ret = InternalFwrite(newBuff, 1, count, stream, &iError);
+        ret = InternalFwrite(newBuff, 1, nsize, stream, &iError);
         if (iError != 0)
         {
             ERROR("InternalFwrite did not write the whole buffer. Error is %d\n", iError);
