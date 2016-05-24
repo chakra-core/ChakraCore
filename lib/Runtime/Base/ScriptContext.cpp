@@ -1215,10 +1215,7 @@ if (!sourceList)
     void ScriptContext::InitializeGlobalObject()
     {
         GlobalObject * localGlobalObject = GlobalObject::New(this);
-        if (!GetThreadContext()->IsJSRT())
-        {
-            GetRecycler()->RootAddRef(localGlobalObject);
-        }
+        GetRecycler()->RootAddRef(localGlobalObject);
 
         // Assigned the global Object after we have successfully AddRef (in case of OOM)
         globalObject = localGlobalObject;
