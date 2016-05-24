@@ -1212,7 +1212,7 @@ public:
 private:
     void RegisterInlineCache(InlineCacheListMapByPropertyId& inlineCacheMap, Js::InlineCache* inlineCache, Js::PropertyId propertyId);
     static bool IsInlineCacheRegistered(InlineCacheListMapByPropertyId& inlineCacheMap, const Js::InlineCache* inlineCache, Js::PropertyId propertyId);
-    void InvalidateInlineCacheList(InlineCacheList *inlineCacheList);
+    void InvalidateAndDeleteInlineCacheList(InlineCacheList *inlineCacheList);
     void CompactInlineCacheList(InlineCacheList *inlineCacheList);
     void CompactInlineCacheInvalidationLists();
     void CompactProtoInlineCaches();
