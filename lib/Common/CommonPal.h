@@ -365,6 +365,7 @@ BOOL WINAPI GetModuleHandleEx(
 );
 
 int GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit);
+bool IsAddressOnStack(ULONG_PTR address);
 
 errno_t rand_s(unsigned int* randomValue);
 

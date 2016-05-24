@@ -6,11 +6,14 @@
 # todo-CI: REMOVE THIS AFTER ENABLING runtests.py on CI
 
 test_path=`dirname "$0"`
-ch_path="$test_path/../BuildLinux/ch"
+
+# Only debug jenkins builds support tests currently
+# Todo: Support both debug and test builds
+ch_path="$test_path/../BuildLinux/debug/ch"
 
 if [ ! -f $ch_path ]; then
     echo 'ch not found- exiting'
     exit 1
 fi
 
-"$test_path/runtests.py" Basics/hello.js
+"$test_path/runtests.py" --binary $ch_path Basics/hello.js

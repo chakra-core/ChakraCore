@@ -147,8 +147,16 @@ fi
 
 pushd BuildLinux > /dev/null
 
+build_directory="${BUILD_TYPE,,}"
+if [ ! -d "$build_directory" ]; then
+    SAFE_RUN `mkdir $build_directory`
+fi
+
+pushd $build_directory > /dev/null
+
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
 
 $MAKE $MULTICORE_BUILD 2>&1 | tee build.log
+popd > /dev/null
 popd > /dev/null

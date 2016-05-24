@@ -2820,3 +2820,32 @@ void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
     *highLimit = (ULONG_PTR) stackbase;
 #endif
 }
+
+static thread_local ULONG_PTR s_cachedThreadStackHighLimit = 0;
+
+bool IsAddressOnStack(ULONG_PTR address)
+{
+    // Assumption: Stack always grows, never shrinks and the high limit is stable
+    // Assumption: pthread_getattr_np is slow, so we need to cache the current stack
+    // bounds to speed up checking if a given address is on the stack
+    // The semantics of IsAddressOnStack is that we care if a given address is
+    // in the range of the current stack pointer
+    if (s_cachedThreadStackHighLimit == 0)
+    {
+        ULONG_PTR lowLimit, highLimit;
+        GetCurrentThreadStackLimits(&lowLimit, &highLimit);
+
+        s_cachedThreadStackHighLimit = highLimit;
+    }
+
+    ULONG_PTR currentStackPtr = 0;
+
+    asm("mov %%rsp, %0;":"=r"(currentStackPtr));
+
+    if (currentStackPtr <= address && address < s_cachedThreadStackHighLimit)
+    {
+        return true;
+    }
+
+    return false;
+}

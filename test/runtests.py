@@ -79,7 +79,7 @@ if binary == None:
     if sys.platform == 'win32':
         binary = 'Build/VcBuild/bin/{}_{}/ch.exe'.format(arch, flavor)
     else:
-        binary = 'BuildLinux/ch'
+        binary = 'BuildLinux/{0}/ch'.format(flavor)
     binary = os.path.join(repo_root, binary)
 if not os.path.isfile(binary):
     print('{} not found. Did you run ./build.sh already?'.format(binary))
