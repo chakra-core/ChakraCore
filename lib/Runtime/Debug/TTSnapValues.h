@@ -240,11 +240,9 @@ namespace TTD
             //The source buffer (allocated into the heap allocator NOT slab)
             TTString SourceCode;
 
-#if ENABLE_TTD_DEBUGGING
             //The number of bytes (or -1 if not set) and the buffer for the serialized bytecode
-            int64 DbgSerializedBytecodeSize;
-            byte* DbgSerializedBytecodeBuffer;
-#endif
+            mutable DWORD DbgSerializedBytecodeSize;
+            mutable byte* DbgSerializedBytecodeBuffer;
         };
 
         //Extract WITHOUT COPYING the info needed for this top level function -- use in script context when function is parsed to keep all the info together and then we do the copying later when doing snapshots

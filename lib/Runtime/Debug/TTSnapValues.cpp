@@ -6,6 +6,8 @@
 
 #if ENABLE_TTD
 
+#include "ByteCode/ByteCodeSerializer.h"
+
 namespace TTD
 {
     namespace JsSupport
@@ -923,10 +925,8 @@ namespace TTD
 
             alloc.CopyStringIntoWLength(source, sourceLen, fbInfo->SourceCode);
 
-#if ENABLE_TTD_DEBUGGING
-            fbInfo->DbgSerializedBytecodeSize = -1;
+            fbInfo->DbgSerializedBytecodeSize = 0;
             fbInfo->DbgSerializedBytecodeBuffer = nullptr;
-#endif
         }
 
         void EmitTopLevelCommonBodyResolveInfo(const TopLevelCommonBodyResolveInfo* fbInfo, bool emitInline, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
@@ -982,6 +982,9 @@ namespace TTD
 
                 JsSupport::ReadCodeFromFile(streamFunctions, sourceDir, docId.GetStrValue(), fbInfo->SourceUri.Contents, fbInfo->SourceCode.Contents, fbInfo->SourceCode.Length);
             }
+
+            fbInfo->DbgSerializedBytecodeSize = 0;
+            fbInfo->DbgSerializedBytecodeBuffer = nullptr;
         }
 
 #if ENABLE_SNAPSHOT_COMPARE
@@ -1021,12 +1024,6 @@ namespace TTD
 
             AssertMsg(ctx->GetSourceContextInfo(sourceContext, nullptr) == nullptr, "On inflate we should either have clean ctxts or we want to optimize the inflate process by skipping redoing this work!!!");
 
-            //
-            //TODO: Add code here to see if we have already inflated (and have byte code).
-            //      If we have bytecode then re-inflate from this otherwise we should re-inflate and generate the bytecode for later use.
-            //      See also in newFunction and Eval inflates below.
-            //
-
             SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, fbInfo->TopLevelBase.SourceUri.Contents, fbInfo->TopLevelBase.SourceUri.Length, nullptr);
             SRCINFO si = {
                 /* sourceContextInfo   */ sourceContextInfo,
@@ -1040,25 +1037,71 @@ namespace TTD
                 /* grfsi               */ 0
             };
 
-            Js::Utf8SourceInfo* utf8SourceInfo;
+            Js::Utf8SourceInfo* utf8SourceInfo = nullptr;
             CompileScriptException se;
             Js::JavascriptFunction* scriptFunction = nullptr;
-            BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
-            {
-                scriptFunction = ctx->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, fbInfo->LoadFlag);
-            }
-            END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
-            AssertMsg(scriptFunction != nullptr, "Something went wrong");
+            Js::FunctionBody* globalBody = nullptr;
 
-            Js::FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
+            if(fbInfo->TopLevelBase.DbgSerializedBytecodeSize != 0)
+            {
+                //length should not be bigger than UINT_MAX / 3 < MAXLONG
+                size_t length = wcslen(script);
+                AssertMsg((UINT_MAX / 3) - 1 > length, "Should not happen!!!");
+
+                size_t cbUtf8Buffer = (length + 1) * 3;
+                LPUTF8 utf8Source = RecyclerNewArrayLeaf(ctx->GetRecycler(), utf8char_t, cbUtf8Buffer);
+                utf8::EncodeIntoAndNullTerminate(utf8Source, script, static_cast<charcount_t>(length));
+
+                SRCINFO *hsi = ctx->AddHostSrcInfo(&si);
+                ulong flags = 0;
+
+                HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(ctx, flags, utf8Source, hsi, fbInfo->TopLevelBase.DbgSerializedBytecodeBuffer, nullptr, &globalBody);
+                AssertMsg(SUCCEEDED(hr), "This should not fail!!!");
+
+                utf8SourceInfo = globalBody->GetUtf8SourceInfo();
+                scriptFunction = ctx->GetLibrary()->CreateScriptFunction(globalBody);
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
+                {
+                    scriptFunction = ctx->LoadScript((const byte*)script, scriptLength * sizeof(char16), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, fbInfo->LoadFlag);
+                }
+                END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
+                AssertMsg(scriptFunction != nullptr, "Something went wrong");
+
+                globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
+
+                //
+                //TODO: Bytecode serializer does not suppper debug bytecode (StatementMaps vs Positions) so add this to serializer code.
+                //      Then we can uncomment the lines below to do optimized bytecode reload.
+                //
+
+                ////
+                //Finally serialize the bytecode for later use
+                //size_t cSourceCodeLength = globalBody->GetUtf8SourceInfo()->GetCbLength(L"JsSerializeScript");
+                //LPCUTF8 utf8Code = globalBody->GetUtf8SourceInfo()->GetSource(L"JsSerializeScript");
+                //DWORD dwFlags = 0;
+
+                //byte** buffPtr = &(fbInfo->TopLevelBase.DbgSerializedBytecodeBuffer);
+                //DWORD* buffSizePtr = &(fbInfo->TopLevelBase.DbgSerializedBytecodeSize);
+
+                //BEGIN_TEMP_ALLOCATOR(tempAllocator, ctx, L"ByteCodeSerializer");
+                //HRESULT hr = Js::ByteCodeSerializer::SerializeToBuffer(ctx, tempAllocator, static_cast<DWORD>(cSourceCodeLength), utf8Code, 0, nullptr, globalBody, globalBody->GetHostSrcInfo(), true, buffPtr, buffSizePtr, dwFlags);
+                //END_TEMP_ALLOCATOR(tempAllocator, ctx);
+
+                //AssertMsg(SUCCEEDED(hr), "This shouldn't fail!!!");
+                ////
+            }
 
             ////
             //We don't do this automatically in the load script helper so do it here
             ctx->ProcessFunctionBodyOnLoad(globalBody, nullptr);
             ctx->RegisterLoadedScript(globalBody, fbInfo->TopLevelBase.TopLevelBodyCtr);
 
+            bool isLibraryCode = ((fbInfo->LoadFlag & LoadScriptFlag_LibraryCode) == LoadScriptFlag_LibraryCode);
             const HostScriptContextCallbackFunctor& hostFunctor = ctx->GetCallbackFunctor_TTD();
-            if(hostFunctor.pfOnScriptLoadCallback != nullptr)
+            if(hostFunctor.pfOnScriptLoadCallback != nullptr && !isLibraryCode)
             {
                 hostFunctor.pfOnScriptLoadCallback(hostFunctor.HostData, scriptFunction, utf8SourceInfo, &se);
             }
