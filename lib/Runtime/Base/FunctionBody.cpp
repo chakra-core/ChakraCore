@@ -12,6 +12,9 @@
 
 #include "ByteCode/ScopeInfo.h"
 #include "Base/EtwTrace.h"
+#ifdef VTUNE_PROFILING
+#include "Base/VTuneChakraProfile.h"
+#endif
 
 #ifdef DYNAMIC_PROFILE_MUTATOR
 #include "Language/DynamicProfileMutator.h"
@@ -3237,6 +3240,9 @@ namespace Js
         TraceExecutionMode();
 
         JS_ETW(EtwTrace::LogMethodNativeLoadEvent(this, entryPointInfo));
+#ifdef VTUNE_PROFILING
+        VTuneChakraProfile::LogMethodNativeLoadEvent(this, entryPointInfo);
+#endif
 
 #ifdef _M_ARM
         // For ARM we need to make sure that pipeline is synchronized with memory/cache for newly jitted code.
@@ -3295,6 +3301,9 @@ namespace Js
             loopHeader->interpretCount = entryPointInfo->GetFunctionBody()->GetLoopInterpretCount(loopHeader) - 1;
         }
         JS_ETW(EtwTrace::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*) entryPointInfo), ((uint16)this->GetLoopNumberWithLock(loopHeader))));
+#ifdef VTUNE_PROFILING
+        VTuneChakraProfile::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*)entryPointInfo), ((uint16)this->GetLoopNumberWithLock(loopHeader)));
+#endif
     }
 #endif
 
@@ -4431,16 +4440,7 @@ namespace Js
 #endif /* IR_VIEWER */
 
 #ifdef VTUNE_PROFILING
-#ifdef CDECL
-#define ORIGINAL_CDECL CDECL
-#undef CDECL
-#endif
-    // Not enabled in ChakraCore
-#include "jitProfiling.h"
-#ifdef ORIGINAL_CDECL
-#undef CDECL
-#endif
-#define CDECL ORIGINAL_CDECL
+#include "jitprofiling.h"
 
     int EntryPointInfo::GetNativeOffsetMapCount() const
     {

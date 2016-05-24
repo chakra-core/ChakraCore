@@ -5,6 +5,9 @@
 #include "Backend.h"
 #include "Base/EtwTrace.h"
 #include "Base/ScriptContextProfiler.h"
+#ifdef VTUNE_PROFILING
+#include "Base/VTuneChakraProfile.h"
+#endif
 
 Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::FunctionCodeGenRuntimeData *const runtimeData,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
@@ -1892,7 +1895,7 @@ Func::GetVtableName(INT_PTR address)
 bool Func::DoRecordNativeMap() const
 {
 #if defined(VTUNE_PROFILING)
-    if (EtwTrace::isJitProfilingActive)
+    if (VTuneChakraProfile::isJitProfilingActive)
     {
         return true;
     }

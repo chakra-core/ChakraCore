@@ -67,9 +67,14 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeBasePch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="jitprofiling.cpp" />
+    <ClCompile Include="VTuneChakraProfile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CompactCounters.h" />
+    <ClInclude Include="ittnotify_config.h" />
+    <ClInclude Include="ittnotify_types.h" />
+    <ClInclude Include="jitprofiling.h" />
     <ClInclude Include="RuntimeBasePch.h" />
     <ClInclude Include="AuxPtrs.h" />
     <ClInclude Include="CallInfo.h" />
@@ -109,6 +114,7 @@
     <ClInclude Include="ThreadServiceWrapper.h" />
     <ClInclude Include="ThreadServiceWrapperBase.h" />
     <ClInclude Include="Utf8SourceInfo.h" />
+    <ClInclude Include="VTuneChakraProfile.h" />
     <ClInclude Include="WindowsFoundationAdapter.h" />
     <ClInclude Include="WindowsGlobalizationAdapter.h" />
   </ItemGroup>

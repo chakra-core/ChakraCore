@@ -12,6 +12,9 @@
 #endif
 #include "JsrtContext.h"
 #include "TestHooks.h"
+#ifdef VTUNE_PROFILING
+#include "Base/VTuneChakraProfile.h"
+#endif
 
 extern HANDLE g_hInstance;
 #ifdef _WIN32
@@ -56,6 +59,9 @@ static BOOL AttachProcess(HANDLE hmod)
 #ifdef ENABLE_JS_ETW
     EtwTrace::Register();
 #endif
+#ifdef VTUNE_PROFILING
+    VTuneChakraProfile::Register();
+#endif 
     ValueType::Initialize();
     ThreadContext::GlobalInitialize();
 
@@ -148,6 +154,9 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
         // Do this before DetachProcess() so that we won't have ETW rundown callbacks while destroying threadContexts.
         EtwTrace::UnRegister();
 #endif
+#ifdef VTUNE_PROFILING
+        VTuneChakraProfile::UnRegister();
+#endif 
 
         // don't do anything if we are in forceful shutdown
         // try to clean up handles in graceful shutdown
