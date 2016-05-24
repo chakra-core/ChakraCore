@@ -73,7 +73,7 @@ namespace Js
         // 9. Let completion be Call(executor, undefined, « resolvingFunctions.[[Resolve]], resolvingFunctions.[[Reject]] »).
         try
         {
-            executor->GetEntryPoint()(executor, CallInfo(CallFlags_Value, 3),
+            CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3),
                 library->GetUndefined(),
                 resolve,
                 reject);
@@ -220,7 +220,7 @@ namespace Js
 
                 RecyclableObject* resolveFunc = RecyclableObject::FromVar(resolveVar);
 
-                Var nextPromise = resolveFunc->GetEntryPoint()(resolveFunc, Js::CallInfo(CallFlags_Value, 2),
+                Var nextPromise = CALL_FUNCTION(resolveFunc, Js::CallInfo(CallFlags_Value, 2),
                     constructorObject,
                     next);
 
@@ -244,7 +244,7 @@ namespace Js
 
                 RecyclableObject* thenFunc = RecyclableObject::FromVar(thenVar);
 
-                thenFunc->GetEntryPoint()(thenFunc, Js::CallInfo(CallFlags_Value, 3),
+                CALL_FUNCTION(thenFunc, Js::CallInfo(CallFlags_Value, 3),
                     nextPromiseObject,
                     resolveElement,
                     promiseCapability->GetReject());
@@ -318,7 +318,7 @@ namespace Js
 
         RecyclableObject* func = RecyclableObject::FromVar(funcVar);
 
-        return func->GetEntryPoint()(func, Js::CallInfo(CallFlags_Value, 3),
+        return CALL_FUNCTION(func, Js::CallInfo(CallFlags_Value, 3),
             promise,
             undefinedVar,
             onRejected);
@@ -382,7 +382,7 @@ namespace Js
 
                 RecyclableObject* resolveFunc = RecyclableObject::FromVar(resolveVar);
 
-                Var nextPromise = resolveFunc->GetEntryPoint()(resolveFunc, Js::CallInfo(CallFlags_Value, 2),
+                Var nextPromise = CALL_FUNCTION(resolveFunc, Js::CallInfo(CallFlags_Value, 2),
                     constructorObject,
                     next);
 
@@ -402,7 +402,7 @@ namespace Js
 
                 RecyclableObject* thenFunc = RecyclableObject::FromVar(thenVar);
 
-                thenFunc->GetEntryPoint()(thenFunc, Js::CallInfo(CallFlags_Value, 3),
+                CALL_FUNCTION(thenFunc, Js::CallInfo(CallFlags_Value, 3),
                     nextPromiseObject,
                     promiseCapability->GetResolve(),
                     promiseCapability->GetReject());
@@ -741,7 +741,7 @@ namespace Js
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
             try
             {
-                handlerResult = handler->GetEntryPoint()(handler, Js::CallInfo(Js::CallFlags::CallFlags_Value, 2),
+                handlerResult = CALL_FUNCTION(handler, Js::CallInfo(Js::CallFlags::CallFlags_Value, 2),
                     undefinedVar,
                     argument);
             }
@@ -772,7 +772,7 @@ namespace Js
 
         RecyclableObject* handlerFunc = RecyclableObject::FromVar(handler);
 
-        return handlerFunc->GetEntryPoint()(handlerFunc, CallInfo(CallFlags_Value, 2),
+        return CALL_FUNCTION(handlerFunc, CallInfo(CallFlags_Value, 2),
             undefinedVar,
             value);
     }
@@ -815,7 +815,7 @@ namespace Js
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
             try
             {
-                return thenFunction->GetEntryPoint()(thenFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
+                return CALL_FUNCTION(thenFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
                     thenable,
                     resolve,
                     reject);
@@ -951,7 +951,7 @@ namespace Js
         JavascriptGenerator* genF = asyncSpawnExecutorFunction->GetGeneratorFunction();
         Var self = asyncSpawnExecutorFunction->GetTarget();
 
-        JavascriptGenerator* gen = JavascriptGenerator::FromVar(genF->GetEntryPoint()(genF, CallInfo(CallFlags_Value, 2), undefinedVar, self));
+        JavascriptGenerator* gen = JavascriptGenerator::FromVar(CALL_FUNCTION(genF, CallInfo(CallFlags_Value, 2), undefinedVar, self));
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction = library->CreatePromiseAsyncSpawnStepArgumentExecutorFunction(EntryJavascriptPromiseAsyncSpawnStepNextExecutorFunction, gen, undefinedVar);
 
         Assert(JavascriptFunction::Is(resolve) && JavascriptFunction::Is(reject));
@@ -968,7 +968,7 @@ namespace Js
         Var argument = asyncSpawnStepArgumentExecutorFunction->GetArgument();
 
         JavascriptFunction* next = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(asyncSpawnStepArgumentExecutorFunction->GetGenerator(), PropertyIds::next, function->GetScriptContext()));
-        return next->GetEntryPoint()(next, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), argument);
+        return CALL_FUNCTION(next, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), argument);
     }
 
     Var JavascriptPromise::EntryJavascriptPromiseAsyncSpawnStepThrowExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...)
@@ -977,7 +977,7 @@ namespace Js
 
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepArgumentExecutorFunction = JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(function);
         JavascriptFunction* throw_ = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(asyncSpawnStepArgumentExecutorFunction->GetGenerator(), PropertyIds::throw_, function->GetScriptContext()));
-        return throw_->GetEntryPoint()(throw_, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), asyncSpawnStepArgumentExecutorFunction->GetArgument());
+        return CALL_FUNCTION(throw_, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), asyncSpawnStepArgumentExecutorFunction->GetArgument());
     }
 
     Var JavascriptPromise::EntryJavascriptPromiseAsyncSpawnCallStepExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1029,7 +1029,7 @@ namespace Js
 
         try
         {
-            next = RecyclableObject::FromVar(nextFunction->GetEntryPoint()(nextFunction, CallInfo(CallFlags_Value, 1), undefinedVar));
+            next = RecyclableObject::FromVar(CALL_FUNCTION(nextFunction, CallInfo(CallFlags_Value, 1), undefinedVar));
         }
         catch (JavascriptExceptionObject* e)
         {
@@ -1049,7 +1049,7 @@ namespace Js
         {
             // finished with success, resolve the promise
             value = JavascriptOperators::GetProperty(next, PropertyIds::value, scriptContext);
-            resolve->GetEntryPoint()(resolve, CallInfo(CallFlags_Value, 2), undefinedVar, value);
+            CALL_FUNCTION(resolve, CallInfo(CallFlags_Value, 2), undefinedVar, value);
             return;
         }
 
@@ -1059,13 +1059,13 @@ namespace Js
 
         JavascriptFunction* promiseResolve = library->EnsurePromiseResolveFunction();
         value = JavascriptOperators::GetProperty(next, PropertyIds::value, scriptContext);
-        JavascriptPromise* promise = FromVar(promiseResolve->GetEntryPoint()(promiseResolve, CallInfo(CallFlags_Value, 2), library->GetPromiseConstructor(), value));
+        JavascriptPromise* promise = FromVar(CALL_FUNCTION(promiseResolve, CallInfo(CallFlags_Value, 2), library->GetPromiseConstructor(), value));
 
         JavascriptFunction* promiseThen = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(promise, PropertyIds::then, scriptContext));
-        promiseThen->GetEntryPoint()(promiseThen, CallInfo(CallFlags_Value, 2), promise, successFunction);
+        CALL_FUNCTION(promiseThen, CallInfo(CallFlags_Value, 2), promise, successFunction);
 
         JavascriptFunction* promiseCatch = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(promise, PropertyIds::catch_, scriptContext));
-        promiseCatch->GetEntryPoint()(promiseCatch, CallInfo(CallFlags_Value, 2), promise, failFunction);
+        CALL_FUNCTION(promiseCatch, CallInfo(CallFlags_Value, 2), promise, failFunction);
     }
 
     // NewPromiseCapability as described in ES6.0 (draft 29) Section 25.4.1.6
