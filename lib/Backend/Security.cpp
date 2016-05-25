@@ -285,12 +285,7 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
             instr->UnlinkSrc1();
         }
 
-#ifdef _M_X64
-        addrOpnd->SetEncodedValue((Js::Var)this->EncodeAddress(instr, addrOpnd, (size_t)addrOpnd->m_address, &newOpnd), addrOpnd->GetAddrOpndKind());
-#else
-
         addrOpnd->SetEncodedValue((Js::Var)this->EncodeValue(instr, addrOpnd, (IntConstType)addrOpnd->m_address, &newOpnd), addrOpnd->GetAddrOpndKind());
-#endif
     }
     break;
 

@@ -180,6 +180,7 @@ public:
     static bool     SetsConditionCode(IR::Instr *instr);
     static bool     UsesConditionCode(IR::Instr *instr);
     static bool     IsOPEQ(IR::Instr *instr);
+    static bool     IsMOVEncoding(IR::Instr *instr);
     RelocList*      GetRelocList() const { return m_relocList; }
     int             AppendRelocEntry(RelocType type, void *ptr, IR::LabelInstr *label= nullptr);
     int             FixRelocListEntry(uint32 index, int totalBytesSaved, BYTE *buffStart, BYTE* buffEnd);

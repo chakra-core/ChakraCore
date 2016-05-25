@@ -9,7 +9,7 @@
 void
 DbCheckPostLower::Check()
 {
-    bool doOpHelperCheck = !this->func->isPostLayout;
+    bool doOpHelperCheck = Js::Configuration::Global.flags.CheckOpHelpers && !this->func->isPostLayout;
     bool isInHelperBlock = false;
 
     FOREACH_INSTR_IN_FUNC_EDITING(instr, instrNext, this->func)
@@ -93,8 +93,8 @@ DbCheckPostLower::Check()
                 {
                     if (targetLabel->isOpHelper && !targetLabel->m_noHelperAssert)
                     {
-                        IR::Instr *instrNext = instr->GetNextRealInstrOrLabel();
-                        Assert(!(instrNext->IsLabelInstr() && instrNext->AsLabelInstr()->isOpHelper));
+                        IR::Instr *instrNextDebug = instr->GetNextRealInstrOrLabel();
+                        Assert(!(instrNextDebug->IsLabelInstr() && instrNextDebug->AsLabelInstr()->isOpHelper));
                     }
                 }
                 else

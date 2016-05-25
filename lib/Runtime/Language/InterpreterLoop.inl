@@ -285,7 +285,6 @@ SWAP_BP_FOR_OPCODE:
                     return nullptr;
                 }
 #endif
-#endif
                 break;
             }
             case INTERPRETER_OPCODE::LargeLayoutPrefix:
@@ -372,7 +371,6 @@ SWAP_BP_FOR_OPCODE:
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
-#endif
 #endif
                 break;
             }

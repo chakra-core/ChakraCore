@@ -310,7 +310,10 @@ GlobOpt::KillLiveFields(StackSym * stackSym, BVSparse<JitArenaAllocator> * bv)
         bv->Clear(propertySym->m_id);
         if (this->IsLoopPrePass())
         {
-            this->rootLoopPrePass->fieldKilled->Set(propertySym->m_id);
+            for (Loop * loop = this->rootLoopPrePass; loop != nullptr; loop = loop->parent)
+            {
+                loop->fieldKilled->Set(propertySym->m_id);
+            }
         }
         else if (bv->IsEmpty())
         {
@@ -339,7 +342,10 @@ void GlobOpt::KillLiveFields(BVSparse<JitArenaAllocator> *const propertyEquivSet
 
         if (this->IsLoopPrePass())
         {
-            this->rootLoopPrePass->fieldKilled->Or(propertyEquivSet);
+            for (Loop * loop = this->rootLoopPrePass; loop != nullptr; loop = loop->parent)
+            {
+                loop->fieldKilled->Or(propertyEquivSet);
+            }
         }
     }
 }
@@ -382,7 +388,10 @@ GlobOpt::KillAllFields(BVSparse<JitArenaAllocator> * bv)
     bv->ClearAll();
     if (this->IsLoopPrePass())
     {
-        this->rootLoopPrePass->allFieldsKilled = true;
+        for (Loop * loop = this->rootLoopPrePass; loop != nullptr; loop = loop->parent)
+        {
+            loop->allFieldsKilled = true;
+        }
     }
 }
 
@@ -412,7 +421,6 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         return;
     }
 
-    Sym *sym;
     IR::Opnd * dstOpnd = instr->GetDst();
     if (dstOpnd)
     {
@@ -434,7 +442,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
             else
             {
                 Assert(sym->IsPropertySym());
-                if (instr->m_opcode == Js::OpCode::InitLetFld || instr->m_opcode == Js::OpCode::InitConstFld)
+                if (instr->m_opcode == Js::OpCode::InitLetFld || instr->m_opcode == Js::OpCode::InitConstFld || instr->m_opcode == Js::OpCode::InitFld)
                 {
                     // These can grow the aux slot of the activation object.
                     // We need to kill the slot array sym as well.
@@ -454,6 +462,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         return;
     }
 
+    Sym *sym;
     IR::JnHelperMethod fnHelper;
     switch(instr->m_opcode)
     {

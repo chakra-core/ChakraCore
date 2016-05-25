@@ -62,32 +62,25 @@ public:
 
 struct PidRefStack
 {
-    PidRefStack() : isAsg(false), isDynamic(false), id(0), span(), sym(nullptr), prev(nullptr), isModuleExport(false) {}
-    PidRefStack(int id) : isAsg(false), isDynamic(false), id(id), span(), sym(nullptr), prev(nullptr), isModuleExport(false) {}
+    PidRefStack() : isDynamic(false), id(0), sym(nullptr), prev(nullptr), isModuleExport(false) {}
+    PidRefStack(int id) : isDynamic(false), id(id), sym(nullptr), prev(nullptr), isModuleExport(false) {}
 
-    charcount_t GetIchMin()   { return span.GetIchMin(); }
-    charcount_t GetIchLim()   { return span.GetIchLim(); }
     int GetScopeId() const    { return id; }
     Symbol *GetSym() const    { return sym; }
     void SetSym(Symbol *sym)  { this->sym = sym; }
-    bool IsAssignment() const { return isAsg; }
     bool IsDynamicBinding() const { return isDynamic; }
     void SetDynamicBinding()  { isDynamic = true; }
     bool IsModuleExport() const { return isModuleExport; }
     void SetModuleExport()    { isModuleExport = true; }
-
-    void TrackAssignment(charcount_t ichMin, charcount_t ichLim);
 
     Symbol **GetSymRef()
     {
         return &sym;
     }
 
-    bool           isAsg;
     bool           isDynamic;
     bool           isModuleExport;
     int            id;
-    Span           span;
     Symbol        *sym;
     PidRefStack   *prev;
 };
@@ -171,18 +164,6 @@ public:
         return nullptr;
     }
 
-    charcount_t GetTopIchMin() const
-    {
-        Assert(m_pidRefStack);
-        return m_pidRefStack->GetIchMin();
-    }
-
-    charcount_t GetTopIchLim() const
-    {
-        Assert(m_pidRefStack);
-        return m_pidRefStack->GetIchLim();
-    }
-
     void PushPidRef(int blockId, PidRefStack *newRef)
     {
         AssertMsg(blockId >= 0, "Block Id's should be greater than 0");
@@ -209,20 +190,11 @@ public:
         return prevRef;
     }
 
-    PidRefStack * FindOrAddPidRef(ArenaAllocator *alloc, int scopeId, int maxScopeId = -1)
+    PidRefStack * FindOrAddPidRef(ArenaAllocator *alloc, int scopeId)
     {
-        // If we were supplied with a maxScopeId, then we potentially need to look one more
-        // scope level out. This can happen if we have a declaration in function scope shadowing
-        // a parameter scope declaration. In this case we'd need to look beyond the body scope (scopeId)
-        // to the outer parameterScope (maxScopeId).
-        if (maxScopeId == -1)
-        {
-            maxScopeId = scopeId;
-        }
-
         // If the stack is empty, or we are pushing to the innermost scope already,
         // we can go ahead and push a new PidRef on the stack.
-        if (m_pidRefStack == nullptr || m_pidRefStack->id < maxScopeId)
+        if (m_pidRefStack == nullptr)
         {
             PidRefStack *newRef = Anew(alloc, PidRefStack, scopeId);
             if (newRef == nullptr)
@@ -236,6 +208,7 @@ public:
 
         // Search for the corresponding PidRef, or the position to insert the new PidRef.
         PidRefStack *ref = m_pidRefStack;
+        PidRefStack *prevRef = nullptr;
         while (1)
         {
             // We may already have a ref for this scopeId.
@@ -244,15 +217,7 @@ public:
                 return ref;
             }
 
-            if (ref->id == maxScopeId
-                // If we match the different maxScopeId, then this match is sufficient if it is a decl.
-                // This is because the parameter scope decl would have been created before this point.
-                && ref->sym != nullptr)
-            {
-                return ref;
-            }
-
-            if (ref->prev == nullptr || ref->prev->id < maxScopeId)
+            if (ref->prev == nullptr || ref->id  < scopeId)
             {
                 // No existing PidRef for this scopeId, so create and insert one at this position.
                 PidRefStack *newRef = Anew(alloc, PidRefStack, scopeId);
@@ -263,11 +228,21 @@ public:
 
                 if (ref->id < scopeId)
                 {
-                    // Without parameter scope, we would have just pushed the ref instead of inserting.
-                    // We effectively had a false positive match (a parameter scope ref with no sym)
-                    // so we need to push the Pid rather than inserting.
-                    newRef->prev = m_pidRefStack;
-                    m_pidRefStack = newRef;
+                    if (prevRef != nullptr)
+                    {
+                        // Param scope has a reference to the same pid as the one we are inserting into the body.
+                        // There is a another reference (prevRef), probably from an inner block in the body.
+                        // So we should insert the new reference between them.
+                        newRef->prev = prevRef->prev;
+                        prevRef->prev = newRef;
+                    }
+                    else
+                    {
+                        // When we have code like below, prevRef will be null,
+                        // function (a = x) { var x = 1; }
+                        newRef->prev = m_pidRefStack;
+                        m_pidRefStack = newRef;
+                    }
                 }
                 else
                 {
@@ -278,6 +253,7 @@ public:
             }
 
             Assert(ref->prev->id <= ref->id);
+            prevRef = ref;
             ref = ref->prev;
         }
     }

@@ -67,25 +67,20 @@ namespace Js
             }
         }
 
-        if (this->IsCompleted())
-        {
-            result = library->CreateIteratorResultObject(result, library->GetTrue());
-        }
-        else
+        if (!this->IsCompleted())
         {
             int nextOffset = this->frame->GetReader()->GetCurrentOffset();
             int endOffset = this->frame->GetFunctionBody()->GetByteCode()->GetLength();
 
             if (nextOffset != endOffset - 1)
             {
-                result = library->CreateIteratorResultObjectValueFalse(result);
-            }
-            else
-            {
-                result = library->CreateIteratorResultObject(result, library->GetTrue());
-                this->SetState(GeneratorState::Completed);
+                // Yielded values are already wrapped in an IteratorResult object, so we don't need to wrap them.
+                return result;
             }
         }
+
+        result = library->CreateIteratorResultObject(result, library->GetTrue());
+        this->SetState(GeneratorState::Completed);
 
         return result;
     }

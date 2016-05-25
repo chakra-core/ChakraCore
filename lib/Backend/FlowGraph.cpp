@@ -43,7 +43,7 @@ FlowGraph::Build(void)
     }
 
     IR::Instr * currLastInstr = nullptr;
-    BasicBlock * block = nullptr;
+    BasicBlock * currBlock = nullptr;
     BasicBlock * nextBlock = nullptr;
     bool hasCall = false;
     FOREACH_INSTR_IN_FUNC_BACKWARD_EDITING(instr, instrPrev, func)
@@ -54,9 +54,9 @@ FlowGraph::Build(void)
             // If we're currently processing a block, then wrap it up before beginning a new one.
             if (currLastInstr != nullptr)
             {
-                nextBlock = block;
-                block = this->AddBlock(instr->m_next, currLastInstr, nextBlock);
-                block->hasCall = hasCall;
+                nextBlock = currBlock;
+                currBlock = this->AddBlock(instr->m_next, currLastInstr, nextBlock);
+                currBlock->hasCall = hasCall;
                 hasCall = false;
             }
 
@@ -78,9 +78,9 @@ FlowGraph::Build(void)
             }
 
             // Wrap up the current block and get ready to process a new one.
-            nextBlock = block;
-            block = this->AddBlock(instr, currLastInstr, nextBlock);
-            block->hasCall = hasCall;
+            nextBlock = currBlock;
+            currBlock = this->AddBlock(instr, currLastInstr, nextBlock);
+            currBlock->hasCall = hasCall;
             hasCall = false;
             currLastInstr = nullptr;
         }
@@ -985,8 +985,8 @@ FlowGraph::AddBlock(
             }
             else
             {
-                IR::LabelInstr * labelInstr = branchInstr->GetTarget();
-                blockTarget = SetBlockTargetAndLoopFlag(labelInstr);
+                IR::LabelInstr * targetLabelInstr = branchInstr->GetTarget();
+                blockTarget = SetBlockTargetAndLoopFlag(targetLabelInstr);
                 if (branchInstr->IsConditional())
                 {
                     IR::Instr *instrNext = branchInstr->GetNextRealInstrOrLabel();

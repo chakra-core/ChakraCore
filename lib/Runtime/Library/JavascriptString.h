@@ -160,7 +160,7 @@ namespace Js
         template <typename T, bool copyBuffer>
         static JavascriptString* NewWithBufferT(const char16 * content, charcount_t charLength, ScriptContext * scriptContext);
 
-        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value);
+        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* scriptContext);
         static const char stringToIntegerMap[128];
         static const uint8 maxUintStringLengthTable[37];
     protected:

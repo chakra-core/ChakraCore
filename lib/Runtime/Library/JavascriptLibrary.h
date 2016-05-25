@@ -370,7 +370,6 @@ namespace Js
         JavascriptFunction* arrayPrototypeToLocaleStringFunction;
         JavascriptFunction* identityFunction;
         JavascriptFunction* throwerFunction;
-        JavascriptFunction* hostPromiseContinuationFunction;
         JavascriptFunction* promiseResolveFunction;
 
         JavascriptFunction* objectValueOfFunction;
@@ -419,6 +418,15 @@ namespace Js
         PromiseContinuationCallback nativeHostPromiseContinuationFunction;
         void *nativeHostPromiseContinuationFunctionState;
 
+        typedef SList<Js::FunctionProxy*, Recycler> FunctionReferenceList;
+
+        void * bindRefChunkBegin;
+        void ** bindRefChunkCurrent;
+        void ** bindRefChunkEnd;
+        TypePath* rootPath;         // this should be in library instead of ScriptContext::Cache
+        void* scriptContextCache;   // forward declaration for point to ScriptContext::Cache such that we don't need to hard pin it.
+        FunctionReferenceList* dynamicFunctionReference;
+        uint dynamicFunctionReferenceDepth;
         FinalizableObject* jsrtContextObject;
 
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<RecyclableObject>*, Recycler, PowerOf2SizePolicy, RecyclerWeakReference<RecyclableObject>*, StringTemplateCallsiteObjectComparer> StringTemplateCallsiteObjectList;
@@ -512,6 +520,7 @@ namespace Js
                               identityFunction(nullptr),
                               throwerFunction(nullptr),
                               jsrtContextObject(nullptr),
+                              scriptContextCache(nullptr),
                               externalLibraryList(nullptr),
                               cachedForInEnumerator(nullptr),
 #if ENABLE_COPYONACCESS_ARRAY
@@ -521,7 +530,12 @@ namespace Js
                               isLibraryReadyForHybridDebugging(false),
                               referencedPropertyRecords(nullptr),
                               stringTemplateCallsiteObjectList(nullptr),
-                              moduleRecordList(nullptr)
+                              moduleRecordList(nullptr),
+                              rootPath(nullptr),
+                              bindRefChunkBegin(nullptr),
+                              bindRefChunkCurrent(nullptr),
+                              bindRefChunkEnd(nullptr),
+                              dynamicFunctionReference(nullptr)
         {
             globalObject = globalObject;
         }
@@ -609,7 +623,6 @@ namespace Js
         JavascriptFunction* GetStringConstructor() const {return stringConstructor; }
         JavascriptFunction* GetArrayBufferConstructor() const {return arrayBufferConstructor; }
         JavascriptFunction* GetErrorConstructor() const { return errorConstructor; }
-        JavascriptFunction* GetTypedArrayConstructor() const { return typedArrayConstructor; }
         JavascriptFunction* GetInt8ArrayConstructor() const {return Int8ArrayConstructor; }
         JavascriptFunction* GetUint8ArrayConstructor() const {return Uint8ArrayConstructor; }
         JavascriptFunction* GetInt16ArrayConstructor() const {return Int16ArrayConstructor; }
@@ -623,7 +636,8 @@ namespace Js
         JavascriptFunction* GetSetConstructor() const {return  setConstructor; }
         JavascriptFunction* GetSymbolConstructor() const {return symbolConstructor; }
         JavascriptFunction* GetEvalFunctionObject() { return evalFunctionObject; }
-        JavascriptFunction* GetArrayPrototypeValuesFunction() { return arrayPrototypeValuesFunction; }
+        JavascriptFunction* GetArrayPrototypeValuesFunction() { return EnsureArrayPrototypeValuesFunction(); }
+        JavascriptFunction* GetArrayIteratorPrototypeBuiltinNextFunction() { return arrayIteratorPrototypeBuiltinNextFunction; }
         DynamicObject* GetMathObject() const {return mathObject; }
         DynamicObject* GetJSONObject() const {return JSONObject; }
         DynamicObject* GetReflectObject() const { return reflectObject; }
@@ -767,6 +781,13 @@ namespace Js
         int GetRegexStickyGetterSlotIndex() const { return regexStickyGetterSlotIndex;  }
         int GetRegexUnicodeGetterSlotIndex() const { return regexUnicodeGetterSlotIndex;  }
 
+        TypePath* GetRootPath() const { return rootPath; }
+        void BindReference(void * addr);
+        void CleanupForClose();
+        void BeginDynamicFunctionReferences();
+        void EndDynamicFunctionReferences();
+        void RegisterDynamicFunctionReference(FunctionProxy* func);
+
         void SetDebugObjectNonUserAccessor(FunctionInfo *funcGetter, FunctionInfo *funcSetter);
 
         JavascriptFunction* GetDebugObjectDebugModeGetterFunction() const { return debugObjectDebugModeGetterFunction; }
@@ -783,7 +804,6 @@ namespace Js
         JavascriptFunction* GetIdentityFunction() const { return identityFunction; }
         JavascriptFunction* GetThrowerFunction() const { return throwerFunction; }
 
-        JavascriptFunction* GetHostPromiseContinuationFunction();
         void SetNativeHostPromiseContinuationFunction(PromiseContinuationCallback function, void *state);
 
         void PinJsrtContextObject(FinalizableObject* jsrtContext);
@@ -1046,6 +1066,8 @@ namespace Js
 
         void TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type);
         void NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+
+        static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
 
         HRESULT EnsureReadyIfHybridDebugging(bool isScriptEngineReady = true);
 

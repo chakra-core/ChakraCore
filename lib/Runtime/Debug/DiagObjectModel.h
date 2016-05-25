@@ -144,11 +144,12 @@ namespace Js
 
     enum FrameWalkerFlags
     {
-        FW_None                 = 0x0,
-        FW_MakeGroups           = 0x1,  // Make groups such as [Scope], [Globals] etc.
-        FW_EnumWithScopeAlso    = 0x2,  // While walking include the with scope as well.
-        FW_AllowLexicalThis     = 0x4,  // Do not filter out Js::PropertyIds::_lexicalThisSlotSymbol
-        FW_AllowSuperReference  = 0x8,  // Allow walking of Js::PropertyIds::_superReferenceSymbol and Js::PropertyIds::_superCtorReferenceSymbol
+        FW_None                   = 0x0,
+        FW_MakeGroups             = 0x1,  // Make groups such as [Scope], [Globals] etc.
+        FW_EnumWithScopeAlso      = 0x2,  // While walking include the with scope as well.
+        FW_AllowLexicalThis       = 0x4,  // Do not filter out Js::PropertyIds::_lexicalThisSlotSymbol
+        FW_AllowSuperReference    = 0x8,  // Allow walking of Js::PropertyIds::_superReferenceSymbol and Js::PropertyIds::_superCtorReferenceSymbol
+        FW_DontAddGlobalsDirectly = 0x10, // Do not add global object directly.
     };
 
     class VariableWalkerBase : public IDiagObjectModelWalkerBase
@@ -192,6 +193,7 @@ namespace Js
 
         static BOOL GetReturnedValue(int &index, DiagStackFrame* frame, ResolvedObject* pResolvedObject);
         static int  GetReturnedValueCount(DiagStackFrame* frame);
+        static void GetReturnedValueResolvedObject(ReturnedValue * returnValue, DiagStackFrame* frame, ResolvedObject* pResolvedObject);
 
 #ifdef ENABLE_MUTATION_BREAKPOINT
         static BOOL GetBreakMutationBreakpointValue(int &index, DiagStackFrame* frame, ResolvedObject* pResolvedObject);
@@ -312,10 +314,17 @@ namespace Js
         LocalsWalker(DiagStackFrame* _frame, DWORD _frameWalkerFlags);
         virtual BOOL Get(int i, ResolvedObject* pResolvedObject) override;
         virtual ulong GetChildrenCount() override;
+        virtual ulong GetLocalVariablesCount();
+        BOOL GetLocal(int i, ResolvedObject* pResolvedObject);
+
+        BOOL GetScopeObject(int i, ResolvedObject* pResolvedObject);
+        BOOL GetGlobalsObject(ResolvedObject* pResolvedObject);
 
         virtual BOOL GetGroupObject(ResolvedObject* pResolvedObject) {return FALSE; }
 
         static DWORD GetCurrentFramesLocalsType(DiagStackFrame* frame);
+        static DebuggerScope * GetScopeWhenHaltAtFormals(DiagStackFrame* frame);
+        static int GetAdjustedByteCodeOffset(DiagStackFrame* frame);
 
         IDiagObjectAddress * FindPropertyAddress(PropertyId propId, bool& isConst) override;
 
@@ -364,12 +373,13 @@ namespace Js
             }
             return activeScopeObject;
         }
-
-    private:
         BOOL CreateArgumentsObject(ResolvedObject* pResolvedObject);
+        bool HasUserNotDefinedArguments() const { return hasUserNotDefinedArguments; }
+    private:
         bool ShouldMakeGroups() const { return frameWalkerFlags & FW_MakeGroups; }
         bool ShouldInsertFakeArguments();
         void ExpandArgumentsObject(IDiagObjectModelDisplay * argumentsDisplay);
+        BOOL GetGroupObject(Js::UIGroupType uiGroupType, int i, ResolvedObject* pResolvedObject);
     };
 
     class LocalsDisplay : public IDiagObjectModelDisplay
@@ -841,6 +851,7 @@ namespace Js
         RecyclableKeyValueWalker(ScriptContext* scriptContext, Var key, Var value):scriptContext(scriptContext), key(key), value(value) { }
 
         virtual BOOL Get(int i, ResolvedObject* pResolvedObject) override;
+        // Children count is 2 for 'key' and 'value'
         virtual ulong GetChildrenCount() override { return 2; }
         virtual BOOL GetGroupObject(ResolvedObject* pResolvedObject) override { return FALSE; }
     };
@@ -860,6 +871,27 @@ namespace Js
         RecyclableProxyObjectWalker(ScriptContext* pContext, Var instance);
 
         virtual BOOL Get(int i, ResolvedObject* pResolvedObject) override;
+        // Children count is 2 for '[target]' and '[handler]'
+        virtual ulong GetChildrenCount() override { return 2; }
+        virtual BOOL GetGroupObject(ResolvedObject* pResolvedObject) override;
+    };
+
+    class RecyclablePromiseObjectDisplay : public RecyclableObjectDisplay
+    {
+    public:
+        RecyclablePromiseObjectDisplay(ResolvedObject* resolvedObject);
+
+        virtual BOOL HasChildren() override { return TRUE; }
+        virtual WeakArenaReference<IDiagObjectModelWalkerBase>* CreateWalker() override;
+    };
+
+    class RecyclablePromiseObjectWalker : public RecyclableObjectWalker
+    {
+    public:
+        RecyclablePromiseObjectWalker(ScriptContext* pContext, Var instance);
+
+        virtual BOOL Get(int i, ResolvedObject* pResolvedObject) override;
+        // Children count is 2 for '[status]' and '[value]'
         virtual ulong GetChildrenCount() override { return 2; }
         virtual BOOL GetGroupObject(ResolvedObject* pResolvedObject) override;
     };

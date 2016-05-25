@@ -83,3 +83,17 @@ Symbol(prop2)
 Symbol(prop5)
 Symbol(prop4)
 Symbol(prop5)
+***Traps whose value is null are ignored
+"getPrototypeOf" called
+"setPrototypeOf" called
+"isExtensible" called
+"preventExtensions" called
+"getOwnPropertyDescriptor" called
+"defineProperty" called
+"has" called
+"get" called
+"set" called
+"deleteProperty" called
+"ownKeys" called
+"apply" called
+"construct" called

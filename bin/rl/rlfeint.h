@@ -36,7 +36,7 @@ enum RLFE_COMMAND {
 #ifndef _RL_STATS_DEFINED
 #define _RL_STATS_DEFINED
 // Statistics index.
-typedef enum RL_STATS {
+enum RL_STATS {
     RLS_TOTAL = 0, // overall stats
     RLS_EXE, // should == RLS_TOTAL at this time
     RLS_BASELINES, // baseline stats (== total if !FBaseDiff)

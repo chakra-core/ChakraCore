@@ -14,7 +14,8 @@ var tests = [
       assert.throws(function () { eval("var obj = class { method(a, b = 1, ...c = [2,3]) {} };")},         SyntaxError, "Rest parameter cannot have a default value");
       assert.throws(function () { eval("function f(c, a, ...a) { }")},           SyntaxError,    "Duplicate parameters are not allowed for non-simple parameter list with only rest", "Duplicate formal parameter names not allowed in this context");
       assert.throws(function () { eval("function f(c = 10, a, ...a) { }")},      SyntaxError,    "Duplicate parameters are not allowed for non-simple parameter list with both rest and default", "Duplicate formal parameter names not allowed in this context");
-      assert.throws(function () { eval("function f(a, ...b) { \"use strict\"; }")},                        SyntaxError, "Cannot apply strict mode to functions with rest parameter", "Cannot apply strict mode on functions with non-simple parameter list");
+      assert.throws(function () { eval("function f(...a) { 'use strict'; }"); },          SyntaxError, "Strict mode cannot be applied to functions with rest parameter", "Cannot apply strict mode on functions with non-simple parameter list");
+      assert.throws(function () { eval("function f(a, ...b) { 'use strict'; }"); },       SyntaxError, "Strict mode cannot be applied to functions with rest parameter", "Cannot apply strict mode on functions with non-simple parameter list");
       assert.throws(function () { eval("function f() { \"use strict\"; function g(a, b, c, ...a) { } }")}, SyntaxError, "Cannot have duplicate parameters for a function with non-simple parameter list, which is already in strict mode", "Duplicate formal parameter names not allowed in strict mode");
       assert.throws(function () { eval("function f() { \"use strict\"; function g(a, b, a, ...c) { } }")}, SyntaxError, "Cannot have duplicate parameters for a function with non-simple parameter list with rest, which is already in strict mode", "Duplicate formal parameter names not allowed in strict mode");
 
@@ -359,6 +360,21 @@ var tests = [
           }
         }));
       }
+    }
+  },
+  {
+    name: "OS 7249217: Rest is able to be in a slot in arguments optimization case",
+    body: function () {
+      function foo(...argArr9) {
+        var protoObj0 = {};
+        with (protoObj0) {
+          arguments;
+          var f = function () { assert.areEqual([1,2,3], argArr9, "Arguments scope object optimization allows rest to function correctly inside with"); };
+          f();
+        }
+        assert.areEqual([1,2,3], argArr9, "Arguments scope object optimization allows rest to function correctly");
+      }
+      foo(1,2,3);
     }
   }
 ];

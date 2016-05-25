@@ -110,7 +110,7 @@ public:
     virtual HRESULT ArrayBufferFromExternalObject(__in Js::RecyclableObject *obj,
         __out Js::ArrayBuffer **ppArrayBuffer) = 0;
     virtual Js::JavascriptError* CreateWinRTError(IErrorInfo* perrinfo, Js::RestrictedErrorStrings * proerrstr) = 0;
-    virtual Js::JavascriptFunction* InitializeHostPromiseContinuationFunction() = 0;
+    virtual HRESULT EnqueuePromiseTask(Js::Var varTask) = 0;
 
     virtual HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
     virtual HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) = 0;
@@ -263,19 +263,19 @@ namespace Js
 
     struct ScriptEntryExitRecord
     {
-        BOOL hasCaller : 1;
-        BOOL hasReentered : 1;
+        bool hasCaller : 1;
+        bool hasReentered : 1;
 #if DBG_DUMP
-        BOOL isCallRoot : 1;
+        bool isCallRoot : 1;
 #endif
 #if DBG || defined(PROFILE_EXEC)
-        BOOL leaveForHost : 1;
+        bool leaveForHost : 1;
 #endif
 #if DBG
-        BOOL leaveForAsyncHostOperation : 1;
+        bool leaveForAsyncHostOperation : 1;
 #endif
 #ifdef CHECK_STACKWALK_EXCEPTION
-        BOOL ignoreStackWalkException: 1;
+        bool ignoreStackWalkException: 1;
 #endif
         Js::ImplicitCallFlags savedImplicitCallFlags;
 
@@ -299,7 +299,6 @@ namespace Js
     typedef JsUtil::BaseDictionary<EvalMapString, ScriptFunction*, RecyclerNonLeafAllocator, PrimeSizePolicy> SecondLevelEvalCache;
     typedef TwoLevelHashRecord<FastEvalMapString, ScriptFunction*, SecondLevelEvalCache, EvalMapString> EvalMapRecord;
     typedef JsUtil::Cache<FastEvalMapString, EvalMapRecord*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<FastEvalMapString, EvalMRUSize>, FastEvalMapStringComparer> EvalCacheTopLevelDictionary;
-    typedef SList<Js::FunctionProxy*, Recycler> FunctionReferenceList;
     typedef JsUtil::Cache<EvalMapString, ParseableFunctionInfo*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<EvalMapString, EvalMRUSize>> NewFunctionCache;
     typedef JsUtil::BaseDictionary<ParseableFunctionInfo*, ParseableFunctionInfo*, Recycler, PrimeSizePolicy, RecyclerPointerComparer> ParseableFunctionInfoMap;
     // This is the dictionary used by script context to cache the eval.
@@ -329,14 +328,21 @@ namespace Js
         int validPropStrings;
     };
 
-    // Holder for all cached pointers. These are allocated on a guest arena
-    // ensuring they cause the related objects to be pinned.
-    struct Cache
+    typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
+
+    // this is allocated in GC directly to avoid force pinning the object, it is linked from JavascriptLibrary such that it has
+    // the same lifetime as JavascriptLibrary, and it can be collected without ScriptContext Close.
+    // Allocate it as Finalizable such that it will be still available during JavascriptLibrary Dispose time
+    class Cache : public FinalizableObject
     {
+    public:
+        virtual void Finalize(bool isShutdown) override {}
+        virtual void Dispose(bool isShutdown) override {}
+        virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
+
         JavascriptString * lastNumberToStringRadix10String;
         EnumeratedObjectCache enumObjCache;
         JavascriptString * lastUtcTimeFromStrString;
-        TypePath* rootPath;
         EvalCacheDictionary* evalCacheDictionary;
         EvalCacheDictionary* indirectEvalCacheDictionary;
         NewFunctionCache* newFunctionCache;
@@ -346,12 +352,14 @@ namespace Js
         SourceContextInfo* noContextSourceContextInfo;
         SRCINFO* noContextGlobalSourceInfo;
         SRCINFO const ** moduleSrcInfo;
+        BuiltInLibraryFunctionMap* builtInLibraryFunctions;
     };
 
     class ScriptContext : public ScriptContextBase
     {
         friend class LowererMD;
         friend class RemoteScriptContext;
+        friend class GlobalObject; // InitializeCache
         friend class SourceTextModuleRecord; // for module bytecode gen.
     public:
         static DWORD GetThreadContextOffset() { return offsetof(ScriptContext, threadContext); }
@@ -465,8 +473,6 @@ namespace Js
         JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, ulong grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
 
         typedef void (*EventHandler)(ScriptContext *);
-        ScriptContext ** entryInScriptContextWithInlineCachesRegistry;
-        ScriptContext ** entryInScriptContextWithIsInstInlineCachesRegistry;
         ScriptContext ** registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
 
         ArenaAllocator generalAllocator;
@@ -482,8 +488,6 @@ namespace Js
         ArenaAllocator* guestArena;
 
         ArenaAllocator* diagnosticArena;
-        void ** bindRefChunkCurrent;
-        void ** bindRefChunkEnd;
 
         bool startupComplete; // Indicates if the heuristic startup phase for this script context is complete
         bool isInvalidatedForHostObjects;  // Indicates that we've invalidate all objects in the host so stop calling them.
@@ -702,9 +706,6 @@ private:
         UnifiedRegex::TrigramAlphabet* trigramAlphabet;
         UnifiedRegex::RegexStacks *regexStacks;
 
-        FunctionReferenceList* dynamicFunctionReference;
-        uint dynamicFunctionReferenceDepth;
-
         JsUtil::Stack<Var>* operationStack;
         Recycler* recycler;
         RecyclerJavascriptNumberAllocator numberAllocator;
@@ -757,8 +758,9 @@ private:
         bool isCloningGlobal;
 #endif
         bool fastDOMenabled;
-        bool hasRegisteredInlineCache;
-        bool hasRegisteredIsInstInlineCache;
+        bool hasUsedInlineCache;
+        bool hasProtoOrStoreFieldInlineCache;
+        bool hasIsInstInlineCache;
         bool deferredBody;
         bool isPerformingNonreentrantWork;
         bool isDiagnosticsScriptContext;   // mentions that current script context belongs to the diagnostics OM.
@@ -817,6 +819,7 @@ private:
         void InitializeAllocations();
         void InitializePreGlobal();
         void InitializePostGlobal();
+        void InitializeCache();
 
         // Source Info
         void EnsureSourceContextInfoMap();
@@ -834,6 +837,7 @@ private:
         void InternalClose();
 
         DebugContext* debugContext;
+        CriticalSection debugContextCloseCS;
 
     public:
         static const int kArrayMatchCh=72;
@@ -857,10 +861,10 @@ private:
         }
 #endif
 
+        void SetHasUsedInlineCache(bool value) { hasUsedInlineCache = value; }
+
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
-
-        TypePath* GetRootPath() { return cache->rootPath; }
 
 #ifdef ENABLE_DOM_FAST_PATH
         DOMFastPathIRHelperMap* EnsureDOMFastPathIRHelperMap();
@@ -888,6 +892,7 @@ private:
 #endif
 
         DebugContext* GetDebugContext() const { return this->debugContext; }
+        CriticalSection* GetDebugContextCloseCS() { return &debugContextCloseCS; }
 
         uint callCount;
 
@@ -977,9 +982,6 @@ private:
         FunctionBody* FindFunction(TDelegate predicate);
 
         __inline bool EnableEvalMapCleanup() { return CONFIG_FLAG(EnableEvalMapCleanup); };
-        void BeginDynamicFunctionReferences();
-        void EndDynamicFunctionReferences();
-        void RegisterDynamicFunctionReference(FunctionProxy* func);
         uint GetNextSourceContextId();
 
         bool IsInNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo **ppFuncBody);
@@ -1276,15 +1278,10 @@ private:
         }
 
     public:
-        void RegisterAsScriptContextWithInlineCaches();
-        void RegisterAsScriptContextWithIsInstInlineCaches();
-        bool IsRegisteredAsScriptContextWithIsInstInlineCaches();
         void FreeLoopBody(void* codeAddress);
         void FreeFunctionEntryPoint(Js::JavascriptMethod method);
 
     private:
-        void DoRegisterAsScriptContextWithInlineCaches();
-        void DoRegisterAsScriptContextWithIsInstInlineCaches();
         uint CloneSource(Utf8SourceInfo* info);
     public:
         void RegisterProtoInlineCache(InlineCache *pCache, PropertyId propId);
@@ -1535,7 +1532,6 @@ private:
         JavascriptFunction* GetBuiltInLibraryFunction(JavascriptMethod entryPoint);
 
     private:
-        typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
         BuiltInLibraryFunctionMap* builtInLibraryFunctions;
 
 #ifdef RECYCLER_PERF_COUNTERS
@@ -1560,12 +1556,12 @@ private:
         AutoDynamicCodeReference(ScriptContext* scriptContext):
           m_scriptContext(scriptContext)
           {
-              scriptContext->BeginDynamicFunctionReferences();
+              scriptContext->GetLibrary()->BeginDynamicFunctionReferences();
           }
 
           ~AutoDynamicCodeReference()
           {
-              m_scriptContext->EndDynamicFunctionReferences();
+              m_scriptContext->GetLibrary()->EndDynamicFunctionReferences();
           }
 
     private:

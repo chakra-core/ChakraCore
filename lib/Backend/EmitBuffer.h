@@ -55,6 +55,10 @@ public:
     void CheckBufferPermissions(EmitBufferAllocation *allocation);
 #endif
 
+#if DBG
+    bool IsBufferExecuteReadOnly(EmitBufferAllocation * allocation);
+#endif
+
     EmitBufferAllocation * allocations;
 
 private:

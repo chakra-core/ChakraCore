@@ -89,10 +89,13 @@ var tests = [
     {
         name: "const variables in for-in and for-of loops cannot be assigned",
         body: function () {
-            assert.throws(function () { eval("for (const x in { a: 1 }) { x = 1; }"); }, SyntaxError, "assignment to const known at parse time in for-in loop", "Assignment to const");
-            assert.throws(function () { for (const x in { a: 1 }) { eval("x = 1;"); } }, ReferenceError, "assignment to const only known at run time in for-in loop", "Assignment to const");
-            assert.throws(function () { eval("for (const x of [ 0 ]) { x = 1; }"); }, SyntaxError, "assignment to const known at parse time in for-of loop", "Assignment to const");
-            assert.throws(function () { for (const x of [ 0 ]) { eval("x = 1;"); } }, ReferenceError, "assignment to const only known at run time in for-of loop", "Assignment to const");
+            assert.throws(function () { for (const x in { a: 1 }) { x = 1; } }, TypeError, "assignment to const known at parse time in for-in loop", "Assignment to const");
+            assert.throws(function () { for (const x of [ 0 ]) { x = 1; } }, TypeError, "assignment to const known at parse time in for-of loop", "Assignment to const");
+
+            assert.throws(function () { eval("for (const x in { a: 1 }) { x = 1; }"); }, TypeError, "assignment to const known at eval parse time in for-in loop", "Assignment to const");
+            assert.throws(function () { for (const x in { a: 1 }) { eval("x = 1;"); } }, TypeError, "assignment to const only known at run time in for-in loop", "Assignment to const");
+            assert.throws(function () { eval("for (const x of [ 0 ]) { x = 1; }"); }, TypeError, "assignment to const known at eval parse time in for-of loop", "Assignment to const");
+            assert.throws(function () { for (const x of [ 0 ]) { eval("x = 1;"); } }, TypeError, "assignment to const only known at run time in for-of loop", "Assignment to const");
         }
     },
     {
@@ -241,12 +244,16 @@ var tests = [
     {
         name: "for loops allow const loop variables but cannot assign to them anywhere including the increment expression", // so they're kinda useless
         body: function () {
-            assert.throws(function () { eval("for (const x = 0; x++ < 3; ) { }"); }, SyntaxError, "assignment to const known at parse time in the test expression", "Assignment to const");
-            assert.throws(function () { for (const x = 0; eval("x++") < 3; ) { } }, ReferenceError, "assignment to const known at run time in the test expression", "Assignment to const");
-            assert.throws(function () { eval("for (const x = 0; x < 3; x += 1) { }"); }, SyntaxError, "assignment to const known at parse time in the increment expression", "Assignment to const");
-            assert.throws(function () { for (const x = 0; x < 3; eval("x += 1")) { } }, ReferenceError, "assignment to const known at run time in the increment expression", "Assignment to const");
-            assert.throws(function () { eval("for (const x = 0; x < 3; ) { x += 1; }"); }, SyntaxError, "assignment to const known at parse time in the body", "Assignment to const");
-            assert.throws(function () { for (const x = 0; x < 3; ) { eval("x += 1"); } }, ReferenceError, "assignment to const known at run time in the body", "Assignment to const");
+            assert.throws(function () { for (const x = 0; x++ < 3; ) { } }, TypeError, "assignment to const known at parse time in the test expression", "Assignment to const");
+            assert.throws(function () { for (const x = 0; x < 3; x += 1) { } }, TypeError, "assignment to const known at parse time in the increment expression", "Assignment to const");
+            assert.throws(function () { for (const x = 0; x < 3; ) { x += 1; } }, TypeError, "assignment to const known at parse time in the body", "Assignment to const");
+
+            assert.throws(function () { eval("for (const x = 0; x++ < 3; ) { }"); }, TypeError, "assignment to const known at eval parse time in the test expression", "Assignment to const");
+            assert.throws(function () { for (const x = 0; eval("x++") < 3; ) { } }, TypeError, "assignment to const known at run time in the test expression", "Assignment to const");
+            assert.throws(function () { eval("for (const x = 0; x < 3; x += 1) { }"); }, TypeError, "assignment to const known at eval parse time in the increment expression", "Assignment to const");
+            assert.throws(function () { for (const x = 0; x < 3; eval("x += 1")) { } }, TypeError, "assignment to const known at run time in the increment expression", "Assignment to const");
+            assert.throws(function () { eval("for (const x = 0; x < 3; ) { x += 1; }"); }, TypeError, "assignment to const known at eval parse time in the body", "Assignment to const");
+            assert.throws(function () { for (const x = 0; x < 3; ) { eval("x += 1"); } }, TypeError, "assignment to const known at run time in the body", "Assignment to const");
         }
     },
     {

@@ -6,6 +6,7 @@
 #include "Core/AtomLockGuids.h"
 
 unsigned int MessageBase::s_messageCount = 0;
+Debugger* Debugger::debugger = nullptr;
 
 LPCWSTR hostName = _u("ch.exe");
 
@@ -16,85 +17,6 @@ HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
 }
 
 JsRuntimeAttributes jsrtAttributes = JsRuntimeAttributeAllowScriptInterrupt;
-LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode)
-{
-    switch (jsErrorCode)
-    {
-    case JsNoError:
-        return _u("JsNoError");
-        break;
-
-    case JsErrorInvalidArgument:
-        return _u("JsErrorInvalidArgument");
-        break;
-
-    case JsErrorNullArgument:
-        return _u("JsErrorNullArgument");
-        break;
-
-    case JsErrorNoCurrentContext:
-        return _u("JsErrorNoCurrentContext");
-        break;
-
-    case JsErrorInExceptionState:
-        return _u("JsErrorInExceptionState");
-        break;
-
-    case JsErrorNotImplemented:
-        return _u("JsErrorNotImplemented");
-        break;
-
-    case JsErrorWrongThread:
-        return _u("JsErrorWrongThread");
-        break;
-
-    case JsErrorRuntimeInUse:
-        return _u("JsErrorRuntimeInUse");
-        break;
-
-    case JsErrorBadSerializedScript:
-        return _u("JsErrorBadSerializedScript");
-        break;
-
-    case JsErrorInDisabledState:
-        return _u("JsErrorInDisabledState");
-        break;
-
-    case JsErrorCannotDisableExecution:
-        return _u("JsErrorCannotDisableExecution");
-        break;
-
-    case JsErrorHeapEnumInProgress:
-        return _u("JsErrorHeapEnumInProgress");
-        break;
-
-    case JsErrorOutOfMemory:
-        return _u("JsErrorOutOfMemory");
-        break;
-
-    case JsErrorScriptException:
-        return _u("JsErrorScriptException");
-        break;
-
-    case JsErrorScriptCompile:
-        return _u("JsErrorScriptCompile");
-        break;
-
-    case JsErrorScriptTerminated:
-        return _u("JsErrorScriptTerminated");
-        break;
-
-    case JsErrorFatal:
-        return _u("JsErrorFatal");
-        break;
-
-    default:
-        return _u("<unknown>");
-        break;
-    }
-}
-
-#define IfJsErrorFailLog(expr) do { JsErrorCode jsErrorCode = expr; if ((jsErrorCode) != JsNoError) { fwprintf(stderr, _u("ERROR: ") TEXT(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, JsErrorCodeToString(jsErrorCode)); fflush(stderr); goto Error; } } while (0)
 
 int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 {
@@ -109,9 +31,14 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
     }
 
     fwprintf(stderr, _u("FATAL ERROR: %ls failed due to exception code %x\n"), hostName, exceptionCode);
-    fflush(stderr);
 
-    return EXCEPTION_EXECUTE_HANDLER;
+    _flushall();
+
+    // Exception happened, so we probably didn't clean up properly,
+    // Don't exit normally, just terminate
+    TerminateProcess(::GetCurrentProcess(), exceptionCode);
+
+    return EXCEPTION_CONTINUE_SEARCH;
 }
 
 void __stdcall PrintUsageFormat()
@@ -304,6 +231,7 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, char16
 Error:
     if (messageQueue != nullptr)
     {
+        messageQueue->RemoveAll();
         delete messageQueue;
     }
     return hr;
@@ -370,9 +298,19 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     }
     IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
 
+    if (HostConfigFlags::flags.DebugLaunch)
+    {
+        Debugger* debugger = Debugger::GetDebugger(runtime);
+        debugger->StartDebugging(runtime);
+    }
+
     JsContextRef context = JS_INVALID_REFERENCE;
     IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
     IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+    
+#ifdef DEBUG
+    ChakraRTInterface::SetCheckOpHelpersFlag(true);
+#endif
 
     if (!WScriptJsrt::Initialize())
     {
@@ -435,6 +373,12 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     }
 
 Error:
+    if (Debugger::debugger != nullptr)
+    {
+        Debugger::debugger->CompareOrWriteBaselineFile(fileName);
+        Debugger::CloseDebugger();
+    }
+
     ChakraRTInterface::JsSetCurrentContext(nullptr);
 
     if (runtime != JS_INVALID_RUNTIME_HANDLE)
@@ -468,11 +412,7 @@ HRESULT ExecuteTestWithMemoryCheck(BSTR fileName)
     }
     __except (HostExceptionFilter(GetExceptionCode(), GetExceptionInformation()))
     {
-        _flushall();
-
-        // Exception happened, so we probably didn't clean up properly,
-        // Don't exit normally, just terminate
-        TerminateProcess(::GetCurrentProcess(), GetExceptionCode());
+        Assert(false);
     }
 
     _flushall();

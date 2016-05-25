@@ -284,8 +284,18 @@ IRBuilderAsmJs::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type)
                 symID = static_cast<SymID>(dstRegSlot);
                 SetMappedTemp(dstRegSlot, symID);
             }
+            else if (IRType_IsSimd128(type))
+            {
+                //In Asm.js, SIMD register space is untyped, so we could have SIMD temp registers.
+                //Make sure that the StackSym types matches before reusing simd temps.
+                StackSym *  stackSym = m_func->m_symTable->FindStackSym(symID);
+                if (!stackSym || stackSym->GetType() != type)
+                {
+                    symID = m_func->m_symTable->NewID();
+                    SetMappedTemp(dstRegSlot, symID);
+                }
+            }
         }
-
     }
     else
     {
@@ -309,6 +319,12 @@ IRBuilderAsmJs::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type)
         }
     }
 
+    //Simd return values of different IR types share the same reg slot.
+    //To avoid symbol type mismatch, use the stack symbol with a dummy simd type.
+    if (RegIsSimd128ReturnVar(symID))
+    {
+        type = TySimd128F4;
+    }
     StackSym * symDst = StackSym::FindOrCreate(symID, dstRegSlot, m_func, type);
     // Always reset isSafeThis to false.  We'll set it to true for singleDef cases,
     // but want to reset it to false if it is multi-def.
@@ -631,7 +647,12 @@ IRBuilderAsmJs::RegIsSimd128Var(Js::RegSlot reg)
     return reg >= m_firstSimdVar && reg < endVarSlotCount;
 
 }
-
+bool
+IRBuilderAsmJs::RegIsSimd128ReturnVar(Js::RegSlot reg)
+{
+    return (reg == m_firstSimdConst &&
+            m_asmFuncInfo->GetReturnType().toVarType().isSIMD());
+}
 BOOL
 IRBuilderAsmJs::RegIsConstant(Js::RegSlot reg)
 {
@@ -704,9 +725,9 @@ IRBuilderAsmJs::BuildConstantLoads()
     Js::Var * constTable = m_func->GetJnFunction()->GetConstTable();
 
     // Load FrameDisplay
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::ModuleMemReg, TyVar);
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::LdAsmJsEnv, dstOpnd, m_func);
-    AddInstr(instr, Js::Constants::NoByteCodeOffset);
+    IR::RegOpnd * asmJsEnvDstOpnd = BuildDstOpnd(AsmJsRegSlots::ModuleMemReg, TyVar);
+    IR::Instr * ldAsmJsEnvInstr = IR::Instr::New(Js::OpCode::LdAsmJsEnv, asmJsEnvDstOpnd, m_func);
+    AddInstr(ldAsmJsEnvInstr, Js::Constants::NoByteCodeOffset);
 
     // Load heap buffer
     if (m_asmFuncInfo->UsesHeapBuffer())
@@ -821,7 +842,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         // However, for ASMJS, the IR type is enough to tell us it is a Simd128 value.
         dstOpnd->SetValueType(ValueType::UninitializedObject);
 
-        IR::Instr *instr = IR::Instr::New(Js::OpCode::Simd128_LdC, dstOpnd, IR::Simd128ConstOpnd::New(simdConst, TySimd128F4, m_func), m_func);
+        IR::Instr *instrLdC = IR::Instr::New(Js::OpCode::Simd128_LdC, dstOpnd, IR::Simd128ConstOpnd::New(simdConst, TySimd128F4, m_func), m_func);
 
 #if _M_IX86
         if (dstOpnd->m_sym->IsSingleDef())
@@ -830,7 +851,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         }
 #endif
 
-        AddInstr(instr, Js::Constants::NoByteCodeOffset);
+        AddInstr(instrLdC, Js::Constants::NoByteCodeOffset);
         ++regAllocated;
     }
 }
@@ -1808,22 +1829,21 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
     // With SIMD, args have variable size, so we need to track argument position in the args list to be able to assign arg register for first four args on x64.
     if (m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
     {
-        IR::Instr *instr;
         for (uint i = 1; !m_tempList->Empty(); i++)
         {
-            instr = m_tempList->Pop();
+            IR::Instr * instrArg = m_tempList->Pop();
             // record argument position and make room for implicit args
-            instr->GetDst()->GetStackSym()->m_argPosition = i;
+            instrArg->GetDst()->GetStackSym()->m_argPosition = i;
             if (newOpcode == Js::OpCodeAsmJs::I_Call)
             {
                 // implicit func obj arg
-                instr->GetDst()->GetStackSym()->m_argPosition += 1;
+                instrArg->GetDst()->GetStackSym()->m_argPosition += 1;
             }
             else
             {
                 // implicit func obj + callInfo args
                 Assert(newOpcode == Js::OpCodeAsmJs::Call);
-                instr->GetDst()->GetStackSym()->m_argPosition += 2;
+                instrArg->GetDst()->GetStackSym()->m_argPosition += 2;
             }
         }
     }
@@ -1843,9 +1863,9 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
         // after foreign function call, we need to make sure that the heap hasn't been detached
         if (newOpcode == Js::OpCodeAsmJs::Call)
         {
-            IR::Instr * instr = IR::Instr::New(Js::OpCode::ArrayDetachedCheck, m_func);
-            instr->SetSrc1(IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetIsDetachedOffset(), TyInt8, m_func));
-            AddInstr(instr, offset);
+            IR::Instr * instrArrayDetachedCheck = IR::Instr::New(Js::OpCode::ArrayDetachedCheck, m_func);
+            instrArrayDetachedCheck->SetSrc1(IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetIsDetachedOffset(), TyInt8, m_func));
+            AddInstr(instrArrayDetachedCheck, offset);
         }
     }
 }
@@ -7465,7 +7485,7 @@ void IRBuilderAsmJs::BuildSimdConversion(Js::OpCodeAsmJs newOpcode, uint32 offse
     IR::RegOpnd * src1Opnd = BuildSrcOpnd(srcRegSlot, srcSimdType);
     src1Opnd->SetValueType(srcValueType);
 
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128I4);
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, dstSimdType);
     dstOpnd->SetValueType(dstValueType);
 
     Js::OpCode opcode = GetSimdOpcode(newOpcode);
@@ -7522,7 +7542,7 @@ void IRBuilderAsmJs::BuildSimd_1Ints(Js::OpCodeAsmJs newOpcode, uint32 offset, I
     srcOpnds[0]->SetValueType(ValueType::GetInt(false));
     instr = AddExtendedArg(srcOpnds[0], nullptr, offset);
     // reset of args
-    for (uint i = 1; i < LANES; i++)
+    for (uint i = 1; i < LANES && i < 16; i++)
     {
         srcOpnds[i] = BuildSrcOpnd(srcRegSlots[i], TyInt32);
         srcOpnds[i]->SetValueType(ValueType::GetInt(false));

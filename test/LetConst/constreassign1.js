@@ -7,7 +7,7 @@ const a = 1;
 
 with({a:2}) {
     a++;
-    print(a);
+    print(a);  // 3
 }
 
 try {
@@ -17,7 +17,7 @@ try {
     }
 }
 catch(e) {
-    print(e);
+    print(e);  // TypeError: Assignment to const
 }
 
 let foo1 = new Function(
@@ -26,7 +26,7 @@ let foo1 = new Function(
     "    print(a);" +
     "}");
 
-foo1();
+foo1();   // 3
 
 let foo2 = new Function(
     "with({b:2}) {" + 
@@ -38,7 +38,7 @@ try {
     foo2();
 }
 catch(e) {
-    print(e);
+    print(e);  // TypeError: Assignment to const
 }
 
 try {
@@ -47,14 +47,14 @@ try {
     print(a);
 }
 catch(e) {
-    print(e);
+    print(e);  // TypeError: Assignment to const
 }
 
 (function() {
     const a = 1;
     with({a:2}) {
         a++;
-        print(a);
+        print(a);  // 3
     }
 
     try {
@@ -64,7 +64,7 @@ catch(e) {
         }
     }
     catch(e) {
-        print(e);
+        print(e);  // TypeError: Assignment to const
     }
 
     try {
@@ -73,7 +73,7 @@ catch(e) {
         print(a);
     }
     catch(e) {
-        print(e);
+        print(e);  // TypeError: Assignment to const
     }
 })();
 

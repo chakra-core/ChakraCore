@@ -127,10 +127,10 @@ SmallHeapBlockAllocator<TBlockType>::Clear()
 
         while (freeObject)
         {
-            HeapBlock* heapBlock = this->bucket->GetRecycler()->FindHeapBlock((void*) freeObject);
-            Assert(heapBlock != nullptr);
-            Assert(!heapBlock->IsLargeHeapBlock());
-            TBlockType* smallBlock = (TBlockType*)heapBlock;
+            HeapBlock* heapBlockVerify = this->bucket->GetRecycler()->FindHeapBlock((void*) freeObject);
+            Assert(heapBlockVerify != nullptr);
+            Assert(!heapBlockVerify->IsLargeHeapBlock());
+            TBlockType* smallBlock = (TBlockType*)heapBlockVerify;
 
             smallBlock->ClearExplicitFreeBitForObject((void*) freeObject);
             freeObject = freeObject->GetNext();
@@ -209,11 +209,7 @@ SmallHeapBlockAllocator<TBlockType>::TrackNativeAllocatedObjects()
 
     if (lastNonNativeBumpAllocatedBlock == nullptr)
     {
-#ifdef RECYCLER_PAGE_HEAP
-        Assert((char *)this->freeObjectList == this->heapBlock->GetAddress() || ((SmallHeapBlock*) this->heapBlock)->InPageHeapMode());
-#else
         Assert((char *)this->freeObjectList == this->heapBlock->GetAddress());
-#endif
         return;
     }
 

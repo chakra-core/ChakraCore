@@ -106,6 +106,18 @@ CheckCodeGenFunction GetCheckCodeGenFunction(Js::JavascriptMethod codeAddress)
     return NativeCodeGenerator::GetCheckCodeGenFunction(codeAddress);
 }
 
+Js::JavascriptMethod GetCheckCodeGenThunk()
+{
+    return NativeCodeGenerator::CheckCodeGenThunk;
+}
+
+#ifdef ASMJS_PLAT
+Js::JavascriptMethod GetCheckAsmJsCodeGenThunk()
+{
+    return NativeCodeGenerator::CheckAsmJsCodeGenThunk;
+}
+#endif
+
 uint GetBailOutRegisterSaveSlotCount()
 {
     // REVIEW: not all registers are used, we are allocating more space then necessary.

@@ -16,6 +16,7 @@
 #include "Library/JavascriptRegExpConstructor.h"
 #include "Library/SameValueComparer.h"
 #include "Library/MapOrSetDataList.h"
+#include "Library/JavascriptPromise.h"
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptMap.h"
 #include "Library/JavascriptSet.h"
@@ -38,30 +39,6 @@ namespace Js
 {
 #define RETURN_VALUE_MAX_NAME   255
 #define PENDING_MUTATION_VALUE_MAX_NAME   255
-
-    //
-    // Some helper routines
-
-    int __cdecl ElementsComparer(__in void* context, __in const void* item1, __in const void* item2)
-    {
-        ScriptContext *scriptContext = (ScriptContext *)context;
-        Assert(scriptContext);
-
-        const DWORD_PTR *p1 = reinterpret_cast<const DWORD_PTR*>(item1);
-        const DWORD_PTR *p2 = reinterpret_cast<const DWORD_PTR*>(item2);
-
-        DebuggerPropertyDisplayInfo * pPVItem1 = (DebuggerPropertyDisplayInfo *)(*p1);
-        DebuggerPropertyDisplayInfo * pPVItem2 = (DebuggerPropertyDisplayInfo *)(*p2);
-
-        const Js::PropertyRecord *propertyRecord1 = scriptContext->GetPropertyName(pPVItem1->propId);
-        const Js::PropertyRecord *propertyRecord2 = scriptContext->GetPropertyName(pPVItem2->propId);
-
-        const char16 *str1 = propertyRecord1->GetBuffer();
-        const char16 *str2 = propertyRecord2->GetBuffer();
-
-        // Do the natural comparison, for example test2 comes before test11.
-        return StrCmpLogicalW(str1, str2);
-    }
 
     ArenaAllocator *GetArenaFromContext(ScriptContext *scriptContext)
     {
@@ -224,12 +201,9 @@ namespace Js
         if (pRefArena)
         {
             IDiagObjectModelWalkerBase * pOMWalker = nullptr;
-            BEGIN_JS_RUNTIME_CALL_EX(pFrame->GetScriptContext(), false);
-            {
-                IGNORE_STACKWALK_EXCEPTION(scriptContext);
-                pOMWalker = Anew(pRefArena->Arena(), LocalsWalker, pFrame, FrameWalkerFlags::FW_MakeGroups);
-            }
-            END_JS_RUNTIME_CALL(scriptContext);
+
+            IGNORE_STACKWALK_EXCEPTION(scriptContext);
+            pOMWalker = Anew(pRefArena->Arena(), LocalsWalker, pFrame, FrameWalkerFlags::FW_MakeGroups);
 
             return HeapNew(WeakArenaReference<IDiagObjectModelWalkerBase>,pRefArena, pOMWalker);
         }
@@ -280,6 +254,41 @@ namespace Js
     }
 
     /*static*/
+    void VariableWalkerBase::GetReturnedValueResolvedObject(ReturnedValue * returnValue, DiagStackFrame* frame, ResolvedObject* pResolvedObject)
+    {
+        DBGPROP_ATTRIB_FLAGS defaultAttributes = DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE | DBGPROP_ATTRIB_VALUE_IS_FAKE;
+        WCHAR * finalName = AnewArray(GetArenaFromContext(pResolvedObject->scriptContext), WCHAR, RETURN_VALUE_MAX_NAME);
+        if (returnValue->isValueOfReturnStatement)
+        {
+            swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[Return value]"));
+            pResolvedObject->obj = frame->GetRegValue(Js::FunctionBody::ReturnValueRegSlot);
+            pResolvedObject->address = Anew(frame->GetArena(), LocalObjectAddressForRegSlot, frame, Js::FunctionBody::ReturnValueRegSlot, pResolvedObject->obj);
+        }
+        else
+        {
+            if (returnValue->calledFunction->IsScriptFunction())
+            {
+                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), returnValue->calledFunction->GetFunctionBody()->GetDisplayName());
+            }
+            else
+            {
+                Js::JavascriptString *builtInName = returnValue->calledFunction->GetDisplayName();
+                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), builtInName->GetSz());
+            }
+            pResolvedObject->obj = returnValue->returnedValue;
+            defaultAttributes |= DBGPROP_ATTRIB_VALUE_READONLY;
+            pResolvedObject->address = nullptr;
+        }
+        Assert(pResolvedObject->obj != nullptr);
+
+        pResolvedObject->name = finalName;
+        pResolvedObject->typeId = TypeIds_Object;
+
+        pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
+        pResolvedObject->objectDisplay->SetDefaultTypeAttribute(defaultAttributes);
+    }
+
+    /*static*/
     BOOL VariableWalkerBase::GetReturnedValue(int &index, DiagStackFrame* frame, ResolvedObject* pResolvedObject)
     {
         Assert(pResolvedObject);
@@ -292,38 +301,8 @@ namespace Js
         {
             if (index < returnedValueList->Count())
             {
-                DBGPROP_ATTRIB_FLAGS defaultAttributes = DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE | DBGPROP_ATTRIB_VALUE_IS_FAKE;
-                WCHAR * finalName = AnewArray(GetArenaFromContext(pResolvedObject->scriptContext), WCHAR, RETURN_VALUE_MAX_NAME);
                 ReturnedValue * returnValue = returnedValueList->Item(index);
-                if (returnValue->isValueOfReturnStatement)
-                {
-                    swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[Return value]"));
-                    pResolvedObject->obj = frame->GetRegValue(Js::FunctionBody::ReturnValueRegSlot);
-                    pResolvedObject->address = Anew(frame->GetArena(), LocalObjectAddressForRegSlot, frame, Js::FunctionBody::ReturnValueRegSlot, pResolvedObject->obj);
-                }
-                else
-                {
-                    if (returnValue->calledFunction->IsScriptFunction())
-                    {
-                        swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), returnValue->calledFunction->GetFunctionBody()->GetDisplayName());
-                    }
-                    else
-                    {
-                        Js::JavascriptString *builtInName = returnValue->calledFunction->GetDisplayName();
-                        swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), builtInName->GetSz());
-                    }
-                    pResolvedObject->obj = returnValue->returnedValue;
-                    defaultAttributes |= DBGPROP_ATTRIB_VALUE_READONLY;
-                    pResolvedObject->address = nullptr;
-                }
-                Assert(pResolvedObject->obj != nullptr);
-
-                pResolvedObject->name = finalName;
-                pResolvedObject->typeId = TypeIds_Object;
-
-                pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
-                pResolvedObject->objectDisplay->SetDefaultTypeAttribute(defaultAttributes);
-
+                VariableWalkerBase::GetReturnedValueResolvedObject(returnValue, frame, pResolvedObject);
                 return TRUE;
             }
 
@@ -546,53 +525,16 @@ namespace Js
         return !*isPropertyInDebuggerScope;
     }
 
-    // Gets an adjusted offset for the current bytecode location based on which stack frame we're in.
-    // If we're in the top frame (leaf node), then the byte code offset should remain as is, to reflect
-    // the current position of the instruction pointer.  If we're not in the top frame, we need to subtract
-    // 1 as the byte code location will be placed at the next statement to be executed at the top frame.
-    // In the case of block scoping, this is an inaccurate location for viewing variables since the next
-    // statement could be beyond the current block scope.  For inspection, we want to remain in the
-    // current block that the function was called from.
-    // An example is this:
-    // function foo() { ... }   // Frame 0 (with breakpoint inside)
-    // function bar() {         // Frame 1
-    //     {
-    //         let a = 0;
-    //         foo(); // <-- Inspecting here, foo is already evaluated.
-    //     }
-    //     foo(); // <-- Byte code offset is now here, so we need to -1 to get back in the block scope.
     int VariableWalkerBase::GetAdjustedByteCodeOffset() const
     {
-        Assert(pFrame);
-        int offset = pFrame->GetByteCodeOffset();
-        if (!pFrame->IsTopFrame() && pFrame->IsInterpreterFrame())
-        {
-            // Native frames are already adjusted so just need to adjust interpreted
-            // frames that are not the top frame.
-            --offset;
-        }
-
-        return offset;
+        return LocalsWalker::GetAdjustedByteCodeOffset(pFrame);
     }
 
     DebuggerScope * VariableWalkerBase::GetScopeWhenHaltAtFormals()
     {
         if (IsWalkerForCurrentFrame())
         {
-            Js::ScopeObjectChain * scopeObjectChain = pFrame->GetJavascriptFunction()->GetFunctionBody()->GetScopeObjectChain();
-
-            if (scopeObjectChain != nullptr && scopeObjectChain->pScopeChain != nullptr)
-            {
-                int currentOffset = GetAdjustedByteCodeOffset();
-                for (int i = 0; i < scopeObjectChain->pScopeChain->Count(); i++)
-                {
-                    Js::DebuggerScope * scope = scopeObjectChain->pScopeChain->Item(i);
-                    if (scope->scopeType == Js::DiagParamScope && scope->GetEnd() > currentOffset)
-                    {
-                        return scope;
-                    }
-                }
-            }
+            return LocalsWalker::GetScopeWhenHaltAtFormals(pFrame);
         }
 
         return nullptr;
@@ -631,13 +573,35 @@ namespace Js
 
             if (slotArray.IsFunctionScopeSlotArray())
             {
+                DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
                 Js::FunctionBody *pFBody = slotArray.GetFunctionBody();
-                if (pFBody->GetPropertyIdsForScopeSlotArray() != nullptr)
+                uint slotArrayCount = slotArray.GetCount();
+
+                if (formalScope != nullptr && !pFBody->IsParamAndBodyScopeMerged())
                 {
-                    uint slotArrayCount = slotArray.GetCount();
+                    Assert(pFBody->paramScopeSlotArraySize > 0);
                     pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, slotArrayCount);
 
-                    DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
+                    for (ulong i = 0; i < slotArrayCount; i++)
+                    {
+                        Js::DebuggerScopeProperty scopeProperty = formalScope->scopeProperties->Item(i);
+
+                        Var value = slotArray.Get(i);
+                        bool isInDeadZone = pFrame->GetScriptContext()->IsUndeclBlockVar(value);
+
+                        DebuggerPropertyDisplayInfo *pair = AllocateNewPropertyDisplayInfo(
+                            scopeProperty.propId,
+                            value,
+                            false/*isConst*/,
+                            isInDeadZone);
+
+                        Assert(pair != nullptr);
+                        pMembersList->Add(pair);
+                    }
+                }
+                else if (pFBody->GetPropertyIdsForScopeSlotArray() != nullptr)
+                {
+                    pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, slotArrayCount);
 
                     for (ulong i = 0; i < slotArrayCount; i++)
                     {
@@ -970,7 +934,7 @@ namespace Js
                 Js::DebuggerScope *debuggerScope = pScopeObjectChain->pScopeChain->Item(i);
                 bool isScopeInRange = debuggerScope->IsOffsetInScope(bytecodeOffset);
                 if (isScopeInRange
-                    && debuggerScope->scopeType != DiagParamScope
+                    && !debuggerScope->IsParamScope()
                     && (debuggerScope->IsOwnScope() || (debuggerScope->scopeType == DiagBlockScopeDirect && debuggerScope->HasProperties())))
                 {
                     switch (debuggerScope->scopeType)
@@ -1101,33 +1065,53 @@ namespace Js
 
             // In the eval function, we will not show global items directly, instead they should go as a group node.
             bool shouldAddGlobalItemsDirectly = pFBody->GetIsGlobalFunc() && !pFBody->IsEval();
-            if (shouldAddGlobalItemsDirectly)
+            bool dontAddGlobalsDirectly = (frameWalkerFlags & FrameWalkerFlags::FW_DontAddGlobalsDirectly) == FrameWalkerFlags::FW_DontAddGlobalsDirectly;
+            if (shouldAddGlobalItemsDirectly && !dontAddGlobalsDirectly)
             {
                 // Global properties will be enumerated using RootObjectVariablesWalker
                 pVarWalkers->Add(Anew(arena, RootObjectVariablesWalker, pFrame, pFrame->GetRootObject(), UIGroupType_None));
             }
 
-            DWORD localsType = GetCurrentFramesLocalsType(pFrame);
-            if (localsType & FramesLocalType::LocalType_Reg)
-            {
-                pVarWalkers->Add(Anew(arena, RegSlotVariablesWalker, pFrame, nullptr /*not debugger scope*/, UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference)));
-            }
-            if (localsType & FramesLocalType::LocalType_InObject)
-            {
-                Assert(scopeCount > 0);
-                pVarWalker = Anew(arena, ObjectVariablesWalker, pFrame, pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
-            }
-            else if (localsType & FramesLocalType::LocalType_InSlot)
-            {
-                Assert(scopeCount > 0);
-                pVarWalker = Anew(arena, SlotArrayVariablesWalker, pFrame, (Js::Var *)pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
-            }
-            else if (scopeCount > 0 && pFBody->GetFrameDisplayRegister() != 0)
-            {
-                Assert((Var)pDisplay->GetItem(0) == pFrame->GetScriptContext()->GetLibrary()->GetNull());
+            DebuggerScope *formalScope = GetScopeWhenHaltAtFormals(pFrame);
 
-                // A dummy scope with nullptr register is created. Skip this.
-                nextStartIndex++;
+            // If we are halted at formal place, and param and body scopes are splitted we need to make use of formal debugger scope to walk those variables.
+            if (!pFBody->IsParamAndBodyScopeMerged() && formalScope != nullptr)
+            {
+                Assert(scopeCount > 0);
+                if (formalScope->scopeType == Js::DiagParamScopeInObject)
+                {
+                    pVarWalker = Anew(arena, ObjectVariablesWalker, pFrame, (Js::Var *)pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
+                }
+                else
+                {
+                    Assert(pFBody->paramScopeSlotArraySize > 0);
+                    pVarWalker = Anew(arena, SlotArrayVariablesWalker, pFrame, (Js::Var *)pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
+                }
+            }
+            else
+            {
+                DWORD localsType = GetCurrentFramesLocalsType(pFrame);
+                if (localsType & FramesLocalType::LocalType_Reg)
+                {
+                    pVarWalkers->Add(Anew(arena, RegSlotVariablesWalker, pFrame, nullptr /*not debugger scope*/, UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference)));
+                }
+                if (localsType & FramesLocalType::LocalType_InObject)
+                {
+                    Assert(scopeCount > 0);
+                    pVarWalker = Anew(arena, ObjectVariablesWalker, pFrame, pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
+                }
+                else if (localsType & FramesLocalType::LocalType_InSlot)
+                {
+                    Assert(scopeCount > 0);
+                    pVarWalker = Anew(arena, SlotArrayVariablesWalker, pFrame, (Js::Var *)pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
+                }
+                else if (scopeCount > 0 && pFBody->GetFrameDisplayRegister() != 0 )
+                {
+                    Assert((Var)pDisplay->GetItem(0) == pFrame->GetScriptContext()->GetLibrary()->GetNull() || !pFBody->IsParamAndBodyScopeMerged());
+
+                    // A dummy scope with nullptr register is created. Skip this.
+                    nextStartIndex++;
+                }
             }
 
             if (pVarWalker)
@@ -1167,7 +1151,7 @@ namespace Js
             }
 
             // No need to add global properties if this is a global function, as it is already done above.
-            if (!shouldAddGlobalItemsDirectly)
+            if (!shouldAddGlobalItemsDirectly && !dontAddGlobalsDirectly)
             {
                 pVarWalker = Anew(arena, RootObjectVariablesWalker, pFrame, pFrame->GetRootObject(),  UIGroupType_Globals);
                 pVarWalkers->Add(pVarWalker);
@@ -1364,6 +1348,140 @@ namespace Js
             }
         }
         return totalLocalsCount;
+    }
+
+    ulong LocalsWalker::GetLocalVariablesCount()
+    {
+        ulong localsCount = 0;
+        if (pVarWalkers)
+        {
+            for (int i = 0; i < pVarWalkers->Count(); i++)
+            {
+                VariableWalkerBase* variableWalker = pVarWalkers->Item(i);
+
+                // In the case of making groups, we want to include any variables that aren't
+                // part of a group as part of the local variable count.
+                if (!ShouldMakeGroups() || !variableWalker->IsInGroup())
+                {
+                    localsCount += variableWalker->GetChildrenCount();
+                }
+            }
+        }
+        return localsCount;
+    }
+
+    BOOL LocalsWalker::GetLocal(int i, ResolvedObject* pResolvedObject)
+    {
+        if (!pVarWalkers || pVarWalkers->Count() == 0)
+        {
+            return FALSE;
+        }
+
+        for (int j = 0; j < pVarWalkers->Count(); ++j)
+        {
+            VariableWalkerBase *variableWalker = pVarWalkers->Item(j);
+
+            if (!ShouldMakeGroups() || !variableWalker->IsInGroup())
+            {
+                int count = variableWalker->GetChildrenCount();
+
+                if (i < count)
+                {
+                    return variableWalker->Get(i, pResolvedObject);
+                }
+                i -= count;
+            }
+            else
+            {
+                // We've finished with all walkers for the current locals level so
+                // break out in order to handle the groups.
+                break;
+            }
+        }
+
+        return FALSE;
+    }
+
+    BOOL LocalsWalker::GetGroupObject(Js::UIGroupType uiGroupType, int i, ResolvedObject* pResolvedObject)
+    {
+        if (pVarWalkers)
+        {
+            int scopeCount = 0;
+            for (int j = 0; j < pVarWalkers->Count(); j++)
+            {
+                VariableWalkerBase* variableWalker = pVarWalkers->Item(j);
+
+                if (variableWalker->groupType == uiGroupType)
+                {
+                    scopeCount++;
+                    if (i < scopeCount)
+                    {
+                        return variableWalker->GetGroupObject(pResolvedObject);
+                    }
+                }
+            }
+        }
+        return FALSE;
+    }
+
+    BOOL LocalsWalker::GetScopeObject(int i, ResolvedObject* pResolvedObject)
+    {
+        return this->GetGroupObject(Js::UIGroupType::UIGroupType_Scope, i, pResolvedObject);
+    }
+
+    BOOL LocalsWalker::GetGlobalsObject(ResolvedObject* pResolvedObject)
+    {
+        int i = 0;
+        return this->GetGroupObject(Js::UIGroupType::UIGroupType_Globals, i, pResolvedObject);
+    }
+
+    /*static*/
+    DebuggerScope * LocalsWalker::GetScopeWhenHaltAtFormals(DiagStackFrame* frame)
+    {
+        Js::ScopeObjectChain * scopeObjectChain = frame->GetJavascriptFunction()->GetFunctionBody()->GetScopeObjectChain();
+
+        if (scopeObjectChain != nullptr && scopeObjectChain->pScopeChain != nullptr)
+        {
+            int currentOffset = GetAdjustedByteCodeOffset(frame);
+            for (int i = 0; i < scopeObjectChain->pScopeChain->Count(); i++)
+            {
+                Js::DebuggerScope * scope = scopeObjectChain->pScopeChain->Item(i);
+                if (scope->IsParamScope() && scope->GetEnd() > currentOffset)
+                {
+                    return scope;
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+    // Gets an adjusted offset for the current bytecode location based on which stack frame we're in.
+    // If we're in the top frame (leaf node), then the byte code offset should remain as is, to reflect
+    // the current position of the instruction pointer.  If we're not in the top frame, we need to subtract
+    // 1 as the byte code location will be placed at the next statement to be executed at the top frame.
+    // In the case of block scoping, this is an inaccurate location for viewing variables since the next
+    // statement could be beyond the current block scope.  For inspection, we want to remain in the
+    // current block that the function was called from.
+    // An example is this:
+    // function foo() { ... }   // Frame 0 (with breakpoint inside)
+    // function bar() {         // Frame 1
+    //     {
+    //         let a = 0;
+    //         foo(); // <-- Inspecting here, foo is already evaluated.
+    //     }
+    //     foo(); // <-- Byte code offset is now here, so we need to -1 to get back in the block scope.
+    int LocalsWalker::GetAdjustedByteCodeOffset(DiagStackFrame* frame)
+    {
+        int offset = frame->GetByteCodeOffset();
+        if (!frame->IsTopFrame() && frame->IsInterpreterFrame())
+        {
+            // Native frames are already adjusted so just need to adjust interpreted
+            // frames that are not the top frame.
+            --offset;
+        }
+
+        return offset;
     }
 
     /*static*/
@@ -1941,7 +2059,7 @@ namespace Js
 
                 try
                 {
-                    BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
+                    auto funcPtr = [&]()
                     {
                         IGNORE_STACKWALK_EXCEPTION(scriptContext);
                         if (object->CanHaveInterceptors())
@@ -1957,8 +2075,29 @@ namespace Js
                         {
                             return TRUE;
                         }
+
+                        return FALSE;
+                    };
+
+                    BOOL autoFuncReturn = FALSE;
+
+                    if (!scriptContext->GetThreadContext()->IsScriptActive())
+                    {
+                        BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
+                        {
+                            autoFuncReturn = funcPtr();
+                        }
+                        END_JS_RUNTIME_CALL(scriptContext);
                     }
-                    END_JS_RUNTIME_CALL(scriptContext);
+                    else
+                    {
+                        autoFuncReturn = funcPtr();
+                    }
+
+                    if (autoFuncReturn == TRUE)
+                    {
+                        return TRUE;
+                    }
                 }
                 catch (Js::JavascriptExceptionObject* exception)
                 {
@@ -2383,11 +2522,11 @@ namespace Js
                                     bool isUnscoped = false;
                                     bool isConst = true;
                                     count = regExp->GetSpecialEnumerablePropertyCount();
-                                    PropertyId const * specialPropertyIds = regExp->GetSpecialEnumerablePropertyIds();
+                                    PropertyId const * specialEnumerablePropertyIds = regExp->GetSpecialEnumerablePropertyIds();
 
                                     for (int i = 0; i < count; i++)
                                     {
-                                        Js::PropertyId propertyId = specialPropertyIds[i];
+                                        Js::PropertyId propertyId = specialEnumerablePropertyIds[i];
 
                                         InsertItem(originalObject, object, propertyId, isConst, isUnscoped, &pMethodsGroupWalker);
                                     }
@@ -2460,6 +2599,15 @@ namespace Js
                         RecyclableWeakSetObjectWalker *pWeakSetWalker = Anew(arena, RecyclableWeakSetObjectWalker, scriptContext, weakSet);
                         fakeGroupObjectWalkerList->Add(pWeakSetWalker);
                     }
+                    else if (typeId == TypeIds_Promise)
+                    {
+                        // Provide [Promise] group object.
+                        EnsureFakeGroupObjectWalkerList();
+
+                        JavascriptPromise* promise = JavascriptPromise::FromVar(object);
+                        RecyclablePromiseObjectWalker *pPromiseWalker = Anew(arena, RecyclablePromiseObjectWalker, scriptContext, promise);
+                        fakeGroupObjectWalkerList->Add(pPromiseWalker);
+                    }
                     else if (Js::DynamicType::Is(typeId))
                     {
                         DynamicObject *const dynamicObject = Js::DynamicObject::FromVar(instance);
@@ -2491,7 +2639,11 @@ namespace Js
             }
 
             // Sort current pMembersList.
-            pMembersList->Sort(ElementsComparer, scriptContext);
+            HostDebugContext* hostDebugContext = scriptContext->GetDebugContext()->GetHostDebugContext();
+            if (hostDebugContext != nullptr)
+            {
+                hostDebugContext->SortMembersList(pMembersList, scriptContext);
+            }
         }
 
         ulong childrenCount =
@@ -2556,15 +2708,23 @@ namespace Js
 
         if (JavascriptOperators::GetTypeId(itemObj) == TypeIds_Function)
         {
-            EnsureFakeGroupObjectWalkerList();
-
-            if (*ppMethodsGroupWalker == nullptr)
+            if (scriptContext->GetThreadContext()->GetDebugManager()->IsLocalsDisplayFlagsSet(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods))
             {
-                *ppMethodsGroupWalker = Anew(arena, RecyclableMethodsGroupWalker, scriptContext, instance);
-                fakeGroupObjectWalkerList->Add(*ppMethodsGroupWalker);
+                DebuggerPropertyDisplayInfo *info = Anew(arena, DebuggerPropertyDisplayInfo, propertyId, itemObj, DebuggerPropertyDisplayInfoFlags_Const);
+                pMembersList->Add(info);
             }
+            else 
+            {
+                EnsureFakeGroupObjectWalkerList();
 
-            (*ppMethodsGroupWalker)->AddItem(propertyId, itemObj);
+                if (*ppMethodsGroupWalker == nullptr)
+                {
+                    *ppMethodsGroupWalker = Anew(arena, RecyclableMethodsGroupWalker, scriptContext, instance);
+                    fakeGroupObjectWalkerList->Add(*ppMethodsGroupWalker);
+                }
+
+                (*ppMethodsGroupWalker)->AddItem(propertyId, itemObj);
+            }
         }
         else
         {
@@ -3568,6 +3728,10 @@ namespace Js
     BOOL RecyclableProxyObjectWalker::Get(int i, ResolvedObject* pResolvedObject)
     {
         JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
+        if (proxy->GetTarget() == nullptr || proxy->GetHandler() == nullptr)
+        {
+            return FALSE;
+        }
         if (i == 0)
         {
             pResolvedObject->name = _u("[target]");
@@ -3595,6 +3759,96 @@ namespace Js
             Js::PropertyIds::Proxy,
             pResolvedObject->obj,
             false /*isInDeadZone*/);
+
+        return TRUE;
+    }
+
+    //--------------------------
+    // RecyclablePromiseObjectDisplay
+
+    RecyclablePromiseObjectDisplay::RecyclablePromiseObjectDisplay(ResolvedObject* resolvedObject)
+        : RecyclableObjectDisplay(resolvedObject)
+    {
+    }
+
+    WeakArenaReference<IDiagObjectModelWalkerBase>* RecyclablePromiseObjectDisplay::CreateWalker()
+    {
+        ReferencedArenaAdapter* pRefArena = scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticArena();
+        if (pRefArena)
+        {
+            IDiagObjectModelWalkerBase* pOMWalker = Anew(pRefArena->Arena(), RecyclablePromiseObjectWalker, scriptContext, instance);
+            return HeapNew(WeakArenaReference<IDiagObjectModelWalkerBase>, pRefArena, pOMWalker);
+        }
+        return nullptr;
+    }
+
+    //--------------------------
+    // RecyclablePromiseObjectWalker
+
+    RecyclablePromiseObjectWalker::RecyclablePromiseObjectWalker(ScriptContext* pContext, Var _instance)
+        : RecyclableObjectWalker(pContext, _instance)
+    {
+    }
+
+    BOOL RecyclablePromiseObjectWalker::GetGroupObject(ResolvedObject* pResolvedObject)
+    {
+        pResolvedObject->name = _u("[Promise]");
+        pResolvedObject->propId = Constants::NoProperty;
+        pResolvedObject->obj = instance;
+        pResolvedObject->scriptContext = scriptContext;
+        pResolvedObject->typeId = JavascriptOperators::GetTypeId(pResolvedObject->obj);
+        pResolvedObject->address = nullptr;
+
+        pResolvedObject->objectDisplay = Anew(GetArenaFromContext(scriptContext), RecyclablePromiseObjectDisplay, pResolvedObject);
+        pResolvedObject->objectDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY | DBGPROP_ATTRIB_VALUE_IS_FAKE);
+        return TRUE;
+    }
+
+    BOOL RecyclablePromiseObjectWalker::Get(int i, ResolvedObject* pResolvedObject)
+    {
+        JavascriptPromise* promise = JavascriptPromise::FromVar(instance);
+
+        if (i == 0)
+        {
+            pResolvedObject->name = _u("[status]");
+
+            switch (promise->GetStatus())
+            {
+            case JavascriptPromise::PromiseStatusCode_Undefined:
+                pResolvedObject->obj = scriptContext->GetLibrary()->GetUndefinedDisplayString();
+                break;
+            case JavascriptPromise::PromiseStatusCode_Unresolved:
+                pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("pending"));
+            case JavascriptPromise::PromiseStatusCode_HasResolution:
+                pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("resolved"));
+                break;
+            case JavascriptPromise::PromiseStatusCode_HasRejection:
+                pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("rejected"));
+                break;
+            default:
+                AssertMsg(false, "New PromiseStatusCode not handled in debugger");
+                pResolvedObject->obj = scriptContext->GetLibrary()->GetUndefinedDisplayString();
+                break;
+            }
+        }
+        else if (i == 1)
+        {
+            pResolvedObject->name = _u("[value]");
+            Var result = promise->GetResult();
+            pResolvedObject->obj = result != nullptr ? result : scriptContext->GetLibrary()->GetUndefinedDisplayString();
+        }
+        else
+        {
+            Assert(false);
+            return FALSE;
+        }
+
+        pResolvedObject->propId = Constants::NoProperty;
+        pResolvedObject->scriptContext = scriptContext;
+        pResolvedObject->typeId = JavascriptOperators::GetTypeId(pResolvedObject->obj);
+        pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
+        pResolvedObject->objectDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY | DBGPROP_ATTRIB_VALUE_IS_FAKE);
+        pResolvedObject->address = nullptr;
 
         return TRUE;
     }
@@ -3650,7 +3904,11 @@ namespace Js
 
     void RecyclableMethodsGroupWalker::Sort()
     {
-        pMembersList->Sort(ElementsComparer, scriptContext);
+        HostDebugContext* hostDebugContext = this->scriptContext->GetDebugContext()->GetHostDebugContext();
+        if (hostDebugContext != nullptr)
+        {
+            hostDebugContext->SortMembersList(pMembersList, scriptContext);
+        }
     }
 
     RecyclableMethodsGroupDisplay::RecyclableMethodsGroupDisplay(RecyclableMethodsGroupWalker *_methodGroupWalker, ResolvedObject* resolvedObject)

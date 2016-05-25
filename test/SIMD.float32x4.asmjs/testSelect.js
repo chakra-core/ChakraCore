@@ -82,10 +82,6 @@ function asmModule(stdlib, imports) {
     var f4greaterThanOrEqual = f4.greaterThanOrEqual;
 
     var f4select = f4.select;
-    var f4and = f4.and;
-    var f4or = f4.or;
-    var f4xor = f4.xor;
-    var f4not = f4.not;
 
     var fround = stdlib.Math.fround;
 
@@ -170,7 +166,7 @@ function asmModule(stdlib, imports) {
     return {func1:func1, func2:func2, func3:func3};
 }
 
-var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Bool32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)});
+var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Bool32x4(-1065353216, -1073741824,-1077936128, -1082130432) /*, g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)*/});
 
 var ret;
 ret = m.func1();

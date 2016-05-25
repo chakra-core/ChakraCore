@@ -615,6 +615,66 @@ var tests = [
             });
         }
     },
+    {
+        name:"Async function with formal captured in a lambda",
+        body: function (index) {
+            async function af(d = 1) {
+                return () => d;
+            }
+
+            af().then(result => {
+                if (result() === 1) {
+                    print(`Test #${index} - Success lambda returns 1 when no arguments passed`);
+                } else {
+                    print(`Test #${index} - Failure result is not 1, result = '${result()}'`);
+                }
+            }, err => {
+                print(`Test #${index} - Error err = ${err}`);
+            }).catch(err => {
+                print(`Test #${index} - Catch err = ${err}`);
+            });  
+        }
+    },
+    {
+        name:"Async function with formal captured in a nested function",
+        body: function (index) {
+            async function af(d = 1) {
+                return function () { return d; };
+            }
+
+            af().then(result => {
+                if (result() === 1) {
+                    print(`Test #${index} - Success nested function returns 1 when no arguments passed`);
+                } else {
+                    print(`Test #${index} - Failure result is not 1, result = '${result()}'`);
+                }
+            }, err => {
+                print(`Test #${index} - Error err = ${err}`);
+            }).catch(err => {
+                print(`Test #${index} - Catch err = ${err}`);
+            });  
+        }
+    },
+    {
+        name:"Async function with formal captured in eval",
+        body: function (index) {
+            async function af(d = 1) {
+                return eval("d");
+            }
+
+            af().then(result => {
+                if (result === 1) {
+                    print(`Test #${index} - Success eval returns 1 when no arguments passed`);
+                } else {
+                    print(`Test #${index} - Failure result is not 1, result = '${result}'`);
+                }
+            }, err => {
+                print(`Test #${index} - Error err = ${err}`);
+            }).catch(err => {
+                print(`Test #${index} - Catch err = ${err}`);
+            });  
+        }
+    },
 ];
 
 var index = 1;

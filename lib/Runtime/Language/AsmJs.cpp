@@ -927,6 +927,11 @@ varDeclEnd:
         }
 
         ParseNode* objNode = node->sxReturn.pnodeExpr;
+        if ( !objNode )
+        {
+            return m.Fail( node, _u( "Module return must be an object or 1 function" ) );
+        }
+
         if( objNode->nop != knopObject )
         {
             if( ParserWrapper::IsNameDeclaration( objNode ) )
@@ -1026,20 +1031,20 @@ varDeclEnd:
 
             PropertyName tableName = varStmt->name();
 
-            AsmJsSymbol* sym = m.LookupIdentifier(tableName);
-            if( !sym )
+            AsmJsSymbol* symFunctionTable = m.LookupIdentifier(tableName);
+            if( !symFunctionTable)
             {
                 // func table not used in functions disregard it
             }
             else
             {
                 //Check name
-                if( sym->GetSymbolType() != AsmJsSymbol::FuncPtrTable )
+                if(symFunctionTable->GetSymbolType() != AsmJsSymbol::FuncPtrTable )
                 {
                     return m.FailName( varStmt, _u("Variable %s is already defined"), tableName );
                 }
 
-                AsmJsFunctionTable* table = sym->Cast<AsmJsFunctionTable>();
+                AsmJsFunctionTable* table = symFunctionTable->Cast<AsmJsFunctionTable>();
                 if( table->IsDefined() )
                 {
                     return m.FailName( varStmt, _u("Multiple declaration of function table %s"), tableName );

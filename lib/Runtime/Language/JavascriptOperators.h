@@ -213,14 +213,18 @@ namespace Js
         static BOOL IsUndefinedObject(Var instance, RecyclableObject *libraryUndefined);
         static BOOL IsUndefinedObject(Var instance, JavascriptLibrary* library);
         static BOOL IsAnyNumberValue(Var instance);
-        static BOOL IsIterable(RecyclableObject* instance, ScriptContext* scriptContext);
         static BOOL IsClassConstructor(Var instance);
+
+        static bool CanShortcutOnUnknownPropertyName(RecyclableObject * instance);
+        static bool CanShortcutInstanceOnUnknownPropertyName(RecyclableObject *instance);
+        static bool CanShortcutPrototypeChainOnUnknownPropertyName(RecyclableObject *instance);
 
         static BOOL HasOwnItem(RecyclableObject* instance, uint32 index);
         static BOOL HasItem(RecyclableObject* instance, uint32 index);
         static BOOL HasItem(RecyclableObject* instance, uint64 index);
         static BOOL GetOwnItem(RecyclableObject* instance, uint32 index, Var* value, ScriptContext* requestContext);
         static Var GetItem(RecyclableObject* instance, uint64 index, ScriptContext* requestContext);
+        static Var GetItem(RecyclableObject* instance, uint32 index, ScriptContext* requestContext);
         static BOOL GetItem(RecyclableObject* instance, uint64 index, Var* value, ScriptContext* requestContext);
         static BOOL GetItem(RecyclableObject* instance, uint32 index, Var* value, ScriptContext* requestContext);
         static BOOL GetItem(Var instance, RecyclableObject* propertyObject, uint32 index, Var* value, ScriptContext* requestContext);
@@ -399,10 +403,10 @@ namespace Js
         static void AddFloatsToArraySegment(SparseArraySegment<double> * segment, const Js::AuxArray<double> *doubles);
         static void UpdateNewScObjectCache(Var function, Var instance, ScriptContext* requestContext);
 
-        static RecyclableObject* GetIteratorFunction(Var iterable, ScriptContext* scriptContext);
-        static RecyclableObject* GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext);
-        static RecyclableObject* GetIterator(Var instance, ScriptContext* scriptContext);
-        static RecyclableObject* GetIterator(RecyclableObject* instance, ScriptContext* scriptContext);
+        static RecyclableObject* GetIteratorFunction(Var iterable, ScriptContext* scriptContext, bool optional = false);
+        static RecyclableObject* GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext, bool optional = false);
+        static RecyclableObject* GetIterator(Var instance, ScriptContext* scriptContext, bool optional = false);
+        static RecyclableObject* GetIterator(RecyclableObject* instance, ScriptContext* scriptContext, bool optional = false);
         static RecyclableObject* IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, Var value = nullptr);
         static bool IteratorComplete(RecyclableObject* iterResult, ScriptContext* scriptContext);
         static Var IteratorValue(RecyclableObject* iterResult, ScriptContext* scriptContext);
@@ -539,6 +543,7 @@ namespace Js
         static bool CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* object);
         static bool CheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype);
         static bool DoCheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype);
+        static bool CheckIfPrototypeChainContainsProxyObject(RecyclableObject* prototype);
         static void OP_SetComputedNameVar(Var method, Var computedNameVar);
         static void OP_SetHomeObj(Var method, Var homeObj);
         static Var OP_LdSuper(Var scriptFunction, ScriptContext * scriptContext);

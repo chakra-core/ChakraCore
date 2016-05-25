@@ -20999,6 +20999,7 @@ undefined
 undefined
 undefined
 10
+[object DataView]
 Start same thread different engine test on file dataview.js
 property of global: print
 

@@ -10,30 +10,6 @@ if (this.WScript && this.WScript.LoadScriptFile) {
 
 var tests = [
     {
-        name: "Change Object.prototype.__proto__ value",
-        body: function () {
-            // This considered no-op: Object.prototype.__proto__ = null
-            verify_disable("Object.prototype.__proto__ = null", KEEP_ENABLED);
-
-            // Set to these primitives will throw and make no change
-            [undefined, 0, 123, -12.3, NaN, Infinity, true, false, "str"].forEach(
-                function (newValue) {
-                    Object.prototype.__proto__ = newValue;
-                    verify__proto__enabled();
-                });
-
-            // Set to any objects will throw and make no change
-            [new Boolean(), new Number(12), new String("string object"), {}, [], Object.prototype, Math.sin, assert.throws].forEach(
-                function (newValue) {
-                    assert.throws__proto__Cyclic(function () {
-                        Object.prototype.__proto__ = newValue;
-                    });
-                    verify__proto__enabled();
-                });
-        }
-    },
-
-    {
         name: "seal/freeze Object.prototype",
         body: function () {
             ["Object.seal(Object.prototype)", "Object.freeze(Object.prototype)"].forEach(function (expr) {

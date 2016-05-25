@@ -375,6 +375,7 @@ public:
     BVSparse<JitArenaAllocator> *           noImplicitCallJsArrayHeadSegmentSymUses;
     BVSparse<JitArenaAllocator> *           noImplicitCallArrayLengthSymUses;
     BVSparse<JitArenaAllocator> *           cloneStrCandidates;
+    BVSparse<JitArenaAllocator> *           couldRemoveNegZeroBailoutForDef; // Deadstore pass only
     Loop * backwardPassCurrentLoop;
 
     // Global optimizer data
@@ -417,6 +418,7 @@ private:
         noImplicitCallJsArrayHeadSegmentSymUses(nullptr),
         noImplicitCallArrayLengthSymUses(nullptr),
         cloneStrCandidates(nullptr),
+        couldRemoveNegZeroBailoutForDef(nullptr),
         byteCodeUpwardExposedUsed(nullptr),
         isAirLockCompensationBlock(false),
 #if DBG

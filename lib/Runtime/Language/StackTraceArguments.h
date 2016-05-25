@@ -14,7 +14,7 @@ namespace Js {
         static JavascriptString *TypeCodeToTypeName(unsigned typeCode, ScriptContext *scriptContext);
 
         // We use 3 bits to store the value type. If we add another type, we need to use more bits.
-        static enum valueTypes
+        enum valueTypes
         {
             nullValue = 0,
             undefinedValue = 1,

@@ -19,7 +19,9 @@ namespace Js
         evalCodeRegistrationCount(0),
         anonymousCodeRegistrationCount(0),
         jscriptBlockRegistrationCount(0),
-        isDebuggerAttaching(false)
+        isDebuggerAttaching(false),
+        nextBreakPointId(0),
+        localsDisplayFlags(LocalsDisplayFlags_None)
     {
         Assert(_pThreadContext != nullptr);
 #if DBG
@@ -125,7 +127,7 @@ namespace Js
         return (DynamicObject*)CrossSite::MarshalVar(scriptContext, (Var)this->pConsoleScope);
     }
 
-    FrameDisplay *DebugManager::GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne, bool addGlobalThisAtScopeTwo)
+    FrameDisplay *DebugManager::GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne)
     {
         // The scope chain for console eval looks like:
         //  - dummy empty object - new vars, let, consts, functions get added here
@@ -136,10 +138,7 @@ namespace Js
 
         FrameDisplay* environment = JavascriptOperators::OP_LdFrameDisplay(this->GetConsoleScope(scriptContext), const_cast<FrameDisplay *>(&NullFrameDisplay), scriptContext);
 
-        if (addGlobalThisAtScopeTwo)
-        {
-            environment = JavascriptOperators::OP_LdFrameDisplay(scriptContext->GetGlobalObject()->ToThis(), environment, scriptContext);
-        }
+        environment = JavascriptOperators::OP_LdFrameDisplay(scriptContext->GetGlobalObject()->ToThis(), environment, scriptContext);
 
         if (scopeAtOne != nullptr)
         {
@@ -198,4 +197,26 @@ namespace Js
         }
     }
 #endif
+}
+
+AutoSetDispatchHaltFlag::AutoSetDispatchHaltFlag(Js::ScriptContext *scriptContext, ThreadContext *threadContext) :
+    m_scriptContext(scriptContext),
+    m_threadContext(threadContext)
+{
+    Assert(m_scriptContext != nullptr);
+    Assert(m_threadContext != nullptr);
+
+    Assert(!m_threadContext->GetDebugManager()->IsAtDispatchHalt());
+    m_threadContext->GetDebugManager()->SetDispatchHalt(true);
+
+    Assert(!m_scriptContext->GetDebugContext()->GetProbeContainer()->IsPrimaryBrokenToDebuggerContext());
+    m_scriptContext->GetDebugContext()->GetProbeContainer()->SetIsPrimaryBrokenToDebuggerContext(true);
+}
+AutoSetDispatchHaltFlag::~AutoSetDispatchHaltFlag()
+{
+    Assert(m_threadContext->GetDebugManager()->IsAtDispatchHalt());
+    m_threadContext->GetDebugManager()->SetDispatchHalt(false);
+
+    Assert(m_scriptContext->GetDebugContext()->GetProbeContainer()->IsPrimaryBrokenToDebuggerContext());
+    m_scriptContext->GetDebugContext()->GetProbeContainer()->SetIsPrimaryBrokenToDebuggerContext(false);
 }

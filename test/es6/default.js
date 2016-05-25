@@ -30,6 +30,22 @@ var tests = [
 
       assert.doesNotThrow(function f() { "use strict"; function g(a, b = 10) { } },           "Default arguments are allowed for functions which are already in strict mode");
       assert.doesNotThrow(function f(a, b, a, c) { return a + b + c; },                       "In non-strict mode duplicate parameters are allowed");
+      
+      assert.doesNotThrow(function () { var obj = { set f(a = 1) {} }; }, "Default parameters can be used with setters inside an object literal");
+      assert.doesNotThrow(function () { class c { set f(a = 1) {} }; }, "Default parameters can be used with setters inside a class");
+      assert.doesNotThrow(function () { var obj = { set f({a}) {} }; }, "Setter can have destructured param list");
+      assert.doesNotThrow(function () { var obj = { set f({a, b}) {} }; }, "Setter can have destructured param list with more than one parameter");
+      assert.doesNotThrow(function () { var obj = { set f([a, b]) {} }; }, "Setter can have destructured array pattern with more than one parameter");
+      assert.doesNotThrow(function () { var obj = { set f([a, ...b]) {} }; }, "Setter can have destructured array pattern with rest");
+      assert.throws(function () { eval("var obj = { set f(...a) {} };"); }, SyntaxError, "Rest parameter cannot be used with setters inside an object literal", "Unexpected ... operator");
+      assert.throws(function () { eval("var obj = { set f(a, b = 1) {} };"); }, SyntaxError, "Setters can have only one parameter even if one of them is default parameter", "Setter functions must have exactly one parameter");
+      assert.throws(function () { eval("var obj = { set f(a = 1, b) {} };"); }, SyntaxError, "Setters can have only one parameter even if one of them is default parameter", "Setter functions must have exactly one parameter");
+      assert.throws(function () { eval("var obj = { set f(a = 1, ...b) {} };") }, SyntaxError, "Setters can have only one parameter even if one of them is rest parameter", "Setter functions must have exactly one parameter");
+      assert.throws(function () { eval("var obj = { set f(a = 1, {b}) {} };"); }, SyntaxError, "Setters can have only one parameter even if one of them is destructured parameter", "Setter functions must have exactly one parameter");
+      assert.throws(function () { eval("var obj = { set f({a}, b = 1) {} };"); }, SyntaxError, "Setters can have only one parameter even if one of them is default parameter", "Setter functions must have exactly one parameter");
+      assert.throws(function () { eval("var obj = { get f(a = 1) {} };"); }, SyntaxError, "Getter cannnot have any parameter even if it is default parameter", "Getter functions must have no parameters");
+      assert.throws(function () { eval("var obj = { get f(...a) {} };"); }, SyntaxError, "Getter cannot have any parameter even if it is rest parameter", "Getter functions must have no parameters");
+      assert.throws(function () { eval("var obj = { get f({a}) {} };"); }, SyntaxError, "Getter cannot have any parameter even if it is destructured parameter", "Getter functions must have no parameters");
 
       assert.throws(function () { eval("function foo(a *= 5)"); },                          SyntaxError, "Other assignment operators do not work");
 
@@ -155,6 +171,55 @@ var tests = [
                     ReferenceError,
                     "Named function expression does not leak name into subsequent default expressions",
                     "'bar' is undefined");
+      function foo6(a = b1) {
+          {
+              function b1() {
+                  return 2;
+              }
+          }
+          assert.areEqual(1, a, "First argument should get the initial value from outer variable");
+          assert.areEqual(2, b1(), "Block scoped function should be visible in the body also");
+      }
+      var b1 = 1;
+      foo6();
+      
+      var a1 = 10; 
+      function foo7(b = function () { return a1; }) { 
+          assert.areEqual(undefined, a1, "Inside the function body the assignment hasn't happened yet"); 
+          var a1 = 20; 
+          assert.areEqual(20, a1, "Assignment to the symbol inside the function changes the value"); 
+          return b; 
+      } 
+      assert.areEqual(10, foo7()(), "Function in the param scope correctly binds to the outer variable");
+      
+      function foo8(a = x1, b = function g() {
+          return function h() {
+              assert.areEqual(10, x1, "x1 is captured from the outer scope");
+          };
+      }) {
+          var x1 = 100;
+          b()();
+      };
+      var x1 = 10;
+      foo8();
+      
+      var x2 = 1;
+      function foo9(a = x2, b = function() { return x2; }) {
+          {
+             function x2() {
+            }
+          }
+          var x2 = 2;
+          return b;
+      }
+      assert.areEqual(1, foo9()(), "Symbol capture at the param scope is unaffected by the inner definitions");
+      
+      var x3 = 1;
+      function foo10(a = x3, b = function(_x) { return x3; }) {
+          var x3 = 2;
+          return b;
+      }
+      assert.areEqual(1, foo10()(), "Symbol capture at the param scope is unaffected by other references in the body and param");
     }
   },
   {
@@ -212,46 +277,18 @@ var tests = [
   {
     name: "Split parameter scope",
     body: function () {
-        assert.throws(function () { eval('function f(a = 1, b = function () { return a; }) { }') }, SyntaxError, "Functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = function () { var a1 = 10; return a; }) { var a = 20;}') }, SyntaxError, "Functions that refer to a formal are not allowed in the param scope even if it is redeclared in teh body", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('obj = { f(a = 1, b = function () { return a; }) { } }') }, SyntaxError, "Object methods that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('class c { f(a = 1, b = function () { return a; }) { } }') }, SyntaxError, "Class methods that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = function c() { return a; }) { }') }, SyntaxError, "Function expressions with name that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = 2, c = function () { return a + b; }) {}') }, SyntaxError, "Functions that refer to formals are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = function () { return function () { return a; } }) { }') }, SyntaxError, "Nested functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f8(a = 1, b = function () { return a; }, ...c) { }') }, SyntaxError, "Functions that refer to a formal are not allowed in the param scope when rest param is present", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f9( {a:a1, b:b1}, c = function() { return a1 + b1; } ) { }') }, SyntaxError, "Functions that refer to a formal are not allowed in the param scope even in destructured scenario", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f10({x:x = 10, y:y = function () { return x; }}) { }') }, SyntaxError, "Functions that refer to a formal are not allowed in the param scope in destructured scenario", "Formals cannot contain functions definitions that reference them");
-
-        assert.doesNotThrow(function (a = 10, b = a++, c = a + b) {}, "Using formals without closure does not throw a syntax error");
-        assert.doesNotThrow(function f1(a = 10, b = function () { return 20; }) {}, "Function definitions without any reference to the formals works");
-
-        var a1 = 10
-        function f1(b = function () { return a1; }) {
-            assert.areEqual(a1, undefined, "Inside the function body the assignment hasn't happened yet");
-            var a1 = 20;
-            assert.areEqual(a1, 20, "Assignment to the symbol inside the function changes the value");
-            return b;
-        }
-        assert.areEqual(f1()(), 10, "Function in the param scope correctly binds to the outer variable");
-
-        assert.throws(function () { eval('function f(a = 1, b = () => a) { }') }, SyntaxError, "Arrow functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = () => { var a1 = 10; return a; }) { var a = 20;}') }, SyntaxError, "Arrow functions that refer to a formal are not allowed in the param scope even if it is redeclared in teh body", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = () => { return () => a; }) { }') }, SyntaxError, "Nested Arrow functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = function () { return () => a; }) { }') }, SyntaxError, "Arrow function nested inside a function  that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('(a = 1, b = () => a) => { }') }, SyntaxError, "Arrow functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('(a = 1, b = () => { return () => a; }) => { }') }, SyntaxError, "Nested Arrow functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-
-        assert.throws(function () { eval('function f(a = 1, b = class c { f() { var a1 = 10; return a; }}) { }') }, SyntaxError, "Class methods that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = () => { return class c { f() { var a1 = 10; return a; }} }) { }') }, SyntaxError, "Nested class methods that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        
-        // TODO(aneeshd): The additional block created for class seems to have the wrong scope associated with it. Will reenable this once the issue in https://github.com/Microsoft/ChakraCore/issues/299 is fixed.
-        // assert.doesNotThrow(function f(a = 1, b = class c { f() { return 2; }}) { }, "Class methods that do not refer to a formal are allowed in the param scope");
+        assert.doesNotThrow(function f(a = 1, b = class c { f() { return 2; }}) { }, "Class methods that do not refer to a formal are allowed in the param scope");
 
         assert.throws(function () { eval("function f(a = eval('1')) { }") }, SyntaxError, "Eval is not allowed in the parameter scope", "'eval' is not allowed in the default initializer");
         assert.throws(function () { eval("function f(a, b = function () { eval('1'); }) { }") }, SyntaxError, "Evals in child functions are not allowed in the parameter scope", "'eval' is not allowed in the default initializer");
         assert.throws(function () { eval("function f(a, b = function () { function f() { eval('1'); } }) { }") }, SyntaxError, "Evals in nested child functions are not allowed in the parameter scope", "'eval' is not allowed in the default initializer");
         assert.throws(function () { eval("function f(a, b = eval('a')) { }") }, SyntaxError, "Eval is not allowed in the parameter scope", "'eval' is not allowed in the default initializer");
+        assert.throws(function () { eval("async function f(a = eval('b')) { }"); }, SyntaxError, "Eval is not allowed in the param scope of async functions", "'eval' is not allowed in the default initializer");
+        assert.throws(function () { eval("function f(a = async function(y) { eval('b'); }) { }"); }, SyntaxError, "Eval is not allowed in the param scope of nested async functions", "'eval' is not allowed in the default initializer");
+        
+        assert.doesNotThrow(function (a = eval) { }, "An assignment of eval does not cause syntax error");
+        assert.doesNotThrow(function (a = eval()) { }, "If no arguments are passed to eval then it won't cause syntax error");
+        assert.doesNotThrow(function () { eval("function f( x = function y() { function z() { x; }; }) { }"); }, "Split scope functions inside eval shouldn't throw");
     }
   },
   {
@@ -318,6 +355,24 @@ var tests = [
         }
         f3(undefined, undefined, 30);
 
+        function f4 (a, b, c, d = 1) {
+            var e = 10;
+            assert.areEqual(2, arguments[0], "Unmapped arguments value has the expected value in the body");
+            (function () {
+                eval('');
+            }());
+        };
+        f4.call(1, 2);
+        
+        function f5 (a, b, c, d = 1) {
+            var e = 10;
+            var d = 11;
+            assert.areEqual(2, arguments[0], "Unmapped arguments value has the expected value, even with duplicate symbol in the body");
+            (function () {
+                eval('');
+            }());
+        };
+        f5.call(1, 2);
     }
   },
   {

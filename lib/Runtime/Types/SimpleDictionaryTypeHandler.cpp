@@ -1166,6 +1166,7 @@ namespace Js
             return SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetItem(instance, originalInstance, propertyRecord->GetNumericValue(), value, requestContext);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -1182,6 +1183,7 @@ namespace Js
             return GetPropertyFromDescriptor<false>(instance, descriptor, value, info);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 

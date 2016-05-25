@@ -77,8 +77,10 @@ private:
     void SetSymIsNotUsedOnlyInNumber(IR::Opnd *const opnd);
     void SetSymIsUsedOnlyInNumberIfLastUse(IR::Opnd *const opnd);
     void TrackIntUsage(IR::Instr *const instr);
+    void RemoveNegativeZeroBailout(IR::Instr* instr);
     void SetNegativeZeroDoesNotMatterIfLastUse(IR::Opnd *const opnd);
     void SetNegativeZeroMatters(IR::Opnd *const opnd);
+    void SetCouldRemoveNegZeroBailoutForDefIfLastUse(IR::Opnd *const opnd);
     void SetIntOverflowDoesNotMatterIfLastUse(IR::Opnd *const opnd);
     void SetIntOverflowMatters(IR::Opnd *const opnd);
     bool SetIntOverflowDoesNotMatterInRangeIfLastUse(IR::Opnd *const opnd, const int addSubUses);
@@ -96,7 +98,7 @@ private:
     bool ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block);
 
     bool DoByteCodeUpwardExposedUsed() const;
-    bool DoSetDead() const;
+    void DoSetDead(IR::Opnd * opnd, bool isDead) const;
     bool DoFieldHoistCandidates() const;
     bool DoFieldHoistCandidates(Loop * loop) const;
     bool DoMarkTempObjects() const;

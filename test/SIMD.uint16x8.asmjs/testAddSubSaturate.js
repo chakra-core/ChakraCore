@@ -16,7 +16,12 @@ function asmModule(stdlib, imports) {
     var ui8g2 = ui8(353216, 492529, 1128, 1085, 3692, 3937, 9755, 2638);     
 
     var loopCOUNT = 3;
-
+    
+    var i8 = stdlib.SIMD.Int16x8;
+    var i8check = i8.check;
+    var i8fu8 = i8.fromUint16x8Bits;
+    var u8fi8 = ui8.fromInt16x8Bits;
+    
     function testAddSaturateLocal()
     {
         var a = ui8(50000, 65535, 0, 65535, 1, 1, 1, 1);
@@ -29,7 +34,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
     
     function testSubSaturateLocal()
@@ -44,7 +49,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
 
     function testAddSaturateGlobal()
@@ -57,7 +62,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
     
     function testSubSaturateGlobal()
@@ -70,7 +75,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
     
     function testAddSaturateGlobalImport()
@@ -84,7 +89,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
     
     function testSubSaturateGlobalImport()
@@ -98,7 +103,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(result);
+        return i8check(i8fu8(result));
     }
     
     return { testAddSaturateLocal: testAddSaturateLocal, testSubSaturateLocal: testSubSaturateLocal, testAddSaturateGlobal: testAddSaturateGlobal, testSubSaturateGlobal: testSubSaturateGlobal, testAddSaturateGlobalImport: testAddSaturateGlobalImport, testSubSaturateGlobalImport: testSubSaturateGlobalImport };
@@ -106,10 +111,18 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Uint16x8(20000, 1073741824, 1028, 102, 3883, 38, 92929, 1442)});
 
-equalSimd([65535, 65535, 65535, 65535, 2, 2, 2, 2], m.testAddSaturateLocal(), SIMD.Uint16x8, "Func1");
-equalSimd([0, 1257, 0, 3169, 0, 1850, 4314, 0], m.testSubSaturateLocal(), SIMD.Uint16x8, "Func2");
-equalSimd([25536, 33777, 1128, 1085, 50564, 19353, 36938, 51684], m.testAddSaturateGlobal(), SIMD.Uint16x8, "Func3");
-equalSimd([0, 0, 0, 0, 43180, 11479, 17428, 46408], m.testSubSaturateGlobal(), SIMD.Uint16x8, "Func4");
-equalSimd([65535, 3401, 1693, 3336, 4831, 2872, 35141, 1467], m.testAddSaturateGlobalImport(), SIMD.Uint16x8, "Func5");
-equalSimd([0, 0, 363, 0, 2935, 0, 19645, 1417], m.testSubSaturateGlobalImport(), SIMD.Uint16x8, "Func6");
+var ret1 = SIMD.Uint16x8.fromInt16x8Bits(m.testAddSaturateLocal());
+var ret2 = SIMD.Uint16x8.fromInt16x8Bits(m.testSubSaturateLocal());
+var ret3 = SIMD.Uint16x8.fromInt16x8Bits(m.testAddSaturateGlobal());
+var ret4 = SIMD.Uint16x8.fromInt16x8Bits(m.testSubSaturateGlobal());
+var ret5 = SIMD.Uint16x8.fromInt16x8Bits(m.testAddSaturateGlobalImport());
+var ret6 = SIMD.Uint16x8.fromInt16x8Bits(m.testSubSaturateGlobalImport());
+
+
+equalSimd([65535, 65535, 65535, 65535, 2, 2, 2, 2], ret1, SIMD.Uint16x8, "Func1");
+equalSimd([0, 1257, 0, 3169, 0, 1850, 4314, 0], ret2, SIMD.Uint16x8, "Func2");
+equalSimd([25536, 33777, 1128, 1085, 50564, 19353, 36938, 51684], ret3, SIMD.Uint16x8, "Func3");
+equalSimd([0, 0, 0, 0, 43180, 11479, 17428, 46408], ret4, SIMD.Uint16x8, "Func4");
+equalSimd([65535, 3401, 1693, 3336, 4831, 2872, 35141, 1467], ret5, SIMD.Uint16x8, "Func5");
+equalSimd([0, 0, 363, 0, 2935, 0, 19645, 1417], ret6, SIMD.Uint16x8, "Func6");
 print("PASS");

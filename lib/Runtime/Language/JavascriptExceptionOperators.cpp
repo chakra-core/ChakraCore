@@ -682,52 +682,52 @@ namespace Js
         // NOTE Don't set the throwing exception here, because we might need to box it and will cause a nested stack walker
         // instead, return it to be set in WalkStackForExceptionContext
 
-        if (stackCrawlLimit == 0)
-        {
-            return caller;
-        }
-
-        const bool crawlStackForWER = CrawlStackForWER(scriptContext);
+        JavascriptExceptionContext::StackTrace *stackTrace = nullptr;
         // If we take an OOM (JavascriptException for OOM if script is active), just bail early and return what we've got
         HRESULT hr;
-        JavascriptExceptionContext::StackTrace *stackTrace = NULL;
-
         BEGIN_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED
         {
-            // In WER scenario, we should combine the original stack with latest throw stack as the final throw might be coming form
-            // a different stack.
-            uint64 i = 1;
-            if (crawlStackForWER && thrownObject && Js::JavascriptError::Is(thrownObject))
+            stackTrace = RecyclerNew(scriptContext.GetRecycler(), JavascriptExceptionContext::StackTrace, scriptContext.GetRecycler());
+            if (stackCrawlLimit > 0)
             {
-                Js::JavascriptError* errorObject = Js::JavascriptError::FromVar(thrownObject);
-                Js::JavascriptExceptionContext::StackTrace *originalStackTrace = NULL;
-                const Js::JavascriptExceptionObject* originalExceptionObject = errorObject->GetJavascriptExceptionObject();
-                if (!resetStack && errorObject->GetInternalProperty(errorObject, InternalPropertyIds::StackTrace, (Js::Var*) &originalStackTrace, NULL, &scriptContext) &&
-                    (originalStackTrace != nullptr))
+                const bool crawlStackForWER = CrawlStackForWER(scriptContext);
+
+                // In WER scenario, we should combine the original stack with latest throw stack as the final throw might be coming form
+                // a different stack.
+                uint64 i = 1;
+                if (crawlStackForWER && thrownObject && Js::JavascriptError::Is(thrownObject))
                 {
-                    exceptionContext.SetOriginalStackTrace(originalStackTrace);
-                }
-                else
-                {
-                    if (originalExceptionObject != nullptr)
+                    Js::JavascriptError* errorObject = Js::JavascriptError::FromVar(thrownObject);
+                    Js::JavascriptExceptionContext::StackTrace *originalStackTrace = NULL;
+                    const Js::JavascriptExceptionObject* originalExceptionObject = errorObject->GetJavascriptExceptionObject();
+                    if (!resetStack && errorObject->GetInternalProperty(errorObject, InternalPropertyIds::StackTrace, (Js::Var*) &originalStackTrace, NULL, &scriptContext) &&
+                        (originalStackTrace != nullptr))
                     {
-                        exceptionContext.SetOriginalStackTrace(originalExceptionObject->GetExceptionContext()->GetStackTrace());
+                        exceptionContext.SetOriginalStackTrace(originalStackTrace);
+                    }
+                    else
+                    {
+                        if (originalExceptionObject != nullptr)
+                        {
+                            exceptionContext.SetOriginalStackTrace(originalExceptionObject->GetExceptionContext()->GetStackTrace());
+                        }
                     }
                 }
+
+                do
+                {
+                    JavascriptExceptionContext::StackFrame stackFrame(jsFunc, walker, crawlStackForWER);
+                    stackTrace->Add(stackFrame);
+                } while (walker.GetDisplayCaller(&jsFunc) && i++ < stackCrawlLimit);
             }
-
-            stackTrace = RecyclerNew(scriptContext.GetRecycler(), JavascriptExceptionContext::StackTrace, scriptContext.GetRecycler());
-
-            do
-            {
-                JavascriptExceptionContext::StackFrame stackFrame(jsFunc, walker, crawlStackForWER);
-                stackTrace->Add(stackFrame);
-            } while (walker.GetDisplayCaller(&jsFunc) && i++ < stackCrawlLimit);
         }
         END_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_INSCRIPT(hr);
 
-        exceptionContext.SetStackTrace(stackTrace);
-        DumpStackTrace(exceptionContext, isThrownException);
+        if (stackTrace != nullptr)
+        {
+            exceptionContext.SetStackTrace(stackTrace);
+            DumpStackTrace(exceptionContext, isThrownException);
+        }
 
         return caller;
     }
@@ -839,11 +839,6 @@ namespace Js
                 WalkStackForExceptionContext(*scriptContext, exceptionContext, thrownObject, StackCrawlLimitOnThrow(thrownObject, *scriptContext), returnAddress, /*isThrownException=*/ true, resetStack);
                 exceptionObject->FillError(exceptionContext, scriptContext);
                 AddStackTraceToObject(thrownObject, exceptionContext.GetStackTrace(), *scriptContext, /*isThrownException=*/ true, resetStack);
-
-                if (considerPassingToDebugger)
-                {
-                    DispatchExceptionToDebugger(exceptionObject, scriptContext);
-                }
             }
             Assert(!scriptContext ||
                    // If we disabled implicit calls and we did record an implicit call, do not throw.
@@ -856,6 +851,10 @@ namespace Js
                    !scriptContext->GetThreadContext()->IsDisableImplicitException()
             );
             scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
+            if (fillExceptionContext && considerPassingToDebugger)
+            {
+                DispatchExceptionToDebugger(exceptionObject, scriptContext);
+            }
        }
 
         if (exceptionObject->IsPendingExceptionObject())
@@ -973,7 +972,12 @@ namespace Js
 
     void JavascriptExceptionOperators::AddStackTraceToObject(Var targetObject, JavascriptExceptionContext::StackTrace* stackTrace, ScriptContext& scriptContext, bool isThrownException, bool resetStack)
     {
-        if (!stackTrace || stackTrace->Count() == 0 || !scriptContext.GetConfig()->IsErrorStackTraceEnabled())
+        if (!stackTrace || !scriptContext.GetConfig()->IsErrorStackTraceEnabled())
+        {
+            return;
+        }
+
+        if (stackTrace->Count() == 0 && !IsErrorInstance(targetObject))
         {
             return;
         }

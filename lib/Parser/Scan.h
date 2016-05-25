@@ -667,7 +667,7 @@ private:
     BOOL m_doubleQuoteOnLastTkStrCon :1;
     bool m_OctOrLeadingZeroOnLastTKNumber :1;
     BOOL m_fSyntaxColor : 1;            // whether we're just syntax coloring
-    BOOL m_EscapeOnLastTkStrCon:1;
+    bool m_EscapeOnLastTkStrCon:1;
     BOOL m_fNextStringTemplateIsTagged:1;   // the next string template scanned has a tag (must create raw strings)
     BYTE m_DeferredParseFlags:2;            // suppressStrPid and suppressIdPid
     charcount_t m_ichCheck;             // character at which completion is to be computed.

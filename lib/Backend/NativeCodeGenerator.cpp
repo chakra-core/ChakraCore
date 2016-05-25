@@ -1394,12 +1394,18 @@ NativeCodeGenerator::Process(JsUtil::Job *const job, JsUtil::ParallelThreadData 
             CodeGen(pageAllocator, codeGenWork, foreground);
             return true;
         }
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        job->failureReason = Job::FailureReason::ExceedJITLimit;
+#endif
         return false;
     }
 
     default:
         Assume(UNREACHED);
     }
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    job->failureReason = Job::FailureReason::Unknown;
+#endif
     return false;
 }
 
@@ -1560,9 +1566,11 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                 switch (job->failureReason)
                 {
-                case Job::FailureReason::OOM: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CodeGenFailedOOM); break;
-                case Job::FailureReason::StackOverflow: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CodeGenFailedStackOverflow); break;
-                case Job::FailureReason::Aborted: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CodeGenFailedAborted); break;
+                case Job::FailureReason::OOM: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedOOM); break;
+                case Job::FailureReason::StackOverflow: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedStackOverflow); break;
+                case Job::FailureReason::Aborted: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedAborted); break;
+                case Job::FailureReason::ExceedJITLimit: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedExceedJITLimit); break;
+                case Job::FailureReason::Unknown: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedUnknown); break;
                 default: Assert(job->failureReason == Job::FailureReason::NotFailed);
                 }
 #endif
@@ -1874,7 +1882,6 @@ NativeCodeGenerator::GatherCodeGenData(
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
                 {
-                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
                     Js::PropertyRecord const * const propertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
@@ -2049,7 +2056,6 @@ NativeCodeGenerator::GatherCodeGenData(
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                             if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
                             {
-                                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                                 char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
                                 Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
@@ -2092,6 +2098,7 @@ NativeCodeGenerator::GatherCodeGenData(
 
                 if (polymorphicInlineCache != nullptr)
                 {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                     if (PHASE_VERBOSE_TRACE1(Js::PolymorphicInlineCachePhase))
                     {
                         if (IsInlinee) Output::Print(_u("\t"));
@@ -2102,12 +2109,12 @@ NativeCodeGenerator::GatherCodeGenData(
                     }
                     else if (PHASE_TRACE1(Js::PolymorphicInlineCachePhase))
                     {
-                        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                         Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
                         Js::PropertyRecord const * const propertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
                         Output::Print(_u("Trace PIC JIT function %s (%s) field: %s (index: %d) \n"), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer),
                             propertyRecord->GetBuffer(), i);
                     }
+#endif
 
                     byte polyCacheUtil = profileData->GetFldInfo(functionBody, i)->polymorphicInlineCacheUtilization;
                     entryPoint->GetPolymorphicInlineCacheInfo()->SetPolymorphicInlineCache(functionBody, i, polymorphicInlineCache, IsInlinee, polyCacheUtil);
@@ -2283,7 +2290,7 @@ NativeCodeGenerator::GatherCodeGenData(
                     // Share the jitTime data if i) it is a recursive call, ii) jitTimeData is not from a polymorphic chain, and iii) all the call sites are recursive
                     if (functionBody == inlineeFunctionBody   // recursive call
                         && jitTimeData->GetNext() == nullptr        // not from a polymorphic  call site
-                        && profiledCallSiteCount == functionBody->GetNumberOfRecursiveCallSites()) // all the callsites are recursive
+                        && profiledCallSiteCount == functionBody->GetNumberOfRecursiveCallSites() && !inlineGetterSetter) // all the callsites are recursive
                     {
                         jitTimeData->SetupRecursiveInlineeChain(recycler, profiledCallSiteId);
                         inlineeJitTimeData = jitTimeData;
@@ -2416,39 +2423,34 @@ NativeCodeGenerator::GatherCodeGenData(
                 Js::FunctionCodeGenRuntimeData *const inlineeRuntimeData = IsInlinee ? runtimeData->EnsureLdFldInlinee(recycler, inlineCacheIndex, inlineeFunctionBody) :
                     functionBody->EnsureLdFldInlineeCodeGenRuntimeData(recycler, inlineCacheIndex, inlineeFunctionBody);
 
-                    if (inlineeRuntimeData->GetFunctionBody() != inlineeFunctionBody)
-                    {
-                        //There are obscure cases where profileData has not yet seen the polymorphic LdFld but the inlineCache has the newer object from which getter is invoked.
-                        //In this case we don't want to inline that getter. Polymorphic bit will be set later correctly.
-                        //See WinBlue 54540
-                        continue;
-                    }
-
-
-                    if (!isJitTimeDataComputed)
-                    {
-                        Js::FunctionCodeGenJitTimeData *inlineeJitTimeData =  jitTimeData->AddLdFldInlinee(recycler, inlineCacheIndex, inlinee);
-                        GatherCodeGenData<true>(
-                            recycler,
-                            topFunctionBody,
-                            inlineeFunctionBody,
-                            entryPoint,
-                            inliningDecider,
-                            objTypeSpecFldInfoList,
-                            inlineeJitTimeData,
-                            inlineeRuntimeData,
-                            nullptr);
-
-                        AddInlineCacheStats(jitTimeData, inlineeJitTimeData);
-                    }
+                if (inlineeRuntimeData->GetFunctionBody() != inlineeFunctionBody)
+                {
+                    //There are obscure cases where profileData has not yet seen the polymorphic LdFld but the inlineCache has the newer object from which getter is invoked.
+                    //In this case we don't want to inline that getter. Polymorphic bit will be set later correctly.
+                    //See WinBlue 54540
+                    continue;
                 }
+
+                Js::FunctionCodeGenJitTimeData *inlineeJitTimeData =  jitTimeData->AddLdFldInlinee(recycler, inlineCacheIndex, inlinee);
+                GatherCodeGenData<true>(
+                    recycler,
+                    topFunctionBody,
+                    inlineeFunctionBody,
+                    entryPoint,
+                    inliningDecider,
+                    objTypeSpecFldInfoList,
+                    inlineeJitTimeData,
+                    inlineeRuntimeData,
+                    nullptr);
+
+                AddInlineCacheStats(jitTimeData, inlineeJitTimeData);
             }
         }
+    }
 
 #ifdef FIELD_ACCESS_STATS
     if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
     {
-        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         if (jitTimeData->inlineCacheStats)
         {
             Output::Print(_u("ObTypeSpec: gathered code gen data for function %s (#%u) inlined %s (#%u): inline cache stats:\n"),
@@ -2737,6 +2739,8 @@ void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* cod
 
         {
             AutoOptionalCriticalSection lock(Processor()->GetCriticalSection());
+            this->waitingForStackJob = true;
+            this->stackJobProcessed = false;
             Processor()->AddJob(&stackJob);
         }
         Processor()->PrioritizeJobAndWait(this, &stackJob);

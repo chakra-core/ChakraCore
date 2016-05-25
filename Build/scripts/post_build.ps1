@@ -3,9 +3,18 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
+# Post-Build Script
+#
+# Run this script after the build step to consume the artifacts produced by the build,
+# run tests, and process and deploy build logs.
+#
+# There may be more non-script tasks in the build definition following this script.
+# Any final tasks that need to be done at the end of the build are contained in the
+# Finalize Build Script, which should be invoked at the very end of the build.
+
 param (
     [ValidateSet("x86", "x64", "arm", "*")]
-    [string]$arch="*",
+    [string]$arch = "*",
 
     [ValidateSet("debug", "release", "test", "codecoverage", "*")]
     [string]$flavor = "*",
@@ -14,14 +23,19 @@ param (
     [string]$binpath = "",
     [string]$objpath = "",
 
-    [string]$srcsrvcmdpath = "Build\script\srcsrv.bat",
-    [string]$bvtcmdpath="",
+    [Parameter(Mandatory=$True)]
+    [string]$srcsrvcmdpath,
+
+    [string]$bvtcmdpath = "",
     [string]$repo = "core",
     [string]$logFile = "",
 
     # comma separated list of [arch,flavor,arch2,flavor2,...] to build
     [string[]]$pogo = @(),
-    [string]$pogoscript="",
+    [string]$pogoscript = "",
+
+    # Support output folders with e.g. _pogo suffix
+    [string]$buildTypeSuffix = "",
 
     [switch]$noaction
 )
@@ -47,12 +61,11 @@ if ($arch -eq "*") {
     . "$PSScriptRoot\pre_post_util.ps1"
 
     if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {
-        $logFile = "$Env:TF_BUILD_BINARIESDIRECTORY\logs\post_build_$arch_$flavor.log"
+        $logFile = "${Env:TF_BUILD_BINARIESDIRECTORY}\logs\post_build_${arch}_${flavor}.log"
         if (Test-Path -Path $logFile) {
             Remove-Item $logFile -Force
         }
     }
-
 
     WriteMessage "======================================================================================"
     WriteMessage "Post build script for $arch $flavor";
@@ -63,7 +76,7 @@ if ($arch -eq "*") {
     WriteMessage "BVT Command  : $bvtcmdpath"
     WriteMessage ""
 
-    $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}_{5}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $binpath, $arch, $flavor);
+    $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}_{5}{6}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $binpath, $arch, $flavor, $buildTypeSuffix);
     $pogocmd = ("{0} {1} {2}" -f $pogoscript, $arch, $flavor);
     $prefastlog = ("{0}\logs\PrefastCheck_{1}_{2}.log" -f $binpath, $arch, $flavor);
     $prefastcmd = "$PSScriptRoot\check_prefast_error.ps1 -directory $objpath -logFile $prefastlog";
@@ -95,4 +108,3 @@ if ($arch -eq "*") {
 }
 
 exit $global:exitcode
-

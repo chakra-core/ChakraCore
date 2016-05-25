@@ -233,4 +233,9 @@
       <baseline>stackTrace.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>missingInlineeEnd.js</files>
+    </default>
+  </test>
 </regress-exe>

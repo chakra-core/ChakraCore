@@ -710,14 +710,14 @@ var tests = [
 
       // Class name is immutable within class body.
       var obj1 = new c();
-      assert.throws(function() { obj1.reassign() }, ReferenceError);
+      assert.throws(function() { obj1.reassign() }, TypeError);
 
       // Class name is also immutable within body of class declaration statement
       class Q extends c {
           reassign() { eval('Q = 0;') }
       };
       var obj2 = new Q();
-      assert.throws(function() { obj2.reassign() }, ReferenceError);
+      assert.throws(function() { obj2.reassign() }, TypeError);
       // Class name binding in enclosing context is mutable
       Q = 0;
       assert.areEqual(Q, 0, "Mutable class declaration binding");
@@ -1125,6 +1125,19 @@ var tests = [
             assert.doesNotThrow(function () { eval("class C { set foo(x) { } }"); }, "Class setter with exactly one parameter is valid syntax", "asdf");
             assert.throws(function () { eval("class C { set foo() { } }"); }, SyntaxError, "Class setter with zero parameters is invalid syntax", "Setter functions must have exactly one parameter");
             assert.throws(function () { eval("class C { set foo(x, y, z) { } }"); }, SyntaxError, "Class setter with more than one parameter is invalid syntax", "Setter functions must have exactly one parameter");
+        }
+    },
+    {
+        name: "class identifier is const binding inside class body",
+        body: function () {
+            assert.throws(function () { class A { constructor() { A = 0; } }; new A(); }, TypeError, "Assignment to class identifier in constructor");
+            assert.throws(function() { new (class A { constructor() { A = 0; }}); }, TypeError, "Assignment to class identifier in constructor");
+            assert.throws(function() { class A { m() { A = 0; } }; new A().m(); }, TypeError, "Assignment to class identifier in method");
+            assert.throws(function() { new (class A { m() { A = 0; } }).m(); }, TypeError, "Assignment to class identifier in method" );
+            assert.throws(function() { class A { get x() { A = 0; } }; new A().x; }, TypeError, "Assignment to class identifier in getter");
+            assert.throws(function() { (new (class A { get x() { A = 0; } })).x; }, TypeError, "Assignment to class identifier in getter");
+            assert.throws(function() { class A { set x(_) { A = 0; } }; new A().x = 15; }, TypeError, "Assignment to class identifier in setter");
+            assert.throws(function() { (new (class A { set x(_) { A = 0; } })).x = 15; }, TypeError, "Assignment to class identifier in setter");
         }
     },
 ];

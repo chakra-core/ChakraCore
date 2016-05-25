@@ -125,7 +125,7 @@ struct SerializedFieldList {
 #include "SerializableFunctionFields.h"
     bool has_m_lineNumber: 1;
     bool has_m_columnNumber: 1;
-	bool has_m_nestedCount: 1;
+    bool has_m_nestedCount: 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -204,7 +204,8 @@ enum FunctionFlags
     ffHasReferenceableBuiltInArguments = 0x10000,
     ffIsNamedFunctionExpression        = 0x20000,
     ffIsAsmJsMode                      = 0x40000,
-    ffIsAsmJsFunction                  = 0x80000
+    ffIsAsmJsFunction                  = 0x80000,
+    ffIsAnonymous                      = 0x100000
 };
 
 // Kinds of constant
@@ -351,8 +352,6 @@ class ByteCodeBufferBuilder
     ScriptContext * scriptContext;
     BufferBuilder * startOfCachedScopeAuxBlock;
     DWORD dwFlags;
-    DWORD dwFunctionTableLength;
-    BYTE *functionTable;
 
     //Instead of referencing TotalNumberOfBuiltInProperties directly; or PropertyIds::_countJSOnlyProperty we use this.
     //For library code this will be set to _countJSOnlyProperty and for normal bytecode this will be TotalNumberOfBuiltInProperties
@@ -363,19 +362,14 @@ class ByteCodeBufferBuilder
         return (dwFlags & GENERATE_BYTE_CODE_BUFFER_LIBRARY) != 0;
     }
 
-    bool OmitFunction(int serializationIndex) const
-    {
-        return functionTable && ((serializationIndex >= (int)dwFunctionTableLength) || !functionTable[serializationIndex]);
-    }
-
-    bool GenerateByteCodeForNative(int serializationIndex) const
+    bool GenerateByteCodeForNative() const
     {
         return (dwFlags & GENERATE_BYTE_CODE_FOR_NATIVE) != 0;
     }
 
 public:
 
-    ByteCodeBufferBuilder(uint32 sourceSize, uint32 sourceCharLength, LPCUTF8 utf8Source, DWORD dwFunctionTableLength, BYTE * functionTable, Utf8SourceInfo* sourceInfo, ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD dwFlags, int builtInPropertyCount)
+    ByteCodeBufferBuilder(uint32 sourceSize, uint32 sourceCharLength, LPCUTF8 utf8Source, Utf8SourceInfo* sourceInfo, ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD dwFlags, int builtInPropertyCount)
         : magic(_u("Magic"), magicConstant),
           totalSize(_u("Total Size"), 0),
           fileVersionKind(_u("FileVersionKind"), 0),
@@ -409,9 +403,7 @@ public:
           startOfCachedScopeAuxBlock(nullptr),
           alloc(alloc),
           dwFlags(dwFlags),
-          builtInPropertyCount(builtInPropertyCount),
-          dwFunctionTableLength(dwFunctionTableLength),
-          functionTable(functionTable)
+          builtInPropertyCount(builtInPropertyCount)
     {
         if (GenerateLibraryByteCode())
         {
@@ -757,8 +749,6 @@ public:
     {
         SListCounted<AuxRecord> auxRecords(alloc);
 
-        Assert(!OmitFunction(function->GetSerializationIndex()));
-
         auto finalSize = Anew(alloc, BufferBuilderInt32, _u("Final Byte Code Size"), 0); // Initially set to zero
         builder.list = builder.list->Prepend(finalSize, alloc);
 
@@ -773,7 +763,7 @@ public:
             uint32 byteCount;
             if (TryConvertToUInt32(reader.GetIP() - opStart, &byteCount))
             {
-                if (!GenerateByteCodeForNative(function->GetSerializationIndex()))
+                if (!GenerateByteCodeForNative())
                 {
                     auto block = Anew(alloc, BufferBuilderRaw, clue, byteCount, (const byte*)opStart);
                     builder.list = builder.list->Prepend(block, alloc);
@@ -1054,7 +1044,7 @@ public:
             return ByteCodeSerializer::CantGenerate;
         }
 
-        if (size != byteBlock->GetLength() && !GenerateByteCodeForNative(function->GetSerializationIndex()))
+        if (size != byteBlock->GetLength() && !GenerateByteCodeForNative())
         {
             Assert(size == byteBlock->GetLength());
             return ByteCodeSerializer::CantGenerate;
@@ -1070,8 +1060,6 @@ public:
     {
         SListCounted<AuxRecord> auxRecords(alloc);
 
-        Assert(!OmitFunction(function->GetSerializationIndex()));
-
         auto finalSize = Anew(alloc, BufferBuilderInt32, _u("Final Byte Code Size"), 0); // Initially set to zero
         builder.list = builder.list->Prepend(finalSize, alloc);
 
@@ -1086,7 +1074,7 @@ public:
             uint32 byteCount;
             if (TryConvertToUInt32(reader.GetIP()-opStart, &byteCount))
             {
-                if (!GenerateByteCodeForNative(function->GetSerializationIndex()))
+                if (!GenerateByteCodeForNative())
                 {
                     auto block = Anew(alloc, BufferBuilderRaw, clue, byteCount, (const byte*) opStart);
                     builder.list = builder.list->Prepend(block, alloc);
@@ -1385,7 +1373,7 @@ public:
             return ByteCodeSerializer::CantGenerate;
         }
 
-        if (size != byteBlock->GetLength() && !GenerateByteCodeForNative(function->GetSerializationIndex()))
+        if (size != byteBlock->GetLength() && !GenerateByteCodeForNative())
         {
             Assert(size == byteBlock->GetLength());
             return ByteCodeSerializer::CantGenerate;
@@ -2097,7 +2085,7 @@ public:
     }
 #endif
 
-    HRESULT AddFunctionBody(BufferBuilderList & builder, FunctionBody * function, SRCINFO const * srcInfo, int *serializationIndex)
+    HRESULT AddFunctionBody(BufferBuilderList & builder, FunctionBody * function, SRCINFO const * srcInfo)
     {
         SerializedFieldList definedFields = { 0 };
 
@@ -2105,9 +2093,8 @@ public:
         PrependInt32(builder, _u("Start Function Table"), magicStartOfFunctionBody);
 #endif
 
-        Assert(function->GetSerializationIndex() == -1 && (*serializationIndex) != -1);
-        function->SetSerializationIndex(*serializationIndex);
-        (*serializationIndex)++;
+        Assert(!function->GetIsSerialized());
+        DebugOnly(function->SetIsSerialized(true));
 
         uint32 sourceDiff = 0;
 
@@ -2116,7 +2103,11 @@ public:
             Assert(0); // Likely a bug
             return ByteCodeSerializer::CantGenerate;
         }
-        PrependString16(builder, _u("Display Name"), function->m_displayName, (function->m_displayNameLength +1)* sizeof(char16));
+
+        bool isAnonymous = function->GetIsAnonymousFunction();
+        const char16* displayName = isAnonymous ? nullptr : function->GetDisplayName();
+        uint displayNameLength = isAnonymous ? 0 : function->m_displayNameLength;
+        PrependString16(builder, _u("Display Name"), displayName, (displayNameLength + 1)* sizeof(char16));
 
         if (function->m_lineNumber != 0)
         {
@@ -2150,6 +2141,7 @@ public:
             | (function->m_CallsEval ? ffhasSetCallsEval : 0)
             | (function->m_ChildCallsEval ? ffChildCallsEval : 0)
             | (function->m_hasReferenceableBuiltInArguments ? ffHasReferenceableBuiltInArguments : 0)
+            | (isAnonymous ? ffIsAnonymous : 0)
 #ifndef TEMP_DISABLE_ASMJS
             | (function->m_isAsmjsMode ? ffIsAsmJsMode : 0)
             | (function->m_isAsmJsFunction ? ffIsAsmJsFunction : 0)
@@ -2158,7 +2150,6 @@ public:
 
         PrependInt32(builder, _u("BitFlags"), bitFlags);
         PrependInt32(builder, _u("Relative Function ID"), function->functionId - topFunctionId); // Serialized function ids are relative to the top function ID
-        PrependInt32(builder, _u("Serialization ID"), function->GetSerializationIndex());
         PrependInt32(builder, _u("Attributes"), function->GetAttributes());
         AssertMsg((function->GetAttributes() &
                 ~(FunctionInfo::Attributes::ErrorOnNew
@@ -2198,7 +2189,6 @@ public:
 
 #include "SerializableFunctionFields.h"
 
-        if (!OmitFunction(function->GetSerializationIndex()))
         {
 #define DEFINE_FUNCTION_BODY_FIELDS 1
 #define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) \
@@ -2216,7 +2206,6 @@ public:
 #include "SerializableFunctionFields.h"
         }
 
-        if (!OmitFunction(function->GetSerializationIndex()))
         {
             auto loopHeaderArray = function->GetLoopHeaderArray();
             if (loopHeaderArray)
@@ -2320,7 +2309,7 @@ public:
                     nestedBodyList->list = nestedBodyList->list->Prepend(nestedFunctionBuilder, alloc);
                     auto offsetToNested = Anew(alloc, BufferBuilderRelativeOffset, _u("Offset To Nested Function"), nestedFunctionBuilder);
                     builder.list = builder.list->Prepend(offsetToNested, alloc);
-                    AddFunctionBody(*nestedFunctionBuilder, nestedFunctionBody, srcInfo, serializationIndex);
+                    AddFunctionBody(*nestedFunctionBuilder, nestedFunctionBody, srcInfo);
                 }
             }
 
@@ -2351,8 +2340,7 @@ public:
     HRESULT AddTopFunctionBody(FunctionBody * function, SRCINFO const * srcInfo)
     {
         topFunctionId = function->functionId;
-        int serializationIndex = 0;
-        return AddFunctionBody(functionsTable, function, srcInfo, &serializationIndex);
+        return AddFunctionBody(functionsTable, function, srcInfo);
     }
 
 };
@@ -3063,7 +3051,7 @@ public:
         Assert(constant == magicStartOfPropertyIdsForScopeSlotArray);
 #endif
 
-        function->SetPropertyIdsForScopeSlotArray(RecyclerNewArrayLeaf(scriptContext->GetRecycler(), Js::PropertyId, function->scopeSlotArraySize), function->scopeSlotArraySize);
+        function->SetPropertyIdsForScopeSlotArray(RecyclerNewArrayLeaf(scriptContext->GetRecycler(), Js::PropertyId, function->scopeSlotArraySize), function->scopeSlotArraySize, function->paramScopeSlotArraySize);
 
         for (uint i = 0; i < function->scopeSlotArraySize; i++)
         {
@@ -3587,16 +3575,17 @@ public:
 
         serialization_alignment SerializedFieldList* definedFields = (serialization_alignment SerializedFieldList*) functionBytes;
 
-        auto displayName = deferDeserializeFunctionInfo != nullptr ?
-            deferDeserializeFunctionInfo->GetDisplayName() :
+        auto displayName = (bitflags & ffIsAnonymous) ? Constants::AnonymousFunction :
+            deferDeserializeFunctionInfo != nullptr ? deferDeserializeFunctionInfo->GetDisplayName() :
             GetString16ById(displayNameId);
 
-        uint displayNameLength = deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetDisplayNameLength() : GetString16LengthById(displayNameId);
+        uint displayNameLength = (bitflags & ffIsAnonymous) ? Constants::AnonymousFunctionLength :
+            deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetDisplayNameLength() : 
+            GetString16LengthById(displayNameId);
         uint displayShortNameOffset = deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetShortDisplayNameOffset() : 0;
         int functionId;
         current = ReadInt32(current, &functionId);
-        int serializationIndex;
-        current = ReadInt32(current, &serializationIndex);
+
         int32 attributes;
         current = ReadInt32(current, &attributes);
 
@@ -3646,8 +3635,7 @@ public:
 
             (*functionBody)->SetDisplayName(displayName, displayNameLength, displayShortNameOffset, FunctionProxy::SetDisplayNameFlags::SetDisplayNameFlagsDontCopy);
 
-            Assert((*functionBody)->GetSerializationIndex() == -1 && serializationIndex != -1);
-            (*functionBody)->SetSerializationIndex(serializationIndex);
+            Assert(!(*functionBody)->GetIsSerialized());
             (*functionBody)->SetByteCodeCache(cache);
             (*functionBody)->SetUtf8SourceInfo(utf8SourceInfo); // Set source info
             (*function)->m_utf8SourceHasBeenSet = true;
@@ -3742,6 +3730,10 @@ public:
             (*functionBody)->m_isAsmjsMode = (bitflags & ffIsAsmJsMode) ? true : false;
 #endif
 
+            if ((*functionBody)->paramScopeSlotArraySize > 0)
+            {
+                (*functionBody)->SetParamAndBodyScopeNotMerged();
+            }
             byte loopHeaderExists;
             current = ReadByte(current, &loopHeaderExists);
             if (loopHeaderExists)
@@ -4158,7 +4150,7 @@ void ByteCodeCache::PopulateLookupPropertyId(ScriptContext * scriptContext, int 
 }
 
 // Serialize function body
-HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceByteLength, LPCUTF8 utf8Source, DWORD dwFunctionTableLength, BYTE * functionTable, FunctionBody * function, SRCINFO const* srcInfo, bool allocateBuffer, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags)
+HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceByteLength, LPCUTF8 utf8Source, FunctionBody * function, SRCINFO const* srcInfo, bool allocateBuffer, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags)
 {
 
     int builtInPropertyCount = (dwFlags & GENERATE_BYTE_CODE_BUFFER_LIBRARY) != 0 ?  PropertyIds::_countJSOnlyProperty : TotalNumberOfBuiltInProperties;
@@ -4173,7 +4165,7 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
     }
 
     int32 sourceCharLength = utf8SourceInfo->GetCchLength();
-    ByteCodeBufferBuilder builder(sourceByteLength, sourceCharLength, utf8Source, dwFunctionTableLength, functionTable, utf8SourceInfo, scriptContext, alloc, dwFlags, builtInPropertyCount);
+    ByteCodeBufferBuilder builder(sourceByteLength, sourceCharLength, utf8Source, utf8SourceInfo, scriptContext, alloc, dwFlags, builtInPropertyCount);
     hr = builder.AddTopFunctionBody(function, srcInfo);
 
     if (SUCCEEDED(hr))

@@ -52,7 +52,6 @@ namespace Js
     ScriptContext::ScriptContext(ThreadContext* threadContext) :
         ScriptContextBase(),
         interpreterArena(nullptr),
-        dynamicFunctionReference(nullptr),
         moduleSrcInfoCount(0),
         // Regex globals
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -94,6 +93,8 @@ namespace Js
         CurrentCrossSiteThunk(CrossSite::DefaultThunk),
         DeferredParsingThunk(DefaultDeferredParsingThunk),
         DeferredDeserializationThunk(DefaultDeferredDeserializeThunk),
+        DispatchDefaultInvoke(nullptr),
+        DispatchProfileInvoke(nullptr),
         m_pBuiltinFunctionIdMap(nullptr),
         diagnosticArena(nullptr),
         hostScriptContext(nullptr),
@@ -119,14 +120,11 @@ namespace Js
 #endif
         inlineCacheAllocator(_u("SC-InlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
         isInstInlineCacheAllocator(_u("SC-IsInstInlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
-        hasRegisteredInlineCache(false),
-        hasRegisteredIsInstInlineCache(false),
-        entryInScriptContextWithInlineCachesRegistry(nullptr),
-        entryInScriptContextWithIsInstInlineCachesRegistry(nullptr),
+        hasUsedInlineCache(false),
+        hasProtoOrStoreFieldInlineCache(false),
+        hasIsInstInlineCache(false),
         registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(nullptr),
         cache(nullptr),
-        bindRefChunkCurrent(nullptr),
-        bindRefChunkEnd(nullptr),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
         isWeakReferenceDictionaryListCleared(false)
@@ -370,6 +368,28 @@ namespace Js
         // TODO: Can we move this on Close()?
         ClearHostScriptContext();
 
+        if (this->hasProtoOrStoreFieldInlineCache)
+        {
+            // TODO (PersistentInlineCaches): It really isn't necessary to clear inline caches in all script contexts.
+            // Since this script context is being destroyed, the inline cache arena will also go away and release its
+            // memory back to the page allocator.  Thus, we cannot leave this script context's inline caches on the
+            // thread context's invalidation lists.  However, it should suffice to remove this script context's caches
+            // without touching other script contexts' caches.  We could call some form of RemoveInlineCachesFromInvalidationLists()
+            // on the inline cache allocator, which would walk all inline caches and zap values pointed to by strongRef.
+
+            // clear out all inline caches to remove our proto inline caches from the thread context
+            threadContext->ClearInlineCaches();
+
+            Assert(!this->hasProtoOrStoreFieldInlineCache);
+        }
+
+        if (this->hasIsInstInlineCache)
+        {
+            // clear out all inline caches to remove our proto inline caches from the thread context
+            threadContext->ClearIsInstInlineCaches();
+            Assert(!this->hasIsInstInlineCache);
+        }
+
         threadContext->UnregisterScriptContext(this);
 
         // Only call RemoveFromPendingClose if we are in a pending close state.
@@ -450,43 +470,6 @@ namespace Js
             this->asmJsCodeGenerator = NULL;
         }
 #endif
-
-        if (this->hasRegisteredInlineCache)
-        {
-            // TODO (PersistentInlineCaches): It really isn't necessary to clear inline caches in all script contexts.
-            // Since this script context is being destroyed, the inline cache arena will also go away and release its
-            // memory back to the page allocator.  Thus, we cannot leave this script context's inline caches on the
-            // thread context's invalidation lists.  However, it should suffice to remove this script context's caches
-            // without touching other script contexts' caches.  We could call some form of RemoveInlineCachesFromInvalidationLists()
-            // on the inline cache allocator, which would walk all inline caches and zap values pointed to by strongRef.
-
-            // clear out all inline caches to remove our proto inline caches from the thread context
-            threadContext->ClearInlineCaches();
-            Assert(!this->hasRegisteredInlineCache);
-            Assert(this->entryInScriptContextWithInlineCachesRegistry == nullptr);
-        }
-        else if (this->entryInScriptContextWithInlineCachesRegistry != nullptr)
-        {
-            // UnregisterInlineCacheScriptContext may throw, set up the correct state first
-            ScriptContext ** entry = this->entryInScriptContextWithInlineCachesRegistry;
-            this->entryInScriptContextWithInlineCachesRegistry = nullptr;
-            threadContext->UnregisterInlineCacheScriptContext(entry);
-        }
-
-        if (this->hasRegisteredIsInstInlineCache)
-        {
-            // clear out all inline caches to remove our proto inline caches from the thread context
-            threadContext->ClearIsInstInlineCaches();
-            Assert(!this->hasRegisteredIsInstInlineCache);
-            Assert(this->entryInScriptContextWithIsInstInlineCachesRegistry == nullptr);
-        }
-        else if (this->entryInScriptContextWithInlineCachesRegistry != nullptr)
-        {
-            // UnregisterInlineCacheScriptContext may throw, set up the correct state first
-            ScriptContext ** entry = this->entryInScriptContextWithInlineCachesRegistry;
-            this->entryInScriptContextWithInlineCachesRegistry = nullptr;
-            threadContext->UnregisterIsInstInlineCacheScriptContext(entry);
-        }
 
         // In case there is something added to the list between close and dtor, just reset the list again
         this->weakReferenceDictionaryList.Reset();
@@ -638,6 +621,9 @@ namespace Js
 
         if (this->debugContext != nullptr)
         {
+            // Guard the closing and deleting of DebugContext as in meantime PDM might
+            // call OnBreakFlagChange
+            AutoCriticalSection autoDebugContextCloseCS(&debugContextCloseCS);
             this->debugContext->Close();
             HeapDelete(this->debugContext);
             this->debugContext = nullptr;
@@ -688,10 +674,8 @@ namespace Js
         {
             ReleaseGuestArena();
             guestArena = nullptr;
-            cache = nullptr;
-            bindRefChunkCurrent = nullptr;
-            bindRefChunkEnd = nullptr;
         }
+        cache = nullptr;
 
         builtInLibraryFunctions = nullptr;
 
@@ -704,6 +688,7 @@ namespace Js
         // and InternalClose gets called in the destructor code path
         if (javascriptLibrary != nullptr)
         {
+            javascriptLibrary->CleanupForClose();
             javascriptLibrary->Uninitialize();
         }
 
@@ -1012,7 +997,6 @@ namespace Js
     RegexPatternMruMap* ScriptContext::GetDynamicRegexMap() const
     {
         Assert(!isScriptContextActuallyClosed);
-        Assert(guestArena);
         Assert(cache);
         Assert(cache->dynamicRegexMap);
 
@@ -1087,28 +1071,15 @@ namespace Js
         this->threadContext->ReleaseTemporaryGuestAllocator(tempGuestAllocator);
     }
 
-    void ScriptContext::InitializePreGlobal()
+    void ScriptContext::InitializeCache()
     {
-        this->guestArena = this->GetRecycler()->CreateGuestArena(_u("Guest"), Throw::OutOfMemory);
-#if ENABLE_PROFILE_INFO
-#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
-        if (DynamicProfileInfo::NeedProfileInfoList())
-        {
-            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), SListBase<DynamicProfileInfo *>), recycler);
-        }
-#endif
-#endif
+        this->cache = RecyclerNewFinalized(recycler, Cache);
+        this->javascriptLibrary->scriptContextCache = this->cache;
 
-        {
-            AutoCriticalSection critSec(this->threadContext->GetEtwRundownCriticalSection());
-            this->cache = AnewStructZ(guestArena, Cache);
-        }
-
-        this->cache->rootPath = TypePath::New(recycler);
         this->cache->dynamicRegexMap =
             RegexPatternMruMap::New(
-            recycler,
-            REGEX_CONFIG_FLAG(DynamicRegexMruListSize) <= 0 ? 16 : REGEX_CONFIG_FLAG(DynamicRegexMruListSize));
+                recycler,
+                REGEX_CONFIG_FLAG(DynamicRegexMruListSize) <= 0 ? 16 : REGEX_CONFIG_FLAG(DynamicRegexMruListSize));
 
         SourceContextInfo* sourceContextInfo = RecyclerNewStructZ(this->GetRecycler(), SourceContextInfo);
         sourceContextInfo->dwHostSourceContext = Js::Constants::NoHostSourceContext;
@@ -1120,6 +1091,19 @@ namespace Js
         srcInfo->sourceContextInfo = this->cache->noContextSourceContextInfo;
         srcInfo->moduleID = kmodGlobal;
         this->cache->noContextGlobalSourceInfo = srcInfo;
+    }
+
+    void ScriptContext::InitializePreGlobal()
+    {
+        this->guestArena = this->GetRecycler()->CreateGuestArena(_u("Guest"), Throw::OutOfMemory);
+#if ENABLE_PROFILE_INFO
+#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
+        if (DynamicProfileInfo::NeedProfileInfoList())
+        {
+            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), SListBase<DynamicProfileInfo *>), recycler);
+        }
+#endif
+#endif
 
 #if ENABLE_BACKGROUND_PARSING
         if (PHASE_ON1(Js::ParallelParsePhase))
@@ -1137,14 +1121,7 @@ namespace Js
         this->CreateProfiler();
 #endif
 
-#ifdef FIELD_ACCESS_STATS
-        this->fieldAccessStatsByFunctionNumber = RecyclerNew(this->recycler, FieldAccessStatsByFunctionNumberMap, recycler);
-        BindReference(this->fieldAccessStatsByFunctionNumber);
-#endif
-
         this->operationStack = Anew(GeneralAllocator(), JsUtil::Stack<Var>, GeneralAllocator());
-
-        this->GetDebugContext()->Initialize();
 
         Tick::InitType();
     }
@@ -1162,13 +1139,20 @@ namespace Js
 
     void ScriptContext::InitializePostGlobal()
     {
+        this->GetDebugContext()->Initialize();
+
         this->GetDebugContext()->GetProbeContainer()->Initialize(this);
 
         AssertMsg(this->CurrentThunk == DefaultEntryThunk, "Creating non default thunk while initializing");
         AssertMsg(this->DeferredParsingThunk == DefaultDeferredParsingThunk, "Creating non default thunk while initializing");
         AssertMsg(this->DeferredDeserializationThunk == DefaultDeferredDeserializeThunk, "Creating non default thunk while initializing");
 
-        if (!sourceList)
+#ifdef FIELD_ACCESS_STATS
+        this->fieldAccessStatsByFunctionNumber = RecyclerNew(this->recycler, FieldAccessStatsByFunctionNumberMap, recycler);
+        BindReference(this->fieldAccessStatsByFunctionNumber);
+#endif
+
+if (!sourceList)
         {
             AutoCriticalSection critSec(threadContext->GetEtwRundownCriticalSection());
             sourceList.Root(RecyclerNew(this->GetRecycler(), SourceList, this->GetRecycler()), this->GetRecycler());
@@ -1644,7 +1628,9 @@ namespace Js
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             if (*ppSourceInfo == nullptr)
             {
-                *ppSourceInfo = Utf8SourceInfo::New(this, script, parser->GetSourceIchLim(), cb, pSrcInfo, isLibraryCode);
+                // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
+                // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
+                *ppSourceInfo = Utf8SourceInfo::New(this, script, (int)length, cb, pSrcInfo, isLibraryCode);
             }
         }
         //
@@ -1715,6 +1701,8 @@ namespace Js
         }
         else
         {
+            // Update the length.
+            (*ppSourceInfo)->SetCchLength(parser->GetSourceIchLim());
             *sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, parser->GetSourceIchLim(), /* isCesu8*/ false);
         }
 
@@ -2333,8 +2321,12 @@ namespace Js
 
         RecyclerWeakReference<Utf8SourceInfo>* sourceWeakRef = this->GetRecycler()->CreateWeakReferenceHandle<Utf8SourceInfo>(sourceInfo);
         sourceInfo->SetIsCesu8(isCesu8);
-
-        return sourceList->SetAtFirstFreeSpot(sourceWeakRef);
+        {
+            // We can be compiling new source code while rundown thread is reading from the list, causing AV on the reader thread
+            // lock the list during write as well.
+            AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
+            return sourceList->SetAtFirstFreeSpot(sourceWeakRef);
+        }
     }
 
     void ScriptContext::CloneSources(ScriptContext* sourceContext)
@@ -2436,36 +2428,6 @@ namespace Js
         }
 
         return success;
-    }
-
-    void ScriptContext::BeginDynamicFunctionReferences()
-    {
-        if (this->dynamicFunctionReference == nullptr)
-        {
-            this->dynamicFunctionReference = RecyclerNew(this->recycler, FunctionReferenceList, this->recycler);
-            this->BindReference(this->dynamicFunctionReference);
-            this->dynamicFunctionReferenceDepth = 0;
-        }
-
-        this->dynamicFunctionReferenceDepth++;
-    }
-
-    void ScriptContext::EndDynamicFunctionReferences()
-    {
-        Assert(this->dynamicFunctionReference != nullptr);
-
-        this->dynamicFunctionReferenceDepth--;
-
-        if (this->dynamicFunctionReferenceDepth == 0)
-        {
-            this->dynamicFunctionReference->Clear();
-        }
-    }
-
-    void ScriptContext::RegisterDynamicFunctionReference(FunctionProxy* func)
-    {
-        Assert(this->dynamicFunctionReferenceDepth > 0);
-        this->dynamicFunctionReference->Push(func);
     }
 
     void ScriptContext::AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript)
@@ -3111,76 +3073,75 @@ namespace Js
         // Rundown on all existing functions and change their thunks so that they will go to debug mode once they are called.
 
         HRESULT hr = OnDebuggerAttachedDetached(/*attach*/ true);
-        if (SUCCEEDED(hr))
+
+        // Debugger attach/detach failure is catastrophic, take down the process
+        DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
+
+        // Disable QC while functions are re-parsed as this can be time consuming
+        AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
+
+        if ((hr = this->GetDebugContext()->RundownSourcesAndReparse(shouldPerformSourceRundown, /*shouldReparseFunctions*/ true)) == S_OK)
         {
-            // Disable QC while functions are re-parsed as this can be time consuming
-            AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
-
-            if ((hr = this->GetDebugContext()->RundownSourcesAndReparse(shouldPerformSourceRundown, /*shouldReparseFunctions*/ true)) == S_OK)
-            {
-                HRESULT hr2 = this->GetLibrary()->EnsureReadyIfHybridDebugging(); // Prepare library if hybrid debugging attach
-                Assert(hr2 != E_FAIL);   // Omitting HRESULT
-            }
-
-            if (!this->IsClosed())
-            {
-                HRESULT hrEntryPointUpdate = S_OK;
-                BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
-#ifdef ASMJS_PLAT
-                    TempArenaAllocatorObject* tmpAlloc = GetTemporaryAllocator(_u("DebuggerTransition"));
-                    debugTransitionAlloc = tmpAlloc->GetAllocator();
-
-                    asmJsEnvironmentMap = Anew(debugTransitionAlloc, AsmFunctionMap, debugTransitionAlloc);
-#endif
-
-                    // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
-                    this->UpdateRecyclerFunctionEntryPointsForDebugger();
-
-#ifdef ASMJS_PLAT
-                    auto asmEnvIter = asmJsEnvironmentMap->GetIterator();
-                    while (asmEnvIter.IsValid())
-                    {
-                        // we are attaching, change frame setup for asm.js frame to javascript frame
-                        SList<AsmJsScriptFunction *> * funcList = asmEnvIter.CurrentValue();
-                        Assert(!funcList->Empty());
-                        void* newEnv = AsmJsModuleInfo::ConvertFrameForJavascript(asmEnvIter.CurrentKey(), funcList->Head());
-                        funcList->Iterate([&](AsmJsScriptFunction * func)
-                        {
-                            func->GetEnvironment()->SetItem(0, newEnv);
-                        });
-                        asmEnvIter.MoveNext();
-                    }
-
-                    // walk through and clean up the asm.js fields as a discrete step, because module might be multiply linked
-                    auto asmCleanupIter = asmJsEnvironmentMap->GetIterator();
-                    while (asmCleanupIter.IsValid())
-                    {
-                        SList<AsmJsScriptFunction *> * funcList = asmCleanupIter.CurrentValue();
-                        Assert(!funcList->Empty());
-                        funcList->Iterate([](AsmJsScriptFunction * func)
-                        {
-                            func->SetModuleMemory(nullptr);
-                            func->GetFunctionBody()->ResetAsmJsInfo();
-                        });
-                        asmCleanupIter.MoveNext();
-                    }
-
-                    ReleaseTemporaryAllocator(tmpAlloc);
-#endif
-                END_TRANSLATE_OOM_TO_HRESULT(hrEntryPointUpdate);
-
-                if (hrEntryPointUpdate != S_OK)
-                {
-                    // should only be here for OOM
-                    Assert(hrEntryPointUpdate == E_OUTOFMEMORY);
-                    return hrEntryPointUpdate;
-                }
-            }
+            HRESULT hr2 = this->GetLibrary()->EnsureReadyIfHybridDebugging(); // Prepare library if hybrid debugging attach
+            Assert(hr2 != E_FAIL);   // Omitting HRESULT
         }
-        else
+
+        // Debugger attach/detach failure is catastrophic, take down the process
+        DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
+
+        if (!this->IsClosed())
         {
-            // Let's find out on what conditions it fails
-            RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
+            HRESULT hrEntryPointUpdate = S_OK;
+            BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
+#ifdef ASMJS_PLAT
+                TempArenaAllocatorObject* tmpAlloc = GetTemporaryAllocator(_u("DebuggerTransition"));
+                debugTransitionAlloc = tmpAlloc->GetAllocator();
+
+                asmJsEnvironmentMap = Anew(debugTransitionAlloc, AsmFunctionMap, debugTransitionAlloc);
+#endif
+
+                // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
+                this->UpdateRecyclerFunctionEntryPointsForDebugger();
+
+#ifdef ASMJS_PLAT
+                auto asmEnvIter = asmJsEnvironmentMap->GetIterator();
+                while (asmEnvIter.IsValid())
+                {
+                    // we are attaching, change frame setup for asm.js frame to javascript frame
+                    SList<AsmJsScriptFunction *> * funcList = asmEnvIter.CurrentValue();
+                    Assert(!funcList->Empty());
+                    void* newEnv = AsmJsModuleInfo::ConvertFrameForJavascript(asmEnvIter.CurrentKey(), funcList->Head());
+                    funcList->Iterate([&](AsmJsScriptFunction * func)
+                    {
+                        func->GetEnvironment()->SetItem(0, newEnv);
+                    });
+                    asmEnvIter.MoveNext();
+                }
+
+                // walk through and clean up the asm.js fields as a discrete step, because module might be multiply linked
+                auto asmCleanupIter = asmJsEnvironmentMap->GetIterator();
+                while (asmCleanupIter.IsValid())
+                {
+                    SList<AsmJsScriptFunction *> * funcList = asmCleanupIter.CurrentValue();
+                    Assert(!funcList->Empty());
+                    funcList->Iterate([](AsmJsScriptFunction * func)
+                    {
+                        func->SetModuleMemory(nullptr);
+                        func->GetFunctionBody()->ResetAsmJsInfo();
+                    });
+                    asmCleanupIter.MoveNext();
+                }
+
+                ReleaseTemporaryAllocator(tmpAlloc);
+#endif
+            END_TRANSLATE_OOM_TO_HRESULT(hrEntryPointUpdate);
+
+            if (hrEntryPointUpdate != S_OK)
+            {
+                // should only be here for OOM
+                Assert(hrEntryPointUpdate == E_OUTOFMEMORY);
+                return hrEntryPointUpdate;
+            }
         }
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerAttached: done 0x%p, hr = 0x%X\n"), this, hr);
@@ -3208,27 +3169,23 @@ namespace Js
 
         HRESULT hr = OnDebuggerAttachedDetached(/*attach*/ false);
 
-        if (SUCCEEDED(hr))
-        {
-            // Move the debugger into source rundown mode.
-            this->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::SourceRundown);
+        // Debugger attach/detach failure is catastrophic, take down the process
+        DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
 
-            // Disable QC while functions are re-parsed as this can be time consuming
-            AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
+        // Move the debugger into source rundown mode.
+        this->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::SourceRundown);
 
-            // Force a reparse so that indirect function caches are updated.
-            hr = this->GetDebugContext()->RundownSourcesAndReparse(/*shouldPerformSourceRundown*/ false, /*shouldReparseFunctions*/ true);
-            // Let's find out on what conditions it fails
-            RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
+        // Disable QC while functions are re-parsed as this can be time consuming
+        AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
 
-            // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
-            this->UpdateRecyclerFunctionEntryPointsForDebugger();
-        }
-        else
-        {
-            // Let's find out on what conditions it fails
-            RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
-        }
+        // Force a reparse so that indirect function caches are updated.
+        hr = this->GetDebugContext()->RundownSourcesAndReparse(/*shouldPerformSourceRundown*/ false, /*shouldReparseFunctions*/ true);
+
+        // Debugger attach/detach failure is catastrophic, take down the process
+        DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
+
+        // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
+        this->UpdateRecyclerFunctionEntryPointsForDebugger();
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerDetached: done 0x%p, hr = 0x%X\n"), this, hr);
 
@@ -4306,14 +4263,7 @@ namespace Js
         Assert(!bindRef.ContainsKey(addr));     // Make sure we don't bind the same pointer twice
         bindRef.AddNew(addr);
 #endif
-        if (bindRefChunkCurrent == bindRefChunkEnd)
-        {
-            bindRefChunkCurrent = AnewArrayZ(this->guestArena, void *, ArenaAllocator::ObjectAlignment / sizeof(void *));
-            bindRefChunkEnd = bindRefChunkCurrent + ArenaAllocator::ObjectAlignment / sizeof(void *);
-        }
-        Assert((bindRefChunkCurrent + 1) <= bindRefChunkEnd);
-        *bindRefChunkCurrent = addr;
-        bindRefChunkCurrent++;
+        javascriptLibrary->BindReference(addr);
 
 #ifdef RECYCLER_PERF_COUNTERS
         this->bindReferenceCount++;
@@ -4342,44 +4292,9 @@ namespace Js
 #endif
     }
 
-    void ScriptContext::RegisterAsScriptContextWithInlineCaches()
-    {
-        if (this->entryInScriptContextWithInlineCachesRegistry == nullptr)
-        {
-            DoRegisterAsScriptContextWithInlineCaches();
-        }
-    }
-
-    void ScriptContext::DoRegisterAsScriptContextWithInlineCaches()
-    {
-        Assert(this->entryInScriptContextWithInlineCachesRegistry == nullptr);
-        // this call may throw OOM
-        this->entryInScriptContextWithInlineCachesRegistry = threadContext->RegisterInlineCacheScriptContext(this);
-    }
-
-    void ScriptContext::RegisterAsScriptContextWithIsInstInlineCaches()
-    {
-        if (this->entryInScriptContextWithIsInstInlineCachesRegistry == nullptr)
-        {
-            DoRegisterAsScriptContextWithIsInstInlineCaches();
-        }
-    }
-
-    bool ScriptContext::IsRegisteredAsScriptContextWithIsInstInlineCaches()
-    {
-        return this->entryInScriptContextWithIsInstInlineCachesRegistry != nullptr;
-    }
-
-    void ScriptContext::DoRegisterAsScriptContextWithIsInstInlineCaches()
-    {
-        Assert(this->entryInScriptContextWithIsInstInlineCachesRegistry == nullptr);
-        // this call may throw OOM
-        this->entryInScriptContextWithIsInstInlineCachesRegistry = threadContext->RegisterIsInstInlineCacheScriptContext(this);
-    }
-
     void ScriptContext::RegisterProtoInlineCache(InlineCache *pCache, PropertyId propId)
     {
-        hasRegisteredInlineCache = true;
+        hasProtoOrStoreFieldInlineCache = true;
         threadContext->RegisterProtoInlineCache(pCache, propId);
     }
 
@@ -4409,7 +4324,7 @@ namespace Js
 
     void ScriptContext::RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId)
     {
-        hasRegisteredInlineCache = true;
+        hasProtoOrStoreFieldInlineCache = true;
         threadContext->RegisterStoreFieldInlineCache(pCache, propId);
     }
 
@@ -4429,7 +4344,7 @@ namespace Js
     void ScriptContext::RegisterIsInstInlineCache(Js::IsInstInlineCache * cache, Js::Var function)
     {
         Assert(JavascriptFunction::FromVar(function)->GetScriptContext() == this);
-        hasRegisteredIsInstInlineCache = true;
+        hasIsInstInlineCache = true;
         threadContext->RegisterIsInstInlineCache(cache, function);
     }
 
@@ -4479,10 +4394,11 @@ namespace Js
     {
         // Prevent reentrancy for the following work, which is not required to be done on every call to this function including
         // reentrant calls
-        if (this->isPerformingNonreentrantWork)
+        if (this->isPerformingNonreentrantWork || !this->hasUsedInlineCache)
         {
             return;
         }
+
         class AutoCleanup
         {
         private:
@@ -4543,36 +4459,36 @@ namespace Js
 
 void ScriptContext::ClearInlineCaches()
 {
-    Assert(this->entryInScriptContextWithInlineCachesRegistry != nullptr);
+    if (this->hasUsedInlineCache)
+    {
+        GetInlineCacheAllocator()->ZeroAll();
+        this->hasUsedInlineCache = false;
+        this->hasProtoOrStoreFieldInlineCache = false;
+    }
 
-    // For persistent inline caches, we assume here that all thread context's invalidation lists
-    // will be reset, such that all invalidationListSlotPtr will get zeroed.  We will not be zeroing
-    // this field here to preserve the free list, which uses the field to link caches together.
-    GetInlineCacheAllocator()->ZeroAll();
-
-    this->entryInScriptContextWithInlineCachesRegistry = nullptr; // caller will remove us from the thread context
-
-    this->hasRegisteredInlineCache = false;
+    Assert(GetInlineCacheAllocator()->IsAllZero());
 }
 
 void ScriptContext::ClearIsInstInlineCaches()
 {
-    Assert(entryInScriptContextWithIsInstInlineCachesRegistry != nullptr);
-    GetIsInstInlineCacheAllocator()->ZeroAll();
+    if (this->hasIsInstInlineCache)
+    {
+        GetIsInstInlineCacheAllocator()->ZeroAll();
+        this->hasIsInstInlineCache = false;
+    }
 
-    this->entryInScriptContextWithIsInstInlineCachesRegistry = nullptr; // caller will remove us from the thread context.
-
-    this->hasRegisteredIsInstInlineCache = false;
+    Assert(GetIsInstInlineCacheAllocator()->IsAllZero());
 }
 
 
 #ifdef PERSISTENT_INLINE_CACHES
 void ScriptContext::ClearInlineCachesWithDeadWeakRefs()
 {
-    // Review: I should be able to assert this here just like in ClearInlineCaches.
-    Assert(this->entryInScriptContextWithInlineCachesRegistry != nullptr);
-    GetInlineCacheAllocator()->ClearCachesWithDeadWeakRefs(this->recycler);
-    Assert(GetInlineCacheAllocator()->HasNoDeadWeakRefs(this->recycler));
+    if (this->hasUsedInlineCache)
+    {
+        GetInlineCacheAllocator()->ClearCachesWithDeadWeakRefs(this->recycler);
+        Assert(GetInlineCacheAllocator()->HasNoDeadWeakRefs(this->recycler));
+    }
 }
 #endif
 
@@ -4717,7 +4633,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 Assert(this->recycler);
 
                 builtInLibraryFunctions = RecyclerNew(this->recycler, BuiltInLibraryFunctionMap, this->recycler);
-                BindReference(builtInLibraryFunctions);
+                cache->builtInLibraryFunctions = builtInLibraryFunctions;
             }
 
             builtInLibraryFunctions->Item(entryPoint, function);
@@ -5411,7 +5327,6 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         Output::Flush();
     }
     void ScriptContext::SetNextPendingClose(ScriptContext * nextPendingClose) {
-        Assert(this->nextPendingClose == nullptr && nextPendingClose != nullptr);
         this->nextPendingClose = nextPendingClose;
     }
 

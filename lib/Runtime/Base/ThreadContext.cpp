@@ -451,8 +451,6 @@ ThreadContext::~ThreadContext()
     this->protoInlineCacheByPropId.Reset();
     this->storeFieldInlineCacheByPropId.Reset();
     this->isInstInlineCacheByFunction.Reset();
-    this->inlineCacheScriptContexts.Reset();
-    this->isInstInlineCacheScriptContexts.Reset();
     this->equivalentTypeCacheEntryPoints.Reset();
     this->prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext.Reset();
 
@@ -578,7 +576,7 @@ void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
         simdFuncSignature.args[iArg] = va_arg(arguments, ValueType);
     }
 
-    simdOpcodeToSignatureMap[Js::SimdOpcodeAsIndex(op)] = simdFuncSignature;
+    simdOpcodeToSignatureMap[Js::SIMDUtils::SimdOpcodeAsIndex(op)] = simdFuncSignature;
 
     va_end(arguments);
 }
@@ -627,8 +625,7 @@ Js::OpCode ThreadContext::GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo)
 void ThreadContext::GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature)
 {
     Assert(simdOpcodeToSignatureMap != nullptr);
-    funcSignature = simdOpcodeToSignatureMap[SimdOpcodeAsIndex(op)];
-
+    funcSignature = simdOpcodeToSignatureMap[Js::SIMDUtils::SimdOpcodeAsIndex(op)];
 }
 #endif
 
@@ -1631,8 +1628,6 @@ ThreadContext::LeaveScriptStart(void * frameAddress)
     }
 #endif
 
-    JS_ETW(EventWriteJSCRIPT_CALL_OUT_START(this,0));
-
     Js::ScriptEntryExitRecord * entryExitRecord = this->GetScriptEntryExit();
 
     AssertMsg(entryExitRecord && entryExitRecord->frameIdOfScriptExitFunction == nullptr,
@@ -1691,7 +1686,6 @@ ThreadContext::LeaveScriptEnd(void * frameAddress)
     }
 #endif
 
-    JS_ETW(EventWriteJSCRIPT_CALL_OUT_STOP(this,0));
     Js::ScriptEntryExitRecord * entryExitRecord = this->GetScriptEntryExit();
 
     AssertMsg(entryExitRecord && entryExitRecord->frameIdOfScriptExitFunction,
@@ -1842,6 +1836,9 @@ ThreadContext::DisposeObjects(Recycler * recycler)
         return;
     }
 
+    // we shouldn't dispose in noscriptscope as it might lead to script execution.
+    Assert(!this->IsNoScriptScope());
+
     if (!this->IsScriptActive())
     {
         __super::DisposeObjects(recycler);
@@ -1874,6 +1871,12 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
         Assert(lastRecord->leaveForHost || lastRecord->leaveForAsyncHostOperation);
         lastRecord->hasReentered = true;
         record->next = lastRecord;
+
+        // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+        if (!IsOnStack(lastRecord) || (uintptr_t)record >= (uintptr_t)lastRecord)
+        {
+            EntryExitRecord_Corrupted_fatal_error();
+        }
     }
 
     this->entryExitRecord = record;
@@ -1883,7 +1886,14 @@ void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
 {
     AssertMsg(record && record == this->entryExitRecord, "Mismatch script entry/exit");
 
-    this->entryExitRecord = this->entryExitRecord->next;
+    // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+    Js::ScriptEntryExitRecord * next = this->entryExitRecord->next;
+    if (next && (!IsOnStack(next) || (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
+    {
+        EntryExitRecord_Corrupted_fatal_error();
+    }
+
+    this->entryExitRecord = next;
 }
 
 BOOL ThreadContext::ReserveStaticTypeIds(__in int first, __in int last)
@@ -2479,25 +2489,20 @@ ThreadContext::DisposeExpirableObject(ExpirableObject* object)
 void
 ThreadContext::ClearScriptContextCaches()
 {
-    // We go through just the inline script context list since if there is no script context
-    // registered on this list, we think that there's no script running on that script context
-    // so we can skip clearing its caches
-    FOREACH_DLISTBASE_ENTRY(Js::ScriptContext *, scriptContext, &inlineCacheScriptContexts)
+    for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext != nullptr; scriptContext = scriptContext->next)
     {
         scriptContext->ClearScriptContextCaches();
     }
-    NEXT_DLISTBASE_ENTRY;
 }
 
 #ifdef PERSISTENT_INLINE_CACHES
 void
 ThreadContext::ClearInlineCachesWithDeadWeakRefs()
 {
-    FOREACH_DLISTBASE_ENTRY(Js::ScriptContext *, scriptContext, &inlineCacheScriptContexts)
+    for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext != nullptr; scriptContext = scriptContext->next)
     {
         scriptContext->ClearInlineCachesWithDeadWeakRefs();
     }
-    NEXT_DLISTBASE_ENTRY;
 
     if (PHASE_TRACE1(Js::InlineCachePhase))
     {
@@ -2524,36 +2529,6 @@ ThreadContext::ClearInlineCachesWithDeadWeakRefs()
 void
 ThreadContext::ClearInlineCaches()
 {
-    BOOL hasItem = FALSE;
-    FOREACH_DLISTBASE_ENTRY(Js::ScriptContext *, scriptContext, &inlineCacheScriptContexts)
-    {
-        scriptContext->ClearInlineCaches();
-        hasItem = TRUE;
-    }
-    NEXT_DLISTBASE_ENTRY;
-
-#if DBG
-    for (Js::ScriptContext *scriptContext = scriptContextList;
-        scriptContext;
-        scriptContext = scriptContext->next)
-    {
-        Assert(scriptContext->GetInlineCacheAllocator()->IsAllZero());
-    };
-#endif
-
-    if (!hasItem)
-    {
-        return;
-    }
-
-    inlineCacheScriptContexts.Reset();
-    inlineCacheThreadInfoAllocator.Reset();
-    protoInlineCacheByPropId.ResetNoDelete();
-    storeFieldInlineCacheByPropId.ResetNoDelete();
-
-    registeredInlineCacheCount = 0;
-    unregisteredInlineCacheCount = 0;
-
     if (PHASE_TRACE1(Js::InlineCachePhase))
     {
         size_t size = 0;
@@ -2561,7 +2536,7 @@ ThreadContext::ClearInlineCaches()
         size_t polyInlineCacheSize = 0;
         uint scriptContextCount = 0;
         for (Js::ScriptContext *scriptContext = scriptContextList;
-            scriptContext;
+        scriptContext;
             scriptContext = scriptContext->next)
         {
             scriptContextCount++;
@@ -2574,31 +2549,36 @@ ThreadContext::ClearInlineCaches()
         printf("Inline cache arena: total = %5I64u KB, free list = %5I64u KB, poly caches = %5I64u KB, script contexts = %u\n",
             static_cast<uint64>(size / 1024), static_cast<uint64>(freeListSize / 1024), static_cast<uint64>(polyInlineCacheSize / 1024), scriptContextCount);
     }
+
+    Js::ScriptContext *scriptContext = this->scriptContextList;
+    while (scriptContext != nullptr)
+    {
+        scriptContext->ClearInlineCaches();
+        scriptContext = scriptContext->next;
+    }
+
+    inlineCacheThreadInfoAllocator.Reset();
+    protoInlineCacheByPropId.ResetNoDelete();
+    storeFieldInlineCacheByPropId.ResetNoDelete();
+
+    registeredInlineCacheCount = 0;
+    unregisteredInlineCacheCount = 0;
 }
 
 void
 ThreadContext::ClearIsInstInlineCaches()
 {
-    FOREACH_DLISTBASE_ENTRY(Js::ScriptContext *, scriptContext, &isInstInlineCacheScriptContexts)
+    Js::ScriptContext *scriptContext = this->scriptContextList;
+    while (scriptContext != nullptr)
     {
         scriptContext->ClearIsInstInlineCaches();
+        scriptContext = scriptContext->next;
     }
-    NEXT_DLISTBASE_ENTRY;
 
-#if DBG
-    for (Js::ScriptContext *scriptContext = scriptContextList;
-        scriptContext;
-        scriptContext = scriptContext->next)
-    {
-        Assert(scriptContext->GetIsInstInlineCacheAllocator()->IsAllZero());
-    };
-#endif
-
-    isInstInlineCacheScriptContexts.Reset();
     isInstInlineCacheThreadInfoAllocator.Reset();
     isInstInlineCacheByFunction.ResetNoDelete();
 }
-#endif
+#endif //PERSISTENT_INLINE_CACHES
 
 void
 ThreadContext::ClearEquivalentTypeCaches()
@@ -2625,30 +2605,6 @@ ThreadContext::ClearEquivalentTypeCaches()
     // Note: Don't reset the list, because we're only clearing the dead types from these caches.
     // There may still be type references we need to keep an eye on.
 #endif
-}
-
-Js::ScriptContext **
-ThreadContext::RegisterInlineCacheScriptContext(Js::ScriptContext * scriptContext)
-{
-    return inlineCacheScriptContexts.PrependNode(&inlineCacheThreadInfoAllocator, scriptContext);
-}
-
-void
-ThreadContext::UnregisterInlineCacheScriptContext(Js::ScriptContext ** scriptContext)
-{
-    inlineCacheScriptContexts.RemoveElement(&inlineCacheThreadInfoAllocator, scriptContext);
-}
-
-Js::ScriptContext **
-ThreadContext::RegisterIsInstInlineCacheScriptContext(Js::ScriptContext * scriptContext)
-{
-    return isInstInlineCacheScriptContexts.PrependNode(&isInstInlineCacheThreadInfoAllocator, scriptContext);
-}
-
-void
-ThreadContext::UnregisterIsInstInlineCacheScriptContext(Js::ScriptContext ** scriptContext)
-{
-    isInstInlineCacheScriptContexts.RemoveElement(&isInstInlineCacheThreadInfoAllocator, scriptContext);
 }
 
 Js::EntryPointInfo **
@@ -3636,8 +3592,19 @@ bool ThreadContext::HasNoSideEffect(Js::RecyclableObject * function, Js::Functio
 bool
 ThreadContext::RecordImplicitException()
 {
+    // Record the exception in the implicit call flag
     AddImplicitCallFlags(Js::ImplicitCall_Exception);
-    return !IsDisableImplicitException();
+    if (IsDisableImplicitException())
+    {
+        // Indicate that we shouldn't throw if ImplicitExceptions have been disabled
+        return false;
+    }
+    // Disabling implicit exception when disabling implicit calls can result in valid exceptions not being thrown.
+    // Instead we tell not to throw only if an implicit call happened and they are disabled. This is to cover the case
+    // of an exception being thrown because an implicit call not executed left the execution in a bad state.
+    // Since there is an implicit call, we expect to bailout and handle this operation in the interpreter instead.
+    bool hasImplicitCallHappened = IsDisableImplicitCall() && (GetImplicitCallFlags() & ~Js::ImplicitCall_Exception);
+    return !hasImplicitCallHappened;
 }
 
 void ThreadContext::SetThreadServiceWrapper(ThreadServiceWrapper* inThreadServiceWrapper)
