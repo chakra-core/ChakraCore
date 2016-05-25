@@ -1,7 +1,11 @@
 project(CHAKRA_PLATFORM_AGNOSTIC)
 
+check_function_exists(gmtime_r HAVE_GMTIME_R)
+
 add_library (Chakra.Runtime.PlatformAgnostic
   Linux/UnicodeText.ICU.cpp
+  Linux/DateTime.cpp
+  Linux/HiResTimer.cpp
   Common/UnicodeText.Common.cpp
   )
   

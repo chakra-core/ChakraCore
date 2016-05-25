@@ -14,6 +14,8 @@ namespace Js
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
 }
 
+using namespace PlatformAgnostic;
+
 struct IAuthorFileContext;
 
 class HostScriptContext;
@@ -284,7 +286,7 @@ struct ParserStats
 class ParserTimer
 {
 private:
-    Js::HiResTimer timer;
+    DateTime::HiResTimer timer;
     ParserStats stats;
 public:
     ParserTimer();
@@ -298,7 +300,7 @@ public:
 class JITTimer
 {
 private:
-    Js::HiResTimer timer;
+    DateTime::HiResTimer timer;
     JITStats stats;
 public:
     JITTimer();
@@ -687,7 +689,7 @@ private:
     size_t nativeCodeSize;
     size_t sourceCodeSize;
 
-    Js::HiResTimer hTimer;
+    DateTime::HiResTimer hTimer;
 
     int stackProbeCount;
     // Count stack probes and poll for continuation every n probes
@@ -1018,7 +1020,7 @@ public:
 
 
 
-    Js::HiResTimer * GetHiResTimer() { return &hTimer; }
+    DateTime::HiResTimer * GetHiResTimer() { return &hTimer; }
     ArenaAllocator* GetThreadAlloc() { return &threadAlloc; }
     static CriticalSection * GetCriticalSection() { return &s_csThreadContext; }
 

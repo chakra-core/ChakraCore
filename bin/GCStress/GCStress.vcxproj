@@ -16,7 +16,10 @@
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ChakraCoreRootDirectory)\lib\Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+        $(ChakraCoreRootDirectory)\lib\Common;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
       <DisableSpecificWarnings>
         %(DisableSpecificWarnings);
         4458; <!-- Declaration hides class member -->

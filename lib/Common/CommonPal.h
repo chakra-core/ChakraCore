@@ -569,7 +569,6 @@ void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
     finallyFunc(hasException);
 }
 
-
 namespace PlatformAgnostic
 {
     __forceinline unsigned char _BitTestAndSet(LONG *_BitBase, int _BitPos)
@@ -626,3 +625,5 @@ namespace PlatformAgnostic
 #endif
     }
 };
+
+#include "PlatformAgnostic/DateTime.h"

@@ -615,7 +615,11 @@ typedef unsigned int uintptr_t;
 
 typedef char16_t WCHAR;
 
+#define WCHAR_IS_CHAR16_T 1
+ 
 #else // !PAL_STDCPP_COMPAT
+ 
+#define WCHAR_IS_WCHAR_T 1
 
 typedef wchar_t WCHAR;
 #if defined(__LINUX__)

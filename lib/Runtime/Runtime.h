@@ -426,9 +426,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Library/MathLibrary.h"
 
-
-#include "Base/HiResTimer.h"
-
 // xplat-todo: We should get rid of this altogether and move the functionality it 
 // encapsulates to the Platform Agnostic Interface
 #ifdef _WIN32
