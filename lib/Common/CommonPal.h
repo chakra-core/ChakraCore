@@ -4,6 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+// Define _ALWAYSINLINE for template that want to always inline, but doesn't allow inline linkage in clang
+#if defined(__GNUC__) || defined(__clang__)
+#define _ALWAYSINLINE __attribute__((always_inline))
+#else
+#define _ALWAYSINLINE __forceinline
+#endif
 
 #ifdef _WIN32
 #pragma warning(push)
@@ -27,6 +33,13 @@ typedef wchar_t char16;
 #define INIT_PRIORITY(x)
 
 #define get_cpuid __cpuid
+
+#if defined(__clang__)
+__forceinline void  __int2c()
+{
+    __asm int 0x2c
+}
+#endif
 
 #else // !_WIN32
 
@@ -402,7 +415,7 @@ DWORD __cdecl CharUpperBuffW(const char16* lpsz, DWORD  cchLength);
 #endif
 
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 // ms-specific keywords
 #define _ABSTRACT abstract
 // MSVC2015 does not support C++11 semantics for `typename QualifiedName` declarations
@@ -555,3 +568,61 @@ void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
 
     finallyFunc(hasException);
 }
+
+
+namespace PlatformAgnostic
+{
+    __forceinline unsigned char _BitTestAndSet(LONG *_BitBase, int _BitPos)
+    {
+#if defined(__clang__)
+        // Clang doesn't expand _bittestandset intrinic to bts, and it's implemention also doesn't work for _BitPos >= 32
+        unsigned char retval = 0;
+        asm(
+            "bts %[_BitPos], %[_BitBase]\n\t"
+            "setc %b[retval]\n\t"
+            : [_BitBase] "+m" (*_BitBase), [retval] "+rm" (retval)
+            : [_BitPos] "ri" (_BitPos)
+            : "cc" // clobber condition code
+        );
+        return retval;
+#else
+        return _bittestandset(_BitBase, _BitPos);
+#endif
+    }
+
+    __forceinline unsigned char _BitTest(const LONG *_BitBase, int _BitPos)
+    {
+#if defined(__clang__)
+        // Clang doesn't expand _bittest intrinic to bt, and it's implemention also doesn't work for _BitPos >= 32
+        unsigned char retval;
+        asm(
+            "bt %[_BitPos], %[_BitBase]\n\t"
+            "setc %b[retval]\n\t"
+            : [retval] "+rm" (retval)
+            : [_BitPos] "ri" (_BitPos), [_BitBase] "m" (*_BitBase)
+            : "cc" // clobber condition code
+        );
+        return retval;
+#else
+        return _bittest(_BitBase, _BitPos);
+#endif
+    }
+
+    __forceinline unsigned char _InterlockedBitTestAndSet(volatile LONG *_BitBase, int _BitPos)
+    {
+#if defined(__clang__)
+        // Clang doesn't expand _interlockedbittestandset intrinic to lock bts, and it's implemention also doesn't work for _BitPos >= 32
+        unsigned char retval;
+        asm(
+            "lock bts %[_BitPos], %[_BitBase]\n\t"
+            "setc %b[retval]\n\t"
+            : [_BitBase] "+m" (*_BitBase), [retval] "+rm" (retval)
+            : [_BitPos] "ri" (_BitPos)
+            : "cc" // clobber condition code
+        );
+        return retval;
+#else
+        return _interlockedbittestandset(_BitBase, _BitPos);
+#endif
+    }
+};

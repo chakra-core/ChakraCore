@@ -349,7 +349,7 @@ namespace Js
     const auto& globalFlags = Js::Configuration::Global.flags;
     PVOID FaultInjection::vectoredExceptionHandler = nullptr;
     DWORD FaultInjection::exceptionFilterRemovalLastError = 0;
-    int(*Js::FaultInjection::pfnHandleAV)(int, PEXCEPTION_POINTERS) = nullptr;
+    __declspec(thread) int(*Js::FaultInjection::pfnHandleAV)(int, PEXCEPTION_POINTERS) = nullptr;
     static SymbolInfoPackage sip;
     static ModuleInfo mi;
 

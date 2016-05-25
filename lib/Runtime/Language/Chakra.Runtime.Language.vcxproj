@@ -25,6 +25,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>
+        $(MSBuildThisFileDirectory);
         $(MSBuildThisFileDirectory)..;
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
