@@ -2738,10 +2738,10 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr)
 
     // AND r1, (notEqualResult - equalResult)
     {
-        IR::Instr * and = IR::Instr::New(Js::OpCode::AND, r1, r1, m_func);
-        and->SetSrc2(IR::AddrOpnd::New((void*)((size_t)notEqualResult - (size_t)equalResult), IR::AddrOpndKind::AddrOpndKindDynamicMisc, this->m_func));
-        instr->InsertBefore(and);
-        Legalize(and);
+        IR::Instr * andInstr = IR::Instr::New(Js::OpCode::AND, r1, r1, m_func);
+        andInstr->SetSrc2(IR::AddrOpnd::New((void*)((size_t)notEqualResult - (size_t)equalResult), IR::AddrOpndKind::AddrOpndKindDynamicMisc, this->m_func));
+        instr->InsertBefore(andInstr);
+        Legalize(andInstr);
     }
 
     // ADD r1, equalResult

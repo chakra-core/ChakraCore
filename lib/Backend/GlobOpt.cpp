@@ -2674,7 +2674,7 @@ PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitAre
             if (!landingPadValue)
             {
                 // Value should be added as initial value or already be there.
-                return false;
+                return nullptr;
             }
 
             IR::Instr * ldInstr = this->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
@@ -20035,7 +20035,7 @@ ValueInfo::SpecializeToSimd128(IRType type, JitArenaAllocator *const allocator)
         return SpecializeToSimd128I4(allocator);
     default:
         Assert(UNREACHED);
-        return false;
+        return nullptr;
     }
 
 }
@@ -21427,3 +21427,9 @@ GlobOpt::ProcessMemOp()
     } NEXT_LOOP_EDITING;
 }
 
+template<>
+ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value)
+{
+    Assert(value);
+    return value->GetValueNumber();
+}

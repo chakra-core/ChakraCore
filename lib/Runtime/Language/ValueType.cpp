@@ -1135,21 +1135,6 @@ ValueType ValueType::ToPrimitiveOrObject() const
     return Verify(bits & (BitPattern(VALUE_TYPE_COMMON_BIT_COUNT) - Bits::Object) | Bits::PrimitiveOrObject);
 }
 
-__forceinline ValueType ValueType::Merge(const ValueType other) const
-{
-    Verify(*this);
-    Verify(other);
-
-    if(*this == other)
-        return *this;
-
-    const ValueType merged(bits | other.bits);
-    if(!merged.OneOn(Bits::Object)) // neither has the Object bit set
-        return Verify(merged);
-
-    return MergeWithObject(other);
-}
-
 ValueType ValueType::MergeWithObject(const ValueType other) const
 {
     ValueType merged(bits | other.bits);
@@ -1200,7 +1185,7 @@ ValueType ValueType::MergeWithObject(const ValueType other) const
     return Verify(bits | other.ToPrimitiveOrObject().bits); // see ToPrimitiveOrObject
 }
 
-inline ValueType ValueType::Merge(const Js::Var var) const
+ValueType ValueType::Merge(const Js::Var var) const
 {
     using namespace Js;
     Assert(var);

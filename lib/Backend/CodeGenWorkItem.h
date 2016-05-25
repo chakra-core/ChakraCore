@@ -27,20 +27,20 @@ protected:
     ExecutionMode jitMode;
 
 public:
-    virtual uint GetByteCodeCount() const abstract;
-    virtual uint GetFunctionNumber() const abstract;
-    virtual size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars) abstract;
-    virtual void GetEntryPointAddress(void** entrypoint, ptrdiff_t *size) abstract;
-    virtual uint GetInterpretedCount() const abstract;
-    virtual void Delete() abstract;
+    virtual uint GetByteCodeCount() const = 0;
+    virtual uint GetFunctionNumber() const = 0;
+    virtual size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars) = 0;
+    virtual void GetEntryPointAddress(void** entrypoint, ptrdiff_t *size) = 0;
+    virtual uint GetInterpretedCount() const = 0;
+    virtual void Delete() = 0;
 #if DBG_DUMP | defined(VTUNE_PROFILING)
-    virtual void RecordNativeMap(uint32 nativeOffset, uint32 statementIndex) abstract;
+    virtual void RecordNativeMap(uint32 nativeOffset, uint32 statementIndex) = 0;
 #endif
 #if DBG_DUMP
-    virtual void DumpNativeOffsetMaps() abstract;
-    virtual void DumpNativeThrowSpanSequence() abstract;
+    virtual void DumpNativeOffsetMaps() = 0;
+    virtual void DumpNativeThrowSpanSequence() = 0;
 #endif
-    virtual void InitializeReader(Js::ByteCodeReader &reader, Js::StatementReader &statementReader) abstract;
+    virtual void InitializeReader(Js::ByteCodeReader &reader, Js::StatementReader &statementReader) = 0;
 
     ExecutionMode GetJitMode()
     {

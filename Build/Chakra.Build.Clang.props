@@ -47,7 +47,11 @@
         -Wno-uninitialized
         -Wno-return-type
         -Wno-unused-local-typedef
-
+        -Wno-logical-op-parentheses
+        -Wno-dynamic-class-memaccess
+        -Wno-non-pod-varargs
+        -Wno-undefined-bool-conversion
+        -Wno-microsoft-cast
         -Wno-microsoft-enum-value
         -Wno-microsoft-include
         -Wno-microsoft-goto
