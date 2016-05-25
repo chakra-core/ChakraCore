@@ -85,8 +85,9 @@ WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
 {
     va_list argptr;
     va_start(argptr, msg);
-    Output::Print(_u("Binary decoding failed: "));
-    throw WasmCompilationException(msg, argptr);
+    // We need to do a format twice (or concat the 2 strings)
+    WasmCompilationException baseEx(msg, argptr);
+    throw WasmCompilationException(_u("Binary decoding failed:\n  %s"), baseEx.GetErrorMessage());
 }
 
 bool
@@ -250,6 +251,7 @@ WasmBinaryReader::PrintOps()
 #include "WasmBinaryOpcodes.h"
         }
     }
+    HeapDeleteArray(m_ops->Count(), ops);
 }
 #endif
 
@@ -300,7 +302,6 @@ WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callba
                 ThrowDecodingError(_u("Error while processing function #%u"), i);
             }
             m_pc = end;
-            m_module->functions[i] = nullptr;
         }
     }
     return m_pc == m_currentSection.end;
@@ -373,6 +374,9 @@ WasmBinaryReader::ASTNode()
         break;
     case wbI32Const:
         ConstNode<WasmTypes::bAstI32>();
+        break;
+    case wbI64Const:
+        ThrowDecodingError(_u("Int64 const NYI"));
         break;
     case wbF32Const:
         ConstNode<WasmTypes::bAstF32>();

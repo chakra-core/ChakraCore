@@ -1757,15 +1757,13 @@ if (!sourceList)
     }
 
 #ifdef ENABLE_WASM
-    Var WasmLazyTrapCallback(RecyclableObject *callee, bool isConstructCall, Var *args, USHORT cargs, void *callbackState)
+    Var WasmLazyTrapCallback(RecyclableObject *callee, CallInfo, ...)
     {
-        JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(callee);
-        ScriptContext * scriptContext = externalFunction->GetScriptContext();
-        Assert(externalFunction);
+        AsmJsScriptFunction* asmFunction = static_cast<AsmJsScriptFunction*>(callee);
+        Assert(asmFunction);
+        ScriptContext * scriptContext = asmFunction->GetScriptContext();
         Assert(scriptContext);
-        JavascriptLibrary *library = scriptContext->GetLibrary();
-        scriptContext->RecordException(((JavascriptError *)callbackState)->GetJavascriptExceptionObject());
-        return library->GetUndefined();
+        JavascriptExceptionOperators::Throw(asmFunction->GetLazyError(), scriptContext);
     }
 
     void WasmLoadDataSegs(Wasm::WasmModule * wasmModule, Var* heap, ScriptContext* ctx)
@@ -1808,26 +1806,14 @@ if (!sourceList)
     {
         FrameDisplay * frameDisplay = RecyclerNewPlus(ctx->GetRecycler(), sizeof(void*), FrameDisplay, 1);
         frameDisplay->SetItem(0, moduleMemoryPtr);
-        const auto createLazyTrap = [ctx, &exportObj]() {
-            JavascriptLibrary *library = ctx->GetLibrary();
-            JavascriptError *pError = library->CreateError();
-            JavascriptExceptionObject * exceptionObject =
-                RecyclerNew(ctx->GetRecycler(), JavascriptExceptionObject, exportObj, ctx, NULL);
-            pError->SetJavascriptExceptionObject(exceptionObject);
-            return library->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)WasmLazyTrapCallback, 0, pError);
+        const auto createLazyTrap = [ctx](Wasm::WasmCompilationException* e) {
+            
         };
 
         Wasm::WasmFunction ** functionArray = wasmModule->functions;
 
         for (uint i = 0; i < wasmModule->funcCount; ++i)
         {
-            if (functionArray[i] == nullptr)
-            {
-                Assert(PHASE_ON1(WasmLazyTrapPhase));
-                *hasAnyLazyTraps = true;
-                localModuleFunctions[i] = createLazyTrap();
-                continue;
-            }
             AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(functionArray[i]->body);
             funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
             funcObj->SetModuleMemory(moduleMemoryPtr);
@@ -1837,6 +1823,20 @@ if (!sourceList)
             entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
             funcObj->SetEnvironment(frameDisplay);
             localModuleFunctions[i] = funcObj;
+
+            if (wasmModule->lazyTraps && wasmModule->lazyTraps[i])
+            {
+                Assert(PHASE_ON1(WasmLazyTrapPhase));
+                *hasAnyLazyTraps = true;
+                JavascriptLibrary *library = ctx->GetLibrary();
+                JavascriptError *pError = library->CreateError();
+                JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, wasmModule->lazyTraps[i]->ReleaseErrorMessage(), ctx);
+
+                funcObj->GetDynamicType()->SetEntryPoint(WasmLazyTrapCallback);
+                entypointInfo->address = WasmLazyTrapCallback;
+                funcObj->SetLazyError(pError);
+                continue;
+            }
             // Do MTJRC/MAIC:0 check
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
@@ -1981,6 +1981,8 @@ if (!sourceList)
         }
     }
 
+    char16* lastWasmExceptionMessage = nullptr;
+
     Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi, Js::Var* start)
     {
         if (pSrcInfo == nullptr)
@@ -2088,9 +2090,16 @@ if (!sourceList)
         {
             pse->ProcessError(nullptr, VBSERR_OutOfStack, nullptr);
         }
-        catch (Wasm::WasmCompilationException)
+        catch (Wasm::WasmCompilationException& ex)
         {
+            lastWasmExceptionMessage = ex.ReleaseErrorMessage();
+
             pse->ProcessError(nullptr, JSERR_WasmCompileError, nullptr);
+            pse->ei.pfnDeferredFillIn = [](tagEXCEPINFO *pei) -> HRESULT {
+                pei->bstrDescription = lastWasmExceptionMessage;
+                lastWasmExceptionMessage = nullptr;
+                return S_OK;
+            };
         }
 
         if (bytecodeGen)
