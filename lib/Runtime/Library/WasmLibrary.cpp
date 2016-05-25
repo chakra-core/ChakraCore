@@ -3,10 +3,13 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
+#include "../WasmReader/WasmReaderPch.h"
 
 #ifdef ENABLE_WASM
 namespace Js
 {
+    const unsigned int WasmLibrary::experimentalVersion = Wasm::Binary::experimentalVersion;
+
     Var WasmLibrary::instantiateModule(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);

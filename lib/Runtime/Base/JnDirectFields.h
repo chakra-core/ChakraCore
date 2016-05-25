@@ -279,6 +279,7 @@ ENTRY(Math)
 #ifdef ENABLE_WASM
 ENTRY(Wasm)
 ENTRY(instantiateModule)
+ENTRY(experimentalVersion)
 #endif
 // End Wasm
 
