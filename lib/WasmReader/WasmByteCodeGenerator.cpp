@@ -71,23 +71,16 @@ WasmBytecodeGenerator::GenerateModule()
     sectionProcess[bSectFunctionBodies] = [](WasmBytecodeGenerator* gen) {
         gen->m_module->funcCount = gen->m_module->info->GetFunctionCount();
         gen->m_module->functions = AnewArrayZ(&gen->m_alloc, WasmFunction*, gen->m_module->funcCount);
+        if (PHASE_ON1(Js::WasmLazyTrapPhase))
+        {
+            gen->m_module->lazyTraps = AnewArrayZ(&gen->m_alloc, WasmCompilationException*, gen->m_module->funcCount);
+        }
         return gen->m_reader->ReadFunctionBodies([](uint32 index, void* g) {
             WasmBytecodeGenerator* gen = (WasmBytecodeGenerator*)g;
             if (index >= gen->m_module->funcCount) {
                 return false;
             }
-            WasmFunction* fn = nullptr;
-            try 
-            {
-                fn = gen->GenerateFunction();
-            }
-            catch (WasmCompilationException) 
-            {
-                if (!PHASE_ON1(Js::WasmLazyTrapPhase)) 
-                {
-                    throw;
-                }
-            }
+            WasmFunction* fn = gen->GenerateFunction();
             gen->m_module->functions[index] = fn;
             return true;
         }, gen);
@@ -214,6 +207,17 @@ WasmBytecodeGenerator::GenerateFunction()
             EmitReturnExpr(&exprInfo);
         }
         ReleaseLocation(&exprInfo);
+    }
+    catch (WasmCompilationException& ex)
+    {
+        if (!PHASE_ON1(Js::WasmLazyTrapPhase))
+        {
+            m_writer.Reset();
+            throw WasmCompilationException(_u("%s\n  Function %s"), ex.GetErrorMessage(), functionName);
+        }
+        Assert(m_module->lazyTraps != nullptr);
+        WasmCompilationException* lazyTrap = Anew(&m_alloc, WasmCompilationException, _u("Delayed Wasm trap:\n  %s"), ex.GetErrorMessage());
+        m_module->lazyTraps[wasmInfo->GetNumber()] = lazyTrap;
     }
     catch (...) {
         m_writer.Reset();
@@ -784,6 +788,7 @@ WasmBytecodeGenerator::EmitCall()
             convertOp = wasmOp == wnCALL_IMPORT ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
             break;
         case WasmTypes::I64:
+            throw WasmCompilationException(_u("I64 return type NYI"));
         default:
             throw WasmCompilationException(_u("Unknown call return type %u"), retInfo.type);
         }
@@ -1328,23 +1333,38 @@ WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type) const
     }
 }
 
-void WasmCompilationException::PrintError(const char16* _msg, va_list arglist)
+void
+WasmCompilationException::FormatError(const char16* _msg, va_list arglist)
 {
-    Output::VPrint(_msg, arglist);
-    Output::Print(_u("\r\n"));
-    Output::Flush();
+    char16 buf[2048];
+    size_t size;
+
+    size = _vsnwprintf_s(buf, _countof(buf), _TRUNCATE, _msg, arglist);
+    if (size == -1)
+    {
+        size = 2048;
+    }
+    errorMsg = SysAllocString(buf);
+}
+
+WasmCompilationException::~WasmCompilationException()
+{
+    if (errorMsg)
+    {
+        SysFreeString(errorMsg);
+    }
 }
 
 WasmCompilationException::WasmCompilationException(const char16* _msg, ...)
 {
     va_list arglist;
     va_start(arglist, _msg);
-    PrintError(_msg, arglist);
+    FormatError(_msg, arglist);
 }
 
 WasmCompilationException::WasmCompilationException(const char16* _msg, va_list arglist)
 {
-    PrintError(_msg, arglist);
+    FormatError(_msg, arglist);
 }
 
 } // namespace Wasm

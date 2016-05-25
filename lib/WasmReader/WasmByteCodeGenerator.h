@@ -41,10 +41,30 @@ namespace Wasm
 
     class WasmCompilationException
     {
-        void PrintError(const char16* _msg, va_list arglist);
+        void FormatError(const char16* _msg, va_list arglist);
+        char16* errorMsg;
     public:
+        ~WasmCompilationException();
         WasmCompilationException(const char16* _msg, ...);
         WasmCompilationException(const char16* _msg, va_list arglist);
+
+        void SetErrorMessage(char16* _errorMsg)
+        {
+            errorMsg = _errorMsg;
+        }
+
+        const char16* GetErrorMessage() const
+        {
+            return errorMsg;
+        }
+
+        char16* ReleaseErrorMessage()
+        {
+            Assert(errorMsg);
+            char16* msg = errorMsg;
+            errorMsg = nullptr;
+            return msg;
+        };
     };
 
     typedef JsUtil::BaseDictionary<uint, LPCUTF8, ArenaAllocator> WasmExportDictionary;
