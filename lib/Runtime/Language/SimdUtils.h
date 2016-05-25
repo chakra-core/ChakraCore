@@ -265,15 +265,10 @@ namespace Js {
         ////////////////////////////////////////////
         // SIMD Shuffle Swizzle helpers
         ////////////////////////////////////////////
-        template <uint32 laneCount = 4>
-        static SIMDValue SIMD128InnerShuffle(const SIMDValue src1, const SIMDValue src2, uint32 lane0, uint32 lane1, uint32 lane2, uint32 lane3);
-        template <uint32 laneCount = 8>
-        static SIMDValue SIMD128InnerShuffle(const SIMDValue src1, const SIMDValue src2, const uint32* lanes = nullptr);
+        static SIMDValue SIMD128InnerShuffle(const SIMDValue src1, const SIMDValue src2, uint32 laneCount, const uint32* lanes = nullptr);
 
-        template <class SIMDType, uint32 laneCount = 4>
-        static Var SIMD128SlowShuffle(Var src1, Var src2, Var lane0, Var lane1, Var lane2, Var lane3, uint32 range, ScriptContext* scriptContext);
-        template <class SIMDType, uint32 laneCount = 8>
-        static Var SIMD128SlowShuffle(Var src1, Var src2, Var *lanes, const uint32 range, ScriptContext* scriptContext);
+        template <class SIMDType>
+        static Var SIMD128SlowShuffle(Var src1, Var src2, Var *lanes, const uint32 laneCount, const uint32 range, ScriptContext* scriptContext);
 
         ///////////////////////////////////////////
         // SIMD Type conversion

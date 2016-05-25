@@ -749,12 +749,13 @@ namespace Js
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, _u("Lane index"));
             }
 
-            Var lane0 = args[2];
-            Var lane1 = args[3];
-            Var lane2 = args[4];
-            Var lane3 = args[5];
+            Var lanes[4];
+            lanes[0] = args[2];
+            lanes[1] = args[3];
+            lanes[2] = args[4];
+            lanes[3] = args[5];
 
-            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDUint32x4>(args[1], args[1], lane0, lane1, lane2, lane3, 4, scriptContext);
+            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDUint32x4>(args[1], args[1], lanes, 4, 4, scriptContext);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, _u("swizzle"));
     }
@@ -780,12 +781,13 @@ namespace Js
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, _u("Lane index"));
             }
 
-            Var lane0 = args[3];
-            Var lane1 = args[4];
-            Var lane2 = args[5];
-            Var lane3 = args[6];
+            Var lanes[4];
+            lanes[0] = args[3];
+            lanes[1] = args[4];
+            lanes[2] = args[5];
+            lanes[3] = args[6];
 
-            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDUint32x4>(args[1], args[2], lane0, lane1, lane2, lane3, 8, scriptContext);
+            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDUint32x4>(args[1], args[2], lanes, 4, 8, scriptContext);
 
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, _u("shuffle"));

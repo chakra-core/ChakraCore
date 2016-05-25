@@ -836,7 +836,7 @@ if (switchProfileMode) \
     lanes[10] = GetRegRawInt(playout->I12); lanes[11] = GetRegRawInt(playout->I13); \
     lanes[12] = GetRegRawInt(playout->I14); lanes[13] = GetRegRawInt(playout->I15); \
     lanes[14] = GetRegRawInt(playout->I16); lanes[15] = GetRegRawInt(playout->I17); \
-    SetRegRawSimd(playout->I16_0, func<16>(GetRegRawSimd(playout->I16_1), GetRegRawSimd(playout->I16_1),lanes)); \
+    SetRegRawSimd(playout->I16_0, func(GetRegRawSimd(playout->I16_1), GetRegRawSimd(playout->I16_1), 16, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_I16_1I16toI16_1(name, func) PROCESS_SIMD_I16_1I16toI16_1_COMMON(name, func,)
@@ -855,7 +855,7 @@ if (switchProfileMode) \
     lanes[10] = GetRegRawInt(playout->I13); lanes[11] = GetRegRawInt(playout->I14); \
     lanes[12] = GetRegRawInt(playout->I15); lanes[13] = GetRegRawInt(playout->I16); \
     lanes[14] = GetRegRawInt(playout->I17); lanes[15] = GetRegRawInt(playout->I18); \
-    SetRegRawSimd(playout->I16_0, func<16>(GetRegRawSimd(playout->I16_1), GetRegRawSimd(playout->I16_2), lanes)); \
+    SetRegRawSimd(playout->I16_0, func(GetRegRawSimd(playout->I16_1), GetRegRawSimd(playout->I16_2), 16, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_I16_2I16toI16_1(name, func) PROCESS_SIMD_I16_2I16toI16_1_COMMON(name, func,)
@@ -1727,7 +1727,10 @@ if (switchProfileMode) \
     case OpCodeAsmJs::name: \
     { \
     PROCESS_READ_LAYOUT_ASMJS(name, Float32x4_2Int4, suffix); \
-    SetRegRawSimd(playout->F4_0, func(GetRegRawSimd(playout->F4_1), GetRegRawSimd(playout->F4_1), GetRegRawInt(playout->I2), GetRegRawInt(playout->I3), GetRegRawInt(playout->I4), GetRegRawInt(playout->I5))); \
+    uint32 lanes[4]; \
+    lanes[0] = GetRegRawInt(playout->I2);   lanes[1] = GetRegRawInt(playout->I3); \
+    lanes[2] = GetRegRawInt(playout->I4);   lanes[3] = GetRegRawInt(playout->I5); \
+    SetRegRawSimd(playout->F4_0, func(GetRegRawSimd(playout->F4_1), GetRegRawSimd(playout->F4_1), 4, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_F4_1I4toF4_1(name, func) PROCESS_SIMD_F4_1I4toF4_1_COMMON(name, func,)
@@ -1737,7 +1740,10 @@ if (switchProfileMode) \
     case OpCodeAsmJs::name: \
     { \
     PROCESS_READ_LAYOUT_ASMJS(name, Float32x4_3Int4, suffix); \
-    SetRegRawSimd(playout->F4_0, func(GetRegRawSimd(playout->F4_1), GetRegRawSimd(playout->F4_2), GetRegRawInt(playout->I3), GetRegRawInt(playout->I4), GetRegRawInt(playout->I5), GetRegRawInt(playout->I6))); \
+    uint32 lanes[4]; \
+    lanes[0] = GetRegRawInt(playout->I3); lanes[1] = GetRegRawInt(playout->I4); \
+    lanes[2] = GetRegRawInt(playout->I5); lanes[3] = GetRegRawInt(playout->I6); \
+    SetRegRawSimd(playout->F4_0, func(GetRegRawSimd(playout->F4_1), GetRegRawSimd(playout->F4_2), 4, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_F4_1I4toF4_1(name, func) PROCESS_SIMD_F4_1I4toF4_1_COMMON(name, func,)
@@ -1747,7 +1753,10 @@ if (switchProfileMode) \
     case OpCodeAsmJs::name: \
     { \
     PROCESS_READ_LAYOUT_ASMJS(name, Int32x4_2Int4, suffix); \
-    SetRegRawSimd(playout->I4_0, func(GetRegRawSimd(playout->I4_1), GetRegRawSimd(playout->I4_1), GetRegRawInt(playout->I2), GetRegRawInt(playout->I3), GetRegRawInt(playout->I4), GetRegRawInt(playout->I5))); \
+    uint32 lanes[4]; \
+    lanes[0] = GetRegRawInt(playout->I2);   lanes[1] = GetRegRawInt(playout->I3); \
+    lanes[2] = GetRegRawInt(playout->I4);   lanes[3] = GetRegRawInt(playout->I5); \
+    SetRegRawSimd(playout->I4_0, func(GetRegRawSimd(playout->I4_1), GetRegRawSimd(playout->I4_1), 4, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_I4_1I4toI4_1(name, func) PROCESS_SIMD_I4_1I4toI4_1_COMMON(name, func,)
@@ -1757,7 +1766,10 @@ if (switchProfileMode) \
     case OpCodeAsmJs::name: \
     { \
     PROCESS_READ_LAYOUT_ASMJS(name, Int32x4_3Int4, suffix); \
-    SetRegRawSimd(playout->I4_0, func(GetRegRawSimd(playout->I4_1), GetRegRawSimd(playout->I4_2), GetRegRawInt(playout->I3), GetRegRawInt(playout->I4), GetRegRawInt(playout->I5), GetRegRawInt(playout->I6))); \
+    uint32 lanes[4]; \
+    lanes[0] = GetRegRawInt(playout->I3); lanes[1] = GetRegRawInt(playout->I4); \
+    lanes[2] = GetRegRawInt(playout->I5); lanes[3] = GetRegRawInt(playout->I6); \
+    SetRegRawSimd(playout->I4_0, func(GetRegRawSimd(playout->I4_1), GetRegRawSimd(playout->I4_2), 4, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_I4_1I4toI4_1(name, func) PROCESS_SIMD_I4_1I4toI4_1_COMMON(name, func,)
@@ -1773,7 +1785,7 @@ if (switchProfileMode) \
     lanes[2] = GetRegRawInt(playout->I4); lanes[3] = GetRegRawInt(playout->I5); \
     lanes[4] = GetRegRawInt(playout->I6); lanes[5] = GetRegRawInt(playout->I7); \
     lanes[6] = GetRegRawInt(playout->I8); lanes[7] = GetRegRawInt(playout->I9); \
-    SetRegRawSimd(playout->I8_0, func(GetRegRawSimd(playout->I8_1), GetRegRawSimd(playout->I8_1),lanes)); \
+    SetRegRawSimd(playout->I8_0, func(GetRegRawSimd(playout->I8_1), GetRegRawSimd(playout->I8_1), 8, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_I8_1I8toI8_1(name, func) PROCESS_SIMD_I8_1I8toI8_1_COMMON(name, func,)
@@ -1788,7 +1800,7 @@ if (switchProfileMode) \
     lanes[2] = GetRegRawInt(playout->I5); lanes[3] = GetRegRawInt(playout->I6); \
     lanes[4] = GetRegRawInt(playout->I7); lanes[5] = GetRegRawInt(playout->I8); \
     lanes[6] = GetRegRawInt(playout->I9); lanes[7] = GetRegRawInt(playout->I10); \
-    SetRegRawSimd(playout->I8_0, func(GetRegRawSimd(playout->I8_1), GetRegRawSimd(playout->I8_2), lanes)); \
+    SetRegRawSimd(playout->I8_0, func(GetRegRawSimd(playout->I8_1), GetRegRawSimd(playout->I8_2), 8, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_I8_1I8toI8_1(name, func) PROCESS_SIMD_I8_1I8toI8_1_COMMON(name, func,)
@@ -1798,7 +1810,10 @@ if (switchProfileMode) \
     case OpCodeAsmJs::name: \
     { \
     PROCESS_READ_LAYOUT_ASMJS(name, Uint32x4_2Int4, suffix); \
-    SetRegRawSimd(playout->U4_0, func(GetRegRawSimd(playout->U4_1), GetRegRawSimd(playout->U4_1), GetRegRawInt(playout->I2), GetRegRawInt(playout->I3), GetRegRawInt(playout->I4), GetRegRawInt(playout->I5))); \
+    uint32 lanes[4]; \
+    lanes[0] = GetRegRawInt(playout->I2);   lanes[1] = GetRegRawInt(playout->I3); \
+    lanes[2] = GetRegRawInt(playout->I4);   lanes[3] = GetRegRawInt(playout->I5); \
+    SetRegRawSimd(playout->U4_0, func(GetRegRawSimd(playout->U4_1), GetRegRawSimd(playout->U4_1), 4, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_U4_1I4toU4_1(name, func) PROCESS_SIMD_U4_1I4toU4_1_COMMON(name, func,)
@@ -1808,7 +1823,10 @@ if (switchProfileMode) \
     case OpCodeAsmJs::name: \
     { \
     PROCESS_READ_LAYOUT_ASMJS(name, Uint32x4_3Int4, suffix); \
-    SetRegRawSimd(playout->U4_0, func(GetRegRawSimd(playout->U4_1), GetRegRawSimd(playout->U4_2), GetRegRawInt(playout->I3), GetRegRawInt(playout->I4), GetRegRawInt(playout->I5), GetRegRawInt(playout->I6))); \
+    uint32 lanes[4]; \
+    lanes[0] = GetRegRawInt(playout->I3); lanes[1] = GetRegRawInt(playout->I4); \
+    lanes[2] = GetRegRawInt(playout->I5); lanes[3] = GetRegRawInt(playout->I6); \
+    SetRegRawSimd(playout->U4_0, func(GetRegRawSimd(playout->U4_1), GetRegRawSimd(playout->U4_2), 4, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_U4_1I4toU4_1(name, func) PROCESS_SIMD_U4_1I4toU4_1_COMMON(name, func,)
@@ -1823,7 +1841,7 @@ if (switchProfileMode) \
     lanes[2] = GetRegRawInt(playout->I4); lanes[3] = GetRegRawInt(playout->I5); \
     lanes[4] = GetRegRawInt(playout->I6); lanes[5] = GetRegRawInt(playout->I7); \
     lanes[6] = GetRegRawInt(playout->I8); lanes[7] = GetRegRawInt(playout->I9); \
-    SetRegRawSimd(playout->U8_0, func(GetRegRawSimd(playout->U8_1), GetRegRawSimd(playout->U8_1),lanes)); \
+    SetRegRawSimd(playout->U8_0, func(GetRegRawSimd(playout->U8_1), GetRegRawSimd(playout->U8_1), 8, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_U8_1I8toU8_1(name, func) PROCESS_SIMD_U8_1I8toU8_1_COMMON(name, func,)
@@ -1838,7 +1856,7 @@ if (switchProfileMode) \
     lanes[2] = GetRegRawInt(playout->I5); lanes[3] = GetRegRawInt(playout->I6); \
     lanes[4] = GetRegRawInt(playout->I7); lanes[5] = GetRegRawInt(playout->I8); \
     lanes[6] = GetRegRawInt(playout->I9); lanes[7] = GetRegRawInt(playout->I10); \
-    SetRegRawSimd(playout->U8_0, func(GetRegRawSimd(playout->U8_1), GetRegRawSimd(playout->U8_2), lanes)); \
+    SetRegRawSimd(playout->U8_0, func(GetRegRawSimd(playout->U8_1), GetRegRawSimd(playout->U8_2), 8, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_U8_1I8toU8_1(name, func) PROCESS_SIMD_U8_1I8toU8_1_COMMON(name, func,)
@@ -1857,7 +1875,7 @@ if (switchProfileMode) \
     lanes[10] = GetRegRawInt(playout->I12); lanes[11] = GetRegRawInt(playout->I13); \
     lanes[12] = GetRegRawInt(playout->I14); lanes[13] = GetRegRawInt(playout->I15); \
     lanes[14] = GetRegRawInt(playout->I16); lanes[15] = GetRegRawInt(playout->I17); \
-    SetRegRawSimd(playout->U16_0, func<16>(GetRegRawSimd(playout->U16_1), GetRegRawSimd(playout->U16_1),lanes)); \
+    SetRegRawSimd(playout->U16_0, func(GetRegRawSimd(playout->U16_1), GetRegRawSimd(playout->U16_1), 16,lanes)); \
     break; \
     }
 #define PROCESS_SIMD_U16_1I16toU16_1(name, func) PROCESS_SIMD_U16_1I16toU16_1_COMMON(name, func,)
@@ -1876,7 +1894,7 @@ if (switchProfileMode) \
     lanes[10] = GetRegRawInt(playout->I13); lanes[11] = GetRegRawInt(playout->I14); \
     lanes[12] = GetRegRawInt(playout->I15); lanes[13] = GetRegRawInt(playout->I16); \
     lanes[14] = GetRegRawInt(playout->I17); lanes[15] = GetRegRawInt(playout->I18); \
-    SetRegRawSimd(playout->U16_0, func<16>(GetRegRawSimd(playout->U16_1), GetRegRawSimd(playout->U16_2), lanes)); \
+    SetRegRawSimd(playout->U16_0, func(GetRegRawSimd(playout->U16_1), GetRegRawSimd(playout->U16_2), 16, lanes)); \
     break; \
     }
 #define PROCESS_SIMD_U16_2I16toU16_1(name, func) PROCESS_SIMD_U16_2I16toU16_1_COMMON(name, func,)
