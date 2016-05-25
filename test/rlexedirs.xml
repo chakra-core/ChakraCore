@@ -295,7 +295,7 @@
 </dir>
 <dir>
   <default>
-    <files>SIMD.float32x4.asmjs,require_backend</files>
+    <files>SIMD.float32x4.asmjs</files>
     <tags>exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
