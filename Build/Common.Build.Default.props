@@ -40,7 +40,15 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
 
-  <!-- Alternate platform names-->
+  <!-- Change configuration name to output to a different folder -->
+  <!-- POGO instrumentation -->
+  <PropertyGroup>
+    <IsPogoBuild />
+    <IsPogoBuild Condition="('$(POGO_TYPE)'=='PGO' OR '$(POGO_TYPE)'=='PGI')">true</IsPogoBuild>
+    <OutDirName Condition="'$(IsPogoBuild)'=='true'">$(Configuration.ToLower())_pogo</OutDirName>
+  </PropertyGroup>
+
+  <!-- Alternate platform names -->
   <PropertyGroup>
     <!-- PlatformPathName is used in OutDir/IntDir name-->
     <PlatformPathName>$(Platform)</PlatformPathName>
