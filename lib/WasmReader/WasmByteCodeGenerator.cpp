@@ -197,7 +197,6 @@ WasmBytecodeGenerator::GenerateFunction()
             op = newOp;
             exprInfo = EmitExpr(op);
         }
-        ExitEvalStackScope();
         // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
         Wasm::WasmTypes::WasmType returnType = m_funcInfo->GetSignature()->GetResultType();
         if (op != wnRETURN)
@@ -206,9 +205,16 @@ WasmBytecodeGenerator::GenerateFunction()
             {
                 throw WasmCompilationException(_u("Last expression return type mismatch return type"));
             }
-            m_reader->m_currentNode.ret.arity = 1;
+            uint32 arity = 0;
+            if (returnType != Wasm::WasmTypes::Void)
+            {
+                PushEvalStack(exprInfo);
+                arity = 1;
+            }
+            m_reader->m_currentNode.ret.arity = arity;
             EmitReturnExpr(&exprInfo);
         }
+        ExitEvalStackScope();
         ReleaseLocation(&exprInfo);
     }
     catch (WasmCompilationException& ex)
@@ -979,7 +985,7 @@ template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType
 EmitInfo
 WasmBytecodeGenerator::EmitUnaryExpr()
 {
-    EmitInfo info = EmitExpr(m_reader->ReadExpr());
+    EmitInfo info = PopEvalStack();
 
     if (inputType != info.type)
     {
@@ -1002,7 +1008,7 @@ WasmBytecodeGenerator::EmitMemRead()
     const uint offset = m_reader->m_currentNode.mem.offset;
     m_func->body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
 
-    EmitInfo exprInfo = EmitExpr(m_reader->ReadExpr());
+    EmitInfo exprInfo = PopEvalStack();
 
     if (exprInfo.type != WasmTypes::I32)
     {
@@ -1032,7 +1038,8 @@ WasmBytecodeGenerator::EmitMemStore()
     m_func->body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
     // TODO (michhol): combine with MemRead
 
-    EmitInfo exprInfo = EmitExpr(m_reader->ReadExpr());
+    EmitInfo rhsInfo = PopEvalStack();
+    EmitInfo exprInfo = PopEvalStack();
 
     if (exprInfo.type != WasmTypes::I32)
     {
@@ -1046,7 +1053,6 @@ WasmBytecodeGenerator::EmitMemStore()
         m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Int, exprInfo.location, exprInfo.location, indexReg);
         m_i32RegSlots->ReleaseTmpRegister(indexReg);
     }
-    EmitInfo rhsInfo = EmitExpr(m_reader->ReadExpr());
     if (rhsInfo.type != type)
     {
         throw WasmCompilationException(_u("Invalid type for store op"));
@@ -1054,7 +1060,7 @@ WasmBytecodeGenerator::EmitMemStore()
 
     m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArr, rhsInfo.location, exprInfo.location, GetViewType(wasmOp));
     ReleaseLocation(&rhsInfo);
-    m_i32RegSlots->ReleaseLocation(&exprInfo);
+    ReleaseLocation(&exprInfo);
 
     Js::RegSlot retLoc = GetRegisterSpace(type)->AcquireTmpRegister();
     if (retLoc != rhsInfo.location)
@@ -1134,7 +1140,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
 EmitInfo
 WasmBytecodeGenerator::EmitSelect()
 {
-    EmitInfo conditionInfo = EmitExpr(m_reader->ReadExpr());
+    EmitInfo conditionInfo = PopEvalStack();
     if (conditionInfo.type != WasmTypes::I32)
     {
         throw WasmCompilationException(_u("select condition must have I32 type"));
@@ -1146,11 +1152,11 @@ WasmBytecodeGenerator::EmitSelect()
     m_writer.AsmBrReg1(Js::OpCodeAsmJs::BrFalse_Int, falseLabel, conditionInfo.location);
     m_i32RegSlots->ReleaseLocation(&conditionInfo);
 
-    EmitInfo trueInfo = EmitExpr(m_reader->ReadExpr());
+    EmitInfo trueInfo = PopEvalStack();
     m_writer.AsmBr(doneLabel);
     m_writer.MarkAsmJsLabel(falseLabel);
 
-    EmitInfo falseInfo = EmitExpr(m_reader->ReadExpr());
+    EmitInfo falseInfo = PopEvalStack();
     if (trueInfo.type != falseInfo.type)
     {
         throw WasmCompilationException(_u("select operands must both have same type"));
@@ -1177,7 +1183,7 @@ WasmBytecodeGenerator::EmitBr()
     EmitInfo conditionInfo;
     if (wasmOp == WasmOp::wnBR_IF)
     {
-        conditionInfo = EmitExpr(m_reader->ReadFromBlock());
+        conditionInfo = PopEvalStack();
         if (conditionInfo.type != WasmTypes::I32)
         {
             throw WasmCompilationException(_u("br_if condition must have I32 type"));
@@ -1187,7 +1193,7 @@ WasmBytecodeGenerator::EmitBr()
     if (hasSubExpr)
     {
         // TODO: Handle value that Break is supposed to "throw".
-        EmitInfo info = EmitExpr(m_reader->ReadFromBlock());
+        EmitInfo info = PopEvalStack();
     }
 
     Js::ByteCodeLabel target = GetLabel(depth);
