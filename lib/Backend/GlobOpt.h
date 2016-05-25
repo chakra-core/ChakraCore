@@ -1382,21 +1382,22 @@ private:
     void                    SetValueToHashTable(GlobHashTable * valueNumberMap, Value *val, Sym *sym);
     IR::Instr *             TypeSpecialization(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2Val, Value **pDstVal, bool *redoTypeSpecRef, bool *const forceInvariantHoistingRef);
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     bool                    TypeSpecializeSimd128(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2Val, Value **pDstVal);
     bool                    Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *src2Val, const Value *dstVal);
     bool                    Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, const Value *src2Val, const Value *dstVal, const ThreadContext::SimdFuncSignature *simdFuncSignature);
     bool                    Simd128CanTypeSpecOpnd(const ValueType opndType, const ValueType expectedType);
     bool                    Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opnd, uint argPos);
-    
+    void                    UpdateBoundCheckHoistInfoForSimd(ArrayUpperBoundCheckHoistInfo &upperHoistInfo, ValueType arrValueType, const IR::Instr *instr);    
+    void                    Simd128SetIndirOpndType(IR::IndirOpnd *indirOpnd, Js::OpCode opcode);
+#endif
+
     IRType                  GetIRTypeFromValueType(const ValueType &valueType);
     ValueType               GetValueTypeFromIRType(const IRType &type);
     IR::BailOutKind         GetBailOutKindFromValueType(const ValueType &valueType);
     IR::Instr *             GetExtendedArg(IR::Instr *instr);
-    void                    UpdateBoundCheckHoistInfoForSimd(ArrayUpperBoundCheckHoistInfo &upperHoistInfo, ValueType arrValueType, const IR::Instr *instr);
     int                     GetBoundCheckOffsetForSimd(ValueType arrValueType, const IR::Instr *instr, const int oldOffset = -1);
-    void                    Simd128SetIndirOpndType(IR::IndirOpnd *indirOpnd, Js::OpCode opcode);
-
 
     IR::Instr *             OptNewScObject(IR::Instr** instrPtr, Value* srcVal);
     bool                    OptConstFoldBinary(IR::Instr * *pInstr, const IntConstantBounds &src1IntConstantBounds, const IntConstantBounds &src2IntConstantBounds, Value **pDstVal);

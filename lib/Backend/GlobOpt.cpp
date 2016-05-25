@@ -5573,6 +5573,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     }
                 }
 
+#ifdef ENABLE_SIMDJS
                 // SIMD_JS
                 // For uses before defs, we set likelySimd128*SymsUsedBeforeDefined bits for syms that have landing pad value info that allow type-spec to happen in the loop body.
                 // The BV will be added to loop header if the backedge has a live matching type-spec value. We then compensate in the loop header to unbox the value.
@@ -5625,6 +5626,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                         rootLoopPrePass->likelySimd128I4SymsUsedBeforeDefined->Set(sym->m_id);
                     }
                 }
+#endif
             }
         }
     }
@@ -7598,6 +7600,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         break;
     }
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     if (Js::IsSimd128Opcode(instr->m_opcode) && !func->m_workItem->GetFunctionBody()->GetIsAsmjsMode())
     {
@@ -7605,6 +7608,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         instr->m_func->GetScriptContext()->GetThreadContext()->GetSimdFuncSignatureFromOpcode(instr->m_opcode, simdFuncSignature);
         return this->NewGenericValue(simdFuncSignature.returnType, dst);
     }
+#endif
 
     if (dstVal == nullptr)
     {
@@ -8431,11 +8435,13 @@ GlobOpt::TypeSpecialization(
     Value *const src1OriginalVal = src1Val;
     Value *const src2OriginalVal = src2Val;
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     if (TypeSpecializeSimd128(instr, pSrc1Val, pSrc2Val, pDstVal))
     {
         return instr;
     }
+#endif
 
     if(!instr->ShouldCheckForIntOverflow())
     {
@@ -16417,8 +16423,10 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     failedToUpdateCompatibleLowerBoundCheck,
                     failedToUpdateCompatibleUpperBoundCheck);
 
+#ifdef ENABLE_SIMDJS
                 // SIMD_JS
                 UpdateBoundCheckHoistInfoForSimd(upperBoundCheckHoistInfo, newBaseValueType, instr);
+#endif
             }
 
             if(!eliminatedLowerBoundCheck)

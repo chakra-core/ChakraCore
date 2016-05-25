@@ -585,6 +585,7 @@ bool InliningDecider::GetBuiltInInfo(
         break;
 #endif
 
+#ifdef ENABLE_SIMDJS
     // SIMD_JS
     // we only inline, and hence type-spec on IA
 #if defined(_M_X64) || defined(_M_IX86)
@@ -601,6 +602,7 @@ bool InliningDecider::GetBuiltInInfo(
         }
     }
 #endif
+#endif // ENABLE_SIMDJS
     }
     return true;
 }

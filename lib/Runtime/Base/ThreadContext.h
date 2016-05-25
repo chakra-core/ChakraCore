@@ -440,7 +440,7 @@ public:
     }
 #endif
 
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
     // used by inliner. Maps Simd FuncInfo (library func) to equivalent opcode.
     typedef JsUtil::BaseDictionary<Js::FunctionInfo *, Js::OpCode, ArenaAllocator> FuncInfoToOpcodeMap;
     FuncInfoToOpcodeMap * simdFuncInfoToOpcodeMap;
