@@ -190,8 +190,6 @@ ASMJS_SIMD_O_NAMES(float32x4_mul,                             mul,              
 ASMJS_SIMD_O_NAMES(float32x4_div,                             div,                          Float32x4,        Div                         )
 ASMJS_SIMD_O_NAMES(float32x4_min,                             min,                          Float32x4,        Min                         )
 ASMJS_SIMD_O_NAMES(float32x4_max,                             max,                          Float32x4,        Max                         )
-ASMJS_SIMD_O_NAMES(float32x4_minNum,                          minNum,                       Float32x4,        MinNum                      )
-ASMJS_SIMD_O_NAMES(float32x4_maxNum,                          maxNum,                       Float32x4,        MaxNum                      )
 ASMJS_SIMD_O_NAMES(float32x4_reciprocal,                      reciprocalApproximation,      Float32x4,        Reciprocal                  )
 ASMJS_SIMD_O_NAMES(float32x4_reciprocalSqrt,                  reciprocalSqrtApproximation,  Float32x4,        ReciprocalSqrt              )
 ASMJS_SIMD_O_NAMES(float32x4_sqrt,                            sqrt,                         Float32x4,        Sqrt                        )

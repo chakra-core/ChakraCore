@@ -293,9 +293,6 @@ MACRO_SIMD_EXTEND_WMS     ( Simd128_FromUint16x8Bits_F4         , Float32x4_1Uin
 MACRO_SIMD_EXTEND_WMS     ( Simd128_FromInt8x16Bits_F4          , Float32x4_1Int8x16_1              , None           ,        OpCanCSE          ,      0)
 MACRO_SIMD_EXTEND_WMS     ( Simd128_FromUint8x16Bits_F4         , Float32x4_1Uint8x16_1             , None           ,        OpCanCSE          ,      0)
 
-MACRO_SIMD_EXTEND_WMS     ( Simd128_MinNum_F4                   , Float32x4_3                      , None           ,        OpCanCSE           ,      0)
-MACRO_SIMD_EXTEND_WMS     ( Simd128_MaxNum_F4                   , Float32x4_3                      , None           ,        OpCanCSE           ,      0)
-
 MACRO_SIMD_EXTEND_WMS     ( Simd128_LtEq_I4                     , Bool32x4_1Int32x4_2              , None           ,        None               ,      0)
 MACRO_SIMD_EXTEND_WMS     ( Simd128_GtEq_I4                     , Bool32x4_1Int32x4_2              , None           ,        None               ,      0)
 MACRO_SIMD_EXTEND_WMS     ( Simd128_Neq_I4                      , Bool32x4_1Int32x4_2              , None           ,        None               ,      0)

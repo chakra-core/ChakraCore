@@ -686,65 +686,6 @@ namespace Js
             return JavascriptSIMDFloat32x4::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("maxNum"));
-    }
-
-
-    Var SIMDFloat32x4Lib::EntryMinNum(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        // If any of the args are missing, then it is Undefined type which causes TypeError exception.
-        // strict type on both operands
-        if (args.Info.Count >= 3 && JavascriptSIMDFloat32x4::Is(args[1]) && JavascriptSIMDFloat32x4::Is(args[2]))
-        {
-            JavascriptSIMDFloat32x4 *a = JavascriptSIMDFloat32x4::FromVar(args[1]);
-            JavascriptSIMDFloat32x4 *b = JavascriptSIMDFloat32x4::FromVar(args[2]);
-            SIMDValue result, aValue, bValue;
-
-            aValue = a->GetValue();
-            bValue = b->GetValue();
-
-            result = SIMDFloat32x4Operation::OpMinNum(aValue, bValue);
-
-            return JavascriptSIMDFloat32x4::New(&result, scriptContext);
-        }
-
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("minNum"));
-    }
-
-    Var SIMDFloat32x4Lib::EntryMaxNum(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        // If any of the args are missing, then it is Undefined type which causes TypeError exception.
-        // strict type on both operands
-        if (args.Info.Count >= 3 && JavascriptSIMDFloat32x4::Is(args[1]) && JavascriptSIMDFloat32x4::Is(args[2]))
-        {
-            JavascriptSIMDFloat32x4 *a = JavascriptSIMDFloat32x4::FromVar(args[1]);
-            JavascriptSIMDFloat32x4 *b = JavascriptSIMDFloat32x4::FromVar(args[2]);
-            SIMDValue result, aValue, bValue;
-
-            aValue = a->GetValue();
-            bValue = b->GetValue();
-
-            result = SIMDFloat32x4Operation::OpMaxNum(aValue, bValue);
-
-            return JavascriptSIMDFloat32x4::New(&result, scriptContext);
-        }
-
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("max"));
     }
 
