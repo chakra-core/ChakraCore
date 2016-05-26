@@ -50,6 +50,7 @@ parser.add_argument('--not-tag', nargs='*',
                     help='exclude tests with given tags')
 parser.add_argument('--timeout', type=int, default=60,
                     help='test timeout (default 60 seconds)')
+parser.add_argument('-l', '--logfile', metavar='logfile', help='file to log results to', default=None)
 parser.add_argument('--x86', action='store_true', help='use x86 build')
 parser.add_argument('--x64', action='store_true', help='use x64 build')
 args = parser.parse_args()
@@ -108,6 +109,44 @@ if sys.platform != 'win32':
     not_tags.add('require_debugger')
 not_compile_flags = set(['-serialized', '-simdjs']) \
     if sys.platform != 'win32' else None
+
+class LogFile(object):
+    def __init__(self, log_file_path = None):
+        self.file = None
+
+        if log_file_path is None:
+            # Set up the log file paths
+            # Make sure the right directory exists and the log file doesn't
+            log_file_name = "testrun.{0}{1}.log".format(arch_alias, flavor_alias)
+            log_file_directory = os.path.join(repo_root, "test", "logs")
+
+            if not os.path.exists(log_file_directory):
+                os.mkdir(log_file_directory)
+
+            self.log_file_path = os.path.join(log_file_directory, log_file_name)
+
+            if os.path.exists(self.log_file_path):
+                os.remove(self.log_file_path)
+        else:
+            self.log_file_path = log_file_path
+
+        self.file = open(self.log_file_path, "w")
+
+    def log(self, args):
+        self.file.write(args)
+
+    def __del__(self):
+        if not (self.file is None):
+            self.file.close()
+
+log_file = LogFile(args.logfile)
+
+def print_and_log(msg = ""):
+    print(msg)
+    log_file.log(msg + "\n")
+
+def log_message(msg = ""):
+    log_file.log(msg + "\n")
 
 # records pass_count/fail_count
 class PassFailCount(object):
@@ -199,10 +238,11 @@ class TestVariant(object):
             'Failed' if fail else 'Passed',
             self._short_name(filename))
         padding = self._last_len - len(line)
+        log_message(line)
         print(line + ' ' * padding, end='\n' if fail else '\r')
         self._last_len = len(line) if not fail else 0
         if len(output) > 0:
-            print(output)
+            print_and_log(output)
 
     # get a shorter test file path for display only
     def _short_name(self, filename):
@@ -333,13 +373,13 @@ class TestVariant(object):
 
     # run tests under this variant, using given multiprocessing Pool
     def run(self, tests, pool):
-        print('\n############# Starting {} variant #############'.format(
+        print_and_log('\n############# Starting {} variant #############'.format(
             self.name))
         if self.tags:
-            print('  tags: {}'.format(self.tags))
+            print_and_log('  tags: {}'.format(self.tags))
         for x in self.not_tags:
-            print('  exclude: {}'.format(x))
-        print()
+            print_and_log('  exclude: {}'.format(x))
+        print_and_log()
 
         # filter tests to run
         tests = [x for x in tests if self._should_test(x[1])]
@@ -353,11 +393,11 @@ class TestVariant(object):
 
     # print test result summary
     def print_summary(self):
-        print('\n######## Logs for {} variant ########'.format(self.name))
+        print_and_log('\n######## Logs for {} variant ########'.format(self.name))
         for folder, result in sorted(self.test_result.folders.items()):
-            print('{}: {}'.format(folder, result))
-        print("----------------------------")
-        print('Total: {}'.format(self.test_result))
+            print_and_log('{}: {}'.format(folder, result))
+        print_and_log("----------------------------")
+        print_and_log('Total: {}'.format(self.test_result))
 
 # global run one test function for multiprocessing, used by TestVariant
 def run_one(data):
@@ -374,7 +414,7 @@ class FolderTags(object):
         try:
             xml = ET.parse(xmlpath).getroot()
         except IOError:
-            print('ERROR: failed to read {}'.format(xmlpath))
+            print_and_log('ERROR: failed to read {}'.format(xmlpath))
             exit(-1)
 
         self._folder_tags = {}
