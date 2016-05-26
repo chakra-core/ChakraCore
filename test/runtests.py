@@ -70,7 +70,9 @@ arch_alias = 'amd64' if arch == 'x64' else None
 type_flavor = {'chk':'debug', 'test':'test', 'fre':'release'}
 flavor = 'debug' if args.debug else ('test' if args.test else None)
 if flavor == None:
-    flavor = type_flavor[os.environ.get('_BuildType', 'fre')]
+    print("ERROR: Test build target wasn't defined.")
+    print("Try '-t' (test build) or '-d' (debug build).")
+    sys.exit(1)
 flavor_alias = 'chk' if flavor == 'debug' else 'fre'
 
 # binary: full ch path
