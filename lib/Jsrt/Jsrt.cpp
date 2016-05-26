@@ -315,11 +315,20 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
         }
 #endif
 
-        if(runtime->GetDebugObject() != nullptr)
+        JsrtDebugManager* jsrtDebugManager = runtime->GetJsrtDebugManager();
+
+        if(jsrtDebugManager != nullptr)
         {
-            context->GetScriptContext()->InitializeDebugging();
-            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeInlineBreakEngine(runtime->GetDebugObject());
-            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeDebuggerScriptOptionCallback(runtime->GetDebugObject());
+            Js::ScriptContext* scriptContext = context->GetScriptContext();
+            scriptContext->InitializeDebugging();
+
+            Js::DebugContext* debugContext = scriptContext->GetDebugContext();
+            debugContext->SetHostDebugContext(jsrtDebugManager);
+
+            Js::ProbeContainer* probeContainer = debugContext->GetProbeContainer();
+            probeContainer->InitializeInlineBreakEngine(jsrtDebugManager);
+            probeContainer->InitializeDebuggerScriptOptionCallback(jsrtDebugManager);
+
             threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
         }
 
@@ -497,11 +506,16 @@ CHAKRA_API JsDisposeRuntime(_In_ JsRuntimeHandle runtimeHandle)
             }
         }
 
+        if (runtime->GetJsrtDebugManager() != nullptr)
+        {
+            runtime->GetJsrtDebugManager()->ClearDebuggerObjects();
+        }
+
         // Close any open Contexts.
         // We need to do this before recycler shutdown, because ScriptEngine->Close won't work then.
         runtime->CloseContexts();
 
-        runtime->ClearDebugObject();
+        runtime->DeleteJsrtDebugManager();
 
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         bool doFinalGC = false;
@@ -3592,9 +3606,9 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
 
             context->GetScriptContext()->InitializeDebuggingActionsAsNeeded_TTD();
 
-            context->GetScriptContext()->InitializeDebugging();
-            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeInlineBreakEngine(runtime->GetDebugObject());
-            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeDebuggerScriptOptionCallback(runtime->GetDebugObject());
+            scriptContext->InitializeDebugging();
+            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeInlineBreakEngine(runtime->GetJsrtDebugManager());
+            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeDebuggerScriptOptionCallback(runtime->GetJsrtDebugManager());
             threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
         }
         catch(...)
@@ -3663,7 +3677,7 @@ STDAPI_(JsErrorCode) JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTim
 
             // Don't see a use case for supporting multiple breakpoints at same location.
             // If a breakpoint already exists, just return that
-            Js::BreakpointProbe* probe = debugDocument->FindBreakpointId(statement);
+            Js::BreakpointProbe* probe = debugDocument->FindBreakpoint(statement);
             if(probe == nullptr)
             {
                 BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)

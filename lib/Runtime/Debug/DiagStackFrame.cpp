@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
-#include "Language\JavascriptFunctionArgIndex.h"
-#include "Language\InterpreterStackFrame.h"
-#include "Language\JavascriptStackWalker.h"
+#include "Language/JavascriptFunctionArgIndex.h"
+#include "Language/InterpreterStackFrame.h"
+#include "Language/JavascriptStackWalker.h"
 
 namespace Js
 {
@@ -155,9 +155,9 @@ namespace Js
         return varThis;
     }
 
-    void DiagStackFrame::TryFetchValueAndAddress(LPCOLESTR pszSource, charcount_t length, Js::ResolvedObject * pOutResolvedObj)
+    void DiagStackFrame::TryFetchValueAndAddress(const char16 *source, int sourceLength, Js::ResolvedObject * pOutResolvedObj)
     {
-        Assert(pszSource);
+        Assert(source);
         Assert(pOutResolvedObj);
 
         Js::ScriptContext* scriptContext = this->GetScriptContext();
@@ -165,7 +165,7 @@ namespace Js
 
         // Do fast path for 'this', fields on slot, TODO : literals (integer,string)
 
-        if (length == 4 && wcsncmp(pszSource, L"this", 4) == 0)
+        if (sourceLength == 4 && wcsncmp(source, _u("this"), 4) == 0)
         {
             pOutResolvedObj->obj = this->GetThisFromFrame(&pOutResolvedObj->address);
             if (pOutResolvedObj->obj == nullptr)
@@ -178,7 +178,7 @@ namespace Js
         else
         {
             Js::PropertyRecord const * propRecord;
-            scriptContext->FindPropertyRecord(pszSource, length, &propRecord);
+            scriptContext->FindPropertyRecord(source, sourceLength, &propRecord);
             if (propRecord != nullptr)
             {
                 ArenaAllocator *arena = scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticArena()->Arena();
@@ -197,11 +197,11 @@ namespace Js
 
     }
 
-    Js::ScriptFunction* DiagStackFrame::TryGetFunctionForEval(Js::ScriptContext* scriptContext, LPCOLESTR pszSrc, BOOL isStrictMode, BOOL isThisAvailable, BOOL isLibraryCode /* = FALSE */)
+    Js::ScriptFunction* DiagStackFrame::TryGetFunctionForEval(Js::ScriptContext* scriptContext, const char16 *source, int sourceLength, BOOL isLibraryCode /* = FALSE */)
     {
         // TODO: pass the real length of the source code instead of wcslen
         ulong grfscr = fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode | fscrConsoleScopeEval;
-        if (!isThisAvailable)
+        if (!this->IsThisAvailable())
         {
             grfscr |= fscrDebuggerErrorOnGlobalThis;
         }
@@ -209,19 +209,16 @@ namespace Js
         {
             grfscr |= fscrIsLibraryCode;
         }
-        return scriptContext->GetGlobalObject()->EvalHelper(scriptContext, pszSrc, (int)wcslen(pszSrc), kmodGlobal, grfscr, Js::Constants::EvalCode, FALSE, FALSE, isStrictMode);
+        return scriptContext->GetGlobalObject()->EvalHelper(scriptContext, source, sourceLength, kmodGlobal, grfscr, Js::Constants::EvalCode, FALSE, FALSE, this->IsStrictMode());
     }
 
-    void DiagStackFrame::EvaluateImmediate(LPCOLESTR pszSrc, BOOL isLibraryCode, Js::ResolvedObject * resolvedObject)
+    void DiagStackFrame::EvaluateImmediate(const char16 *source, int sourceLength, BOOL isLibraryCode, Js::ResolvedObject * resolvedObject)
     {
-        charcount_t len = Js::JavascriptString::GetBufferLength(pszSrc);
-
-        this->TryFetchValueAndAddress(pszSrc, len, resolvedObject);
+        this->TryFetchValueAndAddress(source, sourceLength, resolvedObject);
 
         if (resolvedObject->obj == nullptr)
         {
-            Js::ScriptFunction* pfuncScript = this->TryGetFunctionForEval(this->GetScriptContext(), pszSrc,
-                this->IsStrictMode(), this->IsThisAvailable(), isLibraryCode);
+            Js::ScriptFunction* pfuncScript = this->TryGetFunctionForEval(this->GetScriptContext(), source, sourceLength, isLibraryCode);
             if (pfuncScript != nullptr)
             {
                 // Passing the nonuser code state from the enclosing function to the current function.
@@ -235,8 +232,8 @@ namespace Js
                         pCurrentFuncBody->SetIsNonUserCode(true);
                     }
                 }
-                OUTPUT_TRACE(Js::ConsoleScopePhase, L"EvaluateImmediate strict = %d, libraryCode = %d, source = '%s'\n",
-                    this->IsStrictMode(), isLibraryCode, pszSrc);
+                OUTPUT_TRACE(Js::ConsoleScopePhase, _u("EvaluateImmediate strict = %d, libraryCode = %d, source = '%s'\n"),
+                    this->IsStrictMode(), isLibraryCode, source);
                 resolvedObject->obj = this->DoEval(pfuncScript);
             }
         }
@@ -253,15 +250,15 @@ namespace Js
         {
             if (Js::Constants::NoProperty == debugManager->mutationNewValuePid)
             {
-                debugManager->mutationNewValuePid = scriptContext->GetOrAddPropertyIdTracked(L"$newValue$", 10);
+                debugManager->mutationNewValuePid = scriptContext->GetOrAddPropertyIdTracked(_u("$newValue$"), 10);
             }
             if (Js::Constants::NoProperty == debugManager->mutationPropertyNamePid)
             {
-                debugManager->mutationPropertyNamePid = scriptContext->GetOrAddPropertyIdTracked(L"$propertyName$", 14);
+                debugManager->mutationPropertyNamePid = scriptContext->GetOrAddPropertyIdTracked(_u("$propertyName$"), 14);
             }
             if (Js::Constants::NoProperty == debugManager->mutationTypePid)
             {
-                debugManager->mutationTypePid = scriptContext->GetOrAddPropertyIdTracked(L"$mutationType$", 14);
+                debugManager->mutationTypePid = scriptContext->GetOrAddPropertyIdTracked(_u("$mutationType$"), 14);
             }
 
             AssertMsg(debugManager->mutationNewValuePid != Js::Constants::NoProperty, "Should have a valid mutationNewValuePid");
@@ -311,7 +308,8 @@ namespace Js
         Js::ScriptContext* scriptContext = this->GetScriptContext();
 
         ArenaAllocator *arena = scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticArena()->Arena();
-        Js::LocalsWalker *localsWalker = Anew(arena, Js::LocalsWalker, this, Js::FrameWalkerFlags::FW_EnumWithScopeAlso | Js::FrameWalkerFlags::FW_AllowLexicalThis | Js::FrameWalkerFlags::FW_AllowSuperReference);
+        Js::LocalsWalker *localsWalker = Anew(arena, Js::LocalsWalker, this, 
+            Js::FrameWalkerFlags::FW_EnumWithScopeAlso | Js::FrameWalkerFlags::FW_AllowLexicalThis | Js::FrameWalkerFlags::FW_AllowSuperReference | Js::FrameWalkerFlags::FW_DontAddGlobalsDirectly);
 
         // Store the diag address of a var to the map so that it will be used for editing the value.
         typedef JsUtil::BaseDictionary<Js::PropertyId, Js::IDiagObjectAddress*, ArenaAllocator, PrimeSizePolicy> PropIdToDiagAddressMap;

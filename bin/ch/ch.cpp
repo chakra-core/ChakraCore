@@ -6,6 +6,7 @@
 #include "Core/AtomLockGuids.h"
 
 unsigned int MessageBase::s_messageCount = 0;
+Debugger* Debugger::debugger = nullptr;
 
 LPCWSTR hostName = _u("ch.exe");
 JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
@@ -25,86 +26,7 @@ HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
     return ChakraRTInterface::OnChakraCoreLoaded(testHooks);
 }
 
-JsRuntimeAttributes jsrtAttributes = static_cast<JsRuntimeAttributes>(JsRuntimeAttributeAllowScriptInterrupt);
-LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode)
-{
-    switch (jsErrorCode)
-    {
-    case JsNoError:
-        return _u("JsNoError");
-        break;
-
-    case JsErrorInvalidArgument:
-        return _u("JsErrorInvalidArgument");
-        break;
-
-    case JsErrorNullArgument:
-        return _u("JsErrorNullArgument");
-        break;
-
-    case JsErrorNoCurrentContext:
-        return _u("JsErrorNoCurrentContext");
-        break;
-
-    case JsErrorInExceptionState:
-        return _u("JsErrorInExceptionState");
-        break;
-
-    case JsErrorNotImplemented:
-        return _u("JsErrorNotImplemented");
-        break;
-
-    case JsErrorWrongThread:
-        return _u("JsErrorWrongThread");
-        break;
-
-    case JsErrorRuntimeInUse:
-        return _u("JsErrorRuntimeInUse");
-        break;
-
-    case JsErrorBadSerializedScript:
-        return _u("JsErrorBadSerializedScript");
-        break;
-
-    case JsErrorInDisabledState:
-        return _u("JsErrorInDisabledState");
-        break;
-
-    case JsErrorCannotDisableExecution:
-        return _u("JsErrorCannotDisableExecution");
-        break;
-
-    case JsErrorHeapEnumInProgress:
-        return _u("JsErrorHeapEnumInProgress");
-        break;
-
-    case JsErrorOutOfMemory:
-        return _u("JsErrorOutOfMemory");
-        break;
-
-    case JsErrorScriptException:
-        return _u("JsErrorScriptException");
-        break;
-
-    case JsErrorScriptCompile:
-        return _u("JsErrorScriptCompile");
-        break;
-
-    case JsErrorScriptTerminated:
-        return _u("JsErrorScriptTerminated");
-        break;
-
-    case JsErrorFatal:
-        return _u("JsErrorFatal");
-        break;
-
-    default:
-        return _u("<unknown>");
-        break;
-    }
-}
-
-#define IfJsErrorFailLog(expr) do { JsErrorCode jsErrorCode = expr; if ((jsErrorCode) != JsNoError) { fwprintf(stderr, _u("ERROR: ") TEXT(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, JsErrorCodeToString(jsErrorCode)); fflush(stderr); goto Error; } } while (0)
+JsRuntimeAttributes jsrtAttributes = JsRuntimeAttributeAllowScriptInterrupt;
 
 int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 {
@@ -318,29 +240,13 @@ void StartupDebuggerAsNeeded()
     }
     else
     {
-        char16* path = (char16*)CoTaskMemAlloc(MAX_PATH * sizeof(char16));
-        path[0] = _u('\0');
-
-        GetModuleFileName(NULL, path, MAX_PATH);
-
         //
-        //TODO: this is an ugly semi-hard coded path we need to fix up
+        //TODO: not sure how to set IP and other stuff here !!!
         //
-        char16* spos = wcsstr(path, _u("\\ch.exe"));
-        AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
+        AssertMsg(false, "Broken");
 
-        int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(char16));
-        std::wstring dbgPath;
-        dbgPath.append(path, 0, ccount);
-        dbgPath.append(_u("\\..\\chakra_debug.js"));
-
-        LPCWSTR contents = nullptr;
-        Helpers::LoadScriptFromFile(dbgPath.c_str(), contents);
-
-        DebuggerCh::SetDbgSrcInfo(contents);
-        DebuggerCh::StartDebugging(chRuntime, dbgIPAddr, dbgPort);
-
-        CoTaskMemFree(path);
+        Debugger* debugger = Debugger::GetDebugger(chRuntime);
+        debugger->StartDebugging(chRuntime);
     }
 }
 
@@ -721,6 +627,7 @@ Error:
 
     if (messageQueue != nullptr)
     {
+        messageQueue->RemoveAll();
         delete messageQueue;
     }
     return hr;
@@ -832,18 +739,30 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         }
         else
         {
+            AssertMsg(!doTTDebug, "Should be handled in the else case above!!!");
+
             IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
             chRuntime = runtime;
+
+            if(HostConfigFlags::flags.DebugLaunch)
+            {
+                Debugger* debugger = Debugger::GetDebugger(runtime);
+                debugger->StartDebugging(runtime);
+            }
 
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
-
-            StartupDebuggerAsNeeded();
         }
 #else
         IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
         chRuntime = runtime;
+
+        if(HostConfigFlags::flags.DebugLaunch)
+        {
+            Debugger* debugger = Debugger::GetDebugger(runtime);
+            debugger->StartDebugging(runtime);
+        }
 
         JsContextRef context = JS_INVALID_REFERENCE;
         IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
@@ -916,7 +835,11 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     }
 
 Error:
-    DebuggerCh::CloseDebuggerIfNeeded();
+    if (Debugger::debugger != nullptr)
+    {
+        Debugger::debugger->CompareOrWriteBaselineFile(fileName);
+        Debugger::CloseDebugger();
+    }
 
     ChakraRTInterface::JsSetCurrentContext(nullptr);
 

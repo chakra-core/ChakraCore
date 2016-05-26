@@ -54,7 +54,7 @@ namespace TTD
         {
             if(this->m_contents != nullptr)
             {
-                HeapDeleteArray(this->m_allocSize, this->m_contents);
+                HeapDeleteArray((size_t)this->m_allocSize, this->m_contents);
                 this->m_allocSize = -1;
                 this->m_contents = nullptr;
             }

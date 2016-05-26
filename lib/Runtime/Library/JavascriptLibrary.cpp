@@ -4950,7 +4950,10 @@ namespace Js
         if (!fSet)
         {
             this->inDispatchProfileMode = false;
-            this->GetScriptContext()->GetHostScriptContext()->SetDispatchInvoke(dispatchInvoke);
+            if (dispatchInvoke != nullptr)
+            {
+                this->GetScriptContext()->GetHostScriptContext()->SetDispatchInvoke(dispatchInvoke);
+            }
             idMappedFunctionWithPrototypeType->SetEntryPoint(JavascriptExternalFunction::ExternalFunctionThunk);
             externalFunctionWithDeferredPrototypeType->SetEntryPoint(JavascriptExternalFunction::ExternalFunctionThunk);
             stdCallFunctionWithDeferredPrototypeType->SetEntryPoint(JavascriptExternalFunction::StdCallExternalFunctionThunk);
@@ -4958,7 +4961,10 @@ namespace Js
         else
         {
             this->inDispatchProfileMode = true;
-            this->GetScriptContext()->GetHostScriptContext()->SetDispatchInvoke(dispatchInvoke);
+            if (dispatchInvoke != nullptr)
+            {
+                this->GetScriptContext()->GetHostScriptContext()->SetDispatchInvoke(dispatchInvoke);
+            }
             idMappedFunctionWithPrototypeType->SetEntryPoint(ProfileEntryThunk);
             externalFunctionWithDeferredPrototypeType->SetEntryPoint(ProfileEntryThunk);
             stdCallFunctionWithDeferredPrototypeType->SetEntryPoint(ProfileEntryThunk);

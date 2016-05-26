@@ -3,19 +3,20 @@ LIBRARY ChakraCore
 EXPORTS
 #include "JsrtCommonExports.inc"
 
-JsDiagGetFunctionPosition
-JsDiagGetSource
-JsDiagGetScripts
-JsDiagGetStacktrace
-JsDiagRequestAsyncBreak
-JsDiagResume
-JsDiagGetBreakpoints
-JsDiagSetBreakpoint
-JsDiagRemoveBreakpoint
-JsDiagSetBreakOnException
-JsDiagGetBreakOnException
-JsDiagStartDebugging
-JsDiagGetStackProperties
-JsDiagGetProperties
-JsDiagLookupHandles
 JsDiagEvaluate
+JsDiagGetBreakOnException
+JsDiagGetBreakpoints
+JsDiagGetFunctionPosition
+JsDiagGetProperties
+JsDiagGetScripts
+JsDiagGetSource
+JsDiagGetStackProperties
+JsDiagGetStackTrace
+JsDiagGetObjectFromHandle
+JsDiagRemoveBreakpoint
+JsDiagRequestAsyncBreak
+JsDiagSetBreakOnException
+JsDiagSetBreakpoint
+JsDiagSetStepType
+JsDiagStartDebugging
+JsDiagStopDebugging

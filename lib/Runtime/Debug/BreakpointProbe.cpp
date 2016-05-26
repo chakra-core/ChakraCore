@@ -6,13 +6,13 @@
 
 namespace Js
 {
-    BreakpointProbe::BreakpointProbe(DebugDocument* debugDocument, StatementLocation& statement) :
+    BreakpointProbe::BreakpointProbe(DebugDocument* debugDocument, StatementLocation& statement, int breakpointId) :
         debugDocument(debugDocument),
         functionBody(statement.function),
         characterOffset(statement.statement.begin),
-        byteOffset(statement.bytecodeSpan.begin)
+        byteOffset(statement.bytecodeSpan.begin),
+        breakpointId(breakpointId)
     {
-        this->breakPointId = functionBody->GetScriptContext()->GetThreadContext()->GetDebugManager()->GetNextBreakpointId();
     }
 
     bool BreakpointProbe::Install(ScriptContext* pScriptContext)

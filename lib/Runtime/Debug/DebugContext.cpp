@@ -398,13 +398,8 @@ namespace Js
     template<class TMapFunction>
     void DebugContext::MapUTF8SourceInfoUntil(TMapFunction map)
     {
-        this->scriptContext->GetSourceList()->MapUntil([=](int i, RecyclerWeakReference<Js::Utf8SourceInfo>* sourceInfoWeakRef) -> bool {
-            Js::Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
-            if (sourceInfo)
-            {
-                return map(sourceInfo);
-            }
-            return false;
+        this->scriptContext->MapScript([=](Js::Utf8SourceInfo* sourceInfo) -> bool {
+            return map(sourceInfo);
         });
     }
 }

@@ -27,7 +27,7 @@ namespace Js
         void RemoveBreakpointProbe(BreakpointProbe *probe);
         void ClearAllBreakPoints(void);
 
-        BreakpointProbe* FindBreakpointId(StatementLocation statement);
+        BreakpointProbe* FindBreakpoint(StatementLocation statement);
         bool FindBPStatementLocation(UINT bpId, StatementLocation * statement);
 
         BOOL GetStatementSpan(long ibos, StatementSpan* pBos);

@@ -1,6 +1,7 @@
-//---------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-//----------------------------------------------------------------------------
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 #pragma once
 
@@ -16,16 +17,18 @@ private:
 };
 
 
-class DebugDocumentManager
+class JsrtDebugDocumentManager
 {
 public:
-    DebugDocumentManager(JsrtDebug* debugObject);
-    ~DebugDocumentManager();
+    JsrtDebugDocumentManager(JsrtDebugManager* jsrtDebugManager);
+    ~JsrtDebugDocumentManager();
     void AddDocument(UINT bpId, Js::DebugDocument* debugDocument);
     void ClearDebugDocument(Js::ScriptContext * scriptContext);
-    void RemoveBreakpoint(UINT breakpointId);
+    void ClearBreakpointDebugDocumentDictionary();
+    bool RemoveBreakpoint(UINT breakpointId);
 private:
-    JsrtDebug* debugObject;
+    JsrtDebugManager* jsrtDebugManager;
+
     typedef JsUtil::BaseDictionary<uint, Js::DebugDocument*, ArenaAllocator> BreakpointDebugDocumentDictionary;
     BreakpointDebugDocumentDictionary* breakpointDebugDocumentDictionary;
 

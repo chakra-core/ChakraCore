@@ -22,23 +22,21 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtConvertValueToStringPtr)(JsValueRef value, JsValueRef *stringValue);
     typedef JsErrorCode (WINAPI *JsrtConvertValueToNumberPtr)(JsValueRef value, JsValueRef *numberValue);
     typedef JsErrorCode (WINAPI *JsrtConvertValueToBooleanPtr)(JsValueRef value, JsValueRef *booleanValue);
-    typedef JsErrorCode (WINAPI *JsrtConvertValueToObjectPtr)(JsValueRef value, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtStringToPointerPtr)(JsValueRef value, const char16 **stringValue, size_t *length);
     typedef JsErrorCode (WINAPI *JsrtBooleanToBoolPtr)(JsValueRef value, bool *boolValue);
     typedef JsErrorCode (WINAPI *JsrtGetPropertyIdFromNamePtr)(const char16 *name, JsPropertyIdRef *propertyId);
     typedef JsErrorCode (WINAPI *JsrtGetPropertyPtr)(JsValueRef object, JsPropertyIdRef property, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtHasPropertyPtr)(JsValueRef object, JsPropertyIdRef property, bool *hasProperty);
-    typedef JsErrorCode (WINAPI *JsrtParseScriptWithAttributesPtr)(const char16 *script, JsSourceContext sourceContext, const char16 *sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtRunScriptPtr)(const char16 *script, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result);
     typedef JsErrorCode (WINAPI *JsrtRunModulePtr)(const char16 *script, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result);
     typedef JsErrorCode (WINAPI *JsrtCallFunctionPtr)(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtNumberToDoublePtr)(JsValueRef value, double *doubleValue);
     typedef JsErrorCode (WINAPI *JsrtNumberToIntPtr)(JsValueRef value, int *intValue);
-    typedef JsErrorCode (WINAPI *JsrtIntToNumberPtr)(int intValue, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtDoubleToNumberPtr)(double doubleValue, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtGetExternalDataPtr)(JsValueRef object, void **data);
     typedef JsErrorCode (WINAPI *JsrtCreateArrayPtr)(unsigned int length, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtCreateErrorPtr)(JsValueRef message, JsValueRef *error);
+    typedef JsErrorCode(WINAPI *JsrtHasExceptionPtr)(bool *hasException);
     typedef JsErrorCode (WINAPI *JsrtSetExceptionPtr)(JsValueRef exception);
     typedef JsErrorCode (WINAPI *JsrtGetAndClearExceptiopnPtr)(JsValueRef* exception);
     typedef JsErrorCode (WINAPI *JsrtGetRuntimePtr)(JsContextRef context, JsRuntimeHandle *runtime);
@@ -49,46 +47,49 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtSerializeScriptPtr)(const char16 *script, BYTE *buffer, unsigned long *bufferSize);
     typedef JsErrorCode (WINAPI *JsrtRunSerializedScriptPtr)(const char16 *script, BYTE *buffer, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result);
     typedef JsErrorCode (WINAPI *JsrtSetPromiseContinuationCallbackPtr)(JsPromiseContinuationCallback callback, void *callbackState);
-    typedef JsErrorCode (WINAPI *JsrtGetContextOfObjectPtr)(JsValueRef object, JsContextRef *callbackState);
+    typedef JsErrorCode (WINAPI *JsrtGetContextOfObject)(JsValueRef object, JsContextRef *callbackState);
 
-    typedef JsErrorCode (WINAPI *JsrtDiagStartDebuggingPtr)(JsRuntimeHandle runtimeHandle, JsDiagDebugEventCallback debugEventCallback, void* callbackState);
-    typedef JsErrorCode (WINAPI *JsrtDiagGetScriptsPtr)(JsValueRef * scriptsArray);
-    typedef JsErrorCode (WINAPI *JsrtDiagGetSourcePtr)(unsigned int scriptId, JsValueRef *source);
-    typedef JsErrorCode (WINAPI *JsrtDiagResumePtr)(JsDiagResumeType resumeType);
-    typedef JsErrorCode (WINAPI *JsrtDiagSetBreakpointPtr)(unsigned int scriptId, unsigned int lineNumber, unsigned int columnNumber, JsValueRef *breakPoint);
-    typedef JsErrorCode (WINAPI *JsrtDiagGetFunctionPositionPtr)(JsValueRef value, JsValueRef * funcInfo);
-    typedef JsErrorCode (WINAPI *JsrtDiagGetStacktracePtr)(JsValueRef *stackTrace);
-    typedef JsErrorCode (WINAPI *JsrtDiagGetStackPropertiesPtr)(unsigned int stackFrameIndex, JsValueRef * properties);
-    typedef JsErrorCode (WINAPI *JsrtDiagLookupHandlesPtr)(JsValueRef handlesArray, JsValueRef * valuesObject);
-    typedef JsErrorCode (WINAPI *JsrtDiagEvaluatePtr)(const char16 * script, unsigned int stackFrameIndex, JsValueRef * evalResult);
-    typedef JsErrorCode (WINAPI *JsrtDiagGetBreakpointsPtr)(JsValueRef * breakPoints);
-    typedef JsErrorCode (WINAPI *JsrtDiagGetPropertiesPtr)(JsValueRef handlesArray, JsValueRef * propertiesObject);
-    typedef JsErrorCode (WINAPI *JsrtDiagRemoveBreakpointPtr)(unsigned int breakpointId);
-    typedef JsErrorCode (WINAPI *JsrtDiagSetBreakOnExceptionPtr)(JsDiagBreakOnExceptionType exceptionType);
-    typedef JsErrorCode (WINAPI *JsrtDiagGetBreakOnExceptionPtr)(JsDiagBreakOnExceptionType* exceptionType);
+    typedef JsErrorCode(WINAPI *JsrtParseScriptWithAttributes)(const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef *result);
+    typedef JsErrorCode(WINAPI *JsrtDiagStartDebugging)(JsRuntimeHandle runtimeHandle, JsDiagDebugEventCallback debugEventCallback, void* callbackState);
+    typedef JsErrorCode(WINAPI *JsrtDiagStopDebugging)(JsRuntimeHandle runtimeHandle, void** callbackState);
+    typedef JsErrorCode(WINAPI *JsrtDiagGetSource)(unsigned int scriptId, JsValueRef *source);
+    typedef JsErrorCode(WINAPI *JsrtDiagSetBreakpoint)(unsigned int scriptId, unsigned int lineNumber, unsigned int columnNumber, JsValueRef *breakPoint);
+    typedef JsErrorCode(WINAPI *JsrtDiagGetStackTrace)(JsValueRef *stackTrace);
+    typedef JsErrorCode(WINAPI *JsrtDiagRequestAsyncBreak)(JsRuntimeHandle runtimeHandle);
+    typedef JsErrorCode(WINAPI *JsrtDiagGetBreakpoints)(JsValueRef * breakpoints);
+    typedef JsErrorCode(WINAPI *JsrtDiagRemoveBreakpoint)(unsigned int breakpointId);
+    typedef JsErrorCode(WINAPI *JsrtDiagSetBreakOnException)(JsRuntimeHandle runtimeHandle, JsDiagBreakOnExceptionAttributes exceptionAttributes);
+    typedef JsErrorCode(WINAPI *JsrtDiagGetBreakOnException)(JsRuntimeHandle runtimeHandle, JsDiagBreakOnExceptionAttributes * exceptionAttributes);
+    typedef JsErrorCode(WINAPI *JsrtDiagSetStepType)(JsDiagStepType stepType);
+    typedef JsErrorCode(WINAPI *JsrtDiagGetScripts)(JsValueRef * scriptsArray);
+    typedef JsErrorCode(WINAPI *JsrtDiagGetFunctionPosition)(JsValueRef value, JsValueRef * functionInfo);
+    typedef JsErrorCode(WINAPI *JsrtDiagGetStackProperties)(unsigned int stackFrameIndex, JsValueRef * properties);
+    typedef JsErrorCode(WINAPI *JsrtDiagGetProperties)(unsigned int objectHandle, unsigned int fromCount, unsigned int totalCount, JsValueRef * propertiesObject);
+    typedef JsErrorCode(WINAPI *JsrtDiagGetObjectFromHandle)(unsigned int handle, JsValueRef * handleObject);
+    typedef JsErrorCode(WINAPI *JsrtDiagEvaluate)(const wchar_t * expression, unsigned int stackFrameIndex, JsValueRef * evalResult);
 
-    typedef JsErrorCode (WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, char16* infoUri, UINT32 snapInterval, UINT32 snapHistoryLength, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
-    typedef JsErrorCode (WINAPI *JsrtTTDCreateDebugRuntimePtr)(JsRuntimeAttributes attributes, char16* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
-    typedef JsErrorCode (WINAPI *JsrtTTDCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
-    typedef JsErrorCode (WINAPI *JsrtTTDRunScriptPtr)(INT64 hostCallbackId, const char16 *script, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result);
-    typedef JsErrorCode (WINAPI *JsrtTTDCallFunctionPtr)(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
+    typedef JsErrorCode(WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, char16* infoUri, UINT32 snapInterval, UINT32 snapHistoryLength, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
+    typedef JsErrorCode(WINAPI *JsrtTTDCreateDebugRuntimePtr)(JsRuntimeAttributes attributes, char16* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
+    typedef JsErrorCode(WINAPI *JsrtTTDCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
+    typedef JsErrorCode(WINAPI *JsrtTTDRunScriptPtr)(INT64 hostCallbackId, const char16 *script, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result);
+    typedef JsErrorCode(WINAPI *JsrtTTDCallFunctionPtr)(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
 
-    typedef JsErrorCode (WINAPI *JsrtTTDSetDebuggerForReplayPtr)();
-    typedef JsErrorCode (WINAPI *JsrtTTDSetIOCallbacksPtr)(JsRuntimeHandle runtime, JsTTDInitializeUriCallback ttdInitializeTTDUriFunction, JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, JsTTDGetLogStreamCallback getLogStreamInfo, JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, JsTTDReadBytesFromStreamCallback readBytesFromStream, JsTTDWriteBytesToStreamCallback writeBytesToStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream);
+    typedef JsErrorCode(WINAPI *JsrtTTDSetDebuggerForReplayPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDSetIOCallbacksPtr)(JsRuntimeHandle runtime, JsTTDInitializeUriCallback ttdInitializeTTDUriFunction, JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, JsTTDGetLogStreamCallback getLogStreamInfo, JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, JsTTDReadBytesFromStreamCallback readBytesFromStream, JsTTDWriteBytesToStreamCallback writeBytesToStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream);
 
-    typedef JsErrorCode (WINAPI *JsrtTTDStartTimeTravelRecordingPtr)();
-    typedef JsErrorCode (WINAPI *JsrtTTDStopTimeTravelRecordingPtr)();
-    typedef JsErrorCode (WINAPI *JsrtTTDEmitTimeTravelRecordingPtr)();
-    typedef JsErrorCode (WINAPI *JsrtTTDStartTimeTravelDebuggingPtr)();
-    typedef JsErrorCode (WINAPI *JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr)();
-    typedef JsErrorCode (WINAPI *JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDStartTimeTravelRecordingPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDStopTimeTravelRecordingPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDEmitTimeTravelRecordingPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDStartTimeTravelDebuggingPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr)();
 
-    typedef JsErrorCode (WINAPI *JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)(bool isCreate, bool isCancel, bool isRepeating, JsValueRef function, INT64 callbackId);
-    typedef JsErrorCode (WINAPI *JsrtTTDNotifyYieldPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)(bool isCreate, bool isCancel, bool isRepeating, JsValueRef function, INT64 callbackId);
+    typedef JsErrorCode(WINAPI *JsrtTTDNotifyYieldPtr)();
 
-    typedef JsErrorCode (WINAPI *JsrtTTDPrepContextsForTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime);
-    typedef JsErrorCode (WINAPI *JsrtTTDMoveToTopLevelEventPtr)(INT64 snapshotStartTime, INT64 eventTime);
-    typedef JsErrorCode (WINAPI *JsrtTTDReplayExecutionPtr)(INT64* rootEventTime);
+    typedef JsErrorCode(WINAPI *JsrtTTDPrepContextsForTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime);
+    typedef JsErrorCode(WINAPI *JsrtTTDMoveToTopLevelEventPtr)(INT64 snapshotStartTime, INT64 eventTime);
+    typedef JsErrorCode(WINAPI *JsrtTTDReplayExecutionPtr)(INT64* rootEventTime);
 
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
@@ -108,23 +109,21 @@ struct JsAPIHooks
     JsrtConvertValueToStringPtr pfJsrtConvertValueToString;
     JsrtConvertValueToNumberPtr pfJsrtConvertValueToNumber;
     JsrtConvertValueToBooleanPtr pfJsrtConvertValueToBoolean;
-    JsrtConvertValueToObjectPtr pfJsrtConvertValueToObject;
     JsrtStringToPointerPtr pfJsrtStringToPointer;
     JsrtBooleanToBoolPtr pfJsrtBooleanToBool;
     JsrtGetPropertyIdFromNamePtr pfJsrtGetPropertyIdFromName;
     JsrtGetPropertyPtr pfJsrtGetProperty;
     JsrtHasPropertyPtr pfJsrtHasProperty;
-    JsrtParseScriptWithAttributesPtr pfJsrtParseScriptWithAttributes;
     JsrtRunScriptPtr pfJsrtRunScript;
     JsrtRunModulePtr pfJsrtRunModule;
     JsrtCallFunctionPtr pfJsrtCallFunction;
     JsrtNumberToDoublePtr pfJsrtNumbertoDouble;
     JsrtNumberToIntPtr pfJsrtNumbertoInt;
-    JsrtIntToNumberPtr pfJsrtIntToNumber;
     JsrtDoubleToNumberPtr pfJsrtDoubleToNumber;
     JsrtGetExternalDataPtr pfJsrtGetExternalData;
     JsrtCreateArrayPtr pfJsrtCreateArray;
     JsrtCreateErrorPtr pfJsrtCreateError;
+    JsrtHasExceptionPtr pfJsrtHasException;
     JsrtSetExceptionPtr pfJsrtSetException;
     JsrtGetAndClearExceptiopnPtr pfJsrtGetAndClearException;
     JsrtGetRuntimePtr pfJsrtGetRuntime;
@@ -135,23 +134,25 @@ struct JsAPIHooks
     JsrtSerializeScriptPtr pfJsrtSerializeScript;
     JsrtRunSerializedScriptPtr pfJsrtRunSerializedScript;
     JsrtSetPromiseContinuationCallbackPtr pfJsrtSetPromiseContinuationCallback;
-    JsrtGetContextOfObjectPtr pfJsrtGetContextOfObject;
-
-    JsrtDiagStartDebuggingPtr pfJsrtDiagStartDebugging;
-    JsrtDiagGetScriptsPtr pfJsrtDiagGetScripts;
-    JsrtDiagGetSourcePtr pfJsrtDiagGetSource;
-    JsrtDiagResumePtr pfJsrtDiagResume;
-    JsrtDiagSetBreakpointPtr pfJsrtDiagSetBreakpoint;
-    JsrtDiagGetFunctionPositionPtr pfJsrtDiagGetFunctionPosition;
-    JsrtDiagGetStacktracePtr pfJsrtDiagGetStacktrace;
-    JsrtDiagGetStackPropertiesPtr pfJsrtDiagGetStackProperties;
-    JsrtDiagLookupHandlesPtr pfJsrtDiagLookupHandles;
-    JsrtDiagEvaluatePtr pfJsrtDiagEvaluate;
-    JsrtDiagGetBreakpointsPtr pfJsrtDiagGetBreakpoints;
-    JsrtDiagGetPropertiesPtr pfJsrtDiagGetProperties;
-    JsrtDiagRemoveBreakpointPtr pfJsrtDiagRemoveBreakpoint;
-    JsrtDiagSetBreakOnExceptionPtr pfJsrtDiagSetBreakOnException;
-    JsrtDiagGetBreakOnExceptionPtr pfJsrtDiagGetBreakOnException;
+    JsrtGetContextOfObject pfJsrtGetContextOfObject;
+    JsrtParseScriptWithAttributes pfJsrtParseScriptWithAttributes;
+    JsrtDiagStartDebugging pfJsrtDiagStartDebugging;
+    JsrtDiagStopDebugging pfJsrtDiagStopDebugging;
+    JsrtDiagGetSource pfJsrtDiagGetSource;
+    JsrtDiagSetBreakpoint pfJsrtDiagSetBreakpoint;
+    JsrtDiagGetStackTrace pfJsrtDiagGetStackTrace;
+    JsrtDiagRequestAsyncBreak pfJsrtDiagRequestAsyncBreak;
+    JsrtDiagGetBreakpoints pfJsrtDiagGetBreakpoints;
+    JsrtDiagRemoveBreakpoint pfJsrtDiagRemoveBreakpoint;
+    JsrtDiagSetBreakOnException pfJsrtDiagSetBreakOnException;
+    JsrtDiagGetBreakOnException pfJsrtDiagGetBreakOnException;
+    JsrtDiagSetStepType pfJsrtDiagSetStepType;
+    JsrtDiagGetScripts pfJsrtDiagGetScripts;
+    JsrtDiagGetFunctionPosition pfJsrtDiagGetFunctionPosition;
+    JsrtDiagGetStackProperties pfJsrtDiagGetStackProperties;
+    JsrtDiagGetProperties pfJsrtDiagGetProperties;
+    JsrtDiagGetObjectFromHandle pfJsrtDiagGetObjectFromHandle;
+    JsrtDiagEvaluate pfJsrtDiagEvaluate;
 
     JsrtTTDCreateRecordRuntimePtr pfJsrtTTDCreateRecordRuntime;
     JsrtTTDCreateDebugRuntimePtr pfJsrtTTDCreateDebugRuntime;
@@ -259,23 +260,21 @@ public:
     static JsErrorCode WINAPI JsConvertValueToString(JsValueRef value, JsValueRef *stringValue) { return m_jsApiHooks.pfJsrtConvertValueToString(value, stringValue); }
     static JsErrorCode WINAPI JsConvertValueToNumber(JsValueRef value, JsValueRef *numberValue) { return m_jsApiHooks.pfJsrtConvertValueToNumber(value, numberValue); }
     static JsErrorCode WINAPI JsConvertValueToBoolean(JsValueRef value, JsValueRef *booleanValue) { return m_jsApiHooks.pfJsrtConvertValueToBoolean(value, booleanValue); }
-    static JsErrorCode WINAPI JsConvertValueToObject(JsValueRef value, JsValueRef *result) { return m_jsApiHooks.pfJsrtConvertValueToObject(value, result); }
     static JsErrorCode WINAPI JsStringToPointer(JsValueRef value, const char16 **stringValue, size_t *length) { return m_jsApiHooks.pfJsrtStringToPointer(value, stringValue, length); }
     static JsErrorCode WINAPI JsBooleanToBool(JsValueRef value, bool* boolValue) { return m_jsApiHooks.pfJsrtBooleanToBool(value, boolValue); }
     static JsErrorCode WINAPI JsGetPropertyIdFromName(const char16 *name, JsPropertyIdRef *propertyId) { return m_jsApiHooks.pfJsrtGetPropertyIdFromName(name, propertyId); }
     static JsErrorCode WINAPI JsGetProperty(JsValueRef object, JsPropertyIdRef property, JsValueRef* value) { return m_jsApiHooks.pfJsrtGetProperty(object, property, value); }
     static JsErrorCode WINAPI JsHasProperty(JsValueRef object, JsPropertyIdRef property, bool *hasProperty) { return m_jsApiHooks.pfJsrtHasProperty(object, property, hasProperty); }
-    static JsErrorCode WINAPI JsParseScriptWithAttributes(const char16 *script, JsSourceContext sourceContext, const char16 *sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef *result) { return m_jsApiHooks.pfJsrtParseScriptWithAttributes(script, sourceContext, sourceUrl, parseAttributes, result); }
     static JsErrorCode WINAPI JsRunScript(const char16 *script, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result) { return m_jsApiHooks.pfJsrtRunScript(script, sourceContext, sourceUrl, result); }
     static JsErrorCode WINAPI JsRunModule(const char16 *script, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result) { return m_jsApiHooks.pfJsrtRunModule(script, sourceContext, sourceUrl, result); }
     static JsErrorCode WINAPI JsCallFunction(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result) { return m_jsApiHooks.pfJsrtCallFunction(function, arguments, argumentCount, result); }
     static JsErrorCode WINAPI JsNumberToDouble(JsValueRef value, double* doubleValue) { return m_jsApiHooks.pfJsrtNumbertoDouble(value, doubleValue); }
     static JsErrorCode WINAPI JsNumberToInt(JsValueRef value, int* intValue) { return m_jsApiHooks.pfJsrtNumbertoInt(value, intValue); }
-    static JsErrorCode WINAPI JsIntToNumber(int intValue, JsValueRef* value) { return m_jsApiHooks.pfJsrtIntToNumber(intValue, value); }
     static JsErrorCode WINAPI JsDoubleToNumber(double doubleValue, JsValueRef* value) { return m_jsApiHooks.pfJsrtDoubleToNumber(doubleValue, value); }
     static JsErrorCode WINAPI JsGetExternalData(JsValueRef object, void **data) { return m_jsApiHooks.pfJsrtGetExternalData(object, data); }
     static JsErrorCode WINAPI JsCreateArray(unsigned int length, JsValueRef *result) { return m_jsApiHooks.pfJsrtCreateArray(length, result); }
     static JsErrorCode WINAPI JsCreateError(JsValueRef message, JsValueRef *error) { return m_jsApiHooks.pfJsrtCreateError(message, error); }
+    static JsErrorCode WINAPI JsHasException(bool *hasException) { return m_jsApiHooks.pfJsrtHasException(hasException); }
     static JsErrorCode WINAPI JsSetException(JsValueRef exception) { return m_jsApiHooks.pfJsrtSetException(exception); }
     static JsErrorCode WINAPI JsGetAndClearException(JsValueRef *exception) { return m_jsApiHooks.pfJsrtGetAndClearException(exception); }
     static JsErrorCode WINAPI JsGetRuntime(JsContextRef context, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtGetRuntime(context, runtime); }
@@ -287,22 +286,31 @@ public:
     static JsErrorCode WINAPI JsRunSerializedScript(const char16 *script, BYTE *buffer, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result) { return m_jsApiHooks.pfJsrtRunSerializedScript(script, buffer, sourceContext, sourceUrl, result); }
     static JsErrorCode WINAPI JsSetPromiseContinuationCallback(JsPromiseContinuationCallback callback, void *callbackState) { return m_jsApiHooks.pfJsrtSetPromiseContinuationCallback(callback, callbackState); }
     static JsErrorCode WINAPI JsGetContextOfObject(JsValueRef object, JsContextRef* context) { return m_jsApiHooks.pfJsrtGetContextOfObject(object, context); }
-
+    static JsErrorCode WINAPI JsParseScriptWithAttributes(const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef *result) { return m_jsApiHooks.pfJsrtParseScriptWithAttributes(script, sourceContext, sourceUrl, parseAttributes, result); }
     static JsErrorCode WINAPI JsDiagStartDebugging(JsRuntimeHandle runtimeHandle, JsDiagDebugEventCallback debugEventCallback, void* callbackState) { return m_jsApiHooks.pfJsrtDiagStartDebugging(runtimeHandle, debugEventCallback, callbackState); }
-    static JsErrorCode WINAPI JsDiagGetScripts(JsValueRef * scriptsArray) { return m_jsApiHooks.pfJsrtDiagGetScripts(scriptsArray); }
+    static JsErrorCode WINAPI JsDiagStopDebugging(JsRuntimeHandle runtimeHandle, void** callbackState) { return m_jsApiHooks.pfJsrtDiagStopDebugging(runtimeHandle, callbackState); }
     static JsErrorCode WINAPI JsDiagGetSource(unsigned int scriptId, JsValueRef *source) { return m_jsApiHooks.pfJsrtDiagGetSource(scriptId, source); }
-    static JsErrorCode WINAPI JsDiagResume(JsDiagResumeType resumeType) { return m_jsApiHooks.pfJsrtDiagResume(resumeType); }
-    static JsErrorCode WINAPI JsDiagSetBreakpoint(unsigned int scriptId, unsigned int lineNumber, unsigned int columnNumber, JsValueRef *breakPoint) { return m_jsApiHooks.pfJsrtDiagSetBreakpoint(scriptId, lineNumber, columnNumber, breakPoint); }
-    static JsErrorCode WINAPI JsDiagGetFunctionPosition(JsValueRef value, JsValueRef * funcInfo) { return m_jsApiHooks.pfJsrtDiagGetFunctionPosition(value, funcInfo); }
-    static JsErrorCode WINAPI JsDiagGetStacktrace(JsValueRef *stackTrace) { return m_jsApiHooks.pfJsrtDiagGetStacktrace(stackTrace); }
-    static JsErrorCode WINAPI JsDiagGetStackProperties(unsigned int stackFrameIndex, JsValueRef * properties) { return m_jsApiHooks.pfJsrtDiagGetStackProperties(stackFrameIndex, properties); }
-    static JsErrorCode WINAPI JsDiagLookupHandles(JsValueRef handlesArray, JsValueRef * valuesObject) { return m_jsApiHooks.pfJsrtDiagLookupHandles(handlesArray, valuesObject); }
-    static JsErrorCode WINAPI JsDiagEvaluate(const char16 * script, unsigned int stackFrameIndex, JsValueRef * evalResult) { return m_jsApiHooks.pfJsrtDiagEvaluate(script, stackFrameIndex, evalResult); }
-    static JsErrorCode WINAPI JsDiagGetBreakpoints(JsValueRef * breakPoints) { return m_jsApiHooks.pfJsrtDiagGetBreakpoints(breakPoints); }
-    static JsErrorCode WINAPI JsDiagGetProperties(JsValueRef handlesArray, JsValueRef * propertiesObject) { return m_jsApiHooks.pfJsrtDiagGetProperties(handlesArray, propertiesObject); }
+    static JsErrorCode WINAPI JsDiagSetBreakpoint(unsigned int scriptId, unsigned int lineNumber, unsigned int columnNumber, JsValueRef *breakpoint) { return m_jsApiHooks.pfJsrtDiagSetBreakpoint(scriptId, lineNumber, columnNumber, breakpoint); }
+    static JsErrorCode WINAPI JsDiagGetStackTrace(JsValueRef *stackTrace) { return m_jsApiHooks.pfJsrtDiagGetStackTrace(stackTrace); }
+    static JsErrorCode WINAPI JsDiagRequestAsyncBreak(JsRuntimeHandle runtimeHandle) { return m_jsApiHooks.pfJsrtDiagRequestAsyncBreak(runtimeHandle); }
+    static JsErrorCode WINAPI JsDiagGetBreakpoints(JsValueRef * breakpoints) { return m_jsApiHooks.pfJsrtDiagGetBreakpoints(breakpoints); }
     static JsErrorCode WINAPI JsDiagRemoveBreakpoint(unsigned int breakpointId) { return m_jsApiHooks.pfJsrtDiagRemoveBreakpoint(breakpointId); }
-    static JsErrorCode WINAPI JsDiagSetBreakOnException(JsDiagBreakOnExceptionType exceptionType) { return m_jsApiHooks.pfJsrtDiagSetBreakOnException(exceptionType); }
-    static JsErrorCode WINAPI JsDiagGetBreakOnException(JsDiagBreakOnExceptionType* exceptionType) { return m_jsApiHooks.pfJsrtDiagGetBreakOnException(exceptionType); }
+    static JsErrorCode WINAPI JsDiagSetBreakOnException(JsRuntimeHandle runtimeHandle, JsDiagBreakOnExceptionAttributes exceptionAttributes) { return m_jsApiHooks.pfJsrtDiagSetBreakOnException(runtimeHandle, exceptionAttributes); }
+    static JsErrorCode WINAPI JsDiagGetBreakOnException(JsRuntimeHandle runtimeHandle, JsDiagBreakOnExceptionAttributes * exceptionAttributes) { return m_jsApiHooks.pfJsrtDiagGetBreakOnException(runtimeHandle, exceptionAttributes); }
+    static JsErrorCode WINAPI JsDiagSetStepType(JsDiagStepType stepType) { return m_jsApiHooks.pfJsrtDiagSetStepType(stepType); }
+    static JsErrorCode WINAPI JsDiagGetScripts(JsValueRef * scriptsArray) { return m_jsApiHooks.pfJsrtDiagGetScripts(scriptsArray); }
+    static JsErrorCode WINAPI JsDiagGetFunctionPosition(JsValueRef value, JsValueRef * functionPosition) { return m_jsApiHooks.pfJsrtDiagGetFunctionPosition(value, functionPosition); }
+    static JsErrorCode WINAPI JsDiagGetStackProperties(unsigned int stackFrameIndex, JsValueRef * properties) { return m_jsApiHooks.pfJsrtDiagGetStackProperties(stackFrameIndex, properties); }
+    static JsErrorCode WINAPI JsDiagGetProperties(unsigned int objectHandle, unsigned int fromCount, unsigned int totalCount, JsValueRef * propertiesObject) { return m_jsApiHooks.pfJsrtDiagGetProperties(objectHandle, fromCount, totalCount, propertiesObject); }
+    static JsErrorCode WINAPI JsDiagGetObjectFromHandle(unsigned int handle, JsValueRef * handleObject) { return m_jsApiHooks.pfJsrtDiagGetObjectFromHandle(handle, handleObject); }
+    static JsErrorCode WINAPI JsDiagEvaluate(const wchar_t * expression, unsigned int stackFrameIndex, JsValueRef * evalResult) { return m_jsApiHooks.pfJsrtDiagEvaluate(expression, stackFrameIndex, evalResult); }
+    static JsErrorCode WINAPI JsValueToWchar(JsValueRef value, const wchar_t **stringValue, size_t *length)
+    {
+        JsValueRef strValue;
+        IfJsrtErrorFailLogAndRetErrorCode(ChakraRTInterface::JsConvertValueToString(value, &strValue));
+        IfJsrtErrorFailLogAndRetErrorCode(ChakraRTInterface::JsStringToPointer(strValue, stringValue, length));
+        return JsNoError;
+    }
 
     static JsErrorCode WINAPI JsTTDCreateRecordRuntime(JsRuntimeAttributes attributes, char16* infoUri, UINT32 snapInterval, UINT32 snapHistoryLength, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateRecordRuntime(attributes, infoUri, snapInterval, snapHistoryLength, threadService, runtime); }
     static JsErrorCode WINAPI JsTTDCreateDebugRuntime(JsRuntimeAttributes attributes, char16* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateDebugRuntime(attributes, infoUri, threadService, runtime); }
@@ -327,4 +335,36 @@ public:
     static JsErrorCode WINAPI JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime) { return m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove(runtimeHandle, targetEventTime, targetStartSnapTime); }
     static JsErrorCode WINAPI JsTTDMoveToTopLevelEvent(INT64 snapshotStartTime, INT64 eventTime) { return m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent(snapshotStartTime, eventTime); }
     static JsErrorCode WINAPI JsTTDReplayExecution(INT64* rootEventTime) { return m_jsApiHooks.pfJsrtTTDReplayExecution(rootEventTime); }
+};
+
+class AutoRestoreContext
+{
+public:
+    AutoRestoreContext(JsContextRef newContext)
+    {
+        JsErrorCode errorCode = ChakraRTInterface::JsGetCurrentContext(&oldContext);
+        Assert(errorCode == JsNoError);
+
+        if (oldContext != newContext)
+        {
+            errorCode = ChakraRTInterface::JsSetCurrentContext(newContext);
+            Assert(errorCode == JsNoError);
+            contextChanged = true;
+        }
+        else
+        {
+            contextChanged = false;
+        }
+    }
+
+    ~AutoRestoreContext()
+    {
+        if (contextChanged && oldContext != JS_INVALID_REFERENCE)
+        {
+            ChakraRTInterface::JsSetCurrentContext(oldContext);
+        }
+    }
+private:
+    JsContextRef oldContext;
+    bool contextChanged;
 };

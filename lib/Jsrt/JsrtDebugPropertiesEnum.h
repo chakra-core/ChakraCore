@@ -1,6 +1,7 @@
-//---------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-//----------------------------------------------------------------------------
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 DEBUGOBJECTPROPERTY(arguments)
 DEBUGOBJECTPROPERTY(breakpointId)
@@ -11,12 +12,13 @@ DEBUGOBJECTPROPERTY(display)
 DEBUGOBJECTPROPERTY(error)
 DEBUGOBJECTPROPERTY(exception)
 DEBUGOBJECTPROPERTY(fileName)
-DEBUGOBJECTPROPERTY(functionHandle)
+DEBUGOBJECTPROPERTY(firstStatementColumn)
+DEBUGOBJECTPROPERTY(firstStatementLine)
 DEBUGOBJECTPROPERTY(functionCallsReturn)
+DEBUGOBJECTPROPERTY(functionHandle)
 DEBUGOBJECTPROPERTY(globals)
 DEBUGOBJECTPROPERTY(handle)
 DEBUGOBJECTPROPERTY(index)
-DEBUGOBJECTPROPERTY(inferredName)
 DEBUGOBJECTPROPERTY(line)
 DEBUGOBJECTPROPERTY(lineCount)
 DEBUGOBJECTPROPERTY(locals)
@@ -32,8 +34,8 @@ DEBUGOBJECTPROPERTY(scriptType)
 DEBUGOBJECTPROPERTY(source)
 DEBUGOBJECTPROPERTY(sourceLength)
 DEBUGOBJECTPROPERTY(sourceText)
-DEBUGOBJECTPROPERTY(stmtStartColumn)
-DEBUGOBJECTPROPERTY(stmtStartLine)
+DEBUGOBJECTPROPERTY(thisObject)
+DEBUGOBJECTPROPERTY(totalPropertiesOfObject)
 DEBUGOBJECTPROPERTY(type)
 DEBUGOBJECTPROPERTY(uncaught)
 DEBUGOBJECTPROPERTY(value)

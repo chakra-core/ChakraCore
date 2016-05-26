@@ -93,6 +93,8 @@ namespace Js
         CurrentCrossSiteThunk(CrossSite::DefaultThunk),
         DeferredParsingThunk(DefaultDeferredParsingThunk),
         DeferredDeserializationThunk(DefaultDeferredDeserializeThunk),
+        DispatchDefaultInvoke(nullptr),
+        DispatchProfileInvoke(nullptr),
         m_pBuiltinFunctionIdMap(nullptr),
         diagnosticArena(nullptr),
         hostScriptContext(nullptr),

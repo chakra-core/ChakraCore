@@ -47,9 +47,9 @@ void JsrtContextCore::Dispose(bool isShutdown)
 {
     if (nullptr != this->GetScriptContext())
     {
-        if (this->GetRuntime()->GetDebugObject())
+        if (this->GetRuntime()->GetJsrtDebugManager() != nullptr)
         {
-            this->GetRuntime()->GetDebugObject()->ClearDebugDocument(this->GetScriptContext());
+            this->GetRuntime()->GetJsrtDebugManager()->ClearDebugDocument(this->GetScriptContext());
         }
         this->GetScriptContext()->EnsureClearDebugDocument();
         this->GetScriptContext()->GetDebugContext()->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
@@ -86,9 +86,9 @@ Js::ScriptContext* JsrtContextCore::EnsureScriptContext()
 
 void JsrtContextCore::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
 {
-    JsrtDebug* debugObject = this->GetRuntime()->GetDebugObject();
-    if (debugObject != nullptr)
+    JsrtDebugManager* jsrtDebugManager = this->GetRuntime()->GetJsrtDebugManager();
+    if (jsrtDebugManager != nullptr)
     {
-        debugObject->ReportScriptCompile(scriptFunction, utf8SourceInfo, compileException);
+        jsrtDebugManager->ReportScriptCompile(scriptFunction, utf8SourceInfo, compileException);
     }
 }

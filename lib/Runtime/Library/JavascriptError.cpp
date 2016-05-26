@@ -570,7 +570,7 @@ namespace Js
 
         if (!this->GetScriptContext()->GetThreadContext()->IsScriptActive())
         {
-        GetRuntimeErrorWithScriptEnter(this, &pszMessage);
+            GetRuntimeErrorWithScriptEnter(this, &pszMessage);
         }
         else
         {

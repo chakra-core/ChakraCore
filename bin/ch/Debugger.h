@@ -4,78 +4,51 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "stdafx.h"
+static const WCHAR controllerScript[] = {
+#include "DbgController.js.encoded"
+    _u('\0')
+};
 
-#include <winsock2.h>
-#include <Ws2tcpip.h>
-#include <stdio.h>
-
-#include <queue>
-
-#define DGB_ENSURE_OK(R) if(R != JsNoError) { AssertMsg(false, "Internal failure aborting!!!");  exit(1);}
-
-class DebuggerCh
+class Debugger
 {
-private:
-    wchar_t m_ipAddr[20];
-    unsigned short m_port;
-    SOCKET m_dbgConnectSocket;
-    SOCKET m_dbgSocket;
-
-    JsContextRef m_context;
-    JsValueRef m_chakraDebugObject;
-    JsValueRef m_processDebugProtocolJSON;
-    JsValueRef m_processJsrtEventData;
-
-    DebuggerCh(LPCWSTR ipAddr, unsigned short port);
-    ~DebuggerCh();
-
-    size_t m_buflen;
-    char* m_buf;
-    std::queue<wchar_t*> m_msgQueue;
-    bool m_waitingForMessage;
-    bool m_isProcessingDebuggerMsg;
-
-    wchar_t* PopMessage();
-    void SendMsg(const wchar_t* msg, size_t msgLen);
-    void SendMsgWHeader(const wchar_t* header, const wchar_t* body, size_t bodyLen);
-    bool IsEmpty(bool blockUntilNonEmpty = false);
-    bool ShouldContinue();
-    void WaitForMessage();
-
-    void ProcessDebuggerMessage();
-    bool ProcessJsrtDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef eventData);
-
 public:
-    bool Initialize(JsRuntimeHandle runtime);
-    bool InstallDebugCallbacks(JsValueRef chakraDebugObject);
-    bool InstallHostCallback(JsValueRef chakraDebugObject, const wchar_t *name, JsNativeFunction nativeFunction);
-    bool CallFunction(wchar_t const * functionName, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
-
-    static void CALLBACK JsDiagDebugEventHandler(_In_ JsDiagDebugEvent debugEvent, _In_ JsValueRef eventData, _In_opt_ void* callbackState);
-
-    static JsValueRef CALLBACK Log(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagGetScripts(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsGetSource(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagResume(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsSetBreakpoint(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagGetFunctionPosition(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsGetStacktrace(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagGetStackProperties(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagLookupHandles(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsEvaluateScript(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagEvaluate(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagGetBreakpoints(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagGetProperties(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagRemoveBreakpoint(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagGetBreakOnException(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK JsDiagSetBreakOnException(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-    static JsValueRef CALLBACK SendDelayedRespose(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-
-    static void SetDbgSrcInfo(LPCWSTR contents);
-    static void StartDebugging(JsRuntimeHandle runtime, LPCWSTR ipAddr, unsigned short port);
-    static DebuggerCh* GetDebugger();
-    static void CloseDebuggerIfNeeded();
-
+    static Debugger* GetDebugger(JsRuntimeHandle runtime);
+    static void CloseDebugger();
+    static JsRuntimeHandle GetRuntime();
+    bool StartDebugging(JsRuntimeHandle runtime);
+    bool StopDebugging(JsRuntimeHandle runtime);
     bool HandleDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef eventData);
+    bool CompareOrWriteBaselineFile(LPCWSTR fileName);
+    bool SourceRunDown();
+    bool DumpFunctionPosition(JsValueRef functionPosition);
+    bool IsDetached() const { return m_isDetached; }
+private:
+    Debugger(JsRuntimeHandle runtime);
+    ~Debugger();
+    bool Initialize();
+    JsRuntimeHandle m_runtime;
+    JsContextRef m_context;
+    bool m_isDetached;
+    bool InstallDebugCallbacks(JsValueRef hostDebugObject);
+    bool SetBaseline();
+    bool SetInspectMaxStringLength();
+    bool CallFunction(char16 const * functionName, JsValueRef *result, JsValueRef arg1 = JS_INVALID_REFERENCE, JsValueRef arg2 = JS_INVALID_REFERENCE);
+    bool CallFunctionNoResult(char16 const * functionName, JsValueRef arg1 = JS_INVALID_REFERENCE, JsValueRef arg2 = JS_INVALID_REFERENCE);
+public:
+    static void CALLBACK DebugEventHandler(_In_ JsDiagDebugEvent debugEvent, _In_ JsValueRef eventData, _In_opt_ void* callbackState);
+    static JsValueRef CALLBACK GetSource(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK SetBreakpoint(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK GetStackTrace(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK GetBreakpoints(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK RemoveBreakpoint(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK SetBreakOnException(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK GetBreakOnException(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK SetStepType(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK GetScripts(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK GetStackProperties(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK GetProperties(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK GetObjectFromHandle(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef CALLBACK Evaluate(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+
+    static Debugger* debugger;
 };

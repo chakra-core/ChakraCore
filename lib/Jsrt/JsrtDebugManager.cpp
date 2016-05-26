@@ -1,16 +1,18 @@
-//---------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-//----------------------------------------------------------------------------
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 #include "JsrtPch.h"
-#include "JsrtDebug.h"
+#include "JsrtDebugManager.h"
 #include "JsrtDebugEventObject.h"
 #include "JsrtDebugUtils.h"
 #include "JsrtDebuggerObject.h"
 #include "RuntimeDebugPch.h"
 #include "screrror.h"   // For CompileScriptException
 
-JsrtDebug::JsrtDebug(ThreadContext* threadContext) :
+JsrtDebugManager::JsrtDebugManager(ThreadContext* threadContext) :
+    HostDebugContext(nullptr),
     threadContext(threadContext),
     debugEventCallback(nullptr),
     callbackState(nullptr),
@@ -20,13 +22,12 @@ JsrtDebug::JsrtDebug(ThreadContext* threadContext) :
     callBackDepth(0),
     debugDocumentManager(nullptr),
     stackFrames(nullptr),
-    breakOnExceptionType(JsDiagBreakOnExceptionTypeUncaught)
+    breakOnExceptionAttributes(JsDiagBreakOnExceptionAttributeUncaught)
 {
-    // ToDo (SaAgarwa): Confirm the default value of breakOnExceptionType
     Assert(threadContext != nullptr);
 }
 
-JsrtDebug::~JsrtDebug()
+JsrtDebugManager::~JsrtDebugManager()
 {
     if (this->debuggerObjectsManager != nullptr)
     {
@@ -52,13 +53,31 @@ JsrtDebug::~JsrtDebug()
     this->threadContext = nullptr;
 }
 
-void JsrtDebug::SetDebugEventCallback(JsDiagDebugEventCallback debugEventCallback, void* callbackState)
+void JsrtDebugManager::SetDebugEventCallback(JsDiagDebugEventCallback debugEventCallback, void* callbackState)
 {
+    Assert(this->debugEventCallback == nullptr);
+    Assert(this->callbackState == nullptr);
+
     this->debugEventCallback = debugEventCallback;
     this->callbackState = callbackState;
 }
 
-bool JsrtDebug::CanHalt(Js::InterpreterHaltState* haltState)
+void* JsrtDebugManager::GetAndClearCallbackState()
+{
+    void* currentCallbackState = this->callbackState;
+
+    this->debugEventCallback = nullptr;
+    this->callbackState = nullptr;
+
+    return currentCallbackState;
+}
+
+bool JsrtDebugManager::IsDebugEventCallbackSet() const
+{
+    return this->debugEventCallback != nullptr;
+}
+
+bool JsrtDebugManager::CanHalt(Js::InterpreterHaltState* haltState)
 {
     // This is registered as the callback for inline breakpoints.
     // We decide here if we are at a reasonable stop location that has source code.
@@ -72,11 +91,11 @@ bool JsrtDebug::CanHalt(Js::InterpreterHaltState* haltState)
     return map != nullptr && (!pCurrentFuncBody->GetIsGlobalFunc() || !Js::FunctionBody::IsDummyGlobalRetStatement(&map->sourceSpan));
 }
 
-void JsrtDebug::DispatchHalt(Js::InterpreterHaltState* haltState)
+void JsrtDebugManager::DispatchHalt(Js::InterpreterHaltState* haltState)
 {
     switch (haltState->stopType)
     {
-    case Js::STOP_BREAKPOINT: /*JsDiagDebugEventBreak*/
+    case Js::STOP_BREAKPOINT: /*JsDiagDebugEventBreakpoint*/
     case Js::STOP_INLINEBREAKPOINT: /*JsDiagDebugEventDebuggerStatement*/
     case Js::STOP_ASYNCBREAK: /*JsDiagDebugEventAsyncBreak*/
         this->ReportBreak(haltState);
@@ -98,31 +117,50 @@ void JsrtDebug::DispatchHalt(Js::InterpreterHaltState* haltState)
     this->HandleResume(haltState, this->resumeAction);
 }
 
-bool JsrtDebug::CanAllowBreakpoints()
+bool JsrtDebugManager::CanAllowBreakpoints()
 {
     return true;
 }
 
-void JsrtDebug::CleanupHalt()
+void JsrtDebugManager::CleanupHalt()
 {
 }
 
-bool JsrtDebug::IsInClosedState()
+bool JsrtDebugManager::IsInClosedState()
 {
     return this->debugEventCallback == nullptr;
 }
 
-bool JsrtDebug::IsExceptionReportingEnabled()
+bool JsrtDebugManager::IsExceptionReportingEnabled()
 {
-    return this->breakOnExceptionType != JsDiagBreakOnExceptionTypeNone;
+    return this->GetBreakOnException() != JsDiagBreakOnExceptionAttributeNone;
 }
 
-bool JsrtDebug::IsFirstChanceExceptionEnabled()
+bool JsrtDebugManager::IsFirstChanceExceptionEnabled()
 {
-    return this->breakOnExceptionType == JsDiagBreakOnExceptionTypeAll;
+    return (this->GetBreakOnException() & JsDiagBreakOnExceptionAttributeFirstChance) == JsDiagBreakOnExceptionAttributeFirstChance;
 }
 
-void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
+HRESULT JsrtDebugManager::DbgRegisterFunction(Js::ScriptContext* scriptContext, Js::FunctionBody* functionBody, DWORD_PTR dwDebugSourceContext, LPCWSTR title)
+{
+    Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
+
+    if (!utf8SourceInfo->GetIsLibraryCode() && !utf8SourceInfo->HasDebugDocument())
+    {
+        JsrtDebugDocumentManager* debugDocumentManager = this->GetDebugDocumentManager();
+        Assert(debugDocumentManager != nullptr);
+
+        Js::DebugDocument* debugDocument = HeapNewNoThrow(Js::DebugDocument, utf8SourceInfo, functionBody);
+        if (debugDocument != nullptr)
+        {
+            utf8SourceInfo->SetDebugDocument(debugDocument);
+        }
+    }
+
+    return S_OK;
+}
+
+void JsrtDebugManager::ReportScriptCompile(Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
 {
     if (this->debugEventCallback != nullptr)
     {
@@ -132,8 +170,7 @@ void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js:
 
         Js::DynamicObject* eventDataObject = debugEventObject.GetEventDataObject();
 
-        JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
-        JsrtDebugUtils::AddFileNameToObject(eventDataObject, utf8SourceInfo);
+        JsrtDebugUtils::AddFileNameOrScriptTypeToObject(eventDataObject, utf8SourceInfo);
         JsrtDebugUtils::AddLineCountToObject(eventDataObject, utf8SourceInfo);
         JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
 
@@ -142,11 +179,14 @@ void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js:
         if (scriptFunction == nullptr)
         {
             // Report JsDiagDebugEventCompileError event
-            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::error, compileException->ei.bstrDescription, scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::error, compileException->ei.bstrDescription, ::SysStringLen(compileException->ei.bstrDescription), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::line, compileException->line, scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::column, compileException->ichMin - compileException->ichMinLine - 1, scriptContext); // Converted to 0-based
+            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::sourceText, compileException->bstrLine, ::SysStringLen(compileException->bstrLine), scriptContext);
         }
         else
         {
-            DebugDocumentManager* debugDocumentManager = this->GetDebugDocumentManager();
+            JsrtDebugDocumentManager* debugDocumentManager = this->GetDebugDocumentManager();
             Assert(debugDocumentManager != nullptr);
 
             // Create DebugDocument and then report JsDiagDebugEventSourceCompile event
@@ -154,15 +194,18 @@ void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js:
             if (debugDocument != nullptr)
             {
                 utf8SourceInfo->SetDebugDocument(debugDocument);
+
+                // Only add scriptId if everything is ok as scriptId is used for other operations
+                JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
             }
             jsDiagDebugEvent = JsDiagDebugEventSourceCompile;
         }
-        
+
         this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject, scriptContext);
     }
 }
 
-void JsrtDebug::ReportBreak(Js::InterpreterHaltState * haltState)
+void JsrtDebugManager::ReportBreak(Js::InterpreterHaltState* haltState)
 {
     if (this->debugEventCallback != nullptr)
     {
@@ -181,10 +224,11 @@ void JsrtDebug::ReportBreak(Js::InterpreterHaltState * haltState)
 
         Js::ProbeContainer* probeContainer = scriptContext->GetDebugContext()->GetProbeContainer();
 
-        if (jsDiagDebugEvent == JsDiagDebugEventBreak)
+        if (jsDiagDebugEvent == JsDiagDebugEventBreakpoint)
         {
             UINT bpId = 0;
-            probeContainer->MapProbesUntil([&](int i, Js::Probe* pProbe) {
+            probeContainer->MapProbesUntil([&](int i, Js::Probe* pProbe)
+            {
                 Js::BreakpointProbe* bp = (Js::BreakpointProbe*)pProbe;
                 if (bp->Matches(functionBody, utf8SourceInfo->GetDebugDocument(), currentByteCodeOffset))
                 {
@@ -194,20 +238,20 @@ void JsrtDebug::ReportBreak(Js::InterpreterHaltState * haltState)
                 return false;
             });
 
-            AssertMsg(bpId != 0, "How come we don't have a breakpoint id for JsDiagDebugEventBreak");
+            AssertMsg(bpId != 0, "How come we don't have a breakpoint id for JsDiagDebugEventBreakpoint");
 
             JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::breakpointId, bpId, scriptContext);
         }
 
         JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
         JsrtDebugUtils::AddLineColumnToObject(eventDataObject, functionBody, currentByteCodeOffset);
-        JsrtDebugUtils::AddSourceTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
+        JsrtDebugUtils::AddSourceLengthAndTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
 
         this->CallDebugEventCallbackForBreak(jsDiagDebugEvent, eventDataObject, scriptContext);
     }
 }
 
-void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
+void JsrtDebugManager::ReportExceptionBreak(Js::InterpreterHaltState* haltState)
 {
     if (this->debugEventCallback != nullptr)
     {
@@ -230,22 +274,22 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
         
         int currentByteCodeOffset = haltState->topFrame->GetByteCodeOffset();
         JsrtDebugUtils::AddLineColumnToObject(eventDataObject, functionBody, currentByteCodeOffset);
-        JsrtDebugUtils::AddSourceTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
+        JsrtDebugUtils::AddSourceLengthAndTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
         JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::uncaught, !haltState->exceptionObject->IsFirstChanceException(), scriptContext);
 
         Js::ResolvedObject resolvedObject;
         resolvedObject.scriptContext = scriptContext;
-        resolvedObject.name = L"{exception}";
+        resolvedObject.name = _u("{exception}");
         resolvedObject.typeId = Js::TypeIds_Error;
         resolvedObject.address = nullptr;
         resolvedObject.obj = scriptContext->GetDebugContext()->GetProbeContainer()->GetExceptionObject();
 
-        if (resolvedObject.obj == nullptr) {
-            Assert(false);
+        if (resolvedObject.obj == nullptr)
+        {
             resolvedObject.obj = resolvedObject.scriptContext->GetLibrary()->GetUndefined();
         }
 
-        DebuggerObjectBase::CreateDebuggerObject<DebuggerObjectProperty>(this->GetDebuggerObjectsManager(), resolvedObject, scriptContext, [&](Js::Var marshaledObj)
+        JsrtDebuggerObjectBase::CreateDebuggerObject<JsrtDebuggerObjectProperty>(this->GetDebuggerObjectsManager(), resolvedObject, scriptContext, [&](Js::Var marshaledObj)
         {
             JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::exception, marshaledObj, scriptContext);
         });
@@ -254,30 +298,21 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
     }
 }
 
-void JsrtDebug::HandleResume(Js::InterpreterHaltState * haltState, BREAKRESUMEACTION resumeAction)
+void JsrtDebugManager::HandleResume(Js::InterpreterHaltState* haltState, BREAKRESUMEACTION resumeAction)
 {
+    Assert(resumeAction != BREAKRESUMEACTION_ABORT);
+
     Js::ScriptContext* scriptContext = haltState->framePointers->Peek()->GetScriptContext();
 
-    if (resumeAction == BREAKRESUMEACTION_ABORT)
-    {
-        // In this case we need to abort script execution entirely and also stop working on any breakpoint for this engine.
-        scriptContext->GetDebugContext()->GetProbeContainer()->RemoveAllProbes();
-        scriptContext->GetDebugContext()->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
-        scriptContext->GetDebugContext()->GetProbeContainer()->UninstallDebuggerScriptOptionCallback();
-        throw Js::ScriptAbortException();
-    }
-    else
-    {
-        scriptContext->GetThreadContext()->GetDebugManager()->stepController.HandleResumeAction(haltState, resumeAction);
-    }
+    scriptContext->GetThreadContext()->GetDebugManager()->stepController.HandleResumeAction(haltState, resumeAction);
 }
 
-void JsrtDebug::SetResumeType(BREAKRESUMEACTION resumeAction)
+void JsrtDebugManager::SetResumeType(BREAKRESUMEACTION resumeAction)
 {
     this->resumeAction = resumeAction;
 }
 
-bool JsrtDebug::EnableAsyncBreak(Js::ScriptContext* scriptContext)
+bool JsrtDebugManager::EnableAsyncBreak(Js::ScriptContext* scriptContext)
 {
     // This can be called when we are already at break
     if (!scriptContext->GetDebugContext()->GetProbeContainer()->IsAsyncActivate())
@@ -292,32 +327,49 @@ bool JsrtDebug::EnableAsyncBreak(Js::ScriptContext* scriptContext)
     return false;
 }
 
-void JsrtDebug::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject * eventDataObject, Js::ScriptContext* scriptContext)
+void JsrtDebugManager::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject* eventDataObject, Js::ScriptContext* scriptContext)
 {
+    class AutoClear
+    {
+    public:
+        AutoClear(JsrtDebugManager* jsrtDebug)
+        {
+            this->jsrtDebugManager = jsrtDebug;
+            jsrtDebugManager->callBackDepth++;
+        }
+
+        ~AutoClear()
+        {
+            jsrtDebugManager->callBackDepth--;
+
+            if (jsrtDebugManager->callBackDepth == 0)
+            {
+                if (jsrtDebugManager->debuggerObjectsManager != nullptr)
+                {
+                    jsrtDebugManager->GetDebuggerObjectsManager()->ClearAll();
+                }
+
+                if (jsrtDebugManager->stackFrames != nullptr)
+                {
+                    Adelete(jsrtDebugManager->GetDebugObjectArena(), jsrtDebugManager->stackFrames);
+                    jsrtDebugManager->stackFrames = nullptr;
+                }
+            }
+
+            this->jsrtDebugManager = nullptr;
+        }
+    private:
+        JsrtDebugManager* jsrtDebugManager;
+    };
+
     auto funcPtr = [&]()
     {
-        this->callBackDepth++;
+        AutoClear autoClear(this);
         this->debugEventCallback(debugEvent, eventDataObject, this->callbackState);
-        this->callBackDepth--;
-
-        if (this->callBackDepth == 0)
-        {
-            this->GetDebuggerObjectsManager()->ClearAll();
-            if (this->stackFrames != nullptr)
-            {
-                Adelete(this->GetDebugObjectArena(), this->stackFrames);
-                this->stackFrames = nullptr;
-            }
-        }
     };
 
     if (scriptContext->GetThreadContext()->IsScriptActive())
     {
-        //
-        //TODO: this is weird -- Ensure we force this before leaving script context 
-        //
-        this->GetDebuggerObjectsManager();
-
         BEGIN_LEAVE_SCRIPT(scriptContext)
         {
             funcPtr();
@@ -330,13 +382,15 @@ void JsrtDebug::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicO
     }
 }
 
-void JsrtDebug::CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEvent, Js::DynamicObject * eventDataObject, Js::ScriptContext * scriptContext)
+void JsrtDebugManager::CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEvent, Js::DynamicObject* eventDataObject, Js::ScriptContext* scriptContext)
 {
     AutoSetDispatchHaltFlag autoSetDispatchHaltFlag(scriptContext, scriptContext->GetThreadContext());
+
 #if DBG
     void *frameAddress = _AddressOfReturnAddress();
     scriptContext->GetThreadContext()->GetDebugManager()->SetDispatchHaltFrameAddress(frameAddress);
 #endif
+
     this->CallDebugEventCallback(debugEvent, eventDataObject, scriptContext);
 
     for (Js::ScriptContext *tempScriptContext = scriptContext->GetThreadContext()->GetScriptContextList();
@@ -352,13 +406,19 @@ void JsrtDebug::CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEvent, Js::
     }
 }
 
-Js::DynamicObject * JsrtDebug::GetScript(Js::Utf8SourceInfo * utf8SourceInfo)
+Js::DynamicObject* JsrtDebugManager::GetScript(Js::Utf8SourceInfo* utf8SourceInfo)
 {
-    DebuggerObjectBase* debuggerObject = DebuggerObjectScript::Make(this->GetDebuggerObjectsManager(), utf8SourceInfo);
-    return debuggerObject->GetJSONObject(utf8SourceInfo->GetScriptContext());
+    Js::DynamicObject* scriptObject = utf8SourceInfo->GetScriptContext()->GetLibrary()->CreateObject();
+
+    JsrtDebugUtils::AddScriptIdToObject(scriptObject, utf8SourceInfo);
+    JsrtDebugUtils::AddFileNameOrScriptTypeToObject(scriptObject, utf8SourceInfo);
+    JsrtDebugUtils::AddLineCountToObject(scriptObject, utf8SourceInfo);
+    JsrtDebugUtils::AddPropertyToObject(scriptObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
+
+    return scriptObject;
 }
 
-Js::JavascriptArray * JsrtDebug::GetScripts(Js::ScriptContext* scriptContext)
+Js::JavascriptArray* JsrtDebugManager::GetScripts(Js::ScriptContext* scriptContext)
 {
     Js::JavascriptArray* scriptsArray = scriptContext->GetLibrary()->CreateArray();
 
@@ -368,10 +428,9 @@ Js::JavascriptArray * JsrtDebug::GetScripts(Js::ScriptContext* scriptContext)
     tempScriptContext != nullptr && !tempScriptContext->IsClosed();
         tempScriptContext = tempScriptContext->next)
     {
-        tempScriptContext->GetSourceList()->Map([&](int i, RecyclerWeakReference<Js::Utf8SourceInfo>* utf8SourceInfoWeakRef)
+        tempScriptContext->MapScript([&](Js::Utf8SourceInfo* utf8SourceInfo)
         {
-            Js::Utf8SourceInfo* utf8SourceInfo = utf8SourceInfoWeakRef->Get();
-            if (utf8SourceInfo != nullptr && !utf8SourceInfo->GetIsLibraryCode())
+            if (!utf8SourceInfo->GetIsLibraryCode() && utf8SourceInfo->HasDebugDocument())
             {
                 bool isCallerLibraryCode = false;
 
@@ -396,7 +455,7 @@ Js::JavascriptArray * JsrtDebug::GetScripts(Js::ScriptContext* scriptContext)
                     if (sourceObj != nullptr)
                     {
                         Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, sourceObj);
-                        Js::JavascriptOperators::OP_SetElementI((Js::Var)scriptsArray, Js::JavascriptNumber::ToVar(index, scriptContext), marshaledObj, scriptContext);
+                        scriptsArray->DirectSetItemAt(index, marshaledObj);
                         index++;
                     }
                 }
@@ -407,18 +466,17 @@ Js::JavascriptArray * JsrtDebug::GetScripts(Js::ScriptContext* scriptContext)
     return scriptsArray;
 }
 
-Js::DynamicObject * JsrtDebug::GetSource(uint scriptId)
+Js::DynamicObject* JsrtDebugManager::GetSource(Js::ScriptContext* scriptContext, uint scriptId)
 {
     Js::Utf8SourceInfo* utf8SourceInfo = nullptr;
 
-    for (Js::ScriptContext *scriptContext = this->threadContext->GetScriptContextList();
-    scriptContext != nullptr && utf8SourceInfo == nullptr && !scriptContext->IsClosed();
-        scriptContext = scriptContext->next)
+    for (Js::ScriptContext *tempScriptContext = this->threadContext->GetScriptContextList();
+    tempScriptContext != nullptr && utf8SourceInfo == nullptr && !tempScriptContext->IsClosed();
+        tempScriptContext = tempScriptContext->next)
     {
-        scriptContext->GetSourceList()->MapUntil([&](int i, RecyclerWeakReference<Js::Utf8SourceInfo>* sourceInfoWeakRef) -> bool
+        tempScriptContext->MapScript([&](Js::Utf8SourceInfo* sourceInfo) -> bool
         {
-            Js::Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
-            if (sourceInfo != nullptr && sourceInfo->GetSourceInfoId() == scriptId)
+            if (sourceInfo->IsInDebugMode() && sourceInfo->GetSourceInfoId() == scriptId)
             {
                 utf8SourceInfo = sourceInfo;
                 return true;
@@ -431,10 +489,10 @@ Js::DynamicObject * JsrtDebug::GetSource(uint scriptId)
 
     if (utf8SourceInfo != nullptr)
     {
-        sourceObject = utf8SourceInfo->GetScriptContext()->GetLibrary()->CreateObject();
+        sourceObject = (Js::DynamicObject*)Js::CrossSite::MarshalVar(utf8SourceInfo->GetScriptContext(), scriptContext->GetLibrary()->CreateObject());
 
         JsrtDebugUtils::AddScriptIdToObject(sourceObject, utf8SourceInfo);
-        JsrtDebugUtils::AddFileNameToObject(sourceObject, utf8SourceInfo);
+        JsrtDebugUtils::AddFileNameOrScriptTypeToObject(sourceObject, utf8SourceInfo);
         JsrtDebugUtils::AddLineCountToObject(sourceObject, utf8SourceInfo);
         JsrtDebugUtils::AddPropertyToObject(sourceObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
         JsrtDebugUtils::AddSouceToObject(sourceObject, utf8SourceInfo);
@@ -443,37 +501,33 @@ Js::DynamicObject * JsrtDebug::GetSource(uint scriptId)
     return sourceObject;
 }
 
-Js::JavascriptArray * JsrtDebug::GetStackFrames(Js::ScriptContext* scriptContext)
+Js::JavascriptArray* JsrtDebugManager::GetStackFrames(Js::ScriptContext* scriptContext)
 {
-    if (this->stackFrames != nullptr)
+    if (this->stackFrames == nullptr)
     {
-        return this->stackFrames->StackFrames(scriptContext);
+        this->stackFrames = Anew(this->GetDebugObjectArena(), JsrtDebugStackFrames, this);
     }
-
-    this->stackFrames = Anew(this->GetDebugObjectArena(), JsrtDebugStackFrames, this);
 
     return this->stackFrames->StackFrames(scriptContext);
 }
 
-bool JsrtDebug::TryGetFrameObjectFromFrameIndex(Js::ScriptContext *scriptContext, uint frameIndex, DebuggerObjectBase ** debuggerObject)
+bool JsrtDebugManager::TryGetFrameObjectFromFrameIndex(Js::ScriptContext *scriptContext, uint frameIndex, JsrtDebuggerStackFrame ** debuggerStackFrame)
 {
     if (this->stackFrames == nullptr)
     {
         this->GetStackFrames(scriptContext);
     }
 
-    Assert(this->stackFrames != nullptr);
-
-    return this->stackFrames->TryGetFrameObjectFromFrameIndex(frameIndex, debuggerObject);
+    return this->stackFrames->TryGetFrameObjectFromFrameIndex(frameIndex, debuggerStackFrame);
 }
 
-Js::DynamicObject* JsrtDebug::SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber)
+Js::DynamicObject* JsrtDebugManager::SetBreakPoint(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber)
 {
     Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
     if (debugDocument != nullptr && SUCCEEDED(utf8SourceInfo->EnsureLineOffsetCacheNoThrow()) && lineNumber < utf8SourceInfo->GetLineCount())
     {
-        charcount_t charPosition;
-        charcount_t byteOffset;
+        charcount_t charPosition = 0;
+        charcount_t byteOffset = 0;
         utf8SourceInfo->GetCharPositionForLineInfo((charcount_t)lineNumber, &charPosition, &byteOffset);
         long ibos = charPosition + columnNumber + 1;
 
@@ -485,7 +539,7 @@ Js::DynamicObject* JsrtDebug::SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, 
 
         // Don't see a use case for supporting multiple breakpoints at same location.
         // If a breakpoint already exists, just return that
-        Js::BreakpointProbe* probe = debugDocument->FindBreakpointId(statement);
+        Js::BreakpointProbe* probe = debugDocument->FindBreakpoint(statement);
         if (probe == nullptr)
         {
             probe = debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
@@ -500,12 +554,11 @@ Js::DynamicObject* JsrtDebug::SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, 
 
         probe->GetStatementLocation(&statement);
 
-        Js::ScriptContext* scriptContext = debugDocument->GetUtf8SourceInfo()->GetScriptContext();
-
-        Js::DynamicObject* bpObject = scriptContext->GetLibrary()->CreateObject();
+        Js::DynamicObject* bpObject = (Js::DynamicObject*)Js::CrossSite::MarshalVar(debugDocument->GetUtf8SourceInfo()->GetScriptContext(), scriptContext->GetLibrary()->CreateObject());
 
         JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::breakpointId, probe->GetId(), scriptContext);
         JsrtDebugUtils::AddLineColumnToObject(bpObject, statement.function, statement.bytecodeSpan.begin);
+        JsrtDebugUtils::AddScriptIdToObject(bpObject, utf8SourceInfo);
 
         return bpObject;
     }
@@ -513,48 +566,50 @@ Js::DynamicObject* JsrtDebug::SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, 
     return nullptr;
 }
 
-void JsrtDebug::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::ScriptContext * scriptContext)
+void JsrtDebugManager::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::ScriptContext* scriptContext)
 {
     Js::ScriptContext* arrayScriptContext = (*bpsArray)->GetScriptContext();
     Js::ProbeContainer* probeContainer = scriptContext->GetDebugContext()->GetProbeContainer();
-    probeContainer->MapProbes([&](int i, Js::Probe* pProbe) {
+
+    probeContainer->MapProbes([&](int i, Js::Probe* pProbe)
+    {
 
         Js::BreakpointProbe* bp = (Js::BreakpointProbe*)pProbe;
         Js::DynamicObject* bpObject = scriptContext->GetLibrary()->CreateObject();
 
-        Js::Utf8SourceInfo* utf8SourceInfo = bp->GetDbugDocument()->GetUtf8SourceInfo();
-
         JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::breakpointId, bp->GetId(), scriptContext);
+        JsrtDebugUtils::AddLineColumnToObject(bpObject, bp->GetFunctionBody(), bp->GetBytecodeOffset());
 
+        Js::Utf8SourceInfo* utf8SourceInfo = bp->GetDbugDocument()->GetUtf8SourceInfo();
         JsrtDebugUtils::AddScriptIdToObject(bpObject, utf8SourceInfo);
-
-        charcount_t lineNumber = 0;
-        charcount_t column = 0;
-        charcount_t byteOffset = 0;
-        utf8SourceInfo->GetLineInfoForCharPosition(bp->GetCharacterOffset(), &lineNumber, &column, &byteOffset);
-
-        JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::line, lineNumber, scriptContext);
-        JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::column, column, scriptContext);
 
         Js::Var marshaledObj = Js::CrossSite::MarshalVar(arrayScriptContext, bpObject);
         Js::JavascriptOperators::OP_SetElementI((Js::Var)(*bpsArray), Js::JavascriptNumber::ToVar((*bpsArray)->GetLength(), arrayScriptContext), marshaledObj, arrayScriptContext);
     });
 }
 
-DebuggerObjectsManager * JsrtDebug::GetDebuggerObjectsManager()
+JsrtDebuggerObjectsManager* JsrtDebugManager::GetDebuggerObjectsManager()
 {
     if (this->debuggerObjectsManager == nullptr)
     {
-        this->debuggerObjectsManager = Anew(this->GetDebugObjectArena(), DebuggerObjectsManager, this);
+        this->debuggerObjectsManager = Anew(this->GetDebugObjectArena(), JsrtDebuggerObjectsManager, this);
     }
     return this->debuggerObjectsManager;
 }
 
-ArenaAllocator * JsrtDebug::GetDebugObjectArena()
+void JsrtDebugManager::ClearDebuggerObjects()
+{
+    if (this->debuggerObjectsManager != nullptr)
+    {
+        this->debuggerObjectsManager->ClearAll();
+    }
+}
+
+ArenaAllocator* JsrtDebugManager::GetDebugObjectArena()
 {
     if (this->debugObjectArena == nullptr)
     {
-        this->debugObjectArena = HeapNew(ArenaAllocator, L"DebugObjectArena", this->threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
+        this->debugObjectArena = HeapNew(ArenaAllocator, _u("DebugObjectArena"), this->threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
 
         this->threadContext->GetRecycler()->RegisterExternalGuestArena(this->debugObjectArena);
     }
@@ -562,16 +617,16 @@ ArenaAllocator * JsrtDebug::GetDebugObjectArena()
     return this->debugObjectArena;
 }
 
-DebugDocumentManager * JsrtDebug::GetDebugDocumentManager()
+JsrtDebugDocumentManager* JsrtDebugManager::GetDebugDocumentManager()
 {
     if (this->debugDocumentManager == nullptr)
     {
-        this->debugDocumentManager = Anew(this->GetDebugObjectArena(), DebugDocumentManager, this);
+        this->debugDocumentManager = Anew(this->GetDebugObjectArena(), JsrtDebugDocumentManager, this);
     }
     return this->debugDocumentManager;
 }
 
-void JsrtDebug::ClearDebugDocument(Js::ScriptContext * scriptContext)
+void JsrtDebugManager::ClearDebugDocument(Js::ScriptContext* scriptContext)
 {
     if (this->debugDocumentManager != nullptr)
     {
@@ -579,29 +634,39 @@ void JsrtDebug::ClearDebugDocument(Js::ScriptContext * scriptContext)
     }
 }
 
-void JsrtDebug::RemoveBreakpoint(UINT breakpointId)
+void JsrtDebugManager::ClearBreakpointDebugDocumentDictionary()
 {
     if (this->debugDocumentManager != nullptr)
     {
-        this->GetDebugDocumentManager()->RemoveBreakpoint(breakpointId);
+        this->debugDocumentManager->ClearBreakpointDebugDocumentDictionary();
     }
 }
 
-void JsrtDebug::SetBreakOnException(JsDiagBreakOnExceptionType breakOnExceptionType)
+bool JsrtDebugManager::RemoveBreakpoint(UINT breakpointId)
 {
-    this->breakOnExceptionType = breakOnExceptionType;
+    if (this->debugDocumentManager != nullptr)
+    {
+        return this->GetDebugDocumentManager()->RemoveBreakpoint(breakpointId);
+    }
+
+    return false;
 }
 
-JsDiagBreakOnExceptionType JsrtDebug::GetBreakOnException()
+void JsrtDebugManager::SetBreakOnException(JsDiagBreakOnExceptionAttributes exceptionAttributes)
 {
-    return this->breakOnExceptionType;
+    this->breakOnExceptionAttributes = exceptionAttributes;
 }
 
-JsDiagDebugEvent JsrtDebug::GetDebugEventFromStopType(Js::StopType stopType)
+JsDiagBreakOnExceptionAttributes JsrtDebugManager::GetBreakOnException()
+{
+    return this->breakOnExceptionAttributes;
+}
+
+JsDiagDebugEvent JsrtDebugManager::GetDebugEventFromStopType(Js::StopType stopType)
 {
     switch (stopType)
     {
-    case Js::STOP_BREAKPOINT: return JsDiagDebugEventBreak;
+    case Js::STOP_BREAKPOINT: return JsDiagDebugEventBreakpoint;
     case Js::STOP_INLINEBREAKPOINT: return JsDiagDebugEventDebuggerStatement;
     case Js::STOP_STEPCOMPLETE: return JsDiagDebugEventStepComplete;
     case Js::STOP_EXCEPTIONTHROW: return JsDiagDebugEventRuntimeException;
@@ -613,5 +678,5 @@ JsDiagDebugEvent JsrtDebug::GetDebugEventFromStopType(Js::StopType stopType)
         break;
     }
 
-    return JsDiagDebugEventBreak;
+    return JsDiagDebugEventBreakpoint;
 }

@@ -245,7 +245,7 @@ typedef unsigned char* ChakraBytePtr;
         /// <summary>
         ///     The debugging API can only be called when VM is in debug mode
         /// </summary>
-        JsErrorDiagNotDebugging,
+        JsErrorDiagNotInDebugMode,
         /// <summary>
         ///     The debugging API can only be called when VM is at a break
         /// </summary>

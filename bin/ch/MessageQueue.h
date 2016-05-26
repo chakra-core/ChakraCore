@@ -83,6 +83,16 @@ public:
         }
     }
 
+    void RemoveAll()
+    {
+        while (!m_queue.empty())
+        {
+            auto it = m_queue.begin();
+            MessageBase *msg = it->second;
+            m_queue.erase(it);
+            delete msg;
+        }
+    }
     HRESULT ProcessAll(LPCWSTR fileName)
     {
         while(!IsEmpty())
@@ -109,7 +119,7 @@ private:
     Func m_func;
 
 public:
-    CustomMessage(unsigned int time, const typename CustomBase::CustomArgType& customArg, const Func& func) :
+    CustomMessage(unsigned int time, JsValueRef customArg, const Func& func) :
         CustomBase(time, customArg), m_func(func)
     {}
 

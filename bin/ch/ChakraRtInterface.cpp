@@ -61,22 +61,20 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtConvertValueToString = (JsAPIHooks::JsrtConvertValueToStringPtr)GetProcAddress(library, "JsConvertValueToString");
     m_jsApiHooks.pfJsrtConvertValueToNumber = (JsAPIHooks::JsrtConvertValueToNumberPtr)GetProcAddress(library, "JsConvertValueToNumber");
     m_jsApiHooks.pfJsrtConvertValueToBoolean = (JsAPIHooks::JsrtConvertValueToBooleanPtr)GetProcAddress(library, "JsConvertValueToBoolean");
-    m_jsApiHooks.pfJsrtConvertValueToObject = (JsAPIHooks::JsrtConvertValueToObjectPtr)GetProcAddress(library, "JsConvertValueToObject");
     m_jsApiHooks.pfJsrtStringToPointer = (JsAPIHooks::JsrtStringToPointerPtr)GetProcAddress(library, "JsStringToPointer");
     m_jsApiHooks.pfJsrtBooleanToBool = (JsAPIHooks::JsrtBooleanToBoolPtr)GetProcAddress(library, "JsBooleanToBool");
     m_jsApiHooks.pfJsrtGetPropertyIdFromName = (JsAPIHooks::JsrtGetPropertyIdFromNamePtr)GetProcAddress(library, "JsGetPropertyIdFromName");
     m_jsApiHooks.pfJsrtGetProperty = (JsAPIHooks::JsrtGetPropertyPtr)GetProcAddress(library, "JsGetProperty");
     m_jsApiHooks.pfJsrtHasProperty = (JsAPIHooks::JsrtHasPropertyPtr)GetProcAddress(library, "JsHasProperty");
-    m_jsApiHooks.pfJsrtParseScriptWithAttributes = (JsAPIHooks::JsrtParseScriptWithAttributesPtr)GetProcAddress(library, "JsParseScriptWithAttributes");
     m_jsApiHooks.pfJsrtRunScript = (JsAPIHooks::JsrtRunScriptPtr)GetProcAddress(library, "JsRunScript");
     m_jsApiHooks.pfJsrtRunModule = (JsAPIHooks::JsrtRunModulePtr)GetProcAddress(library, "JsExperimentalApiRunModule");
     m_jsApiHooks.pfJsrtCallFunction = (JsAPIHooks::JsrtCallFunctionPtr)GetProcAddress(library, "JsCallFunction");
     m_jsApiHooks.pfJsrtNumbertoDouble = (JsAPIHooks::JsrtNumberToDoublePtr)GetProcAddress(library, "JsNumberToDouble");
     m_jsApiHooks.pfJsrtNumbertoInt = (JsAPIHooks::JsrtNumberToIntPtr)GetProcAddress(library, "JsNumberToInt");
-    m_jsApiHooks.pfJsrtIntToNumber = (JsAPIHooks::JsrtIntToNumberPtr)GetProcAddress(library, "JsIntToNumber");
     m_jsApiHooks.pfJsrtDoubleToNumber = (JsAPIHooks::JsrtDoubleToNumberPtr)GetProcAddress(library, "JsDoubleToNumber");
     m_jsApiHooks.pfJsrtGetExternalData = (JsAPIHooks::JsrtGetExternalDataPtr)GetProcAddress(library, "JsGetExternalData");
     m_jsApiHooks.pfJsrtCreateArray = (JsAPIHooks::JsrtCreateArrayPtr)GetProcAddress(library, "JsCreateArray");
+    m_jsApiHooks.pfJsrtHasException = (JsAPIHooks::JsrtHasExceptionPtr)GetProcAddress(library, "JsHasException");
     m_jsApiHooks.pfJsrtSetException = (JsAPIHooks::JsrtSetExceptionPtr)GetProcAddress(library, "JsSetException");
     m_jsApiHooks.pfJsrtGetAndClearException = (JsAPIHooks::JsrtGetAndClearExceptiopnPtr)GetProcAddress(library, "JsGetAndClearException");
     m_jsApiHooks.pfJsrtCreateError = (JsAPIHooks::JsrtCreateErrorPtr)GetProcAddress(library, "JsCreateError");
@@ -88,25 +86,26 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtSerializeScript = (JsAPIHooks::JsrtSerializeScriptPtr)GetProcAddress(library, "JsSerializeScript");
     m_jsApiHooks.pfJsrtRunSerializedScript = (JsAPIHooks::JsrtRunSerializedScriptPtr)GetProcAddress(library, "JsRunSerializedScript");
     m_jsApiHooks.pfJsrtSetPromiseContinuationCallback = (JsAPIHooks::JsrtSetPromiseContinuationCallbackPtr)GetProcAddress(library, "JsSetPromiseContinuationCallback");
-    m_jsApiHooks.pfJsrtGetContextOfObject = (JsAPIHooks::JsrtGetContextOfObjectPtr)GetProcAddress(library, "JsGetContextOfObject");
+    m_jsApiHooks.pfJsrtGetContextOfObject = (JsAPIHooks::JsrtGetContextOfObject)GetProcAddress(library, "JsGetContextOfObject");
 
-    m_jsApiHooks.pfJsrtDiagStartDebugging = (JsAPIHooks::JsrtDiagStartDebuggingPtr)GetProcAddress(library, "JsDiagStartDebugging");
-    m_jsApiHooks.pfJsrtDiagGetScripts = (JsAPIHooks::JsrtDiagGetScriptsPtr)GetProcAddress(library, "JsDiagGetScripts");
-    m_jsApiHooks.pfJsrtDiagGetSource = (JsAPIHooks::JsrtDiagGetSourcePtr)GetProcAddress(library, "JsDiagGetSource");
-    m_jsApiHooks.pfJsrtDiagResume = (JsAPIHooks::JsrtDiagResumePtr)GetProcAddress(library, "JsDiagResume");
-    m_jsApiHooks.pfJsrtDiagSetBreakpoint = (JsAPIHooks::JsrtDiagSetBreakpointPtr)GetProcAddress(library, "JsDiagSetBreakpoint");
-    m_jsApiHooks.pfJsrtDiagGetFunctionPosition = (JsAPIHooks::JsrtDiagGetFunctionPositionPtr)GetProcAddress(library, "JsDiagGetFunctionPosition");
-    m_jsApiHooks.pfJsrtDiagGetStacktrace = (JsAPIHooks::JsrtDiagGetStacktracePtr)GetProcAddress(library, "JsDiagGetStacktrace");
-    m_jsApiHooks.pfJsrtDiagGetStackProperties = (JsAPIHooks::JsrtDiagGetStackPropertiesPtr)GetProcAddress(library, "JsDiagGetStackProperties");
-    m_jsApiHooks.pfJsrtDiagLookupHandles = (JsAPIHooks::JsrtDiagLookupHandlesPtr)GetProcAddress(library, "JsDiagLookupHandles");
-    m_jsApiHooks.pfJsrtDiagEvaluate = (JsAPIHooks::JsrtDiagEvaluatePtr)GetProcAddress(library, "JsDiagEvaluate");
-    m_jsApiHooks.pfJsrtDiagGetBreakpoints = (JsAPIHooks::JsrtDiagGetBreakpointsPtr)GetProcAddress(library, "JsDiagGetBreakpoints");
-    m_jsApiHooks.pfJsrtDiagGetProperties = (JsAPIHooks::JsrtDiagGetPropertiesPtr)GetProcAddress(library, "JsDiagGetProperties");
-    m_jsApiHooks.pfJsrtDiagRemoveBreakpoint = (JsAPIHooks::JsrtDiagRemoveBreakpointPtr)GetProcAddress(library, "JsDiagRemoveBreakpoint");
-
-    m_jsApiHooks.pfJsrtDiagSetBreakOnException = (JsAPIHooks::JsrtDiagSetBreakOnExceptionPtr)GetProcAddress(library, "JsDiagSetBreakOnException");
-    m_jsApiHooks.pfJsrtDiagGetBreakOnException = (JsAPIHooks::JsrtDiagGetBreakOnExceptionPtr)GetProcAddress(library, "JsDiagGetBreakOnException");
-
+    m_jsApiHooks.pfJsrtParseScriptWithAttributes = (JsAPIHooks::JsrtParseScriptWithAttributes)GetProcAddress(library, "JsParseScriptWithAttributes");
+    m_jsApiHooks.pfJsrtDiagStartDebugging = (JsAPIHooks::JsrtDiagStartDebugging)GetProcAddress(library, "JsDiagStartDebugging");
+    m_jsApiHooks.pfJsrtDiagStopDebugging = (JsAPIHooks::JsrtDiagStopDebugging)GetProcAddress(library, "JsDiagStopDebugging");
+    m_jsApiHooks.pfJsrtDiagGetSource = (JsAPIHooks::JsrtDiagGetSource)GetProcAddress(library, "JsDiagGetSource");
+    m_jsApiHooks.pfJsrtDiagSetBreakpoint = (JsAPIHooks::JsrtDiagSetBreakpoint)GetProcAddress(library, "JsDiagSetBreakpoint");
+    m_jsApiHooks.pfJsrtDiagGetStackTrace = (JsAPIHooks::JsrtDiagGetStackTrace)GetProcAddress(library, "JsDiagGetStackTrace");
+    m_jsApiHooks.pfJsrtDiagRequestAsyncBreak = (JsAPIHooks::JsrtDiagRequestAsyncBreak)GetProcAddress(library, "JsDiagRequestAsyncBreak");
+    m_jsApiHooks.pfJsrtDiagGetBreakpoints = (JsAPIHooks::JsrtDiagGetBreakpoints)GetProcAddress(library, "JsDiagGetBreakpoints");
+    m_jsApiHooks.pfJsrtDiagRemoveBreakpoint = (JsAPIHooks::JsrtDiagRemoveBreakpoint)GetProcAddress(library, "JsDiagRemoveBreakpoint");
+    m_jsApiHooks.pfJsrtDiagSetBreakOnException = (JsAPIHooks::JsrtDiagSetBreakOnException)GetProcAddress(library, "JsDiagSetBreakOnException");
+    m_jsApiHooks.pfJsrtDiagGetBreakOnException = (JsAPIHooks::JsrtDiagGetBreakOnException)GetProcAddress(library, "JsDiagGetBreakOnException");
+    m_jsApiHooks.pfJsrtDiagSetStepType = (JsAPIHooks::JsrtDiagSetStepType)GetProcAddress(library, "JsDiagSetStepType");
+    m_jsApiHooks.pfJsrtDiagGetScripts = (JsAPIHooks::JsrtDiagGetScripts)GetProcAddress(library, "JsDiagGetScripts");
+    m_jsApiHooks.pfJsrtDiagGetFunctionPosition = (JsAPIHooks::JsrtDiagGetFunctionPosition)GetProcAddress(library, "JsDiagGetFunctionPosition");
+    m_jsApiHooks.pfJsrtDiagGetStackProperties = (JsAPIHooks::JsrtDiagGetStackProperties)GetProcAddress(library, "JsDiagGetStackProperties");
+    m_jsApiHooks.pfJsrtDiagGetProperties = (JsAPIHooks::JsrtDiagGetProperties)GetProcAddress(library, "JsDiagGetProperties");
+    m_jsApiHooks.pfJsrtDiagGetObjectFromHandle = (JsAPIHooks::JsrtDiagGetObjectFromHandle)GetProcAddress(library, "JsDiagGetObjectFromHandle");
+    m_jsApiHooks.pfJsrtDiagEvaluate = (JsAPIHooks::JsrtDiagEvaluate)GetProcAddress(library, "JsDiagEvaluate");
 
 #if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
     m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = (JsAPIHooks::JsrtTTDCreateRecordRuntimePtr)GetProcAddress(library, "JsTTDCreateRecordRuntime");
