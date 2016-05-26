@@ -49,7 +49,11 @@ namespace Js
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
+
+#pragma warning(push)
+#pragma warning(disable:4838) // conversion from 'unsigned int' to 'int32' requires a narrowing conversion
         X86SIMDValue signBits = { {0x80808080,0x80808080, 0x80808080, 0x80808080} };
+#pragma warning(pop)
 
         // Signed comparison of unsigned ints can be done if the ints have the "sign" bit xored with 1
         tmpaValue.m128i_value = _mm_xor_si128(tmpaValue.m128i_value, signBits.m128i_value);
@@ -64,7 +68,11 @@ namespace Js
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
+
+#pragma warning(push)
+#pragma warning(disable:4838) // conversion from 'unsigned int' to 'int32' requires a narrowing conversion
         X86SIMDValue signBits = { { 0x80808080,0x80808080, 0x80808080, 0x80808080 } };
+#pragma warning(pop)
 
         // Signed comparison of unsigned ints can be done if the ints have the "sign" bit xored with 1
         tmpaValue.m128i_value = _mm_xor_si128(tmpaValue.m128i_value, signBits.m128i_value);

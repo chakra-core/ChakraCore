@@ -252,7 +252,6 @@ EXDEF3    ( CUSTOM     , NopEx             , OP_Empty                , Empty    
   DEF3_WMS( CUSTOM                              , Simd128_Sqrt_F4               , OP_Simd128_SqrtF4                 , Float32x4_2            )
   //DEF3_WMS( CUSTOM                              , Simd128_Sqrt_D2               , OP_Simd128_SqrtD2                 , Float64x2_2            )
 
-  DEF3_WMS( CUSTOM                              , Simd128_Not_F4                , OP_Simd128_NotF4                  , Float32x4_2            )
   DEF3_WMS( CUSTOM                              , Simd128_Not_I4                , OP_Simd128_NotI4                  , Int32x4_2              )
 
   DEF3_WMS( CUSTOM                              , Simd128_Add_F4                , OP_Simd128_AddF4                  , Float32x4_3            )
@@ -297,13 +296,10 @@ EXDEF3    ( CUSTOM     , NopEx             , OP_Empty                , Empty    
   DEF3_WMS( CUSTOM                              , Simd128_Neq_F4                , OP_Simd128_NeqF4                  , Bool32x4_1Float32x4_2  )
   //DEF3_WMS( CUSTOM                              , Simd128_Neq_D2                , OP_Simd128_NeqD2                  , Float64x2_3            )
 
-  DEF3_WMS( CUSTOM                              , Simd128_And_F4                , OP_Simd128_AndF4                  , Float32x4_3            )
   DEF3_WMS( CUSTOM                              , Simd128_And_I4                , OP_Simd128_AndI4                  , Int32x4_3              )
 
-  DEF3_WMS( CUSTOM                              , Simd128_Or_F4                 , OP_Simd128_OrF4                   , Float32x4_3            )
   DEF3_WMS( CUSTOM                              , Simd128_Or_I4                 , OP_Simd128_OrI4                   , Int32x4_3              )
 
-  DEF3_WMS( CUSTOM                              , Simd128_Xor_F4                , OP_Simd128_XorF4                  , Float32x4_3            )
   DEF3_WMS( CUSTOM                              , Simd128_Xor_I4                , OP_Simd128_XorI4                  , Int32x4_3              )
 
   // ToDO: Spec change: Change to BitSelect

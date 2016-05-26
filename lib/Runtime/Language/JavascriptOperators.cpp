@@ -2833,10 +2833,10 @@ CommonNumber:
                     JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
                 }
 
-                PropertyValueInfo info;
-                PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
+                PropertyValueInfo info2;
+                PropertyValueInfo::SetCacheInfo(&info2, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
                 PropertyOperationFlags setPropertyOpFlags = allowUndecInConsoleScope ? PropertyOperation_AllowUndeclInConsoleScope : PropertyOperation_None;
-                object->SetProperty(propertyId, newValue, setPropertyOpFlags, &info);
+                object->SetProperty(propertyId, newValue, setPropertyOpFlags, &info2);
 
 #if DBG_DUMP
                 if (PHASE_VERBOSE_TRACE1(Js::InlineCachePhase))
@@ -2846,7 +2846,7 @@ CommonNumber:
 #endif
                 if (!JavascriptProxy::Is(object) && !allowUndecInConsoleScope)
                 {
-                    CacheOperators::CachePropertyWrite(object, false, type, propertyId, &info, scriptContext);
+                    CacheOperators::CachePropertyWrite(object, false, type, propertyId, &info2, scriptContext);
                 }
 
                 if (isLexicalThisSlotSymbol && !JavascriptOperators::HasProperty(object, PropertyIds::_lexicalNewTargetSymbol))
@@ -2898,8 +2898,8 @@ CommonNumber:
         RecyclableObject* obj = RecyclableObject::FromVar(defaultInstance);
         {
             //SetPropertyScoped does not use inline cache for default instance
-            PropertyValueInfo info;
-            JavascriptOperators::SetRootProperty(obj, propertyId, newValue, &info, scriptContext, (PropertyOperationFlags)(propertyOperationFlags | PropertyOperation_Root));
+            PropertyValueInfo info2;
+            JavascriptOperators::SetRootProperty(obj, propertyId, newValue, &info2, scriptContext, (PropertyOperationFlags)(propertyOperationFlags | PropertyOperation_Root));
         }
     }
     template void JavascriptOperators::PatchSetPropertyScoped<false, InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, FrameDisplay *pDisplay, PropertyId propertyId, Var newValue, Var defaultInstance, PropertyOperationFlags propertyOperationFlags);
@@ -5044,12 +5044,17 @@ CommonNumber:
             return false;
         }
 
-        if (JavascriptProxy::Is(instance) || instance->IsExternal())
+        TypeId typeId = instance->GetTypeId();
+        if (typeId == TypeIds_Proxy || typeId == TypeIds_HostDispatch)
         {
             return false;
         }
-        if (DynamicType::Is(instance->GetTypeId()) && 
+        if (DynamicType::Is(typeId) && 
             static_cast<DynamicObject*>(instance)->GetTypeHandler()->IsStringTypeHandler())
+        {
+            return false;
+        }
+        if (instance->IsExternal())
         {
             return false;
         }
@@ -5477,10 +5482,7 @@ CommonNumber:
     {
         ActivationObjectEx *scopeObj = (ActivationObjectEx*)ActivationObjectEx::FromVar(varScope);
         Assert(scopeObj->GetTypeHandler()->GetInlineSlotCapacity() == 0);
-        ScriptFunction *func;
-        FuncCacheEntry *entry;
-        FunctionProxy  *proxy;
-        uint scopeSlot;
+
         uint funcCount = info->count;
 
         if (funcCount == 0)
@@ -5493,10 +5495,10 @@ CommonNumber:
         {
             for (uint i = 0; i < funcCount; i++)
             {
-                entry = scopeObj->GetFuncCacheEntry(i);
-                func = entry->func;
+                const FuncCacheEntry *entry = scopeObj->GetFuncCacheEntry(i);
+                ScriptFunction *func = entry->func;
 
-                proxy = func->GetFunctionProxy();
+                FunctionProxy * proxy = func->GetFunctionProxy();
                 if (proxy != proxy->GetFunctionProxy())
                 {
                     // The FunctionProxy has changed since the object was cached, e.g., due to execution
@@ -5511,7 +5513,7 @@ CommonNumber:
                 func->ReplaceType(proxy->EnsureDeferredPrototypeType());
                 func->ResetConstructorCacheToDefault();
 
-                scopeSlot = info->elements[i].scopeSlot;
+                uint scopeSlot = info->elements[i].scopeSlot;
                 if (scopeSlot != Constants::NoProperty)
                 {
                     // CONSIDER: Store property IDs in FuncInfoArray in debug builds so we can properly assert in SetAuxSlot
@@ -5527,11 +5529,11 @@ CommonNumber:
         {
             const FuncInfoEntry *entry = &info->elements[i];
             uint nestedIndex = entry->nestedIndex;
-            scopeSlot = entry->scopeSlot;
+            uint scopeSlot = entry->scopeSlot;
 
-            proxy = funcParent->GetFunctionBody()->GetNestedFunc(nestedIndex);
+            FunctionProxy * proxy = funcParent->GetFunctionBody()->GetNestedFunc(nestedIndex);
 
-            func = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
+            ScriptFunction *func = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
 
             func->SetEnvironment(pDisplay);
             JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(func, EtwTrace::GetFunctionId(proxy)));

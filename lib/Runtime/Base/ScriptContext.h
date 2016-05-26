@@ -285,19 +285,19 @@ namespace Js
 
     struct ScriptEntryExitRecord
     {
-        BOOL hasCaller : 1;
-        BOOL hasReentered : 1;
+        bool hasCaller : 1;
+        bool hasReentered : 1;
 #if DBG_DUMP
-        BOOL isCallRoot : 1;
+        bool isCallRoot : 1;
 #endif
 #if DBG || defined(PROFILE_EXEC)
-        BOOL leaveForHost : 1;
+        bool leaveForHost : 1;
 #endif
 #if DBG
-        BOOL leaveForAsyncHostOperation : 1;
+        bool leaveForAsyncHostOperation : 1;
 #endif
 #ifdef CHECK_STACKWALK_EXCEPTION
-        BOOL ignoreStackWalkException: 1;
+        bool ignoreStackWalkException: 1;
 #endif
         Js::ImplicitCallFlags savedImplicitCallFlags;
 
@@ -856,6 +856,7 @@ private:
         void InternalClose();
 
         DebugContext* debugContext;
+        CriticalSection debugContextCloseCS;
 
     public:
         static const int kArrayMatchCh=72;
@@ -912,6 +913,7 @@ private:
 #endif
 
         DebugContext* GetDebugContext() const { return this->debugContext; }
+        CriticalSection* GetDebugContextCloseCS() { return &debugContextCloseCS; }
 
         uint callCount;
 

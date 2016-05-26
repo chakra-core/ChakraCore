@@ -269,7 +269,6 @@ SWAP_BP_FOR_OPCODE:
             }
             case INTERPRETER_OPCODE::ExtendedMediumLayoutPrefix:
             {
-#ifndef INTERPRETER_ASMJS  // Asmjs doesn't have any extended opcodes for now, remove that case
                 ip = [this](const byte * ip) -> const byte *
                 {
                     INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
@@ -298,7 +297,6 @@ SWAP_BP_FOR_OPCODE:
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
-#endif
 #endif
                 break;
             }
@@ -345,7 +343,6 @@ SWAP_BP_FOR_OPCODE:
             }
             case INTERPRETER_OPCODE::ExtendedLargeLayoutPrefix:
             {
-#ifndef INTERPRETER_ASMJS  // Asmjs doesn't have any extended opcodes for now, remove that case
                 ip = [this](const byte * ip) -> const byte *
                 {
                     INTERPRETER_OPCODE op = (INTERPRETER_OPCODE)(ReadByteOp<INTERPRETER_OPCODE>(ip
@@ -374,7 +371,6 @@ SWAP_BP_FOR_OPCODE:
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
-#endif
 #endif
                 break;
             }

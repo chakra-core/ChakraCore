@@ -137,6 +137,7 @@ namespace Js
         void LoadSimd(RegSlot dst, RegSlot src, AsmJsVarType type);
 
         bool IsFRound(AsmJsMathFunction* sym);
+        bool IsValidSimdFcnRetType(AsmJsSIMDFunction& simdFunction, const AsmJsRetType& expectedType, const AsmJsRetType& retType);
         /// TODO:: Finish removing references to old bytecode generator
         ByteCodeGenerator* GetOldByteCodeGenerator() const
         {

@@ -146,13 +146,13 @@ namespace UnifiedRegex
     static bool MatchPatternAt(uint inputChar, char16 const * pat, CharCount index);
 
     template <>
-    static bool MatchPatternAt<1, 1>(uint inputChar, char16  const* pat, CharCount index)
+    bool MatchPatternAt<1, 1>(uint inputChar, char16  const* pat, CharCount index)
     {
         return inputChar == pat[index];
     }
 
     template <>
-    static bool MatchPatternAt<CaseInsensitive::EquivClassSize, CaseInsensitive::EquivClassSize>(uint inputChar, char16 const * pat, CharCount index)
+    bool MatchPatternAt<CaseInsensitive::EquivClassSize, CaseInsensitive::EquivClassSize>(uint inputChar, char16 const * pat, CharCount index)
     {
         CompileAssert(CaseInsensitive::EquivClassSize == 4);
         return inputChar == pat[index * CaseInsensitive::EquivClassSize]
@@ -162,7 +162,7 @@ namespace UnifiedRegex
     }
 
     template <>
-    static bool MatchPatternAt<CaseInsensitive::EquivClassSize, 1>(uint inputChar, char16 const * pat, CharCount index)
+    bool MatchPatternAt<CaseInsensitive::EquivClassSize, 1>(uint inputChar, char16 const * pat, CharCount index)
     {
         CompileAssert(CaseInsensitive::EquivClassSize == 4);
         return inputChar == pat[index * 4];

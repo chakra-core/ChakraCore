@@ -948,7 +948,7 @@
   <test>
     <default>
       <files>regex-prototype-properties.js</files>
-      <compile-flags>-ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+      <compile-flags>-ES6RegExPrototypeProperties -ES6PrototypeChain -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

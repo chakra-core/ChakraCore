@@ -5667,8 +5667,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
 
         if(!IsLoopPrePass() && opnd->IsSymOpnd() && valueType.IsDefinite())
         {
-            Sym *const sym = opnd->AsSymOpnd()->m_sym;
-            if(sym->IsPropertySym())
+            if (opnd->AsSymOpnd()->m_sym->IsPropertySym())
             {
                 // A property sym can only be guaranteed to have a definite value type when implicit calls are disabled from the
                 // point where the sym was defined with the definite value type. Insert an instruction to indicate to the
@@ -7120,11 +7119,11 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         // CSEOptimize only assigns a Value to the EA dst, and doesn't turn it to a Ld. If this happened, we shouldn't assign a new Value here.
         if (DoCSE())
         {
-            IR::Opnd *dst = instr->GetDst();
-            Value *dstVal = this->FindValue(dst->GetStackSym());
-            if (dstVal != nullptr)
+            IR::Opnd * currDst = instr->GetDst();
+            Value * currDstVal = this->FindValue(currDst->GetStackSym());
+            if (currDstVal != nullptr)
             {
-                return dstVal;
+                return currDstVal;
             }
         }
         break;
@@ -9225,10 +9224,10 @@ GlobOpt::OptConstFoldUnary(
             instr->m_opcode = Js::OpCode::Ld_I4;
             this->ToInt32Dst(instr, dst->AsRegOpnd(), this->currentBlock);
 
-            StackSym *dstSym = instr->GetDst()->AsRegOpnd()->m_sym;
-            if (dstSym->IsSingleDef())
+            StackSym * currDstSym = instr->GetDst()->AsRegOpnd()->m_sym;
+            if (currDstSym->IsSingleDef())
             {
-                dstSym->SetIsIntConst(value);
+                currDstSym->SetIsIntConst(value);
             }
         }
     }
@@ -11940,13 +11939,13 @@ GlobOpt::IsWorthSpecializingToInt32Branch(IR::Instr * instr, Value * src1Val, Va
 {
     if (!src1Val->GetValueInfo()->HasIntConstantValue() && instr->GetSrc1()->IsRegOpnd())
     {
-        StackSym *sym = instr->GetSrc1()->AsRegOpnd()->m_sym;
-        if (this->IsInt32TypeSpecialized(sym, this->currentBlock) == false)
+        StackSym *sym1 = instr->GetSrc1()->AsRegOpnd()->m_sym;
+        if (this->IsInt32TypeSpecialized(sym1, this->currentBlock) == false)
         {
             if (!src2Val->GetValueInfo()->HasIntConstantValue() && instr->GetSrc2()->IsRegOpnd())
             {
-                StackSym *sym = instr->GetSrc2()->AsRegOpnd()->m_sym;
-                if (this->IsInt32TypeSpecialized(sym, this->currentBlock) == false)
+                StackSym *sym2 = instr->GetSrc2()->AsRegOpnd()->m_sym;
+                if (this->IsInt32TypeSpecialized(sym2, this->currentBlock) == false)
                 {
                     // Type specializing a Br itself isn't worth it, unless one src
                     // is already type specialized
@@ -16532,8 +16531,10 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                                 hoistInfo.IndexValueNumber(),
                                 boundCheck,
                                 landingPad);
-                            const bool added = blockData.availableIntBoundChecks->AddNew(boundCheckInfo) >= 0;
-                            Assert(added || failedToUpdateCompatibleLowerBoundCheck);
+                            {
+                                const bool added = blockData.availableIntBoundChecks->AddNew(boundCheckInfo) >= 0;
+                                Assert(added || failedToUpdateCompatibleLowerBoundCheck);
+                            }
                             for(InvariantBlockBackwardIterator it(this, currentBlock, landingPad, nullptr);
                                 it.IsValid();
                                 it.MoveNext())
@@ -16803,8 +16804,10 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                                 hoistInfo.HeadSegmentLengthValue()->GetValueNumber(),
                                 boundCheck,
                                 landingPad);
-                            const bool added = blockData.availableIntBoundChecks->AddNew(boundCheckInfo) >= 0;
-                            Assert(added || failedToUpdateCompatibleUpperBoundCheck);
+                            {
+                                const bool added = blockData.availableIntBoundChecks->AddNew(boundCheckInfo) >= 0;
+                                Assert(added || failedToUpdateCompatibleUpperBoundCheck);
+                            }
                             for(InvariantBlockBackwardIterator it(this, currentBlock, landingPad, nullptr);
                                 it.IsValid();
                                 it.MoveNext())
@@ -16851,7 +16854,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                             IntConstantBounds rightConstantBounds;
                             AssertVerify(rightValue->GetValueInfo()->TryGetIntConstantBounds(&rightConstantBounds));
 
-                            ValueInfo *const newValueInfo =
+                            ValueInfo *const newValueInfoForLessThanOrEqual =
                                 UpdateIntBoundsForLessThanOrEqual(
                                     leftValue,
                                     leftConstantBounds,
@@ -16859,19 +16862,19 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                                     rightConstantBounds,
                                     hoistInfo.Offset(),
                                     false);
-                            if(newValueInfo)
+                            if (newValueInfoForLessThanOrEqual)
                             {
-                                ChangeValueInfo(nullptr, leftValue, newValueInfo);
-                                AssertVerify(newValueInfo->TryGetIntConstantBounds(&leftConstantBounds, true));
+                                ChangeValueInfo(nullptr, leftValue, newValueInfoForLessThanOrEqual);
+                                AssertVerify(newValueInfoForLessThanOrEqual->TryGetIntConstantBounds(&leftConstantBounds, true));
                                 if(block == currentBlock && leftValue == indexValue)
                                 {
-                                    Assert(newValueInfo->IsInt());
+                                    Assert(newValueInfoForLessThanOrEqual->IsInt());
                                     indexConstantBounds = leftConstantBounds;
                                 }
                             }
                             if(hoistInfo.Offset() != INT32_MIN)
                             {
-                                ValueInfo *const newValueInfo =
+                                ValueInfo *const newValueInfoForGreaterThanOrEqual =
                                     UpdateIntBoundsForGreaterThanOrEqual(
                                         rightValue,
                                         rightConstantBounds,
@@ -16879,13 +16882,13 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                                         leftConstantBounds,
                                         -hoistInfo.Offset(),
                                         false);
-                                if(newValueInfo)
+                                if (newValueInfoForGreaterThanOrEqual)
                                 {
-                                    ChangeValueInfo(nullptr, rightValue, newValueInfo);
+                                    ChangeValueInfo(nullptr, rightValue, newValueInfoForGreaterThanOrEqual);
                                     if(block == currentBlock)
                                     {
                                         Assert(rightValue == headSegmentLengthValue);
-                                        AssertVerify(newValueInfo->TryGetIntConstantBounds(&headSegmentLengthConstantBounds));
+                                        AssertVerify(newValueInfoForGreaterThanOrEqual->TryGetIntConstantBounds(&headSegmentLengthConstantBounds));
                                     }
                                 }
                             }

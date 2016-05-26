@@ -8525,7 +8525,6 @@ namespace Js
         BYTE* instructionPointer = *addressOfInstructionPointer;
         Assert(instructionPointer > (BYTE*)this->nativeAddress && instructionPointer < ((BYTE*)this->nativeAddress + this->codeSize));
         size_t offset = instructionPointer - (BYTE*)this->nativeAddress;
-        LazyBailOutRecord record;
         int found = this->bailoutRecordMap->BinarySearch([=](const LazyBailOutRecord& record, int index)
         {
             // find the closest entry which is greater than the current offset.

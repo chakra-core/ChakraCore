@@ -1181,8 +1181,7 @@ namespace Js
 
         JavascriptArray* resultArray = JavascriptArray::FromVar(resultVar);
 
-        const PropertyRecord* propertyRecord;
-        PropertyDescriptor propertyDescriptor;
+        const PropertyRecord* propertyRecord;        
         if (integrityLevel == IntegrityLevel::IntegrityLevel_sealed)
         {
             //8. If level is "sealed", then
@@ -1226,6 +1225,7 @@ namespace Js
                 AssertMsg(JavascriptSymbol::Is(itemVar) || JavascriptString::Is(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
                 JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord);
                 PropertyId propertyId = propertyRecord->GetPropertyId();
+                PropertyDescriptor propertyDescriptor;
                 if (JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propertyId, scriptContext, propertyDescriptor))
                 {
                     if (propertyDescriptor.IsDataDescriptor())

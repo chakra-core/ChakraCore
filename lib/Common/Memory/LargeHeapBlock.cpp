@@ -8,6 +8,8 @@ CompileAssert(
     sizeof(LargeObjectHeader) == HeapConstants::ObjectGranularity ||
     sizeof(LargeObjectHeader) == HeapConstants::ObjectGranularity * 2);
 
+const StackBackTrace* LargeHeapBlock::s_StackTraceAllocFailed = (StackBackTrace*)1;
+
 void *
 LargeObjectHeader::GetAddress() { return ((char *)this) + sizeof(LargeObjectHeader); }
 

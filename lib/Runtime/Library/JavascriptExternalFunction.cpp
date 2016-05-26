@@ -289,7 +289,6 @@ namespace Js
             TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
             TTD::TTDRecordExternalFunctionCallActionPopper logPopper(externalFunction, callEvent);
 
-            Var result = nullptr;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
             {
                 // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
@@ -302,7 +301,6 @@ namespace Js
         }
         else
         {
-            Var result = nullptr;
             if(externalFunction->nativeMethod == nullptr)
             {
                 //The only way this should happen is if the debugger is requesting a value to display that is an external accessor.

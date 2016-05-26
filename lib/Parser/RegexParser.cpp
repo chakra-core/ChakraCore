@@ -2396,15 +2396,15 @@ namespace UnifiedRegex
                 {
                     if (!IsEOF())
                     {
-                        EncodedChar ec = ECLookahead();
-                        switch (ec)
+                        EncodedChar ecLookahead = ECLookahead();
+                        switch (ecLookahead)
                         {
                         case '-':
                         case ']':
                             singleton = c;
                             break;
                         default:
-                            singleton = UTC(Chars<EncodedChar>::CTU(ec) % 32);
+                            singleton = UTC(Chars<EncodedChar>::CTU(ecLookahead) % 32);
                             ECConsume();
                             break;
                         }

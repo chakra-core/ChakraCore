@@ -7079,7 +7079,7 @@ LowererMD::EnsureAdjacentArgs(IR::Instr * instrArg)
     while (opnd->IsSymOpnd())
     {
         sym = opnd->AsSymOpnd()->m_sym->AsStackSym();
-        IR::Instr * instrNextArg = sym->m_instrDef;
+        instrNextArg = sym->m_instrDef;
         Assert(instrNextArg);
         instrNextArg->SinkInstrBefore(instrArg);
         instrArg = instrNextArg;
@@ -7700,7 +7700,7 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
         IR::Opnd* dstOpnd = intOpnd;
 #endif
         // CVTTSD2SI dst, floatOpnd
-        IR::Instr* instr = IR::Instr::New(floatOpnd->IsFloat64() ? Js::OpCode::CVTTSD2SI : Js::OpCode::CVTTSS2SI, dstOpnd, floatOpnd, this->m_func);
+        instr = IR::Instr::New(floatOpnd->IsFloat64() ? Js::OpCode::CVTTSD2SI : Js::OpCode::CVTTSS2SI, dstOpnd, floatOpnd, this->m_func);
         instInsert->InsertBefore(instr);
 
         // CMP dst, 0x80000000 {0x8000000000000000 on x64}    -- Check for overflow
@@ -7741,7 +7741,7 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
         if (floatOpnd->IsFloat32())
         {
             float64Opnd = IR::RegOpnd::New(TyFloat64, m_func);
-            IR::Instr* instr = IR::Instr::New(Js::OpCode::CVTSS2SD, float64Opnd, floatOpnd, m_func);
+            instr = IR::Instr::New(Js::OpCode::CVTSS2SD, float64Opnd, floatOpnd, m_func);
             instInsert->InsertBefore(instr);
         }
         else
@@ -7752,7 +7752,7 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
         if (float64Opnd->IsRegOpnd())
         {
             floatStackOpnd = IR::SymOpnd::New(tempSymDouble, TyMachDouble, m_func);
-            IR::Instr* instr = IR::Instr::New(Js::OpCode::MOVSD, floatStackOpnd, float64Opnd, m_func);
+            instr = IR::Instr::New(Js::OpCode::MOVSD, floatStackOpnd, float64Opnd, m_func);
             instInsert->InsertBefore(instr);
         }
         else
@@ -8662,17 +8662,26 @@ void LowererMD::HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod
 
     IR::Opnd * argOpnd = instr->UnlinkSrc1();
     IR::JnHelperMethod helperMethod;
+    uint dwordCount;
     if (argOpnd->IsFloat32())
     {
         helperMethod = helperMethodFloat;
         LoadFloatHelperArgument(instr, argOpnd);
+        dwordCount = 1;
     }
     else
     {
         helperMethod = helperMethodDouble;
         LoadDoubleHelperArgument(instr, argOpnd);
+        dwordCount = 2;
     }
-    ChangeToHelperCall(instr, helperMethod);
+
+    instr->m_opcode = Js::OpCode::CALL;
+
+    IR::HelperCallOpnd *helperCallOpnd = Lowerer::CreateHelperCallOpnd(helperMethod, this->lowererMDArch.GetHelperArgsCount(), m_func);
+    instr->SetSrc1(helperCallOpnd);
+
+    this->lowererMDArch.LowerCall(instr, dwordCount);
 }
 void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMethod helperMethod)
 {
@@ -8865,14 +8874,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             if (instr->GetDst()->IsInt32())
             {
                 sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-                if (sharedBailout)
-                {
-                    bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
-                }
-                else
-                {
-                    bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);
-                }
+                bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);
             }
 
             IR::Opnd * zero;
@@ -9087,7 +9089,10 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 {
                     instr->InsertBefore(bailoutLabel);
                 }
-                this->m_lowerer->GenerateBailOut(instr);
+
+                // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
+                // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
+                this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
             }
             else
             {

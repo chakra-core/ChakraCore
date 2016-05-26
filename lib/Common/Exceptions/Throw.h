@@ -250,8 +250,4 @@ namespace Js {
     catch (ex) \
     {
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-#define RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr) if (hr != S_OK) Js::Throw::FatalInternalError();
-#else
-#define RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr)
-#endif
+#define DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr) if (hr != S_OK) Debugger_AttachDetach_fatal_error();

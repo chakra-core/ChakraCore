@@ -4075,8 +4075,8 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
             {
                 // If there is no upstream type check that is live and could protect guarded properties, we better
                 // not have any properties remaining.
-                ObjTypeGuardBucket* bucket = block->stackSymToGuardedProperties->Get(opnd->GetObjectSym()->m_id);
-                Assert(opnd->IsTypeAvailable() || bucket == nullptr || bucket->GetGuardedPropertyOps()->IsEmpty());
+                ObjTypeGuardBucket* objTypeGuardBucket = block->stackSymToGuardedProperties->Get(opnd->GetObjectSym()->m_id);
+                Assert(opnd->IsTypeAvailable() || objTypeGuardBucket == nullptr || objTypeGuardBucket->GetGuardedPropertyOps()->IsEmpty());
             }
 #endif
         }
@@ -6075,10 +6075,12 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
         {
             if (propertySym->m_fieldKind == PropertyKindLocalSlots || propertySym->m_fieldKind == PropertyKindSlots)
             {
-                isUsed = !block->slotDeadStoreCandidates->TestAndSet(propertySym->m_id);
+                BOOLEAN isPropertySymUsed = !block->slotDeadStoreCandidates->TestAndSet(propertySym->m_id);
                 // we should not do any dead slots in asmjs loop body
-                Assert(!(this->func->GetJnFunction()->GetIsAsmJsFunction() && this->func->IsLoopBody() && !isUsed));
-                Assert(isUsed || !block->upwardExposedUses->Test(propertySym->m_id));
+                Assert(!(this->func->GetJnFunction()->GetIsAsmJsFunction() && this->func->IsLoopBody() && !isPropertySymUsed));
+                Assert(isPropertySymUsed || !block->upwardExposedUses->Test(propertySym->m_id));
+
+                isUsed = isPropertySymUsed || block->upwardExposedUses->Test(propertySym->m_stackSym->m_id);
             }
         }
 

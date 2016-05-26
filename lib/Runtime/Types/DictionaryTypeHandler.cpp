@@ -700,15 +700,15 @@ namespace Js
         Assert(!GetIsOrMayBecomeShared());
         DynamicObject* localSingletonInstance = this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr;
         Assert(this->singletonInstance == nullptr || localSingletonInstance == instance);
-        T dataSlot = descriptor->GetDataPropertyIndex<allowLetConstGlobal>();
-        if (dataSlot != NoSlots)
+        T dataSlotAllowLetConstGlobal = descriptor->GetDataPropertyIndex<allowLetConstGlobal>();
+        if (dataSlotAllowLetConstGlobal != NoSlots)
         {
             if (allowLetConstGlobal
                 && (descriptor->Attributes & PropertyNoRedecl)
                 && !(flags & PropertyOperation_AllowUndecl))
             {
                 ScriptContext* scriptContext = instance->GetScriptContext();
-                if (scriptContext->IsUndeclBlockVar(instance->GetSlot(dataSlot)))
+                if (scriptContext->IsUndeclBlockVar(instance->GetSlot(dataSlotAllowLetConstGlobal)))
                 {
                     JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
                 }
@@ -734,13 +734,13 @@ namespace Js
                 InvalidateFixedField(instance, propertyId, descriptor);
             }
 
-            SetSlotUnchecked(instance, dataSlot, value);
+            SetSlotUnchecked(instance, dataSlotAllowLetConstGlobal, value);
 
             // If we just added a fixed method, don't populate the inline cache so that we always take the slow path
             // when overwriting this property and correctly invalidate any JIT-ed code that hard-coded this method.
             if (descriptor->IsInitialized && !descriptor->IsFixed)
             {
-                SetPropertyValueInfo(info, instance, dataSlot, GetLetConstGlobalPropertyAttributes<allowLetConstGlobal>(descriptor->Attributes));
+                SetPropertyValueInfo(info, instance, dataSlotAllowLetConstGlobal, GetLetConstGlobalPropertyAttributes<allowLetConstGlobal>(descriptor->Attributes));
             }
             else
             {

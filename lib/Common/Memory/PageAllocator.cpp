@@ -64,8 +64,8 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
     {
         addGuardPages = (this->segmentPageCount * AutoSystemInfo::PageSize) > VirtualAllocThreshold;
 #if _M_IX86_OR_ARM32
-        unsigned int randomNumber = static_cast<unsigned int>(Math::Rand());
-        addGuardPages = addGuardPages && (randomNumber % 4 == 1);
+        unsigned int randomNumber2 = static_cast<unsigned int>(Math::Rand());
+        addGuardPages = addGuardPages && (randomNumber2 % 4 == 1);
 #endif
 #if DEBUG
         addGuardPages = addGuardPages || Js::Configuration::Global.flags.ForceGuardPages;
