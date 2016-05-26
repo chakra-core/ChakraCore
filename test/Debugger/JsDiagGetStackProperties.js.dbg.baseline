@@ -5,7 +5,9 @@
     "locals": {
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "undefined undefined"
+      "globalVar": "undefined undefined",
+      "read": "function <large string>",
+      "readbuffer": "function <large string>"
     }
   },
   {
@@ -14,14 +16,19 @@
     "locals": {
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "undefined undefined"
+      "globalVar": "undefined undefined",
+      "read": "function <large string>",
+      "readbuffer": "function <large string>"
     }
   },
   {
     "this": {
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "Object {...}"
+      "globalVar": "Object {...}",
+      "read": "function <large string>",
+      "readbuffer": "function <large string>",
+      "Wasm": "Object {...}"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -47,14 +54,19 @@
       "print": "function print",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "Object {...}"
+      "globalVar": "Object {...}",
+      "read": "function <large string>",
+      "readbuffer": "function <large string>"
     }
   },
   {
     "this": {
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "Object {...}"
+      "globalVar": "Object {...}",
+      "read": "function <large string>",
+      "readbuffer": "function <large string>",
+      "Wasm": "Object {...}"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -101,7 +113,9 @@
       "print": "function print",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "Object {...}"
+      "globalVar": "Object {...}",
+      "read": "function <large string>",
+      "readbuffer": "function <large string>"
     }
   }
 ]

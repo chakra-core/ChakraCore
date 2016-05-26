@@ -279,7 +279,7 @@ WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callba
         m_funcState.count += len;
 
         // locals
-        for (UINT32 i = 0; i < entryCount; i++)
+        for (UINT32 j = 0; j < entryCount; j++)
         {
             UINT32 count = LEB128(len);
             m_funcState.count += len;
@@ -611,7 +611,7 @@ WasmBinaryReader::ReadSignatures()
         Wasm::WasmTypes::WasmType type = ReadWasmType(len);
         sig->SetResultType(type);
 
-        for (UINT32 i = 0; i < paramCount; i++)
+        for (UINT32 j = 0; j < paramCount; j++)
         {
             type = ReadWasmType(len);
             sig->AddParam(type);

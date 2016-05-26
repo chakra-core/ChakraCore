@@ -253,7 +253,7 @@ SWAP_BP_FOR_OPCODE:
                     {
                         bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
                     }
-                    else 
+                    else
                     {
                         Assert(prefixOp == INTERPRETER_OPCODE::DblExtendedMediumLayoutPrefix);
                         bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;
@@ -284,6 +284,7 @@ SWAP_BP_FOR_OPCODE:
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
+#endif
 #endif
                 break;
             }
@@ -371,6 +372,7 @@ SWAP_BP_FOR_OPCODE:
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
+#endif
 #endif
                 break;
             }

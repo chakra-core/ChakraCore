@@ -604,7 +604,6 @@ JsValueRef __stdcall WScriptJsrt::LoadWasmCallback(JsValueRef callee, bool isCon
 
         if (errorCode == JsNoError)
         {
-            HRESULT hr;
             UINT lengthBytes = 0;
 
             if (!isBinaryFormat)
@@ -786,6 +785,102 @@ bool WScriptJsrt::Initialize()
     return true;
 Error:
     return hr == S_OK;
+}
+
+JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    if (argumentCount < 2)
+    {
+        IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+    }
+    else
+    {
+        const char16 *fileContent;
+        const char16 *fileName;
+        size_t fileNameLength;
+
+        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[1], &fileName, &fileNameLength));
+
+        if (errorCode == JsNoError)
+        {
+            UINT lengthBytes = 0;
+            bool isUtf8 = false;
+            LPCOLESTR contentsRaw = nullptr;
+            hr = Helpers::LoadScriptFromFile(fileName, fileContent, &isUtf8, &contentsRaw, &lengthBytes);
+            fileContent; // Unused for now.
+
+            if (FAILED(hr))
+            {
+                fwprintf(stderr, L"Couldn't load file.\n");
+            }
+            else
+            {
+                JsValueRef stringObject;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsPointerToString(fileContent, lengthBytes, &stringObject));
+                return stringObject;
+            }
+        }
+    }
+
+Error:
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    if (argumentCount < 2)
+    {
+        IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+    }
+    else
+    {
+        const char16 *fileContent;
+        const char16 *fileName;
+        size_t fileNameLength;
+
+        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[1], &fileName, &fileNameLength));
+
+        if (errorCode == JsNoError)
+        {
+            UINT lengthBytes = 0;
+
+            hr = Helpers::LoadBinaryFile(fileName, fileContent, lengthBytes);
+            if (FAILED(hr))
+            {
+                fwprintf(stderr, L"Couldn't load file.\n");
+            }
+            else
+            {
+                JsValueRef arrayBuffer;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateArrayBuffer(lengthBytes, &arrayBuffer));
+                BYTE* buffer;
+                unsigned int bufferLength;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength));
+                if (bufferLength < lengthBytes)
+                {
+                    fwprintf(stderr, L"Array buffer size is insufficient to store the binary file.\n");
+                }
+                else
+                {
+                    if (memcpy_s(buffer, bufferLength, (BYTE*)fileContent, lengthBytes) == 0)
+                    {
+                        returnValue = arrayBuffer;
+                    }
+                }
+            }
+        }
+    }
+
+Error:
+    return returnValue;
 }
 
 bool WScriptJsrt::PrintException(LPCWSTR fileName, JsErrorCode jsErrorCode)

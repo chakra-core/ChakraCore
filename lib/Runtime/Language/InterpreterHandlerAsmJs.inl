@@ -223,7 +223,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( SIMD_I4_1toI4_1  , Simd128_Not_I4              , Js::SIMDInt32x4Operation::OpNot             )
   EXDEF2_WMS( SIMD_B4_1toB4_1, Simd128_Not_B4              , Js::SIMDInt32x4Operation::OpNot             )
   EXDEF2_WMS( SIMD_B8_1toB8_1, Simd128_Not_B8              , Js::SIMDInt32x4Operation::OpNot             )
-  DEF2_WMS( SIMD_B16_1toB16_1, Simd128_Not_B16             , Js::SIMDInt32x4Operation::OpNot             )
+  EXDEF2_WMS( SIMD_B16_1toB16_1, Simd128_Not_B16             , Js::SIMDInt32x4Operation::OpNot             )
     
   EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AllTrue_B4            , Js::SIMDBool32x4Operation::OpAllTrue        )
   EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AllTrue_B8            , Js::SIMDBool32x4Operation::OpAllTrue        )
@@ -605,9 +605,9 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( SIMD_U8_2toB8_1   , Simd128_Gt_U8               , Js::SIMDUint16x8Operation::OpGreaterThan        )
   EXDEF2_WMS( SIMD_U16_2toB16_1 , Simd128_Gt_U16              , Js::SIMDUint8x16Operation::OpGreaterThan        )
 
-  DEF2_WMS( SIMD_U4_1toU4_1     , Simd128_Neg_U4              , SIMDInt32x4Operation::OpNeg                     )
-  DEF2_WMS( SIMD_U8_1toU8_1     , Simd128_Neg_U8              , SIMDInt16x8Operation::OpNeg                     )
-  DEF2_WMS( SIMD_U16_1toU16_1   , Simd128_Neg_U16             , SIMDInt8x16Operation::OpNeg                     )
+  EXDEF2_WMS( SIMD_U4_1toU4_1     , Simd128_Neg_U4              , SIMDInt32x4Operation::OpNeg                     )
+  EXDEF2_WMS( SIMD_U8_1toU8_1     , Simd128_Neg_U8              , SIMDInt16x8Operation::OpNeg                     )
+  EXDEF2_WMS( SIMD_U16_1toU16_1   , Simd128_Neg_U16             , SIMDInt8x16Operation::OpNeg                     )
 
 #if 0
       DEF2_WMS(SIMD_D2toD2_1, Simd128_DoublesToD2, SIMDFloat64x2Operation::OpFloat64x2)
