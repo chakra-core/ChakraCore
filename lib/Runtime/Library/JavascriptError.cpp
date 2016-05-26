@@ -53,19 +53,16 @@ namespace Js
         SetEnumerable(propertyId, false);
     }
 
-    Var JavascriptError::NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Arguments args)
+    Var JavascriptError::NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var message)
     {
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && (callInfo.Flags & (CallFlags_Value|CallFlags_NewTarget)) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         JavascriptString* messageString = nullptr;
 
-        if (args.Info.Count >= 2 && !JavascriptOperators::GetTypeId(args[1]) == TypeIds_Undefined)
+        if (JavascriptOperators::GetTypeId(message) != TypeIds_Undefined)
         {
-            messageString = JavascriptConversion::ToString(args[1], scriptContext);
+            messageString = JavascriptConversion::ToString(message, scriptContext);
         }
 
         if (messageString)
@@ -95,29 +92,26 @@ namespace Js
         // Process the arguments for IE specific behaviors for numbers and description
 
         JavascriptString* descriptionString = nullptr;
+        Var message;
         bool hasNumber = false;
         double number = 0;
         if (args.Info.Count >= 3)
         {
             hasNumber = true;
             number = JavascriptConversion::ToNumber(args[1], scriptContext);
+            message = args[2];
 
-            // Get rid of this arg.  NewInstance only expects a message arg.
-            args.Values++;
-            args.Info.Count--;
-
-            descriptionString = JavascriptConversion::ToString(args[1], scriptContext);
+            descriptionString = JavascriptConversion::ToString(message, scriptContext);
         }
         else if (args.Info.Count == 2)
         {
-            if (!hasNumber)
-            {
-                descriptionString = JavascriptConversion::ToString(args[1], scriptContext);
-            }
+            message = args[1];
+            descriptionString = JavascriptConversion::ToString(message, scriptContext);
         }
         else
         {
             hasNumber = true;
+            message = scriptContext->GetLibrary()->GetUndefined();
             descriptionString = scriptContext->GetLibrary()->GetEmptyString();
         }
 
@@ -130,7 +124,8 @@ namespace Js
         JavascriptOperators::SetProperty(pError, pError, PropertyIds::description, descriptionString, scriptContext);
         pError->SetNotEnumerable(PropertyIds::description);
 
-        return JavascriptError::NewInstance(function, pError, callInfo, args);
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 
     Var JavascriptError::NewEvalErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -141,7 +136,9 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptError* pError = scriptContext->GetLibrary()->CreateEvalError();
 
-        return JavascriptError::NewInstance(function, pError, callInfo, args);
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 
     Var JavascriptError::NewRangeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -152,7 +149,9 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptError* pError = scriptContext->GetLibrary()->CreateRangeError();
 
-        return JavascriptError::NewInstance(function, pError, callInfo, args);
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 
     Var JavascriptError::NewReferenceErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -163,7 +162,9 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptError* pError = scriptContext->GetLibrary()->CreateReferenceError();
 
-        return JavascriptError::NewInstance(function, pError, callInfo, args);
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 
     Var JavascriptError::NewSyntaxErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -174,7 +175,9 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptError* pError = scriptContext->GetLibrary()->CreateSyntaxError();
 
-        return JavascriptError::NewInstance(function, pError, callInfo, args);
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 
     Var JavascriptError::NewTypeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -185,7 +188,9 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptError* pError = scriptContext->GetLibrary()->CreateTypeError();
 
-        return JavascriptError::NewInstance(function, pError, callInfo, args);
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 
     Var JavascriptError::NewURIErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -196,7 +201,9 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptError* pError = scriptContext->GetLibrary()->CreateURIError();
 
-        return JavascriptError::NewInstance(function, pError, callInfo, args);
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 
 #ifdef ENABLE_PROJECTION
@@ -208,7 +215,9 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptError* pError = scriptContext->GetHostScriptContext()->CreateWinRTError(nullptr, nullptr);
 
-        return JavascriptError::NewInstance(function, pError, callInfo, args);
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 #endif
 

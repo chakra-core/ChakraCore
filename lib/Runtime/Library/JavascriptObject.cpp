@@ -19,7 +19,7 @@ namespace Js
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
 
@@ -176,6 +176,16 @@ namespace Js
             return FALSE;
         }
 
+        if (object->IsProtoImmutable())
+        {
+            // ES2016 19.1.3:
+            // The Object prototype object is the intrinsic object %ObjectPrototype%.
+            // The Object prototype object is an immutable prototype exotic object.
+            // ES2016 9.4.7:
+            // An immutable prototype exotic object is an exotic object that has an immutable [[Prototype]] internal slot.
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ImmutablePrototypeSlot);
+        }
+
         // 6.   If V is not null, then
         //  a.  Let p be V.
         //  b.  Repeat, while p is not null
@@ -205,11 +215,27 @@ namespace Js
         }
 
         // Examine new prototype chain. If it brings in any non-WritableData property, we need to invalidate related caches.
-        if (!JavascriptOperators::CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(newPrototype))
+        bool objectAndPrototypeChainHasOnlyWritableDataProperties =
+            JavascriptOperators::CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(newPrototype);
+
+        if (!objectAndPrototypeChainHasOnlyWritableDataProperties
+            || object->GetScriptContext() != newPrototype->GetScriptContext())
         {
+            // The HaveOnlyWritableDataProperties cache is cleared when a property is added or changed,
+            // but only for types in the same script context. Therefore, if the prototype is in another
+            // context, the object's cache won't be cleared when a property is added or changed on the prototype.
+            // Moreover, an object is added to the cache only when its whole prototype chain is in the same
+            // context.
+            //
+            // Since we don't have a way to find out which objects have a certain object as their prototype,
+            // we clear the cache here instead.
+
             // Invalidate fast prototype chain writable data test flag
             object->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+        }
 
+        if (!objectAndPrototypeChainHasOnlyWritableDataProperties)
+        {
             // Invalidate StoreField/PropertyGuards for any non-WritableData property in the new chain
             JavascriptOperators::MapObjectAndPrototypes<true>(newPrototype, [=](RecyclableObject* obj)
             {
@@ -376,6 +402,12 @@ namespace Js
                     return library->CreateStringFromCppLiteral(_u("[object Boolean]"));
                 }
                 break;
+            case TypeIds_DataView:
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("DataView")) == 0)
+                {
+                    return library->CreateStringFromCppLiteral(_u("[object DataView]"));
+                }
+                break;
             case TypeIds_Date:
             case TypeIds_WinRTDate:
                 if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Date")) == 0)
@@ -404,6 +436,12 @@ namespace Js
                 if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Number")) == 0)
                 {
                     return library->CreateStringFromCppLiteral(_u("[object Number]"));
+                }
+                break;
+            case TypeIds_Promise:
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Promise")) == 0)
+                {
+                    return library->CreateStringFromCppLiteral(_u("[object Promise]"));
                 }
                 break;
             case TypeIds_SIMDObject:
@@ -436,7 +474,7 @@ namespace Js
                 break;
 
             case TypeIds_Proxy:
-                if (JavascriptOperators::IsArray(JavascriptProxy::FromVar(thisArg)->GetTarget()))
+                if (JavascriptOperators::IsArray(thisArg))
                 {
                     if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Array")) == 0)
                     {
@@ -2009,60 +2047,26 @@ namespace Js
     }
 
     /*static*/
-    char16 * JavascriptObject::ConstructAccessorNameES6(const PropertyRecord * propertyRecord, const char16 * getOrSetStr, ScriptContext* scriptContext)
-    {
-        Assert(propertyRecord);
-        Assert(scriptContext);
-        char16 * finalName = nullptr;
-        size_t propertyLength = static_cast<size_t>(propertyRecord->GetLength() + 1); //+ 1 (for null terminator)
-        if (propertyLength > 0)
-        {
-            size_t totalChars;
-            const size_t getSetLength = 4;    // 4 = 3 (get or set) +1 (for space)
-            if (SizeTAdd(propertyLength, getSetLength, &totalChars) == S_OK)
-            {
-                finalName = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, totalChars);
-                Assert(finalName != nullptr);
-
-                Assert(getOrSetStr != nullptr);
-                Assert(wcslen(getOrSetStr) == 4);
-                wcscpy_s(finalName, totalChars, getOrSetStr);
-
-                const char16* propertyName = propertyRecord->GetBuffer();
-                Assert(propertyName != nullptr);
-                js_wmemcpy_s(finalName + getSetLength, propertyLength, propertyName, propertyLength);
-
-            }
-        }
-        return finalName;
-    }
-
-    /*static*/
     void JavascriptObject::ModifyGetterSetterFuncName(const PropertyRecord * propertyRecord, const PropertyDescriptor& descriptor, ScriptContext* scriptContext)
     {
         Assert(scriptContext);
         Assert(propertyRecord);
         if (descriptor.GetterSpecified() || descriptor.SetterSpecified())
         {
+            charcount_t propertyLength = propertyRecord->GetLength();
+
             if (descriptor.GetterSpecified()
                 && Js::ScriptFunction::Is(descriptor.GetGetter())
                 && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->GetDisplayName(), _u("get")) == 0)
             {
                 // modify to name.get
-                char16* finalName;
-                if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-                {
-                    finalName = ConstructAccessorNameES6(propertyRecord, _u("get "), scriptContext);
-                }
-                else
-                {
-                    finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
-                }
+                char16* finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
                 if (finalName != nullptr)
                 {
                     FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
 
-                    Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->SetDisplayName(finalName, propertyRecord->GetLength() + 4 /*".get" or "get "*/, flags);
+                    Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->SetDisplayName(finalName,
+                        propertyLength + 4 /*".get"*/, propertyLength + 1, flags);
                 }
             }
 
@@ -2071,21 +2075,13 @@ namespace Js
                 && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->GetDisplayName(), _u("set")) == 0)
             {
                 // modify to name.set
-                char16* finalName;
-                if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-                {
-                    finalName = ConstructAccessorNameES6(propertyRecord, _u("set "), scriptContext);
-                }
-                else
-                {
-                    finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
-                }
-
+                char16* finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
                 if (finalName != nullptr)
                 {
                     FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
 
-                    Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->SetDisplayName(finalName, propertyRecord->GetLength() + 4 /*".set" or "set "*/, flags);
+                    Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->SetDisplayName(finalName,
+                        propertyLength + 4 /*".set"*/, propertyLength + 1, flags);
                 }
             }
         }

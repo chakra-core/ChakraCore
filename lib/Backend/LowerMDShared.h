@@ -331,6 +331,7 @@ public:
     IR::Instr*          Simd128LowerMulI16(IR::Instr *instr);
     IR::Instr*          Simd128LowerInt32x4FromFloat32x4(IR::Instr *instr);
     IR::Instr*          Simd128LowerUint32x4FromFloat32x4(IR::Instr *instr);
+    IR::Instr*          Simd128LowerFloat32x4FromUint32x4(IR::Instr *instr);
     IR::Instr*          Simd128AsmJsLowerLoadElem(IR::Instr *instr);
     IR::Instr*          Simd128LowerLoadElem(IR::Instr *instr);
     IR::Instr*          Simd128ConvertToLoad(IR::Opnd *dst, IR::Opnd *src1, uint8 dataWidth, IR::Instr* instr, byte scaleFactor = 0);
@@ -347,6 +348,7 @@ public:
     IR::Instr*          Simd128LowerLessThanOrEqual(IR::Instr* instr);
     IR::Instr*          Simd128LowerGreaterThanOrEqual(IR::Instr* instr);
     IR::Instr*          Simd128LowerMinMax(IR::Instr* instr);
+    IR::Instr*          Simd128LowerMinMax_F4(IR::Instr* instr);
     IR::Instr*          Simd128LowerMinMaxNum(IR::Instr* instr);
     IR::Instr*          Simd128LowerAnyTrue(IR::Instr* instr);
     IR::Instr*          Simd128LowerAllTrue(IR::Instr* instr);

@@ -509,6 +509,9 @@ namespace Js
         , m_isFromNativeCodeModule(false)
         , hasHotLoop(false)
         , m_isPartialDeserializedFunction(false)
+#if DBG
+        , m_isSerialized(false)
+#endif
 #ifdef PERF_COUNTERS
         , m_isDeserializedFunction(isDeserializedFunction)
 #endif
@@ -527,7 +530,6 @@ namespace Js
 #endif
     {
         SetCountField(CounterFields::ConstantCount, 1);
-        SetCountFieldSigned(CounterFields::SerializationIndex, -1);
 
         this->SetDefaultFunctionEntryPointInfo((FunctionEntryPointInfo*) this->GetDefaultEntryPointInfo(), DefaultEntryThunk);
         this->m_hasBeenParsed = true;
@@ -580,16 +582,6 @@ namespace Js
         {
             return this->GetByteCode();
         }
-    }
-
-    const int
-    FunctionBody::GetSerializationIndex() const
-    {
-        return GetCountFieldSigned(CounterFields::SerializationIndex);
-    }
-    void FunctionBody::SetSerializationIndex(int index) 
-    {
-        SetCountFieldSigned(CounterFields::SerializationIndex, index);
     }
 
     const char16* ParseableFunctionInfo::GetExternalDisplayName() const
@@ -1656,10 +1648,7 @@ namespace Js
         Recycler* recycler = this->m_scriptContext->GetRecycler();
         propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
 
-        bool isDebugReparse = m_scriptContext->IsScriptContextInSourceRundownOrDebugMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
-        bool isAsmJsReparse = false;
-        bool isReparse = isDebugReparse;
-
+        bool isDebugOrAsmJsReparse = false;
         FunctionBody* funcBody = nullptr;
 
         // If m_hasBeenParsed = true, one of the following things happened things happened:
@@ -1737,11 +1726,14 @@ namespace Js
         }
         else
         {
-            isAsmJsReparse = m_isAsmjsMode && !isDebugReparse;
-            isReparse |= isAsmJsReparse;
+            bool isDebugReparse = m_scriptContext->IsScriptContextInSourceRundownOrDebugMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
+            bool isAsmJsReparse = m_isAsmjsMode && !isDebugReparse;
+
+            isDebugOrAsmJsReparse = isAsmJsReparse || isDebugReparse;
+
             funcBody = this->GetFunctionBody();
 
-            if (isReparse)
+            if (isDebugOrAsmJsReparse)
             {
     #if ENABLE_DEBUG_CONFIG_OPTIONS
                 char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -1772,7 +1764,7 @@ namespace Js
             Assert(!funcBody->HasExecutionDynamicProfileInfo());
 #endif
             // In debug or asm.js mode, the scriptlet will be asked to recompile again.
-            AssertMsg(isReparse || funcBody->GetGrfscr() & fscrGlobalCode || CONFIG_FLAG(DeferNested), "Deferred parsing of non-global procedure?");
+            AssertMsg(isDebugOrAsmJsReparse || funcBody->GetGrfscr() & fscrGlobalCode || CONFIG_FLAG(DeferNested), "Deferred parsing of non-global procedure?");
 
             HRESULT hr = NO_ERROR;
             HRESULT hrParser = NO_ERROR;
@@ -1802,12 +1794,12 @@ namespace Js
                     // (not a function declaration statement).
                     grfscr |= fscrDeferredFncExpression;
                 }
-                if (!CONFIG_FLAG(DeferNested) || isDebugReparse || isAsmJsReparse)
+                if (!CONFIG_FLAG(DeferNested) || isDebugOrAsmJsReparse)
                 {
                     grfscr &= ~fscrDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
                 }
 
-                if (isReparse)
+                if (isDebugOrAsmJsReparse)
                 {
                     grfscr |= fscrNoAsmJs; // Disable asm.js when debugging or if linking failed
                 }
@@ -1822,7 +1814,7 @@ namespace Js
                     hrParser = ps.ParseSourceWithOffset(&parseTree, pszStart, offset, length, charOffset, isCesu8, grfscr, &se,
                         &nextFunctionId, funcBody->GetRelativeLineNumber(), funcBody->GetSourceContextInfo(),
                         funcBody);
-                    Assert(FAILED(hrParser) || nextFunctionId == funcBody->deferredParseNextFunctionId || isReparse || isByteCodeDeserialization);
+                    Assert(FAILED(hrParser) || nextFunctionId == funcBody->deferredParseNextFunctionId || isDebugOrAsmJsReparse || isByteCodeDeserialization);
 
                     if (FAILED(hrParser))
                     {
@@ -1834,7 +1826,7 @@ namespace Js
                         TRACE_BYTECODE(_u("\nDeferred parse %s\n"), funcBody->GetDisplayName());
                         Js::AutoDynamicCodeReference dynamicFunctionReference(m_scriptContext);
 
-                        bool forceNoNative = isReparse ? this->GetScriptContext()->IsInterpreted() : false;
+                        bool forceNoNative = isDebugOrAsmJsReparse ? this->GetScriptContext()->IsInterpreted() : false;
                         hrParseCodeGen = GenerateByteCode(parseTree, grfscr, m_scriptContext,
                             funcBody->GetParseableFunctionInfoRef(), funcBody->GetSourceIndex(),
                             forceNoNative, &ps, &se, funcBody->GetScopeInfo(), functionRef);
@@ -3180,24 +3172,6 @@ namespace Js
         }
         TraceExecutionMode();
 
-        if(entryPointInfo->GetJitMode() == ExecutionMode::SimpleJit)
-        {
-            Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
-            SetSimpleJitEntryPointInfo(entryPointInfo);
-            ResetSimpleJitCallCount();
-        }
-        else
-        {
-            Assert(entryPointInfo->GetJitMode() == ExecutionMode::FullJit);
-            Assert(GetExecutionMode() == ExecutionMode::FullJit);
-            entryPointInfo->callsCount =
-                static_cast<uint8>(
-                    min(
-                        static_cast<uint>(static_cast<uint8>(CONFIG_FLAG(MinBailOutsBeforeRejit))) *
-                            (Js::FunctionEntryPointInfo::GetDecrCallCountPerBailout() - 1),
-                        0xffu));
-        }
-
         JS_ETW(EtwTrace::LogMethodNativeLoadEvent(this, entryPointInfo));
 
 #ifdef _M_ARM
@@ -3551,7 +3525,6 @@ namespace Js
             }
         }
 
-        newFunctionBody->SetSerializationIndex(this->GetSerializationIndex());
         newFunctionBody->m_isFromNativeCodeModule = this->m_isFromNativeCodeModule;
     }
 
@@ -5324,6 +5297,8 @@ namespace Js
             return _u("DiagWithScope");
         case DiagExtraScopesType::DiagParamScope:
             return _u("DiagParamScope");
+        case DiagExtraScopesType::DiagParamScopeInObject:
+            return _u("DiagParamScopeInObject");
         default:
             AssertMsg(false, "Missing a debug scope type.");
             return _u("");
@@ -5497,6 +5472,12 @@ namespace Js
     {
         return this->scopeType == Js::DiagBlockScopeInSlot
             || this->scopeType == Js::DiagCatchScopeInSlot;
+    }
+
+    bool DebuggerScope::IsParamScope() const
+    {
+        return this->scopeType == Js::DiagParamScope
+            || this->scopeType == Js::DiagParamScopeInObject;
     }
 
     // Gets whether or not the scope has any properties in it.
@@ -5687,7 +5668,7 @@ namespace Js
         {
             Js::DebuggerScope *debuggerScope = pScopeChain->Item(i);
             DebuggerScopeProperty debuggerScopeProperty;
-            if (debuggerScope->scopeType != DiagParamScope && debuggerScope->TryGetProperty(propertyId, location, &debuggerScopeProperty))
+            if (!debuggerScope->IsParamScope() && debuggerScope->TryGetProperty(propertyId, location, &debuggerScopeProperty))
             {
                 bool isOffsetInScope = debuggerScope->IsOffsetInScope(offset);
 
@@ -8187,6 +8168,9 @@ namespace Js
             } autoCleanup(this);
 
             ScriptContext* scriptContext = GetScriptContext();
+
+            // If we start transferring more data from the jit thread, corresponding fields on the
+            // entryPointInfo should be rolled back in EntryPointInfo::OnNativeCodeInstallFailure
             PinTypeRefs(scriptContext);
             InstallGuards(scriptContext);
             FreeJitTransferData();
@@ -8202,6 +8186,19 @@ namespace Js
             this->jitTransferData = RecyclerNew(recycler, EntryPointInfo::JitTransferData);
         }
         return this->jitTransferData;
+    }
+
+    void EntryPointInfo::OnNativeCodeInstallFailure()
+    {
+        // If more data is transferred from the background thread to the main thread in ProcessJitTransferData, 
+        // corresponding fields on the entryPointInfo should be rolled back here.
+        this->runtimeTypeRefs = nullptr;
+        this->FreePropertyGuards();
+        this->equivalentTypeCacheCount = 0;
+        this->equivalentTypeCaches = nullptr;
+        this->UnregisterEquivalentTypeCaches();
+
+        this->ResetOnNativeCodeInstallFailure();
     }
 
 #ifdef FIELD_ACCESS_STATS
@@ -8253,31 +8250,6 @@ namespace Js
         Assert(this->jitTransferData != nullptr && this->jitTransferData->GetIsReady());
         Assert(this->equivalentTypeCacheCount == 0 && this->equivalentTypeCaches == nullptr);
         Assert(this->propertyGuardCount == 0 && this->propertyGuardWeakRefs == nullptr);
-
-        class AutoCleanup
-        {
-            EntryPointInfo *entryPointInfo;
-        public:
-            AutoCleanup(EntryPointInfo *entryPointInfo) : entryPointInfo(entryPointInfo)
-            {
-            }
-
-            void Done()
-            {
-                entryPointInfo = nullptr;
-            }
-            ~AutoCleanup()
-            {
-                if (entryPointInfo)
-                {
-                    entryPointInfo->equivalentTypeCacheCount = 0;
-                    entryPointInfo->equivalentTypeCaches = nullptr;
-                    entryPointInfo->propertyGuardCount = 0;
-                    entryPointInfo->propertyGuardWeakRefs = nullptr;
-                    entryPointInfo->UnregisterEquivalentTypeCaches();
-                }
-            }
-        } autoCleanup(this);
 
         for (int i = 0; i < this->jitTransferData->lazyBailoutPropertyCount; i++)
         {
@@ -8435,8 +8407,6 @@ namespace Js
         {
             Js::Throw::OutOfMemory();
         }
-
-        autoCleanup.Done();
     }
 
     PropertyGuard* EntryPointInfo::RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext)
@@ -8911,10 +8881,13 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    void EntryPointInfo::ResetOnNativeCodeInstallFailure()
+    // This function needs review when we enable lazy bailouts- 
+    // Is calling Reset enough? Does Reset sufficiently resets the state of the entryPointInfo?
+    void EntryPointInfo::ResetOnLazyBailoutFailure()
     {
-        // Reset the entry point without attempting to create a new default and GenerateFunction on it.
-        // Do this for LoopEntryPointInfo or if we throw during FunctionEntryPointInfo::Invalidate.
+        Assert(PHASE_ON1(Js::LazyBailoutPhase));
+
+        // Reset the entry point upon a lazy bailout.
         this->Reset(true);
         Assert(this->address != nullptr);
         FreeNativeCodeGenAllocation(GetScriptContext(), this->address);
@@ -9078,13 +9051,27 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    void FunctionEntryPointInfo::OnNativeCodeInstallFailure()
+    void FunctionEntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
-        this->Invalidate(false);
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-        this->SetCleanupReason(CleanupReason::NativeCodeInstallFailure);
+        this->functionProxy->MapFunctionObjectTypes([&](DynamicType* type)
+        {
+            Assert(type->GetTypeId() == TypeIds_Function);
+
+            ScriptFunctionType* functionType = (ScriptFunctionType*)type;
+            if (functionType->GetEntryPointInfo() == this)
+            {
+                if (!this->GetIsAsmJSFunction())
+                {
+                    functionType->SetEntryPoint(GetCheckCodeGenThunk());
+                }
+#ifdef ASMJS_PLAT
+                else
+                {
+                    functionType->SetEntryPoint(GetCheckAsmJsCodeGenThunk());
+                }
 #endif
-        this->Cleanup(false, true /* capture cleanup stack */);
+            }
+        });
     }
 
     void FunctionEntryPointInfo::EnterExpirableCollectMode()
@@ -9130,7 +9117,7 @@ namespace Js
                 {
                     if (entryPointInfo)
                     {
-                        entryPointInfo->ResetOnNativeCodeInstallFailure();
+                        entryPointInfo->ResetOnLazyBailoutFailure();
                     }
                 }
             } autoCleanup(this);
@@ -9358,9 +9345,12 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    void LoopEntryPointInfo::OnNativeCodeInstallFailure()
+    void LoopEntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
-        this->ResetOnNativeCodeInstallFailure();
+        // Since we call the address on the entryPointInfo for loop bodies, all we need to do is to roll back
+        // the fields on the entryPointInfo related to transferring data from jit thread to main thread (already 
+        // being done in EntryPointInfo::OnNativeCodeInstallFailure). On the next loop iteration, the interpreter
+        // will call EntryPointInfo::EnsureIsReadyToCall and we'll try to process jit transfer data again.
     }
 #endif
 

@@ -344,7 +344,7 @@ namespace Js
         // Remove its prototype object so that those item will not be visible to the expression evaluation.
         dummyObject->SetPrototype(scriptContext->GetLibrary()->GetNull());
         Js::DebugManager* debugManager = scriptContext->GetDebugContext()->GetProbeContainer()->GetDebugManager();
-        Js::FrameDisplay* env = debugManager->GetFrameDisplay(scriptContext, dummyObject, activeScopeObject, /* addGlobalThisAtScopeTwo = */ false);
+        Js::FrameDisplay* env = debugManager->GetFrameDisplay(scriptContext, dummyObject, activeScopeObject);
         pfuncScript->SetEnvironment(env);
 
         Js::Var varThis = this->GetThisFromFrame(nullptr, localsWalker);

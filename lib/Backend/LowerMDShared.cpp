@@ -1624,6 +1624,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::CMPLEPD:
         case Js::OpCode::CMPEQPD:
         case Js::OpCode::CMPNEQPD:
+        case Js::OpCode::CMPUNORDPS:
         case Js::OpCode::PUNPCKLBW:
         case Js::OpCode::PUNPCKLDQ:
         case Js::OpCode::PUNPCKLWD:
@@ -4431,7 +4432,7 @@ LowererMD::GenerateLoadPolymorphicInlineCacheSlot(IR::Instr * instrLdSt, IR::Reg
     Assert(rightShiftAmount > leftShiftAmount);
     instr = IR::Instr::New(Js::OpCode::SHR, opndOffset, opndOffset, IR::IntConstOpnd::New(rightShiftAmount - leftShiftAmount, TyUint8, instrLdSt->m_func, true), instrLdSt->m_func);
     instrLdSt->InsertBefore(instr);
-    instr = IR::Instr::New(Js::OpCode::AND, opndOffset, opndOffset, IR::AddrOpnd::New((void*)((IntConstType)(polymorphicInlineCacheSize - 1) << leftShiftAmount), IR::AddrOpndKindConstant, instrLdSt->m_func, true), instrLdSt->m_func);
+    instr = IR::Instr::New(Js::OpCode::AND, opndOffset, opndOffset, IR::AddrOpnd::New((void*)((__int64)(polymorphicInlineCacheSize - 1) << leftShiftAmount), IR::AddrOpndKindConstant, instrLdSt->m_func, true), instrLdSt->m_func);
     instrLdSt->InsertBefore(instr);
 
     // LEA inlineCache, [inlineCache + r1]

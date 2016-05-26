@@ -46,7 +46,7 @@ namespace Js
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Map"));
 
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(MapCount);
 

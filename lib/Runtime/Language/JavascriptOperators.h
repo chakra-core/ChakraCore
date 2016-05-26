@@ -215,6 +215,10 @@ namespace Js
         static BOOL IsAnyNumberValue(Var instance);
         static BOOL IsClassConstructor(Var instance);
 
+        static bool CanShortcutOnUnknownPropertyName(RecyclableObject * instance);
+        static bool CanShortcutInstanceOnUnknownPropertyName(RecyclableObject *instance);
+        static bool CanShortcutPrototypeChainOnUnknownPropertyName(RecyclableObject *instance);
+
         static BOOL HasOwnItem(RecyclableObject* instance, uint32 index);
         static BOOL HasItem(RecyclableObject* instance, uint32 index);
         static BOOL HasItem(RecyclableObject* instance, uint64 index);
@@ -538,6 +542,7 @@ namespace Js
         static bool CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* object);
         static bool CheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype);
         static bool DoCheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype);
+        static bool CheckIfPrototypeChainContainsProxyObject(RecyclableObject* prototype);
         static void OP_SetComputedNameVar(Var method, Var computedNameVar);
         static void OP_SetHomeObj(Var method, Var homeObj);
         static Var OP_LdSuper(Var scriptFunction, ScriptContext * scriptContext);

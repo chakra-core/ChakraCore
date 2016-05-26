@@ -27,7 +27,6 @@ namespace Js
         hostDefined(nullptr),
         exportedNames(nullptr),
         resolvedExportMap(nullptr),
-        tempAllocatorObject(nullptr),
         wasParsed(false),
         wasDeclarationInitialized(false),
         isRootModule(false),
@@ -66,25 +65,20 @@ namespace Js
         {
             if (parser != nullptr)
             {
-                AllocatorDelete(ArenaAllocator, tempAllocatorObject->GetAllocator(), parser);
+                AllocatorDelete(ArenaAllocator, scriptContext->GeneralAllocator(), parser);
                 parser = nullptr;
-            }
-            if (tempAllocatorObject != nullptr)
-            {
-                GetScriptContext()->GetThreadContext()->ReleaseTemporaryAllocator(tempAllocatorObject);
-                tempAllocatorObject = nullptr;
             }
         }
     }
 
-    HRESULT SourceTextModuleRecord::ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, Var* exceptionVar, bool isUtf8)
+    HRESULT SourceTextModuleRecord::ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8)
     {
         Assert(!wasParsed);
         Assert(parser == nullptr);
         HRESULT hr = NOERROR;
         ScriptContext* scriptContext = GetScriptContext();
         CompileScriptException se;
-        ArenaAllocator* allocator = EnsureTempAllocator();
+        ArenaAllocator* allocator = scriptContext->GeneralAllocator();
         *exceptionVar = nullptr;
         if (!scriptContext->GetConfig()->IsES6ModuleEnabled())
         {
@@ -105,12 +99,11 @@ namespace Js
             {
                 AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
                 this->parser = (Parser*)AllocatorNew(ArenaAllocator, allocator, Parser, scriptContext);
-                this->srcInfo = {};
-                this->srcInfo.sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceLength, Js::Constants::NoHostSourceContext);
-                this->srcInfo.moduleID = moduleId;
+                srcInfo->moduleID = moduleId;
+
                 LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
                     (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
-                this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, &srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
+                this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
                 if (parseTree == nullptr)
                 {
                     hr = E_FAIL;
@@ -236,22 +229,13 @@ namespace Js
         return hr;
     }
 
-    ArenaAllocator* SourceTextModuleRecord::EnsureTempAllocator()
-    {
-        if (tempAllocatorObject == nullptr)
-        {
-            tempAllocatorObject = scriptContext->GetThreadContext()->GetTemporaryAllocator(_u("Module"));
-        }
-        return tempAllocatorObject->GetAllocator();
-    }
-
     ExportedNames* SourceTextModuleRecord::GetExportedNames(ExportModuleRecordList* exportStarSet)
     {
         if (exportedNames != nullptr)
         {
             return exportedNames;
         }
-        ArenaAllocator* allocator = EnsureTempAllocator();
+        ArenaAllocator* allocator = scriptContext->GeneralAllocator();
         if (exportStarSet->Has(this))
         {
             return nullptr;
@@ -342,7 +326,7 @@ namespace Js
     // otherwise nullptr means "null" where we have circular reference/cannot resolve.
     bool SourceTextModuleRecord::ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ExportModuleRecordList* exportStarSet, ModuleNameRecord** exportRecord)
     {
-        ArenaAllocator* allocator = EnsureTempAllocator();
+        ArenaAllocator* allocator = scriptContext->GeneralAllocator();
         if (resolvedExportMap == nullptr)
         {
             resolvedExportMap = AllocatorNew(ArenaAllocator, allocator, ResolvedExportMap, allocator);
@@ -528,7 +512,7 @@ namespace Js
         {
             if (nullptr == childrenModuleSet)
             {
-                ArenaAllocator* allocator = EnsureTempAllocator();
+                ArenaAllocator* allocator = scriptContext->GeneralAllocator();
                 childrenModuleSet = (ChildModuleRecordSet*)AllocatorNew(ArenaAllocator, allocator, ChildModuleRecordSet, allocator);
             }
             requestedModuleList->MapUntil([&](IdentPtr specifier) {
@@ -628,13 +612,17 @@ namespace Js
         }
 
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        Assert(this == scriptContext->GetLibrary()->GetModuleRecord(srcInfo.moduleID));
+        Assert(this == scriptContext->GetLibrary()->GetModuleRecord(this->pSourceInfo->GetSrcInfo()->moduleID));
         CompileScriptException se;
         this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
         if (rootFunction == nullptr)
         {
             this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
             NotifyParentsAsNeeded();
+        }
+        else
+        {
+            scriptContext->GetDebugContext()->RegisterFunction(this->rootFunction->GetFunctionBody(), nullptr);
         }
     }
 
@@ -740,10 +728,10 @@ namespace Js
             if (localExportRecordList != nullptr)
             {
                 uint currentSlotCount = 0;
-                ArenaAllocator* allocator = EnsureTempAllocator();
+                ArenaAllocator* allocator = scriptContext->GeneralAllocator();
                 localExportMapByExportName = AllocatorNew(ArenaAllocator, allocator, LocalExportMap, allocator);
                 localExportMapByLocalName = AllocatorNew(ArenaAllocator, allocator, LocalExportMap, allocator);
-                localExportIndexList = RecyclerNew(recycler, LocalExportIndexList, recycler);
+                localExportIndexList = AllocatorNew(ArenaAllocator, allocator, LocalExportIndexList, allocator);
                 localExportRecordList->Map([&](ModuleImportOrExportEntry exportEntry)
                 {
                     Assert(exportEntry.moduleRequest == nullptr);

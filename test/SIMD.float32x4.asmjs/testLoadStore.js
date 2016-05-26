@@ -109,11 +109,60 @@ function asmModule(stdlib, imports, buffer) {
     var Uint32Heap = new stdlib.Uint32Array(buffer);
     var Float32Heap = new stdlib.Float32Array(buffer);
 
+    function func0()
+    {
+        var x = f4(1.0, 2.0, 3.0, 4.0);
+        var y = f4(0.0, 0.0, 0.0, 0.0);
+        var st = f4(0.0, 0.0, 0.0, 0.0);
+        var ld = f4(0.0, 0.0, 0.0, 0.0);
+        
+        var t0 = f4(0.0, 0.0, 0.0, 0.0);
+        var t1 = f4(0.0, 0.0, 0.0, 0.0);
+        var t2 = f4(0.0, 0.0, 0.0, 0.0);
+        var t3 = f4(0.0, 0.0, 0.0, 0.0);
+        
+        var index = 100;
+        var size = 10;
+        var loopIndex = 0;
+        
+        for (loopIndex = 0; (loopIndex | 0) < (size | 0) ; loopIndex = (loopIndex + 1) | 0)
+        {
+            st = f4store(Int8Heap, index >> 0, x);
+            ld = f4load(Int8Heap, index >> 0);
+            y = f4add(st, ld);  // (0,0,0,0)
+            t0 = f4add(f4store(Int8Heap, index >> 0, x), f4load(Int8Heap, index   >> 0));
+            t0 = f4add(t0, y);
+
+            st = f4store1(Int8Heap, index >> 0, x);
+            ld = f4load(Int8Heap, index >> 0);
+            y = f4add(st, ld);  // (0,0,0,0)
+            t1 = f4add(f4store1(Int8Heap, index >> 0, x), f4load(Int8Heap, index   >> 0));
+            t1 = f4add(t1, y);
+
+            st = f4store2(Int8Heap, index >> 0, x);
+            ld = f4load(Int8Heap, index >> 0);
+            y = f4add(st, ld);  // (0,0,0,0)
+            t2 = f4add(f4store2(Int8Heap, index >> 0, x), f4load(Int8Heap, index   >> 0));
+            t2 = f4add(t2, y);
+
+            st = f4store3(Int8Heap, index >> 0, x);
+            ld = f4load(Int8Heap, index >> 0);
+            y = f4add(st, ld);  // (0,0,0,0)
+            t3 = f4add(f4store3(Int8Heap, index >> 0, x), f4load(Int8Heap, index   >> 0));
+            t3 = f4add(t3, y);
+
+            t0 = f4add(t0, f4add(t1, f4add(t2, t3)));
+            index = (index + 16 ) | 0;
+        }
+        return f4check(t0);
+    }
+
     function func1()
     {
         var x = f4(1.0, 2.0, 3.0, 4.0);
         var t = f4(0.0, 0.0, 0.0, 0.0);
         var y = f4(0.0, 0.0, 0.0, 0.0);
+        var z = f4(0.0, 0.0, 0.0 ,0.0);
         var index = 100;
         var size = 10;
         var loopIndex = 0;
@@ -596,6 +645,7 @@ function asmModule(stdlib, imports, buffer) {
     }
     
     return {
+        func0:func0,
         func1:func1, 
         func1OOB_1:func1OOB_1, 
         func1OOB_2:func1OOB_2, 
@@ -625,6 +675,9 @@ var buffer = new ArrayBuffer(0x10000);
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)}, buffer);
 
 var ret;
+
+ret = m.func0();
+equalSimd([16, 32, 48, 64], ret, SIMD.Float32x4, "LoadStore")
 
 ret = m.func1();
 equalSimd([10, 20, 30, 40], ret, SIMD.Float32x4, "LoadStore")

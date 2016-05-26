@@ -300,10 +300,7 @@ namespace Js
     {
         SIMDValue result;
 
-        if (count < 0 || count > 16)
-        {  // if Bit Count is larger than 16, assume it to be 16 according to polyfill
-            count = 16;
-        }
+        count = count & SIMDGetShiftAmountMask(2);
 
         result.i16[0] = value.i16[0] << count;
         result.i16[1] = value.i16[1] << count;
@@ -321,10 +318,7 @@ namespace Js
     {
         SIMDValue result;
 
-        if (count < 0 || count > 16)
-        {  // if Bit Count is larger than 16, assume it to be 16 according to polyfill
-            count = 16;
-        }
+        count = count & SIMDGetShiftAmountMask(2);
 
         result.i16[0] = value.i16[0] >> count;
         result.i16[1] = value.i16[1] >> count;

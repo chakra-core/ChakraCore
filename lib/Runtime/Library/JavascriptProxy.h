@@ -52,9 +52,13 @@ namespace Js
         JavascriptProxy(DynamicType * type, ScriptContext * scriptContext, RecyclableObject* target, RecyclableObject* handler);
         static BOOL Is(Var obj);
         static JavascriptProxy* FromVar(Var obj) { Assert(Is(obj)); return static_cast<JavascriptProxy*>(obj); }
-        RecyclableObject* GetTarget() const { return target; }
-        RecyclableObject* GetHandler() const { return handler; }
-
+#ifndef IsJsDiag
+        RecyclableObject* GetTarget();
+        RecyclableObject* GetHandler();
+#else
+        RecyclableObject* GetTarget() { return target; }
+        RecyclableObject* GetHandler() { return handler; }
+#endif
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryRevocable(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryRevoke(RecyclableObject* function, CallInfo callInfo, ...);

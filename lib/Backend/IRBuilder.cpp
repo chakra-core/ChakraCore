@@ -3677,7 +3677,7 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             instr = IR::Instr::New(Js::OpCode::Ld_A, regOpnd, addrOpnd, m_func);
             this->AddInstr(instr, offset);
 
-            fieldSym = PropertySym::FindOrCreate(regOpnd->m_sym->m_id, slotId2, (uint32)-1, (uint)-1, PropertyKindSlots, m_func);
+            fieldSym = PropertySym::New(regOpnd->m_sym, slotId2, (uint32)-1, (uint)-1, PropertyKindSlots, m_func);
             fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
             
             if (newOpcode == Js::OpCode::LdModuleSlot)
@@ -6704,13 +6704,21 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
                     Js::Constants::NoByteCodeOffset);
             }
 
+            IR::RegOpnd* tempRegOpnd = IR::RegOpnd::New(StackSym::New(this->m_func), TyVar, this->m_func);
             this->AddInstr(
                 IR::Instr::New(
                     Js::OpCode::LdFrameDisplay,
-                    this->BuildDstOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister()),
+                    tempRegOpnd,
                     this->BuildSrcOpnd(this->m_func->GetJnFunction()->GetLocalClosureRegister()),
                     this->BuildSrcOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister()),
-                    m_func),
+                    this->m_func),
+                Js::Constants::NoByteCodeOffset);
+            this->AddInstr(
+                IR::Instr::New(
+                    Js::OpCode::MOV,
+                    this->BuildDstOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister()),
+                    tempRegOpnd,
+                    this->m_func),
                 Js::Constants::NoByteCodeOffset);
         }
         break;

@@ -548,53 +548,16 @@ namespace Js
         return !*isPropertyInDebuggerScope;
     }
 
-    // Gets an adjusted offset for the current bytecode location based on which stack frame we're in.
-    // If we're in the top frame (leaf node), then the byte code offset should remain as is, to reflect
-    // the current position of the instruction pointer.  If we're not in the top frame, we need to subtract
-    // 1 as the byte code location will be placed at the next statement to be executed at the top frame.
-    // In the case of block scoping, this is an inaccurate location for viewing variables since the next
-    // statement could be beyond the current block scope.  For inspection, we want to remain in the
-    // current block that the function was called from.
-    // An example is this:
-    // function foo() { ... }   // Frame 0 (with breakpoint inside)
-    // function bar() {         // Frame 1
-    //     {
-    //         let a = 0;
-    //         foo(); // <-- Inspecting here, foo is already evaluated.
-    //     }
-    //     foo(); // <-- Byte code offset is now here, so we need to -1 to get back in the block scope.
     int VariableWalkerBase::GetAdjustedByteCodeOffset() const
     {
-        Assert(pFrame);
-        int offset = pFrame->GetByteCodeOffset();
-        if (!pFrame->IsTopFrame() && pFrame->IsInterpreterFrame())
-        {
-            // Native frames are already adjusted so just need to adjust interpreted
-            // frames that are not the top frame.
-            --offset;
-        }
-
-        return offset;
+        return LocalsWalker::GetAdjustedByteCodeOffset(pFrame);
     }
 
     DebuggerScope * VariableWalkerBase::GetScopeWhenHaltAtFormals()
     {
         if (IsWalkerForCurrentFrame())
         {
-            Js::ScopeObjectChain * scopeObjectChain = pFrame->GetJavascriptFunction()->GetFunctionBody()->GetScopeObjectChain();
-
-            if (scopeObjectChain != nullptr && scopeObjectChain->pScopeChain != nullptr)
-            {
-                int currentOffset = GetAdjustedByteCodeOffset();
-                for (int i = 0; i < scopeObjectChain->pScopeChain->Count(); i++)
-                {
-                    Js::DebuggerScope * scope = scopeObjectChain->pScopeChain->Item(i);
-                    if (scope->scopeType == Js::DiagParamScope && scope->GetEnd() > currentOffset)
-                    {
-                        return scope;
-                    }
-                }
-            }
+            return LocalsWalker::GetScopeWhenHaltAtFormals(pFrame);
         }
 
         return nullptr;
@@ -633,13 +596,35 @@ namespace Js
 
             if (slotArray.IsFunctionScopeSlotArray())
             {
+                DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
                 Js::FunctionBody *pFBody = slotArray.GetFunctionBody();
-                if (pFBody->GetPropertyIdsForScopeSlotArray() != nullptr)
+                uint slotArrayCount = slotArray.GetCount();
+
+                if (formalScope != nullptr && !pFBody->IsParamAndBodyScopeMerged())
                 {
-                    uint slotArrayCount = slotArray.GetCount();
+                    Assert(pFBody->paramScopeSlotArraySize > 0);
                     pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, slotArrayCount);
 
-                    DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
+                    for (ulong i = 0; i < slotArrayCount; i++)
+                    {
+                        Js::DebuggerScopeProperty scopeProperty = formalScope->scopeProperties->Item(i);
+
+                        Var value = slotArray.Get(i);
+                        bool isInDeadZone = pFrame->GetScriptContext()->IsUndeclBlockVar(value);
+
+                        DebuggerPropertyDisplayInfo *pair = AllocateNewPropertyDisplayInfo(
+                            scopeProperty.propId,
+                            value,
+                            false/*isConst*/,
+                            isInDeadZone);
+
+                        Assert(pair != nullptr);
+                        pMembersList->Add(pair);
+                    }
+                }
+                else if (pFBody->GetPropertyIdsForScopeSlotArray() != nullptr)
+                {
+                    pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, slotArrayCount);
 
                     for (ulong i = 0; i < slotArrayCount; i++)
                     {
@@ -972,7 +957,7 @@ namespace Js
                 Js::DebuggerScope *debuggerScope = pScopeObjectChain->pScopeChain->Item(i);
                 bool isScopeInRange = debuggerScope->IsOffsetInScope(bytecodeOffset);
                 if (isScopeInRange
-                    && debuggerScope->scopeType != DiagParamScope
+                    && !debuggerScope->IsParamScope()
                     && (debuggerScope->IsOwnScope() || (debuggerScope->scopeType == DiagBlockScopeDirect && debuggerScope->HasProperties())))
                 {
                     switch (debuggerScope->scopeType)
@@ -1103,33 +1088,53 @@ namespace Js
 
             // In the eval function, we will not show global items directly, instead they should go as a group node.
             bool shouldAddGlobalItemsDirectly = pFBody->GetIsGlobalFunc() && !pFBody->IsEval();
-            if (shouldAddGlobalItemsDirectly)
+            bool dontAddGlobalsDirectly = (frameWalkerFlags & FrameWalkerFlags::FW_DontAddGlobalsDirectly) == FrameWalkerFlags::FW_DontAddGlobalsDirectly;
+            if (shouldAddGlobalItemsDirectly && !dontAddGlobalsDirectly)
             {
                 // Global properties will be enumerated using RootObjectVariablesWalker
                 pVarWalkers->Add(Anew(arena, RootObjectVariablesWalker, pFrame, pFrame->GetRootObject(), UIGroupType_None));
             }
 
-            DWORD localsType = GetCurrentFramesLocalsType(pFrame);
-            if (localsType & FramesLocalType::LocalType_Reg)
-            {
-                pVarWalkers->Add(Anew(arena, RegSlotVariablesWalker, pFrame, nullptr /*not debugger scope*/, UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference)));
-            }
-            if (localsType & FramesLocalType::LocalType_InObject)
-            {
-                Assert(scopeCount > 0);
-                pVarWalker = Anew(arena, ObjectVariablesWalker, pFrame, pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
-            }
-            else if (localsType & FramesLocalType::LocalType_InSlot)
-            {
-                Assert(scopeCount > 0);
-                pVarWalker = Anew(arena, SlotArrayVariablesWalker, pFrame, (Js::Var *)pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
-            }
-            else if (scopeCount > 0 && pFBody->GetFrameDisplayRegister() != 0)
-            {
-                Assert((Var)pDisplay->GetItem(0) == pFrame->GetScriptContext()->GetLibrary()->GetNull());
+            DebuggerScope *formalScope = GetScopeWhenHaltAtFormals(pFrame);
 
-                // A dummy scope with nullptr register is created. Skip this.
-                nextStartIndex++;
+            // If we are halted at formal place, and param and body scopes are splitted we need to make use of formal debugger scope to walk those variables.
+            if (!pFBody->IsParamAndBodyScopeMerged() && formalScope != nullptr)
+            {
+                Assert(scopeCount > 0);
+                if (formalScope->scopeType == Js::DiagParamScopeInObject)
+                {
+                    pVarWalker = Anew(arena, ObjectVariablesWalker, pFrame, (Js::Var *)pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
+                }
+                else
+                {
+                    Assert(pFBody->paramScopeSlotArraySize > 0);
+                    pVarWalker = Anew(arena, SlotArrayVariablesWalker, pFrame, (Js::Var *)pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
+                }
+            }
+            else
+            {
+                DWORD localsType = GetCurrentFramesLocalsType(pFrame);
+                if (localsType & FramesLocalType::LocalType_Reg)
+                {
+                    pVarWalkers->Add(Anew(arena, RegSlotVariablesWalker, pFrame, nullptr /*not debugger scope*/, UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference)));
+                }
+                if (localsType & FramesLocalType::LocalType_InObject)
+                {
+                    Assert(scopeCount > 0);
+                    pVarWalker = Anew(arena, ObjectVariablesWalker, pFrame, pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
+                }
+                else if (localsType & FramesLocalType::LocalType_InSlot)
+                {
+                    Assert(scopeCount > 0);
+                    pVarWalker = Anew(arena, SlotArrayVariablesWalker, pFrame, (Js::Var *)pDisplay->GetItem(nextStartIndex++), UIGroupType_None, !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowLexicalThis), !!(frameWalkerFlags & FrameWalkerFlags::FW_AllowSuperReference));
+                }
+                else if (scopeCount > 0 && pFBody->GetFrameDisplayRegister() != 0 )
+                {
+                    Assert((Var)pDisplay->GetItem(0) == pFrame->GetScriptContext()->GetLibrary()->GetNull() || !pFBody->IsParamAndBodyScopeMerged());
+
+                    // A dummy scope with nullptr register is created. Skip this.
+                    nextStartIndex++;
+                }
             }
 
             if (pVarWalker)
@@ -1169,7 +1174,7 @@ namespace Js
             }
 
             // No need to add global properties if this is a global function, as it is already done above.
-            if (!shouldAddGlobalItemsDirectly)
+            if (!shouldAddGlobalItemsDirectly && !dontAddGlobalsDirectly)
             {
                 pVarWalker = Anew(arena, RootObjectVariablesWalker, pFrame, pFrame->GetRootObject(),  UIGroupType_Globals);
                 pVarWalkers->Add(pVarWalker);
@@ -1451,6 +1456,55 @@ namespace Js
     {
         int i = 0;
         return this->GetGroupObject(Js::UIGroupType::UIGroupType_Globals, i, pResolvedObject);
+    }
+
+    /*static*/
+    DebuggerScope * LocalsWalker::GetScopeWhenHaltAtFormals(DiagStackFrame* frame)
+    {
+        Js::ScopeObjectChain * scopeObjectChain = frame->GetJavascriptFunction()->GetFunctionBody()->GetScopeObjectChain();
+
+        if (scopeObjectChain != nullptr && scopeObjectChain->pScopeChain != nullptr)
+        {
+            int currentOffset = GetAdjustedByteCodeOffset(frame);
+            for (int i = 0; i < scopeObjectChain->pScopeChain->Count(); i++)
+            {
+                Js::DebuggerScope * scope = scopeObjectChain->pScopeChain->Item(i);
+                if (scope->IsParamScope() && scope->GetEnd() > currentOffset)
+                {
+                    return scope;
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+    // Gets an adjusted offset for the current bytecode location based on which stack frame we're in.
+    // If we're in the top frame (leaf node), then the byte code offset should remain as is, to reflect
+    // the current position of the instruction pointer.  If we're not in the top frame, we need to subtract
+    // 1 as the byte code location will be placed at the next statement to be executed at the top frame.
+    // In the case of block scoping, this is an inaccurate location for viewing variables since the next
+    // statement could be beyond the current block scope.  For inspection, we want to remain in the
+    // current block that the function was called from.
+    // An example is this:
+    // function foo() { ... }   // Frame 0 (with breakpoint inside)
+    // function bar() {         // Frame 1
+    //     {
+    //         let a = 0;
+    //         foo(); // <-- Inspecting here, foo is already evaluated.
+    //     }
+    //     foo(); // <-- Byte code offset is now here, so we need to -1 to get back in the block scope.
+    int LocalsWalker::GetAdjustedByteCodeOffset(DiagStackFrame* frame)
+    {
+        int offset = frame->GetByteCodeOffset();
+        if (!frame->IsTopFrame() && frame->IsInterpreterFrame())
+        {
+            // Native frames are already adjusted so just need to adjust interpreted
+            // frames that are not the top frame.
+            --offset;
+        }
+
+        return offset;
     }
 
     /*static*/
@@ -3684,6 +3738,10 @@ namespace Js
     BOOL RecyclableProxyObjectWalker::Get(int i, ResolvedObject* pResolvedObject)
     {
         JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
+        if (proxy->GetTarget() == nullptr || proxy->GetHandler() == nullptr)
+        {
+            return FALSE;
+        }
         if (i == 0)
         {
             pResolvedObject->name = _u("[target]");

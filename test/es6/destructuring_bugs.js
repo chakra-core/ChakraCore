@@ -279,6 +279,39 @@ var tests = [
             assert.areEqual(x6, 11);
         })(1, {x2:2, x3:3}, [4, 5], undefined);
     }
+  },
+  {
+    name: "Object destructuring - changing the RHS when emitting",
+    body: function () {
+        var a = {}, b;
+        ({x:a, y:b = 1} = a);
+        assert.areEqual(a, undefined);
+        assert.areEqual(b, 1);
+    }
+  },
+  {
+    name: "Destructuring - Empty object pattern inside call node is a valid syntax",
+    body: function () {
+        function f() {
+            ({} = []).Symbol.interator();
+            eval("");
+        };
+    }
+  },
+  {
+    name: "Destructuring - Place holder slots for pattern are accounted when undeferred.",
+    body: function () {
+        function foo({a}) {
+            function x() {}
+            eval('');
+        }
+        foo({});
+        function foo1(...[b]) {
+            function x() {}
+            eval('');
+        }
+        foo1([]);
+    }
   }
 ];
 

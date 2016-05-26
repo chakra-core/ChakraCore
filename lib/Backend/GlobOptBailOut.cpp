@@ -331,6 +331,7 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         this->blockData.curFunc = instr->m_func;
         this->currentBlock->globOptData.curFunc = instr->m_func;
 
+        this->func->UpdateMaxInlineeArgOutCount(this->currentBlock->globOptData.inlinedArgOutCount);
         this->EndTrackCall(instr);
 
         if (DoInlineArgsOpt(instr->m_func))
@@ -358,14 +359,6 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         this->isCallHelper = false;
         break;
 
-    case Js::OpCode::BailOnNoProfile:
-    case Js::OpCode::InlineThrow:
-    case Js::OpCode::InlineRuntimeTypeError:
-    case Js::OpCode::InlineRuntimeReferenceError:
-        //We are not going to see an inlinee end
-        this->func->UpdateMaxInlineeArgOutCount(this->currentBlock->globOptData.inlinedArgOutCount);
-        break;
-
     case Js::OpCode::InlineeEnd:
         if (instr->m_func->m_hasInlineArgsOpt)
         {
@@ -374,7 +367,6 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         EndTrackingOfArgObjSymsForInlinee();
 
         Assert(this->currentBlock->globOptData.inlinedArgOutCount >= instr->GetArgOutCount(/*getInterpreterArgOutCount*/ false));
-        this->func->UpdateMaxInlineeArgOutCount(this->currentBlock->globOptData.inlinedArgOutCount);
         this->currentBlock->globOptData.inlinedArgOutCount -= instr->GetArgOutCount(/*getInterpreterArgOutCount*/ false);
         break;
 

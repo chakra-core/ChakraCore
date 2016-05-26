@@ -135,7 +135,7 @@ namespace Js
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
 
@@ -2399,7 +2399,7 @@ case_2:
         Assert(count > 0);
 
         const char16* currentRawString = currentString->GetString();
-        int currentLength = currentString->GetLength();
+        charcount_t currentLength = currentString->GetLength();
 
         charcount_t finalBufferCount = UInt32Math::Add(UInt32Math::Mul(count, currentLength), 1);
         char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, finalBufferCount);
@@ -2413,6 +2413,7 @@ case_2:
         {
             char16* bufferDst = buffer;
             size_t bufferDstSize = finalBufferCount;
+            AnalysisAssert(bufferDstSize > currentLength);
 
             for (charcount_t i = 0; i < count; i += 1)
             {

@@ -59,3 +59,26 @@ function testrem(){
 testrem();
 testrem();
 
+// VSO bug 5497066
+// Hoisting FromVar from a region where it doesn't need a bailout
+// to one where it does
+function test2() {
+  var func1 = function (argMath2) {
+	  for (; __loopvar0 != 2 && d < argMath2; ) {
+      __loopvar0 += 3;
+    }
+  };
+  var i32 = new Int32Array();
+  var d = -1865727919761880000;
+  var uniqobj0 = Object();
+  var __loopvar0 = -1;
+
+  var count = 1;
+  
+  for (; count ? true : func1(uniqobj0); i32[1317940107]) {
+    count--;
+  }
+  uniqobj0;
+}
+test2();
+test2();

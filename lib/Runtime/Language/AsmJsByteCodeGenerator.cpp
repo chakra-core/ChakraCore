@@ -883,7 +883,6 @@ namespace Js
                 retType = AsmJsRetType::Float64x2;
             }
 #endif // 0
-
             else if (info.type.isSubType(AsmJsType::Int16x8))
             {
                 CheckNodeLocation(info, AsmJsSIMDValue);
@@ -899,30 +898,6 @@ namespace Js
                 mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
                 emitInfo.type = AsmJsType::Int8x16;
                 retType = AsmJsRetType::Int8x16;
-            }
-            else if (info.type.isSubType(AsmJsType::Uint32x4))
-            {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U4, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Uint32x4;
-                retType = AsmJsRetType::Uint32x4;
-            }
-            else if (info.type.isSubType(AsmJsType::Uint16x8))
-            {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U8, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Uint16x8;
-                retType = AsmJsRetType::Uint16x8;
-            }
-            else if (info.type.isSubType(AsmJsType::Uint8x16))
-            {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U16, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Uint8x16;
-                retType = AsmJsRetType::Uint8x16;
             }
             else
             {
@@ -1197,16 +1172,7 @@ namespace Js
                     case AsmJsType::Int8x16:
                          opcode = OpCodeAsmJs::Simd128_I_ArgOut_I16;
                         break;
-                    case AsmJsType::Uint32x4:
-                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_U4;
-                        break;
-                    case AsmJsType::Uint16x8:
-                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_U8;
-                        break;
-                    case AsmJsType::Uint8x16:
-                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_U16;
-                        break;
-                     case AsmJsType::Bool32x4:
+                    case AsmJsType::Bool32x4:
                         opcode = OpCodeAsmJs::Simd128_I_ArgOut_B4;
                         break;
                     case AsmJsType::Bool16x8:
@@ -1215,6 +1181,11 @@ namespace Js
                     case AsmJsType::Bool8x16:
                         opcode = OpCodeAsmJs::Simd128_I_ArgOut_B16;
                         break;
+                    case AsmJsType::Uint32x4:
+                    case AsmJsType::Uint16x8:
+                    case AsmJsType::Uint8x16:
+                        //In Asm.js unsigned SIMD types are not allowed as function arguments or return values.
+                        throw AsmJsCompilationException(_u("Function %s doesn't support argument of type %s. Argument must be of signed type."), funcName->Psz(), argInfo.type.toChars());
                     default:
                         Assert(UNREACHED);
                     }
@@ -1944,32 +1915,27 @@ namespace Js
         }
 
         EmitExpressionInfo emitInfo;
-        // Arg3 - Value to Store
-        if (simdFunction->IsSimdStoreFunc())
+        if (simdFunction->IsSimdStoreFunc()) //Store
         {
+            // Arg3 - Value to Store. Builtin returns the value being stored.
             Assert(valueNode);
-            // Emit 3rd argument
-            valueInfo = Emit(valueNode);
-            if (valueInfo.type != simdFunction->GetArgType(2))
+            emitInfo = Emit(valueNode);
+
+            if (emitInfo.type != simdFunction->GetArgType(2))
             {
                 throw AsmJsCompilationException(_u("Invalid value to SIMD store "));
             }
             // write opcode
-            mWriter.AsmSimdTypedArr(opcode, valueInfo.location, indexSlot, dataWidth, viewType);
-            mFunction->ReleaseLocation<AsmJsSIMDValue>(&valueInfo);
-            emitInfo.location = 0;
-            emitInfo.type = AsmJsType::Void;
-        }
-        else
-        {
-            // load
-            emitInfo.location = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
             mWriter.AsmSimdTypedArr(opcode, emitInfo.location, indexSlot, dataWidth, viewType);
+        }
+        else //Load
+        {
+            emitInfo.location = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
             emitInfo.type = simdFunction->GetReturnType().toType();
+            mWriter.AsmSimdTypedArr(opcode, emitInfo.location, indexSlot, dataWidth, viewType);
         }
 
         mFunction->ReleaseLocationGeneric(&indexInfo);
-
         return emitInfo;
     }
 

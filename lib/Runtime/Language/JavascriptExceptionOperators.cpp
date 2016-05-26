@@ -839,11 +839,6 @@ namespace Js
                 WalkStackForExceptionContext(*scriptContext, exceptionContext, thrownObject, StackCrawlLimitOnThrow(thrownObject, *scriptContext), returnAddress, /*isThrownException=*/ true, resetStack);
                 exceptionObject->FillError(exceptionContext, scriptContext);
                 AddStackTraceToObject(thrownObject, exceptionContext.GetStackTrace(), *scriptContext, /*isThrownException=*/ true, resetStack);
-
-                if (considerPassingToDebugger)
-                {
-                    DispatchExceptionToDebugger(exceptionObject, scriptContext);
-                }
             }
             Assert(!scriptContext ||
                    // If we disabled implicit calls and we did record an implicit call, do not throw.
@@ -856,6 +851,10 @@ namespace Js
                    !scriptContext->GetThreadContext()->IsDisableImplicitException()
             );
             scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
+            if (fillExceptionContext && considerPassingToDebugger)
+            {
+                DispatchExceptionToDebugger(exceptionObject, scriptContext);
+            }
        }
 
         if (exceptionObject->IsPendingExceptionObject())

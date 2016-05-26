@@ -98,14 +98,12 @@ namespace Js
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(value);
         __m128i x86tmp1;
 
-        if (count < 8)
-        {
-            __m128i mask = _mm_set1_epi8((unsigned char)0xff >> count);
+        count = count &  SIMDGetShiftAmountMask(1);
 
-            x86tmp1 = _mm_srli_epi16(tmpaValue.m128i_value, count);
-            x86Result.m128i_value = _mm_and_si128(x86tmp1, mask);
-        }
-
+       __m128i mask = _mm_set1_epi8((unsigned char)0xff >> count);
+        x86tmp1 = _mm_srli_epi16(tmpaValue.m128i_value, count);
+        x86Result.m128i_value = _mm_and_si128(x86tmp1, mask);
+       
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 

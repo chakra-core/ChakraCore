@@ -2,6 +2,7 @@
 *.sdf
 *.suo
 *.opensdf
+*.VC.db
 *.opendb
 *.user
 *.i
@@ -15,6 +16,8 @@ build_*.err
 buildchk.*
 buildfre.*
 Build/swum-cache.txt
+ComputedEnvironment.cmd
+packages/
 *.tlog/
 .*.swp
 sd.ini
@@ -32,3 +35,4 @@ test/benchmarks/*.dpl
 !/test/_ttdlog/readme.txt
 
 /Build/Chakra.Core.VC.db
+*.nupkg

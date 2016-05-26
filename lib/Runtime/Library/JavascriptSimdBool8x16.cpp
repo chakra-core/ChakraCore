@@ -9,6 +9,8 @@
 
 namespace Js
 {
+    const char16 JavascriptSIMDBool8x16::TypeName[] = _u("SIMD.Bool8x16");
+
     JavascriptSIMDBool8x16::JavascriptSIMDBool8x16(StaticType *type) : JavascriptSIMDType(type)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDBool8x16);
@@ -47,11 +49,9 @@ namespace Js
         return JavascriptSIMDBool8x16::New(&value, requestContext);
     }
 
-    const char16* JavascriptSIMDBool8x16::GetFullBuiltinName(char16** aBuffer, const char16* name)
+    const char16* JavascriptSIMDBool8x16::GetTypeName()
     {
-        Assert(aBuffer && *aBuffer);
-        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, _u("SIMD.Bool8x16.%s"), name);
-        return *aBuffer;
+        return JavascriptSIMDBool8x16::TypeName;
     }
 
     Var JavascriptSIMDBool8x16::Copy(ScriptContext* requestContext)

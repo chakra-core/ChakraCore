@@ -12,6 +12,25 @@ namespace Js
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
     }
 
+    RecyclableObject* JavascriptProxy::GetTarget()
+    {
+        if (target == nullptr)
+        {
+            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u(""));
+        }
+        return target;
+    }
+
+    RecyclableObject* JavascriptProxy::GetHandler()
+    {
+        if (handler == nullptr)
+        {
+            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u(""));
+        }
+        return handler;
+    }
+
+
     Var JavascriptProxy::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -38,7 +57,7 @@ namespace Js
 
         Var newTarget = args.Info.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
 
-        bool isCtorSuperCall = (args.Info.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (args.Info.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(args.Info.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
 
@@ -59,7 +78,7 @@ namespace Js
 #endif
         if (JavascriptProxy::Is(target))
         {
-            if (JavascriptProxy::FromVar(target)->GetTarget() == nullptr)
+            if (JavascriptProxy::FromVar(target)->target == nullptr)
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, _u("target"));
             }
@@ -72,7 +91,7 @@ namespace Js
         handler = DynamicObject::FromVar(args[2]);
         if (JavascriptProxy::Is(handler))
         {
-            if (JavascriptProxy::FromVar(handler)->GetHandler() == nullptr)
+            if (JavascriptProxy::FromVar(handler)->handler == nullptr)
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, _u("handler"));
             }
@@ -105,9 +124,10 @@ namespace Js
 
         JavascriptProxy* proxy = JavascriptProxy::Create(scriptContext, args);
         JavascriptLibrary* library = scriptContext->GetLibrary();
+        DynamicType* type = library->CreateFunctionWithLengthType(&EntryInfo::Revoke);
         RuntimeFunction* revoker = RecyclerNewEnumClass(scriptContext->GetRecycler(),
             library->EnumFunctionClass, RuntimeFunction,
-            library->CreateFunctionWithLengthType(&EntryInfo::Revoke), &EntryInfo::Revoke);
+            type, &EntryInfo::Revoke);
 
         revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(0), PropertyNone, NULL);
         revoker->SetInternalProperty(Js::InternalPropertyIds::RevocableProxy, proxy, PropertyOperationFlags::PropertyOperation_Force, nullptr);

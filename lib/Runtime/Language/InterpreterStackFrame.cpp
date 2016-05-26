@@ -1407,7 +1407,7 @@ namespace Js
             if (executeFunction->HasScopeObject())
             {
                 Js::RegSlot funcExprScopeReg = executeFunction->GetFuncExprScopeRegister();
-                if (funcExprScopeReg != Constants::NoRegister)
+                if (funcExprScopeReg != Constants::NoRegister && this->paramClosure == nullptr)
                 {
                     // t0 = NewPseudoScope
                     // t1 = LdFrameDisplay t0 env
@@ -3798,7 +3798,8 @@ namespace Js
         DynamicProfileInfo * dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
         FunctionInfo* functionInfo = function->GetTypeId() == TypeIds_Function?
             JavascriptFunction::FromVar(function)->GetFunctionInfo() : nullptr;
-        dynamicProfileInfo->RecordCallSiteInfo(functionBody, profileId, functionInfo, functionInfo ? static_cast<JavascriptFunction*>(function) : nullptr, playout->ArgCount, false, inlineCacheIndex);
+        bool isConstructorCall = (CallFlags_New & flags) == CallFlags_New;
+        dynamicProfileInfo->RecordCallSiteInfo(functionBody, profileId, functionInfo, functionInfo ? static_cast<JavascriptFunction*>(function) : nullptr, playout->ArgCount, isConstructorCall, inlineCacheIndex);
         OP_CallCommon<T>(playout, function, flags, spreadIndices);
         if (playout->Return != Js::Constants::NoRegister)
         {

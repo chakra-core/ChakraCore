@@ -1148,7 +1148,7 @@ namespace Js
         if (args.Info.Count >= 4 && JavascriptSIMDFloat32x4::Is(args[3]))
         {
             SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 4 * FLOAT32_SIZE, scriptContext);
-            return NULL;
+            return JavascriptSIMDFloat32x4::FromVar(args[3]);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Float32x4.store"));
     }
@@ -1166,7 +1166,7 @@ namespace Js
         if (args.Info.Count >= 4 && JavascriptSIMDFloat32x4::Is(args[3]))
         {
             SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 1 * FLOAT32_SIZE, scriptContext);
-            return NULL;
+            return JavascriptSIMDFloat32x4::FromVar(args[3]);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Float32x4.store"));
     }
@@ -1184,7 +1184,7 @@ namespace Js
         if (args.Info.Count >= 4 && JavascriptSIMDFloat32x4::Is(args[3]))
         {
             SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 2 * FLOAT32_SIZE, scriptContext);
-            return NULL;
+            return JavascriptSIMDFloat32x4::FromVar(args[3]);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Float32x4.store"));
     }
@@ -1202,7 +1202,7 @@ namespace Js
         if (args.Info.Count >= 4 && JavascriptSIMDFloat32x4::Is(args[3]))
         {
             SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 3 * FLOAT32_SIZE, scriptContext);
-            return NULL;
+            return JavascriptSIMDFloat32x4::FromVar(args[3]);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Float32x4.store"));
     }

@@ -14,6 +14,10 @@ function asmModule(stdlib, imports) {
 
     var loopCOUNT = 3;
 
+    var i8 = stdlib.SIMD.Int16x8;
+    var i8check = i8.check;
+    var i8fu8 = i8.fromUint16x8Bits;
+
     function splat1()
     {
         var a = ui8(0, 0, 0, 0, 0, 0, 0, 0);
@@ -23,7 +27,7 @@ function asmModule(stdlib, imports) {
             a = ui8splat(65535);
             loopIndex = (loopIndex + 1) | 0;
         }   
-        return ui8check(a);
+        return i8check(i8fu8(a));
     }
     
     function splat2()
@@ -36,7 +40,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(a);
+        return i8check(i8fu8(a));
     }
 
     function splat3()
@@ -49,7 +53,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui8check(a);
+        return i8check(i8fu8(a));
     }
     
     function value()
@@ -68,9 +72,9 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Uint16x8(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)});
 
-var ret1 = m.func1();
-var ret2 = m.func2();
-var ret3 = m.func3();
+var ret1 = SIMD.Uint16x8.fromInt16x8Bits(m.func1());
+var ret2 = SIMD.Uint16x8.fromInt16x8Bits(m.func2());
+var ret3 = SIMD.Uint16x8.fromInt16x8Bits(m.func3());
 
 equalSimd([65535, 65535, 65535, 65535, 65535, 65535, 65535, 65535], ret1, SIMD.Uint16x8, "");
 equalSimd([4951, 4951, 4951, 4951, 4951, 4951, 4951, 4951], ret2, SIMD.Uint16x8, "");

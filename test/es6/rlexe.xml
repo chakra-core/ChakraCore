@@ -190,6 +190,11 @@
   </test>
   <test>
     <default>
+      <files>blockscope-activationobject.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>blockscope-deferred.js</files>
       <baseline>blockscope-deferred.baseline</baseline>
     </default>
@@ -320,6 +325,13 @@
     <default>
       <files>classes_bug_OS_6471427.js</files>
       <compile-flags></compile-flags>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>classes_bug_OS_7100885.js</files>
+      <compile-flags>-maxsimplejitruncount:4 -maxinterpretcount:4</compile-flags>
       <tags>BugFix</tags>
     </default>
   </test>
@@ -672,8 +684,20 @@
   </test>
   <test>
     <default>
+      <files>proxyprotobug.js</files>
+      <baseline>proxyprotobug.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>proxyenumbug.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>proxy-issue884.js</files>
+      <baseline>proxy-issue884.baseline</baseline>
     </default>
   </test>
   <test>
@@ -691,19 +715,19 @@
   <test>
     <default>
       <files>default.js</files>
-      <compile-flags>-force:deferparse -ES6DefaultArgs -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-force:deferparse -ES6DefaultArgs -ES7AsyncAwait -ES6Generators -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>default.js</files>
-      <compile-flags>-off:deferparse -ES6DefaultArgs -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -ES6DefaultArgs -ES7AsyncAwait -ES6Generators -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>default.js</files>
-      <compile-flags>-force:CachedScope -ES6DefaultArgs -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-force:CachedScope -ES6DefaultArgs -ES7AsyncAwait -ES6Generators -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -716,6 +740,12 @@
     <default>
       <files>default-splitscope.js</files>
       <compile-flags>-force:deferparse -ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>default-splitscope-undodeferparse.js</files>
+      <compile-flags>-forceundodefer -ES6DefaultArgsSplitScope</compile-flags>
     </default>
   </test>
   <test>
@@ -734,6 +764,13 @@
     <default>
       <files>generators-syntax.js</files>
       <compile-flags>-ES6Generators -JitES6Generators -ES6Classes -ES6DefaultArgs -args summary -endargs</compile-flags>
+      <tags>exclude_arm</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generators-deferparse.js</files>
+      <compile-flags>-force:deferparse -ES6Generators -JitES6Generators -ES6Classes -ES6DefaultArgs</compile-flags>
       <tags>exclude_arm</tags>
     </default>
   </test>

@@ -34,6 +34,8 @@ namespace Js
     {
         SIMDValue result;
 
+        count = count & SIMDGetShiftAmountMask(4);
+
         result.u32[SIMD_X] = (value.u32[SIMD_X] >> count);
         result.u32[SIMD_Y] = (value.u32[SIMD_Y] >> count);
         result.u32[SIMD_Z] = (value.u32[SIMD_Z] >> count);
