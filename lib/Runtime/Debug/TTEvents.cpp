@@ -227,7 +227,7 @@ namespace TTD
 
     Js::FunctionBody* TTDebuggerSourceLocation::ResolveAssociatedSourceInfo(Js::ScriptContext* ctx)
     {
-        Js::FunctionBody* resBody = ctx->FindFunctionBodyByFileName_TTD(this->m_sourceFile);
+        Js::FunctionBody* resBody = ctx->TTDContextInfo->FindFunctionBodyByFileName(this->m_sourceFile);
 
         while(true)
         {
@@ -294,7 +294,7 @@ namespace TTD
 
             if(replayVar != nullptr && TTD::JsSupport::IsVarPtrValued(replayVar))
             {
-                ctx->AddLocalRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar), Js::RecyclableObject::FromVar(replayVar));
+                ctx->TTDContextInfo->AddLocalRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar), Js::RecyclableObject::FromVar(replayVar));
             }
         }
 
@@ -308,7 +308,7 @@ namespace TTD
             }
             else
             {
-                return ctx->LookupObjectForLogID(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar));
+                return ctx->TTDContextInfo->LookupObjectForLogID(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar));
             }
         }
 

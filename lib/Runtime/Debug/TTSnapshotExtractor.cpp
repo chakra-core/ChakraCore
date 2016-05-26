@@ -285,11 +285,11 @@ namespace TTD
     {
         if(this->m_marks.MarkAndTestAddr<MarkTableTag::FunctionBodyTag>(fb))
         {
-            Js::FunctionBody* currfb = fb->GetScriptContext()->ResolveParentBody(fb);
+            Js::FunctionBody* currfb = fb->GetScriptContext()->TTDContextInfo->ResolveParentBody(fb);
 
             while(currfb != nullptr && this->m_marks.MarkAndTestAddr<MarkTableTag::FunctionBodyTag>(currfb))
             {
-                currfb = currfb->GetScriptContext()->ResolveParentBody(currfb);
+                currfb = currfb->GetScriptContext()->TTDContextInfo->ResolveParentBody(currfb);
             }
         }
     }
@@ -376,7 +376,7 @@ namespace TTD
         //Mark all of the well known objects/types
         for(int32 i = 0; i < ctxs.Count(); ++i)
         {
-            ctxs.Item(i)->MarkWellKnownObjects_TTD(this->m_marks);
+            ctxs.Item(i)->TTDWellKnownInfo->MarkWellKnownObjects_TTD(this->m_marks);
         }
 
         double endTime = timer.Now();
@@ -403,7 +403,7 @@ namespace TTD
             topLevelEval.Clear();
 
             Js::ScriptContext* ctx = ctxs.Item(i);
-            ctx->GetLoadedSources_TTD(topLevelScriptLoad, topLevelNewFunction, topLevelEval);
+            ctx->TTDContextInfo->GetLoadedSources(topLevelScriptLoad, topLevelNewFunction, topLevelEval);
 
             for(int32 j = 0; j < topLevelScriptLoad.Count(); ++j)
             {

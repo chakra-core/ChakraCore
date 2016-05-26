@@ -33,12 +33,16 @@ namespace TTD
             this->Append(str.m_contents);
         }
 
-        TTAutoString::TTAutoString(TTAutoString&& str)
-            : m_allocSize(str.m_allocSize), m_contents(str.m_contents), m_optFormatBuff(str.m_optFormatBuff)
+        TTAutoString& TTAutoString::operator=(const TTAutoString& str)
         {
-            str.m_allocSize = -1;
-            str.m_contents = nullptr;
-            str.m_optFormatBuff = nullptr;
+            if(this != &str)
+            {
+                this->Clear();
+
+                this->Append(str.GetStrValue());
+            }
+
+            return *this;
         }
 
         TTAutoString::~TTAutoString()
@@ -60,37 +64,6 @@ namespace TTD
                 HeapDeleteArray(64, this->m_optFormatBuff);
                 this->m_optFormatBuff = nullptr;
             }
-        }
-
-        TTAutoString& TTAutoString::operator=(const TTAutoString& str)
-        {
-            if(this != &str)
-            {
-                this->Clear();
-
-                this->Append(str.GetStrValue());
-            }
-
-            return *this;
-        }
-
-        TTAutoString& TTAutoString::operator=(TTAutoString&& str)
-        {
-            if(this != &str)
-            {
-                this->Clear();
-
-                this->m_allocSize = str.m_allocSize;
-                str.m_allocSize = -1;
-
-                this->m_contents = str.m_contents;
-                str.m_contents = nullptr;
-
-                this->m_optFormatBuff = str.m_optFormatBuff;
-                str.m_optFormatBuff = nullptr;
-            }
-
-            return *this;
         }
 
         bool TTAutoString::IsNullString() const

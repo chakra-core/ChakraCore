@@ -174,7 +174,7 @@ namespace Js
 
     void EngineInterfaceObject::ProcessCorePaths()
     {
-        this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk()->EnqueueNewPathVarAsNeeded(this, this->commonNativeInterfaces, L"!commonNativeInterfaces");
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->commonNativeInterfaces, L"!commonNativeInterfaces");
     }
 
     TTD::NSSnapObjects::SnapObjectType EngineInterfaceObject::GetSnapTag_TTD() const

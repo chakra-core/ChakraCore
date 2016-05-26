@@ -176,7 +176,7 @@ namespace TTD
             Js::Var var = InflateVarInReplay(ctx, action->Var1);
             Js::RecyclableObject* newObj = Js::RecyclableObject::FromVar(var);
 
-            ctx->AddTrackedRoot_TTD(origId, newObj);
+            ctx->TTDContextInfo->AddTrackedRoot(origId, newObj);
         }
 
         void RemoveRootRef_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
@@ -188,7 +188,7 @@ namespace TTD
             Js::Var var = InflateVarInReplay(ctx, action->Var1);
             Js::RecyclableObject* deleteObj = Js::RecyclableObject::FromVar(var);
 
-            ctx->RemoveTrackedRoot_TTD(origId, deleteObj);
+            ctx->TTDContextInfo->RemoveTrackedRoot(origId, deleteObj);
         }
 
         void AllocateObject_Execute(const EventLogEntry* evt, Js::ScriptContext* ctx)
@@ -610,10 +610,10 @@ namespace TTD
 
             ////
             //We don't do this automatically in the eval helper so do it here
-            ctx->ProcessFunctionBodyOnLoad(fb, nullptr);
-            ctx->RegisterLoadedScript(fb, cpAction->BodyCtrId);
+            ctx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
+            ctx->TTDContextInfo->RegisterLoadedScript(fb, cpAction->BodyCtrId);
 
-            const HostScriptContextCallbackFunctor& hostFunctor = ctx->GetCallbackFunctor_TTD();
+            const HostScriptContextCallbackFunctor& hostFunctor = ctx->TTDHostCallbackFunctor;
             if(hostFunctor.pfOnScriptLoadCallback != nullptr)
             {
                 hostFunctor.pfOnScriptLoadCallback(hostFunctor.HostData, function, utf8SourceInfo, &se);

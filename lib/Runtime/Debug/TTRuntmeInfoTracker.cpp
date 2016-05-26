@@ -8,6 +8,246 @@
 
 namespace TTD
 {
+    ScriptContextTTD::ScriptContextTTD(Js::ScriptContext* ctx)
+        : m_ctx(ctx),
+        m_ttdRootSet(nullptr), m_ttdLocalRootSet(nullptr), m_ttdRootTagIdMap(&HeapAllocator::Instance),
+        m_ttdTopLevelScriptLoad(&HeapAllocator::Instance), m_ttdTopLevelNewFunction(&HeapAllocator::Instance), m_ttdTopLevelEval(&HeapAllocator::Instance),
+        m_ttdPinnedRootFunctionSet(nullptr), m_ttdFunctionBodyParentMap(&HeapAllocator::Instance),
+        TTDWeakReferencePinSet(nullptr)
+    {
+        Recycler* ctxRecycler = this->m_ctx->GetRecycler();
+
+        this->m_ttdRootSet = RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler);
+        ctxRecycler->RootAddRef(this->m_ttdRootSet);
+
+        this->m_ttdLocalRootSet = RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler);
+        ctxRecycler->RootAddRef(this->m_ttdLocalRootSet);
+
+        this->m_ttdPinnedRootFunctionSet = RecyclerNew(ctxRecycler, TTD::FunctionBodyPinSet, ctxRecycler);
+        ctxRecycler->RootAddRef(this->m_ttdPinnedRootFunctionSet);
+
+        this->TTDWeakReferencePinSet = RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler);
+        ctxRecycler->RootAddRef(this->TTDWeakReferencePinSet);
+    }
+
+    ScriptContextTTD::~ScriptContextTTD()
+    {
+        if(this->m_ttdRootSet != nullptr)
+        {
+            this->m_ttdRootSet->GetAllocator()->RootRelease(this->m_ttdRootSet);
+            this->m_ttdRootSet = nullptr;
+        }
+
+        if(this->m_ttdLocalRootSet != nullptr)
+        {
+            this->m_ttdLocalRootSet->GetAllocator()->RootRelease(this->m_ttdLocalRootSet);
+            this->m_ttdLocalRootSet = nullptr;
+        }
+
+        this->m_ttdRootTagIdMap.Clear();
+
+        this->m_ttdTopLevelScriptLoad.Clear();
+        this->m_ttdTopLevelNewFunction.Clear();
+        this->m_ttdTopLevelEval.Clear();
+
+        if(this->m_ttdPinnedRootFunctionSet != nullptr)
+        {
+            this->m_ttdPinnedRootFunctionSet->GetAllocator()->RootRelease(this->m_ttdPinnedRootFunctionSet);
+            this->m_ttdPinnedRootFunctionSet = nullptr;
+        }
+
+        this->m_ttdFunctionBodyParentMap.Clear();
+
+        if(this->TTDWeakReferencePinSet != nullptr)
+        {
+            this->TTDWeakReferencePinSet->GetAllocator()->RootRelease(this->TTDWeakReferencePinSet);
+            this->TTDWeakReferencePinSet = nullptr;
+        }
+    }
+
+    //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
+    void ScriptContextTTD::AddTrackedRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
+    {
+        //We provide special treatment for undefined, null, true, false, global and may add them multiple times 
+        AssertMsg(!this->m_ttdRootSet->ContainsKey(newRoot) || (newRoot->GetTypeId() <= Js::TypeIds_Boolean) || (newRoot->GetTypeId() == Js::TypeIds_GlobalObject), "Should not have duplicate inserts.");
+
+        this->m_ttdRootSet->AddNew(newRoot);
+        this->m_ttdRootTagIdMap.Item(origId, newRoot);
+    }
+
+    void ScriptContextTTD::RemoveTrackedRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot)
+    {
+        AssertMsg(this->m_ttdRootSet->ContainsKey(deleteRoot), "Should not have delete elements that are not in the root set.");
+
+        //We provide special treatment for undefined, null, true, false, global and want to ensure they are always in the root set and map
+        Js::TypeId tid = deleteRoot->GetTypeId();
+        if((tid > Js::TypeIds_Boolean) & (tid != Js::TypeIds_GlobalObject))
+        {
+            this->m_ttdRootSet->Remove(deleteRoot);
+            if(!this->m_ttdLocalRootSet->ContainsKey(deleteRoot))
+            {
+                this->m_ttdRootTagIdMap.Remove(origId);
+            }
+        }
+    }
+
+    const ObjectPinSet* ScriptContextTTD::GetRootSet() const
+    {
+        return this->m_ttdRootSet;
+    }
+
+    void ScriptContextTTD::AddLocalRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot)
+    {
+        this->m_ttdLocalRootSet->AddNew(newRoot);
+        this->m_ttdRootTagIdMap.Item(origId, newRoot);
+    }
+
+    void ScriptContextTTD::ClearLocalRootsAndRefreshMap()
+    {
+        this->m_ttdLocalRootSet->Clear();
+
+        this->m_ttdRootTagIdMap.MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<TTD_LOG_PTR_ID, Js::RecyclableObject*>& entry) -> bool
+        {
+            Js::RecyclableObject* obj = entry.Value();
+            return !this->m_ttdRootSet->Contains(obj);
+        });
+    }
+
+    const ObjectPinSet* ScriptContextTTD::GetLocalRootSet() const
+    {
+        return this->m_ttdLocalRootSet;
+    }
+
+    void ScriptContextTTD::LoadInvertedRootMap(JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap) const
+    {
+        for(auto iter = this->m_ttdRootTagIdMap.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            objToLogIdMap.AddNew(iter.CurrentValue(), iter.CurrentKey());
+        }
+    }
+
+    void ScriptContextTTD::ExtractSnapshotRoots(JsUtil::List<Js::Var, HeapAllocator>& roots)
+    {
+        for(auto rootIter = this->m_ttdRootSet->GetIterator(); rootIter.IsValid(); rootIter.MoveNext())
+        {
+            Js::RecyclableObject* obj = rootIter.CurrentValue();
+            roots.Add(obj);
+        }
+
+        for(auto localIter = this->m_ttdLocalRootSet->GetIterator(); localIter.IsValid(); localIter.MoveNext())
+        {
+            Js::RecyclableObject* obj = localIter.CurrentValue();
+            if(!this->m_ttdRootSet->Contains(obj))
+            {
+                roots.Add(obj);
+            }
+        }
+    }
+
+    Js::RecyclableObject* ScriptContextTTD::LookupObjectForLogID(TTD_LOG_PTR_ID origId)
+    {
+        //Local root always has mappings for all the ids
+        Js::RecyclableObject* res = this->m_ttdRootTagIdMap.LookupWithKey(origId, nullptr);
+        AssertMsg(res != nullptr, "We lost an id somewhere");
+
+        return res;
+    }
+
+    void ScriptContextTTD::ClearRootsForSnapRestore()
+    {
+        this->m_ttdRootSet->Clear();
+        this->m_ttdLocalRootSet->Clear();
+
+        this->m_ttdRootTagIdMap.Clear();
+    }
+
+    void ScriptContextTTD::GetLoadedSources(JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval)
+    {
+        AssertMsg(topLevelScriptLoad.Count() == 0 && topLevelNewFunction.Count() == 0 && topLevelEval.Count() == 0, "Should be empty when you call this.");
+
+        topLevelScriptLoad.AddRange(this->m_ttdTopLevelScriptLoad);
+        topLevelNewFunction.AddRange(this->m_ttdTopLevelNewFunction);
+        topLevelEval.AddRange(this->m_ttdTopLevelEval);
+    }
+
+    bool ScriptContextTTD::IsBodyAlreadyLoadedAtTopLevel(Js::FunctionBody* body) const
+    {
+        return this->m_ttdPinnedRootFunctionSet->Contains(body);
+    }
+
+    void ScriptContextTTD::ProcessFunctionBodyOnLoad(Js::FunctionBody* body, Js::FunctionBody* parent)
+    {
+        //if this is a root (parent is null) then put this in the rootbody pin set so it isn't reclaimed on us
+        if(parent == nullptr)
+        {
+            AssertMsg(!this->m_ttdPinnedRootFunctionSet->Contains(body), "We already added this function!!!");
+            this->m_ttdPinnedRootFunctionSet->AddNew(body);
+        }
+
+        this->m_ttdFunctionBodyParentMap.AddNew(body, parent);
+
+        for(uint32 i = 0; i < body->GetNestedCount(); ++i)
+        {
+            Js::ParseableFunctionInfo* pfiMid = body->GetNestedFunc(i)->EnsureDeserialized();
+            Js::FunctionBody* currfb = TTD::JsSupport::ForceAndGetFunctionBody(pfiMid);
+
+            this->ProcessFunctionBodyOnLoad(currfb, body);
+        }
+    }
+
+    void ScriptContextTTD::RegisterLoadedScript(Js::FunctionBody* body, uint64 bodyCtrId)
+    {
+        TTD::TopLevelFunctionInContextRelation relation;
+        relation.TopLevelBodyCtr = bodyCtrId;
+        relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
+
+        this->m_ttdTopLevelScriptLoad.Add(relation);
+    }
+
+    void ScriptContextTTD::RegisterNewScript(Js::FunctionBody* body, uint64 bodyCtrId)
+    {
+        TTD::TopLevelFunctionInContextRelation relation;
+        relation.TopLevelBodyCtr = bodyCtrId;
+        relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
+
+        this->m_ttdTopLevelNewFunction.Add(relation);
+    }
+
+    void ScriptContextTTD::RegisterEvalScript(Js::FunctionBody* body, uint64 bodyCtrId)
+    {
+        TTD::TopLevelFunctionInContextRelation relation;
+        relation.TopLevelBodyCtr = bodyCtrId;
+        relation.ContextSpecificBodyPtrId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(body);
+
+        this->m_ttdTopLevelEval.Add(relation);
+    }
+
+    Js::FunctionBody* ScriptContextTTD::ResolveParentBody(Js::FunctionBody* body) const
+    {
+        return this->m_ttdFunctionBodyParentMap.LookupWithKey(body, nullptr);
+    }
+
+    Js::FunctionBody* ScriptContextTTD::FindFunctionBodyByFileName(LPCWSTR filename) const
+    {
+        AssertMsg(filename != nullptr, "We don't want to set breakpoints in non-user code!!!");
+
+        for(auto iter = this->m_ttdPinnedRootFunctionSet->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::FunctionBody* cfb = static_cast<Js::FunctionBody*>(iter.CurrentValue());
+
+            LPCWSTR curi = cfb->GetSourceContextInfo()->url;
+            if(curi != nullptr && wcscmp(filename, curi) == 0)
+            {
+                return cfb;
+            }
+        }
+
+        AssertMsg(false, "We should never get here!!!");
+        return nullptr;
+    }
+
+    //////////////////
+
     void RuntimeContextInfo::BuildPathString(UtilSupport::TTAutoString rootpath, LPCWSTR name, LPCWSTR optaccessortag, UtilSupport::TTAutoString& into)
     {
         into.Append(rootpath);
@@ -20,7 +260,7 @@ namespace TTD
         }
     }
 
-    void RuntimeContextInfo::LoadAndOrderPropertyNames(Js::RecyclableObject* obj, JsUtil::List<const Js::PropertyRecord*, ArenaAllocator>& propertyList)
+    void RuntimeContextInfo::LoadAndOrderPropertyNames(Js::RecyclableObject* obj, JsUtil::List<const Js::PropertyRecord*, HeapAllocator>& propertyList)
     {
         AssertMsg(propertyList.Count() == 0, "This should be empty.");
 
@@ -78,10 +318,10 @@ namespace TTD
         }
     }
     
-    RuntimeContextInfo::RuntimeContextInfo(ArenaAllocator* allocator)
-        : m_shaddowAllocator(allocator), m_worklist(allocator), m_nullString(),
-        m_coreObjToPathMap(allocator, TTD_CORE_OBJECT_COUNT), m_coreBodyToPathMap(allocator, TTD_CORE_FUNCTION_BODY_COUNT),
-        m_sortedObjectList(allocator, TTD_CORE_OBJECT_COUNT), m_sortedFunctionBodyList(allocator, TTD_CORE_FUNCTION_BODY_COUNT)
+    RuntimeContextInfo::RuntimeContextInfo()
+        : m_worklist(&HeapAllocator::Instance), m_nullString(),
+        m_coreObjToPathMap(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_coreBodyToPathMap(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT),
+        m_sortedObjectList(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_sortedFunctionBodyList(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT)
     {
         ;
     }
@@ -90,12 +330,12 @@ namespace TTD
     {
         for(auto iter = this->m_coreObjToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            const_cast<TTD::UtilSupport::TTAutoString&>(iter.CurrentValue()).Clear();
+            HeapDelete(iter.CurrentValue());
         }
 
         for(auto iter = this->m_coreBodyToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            const_cast<TTD::UtilSupport::TTAutoString&>(iter.CurrentValue()).Clear();
+            HeapDelete(iter.CurrentValue());
         }
     }
 
@@ -117,23 +357,26 @@ namespace TTD
 
     TTD_WELLKNOWN_TOKEN RuntimeContextInfo::ResolvePathForKnownObject(Js::RecyclableObject* obj) const
     {
-        const UtilSupport::TTAutoString& res = this->m_coreObjToPathMap.LookupWithKey(obj, this->m_nullString);
-        
-        return (!res.IsNullString()) ? res.GetStrValue() : TTD_INVALID_WELLKNOWN_TOKEN;
+        const UtilSupport::TTAutoString* res = this->m_coreObjToPathMap.LookupWithKey(obj, nullptr);
+        AssertMsg(res != nullptr, "This isn't a well known object!");
+
+        return res->GetStrValue();
     }
 
     TTD_WELLKNOWN_TOKEN RuntimeContextInfo::ResolvePathForKnownFunctionBody(Js::FunctionBody* fbody) const
     {
-        const UtilSupport::TTAutoString& res = this->m_coreBodyToPathMap.LookupWithKey(fbody, this->m_nullString);
-        
-        return (!res.IsNullString()) ? res.GetStrValue() : TTD_INVALID_WELLKNOWN_TOKEN;
+        const UtilSupport::TTAutoString* res = this->m_coreBodyToPathMap.LookupWithKey(fbody, nullptr);
+        AssertMsg(res != nullptr, "This isn't a well known object!");
+
+        return res->GetStrValue();
     }
 
     Js::RecyclableObject* RuntimeContextInfo::LookupKnownObjectFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const
     {
         int32 pos = LookupPositionInDictNameList<Js::RecyclableObject*, true>(pathIdString, this->m_coreObjToPathMap, this->m_sortedObjectList, this->m_nullString);
-        
-        return (pos != -1) ? this->m_sortedObjectList.Item(pos) : nullptr;
+        AssertMsg(pos != -1, "This isn't a well known object!");
+
+        return this->m_sortedObjectList.Item(pos);
     }
 
     Js::FunctionBody* RuntimeContextInfo::LookupKnownFunctionBodyFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const
@@ -146,7 +389,7 @@ namespace TTD
 
     void RuntimeContextInfo::GatherKnownObjectToPathMap(Js::ScriptContext* ctx)
     {
-        JsUtil::List<const Js::PropertyRecord*, ArenaAllocator> propertyRecordList(this->m_shaddowAllocator);
+        JsUtil::List<const Js::PropertyRecord*, HeapAllocator> propertyRecordList(&HeapAllocator::Instance);
 
         this->EnqueueRootPathObject(_u("global"), ctx->GetGlobalObject());
         this->EnqueueRootPathObject(_u("null"), ctx->GetLibrary()->GetNull());
@@ -216,12 +459,6 @@ namespace TTD
                 this->EnqueueNewPathVarAsNeeded(curr, proto, _u("_proto_"));
             }
 
-            if(Js::GlobalObject::Is(curr))
-            {
-                //Place some other values in known locations (they may lazily appear later but we want to force them now)
-                this->EnqueueRootPathObject(_u("__Shadow_DefaultAccessorFunction"), ctx->GetLibrary()->GetDefaultAccessorFunction());
-            }
-
             curr->ProcessCorePaths();
         }
 
@@ -235,7 +472,9 @@ namespace TTD
     {
         this->m_worklist.Enqueue(obj);
 
-        UtilSupport::TTAutoString rootStr(rootName);
+        UtilSupport::TTAutoString* rootStr = HeapNew(UtilSupport::TTAutoString, rootName);
+
+        AssertMsg(!this->m_coreObjToPathMap.ContainsKey(obj), "Already in map!!!");
         this->m_coreObjToPathMap.AddNew(obj, rootStr);
     }
 
@@ -259,19 +498,20 @@ namespace TTD
         Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(val);
         if(!this->m_coreObjToPathMap.ContainsKey(obj))
         {   
-            const UtilSupport::TTAutoString& ppath = this->m_coreObjToPathMap.LookupWithKey(parent, this->m_nullString);
+            const UtilSupport::TTAutoString* ppath = this->m_coreObjToPathMap.LookupWithKey(parent, nullptr);
 
             this->m_worklist.Enqueue(obj);
 
-            UtilSupport::TTAutoString tpath(ppath);
-            tpath.Append(_u("."));
-            tpath.Append(propName);
+            UtilSupport::TTAutoString* tpath = HeapNew(UtilSupport::TTAutoString, *ppath);
+            tpath->Append(_u("."));
+            tpath->Append(propName);
 
             if(optacessortag != nullptr)
             {
-                tpath.Append(optacessortag);
+                tpath->Append(optacessortag);
             }
 
+            AssertMsg(!this->m_coreObjToPathMap.ContainsKey(obj), "Already in map!!!");
             this->m_coreObjToPathMap.AddNew(obj, tpath);
         }
     }
@@ -280,53 +520,39 @@ namespace TTD
     {
         if(!this->m_coreBodyToPathMap.ContainsKey(fbody))
         {
-            const UtilSupport::TTAutoString& ppath = this->m_coreObjToPathMap.LookupWithKey(parent, this->m_nullString);
+            const UtilSupport::TTAutoString* ppath = this->m_coreObjToPathMap.LookupWithKey(parent, nullptr);
 
-            UtilSupport::TTAutoString fpath(ppath);
+            UtilSupport::TTAutoString* fpath = HeapNew(UtilSupport::TTAutoString, *ppath);
 
-            fpath.Append(_u("."));
-            fpath.Append(name);
+            fpath->Append(_u("."));
+            fpath->Append(name);
 
+            AssertMsg(!this->m_coreBodyToPathMap.ContainsKey(fbody), "Already in map!!!");
             this->m_coreBodyToPathMap.AddNew(fbody, fpath);
         }
     }
 
-    UtilSupport::TTAutoString RuntimeContextInfo::BuildArrayIndexBuffer(uint32 arrayidx)
+    void RuntimeContextInfo::BuildArrayIndexBuffer(uint32 arrayidx, UtilSupport::TTAutoString& res)
     {
-        UtilSupport::TTAutoString res(_u("!arrayContents["));
+        res.Append(_u("!arrayContents["));
         res.Append(arrayidx);
         res.Append(_u("]"));
-
-        return res;
     }
 
-    UtilSupport::TTAutoString RuntimeContextInfo::BuildEnvironmentIndexBuffer(uint32 envidx)
+    void RuntimeContextInfo::BuildEnvironmentIndexBuffer(uint32 envidx, UtilSupport::TTAutoString& res)
     {
-        UtilSupport::TTAutoString res(_u("!env["));
+        res.Append(_u("!env["));
         res.Append(envidx);
         res.Append(_u("]"));
-
-        return res;
     }
 
-    UtilSupport::TTAutoString RuntimeContextInfo::BuildEnvironmentIndexBodyBuffer(uint32 envidx)
+    void RuntimeContextInfo::BuildEnvironmentIndexAndSlotBuffer(uint32 envidx, uint32 slotidx, UtilSupport::TTAutoString& res)
     {
-        UtilSupport::TTAutoString res(_u("!env["));
-        res.Append(envidx);
-        res.Append(_u("].!body"));
-
-        return res;
-    }
-
-    UtilSupport::TTAutoString RuntimeContextInfo::BuildEnvironmentIndexAndSlotBuffer(uint32 envidx, uint32 slotidx)
-    {
-        UtilSupport::TTAutoString res(_u("!env["));
+        res.Append(_u("!env["));
         res.Append(envidx);
         res.Append(_u("].!slot["));
         res.Append(slotidx);
         res.Append(_u("]"));
-
-        return res;
     }
 }
 

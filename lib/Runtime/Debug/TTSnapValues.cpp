@@ -309,7 +309,8 @@ namespace TTD
             Js::Type* objType = jsValue->GetType();
             snapValue->SnapType = idToTypeMap.LookupKnownItem(TTD_CONVERT_TYPEINFO_TO_PTR_ID(objType));
 
-            snapValue->OptWellKnownToken = alloc.CopyRawNullTerminatedStringInto(isWellKnown ? jsValue->GetScriptContext()->ResolveKnownTokenForPrimitive_TTD(jsValue) : TTD_INVALID_WELLKNOWN_TOKEN);
+            TTD_WELLKNOWN_TOKEN lookupToken = isWellKnown ? jsValue->GetScriptContext()->TTDWellKnownInfo->ResolvePathForKnownObject(jsValue) : TTD_INVALID_WELLKNOWN_TOKEN;
+            snapValue->OptWellKnownToken = alloc.CopyRawNullTerminatedStringInto(lookupToken);
 
             if(snapValue->OptWellKnownToken == TTD_INVALID_WELLKNOWN_TOKEN)
             {
@@ -354,7 +355,7 @@ namespace TTD
             Js::Var res = nullptr;
             if(snapValue->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN)
             {
-                res = ctx->LookupPrimitiveForKnownToken_TTD(snapValue->OptWellKnownToken);
+                res = ctx->TTDWellKnownInfo->LookupKnownObjectFromPath(snapValue->OptWellKnownToken);
             }
             else
             {
@@ -1096,11 +1097,11 @@ namespace TTD
 
             ////
             //We don't do this automatically in the load script helper so do it here
-            ctx->ProcessFunctionBodyOnLoad(globalBody, nullptr);
-            ctx->RegisterLoadedScript(globalBody, fbInfo->TopLevelBase.TopLevelBodyCtr);
+            ctx->TTDContextInfo->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+            ctx->TTDContextInfo->RegisterLoadedScript(globalBody, fbInfo->TopLevelBase.TopLevelBodyCtr);
 
             bool isLibraryCode = ((fbInfo->LoadFlag & LoadScriptFlag_LibraryCode) == LoadScriptFlag_LibraryCode);
-            const HostScriptContextCallbackFunctor& hostFunctor = ctx->GetCallbackFunctor_TTD();
+            const HostScriptContextCallbackFunctor& hostFunctor = ctx->TTDHostCallbackFunctor;
             if(hostFunctor.pfOnScriptLoadCallback != nullptr && !isLibraryCode)
             {
                 hostFunctor.pfOnScriptLoadCallback(hostFunctor.HostData, scriptFunction, utf8SourceInfo, &se);
@@ -1166,8 +1167,8 @@ namespace TTD
             Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
 
             //We don't do this automatically in the eval helper so do it here
-            ctx->ProcessFunctionBodyOnLoad(fb, nullptr);
-            ctx->RegisterNewScript(fb, fbInfo->TopLevelBase.TopLevelBodyCtr);
+            ctx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
+            ctx->TTDContextInfo->RegisterNewScript(fb, fbInfo->TopLevelBase.TopLevelBodyCtr);
 
             return fb;
         }
@@ -1221,8 +1222,8 @@ namespace TTD
             Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
 
             //We don't do this automatically ing the eval helper so do it here
-            ctx->ProcessFunctionBodyOnLoad(fb, nullptr);
-            ctx->RegisterEvalScript(fb, fbInfo->TopLevelBase.TopLevelBodyCtr);
+            ctx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
+            ctx->TTDContextInfo->RegisterEvalScript(fb, fbInfo->TopLevelBase.TopLevelBodyCtr);
 
             return fb;
         }
@@ -1271,7 +1272,7 @@ namespace TTD
 
             if(isWellKnown)
             {
-                fbInfo->OptKnownPath = alloc.CopyRawNullTerminatedStringInto(fb->GetScriptContext()->ResolveKnownTokenForRuntimeFunctionBody_TTD(fb));
+                fbInfo->OptKnownPath = alloc.CopyRawNullTerminatedStringInto(fb->GetScriptContext()->TTDWellKnownInfo->ResolvePathForKnownFunctionBody(fb));
 
                 fbInfo->OptParentBodyId = TTD_INVALID_PTR_ID;
                 fbInfo->OptLine = -1;
@@ -1281,7 +1282,7 @@ namespace TTD
             {
                 fbInfo->OptKnownPath = TTD_INVALID_WELLKNOWN_TOKEN;
 
-                Js::FunctionBody* parentBody = fb->GetScriptContext()->ResolveParentBody(fb);
+                Js::FunctionBody* parentBody = fb->GetScriptContext()->TTDContextInfo->ResolveParentBody(fb);
                 AssertMsg(parentBody != nullptr, "We missed something!!!");
 
                 fbInfo->OptParentBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(parentBody);
@@ -1302,7 +1303,7 @@ namespace TTD
             Js::FunctionBody* resfb = nullptr;
             if(fbInfo->OptKnownPath != TTD_INVALID_WELLKNOWN_TOKEN)
             {
-                resfb = ctx->LookupRuntimeFunctionBodyForKnownToken_TTD(fbInfo->OptKnownPath);
+                resfb = ctx->TTDWellKnownInfo->LookupKnownFunctionBodyFromPath(fbInfo->OptKnownPath);
             }
             else
             {
@@ -1466,7 +1467,7 @@ namespace TTD
             JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance);
             JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelEval(&HeapAllocator::Instance);
 
-            ctx->GetLoadedSources_TTD(topLevelScriptLoad, topLevelNewFunction, topLevelEval);
+            ctx->TTDContextInfo->GetLoadedSources(topLevelScriptLoad, topLevelNewFunction, topLevelEval);
 
             snapCtx->m_loadedTopLevelScriptCount = topLevelScriptLoad.Count();
             snapCtx->m_loadedTopLevelScriptArray = (snapCtx->m_loadedTopLevelScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(snapCtx->m_loadedTopLevelScriptCount) : nullptr;
@@ -1492,17 +1493,14 @@ namespace TTD
             //invert the root map for extracting
 
             JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator> objToLogIdMap(&HeapAllocator::Instance);
-            for(auto iter = ctx->m_ttdRootTagIdMap.GetIterator(); iter.IsValid(); iter.MoveNext())
-            {
-                objToLogIdMap.AddNew(iter.CurrentValue(), iter.CurrentKey());
-            }
+            ctx->TTDContextInfo->LoadInvertedRootMap(objToLogIdMap);
 
             //Extract global roots
-            snapCtx->m_globalRootCount = ctx->m_ttdRootSet->Count();
+            snapCtx->m_globalRootCount = ctx->TTDContextInfo->GetRootSet()->Count();
             snapCtx->m_globalRootArray = (snapCtx->m_globalRootCount != 0) ? alloc.SlabAllocateArray<SnapRootPinEntry>(snapCtx->m_globalRootCount) : nullptr;
 
             int32 i = 0;
-            for(auto iter = ctx->m_ttdRootSet->GetIterator(); iter.IsValid(); iter.MoveNext())
+            for(auto iter = ctx->TTDContextInfo->GetRootSet()->GetIterator(); iter.IsValid(); iter.MoveNext())
             {
                 AssertMsg(objToLogIdMap.ContainsKey(iter.CurrentValue()), "We are missing a value mapping!!!");
 
@@ -1513,11 +1511,11 @@ namespace TTD
             }
 
             //Extract local roots
-            snapCtx->m_localRootCount = ctx->m_ttdLocalRootSet->Count();
+            snapCtx->m_localRootCount = ctx->TTDContextInfo->GetLocalRootSet()->Count();
             snapCtx->m_localRootArray = (snapCtx->m_localRootCount != 0) ? alloc.SlabAllocateArray<SnapRootPinEntry>(snapCtx->m_localRootCount) : nullptr;
 
             int32 j = 0;
-            for(auto iter = ctx->m_ttdLocalRootSet->GetIterator(); iter.IsValid(); iter.MoveNext())
+            for(auto iter = ctx->TTDContextInfo->GetLocalRootSet()->GetIterator(); iter.IsValid(); iter.MoveNext())
             {
                 AssertMsg(objToLogIdMap.ContainsKey(iter.CurrentValue()), "We are missing a value mapping!!!");
 
@@ -1582,14 +1580,14 @@ namespace TTD
 
         void ReLinkRoots(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator)
         {
-            intoCtx->ClearRootsForSnapRestore_TTD();
+            intoCtx->TTDContextInfo->ClearRootsForSnapRestore();
 
             for(uint32 i = 0; i < snpCtx->m_globalRootCount; ++i)
             {
                 const SnapRootPinEntry& rootEntry = snpCtx->m_globalRootArray[i];
                 Js::RecyclableObject* rootObj = inflator->LookupObject(rootEntry.LogObject);
 
-                intoCtx->AddTrackedRoot_TTD(rootEntry.LogId, rootObj);
+                intoCtx->TTDContextInfo->AddTrackedRoot(rootEntry.LogId, rootObj);
             }
 
             for(uint32 i = 0; i < snpCtx->m_localRootCount; ++i)
@@ -1597,7 +1595,7 @@ namespace TTD
                 const SnapRootPinEntry& rootEntry = snpCtx->m_localRootArray[i];
                 Js::RecyclableObject* rootObj = inflator->LookupObject(rootEntry.LogObject);
 
-                intoCtx->AddLocalRoot_TTD(rootEntry.LogId, rootObj);
+                intoCtx->TTDContextInfo->AddLocalRoot(rootEntry.LogId, rootObj);
             }
         }
 

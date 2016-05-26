@@ -179,7 +179,7 @@ namespace TTD
         if(snpObject->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN)
         {
             Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
-            res = ctx->LookupGeneralObjectForKnownToken_TTD(snpObject->OptWellKnownToken);
+            res = ctx->TTDWellKnownInfo->LookupKnownObjectFromPath(snpObject->OptWellKnownToken);
 
             //Well known objects may always be dirty (e.g. we are re-using a context) so we always want to clean them
             res = NSSnapObjects::ObjectPropertyReset(snpObject, Js::DynamicObject::FromVar(res), inflator, FALSE);

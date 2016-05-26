@@ -201,7 +201,7 @@ namespace TTD
         class TTAutoString
         {
         private:
-            int32 m_allocSize;
+            int64 m_allocSize;
             wchar* m_contents;
             wchar* m_optFormatBuff;
 
@@ -209,13 +209,15 @@ namespace TTD
             TTAutoString();
             TTAutoString(LPCWSTR str);
             TTAutoString(const TTAutoString& str);
-            TTAutoString(TTAutoString&& str);
+
+            TTAutoString& operator=(const TTAutoString& str);
+
             ~TTAutoString();
 
             void Clear();
 
-            TTAutoString& operator=(const TTAutoString& str);
-            TTAutoString& operator=(TTAutoString&& str);
+            TTAutoString(TTAutoString&& str) = delete;
+            TTAutoString& operator=(TTAutoString&& str) = delete;
 
             bool IsNullString() const;
 

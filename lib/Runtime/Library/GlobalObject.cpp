@@ -635,7 +635,7 @@ namespace Js
         {
             //Make sure we have the body and text information available
             FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
-            if(!scriptContext->IsBodyAlreadyLoadedAtTopLevel(globalBody))
+            if(!scriptContext->TTDContextInfo->IsBodyAlreadyLoadedAtTopLevel(globalBody))
             {
                 uint64 bodyIdCtr = 0;
 
@@ -658,8 +658,8 @@ namespace Js
                 }
 
                 //walk global body to (1) add functions to pin set (2) build parent map
-                scriptContext->ProcessFunctionBodyOnLoad(globalBody, nullptr);
-                scriptContext->RegisterEvalScript(globalBody, bodyIdCtr);
+                scriptContext->TTDContextInfo->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+                scriptContext->TTDContextInfo->RegisterEvalScript(globalBody, bodyIdCtr);
             }
         }
 #endif

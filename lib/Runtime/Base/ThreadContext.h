@@ -960,11 +960,6 @@ public:
     uint32 TTSnapInterval;
     uint32 TTSnapHistoryLength;
 
-    ArenaAllocator TTDGeneralAllocator;
-    ArenaAllocator TTDBulkAllocator;
-    ArenaAllocator TTDTaggingAllocator;
-    ArenaAllocator TTDContextAllocator;
-
     //The event log for time-travel (or null if TTD is not turned on)
     TTD::EventLog* TTDLog;
 

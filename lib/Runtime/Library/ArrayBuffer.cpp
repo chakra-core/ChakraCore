@@ -752,7 +752,7 @@ namespace Js
 
     void ArrayBufferParent::ProcessCorePaths()
     {
-        this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk()->EnqueueNewPathVarAsNeeded(this, this->arrayBuffer, L"!buffer");
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->arrayBuffer, L"!buffer");
     }
 #endif
 

@@ -520,7 +520,7 @@ namespace Js
 
     void ScriptFunction::ProcessCorePaths()
     {
-        TTD::RuntimeContextInfo* rctxInfo = this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk();
+        TTD::RuntimeContextInfo* rctxInfo = this->GetScriptContext()->TTDWellKnownInfo;
 
         //do the body path mark
         Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(this->GetParseableFunctionInfo());
@@ -531,7 +531,8 @@ namespace Js
 
         for(uint32 i = 0; i < scopeCount; ++i)
         {
-            TTD::UtilSupport::TTAutoString scopePathString = rctxInfo->BuildEnvironmentIndexBuffer(i);
+            TTD::UtilSupport::TTAutoString scopePathString;
+            rctxInfo->BuildEnvironmentIndexBuffer(i, scopePathString);
 
             void* scope = environment->GetItem(i);
             switch(environment->GetScopeType(scope))
@@ -557,7 +558,9 @@ namespace Js
                 {
                     Js::Var sval = slotArray.Get(j);
 
-                    TTD::UtilSupport::TTAutoString slotPathString = rctxInfo->BuildEnvironmentIndexAndSlotBuffer(i, j);
+                    TTD::UtilSupport::TTAutoString slotPathString;
+                    rctxInfo->BuildEnvironmentIndexAndSlotBuffer(i, j, slotPathString);
+
                     rctxInfo->EnqueueNewPathVarAsNeeded(this, sval, slotPathString.GetStrValue());
                 }
 
@@ -570,7 +573,7 @@ namespace Js
 
         if(this->homeObj != nullptr)
         {
-            this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk()->EnqueueNewPathVarAsNeeded(this, this->homeObj, _u("_homeObj"));
+            this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->homeObj, _u("_homeObj"));
         }
     }
 

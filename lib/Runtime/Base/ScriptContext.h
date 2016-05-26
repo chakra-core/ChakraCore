@@ -375,6 +375,7 @@ namespace Js
         friend class LowererMD;
         friend class RemoteScriptContext;
         friend class SourceTextModuleRecord; // for module bytecode gen.
+
     public:
         static DWORD GetThreadContextOffset() { return offsetof(ScriptContext, threadContext); }
         static DWORD GetOptimizationOverridesOffset() { return offsetof(ScriptContext, optimizationOverrides); }
@@ -1054,40 +1055,23 @@ private:
         }
 
 #if ENABLE_TTD
-        HostScriptContextCallbackFunctor m_ttdHostCallbackFunctor;
-        void SetCallbackFunctor_TTD(const HostScriptContextCallbackFunctor& functor);
-        const HostScriptContextCallbackFunctor& GetCallbackFunctor_TTD() const;
-
-        //Keep track of roots (and local roots as needed)
-        TTD::ObjectPinSet* m_ttdRootSet;
-        TTD::ObjectPinSet* m_ttdLocalRootSet;
-        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, RecyclableObject*, HeapAllocator> m_ttdRootTagIdMap;
-
-        //
-        //TODO: this results in a memory leak for programs with weak collections -- we should fix this
-        //
-        TTD::ObjectPinSet* TTDWeakReferencePinSet;
-
-        //The lists containing the top-level code that is loaded in this context
-        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelScriptLoad;
-        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelNewFunction;
-        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelEval;
-
-        //need to add back pin set for functionBody to make sure they don't get collected on us
-        TTD::FunctionBodyPinSet* m_ttdPinnedRootFunctionSet;
-        JsUtil::BaseDictionary<FunctionBody*, FunctionBody*, HeapAllocator> m_ttdFunctionBodyParentMap;
+        //The host callback functor info
+        HostScriptContextCallbackFunctor TTDHostCallbackFunctor;
 
         //The TTDMode for this script context (the same as the Mode for the thread context but we put it here for fast lookup when identity tagging)
-        TTD::TTDMode m_ttdMode;
+        TTD::TTDMode TTDMode;
 
         //The LogTag for this script context (the same as the tag for the global object but we put it here for fast lookup)
         TTD_LOG_PTR_ID ScriptContextLogTag;
 
-        //Additional runtime context that we only care about if TTD is running (or will be running)
-        TTD::RuntimeContextInfo* m_ttdAddtlRuntimeContext;
-
         //Keep track of the number of re-entrant calls currently pending (i.e., if we make an external call it may call back into Chakra)
         int32 TTDRootNestingCount;
+
+        //Info about the core image for the context
+        TTD::RuntimeContextInfo* TTDWellKnownInfo;
+
+        //Additional runtime context that we only care about if TTD is running (or will be running)
+        TTD::ScriptContextTTD* TTDContextInfo;
 
         ////
 
@@ -1095,7 +1079,7 @@ private:
         bool ShouldPerformRecordAction() const
         {
             //return true if RecordEnabled and ~ExcludedExecution
-            return (this->m_ttdMode & TTD::TTDMode::TTDShouldRecordActionMask) == TTD::TTDMode::RecordEnabled;
+            return (this->TTDMode & TTD::TTDMode::TTDShouldRecordActionMask) == TTD::TTDMode::RecordEnabled;
         }
 
         //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
@@ -1103,7 +1087,7 @@ private:
         {
 #if ENABLE_TTD_DEBUGGING
             //return true if DebuggingEnabled and ~ExcludedExecution
-            return (this->m_ttdMode & TTD::TTDMode::TTDShouldDebugActionMask) == TTD::TTDMode::DebuggingEnabled;
+            return (this->TTDMode & TTD::TTDMode::TTDShouldDebugActionMask) == TTD::TTDMode::DebuggingEnabled;
 
 #else
             return false;
@@ -1113,21 +1097,21 @@ private:
         //Use this to check if the TTD has been set into record/replay mode (although we still need to check if we should do any record ro replay)
         bool IsTTDActive() const
         {
-            return (this->m_ttdMode & TTD::TTDMode::TTDActive) != TTD::TTDMode::Invalid;
+            return (this->TTDMode & TTD::TTDMode::TTDActive) != TTD::TTDMode::Invalid;
         }
 
         //Use this to check if the TTD has been detached (e.g., has traced a context execution and has now been detached)
         bool IsTTDDetached() const
         {
-            return (this->m_ttdMode & TTD::TTDMode::Detached) != TTD::TTDMode::Invalid;
+            return (this->TTDMode & TTD::TTDMode::Detached) != TTD::TTDMode::Invalid;
         }
 
         //A special record check because we want to record code load even if we aren't actively logging (but are planning to do so in the future)
         bool ShouldPerformRecordTopLevelFunction() const
         {
-            bool modeIsPending = (this->m_ttdMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
-            bool modeIsRecord = (this->m_ttdMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
-            bool inDebugableCode = (this->m_ttdMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
+            bool modeIsPending = (this->TTDMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
+            bool modeIsRecord = (this->TTDMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
+            bool inDebugableCode = (this->TTDMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
 
             return ((modeIsPending | modeIsRecord) & inDebugableCode);
         }
@@ -1135,77 +1119,18 @@ private:
         //A special record check because we want to record root add/remove ref even if we aren't actively logging (but are planning to do so in the future)
         bool ShouldPerformRootAddOrRemoveRefAction() const
         {
-            bool modeIsPending = (this->m_ttdMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
-            bool modeIsRecord = (this->m_ttdMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
-            bool inDebugableCode = (this->m_ttdMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
+            bool modeIsPending = (this->TTDMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
+            bool modeIsRecord = (this->TTDMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
+            bool inDebugableCode = (this->TTDMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
 
             return ((modeIsPending | modeIsRecord) & inDebugableCode);
         }
-
-        //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
-        void AddTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
-        void RemoveTrackedRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot);
-
-        void AddLocalRoot_TTD(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
-        void ClearLocalRootsAndRefreshMap_TTD();
-        void ExtractSnapshotRoots_TTD(JsUtil::List<Js::Var, HeapAllocator>& roots);
-
-        Js::RecyclableObject* LookupObjectForLogID(TTD_LOG_PTR_ID origId);
-        void ClearRootsForSnapRestore_TTD();
-
-        //Mark all the well-known objects/values/types from this script context
-        void MarkWellKnownObjects_TTD(TTD::MarkTable& marks) const;
-
-        //Get the wellknowntoken for the given value (if the val is well known) otherwise return invalid
-        TTD_WELLKNOWN_TOKEN ResolveKnownTokenForPrimitive_TTD(RecyclableObject* val) const;
-        TTD_WELLKNOWN_TOKEN ResolveKnownTokenForGeneralObject_TTD(RecyclableObject* val) const;
-
-        //Get the object associated with the given known path
-        RecyclableObject* LookupPrimitiveForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
-        RecyclableObject* LookupGeneralObjectForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
-
-        //Resolve/lookup the well known token for a runtime function body
-        TTD_WELLKNOWN_TOKEN ResolveKnownTokenForRuntimeFunctionBody_TTD(Js::FunctionBody* val) const;
-        FunctionBody* LookupRuntimeFunctionBodyForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
-
-        //Get all of the root level sources evaluated in this script context (source text & root function returned)
-        void GetLoadedSources_TTD(JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval);
-
-        //To support cases where we may get cached function bodies ('new Function' & eval) check if we already know of a top-level body
-        bool IsBodyAlreadyLoadedAtTopLevel(FunctionBody* body) const;
-
-        //force parsing and load up the parent maps etc.
-        void ProcessFunctionBodyOnLoad(FunctionBody* body, FunctionBody* parent);
-        void RegisterLoadedScript(FunctionBody* body, uint64 bodyCtrId);
-        void RegisterNewScript(FunctionBody* body, uint64 bodyCtrId);
-        void RegisterEvalScript(FunctionBody* body, uint64 bodyCtrId);
-
-        //Lookup the parent bofy for a function body (or null for global code)
-        FunctionBody* ResolveParentBody(FunctionBody* body) const;
-
-        //
-        //TODO: we need to fix this later since filenames are not 100% always unique
-        //
-        //Find the body with the filename from our top-level function bodies
-        FunctionBody* FindFunctionBodyByFileName_TTD(LPCWSTR filename) const;
 
         //
         //TODO: this is currently called explicitly -- we need to fix up the core image computation and this will be eliminated then
         //
         //Initialize the core object image for TTD
         void InitializeCoreImage_TTD();
-
-        //Get the additional runtime context state for use during the core image walk -- we probably want to delete this API later
-        TTD::RuntimeContextInfo* GetRuntimeContextInfo_TTDCoreWalk()
-        {
-            return this->m_ttdAddtlRuntimeContext;
-        }
-
-        //Set the TTD mode in the script context
-        void SetMode_TTD(TTD::TTDMode mode)
-        {
-            this->m_ttdMode = mode;
-        }
 
         //Initialize debug script generation and no-native as needed for replay/debug at script context initialization
         void InitializeRecordingActionsAsNeeded_TTD();

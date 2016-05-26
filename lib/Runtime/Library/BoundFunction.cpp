@@ -447,8 +447,8 @@ namespace Js
 
     void BoundFunction::ProcessCorePaths()
     {
-        this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk()->EnqueueNewPathVarAsNeeded(this, this->targetFunction, L"!targetFunction");
-        this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk()->EnqueueNewPathVarAsNeeded(this, this->boundThis, L"!boundThis");
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->targetFunction, L"!targetFunction");
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->boundThis, L"!boundThis");
 
         AssertMsg(this->count == 0, "Should only have empty args in core image");
     }

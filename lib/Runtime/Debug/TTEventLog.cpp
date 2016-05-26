@@ -397,7 +397,7 @@ namespace TTD
 
         if(this->m_ttdContext != nullptr)
         {
-            this->m_ttdContext->SetMode_TTD(this->m_currentMode);
+            this->m_ttdContext->TTDMode = this->m_currentMode;
         }
     }
 
@@ -424,7 +424,7 @@ namespace TTD
         JsUtil::List<Js::ScriptContext*, HeapAllocator> ctxs(&HeapAllocator::Instance);
 
         ctxs.Add(this->m_ttdContext);
-        this->m_ttdContext->ExtractSnapshotRoots_TTD(roots);
+        this->m_ttdContext->TTDContextInfo->ExtractSnapshotRoots(roots);
 
         this->m_snapExtractor.BeginSnapshot(this->m_threadContext, roots, ctxs);
         this->m_snapExtractor.DoMarkWalk(roots, ctxs, this->m_threadContext);
@@ -477,7 +477,7 @@ namespace TTD
 
     void EventLog::ReplayEventLoopYieldPointEvent()
     {
-        this->m_ttdContext->ClearLocalRootsAndRefreshMap_TTD();
+        this->m_ttdContext->TTDContextInfo->ClearLocalRootsAndRefreshMap();
 
         this->AdvanceTimeAndPositionForReplay(); //move along
     }
@@ -634,8 +634,8 @@ namespace TTD
     {
         AssertMsg(this->m_ttdContext == nullptr, "Should only add 1 time!");
 
-        ctx->SetMode_TTD(this->m_currentMode);
-        ctx->SetCallbackFunctor_TTD(callbackFunctor);
+        ctx->TTDMode = this->m_currentMode;
+        ctx->TTDHostCallbackFunctor = callbackFunctor;
 
         this->m_ttdContext = ctx;
 
@@ -646,7 +646,7 @@ namespace TTD
     {
         AssertMsg(this->m_ttdContext == ctx, "Should be enabled before we disable!");
 
-        ctx->SetMode_TTD(TTDMode::Detached);
+        ctx->TTDMode = TTDMode::Detached;
         this->m_ttdContext = nullptr;
     }
 

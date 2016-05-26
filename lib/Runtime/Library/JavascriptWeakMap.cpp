@@ -253,7 +253,7 @@ namespace Js
         //
         if(scriptContext->ShouldPerformDebugAction() | scriptContext->ShouldPerformRecordAction())
         {
-            scriptContext->TTDWeakReferencePinSet->Add(keyObj);
+            scriptContext->TTDContextInfo->TTDWeakReferencePinSet->Add(keyObj);
         }
 #endif
 

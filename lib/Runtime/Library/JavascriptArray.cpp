@@ -11379,8 +11379,10 @@ Case0:
             Js::Var aval = nullptr;
             if(this->DirectGetVarItemAt(index, &aval, ctx))
             {
-                TTD::UtilSupport::TTAutoString pathExt = ctx->GetRuntimeContextInfo_TTDCoreWalk()->BuildArrayIndexBuffer(index);
-                ctx->GetRuntimeContextInfo_TTDCoreWalk()->EnqueueNewPathVarAsNeeded(this, aval, pathExt.GetStrValue());
+                TTD::UtilSupport::TTAutoString pathExt;
+                ctx->TTDWellKnownInfo->BuildArrayIndexBuffer(index, pathExt);
+
+                ctx->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, aval, pathExt.GetStrValue());
             }
         }
     }

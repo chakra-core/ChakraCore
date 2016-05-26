@@ -602,7 +602,7 @@ STDAPI_(JsErrorCode) JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
                 if(!scriptContext->GetThreadContext()->TTDLog->IsPropertyRecordRef(ref))
                 {
                     Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
-                    scriptContext->AddTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
+                    scriptContext->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
 
                     if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
                     {
@@ -679,7 +679,7 @@ STDAPI_(JsErrorCode) JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
                     if(!scriptContext->GetThreadContext()->TTDLog->IsPropertyRecordRef(ref))
                     {
                         Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
-                        scriptContext->RemoveTrackedRoot_TTD(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
+                        scriptContext->TTDContextInfo->RemoveTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
 
                         if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
                         {
@@ -2863,8 +2863,8 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             //walk global body to (1) add functions to pin set (2) build parent map
             BEGIN_JS_RUNTIME_CALL(scriptContext);
             {
-                scriptContext->ProcessFunctionBodyOnLoad(globalBody, nullptr);
-                scriptContext->RegisterLoadedScript(globalBody, tbfi->TopLevelBase.TopLevelBodyCtr);
+                scriptContext->TTDContextInfo->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+                scriptContext->TTDContextInfo->RegisterLoadedScript(globalBody, tbfi->TopLevelBase.TopLevelBodyCtr);
             }
             END_JS_RUNTIME_CALL(scriptContext);
         }

@@ -15,38 +15,104 @@
 
 namespace TTD
 {
-    //This class implements the data structures and algorithms needed by the ScriptContext
+    //This class implements the data structures and algorithms needed to manage the ScriptContext TTD runtime info -- it is a friend of ScriptContext
+    //Basically we don't want to add a lot of size/complexity to the ScriptContext object/class if it isn't perf critical
+    class ScriptContextTTD
+    {
+    private:
+        Js::ScriptContext* m_ctx;
+
+        //Keep track of roots (and local roots as needed)
+        ObjectPinSet* m_ttdRootSet;
+        ObjectPinSet* m_ttdLocalRootSet;
+        JsUtil::BaseDictionary<TTD_LOG_PTR_ID, Js::RecyclableObject*, HeapAllocator> m_ttdRootTagIdMap;
+
+        //The lists containing the top-level code that is loaded in this context
+        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelScriptLoad;
+        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelNewFunction;
+        JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelEval;
+
+        //need to add back pin set for functionBody to make sure they don't get collected on us
+        TTD::FunctionBodyPinSet* m_ttdPinnedRootFunctionSet;
+        JsUtil::BaseDictionary<Js::FunctionBody*, Js::FunctionBody*, HeapAllocator> m_ttdFunctionBodyParentMap;
+
+    public:
+        //
+        //TODO: this results in a memory leak for programs with weak collections -- we should fix this
+        //
+        ObjectPinSet* TTDWeakReferencePinSet;
+
+        ScriptContextTTD(Js::ScriptContext* ctx);
+        ~ScriptContextTTD();
+
+        //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
+        void AddTrackedRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
+        void RemoveTrackedRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* deleteRoot);
+        const ObjectPinSet* GetRootSet() const;
+
+        void AddLocalRoot(TTD_LOG_PTR_ID origId, Js::RecyclableObject* newRoot);
+        void ClearLocalRootsAndRefreshMap();
+        const ObjectPinSet* GetLocalRootSet() const;
+
+        void LoadInvertedRootMap(JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap) const;
+        void ExtractSnapshotRoots(JsUtil::List<Js::Var, HeapAllocator>& roots);
+
+        Js::RecyclableObject* LookupObjectForLogID(TTD_LOG_PTR_ID origId);
+        void ClearRootsForSnapRestore();
+
+        //Get all of the root level sources evaluated in this script context (source text & root function returned)
+        void GetLoadedSources(JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval);
+
+        //To support cases where we may get cached function bodies ('new Function' & eval) check if we already know of a top-level body
+        bool IsBodyAlreadyLoadedAtTopLevel(Js::FunctionBody* body) const;
+
+        //force parsing and load up the parent maps etc.
+        void ProcessFunctionBodyOnLoad(Js::FunctionBody* body, Js::FunctionBody* parent);
+        void RegisterLoadedScript(Js::FunctionBody* body, uint64 bodyCtrId);
+        void RegisterNewScript(Js::FunctionBody* body, uint64 bodyCtrId);
+        void RegisterEvalScript(Js::FunctionBody* body, uint64 bodyCtrId);
+
+        //Lookup the parent bofy for a function body (or null for global code)
+        Js::FunctionBody* ResolveParentBody(Js::FunctionBody* body) const;
+
+        //
+        //TODO: we need to fix this later since filenames are not 100% always unique
+        //
+        //Find the body with the filename from our top-level function bodies
+        Js::FunctionBody* FindFunctionBodyByFileName(LPCWSTR filename) const;
+    };
+
+    //////////////////
+
+    //This class implements the data structures and algorithms needed to manage the ScriptContext core image 
     class RuntimeContextInfo
     {
     private:
-        //The allocator to use for this context
-        ArenaAllocator* m_shaddowAllocator;
-
         ////
         //code for performing well known object walk
         //A worklist to use for the core obj processing
-        JsUtil::Queue<Js::RecyclableObject*, ArenaAllocator> m_worklist;
+        JsUtil::Queue<Js::RecyclableObject*, HeapAllocator> m_worklist;
 
         //A null string we use in a number of places
         UtilSupport::TTAutoString m_nullString;
 
         //A dictionary which contains the paths for "core" image objects and function bodies
-        JsUtil::BaseDictionary<Js::RecyclableObject*, UtilSupport::TTAutoString, ArenaAllocator> m_coreObjToPathMap;
-        JsUtil::BaseDictionary<Js::FunctionBody*, UtilSupport::TTAutoString, ArenaAllocator> m_coreBodyToPathMap;
+        JsUtil::BaseDictionary<Js::RecyclableObject*, UtilSupport::TTAutoString*, HeapAllocator> m_coreObjToPathMap;
+        JsUtil::BaseDictionary<Js::FunctionBody*, UtilSupport::TTAutoString*, HeapAllocator> m_coreBodyToPathMap;
         
-        JsUtil::List<Js::RecyclableObject*, ArenaAllocator> m_sortedObjectList;
-        JsUtil::List<Js::FunctionBody*, ArenaAllocator> m_sortedFunctionBodyList;
+        JsUtil::List<Js::RecyclableObject*, HeapAllocator> m_sortedObjectList;
+        JsUtil::List<Js::FunctionBody*, HeapAllocator> m_sortedFunctionBodyList;
         
         //Build a path string based on a given name
         void BuildPathString(UtilSupport::TTAutoString, LPCWSTR name, LPCWSTR optaccessortag, UtilSupport::TTAutoString& into);
 
         //Ensure that when we do our core visit make sure that the properties always appear in the same order
-        static void LoadAndOrderPropertyNames(Js::RecyclableObject* obj, JsUtil::List<const Js::PropertyRecord*, ArenaAllocator>& propertyList);
+        static void LoadAndOrderPropertyNames(Js::RecyclableObject* obj, JsUtil::List<const Js::PropertyRecord*, HeapAllocator>& propertyList);
         static bool PropertyNameCmp(const Js::PropertyRecord* p1, const Js::PropertyRecord* p2);
         ////
         
     public:
-        RuntimeContextInfo(ArenaAllocator* allocator);
+        RuntimeContextInfo();
         ~RuntimeContextInfo();
 
         //Mark all the well-known objects/values/types from this script context
@@ -76,27 +142,24 @@ namespace TTD
         void EnqueueNewFunctionBodyObject(Js::RecyclableObject* parent, Js::FunctionBody* fbody, LPCWSTR name);
 
         //Build a path string based on a root path and an array index
-        UtilSupport::TTAutoString BuildArrayIndexBuffer(uint32 arrayidx);
+        void BuildArrayIndexBuffer(uint32 arrayidx, UtilSupport::TTAutoString& res);
 
         //Build a path string based on a root path and an environment index
-        UtilSupport::TTAutoString BuildEnvironmentIndexBuffer(uint32 envidx);
-
-        //Build a path string based on a root path and an environment index and the associated body
-        UtilSupport::TTAutoString BuildEnvironmentIndexBodyBuffer(uint32 envidx);
+        void BuildEnvironmentIndexBuffer(uint32 envidx, UtilSupport::TTAutoString& res);
 
         //Build a path string based on an environment index and a slot index
-        UtilSupport::TTAutoString BuildEnvironmentIndexAndSlotBuffer(uint32 envidx, uint32 slotidx);
+        void BuildEnvironmentIndexAndSlotBuffer(uint32 envidx, uint32 slotidx, UtilSupport::TTAutoString& res);
     };
 
     //////////////////
 
     //Algorithms for sorting searching a list based on lexo-order from names in a map
     template <typename T>
-    void SortDictIntoListOnNames(const JsUtil::BaseDictionary<T, UtilSupport::TTAutoString, ArenaAllocator>& objToNameMap, JsUtil::List<T, ArenaAllocator>& sortedObjList, const UtilSupport::TTAutoString& nullString)
+    void SortDictIntoListOnNames(const JsUtil::BaseDictionary<T, UtilSupport::TTAutoString*, HeapAllocator>& objToNameMap, JsUtil::List<T, HeapAllocator>& sortedObjList, const UtilSupport::TTAutoString& nullString)
     {
         AssertMsg(sortedObjList.Count() == 0, "This should be empty.");
 
-        objToNameMap.Map([&](T key, UtilSupport::TTAutoString value)
+        objToNameMap.Map([&](T key, UtilSupport::TTAutoString* value)
         {
             sortedObjList.Add(key);
         });
@@ -113,10 +176,10 @@ namespace TTD
             for(int32 i = gap; i < llen; i++)
             {
                 T temp = sortedObjList.Item(i);
-                const UtilSupport::TTAutoString& tempStr = objToNameMap.LookupWithKey(temp, nullString);
+                const UtilSupport::TTAutoString* tempStr = objToNameMap.LookupWithKey(temp, nullptr);
 
                 int32 j = 0;
-                for(j = i; j >= gap && (wcscmp(objToNameMap.LookupWithKey(sortedObjList.Item(j - gap), nullString).GetStrValue(), tempStr.GetStrValue()) > 0); j -= gap)
+                for(j = i; j >= gap && (wcscmp(objToNameMap.LookupWithKey(sortedObjList.Item(j - gap), nullptr)->GetStrValue(), tempStr->GetStrValue()) > 0); j -= gap)
                 {
                     T shiftElem = sortedObjList.Item(j - gap);
                     sortedObjList.SetItem(j, shiftElem);
@@ -128,7 +191,7 @@ namespace TTD
     }
 
     template <typename T, bool mustFind>
-    int32 LookupPositionInDictNameList(LPCWSTR key, const JsUtil::BaseDictionary<T, UtilSupport::TTAutoString, ArenaAllocator>& objToNameMap, const JsUtil::List<T, ArenaAllocator>& sortedObjList, const UtilSupport::TTAutoString& nullString)
+    int32 LookupPositionInDictNameList(LPCWSTR key, const JsUtil::BaseDictionary<T, UtilSupport::TTAutoString*, HeapAllocator>& objToNameMap, const JsUtil::List<T, HeapAllocator>& sortedObjList, const UtilSupport::TTAutoString& nullString)
     {
         AssertMsg(sortedObjList.Count() != 0, "We are using this for matching so obviously no match and there is a problem.");
 
@@ -138,10 +201,10 @@ namespace TTD
         while(imin < imax)
         {
             int imid = (imin + imax) / 2;
-            const UtilSupport::TTAutoString& imidStr = objToNameMap.LookupWithKey(sortedObjList.Item(imid), nullString);
-            AssertMsg(imid < imax && !imidStr.IsNullString(), "Something went wrong with our indexing.");
+            const UtilSupport::TTAutoString* imidStr = objToNameMap.LookupWithKey(sortedObjList.Item(imid), nullptr);
+            AssertMsg(imid < imax && imidStr != nullptr, "Something went wrong with our indexing.");
 
-            int32 scmpval = wcscmp(imidStr.GetStrValue(), key);
+            int32 scmpval = wcscmp(imidStr->GetStrValue(), key);
             if(scmpval < 0)
             {
                 imin = imid + 1;
@@ -154,15 +217,15 @@ namespace TTD
         }
         AssertMsg(imin == imax, "Something went wrong!!!"); 
         
-        const UtilSupport::TTAutoString& resStr = objToNameMap.LookupWithKey(sortedObjList.Item(imin), nullString);
+        const UtilSupport::TTAutoString* resStr = objToNameMap.LookupWithKey(sortedObjList.Item(imin), nullptr);
         if(mustFind)
         {
-            AssertMsg(wcscmp(resStr.GetStrValue(), key) == 0, "We are missing something");
+            AssertMsg(wcscmp(resStr->GetStrValue(), key) == 0, "We are missing something");
             return imin;
         }
         else
         {
-            return (wcscmp(resStr.GetStrValue(), key) == 0) ? imin : -1;
+            return (wcscmp(resStr->GetStrValue(), key) == 0) ? imin : -1;
         }
     }
 }

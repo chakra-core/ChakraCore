@@ -63,7 +63,7 @@ class HostScriptContextCallbackFunctor;
 
 namespace TTD
 {
-    class RuntimeThreadInfo;
+    class ScriptContextTTD;
     class RuntimeContextInfo;
 
     //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion  

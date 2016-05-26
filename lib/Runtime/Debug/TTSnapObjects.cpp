@@ -16,7 +16,9 @@ namespace TTD
 
             sobj->ObjectPtrId = TTD_CONVERT_VAR_TO_PTR_ID(obj);
             sobj->SnapObjectTag = obj->GetSnapTag_TTD();
-            sobj->OptWellKnownToken = alloc.CopyRawNullTerminatedStringInto(isWellKnown ? obj->GetScriptContext()->ResolveKnownTokenForGeneralObject_TTD(obj) : TTD_INVALID_WELLKNOWN_TOKEN);
+
+            TTD_WELLKNOWN_TOKEN lookupToken = isWellKnown ? obj->GetScriptContext()->TTDWellKnownInfo->ResolvePathForKnownObject(obj) : TTD_INVALID_WELLKNOWN_TOKEN;
+            sobj->OptWellKnownToken = alloc.CopyRawNullTerminatedStringInto(lookupToken);
 
             Js::Type* objType = obj->GetType();
             sobj->SnapType = idToTypeMap.LookupKnownItem(TTD_CONVERT_TYPEINFO_TO_PTR_ID(objType));
