@@ -352,7 +352,6 @@ public:
     void StartSubexpression(ParseNode* node);
     void EndSubexpression(ParseNode* node);
 
-    bool UseParserBindings() const;
     bool IsES6DestructuringEnabled() const;
     bool IsES6ForLoopSemanticsEnabled() const;
 

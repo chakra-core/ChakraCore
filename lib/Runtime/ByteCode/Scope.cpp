@@ -104,9 +104,6 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *by
     Scope *paramScope = pnodeScope->sxFnc.pnodeScopes->sxBlock.scope;
     Scope *bodyScope = pnodeScope->sxFnc.pnodeBodyScope->sxBlock.scope;
 
-    Assert(paramScope->m_symList == nullptr || paramScope->symbolTable == nullptr);
-    Assert(bodyScope->m_symList == nullptr || bodyScope->symbolTable == nullptr);
-
     if (paramScope->Count() == 0)
     {
         // Once the scopes are merged, there's no reason to instantiate the param scope.
@@ -139,7 +136,6 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *by
     paramScope->m_count = 0;
     paramScope->scopeSlotCount = 0;
     paramScope->m_symList = nullptr;
-    paramScope->symbolTable = nullptr;
 
     // Remove the parameter scope from the scope chain.
     bodyScope->SetEnclosingScope(paramScope->GetEnclosingScope());
