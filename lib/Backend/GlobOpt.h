@@ -313,12 +313,7 @@ public:
 #endif
 };
 
-template<>
-ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value)
-{
-    Assert(value);
-    return value->GetValueNumber();
-}
+template<> ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value);
 
 class IntConstantValueInfo : public ValueInfo
 {

@@ -3520,6 +3520,7 @@ namespace Js
         case AsmJsRetType::Float:
             m_localFloatSlots[0] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
+#ifdef ENABLE_SIMDJS
         case AsmJsRetType::Float32x4:
         case AsmJsRetType::Int32x4:
         case AsmJsRetType::Bool32x4:
@@ -3535,6 +3536,7 @@ namespace Js
             simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             m_localSimdSlots[0] = X86SIMDValue::ToSIMDValue(simdVal);
             break;
+#endif
         }
         Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
         if (scriptContext->GetConfig()->IsSimdjsEnabled())

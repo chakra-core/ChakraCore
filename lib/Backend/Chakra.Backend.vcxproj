@@ -152,6 +152,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Backend.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)BackendApi.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BackwardPass.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Debug.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EmitBuffer.cpp" />

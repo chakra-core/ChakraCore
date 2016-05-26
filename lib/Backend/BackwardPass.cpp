@@ -2,13 +2,6 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-class JitArenaAllocator;
-template <>
-void
-BVSparse<JitArenaAllocator>::QueueInFreeList(BVSparseNode *curNode)
-{
-    AllocatorDeleteInline(JitArenaAllocator, this->alloc, curNode);
-}
 
 #include "Backend.h"
 

@@ -241,7 +241,7 @@ public:
     {
         for (uint i = 0; i < this->tableSize; i++)
         {
-            SListBase<Bucket<T>>::Iterator iter2(&this2->table[i]);
+            _TYPENAME SListBase<Bucket<T>>::Iterator iter2(&this2->table[i]);
             iter2.Next();
             FOREACH_SLISTBASE_ENTRY_EDITING(Bucket<T>, bucket, &this->table[i], iter)
             {
@@ -274,7 +274,7 @@ public:
     {
         for (uint i = 0; i < this->tableSize; i++)
         {
-            SListBase<Bucket<T>>::Iterator iter2(&this2->table[i]);
+            _TYPENAME SListBase<Bucket<T>>::Iterator iter2(&this2->table[i]);
             iter2.Next();
             FOREACH_SLISTBASE_ENTRY_EDITING(Bucket<T>, bucket, &this->table[i], iter)
             {
@@ -316,7 +316,7 @@ public:
     {
         for (uint i = 0; i < this->tableSize; i++)
         {
-            SListBase<Bucket<T>>::Iterator iter2(&this2->table[i]);
+            _TYPENAME SListBase<Bucket<T>>::Iterator iter2(&this2->table[i]);
             iter2.Next();
             FOREACH_SLISTBASE_ENTRY_EDITING(Bucket<T>, bucket, &this->table[i], iter)
             {
@@ -355,7 +355,7 @@ public:
 
         for (uint i = 0; i < this->tableSize; i++)
         {
-            this->table[i].CopyTo<Bucket<T>::Copy>(this->alloc, newTable->table[i]);
+            this->table[i].template CopyTo<Bucket<T>::Copy>(this->alloc, newTable->table[i]);
         }
 #if PROFILE_DICTIONARY
         if (stats)

@@ -3218,7 +3218,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
-                newInstr->SetSrc2(IR::AddrOpnd::New(_u("String.prototype.match"), IR::AddrOpndKindSz, newInstr->m_func));
+                newInstr->SetSrc2(IR::AddrOpnd::New((Js::Var)_u("String.prototype.match"), IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }
             else if (argNum == 1)
@@ -3245,7 +3245,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
-                newInstr->SetSrc2(IR::AddrOpnd::New(_u("String.prototype.replace"), IR::AddrOpndKindSz, newInstr->m_func));
+                newInstr->SetSrc2(IR::AddrOpnd::New((Js::Var)_u("String.prototype.replace"), IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }
             if (argNum == 1)

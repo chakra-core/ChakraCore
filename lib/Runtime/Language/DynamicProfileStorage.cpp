@@ -362,7 +362,7 @@ bool DynamicProfileStorage::Initialize()
                 if (Js::Configuration::Global.flags.Verbose)
                 {
                     Output::Print(_u("  Retrying load of dynamic profile from '%s' (attempt %d)...\n"),
-                        Js::Configuration::Global.flags.DynamicProfileInput, i + 1);
+                        (char16 const *)Js::Configuration::Global.flags.DynamicProfileInput, i + 1);
                     Output::Flush();
                 }
             }

@@ -467,7 +467,6 @@ public:
     _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
     _x86_SIMDValue * GetSimdTempArea() { return X86_TEMP_SIMD; }
 #endif
-
 #endif
 
 private:
