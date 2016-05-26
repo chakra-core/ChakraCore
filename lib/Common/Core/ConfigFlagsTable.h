@@ -502,16 +502,10 @@ namespace Js
         ConfigFlagsTable           flags;
         static Configuration        Global;
         bool EnableJitInDebugMode();
-        bool IsHybridDebugging();
 
         // Public in case the client wants to have
         // a separate config from the global one
         Configuration();
-
-    private:
-        GUID hybridDebuggingGuid; // Set to HybridDebuggingGuid when hybrid debugging - set by the out of process debugging component - jscript9diag.
-                                  // Otherwise, remains un-initialized
-        bool isHybridDebugging;
     };
 
 //Create macros for a useful subset of the config options that either get the value from the configuration (if the option is enabled) or

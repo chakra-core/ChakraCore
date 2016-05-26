@@ -530,17 +530,7 @@ namespace Js
                     }
                 });
 
-                if (localPendingProbeList->Count() == 0)
-                {
-                    // The breakpoint could have been initiated by hybrid debugging
-                    if (Js::Configuration::Global.IsHybridDebugging())
-                    {
-                        debugManager->stepController.Deactivate(pHaltState);
-                        debugManager->asyncBreakController.Deactivate();
-                        haltCallbackProbe->DispatchHalt(pHaltState);
-                    }
-                }
-                else
+                if (localPendingProbeList->Count() != 0)
                 {
                     localPendingProbeList->MapUntil([&](int index, Probe * probe)
                     {
