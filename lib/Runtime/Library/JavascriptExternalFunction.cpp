@@ -303,6 +303,10 @@ namespace Js
         {
             if(externalFunction->nativeMethod == nullptr)
             {
+                //
+                //TODO: we really shouldn't be seeing this and should suppress the eval of getters/setters instead to avoid any statefullness.
+                //
+
                 //The only way this should happen is if the debugger is requesting a value to display that is an external accessor.
                 //We don't support this so it should be ok to return a Js string message.
                 LPCWSTR msg = _u("Non-Inspectable External Value");
