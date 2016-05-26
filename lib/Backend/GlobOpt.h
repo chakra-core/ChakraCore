@@ -1201,6 +1201,7 @@ private:
 
     BVSparse<JitArenaAllocator> *  lengthEquivBv;
     BVSparse<JitArenaAllocator> *  argumentsEquivBv;
+    BVSparse<JitArenaAllocator> *  callerEquivBv;
 
     GlobOptBlockData            blockData;
 

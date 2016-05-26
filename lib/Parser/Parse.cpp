@@ -1441,7 +1441,7 @@ ParseNodePtr Parser::StartParseBlockWithCapacity(PnodeBlockType blockType, Scope
     // Block scopes are created lazily when we discover block-scoped content.
     if (scopeType != ScopeType_Unknown && scopeType != ScopeType_Block)
     {
-        scope = Anew(&m_nodeAllocator, Scope, &m_nodeAllocator, scopeType, PHASE_OFF1(Js::ParserBindPhase), capacity);
+        scope = Anew(&m_nodeAllocator, Scope, &m_nodeAllocator, scopeType, capacity);
         PushScope(scope);
     }
 

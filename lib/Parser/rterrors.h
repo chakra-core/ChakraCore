@@ -282,10 +282,6 @@ RT_ERROR_MSG(ASYNCERR_NoErrorInErrorState, 5200, "", "Status is 'error', but get
 RT_ERROR_MSG(ASYNCERR_InvalidStatusArg, 5201, "", "Missing or invalid status parameter passed to completed handler", kjstError, 0)
 RT_ERROR_MSG(ASYNCERR_InvalidSenderArg, 5202, "", "Missing or invalid sender parameter passed to completed handler", kjstError, 0)
 
-// Error messages for hybrid debugging
-RT_ERROR_MSG(DIAGERR_FunctionCallNotSupported, 5400, "", "Function evaluation is disabled while debugging native code", kjstError, 0)
-RT_ERROR_MSG(DIAGERR_EvaluateNotSupported, 5401, "", "Evaluation of the JavaScript expression is not supported while debugging native code", kjstError, 0)
-
 RT_ERROR_MSG(JSERR_InvalidCodePoint, 5600, "Invalid code point %s", "Invalid code point", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_InvalidNormalizationForm, 5601, "Normalization form '%s' is invalid. Expected one of: ['NFC', 'NFD', 'NFKC', 'NFKD'].", "Invalid normalization form. Expected one of: ['NFC', 'NFD', 'NFKC', 'NFKD']", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_InvalidUnicodeCharacter, 5602, "Failed to normalize: invalid or missing unicode character at index %d.", "Failed to normalize: invalid or missing unicode character.", kjstRangeError, 0)
