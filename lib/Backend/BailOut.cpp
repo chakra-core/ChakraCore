@@ -2154,6 +2154,8 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         }
 
         Assert(!(rejitReason != RejitReason::None && reThunk));
+
+        profileInfo->IncRejitCount();
     }
 
     if(PHASE_FORCE(Js::ReJITPhase, executeFunction) && rejitReason == RejitReason::None)

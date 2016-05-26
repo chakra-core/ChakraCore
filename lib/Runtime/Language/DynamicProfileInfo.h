@@ -507,6 +507,7 @@ namespace Js
 
 #if DBG
         bool persistsAcrossScriptContexts;
+        uint16 rejitCount;
 #endif
         static JavascriptMethod EnsureDynamicProfileInfo(Js::ScriptFunction * function);
 #if DBG_DUMP
@@ -780,6 +781,9 @@ namespace Js
         void DisableObjTypeSpecInJitLoopBody() { this->bits.disableObjTypeSpec_jitLoopBody = true; }
 
         static bool IsCallSiteNoInfo(Js::LocalFunctionId functionId) { return functionId == CallSiteNoInfo; }
+#if DBG
+        void IncRejitCount() { this->rejitCount++;  Assert(this->rejitCount < 100); }
+#endif
 #if DBG_DUMP
         void Dump(FunctionBody* functionBody, ArenaAllocator * dynamicProfileInfoAllocator = nullptr);
 #endif
