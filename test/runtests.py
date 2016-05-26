@@ -117,7 +117,7 @@ class LogFile(object):
         if log_file_path is None:
             # Set up the log file paths
             # Make sure the right directory exists and the log file doesn't
-            log_file_name = "testrun.{0}{1}.log".format(arch_alias, flavor_alias)
+            log_file_name = "testrun.{0}{1}.log".format(arch, flavor)
             log_file_directory = os.path.join(repo_root, "test", "logs")
 
             if not os.path.exists(log_file_directory):
@@ -141,12 +141,12 @@ class LogFile(object):
 
 log_file = LogFile(args.logfile)
 
-def print_and_log(msg = ""):
-    print(msg)
-    log_file.log(msg + "\n")
-
 def log_message(msg = ""):
     log_file.log(msg + "\n")
+
+def print_and_log(msg = ""):
+    print(msg)
+    log_message(msg)
 
 # records pass_count/fail_count
 class PassFailCount(object):
@@ -238,8 +238,8 @@ class TestVariant(object):
             'Failed' if fail else 'Passed',
             self._short_name(filename))
         padding = self._last_len - len(line)
-        log_message(line)
         print(line + ' ' * padding, end='\n' if fail else '\r')
+        log_message(line)
         self._last_len = len(line) if not fail else 0
         if len(output) > 0:
             print_and_log(output)
