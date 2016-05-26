@@ -6984,17 +6984,41 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
     }
 
     IR::Opnd * opnd;
-    if (opndDst->IsFloat64())
+
+    void* pValue = nullptr;
+    bool isFloat64 = opndDst->IsFloat64();
+    if (isFloat64)
     {
-        double *pValue = NativeCodeDataNew(instrInsert->m_func->GetNativeCodeDataAllocator(), double, value);
-        opnd = IR::MemRefOpnd::New((void*)pValue, TyMachDouble, instrInsert->m_func, IR::AddrOpndKindDynamicDoubleRef);
+        pValue = NativeCodeDataNew(instrInsert->m_func->GetNativeCodeDataAllocator(), double, value);
     }
     else
     {
         Assert(opndDst->IsFloat32());
-        float * pValue = NativeCodeDataNew(instrInsert->m_func->GetNativeCodeDataAllocator(), float, (float)value);
-        opnd = IR::MemRefOpnd::New((void *)pValue, TyFloat32, instrInsert->m_func, IR::AddrOpndKindDynamicFloatRef);
+        pValue = NativeCodeDataNew(instrInsert->m_func->GetNativeCodeDataAllocator(), float, (float)value);
     }
+
+    if (false)
+    {
+        opnd = IR::MemRefOpnd::New((void*)pValue, isFloat64 ? TyMachDouble : TyFloat32,
+            instrInsert->m_func, isFloat64 ? IR::AddrOpndKindDynamicDoubleRef : IR::AddrOpndKindDynamicFloatRef);
+    }
+    else // OOP JIT
+    {
+        int offset = ((NativeCodeData::DataChunk*)((char*)pValue - sizeof(NativeCodeData::DataChunk)))->offset;
+        auto addressRegOpnd = IR::RegOpnd::New(TyMachPtr, instrInsert->m_func);
+
+        Lowerer::InsertMove(
+            addressRegOpnd,
+            IR::MemRefOpnd::New((void*)instrInsert->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, isFloat64 ? TyMachDouble : TyFloat32, instrInsert->m_func, IR::AddrOpndKindDynamicMisc),
+            instrInsert);
+
+        opnd = IR::IndirOpnd::New(addressRegOpnd, offset, isFloat64 ? TyMachDouble : TyFloat32, instrInsert->m_func);
+        // movsd xmm, [reg+offset]
+        auto instr = IR::Instr::New(LowererMDArch::GetAssignOp(opndDst->GetType()), opndDst, opnd, instrInsert->m_func);
+        instrInsert->InsertBefore(instr);
+        return instr;
+    }
+
     IR::Instr * instr = IR::Instr::New(LowererMDArch::GetAssignOp(opndDst->GetType()), opndDst, opnd, instrInsert->m_func);
     instrInsert->InsertBefore(instr);
     Legalize(instr);

@@ -263,12 +263,39 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
         linearScan->SetSrcRegs(newInstr);
     }
 
-    // Pass in the bailout record
-    //     mov  rcx, bailOutRecord
-    Lowerer::InsertMove(
-        IR::RegOpnd::New(nullptr, RegRCX, TyMachPtr, func),
-        IR::AddrOpnd::New(bailOutInfo->bailOutRecord, IR::AddrOpndKindDynamicBailOutRecord, func, true),
-        instr);
+    
+    if (false)
+    {
+        // Pass in the bailout record
+        //     mov  rcx, bailOutRecord
+        Lowerer::InsertMove(
+            IR::RegOpnd::New(nullptr, RegRCX, TyMachPtr, func),
+            IR::AddrOpnd::New(bailOutInfo->bailOutRecord, IR::AddrOpndKindDynamicBailOutRecord, func, true),
+            instr);
+
+    }
+    else
+    {
+        // OOP JIT
+        int bailoutRecordOffset = ((NativeCodeData::DataChunk*)((char*)bailOutInfo->bailOutRecord - offsetof(NativeCodeData::DataChunk, data)))->offset;
+
+        // move rcx, dataAddr
+        Lowerer::InsertMove(
+            IR::RegOpnd::New(nullptr, RegRCX, TyMachPtr, func),
+            IR::AddrOpnd::New(func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, IR::AddrOpndKindDynamicMisc, func, true),
+            instr);
+
+        // mov rcx, [rcx]        
+        Lowerer::InsertMove(
+            IR::RegOpnd::New(nullptr, RegRCX, TyMachPtr, func),
+            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegRCX, TyVar, this->func), 0, TyMachPtr, func, true),
+            instr);
+
+        // add rcx, bailoutRecord_offset
+        auto rcx = IR::RegOpnd::New(nullptr, RegRCX, TyVar, this->func);
+        Lowerer::InsertAdd(false, rcx, rcx, IR::IntConstOpnd::New(bailoutRecordOffset, TyUint64, this->func, true), instr);        
+
+    }
 
     firstInstr = firstInstr->m_next;
     for(uint i = 0; i < registerSaveSymsCount; i++)

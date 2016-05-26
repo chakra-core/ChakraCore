@@ -8710,6 +8710,12 @@ namespace Js
             DeleteNativeCodeData(this->data);
             this->data = nullptr;
             this->numberChunks = nullptr;
+
+            if (this->nativeDataBuffer)
+            {
+                NativeDataBuffer* buffer = (NativeDataBuffer*)(this->nativeDataBuffer - offsetof(NativeDataBuffer, data));
+                midl_user_free(buffer);
+            }
 #endif
 
             this->state = CleanedUp;

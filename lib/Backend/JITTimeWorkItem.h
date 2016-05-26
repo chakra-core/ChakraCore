@@ -34,6 +34,8 @@ public:
 
     JITTimeFunctionBody * GetJITFunctionBody();
 
+    CodeGenWorkItemJITData* GetWorkItemData() { return m_workItemData; }
+
 private:
     CodeGenWorkItemJITData * m_workItemData;
     JITTimeFunctionBody m_jitBody;

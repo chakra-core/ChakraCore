@@ -14,10 +14,14 @@ struct CodeGenAllocators;
 class NativeCodeData
 {
 
-private:
+public:
     struct DataChunk
     {
+        unsigned int len;
+        unsigned int allocIndex;
+        unsigned int offset; // offset to the aggregated buffer
         DataChunk * next;
+        NativeDataFixupEntry *fixupList;
         char data[0];
     };
     NativeCodeData(DataChunk * chunkList);
@@ -26,6 +30,9 @@ private:
 #ifdef PERF_COUNTERS
     size_t size;
 #endif
+public:
+
+    static void AddFixupEntry(void* dataAddr, void* addrToFixup, void* startAddress);
     static void DeleteChunkList(DataChunk * chunkList);
 public:
     class Allocator
@@ -41,13 +48,18 @@ public:
         NativeCodeData * Finalize();
         void Free(void * buffer, size_t byteSize);
 
+        DataChunk * chunkList;
+        DataChunk * lastChunkList;
+        unsigned int totalSize;
+        unsigned int allocCount;
+
 #ifdef TRACK_ALLOC
         // Doesn't support tracking information, dummy implementation
         Allocator * TrackAllocInfo(TrackAllocData const& data) { return this; }
         void ClearTrackAllocInfo(TrackAllocData* data = NULL) {}
 #endif
     private:
-        DataChunk * chunkList;
+
 #if DBG
         bool finalized;
 #endif

@@ -18,6 +18,22 @@ NativeCodeData::~NativeCodeData()
     PERF_COUNTER_SUB(Code, TotalNativeCodeDataSize, this->size);
 }
 
+// dataAddr: target address
+// startAddress: current data start address
+// addrToFixup: address that currently pointing to dataAddr, which need to be updated
+void
+NativeCodeData::AddFixupEntry(void* dataAddr, void* addrToFixup, void* startAddress)
+{
+    DataChunk* chunk = (DataChunk*)((char*)startAddress - offsetof(DataChunk, data));
+
+    NativeDataFixupEntry* entry = (NativeDataFixupEntry*)midl_user_allocate(sizeof(NativeDataFixupEntry));
+    entry->addrOffset = (unsigned int)((__int64)addrToFixup - (__int64)startAddress);
+    entry->targetTotalOffset = ((DataChunk*)((char*)dataAddr - offsetof(DataChunk, data)))->offset;
+    entry->next = chunk->fixupList;
+    chunk->fixupList = entry;
+
+}
+
 void
 NativeCodeData::DeleteChunkList(DataChunk * chunkList)
 {
@@ -30,8 +46,10 @@ NativeCodeData::DeleteChunkList(DataChunk * chunkList)
     }
 }
 
-NativeCodeData::Allocator::Allocator() : chunkList(nullptr)
+NativeCodeData::Allocator::Allocator() : chunkList(nullptr), lastChunkList(nullptr)
 {
+    this->totalSize = 0;
+    this->allocCount = 0;
 #if DBG
     this->finalized = false;
 #endif
@@ -52,11 +70,29 @@ char *
 NativeCodeData::Allocator::Alloc(size_t requestSize)
 {
     char * data = nullptr;
-    Assert(!finalized);
+    Assert(!finalized);    
+    requestSize = Math::Align(requestSize, sizeof(void*));
     DataChunk * newChunk = HeapNewStructPlus(requestSize, DataChunk);
-    newChunk->next = this->chunkList;
-    this->chunkList = newChunk;
+
+
+    newChunk->next = nullptr;
+    newChunk->allocIndex = this->allocCount++;
+    newChunk->len = (unsigned int)requestSize;
+    newChunk->fixupList = nullptr;
+    newChunk->offset = this->totalSize;
+    if (this->chunkList == nullptr)
+    {
+        this->chunkList = newChunk;
+        this->lastChunkList = newChunk;
+    }
+    else
+    {
+        this->lastChunkList->next = newChunk;
+        this->lastChunkList = newChunk;
+    }
+
     data = newChunk->data;
+    this->totalSize += (unsigned int)requestSize;
 
 #ifdef PERF_COUNTERS
     this->size += requestSize;

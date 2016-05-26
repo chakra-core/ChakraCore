@@ -232,12 +232,11 @@ struct JsFunctionCodeGen sealed : public CodeGenWorkItem
         this->nameSizeInChars = this->GetDisplayName(nullptr, 256);
 
         WCHAR * displayName = HeapNewArray(WCHAR, this->nameSizeInChars);
-        this->GetDisplayName(displayName, this->nameSizeInChars);
+        this->jitData.nameLength = (unsigned int)this->GetDisplayName(displayName, this->nameSizeInChars);
         if (this->nameSizeInChars > UINT32_MAX)
         {
             Js::Throw::OutOfMemory();
         }
-        this->jitData.nameLength = UInt32Math::Mul<sizeof(WCHAR)>((uint32)this->nameSizeInChars);
         this->jitData.displayName = displayName;
 
         this->jitData.interpretedCount = GetInterpretedCount();
@@ -329,12 +328,11 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
         this->nameSizeInChars = this->GetDisplayName(nullptr, 256);
 
         WCHAR * displayName = HeapNewArray(WCHAR, this->nameSizeInChars);
-        this->GetDisplayName(displayName, this->nameSizeInChars);
+        this->jitData.nameLength = (unsigned int)this->GetDisplayName(displayName, this->nameSizeInChars);
         if (this->nameSizeInChars > UINT32_MAX)
         {
             Js::Throw::OutOfMemory();
         }
-        this->jitData.nameLength = UInt32Math::Mul<sizeof(WCHAR)>((uint32)this->nameSizeInChars);
         this->jitData.displayName = displayName;
 
         this->jitData.interpretedCount = GetInterpretedCount();

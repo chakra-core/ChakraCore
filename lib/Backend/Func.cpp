@@ -140,7 +140,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 
     m_jnFunction = nullptr;
     bool doStackNestedFunc = GetJITFunctionBody()->DoStackNestedFunc();
-    
+
     bool doStackClosure = GetJITFunctionBody()->DoStackClosure() && !PHASE_OFF(Js::FrameDisplayFastPathPhase, this) && !PHASE_OFF(Js::StackClosurePhase, this);
     Assert(!doStackClosure || doStackNestedFunc);
     this->stackClosure = doStackClosure && this->IsTopFunc();
@@ -426,6 +426,64 @@ Func::Codegen()
         }
     }
 #endif
+
+
+    auto dataAllocator = this->GetNativeCodeDataAllocator();
+    if (dataAllocator->allocCount > 0)
+    {
+        // fill in the fixup list by scanning the memory
+        // todo: this should be done while generating code
+        unsigned int count = 0;
+        NativeCodeData::DataChunk *chunk = (NativeCodeData::DataChunk*)dataAllocator->chunkList;
+        NativeCodeData::DataChunk *next1 = chunk;
+        while (next1)
+        {
+            count++;
+            NativeCodeData::DataChunk *next2 = chunk;
+            while (next2)
+            {
+                for (int i = 0; i < next1->len / sizeof(void*); i++)
+                {
+                    if (((void**)next1->data)[i] == (void*)next2->data)
+                    {
+                        NativeCodeData::AddFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                    }
+                }
+                next2 = next2->next;
+            }
+            next1 = next1->next;
+        }
+        ////
+
+
+        JITOutputData* jitOutputData = m_output.GetOutputData();
+
+
+        jitOutputData->nativeDataFixupTable = (NativeDataFixupTable*)midl_user_allocate(sizeof(NativeDataFixupTable) + sizeof(NativeDataFixupRecord)* (dataAllocator->allocCount - 1));
+        jitOutputData->nativeDataFixupTable->count = dataAllocator->allocCount;
+
+        jitOutputData->buffer = (NativeDataBuffer*)midl_user_allocate(offsetof(NativeDataBuffer, data) + dataAllocator->totalSize);
+        jitOutputData->buffer->len = dataAllocator->totalSize;
+
+
+        unsigned int len = 0;
+        count = 0;
+        next1 = chunk;
+        while (next1)
+        {
+            memcpy(jitOutputData->buffer->data + len, next1->data, next1->len);
+            len += next1->len;
+
+            jitOutputData->nativeDataFixupTable->fixupRecords[count].index = next1->allocIndex;
+            jitOutputData->nativeDataFixupTable->fixupRecords[count].length = next1->len;
+            jitOutputData->nativeDataFixupTable->fixupRecords[count].startOffset = next1->offset;
+            jitOutputData->nativeDataFixupTable->fixupRecords[count].updateList = next1->fixupList;
+
+            count++;
+            next1 = next1->next;
+        }
+    }
+
 }
 
 ///----------------------------------------------------------------------------

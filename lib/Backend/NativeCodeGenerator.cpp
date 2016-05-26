@@ -975,13 +975,15 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             // the number allocator needs to be on the stack so that if we are doing foreground JIT
             // the chunk allocated from the recycler will be stacked pinned
             CodeGenNumberAllocator numberAllocator(
-                foreground? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
+                foreground ? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
                 scriptContext->GetRecycler());
 
             auto funcEPInfo = (Js::FunctionEntryPointInfo*)workItem->GetEntryPoint();
             workItem->GetJITData()->readOnlyEPData.callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
 
-            JITOutputData jitWriteData;
+            workItem->GetJITData()->nativeDataAddr = (__int3264)workItem->GetEntryPoint()->GetNativeDataBufferRef();
+
+            JITOutputData jitWriteData = {0};
             ProfileData profileData;
             JITTimeProfileInfo::InitializeJITProfileData(body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr, body, &profileData);
             HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
@@ -994,6 +996,28 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             {
                 __fastfail((uint)-1);
             }
+
+            if (jitWriteData.nativeDataFixupTable)
+            {
+                for (unsigned int i = 0; i < jitWriteData.nativeDataFixupTable->count; i++)
+                {
+                    auto& record = jitWriteData.nativeDataFixupTable->fixupRecords[i];
+                    auto updateList = record.updateList;
+                    while (updateList)
+                    {
+                        *(void**)(jitWriteData.buffer->data + record.startOffset + updateList->addrOffset) = jitWriteData.buffer->data + updateList->targetTotalOffset;
+                        auto current = updateList;
+                        updateList = updateList->next;
+                        midl_user_free(current);
+                    }
+                }
+                midl_user_free(jitWriteData.nativeDataFixupTable);
+                jitWriteData.nativeDataFixupTable = nullptr;
+
+                // change the address with the fixup information
+                *workItem->GetEntryPoint()->GetNativeDataBufferRef() = (char*)jitWriteData.buffer->data;
+            }
+
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
             XDataInfo * xdataInfo = XDataAllocator::Register(jitWriteData.xdataAddr, jitWriteData.codeAddress, jitWriteData.codeSize);
             funcEPInfo->SetXDataInfo(xdataInfo);

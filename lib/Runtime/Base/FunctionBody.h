@@ -422,6 +422,7 @@ namespace Js
         };
 
         NativeCodeData * data;
+        char* nativeDataBuffer;
         CodeGenNumberChunk * numberChunks;
 
         SmallSpanSequence *nativeThrowSpanSequence;
@@ -476,6 +477,8 @@ namespace Js
             CleanUpForFinalize
         };
         uint frameHeight;
+
+        char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
 
     private:
 #if ENABLE_NATIVE_CODEGEN
