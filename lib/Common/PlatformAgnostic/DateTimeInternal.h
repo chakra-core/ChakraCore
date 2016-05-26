@@ -53,10 +53,7 @@ namespace DateTime
     class UtilityPlatformData
     {
     public:
-        WCHAR standardZoneName[32];
-        WCHAR daylightZoneName[32];
-        size_t standardZoneNameLength;
-        size_t daylightZoneNameLength;
+        TIME_ZONE_INFORMATION timeZoneInfo;
         uint32 lastTimeZoneUpdateTickCount;
 
         void UpdateTimeZoneInfo();

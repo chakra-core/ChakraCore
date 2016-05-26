@@ -46,19 +46,7 @@ namespace DateTime
         uint32 tickCount = GetTickCount();
         if (tickCount - lastTimeZoneUpdateTickCount > updatePeriod)
         {
-            TIME_ZONE_INFORMATION timeZoneInfo;
             GetTimeZoneInformation(&timeZoneInfo);
-
-            standardZoneNameLength = wcslen(timeZoneInfo.StandardName) + 1;
-            daylightZoneNameLength = wcslen(timeZoneInfo.DaylightName) + 1;
-
-            memcpy(standardZoneName, timeZoneInfo.StandardName,
-                                     sizeof(WCHAR) * standardZoneNameLength);
-            standardZoneName[standardZoneNameLength] = (WCHAR) 0;
-
-            memcpy(daylightZoneName, timeZoneInfo.DaylightName,
-                                     sizeof(WCHAR) * daylightZoneNameLength);
-            daylightZoneName[daylightZoneNameLength] = (WCHAR) 0;
 
             // todo: check possible winrt issue
             // !defined(__cplusplus_winrt)
@@ -73,15 +61,15 @@ namespace DateTime
     const WCHAR *Utility::GetStandardName(size_t *nameLength)
     {
         data.UpdateTimeZoneInfo();
-        *nameLength = data.standardZoneNameLength;
-        return data.standardZoneName;
+        *nameLength = wcslen(data.timeZoneInfo.StandardName);
+        return data.timeZoneInfo.StandardName;
     }
 
     const WCHAR *Utility::GetDaylightName(size_t *nameLength)
     {
         data.UpdateTimeZoneInfo();
-        *nameLength = data.daylightZoneNameLength;
-        return data.daylightZoneName;
+        *nameLength = wcslen(data.timeZoneInfo.DaylightName);
+        return data.timeZoneInfo.DaylightName;
     }
 
     // class TimeZoneInfo ******
