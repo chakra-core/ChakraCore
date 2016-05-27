@@ -709,9 +709,6 @@ private:
     template<const bool backgroundPidRefs>
     void BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId = (uint)-1);
     void BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint maxBlockId = (uint)-1);
-    void BindConstPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint maxBlockId = (uint)-1);
-    template<const bool constBinding>
-    void BindPidRefsInScopeImpl(IdentPtr pid, Symbol *sym, int blockId, uint maxBlockId = (uint)-1);
     void PushScope(Scope *scope);
     void PopScope(Scope *scope);
 
