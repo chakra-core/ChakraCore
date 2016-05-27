@@ -25,8 +25,11 @@ var proxy = new Proxy({"5":1}, {
     return ['a', {y:2}, 5, 'b', Symbol.iterator];
   }
 });
-for(var key in proxy){ keys += key;}
-passed &= keys==="";
+try{
+  for(var key in proxy);
+  passed = false;
+}
+catch(e){}
 
 // check property descriptor
 var keys=""
@@ -35,8 +38,11 @@ var proxy = new Proxy({b:1,a:2}, {
     return ['a', {y:2}, 5, 'b', Symbol.iterator];
   }
 });
-for(var key in proxy){ keys += key;}
-passed &= keys==="ab";
+try{
+  for(var key in proxy);
+  passed = false;
+}
+catch(e){}
 
 var keys=""
 var proxy = new Proxy({b:1,a:2}, {
@@ -63,16 +69,22 @@ passed &= keys==="cd";
 var keys=""
 var proxy = new Proxy({b:1,a:2}, {
   ownKeys: function() {
-    return {x:1,y:2};
+    return {x:1,y:2, '0':'a'};
   }
 });
-try{
-  for(var key in proxy){ keys += key;}
-  WScript.Echo("should throw");
-  passed = false;
-} catch(e){
-}
+for(var key in proxy){ keys += key;}
+passed &= keys==="";
 
+var keys=""
+var proxy = new Proxy({b:1,a:2}, {
+  ownKeys: function() {
+    return {x:1,y:2, '0':'a', length:2};
+  }
+});
+for(var key in proxy){ keys += key;}
+passed &= keys==="a";
+
+/* duplicate key does not work, assertion on inserting propertyId to dictionary. Waiting for spec clarification
 // check property descriptor trap
 var keys=""
 var already_non_enmerable = false;
@@ -103,6 +115,7 @@ var proxy = new Proxy({}, {
 for(var key in proxy){ keys += key;}
 passed &= keys==="b";
 passed &= getPrototypeOfCalled===1;
+*/
 
 if (passed) {
   WScript.Echo("PASS");

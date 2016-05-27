@@ -895,74 +895,48 @@ namespace Js
             if (!threadContext->RecordImplicitException())
                 return FALSE;
             JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u("ownKeys"));
-        }
-
-        // going through for-in spec
-        JavascriptFunction* getEnumeratorMethod = GetMethodHelper(PropertyIds::ownKeys, scriptContext);
-        Assert(!GetScriptContext()->IsHeapEnumInProgress());
-        if (nullptr == getEnumeratorMethod)
-        {
-            return target->GetEnumerator(enumNonEnumerable, enumerator, requestContext, preferSnapshotSemantics, enumSymbols);
-        }
-
-        CallInfo callInfo(CallFlags_Value, 2);
-        Var varArgs[2];
-        Js::Arguments arguments(callInfo, varArgs);
-        varArgs[0] = handler;
-        varArgs[1] = target;
-
-        Js::ImplicitCallFlags saveImplicitCallFlags = threadContext->GetImplicitCallFlags();
-        Var trapResult = getEnumeratorMethod->CallFunction(arguments);
-        threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | ImplicitCall_Accessor));
-
-        if (!JavascriptOperators::IsArray(trapResult))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
-        }
-
+        }    
+        
+        Var enmeratorObj;
+        Var propertyName = nullptr;
+        PropertyId propertyId;
+        int index = 0;
         JsUtil::BaseDictionary<const char16*, Var, Recycler> dict(scriptContext->GetRecycler());
         JavascriptArray* arrResult = scriptContext->GetLibrary()->CreateArray();
-        int index = 0;
 
-        Js::RecyclableObject* arrayIterator = JavascriptOperators::GetIterator(RecyclableObject::FromVar(trapResult), scriptContext);
-        Js::RecyclableObject* next = JavascriptOperators::IteratorNext(arrayIterator, scriptContext);        
-
-        while (RecyclableObject::Is(next))
+        // 13.7.5.15EnumerateObjectProperties(O)#
+        //  for (let key of Reflect.ownKeys(obj)) {    
+        Var trapResult = JavascriptOperators::GetOwnPropertyNames(this, scriptContext);
+        Assert(JavascriptArray::Is(trapResult));
+        ((JavascriptArray*)trapResult)->GetEnumerator(false, &enmeratorObj, scriptContext);
+        JavascriptEnumerator* pEnumerator = JavascriptEnumerator::FromVar(enmeratorObj);
+        while ((propertyName = pEnumerator->GetCurrentAndMoveNext(propertyId)) != NULL)
         {
-            if (Js::JavascriptOperators::HasProperty(next, PropertyIds::value))
+            PropertyId  propId = JavascriptOperators::GetPropertyId(propertyName, scriptContext);
+            Var prop = JavascriptOperators::GetProperty(RecyclableObject::FromVar(trapResult), propId, scriptContext);
+            // if (typeof key === "string") {
+            if (JavascriptString::Is(prop))
             {
-                Js::Var element = JavascriptOperators::GetProperty(next, PropertyIds::value, scriptContext);
-                if (JavascriptString::Is(element))
+                Js::PropertyDescriptor desc;
+                JavascriptString* str = JavascriptString::FromVar(prop);
+                // let desc = Reflect.getOwnPropertyDescriptor(obj, key);
+                BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(this, str, scriptContext, &desc);
+                // if (desc && !visited.has(key)) {
+                if (ret && !dict.ContainsKey(str->GetSz()))
                 {
-                    Js::PropertyDescriptor desc;
-                    JavascriptString* str = JavascriptString::FromVar(element);
-                    BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(this, str, scriptContext, &desc);
-                    if (ret && !dict.ContainsKey(str->GetSz()))
+                    dict.Add(str->GetSz(), prop);
+                    //if (desc.enumerable) yield key;
+                    if (desc.IsEnumerable())
                     {
-                        dict.Add(str->GetSz(), element);
-                        if (desc.IsEnumerable())
-                        {
-                            ret = arrResult->SetItem(index++, element, PropertyOperation_None);
-                            Assert(ret);
-                        }
+                        ret = arrResult->SetItem(index++, prop, PropertyOperation_None);
+                        Assert(ret);
                     }
                 }
-            }
-
-            if (Js::JavascriptOperators::HasProperty(next, PropertyIds::done))
-            {
-                Js::Var done = JavascriptOperators::GetProperty(next, PropertyIds::done, scriptContext);
-                if (Js::JavascriptConversion::ToBoolean_Full(done, scriptContext))
-                {
-                    break;
-                }
-            }
-            next = JavascriptOperators::IteratorNext(arrayIterator, scriptContext);
+            }            
         }
 
-        arrayIterator = JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), scriptContext);
-        *enumerator = IteratorObjectEnumerator::Create(scriptContext, arrayIterator);
-
+        *enumerator = IteratorObjectEnumerator::Create(scriptContext, 
+            JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), scriptContext));
         return TRUE;
     }
 
