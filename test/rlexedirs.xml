@@ -371,4 +371,10 @@
     <tags>exclude_serialized,exclude_arm,exclude_arm64</tags>
   </default>
 </dir>
+<dir>
+  <default>
+    <files>Debugger</files>
+    <tags>exclude_serialized,exclude_jshost,exclude_snap</tags>
+  </default>
+</dir>
 </regress-exe>

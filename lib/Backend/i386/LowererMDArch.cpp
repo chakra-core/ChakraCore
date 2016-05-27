@@ -1560,10 +1560,10 @@ LowererMDArch::LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr)
     IR::RegOpnd * ebpOpnd = IR::RegOpnd::New(nullptr, GetRegBlockPointer(), TyMachReg, m_func);
     IR::RegOpnd * espOpnd = IR::RegOpnd::New(nullptr, GetRegStackPointer(), TyMachReg, m_func);
 
-    // Generate PUSH EBP
-    IR::Instr * pushInstr = IR::Instr::New(Js::OpCode::PUSH, m_func);
-    pushInstr->SetSrc1(ebpOpnd);
-    insertInstr->InsertBefore(pushInstr);
+    // Generate PUSH EBP    
+    IR::Instr * pushEbpInstr = IR::Instr::New(Js::OpCode::PUSH, m_func);
+    pushEbpInstr->SetSrc1(ebpOpnd);
+    insertInstr->InsertBefore(pushEbpInstr);
 
     // Generate MOV EBP, ESP
     IR::Instr * movInstr = IR::Instr::New(Js::OpCode::MOV, ebpOpnd, espOpnd, m_func);

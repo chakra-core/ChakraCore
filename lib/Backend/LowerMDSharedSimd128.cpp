@@ -705,17 +705,19 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         Assert(UNREACHED);
     }
 
-    IR::Opnd* tmp = src1;
-    if (laneIndex != 0)
     {
-        // tmp = PSRLDQ src1, shamt
-        tmp = IR::RegOpnd::New(src1->GetType(), m_func);
-        IR::Instr *shiftInstr = IR::Instr::New(Js::OpCode::PSRLDQ, tmp, src1, IR::IntConstOpnd::New(laneWidth * laneIndex, TyInt8, m_func, true), m_func);
-        instr->InsertBefore(shiftInstr);
-        Legalize(shiftInstr);
+        IR::Opnd* tmp = src1;
+        if (laneIndex != 0)
+        {
+            // tmp = PSRLDQ src1, shamt
+            tmp = IR::RegOpnd::New(src1->GetType(), m_func);
+            IR::Instr *shiftInstr = IR::Instr::New(Js::OpCode::PSRLDQ, tmp, src1, IR::IntConstOpnd::New(laneWidth * laneIndex, TyInt8, m_func, true), m_func);
+            instr->InsertBefore(shiftInstr);
+            Legalize(shiftInstr);
+        }
+        // MOVSS/MOVSD/MOVD dst, tmp
+        instr->InsertBefore(IR::Instr::New(movOpcode, dst, tmp, m_func));
     }
-    // MOVSS/MOVSD/MOVD dst, tmp
-    instr->InsertBefore(IR::Instr::New(movOpcode, dst, tmp, m_func));
 
     // dst has the 4-byte lane
     if (instr->m_opcode == Js::OpCode::Simd128_ExtractLane_I8 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_U8 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 ||
@@ -1271,7 +1273,7 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
     IR::RegOpnd *shamt = IR::RegOpnd::New(src2->GetType(), m_func);
     // en-register
     IR::Opnd *origShamt = EnregisterIntConst(instr, src2); //unnormalized shift amount
-    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, origShamt, IR::IntConstOpnd::New(Js::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt8, m_func), m_func); // normalizing by elm width (i.e. shamt % elm_width)
+    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, origShamt, IR::IntConstOpnd::New(Js::SIMDUtils::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt8, m_func), m_func); // normalizing by elm width (i.e. shamt % elm_width)
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 
@@ -1654,10 +1656,10 @@ IR::Instr* LowererMD::Simd128LowerShuffle_4(IR::Instr* instr)
     IR::Opnd *dst = args->Pop();
     IR::Opnd *srcs[6] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
-    int i = 0;
-    while (!args->Empty() && i < 6)
+    int j = 0;
+    while (!args->Empty() && j < 6)
     {
-        srcs[i++] = args->Pop();
+        srcs[j++] = args->Pop();
     }
 
     uint8 lanes[4], lanesSrc[4];
@@ -3068,9 +3070,9 @@ LowererMD::Simd128LoadHeadSegment(IR::IndirOpnd *indirOpnd, ValueType arrType, I
     {
         //  MOV headSegment, [base + offset(head)]
         int32 headOffset = m_lowerer->GetArrayOffsetOfHeadSegment(arrType);
-        IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(arrayRegOpnd, headOffset, TyMachPtr, this->m_func);
+        IR::IndirOpnd * newIndirOpnd = IR::IndirOpnd::New(arrayRegOpnd, headOffset, TyMachPtr, this->m_func);
         headSegmentOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-        m_lowerer->InsertMove(headSegmentOpnd, indirOpnd, instr);
+        m_lowerer->InsertMove(headSegmentOpnd, newIndirOpnd, instr);
     }
 
     // change base to be the head segment instead of the array object

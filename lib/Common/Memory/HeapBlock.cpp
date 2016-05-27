@@ -154,6 +154,63 @@ SmallHeapBlockT<TBlockAttributes>::GetPageCount() const
     return TBlockAttributes::PageCount;
 }
 
+template <>
+uint
+SmallHeapBlockT<SmallAllocationBlockAttributes>::GetUnusablePageCount()
+{
+    return 0;
+}
+
+template <>
+void
+SmallHeapBlockT<SmallAllocationBlockAttributes>::ProtectUnusablePages()
+{
+}
+
+template <>
+void
+SmallHeapBlockT<SmallAllocationBlockAttributes>::RestoreUnusablePages()
+{
+}
+
+template <>
+uint
+SmallHeapBlockT<MediumAllocationBlockAttributes>::GetUnusablePageCount()
+{
+    return ((MediumAllocationBlockAttributes::PageCount * AutoSystemInfo::PageSize) % this->objectSize) / AutoSystemInfo::PageSize;
+}
+
+template <>
+void
+SmallHeapBlockT<MediumAllocationBlockAttributes>::ProtectUnusablePages()
+{
+    size_t count = this->GetUnusablePageCount();
+    if (count > 0)
+    {
+        char* startPage = this->address + (MediumAllocationBlockAttributes::PageCount - count) * AutoSystemInfo::PageSize;
+        DWORD oldProtect;
+        BOOL ret = ::VirtualProtect(startPage, count * AutoSystemInfo::PageSize, PAGE_READONLY, &oldProtect);
+        Assert(ret && oldProtect == PAGE_READWRITE);
+
+        ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
+    }
+}
+
+template <>
+void
+SmallHeapBlockT<MediumAllocationBlockAttributes>::RestoreUnusablePages()
+{
+    size_t count = this->GetUnusablePageCount();
+    if (count > 0)
+    {
+        char* startPage = (char*)this->address + (MediumAllocationBlockAttributes::PageCount - count) * AutoSystemInfo::PageSize;
+        DWORD oldProtect;
+        BOOL ret = ::VirtualProtect(startPage, count * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
+        Assert(ret && oldProtect == PAGE_READONLY);
+    }
+}
+
+
 template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::ClearObjectInfoList()
@@ -295,7 +352,7 @@ SmallHeapBlockT<TBlockAttributes>::SetPage(__in_ecount_pagesize char * baseAddre
 
     // We use the block type directly here, without the getter so that we can tell on the heap block map,
     // whether the block is a medium block or not
-    if (!recycler->heapBlockMap.SetHeapBlock(this->address, this->GetPageCount(), this, this->heapBlockType, (byte)this->bucketIndex))
+    if (!recycler->heapBlockMap.SetHeapBlock(this->address, this->GetPageCount() - this->GetUnusablePageCount(), this, this->heapBlockType, (byte)this->bucketIndex))
     {
         return FALSE;
     }
@@ -312,6 +369,8 @@ SmallHeapBlockT<TBlockAttributes>::SetPage(__in_ecount_pagesize char * baseAddre
     // See also SmallHeapBlockT<TBlockAttributes>::ResetMarks.
     MemoryBarrier();
 #endif
+
+    this->ProtectUnusablePages();
 
     return TRUE;
 }
@@ -334,23 +393,31 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
     char* address = this->address;
 
 #ifdef RECYCLER_FREE_MEM_FILL
-    memset(address, DbgMemFill, AutoSystemInfo::PageSize * this->GetPageCount());
+    memset(address, DbgMemFill, AutoSystemInfo::PageSize * (this->GetPageCount()-this->GetUnusablePageCount()));
 #endif
+
+    if (this->GetUnusablePageCount() > 0)
+    {
+        this->RestoreUnusablePages();
+    }
 
     this->GetPageAllocator(recycler)->ReleasePages(address, this->GetPageCount(), this->GetPageSegment());
 
     this->segment = nullptr;
     this->address = nullptr;
-
 }
 
 template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::BackgroundReleasePagesSweep(Recycler* recycler)
 {
-    recycler->heapBlockMap.ClearHeapBlock(address, this->GetPageCount());
+    recycler->heapBlockMap.ClearHeapBlock(address, this->GetPageCount() - this->GetUnusablePageCount());
     char* address = this->address;
 
+    if (this->GetUnusablePageCount() > 0)
+    {
+        this->RestoreUnusablePages();
+    }
     this->GetPageAllocator(recycler)->BackgroundReleasePages(address, this->GetPageCount(), this->GetPageSegment());
 
     this->address = nullptr;
@@ -381,7 +448,7 @@ template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::RemoveFromHeapBlockMap(Recycler* recycler)
 {
-    recycler->heapBlockMap.ClearHeapBlock(address, this->GetPageCount());
+    recycler->heapBlockMap.ClearHeapBlock(address, this->GetPageCount() - this->GetUnusablePageCount());
 }
 
 template <class TBlockAttributes>

@@ -221,7 +221,6 @@ public:
     void ReleasePages(__in void * address, uint pageCount);
     template <bool onlyUpdateState>
     void DecommitPages(__in void * address, uint pageCount);
-    void PartialDecommitPages(__in void * address, size_t totalPageCount, __in void* addressToDecommit, size_t pageCountToDecommit);
 
     uint GetCountOfFreePages() const;
     uint GetNextBitInFreePagesBitVector(uint index) const;
@@ -428,7 +427,6 @@ public:
     char * AllocPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
     char * AllocPagesPageAligned(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
-    void PartialDecommitPages(__in void * address, size_t pageCountTotal, __in void* decommitAddress, size_t pageCountToDecommit,  __in void * pageSegment);
     void ReleasePages(__in void * address, uint pageCount, __in void * pageSegment);
     void BackgroundReleasePages(void * address, uint pageCount, PageSegmentBase<TVirtualAlloc> * pageSegment);
 
@@ -520,8 +518,8 @@ protected:
     virtual void DumpStats() const;
 #endif
     virtual PageSegmentBase<TVirtualAlloc> * AddPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList);
-    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, 
-        PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool committed, bool allocated);
+    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList,
+    PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool committed, bool allocated);
 
     // Zero Pages
     void AddPageToZeroQueue(__in void * address, uint pageCount, __in PageSegmentBase<TVirtualAlloc> * pageSegment);
@@ -729,7 +727,7 @@ public:
 
     // Release pages that has already been decommitted
     void ReleaseDecommitted(void * address, size_t pageCount, __in void * segment);
-    bool IsAddressFromAllocator(__in void* address);    
+    bool IsAddressFromAllocator(__in void* address);
 
     bool AllocXdata() { return allocXdata; }
 private:

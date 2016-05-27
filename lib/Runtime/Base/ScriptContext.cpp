@@ -92,6 +92,8 @@ namespace Js
         CurrentCrossSiteThunk(CrossSite::DefaultThunk),
         DeferredParsingThunk(DefaultDeferredParsingThunk),
         DeferredDeserializationThunk(DefaultDeferredDeserializeThunk),
+        DispatchDefaultInvoke(nullptr),
+        DispatchProfileInvoke(nullptr),
         m_pBuiltinFunctionIdMap(nullptr),
         diagnosticArena(nullptr),
         hostScriptContext(nullptr),
@@ -618,6 +620,9 @@ namespace Js
 
         if (this->debugContext != nullptr)
         {
+            // Guard the closing and deleting of DebugContext as in meantime PDM might
+            // call OnBreakFlagChange
+            AutoCriticalSection autoDebugContextCloseCS(&debugContextCloseCS);
             this->debugContext->Close();
             HeapDelete(this->debugContext);
             this->debugContext = nullptr;
@@ -2708,76 +2713,75 @@ if (!sourceList)
         // Rundown on all existing functions and change their thunks so that they will go to debug mode once they are called.
 
         HRESULT hr = OnDebuggerAttachedDetached(/*attach*/ true);
-        if (SUCCEEDED(hr))
+
+        // Debugger attach/detach failure is catastrophic, take down the process
+        DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
+
+        // Disable QC while functions are re-parsed as this can be time consuming
+        AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
+
+        if ((hr = this->GetDebugContext()->RundownSourcesAndReparse(shouldPerformSourceRundown, /*shouldReparseFunctions*/ true)) == S_OK)
         {
-            // Disable QC while functions are re-parsed as this can be time consuming
-            AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
-
-            if ((hr = this->GetDebugContext()->RundownSourcesAndReparse(shouldPerformSourceRundown, /*shouldReparseFunctions*/ true)) == S_OK)
-            {
-                HRESULT hr2 = this->GetLibrary()->EnsureReadyIfHybridDebugging(); // Prepare library if hybrid debugging attach
-                Assert(hr2 != E_FAIL);   // Omitting HRESULT
-            }
-
-            if (!this->IsClosed())
-            {
-                HRESULT hrEntryPointUpdate = S_OK;
-                BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
-#ifdef ASMJS_PLAT
-                    TempArenaAllocatorObject* tmpAlloc = GetTemporaryAllocator(_u("DebuggerTransition"));
-                    debugTransitionAlloc = tmpAlloc->GetAllocator();
-
-                    asmJsEnvironmentMap = Anew(debugTransitionAlloc, AsmFunctionMap, debugTransitionAlloc);
-#endif
-
-                    // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
-                    this->UpdateRecyclerFunctionEntryPointsForDebugger();
-
-#ifdef ASMJS_PLAT
-                    auto asmEnvIter = asmJsEnvironmentMap->GetIterator();
-                    while (asmEnvIter.IsValid())
-                    {
-                        // we are attaching, change frame setup for asm.js frame to javascript frame
-                        SList<AsmJsScriptFunction *> * funcList = asmEnvIter.CurrentValue();
-                        Assert(!funcList->Empty());
-                        void* newEnv = AsmJsModuleInfo::ConvertFrameForJavascript(asmEnvIter.CurrentKey(), funcList->Head());
-                        funcList->Iterate([&](AsmJsScriptFunction * func)
-                        {
-                            func->GetEnvironment()->SetItem(0, newEnv);
-                        });
-                        asmEnvIter.MoveNext();
-                    }
-
-                    // walk through and clean up the asm.js fields as a discrete step, because module might be multiply linked
-                    auto asmCleanupIter = asmJsEnvironmentMap->GetIterator();
-                    while (asmCleanupIter.IsValid())
-                    {
-                        SList<AsmJsScriptFunction *> * funcList = asmCleanupIter.CurrentValue();
-                        Assert(!funcList->Empty());
-                        funcList->Iterate([](AsmJsScriptFunction * func)
-                        {
-                            func->SetModuleMemory(nullptr);
-                            func->GetFunctionBody()->ResetAsmJsInfo();
-                        });
-                        asmCleanupIter.MoveNext();
-                    }
-
-                    ReleaseTemporaryAllocator(tmpAlloc);
-#endif
-                END_TRANSLATE_OOM_TO_HRESULT(hrEntryPointUpdate);
-
-                if (hrEntryPointUpdate != S_OK)
-                {
-                    // should only be here for OOM
-                    Assert(hrEntryPointUpdate == E_OUTOFMEMORY);
-                    return hrEntryPointUpdate;
-                }
-            }
+            HRESULT hr2 = this->GetLibrary()->EnsureReadyIfHybridDebugging(); // Prepare library if hybrid debugging attach
+            Assert(hr2 != E_FAIL);   // Omitting HRESULT
         }
-        else
+
+        // Debugger attach/detach failure is catastrophic, take down the process
+        DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
+
+        if (!this->IsClosed())
         {
-            // Let's find out on what conditions it fails
-            RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
+            HRESULT hrEntryPointUpdate = S_OK;
+            BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
+#ifdef ASMJS_PLAT
+                TempArenaAllocatorObject* tmpAlloc = GetTemporaryAllocator(_u("DebuggerTransition"));
+                debugTransitionAlloc = tmpAlloc->GetAllocator();
+
+                asmJsEnvironmentMap = Anew(debugTransitionAlloc, AsmFunctionMap, debugTransitionAlloc);
+#endif
+
+                // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
+                this->UpdateRecyclerFunctionEntryPointsForDebugger();
+
+#ifdef ASMJS_PLAT
+                auto asmEnvIter = asmJsEnvironmentMap->GetIterator();
+                while (asmEnvIter.IsValid())
+                {
+                    // we are attaching, change frame setup for asm.js frame to javascript frame
+                    SList<AsmJsScriptFunction *> * funcList = asmEnvIter.CurrentValue();
+                    Assert(!funcList->Empty());
+                    void* newEnv = AsmJsModuleInfo::ConvertFrameForJavascript(asmEnvIter.CurrentKey(), funcList->Head());
+                    funcList->Iterate([&](AsmJsScriptFunction * func)
+                    {
+                        func->GetEnvironment()->SetItem(0, newEnv);
+                    });
+                    asmEnvIter.MoveNext();
+                }
+
+                // walk through and clean up the asm.js fields as a discrete step, because module might be multiply linked
+                auto asmCleanupIter = asmJsEnvironmentMap->GetIterator();
+                while (asmCleanupIter.IsValid())
+                {
+                    SList<AsmJsScriptFunction *> * funcList = asmCleanupIter.CurrentValue();
+                    Assert(!funcList->Empty());
+                    funcList->Iterate([](AsmJsScriptFunction * func)
+                    {
+                        func->SetModuleMemory(nullptr);
+                        func->GetFunctionBody()->ResetAsmJsInfo();
+                    });
+                    asmCleanupIter.MoveNext();
+                }
+
+                ReleaseTemporaryAllocator(tmpAlloc);
+#endif
+            END_TRANSLATE_OOM_TO_HRESULT(hrEntryPointUpdate);
+
+            if (hrEntryPointUpdate != S_OK)
+            {
+                // should only be here for OOM
+                Assert(hrEntryPointUpdate == E_OUTOFMEMORY);
+                return hrEntryPointUpdate;
+            }
         }
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerAttached: done 0x%p, hr = 0x%X\n"), this, hr);
@@ -2805,27 +2809,23 @@ if (!sourceList)
 
         HRESULT hr = OnDebuggerAttachedDetached(/*attach*/ false);
 
-        if (SUCCEEDED(hr))
-        {
-            // Move the debugger into source rundown mode.
-            this->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::SourceRundown);
+        // Debugger attach/detach failure is catastrophic, take down the process
+        DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
 
-            // Disable QC while functions are re-parsed as this can be time consuming
-            AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
+        // Move the debugger into source rundown mode.
+        this->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::SourceRundown);
 
-            // Force a reparse so that indirect function caches are updated.
-            hr = this->GetDebugContext()->RundownSourcesAndReparse(/*shouldPerformSourceRundown*/ false, /*shouldReparseFunctions*/ true);
-            // Let's find out on what conditions it fails
-            RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
+        // Disable QC while functions are re-parsed as this can be time consuming
+        AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
 
-            // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
-            this->UpdateRecyclerFunctionEntryPointsForDebugger();
-        }
-        else
-        {
-            // Let's find out on what conditions it fails
-            RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
-        }
+        // Force a reparse so that indirect function caches are updated.
+        hr = this->GetDebugContext()->RundownSourcesAndReparse(/*shouldPerformSourceRundown*/ false, /*shouldReparseFunctions*/ true);
+
+        // Debugger attach/detach failure is catastrophic, take down the process
+        DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
+
+        // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
+        this->UpdateRecyclerFunctionEntryPointsForDebugger();
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerDetached: done 0x%p, hr = 0x%X\n"), this, hr);
 

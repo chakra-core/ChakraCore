@@ -1481,7 +1481,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         //R12 acts a dummy zero register which we push to arguments slot
         //mov r12, 0
         Assert(r12Opnd == nullptr);
-        IR::RegOpnd* r12Opnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
+        r12Opnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
         IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r12Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instrMov);
         IR::LabelInstr *prologStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
@@ -9216,7 +9216,7 @@ LowererMD::FinalLower()
                 if (canExpand)
                 {
                     uint32 expandedInstrCount = 0;   // The number of instrs the LDIMM expands into.
-                    FOREACH_INSTR_IN_RANGE(instr, instrPrev->m_next, instrNext)
+                    FOREACH_INSTR_IN_RANGE(instrCount, instrPrev->m_next, instrNext)
                     {
                         ++expandedInstrCount;
                     }

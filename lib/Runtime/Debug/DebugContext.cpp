@@ -228,10 +228,8 @@ namespace Js
                     }
                     END_JS_RUNTIME_CALL_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT(hr);
 
-                    if (hr != S_OK)
-                    {
-                        break;
-                    }
+                    // Debugger attach/detach failure is catastrophic, take down the process
+                    DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
                 }
 
                 if (!fHasDoneSourceRundown && shouldPerformSourceRundown)
@@ -400,13 +398,8 @@ namespace Js
     template<class TMapFunction>
     void DebugContext::MapUTF8SourceInfoUntil(TMapFunction map)
     {
-        this->scriptContext->GetSourceList()->MapUntil([=](int i, RecyclerWeakReference<Js::Utf8SourceInfo>* sourceInfoWeakRef) -> bool {
-            Js::Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
-            if (sourceInfo)
-            {
-                return map(sourceInfo);
-            }
-            return false;
+        this->scriptContext->MapScript([=](Js::Utf8SourceInfo* sourceInfo) -> bool {
+            return map(sourceInfo);
         });
     }
 }

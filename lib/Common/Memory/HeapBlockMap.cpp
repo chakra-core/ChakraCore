@@ -1067,7 +1067,8 @@ HeapBlockMap32::RescanHeapBlockOnOOM(TBlockType* heapBlock, char* pageAddress, H
     // The following assert makes sure that this method is called only once per heap block
     Assert(blockStartAddress == pageAddress);
 
-    for (int i = 0; i < TBlockType::HeapBlockAttributes::PageCount; i++)
+    int inUsePageCount = heapBlock->GetPageCount() - heapBlock->GetUnusablePageCount();
+    for (int i = 0; i < inUsePageCount; i++)
     {
         char* pageAddressToScan = blockStartAddress + (i * AutoSystemInfo::PageSize);
 

@@ -23,14 +23,62 @@
 #ifndef _CHAKRACOMMON_H_
 #define _CHAKRACOMMON_H_
 
+// Platform specific code
+#if defined(_WIN32) && defined(_MSC_VER)
 #include <oaidl.h>
 
+// Header macros
+#define CHAKRA_CALLBACK CALLBACK
+#define CHAKRA_API STDAPI_(JsErrorCode)
 
+typedef DWORD_PTR ChakraCookie;
+typedef BYTE* ChakraBytePtr;
+#else // Non-Windows VC++
+#include <stdint.h>     // Needed for uintptr_t
+#ifndef __cplusplus
+#include <stdbool.h>    // Needed fo bool
+#include <stdio.h>      // for NULL
+#define nullptr NULL
+#endif
+
+// SAL compat
+#define _Return_type_success_(x)
+#define _In_
+#define _In_z_
+#define _In_opt_
+#define _Inout_
+#define _Out_
+#define _Out_opt_
+#define _In_reads_(x)
+#define _Pre_maybenull_
+#define _Pre_writable_byte_size_(byteLength)
+#define _Outptr_result_buffer_(byteLength)
+#define _Outptr_result_bytebuffer_(byteLength)
+#define _Outptr_result_z_
+#define _Ret_maybenull_
+#define _Out_writes_to_opt_(byteLength, byteLength2)
+
+// Header macros
+#ifdef __i386___
+#define CHAKRA_CALLBACK __attribute__((cdecl))
+#else // non-32 bit x86 doesn't have cdecl support
+#define CHAKRA_CALLBACK
+#endif // __i386__
+
+#ifdef __cplusplus
+#define CHAKRA_API extern "C" JsErrorCode 
+#else
+#define CHAKRA_API JsErrorCode
+#endif
+
+typedef uintptr_t ChakraCookie;
+typedef unsigned char* ChakraBytePtr;
+#endif //  defined(_WIN32) && defined(_MSC_VER)
 
     /// <summary>
     ///     An error code returned from a Chakra hosting API.
     /// </summary>
-    typedef _Return_type_success_(return == 0) enum _JsErrorCode : unsigned int
+    typedef _Return_type_success_(return == 0) enum _JsErrorCode 
     {
         /// <summary>
         ///     Success error code.
@@ -185,6 +233,35 @@
         ///     A hosting API was called with object created on different javascript runtime.
         /// </summary>
         JsErrorWrongRuntime,
+
+        /// <summary>
+        ///     Category of errors that are related to failures during diagnostic operations.
+        /// </summary>
+        JsErrorCategoryDiagError = 0x50000,
+        /// <summary>
+        ///     The object for which the debugging API was called was not found
+        /// </summary>
+        JsErrorDiagAlreadyInDebugMode,
+        /// <summary>
+        ///     The debugging API can only be called when VM is in debug mode
+        /// </summary>
+        JsErrorDiagNotInDebugMode,
+        /// <summary>
+        ///     The debugging API can only be called when VM is at a break
+        /// </summary>
+        JsErrorDiagNotAtBreak,
+        /// <summary>
+        ///     Debugging API was called with an invalid handle.
+        /// </summary>
+        JsErrorDiagInvalidHandle,
+        /// <summary>
+        ///     The object for which the debugging API was called was not found
+        /// </summary>
+        JsErrorDiagObjectNotFound,
+        /// <summary>
+        ///     VM was unable to perfom the request action
+        /// </summary>
+        JsErrorDiagUnableToPerformAction,
     } JsErrorCode;
 
     /// <summary>
@@ -210,7 +287,7 @@
     /// <summary>
     ///     An invalid runtime handle.
     /// </summary>
-    const JsRuntimeHandle JS_INVALID_RUNTIME_HANDLE = NULL;
+    const JsRuntimeHandle JS_INVALID_RUNTIME_HANDLE = nullptr;
 
     /// <summary>
     ///     A reference to an object owned by the Chakra garbage collector.
@@ -227,7 +304,7 @@
     /// <summary>
     ///     An invalid reference.
     /// </summary>
-    const JsRef JS_INVALID_REFERENCE = NULL;
+    const JsRef JS_INVALID_REFERENCE = nullptr;
 
     /// <summary>
     ///     A reference to a script context.
@@ -257,7 +334,7 @@
     /// <summary>
     ///     A cookie that identifies a script for debugging purposes.
     /// </summary>
-    typedef DWORD_PTR JsSourceContext;
+    typedef ChakraCookie JsSourceContext;
 
     /// <summary>
     ///     An empty source context.
@@ -393,751 +470,6 @@
     } JsParseScriptAttributes;
 
     /// <summary>
-    ///     User implemented callback routine for memory allocation events
-    /// </summary>
-    /// <remarks>
-    ///     Use <c>JsSetRuntimeMemoryAllocationCallback</c> to register this callback.
-    /// </remarks>
-    /// <param name="callbackState">
-    ///     The state passed to <c>JsSetRuntimeMemoryAllocationCallback</c>.
-    /// </param>
-    /// <param name="allocationEvent">The type of type allocation event.</param>
-    /// <param name="allocationSize">The size of the allocation.</param>
-    /// <returns>
-    ///     For the <c>JsMemoryAllocate</c> event, returning <c>true</c> allows the runtime to continue
-    ///     with the allocation. Returning false indicates the allocation request is rejected. The
-    ///     return value is ignored for other allocation events.
-    /// </returns>
-    typedef bool (CALLBACK * JsMemoryAllocationCallback)(_In_opt_ void *callbackState, _In_ JsMemoryEventType allocationEvent, _In_ size_t allocationSize);
-
-    /// <summary>
-    ///     A callback called before collection.
-    /// </summary>
-    /// <remarks>
-    ///     Use <c>JsSetBeforeCollectCallback</c> to register this callback.
-    /// </remarks>
-    /// <param name="callbackState">The state passed to <c>JsSetBeforeCollectCallback</c>.</param>
-    typedef void (CALLBACK *JsBeforeCollectCallback)(_In_opt_ void *callbackState);
-
-    /// <summary>
-    ///     A callback called before collecting an object.
-    /// </summary>
-    /// <remarks>
-    ///     Use <c>JsSetObjectBeforeCollectCallback</c> to register this callback.
-    /// </remarks>
-    /// <param name="ref">The object to be collected.</param>
-    /// <param name="callbackState">The state passed to <c>JsSetObjectBeforeCollectCallback</c>.</param>
-    typedef void (CALLBACK *JsObjectBeforeCollectCallback)(_In_ JsRef ref, _In_opt_ void *callbackState);
-
-    /// <summary>
-    ///     A background work item callback.
-    /// </summary>
-    /// <remarks>
-    ///     This is passed to the host's thread service (if provided) to allow the host to
-    ///     invoke the work item callback on the background thread of its choice.
-    /// </remarks>
-    /// <param name="callbackState">Data argument passed to the thread service.</param>
-    typedef void (CALLBACK *JsBackgroundWorkItemCallback)(_In_opt_ void *callbackState);
-
-    /// <summary>
-    ///     A thread service callback.
-    /// </summary>
-    /// <remarks>
-    ///     The host can specify a background thread service when calling <c>JsCreateRuntime</c>. If
-    ///     specified, then background work items will be passed to the host using this callback. The
-    ///     host is expected to either begin executing the background work item immediately and return
-    ///     true or return false and the runtime will handle the work item in-thread.
-    /// </remarks>
-    /// <param name="callback">The callback for the background work item.</param>
-    /// <param name="callbackState">The data argument to be passed to the callback.</param>
-    typedef bool (CALLBACK *JsThreadServiceCallback)(_In_ JsBackgroundWorkItemCallback callback, _In_opt_ void *callbackState);
-
-    /// <summary>
-    ///     Creates a new runtime.
-    /// </summary>
-    /// <param name="attributes">The attributes of the runtime to be created.</param>
-    /// <param name="threadService">The thread service for the runtime. Can be null.</param>
-    /// <param name="runtime">The runtime created.</param>
-    /// <remarks>In the edge-mode binary, chakra.dll, this function lacks the <c>runtimeVersion</c>
-    /// parameter (compare to jsrt9.h).</remarks>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsCreateRuntime(
-            _In_ JsRuntimeAttributes attributes,
-            _In_opt_ JsThreadServiceCallback threadService,
-            _Out_ JsRuntimeHandle *runtime);
-
-    /// <summary>
-    ///     Performs a full garbage collection.
-    /// </summary>
-    /// <param name="runtime">The runtime in which the garbage collection will be performed.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsCollectGarbage(
-            _In_ JsRuntimeHandle runtime);
-
-    /// <summary>
-    ///     Disposes a runtime.
-    /// </summary>
-    /// <remarks>
-    ///     Once a runtime has been disposed, all resources owned by it are invalid and cannot be used.
-    ///     If the runtime is active (i.e. it is set to be current on a particular thread), it cannot
-    ///     be disposed.
-    /// </remarks>
-    /// <param name="runtime">The runtime to dispose.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsDisposeRuntime(
-            _In_ JsRuntimeHandle runtime);
-
-    /// <summary>
-    ///     Gets the current memory usage for a runtime.
-    /// </summary>
-    /// <remarks>
-    ///     Memory usage can be always be retrieved, regardless of whether or not the runtime is active
-    ///     on another thread.
-    /// </remarks>
-    /// <param name="runtime">The runtime whose memory usage is to be retrieved.</param>
-    /// <param name="memoryUsage">The runtime's current memory usage, in bytes.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetRuntimeMemoryUsage(
-            _In_ JsRuntimeHandle runtime,
-            _Out_ size_t *memoryUsage);
-
-    /// <summary>
-    ///     Gets the current memory limit for a runtime.
-    /// </summary>
-    /// <remarks>
-    ///     The memory limit of a runtime can be always be retrieved, regardless of whether or not the
-    ///     runtime is active on another thread.
-    /// </remarks>
-    /// <param name="runtime">The runtime whose memory limit is to be retrieved.</param>
-    /// <param name="memoryLimit">
-    ///     The runtime's current memory limit, in bytes, or -1 if no limit has been set.
-    /// </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetRuntimeMemoryLimit(
-            _In_ JsRuntimeHandle runtime,
-            _Out_ size_t *memoryLimit);
-
-    /// <summary>
-    ///     Sets the current memory limit for a runtime.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     A memory limit will cause any operation which exceeds the limit to fail with an "out of
-    ///     memory" error. Setting a runtime's memory limit to -1 means that the runtime has no memory
-    ///     limit. New runtimes  default to having no memory limit. If the new memory limit exceeds
-    ///     current usage, the call will succeed and any future allocations in this runtime will fail
-    ///     until the runtime's memory usage drops below the limit.
-    ///     </para>
-    ///     <para>
-    ///     A runtime's memory limit can be always be set, regardless of whether or not the runtime is
-    ///     active on another thread.
-    ///     </para>
-    /// </remarks>
-    /// <param name="runtime">The runtime whose memory limit is to be set.</param>
-    /// <param name="memoryLimit">
-    ///     The new runtime memory limit, in bytes, or -1 for no memory limit.
-    /// </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsSetRuntimeMemoryLimit(
-            _In_ JsRuntimeHandle runtime,
-            _In_ size_t memoryLimit);
-
-    /// <summary>
-    ///     Sets a memory allocation callback for specified runtime
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Registering a memory allocation callback will cause the runtime to call back to the host
-    ///     whenever it acquires memory from, or releases memory to, the OS. The callback routine is
-    ///     called before the runtime memory manager allocates a block of memory. The allocation will
-    ///     be rejected if the callback returns false. The runtime memory manager will also invoke the
-    ///     callback routine after freeing a block of memory, as well as after allocation failures.
-    ///     </para>
-    ///     <para>
-    ///     The callback is invoked on the current runtime execution thread, therefore execution is
-    ///     blocked until the callback completes.
-    ///     </para>
-    ///     <para>
-    ///     The return value of the callback is not stored; previously rejected allocations will not
-    ///     prevent the runtime from invoking the callback again later for new memory allocations.
-    ///     </para>
-    /// </remarks>
-    /// <param name="runtime">The runtime for which to register the allocation callback.</param>
-    /// <param name="callbackState">
-    ///     User provided state that will be passed back to the callback.
-    /// </param>
-    /// <param name="allocationCallback">
-    ///     Memory allocation callback to be called for memory allocation events.
-    /// </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsSetRuntimeMemoryAllocationCallback(
-            _In_ JsRuntimeHandle runtime,
-            _In_opt_ void *callbackState,
-            _In_ JsMemoryAllocationCallback allocationCallback);
-
-    /// <summary>
-    ///     Sets a callback function that is called by the runtime before garbage collection.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     The callback is invoked on the current runtime execution thread, therefore execution is
-    ///     blocked until the callback completes.
-    ///     </para>
-    ///     <para>
-    ///     The callback can be used by hosts to prepare for garbage collection. For example, by
-    ///     releasing unnecessary references on Chakra objects.
-    ///     </para>
-    /// </remarks>
-    /// <param name="runtime">The runtime for which to register the allocation callback.</param>
-    /// <param name="callbackState">
-    ///     User provided state that will be passed back to the callback.
-    /// </param>
-    /// <param name="beforeCollectCallback">The callback function being set.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsSetRuntimeBeforeCollectCallback(
-            _In_ JsRuntimeHandle runtime,
-            _In_opt_ void *callbackState,
-            _In_ JsBeforeCollectCallback beforeCollectCallback);
-
-    /// <summary>
-    ///     Adds a reference to a garbage collected object.
-    /// </summary>
-    /// <remarks>
-    ///     This only needs to be called on <c>JsRef</c> handles that are not going to be stored
-    ///     somewhere on the stack. Calling <c>JsAddRef</c> ensures that the object the <c>JsRef</c>
-    ///     refers to will not be freed until <c>JsRelease</c> is called.
-    /// </remarks>
-    /// <param name="ref">The object to add a reference to.</param>
-    /// <param name="count">The object's new reference count (can pass in null).</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsAddRef(
-            _In_ JsRef ref,
-            _Out_opt_ unsigned int *count);
-
-    /// <summary>
-    ///     Releases a reference to a garbage collected object.
-    /// </summary>
-    /// <remarks>
-    ///     Removes a reference to a <c>JsRef</c> handle that was created by <c>JsAddRef</c>.
-    /// </remarks>
-    /// <param name="ref">The object to add a reference to.</param>
-    /// <param name="count">The object's new reference count (can pass in null).</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsRelease(
-            _In_ JsRef ref,
-            _Out_opt_ unsigned int *count);
-
-    /// <summary>
-    ///     Sets a callback function that is called by the runtime before garbage collection of
-    ///     an object.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     The callback is invoked on the current runtime execution thread, therefore execution is
-    ///     blocked until the callback completes.
-    ///     </para>
-    /// </remarks>
-    /// <param name="ref">The object for which to register the callback.</param>
-    /// <param name="callbackState">
-    ///     User provided state that will be passed back to the callback.
-    /// </param>
-    /// <param name="objectBeforeCollectCallback">The callback function being set. Use null to clear
-    ///     previously registered callback.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsSetObjectBeforeCollectCallback(
-            _In_ JsRef ref,
-            _In_opt_ void *callbackState,
-            _In_ JsObjectBeforeCollectCallback objectBeforeCollectCallback);
-
-    /// <summary>
-    ///     Creates a script context for running scripts.
-    /// </summary>
-    /// <remarks>
-    ///     Each script context has its own global object that is isolated from all other script
-    ///     contexts.
-    /// </remarks>
-    /// <param name="runtime">The runtime the script context is being created in.</param>
-    /// <param name="newContext">The created script context.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsCreateContext(
-            _In_ JsRuntimeHandle runtime,
-            _Out_ JsContextRef *newContext);
-
-    /// <summary>
-    ///     Gets the current script context on the thread.
-    /// </summary>
-    /// <param name="currentContext">
-    ///     The current script context on the thread, null if there is no current script context.
-    /// </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetCurrentContext(
-            _Out_ JsContextRef *currentContext);
-
-    /// <summary>
-    ///     Sets the current script context on the thread.
-    /// </summary>
-    /// <param name="context">The script context to make current.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsSetCurrentContext(
-            _In_ JsContextRef context);
-
-    /// <summary>
-    ///     Gets the script context that the object belongs to.
-    /// </summary>
-    /// <param name="object">The object to get the context from.</param>
-    /// <param name="context">The context the object belongs to.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetContextOfObject(
-            _In_ JsValueRef object,
-            _Out_ JsContextRef *context);
-
-    /// <summary>
-    ///     Gets the internal data set on JsrtContext.
-    /// </summary>
-    /// <param name="context">The context to get the data from.</param>
-    /// <param name="data">The pointer to the data where data will be returned.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetContextData(
-            _In_ JsContextRef context,
-            _Out_ void **data);
-
-    /// <summary>
-    ///     Sets the internal data of JsrtContext.
-    /// </summary>
-    /// <param name="context">The context to set the data to.</param>
-    /// <param name="data">The pointer to the data to be set.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsSetContextData(
-            _In_ JsContextRef context,
-            _In_ void *data);
-
-    /// <summary>
-    ///     Gets the runtime that the context belongs to.
-    /// </summary>
-    /// <param name="context">The context to get the runtime from.</param>
-    /// <param name="runtime">The runtime the context belongs to.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetRuntime(
-            _In_ JsContextRef context,
-            _Out_ JsRuntimeHandle *runtime);
-
-    /// <summary>
-    ///     Tells the runtime to do any idle processing it need to do.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     If idle processing has been enabled for the current runtime, calling <c>JsIdle</c> will
-    ///     inform the current runtime that the host is idle and that the runtime can perform
-    ///     memory cleanup tasks.
-    ///     </para>
-    ///     <para>
-    ///     <c>JsIdle</c> can also return the number of system ticks until there will be more idle work
-    ///     for the runtime to do. Calling <c>JsIdle</c> before this number of ticks has passed will do
-    ///     no work.
-    ///     </para>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="nextIdleTick">
-    ///     The next system tick when there will be more idle work to do. Can be null. Returns the
-    ///     maximum number of ticks if there no upcoming idle work to do.
-    /// </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsIdle(
-            _Out_opt_ unsigned int *nextIdleTick);
-
-    /// <summary>
-    ///     Parses a script and returns a function representing the script.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="script">The script to parse.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from.</param>
-    /// <param name="result">A function representing the script code.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsParseScript(
-            _In_z_ const wchar_t *script,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Parses a script and returns a function representing the script.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="script">The script to parse.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from.</param>
-    /// <param name="parseAttributes">Attribute mask for parsing the script</param>
-    /// <param name="result">A function representing the script code.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsParseScriptWithAttributes(
-            _In_z_ const wchar_t *script,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
-            _In_ JsParseScriptAttributes parseAttributes,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Executes a script.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="script">The script to run.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from.</param>
-    /// <param name="result">The result of the script, if any. This parameter can be null.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsRunScript(
-            _In_z_ const wchar_t *script,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Executes a module.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="script">The module script to parse and execute.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    /// </param>
-    /// <param name="sourceUrl">The location the module script came from.</param>
-    /// <param name="result">The result of executing the module script, if any. This parameter can be null.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsExperimentalApiRunModule(
-            _In_z_ const wchar_t *script,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Serializes a parsed script to a buffer than can be reused.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     <c>JsSerializeScript</c> parses a script and then stores the parsed form of the script in a
-    ///     runtime-independent format. The serialized script then can be deserialized in any
-    ///     runtime without requiring the script to be re-parsed.
-    ///     </para>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="script">The script to serialize.</param>
-    /// <param name="buffer">The buffer to put the serialized script into. Can be null.</param>
-    /// <param name="bufferSize">
-    ///     On entry, the size of the buffer, in bytes; on exit, the size of the buffer, in bytes,
-    ///     required to hold the serialized script.
-    /// </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsSerializeScript(
-            _In_z_ const wchar_t *script,
-            _Out_writes_to_opt_(*bufferSize, *bufferSize) BYTE *buffer,
-            _Inout_ unsigned long *bufferSize);
-
-    /// <summary>
-    ///     Called by the runtime to load the source code of the serialized script.
-    ///     The caller must keep the script buffer valid until the JsSerializedScriptUnloadCallback.
-    /// </summary>
-    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
-    /// <param name="scriptBuffer">The script returned.</param>
-    /// <returns>
-    ///     true if the operation succeeded, false otherwise.
-    /// </returns>
-    typedef bool (CALLBACK * JsSerializedScriptLoadSourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const wchar_t** scriptBuffer);
-
-    /// <summary>
-    ///     Called by the runtime when it is finished with all resources related to the script execution.
-    ///     The caller should free the source if loaded, the byte code, and the context at this time.
-    /// </summary>
-    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
-    typedef void (CALLBACK * JsSerializedScriptUnloadCallback)(_In_ JsSourceContext sourceContext);
-
-    /// <summary>
-    ///     Parses a serialized script and returns a function representing the script.
-    ///     Provides the ability to lazy load the script source only if/when it is needed.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    ///     <para>
-    ///     The runtime will hold on to the buffer until all instances of any functions created from
-    ///     the buffer are garbage collected.  It will then call scriptUnloadCallback to inform the
-    ///     caller it is safe to release.
-    ///     </para>
-    /// </remarks>
-    /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded.</param>
-    /// <param name="scriptUnloadCallback">Callback called when the serialized script and source code are no longer needed.</param>
-    /// <param name="buffer">The serialized script.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    ///     This context will passed into scriptLoadCallback and scriptUnloadCallback.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from.</param>
-    /// <param name="result">A function representing the script code.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsParseSerializedScriptWithCallback(
-            _In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
-            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
-            _In_ BYTE *buffer,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
-            _Out_ JsValueRef * result);
-
-    /// <summary>
-    ///     Runs a serialized script.
-    ///     Provides the ability to lazy load the script source only if/when it is needed.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    ///     <para>
-    ///     The runtime will hold on to the buffer until all instances of any functions created from
-    ///     the buffer are garbage collected.  It will then call scriptUnloadCallback to inform the
-    ///     caller it is safe to release.
-    ///     </para>
-    /// </remarks>
-    /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded.</param>
-    /// <param name="scriptUnloadCallback">Callback called when the serialized script and source code are no longer needed.</param>
-    /// <param name="buffer">The serialized script.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    ///     This context will passed into scriptLoadCallback and scriptUnloadCallback.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from.</param>
-    /// <param name="result">
-    ///     The result of running the script, if any. This parameter can be null.
-    /// </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsRunSerializedScriptWithCallback(
-            _In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
-            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
-            _In_ BYTE *buffer,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
-            _Out_opt_ JsValueRef * result);
-
-    /// <summary>
-    ///     Parses a serialized script and returns a function representing the script.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    ///     <para>
-    ///     The runtime will hold on to the buffer until all instances of any functions created from
-    ///     the buffer are garbage collected.
-    ///     </para>
-    /// </remarks>
-    /// <param name="script">The script to parse.</param>
-    /// <param name="buffer">The serialized script.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from.</param>
-    /// <param name="result">A function representing the script code.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsParseSerializedScript(
-            _In_z_ const wchar_t *script,
-            _In_ BYTE *buffer,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Runs a serialized script.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    ///     <para>
-    ///     The runtime will hold on to the buffer until all instances of any functions created from
-    ///     the buffer are garbage collected.
-    ///     </para>
-    /// </remarks>
-    /// <param name="script">The source code of the serialized script.</param>
-    /// <param name="buffer">The serialized script.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from.</param>
-    /// <param name="result">
-    ///     The result of running the script, if any. This parameter can be null.
-    /// </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsRunSerializedScript(
-            _In_z_ const wchar_t *script,
-            _In_ BYTE *buffer,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Gets the property ID associated with the name.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Property IDs are specific to a context and cannot be used across contexts.
-    ///     </para>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="name">
-    ///     The name of the property ID to get or create. The name may consist of only digits.
-    /// </param>
-    /// <param name="propertyId">The property ID in this runtime for the given name.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetPropertyIdFromName(
-            _In_z_ const wchar_t *name,
-            _Out_ JsPropertyIdRef *propertyId);
-
-    /// <summary>
-    ///     Gets the name associated with the property ID.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    ///     <para>
-    ///     The returned buffer is valid as long as the runtime is alive and cannot be used
-    ///     once the runtime has been disposed.
-    ///     </para>
-    /// </remarks>
-    /// <param name="propertyId">The property ID to get the name of.</param>
-    /// <param name="name">The name associated with the property ID.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetPropertyNameFromId(
-            _In_ JsPropertyIdRef propertyId,
-            _Outptr_result_z_ const wchar_t **name);
-
-    /// <summary>
-    ///     Gets the symbol associated with the property ID.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="propertyId">The property ID to get the symbol of.</param>
-    /// <param name="symbol">The symbol associated with the property ID.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetSymbolFromPropertyId(
-            _In_ JsPropertyIdRef propertyId,
-            _Out_ JsValueRef *symbol);
-
-    /// <summary>
     ///     Type enumeration of a JavaScript property
     /// </summary>
     typedef enum _JsPropertyIdType {
@@ -1150,182 +482,7 @@
         /// </summary>
         JsPropertyIdTypeSymbol
     } JsPropertyIdType;
-
-    /// <summary>
-    ///     Gets the type of property
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="propertyId">The property ID to get the type of.</param>
-    /// <param name="propertyIdType">The JsPropertyIdType of the given property ID</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetPropertyIdType(
-            _In_ JsPropertyIdRef propertyId,
-            _Out_ JsPropertyIdType* propertyIdType);
-
-
-    /// <summary>
-    ///     Gets the property ID associated with the symbol.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Property IDs are specific to a context and cannot be used across contexts.
-    ///     </para>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="symbol">
-    ///     The symbol whose property ID is being retrieved.
-    /// </param>
-    /// <param name="propertyId">The property ID for the given symbol.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetPropertyIdFromSymbol(
-            _In_ JsValueRef symbol,
-            _Out_ JsPropertyIdRef *propertyId);
-
-    /// <summary>
-    ///     Creates a Javascript symbol.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="description">The string description of the symbol. Can be null.</param>
-    /// <param name="result">The new symbol.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsCreateSymbol(
-            _In_ JsValueRef description,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Gets the list of all symbol properties on the object.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="object">The object from which to get the property symbols.</param>
-    /// <param name="propertySymbols">An array of property symbols.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetOwnPropertySymbols(
-            _In_ JsValueRef object,
-            _Out_ JsValueRef *propertySymbols);
-
-    /// <summary>
-    ///     Gets the value of <c>undefined</c> in the current script context.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="undefinedValue">The <c>undefined</c> value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetUndefinedValue(
-            _Out_ JsValueRef *undefinedValue);
-
-    /// <summary>
-    ///     Gets the value of <c>null</c> in the current script context.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="nullValue">The <c>null</c> value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetNullValue(
-            _Out_ JsValueRef *nullValue);
-
-    /// <summary>
-    ///     Gets the value of <c>true</c> in the current script context.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="trueValue">The <c>true</c> value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetTrueValue(
-            _Out_ JsValueRef *trueValue);
-
-    /// <summary>
-    ///     Gets the value of <c>false</c> in the current script context.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="falseValue">The <c>false</c> value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetFalseValue(
-            _Out_ JsValueRef *falseValue);
-
-    /// <summary>
-    ///     Creates a Boolean value from a <c>bool</c> value.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="value">The value to be converted.</param>
-    /// <param name="booleanValue">The converted value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsBoolToBoolean(
-            _In_ bool value,
-            _Out_ JsValueRef *booleanValue);
-
-    /// <summary>
-    ///     Retrieves the <c>bool</c> value of a Boolean value.
-    /// </summary>
-    /// <param name="value">The value to be converted.</param>
-    /// <param name="boolValue">The converted value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsBooleanToBool(
-            _In_ JsValueRef value,
-            _Out_ bool *boolValue);
-
-    /// <summary>
-    ///     Converts the value to Boolean using standard JavaScript semantics.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="value">The value to be converted.</param>
-    /// <param name="booleanValue">The converted value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsConvertValueToBoolean(
-            _In_ JsValueRef value,
-            _Out_ JsValueRef *booleanValue);
-
+ 
     /// <summary>
     ///     The JavaScript type of a JsValueRef.
     /// </summary>
@@ -1384,114 +541,784 @@
         /// </summary>
         JsDataView = 12,
     } JsValueType;
+ 
+    /// <summary>
+    ///     User implemented callback routine for memory allocation events
+    /// </summary>
+    /// <remarks>
+    ///     Use <c>JsSetRuntimeMemoryAllocationCallback</c> to register this callback.
+    /// </remarks>
+    /// <param name="callbackState">
+    ///     The state passed to <c>JsSetRuntimeMemoryAllocationCallback</c>.
+    /// </param>
+    /// <param name="allocationEvent">The type of type allocation event.</param>
+    /// <param name="allocationSize">The size of the allocation.</param>
+    /// <returns>
+    ///     For the <c>JsMemoryAllocate</c> event, returning <c>true</c> allows the runtime to continue
+    ///     with the allocation. Returning false indicates the allocation request is rejected. The
+    ///     return value is ignored for other allocation events.
+    /// </returns>
+    typedef bool (CHAKRA_CALLBACK * JsMemoryAllocationCallback)(_In_opt_ void *callbackState, _In_ JsMemoryEventType allocationEvent, _In_ size_t allocationSize);
 
     /// <summary>
-    ///     Gets the JavaScript type of a JsValueRef.
+    ///     A callback called before collection.
     /// </summary>
-    /// <param name="value">The value whose type is to be returned.</param>
-    /// <param name="type">The type of the value.</param>
+    /// <remarks>
+    ///     Use <c>JsSetBeforeCollectCallback</c> to register this callback.
+    /// </remarks>
+    /// <param name="callbackState">The state passed to <c>JsSetBeforeCollectCallback</c>.</param>
+    typedef void (CHAKRA_CALLBACK *JsBeforeCollectCallback)(_In_opt_ void *callbackState);
+
+    /// <summary>
+    ///     A callback called before collecting an object.
+    /// </summary>
+    /// <remarks>
+    ///     Use <c>JsSetObjectBeforeCollectCallback</c> to register this callback.
+    /// </remarks>
+    /// <param name="ref">The object to be collected.</param>
+    /// <param name="callbackState">The state passed to <c>JsSetObjectBeforeCollectCallback</c>.</param>
+    typedef void (CHAKRA_CALLBACK *JsObjectBeforeCollectCallback)(_In_ JsRef ref, _In_opt_ void *callbackState);
+
+    /// <summary>
+    ///     A background work item callback.
+    /// </summary>
+    /// <remarks>
+    ///     This is passed to the host's thread service (if provided) to allow the host to
+    ///     invoke the work item callback on the background thread of its choice.
+    /// </remarks>
+    /// <param name="callbackState">Data argument passed to the thread service.</param>
+    typedef void (CHAKRA_CALLBACK *JsBackgroundWorkItemCallback)(_In_opt_ void *callbackState);
+
+    /// <summary>
+    ///     A thread service callback.
+    /// </summary>
+    /// <remarks>
+    ///     The host can specify a background thread service when calling <c>JsCreateRuntime</c>. If
+    ///     specified, then background work items will be passed to the host using this callback. The
+    ///     host is expected to either begin executing the background work item immediately and return
+    ///     true or return false and the runtime will handle the work item in-thread.
+    /// </remarks>
+    /// <param name="callback">The callback for the background work item.</param>
+    /// <param name="callbackState">The data argument to be passed to the callback.</param>
+    typedef bool (CHAKRA_CALLBACK *JsThreadServiceCallback)(_In_ JsBackgroundWorkItemCallback callback, _In_opt_ void *callbackState);
+
+#ifdef _WIN32
+    /// <summary>
+    ///     Called by the runtime to load the source code of the serialized script.
+    ///     The caller must keep the script buffer valid until the JsSerializedScriptUnloadCallback.
+    ///     This callback is only supported by the Win32 version of the API
+    /// </summary>
+    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
+    /// <param name="scriptBuffer">The script returned.</param>
+    /// <returns>
+    ///     true if the operation succeeded, false otherwise.
+    /// </returns>
+    typedef bool (CHAKRA_CALLBACK * JsSerializedScriptLoadSourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const wchar_t** scriptBuffer);
+#endif // _WIN32
+
+    /// <summary>
+    ///     Called by the runtime when it is finished with all resources related to the script execution.
+    ///     The caller should free the source if loaded, the byte code, and the context at this time.
+    /// </summary>
+    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
+    typedef void (CHAKRA_CALLBACK * JsSerializedScriptUnloadCallback)(_In_ JsSourceContext sourceContext);
+
+    /// <summary>
+    ///     Called by the runtime to load the source code of the serialized script.
+    ///     The caller must keep the script buffer valid until the JsSerializedScriptUnloadCallback.
+    /// </summary>
+    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
+    /// <param name="scriptBuffer">The script returned, encoded as utf8.</param>
+    /// <returns>
+    ///     true if the operation succeeded, false otherwise.
+    /// </returns>
+    typedef bool (CHAKRA_CALLBACK * JsSerializedScriptLoadUtf8SourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const char** scriptBuffer);
+
+    /// <summary>
+    ///     A finalizer callback.
+    /// </summary>
+    /// <param name="data">
+    ///     The external data that was passed in when creating the object being finalized.
+    /// </param>
+    typedef void (CHAKRA_CALLBACK *JsFinalizeCallback)(_In_opt_ void *data);
+
+    /// <summary>
+    ///     A function callback.
+    /// </summary>
+    /// <param name="callee">
+    ///     A function object that represents the function being invoked.
+    /// </param>
+    /// <param name="isConstructCall">Indicates whether this is a regular call or a 'new' call.</param>
+    /// <param name="arguments">The arguments to the call.</param>
+    /// <param name="argumentCount">The number of arguments.</param>
+    /// <param name="callbackState">
+    ///     The state passed to <c>JsCreateFunction</c>.
+    /// </param>
+    /// <returns>The result of the call, if any.</returns>
+    typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsNativeFunction)(_In_ JsValueRef callee, _In_ bool isConstructCall, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_opt_ void *callbackState);
+
+    /// <summary>
+    ///     A promise continuation callback.
+    /// </summary>
+    /// <remarks>
+    ///     The host can specify a promise continuation callback in <c>JsSetPromiseContinuationCallback</c>. If
+    ///     a script creates a task to be run later, then the promise continuation callback will be called with
+    ///     the task and the task should be put in a FIFO queue, to be run when the current script is
+    ///     done executing.
+    /// </remarks>
+    /// <param name="task">The task, represented as a JavaScript function.</param>
+    /// <param name="callbackState">The data argument to be passed to the callback.</param>
+    typedef void (CHAKRA_CALLBACK *JsPromiseContinuationCallback)(_In_ JsValueRef task, _In_opt_ void *callbackState);
+
+    /// <summary>
+    ///     Creates a new runtime.
+    /// </summary>
+    /// <param name="attributes">The attributes of the runtime to be created.</param>
+    /// <param name="threadService">The thread service for the runtime. Can be null.</param>
+    /// <param name="runtime">The runtime created.</param>
+    /// <remarks>In the edge-mode binary, chakra.dll, this function lacks the <c>runtimeVersion</c>
+    /// parameter (compare to jsrt9.h).</remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetValueType(
-            _In_ JsValueRef value,
-            _Out_ JsValueType *type);
+    CHAKRA_API
+        JsCreateRuntime(
+            _In_ JsRuntimeAttributes attributes,
+            _In_opt_ JsThreadServiceCallback threadService,
+            _Out_ JsRuntimeHandle *runtime);
 
     /// <summary>
-    ///     Creates a number value from a <c>double</c> value.
+    ///     Performs a full garbage collection.
+    /// </summary>
+    /// <param name="runtime">The runtime in which the garbage collection will be performed.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsCollectGarbage(
+            _In_ JsRuntimeHandle runtime);
+
+    /// <summary>
+    ///     Disposes a runtime.
+    /// </summary>
+    /// <remarks>
+    ///     Once a runtime has been disposed, all resources owned by it are invalid and cannot be used.
+    ///     If the runtime is active (i.e. it is set to be current on a particular thread), it cannot
+    ///     be disposed.
+    /// </remarks>
+    /// <param name="runtime">The runtime to dispose.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsDisposeRuntime(
+            _In_ JsRuntimeHandle runtime);
+
+    /// <summary>
+    ///     Gets the current memory usage for a runtime.
+    /// </summary>
+    /// <remarks>
+    ///     Memory usage can be always be retrieved, regardless of whether or not the runtime is active
+    ///     on another thread.
+    /// </remarks>
+    /// <param name="runtime">The runtime whose memory usage is to be retrieved.</param>
+    /// <param name="memoryUsage">The runtime's current memory usage, in bytes.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetRuntimeMemoryUsage(
+            _In_ JsRuntimeHandle runtime,
+            _Out_ size_t *memoryUsage);
+
+    /// <summary>
+    ///     Gets the current memory limit for a runtime.
+    /// </summary>
+    /// <remarks>
+    ///     The memory limit of a runtime can be always be retrieved, regardless of whether or not the
+    ///     runtime is active on another thread.
+    /// </remarks>
+    /// <param name="runtime">The runtime whose memory limit is to be retrieved.</param>
+    /// <param name="memoryLimit">
+    ///     The runtime's current memory limit, in bytes, or -1 if no limit has been set.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetRuntimeMemoryLimit(
+            _In_ JsRuntimeHandle runtime,
+            _Out_ size_t *memoryLimit);
+
+    /// <summary>
+    ///     Sets the current memory limit for a runtime.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     A memory limit will cause any operation which exceeds the limit to fail with an "out of
+    ///     memory" error. Setting a runtime's memory limit to -1 means that the runtime has no memory
+    ///     limit. New runtimes  default to having no memory limit. If the new memory limit exceeds
+    ///     current usage, the call will succeed and any future allocations in this runtime will fail
+    ///     until the runtime's memory usage drops below the limit.
+    ///     </para>
+    ///     <para>
+    ///     A runtime's memory limit can be always be set, regardless of whether or not the runtime is
+    ///     active on another thread.
+    ///     </para>
+    /// </remarks>
+    /// <param name="runtime">The runtime whose memory limit is to be set.</param>
+    /// <param name="memoryLimit">
+    ///     The new runtime memory limit, in bytes, or -1 for no memory limit.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSetRuntimeMemoryLimit(
+            _In_ JsRuntimeHandle runtime,
+            _In_ size_t memoryLimit);
+
+    /// <summary>
+    ///     Sets a memory allocation callback for specified runtime
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Registering a memory allocation callback will cause the runtime to call back to the host
+    ///     whenever it acquires memory from, or releases memory to, the OS. The callback routine is
+    ///     called before the runtime memory manager allocates a block of memory. The allocation will
+    ///     be rejected if the callback returns false. The runtime memory manager will also invoke the
+    ///     callback routine after freeing a block of memory, as well as after allocation failures.
+    ///     </para>
+    ///     <para>
+    ///     The callback is invoked on the current runtime execution thread, therefore execution is
+    ///     blocked until the callback completes.
+    ///     </para>
+    ///     <para>
+    ///     The return value of the callback is not stored; previously rejected allocations will not
+    ///     prevent the runtime from invoking the callback again later for new memory allocations.
+    ///     </para>
+    /// </remarks>
+    /// <param name="runtime">The runtime for which to register the allocation callback.</param>
+    /// <param name="callbackState">
+    ///     User provided state that will be passed back to the callback.
+    /// </param>
+    /// <param name="allocationCallback">
+    ///     Memory allocation callback to be called for memory allocation events.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSetRuntimeMemoryAllocationCallback(
+            _In_ JsRuntimeHandle runtime,
+            _In_opt_ void *callbackState,
+            _In_ JsMemoryAllocationCallback allocationCallback);
+
+    /// <summary>
+    ///     Sets a callback function that is called by the runtime before garbage collection.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     The callback is invoked on the current runtime execution thread, therefore execution is
+    ///     blocked until the callback completes.
+    ///     </para>
+    ///     <para>
+    ///     The callback can be used by hosts to prepare for garbage collection. For example, by
+    ///     releasing unnecessary references on Chakra objects.
+    ///     </para>
+    /// </remarks>
+    /// <param name="runtime">The runtime for which to register the allocation callback.</param>
+    /// <param name="callbackState">
+    ///     User provided state that will be passed back to the callback.
+    /// </param>
+    /// <param name="beforeCollectCallback">The callback function being set.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSetRuntimeBeforeCollectCallback(
+            _In_ JsRuntimeHandle runtime,
+            _In_opt_ void *callbackState,
+            _In_ JsBeforeCollectCallback beforeCollectCallback);
+
+    /// <summary>
+    ///     Adds a reference to a garbage collected object.
+    /// </summary>
+    /// <remarks>
+    ///     This only needs to be called on <c>JsRef</c> handles that are not going to be stored
+    ///     somewhere on the stack. Calling <c>JsAddRef</c> ensures that the object the <c>JsRef</c>
+    ///     refers to will not be freed until <c>JsRelease</c> is called.
+    /// </remarks>
+    /// <param name="ref">The object to add a reference to.</param>
+    /// <param name="count">The object's new reference count (can pass in null).</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsAddRef(
+            _In_ JsRef ref,
+            _Out_opt_ unsigned int *count);
+
+    /// <summary>
+    ///     Releases a reference to a garbage collected object.
+    /// </summary>
+    /// <remarks>
+    ///     Removes a reference to a <c>JsRef</c> handle that was created by <c>JsAddRef</c>.
+    /// </remarks>
+    /// <param name="ref">The object to add a reference to.</param>
+    /// <param name="count">The object's new reference count (can pass in null).</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsRelease(
+            _In_ JsRef ref,
+            _Out_opt_ unsigned int *count);
+
+    /// <summary>
+    ///     Sets a callback function that is called by the runtime before garbage collection of
+    ///     an object.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     The callback is invoked on the current runtime execution thread, therefore execution is
+    ///     blocked until the callback completes.
+    ///     </para>
+    /// </remarks>
+    /// <param name="ref">The object for which to register the callback.</param>
+    /// <param name="callbackState">
+    ///     User provided state that will be passed back to the callback.
+    /// </param>
+    /// <param name="objectBeforeCollectCallback">The callback function being set. Use null to clear
+    ///     previously registered callback.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSetObjectBeforeCollectCallback(
+            _In_ JsRef ref,
+            _In_opt_ void *callbackState,
+            _In_ JsObjectBeforeCollectCallback objectBeforeCollectCallback);
+
+    /// <summary>
+    ///     Creates a script context for running scripts.
+    /// </summary>
+    /// <remarks>
+    ///     Each script context has its own global object that is isolated from all other script
+    ///     contexts.
+    /// </remarks>
+    /// <param name="runtime">The runtime the script context is being created in.</param>
+    /// <param name="newContext">The created script context.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsCreateContext(
+            _In_ JsRuntimeHandle runtime,
+            _Out_ JsContextRef *newContext);
+
+    /// <summary>
+    ///     Gets the current script context on the thread.
+    /// </summary>
+    /// <param name="currentContext">
+    ///     The current script context on the thread, null if there is no current script context.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetCurrentContext(
+            _Out_ JsContextRef *currentContext);
+
+    /// <summary>
+    ///     Sets the current script context on the thread.
+    /// </summary>
+    /// <param name="context">The script context to make current.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSetCurrentContext(
+            _In_ JsContextRef context);
+
+    /// <summary>
+    ///     Gets the script context that the object belongs to.
+    /// </summary>
+    /// <param name="object">The object to get the context from.</param>
+    /// <param name="context">The context the object belongs to.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetContextOfObject(
+            _In_ JsValueRef object,
+            _Out_ JsContextRef *context);
+
+    /// <summary>
+    ///     Gets the internal data set on JsrtContext.
+    /// </summary>
+    /// <param name="context">The context to get the data from.</param>
+    /// <param name="data">The pointer to the data where data will be returned.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetContextData(
+            _In_ JsContextRef context,
+            _Out_ void **data);
+
+    /// <summary>
+    ///     Sets the internal data of JsrtContext.
+    /// </summary>
+    /// <param name="context">The context to set the data to.</param>
+    /// <param name="data">The pointer to the data to be set.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSetContextData(
+            _In_ JsContextRef context,
+            _In_ void *data);
+
+    /// <summary>
+    ///     Gets the runtime that the context belongs to.
+    /// </summary>
+    /// <param name="context">The context to get the runtime from.</param>
+    /// <param name="runtime">The runtime the context belongs to.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetRuntime(
+            _In_ JsContextRef context,
+            _Out_ JsRuntimeHandle *runtime);
+
+    /// <summary>
+    ///     Tells the runtime to do any idle processing it need to do.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     If idle processing has been enabled for the current runtime, calling <c>JsIdle</c> will
+    ///     inform the current runtime that the host is idle and that the runtime can perform
+    ///     memory cleanup tasks.
+    ///     </para>
+    ///     <para>
+    ///     <c>JsIdle</c> can also return the number of system ticks until there will be more idle work
+    ///     for the runtime to do. Calling <c>JsIdle</c> before this number of ticks has passed will do
+    ///     no work.
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="nextIdleTick">
+    ///     The next system tick when there will be more idle work to do. Can be null. Returns the
+    ///     maximum number of ticks if there no upcoming idle work to do.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsIdle(
+            _Out_opt_ unsigned int *nextIdleTick);
+
+#ifdef _WIN32
+    /// <summary>
+    ///     Parses a script and returns a function representing the script.
     /// </summary>
     /// <remarks>
     ///     Requires an active script context.
     /// </remarks>
-    /// <param name="doubleValue">The <c>double</c> to convert to a number value.</param>
-    /// <param name="value">The new number value.</param>
+    /// <param name="script">The script to parse.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from.</param>
+    /// <param name="result">A function representing the script code.</param>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
-        JsDoubleToNumber(
-            _In_ double doubleValue,
-            _Out_ JsValueRef *value);
+    CHAKRA_API
+        JsParseScript(
+            _In_z_ const wchar_t *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const wchar_t *sourceUrl,
+            _Out_ JsValueRef *result);
 
     /// <summary>
-    ///     Creates a number value from an <c>int</c> value.
+    ///     Parses a script and returns a function representing the script.
     /// </summary>
     /// <remarks>
     ///     Requires an active script context.
     /// </remarks>
-    /// <param name="intValue">The <c>int</c> to convert to a number value.</param>
-    /// <param name="value">The new number value.</param>
+    /// <param name="script">The script to parse.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from.</param>
+    /// <param name="parseAttributes">Attribute mask for parsing the script</param>
+    /// <param name="result">A function representing the script code.</param>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
-        JsIntToNumber(
-            _In_ int intValue,
-            _Out_ JsValueRef *value);
+    CHAKRA_API
+        JsParseScriptWithAttributes(
+            _In_z_ const wchar_t *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const wchar_t *sourceUrl,
+            _In_ JsParseScriptAttributes parseAttributes,
+            _Out_ JsValueRef *result);
 
     /// <summary>
-    ///     Retrieves the <c>double</c> value of a number value.
-    /// </summary>
-    /// <remarks>
-    ///     This function retrieves the value of a number value. It will fail with
-    ///     <c>JsErrorInvalidArgument</c> if the type of the value is not number.
-    /// </remarks>
-    /// <param name="value">The number value to convert to a <c>double</c> value.</param>
-    /// <param name="doubleValue">The <c>double</c> value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsNumberToDouble(
-            _In_ JsValueRef value,
-            _Out_ double *doubleValue);
-
-    /// <summary>
-    ///     Retrieves the <c>int</c> value of a number value.
-    /// </summary>
-    /// <remarks>
-    ///     This function retrieves the value of a number value and converts to an <c>int</c> value.
-    ///     It will fail with <c>JsErrorInvalidArgument</c> if the type of the value is not number.
-    /// </remarks>
-    /// <param name="value">The number value to convert to an <c>int</c> value.</param>
-    /// <param name="intValue">The <c>int</c> value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    STDAPI_(JsErrorCode)
-        JsNumberToInt(
-            _In_ JsValueRef value,
-            _Out_ int *intValue);
-
-    /// <summary>
-    ///     Converts the value to number using standard JavaScript semantics.
+    ///     Executes a script.
     /// </summary>
     /// <remarks>
     ///     Requires an active script context.
     /// </remarks>
-    /// <param name="value">The value to be converted.</param>
-    /// <param name="numberValue">The converted value.</param>
+    /// <param name="script">The script to run.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from.</param>
+    /// <param name="result">The result of the script, if any. This parameter can be null.</param>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
-        JsConvertValueToNumber(
-            _In_ JsValueRef value,
-            _Out_ JsValueRef *numberValue);
+    CHAKRA_API
+        JsRunScript(
+            _In_z_ const wchar_t *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const wchar_t *sourceUrl,
+            _Out_ JsValueRef *result);
 
     /// <summary>
-    ///     Gets the length of a string value.
+    ///     Executes a module.
     /// </summary>
-    /// <param name="stringValue">The string value to get the length of.</param>
-    /// <param name="length">The length of the string.</param>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="script">The module script to parse and execute.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the module script came from.</param>
+    /// <param name="result">The result of executing the module script, if any. This parameter can be null.</param>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
-        JsGetStringLength(
-            _In_ JsValueRef stringValue,
-            _Out_ int *length);
+    CHAKRA_API
+        JsExperimentalApiRunModule(
+            _In_z_ const wchar_t *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const wchar_t *sourceUrl,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Serializes a parsed script to a buffer than can be reused.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     <c>JsSerializeScript</c> parses a script and then stores the parsed form of the script in a
+    ///     runtime-independent format. The serialized script then can be deserialized in any
+    ///     runtime without requiring the script to be re-parsed.
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="script">The script to serialize.</param>
+    /// <param name="buffer">The buffer to put the serialized script into. Can be null.</param>
+    /// <param name="bufferSize">
+    ///     On entry, the size of the buffer, in bytes; on exit, the size of the buffer, in bytes,
+    ///     required to hold the serialized script.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSerializeScript(
+            _In_z_ const wchar_t *script,
+            _Out_writes_to_opt_(*bufferSize, *bufferSize) BYTE *buffer,
+            _Inout_ unsigned int *bufferSize);
+
+    /// <summary>
+    ///     Parses a serialized script and returns a function representing the script.
+    ///     Provides the ability to lazy load the script source only if/when it is needed.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The runtime will hold on to the buffer until all instances of any functions created from
+    ///     the buffer are garbage collected.  It will then call scriptUnloadCallback to inform the
+    ///     caller it is safe to release.
+    ///     </para>
+    /// </remarks>
+    /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded.</param>
+    /// <param name="scriptUnloadCallback">Callback called when the serialized script and source code are no longer needed.</param>
+    /// <param name="buffer">The serialized script.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    ///     This context will passed into scriptLoadCallback and scriptUnloadCallback.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from.</param>
+    /// <param name="result">A function representing the script code.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsParseSerializedScriptWithCallback(
+            _In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
+            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
+            _In_ BYTE *buffer,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const wchar_t *sourceUrl,
+            _Out_ JsValueRef * result);
+
+    /// <summary>
+    ///     Runs a serialized script.
+    ///     Provides the ability to lazy load the script source only if/when it is needed.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The runtime will hold on to the buffer until all instances of any functions created from
+    ///     the buffer are garbage collected.  It will then call scriptUnloadCallback to inform the
+    ///     caller it is safe to release.
+    ///     </para>
+    /// </remarks>
+    /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded.</param>
+    /// <param name="scriptUnloadCallback">Callback called when the serialized script and source code are no longer needed.</param>
+    /// <param name="buffer">The serialized script.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    ///     This context will passed into scriptLoadCallback and scriptUnloadCallback.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from.</param>
+    /// <param name="result">
+    ///     The result of running the script, if any. This parameter can be null.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsRunSerializedScriptWithCallback(
+            _In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
+            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
+            _In_ BYTE *buffer,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const wchar_t *sourceUrl,
+            _Out_opt_ JsValueRef * result);
+
+    /// <summary>
+    ///     Parses a serialized script and returns a function representing the script.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The runtime will hold on to the buffer until all instances of any functions created from
+    ///     the buffer are garbage collected.
+    ///     </para>
+    /// </remarks>
+    /// <param name="script">The script to parse.</param>
+    /// <param name="buffer">The serialized script.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from.</param>
+    /// <param name="result">A function representing the script code.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsParseSerializedScript(
+            _In_z_ const wchar_t *script,
+            _In_ BYTE *buffer,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const wchar_t *sourceUrl,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Runs a serialized script.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The runtime will hold on to the buffer until all instances of any functions created from
+    ///     the buffer are garbage collected.
+    ///     </para>
+    /// </remarks>
+    /// <param name="script">The source code of the serialized script.</param>
+    /// <param name="buffer">The serialized script.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from.</param>
+    /// <param name="result">
+    ///     The result of running the script, if any. This parameter can be null.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsRunSerializedScript(
+            _In_z_ const wchar_t *script,
+            _In_ BYTE *buffer,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const wchar_t *sourceUrl,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Gets the property ID associated with the name.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Property IDs are specific to a context and cannot be used across contexts.
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="name">
+    ///     The name of the property ID to get or create. The name may consist of only digits.
+    /// </param>
+    /// <param name="propertyId">The property ID in this runtime for the given name.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetPropertyIdFromName(
+            _In_z_ const wchar_t *name,
+            _Out_ JsPropertyIdRef *propertyId);
+
+    /// <summary>
+    ///     Gets the name associated with the property ID.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The returned buffer is valid as long as the runtime is alive and cannot be used
+    ///     once the runtime has been disposed.
+    ///     </para>
+    /// </remarks>
+    /// <param name="propertyId">The property ID to get the name of.</param>
+    /// <param name="name">The name associated with the property ID.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetPropertyNameFromId(
+            _In_ JsPropertyIdRef propertyId,
+            _Outptr_result_z_ const wchar_t **name);
 
     /// <summary>
     ///     Creates a string value from a string pointer.
@@ -1505,7 +1332,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsPointerToString(
             _In_reads_(stringLength) const wchar_t *stringValue,
             _In_ size_t stringLength,
@@ -1532,11 +1359,595 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsStringToPointer(
             _In_ JsValueRef value,
             _Outptr_result_buffer_(*stringLength) const wchar_t **stringValue,
             _Out_ size_t *stringLength);
+#endif // _WIN32
+
+    /// <summary>
+    ///     Parses a script and returns a function representing the script.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="script">The script to parse, encoded as utf8.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
+    /// <param name="result">A function representing the script code.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsParseScriptUtf8(
+            _In_z_ const char *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Parses a script and returns a function representing the script.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="script">The script to parse, encoded as utf8.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
+    /// <param name="parseAttributes">Attribute mask for parsing the script</param>
+    /// <param name="result">A function representing the script code.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsParseScriptWithAttributesUtf8(
+            _In_z_ const char *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _In_ JsParseScriptAttributes parseAttributes,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Executes a script.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="script">The script to run, encoded as utf8.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
+    /// <param name="result">The result of the script, if any. This parameter can be null.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsRunScriptUtf8(
+            _In_z_ const char *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Executes a module.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="script">The module script to parse and execute, encoded as utf8.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the module script came from, encoded as utf8.</param>
+    /// <param name="result">The result of executing the module script, if any. This parameter can be null.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsExperimentalApiRunModuleUtf8(
+            _In_z_ const char *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Serializes a parsed script to a buffer than can be reused.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     <c>JsSerializeScript</c> parses a script and then stores the parsed form of the script in a
+    ///     runtime-independent format. The serialized script then can be deserialized in any
+    ///     runtime without requiring the script to be re-parsed.
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="script">The script to serialize, encoded as utf8.</param>
+    /// <param name="buffer">The buffer to put the serialized script into. Can be null.</param>
+    /// <param name="bufferSize">
+    ///     On entry, the size of the buffer, in bytes; on exit, the size of the buffer, in bytes,
+    ///     required to hold the serialized script.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsSerializeScriptUtf8(
+            _In_z_ const char *script,
+            _Out_writes_to_opt_(*bufferSize, *bufferSize) ChakraBytePtr buffer,
+            _Inout_ unsigned int *bufferSize);
+
+    /// <summary>
+    ///     Parses a serialized script and returns a function representing the script.
+    ///     Provides the ability to lazy load the script source only if/when it is needed.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The runtime will hold on to the buffer until all instances of any functions created from
+    ///     the buffer are garbage collected.  It will then call scriptUnloadCallback to inform the
+    ///     caller it is safe to release.
+    ///     </para>
+    /// </remarks>
+    /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded. This is an optional parameter, set to null if not needed.</param>
+    /// <param name="scriptUnloadCallback">Callback called when the serialized script and source code are no longer needed. This is an optional parameter, set to null if not needed.</param>
+    /// <param name="buffer">The serialized script.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    ///     This context will passed into scriptLoadCallback and scriptUnloadCallback.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
+    /// <param name="result">A function representing the script code.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsParseSerializedScriptUtf8(
+            _In_ JsSerializedScriptLoadUtf8SourceCallback scriptLoadCallback,
+            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
+            _In_ ChakraBytePtr buffer,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _Out_ JsValueRef * result);
+
+    /// <summary>
+    ///     Runs a serialized script.
+    ///     Provides the ability to lazy load the script source only if/when it is needed.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The runtime will hold on to the buffer until all instances of any functions created from
+    ///     the buffer are garbage collected.  It will then call scriptUnloadCallback to inform the
+    ///     caller it is safe to release.
+    ///     </para>
+    /// </remarks>
+    /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded. This is an optional parameter, set to null if not needed.</param>
+    /// <param name="scriptUnloadCallback">Callback called when the serialized script and source code are no longer needed. This is an optional parameter, set to null if not needed.</param>
+    /// <param name="buffer">The serialized script.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    ///     This context will passed into scriptLoadCallback and scriptUnloadCallback.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
+    /// <param name="result">
+    ///     The result of running the script, if any. This parameter can be null.
+    /// </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsRunSerializedScriptUtf8(
+            _In_ JsSerializedScriptLoadUtf8SourceCallback scriptLoadCallback,
+            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
+            _In_ ChakraBytePtr buffer,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const char *sourceUrl,
+            _Out_opt_ JsValueRef * result);
+
+    /// <summary>
+    ///     Gets the property ID associated with the name.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Property IDs are specific to a context and cannot be used across contexts.
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="name">
+    ///     The name of the property ID to get or create. The name may consist of only digits.
+    ///     The string is expected to be encoded as utf8.
+    /// </param>
+    /// <param name="propertyId">The property ID in this runtime for the given name.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetPropertyIdFromNameUtf8(
+            _In_z_ const char *name,
+            _Out_ JsPropertyIdRef *propertyId);
+
+    /// <summary>
+    ///     Gets the name associated with the property ID.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///     The returned buffer is valid as long as the runtime is alive and cannot be used
+    ///     once the runtime has been disposed.
+    ///     </para>
+    /// </remarks>
+    /// <param name="propertyId">The property ID to get the name of.</param>
+    /// <param name="name">The name associated with the property ID, encoded as utf8.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetPropertyNameFromIdUtf8(
+            _In_ JsPropertyIdRef propertyId,
+            _Outptr_result_z_ const char *name);
+
+    /// <summary>
+    ///     Creates a string value from a string pointer.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="stringValue">The string pointer to convert to a string value, encoded as Utf8.</param>
+    /// <param name="stringLength">The length of the string to convert.</param>
+    /// <param name="value">The new string value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsPointerToStringUtf8(
+            _In_reads_(stringLength) const char *stringValue,
+            _In_ size_t stringLength,
+            _Out_ JsValueRef *value);
+
+    /// <summary>
+    ///     Retrieves the string pointer of a string value.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     This function retrieves the string pointer of a string value. It will fail with
+    ///     <c>JsErrorInvalidArgument</c> if the type of the value is not string. The lifetime
+    ///     of the string returned will be the same as the lifetime of the value it came from, however
+    ///     the string pointer is not considered a reference to the value (and so will not keep it
+    ///     from being collected).
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="value">The string value to convert to a string pointer.</param>
+    /// <param name="stringValue">The string pointer, encoded as utf8.</param>
+    /// <param name="stringLength">The length of the string.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsStringToPointerUtf8(
+            _In_ JsValueRef value,
+            _Outptr_result_buffer_(*stringLength) const char **stringValue,
+            _Out_ size_t *stringLength); 
+    
+    /// <summary>
+    ///     Gets the symbol associated with the property ID.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="propertyId">The property ID to get the symbol of.</param>
+    /// <param name="symbol">The symbol associated with the property ID.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetSymbolFromPropertyId(
+            _In_ JsPropertyIdRef propertyId,
+            _Out_ JsValueRef *symbol);
+
+    /// <summary>
+    ///     Gets the type of property
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="propertyId">The property ID to get the type of.</param>
+    /// <param name="propertyIdType">The JsPropertyIdType of the given property ID</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetPropertyIdType(
+            _In_ JsPropertyIdRef propertyId,
+            _Out_ JsPropertyIdType* propertyIdType);
+
+
+    /// <summary>
+    ///     Gets the property ID associated with the symbol.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Property IDs are specific to a context and cannot be used across contexts.
+    ///     </para>
+    ///     <para>
+    ///     Requires an active script context.
+    ///     </para>
+    /// </remarks>
+    /// <param name="symbol">
+    ///     The symbol whose property ID is being retrieved.
+    /// </param>
+    /// <param name="propertyId">The property ID for the given symbol.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetPropertyIdFromSymbol(
+            _In_ JsValueRef symbol,
+            _Out_ JsPropertyIdRef *propertyId);
+
+    /// <summary>
+    ///     Creates a Javascript symbol.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="description">The string description of the symbol. Can be null.</param>
+    /// <param name="result">The new symbol.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsCreateSymbol(
+            _In_ JsValueRef description,
+            _Out_ JsValueRef *result);
+
+    /// <summary>
+    ///     Gets the list of all symbol properties on the object.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="object">The object from which to get the property symbols.</param>
+    /// <param name="propertySymbols">An array of property symbols.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetOwnPropertySymbols(
+            _In_ JsValueRef object,
+            _Out_ JsValueRef *propertySymbols);
+
+    /// <summary>
+    ///     Gets the value of <c>undefined</c> in the current script context.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="undefinedValue">The <c>undefined</c> value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetUndefinedValue(
+            _Out_ JsValueRef *undefinedValue);
+
+    /// <summary>
+    ///     Gets the value of <c>null</c> in the current script context.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="nullValue">The <c>null</c> value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetNullValue(
+            _Out_ JsValueRef *nullValue);
+
+    /// <summary>
+    ///     Gets the value of <c>true</c> in the current script context.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="trueValue">The <c>true</c> value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetTrueValue(
+            _Out_ JsValueRef *trueValue);
+
+    /// <summary>
+    ///     Gets the value of <c>false</c> in the current script context.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="falseValue">The <c>false</c> value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetFalseValue(
+            _Out_ JsValueRef *falseValue);
+
+    /// <summary>
+    ///     Creates a Boolean value from a <c>bool</c> value.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="value">The value to be converted.</param>
+    /// <param name="booleanValue">The converted value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsBoolToBoolean(
+            _In_ bool value,
+            _Out_ JsValueRef *booleanValue);
+
+    /// <summary>
+    ///     Retrieves the <c>bool</c> value of a Boolean value.
+    /// </summary>
+    /// <param name="value">The value to be converted.</param>
+    /// <param name="boolValue">The converted value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsBooleanToBool(
+            _In_ JsValueRef value,
+            _Out_ bool *boolValue);
+
+    /// <summary>
+    ///     Converts the value to Boolean using standard JavaScript semantics.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="value">The value to be converted.</param>
+    /// <param name="booleanValue">The converted value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsConvertValueToBoolean(
+            _In_ JsValueRef value,
+            _Out_ JsValueRef *booleanValue);
+
+
+    /// <summary>
+    ///     Gets the JavaScript type of a JsValueRef.
+    /// </summary>
+    /// <param name="value">The value whose type is to be returned.</param>
+    /// <param name="type">The type of the value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetValueType(
+            _In_ JsValueRef value,
+            _Out_ JsValueType *type);
+
+    /// <summary>
+    ///     Creates a number value from a <c>double</c> value.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="doubleValue">The <c>double</c> to convert to a number value.</param>
+    /// <param name="value">The new number value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsDoubleToNumber(
+            _In_ double doubleValue,
+            _Out_ JsValueRef *value);
+
+    /// <summary>
+    ///     Creates a number value from an <c>int</c> value.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="intValue">The <c>int</c> to convert to a number value.</param>
+    /// <param name="value">The new number value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsIntToNumber(
+            _In_ int intValue,
+            _Out_ JsValueRef *value);
+
+    /// <summary>
+    ///     Retrieves the <c>double</c> value of a number value.
+    /// </summary>
+    /// <remarks>
+    ///     This function retrieves the value of a number value. It will fail with
+    ///     <c>JsErrorInvalidArgument</c> if the type of the value is not number.
+    /// </remarks>
+    /// <param name="value">The number value to convert to a <c>double</c> value.</param>
+    /// <param name="doubleValue">The <c>double</c> value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsNumberToDouble(
+            _In_ JsValueRef value,
+            _Out_ double *doubleValue);
+
+    /// <summary>
+    ///     Retrieves the <c>int</c> value of a number value.
+    /// </summary>
+    /// <remarks>
+    ///     This function retrieves the value of a number value and converts to an <c>int</c> value.
+    ///     It will fail with <c>JsErrorInvalidArgument</c> if the type of the value is not number.
+    /// </remarks>
+    /// <param name="value">The number value to convert to an <c>int</c> value.</param>
+    /// <param name="intValue">The <c>int</c> value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsNumberToInt(
+            _In_ JsValueRef value,
+            _Out_ int *intValue);
+
+    /// <summary>
+    ///     Converts the value to number using standard JavaScript semantics.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="value">The value to be converted.</param>
+    /// <param name="numberValue">The converted value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsConvertValueToNumber(
+            _In_ JsValueRef value,
+            _Out_ JsValueRef *numberValue);
+
+    /// <summary>
+    ///     Gets the length of a string value.
+    /// </summary>
+    /// <param name="stringValue">The string value to get the length of.</param>
+    /// <param name="length">The length of the string.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetStringLength(
+            _In_ JsValueRef stringValue,
+            _Out_ int *length);
 
     /// <summary>
     ///     Converts the value to string using standard JavaScript semantics.
@@ -1549,7 +1960,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsConvertValueToString(
             _In_ JsValueRef value,
             _Out_ JsValueRef *stringValue);
@@ -1564,7 +1975,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetGlobalObject(
             _Out_ JsValueRef *globalObject);
 
@@ -1578,17 +1989,9 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateObject(
             _Out_ JsValueRef *object);
-
-    /// <summary>
-    ///     A finalizer callback.
-    /// </summary>
-    /// <param name="data">
-    ///     The external data that was passed in when creating the object being finalized.
-    /// </param>
-    typedef void (CALLBACK *JsFinalizeCallback)(_In_opt_ void *data);
 
     /// <summary>
     ///     Creates a new object that stores some external data.
@@ -1604,7 +2007,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateExternalObject(
             _In_opt_ void *data,
             _In_opt_ JsFinalizeCallback finalizeCallback,
@@ -1621,7 +2024,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsConvertValueToObject(
             _In_ JsValueRef value,
             _Out_ JsValueRef *object);
@@ -1637,7 +2040,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetPrototype(
             _In_ JsValueRef object,
             _Out_ JsValueRef *prototypeObject);
@@ -1653,7 +2056,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetPrototype(
             _In_ JsValueRef object,
             _In_ JsValueRef prototypeObject);
@@ -1670,7 +2073,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsInstanceOf(
             _In_ JsValueRef object,
             _In_ JsValueRef constructor,
@@ -1687,7 +2090,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetExtensionAllowed(
             _In_ JsValueRef object,
             _Out_ bool *value);
@@ -1702,7 +2105,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsPreventExtension(
             _In_ JsValueRef object);
 
@@ -1718,7 +2121,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetProperty(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1736,7 +2139,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetOwnPropertyDescriptor(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1753,7 +2156,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetOwnPropertyNames(
             _In_ JsValueRef object,
             _Out_ JsValueRef *propertyNames);
@@ -1771,7 +2174,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetProperty(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1790,7 +2193,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsHasProperty(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1809,7 +2212,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsDeleteProperty(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1829,7 +2232,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsDefineProperty(
             _In_ JsValueRef object,
             _In_ JsPropertyIdRef propertyId,
@@ -1848,7 +2251,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsHasIndexedProperty(
             _In_ JsValueRef object,
             _In_ JsValueRef index,
@@ -1866,7 +2269,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetIndexedProperty(
             _In_ JsValueRef object,
             _In_ JsValueRef index,
@@ -1884,7 +2287,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetIndexedProperty(
             _In_ JsValueRef object,
             _In_ JsValueRef index,
@@ -1901,7 +2304,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsDeleteIndexedProperty(
             _In_ JsValueRef object,
             _In_ JsValueRef index);
@@ -1914,7 +2317,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsHasIndexedPropertiesExternalData(
             _In_ JsValueRef object,
             _Out_ bool* value);
@@ -1929,7 +2332,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetIndexedPropertiesExternalData(
             _In_ JsValueRef object,
             _Out_ void** data,
@@ -1950,7 +2353,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetIndexedPropertiesToExternalData(
             _In_ JsValueRef object,
             _In_ void* data,
@@ -1974,7 +2377,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsEquals(
             _In_ JsValueRef object1,
             _In_ JsValueRef object2,
@@ -1997,7 +2400,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsStrictEquals(
             _In_ JsValueRef object1,
             _In_ JsValueRef object2,
@@ -2011,7 +2414,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsHasExternalData(
             _In_ JsValueRef object,
             _Out_ bool *value);
@@ -2027,7 +2430,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetExternalData(
             _In_ JsValueRef object,
             _Out_ void **externalData);
@@ -2043,7 +2446,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetExternalData(
             _In_ JsValueRef object,
             _In_opt_ void *externalData);
@@ -2059,7 +2462,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateArray(
             _In_ unsigned int length,
             _Out_ JsValueRef *result);
@@ -2077,7 +2480,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateArrayBuffer(
             _In_ unsigned int byteLength,
             _Out_ JsValueRef *result);
@@ -2094,7 +2497,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateExternalArrayBuffer(
             _Pre_maybenull_ _Pre_writable_byte_size_(byteLength) void *data,
             _In_ unsigned int byteLength,
@@ -2132,7 +2535,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateTypedArray(
             _In_ JsTypedArrayType arrayType,
             _In_ JsValueRef baseArray,
@@ -2159,7 +2562,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateDataView(
             _In_ JsValueRef arrayBuffer,
             _In_ unsigned int byteOffset,
@@ -2177,7 +2580,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetTypedArrayInfo(
             _In_ JsValueRef typedArray,
             _Out_opt_ JsTypedArrayType *arrayType,
@@ -2198,10 +2601,10 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetArrayBufferStorage(
             _In_ JsValueRef arrayBuffer,
-            _Outptr_result_bytebuffer_(*bufferLength) BYTE **buffer,
+            _Outptr_result_bytebuffer_(*bufferLength) ChakraBytePtr *buffer,
             _Out_ unsigned int *bufferLength);
 
     /// <summary>
@@ -2221,10 +2624,10 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetTypedArrayStorage(
             _In_ JsValueRef typedArray,
-            _Outptr_result_bytebuffer_(*bufferLength) BYTE **buffer,
+            _Outptr_result_bytebuffer_(*bufferLength) ChakraBytePtr *buffer,
             _Out_ unsigned int *bufferLength,
             _Out_opt_ JsTypedArrayType *arrayType,
             _Out_opt_ int *elementSize);
@@ -2242,17 +2645,17 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetDataViewStorage(
             _In_ JsValueRef dataView,
-            _Outptr_result_bytebuffer_(*bufferLength) BYTE **buffer,
+            _Outptr_result_bytebuffer_(*bufferLength) ChakraBytePtr *buffer,
             _Out_ unsigned int *bufferLength);
 
     /// <summary>
     ///     Invokes a function.
     /// </summary>
     /// <remarks>
-    ///     Requires thisArg as first argument of arguments. 
+    ///     Requires thisArg as first argument of arguments.
     ///     Requires an active script context.
     /// </remarks>
     /// <param name="function">The function to invoke.</param>
@@ -2262,7 +2665,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCallFunction(
             _In_ JsValueRef function,
             _In_reads_(argumentCount) JsValueRef *arguments,
@@ -2282,27 +2685,12 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsConstructObject(
             _In_ JsValueRef function,
             _In_reads_(argumentCount) JsValueRef *arguments,
             _In_ unsigned short argumentCount,
             _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     A function callback.
-    /// </summary>
-    /// <param name="callee">
-    ///     A function object that represents the function being invoked.
-    /// </param>
-    /// <param name="isConstructCall">Indicates whether this is a regular call or a 'new' call.</param>
-    /// <param name="arguments">The arguments to the call.</param>
-    /// <param name="argumentCount">The number of arguments.</param>
-    /// <param name="callbackState">
-    ///     The state passed to <c>JsCreateFunction</c>.
-    /// </param>
-    /// <returns>The result of the call, if any.</returns>
-    typedef _Ret_maybenull_ JsValueRef(CALLBACK * JsNativeFunction)(_In_ JsValueRef callee, _In_ bool isConstructCall, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_opt_ void *callbackState);
 
     /// <summary>
     ///     Creates a new JavaScript function.
@@ -2318,7 +2706,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateFunction(
             _In_ JsNativeFunction nativeFunction,
             _In_opt_ void *callbackState,
@@ -2339,7 +2727,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateNamedFunction(
             _In_ JsValueRef name,
             _In_ JsNativeFunction nativeFunction,
@@ -2357,7 +2745,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2373,7 +2761,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateRangeError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2389,7 +2777,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateReferenceError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2405,7 +2793,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateSyntaxError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2421,7 +2809,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateTypeError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2437,7 +2825,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsCreateURIError(
             _In_ JsValueRef message,
             _Out_ JsValueRef *error);
@@ -2467,7 +2855,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsHasException(
             _Out_ bool *hasException);
 
@@ -2491,7 +2879,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsGetAndClearException(
             _Out_ JsValueRef *exception);
 
@@ -2513,7 +2901,7 @@
     /// <returns>
     ///     JsNoError if the engine was set into an exception state, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetException(
             _In_ JsValueRef exception);
 
@@ -2538,7 +2926,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsDisableRuntimeExecution(
             _In_ JsRuntimeHandle runtime);
 
@@ -2553,7 +2941,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsEnableRuntimeExecution(
             _In_ JsRuntimeHandle runtime);
 
@@ -2565,24 +2953,10 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsIsRuntimeExecutionDisabled(
             _In_ JsRuntimeHandle runtime,
             _Out_ bool *isDisabled);
-
-
-    /// <summary>
-    ///     A promise continuation callback.
-    /// </summary>
-    /// <remarks>
-    ///     The host can specify a promise continuation callback in <c>JsSetPromiseContinuationCallback</c>. If
-    ///     a script creates a task to be run later, then the promise continuation callback will be called with
-    ///     the task and the task should be put in a FIFO queue, to be run when the current script is
-    ///     done executing.
-    /// </remarks>
-    /// <param name="task">The task, represented as a JavaScript function.</param>
-    /// <param name="callbackState">The data argument to be passed to the callback.</param>
-    typedef void (CALLBACK *JsPromiseContinuationCallback)(_In_ JsValueRef task, _In_opt_ void *callbackState);
 
     /// <summary>
     ///     Sets a promise continuation callback function that is called by the context when a task
@@ -2600,7 +2974,7 @@
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
-    STDAPI_(JsErrorCode)
+    CHAKRA_API
         JsSetPromiseContinuationCallback(
             _In_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);

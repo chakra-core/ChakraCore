@@ -1915,6 +1915,8 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
                 preOpBailOutInstrToProcess = instr;
             }
         }
+
+        MarkScopeObjectSymAsByteCodeSymUse(bailOutInfo, instr->m_func, this->func);
     }
 
     return false;
@@ -2129,6 +2131,38 @@ BackwardPass::ProcessPendingPreOpBailOutInfo(IR::Instr *const currentInstr)
     Assert(bailOutInfo->bailOutOffset == preOpBailOutInstrToProcess->GetByteCodeOffset());
     ProcessBailOutInfo(preOpBailOutInstrToProcess, bailOutInfo);
     preOpBailOutInstrToProcess = nullptr;
+    
+    MarkScopeObjectSymAsByteCodeSymUse(bailOutInfo, currentInstr->m_func, this->func);
+}
+
+void 
+BackwardPass::MarkScopeObjectSymAsByteCodeSymUse(BailOutInfo * bailOutInfo, Func * func, Func * topFunc)
+{
+    if (bailOutInfo->byteCodeUpwardExposedUsed && !PHASE_OFF1(Js::StackArgFormalsOptPhase) && !this->IsPrePass())
+    {
+        if (func && bailOutInfo->bailOutFunc == func && func->m_scopeObjOpnd && func->m_scopeObjOpnd->IsRegOpnd())
+        {
+            bailOutInfo->byteCodeUpwardExposedUsed->Set(func->m_scopeObjOpnd->GetStackSym()->m_id);
+            if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
+            {
+                Output::Print(L"STACK ARGS WITH FORMALS: Setting bit {0} in byteCodeUpwardExposedUsed of current func: {1}", func->m_scopeObjOpnd->GetStackSym()->m_id, func->GetFunctionNumber());
+                Output::Flush();
+            }
+        }
+
+        if (func != topFunc)
+        {
+            if (topFunc && topFunc->m_scopeObjOpnd && topFunc->m_scopeObjOpnd->IsRegOpnd())
+            {
+                bailOutInfo->byteCodeUpwardExposedUsed->Set(topFunc->m_scopeObjOpnd->GetStackSym()->m_id);
+                if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
+                {
+                    Output::Print(L"STACK ARGS WITH FORMALS: Setting bit {0} in byteCodeUpwardExposedUsed of the topFunc: {1}", func->m_scopeObjOpnd->GetStackSym()->m_id, topFunc->GetFunctionNumber());
+                    Output::Flush();
+                }
+            }
+        }
+    }
 }
 
 void
@@ -2421,6 +2455,13 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 
         this->currentInstr = instr;
         this->currentRegion = this->currentBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+
+        //Clear scope Object if we get past the LdHeapArguments or LdLetHeapArguememts.
+        if ((instr->m_opcode == Js::OpCode::LdHeapArguments || instr->m_opcode == Js::OpCode::LdLetHeapArguments))
+        {
+            Assert(instr->m_func->m_scopeObjOpnd == nullptr || !instr->m_func->m_scopeObjOpnd->IsRegOpnd() || instr->m_func->m_scopeObjOpnd == instr->GetSrc1());
+            instr->m_func->m_scopeObjOpnd = nullptr;
+        }
 
         if (ProcessNoImplicitCallUses(instr) || this->ProcessBailOutInfo(instr))
         {
@@ -4075,8 +4116,8 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
             {
                 // If there is no upstream type check that is live and could protect guarded properties, we better
                 // not have any properties remaining.
-                ObjTypeGuardBucket* bucket = block->stackSymToGuardedProperties->Get(opnd->GetObjectSym()->m_id);
-                Assert(opnd->IsTypeAvailable() || bucket == nullptr || bucket->GetGuardedPropertyOps()->IsEmpty());
+                ObjTypeGuardBucket* objTypeGuardBucket = block->stackSymToGuardedProperties->Get(opnd->GetObjectSym()->m_id);
+                Assert(opnd->IsTypeAvailable() || objTypeGuardBucket == nullptr || objTypeGuardBucket->GetGuardedPropertyOps()->IsEmpty());
             }
 #endif
         }

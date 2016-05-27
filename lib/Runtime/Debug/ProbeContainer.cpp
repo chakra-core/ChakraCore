@@ -899,6 +899,11 @@ namespace Js
         debugManager->asyncBreakController.Deactivate();
     }
 
+    bool ProbeContainer::IsAsyncActivate() const
+    {
+        return this->pAsyncHaltCallback != nullptr;
+    }
+
     void ProbeContainer::PrepDiagForEnterScript()
     {
         // This will be called from ParseScriptText.
@@ -948,7 +953,7 @@ namespace Js
         bool fHasAllowed = false;
         bool fIsInNonUserCode = false;
 
-        if (debugManager != nullptr)
+        if (this->IsExceptionReportingEnabled() && (debugManager != nullptr))
         {
             fHasAllowed = !debugManager->pThreadContext->HasCatchHandler();
             if (!fHasAllowed)
@@ -981,6 +986,11 @@ namespace Js
         }
 
         return fHasAllowed;
+    }
+
+    bool ProbeContainer::IsExceptionReportingEnabled()
+    {
+        return this->debuggerOptionsCallback == nullptr || this->debuggerOptionsCallback->IsExceptionReportingEnabled();
     }
 
     bool ProbeContainer::IsFirstChanceExceptionEnabled()

@@ -64,8 +64,8 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
     {
         addGuardPages = (this->segmentPageCount * AutoSystemInfo::PageSize) > VirtualAllocThreshold;
 #if _M_IX86_OR_ARM32
-        unsigned int randomNumber = static_cast<unsigned int>(Math::Rand());
-        addGuardPages = addGuardPages && (randomNumber % 4 == 1);
+        unsigned int randomNumber2 = static_cast<unsigned int>(Math::Rand());
+        addGuardPages = addGuardPages && (randomNumber2 % 4 == 1);
 #endif
 #if DEBUG
         addGuardPages = addGuardPages || Js::Configuration::Global.flags.ForceGuardPages;
@@ -459,26 +459,6 @@ PageSegmentBase<T>::DecommitPages(__in void * address, uint pageCount)
     }
 
     Assert(decommitPageCount == (uint)this->GetCountOfDecommitPages());
-}
-
-template<typename T>
-void
-PageSegmentBase<T>::PartialDecommitPages(__in void * address, size_t totalPageCount, __in void* addressToDecommit, size_t pageCountToDecommit)
-{
-
-    Assert(address >= this->address && address < this->GetEndAddress());
-    Assert(addressToDecommit >= this->address && addressToDecommit < this->GetEndAddress());
-    Assert(totalPageCount <= allocator->maxAllocPageCount);
-    Assert(((uintptr_t)(((char *)address) - this->address)) <= (allocator->maxAllocPageCount - totalPageCount) * AutoSystemInfo::PageSize);
-
-    Assert(!IsFreeOrDecommitted(address, (uint)totalPageCount));
-    uint base = this->GetBitRangeBase(address);
-
-    this->SetRangeInDecommitPagesBitVector(base, (uint)totalPageCount);
-    this->decommitPageCount += (uint)totalPageCount;
-    GetAllocator()->GetVirtualAllocator()->Free(addressToDecommit, pageCountToDecommit * AutoSystemInfo::PageSize, MEM_DECOMMIT);
-
-    Assert(this->decommitPageCount == (uint)this->GetCountOfDecommitPages());
 }
 
 template<typename T>
@@ -1391,38 +1371,6 @@ PageAllocatorBase<T>::AddFreePageCount(uint pageCount)
     // so that we don't have to update it on every page allocation.
     UpdateMinFreePageCount();
     this->freePageCount += pageCount;
-}
-
-template<typename T>
-void
-PageAllocatorBase<T>::PartialDecommitPages(__in void * address, size_t pageCountTotal, __in void* decommitAddress, size_t pageCountToDecommit, __in void * segmentParam)
-{
-    // TODO: use a specialized PageHeapPageAllocator to simplify the page allocating logic for pageheap
-    if (pageCountTotal > this->maxAllocPageCount)
-    {
-        SegmentBase<T> * segment = (SegmentBase<T>*)segmentParam;
-        Assert(pageCountTotal == segment->GetPageCount());
-        PageTracking::ReportFree((PageAllocator*)this, segment->GetAddress(), AutoSystemInfo::PageSize * segment->GetPageCount());
-        LogFreePages(segment->GetPageCount());
-        LogFreeSegment(segment);
-
-        // when deleting segement, it call VirtualFree with MEM_RELEASE, so it should be OK
-        // even we have partial decommited pages in the segment
-        largeSegments.RemoveElement(&NoThrowNoMemProtectHeapAllocator::Instance, segment);
-    }
-    else
-    {
-        PageSegmentBase<T> * pageSegment = (PageSegmentBase<T>*) segmentParam;
-        DListBase<PageSegmentBase<T>> * fromSegmentList = GetSegmentList(pageSegment);
-
-        pageSegment->PartialDecommitPages(address, pageCountTotal, decommitAddress, pageCountToDecommit);
-        LogFreePages(pageCountTotal);
-        LogDecommitPages(pageCountTotal);
-#if DBG_DUMP
-        this->decommitPageCount += pageCountTotal;
-#endif
-        TransferSegment(pageSegment, fromSegmentList);
-    }
 }
 
 template<typename T>

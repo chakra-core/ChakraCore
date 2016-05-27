@@ -268,7 +268,7 @@ public:
     __inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
     void CapturePageHeapAllocStack();
     void CapturePageHeapFreeStack();
-    const StackBackTrace* s_StackTraceAllocFailed = (StackBackTrace*)1;
+    const static StackBackTrace* s_StackTraceAllocFailed;
 #endif
 
 #if DBG

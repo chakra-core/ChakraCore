@@ -1556,6 +1556,7 @@ namespace Js
                 _u(" disableSwitchOpt : %s")
                 _u(" disableEquivalentObjTypeSpec : %s\n")
                 _u(" disableObjTypeSpec_jitLoopBody : %s\n"),
+                _u(" disablePowIntTypeSpec : %s\n"),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec_jitLoopBody),
                 IsTrueOrFalse(this->bits.disableAggressiveMulIntTypeSpec),
@@ -1588,7 +1589,8 @@ namespace Js
                 IsTrueOrFalse(this->bits.disableNoProfileBailouts),
                 IsTrueOrFalse(this->bits.disableSwitchOpt),
                 IsTrueOrFalse(this->bits.disableEquivalentObjTypeSpec),
-                IsTrueOrFalse(this->bits.disableObjTypeSpec_jitLoopBody));
+                IsTrueOrFalse(this->bits.disableObjTypeSpec_jitLoopBody),
+                IsTrueOrFalse(this->bits.disablePowIntIntTypeSpec));
         }
     }
 
@@ -2291,6 +2293,12 @@ const char* GetBailOutKindName(IR::BailOutKind kind)
     if (kind & BailOutOnNegativeZero)
     {
         kind ^= BailOutOnNegativeZero;
+        position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
+    }
+    ++offset;
+    if (kind & BailOutOnPowIntIntOverflow)
+    {
+        kind ^= BailOutOnPowIntIntOverflow;
         position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
     }
     ++offset;

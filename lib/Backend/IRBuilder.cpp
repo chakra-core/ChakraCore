@@ -635,7 +635,7 @@ IRBuilder::Build()
             {
                 dstOpnd = this->BuildDstOpnd(frameDisplayReg);
             }
-            IR::Instr *instr = IR::Instr::New(op, dstOpnd, closureOpnd, m_func);
+            instr = IR::Instr::New(op, dstOpnd, closureOpnd, m_func);
             if (frameDisplayOpnd != nullptr)
             {
                 // We're building on an intermediate LdFrameDisplay result.
@@ -3581,7 +3581,6 @@ LdLocalObjSlot:
 NewScFuncCommon:
             {
                 IR::Opnd * functionBodySlotOpnd = IR::IntConstOpnd::New(slotId, TyInt32, m_func, true);
-                SymID symID;
 
                 // The byte code doesn't refer directly to a closure environment. Get the implicit one
                 // that's pointed to by the function body.
@@ -4138,7 +4137,7 @@ stCommon:
     {
         Assert(!isProfiled);
 
-        IR::SymOpnd *   fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
+        fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
 
         // Implicit root object as default instance
         IR::Opnd * instance2Opnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
@@ -4153,7 +4152,7 @@ stCommon:
     {
         Assert(!isProfiled);
 
-        IR::SymOpnd *   fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
+        fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
 
         // Implicit root object as default instance
         IR::Opnd * instance2Opnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
@@ -4594,7 +4593,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
             PropertyKind propertyKind = PropertyKindData;
             fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, propertyIdIndex, propertyKind);
             // Implicit root object as default instance
-            IR::RegOpnd * regOpnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
+            regOpnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
 
             instr = IR::Instr::New(newOpcode, fieldSymOpnd, regOpnd, m_func);
             break;
@@ -6858,15 +6857,15 @@ IRBuilder::ResolveVirtualLongBranch(IR::BranchInstr * branchInstr, uint offset)
         branchInstr->InsertBefore(returnIPInstr);
 
         // Any jump to this branch to jump to the return IP load instr first
-        uint32 offset = branchInstr->GetByteCodeOffset();
-        if (this->m_offsetToInstruction[offset] == branchInstr)
+        uint32 branchInstrByteCodeOffset = branchInstr->GetByteCodeOffset();
+        if (this->m_offsetToInstruction[branchInstrByteCodeOffset] == branchInstr)
         {
-            this->m_offsetToInstruction[offset] = returnIPInstr;
+            this->m_offsetToInstruction[branchInstrByteCodeOffset] = returnIPInstr;
         }
         else
         {
-            Assert(this->m_offsetToInstruction[offset]->HasBailOutInfo() &&
-                   this->m_offsetToInstruction[offset]->GetBailOutKind() == IR::BailOutInjected);
+            Assert(this->m_offsetToInstruction[branchInstrByteCodeOffset]->HasBailOutInfo() &&
+                   this->m_offsetToInstruction[branchInstrByteCodeOffset]->GetBailOutKind() == IR::BailOutInjected);
         }
     }
     return GetLoopBodyExitInstrOffset();

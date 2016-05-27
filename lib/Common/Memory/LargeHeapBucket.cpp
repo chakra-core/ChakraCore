@@ -170,6 +170,14 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
     heapBlock->heapInfo = this->heapInfo;
     heapBlock->actualPageCount = actualPageCount;
     heapBlock->guardPageAddress = guardPageAddress;
+    
+    DWORD oldProtect;
+    BOOL ret = ::VirtualProtect(guardPageAddress, AutoSystemInfo::PageSize * guardPageCount, PAGE_NOACCESS, &oldProtect);
+    Assert(ret && oldProtect == PAGE_READWRITE);
+    
+    // fill pattern before set pageHeapMode, so background scan stack may verify the pattern
+    size_t usedSpace = sizeof(LargeObjectHeader) + size;
+    memset(address + usedSpace, 0xF0, pageCount * AutoSystemInfo::PageSize - usedSpace);
     heapBlock->pageHeapMode = heapInfo->pageHeapMode;
 
     if (!recycler->heapBlockMap.SetHeapBlock(address, pageCount, heapBlock, HeapBlock::HeapBlockType::LargeBlockType, 0))
@@ -186,16 +194,6 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
     char * memBlock = heapBlock->Alloc(size, attributes);
     Assert(memBlock != nullptr);
 
-    // fill pattern
-    memset(heapBlock->allocAddressEnd, 0xF0, heapBlock->addressEnd - heapBlock->allocAddressEnd);
-
-#pragma prefast(suppress:6250, "This method decommits memory")
-    if (::VirtualFree(guardPageAddress, AutoSystemInfo::PageSize * guardPageCount, MEM_DECOMMIT) == FALSE)
-    {
-        AssertMsg(false, "Unable to decommit guard page.");
-        ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, 2);
-        return nullptr;
-    }
 
     if (this->largePageHeapBlockList)
     {
@@ -365,10 +363,10 @@ LargeHeapBucket::TryAllocFromExplicitFreeList(Recycler * recycler, size_t sizeCa
         }
 
 #ifdef RECYCLER_MEMORY_VERIFY
-        HeapBlock* heapBlock = recycler->FindHeapBlock(memBlock);
-        Assert(heapBlock != nullptr);
-        Assert(heapBlock->IsLargeHeapBlock());
-        LargeHeapBlock * largeHeapBlock = (LargeHeapBlock *)heapBlock;
+        HeapBlock* heapBlockVerify = recycler->FindHeapBlock(memBlock);
+        Assert(heapBlockVerify != nullptr);
+        Assert(heapBlockVerify->IsLargeHeapBlock());
+        LargeHeapBlock * largeHeapBlock = (LargeHeapBlock *)heapBlockVerify;
         LargeObjectHeader * dbgHeader;
         Assert(largeHeapBlock->GetObjectHeader(memBlock, &dbgHeader));
         Assert(dbgHeader == header);

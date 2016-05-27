@@ -48,6 +48,7 @@ namespace Js
             isSwitchOptDisabled(false),
             isEquivalentObjTypeSpecDisabled(false),
             isObjTypeSpecDisabled_jitLoopBody(false),
+            isPowIntIntTypeSpecDisabled(false),
             ldElemInfo(nullptr),
             stElemInfo(nullptr)
         {
@@ -85,6 +86,7 @@ namespace Js
             this->isSwitchOptDisabled = profileInfo->IsSwitchOptDisabled();
             this->isEquivalentObjTypeSpecDisabled = profileInfo->IsEquivalentObjTypeSpecDisabled();
             this->isObjTypeSpecDisabled_jitLoopBody = profileInfo->IsObjTypeSpecDisabledInJitLoopBody();
+            this->isPowIntIntTypeSpecDisabled = profileInfo->IsPowIntIntTypeSpecDisabled();
         }
 
         void OnBackgroundAllocatorReset()
@@ -340,6 +342,11 @@ namespace Js
             return this->isNoProfileBailoutsDisabled;
         }
 
+        bool IsPowIntIntTypeSpecDisabled() const
+        {
+            return this->isPowIntIntTypeSpecDisabled;
+        }
+
     private:
         const DynamicProfileInfo * profileInfo;
         ArenaAllocator *const backgroundAllocator; // null if the work item is being jitted in the foreground
@@ -375,6 +382,7 @@ namespace Js
         bool isSwitchOptDisabled : 1;
         bool isEquivalentObjTypeSpecDisabled : 1;
         bool isObjTypeSpecDisabled_jitLoopBody : 1;
+        bool isPowIntIntTypeSpecDisabled : 1;
         const LdElemInfo *ldElemInfo;
         const StElemInfo *stElemInfo;
 

@@ -7486,7 +7486,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
 
-        value = SIMDLdData(data, dataWidth);
+        value = SIMDUtils::SIMDLdData(data, dataWidth);
         SetRegRawSimd(dstReg, value);
     }
 
@@ -7507,7 +7507,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
 
-        value = SIMDLdData(data, dataWidth);
+        value = SIMDUtils::SIMDLdData(data, dataWidth);
         SetRegRawSimd(dstReg, value);
     }
 
@@ -7527,7 +7527,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
-        SIMDStData(data, value, dataWidth);
+        SIMDUtils::SIMDStData(data, value, dataWidth);
     }
 
     template <class T>
@@ -7546,7 +7546,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
-        SIMDStData(data, value, dataWidth);
+        SIMDUtils::SIMDStData(data, value, dataWidth);
 
     }
 
@@ -8320,6 +8320,36 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Var args = JavascriptOperators::LoadHeapArgsCached(this->function->GetRealFunctionObject(), this->m_inSlotsCount - 1, formalsCount, &this->m_inParams[1], this->localClosure, scriptContext, true);
         this->m_arguments = args;
         return args;
+    }
+
+    void InterpreterStackFrame::TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext)
+    {
+        if (PHASE_OFF1(Js::StackArgFormalsOptPhase))
+        {
+            return;
+        }
+
+        ActivationObject * frameObject = (ActivationObject*)GetLocalClosure();
+        uint32 formalsCount = this->m_functionBody->GetInParamsCount() - 1;
+
+        if (formalsCount != 0 &&
+            this->m_functionBody->HasScopeObject() &&
+            m_arguments != nullptr &&
+            ((Js::HeapArgumentsObject*)(m_arguments))->GetFrameObject() == scriptContext->GetLibrary()->GetNull() &&
+            frameObject != nullptr &&
+            frameObject != scriptContext->GetLibrary()->GetNull()
+            )
+        {
+            Js::HeapArgumentsObject* heapArgObj = (Js::HeapArgumentsObject*)m_arguments;
+            heapArgObj->SetFrameObject(frameObject);
+            heapArgObj->SetFormalCount(formalsCount);
+
+            if (PHASE_TRACE1(Js::StackArgFormalsOptPhase))
+            {
+                Output::Print(L"STACK ARGS WITH FORMALS: Bailing Out - Setting frameObject pointer in the heap arguments object");
+                Output::Flush();
+            }
+        }
     }
 
     Var InterpreterStackFrame::OP_LdArgumentsFromFrame()

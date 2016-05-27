@@ -4,9 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "ChakraCommon.h"
-
+#include "ChakraCore.h"
 #include "JsrtThreadService.h"
+#include "JsrtDebugManager.h"
 
 class JsrtRuntime
 {
@@ -40,6 +40,10 @@ public:
     bool IsSerializeByteCodeForLibrary() const { return serializeByteCodeForLibrary; }
 #endif
 
+    void EnsureJsrtDebugManager();
+    void DeleteJsrtDebugManager();
+    JsrtDebugManager * GetJsrtDebugManager();
+
 private:
     static void __cdecl RecyclerCollectCallbackStatic(void * context, RecyclerCollectCallBackFlags flags);
 
@@ -56,6 +60,5 @@ private:
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     bool serializeByteCodeForLibrary;
 #endif
+    JsrtDebugManager * jsrtDebugManager;
 };
-
-

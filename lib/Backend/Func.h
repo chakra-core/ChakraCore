@@ -457,6 +457,8 @@ public:
     IR::Instr *         m_headInstr;
     IR::Instr *         m_exitInstr;
     IR::Instr *         m_tailInstr;
+    IR::Opnd *          m_scopeObjOpnd;
+
 #ifdef _M_X64
     int32               m_spillSize;
     int32               m_argsSize;

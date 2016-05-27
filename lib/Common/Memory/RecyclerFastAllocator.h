@@ -73,10 +73,7 @@ public:
         recycler->FillCheckPad(memBlock, sizeof(T), sizeCat);
 #endif
 #if DBG
-        if (recycler->IsPageHeapEnabled())
-        {
-            recycler->VerifyPageHeapFillAfterAlloc<attributes>(memBlock, size);
-        }
+        recycler->VerifyPageHeapFillAfterAlloc<attributes>(memBlock, size);
 #endif
         return memBlock;
     };

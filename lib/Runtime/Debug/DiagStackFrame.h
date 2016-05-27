@@ -39,6 +39,15 @@ namespace Js
         ScriptFunction* GetScriptFunction();
         FunctionBody* GetFunction();
 
+        BOOL IsStrictMode();
+        BOOL IsThisAvailable();
+        Js::Var GetThisFromFrame(Js::IDiagObjectAddress ** ppOutAddress, Js::IDiagObjectModelWalkerBase * localsWalker = nullptr);
+        // This function will try to populate obj and address field of the ResolvedObject.
+        void TryFetchValueAndAddress(const char16 *source, int sourceLength, Js::ResolvedObject * pObj);
+        Js::ScriptFunction* TryGetFunctionForEval(Js::ScriptContext* scriptContext, const char16 *source, int sourceLength, BOOL isLibraryCode = FALSE);
+        void EvaluateImmediate(const char16 *source, int sourceLength, BOOL isLibraryCode, Js::ResolvedObject * pObj);
+        Js::Var DoEval(Js::ScriptFunction* pfuncScript);
+
     protected:
         DiagStackFrame(int frameIndex);
 

@@ -18,7 +18,10 @@
 #pragma warning(disable:4075)       // initializers put in unrecognized initialization area on purpose
 #pragma init_seg(".CRT$XCAD")
 
+#pragma warning(push)
+#pragma warning(disable:4838) // conversion from 'unsigned long' to 'LONG' requires a narrowing conversion
 #include "Microsoft-Scripting-Jscript9.InternalCounters.h"
+#pragma warning(pop)
 
 namespace PerfCounter
 {

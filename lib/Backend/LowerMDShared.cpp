@@ -647,13 +647,17 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        if (callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
+        IR::BailOutKind bailOutKind = callInstr->GetBailOutKind();
+        if (bailOutKind == IR::BailOutOnNotPrimitive ||
+            bailOutKind == IR::BailOutOnPowIntIntOverflow)
         {
             callInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
             bailOutInstr->TransferTo(callInstr);
             bailOutInstr->InsertBefore(callInstr);
 
-            bailOutInstr->m_opcode = Js::OpCode::BailOnNotPrimitive;
+            bailOutInstr->m_opcode = bailOutKind == IR::BailOutOnNotPrimitive
+                                        ? Js::OpCode::BailOnNotPrimitive
+                                        : Js::OpCode::BailOnPowIntIntOverflow;
             bailOutInstr->SetSrc1(opndBailOutArg);
         }
         else
@@ -683,7 +687,8 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
         {
             this->m_lowerer->LowerBailOnNotObject(bailOutInstr, nullptr, labelBailOut);
         }
-        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive)
+        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive ||
+            bailOutInstr->m_opcode == Js::OpCode::BailOnPowIntIntOverflow)
         {
             this->m_lowerer->LowerBailOnTrue(bailOutInstr, labelBailOut);
         }
@@ -7074,7 +7079,7 @@ LowererMD::EnsureAdjacentArgs(IR::Instr * instrArg)
     while (opnd->IsSymOpnd())
     {
         sym = opnd->AsSymOpnd()->m_sym->AsStackSym();
-        IR::Instr * instrNextArg = sym->m_instrDef;
+        instrNextArg = sym->m_instrDef;
         Assert(instrNextArg);
         instrNextArg->SinkInstrBefore(instrArg);
         instrArg = instrNextArg;
@@ -7695,7 +7700,7 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
         IR::Opnd* dstOpnd = intOpnd;
 #endif
         // CVTTSD2SI dst, floatOpnd
-        IR::Instr* instr = IR::Instr::New(floatOpnd->IsFloat64() ? Js::OpCode::CVTTSD2SI : Js::OpCode::CVTTSS2SI, dstOpnd, floatOpnd, this->m_func);
+        instr = IR::Instr::New(floatOpnd->IsFloat64() ? Js::OpCode::CVTTSD2SI : Js::OpCode::CVTTSS2SI, dstOpnd, floatOpnd, this->m_func);
         instInsert->InsertBefore(instr);
 
         // CMP dst, 0x80000000 {0x8000000000000000 on x64}    -- Check for overflow
@@ -7736,7 +7741,7 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
         if (floatOpnd->IsFloat32())
         {
             float64Opnd = IR::RegOpnd::New(TyFloat64, m_func);
-            IR::Instr* instr = IR::Instr::New(Js::OpCode::CVTSS2SD, float64Opnd, floatOpnd, m_func);
+            instr = IR::Instr::New(Js::OpCode::CVTSS2SD, float64Opnd, floatOpnd, m_func);
             instInsert->InsertBefore(instr);
         }
         else
@@ -7747,7 +7752,7 @@ void LowererMD::ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::
         if (float64Opnd->IsRegOpnd())
         {
             floatStackOpnd = IR::SymOpnd::New(tempSymDouble, TyMachDouble, m_func);
-            IR::Instr* instr = IR::Instr::New(Js::OpCode::MOVSD, floatStackOpnd, float64Opnd, m_func);
+            instr = IR::Instr::New(Js::OpCode::MOVSD, floatStackOpnd, float64Opnd, m_func);
             instInsert->InsertBefore(instr);
         }
         else
@@ -8694,6 +8699,18 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
         Assert(helperMethod == (IR::JnHelperMethod)0);
         return GenerateFastInlineBuiltInMathAbs(instr);
 
+    case Js::OpCode::InlineMathPow:
+#ifdef _M_IX86
+        if (!instr->GetSrc2()->IsFloat())
+        {
+#endif
+            this->GenerateFastInlineBuiltInMathPow(instr);
+            break;
+#ifdef _M_IX86
+        }
+        // fallthrough
+#endif
+
     case Js::OpCode::InlineMathAcos:
     case Js::OpCode::InlineMathAsin:
     case Js::OpCode::InlineMathAtan:
@@ -8701,7 +8718,6 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
     case Js::OpCode::InlineMathCos:
     case Js::OpCode::InlineMathExp:
     case Js::OpCode::InlineMathLog:
-    case Js::OpCode::InlineMathPow:
     case Js::OpCode::Expo_A:        //** operator reuses InlineMathPow fastpath
     case Js::OpCode::InlineMathSin:
     case Js::OpCode::InlineMathTan:
@@ -9325,6 +9341,55 @@ void LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr* inlineInstr)
     {
         AssertMsg(FALSE, "GenerateFastInlineBuiltInMathAbs: unexpected type of the src!");
     }
+}
+
+void LowererMD::GenerateFastInlineBuiltInMathPow(IR::Instr* instr)
+{
+#ifdef _M_IX86
+    AssertMsg(!instr->GetSrc2()->IsFloat(), "Math.pow(*, double) needs customized lowering!");
+#endif
+
+    IR::JnHelperMethod directPowHelper = (IR::JnHelperMethod)0;
+    IR::Opnd* bailoutOpnd = nullptr;
+
+    if (!instr->GetSrc2()->IsFloat())
+    {
+        LoadHelperArgument(instr, instr->UnlinkSrc2());
+
+        if (instr->GetSrc1()->IsFloat())
+        {
+            directPowHelper = IR::HelperDirectMath_PowDoubleInt;
+            LoadDoubleHelperArgument(instr, instr->UnlinkSrc1());
+        }
+        else
+        {
+            directPowHelper = IR::HelperDirectMath_PowIntInt;
+            LoadHelperArgument(instr, instr->UnlinkSrc1());
+
+            if (!this->m_func->tempSymBool)
+            {
+                this->m_func->tempSymBool = StackSym::New(TyUint8, this->m_func);
+                this->m_func->StackAllocate(this->m_func->tempSymBool, TySize[TyUint8]);
+            }
+            IR::SymOpnd* boolOpnd = IR::SymOpnd::New(this->m_func->tempSymBool, TyUint8, this->m_func);
+            IR::RegOpnd* boolRefOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
+            this->m_lowerer->InsertLea(boolRefOpnd, boolOpnd, instr);
+            LoadHelperArgument(instr, boolRefOpnd);
+
+            bailoutOpnd = boolOpnd;
+        }
+    }
+#ifndef _M_IX86
+    else
+    {
+        AssertMsg(instr->GetSrc1()->IsFloat(), "Math.Pow(int, double) should not generated by GlobOpt!");
+        directPowHelper = IR::HelperDirectMath_Pow;
+        LoadDoubleHelperArgument(instr, instr->UnlinkSrc2());
+        LoadDoubleHelperArgument(instr, instr->UnlinkSrc1());
+    }
+#endif
+
+    ChangeToHelperCall(instr, directPowHelper, nullptr, bailoutOpnd);
 }
 
 void

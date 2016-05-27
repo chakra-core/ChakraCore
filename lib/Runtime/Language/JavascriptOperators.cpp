@@ -276,7 +276,7 @@ namespace Js
 
     Var JavascriptOperators::Typeof(Var var, ScriptContext* scriptContext)
     {
-        if (IsSimdType(var) && scriptContext->GetConfig()->IsSimdjsEnabled())
+        if (SIMDUtils::IsSimdType(var) && scriptContext->GetConfig()->IsSimdjsEnabled())
         {
             switch ((JavascriptOperators::GetTypeId(var)))
             {
@@ -574,7 +574,7 @@ namespace Js
                 return result;
             }
         }
-        else if (IsSimdType(aLeft) && IsSimdType(aRight))
+        else if (SIMDUtils::IsSimdType(aLeft) && SIMDUtils::IsSimdType(aRight))
         {
             return StrictEqualSIMD(aLeft, aRight, requestContext);
         }
@@ -625,7 +625,7 @@ namespace Js
 
         double dblLeft, dblRight;
 
-        if (IsSimdType(aLeft) || IsSimdType(aRight))
+        if (SIMDUtils::IsSimdType(aLeft) || SIMDUtils::IsSimdType(aRight))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_SIMDConversion, _u("SIMD type"));
         }
@@ -2836,10 +2836,10 @@ CommonNumber:
                     JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
                 }
 
-                PropertyValueInfo info;
-                PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
+                PropertyValueInfo info2;
+                PropertyValueInfo::SetCacheInfo(&info2, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
                 PropertyOperationFlags setPropertyOpFlags = allowUndecInConsoleScope ? PropertyOperation_AllowUndeclInConsoleScope : PropertyOperation_None;
-                object->SetProperty(propertyId, newValue, setPropertyOpFlags, &info);
+                object->SetProperty(propertyId, newValue, setPropertyOpFlags, &info2);
 
 #if DBG_DUMP
                 if (PHASE_VERBOSE_TRACE1(Js::InlineCachePhase))
@@ -2849,7 +2849,7 @@ CommonNumber:
 #endif
                 if (!JavascriptProxy::Is(object) && !allowUndecInConsoleScope)
                 {
-                    CacheOperators::CachePropertyWrite(object, false, type, propertyId, &info, scriptContext);
+                    CacheOperators::CachePropertyWrite(object, false, type, propertyId, &info2, scriptContext);
                 }
 
                 if (isLexicalThisSlotSymbol && !JavascriptOperators::HasProperty(object, PropertyIds::_lexicalNewTargetSymbol))
@@ -2901,8 +2901,8 @@ CommonNumber:
         RecyclableObject* obj = RecyclableObject::FromVar(defaultInstance);
         {
             //SetPropertyScoped does not use inline cache for default instance
-            PropertyValueInfo info;
-            JavascriptOperators::SetRootProperty(obj, propertyId, newValue, &info, scriptContext, (PropertyOperationFlags)(propertyOperationFlags | PropertyOperation_Root));
+            PropertyValueInfo info2;
+            JavascriptOperators::SetRootProperty(obj, propertyId, newValue, &info2, scriptContext, (PropertyOperationFlags)(propertyOperationFlags | PropertyOperation_Root));
         }
     }
     template void JavascriptOperators::PatchSetPropertyScoped<false, InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, FrameDisplay *pDisplay, PropertyId propertyId, Var newValue, Var defaultInstance, PropertyOperationFlags propertyOperationFlags);
@@ -5487,10 +5487,7 @@ CommonNumber:
     {
         ActivationObjectEx *scopeObj = (ActivationObjectEx*)ActivationObjectEx::FromVar(varScope);
         Assert(scopeObj->GetTypeHandler()->GetInlineSlotCapacity() == 0);
-        ScriptFunction *func;
-        FuncCacheEntry *entry;
-        FunctionProxy  *proxy;
-        uint scopeSlot;
+
         uint funcCount = info->count;
 
         if (funcCount == 0)
@@ -5503,10 +5500,10 @@ CommonNumber:
         {
             for (uint i = 0; i < funcCount; i++)
             {
-                entry = scopeObj->GetFuncCacheEntry(i);
-                func = entry->func;
+                const FuncCacheEntry *entry = scopeObj->GetFuncCacheEntry(i);
+                ScriptFunction *func = entry->func;
 
-                proxy = func->GetFunctionProxy();
+                FunctionProxy * proxy = func->GetFunctionProxy();
                 if (proxy != proxy->GetFunctionProxy())
                 {
                     // The FunctionProxy has changed since the object was cached, e.g., due to execution
@@ -5521,7 +5518,7 @@ CommonNumber:
                 func->ReplaceType(proxy->EnsureDeferredPrototypeType());
                 func->ResetConstructorCacheToDefault();
 
-                scopeSlot = info->elements[i].scopeSlot;
+                uint scopeSlot = info->elements[i].scopeSlot;
                 if (scopeSlot != Constants::NoProperty)
                 {
                     // CONSIDER: Store property IDs in FuncInfoArray in debug builds so we can properly assert in SetAuxSlot
@@ -5537,11 +5534,11 @@ CommonNumber:
         {
             const FuncInfoEntry *entry = &info->elements[i];
             uint nestedIndex = entry->nestedIndex;
-            scopeSlot = entry->scopeSlot;
+            uint scopeSlot = entry->scopeSlot;
 
-            proxy = funcParent->GetFunctionBody()->GetNestedFunc(nestedIndex);
+            FunctionProxy * proxy = funcParent->GetFunctionBody()->GetNestedFunc(nestedIndex);
 
-            func = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
+            ScriptFunction *func = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
 
             func->SetEnvironment(pDisplay);
             JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(func, EtwTrace::GetFunctionId(proxy)));
@@ -6735,9 +6732,9 @@ CommonNumber:
         return argumentsObject;
     }
 
-    Var JavascriptOperators::LoadHeapArguments(JavascriptFunction *funcCallee, uint32 paramCount, Var *paramAddr, Var frameObj, Var vArray, ScriptContext* scriptContext, bool nonSimpleParamList)
+    Var JavascriptOperators::LoadHeapArguments(JavascriptFunction *funcCallee, uint32 actualsCount, Var *paramAddr, Var frameObj, Var vArray, ScriptContext* scriptContext, bool nonSimpleParamList, bool isStackArgsOpt)
     {
-        AssertMsg(paramCount != (unsigned int)-1, "Loading the arguments object in the global function?");
+        AssertMsg(actualsCount != (unsigned int)-1, "Loading the arguments object in the global function?");
 
         // Create and initialize the Arguments object.
 
@@ -6747,80 +6744,32 @@ CommonNumber:
         {
             propIds = (Js::PropertyIdArray *)vArray;
             formalsCount = propIds->count;
+            Assert(formalsCount != 0 && propIds != nullptr);
         }
 
-        HeapArgumentsObject *argsObj = JavascriptOperators::CreateHeapArguments(funcCallee, paramCount, formalsCount, frameObj, scriptContext);
-
-        // Transfer formal arguments (that were actually passed) from their ArgIn slots to the local frame object.
-        uint32 i;
-
-        Var *tmpAddr = paramAddr;
-
-        if (propIds != nullptr)
-        {
-            ActivationObject* frameObject = (ActivationObject*)frameObj;
-            // No fixed fields for formal parameters of the arguments object.  Also, mark all fields as initialized up-front, because
-            // we will set them directly using SetSlot below, so the type handler will not have a chance to mark them as initialized later.
-            // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
-            // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
-            // is ready for storing values directly to slots.
-            DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
-
-            int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
-            int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
-            __analysis_assume((uint32)newSlotCapacity >= formalsCount);
-
-            frameObject->EnsureSlots(oldSlotCapacity, newSlotCapacity, scriptContext, newType->GetTypeHandler());
-            frameObject->ReplaceType(newType);
-
-            if (nonSimpleParamList)
-            {
-                return ConvertToUnmappedArguments(argsObj, paramCount, paramAddr, frameObject, propIds, formalsCount, scriptContext);
-            }
-
-            for (i = 0; i < formalsCount && i < paramCount; i++, tmpAddr++)
-            {
-                frameObject->SetSlot(SetSlotArguments(propIds->elements[i], i, *tmpAddr));
-            }
-
-            if (i < formalsCount)
-            {
-                // The formals that weren't passed still need to be put in the frame object so that
-                // their names will be found. Initialize them to "undefined".
-                for (; i < formalsCount; i++)
-                {
-                    frameObject->SetSlot(SetSlotArguments(propIds->elements[i], i, scriptContext->GetLibrary()->GetUndefined()));
-                }
-            }
-        }
-
-        // Transfer the unnamed actual arguments, if any, to the Arguments object itself.
-        for (i = formalsCount, tmpAddr = paramAddr + i; i < paramCount; i++, tmpAddr++)
-        {
-            // ES5 10.6.11: use [[DefineOwnProperty]] semantics (instead of [[Put]]):
-            // do not check whether property is non-writable/etc in the prototype.
-            // ES3 semantics is same.
-            JavascriptOperators::SetItem(argsObj, argsObj, i, *tmpAddr, scriptContext, PropertyOperation_None, /* skipPrototypeCheck = */ TRUE);
-        }
-
-        if (funcCallee->IsStrictMode())
-        {
-            // If the formals are let decls, then we just overwrote the frame object slots with
-            // Undecl sentinels, and we can use the original arguments that were passed to the HeapArgumentsObject.
-            return argsObj->ConvertToUnmappedArgumentsObject(!nonSimpleParamList);
-        }
-
-        return argsObj;
+        return CreateHeapArgumentsObjAndFillScopeObject(funcCallee, actualsCount, formalsCount, frameObj, paramAddr, propIds, scriptContext, nonSimpleParamList, false, isStackArgsOpt);
     }
 
-    Var JavascriptOperators::LoadHeapArgsCached(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var *paramAddr, Var frameObj, ScriptContext* scriptContext, bool nonSimpleParamList)
+    Var JavascriptOperators::LoadHeapArgsCached(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var *paramAddr, Var frameObj, ScriptContext* scriptContext, bool nonSimpleParamList, bool isStackArgsOpt)
     {
         // Disregard the "this" param.
         AssertMsg(actualsCount != (uint32)-1 && formalsCount != (uint32)-1,
                   "Loading the arguments object in the global function?");
 
-        // Create and initialize the Arguments object.
-        HeapArgumentsObject *argsObj = JavascriptOperators::CreateHeapArguments(funcCallee, actualsCount, formalsCount, frameObj, scriptContext);
+        return CreateHeapArgumentsObjAndFillScopeObject(funcCallee, actualsCount, formalsCount, frameObj, paramAddr, nullptr, scriptContext, nonSimpleParamList, true, isStackArgsOpt);
+    }
+
+    Var JavascriptOperators::CreateHeapArgumentsObjAndFillScopeObject(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, Var * paramAddr, Js::PropertyIdArray *propIds, ScriptContext * scriptContext, bool nonSimpleParamList, bool useCachedScope, bool isStackArgsOpt)
+    {
+        HeapArgumentsObject *argsObj = nullptr;
+        Assert(frameObj);
+
+        bool disableStackArgsOpt = !isStackArgsOpt || nonSimpleParamList || funcCallee->IsStrictMode();
+
+        if (disableStackArgsOpt)
+        {
+            argsObj = JavascriptOperators::CreateHeapArguments(funcCallee, actualsCount, formalsCount, frameObj, scriptContext);
+        }
 
         // Transfer formal arguments (that were actually passed) from their ArgIn slots to the local frame object.
         uint32 i;
@@ -6829,18 +6778,38 @@ CommonNumber:
 
         if (formalsCount != 0)
         {
-            DynamicObject* frameObject = DynamicObject::FromVar(frameObj);
-            __analysis_assume((uint32)frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity() >= formalsCount);
+            DynamicObject* frameObject = nullptr;
+            if (useCachedScope)
+            {
+                frameObject = DynamicObject::FromVar(frameObj);
+                __analysis_assume((uint32)frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity() >= formalsCount);
+            }
+            else
+            {
+                frameObject = (DynamicObject*)frameObj;
+                // No fixed fields for formal parameters of the arguments object.  Also, mark all fields as initialized up-front, because
+                // we will set them directly using SetSlot below, so the type handler will not have a chance to mark them as initialized later.
+                // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
+                // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
+                // is ready for storing values directly to slots.
+                DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
+
+                int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
+                int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
+                __analysis_assume((uint32)newSlotCapacity >= formalsCount);
+
+                frameObject->EnsureSlots(oldSlotCapacity, newSlotCapacity, scriptContext, newType->GetTypeHandler());
+                frameObject->ReplaceType(newType);
+            }
 
             if (nonSimpleParamList)
             {
-                return ConvertToUnmappedArguments(argsObj, actualsCount, paramAddr, frameObject, nullptr /*propIds*/, formalsCount, scriptContext);
+                return ConvertToUnmappedArguments(argsObj, actualsCount, paramAddr, frameObject, propIds, formalsCount, scriptContext);
             }
 
             for (i = 0; i < formalsCount && i < actualsCount; i++, tmpAddr++)
             {
-                // We don't know the propertyId at this point.
-                frameObject->SetSlot(SetSlotArguments(Constants::NoProperty, i, *tmpAddr));
+                frameObject->SetSlot(SetSlotArguments(propIds != nullptr? propIds->elements[i] : Constants::NoProperty, i, *tmpAddr));
             }
 
             if (i < formalsCount)
@@ -6849,19 +6818,22 @@ CommonNumber:
                 // their names will be found. Initialize them to "undefined".
                 for (; i < formalsCount; i++)
                 {
-                    // We don't know the propertyId at this point.
-                    frameObject->SetSlot(SetSlotArguments(Constants::NoProperty, i, scriptContext->GetLibrary()->GetUndefined()));
+                    frameObject->SetSlot(SetSlotArguments(propIds != nullptr? propIds->elements[i] : Constants::NoProperty, i, scriptContext->GetLibrary()->GetUndefined()));
                 }
             }
         }
 
-        // Transfer the unnamed actual arguments, if any, to the Arguments object itself.
-        for (i = formalsCount, tmpAddr = paramAddr + i; i < actualsCount; i++, tmpAddr++)
+        if (disableStackArgsOpt)
         {
-            // ES5 10.6.11: use [[DefineOwnProperty]] semantics (instead of [[Put]]):
-            // do not check whether property is non-writable/etc in the prototype.
-            // ES3 semantics is same.
-            JavascriptOperators::SetItem(argsObj, argsObj, i, *tmpAddr, scriptContext, PropertyOperation_None, /* skipPrototypeCheck = */ TRUE);
+            Assert(argsObj);
+            // Transfer the unnamed actual arguments, if any, to the Arguments object itself.
+            for (i = formalsCount, tmpAddr = paramAddr + i; i < actualsCount; i++, tmpAddr++)
+            {
+                // ES5 10.6.11: use [[DefineOwnProperty]] semantics (instead of [[Put]]):
+                // do not check whether property is non-writable/etc in the prototype.
+                // ES3 semantics is same.
+                JavascriptOperators::SetItem(argsObj, argsObj, i, *tmpAddr, scriptContext, PropertyOperation_None, /* skipPrototypeCheck = */ TRUE);
+            }
         }
 
         if (funcCallee->IsStrictMode())

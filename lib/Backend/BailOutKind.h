@@ -75,11 +75,12 @@ BAIL_OUT_KIND(BailOutKindBitsStart, 0) // fake bail out kind to indicate start i
 BAIL_OUT_KIND_VALUE(BailOutOnOverflow, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 0))
 BAIL_OUT_KIND_VALUE(BailOutOnMulOverflow, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 1))
 BAIL_OUT_KIND_VALUE(BailOutOnNegativeZero, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 2))
-BAIL_OUT_KIND_VALUE(BailOutOnResultConditions, BailOutOnOverflow | BailOutOnMulOverflow | BailOutOnNegativeZero)
+BAIL_OUT_KIND_VALUE(BailOutOnPowIntIntOverflow, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 3))
+BAIL_OUT_KIND_VALUE(BailOutOnResultConditions, BailOutOnOverflow | BailOutOnMulOverflow | BailOutOnNegativeZero | BailOutOnPowIntIntOverflow)
 // ================
 // Array bits
 // ================
-#define BAIL_OUT_KIND_ARRAY_BIT_START BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 3
+#define BAIL_OUT_KIND_ARRAY_BIT_START BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 4
 BAIL_OUT_KIND_VALUE(BailOutOnMissingValue, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 0))
 BAIL_OUT_KIND_VALUE(BailOutConventionalNativeArrayAccessOnly, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 1))
 BAIL_OUT_KIND_VALUE(BailOutConvertedNativeArray, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 2))

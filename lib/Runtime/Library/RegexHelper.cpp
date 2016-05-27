@@ -966,7 +966,7 @@ namespace Js
 
         BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("RegexHelper"))
         {
-            results->Map([&](int i, RecyclableObject* resultObj) {
+            results->Map([&](int resultIndex, RecyclableObject* resultObj) {
                 int64 length = JavascriptConversion::ToLength(
                     JavascriptOperators::GetProperty(resultObj, PropertyIds::length, scriptContext),
                     scriptContext);

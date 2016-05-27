@@ -280,7 +280,7 @@ bool Recycler::IsPageHeapEnabled(size_t size)
 template <ObjectInfoBits attributes>
 void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size)
 {
-    if (IsPageHeapEnabled())
+    if (IsPageHeapEnabled() && memBlock != nullptr)
     {
         HeapBlock* heapBlock = this->FindHeapBlock(memBlock);
 
@@ -402,10 +402,7 @@ Recycler::RealAlloc(HeapInfo* heap, size_t size)
 
     char* addr = LargeAlloc<nothrow>(heap, size, attributes);
 #if DBG
-    if (IsPageHeapEnabled())
-    {
-        this->VerifyPageHeapFillAfterAlloc<attributes>(addr, size);
-    }
+    this->VerifyPageHeapFillAfterAlloc<attributes>(addr, size);
 #endif
     return addr;
 }

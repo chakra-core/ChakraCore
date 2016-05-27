@@ -37,13 +37,13 @@ namespace Js
             SetPropertyWPCacheKind,
         } SetPropertyTrapKind;
 
-        typedef enum KeysTrapKind {
+        enum KeysTrapKind {
             GetOwnPropertyNamesKind,
             GetOwnPropertySymbolKind,
             KeysKind
         };
 
-        typedef enum IntegrityLevel {
+        enum IntegrityLevel {
             IntegrityLevel_sealed,
             IntegrityLevel_frozen
         };

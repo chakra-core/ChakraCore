@@ -1727,7 +1727,17 @@ void Parser::BindPidRefsInScopeImpl(IdentPtr pid, Symbol *sym, int blockId, uint
             continue;
         }
         ref->SetSym(sym);
+        
         this->RemovePrevPidRef(pid, lastRef);
+
+        if (ref->IsAssignment())
+        {
+            sym->PromoteAssignmentState();
+            if (m_currentNodeFunc && sym->GetIsFormal())
+            {
+                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);                
+            }
+        }
 
         if (ref->IsModuleExport())
         {
@@ -8047,7 +8057,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 {
                     Error(JSERR_CantAssignTo);
                 }
-
+                TrackAssignment<buildAST>(pnodeT, &operandToken, ichMin, m_pscan->IchLimTok());
                 if (buildAST)
                 {
                     if (IsStrictMode() && pnodeT->nop == knopName)
@@ -8202,6 +8212,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 Error(JSERR_CantAssignTo);
             }
+            TrackAssignment<buildAST>(pnode, &term, ichMin, m_pscan->IchLimTok());
             fCanAssign = FALSE;
             if (buildAST)
             {
@@ -8249,7 +8260,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binary operators. We also need to special case the left
                 // operand - it should only be a LeftHandSideExpression.
                 Assert(ParseNode::Grfnop(nop) & fnopAsg || nop == knopFncDecl);
-
+                TrackAssignment<buildAST>(pnode, &term, ichMin, m_pscan->IchLimTok());
                 if (buildAST)
                 {
                     if (IsStrictMode() && pnode->nop == knopName)
@@ -8469,6 +8480,46 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     }
 
     return pnode;
+}
+
+template<bool buildAST>
+void Parser::TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken, charcount_t ichMin, charcount_t ichLim)
+{
+    if (buildAST)
+    {
+        Assert(pnodeT != NULL);
+        if (pnodeT->nop == knopName)
+        {
+            PidRefStack *ref = pnodeT->sxPid.pid->GetTopRef();
+            Assert(ref);
+            ref->TrackAssignment(pnodeT->ichMin, pnodeT->ichLim);
+        }
+    }
+    else
+    {
+        Assert(pToken != NULL);
+        if (pToken->tk == tkID)
+        {
+            PidRefStack *ref = pToken->pid->GetTopRef();
+            Assert(ref);
+            ref->TrackAssignment(ichMin, ichLim);
+        }
+    }
+}
+
+void PidRefStack::TrackAssignment(charcount_t ichMin, charcount_t ichLim)
+{
+    if (this->isAsg)
+    {
+        if (this->GetIchMin() <= ichMin)
+        {
+            return;
+        }
+        Assert(ichMin <= this->GetIchMin() && this->GetIchLim() <= ichLim);
+    }
+
+    this->isAsg = true;
+    this->span.Set(ichMin, ichLim);
 }
 
 void PnPid::SetSymRef(PidRefStack *ref)
@@ -8701,6 +8752,10 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                 if (pnodeThis && pnodeThis->sxVar.pnodeInit != nullptr)
                 {
                     pnodeThis->sxVar.sym->PromoteAssignmentState();
+                    if (m_currentNodeFunc && pnodeThis->sxVar.sym->GetIsFormal())
+                    {
+                        m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);
+                    }
                 }
             }
             else if (declarationType == tkCONST /*pnodeThis->nop == knopConstDecl*/
@@ -9241,7 +9296,7 @@ LFunctionStatement:
                 // reference. The next token determines which.
                 RestorePoint parsedLet;
                 m_pscan->Capture(&parsedLet);
-                auto ichMin = m_pscan->IchMinTok();
+                auto ichMinInner = m_pscan->IchMinTok();
 
                 m_pscan->Scan();
                 if (IsPossiblePatternStart())
@@ -9250,7 +9305,7 @@ LFunctionStatement:
                 }
                 if (this->NextTokenConfirmsLetDecl() && m_token.tk != tkIN)
                 {
-                    pnodeT = ParseVariableDeclaration<buildAST>(tkLET, ichMin
+                    pnodeT = ParseVariableDeclaration<buildAST>(tkLET, ichMinInner
                                                                 , /*fAllowIn = */FALSE
                                                                 , /*pfForInOk = */&fForInOrOfOkay
                                                                 , /*singleDefOnly*/FALSE
@@ -9267,14 +9322,14 @@ LFunctionStatement:
         case tkCONST:
         case tkVAR:
             {
-                auto ichMin = m_pscan->IchMinTok();
+                auto ichMinInner = m_pscan->IchMinTok();
 
                 m_pscan->Scan();
                 if (IsPossiblePatternStart())
                 {
                     m_pscan->Capture(&startExprOrIdentifier);
                 }
-                pnodeT = ParseVariableDeclaration<buildAST>(tok, ichMin
+                pnodeT = ParseVariableDeclaration<buildAST>(tok, ichMinInner
                                                             , /*fAllowIn = */FALSE
                                                             , /*pfForInOk = */&fForInOrOfOkay
                                                             , /*singleDefOnly*/FALSE
@@ -9506,13 +9561,13 @@ LDefaultTokenFor:
                 fSeenDefault = TRUE;
                 charcount_t ichMinT = m_pscan->IchMinTok();
                 m_pscan->Scan();
-                charcount_t ichLim = m_pscan->IchLimTok();
+                charcount_t ichMinInner = m_pscan->IchLimTok();
                 ChkCurTok(tkColon, ERRnoColon);
                 if (buildAST)
                 {
                     pnodeT = CreateNodeWithScanner<knopCase>(ichMinT);
                     pnode->sxSwitch.pnodeDefault = pnodeT;
-                    pnodeT->ichLim = ichLim;
+                    pnodeT->ichLim = ichMinInner;
                     pnodeT->sxCase.pnodeExpr = nullptr;
                 }
                 ParseStmtList<buildAST>(&pnodeBody);
@@ -10011,8 +10066,8 @@ LDefaultToken:
     default:
     {
         // An expression statement or a label.
-        IdentToken tok;
-        pnode = ParseExpr<buildAST>(koplNo, nullptr, TRUE, FALSE, nullptr, nullptr /*hintLength*/, nullptr /*hintOffset*/, &tok);
+        IdentToken tokInner;
+        pnode = ParseExpr<buildAST>(koplNo, nullptr, TRUE, FALSE, nullptr, nullptr /*hintLength*/, nullptr /*hintOffset*/, &tokInner);
 
         if (m_hasDeferredShorthandInitError)
         {
@@ -10047,14 +10102,14 @@ LDefaultToken:
         else
         {
             // Check for a label.
-            if (tkColon == m_token.tk && tok.tk == tkID)
+            if (tkColon == m_token.tk && tokInner.tk == tkID)
             {
-                tok.pid = m_pscan->PidAt(tok.ichMin, tok.ichLim);
-                if (PnodeLabelNoAST(&tok, pLabelIdList))
+                tokInner.pid = m_pscan->PidAt(tokInner.ichMin, tokInner.ichLim);
+                if (PnodeLabelNoAST(&tokInner, pLabelIdList))
                 {
                     Error(ERRbadLabel);
                 }
-                LabelId* pLabelId = CreateLabelId(&tok);
+                LabelId* pLabelId = CreateLabelId(&tokInner);
                 pLabelId->next = pLabelIdList;
                 pLabelIdList = pLabelId;
                 m_pscan->Scan();
@@ -11161,9 +11216,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
 
         // Append block as body of pnodeProg
         FinishParseBlock(pnodeBlock);
-
     }
-
     catch(ParseExceptionObject& e)
     {
         m_err.m_hr = e.GetError();
