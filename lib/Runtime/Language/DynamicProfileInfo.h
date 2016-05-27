@@ -475,6 +475,7 @@ namespace Js
             bool disableMemOp : 1;
             bool disableTrackCompoundedIntOverflow : 1;
             bool disableFloatTypeSpec : 1;
+            bool disableIgnoreImplicitCallFlagAccessor : 1;
             bool disableCheckThis : 1;
             bool disableArrayCheckHoist : 1;
             bool disableArrayCheckHoist_jitLoopBody : 1;
@@ -639,7 +640,9 @@ namespace Js
         bool IsTrackCompoundedIntOverflowDisabled() const { return this->bits.disableTrackCompoundedIntOverflow; }
         void DisableTrackCompoundedIntOverflow() { this->bits.disableTrackCompoundedIntOverflow = true; }
         bool IsFloatTypeSpecDisabled() const { return this->bits.disableFloatTypeSpec; }
+        bool IsIgnoreImplicitCallFlagAccessorDisabled() const { return this->bits.disableIgnoreImplicitCallFlagAccessor; }
         void DisableFloatTypeSpec() { this->bits.disableFloatTypeSpec = true; }
+        void DisableIgnoreImplicitCallFlagAccessor() { this->bits.disableIgnoreImplicitCallFlagAccessor = true; }
         bool IsCheckThisDisabled() const { return this->bits.disableCheckThis; }
         void DisableCheckThis() { this->bits.disableCheckThis = true; }
 

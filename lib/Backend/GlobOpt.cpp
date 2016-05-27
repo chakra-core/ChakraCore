@@ -20171,8 +20171,11 @@ GlobOpt::ImplicitCallFlagsAllowOpts(Loop *loop)
 bool
 GlobOpt::ImplicitCallFlagsAllowOpts(Func *func)
 {
-    return func->m_fg->implicitCallFlags != Js::ImplicitCall_HasNoInfo &&
-        (((func->m_fg->implicitCallFlags & ~Js::ImplicitCall_Accessor) | Js::ImplicitCall_None) == Js::ImplicitCall_None);
+    // Ignore ImplicitCall_Accessor if profile says so
+    Js::ImplicitCallFlags implicitCallFlagsToVerify = (Js::ImplicitCallFlags)
+        (!func->GetProfileInfo()->IsIgnoreImplicitCallFlagAccessorDisabled() ? ((func->m_fg->implicitCallFlags & ~Js::ImplicitCall_Accessor) | Js::ImplicitCall_None) :
+         func->m_fg->implicitCallFlags);
+    return func->m_fg->implicitCallFlags != Js::ImplicitCall_HasNoInfo && implicitCallFlagsToVerify == Js::ImplicitCall_None;
 }
 
 #if DBG_DUMP
