@@ -1103,6 +1103,12 @@ namespace Js
 
     bool AsmJsModuleCompiler::CheckChangeHeap(AsmJsFunc * func)
     {
+        // avoid any analysis if this feature is disabled
+        if (!Js::Configuration::Global.flags.AsmJsChangeHeap) 
+        {
+            return false;
+        }
+
         ParseNode * fncNode = func->GetFncNode();
         ParseNode * pnodeBody = fncNode->sxFnc.pnodeBody;
         ParseNode * pnodeArgs = fncNode->sxFnc.pnodeParams;
