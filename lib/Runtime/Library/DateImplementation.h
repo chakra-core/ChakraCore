@@ -476,13 +476,13 @@ namespace Js {
             if (ptzd->fDst == false)
             {
                 size_t nameLength;
-                const WCHAR *const standardName = scriptContext->GetStandardName(&nameLength);
+                const WCHAR *const standardName = scriptContext->GetStandardName(&nameLength, pymd);
                 bs->AppendChars(standardName, static_cast<CharCount>(nameLength));
             }
             else
             {
                 size_t nameLength;
-                const WCHAR *const daylightName = scriptContext->GetDaylightName(&nameLength);
+                const WCHAR *const daylightName = scriptContext->GetDaylightName(&nameLength, pymd);
                 bs->AppendChars(daylightName, static_cast<CharCount>(nameLength));
             }
 

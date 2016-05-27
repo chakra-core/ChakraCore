@@ -58,14 +58,14 @@ namespace DateTime
         }
     }
 
-    const WCHAR *Utility::GetStandardName(size_t *nameLength)
+    const WCHAR *Utility::GetStandardName(size_t *nameLength, const DateTime::YMD *_ /*caution! can be NULL. not used for Windows*/)
     {
         data.UpdateTimeZoneInfo();
         *nameLength = wcslen(data.timeZoneInfo.StandardName);
         return data.timeZoneInfo.StandardName;
     }
 
-    const WCHAR *Utility::GetDaylightName(size_t *nameLength)
+    const WCHAR *Utility::GetDaylightName(size_t *nameLength, const DateTime::YMD *_/*caution! can be NULL. not used for Windows*/)
     {
         data.UpdateTimeZoneInfo();
         *nameLength = wcslen(data.timeZoneInfo.DaylightName);

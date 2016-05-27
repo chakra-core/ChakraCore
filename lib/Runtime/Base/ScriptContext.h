@@ -745,14 +745,14 @@ private:
         DateTime::Utility dateTimeUtility;
 
 public:
-        inline const WCHAR *const GetStandardName(size_t *nameLength)
+        inline const WCHAR *const GetStandardName(size_t *nameLength, DateTime::YMD *ymd = NULL)
         {
-            return dateTimeUtility.GetStandardName(nameLength);
+            return dateTimeUtility.GetStandardName(nameLength, ymd);
         }
 
-        inline const WCHAR *const GetDaylightName(size_t *nameLength)
+        inline const WCHAR *const GetDaylightName(size_t *nameLength, DateTime::YMD *ymd = NULL)
         {
-            return dateTimeUtility.GetDaylightName(nameLength);
+            return dateTimeUtility.GetDaylightName(nameLength, ymd);
         }
 
 private:

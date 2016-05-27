@@ -91,6 +91,7 @@ if not os.path.isfile(binary):
 # global tags/not_tags
 tags = set(args.tag or [])
 not_tags = set(args.not_tag or []).union(['fail', 'exclude_' + arch])
+
 if arch_alias:
     not_tags.add('exclude_' + arch_alias)
 if flavor_alias:
@@ -104,6 +105,7 @@ not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 
 # xplat: temp hard coded to exclude unsupported tests
 if sys.platform != 'win32':
+    not_tags.add('exclude_xplat')
     not_tags.add('exclude_serialized')
     not_tags.add('require_backend')
     not_tags.add('require_debugger')
