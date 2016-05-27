@@ -229,6 +229,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         void ClearCachedInternalFrameInfo();
         void SetCachedInternalFrameInfo(InternalFrameType frameType, InternalFrameType loopBodyFrameType);
+#if ENABLE_NATIVE_CODEGEN
         InternalFrameInfo GetCachedInternalFrameInfo() const { return this->lastInternalFrameInfo; }
 #endif
         bool IsCurrentPhysicalFrameForLoopBody() const;
