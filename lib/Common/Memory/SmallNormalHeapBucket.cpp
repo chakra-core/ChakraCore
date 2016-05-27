@@ -6,7 +6,7 @@
 
 
 template <typename TBlockType>
-SmallNormalHeapBucketBase<TBlockType>::SmallNormalHeapBucketBase() 
+SmallNormalHeapBucketBase<TBlockType>::SmallNormalHeapBucketBase()
 #if ENABLE_PARTIAL_GC
     : partialHeapBlockList(nullptr)
 #if ENABLE_CONCURRENT_GC
@@ -113,6 +113,12 @@ SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(TBlockType * block, c
     uint rescanMarkCount = TBlockType::CalculateMarkCountForPage(heapBlockMarkBits, bucketIndex, pageStartBitIndex);
     const uint pageObjectCount = blockInfoForPage.pageObjectCount;
     const uint localObjectCount = (TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / localObjectSize;
+
+    // With protected unallocatable ending pages and reset writewatch, we should never be scanning on these pages.
+    if (firstObjectOnPageIndex >= localObjectCount)
+    {
+        ReportFatalException(NULL, E_FAIL, Fatal_Recycler_MemoryCorruption, 3);
+    }
 
     // If all objects are marked, rescan whole block at once
     if (TBlockType::CanRescanFullBlock() && rescanMarkCount == pageObjectCount)
@@ -588,7 +594,7 @@ template class SmallNormalHeapBucketBase<MediumFinalizableHeapBlock>;
 template class SmallNormalHeapBucketBase<SmallFinalizableWithBarrierHeapBlock>;
 template class SmallNormalHeapBucketBase<MediumFinalizableWithBarrierHeapBlock>;
 #endif
-   
+
 template void SmallNormalHeapBucketBase<SmallNormalHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
 template void SmallNormalHeapBucketBase<MediumNormalHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
 
