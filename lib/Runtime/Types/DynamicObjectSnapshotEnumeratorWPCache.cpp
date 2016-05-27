@@ -127,7 +127,7 @@ namespace Js
             //
 
             PropertyId tempPropertyId;
-            Assert(this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes) == nullptr);
+            /*JavascriptString* tempPropertyStringName =*/ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
 #endif
             propertyStringName = nullptr;
         }
