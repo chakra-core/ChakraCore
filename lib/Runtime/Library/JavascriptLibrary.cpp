@@ -74,10 +74,6 @@ namespace Js
 
         typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain = RecyclerNew(recycler, JsUtil::List<Type *>, recycler);
 
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        // WARNING: Any objects created here using DeferredTypeHandler need to appear in EnsureLibraryReadyForHybridDebugging
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
         // Library is not zero-initialized. memset the memory occupied by builtinFunctions array to 0.
         memset(builtinFunctions, 0, sizeof(JavascriptFunction *) * BuiltinFunction::Count);
 
@@ -95,10 +91,6 @@ namespace Js
         InitializeGlobal(globalObject);
         InitializeComplexThings();
         InitializeStaticValues();
-
-        // Do an early check of hybrid debugging. Note that script engine is not ready, so objects that run script in initializer
-        // can't be un-deferred yet. However, we can possibly mark isHybridDebugging and avoid deferring new runtime objects.
-        EnsureReadyIfHybridDebugging(/*isScriptEngineReady*/false);
 
 #if ENABLE_COPYONACCESS_ARRAY
         if (!PHASE_OFF1(CopyOnAccessArrayPhase))
@@ -129,10 +121,6 @@ namespace Js
         this->rootPath = TypePath::New(recycler);
 
         ArrayBuffer* baseArrayBuffer;
-
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        // WARNING: Any objects here using DeferredTypeHandler need to appear in EnsureLibraryReadyForHybridDebugging
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         // The prototype property of the object prototype is null.
         objectPrototype = ObjectPrototypeObject::New(recycler,
@@ -1111,10 +1099,6 @@ namespace Js
 
     void JavascriptLibrary::InitializeGlobal(GlobalObject * globalObject)
     {
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        // WARNING: Any objects here using DeferredTypeHandler need to appear in EnsureLibraryReadyForHybridDebugging
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
         RecyclableObject* globalObjectPrototype = GetObjectPrototype();
         globalObject->SetPrototype(globalObjectPrototype);
         Recycler * recycler = this->GetRecycler();
@@ -2720,8 +2704,6 @@ namespace Js
 
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Min] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::min,    &SIMDFloat32x4Lib::EntryInfo::Min,   3);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Max] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::max,    &SIMDFloat32x4Lib::EntryInfo::Max,   3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::minNum, &SIMDFloat32x4Lib::EntryInfo::MinNum, 3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::maxNum, &SIMDFloat32x4Lib::EntryInfo::MaxNum, 3);
         // unary ops
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Abs] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::abs,            &SIMDFloat32x4Lib::EntryInfo::Abs,            2);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Neg] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::neg,            &SIMDFloat32x4Lib::EntryInfo::Neg,            2);
@@ -3264,151 +3246,6 @@ namespace Js
         vtableAddresses[VTableValue::VtableSimd128F4] = VirtualTableInfo<Js::JavascriptSIMDFloat32x4>::Address;
         vtableAddresses[VTableValue::VtableSimd128I4] = VirtualTableInfo<Js::JavascriptSIMDInt32x4>::Address;
 #endif
-    }
-
-    //
-    // Ensure library ready if started hybrid debugging. Call this to support hybrid debugging when engine starts debug mode.
-    //
-    HRESULT JavascriptLibrary::EnsureReadyIfHybridDebugging(bool isScriptEngineReady /*= true*/)
-    {
-        HRESULT hr = S_OK;
-
-        this->isHybridDebugging = Js::Configuration::Global.IsHybridDebugging();
-
-        // If just started hybrid debugging, ensure library objects ready (but only if we can run script now)
-        if (this->isHybridDebugging && !this->isLibraryReadyForHybridDebugging && isScriptEngineReady)
-        {
-            BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(scriptContext, /*doCleanup*/false)
-            {
-                EnsureLibraryReadyForHybridDebugging();
-            }
-            END_JS_RUNTIME_CALL_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT(hr)
-        }
-
-        return hr;
-    }
-
-    //
-    // If under hybrid debugging, ensure one object ready (not using deferred type handler).
-    //
-    DynamicObject* JavascriptLibrary::EnsureReadyIfHybridDebugging(DynamicObject* obj)
-    {
-        if (IsHybridDebugging())
-        {
-            Assert(!obj->GetScriptContext()->GetThreadContext()->IsDisableImplicitCall());
-            if (!obj->GetTypeHandler()->EnsureObjectReady(obj))
-            {
-                return obj;
-            }
-        }
-        return obj;
-    }
-
-    //
-    // When starting hybrid debugging, ensure all library objects ready (not using deferred type handler).
-    //
-    void JavascriptLibrary::EnsureLibraryReadyForHybridDebugging()
-    {
-        Assert(IsHybridDebugging() && !isLibraryReadyForHybridDebugging);
-
-        // Note: List all library objects that use DeferredTypeHandler
-        DynamicObject* objects[] =
-        {
-            this->objectPrototype,
-            this->arrayPrototype,
-            this->arrayBufferPrototype,
-            this->dataViewPrototype,
-            this->typedArrayPrototype,
-            this->Int8ArrayPrototype,
-            this->Uint8ArrayPrototype,
-            this->Uint8ClampedArrayPrototype,
-            this->Int16ArrayPrototype,
-            this->Uint16ArrayPrototype,
-            this->Int32ArrayPrototype,
-            this->Uint32ArrayPrototype,
-            this->Float32ArrayPrototype,
-            this->Float64ArrayPrototype,
-            this->Int64ArrayPrototype,
-            this->Uint64ArrayPrototype,
-            this->BoolArrayPrototype,
-            this->CharArrayPrototype,
-            this->booleanPrototype,
-            this->datePrototype,
-            this->functionPrototype,
-            this->numberPrototype,
-            this->stringPrototype,
-            this->mapPrototype,
-            this->setPrototype,
-            this->weakMapPrototype,
-            this->weakSetPrototype,
-            this->regexPrototype,
-            this->symbolPrototype,
-            this->arrayIteratorPrototype,
-            this->promisePrototype,
-            this->javascriptEnumeratorIteratorPrototype,
-            this->generatorFunctionPrototype,
-            this->generatorPrototype,
-            this->errorPrototype,
-            this->evalErrorPrototype,
-            this->rangeErrorPrototype,
-            this->referenceErrorPrototype,
-            this->syntaxErrorPrototype,
-            this->typeErrorPrototype,
-            this->uriErrorPrototype,
-            this->objectConstructor,
-            this->arrayConstructor,
-            this->booleanConstructor,
-            this->dateConstructor,
-            this->functionConstructor,
-            this->debugObject,
-            this->mathObject,
-            this->numberConstructor,
-            this->stringConstructor,
-            this->regexConstructor,
-            this->arrayBufferConstructor,
-            this->dataViewConstructor,
-            this->typedArrayConstructor,
-            this->Int8ArrayConstructor,
-            this->Uint8ArrayConstructor,
-            this->Uint8ClampedArrayConstructor,
-            this->Int16ArrayConstructor,
-            this->Uint16ArrayConstructor,
-            this->Int32ArrayConstructor,
-            this->Uint32ArrayConstructor,
-            this->Float32ArrayConstructor,
-            this->Float64ArrayConstructor,
-            this->JSONObject,
-#ifdef ENABLE_INTL_OBJECT
-            this->IntlObject,
-#endif
-            this->mapConstructor,
-            this->setConstructor,
-            this->weakMapConstructor,
-            this->weakSetConstructor,
-            this->symbolConstructor,
-            this->promiseConstructor,
-            this->proxyConstructor,
-            this->generatorFunctionConstructor,
-            this->asyncFunctionConstructor,
-            this->errorConstructor,
-            this->evalErrorConstructor,
-            this->rangeErrorConstructor,
-            this->referenceErrorConstructor,
-            this->syntaxErrorConstructor,
-            this->typeErrorConstructor,
-            this->uriErrorConstructor,
-        };
-
-        Assert(!scriptContext->GetThreadContext()->IsDisableImplicitCall());
-        for (int i = 0; i < _countof(objects); i++)
-        {
-            if (objects[i]) // may be NULL for compat mode
-            {
-                objects[i]->GetTypeHandler()->EnsureObjectReady(objects[i]);
-            }
-        }
-
-        isLibraryReadyForHybridDebugging = true;
     }
 
     // Note: This function is only used in float preferencing scenarios. Should remove it once we do away with float preferencing.
@@ -5298,7 +5135,7 @@ namespace Js
     JavascriptExternalFunction*
     JavascriptLibrary::CreateExternalFunction(ExternalMethod entryPoint, Var nameId, Var signature, JavascriptTypeId prototypeTypeId, UINT64 flags)
     {
-        JavascriptExternalFunction* function = EnsureReadyIfHybridDebugging(this->CreateIdMappedExternalFunction(entryPoint, externalFunctionWithDeferredPrototypeType));
+        JavascriptExternalFunction* function = this->CreateIdMappedExternalFunction(entryPoint, externalFunctionWithDeferredPrototypeType);
         function->SetPrototypeTypeId(prototypeTypeId);
         function->SetExternalFlags(flags);
         function->SetFunctionNameId(nameId);
@@ -5958,7 +5795,7 @@ namespace Js
     {
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
         DynamicType* type = CreateDeferredPrototypeFunctionType(this->inDispatchProfileMode ? ProfileEntryThunk : entryPoint);
-        JavascriptPromiseAsyncSpawnExecutorFunction* function = EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAsyncSpawnExecutorFunction, type, functionInfo, generatorFunction, target));
+        JavascriptPromiseAsyncSpawnExecutorFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAsyncSpawnExecutorFunction, type, functionInfo, generatorFunction, target);
 
         return function;
     }
@@ -5967,7 +5804,7 @@ namespace Js
     {
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
         DynamicType* type = CreateDeferredPrototypeFunctionType(this->inDispatchProfileMode ? ProfileEntryThunk : entryPoint);
-        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* function = EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction, type, functionInfo, generator, argument, resolve, reject, isReject));
+        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction, type, functionInfo, generator, argument, resolve, reject, isReject);
 
         return function;
     }
@@ -6110,33 +5947,33 @@ namespace Js
     JavascriptFunction* JavascriptLibrary::CreateNonProfiledFunction(FunctionInfo * functionInfo)
     {
         Assert(functionInfo->GetAttributes() & FunctionInfo::DoNotProfile);
-        return EnsureReadyIfHybridDebugging(RecyclerNew(this->GetRecycler(), RuntimeFunction,
+        return RecyclerNew(this->GetRecycler(), RuntimeFunction,
             CreateDeferredPrototypeFunctionTypeNoProfileThunk(functionInfo->GetOriginalEntryPoint()),
-            functionInfo));
+            functionInfo);
     }
 
     ScriptFunction* JavascriptLibrary::CreateScriptFunction(FunctionProxy * proxy)
     {
         ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
-        return EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, ScriptFunction, proxy, deferredPrototypeType));
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, ScriptFunction, proxy, deferredPrototypeType);
     }
 
     AsmJsScriptFunction* JavascriptLibrary::CreateAsmJsScriptFunction(FunctionProxy * proxy)
     {
         ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
-        return EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, AsmJsScriptFunction, proxy, deferredPrototypeType));
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, AsmJsScriptFunction, proxy, deferredPrototypeType);
     }
 
     ScriptFunctionWithInlineCache* JavascriptLibrary::CreateScriptFunctionWithInlineCache(FunctionProxy * proxy)
     {
         ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
-        return EnsureReadyIfHybridDebugging(RecyclerNewWithInfoBits(this->GetRecycler(), (Memory::ObjectInfoBits)(EnumFunctionClass | Memory::FinalizableObjectBits), ScriptFunctionWithInlineCache, proxy, deferredPrototypeType));
+        return RecyclerNewWithInfoBits(this->GetRecycler(), (Memory::ObjectInfoBits)(EnumFunctionClass | Memory::FinalizableObjectBits), ScriptFunctionWithInlineCache, proxy, deferredPrototypeType);
     }
 
     GeneratorVirtualScriptFunction* JavascriptLibrary::CreateGeneratorVirtualScriptFunction(FunctionProxy * proxy)
     {
         ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
-        return EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, GeneratorVirtualScriptFunction, proxy, deferredPrototypeType));
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, GeneratorVirtualScriptFunction, proxy, deferredPrototypeType);
     }
 
     DynamicType * JavascriptLibrary::CreateGeneratorType(RecyclableObject* prototype)
@@ -6147,7 +5984,7 @@ namespace Js
     template <class MethodType>
     JavascriptExternalFunction* JavascriptLibrary::CreateIdMappedExternalFunction(MethodType entryPoint, DynamicType *pPrototypeType)
     {
-        return EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction, entryPoint, pPrototypeType));
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptExternalFunction, entryPoint, pPrototypeType);
     }
 
     JavascriptGeneratorFunction* JavascriptLibrary::CreateGeneratorFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction)
@@ -6156,7 +5993,7 @@ namespace Js
 
         DynamicType* type = CreateDeferredPrototypeGeneratorFunctionType(entryPoint, scriptFunction->IsAnonymousFunction());
 
-        return EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptGeneratorFunction, type, scriptFunction));
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptGeneratorFunction, type, scriptFunction);
     }
 
     JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, PropertyId nameId, void *callbackState)
@@ -6167,7 +6004,7 @@ namespace Js
 
     JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, Var nameId, void *callbackState)
     {
-        JavascriptExternalFunction* function = EnsureReadyIfHybridDebugging(this->CreateIdMappedExternalFunction(entryPoint, stdCallFunctionWithDeferredPrototypeType));
+        JavascriptExternalFunction* function = this->CreateIdMappedExternalFunction(entryPoint, stdCallFunctionWithDeferredPrototypeType);
         function->SetFunctionNameId(nameId);
         function->SetCallbackState(callbackState);
 
@@ -6180,7 +6017,7 @@ namespace Js
 
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::CapabilitiesExecutorFunction;
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());        
-        JavascriptPromiseCapabilitiesExecutorFunction* function = EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseCapabilitiesExecutorFunction, type, functionInfo, capability));
+        JavascriptPromiseCapabilitiesExecutorFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseCapabilitiesExecutorFunction, type, functionInfo, capability);
 
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(2), PropertyConfigurable, nullptr);
 
@@ -6193,7 +6030,7 @@ namespace Js
 
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::ResolveOrRejectFunction;
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
-        JavascriptPromiseResolveOrRejectFunction* function = EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseResolveOrRejectFunction, type, functionInfo, promise, isReject, alreadyResolvedRecord));
+        JavascriptPromiseResolveOrRejectFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseResolveOrRejectFunction, type, functionInfo, promise, isReject, alreadyResolvedRecord);
 
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
@@ -6207,7 +6044,7 @@ namespace Js
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
         DynamicType* type = CreateDeferredPrototypeFunctionType(entryPoint);
 
-        return EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseReactionTaskFunction, type, functionInfo, reaction, argument));
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseReactionTaskFunction, type, functionInfo, reaction, argument);
     }
 
     JavascriptPromiseResolveThenableTaskFunction* JavascriptLibrary::CreatePromiseResolveThenableTaskFunction(JavascriptMethod entryPoint, JavascriptPromise* promise, RecyclableObject* thenable, RecyclableObject* thenFunction)
@@ -6217,7 +6054,7 @@ namespace Js
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
         DynamicType* type = CreateDeferredPrototypeFunctionType(entryPoint);
 
-        return EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseResolveThenableTaskFunction, type, functionInfo, promise, thenable, thenFunction));
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseResolveThenableTaskFunction, type, functionInfo, promise, thenable, thenFunction);
     }
 
     JavascriptPromiseAllResolveElementFunction* JavascriptLibrary::CreatePromiseAllResolveElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements)
@@ -6226,7 +6063,7 @@ namespace Js
 
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::AllResolveElementFunction;
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
-        JavascriptPromiseAllResolveElementFunction* function = EnsureReadyIfHybridDebugging(RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAllResolveElementFunction, type, functionInfo, index, values, capabilities, remainingElements));
+        JavascriptPromiseAllResolveElementFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAllResolveElementFunction, type, functionInfo, index, values, capabilities, remainingElements);
 
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
@@ -6236,7 +6073,7 @@ namespace Js
     JavascriptExternalFunction* JavascriptLibrary::CreateWrappedExternalFunction(JavascriptExternalFunction* wrappedFunction)
     {
         // The wrapped function will have profiling, so the wrapper function does not need it.
-        JavascriptExternalFunction* function = EnsureReadyIfHybridDebugging(RecyclerNew(this->GetRecycler(), JavascriptExternalFunction, wrappedFunction, wrappedFunctionWithDeferredPrototypeType));
+        JavascriptExternalFunction* function = RecyclerNew(this->GetRecycler(), JavascriptExternalFunction, wrappedFunction, wrappedFunctionWithDeferredPrototypeType);
         function->SetFunctionNameId(wrappedFunction->GetSourceString());
 
         return function;
@@ -7622,8 +7459,6 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(xor_, SIMDFloat32x4Lib::EntryXor);
         REG_OBJECTS_LIB_FUNC(min, SIMDFloat32x4Lib::EntryMin);
         REG_OBJECTS_LIB_FUNC(max, SIMDFloat32x4Lib::EntryMax);
-        REG_OBJECTS_LIB_FUNC(minNum, SIMDFloat32x4Lib::EntryMinNum);
-        REG_OBJECTS_LIB_FUNC(maxNum, SIMDFloat32x4Lib::EntryMaxNum);
         REG_OBJECTS_LIB_FUNC(abs, SIMDFloat32x4Lib::EntryAbs);
         REG_OBJECTS_LIB_FUNC(neg, SIMDFloat32x4Lib::EntryNeg);
         REG_OBJECTS_LIB_FUNC(not_, SIMDFloat32x4Lib::EntryNot);

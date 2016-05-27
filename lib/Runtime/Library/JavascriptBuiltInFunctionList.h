@@ -336,8 +336,6 @@ BUILTIN(SIMDFloat32x4Lib, Or,  EntryOr,  FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Xor, EntryXor, FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Min, EntryMin, FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Max, EntryMax, FunctionInfo::None)
-BUILTIN(SIMDFloat32x4Lib, MinNum, EntryMinNum, FunctionInfo::None)
-BUILTIN(SIMDFloat32x4Lib, MaxNum, EntryMaxNum, FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Scale, EntryScale, FunctionInfo::None)
 // CompareOps
 BUILTIN(SIMDFloat32x4Lib, LessThan, EntryLessThan, FunctionInfo::None)

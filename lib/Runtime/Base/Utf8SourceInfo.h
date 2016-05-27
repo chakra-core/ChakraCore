@@ -45,7 +45,6 @@ namespace Js
             return (this->debugModeSource != nullptr || this->debugModeSourceIsEmpty) && this->m_isInDebugMode;
         }
 
-        // For Hybrid debugging purposes we need to have the source mapped in because chakra may be in a frozen state when the source would be needed.
         void SetInDebugMode(bool inDebugMode)
         {
             AssertMsg(!GetIsLibraryCode(), "Shouldn't call SetInDebugMode for Library code.");

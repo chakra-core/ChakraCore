@@ -40,10 +40,6 @@ namespace Js {
         static SIMDValue OpXor(const SIMDValue& aValue, const SIMDValue& bValue);
         static SIMDValue OpMin(const SIMDValue& aValue, const SIMDValue& bValue);
         static SIMDValue OpMax(const SIMDValue& aValue, const SIMDValue& bValue);
-        static SIMDValue OpMinNum(const SIMDValue& aValue, const SIMDValue& bValue);
-        static SIMDValue OpMaxNum(const SIMDValue& aValue, const SIMDValue& bValue);
-
-
         static SIMDValue OpScale(const SIMDValue& Value, float scaleValue);
 
         static SIMDValue OpLessThan(const SIMDValue& aValue, const SIMDValue& bValue);
