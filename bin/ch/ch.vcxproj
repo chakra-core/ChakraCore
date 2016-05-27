@@ -50,6 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChakraRtInterface.h" />
+    <ClInclude Include="Debugger.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="HostConfigFlags.h" />
     <ClInclude Include="HostConfigFlagsList.h" />
@@ -61,9 +62,22 @@
     <ClCompile Include="ch.cpp" />
     <ClCompile Include="ChakraRtInterface.cpp" />
     <ClCompile Include="CodexAssert.cpp" />
+    <ClCompile Include="Debugger.cpp" />
     <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="HostConfigFlags.cpp" />
     <ClCompile Include="WScriptJsrt.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="DbgController.js">
+      <Command>%windir%\system32\cscript.exe Encode.js DbgController.js "$(IntDir)DbgController.js.encoded"</Command>
+      <Outputs>$(IntDir)DbgController.js.encoded;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <!-- Razzle binplace -->
+  <ItemGroup Condition="'$(BuildingWithBuildExe)'=='true'">
+    <BinplaceGenerated Include="DbgController.js">
+      <DestinationFolder>jscript</DestinationFolder>
+    </BinplaceGenerated>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ChakraCore\ChakraCore.vcxproj">
@@ -77,6 +91,12 @@
     <ProjectReference Include="..\..\lib\Common\Codex\Chakra.Common.Codex.vcxproj">
       <Project>{1876e800-ad77-48c4-a2f7-e5265f24ac38}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <!-- Conditionally include the group of files to sign because MBv2 knows what to do with this but the old build definition gets confused. -->
+  <ItemGroup Condition="'$(VSO_MICROBUILD_V2)'=='True' AND '$(POGO_TYPE)'!='PGI'">
+    <FilesToSign Include="$(OutDir)\ch.exe">
+      <Authenticode>Microsoft</Authenticode>
+    </FilesToSign>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -309,10 +309,14 @@ MACRO_EXTEND_WMS(       InitUndeclConsoleLetFld,    ElementScopedU, OpSideEffect
 MACRO_EXTEND_WMS(       InitUndeclConsoleConstFld,  ElementScopedU, OpSideEffect|OpHasImplicitCall)
 MACRO_WMS(              InitConst,                  Reg2,           OpTempNumberTransfer|OpTempObjectTransfer|OpNonIntTransfer|OpCanCSE)    // Create and initialize 'const' as property of global object
 MACRO_WMS(              InitConstSlot,              ElementSlot,    None)
-MACRO_WMS(              InitLetFld,                 ElementCP,      OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
-MACRO_WMS(              InitRootLetFld,             ElementRootCP,  OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
-MACRO_WMS(              InitConstFld,               ElementCP,      OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
-MACRO_WMS(              InitRootConstFld,           ElementRootCP,  OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
+
+// Re-evaluate following 4 opcodes and InitInnerLetFld for obj type spec and inline cache lookup when we add sharing of types having properties with non-default
+// attributes. Currently, these opcodes are used to set properties on scope objects, whose types we do not share as all their properties are non-configurable
+MACRO_WMS(              InitLetFld,                 ElementCP,      OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
+MACRO_WMS(              InitRootLetFld,             ElementRootCP,  OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
+MACRO_WMS(              InitConstFld,               ElementCP,      OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
+MACRO_WMS(              InitRootConstFld,           ElementRootCP,  OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
+
 MACRO_WMS(              InitClassMember,            ElementCP,      OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Class member
 MACRO_EXTEND_WMS(       InitClassMemberComputedName,ElementI,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Class member with computed property name
 MACRO_EXTEND_WMS(       InitClassMemberSet,         ElementC,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Class member in set syntax
@@ -363,9 +367,9 @@ MACRO_WMS_PROFILED_OP(  StFldStrict,          ElementCP,      OpSideEffect|OpHas
 MACRO_WMS_PROFILED_OP(  StRootFldStrict,      ElementRootCP,  OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Store into ScriptObject instance's direct field (strict mode, x = ..., access to let/const on root object)
 MACRO_WMS_PROFILED_OP(  InitFld,              ElementCP,      OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
 MACRO_WMS_PROFILED_OP(  InitLocalFld,         ElementP,       OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
-MACRO_EXTEND_WMS(       InitLocalLetFld,      ElementP,       OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
+MACRO_EXTEND_WMS(       InitLocalLetFld,      ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
 MACRO_EXTEND_WMS(       InitInnerFld,         ElementPIndexed,OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
-MACRO_EXTEND_WMS(       InitInnerLetFld,      ElementPIndexed,OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
+MACRO_EXTEND_WMS(       InitInnerLetFld,      ElementPIndexed,OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Declare a property with an initial value
 MACRO_WMS_PROFILED_OP(  InitRootFld,          ElementRootCP,  OpSideEffect|OpHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
 MACRO_BACKEND_ONLY(     LdMethodFromFlags,          ElementCP,      OpFastFldInstr|OpCanCSE)
 
@@ -393,6 +397,7 @@ MACRO_BACKEND_ONLY(     LdSlotArr,                  ElementSlot,    OpTempNumber
 MACRO_EXTEND_WMS_AND_PROFILED(LdInnerObjSlot,       ElementSlotI2,  OpTempNumberSources)
 MACRO_EXTEND_WMS_AND_PROFILED(LdObjSlot,            ElementSlot,    None)
 MACRO_EXTEND_WMS_AND_PROFILED(LdLocalObjSlot,       ElementSlotI1,  None)
+MACRO_EXTEND_WMS_AND_PROFILED(LdParamObjSlot,       ElementSlotI1,  None)
 MACRO_EXTEND_WMS_AND_PROFILED(LdEnvObjSlot,         ElementSlotI2,  None)
 MACRO_EXTEND_WMS_AND_PROFILED(LdModuleSlot,         ElementSlotI2,  None)
 MACRO_BACKEND_ONLY(     StSlot,                     ElementSlot,    None)
@@ -643,6 +648,7 @@ MACRO_BACKEND_ONLY(     BailOnNoProfile,             Empty,          OpBailOutRe
 MACRO_BACKEND_ONLY(     BailOnNoSimdTypeSpec,        Empty,          OpBailOutRec|OpDeadFallThrough)
 MACRO_BACKEND_ONLY(     BailOnNotObject,             Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpTempObjectSources)
 MACRO_BACKEND_ONLY(     BailOnNotPrimitive,          Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpTempObjectSources)
+MACRO_BACKEND_ONLY(     BailOnPowIntIntOverflow,     Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpTempObjectSources)
 MACRO_BACKEND_ONLY(     BailOnNotArray,              Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpTempObjectSources)
 MACRO_BACKEND_ONLY(     BailForDebugger,             Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpSideEffect)    // Bail out so that we can continue the function under debugger. Disable optimizations for this instr so that it's not moved.
 MACRO_BACKEND_ONLY(     BailOnNotBuiltIn,            Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE)
@@ -701,7 +707,7 @@ MACRO_BACKEND_ONLY(     InlineRegExpExec,    Empty,          OpSideEffect|OpInli
 MACRO_BACKEND_ONLY(     CallIFixed,          Empty,          OpSideEffect|OpUseAllFields|OpCallInstr|OpInlineCallInstr)
 MACRO_BACKEND_ONLY(     CheckFixedFld,       Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     CheckPropertyGuardAndLoadType,  Empty,          OpFastFldInstr|OpTempObjectSources|OpDoNotTransfer)
-MACRO_BACKEND_ONLY(     CheckObjType,        Empty,          OpFastFldInstr|OpTempObjectSources)
+MACRO_BACKEND_ONLY(     CheckObjType,        Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     AdjustObjType,       Empty,          OpSideEffect)
 
 // Edge inline built-ins

@@ -78,7 +78,7 @@ namespace Js
         static Var RegexExecResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static Var RegexExecResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static Var RegexExec(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer = nullptr);
-        static BOOL RegexTest(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
+        static Var RegexTest(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input);
         template<bool mustMatchEntireInput> static BOOL RegexTest_NonScript(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, const char16 *const input, const CharCount inputLength);
 
     private:
@@ -140,6 +140,9 @@ namespace Js
         static Var RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
         static JavascriptString* AppendStickyToFlagsIfNeeded(JavascriptString* flags, ScriptContext* scriptContext);
         static Var RegexEs5SplitImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
+        static bool IsRegexTestObservable(RecyclableObject* instance, ScriptContext* scriptContext);
+        static Var RegexEs6TestImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input);
+        static Var RegexEs5TestImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static int GetReplaceSubstitutions(const char16 * const replaceStr, CharCount const replaceLength, ArenaAllocator * const tempAllocator, CharCount** const substitutionOffsetsOut);
         static RecyclableObject* ExecResultToRecyclableObject(Var result);
         static JavascriptString* GetMatchStrFromResult(RecyclableObject* result, ScriptContext* scriptContext);

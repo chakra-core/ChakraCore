@@ -164,7 +164,7 @@ RT_ERROR_MSG(JSERR_Property_CannotDelete_NullOrUndefined, 5049, "Unable to delet
 RT_ERROR_MSG(JSERR_Property_VarDate, 5050, "Unable to access property '%s': type 'VarDate' does not support user-defined properties", "Object expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_Property_NeedFunction, 5051, "The value of the property '%s' is not a Function object", "Function expected", kjstTypeError, JSERR_NeedFunction)
 RT_ERROR_MSG(JSERR_Property_NeedFunction_NullOrUndefined, 5052, "The value of the property '%s' is null or undefined, not a Function object", "Function expected", kjstTypeError, JSERR_NeedObject)
-RT_ERROR_MSG(JSERR_Property_CannotHaveAccessorsAndValue, 5053, "", "Property cannot have both accessors and a value", kjstTypeError, VBSERR_ActionNotSupported)
+RT_ERROR_MSG(JSERR_Property_CannotHaveAccessorsAndValue, 5053, "", "Invalid property descriptor: cannot both specify accessors and a 'value' attribute", kjstTypeError, VBSERR_ActionNotSupported)
 
 RT_ERROR_MSG(JSERR_This_NullOrUndefined, 5054, "%s: 'this' is null or undefined", "'this' is null or undefined", kjstTypeError, JSERR_NeedObject) // {Locked="\'this\'"}
 RT_ERROR_MSG(JSERR_This_NeedObject, 5055, "%s: 'this' is not an Object", "Object expected", kjstTypeError, JSERR_NeedObject) // {Locked="\'this\'"}
@@ -274,7 +274,8 @@ RT_ERROR_MSG(JSERR_DeletePropertyWithSuper, 5146, "Unable to delete property '%s
 
 RT_ERROR_MSG(JSERR_DetachedTypedArray, 5147, "%s: The ArrayBuffer is detached.", "The ArrayBuffer is detached.", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_AsmJsCompileError, 5148, "%s: Compiling asm.js failed.", "Compiling asm.js failed.", kjstError, 0)
-RT_ERROR_MSG(JSERR_WasmCompileError, 5149, "%s: Compiling wasm failed.", "Compiling wasm failed.", kjstError, 0)
+RT_ERROR_MSG(JSERR_ImmutablePrototypeSlot, 5149, "%s: Can't set the prototype of this object.", "Can't set the prototype of this object.", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_WasmCompileError, 5150, "%s: Compiling wasm failed.", "Compiling wasm failed.", kjstError, 0)
 
 /* Error messages for misbehaved Async Operations for use in Promise.js */
 RT_ERROR_MSG(ASYNCERR_NoErrorInErrorState, 5200, "", "Status is 'error', but getResults did not return an error", kjstError, 0)
@@ -338,9 +339,10 @@ RT_ERROR_MSG(JSERR_RegExpExecInvalidReturnType, 5641, "%s: Return value of RegEx
 
 RT_ERROR_MSG(JSERR_ProxyTrapReturnedFalse, 5642, "Proxy trap `%s` returned false", "Proxy trap returned false", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_ModuleResolveExport, 5643, "Module export %s cannot be resolved", "Module export cannot be resolved", kjstSyntaxError, 0)
-RT_ERROR_MSG(JSERR_TooManyImportExprots, 5644, "Module has too many import/export definitions", "Module has too many import/export definitions", kjstRangeError, 0)
-RT_ERROR_MSG(JSERR_CannotResolveModule, 5645, "HostResolveImportedModule failed to resolve module with specifier %s", "HostResolveImportedModule failed to resolve module", kjstReferenceError, 0)
-RT_ERROR_MSG(JSERR_ResolveExportFailed, 5646, "Resolve export %s failed due to circular reference or resolved exports", "Resolve export failed due to circular reference or resolved exports", kjstSyntaxError, 0)
+RT_ERROR_MSG(JSERR_ModuleResolveImport, 5644, "Module import %s cannot be resolved", "Module import cannot be resolved", kjstSyntaxError, 0)
+RT_ERROR_MSG(JSERR_TooManyImportExports, 5645, "Module has too many import/export definitions", "Module has too many import/export definitions", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_CannotResolveModule, 5646, "HostResolveImportedModule failed to resolve module with specifier %s", "HostResolveImportedModule failed to resolve module", kjstReferenceError, 0)
+RT_ERROR_MSG(JSERR_ResolveExportFailed, 5647, "Resolve export %s failed due to circular reference or resolved exports", "Resolve export failed due to circular reference or resolved exports", kjstSyntaxError, 0)
 
-RT_ERROR_MSG(JSERR_ObjectCoercible, 5647, "", "Cannot convert null or undefined to object", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_SIMDConversion, 5648, "%s: cannot be converted to a number", "Cannot be converted to a number", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_ObjectCoercible, 5648, "", "Cannot convert null or undefined to object", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_SIMDConversion, 5649, "%s: cannot be converted to a number", "Cannot be converted to a number", kjstTypeError, 0)

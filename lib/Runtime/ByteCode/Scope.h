@@ -38,6 +38,7 @@ private:
     BYTE hasCrossScopeFuncAssignment : 1;
     BYTE hasDuplicateFormals : 1;
     BYTE canMergeWithBodyScope : 1;
+    BYTE hasLocalInClosure : 1;
 public:
 #if DBG
     BYTE isRestored : 1;
@@ -54,6 +55,7 @@ public:
         hasCrossScopeFuncAssignment(false),
         hasDuplicateFormals(false),
         canMergeWithBodyScope(true),
+        hasLocalInClosure(false),
         location(Js::Constants::NoRegister),
         symbolTable(nullptr),
         m_symList(nullptr),
@@ -294,6 +296,8 @@ public:
     bool GetCanMergeWithBodyScope() const { return canMergeWithBodyScope; }
 
     void SetHasLocalInClosure(bool has);
+    void SetHasOwnLocalInClosure(bool has) { hasLocalInClosure = has; }
+    bool GetHasOwnLocalInClosure() const { return hasLocalInClosure; }
 
     bool HasInnerScopeIndex() const { return innerScopeIndex != (uint)-1; }
     uint GetInnerScopeIndex() const { return innerScopeIndex; }

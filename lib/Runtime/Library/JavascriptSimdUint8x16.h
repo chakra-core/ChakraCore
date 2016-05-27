@@ -11,6 +11,7 @@ namespace Js
     {
     private:
         DEFINE_VTABLE_CTOR(JavascriptSIMDUint8x16, JavascriptSIMDType);
+        static const char16 TypeName[];
     public:
         class EntryInfo
         {
@@ -21,11 +22,11 @@ namespace Js
             static FunctionInfo SymbolToPrimitive;
         };
 
+        JavascriptSIMDUint8x16(StaticType *type);
         JavascriptSIMDUint8x16(SIMDValue *val, StaticType *type);
         static JavascriptSIMDUint8x16* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDUint8x16* FromVar(Var aValue);
-        static const char16* GetFullBuiltinName(char16** aBuffer, const char16* name);
         static Var CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue, const Var* args, uint numArgs, CallInfo callInfo);
 
         static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
@@ -38,6 +39,7 @@ namespace Js
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
         __inline SIMDValue GetValue() { return value; }
+        static const char16* GetTypeName();
         Var  Copy(ScriptContext* requestContext);
     };
 }

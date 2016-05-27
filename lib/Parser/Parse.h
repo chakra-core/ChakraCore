@@ -198,7 +198,6 @@ private:
     BOOL                m_uncertainStructure;
     bool                m_hasParallelJob;
     bool                m_doingFastScan;
-    Span                m_asgToConst;
     int                 m_nextBlockId;
 
     // RegexPattern objects created for literal regexes are recycler-allocated and need to be kept alive until the function body
@@ -355,6 +354,7 @@ private:
     ParseNodePtr m_currentNodeDeferredFunc; // current function or NULL
     ParseNodePtr m_currentNodeProg; // current program
     DeferredFunctionStub *m_currDeferredStub;
+    DeferredFunctionStub *m_prevSiblingDeferredStub;
     long * m_pCurrentAstSize;
     ParseNodePtr * m_ppnodeScope;  // function list tail
     ParseNodePtr * m_ppnodeExprScope; // function expression list tail
@@ -481,7 +481,7 @@ private:
 
     void MarkEvalCaller()
     {
-        if (m_currentNodeFunc)
+        if (this->GetCurrentFunctionNode())
         {
             ParseNodePtr pnodeFunc = GetCurrentFunctionNode();
             pnodeFunc->sxFnc.SetCallsEval(true);
@@ -516,26 +516,24 @@ private:
 
 public:
     IdentPtrList* GetRequestedModulesList();
-    ModuleImportEntryList* GetModuleImportEntryList();
-    ModuleExportEntryList* GetModuleLocalExportEntryList();
-    ModuleExportEntryList* GetModuleIndirectExportEntryList();
-    ModuleExportEntryList* GetModuleStarExportEntryList();
+    ModuleImportOrExportEntryList* GetModuleImportEntryList();
+    ModuleImportOrExportEntryList* GetModuleLocalExportEntryList();
+    ModuleImportOrExportEntryList* GetModuleIndirectExportEntryList();
+    ModuleImportOrExportEntryList* GetModuleStarExportEntryList();
 
 protected:
     IdentPtrList* EnsureRequestedModulesList();
-    ModuleImportEntryList* EnsureModuleImportEntryList();
-    ModuleExportEntryList* EnsureModuleLocalExportEntryList();
-    ModuleExportEntryList* EnsureModuleIndirectExportEntryList();
-    ModuleExportEntryList* EnsureModuleStarExportEntryList();
+    ModuleImportOrExportEntryList* EnsureModuleImportEntryList();
+    ModuleImportOrExportEntryList* EnsureModuleLocalExportEntryList();
+    ModuleImportOrExportEntryList* EnsureModuleIndirectExportEntryList();
+    ModuleImportOrExportEntryList* EnsureModuleStarExportEntryList();
 
     void AddModuleSpecifier(IdentPtr moduleRequest);
-    void AddModuleImportEntry(ModuleImportEntryList* importEntryList, IdentPtr importName, IdentPtr localName, IdentPtr moduleRequest, ParseNodePtr declNode);
-    void AddModuleExportEntry(ModuleExportEntryList* exportEntryList, ModuleExportEntry* exportEntry);
-    void AddModuleExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest);
+    ModuleImportOrExportEntry* AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest);
+    ModuleImportOrExportEntry* AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, ModuleImportOrExportEntry* importOrExportEntry);
     void AddModuleLocalExportEntry(ParseNodePtr varDeclNode);
-    void CheckForDuplicateExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr exportName);
+    void CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportEntryList, IdentPtr exportName);
 
-    Js::PropertyId EnsurePropertyId(IdentPtr pid);
     ParseNodePtr CreateModuleImportDeclNode(IdentPtr localName);
     void MarkIdentifierReferenceIsModuleExport(IdentPtr localName);
 
@@ -816,12 +814,12 @@ private:
     bool IsImportOrExportStatementValidHere();
 
     template<bool buildAST> ParseNodePtr ParseImportDeclaration();
-    template<bool buildAST> void ParseImportClause(ModuleImportEntryList* importEntryList, bool parsingAfterComma = false);
+    template<bool buildAST> void ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma = false);
 
     template<bool buildAST> ParseNodePtr ParseExportDeclaration();
     template<bool buildAST> ParseNodePtr ParseDefaultExportClause();
 
-    template<bool buildAST> void ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryList, ModuleExportEntryList* exportEntryList, bool isExportClause);
+    template<bool buildAST> void ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* importOrExportEntryList, bool isExportClause);
     template<bool buildAST> IdentPtr ParseImportOrExportFromClause(bool throwIfNotFound);
 
     BOOL NodeIsIdent(ParseNodePtr pnode, IdentPtr pid);
@@ -889,7 +887,7 @@ private:
         BOOL *nativeForOkay = nullptr);
 
     template <bool buildAST>
-    ParseNodePtr ParseDestructuredVarDecl(tokens declarationType, bool isDecl, bool *hasSeenRest, bool topLevel = true);
+    ParseNodePtr ParseDestructuredVarDecl(tokens declarationType, bool isDecl, bool *hasSeenRest, bool topLevel = true, bool allowEmptyExpression = true);
 
     template <bool buildAST>
     ParseNodePtr ParseDestructuredInitializer(ParseNodePtr lhsNode,
@@ -929,9 +927,8 @@ public:
 
 private:
     void DeferOrEmitPotentialSpreadError(ParseNodePtr pnodeT);
-    template<bool buildAST> void TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken, charcount_t ichMin, charcount_t ichLim);
     PidRefStack* PushPidRef(IdentPtr pid);
-    PidRefStack* FindOrAddPidRef(IdentPtr pid, int blockId, int maxScopeId = -1);
+    PidRefStack* FindOrAddPidRef(IdentPtr pid, int blockId);
     void RemovePrevPidRef(IdentPtr pid, PidRefStack *lastRef);
     void SetPidRefsInScopeDynamic(IdentPtr pid, int blockId);
 

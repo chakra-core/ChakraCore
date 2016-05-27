@@ -12,7 +12,7 @@ namespace Js
     {
     private:
         DEFINE_VTABLE_CTOR(JavascriptSIMDInt32x4, JavascriptSIMDType);
-
+        static const char16 TypeName[];
     public:
         class EntryInfo
         {
@@ -31,7 +31,6 @@ namespace Js
         static JavascriptSIMDInt32x4* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDInt32x4* FromVar(Var aValue);
-        static const char16* GetFullBuiltinName(char16** aBuffer, const char16* name);
 
         static JavascriptSIMDInt32x4* FromBool(SIMDValue *val, ScriptContext* requestContext);
         static JavascriptSIMDInt32x4* FromFloat64x2(JavascriptSIMDFloat64x2 *instance, ScriptContext* requestContext);
@@ -42,6 +41,7 @@ namespace Js
         {
             swprintf_s(stringBuffer, countBuffer, _u("SIMD.Int32x4(%d, %d, %d, %d)"), value.i32[SIMD_X], value.i32[SIMD_Y], value.i32[SIMD_Z], value.i32[SIMD_W]);
         }
+        static const char16* GetTypeName();
         __inline SIMDValue GetValue() { return value; }
 
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;

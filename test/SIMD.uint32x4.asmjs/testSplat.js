@@ -14,6 +14,10 @@ function asmModule(stdlib, imports) {
 
     var loopCOUNT = 3;
 
+    var i4 = stdlib.SIMD.Int32x4;
+    var i4check = i4.check;
+    var i4fu4 = i4.fromUint32x4Bits;
+
     function splat1()
     {
         var a = ui4(0, 0, 0, 0);
@@ -23,7 +27,7 @@ function asmModule(stdlib, imports) {
             a = ui4splat(4294967295);
             loopIndex = (loopIndex + 1) | 0;
         }   
-        return ui4check(a);
+        return i4check(i4fu4(a));
     }
     
     function splat2()
@@ -36,7 +40,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(a);
+        return i4check(i4fu4(a));
     }
 
     function splat3()
@@ -49,7 +53,7 @@ function asmModule(stdlib, imports) {
             loopIndex = (loopIndex + 1) | 0;
         }
 
-        return ui4check(a);
+        return i4check(i4fu4(a));
     }
     
     function value()
@@ -68,9 +72,9 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Uint32x4(20, 20, 20, 20) });
 
-var ret1 = m.func1();
-var ret2 = m.func2();
-var ret3 = m.func3();
+var ret1 = SIMD.Uint32x4.fromInt32x4Bits(m.func1());
+var ret2 = SIMD.Uint32x4.fromInt32x4Bits(m.func2());
+var ret3 = SIMD.Uint32x4.fromInt32x4Bits(m.func3());
 
 equalSimd([4294967295, 4294967295, 4294967295, 4294967295], ret1, SIMD.Uint32x4, "");
 equalSimd([4951, 4951, 4951, 4951], ret2, SIMD.Uint32x4, "");

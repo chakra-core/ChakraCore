@@ -14,6 +14,8 @@
 using namespace Windows::Globalization;
 #pragma warning(push)
 #pragma warning(disable:4309) // truncation of constant value
+#pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
+
 #if DISABLE_JIT
 #if _M_AMD64
 #include "InJavascript/Intl.js.nojit.bc.64b.h"
@@ -1005,6 +1007,7 @@ namespace Js
         }
 
         int compareResult = 0;
+        DWORD lastError = S_OK;
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("localeCompare"))
         {
             char16 * aLeft = nullptr;
@@ -1034,6 +1037,12 @@ namespace Js
             }
 
             compareResult = CompareStringEx(givenLocale != nullptr ? givenLocale : defaultLocale, compareFlags, aLeft, size1, aRight, size2, NULL, NULL, 0);
+
+            // Get the last error code so that it won't be affected by END_TEMP_ALLOCATOR.
+            if (compareResult == 0)
+            {
+                lastError = GetLastError();
+            }
         }
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
 
@@ -1043,7 +1052,7 @@ namespace Js
             return JavascriptNumber::ToVar(compareResult - 2, scriptContext);//Convert 1,2,3 to -1,0,1
         }
 
-        JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(GetLastError()));
+        JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(lastError));
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CurrencyDigits(RecyclableObject* function, CallInfo callInfo, ...)

@@ -883,7 +883,6 @@ namespace Js
                 retType = AsmJsRetType::Float64x2;
             }
 #endif // 0
-
             else if (info.type.isSubType(AsmJsType::Int16x8))
             {
                 CheckNodeLocation(info, AsmJsSIMDValue);
@@ -900,30 +899,6 @@ namespace Js
                 emitInfo.type = AsmJsType::Int8x16;
                 retType = AsmJsRetType::Int8x16;
             }
-            else if (info.type.isSubType(AsmJsType::Uint32x4))
-            {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U4, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Uint32x4;
-                retType = AsmJsRetType::Uint32x4;
-            }
-            else if (info.type.isSubType(AsmJsType::Uint16x8))
-            {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U8, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Uint16x8;
-                retType = AsmJsRetType::Uint16x8;
-            }
-            else if (info.type.isSubType(AsmJsType::Uint8x16))
-            {
-                CheckNodeLocation(info, AsmJsSIMDValue);
-                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U16, 0, info.location);
-                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
-                emitInfo.type = AsmJsType::Uint8x16;
-                retType = AsmJsRetType::Uint8x16;
-            }
             else
             {
                 throw AsmJsCompilationException(_u("Expression for return must be subtype of Signed, Double, or Float"));
@@ -938,9 +913,48 @@ namespace Js
         mWriter.AsmBr( mFunction->GetFuncInfo()->singleExit );
         return emitInfo;
     }
+
     bool AsmJSByteCodeGenerator::IsFRound(AsmJsMathFunction* sym)
     {
         return (sym && sym->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround);
+    }
+
+    bool AsmJSByteCodeGenerator::IsValidSimdFcnRetType(AsmJsSIMDFunction& simdFunction, const AsmJsRetType& expectedType, const AsmJsRetType& retType)
+    {
+        // Return types of simd builtins can be coereced to other asmjs types when a valid coercion exists
+        // e.g.
+        //     float    -> double           var d = 0.0; d = +float32x4ExtractLane(...)
+        //     signed   -> double           var d = 0.0; d = +int32x4ExtractLane(...)
+        //     unsigned -> double           var d = 0.0; d = +uint32x4ExtractLane(...)
+
+        // If a simd built-in is used without coercion, then expectedType is Void.
+        // All SIMD ops are allowed without coercion except a few that return bool. E.g. b4anyTrue()
+        // Unsigned and Bools are represented as Signed in AsmJs
+        if (expectedType == AsmJsRetType::Void)
+        {
+            return true;
+        }
+        else if (expectedType == retType)
+        {
+            Assert(expectedType == AsmJsRetType::Float   ||
+                   expectedType == AsmJsRetType::Signed  ||
+                   expectedType == AsmJsRetType::Unsigned||
+                   expectedType.toType().isSIMDType() );
+            return true;
+        }
+        else if (expectedType == AsmJsRetType::Double)
+        {
+            return (retType == AsmJsRetType::Float  ||
+                    retType == AsmJsRetType::Signed ||
+                    retType == AsmJsRetType::Unsigned);
+        }
+        else if (expectedType == AsmJsRetType::Signed)
+        {
+            //Unsigned and Bools are represented as Signed in AsmJs
+            return (retType == AsmJsRetType::Unsigned ||
+                    simdFunction.ReturnsBool());
+        }
+        return false;
     }
 
     // First set of opcode are for External calls, second set is for internal calls
@@ -1197,16 +1211,7 @@ namespace Js
                     case AsmJsType::Int8x16:
                          opcode = OpCodeAsmJs::Simd128_I_ArgOut_I16;
                         break;
-                    case AsmJsType::Uint32x4:
-                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_U4;
-                        break;
-                    case AsmJsType::Uint16x8:
-                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_U8;
-                        break;
-                    case AsmJsType::Uint8x16:
-                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_U16;
-                        break;
-                     case AsmJsType::Bool32x4:
+                    case AsmJsType::Bool32x4:
                         opcode = OpCodeAsmJs::Simd128_I_ArgOut_B4;
                         break;
                     case AsmJsType::Bool16x8:
@@ -1215,6 +1220,11 @@ namespace Js
                     case AsmJsType::Bool8x16:
                         opcode = OpCodeAsmJs::Simd128_I_ArgOut_B16;
                         break;
+                    case AsmJsType::Uint32x4:
+                    case AsmJsType::Uint16x8:
+                    case AsmJsType::Uint8x16:
+                        //In Asm.js unsigned SIMD types are not allowed as function arguments or return values.
+                        throw AsmJsCompilationException(_u("Function %s doesn't support argument of type %s. Argument must be of signed type."), funcName->Psz(), argInfo.type.toChars());
                     default:
                         Assert(UNREACHED);
                     }
@@ -1671,12 +1681,7 @@ namespace Js
             throw AsmJsCompilationException(_u("SIMD builtin function doesn't support arguments"));
         }
 
-        // If a simd built-in is used without coercion, then expectedType is Void
-        // All SIMD ops are allowed without coercion except a few that return bool. E.g. b4anyTrue()
-        if ( 
-             (simdFunction->ReturnsBool() && expectedType != AsmJsRetType::Signed) ||
-             (expectedType != AsmJsRetType::Void && retType != expectedType)
-           )
+        if (!IsValidSimdFcnRetType(*simdFunction, expectedType, retType))
         {
             throw AsmJsCompilationException(_u("SIMD builtin function returns wrong type"));
         }
@@ -1944,32 +1949,27 @@ namespace Js
         }
 
         EmitExpressionInfo emitInfo;
-        // Arg3 - Value to Store
-        if (simdFunction->IsSimdStoreFunc())
+        if (simdFunction->IsSimdStoreFunc()) //Store
         {
+            // Arg3 - Value to Store. Builtin returns the value being stored.
             Assert(valueNode);
-            // Emit 3rd argument
-            valueInfo = Emit(valueNode);
-            if (valueInfo.type != simdFunction->GetArgType(2))
+            emitInfo = Emit(valueNode);
+
+            if (emitInfo.type != simdFunction->GetArgType(2))
             {
                 throw AsmJsCompilationException(_u("Invalid value to SIMD store "));
             }
             // write opcode
-            mWriter.AsmSimdTypedArr(opcode, valueInfo.location, indexSlot, dataWidth, viewType);
-            mFunction->ReleaseLocation<AsmJsSIMDValue>(&valueInfo);
-            emitInfo.location = 0;
-            emitInfo.type = AsmJsType::Void;
-        }
-        else
-        {
-            // load
-            emitInfo.location = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
             mWriter.AsmSimdTypedArr(opcode, emitInfo.location, indexSlot, dataWidth, viewType);
+        }
+        else //Load
+        {
+            emitInfo.location = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
             emitInfo.type = simdFunction->GetReturnType().toType();
+            mWriter.AsmSimdTypedArr(opcode, emitInfo.location, indexSlot, dataWidth, viewType);
         }
 
         mFunction->ReleaseLocationGeneric(&indexInfo);
-
         return emitInfo;
     }
 
@@ -2487,7 +2487,7 @@ namespace Js
                 index = indexNode;
             }
 
-            bool isConst = false;
+            isConst = false;
             if (index->nop == knopName)
             {
                 AsmJsSymbol * declSym = mCompiler->LookupIdentifier(index->name(), mFunction);

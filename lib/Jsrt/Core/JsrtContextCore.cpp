@@ -17,9 +17,9 @@ bool JsrtContext::Is(void * ref)
     return VirtualTableInfo<JsrtContextCore>::HasVirtualTable(ref);
 }
 
-void JsrtContext::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo)
+void JsrtContext::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
 {
-    ((JsrtContextCore *)this)->OnScriptLoad(scriptFunction, utf8SourceInfo);
+    ((JsrtContextCore *)this)->OnScriptLoad(scriptFunction, utf8SourceInfo, compileException);
 }
 
 JsrtContextCore::JsrtContextCore(JsrtRuntime * runtime) :
@@ -33,22 +33,30 @@ JsrtContextCore::JsrtContextCore(JsrtRuntime * runtime) :
 /* static */
 JsrtContextCore *JsrtContextCore::New(JsrtRuntime * runtime)
 {
-    return RecyclerNewFinalizedLeaf(runtime->GetThreadContext()->EnsureRecycler(), JsrtContextCore, runtime);
+    return RecyclerNewFinalized(runtime->GetThreadContext()->EnsureRecycler(), JsrtContextCore, runtime);
 }
 
 void JsrtContextCore::Dispose(bool isShutdown)
 {
-    if (nullptr != this->GetScriptContext())
+    if (nullptr != this->GetJavascriptLibrary())
     {
-        this->GetScriptContext()->MarkForClose();
-        this->SetScriptContext(nullptr);
+        Js::ScriptContext* scriptContxt = this->GetJavascriptLibrary()->GetScriptContext();
+        if (this->GetRuntime()->GetJsrtDebugManager() != nullptr)
+        {
+            this->GetRuntime()->GetJsrtDebugManager()->ClearDebugDocument(scriptContxt);
+        }
+        scriptContxt->EnsureClearDebugDocument();
+        scriptContxt->GetDebugContext()->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
+        scriptContxt->GetDebugContext()->GetProbeContainer()->UninstallDebuggerScriptOptionCallback();
+        scriptContxt->MarkForClose();
+        this->SetJavascriptLibrary(nullptr);
         Unlink();
     }
 }
 
 Js::ScriptContext* JsrtContextCore::EnsureScriptContext()
 {
-    Assert(this->GetScriptContext() == nullptr);
+    Assert(this->GetJavascriptLibrary() == nullptr);
 
     ThreadContext* localThreadContext = this->GetRuntime()->GetThreadContext();
 
@@ -59,7 +67,7 @@ Js::ScriptContext* JsrtContextCore::EnsureScriptContext()
     hostContext = HeapNew(ChakraCoreHostScriptContext, newScriptContext);
     newScriptContext->SetHostScriptContext(hostContext);
 
-    this->SetScriptContext(newScriptContext.Detach());
+    this->SetJavascriptLibrary(newScriptContext.Detach()->GetLibrary());
 
     Js::JavascriptLibrary *library = this->GetScriptContext()->GetLibrary();
     Assert(library != nullptr);
@@ -70,7 +78,11 @@ Js::ScriptContext* JsrtContextCore::EnsureScriptContext()
     return this->GetScriptContext();
 }
 
-void JsrtContextCore::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo)
+void JsrtContextCore::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
 {
-    // Do nothing
+    JsrtDebugManager* jsrtDebugManager = this->GetRuntime()->GetJsrtDebugManager();
+    if (jsrtDebugManager != nullptr)
+    {
+        jsrtDebugManager->ReportScriptCompile(scriptFunction, utf8SourceInfo, compileException);
+    }
 }

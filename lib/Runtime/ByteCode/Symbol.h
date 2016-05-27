@@ -43,6 +43,7 @@ private:
     BYTE hasVisitedCapturingFunc : 1;
     BYTE isTrackedForDebugger : 1; // Whether the sym is tracked for debugger scope. This is fine because a sym can only be added to (not more than) one scope.
     BYTE isModuleExportStorage : 1; // If true, this symbol should be stored in the global scope export storage array.
+    BYTE isModuleImport : 1; // If true, this symbol is the local name of a module import statement
 
     // These are get and set a lot, don't put it in bit fields, we are exceeding the number of bits anyway
     bool hasFuncAssignment;
@@ -76,6 +77,7 @@ public:
         isNonSimpleParameter(false),
         assignmentState(NotAssigned),
         isModuleExportStorage(false),
+        isModuleImport(false),
         moduleIndex(Js::Constants::NoProperty)
     {
         SetSymbolType(symbolType);
@@ -154,6 +156,16 @@ public:
     bool GetIsModuleExportStorage() const
     {
         return isModuleExportStorage;
+    }
+
+    void SetIsModuleImport(bool is)
+    {
+        isModuleImport = is;
+    }
+
+    bool GetIsModuleImport() const
+    {
+        return isModuleImport;
     }
 
     void SetModuleIndex(Js::PropertyId index)

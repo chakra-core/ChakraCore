@@ -53,13 +53,6 @@ public:
         branchTargets->jmpTable = jmpTable;
         return branchTargets;
     }
-
-    static void Delete(JitArenaAllocator * allocator, BranchJumpTableWrapper * branchTargets)
-    {
-        Assert(allocator != nullptr && branchTargets != nullptr);
-        JitAdeleteArray(allocator, branchTargets->tableSize, branchTargets->jmpTable);
-        JitAdelete(allocator, branchTargets);
-    }
 };
 
 namespace IR {
@@ -1004,9 +997,9 @@ typedef BailOutInstrTemplate<BranchInstr> BranchBailOutInstr;
 #define FOREACH_INSTR_IN_RANGE(instr, instrList, instrLast)\
     {\
         INIT_PREV;\
-        IR::Instr *instrStop = instrLast ? ((IR::Instr*)instrLast)->m_next : nullptr; \
+        IR::Instr *instr##Stop = instrLast ? ((IR::Instr*)instrLast)->m_next : nullptr; \
         for ( IR::Instr *instr = instrList;\
-            instr != instrStop;\
+            instr != instr##Stop;\
             instr = instr->m_next)\
         {\
             CHECK_PREV(instr);
@@ -1024,9 +1017,9 @@ typedef BailOutInstrTemplate<BranchInstr> BranchBailOutInstr;
 #define FOREACH_INSTR_BACKWARD_IN_RANGE(instr, instrList, instrLast)\
     {\
         INIT_NEXT;\
-        IR::Instr *instrStop = instrLast ? ((IR::Instr*)instrLast)->m_prev : nullptr; \
+        IR::Instr *instr##Stop = instrLast ? ((IR::Instr*)instrLast)->m_prev : nullptr; \
         for ( IR::Instr *instr = instrList;\
-            instr != instrStop;\
+            instr != instr##Stop;\
             instr = instr->m_prev)\
         {\
             CHECK_NEXT(instr);
@@ -1035,9 +1028,9 @@ typedef BailOutInstrTemplate<BranchInstr> BranchBailOutInstr;
 #define FOREACH_INSTR_EDITING_IN_RANGE(instr, instrNext, instrList, instrLast)\
     {\
         IR::Instr * instrNext;\
-        IR::Instr *instrStop = instrLast ? ((IR::Instr*)instrLast)->m_next : nullptr; \
+        IR::Instr *instr##Stop = instrLast ? ((IR::Instr*)instrLast)->m_next : nullptr; \
         for ( IR::Instr *instr = instrList;\
-            instr != instrStop;\
+            instr != instr##Stop;\
             instr = instrNext)\
         {\
             instrNext = instr->m_next;
@@ -1055,9 +1048,9 @@ typedef BailOutInstrTemplate<BranchInstr> BranchBailOutInstr;
 #define FOREACH_INSTR_BACKWARD_EDITING_IN_RANGE(instr, instrPrev, instrList, instrLast)\
     {\
         IR::Instr * instrPrev;\
-        IR::Instr *instrStop = instrLast ? ((IR::Instr*)instrLast)->m_prev : nullptr; \
+        IR::Instr *instr##Stop = instrLast ? ((IR::Instr*)instrLast)->m_prev : nullptr; \
         for ( IR::Instr *instr = instrList;\
-            instr != instrStop;\
+            instr != instr##Stop;\
             instr = instrPrev)\
         {\
             instrPrev = instr->m_prev;

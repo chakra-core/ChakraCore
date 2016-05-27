@@ -1872,9 +1872,6 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
 
     if (linkOpnd->IsSymOpnd())
     {
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-#endif
         if((builtInFlags & Js::BuiltInFlags::BIF_VariableArgsNumber) != 0)
         {
             if(inlineCallArgCount > requiredInlineCallArgCount)
@@ -1943,16 +1940,16 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         argoutInstr->SetByteCodeOffset(callInstr);
         callInstr->GetInsertBeforeByteCodeUsesInstr()->InsertBefore(argoutInstr);
 
-        Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo, callInstr->m_func->GetScriptContext());
+        Js::BuiltinFunction builtInFunctionId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo, callInstr->m_func->GetScriptContext());
 
 
         callInstr->m_opcode = inlineCallOpCode;
-        SetupInlineInstrForCallDirect(builtInId, callInstr, argoutInstr);
+        SetupInlineInstrForCallDirect(builtInFunctionId, callInstr, argoutInstr);
 
         // Generate ByteCodeArgOutCaptures and move the ArgOut_A/ArgOut_A_Inline close to the call instruction
         callInstr->MoveArgs(/*generateByteCodeCapture*/ true);
 
-        WrapArgsOutWithCoerse(builtInId, callInstr);
+        WrapArgsOutWithCoerse(builtInFunctionId, callInstr);
 
         inlineBuiltInEndInstr = callInstr;
     }
@@ -1970,8 +1967,10 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
 
     // Insert a byteCodeUsesInstr to make sure the function object's lifetime is extended beyond the last bailout point
     // at which we may need to call the inlinee again in the interpreter.
-    IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr, originalCallTargetStackSym->m_id);
-    callInstr->InsertBefore(useCallTargetInstr);
+    {
+        IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr, originalCallTargetStackSym->m_id);
+        callInstr->InsertBefore(useCallTargetInstr);
+    }
 
     if(Js::JavascriptLibrary::IsTypeSpecRequired(builtInFlags)
 // SIMD_JS
@@ -4331,12 +4330,12 @@ Inline::MapActuals(IR::Instr *callInstr, __out_ecount(maxParamCount) IR::Instr *
                     StackSym* newStackSym = StackSym::NewArgSlotSym(sym->GetArgSlotNum(), argInstr->m_func);
                     newStackSym->m_isInlinedArgSlot = true;
 
-                    IR::SymOpnd * linkOpnd = IR::SymOpnd::New(newStackSym, sym->GetType(), argInstr->m_func);
+                    IR::SymOpnd * newLinkOpnd = IR::SymOpnd::New(newStackSym, sym->GetType(), argInstr->m_func);
                     IR::Opnd * undefined = IR::AddrOpnd::New(this->topFunc->GetScriptContext()->GetLibrary()->GetUndefined(),
                                                 IR::AddrOpndKindDynamicVar, this->topFunc, true);
                     undefined->SetValueType(ValueType::Undefined);
 
-                    argFixupInstr = IR::Instr::New(Js::OpCode::ArgOut_A_FixupForStackArgs, linkOpnd, undefined, argInstr->GetSrc2(), argInstr->m_func);
+                    argFixupInstr = IR::Instr::New(Js::OpCode::ArgOut_A_FixupForStackArgs, newLinkOpnd, undefined, argInstr->GetSrc2(), argInstr->m_func);
                     argInstr->InsertBefore(argFixupInstr);
                     argInstr->ReplaceSrc2(argFixupInstr->GetDst());
                     sym->IncrementArgSlotNum();
@@ -4803,9 +4802,9 @@ void
 Inline::SetupInlineeFrame(Func *inlinee, IR::Instr *inlineeStart, Js::ArgSlot actualCount, IR::Opnd *functionObject)
 {
     Js::ArgSlot argSlots[Js::Constants::InlineeMetaArgCount] = {
-        actualCount + 1, /* argc */
-        actualCount + 2, /* function object */
-        actualCount + 3  /* arguments object slot */
+        actualCount + 1u, /* argc */
+        actualCount + 2u, /* function object */
+        actualCount + 3u  /* arguments object slot */
     };
 
     IR::Opnd *srcs[Js::Constants::InlineeMetaArgCount] = {
@@ -5334,6 +5333,7 @@ Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * call
         IR::Opnd *linkOpnd = callInstr->GetSrc1();
         IR::Instr *eaInstr1, *eaInstr2, *eaInstr3;
         IR::Opnd *value, *index, *arr;
+        IR::Opnd *dst = callInstr->GetDst();
 
         eaInstr1 = linkOpnd->GetStackSym()->m_instrDef;
         value = eaInstr1->GetSrc1();
@@ -5348,7 +5348,20 @@ Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * call
         arr = eaInstr3->GetSrc1();
 
         indirOpnd = IR::IndirOpnd::New(arr->AsRegOpnd(), index->AsRegOpnd(), TyVar, callInstr->m_func);
-        callInstr->SetDst(indirOpnd);
+        if (dst)
+        {
+            //Load value to be stored to dst. Store returns the value being stored.
+            IR::Instr * ldInstr = IR::Instr::New(Js::OpCode::Ld_A, dst, value, callInstr->m_func);
+            callInstr->InsertBefore(ldInstr);
+
+            //Replace dst
+            callInstr->ReplaceDst(indirOpnd);
+        }
+        else
+        {
+            callInstr->SetDst(indirOpnd);
+        }
+
         callInstr->ReplaceSrc1(value);
 
         // remove ea instructions

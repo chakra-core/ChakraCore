@@ -233,6 +233,12 @@ namespace Js
         }
     }
 
+    bool JavascriptRegExp::ShouldApplyPrototypeWebWorkaround(Arguments& args, ScriptContext* scriptContext)
+    {
+        return scriptContext->GetConfig()->IsES6PrototypeChain() && \
+               args.Info.Count >= 1 && args[0] == scriptContext->GetLibrary()->GetRegExpPrototype();
+    }
+
     Var JavascriptRegExp::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -245,8 +251,8 @@ namespace Js
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : function;
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
 
@@ -258,48 +264,61 @@ namespace Js
         {
             pattern = scriptContext->GetLibrary()->GetEmptyRegexPattern();
         }
-        else if (JavascriptRegExp::Is(args[1]))
+        else if (JavascriptRegExp::IsRegExpLike(args[1], scriptContext))
         {
+            // JavascriptRegExp::IsRegExpLike() makes sure that args[1] is an Object.
+            RecyclableObject* regexLikeObj = RecyclableObject::FromVar(args[1]);
+
             if (!(callInfo.Flags & CallFlags_New) &&
                 (callInfo.Count == 2 || JavascriptOperators::IsUndefinedObject(args[2], scriptContext)) &&
-                regex == nullptr)
+                newTarget == JavascriptOperators::GetProperty(regexLikeObj, PropertyIds::constructor, scriptContext))
             {
                 // ES5 15.10.3.1 Called as a function: If pattern R is a regexp object and flags is undefined, then return R unchanged.
                 // As per ES6 21.2.3.1: We should only return pattern when the this argument is not an uninitialized RegExp object.
                 //                      If regex is null, we can be sure the this argument is not initialized.
-                return args[1];
+                return regexLikeObj;
             }
 
-            JavascriptRegExp* source = JavascriptRegExp::FromVar(args[1]);
-
-            if (callInfo.Count > 2 )
+            if (JavascriptRegExp::Is(regexLikeObj))
             {
-                // As per ES 2015 21.2.3.1: If 1st argument is RegExp and 2nd argument is flag then return regexp with same pattern as 1st
-                // argument and flags supplied by the 2nd argument.
-                if (!JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
-                {
-                    InternalString str = source->GetSource();
-                    pattern = CreatePattern(JavascriptString::NewCopyBuffer(str.GetBuffer(), str.GetLength(), scriptContext),
-                        args[2], scriptContext);
+                JavascriptRegExp* source = JavascriptRegExp::FromVar(regexLikeObj);
 
-                    // "splitPattern" is a version of "pattern" without the sticky flag. If other flags are the same, we can safely
-                    // reuse "splitPattern".
-                    UnifiedRegex::RegexFlags currentSplitFlags =
-                        static_cast<UnifiedRegex::RegexFlags>(source->GetPattern()->GetFlags() & ~UnifiedRegex::StickyRegexFlag);
-                    UnifiedRegex::RegexFlags newSplitFlags =
-                        static_cast<UnifiedRegex::RegexFlags>(pattern->GetFlags() & ~UnifiedRegex::StickyRegexFlag);
-                    if (newSplitFlags == currentSplitFlags)
+                if (callInfo.Count > 2)
+                {
+                    // As per ES 2015 21.2.3.1: If 1st argument is RegExp and 2nd argument is flag then return regexp with same pattern as 1st
+                    // argument and flags supplied by the 2nd argument.
+                    if (!JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
                     {
-                        splitPattern = source->GetSplitPattern();
+                        InternalString str = source->GetSource();
+                        pattern = CreatePattern(JavascriptString::NewCopyBuffer(str.GetBuffer(), str.GetLength(), scriptContext),
+                            args[2], scriptContext);
+
+                        // "splitPattern" is a version of "pattern" without the sticky flag. If other flags are the same, we can safely
+                        // reuse "splitPattern".
+                        UnifiedRegex::RegexFlags currentSplitFlags =
+                            static_cast<UnifiedRegex::RegexFlags>(source->GetPattern()->GetFlags() & ~UnifiedRegex::StickyRegexFlag);
+                        UnifiedRegex::RegexFlags newSplitFlags =
+                            static_cast<UnifiedRegex::RegexFlags>(pattern->GetFlags() & ~UnifiedRegex::StickyRegexFlag);
+                        if (newSplitFlags == currentSplitFlags)
+                        {
+                            splitPattern = source->GetSplitPattern();
+                        }
                     }
                 }
+                if (!pattern)
+                {
+                    pattern = source->GetPattern();
+                    splitPattern = source->GetSplitPattern();
+                }
             }
-            if (!pattern)
+            else // RegExp-like
             {
-                pattern = source->GetPattern();
-                splitPattern = source->GetSplitPattern();
+                Var source = JavascriptOperators::GetProperty(regexLikeObj, PropertyIds::source, scriptContext);
+                Var flags = args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2])
+                    ? JavascriptOperators::GetProperty(regexLikeObj, PropertyIds::flags, scriptContext)
+                    : args[2];
+                pattern = CreatePattern(source, flags, scriptContext);
             }
-
         }
         else
         {
@@ -410,7 +429,7 @@ namespace Js
         }
     }
 
-    JavascriptString *JavascriptRegExp::ToString(bool sourceOnly, bool useFlagsProperty)
+    JavascriptString *JavascriptRegExp::ToString(bool sourceOnly)
     {
         Js::InternalString str = pattern->GetSource();
         CompoundString *const builder = CompoundString::NewWithCharCapacity(str.GetLength() + 5, GetLibrary());
@@ -501,37 +520,27 @@ namespace Js
         {
             builder->AppendChars(_u('/'));
 
-            if (!useFlagsProperty)
+            // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
+            // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and GetOptions() too.
+            if (pattern->IsGlobal())
             {
-                // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
-                // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and GetOptions() too.
-                if (pattern->IsGlobal())
-                {
-                    builder->AppendChars(_u('g'));
-                }
-                if (pattern->IsIgnoreCase())
-                {
-                    builder->AppendChars(_u('i'));
-                }
-                if (pattern->IsMultiline())
-                {
-                    builder->AppendChars(_u('m'));
-                }
-                if (pattern->IsUnicode())
-                {
-                    builder->AppendChars(_u('u'));
-                }
-                if (pattern->IsSticky())
-                {
-                    builder->AppendChars(_u('y'));
-                }
+                builder->AppendChars(_u('g'));
             }
-            else
+            if (pattern->IsIgnoreCase())
             {
-                ScriptContext* scriptContext = GetScriptContext();
-                Var flags = JavascriptOperators::GetProperty(this, PropertyIds::flags, scriptContext);
-                JavascriptString* flagsString = JavascriptConversion::ToString(flags, scriptContext);
-                builder->AppendCharsSz(flagsString->GetString());
+                builder->AppendChars(_u('i'));
+            }
+            if (pattern->IsMultiline())
+            {
+                builder->AppendChars(_u('m'));
+            }
+            if (pattern->IsUnicode())
+            {
+                builder->AppendChars(_u('u'));
+            }
+            if (pattern->IsSticky())
+            {
+                builder->AppendChars(_u('y'));
             }
         }
 
@@ -642,10 +651,9 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, _u("RegExp.prototype.test"), scriptContext);
-        JavascriptString * pStr = GetFirstStringArg(args, scriptContext);
-        BOOL result = RegexHelper::RegexTest(scriptContext, pRegEx, pStr);
-        return JavascriptBoolean::ToVar(result, scriptContext);
+        RecyclableObject *thisObj = GetThisObject(args, _u("RegExp.prototype.test"), scriptContext);
+        JavascriptString* string = GetFirstStringArg(args, scriptContext);
+        return RegexHelper::RegexTest(scriptContext, thisObj, string);
     }
 
     Var JavascriptRegExp::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
@@ -658,11 +666,35 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
         Assert(args.Info.Count > 0);
 
-        JavascriptRegExp* obj = GetJavascriptRegExp(args, _u("RegExp.prototype.toString"), scriptContext);
+        PCWSTR const varName = _u("RegExp.prototype.toString");
 
-        bool sourceOnly = false;
-        bool useFlagsProperty = scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled();
-        return obj->ToString(sourceOnly, useFlagsProperty);
+        const ScriptConfiguration* scriptConfig = scriptContext->GetConfig();
+
+        if (scriptConfig->IsES6RegExPrototypePropertiesEnabled())
+        {
+            RecyclableObject *thisObj = GetThisObject(args, varName, scriptContext);
+            JavascriptString* source = JavascriptConversion::ToString(
+                JavascriptOperators::GetProperty(thisObj, PropertyIds::source, scriptContext),
+                scriptContext);
+            JavascriptString* flags = JavascriptConversion::ToString(
+                JavascriptOperators::GetProperty(thisObj, PropertyIds::flags, scriptContext),
+                scriptContext);
+
+            CharCount length = source->GetLength() + flags->GetLength() + 2; // 2 for the two '/'s
+            CompoundString *const builder =
+                CompoundString::NewWithCharCapacity(length, scriptContext->GetLibrary());
+            builder->Append(_u('/'));
+            builder->Append(source);
+            builder->Append(_u('/'));
+            builder->Append(flags);
+            return builder;
+        }
+        else
+        {
+            JavascriptRegExp* obj = GetJavascriptRegExp(args, varName, scriptContext);
+            bool sourceOnly = false;
+            return obj->ToString(sourceOnly);
+        }
     }
 
     Var JavascriptRegExp::EntrySymbolMatch(RecyclableObject* function, CallInfo callInfo, ...)
@@ -724,15 +756,6 @@ namespace Js
         JavascriptLibrary* library = regexPrototype->GetLibrary();
         return regexPrototype->GetScriptContext()->GetConfig()->IsES6RegExPrototypePropertiesEnabled()
             && regexPrototype->GetSlot(library->GetRegexGlobalGetterSlotIndex()) != library->GetRegexGlobalGetterFunction();
-    }
-
-    bool JavascriptRegExp::HasObservableStickyFlag(DynamicObject* regexPrototype)
-    {
-        const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
-        JavascriptLibrary* library = regexPrototype->GetLibrary();
-        return scriptConfig->IsES6RegExStickyEnabled()
-            && scriptConfig->IsES6RegExPrototypePropertiesEnabled()
-            && regexPrototype->GetSlot(library->GetRegexStickyGetterSlotIndex()) != library->GetRegexStickyGetterFunction();
     }
 
     bool JavascriptRegExp::HasObservableUnicodeFlag(DynamicObject* regexPrototype)
@@ -844,21 +867,6 @@ namespace Js
 
     Var JavascriptRegExp::CallExec(RecyclableObject* thisObj, JavascriptString* string, PCWSTR varName, ScriptContext* scriptContext)
     {
-        JavascriptRegExp* regExObj = nullptr;
-
-        // TODO: The built-in "exec" in ES6 is supposed to access the RegExp flags. Since the flags
-        // can be overridden and return a different value than what's passed to the constructor,
-        // the pattern needs to be recompiled. However, the way the observability check is currently
-        // implemented, it reduces the perf quite a lot.
-        //
-        // Therefore, we recompile the pattern here before calling "exec" for the time being, but
-        // this will be moved to "exec".
-        if (JavascriptRegExp::Is(thisObj))
-        {
-            regExObj = JavascriptRegExp::FromVar(thisObj);
-            regExObj->RecompilePatternForExecIfNeeded(scriptContext);
-        }
-
         Var exec = JavascriptOperators::GetProperty(thisObj, PropertyIds::exec, scriptContext);
         if (JavascriptConversion::IsCallable(exec))
         {
@@ -873,48 +881,8 @@ namespace Js
             return result;
         }
 
-        if (regExObj == nullptr)
-        {
-            regExObj = ToRegExp(thisObj, varName, scriptContext);
-        }
+        JavascriptRegExp* regExObj = ToRegExp(thisObj, varName, scriptContext);
         return RegexHelper::RegexExec(scriptContext, regExObj, string, false);
-    }
-
-    void JavascriptRegExp::RecompilePatternForExecIfNeeded(ScriptContext* scriptContext)
-    {
-        if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
-        {
-            return;
-        }
-
-        DynamicObject* regexPrototype = scriptContext->GetLibrary()->GetRegExpPrototype();
-        bool observable =
-            !JavascriptRegExp::HasOriginalRegExType(this)
-            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
-            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype);
-        if (!observable)
-        {
-            return;
-        }
-
-        UnifiedRegex::RegexPattern* pattern = this->GetPattern();
-
-        UnifiedRegex::RegexFlags newFlags = pattern->GetFlags();
-        newFlags = SetRegexFlag(PropertyIds::global, newFlags, UnifiedRegex::GlobalRegexFlag, scriptContext);
-        newFlags = SetRegexFlag(PropertyIds::sticky, newFlags, UnifiedRegex::StickyRegexFlag, scriptContext);
-
-        if (newFlags != pattern->GetFlags())
-        {
-            InternalString source = pattern->GetSource();
-            UnifiedRegex::RegexPattern* newPattern = RegexHelper::CompileDynamic(
-                scriptContext,
-                source.GetBuffer(),
-                source.GetLength(),
-                newFlags,
-                pattern->IsLiteral());
-            this->SetPattern(newPattern);
-            this->SetSplitPattern(nullptr);
-        }
     }
 
     UnifiedRegex::RegexFlags JavascriptRegExp::SetRegexFlag(
@@ -1001,7 +969,13 @@ namespace Js
         ARGUMENTS(args, callInfo);
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return GetJavascriptRegExp(args, _u("RegExp.prototype.options"), function->GetScriptContext())->GetOptions();
+        ScriptContext* scriptContext = function->GetScriptContext();
+        if (ShouldApplyPrototypeWebWorkaround(args, scriptContext))
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        return GetJavascriptRegExp(args, _u("RegExp.prototype.options"), scriptContext)->GetOptions();
     }
 
     Var JavascriptRegExp::GetOptions()
@@ -1047,7 +1021,13 @@ namespace Js
         ARGUMENTS(args, callInfo);
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return GetJavascriptRegExp(args, _u("RegExp.prototype.source"), function->GetScriptContext())->ToString(true);
+        ScriptContext* scriptContext = function->GetScriptContext();
+        if (ShouldApplyPrototypeWebWorkaround(args, scriptContext))
+        {
+            return JavascriptString::NewCopyBuffer(_u("(?:)"), 4, scriptContext);
+        }
+
+        return GetJavascriptRegExp(args, _u("RegExp.prototype.source"), scriptContext)->ToString(true);
     }
 
 #define DEFINE_FLAG_GETTER(methodName, propertyName, patternMethodName) \
@@ -1057,7 +1037,13 @@ namespace Js
         ARGUMENTS(args, callInfo); \
         Assert(!(callInfo.Flags & CallFlags_New)); \
         \
-        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, _u("RegExp.prototype.") _u(#propertyName), function->GetScriptContext()); \
+        ScriptContext* scriptContext = function->GetScriptContext(); \
+        if (ShouldApplyPrototypeWebWorkaround(args, scriptContext)) \
+        {\
+            return scriptContext->GetLibrary()->GetUndefined(); \
+        }\
+        \
+        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, _u("RegExp.prototype.") _u(#propertyName), scriptContext); \
         return pRegEx->GetLibrary()->CreateBoolean(pRegEx->GetPattern()->##patternMethodName##()); \
     }
 

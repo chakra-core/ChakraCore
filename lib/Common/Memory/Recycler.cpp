@@ -201,6 +201,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     isPrimaryMarkContextInitialized(false),
 #endif
     allowDispose(false),
+    inDisposeWrapper(false),
     hasDisposableObject(false),
     tickCountNextDispose(0),
     hasPendingTransferDisposedObjects(false),
@@ -1091,9 +1092,19 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 
     Assert(heapBlock != nullptr);
 #ifdef RECYCLER_PAGE_HEAP
-    if (this->IsPageHeapEnabled() && this->ShouldCapturePageHeapFreeStack())
+    if (this->IsPageHeapEnabled())
     {
-        heapBlock->CapturePageHeapFreeStack();
+        if (this->ShouldCapturePageHeapFreeStack())
+        {
+            if (heapBlock->IsLargeHeapBlock())
+            {
+                LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
+                if (largeHeapBlock->InPageHeapMode())
+                {
+                    largeHeapBlock->CapturePageHeapFreeStack();
+                }
+            }
+        }
 
         // Don't do actual explicit free in page heap mode
         return false;
@@ -1186,13 +1197,13 @@ Recycler::TryLargeAlloc(HeapInfo * heap, size_t size, ObjectInfoBits attributes,
 #ifdef RECYCLER_PAGE_HEAP
     if (IsPageHeapEnabled())
     {
-        if (heap->largeObjectBucket.IsPageHeapEnabled())
+        if (heap->largeObjectBucket.IsPageHeapEnabled(attributes))
         {
-            memBlock = heap->largeObjectBucket.PageHeapAlloc(this, size, (ObjectInfoBits)attributes, autoHeap.pageHeapMode, nothrow);
+            memBlock = heap->largeObjectBucket.PageHeapAlloc(this, sizeCat, size, (ObjectInfoBits)attributes, autoHeap.pageHeapMode, nothrow);
             if (memBlock != nullptr)
             {
 #ifdef RECYCLER_ZERO_MEM_CHECK
-                VerifyZeroFill(memBlock, sizeCat);
+                VerifyZeroFill(memBlock, size);
 #endif
                 return memBlock;
             }
@@ -1296,7 +1307,6 @@ bool Recycler::AllowNativeCodeBumpAllocation()
 
     return true;
 }
-
 
 void Recycler::TrackNativeAllocatedMemoryBlock(Recycler * recycler, void * memBlock, size_t sizeCat)
 {
@@ -2120,8 +2130,8 @@ size_t
 Recycler::RescanMark(DWORD waitTime)
 {
     bool const onLowMemory = this->NeedOOMRescan();
-    
-    // REVIEW: Why are we asserting for DoQueueTrackedObject here? 
+
+    // REVIEW: Why are we asserting for DoQueueTrackedObject here?
     // Should we split this into different asserts depending on whether
     // concurrent or partial is enabled?
 #if ENABLE_CONCURRENT_GC
@@ -2442,7 +2452,7 @@ Recycler::RootMark(CollectionState markState)
 
     if (this->EndMark())
     {
-        // REVIEW: This heuristic doesn't apply when partial is off so there's no need 
+        // REVIEW: This heuristic doesn't apply when partial is off so there's no need
         // to modify scannedRootBytes here, correct?
 #if ENABLE_PARTIAL_GC
         // return large root scanned byte to not get into partial mode if we are low on memory
@@ -3861,10 +3871,10 @@ Recycler::IsReentrantState() const
 
 #ifdef ENABLE_JS_ETW
 template <Js::Phase phase> static ETWEventGCActivationKind GetETWEventGCActivationKind();
-template <> static ETWEventGCActivationKind GetETWEventGCActivationKind<Js::GarbageCollectPhase>() { return ETWEvent_GarbageCollect; }
-template <> static ETWEventGCActivationKind GetETWEventGCActivationKind<Js::ThreadCollectPhase>() { return ETWEvent_ThreadCollect; }
-template <> static ETWEventGCActivationKind GetETWEventGCActivationKind<Js::ConcurrentCollectPhase>() { return ETWEvent_ConcurrentCollect; }
-template <> static ETWEventGCActivationKind GetETWEventGCActivationKind<Js::PartialCollectPhase>() { return ETWEvent_PartialCollect; }
+template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::GarbageCollectPhase>() { return ETWEvent_GarbageCollect; }
+template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::ThreadCollectPhase>() { return ETWEvent_ThreadCollect; }
+template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::ConcurrentCollectPhase>() { return ETWEvent_ConcurrentCollect; }
+template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::PartialCollectPhase>() { return ETWEvent_PartialCollect; }
 #endif
 
 template <Js::Phase phase>
@@ -5620,8 +5630,8 @@ Recycler::ThreadProc()
 #ifdef ENABLE_JS_ETW
     // Create an ETW ActivityId for this thread, to help tools correlate ETW events we generate
     GUID activityId = { 0 };
-    auto result = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
-    Assert(result == ERROR_SUCCESS);
+    auto eventActivityIdControlResult = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
+    Assert(eventActivityIdControlResult == ERROR_SUCCESS);
 #endif
 
     // Signal that the thread has started
@@ -6158,8 +6168,8 @@ RecyclerParallelThread::StaticThreadProc(LPVOID lpParameter)
 #ifdef ENABLE_JS_ETW
         // Create an ETW ActivityId for this thread, to help tools correlate ETW events we generate
         GUID activityId = { 0 };
-        auto result = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
-        Assert(result == ERROR_SUCCESS);
+        auto eventActivityIdControlResult = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
+        Assert(eventActivityIdControlResult == ERROR_SUCCESS);
 #endif
 
         // If this thread is created on demand we already have work to process and do not need to wait
@@ -7970,10 +7980,10 @@ Recycler::SetProfiler(Js::Profiler * profiler, Js::Profiler * backgroundProfiler
 }
 #endif
 
-void Recycler::SetObjectBeforeCollectCallback(void* object, 
-    ObjectBeforeCollectCallback callback, 
+void Recycler::SetObjectBeforeCollectCallback(void* object,
+    ObjectBeforeCollectCallback callback,
     void* callbackState,
-    ObjectBeforeCollectCallbackWrapper callbackWrapper, 
+    ObjectBeforeCollectCallbackWrapper callbackWrapper,
     void* threadContext)
 {
     if (objectBeforeCollectCallbackState == ObjectBeforeCollectCallback_Shutdown)

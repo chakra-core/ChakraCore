@@ -349,12 +349,15 @@ namespace Js
     {
         boolean retVal;
         HRESULT hr;
-        HSTRING hString;
+        HSTRING hString = nullptr;
         HSTRING_HEADER hStringHdr;
         // OK for languageTag to get truncated as it would pass incomplete languageTag below which
         // will be rejected by globalization dll
         IfFailThrowHr(GetWindowsGlobalizationLibrary(scriptContext)->WindowsCreateStringReference(languageTag, static_cast<UINT32>(wcslen(languageTag)), &hStringHdr, &hString));
-        AnalysisAssert(hString);
+        if (hString == nullptr)
+        {
+            return 0;
+        }
         IfFailThrowHr(this->languageStatics->IsWellFormed(hString, &retVal));
         return retVal;
     }

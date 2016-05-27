@@ -174,7 +174,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
 
         if (!(callInfo.Flags & CallFlags_New) || (newTarget && JavascriptOperators::IsUndefinedObject(newTarget)))
@@ -475,13 +475,14 @@ namespace Js
         }
     }
 
-
     inline BOOL ArrayBuffer::IsBuiltinProperty(PropertyId propertyId)
     {
         // byteLength is only an instance property in pre-ES6
         if (propertyId == PropertyIds::byteLength
             && !GetScriptContext()->GetConfig()->IsES6TypedArrayExtensionsEnabled())
+        {
             return TRUE;
+        }
 
         return FALSE;
     }
@@ -502,8 +503,8 @@ namespace Js
         {
             return false;
         }
-        return DynamicObject::DeleteProperty(propertyId, flags);
 
+        return DynamicObject::DeleteProperty(propertyId, flags);
     }
 
     BOOL ArrayBuffer::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
@@ -514,6 +515,7 @@ namespace Js
             *propertyName = requestContext->GetPropertyString(specialPropertyIds[index]);
             return true;
         }
+
         return false;
     }
 

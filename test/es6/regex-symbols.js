@@ -17,9 +17,9 @@ function arrayEquals(array1, array2) {
     return equals;
 }
 
-function verifyRegExpObjectWhenExecIsNotCallable(symbol, createRegExp) {
+function verifyRegExpObjectWhenExecIsNotCallable(propertyName, createRegExp) {
     var re = createRegExp();
-    assert.throws(RegExp.prototype[symbol].bind(re), TypeError);
+    assert.throws(RegExp.prototype[propertyName].bind(re), TypeError);
 }
 
 function verifyBuiltInSearchWhenExecIsNotCallable(setUp, cleanUp) {
@@ -113,9 +113,9 @@ function verifySymbolMethodLength(expectedLength, symbol) {
     assert.isFalse(descriptor.enumerable, "descriptor.enumerable");
 }
 
-function verifySymbolMethodRequiresThisToBeObject(symbol) {
+function verifyMethodRequiresThisToBeObject(propertyName) {
     var nonObject = "string";
-    assert.throws(RegExp.prototype[symbol].bind(nonObject, ""), TypeError);
+    assert.throws(RegExp.prototype[propertyName].bind(nonObject, ""), TypeError);
 }
 
 function withObservableRegExp(callback) {
@@ -139,37 +139,37 @@ function verifySymbolSplitResult(assertResult, re, ...args) {
     });
 }
 
-function getFullSymbolMethodName(symbolName) {
-    return "RegExp.prototype[" + symbolName + "]";
+function getFullMethodName(name) {
+    return "RegExp.prototype[" + name + "]";
 }
 
 function createTestsForMethodProperties(functionName, functionLength, symbolName, symbol) {
-    var fullSymbolMethodName = getFullSymbolMethodName(symbolName);
+    var fullMethodName = getFullMethodName(symbolName);
     return [
         {
-            name: fullSymbolMethodName + " exists",
+            name: fullMethodName + " exists",
             body: verifySymbolMethodExistence.bind(undefined, symbol)
         },
         {
-            name: fullSymbolMethodName + " has the correct name",
+            name: fullMethodName + " has the correct name",
             body: verifySymbolMethodName.bind(undefined, functionName, symbol)
         },
         {
-            name: fullSymbolMethodName + " has the correct length",
+            name: fullMethodName + " has the correct length",
             body: verifySymbolMethodLength.bind(undefined, functionLength, symbol)
         },
     ];
 }
 
-function createTestsForThisObjectType(symbolName, symbol) {
-    var fullSymbolMethodName = getFullSymbolMethodName(symbolName);
+function createTestsForThisObjectType(readableName, propertyName) {
+    var fullMethodName = getFullMethodName(readableName);
     return [
         {
-            name: fullSymbolMethodName + " should throw an exception when 'this' isn't an Object",
-            body: verifySymbolMethodRequiresThisToBeObject.bind(undefined, symbol)
+            name: fullMethodName + " should throw an exception when 'this' isn't an Object",
+            body: verifyMethodRequiresThisToBeObject.bind(undefined, propertyName)
         },
         {
-            name: fullSymbolMethodName + " should be callable when 'this' is an ordinary Object and it has 'exec'",
+            name: fullMethodName + " should be callable when 'this' is an ordinary Object and it has 'exec'",
             body: function () {
                 var object = {
                     exec: function () {
@@ -178,31 +178,31 @@ function createTestsForThisObjectType(symbolName, symbol) {
 
                     flags: "", // Needed by RegExp.prototype[@@split]
                 };
-                assert.doesNotThrow(RegExp.prototype[symbol].bind(object, ""));
+                assert.doesNotThrow(RegExp.prototype[propertyName].bind(object, ""));
             }
         },
     ];
 }
 
-function createTestsForRegExpTypeWhenInvalidRegExpExec(symbolName, symbol) {
-    var fullSymbolMethodName = getFullSymbolMethodName(symbolName);
+function createTestsForRegExpTypeWhenInvalidRegExpExec(readableName, propertyName) {
+    var fullMethodName = getFullMethodName(readableName);
     return [
         {
-            name: fullSymbolMethodName + " should expect 'this' to be a RegExp object when 'exec' property does not exist",
+            name: fullMethodName + " should expect 'this' to be a RegExp object when 'exec' property does not exist",
             body: function () {
                 var createRegExp = function () {
                     return {};
                 };
-                verifyRegExpObjectWhenExecIsNotCallable(symbol, createRegExp);
+                verifyRegExpObjectWhenExecIsNotCallable(propertyName, createRegExp);
             }
         },
         {
-            name: fullSymbolMethodName + " should expect 'this' to be a RegExp object when 'exec' is not callable",
+            name: fullMethodName + " should expect 'this' to be a RegExp object when 'exec' is not callable",
             body: function () {
                 var createRegExp = function () {
                     return {exec: 0};
                 };
-                verifyRegExpObjectWhenExecIsNotCallable(symbol, createRegExp);
+                verifyRegExpObjectWhenExecIsNotCallable(propertyName, createRegExp);
             }
         },
     ];
@@ -216,11 +216,11 @@ function testThisNewRegExp(thisObj, re) {
     return thisObj !== re && thisObj instanceof RegExp;
 }
 
-function createTestsForSymbolToExecDelegation(testThis, symbolName, symbol) {
-    var fullSymbolMethodName = getFullSymbolMethodName(symbolName);
+function createTestsForExecDelegation(testThis, readableName, propertyName) {
+    var fullMethodName = getFullMethodName(readableName);
     return [
         {
-            name: fullSymbolMethodName + " should delegate to 'exec'",
+            name: fullMethodName + " should delegate to 'exec'",
             body: function () {
                 helpers.withPropertyDeleted(RegExp.prototype, "exec", function () {
                     var re = /./;
@@ -236,7 +236,7 @@ function createTestsForSymbolToExecDelegation(testThis, symbolName, symbol) {
                     };
                     Object.defineProperty(RegExp.prototype, "exec", {value: exec, configurable: true});
 
-                    re[symbol](string);
+                    re[propertyName](string);
 
                     assert.isTrue(called, "'exec' is called");
                     assert.isTrue(passedCorrectThisObject, "'this' is correct");
@@ -245,7 +245,7 @@ function createTestsForSymbolToExecDelegation(testThis, symbolName, symbol) {
             }
         },
         {
-            name: fullSymbolMethodName + " should throw when return value of 'exec' is not an Object or 'null'",
+            name: fullMethodName + " should throw when return value of 'exec' is not an Object or 'null'",
             body: function () {
                 helpers.withPropertyDeleted(RegExp.prototype, "exec", function () {
                     var re = /./;
@@ -253,18 +253,18 @@ function createTestsForSymbolToExecDelegation(testThis, symbolName, symbol) {
                         return undefined;
                     };
                     Object.defineProperty(RegExp.prototype, "exec", {value: exec, configurable: true});
-                    assert.throws(RegExp.prototype[symbol].bind(re), TypeError);
+                    assert.throws(RegExp.prototype[propertyName].bind(re), TypeError);
                 });
             }
         },
     ];
 }
 
-function createTestsForStringCoercion(symbolName, symbol) {
-    var fullSymbolMethodName = getFullSymbolMethodName(symbolName);
+function createTestsForStringCoercion(readableName, propertyName) {
+    var fullMethodName = getFullMethodName(readableName);
     return [
         {
-            name: fullSymbolMethodName + " should coerce the 'string' argument to String",
+            name: fullMethodName + " should coerce the 'string' argument to String",
             body: function () {
                 helpers.withPropertyDeleted(RegExp.prototype, "exec", function () {
                     var re = /./;
@@ -281,14 +281,14 @@ function createTestsForStringCoercion(symbolName, symbol) {
                     };
                     Object.defineProperty(RegExp.prototype, "exec", {value: exec, configurable: true});
 
-                    re[symbol](string);
+                    re[propertyName](string);
 
                     assert.isTrue(coercedString);
                 });
             }
         },
         {
-            name: fullSymbolMethodName + " should use the String 'undefined' when the 'string' argument is missing",
+            name: fullMethodName + " should use the String 'undefined' when the 'string' argument is missing",
             body: function () {
                 helpers.withPropertyDeleted(RegExp.prototype, "exec", function () {
                     var re = /./;
@@ -299,7 +299,7 @@ function createTestsForStringCoercion(symbolName, symbol) {
                     };
                     Object.defineProperty(RegExp.prototype, "exec", {value: exec, configurable: true});
 
-                    re[symbol]();
+                    re[propertyName]();
 
                     assert.isTrue(coercedString);
                 });
@@ -394,6 +394,34 @@ function createGenericTestsForSymbol(stringPropertyName, functionName, functionL
 }
 
 var tests = [
+    {
+        name: "RegExp.prototype.test should return 'false' when 'exec' returns 'null'",
+        body: function () {
+            var re = /./;
+            var exec = function () {
+                return null;
+            }
+            Object.defineProperty(re, "exec", {value: exec});
+
+            var result = re.test("");
+
+            assert.isFalse(result);
+        }
+    },
+    {
+        name: "RegExp.prototype.test should return 'true' when 'exec' returns an Object",
+        body: function () {
+            var re = /./;
+            var exec = function () {
+                return {};
+            }
+            Object.defineProperty(re, "exec", {value: exec});
+
+            var result = re.test("");
+
+            assert.isTrue(result);
+        }
+    },
     {
         name: "RegExp.prototype[@@replace] should run the built-in 'replace' when 'replaceValue' is callable and none of the observable properties are overridden",
         body: function () {
@@ -491,7 +519,7 @@ var tests = [
     {
         name: "RegExp.prototype[@@replace] should 'Get' 'global' when it is overridden",
         body: function () {
-            var re = /a-/;
+            var re = /a-/g;
             re.lastIndex = 1; // Will be reset to 0 by RegExp.prototype[@@replace]
             var string = "a-a-ba-";
             var replace = "*";
@@ -512,7 +540,7 @@ var tests = [
     {
         name: "RegExp.prototype[@@replace] should coerce a missing 'global' to 'false'",
         body: function () {
-            var re = /a-/g;
+            var re = /a-/;
             re.lastIndex = 1; // RegExpBuiltinExec will ignore this and start from 0
             var string = "a-a-ba-";
             var replace = "*";
@@ -896,7 +924,7 @@ var tests = [
     {
         name: "RegExp.prototype[@@match] should 'Get' 'global' when it is overridden",
         body: function () {
-            var re = /a-/;
+            var re = /a-/g;
             re.lastIndex = 1; // Will be reset to 0 by RegExp.prototype[@@match]
 
             var calledGlobal = false;
@@ -918,45 +946,11 @@ var tests = [
     {
         name: "RegExp.prototype[@@match] should coerce a missing 'global' to 'false'",
         body: function () {
-            var re = /a-/g;
+            var re = /a-/;
             re.lastIndex = 1; // RegExpBuiltinExec will ignore this and start from 0
 
             var result;
             helpers.withPropertyDeleted(RegExp.prototype, "global", function () {
-                result = re[Symbol.match]("a-a-ba-");
-            });
-
-            assert.areEqual(1, result.length, "result.length");
-            assert.areEqual("a-", result[0], "result[0]");
-        }
-    },
-    {
-        name: "RegExp.prototype[@@match] should 'Get' 'sticky' when it is overridden",
-        body: function () {
-            var re = /a-/;
-            re.lastIndex = 1; // Will be kept at 1
-
-            var calledSticky = false;
-            var getSticky = function () {
-                calledSticky = true;
-                return true;
-            };
-            Object.defineProperty(re, "sticky", {get: getSticky});
-
-            var result = re[Symbol.match]("a-a-ba-");
-
-            assert.isTrue(calledSticky, "'sticky' getter is called");
-            assert.areEqual(null, result, "result");
-        }
-    },
-    {
-        name: "RegExp.prototype[@@match] should coerce a missing 'sticky' to 'false'",
-        body: function () {
-            var re = /a-/y;
-            re.lastIndex = 1; // RegExpBuiltinExec will ignore this and start from 0
-
-            var result;
-            helpers.withPropertyDeleted(RegExp.prototype, "sticky", function () {
                 result = re[Symbol.match]("a-a-ba-");
             });
 
@@ -1208,27 +1202,141 @@ var tests = [
             verifySymbolSplitResult(assertResult, re, input, limit);
         }
     },
+    {
+        name: "RegExp constructor should use the internal slots of a RegExp instead of the properties",
+        body: function () {
+            var pattern = "pattern";
+            var flags = "g";
+            var re = new RegExp(pattern, flags);
+            Object.defineProperty(re, "source", {value: "overridden source"});
+            Object.defineProperty(re, "flags", {value: "i"});
+
+            var newRe = new RegExp(re);
+
+            assert.areEqual(pattern, newRe.source, "source");
+            assert.areEqual(flags, newRe.flags, "flags");
+        }
+    },
+    {
+        name: "RegExp constructor should use 'source' and 'flags' properties of a RegExp-like object",
+        body: function () {
+            var re = {
+                [Symbol.match]: true,
+                source: "a(b)+((c))?|123",
+                flags: "gi",
+            };
+
+            var newRe = new RegExp(re);
+
+            assert.areEqual(re.source, newRe.source, "source");
+            assert.areEqual(re.flags, newRe.flags, "flags");
+        }
+    },
+    {
+        name: "RegExp constructor should use the 'flags' property of a RegExp-like Object when the 'flags' argument is undefined",
+        body: function () {
+            var re = {
+                [Symbol.match]: true,
+                flags: "gi",
+            };
+            var flagsArg = undefined;
+
+            var newRe = new RegExp(re, flagsArg);
+
+            assert.areEqual(re.flags, newRe.flags);
+        }
+    },
+    {
+        name: "RegExp constructor should ignore the 'flags' property of a RegExp-like Object when the 'flags' argument isn't undefined",
+        body: function () {
+            var re = {
+                [Symbol.match]: true,
+                flags: "g",
+            };
+            var flagsArg = "i";
+
+            var newRe = new RegExp(re, flagsArg);
+
+            assert.areEqual(flagsArg, newRe.flags);
+        }
+    },
+    {
+        name: "RegExp constructor should return a RegExp object as is when it is called as a function and no 'flags' is passed and 'constructor' is the RegExp constructor",
+        body: function () {
+            var re = /./;
+            re.constructor = RegExp;
+
+            var newRe = RegExp(re);
+
+            assert.areEqual(re, newRe);
+        }
+    },
+    {
+        name: "RegExp constructor should create a new RegExp object from a RegExp object when it is called as a function and no 'flags' is passed and 'constructor' isn't the RegExp constructor",
+        body: function () {
+            var re = /./;
+            re.constructor = Object;
+
+            var newRe = RegExp(re);
+
+            assert.areNotEqual(re, newRe, "new object");
+            assert.isTrue(newRe instanceof RegExp, "RegExp instance");
+        }
+    },
+    {
+        name: "RegExp constructor should return a RegExp-like object as is when it is called as a function and no 'flags' is passed and 'constructor' is the RegExp constructor",
+        body: function () {
+            var re = {
+                [Symbol.match]: true
+            };
+            re.constructor = RegExp;
+
+            var newRe = RegExp(re);
+
+            assert.areEqual(re, newRe);
+        }
+    },
+    {
+        name: "RegExp constructor should create a new RegExp object from a RegExp-like object when it is called as a function and no 'flags' is passed and 'constructor' isn't the RegExp constructor",
+        body: function () {
+            var re = {
+                [Symbol.match]: true
+            };
+            re.constructor = Object;
+
+            var newRe = RegExp(re);
+
+            assert.areNotEqual(re, newRe, "new object");
+            assert.isTrue(newRe instanceof RegExp, "RegExp instance");
+        }
+    },
 ];
 tests = tests.concat(
     // match
     createGenericTestsForSymbol("match", "[Symbol.match]", 1, [], "@@match", Symbol.match),
     createTestsForRegExpTypeWhenInvalidRegExpExec("@@match", Symbol.match),
     createTestsForBuiltInSymbolMethod("match", [], "@@match", Symbol.match),
-    createTestsForSymbolToExecDelegation(testThisSameRegExp, "@@match", Symbol.match),
+    createTestsForExecDelegation(testThisSameRegExp, "@@match", Symbol.match),
 
     // replace
     createGenericTestsForSymbol("replace", "[Symbol.replace]", 2, ["replaceValue"], "@@replace", Symbol.replace),
-    createTestsForSymbolToExecDelegation(testThisSameRegExp, "@@replace", Symbol.replace),
+    createTestsForExecDelegation(testThisSameRegExp, "@@replace", Symbol.replace),
 
     // search
     createGenericTestsForSymbol("search", "[Symbol.search]", 1, [], "@@search", Symbol.search),
     createTestsForRegExpTypeWhenInvalidRegExpExec("@@search", Symbol.search),
     createTestsForBuiltInSymbolMethod("search", [], "@@search", Symbol.search),
-    createTestsForSymbolToExecDelegation(testThisSameRegExp, "@@search", Symbol.search),
+    createTestsForExecDelegation(testThisSameRegExp, "@@search", Symbol.search),
 
     // split
     createGenericTestsForSymbol("split", "[Symbol.split]", 2, [/* limit */ 123], "@@split", Symbol.split),
-    createTestsForSymbolToExecDelegation(testThisNewRegExp, "@@split", Symbol.split),
+    createTestsForExecDelegation(testThisNewRegExp, "@@split", Symbol.split),
+
+    // test
+    createTestsForThisObjectType("'test'", "test"),
+    createTestsForStringCoercion("'test'", "test"),
+    createTestsForRegExpTypeWhenInvalidRegExpExec("'test'", "test"),
+    createTestsForExecDelegation(testThisSameRegExp, "'test'", "test"),
 );
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

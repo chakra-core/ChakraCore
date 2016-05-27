@@ -5,9 +5,9 @@
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
-    /*
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
+    /*
     var i4splat = i4.splat;
     
     var i4fromFloat32x4 = i4.fromFloat32x4;
@@ -37,7 +37,7 @@ function asmModule(stdlib, imports) {
     var f4 = stdlib.SIMD.Float32x4;  
     var f4check = f4.check;
     var f4splat = f4.splat;
-    
+    var i8extractLane = i8.extractLane;
     var f4fromInt32x4 = f4.fromInt32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     var f4abs = f4.abs;
@@ -62,10 +62,6 @@ function asmModule(stdlib, imports) {
     var f4greaterThanOrEqual = f4.greaterThanOrEqual;
 
     var f4select = f4.select;
-    var f4and = f4.and;
-    var f4or = f4.or;
-    var f4xor = f4.xor;
-    var f4not = f4.not;
 
     
     var fround = stdlib.Math.fround;
@@ -179,8 +175,38 @@ function asmModule(stdlib, imports) {
 
         return +ret;
     }
-    
-    return {func1:func1, func2:func2, func3:func3, func4:func4/*, func5:func5, func6:func6*/};
+
+    function fctest(a)
+    {
+        a = i8check(a);
+        return a;
+    }
+    function fcBug_1()
+    {
+        var x = i4(-1, -2, -3, -4);
+        var k = i8(1, 2, 3, 4, 5, 6, 7, 8);
+        k = i8check(fctest(k));
+        return i4check(x);
+    }
+    function fcBug_2()
+    {
+        var x = i4(-1, -2, -3, -4);
+        var k = i8(1, 2, 3, 4, 5, 6, 7, 8);
+        x = i4check(fcBug_1());
+        return i8check(k);
+    }
+
+    //Validation will fail with the bug
+    function retValueCoercionBug()
+    {
+        var ret = 0.0;
+        var ret1 = 0;
+        var a = i8(1,2,3,4,5,6,7,8);
+        ret = +i8extractLane(a, 0);
+        ret1 = (i8extractLane(a, 0))|0;
+    }
+
+    return {func1:func1, func2:func2, func3:func3, func4:func4, fcBug_2:fcBug_2, fcBug_1:fcBug_1/*, func5:func5, func6:func6*/};
 }
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int16x8(-1065353216, -1073741824,-1077936128, -1082130432, -1065353216, -1073741824,-1077936128, -1082130432)});
@@ -198,6 +224,8 @@ var ret1 = m.func1(s1, s2);
 var ret2 = m.func2(s1, s2, s3, s4);
 var ret3 = m.func3(s1, s2, s3, s4, s5, s6, s7, s8);
 var ret4 = m.func4();
+var c1 = m.fcBug_1();
+var c2 = m.fcBug_2();
 
 
 /* printSimdBaseline(ret1, "SIMD.Int16x8", "ret1", "func1");
@@ -209,6 +237,8 @@ equalSimd([0, 0, 0, 0, 0, 0, 0, 0], ret1, SIMD.Int16x8, "func1")
 equalSimd([0, 0, 0, 0, 0, 0, 0, 0], ret2, SIMD.Int16x8, "func2")
 equalSimd([0, 0, 0, 0, 0, 0, 0, 0], ret3, SIMD.Int16x8, "func3")
 equalSimd([-1, -2, -3, -4, -5, -6, -7, -8], ret4, SIMD.Int16x8, "func4")
+equalSimd([-1, -2, -3, -4], c1, SIMD.Int32x4, 'fcBug1');
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8], c2, SIMD.Int16x8, 'fcBug2');
 
 print("PASS");
 

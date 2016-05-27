@@ -742,6 +742,25 @@ var tests = [
             inst[b].toString();
             assert.areEqual("barzee",inst[b].name);
         }
+    },
+	{
+        name: "Issue 539 Fix: preserve the shortNameOffset per append",
+        body: function()
+        {
+            class C { foo(){} };
+            assert.areEqual("foo",(new C).foo.name);
+        }
+    },
+	{
+        name: "Getter and setter have correct name in defineProperty",
+        body: function()
+        {
+            var obj = {};
+            Object.defineProperty(obj, 'test', {get : function () {}, set : function () {} });
+            var desc = Object.getOwnPropertyDescriptor(obj, 'test');
+            assert.areEqual("get", desc.get.name);
+            assert.areEqual("set", desc.set.name);
+        }
     }
 
 ];

@@ -253,7 +253,7 @@ SWAP_BP_FOR_OPCODE:
                     {
                         bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 8;
                     }
-                    else 
+                    else
                     {
                         Assert(prefixOp == INTERPRETER_OPCODE::DblExtendedMediumLayoutPrefix);
                         bias = INTERPRETER_OPCODE::ExtendedOpcodePrefix << 9;

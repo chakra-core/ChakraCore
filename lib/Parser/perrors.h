@@ -93,11 +93,10 @@ LSC_ERROR_MSG(1083, ERRBadAwait, "'await' expression not allowed in this context
 
 LSC_ERROR_MSG(1084, ERRGetterMustHaveNoParameters, "Getter functions must have no parameters")
 
-LSC_ERROR_MSG(1085, ERRFuncRefFormalNotSupportedInParamScope, "Formals cannot contain functions definitions that reference them")
-LSC_ERROR_MSG(1086, ERREvalNotSupportedInParamScope, "'eval' is not allowed in the default initializer")
-LSC_ERROR_MSG(1087, ERRInvalidUseofExponentiationOperator, "Invalid unary operator on the left hand side of exponentiation (**) operator")
+LSC_ERROR_MSG(1085, ERREvalNotSupportedInParamScope, "'eval' is not allowed in the default initializer")
+LSC_ERROR_MSG(1086, ERRInvalidUseofExponentiationOperator, "Invalid unary operator on the left hand side of exponentiation (**) operator")
 
-LSC_ERROR_MSG(1088, ERRInvalidModuleImportOrExport, "Module import or export statement unexpected here")
-LSC_ERROR_MSG(1089, ERRInvalidExportName, "Unable to resolve module export name")
+LSC_ERROR_MSG(1087, ERRInvalidModuleImportOrExport, "Module import or export statement unexpected here")
+LSC_ERROR_MSG(1088, ERRInvalidExportName, "Unable to resolve module export name")
 
-LSC_ERROR_MSG(1090, ERRLetIDInLexicalDecl, "'let' is not an allowed identifier in lexical declarations")
+LSC_ERROR_MSG(1089, ERRLetIDInLexicalDecl, "'let' is not an allowed identifier in lexical declarations")

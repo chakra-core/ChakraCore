@@ -230,6 +230,11 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
     BailOutInfo *const bailOutInfo = instr->GetBailOutInfo();
     IR::Instr *firstInstr = instr->m_prev;
 
+    // Code analysis doesn't do inter-procesure analysis and cannot infer the value of registerSaveSymsCount,
+    // but the passed in registerSaveSymsCount is static value RegNumCount-1, so reg-1 in below loop is always a valid index.
+    __analysis_assume(static_cast<int>(registerSaveSymsCount) == static_cast<int>(RegNumCount-1));
+    Assert(static_cast<int>(registerSaveSymsCount) == static_cast<int>(RegNumCount-1));
+
     // Save registers used for parameters, and rax, if necessary, into the shadow space allocated for register parameters:
     //     mov  [rsp + 16], rdx
     //     mov  [rsp + 8], rcx

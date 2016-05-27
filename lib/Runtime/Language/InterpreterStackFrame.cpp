@@ -1404,20 +1404,20 @@ namespace Js
         }
 
         RegSlot closureReg = executeFunction->GetLocalClosureRegister();
+        Var funcExprScope = nullptr;
         if (closureReg != Js::Constants::NoRegister)
         {
             Assert(closureReg >= executeFunction->GetConstantCount());
             if (executeFunction->HasScopeObject())
             {
                 Js::RegSlot funcExprScopeReg = executeFunction->GetFuncExprScopeRegister();
-                if (funcExprScopeReg != Constants::NoRegister)
+                if (funcExprScopeReg != Constants::NoRegister && this->paramClosure == nullptr)
                 {
                     // t0 = NewPseudoScope
                     // t1 = LdFrameDisplay t0 env
 
-                    Var funcExprScope = JavascriptOperators::OP_NewPseudoScope(GetScriptContext());
+                    funcExprScope = JavascriptOperators::OP_NewPseudoScope(GetScriptContext());
                     SetReg(funcExprScopeReg, funcExprScope);
-                    environment = OP_LdFrameDisplay(funcExprScope, environment, GetScriptContext());
                 }
 
                 this->NewScopeObject();
@@ -1433,6 +1433,11 @@ namespace Js
         if (frameDisplayReg != Js::Constants::NoRegister && closureReg != Js::Constants::NoRegister)
         {
             Assert(frameDisplayReg >= executeFunction->GetConstantCount());
+
+            if (funcExprScope != nullptr)
+            {
+                environment = OP_LdFrameDisplay(funcExprScope, environment, GetScriptContext());
+            }
 
             void *argHead = this->GetLocalClosure();
             this->SetLocalFrameDisplay(this->NewFrameDisplay(argHead, environment));
@@ -3803,7 +3808,8 @@ namespace Js
         DynamicProfileInfo * dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
         FunctionInfo* functionInfo = function->GetTypeId() == TypeIds_Function?
             JavascriptFunction::FromVar(function)->GetFunctionInfo() : nullptr;
-        dynamicProfileInfo->RecordCallSiteInfo(functionBody, profileId, functionInfo, functionInfo ? static_cast<JavascriptFunction*>(function) : nullptr, playout->ArgCount, false, inlineCacheIndex);
+        bool isConstructorCall = (CallFlags_New & flags) == CallFlags_New;
+        dynamicProfileInfo->RecordCallSiteInfo(functionBody, profileId, functionInfo, functionInfo ? static_cast<JavascriptFunction*>(function) : nullptr, playout->ArgCount, isConstructorCall, inlineCacheIndex);
         OP_CallCommon<T>(playout, function, flags, spreadIndices);
         if (playout->Return != Js::Constants::NoRegister)
         {
@@ -6619,6 +6625,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         // Save the current closure. We have to use this while copying the initial value of body symbols
         // from the corresponding symbols in the param.
         this->SetParamClosure(this->GetLocalClosure());
+        this->SetNonVarReg(executeFunction->GetParamClosureRegister(), this->GetLocalClosure());
 
         this->SetIsParamScopeDone(true);
 
@@ -7521,7 +7528,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
 
-        value = SIMDLdData(data, dataWidth);
+        value = SIMDUtils::SIMDLdData(data, dataWidth);
         SetRegRawSimd(dstReg, value);
     }
 
@@ -7542,7 +7549,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
 
-        value = SIMDLdData(data, dataWidth);
+        value = SIMDUtils::SIMDLdData(data, dataWidth);
         SetRegRawSimd(dstReg, value);
     }
 
@@ -7562,7 +7569,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
-        SIMDStData(data, value, dataWidth);
+        SIMDUtils::SIMDStData(data, value, dataWidth);
     }
 
     template <class T>
@@ -7581,7 +7588,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
-        SIMDStData(data, value, dataWidth);
+        SIMDUtils::SIMDStData(data, value, dataWidth);
 
     }
 

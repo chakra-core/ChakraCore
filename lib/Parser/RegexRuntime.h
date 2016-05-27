@@ -650,7 +650,7 @@ namespace UnifiedRegex
 #define INST_BODY_PRINT
 #endif
 
-#define REGEX_INST_EXEC_PARAMETERS Matcher& matcher, const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount& inputOffset, CharCount &nextSyncInputOffset, const uint8*& instPointer, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks
+#define REGEX_INST_EXEC_PARAMETERS Matcher& matcher, const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount& inputOffset, CharCount &nextSyncInputOffset, const uint8*& instPointer, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks, bool firstIteration
 #define INST_BODY bool Exec(REGEX_INST_EXEC_PARAMETERS) const; \
                   INST_BODY_PRINT
 
@@ -1702,6 +1702,22 @@ namespace UnifiedRegex
         GroupInfo* groupInfos;
         LoopInfo* loopInfos;
 
+        // Furthest offsets in the input string that we tried to match during a scan.
+        // This is used to prevent unnecessary retraversal of the input string.
+        //
+        // Assume we have the RegExp /<(foo|bar)/ and the input string "<0bar<0bar<0bar".
+        // When we try to match the string, we first scan it fully for "foo", but can't
+        // find it. Then we scan for "bar" and find it at index 2. However, since there
+        // is no '<' right before it, we continue with our search. We do the same thing
+        // two more times starting at indexes 7 and 12 (since those are where the "bar"s
+        // are), each time scanning the rest of the string fully for "foo".
+        //
+        // However, if we cache the furthest offsets we tried, we can skip the searches
+        // for "foo" after the first time.
+        CharCount* literalNextSyncInputOffsets;
+
+        Recycler* recycler;
+
         uint previousQcTime;
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -1766,8 +1782,8 @@ namespace UnifiedRegex
         // As above, but control whether to try backtracking or later matches
         __inline bool HardFail(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &inputOffset, const uint8 *&instPointer, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks, HardFailMode mode);
 
-        __inline void Run(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &nextSyncInputOffset, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks);
-        __inline bool MatchHere(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &nextSyncInputOffset, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks);
+        __inline void Run(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &nextSyncInputOffset, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks, bool firstIteration);
+        __inline bool MatchHere(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &nextSyncInputOffset, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks, bool firstIteration);
 
         // Return true if assertion succeeded
         __inline bool PopAssertion(CharCount &inputOffset, const uint8 *&instPointer, ContStack &contStack, AssertionStack &assertionStack, bool isFailed);

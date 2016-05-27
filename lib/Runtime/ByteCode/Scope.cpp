@@ -16,6 +16,8 @@ bool Scope::IsBlockScope(FuncInfo *funcInfo)
 
 void Scope::SetHasLocalInClosure(bool has)
 {
+    SetHasOwnLocalInClosure(has);
+
     // (Note: if any catch var is closure-captured, we won't merge the catch scope with the function scope.
     // So don't mark the function scope "has local in closure".)
     bool notCatch = this->scopeType != ScopeType_Catch && this->scopeType != ScopeType_CatchParamPattern;
@@ -115,40 +117,12 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *by
         return;
     }
 
-    bodyScope->ForEachSymbol([&](Symbol * sym)
-    {
-        // Duplicate 'arguments' - param scope arguments wins.
-        if (byteCodeGenerator->UseParserBindings()
-            && sym->GetDecl()->sxVar.pid == byteCodeGenerator->GetParser()->names()->arguments)
-        {
-            return;
-        }
-
-        Assert(paramScope->m_symList == nullptr || paramScope->FindLocalSymbol(sym->GetName()) == nullptr);
-        paramScope->AddNewSymbol(sym);
-    });
-
-    // Reassign non-formal slot positions. Formals need to keep their slot positions to ensure
-    // the argument object works properly. Other symbols need to be reassigned slot positions.
+    bodyScope->scopeSlotCount = paramScope->scopeSlotCount;
     paramScope->ForEachSymbol([&](Symbol * sym)
     {
-        if (sym->GetSymbolType() != STFormal && sym->GetScopeSlot() != Js::Constants::NoProperty)
-        {
-            sym->SetScopeSlot(Js::Constants::NoProperty);
-            sym->EnsureScopeSlot(pnodeScope->sxFnc.funcInfo);
-        }
-        sym->SetScope(bodyScope);
+        bodyScope->AddNewSymbol(sym);
     });
 
-    bodyScope->m_count = paramScope->m_count;
-    bodyScope->m_symList = paramScope->m_symList;
-    bodyScope->scopeSlotCount = paramScope->scopeSlotCount;
-    if (bodyScope->symbolTable != nullptr)
-    {
-        Adelete(byteCodeGenerator->GetAllocator(), bodyScope->symbolTable);
-        bodyScope->symbolTable = nullptr;
-    }
-    bodyScope->symbolTable = paramScope->symbolTable;
     if (paramScope->GetIsObject())
     {
         bodyScope->SetIsObject();

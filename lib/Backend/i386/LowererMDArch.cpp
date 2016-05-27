@@ -925,15 +925,6 @@ LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= fal
 
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
 
-    if (m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->IsHeapBufferConst())
-    {
-        src1->AsIndirOpnd()->ReplaceBaseOpnd(src1->AsIndirOpnd()->UnlinkIndexOpnd());
-        Js::Var* module = (Js::Var*)m_func->m_workItem->GetEntryPoint()->GetModuleAddress();
-        Js::ArrayBuffer* arrayBuffer = *(Js::ArrayBuffer**)(module + Js::AsmJsModuleMemory::MemoryTableBeginOffset);
-        Assert(arrayBuffer);
-        src1->AsIndirOpnd()->SetOffset((uintptr_t)arrayBuffer->GetBuffer(), true);
-    }
-
     if (isSimdLoad)
     {
         lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
@@ -1001,14 +992,6 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
 
     Lowerer::InsertBranch(Js::OpCode::Br, doneLabel, storeLabel);
 
-    if (m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->IsHeapBufferConst())
-    {
-        dst->AsIndirOpnd()->ReplaceBaseOpnd(dst->AsIndirOpnd()->UnlinkIndexOpnd());
-        Js::Var* module = (Js::Var*)m_func->m_workItem->GetEntryPoint()->GetModuleAddress();
-        Js::ArrayBuffer* arrayBuffer = *(Js::ArrayBuffer**)(module + Js::AsmJsModuleMemory::MemoryTableBeginOffset);
-        Assert(arrayBuffer);
-        dst->AsIndirOpnd()->SetOffset((uintptr_t)arrayBuffer->GetBuffer(), true);
-    }
     return doneLabel;
 }
 
@@ -1577,10 +1560,10 @@ LowererMDArch::LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr)
     IR::RegOpnd * ebpOpnd = IR::RegOpnd::New(nullptr, GetRegBlockPointer(), TyMachReg, m_func);
     IR::RegOpnd * espOpnd = IR::RegOpnd::New(nullptr, GetRegStackPointer(), TyMachReg, m_func);
 
-    // Generate PUSH EBP
-    IR::Instr * pushInstr = IR::Instr::New(Js::OpCode::PUSH, m_func);
-    pushInstr->SetSrc1(ebpOpnd);
-    insertInstr->InsertBefore(pushInstr);
+    // Generate PUSH EBP    
+    IR::Instr * pushEbpInstr = IR::Instr::New(Js::OpCode::PUSH, m_func);
+    pushEbpInstr->SetSrc1(ebpOpnd);
+    insertInstr->InsertBefore(pushEbpInstr);
 
     // Generate MOV EBP, ESP
     IR::Instr * movInstr = IR::Instr::New(Js::OpCode::MOV, ebpOpnd, espOpnd, m_func);

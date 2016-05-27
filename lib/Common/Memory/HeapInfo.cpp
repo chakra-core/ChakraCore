@@ -12,7 +12,7 @@
 #error "Platform is not handled"
 #endif
 
-template __forceinline char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat);
+template __forceinline char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat, size_t size);
 
 HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>  HeapInfo::smallAllocValidPointersMap;
 HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes> HeapInfo::mediumAllocValidPointersMap;
@@ -505,10 +505,11 @@ HeapInfo::Initialize(Recycler * recycler
     if (pageheapmode == PageHeapMode::PageHeapModeOff)
     {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        isPageHeapEnabled = Js::Configuration::Global.flags.PageHeap != PageHeapMode::PageHeapModeOff;
-        pageheapmode = (PageHeapMode)Js::Configuration::Global.flags.PageHeap;
-        blockTypeFilter = (PageHeapBlockTypeFilter)Js::Configuration::Global.flags.PageHeapBlockType;
-        pBucketNumberRange = &Js::Configuration::Global.flags.PageHeapBucketNumber;
+        isPageHeapEnabled = recycler->GetRecyclerFlagsTable().PageHeap != PageHeapMode::PageHeapModeOff;
+        pageheapmode = (PageHeapMode)recycler->GetRecyclerFlagsTable().PageHeap;
+        blockTypeFilter = (PageHeapBlockTypeFilter)recycler->GetRecyclerFlagsTable().PageHeapBlockType;
+        pBucketNumberRange = &recycler->GetRecyclerFlagsTable().PageHeapBucketNumber;
+
 #else
         // @TODO in free build, use environment var or other way to enable page heap
         // currently page heap build is enable in free build but has not implemented a way to input the page heap flags.
@@ -528,8 +529,8 @@ HeapInfo::Initialize(Recycler * recycler
         this->captureFreeCallStack = captureFreeCallStack;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        this->captureAllocCallStack = captureAllocCallStack || Js::Configuration::Global.flags.PageHeapAllocStack;
-        this->captureFreeCallStack = captureFreeCallStack || Js::Configuration::Global.flags.PageHeapFreeStack;
+        this->captureAllocCallStack = captureAllocCallStack || recycler->GetRecyclerFlagsTable().PageHeapAllocStack;
+        this->captureFreeCallStack = captureFreeCallStack || recycler->GetRecyclerFlagsTable().PageHeapFreeStack;
 #endif
     }
 #endif
@@ -637,8 +638,7 @@ bool HeapInfo::IsPageHeapEnabledForBlock(const size_t objectSize)
         }
         else
         {
-            // Page heap is enabled for large heap by default if page heap mode is on
-            return true;
+            return ((byte)this->pageHeapBlockType & (byte)PageHeapBlockTypeFilter::PageHeapBlockTypeFilterLarge) != 0;
         }
     }
     return false;
@@ -878,20 +878,19 @@ HeapInfo::AddLargeHeapBlock(size_t size)
     return largeObjectBucket.AddLargeHeapBlock(size, /* nothrow = */ true);
 }
 
-template<bool pageheap>
-void HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
+void HeapInfo::SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent)
 {
     Recycler * recycler = recyclerSweep.GetRecycler();
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
-        heapBuckets[i].SweepFinalizableObjects<pageheap>(recyclerSweep);
+        heapBuckets[i].SweepFinalizableObjects(recyclerSweep);
     }
 
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
     // CONCURRENT-TODO: Allow this in the background as well
     for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
     {
-        mediumHeapBuckets[i].SweepFinalizableObjects<pageheap>(recyclerSweep);
+        mediumHeapBuckets[i].SweepFinalizableObjects(recyclerSweep);
     }
 #endif
 
@@ -910,7 +909,7 @@ void HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
     else
 #endif
     {
-        this->SweepSmallNonFinalizable<pageheap>(recyclerSweep);
+        this->SweepSmallNonFinalizable(recyclerSweep);
     }
 
     RECYCLER_PROFILE_EXEC_CHANGE(recycler, Js::SweepSmallPhase, Js::SweepLargePhase);
@@ -919,10 +918,10 @@ void HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
     // CONCURRENT-TODO: Allow this in the background as well
     for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
     {
-        mediumHeapBuckets[i].Sweep<pageheap>(recyclerSweep);
+        mediumHeapBuckets[i].Sweep(recyclerSweep);
     }
 #endif
-    largeObjectBucket.Sweep<pageheap>(recyclerSweep);
+    largeObjectBucket.Sweep(recyclerSweep);
 }
 
 void
@@ -964,14 +963,7 @@ HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
 #endif
 #endif
 
-    if (IsPageHeapEnabled())
-    {
-        Sweep<true>(recyclerSweep, concurrent);
-    }
-    else
-    {
-        Sweep<false>(recyclerSweep, concurrent);
-    }
+    SweepBuckets(recyclerSweep, concurrent);
 
     RECYCLER_PROFILE_EXEC_END(recycler, Js::SweepLargePhase);
     RECYCLER_SLOW_CHECK(VerifyLargeHeapBlockCount());
@@ -996,7 +988,6 @@ HeapInfo::SetupBackgroundSweep(RecyclerSweep& recyclerSweep)
 }
 #endif
 
-template<bool pageheap>
 void
 HeapInfo::SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep)
 {
@@ -1021,13 +1012,13 @@ HeapInfo::SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep)
     }
     for (uint i=0; i<HeapConstants::BucketCount; i++)
     {
-        heapBuckets[i].Sweep<pageheap>(recyclerSweep);
+        heapBuckets[i].Sweep(recyclerSweep);
     }
 
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
     for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
     {
-        mediumHeapBuckets[i].Sweep<pageheap>(recyclerSweep);
+        mediumHeapBuckets[i].Sweep(recyclerSweep);
     }
 #endif
 
