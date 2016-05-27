@@ -240,7 +240,7 @@ namespace Js
                         this->UpdateFrameDisplay(stackFunction);
                     }
 
-                    if (walker.IsBailedOutFromInlinee())
+                    if (walker.IsBailedOutFromInlinee() && !walker.IsCurrentPhysicalFrameForLoopBody())
                     {
                         // this is the interpret frame from bailing out of inline frame
                         // Just mark we have inlinee to box so we will walk the native frame's list when we get there.
