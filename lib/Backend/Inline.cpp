@@ -327,7 +327,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                             }
 
                             if (!inliningHeuristics.BackendInlineIntoInliner(inlineeData->GetFunctionBody(),
-                                func->GetJnFunction(), this->topFunc, profileId, isCtor, true /*isFixedMethodCall*/,
+                                func, this->topFunc, profileId, isCtor, true /*isFixedMethodCall*/,
                                 this->IsInliningOutSideLoops(), this->isInLoop != 0, recursiveInlineDepth, constantArguments))
                             {
                                 break;
@@ -1187,6 +1187,7 @@ Inline::BuildInlinee(Js::FunctionBody* funcBody, const InlineeData& inlineeData,
         funcBody->GetScriptContext()->GetNativeCodeGenerator(), funcBody, functionEntryPointInfo, this->topFunc->IsJitInDebugMode());
     workItem->SetRecyclableData(JitAnew(this->topFunc->m_alloc, Js::CodeGenRecyclableData, inlineeData.inlineeJitTimeData));
     workItem->SetJitMode(this->topFunc->GetWorkItem()->GetJitMode());
+
 #if 0
     const auto profileInfo =
         JitAnew(
@@ -1297,7 +1298,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
         const wchar_t* calleeName = calleeFunctionBody != nullptr ? calleeFunctionBody->GetDisplayName() : L"<unknown>";
 
         Output::Print(L"FixedFields: function %s (%s): considering method <unknown> (%s %s): polymorphic = %d, built-in = %d, ctor = %d, inlined = %d, functionInfo = %p.\n",
-            callInstr->m_func->GetWorkItem()->GetDisplayName(), callInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), calleeName,
+            callInstr->m_func->GetJITFunctionBody()->GetDisplayName(), callInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), calleeName,
             calleeFunctionBody ? calleeFunctionBody->GetDebugNumberSet(debugStringBuffer2) : L"(null)",
             isPolymorphic, isBuiltIn, isCtor, isInlined, functionInfo);
         Output::Flush();
@@ -1319,7 +1320,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
             const wchar_t* calleeName = calleeFunctionBody != nullptr ? calleeFunctionBody->GetDisplayName() : L"<unknown>";
 
             Output::Print(L"FixedFields: function %s (%s): %s non-fixed method <unknown> (%s %s), because callee is not single def.\n",
-                callInstr->m_func->GetWorkItem()->GetDisplayName(), callInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                callInstr->m_func->GetJITFunctionBody()->GetDisplayName(), callInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 functionInfo != nullptr ? L"inlining" : L"calling", calleeName,
                 calleeFunctionBody ? calleeFunctionBody->GetDebugNumberSet(debugStringBuffer2) : L"(null)");
             Output::Flush();
@@ -1344,7 +1345,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, Js::FunctionIn
             const wchar_t* calleeName = calleeFunctionBody != nullptr ? calleeFunctionBody->GetDisplayName() : L"<unknown>";
 
             Output::Print(L"FixedFields: function %s (%s): %s non-fixed method <unknown> (%s %s), because callee does not come from LdMethodFld.\n",
-                callInstr->m_func->GetWorkItem()->GetDisplayName(), callInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                callInstr->m_func->GetJITFunctionBody()->GetDisplayName(), callInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 functionInfo != nullptr ? L"inlining" : L"calling", calleeName,
                 calleeFunctionBody ? calleeFunctionBody->GetDebugNumberSet(debugStringBuffer2) : L"(null)");
             Output::Flush();
@@ -2484,7 +2485,7 @@ bool Inline::InlineApplyTarget(IR::Instr *callInstr, const Js::FunctionCodeGenJi
     if (this->isApplyTargetInliningInProgress)
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping apply target inlining, Recursive apply inlining is not supported \tCaller: %s\t(%s) \tTop Func:%s\t(%s)\n", inlinerData->GetFunctionBody()->GetDisplayName(),
-                                inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer), this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
+                                inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer), this->topFunc->GetJITFunctionBody()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
         return false;
     }
 
@@ -2523,7 +2524,7 @@ bool Inline::InlineApplyTarget(IR::Instr *callInstr, const Js::FunctionCodeGenJi
     if (callInstr->m_func->IsTopFunc())
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping apply target inlining in top func\tCaller: %s\t(%s) \tTop Func:%s\t(%s)\n", inlinerData->GetFunctionBody()->GetDisplayName(),
-            inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer), this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
+            inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer), this->topFunc->GetJITFunctionBody()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
         return false;
     }
 
@@ -2923,7 +2924,7 @@ Inline::SkipCallApplyTargetInlining_Shared(IR::Instr *callInstr, const Js::Funct
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping %s target inlining, Fixed Methods turned off\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n", isApplyTarget ? L"apply" : L"call" ,
             inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
+            this->topFunc->GetJITFunctionBody()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
         return true;
     }
 
@@ -2931,7 +2932,7 @@ Inline::SkipCallApplyTargetInlining_Shared(IR::Instr *callInstr, const Js::Funct
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping %s target inlining, inlineeData not present\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n", isApplyTarget ? L"apply" : L"call",
             inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
+            this->topFunc->GetJITFunctionBody()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
         return true;
     }
 
@@ -2941,7 +2942,7 @@ Inline::SkipCallApplyTargetInlining_Shared(IR::Instr *callInstr, const Js::Funct
         {
             INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping .call inlining, target is a built-in\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n",
                 inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-                this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
+                this->topFunc->GetJITFunctionBody()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2));
         }
         return true;
     }
@@ -2951,7 +2952,7 @@ Inline::SkipCallApplyTargetInlining_Shared(IR::Instr *callInstr, const Js::Funct
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping %s target inlining, not registered as a LdFld inlinee \tInlinee: %s (#%d)\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n", isApplyTarget ? L"apply" : L"call",
             inlineeData->GetFunctionBody()->GetDisplayName(), inlineeData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
-            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer3));
+            this->topFunc->GetJITFunctionBody()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer3));
         return true;
     }
 
@@ -2996,7 +2997,7 @@ Inline::TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const Js::Fu
             INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping %s target inlining, did not get fixed method for %s target \tInlinee: %s (#%d)\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n", isApplyTarget ? L"apply" : L"call", isApplyTarget ? L"apply" : L"call",
                 inlineeData->GetFunctionBody()->GetDisplayName(), inlineeData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
-                this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer3));
+                this->topFunc->GetJITFunctionBody()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer3));
             return false;
         }
     }
@@ -3005,7 +3006,7 @@ Inline::TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const Js::Fu
         INLINE_TESTTRACE(L"INLINING: Skip Inline: Skipping %s target inlining, did not get fixed method for %s \tInlinee: %s (#%d)\tCaller: %s\t(#%d) \tTop Func:%s\t(#%d)\n", isApplyTarget ? L"apply" : L"call", isApplyTarget ? L"apply" : L"call",
             inlineeData->GetFunctionBody()->GetDisplayName(), inlineeData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
-            this->topFunc->GetWorkItem()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer3));
+            this->topFunc->GetJITFunctionBody()->GetDisplayName(), this->topFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer3));
         return false;
     }
 

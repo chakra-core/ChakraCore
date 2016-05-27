@@ -32,6 +32,8 @@ public:
     Js::ImplicitCallFlags GetImplicitCallFlags() const;
     Js::LoopFlags GetLoopFlags(uint loopNum) const;
 
+    uint16 GetConstantArgInfo(Js::ProfileId callSiteId) const;
+
     bool IsModulusOpByPowerOf2(Js::ProfileId profileId) const;
 
     bool IsAggressiveIntTypeSpecDisabled(const bool isJitLoopBody) const;
@@ -55,6 +57,7 @@ public:
     bool IsLoopCountBasedBoundCheckHoistDisabled(const bool isJitLoopBody) const;
     bool IsFloorInliningDisabled() const;
     bool IsNoProfileBailoutsDisabled() const;
+    bool HasLdFldCallSiteInfo() const;
 
 private:
     enum ProfileDataFlags
@@ -90,7 +93,8 @@ private:
         Flags_disableEquivalentObjTypeSpec = 1 << 27,
         Flags_disableObjTypeSpec_jitLoopBody = 1 << 28,
         Flags_disableMemOp = 1 << 29,
-        Flags_disableCheckThis = 1 << 30
+        Flags_disableCheckThis = 1 << 30,
+        Flags_hasLdFldCallSiteInfo = 1 << 31
     };
 
     Js::ProfileId GetProfiledArrayCallSiteCount() const;

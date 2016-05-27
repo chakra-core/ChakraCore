@@ -3136,7 +3136,7 @@ IRBuilder::BuildProfiledSlotLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::Sy
             char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             valueType.ToString(valueTypeStr);
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"TestTrace function %s (#%s) ValueType = %S ", m_func->GetWorkItem()->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
+            Output::Print(L"TestTrace function %s (#%s) ValueType = %S ", m_func->GetJITFunctionBody()->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
             instr->DumpTestTrace();
         }
 #endif
@@ -3900,7 +3900,7 @@ IRBuilder::BuildProfiledFieldLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::S
             char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             valueType.ToString(valueTypeStr);
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"TestTrace function %s (%s) ValueType = %i ", m_func->GetWorkItem()->GetDisplayName(), m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
+            Output::Print(L"TestTrace function %s (%s) ValueType = %i ", m_func->GetJITFunctionBody()->GetDisplayName(), m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
             instr->DumpTestTrace();
         }
 #endif

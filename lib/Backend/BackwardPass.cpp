@@ -705,9 +705,9 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                 {
                     wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(L"ObjTypeSpec: top function %s (%s), function %s (%s), write guard symbols on edge %d => %d: ",
-                        this->func->GetTopFunc()->GetWorkItem()->GetDisplayName(),
+                        this->func->GetTopFunc()->GetJITFunctionBody()->GetDisplayName(),
                         this->func->GetTopFunc()->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-                        this->func->GetWorkItem()->GetDisplayName(),
+                        this->func->GetJITFunctionBody()->GetDisplayName(),
                         this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2), block->GetBlockNum(),
                         blockSucc->GetBlockNum());
                 }
@@ -754,9 +754,9 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                 {
                     wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(L"ObjTypeSpec: top function %s (%s), function %s (%s), guarded property operations on edge %d => %d: \n",
-                        this->func->GetTopFunc()->GetWorkItem()->GetDisplayName(),
+                        this->func->GetTopFunc()->GetJITFunctionBody()->GetDisplayName(),
                         this->func->GetTopFunc()->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-                        this->func->GetWorkItem()->GetDisplayName(),
+                        this->func->GetJITFunctionBody()->GetDisplayName(),
                         this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
                         block->GetBlockNum(), blockSucc->GetBlockNum());
                 }
@@ -3974,7 +3974,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                     Js::ScriptContext* scriptContext = this->func->GetScriptContext();
 
                     Output::Print(L"EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) on operation %u \n",
-                        this->func->GetWorkItem()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                         scriptContext->GetPropertyNameLocked(opnd->GetPropertyId())->GetBuffer(), opnd->GetPropertyId(), opnd->GetObjTypeSpecFldId());
                     Output::Flush();
                 }
@@ -5744,7 +5744,7 @@ BackwardPass::EndIntOverflowDoesNotMatterRange()
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(
                 L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n",
-                func->GetWorkItem()->GetDisplayName(),
+                func->GetJITFunctionBody()->GetDisplayName(),
                 func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::PhaseNames[Js::BackwardPhase],
                 currentBlock->GetBlockNum());
@@ -6388,8 +6388,8 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!inlineeStart->m_func->m_hasInlineArgsOpt)
     {
         PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, L"%s[%d]: Skipping inline args optimization: %s[%d] HasCalls: %s 'arguments' access: %s Can do inlinee args opt: %s\n",
-                func->GetWorkItem()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber(),
-                inlineeStart->m_func->GetWorkItem()->GetDisplayName(), inlineeStart->m_func->GetJITFunctionBody()->GetFunctionNumber(),
+                func->GetJITFunctionBody()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber(),
+                inlineeStart->m_func->GetJITFunctionBody()->GetDisplayName(), inlineeStart->m_func->GetJITFunctionBody()->GetFunctionNumber(),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasCalls()),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasUnoptimizedArgumentsAcccess()),
                 IsTrueOrFalse(inlineeStart->m_func->m_canDoInlineArgsOpt));
@@ -6399,7 +6399,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!inlineeStart->m_func->frameInfo->isRecorded)
     {
         PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, L"%s[%d]: InlineeEnd not found - usually due to a throw or a BailOnNoProfile (stressed, most likely)\n",
-            func->GetWorkItem()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber());
+            func->GetJITFunctionBody()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber());
         inlineeStart->m_func->DisableCanDoInlineArgOpt();
         return false;
     }

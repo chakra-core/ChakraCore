@@ -801,7 +801,7 @@ bool Loop::EnsureMemOpVariablesInitialized()
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"MemOp skipped: minimum loop count not reached: Function: %s %s,  Loop: %d\n",
-                              func->GetWorkItem()->GetDisplayName(),
+                              func->GetJITFunctionBody()->GetDisplayName(),
                               func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                               this->GetLoopNumber()
                               );

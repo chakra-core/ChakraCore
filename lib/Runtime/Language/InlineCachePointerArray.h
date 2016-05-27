@@ -9,8 +9,9 @@ namespace Js
     template<class T>
     class InlineCachePointerArray
     {
-    private:
+    public:
         WriteBarrierPtr<T*> inlineCaches;
+    private:
 #if DBG
         uint inlineCacheCount;
 #endif

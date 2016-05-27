@@ -18,6 +18,7 @@
 #include "Language\AsmJSEncoder.h"
 #include "Language\AsmJSCodeGenerator.h"
 #endif
+#include "Language\ObjTypeSpecFldInfo.h"
 #include "Language\FunctionCodeGenJitTimeData.h"
 
 #include "Language\ProfilingHelpers.h"

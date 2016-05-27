@@ -109,10 +109,10 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8Operation.cpp">
-        <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8OperationX86X64.cpp">
-        <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt8x16Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
@@ -156,7 +156,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16OperationX86X64.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
-
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceDynamicProfileManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StackTraceArguments.cpp" />
@@ -170,6 +169,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
+    <ClCompile Include="ObjTypeSpecFldInfo.cpp" />
     <ClCompile Include="SourceTextModuleRecord.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -213,6 +213,7 @@
     <ClInclude Include="JavascriptExceptionOperators.h" />
     <ClInclude Include="JavascriptMathOperators.h" />
     <ClInclude Include="JavascriptNativeOperators.h" />
+    <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="ProfilingHelpers.h" />
     <ClInclude Include="ReadOnlyDynamicProfileInfo.h" />
     <ClInclude Include="SourceDynamicProfileManager.h" />

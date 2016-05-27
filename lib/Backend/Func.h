@@ -73,7 +73,7 @@ public:
         JITOutputData * outputData,
         const Js::FunctionCodeGenJitTimeData *const jitTimeData, const Js::FunctionCodeGenRuntimeData *const runtimeData,
         Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
-        CodeGenNumberAllocator * numberAllocator, JITTimeProfileInfo *const profileInfo,
+        CodeGenNumberAllocator * numberAllocator,
         Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc = nullptr,
         uint postCallByteCodeOffset = Js::Constants::NoByteCodeOffset,
         Js::RegSlot returnValueRegSlot = Js::Constants::NoRegister, const bool isInlinedConstructor = false,
@@ -174,6 +174,11 @@ public:
     }
 
     JITOutput* GetJITOutput()
+    {
+        return &m_output;
+    }
+
+    const JITOutput* GetJITOutput() const
     {
         return &m_output;
     }
@@ -287,6 +292,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
         Assert(this->IsTopFunc());
         return this->GetJITFunctionBody()->IsGlobalFunc();
     }
+    uint16 GetArgUsedForBranch() const;
 
     RecyclerWeakReference<Js::FunctionBody> *GetWeakFuncRef() const;
     // TODO: OOP JIT, remove this
@@ -680,8 +686,8 @@ public:
     bool                GetHasTempObjectProducingInstr() const { return this->hasTempObjectProducingInstr; }
     void                SetHasTempObjectProducingInstr(bool has) { this->hasTempObjectProducingInstr = has; }
 
-    JITTimeProfileInfo * GetProfileInfo() const { return this->profileInfo; }
-    bool                HasProfileInfo() { return this->profileInfo->HasProfileInfo(); }
+    const JITTimeProfileInfo * GetProfileInfo() const { return GetJITFunctionBody()->GetProfileInfo(); }
+    bool                HasProfileInfo() const { return GetJITFunctionBody()->GetProfileInfo()->HasProfileInfo(); }
     bool                HasArrayInfo()
     {
         const auto top = this->GetTopFunc();
@@ -820,7 +826,6 @@ private:
     bool                hasMarkTempObjects;
     Cloner *            m_cloner;
     InstrMap *          m_cloneMap;
-    JITTimeProfileInfo *const profileInfo;
     NativeCodeData::Allocator       nativeCodeDataAllocator;
     NativeCodeData::Allocator       transferDataAllocator;
     CodeGenNumberAllocator *        numberAllocator;

@@ -470,7 +470,7 @@ SCCLiveness::ProcessStackSymUse(StackSym * stackSym, IR::Instr * instr, int usag
     {
 #if DBG
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"Function: %s (%s)       ", this->func->GetWorkItem()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(L"Function: %s (%s)       ", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
         Output::Print(L"Reg: ");
         stackSym->Dump();
         Output::Print(L"\n");

@@ -17,6 +17,7 @@ public:
     void SetHasBailoutInstr(bool val);
     void SetArgUsedForBranch(uint8 param);
 
+    uint16 GetArgUsedForBranch() const;
     intptr_t GetCodeAddress() const;
 
     EmitBufferAllocation * RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize);

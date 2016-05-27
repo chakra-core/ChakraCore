@@ -986,9 +986,11 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             JITOutputData jitWriteData = {0};
             ProfileData profileData;
             JITTimeProfileInfo::InitializeJITProfileData(body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr, body, &profileData);
+
+            workItem->GetJITData()->profileData = body->HasDynamicProfileInfo() ? &profileData : nullptr;
+
             HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
                 workItem->GetJITData(),
-                body->HasDynamicProfileInfo() ? &profileData : nullptr,
                 scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
                 scriptContext->GetRemoteScriptAddr(),
                 &jitWriteData);

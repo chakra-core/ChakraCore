@@ -154,8 +154,7 @@ ServerRemoteCodeGen(
     /* [in] */ __int3264 threadContextInfoAddress,
     /* [in] */ __int3264 scriptContextInfoAddress,
     /* [in] */ CodeGenWorkItemJITData *workItemData,
-    /* [out] */ JITOutputData *jitData,
-    /* [optional, in] */ ProfileData * profileData)
+    /* [out] */ JITOutputData *jitData)
 {
     UNREFERENCED_PARAMETER(binding);
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
@@ -175,7 +174,6 @@ ServerRemoteCodeGen(
     threadContextInfo->BeginJIT();
 
     JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
-    JITTimeProfileInfo * profileInfo = Anew(&jitArena, JITTimeProfileInfo, profileData);
 
     Func func(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, nullptr, threadContextInfo->GetCodeGenAllocators(), nullptr, profileInfo, nullptr, true);
     func.m_symTable->SetStartingID(static_cast<SymID>(jitWorkItem->GetJITFunctionBody()->GetLocalsCount() + 1));

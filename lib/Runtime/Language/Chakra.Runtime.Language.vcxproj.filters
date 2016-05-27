@@ -61,6 +61,21 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeLanguagePch.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
     <ClCompile Include="SourceTextModuleRecord.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUInt32x4Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUInt32x4OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint16x8Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint16x8OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint8x16Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint8x16OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool32x4Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool32x4OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool16x8Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool16x8OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16OperationX86X64.cpp" />
+    <ClCompile Include="ObjTypeSpecFldInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsmJS.h" />
@@ -124,6 +139,14 @@
     <ClInclude Include="RuntimeLanguagePch.h" />
     <ClInclude Include="SourceTextModuleRecord.h" />
     <ClInclude Include="ModuleRecordBase.h" />
+    <ClInclude Include="SIMDInt16x8Operation.h" />
+    <ClInclude Include="SIMDUInt32x4Operation.h" />
+    <ClInclude Include="SIMDUint16x8Operation.h" />
+    <ClInclude Include="SIMDUint8x16Operation.h" />
+    <ClInclude Include="SIMDBool32x4Operation.h" />
+    <ClInclude Include="SIMDBool16x8Operation.h" />
+    <ClInclude Include="SIMDBool8x16Operation.h" />
+    <ClInclude Include="ObjTypeSpecFldInfo.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\amd64_Thunks.asm">

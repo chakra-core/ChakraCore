@@ -13,7 +13,7 @@
         Output::Print( \
             L"Testtrace: %s function %s (%s): ", \
             Js::PhaseNames[phase], \
-            instr->m_func->GetWorkItem()->GetDisplayName(), \
+            instr->m_func->GetJITFunctionBody()->GetDisplayName(), \
             instr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer)); \
         Output::Print(__VA_ARGS__); \
         Output::Flush(); \
@@ -70,7 +70,7 @@
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]; \
         Output::Print( \
             L"Function %s (%s, line %u)", \
-            this->func->GetWorkItem()->GetDisplayName(), \
+            this->func->GetJITFunctionBody()->GetDisplayName(), \
             this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), \
             this->func->GetJnFunction()->GetLineNumber()); \
         if(this->func->IsLoopBody()) \
@@ -81,7 +81,7 @@
         { \
             Output::Print( \
                 L", Inlinee %s (%s, line %u)", \
-                instr->m_func->GetWorkItem()->GetDisplayName(), \
+                instr->m_func->GetJITFunctionBody()->GetDisplayName(), \
                 instr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), \
                 instr->m_func->GetJnFunction()->GetLineNumber()); \
         } \
@@ -123,7 +123,7 @@
 
 #define OUTPUT_MEMOP_TRACE(loop, instr, ...) {\
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];\
-    Output::Print(15, L"Function: %s%s, Loop: %u: ", this->func->GetWorkItem()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), loop->GetLoopNumber());\
+    Output::Print(15, L"Function: %s%s, Loop: %u: ", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), loop->GetLoopNumber());\
     Output::Print(__VA_ARGS__);\
     IR::Instr* __instr__ = instr;\
     if(__instr__) __instr__->DumpByteCodeOffset();\
@@ -3773,9 +3773,9 @@ GlobOpt::TrackArgumentsSym(IR::RegOpnd* opnd)
         wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(L"Created a new alias s%d for arguments object in function %s(%s) topFunc %s(%s)\n",
             opnd->m_sym->m_id,
-            blockData.curFunc->GetWorkItem()->GetDisplayName(),
+            blockData.curFunc->GetJITFunctionBody()->GetDisplayName(),
             blockData.curFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-            this->func->GetWorkItem()->GetDisplayName(),
+            this->func->GetJITFunctionBody()->GetDisplayName(),
             this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2)
             );
         Output::Flush();
@@ -7598,7 +7598,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
                 char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                 baseValueType.ToString(baseValueTypeStr);
                 Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not type specialize, because %s.\n",
-                    this->func->GetWorkItem()->GetDisplayName(),
+                    this->func->GetJITFunctionBody()->GetDisplayName(),
                     this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                     baseValueTypeStr,
@@ -7716,7 +7716,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
         char dstValTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
         dstVal->GetValueInfo()->Type().ToString(dstValTypeStr);
         Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, type specialized to %s producing %S",
-            this->func->GetWorkItem()->GetDisplayName(),
+            this->func->GetJITFunctionBody()->GetDisplayName(),
             this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
             baseValueTypeStr,
@@ -12612,7 +12612,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because %s.\n",
-                this->func->GetWorkItem()->GetDisplayName(),
+                this->func->GetJITFunctionBody()->GetDisplayName(),
                 this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr,
@@ -12667,7 +12667,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
                 char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                 baseValueType.ToString(baseValueTypeStr);
                 Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because src is not specialized.\n",
-                              this->func->GetWorkItem()->GetDisplayName(),
+                              this->func->GetJITFunctionBody()->GetDisplayName(),
                               this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                               Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                               baseValueTypeStr);
@@ -12705,7 +12705,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because index is negative or likely not int.\n",
-                this->func->GetWorkItem()->GetDisplayName(),
+                this->func->GetJITFunctionBody()->GetDisplayName(),
                 this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr);
@@ -12804,7 +12804,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, type specialized to %s.\n",
-                this->func->GetWorkItem()->GetDisplayName(),
+                this->func->GetJITFunctionBody()->GetDisplayName(),
                 this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr,
@@ -12881,7 +12881,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not type specialize, because of array type.\n",
-                this->func->GetWorkItem()->GetDisplayName(),
+                this->func->GetJITFunctionBody()->GetDisplayName(),
                 this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr);
@@ -13372,7 +13372,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                                 Output::Print(
                                     L"BailOut (compile-time): function: %s (%s) varSym: ",
-                                    this->func->GetWorkItem()->GetDisplayName(),
+                                    this->func->GetJITFunctionBody()->GetDisplayName(),
                                     this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                                     varSym->m_id);
     #if DBG_DUMP
@@ -17635,7 +17635,7 @@ GlobOpt::PrepareForIgnoringIntOverflow(IR::Instr *const instr)
                     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(
                         L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u, Disabled ignoring overflows\n",
-                        func->GetWorkItem()->GetDisplayName(),
+                        func->GetJITFunctionBody()->GetDisplayName(),
                         func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
                         Js::PhaseNames[Js::ForwardPhase],
                         currentBlock->GetBlockNum());
@@ -17703,7 +17703,7 @@ GlobOpt::PrepareForIgnoringIntOverflow(IR::Instr *const instr)
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(
             L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n",
-            func->GetWorkItem()->GetDisplayName(),
+            func->GetJITFunctionBody()->GetDisplayName(),
             func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
             Js::PhaseNames[Js::ForwardPhase],
             currentBlock->GetBlockNum());
@@ -17762,7 +17762,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(
             L"BailOut (compile-time): function: %s (%s) instr: ",
-            func->GetWorkItem()->GetDisplayName(),
+            func->GetJITFunctionBody()->GetDisplayName(),
             func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
 #if DBG_DUMP
         instr->Dump();
@@ -19339,7 +19339,7 @@ GlobOpt::CannotAllocateArgumentsObjectOnStack()
     if (PHASE_TESTTRACE(Js::StackArgOptPhase, this->func))
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"Stack args disabled for function %s(%s)\n", func->GetWorkItem()->GetDisplayName(), func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(L"Stack args disabled for function %s(%s)\n", func->GetJITFunctionBody()->GetDisplayName(), func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
         Output::Flush();
     }
 #endif

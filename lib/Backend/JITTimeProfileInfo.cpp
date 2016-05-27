@@ -101,6 +101,7 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->flags |= profileInfo->IsObjTypeSpecDisabledInJitLoopBody() ? Flags_disableObjTypeSpec_jitLoopBody : 0;
     data->flags |= profileInfo->IsMemOpDisabled() ? Flags_disableMemOp : 0;
     data->flags |= profileInfo->IsCheckThisDisabled() ? Flags_disableCheckThis : 0;
+    data->flags |= profileInfo->HasLdFldCallSiteInfo() ? Flags_hasLdFldCallSiteInfo : 0;
 }
 
 bool
@@ -206,6 +207,12 @@ JITTimeProfileInfo::GetLoopFlags(uint loopNum) const
 {
     Assert(GetLoopFlags() != nullptr);
     return GetLoopFlags()->GetRange<Js::LoopFlags>(loopNum * Js::LoopFlags::COUNT, Js::LoopFlags::COUNT);
+}
+
+uint16
+JITTimeProfileInfo::GetConstantArgInfo(Js::ProfileId callSiteId) const
+{
+    return GetCallSiteInfo()[callSiteId].isArgConstant;
 }
 
 bool
@@ -408,6 +415,12 @@ bool
 JITTimeProfileInfo::IsNoProfileBailoutsDisabled() const
 {
     return TestFlag(Flags_disableNoProfileBailouts);
+}
+
+bool
+JITTimeProfileInfo::HasLdFldCallSiteInfo() const
+{
+    return TestFlag(Flags_hasLdFldCallSiteInfo);
 }
 
 Js::ProfileId

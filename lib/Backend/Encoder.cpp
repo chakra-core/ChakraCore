@@ -336,7 +336,7 @@ Encoder::Encode()
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(L"PinnedTypes: function %s(%s) pinned %d types.\n",
-                this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), pinnedTypeRefCount);
+                this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), pinnedTypeRefCount);
             Output::Flush();
         }
 
@@ -773,7 +773,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
     if (PHASE_TRACE(Js::BrShortenPhase, this->m_func))
     {
         OUTPUT_VERBOSE_TRACE(Js::BrShortenPhase, L"func: %s, bytes saved: %d, bytes saved %%:%.2f, total bytes saved: %d, total bytes saved%%: %.2f, BR shortened: %d\n",
-            this->m_func->GetWorkItem()->GetDisplayName(), (*codeSize - newCodeSize), ((float)*codeSize - newCodeSize) / *codeSize * 100,
+            this->m_func->GetJITFunctionBody()->GetDisplayName(), (*codeSize - newCodeSize), ((float)*codeSize - newCodeSize) / *codeSize * 100,
             globalTotalBytesSaved, ((float)globalTotalBytesSaved) / globalTotalBytesWithoutShortening * 100 , brShortenedCount);
         Output::Flush();
     }
@@ -870,7 +870,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
                 globalTotalBytesInserted += nop_count;
 
                 OUTPUT_VERBOSE_TRACE(Js::LoopAlignPhase, L"func: %s, bytes inserted: %d, bytes inserted %%:%.4f, total bytes inserted:%d, total bytes inserted %%:%.4f\n",
-                    this->m_func->GetWorkItem()->GetDisplayName(), nop_count, (float)nop_count / newCodeSize * 100, globalTotalBytesInserted, (float)globalTotalBytesInserted / (globalTotalBytesWithoutShortening - globalTotalBytesSaved) * 100);
+                    this->m_func->GetJITFunctionBody()->GetDisplayName(), nop_count, (float)nop_count / newCodeSize * 100, globalTotalBytesInserted, (float)globalTotalBytesInserted / (globalTotalBytesWithoutShortening - globalTotalBytesSaved) * 100);
                 Output::Flush();
             }
 #endif

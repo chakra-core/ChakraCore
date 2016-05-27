@@ -46,6 +46,12 @@ JITOutput::SetArgUsedForBranch(uint8 param)
     m_outputData->writeableBodyData.argUsedForBranch |= (1 << (param - 1));
 }
 
+uint16
+JITOutput::GetArgUsedForBranch() const
+{
+    return m_outputData->writeableBodyData.argUsedForBranch;
+}
+
 intptr_t
 JITOutput::GetCodeAddress() const
 {

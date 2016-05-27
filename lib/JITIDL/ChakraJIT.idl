@@ -63,9 +63,9 @@ typedef struct StElemData
 
 typedef struct ProfileData
 {
-    int flags;
+    unsigned __int64 flags;
 
-    [unique] BVFixedData * loopFlags;
+    BVFixedData * loopFlags;
 
     unsigned short profiledLdElemCount;
     [size_is(profiledLdElemCount)] LdElemData * ldElemData;
@@ -202,9 +202,17 @@ typedef struct AsmJsJITData
     boolean usesHeapBuffer;
 } AsmJsJITData;
 
+typedef struct FunctionJITRuntimeData
+{
+    unsigned int clonedCacheCount;
+    [size_is(clonedCacheCount)] __int3264 * clonedInlineCaches;
+} FunctionJITRuntimeData;
+
 // FunctionBody fields, read only in JIT
 typedef struct FunctionBodyJITData
 {
+    ProfileData * profileData;
+
     unsigned int byteCodeLength;
     [size_is(byteCodeLength)] byte * byteCodeBuffer;
 
@@ -223,6 +231,12 @@ typedef struct FunctionBodyJITData
 
     unsigned int referencedPropertyIdCount;
     [size_is(referencedPropertyIdCount)] int * referencedPropertyIdMap;
+
+    unsigned int nameLength;
+    [size_is(nameLength)] wchar_t * displayName;
+
+    unsigned int runtimeDataCount; // only needed for topfunc?
+    [size_is(runtimeDataCount)] FunctionJITRuntimeData * profiledRuntimeData;
 
     SmallSpanSequenceData statementMap;
 
@@ -256,12 +270,14 @@ typedef struct FunctionBodyJITData
     unsigned int thisRegisterForEventHandler;
     unsigned int funcExprScopeRegister;
     unsigned int loopCount;
+    unsigned int recursiveCallSiteCount;
     unsigned int isInstInlineCacheCount; // TODO: only used in Assert
 
     unsigned short envDepth;
-    unsigned short profiledCallSiteCount;
     unsigned short inParamCount;
     unsigned short profiledIterations;
+    unsigned short argUsedForBranch;
+    unsigned short profiledCallSiteCount;
 
     byte flags;
     // TODO: compress booleans into flags
@@ -278,6 +294,14 @@ typedef struct FunctionBodyJITData
     boolean isGlobalFunc;
     boolean doJITLoopBody;
     boolean disableInlineSpread;
+    boolean hasNestedLoop;
+    boolean hasNonBuiltInCallee;
+
+    // recursive
+    [size_is(profiledCallSiteCount)] FunctionBodyJITData * inlinees;
+    [size_is(inlineCacheCount)] FunctionBodyJITData * ldFldInlinees;
+    FunctionBodyJITData * next;
+
 } FunctionBodyJITData;
 
 // EntryPointInfo fields, read/write in JIT
@@ -396,7 +420,6 @@ interface IChakraJIT
         [in] __int3264 threadContextInfoAddress,
         [in] __int3264 scriptContextInfoAddress,
         [in] CodeGenWorkItemJITData * workItemData,
-        [out] JITOutputData * jitData,
-        [unique, in] ProfileData * profileData);
+        [out] JITOutputData * jitData);
 
 }

@@ -10,6 +10,10 @@ class JITTimeFunctionBody
 public:
     JITTimeFunctionBody(FunctionBodyJITData * bodyData);
 
+    static void InitializeJITFunctionData(
+        __in Js::FunctionBody * functionBody,
+        __out FunctionBodyJITData * jitBody);
+
     intptr_t GetAddr() const;
 
     uint GetFunctionNumber() const;
@@ -24,6 +28,7 @@ public:
     uint GetByteCodeLength() const;
     uint GetInnerScopeCount() const;
     uint GetInlineCacheCount() const;
+    uint GetRecursiveCallSiteCount() const;
     Js::RegSlot GetLocalFrameDisplayReg() const;
     Js::RegSlot GetLocalClosureReg() const;
     Js::RegSlot GetEnvReg() const;
@@ -45,6 +50,7 @@ public:
 
     uint16 GetEnvDepth() const;
     uint16 GetProfiledIterations() const;
+    uint16 GetArgUsedForBranch() const;
     Js::ProfileId GetProfiledCallSiteCount() const;
     Js::ArgSlot GetInParamsCount() const;
 
@@ -70,6 +76,9 @@ public:
     bool IsInlineSpreadDisabled() const;
     bool HasLoops() const;
     bool ForceJITLoopBody() const;
+    bool HasNonBuiltInCallee() const;
+    bool HasNestedLoop() const;
+    bool CanInlineRecursively(uint depth, bool tryAggressive = true) const;
 
     const byte * GetByteCodeBuffer() const;
     Js::SmallSpanSequence * GetStatementMapSpanSequence();
@@ -94,9 +103,11 @@ public:
     intptr_t GetCallCountStatsAddr() const;
 
     const AsmJsJITInfo * GetAsmJsInfo() const;
+    const JITTimeProfileInfo * GetProfileInfo() const;
 
     static bool LoopContains(const JITLoopHeader * loop1, const JITLoopHeader * loop2);
 
+    wchar_t* GetDisplayName() const;
     wchar_t* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const;
 
 private:
@@ -108,5 +119,6 @@ private:
     AsmJsJITInfo m_asmJsInfo;
     Js::SmallSpanSequence m_statementMap;
 
+    JITTimeProfileInfo m_profileInfo;
     const FunctionBodyJITData * const m_bodyData;
 };

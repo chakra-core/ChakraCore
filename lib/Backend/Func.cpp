@@ -13,7 +13,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     const Js::FunctionCodeGenJitTimeData *const jitTimeData,
     const Js::FunctionCodeGenRuntimeData *const runtimeData,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
-    CodeGenNumberAllocator * numberAllocator, JITTimeProfileInfo *const profileInfo,
+    CodeGenNumberAllocator * numberAllocator,
     Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc,
     uint postCallByteCodeOffset, Js::RegSlot returnValueRegSlot, const bool isInlinedConstructor,
     Js::ProfileId callSiteIdInParentFunc, bool isGetterSetter) :
@@ -90,7 +90,6 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     hasTempObjectProducingInstr(false),
     isInlinedConstructor(isInlinedConstructor),
     numberAllocator(numberAllocator),
-    profileInfo(profileInfo),
     loopCount(0),
     callSiteIdInParentFunc(callSiteIdInParentFunc),
     isGetterSetter(isGetterSetter),
@@ -268,11 +267,9 @@ Func::Codegen()
 
         BEGIN_CODEGEN_PHASE(this, Js::InlinePhase);
 
-#if 0 // TODO michhol: oop jit, enable inlining
-        InliningHeuristics heuristics(this->GetJnFunction());
+        InliningHeuristics heuristics(GetJITFunctionBody());
         Inline inliner(this, heuristics);
         inliner.Optimize();
-#endif
 
         END_CODEGEN_PHASE(this, Js::InlinePhase);
 
@@ -395,9 +392,7 @@ Func::Codegen()
         encoder.Encode();
 
         END_CODEGEN_PHASE_NO_DUMP(this, Js::EncoderPhase);
-#if DBG
-        //Dump();
-#endif
+
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::EncoderPhase);
 #endif /* IR_VIEWER */
@@ -1112,6 +1107,13 @@ Func::CreateInlineeStackSym()
     return stackSym;
 }
 
+uint16
+Func::GetArgUsedForBranch() const
+{
+    // this value can change while JITing, so or these together
+    return GetJITFunctionBody()->GetArgUsedForBranch() | GetJITOutput()->GetArgUsedForBranch();
+}
+
 RecyclerWeakReference<Js::FunctionBody> *
 Func::GetWeakFuncRef() const
 {
@@ -1509,7 +1511,7 @@ Func::DumpFullFunctionName()
 {
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-    Output::Print(L"Function %s (%s)", GetWorkItem()->GetDisplayName(), GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+    Output::Print(L"Function %s (%s)", GetJITFunctionBody()->GetDisplayName(), GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
 }
 #endif
 
@@ -1524,7 +1526,7 @@ Func::DumpHeader()
 {
     Output::Print(L"-----------------------------------------------------------------------------\n");
 
-    Output::Print(L"Function %s", this->GetWorkItem()->GetDisplayName());
+    Output::Print(L"Function %s", this->GetJITFunctionBody()->GetDisplayName());
 
     Output::SkipToColumn(50);
     Output::Print(L"Instr Count:%d", GetInstrCount());

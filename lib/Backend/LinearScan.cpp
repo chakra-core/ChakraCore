@@ -1666,7 +1666,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #if DBG_DUMP
             if (PHASE_DUMP(Js::BailOutPhase, this->func))
             {
-                Output::Print(L"Bailout function: %s [#%d] \n", currentStartCallFunc->GetWorkItem()->GetDisplayName(),
+                Output::Print(L"Bailout function: %s [#%d] \n", currentStartCallFunc->GetJITFunctionBody()->GetDisplayName(),
                     currentStartCallFunc->GetJITFunctionBody()->GetFunctionNumber());
             }
 #endif
@@ -1929,7 +1929,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         if(PHASE_DUMP(Js::BailOutPhase, this->func))
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"Bailout function: %s [%s]\n", funcBailOutData[i].func->GetWorkItem()->GetDisplayName(), funcBailOutData[i].func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), i);
+            Output::Print(L"Bailout function: %s [%s]\n", funcBailOutData[i].func->GetJITFunctionBody()->GetDisplayName(), funcBailOutData[i].func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), i);
             funcBailOutData[i].bailOutRecord->Dump();
         }
 #endif

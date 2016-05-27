@@ -288,7 +288,6 @@ JITManager::FreeAllocation(
 HRESULT
 JITManager::RemoteCodeGenCall(
     __in CodeGenWorkItemJITData *workItemData,
-    __in ProfileData * profileData,
     __in intptr_t threadContextInfoAddress,
     __in intptr_t scriptContextInfoAddress,
     __out JITOutputData *jitData)
@@ -296,7 +295,7 @@ JITManager::RemoteCodeGenCall(
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientRemoteCodeGen(m_rpcBindingHandle, threadContextInfoAddress, scriptContextInfoAddress, workItemData, jitData, profileData);
+        hr = ClientRemoteCodeGen(m_rpcBindingHandle, threadContextInfoAddress, scriptContextInfoAddress, workItemData, jitData);
     }
         RpcExcept(1)
     {

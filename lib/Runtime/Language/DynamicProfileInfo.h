@@ -394,7 +394,7 @@ namespace Js
 
         bool RecordLdFldCallSiteInfo(FunctionBody* functionBody, RecyclableObject* callee, bool callApplyTarget);
 
-        bool hasLdFldCallSiteInfo();
+        bool HasLdFldCallSiteInfo() const;
 
         void RecordReturnTypeOnCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, Var object);
         void RecordReturnType(FunctionBody* functionBody, ProfileId callSiteId, Var object);

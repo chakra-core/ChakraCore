@@ -16,6 +16,7 @@
 #include "Language\AsmJsModule.h"
 #include "Language\ProfilingHelpers.h"
 #include "Language\FunctionCodeGenRuntimeData.h"
+#include "Language\ObjTypeSpecFldInfo.h"
 #include "Language\FunctionCodeGenJitTimeData.h"
 #include "Language\JavascriptMathOperators.h"
 #include "Language\JavascriptMathOperators.inl"
