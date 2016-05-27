@@ -1632,23 +1632,8 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
             Assert(pnode);
             switch (pnode->nop)
             {
-            case knopLetDecl:
             case knopVarDecl:
-                pid = pnode->sxVar.pid;
-                if (backgroundPidRef)
-                {
-                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Cch(), pid->Hash(), nullptr, nullptr
-#if PROFILE_DICTIONARY
-                                                                  , depth
-#endif
-                        );
-                    if (pid == nullptr)
-                    {
-                        break;
-                    }
-                }
-                this->BindPidRefsInScope(pid, sym, blockId, maxBlockId);
-                break;
+            case knopLetDecl:
             case knopConstDecl:
                 pid = pnode->sxVar.pid;
                 if (backgroundPidRef)
@@ -1663,7 +1648,7 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
                         break;
                     }
                 }
-                this->BindConstPidRefsInScope(pid, sym, blockId, maxBlockId);
+                this->BindPidRefsInScope(pid, sym, blockId, maxBlockId);
                 break;
             case knopName:
                 pid = pnode->sxPid.pid;
@@ -1692,17 +1677,6 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
 }
 
 void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint maxBlockId)
-{
-    this->BindPidRefsInScopeImpl<false>(pid, sym, blockId, maxBlockId);
-}
-
-void Parser::BindConstPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint maxBlockId)
-{
-    this->BindPidRefsInScopeImpl<true>(pid, sym, blockId, maxBlockId);
-}
-
-template<const bool isConstBinding>
-void Parser::BindPidRefsInScopeImpl(IdentPtr pid, Symbol *sym, int blockId, uint maxBlockId)
 {
     PidRefStack *ref, *nextRef, *lastRef = nullptr;
     Assert(sym);
