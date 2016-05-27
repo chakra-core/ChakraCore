@@ -41,8 +41,9 @@ namespace Js
         {
             swprintf_s(stringBuffer, countBuffer, _u("SIMD.Int32x4(%d, %d, %d, %d)"), value.i32[SIMD_X], value.i32[SIMD_Y], value.i32[SIMD_Z], value.i32[SIMD_W]);
         }
+
         static const char16* GetTypeName();
-        __inline SIMDValue GetValue() { return value; }
+        inline SIMDValue GetValue() { return value; }
 
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
         static size_t GetOffsetOfValue() { return offsetof(JavascriptSIMDInt32x4, value); }

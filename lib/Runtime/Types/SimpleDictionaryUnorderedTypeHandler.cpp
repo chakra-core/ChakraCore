@@ -8,26 +8,26 @@ namespace Js
 {
     template<class TPropertyIndex, class TMapKey, bool IsNotExtensibleSupported>
     SimpleDictionaryUnorderedTypeHandler<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SimpleDictionaryUnorderedTypeHandler(Recycler * recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots)
-        : SimpleDictionaryTypeHandlerBase(recycler, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots),
-        deletedPropertyIndex(NoSlots)
+        : SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>(recycler, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots),
+        deletedPropertyIndex(PropertyIndexRanges<TPropertyIndex>::NoSlots)
     {
-        isUnordered = true;
+        this->isUnordered = true;
     }
 
     template<class TPropertyIndex, class TMapKey, bool IsNotExtensibleSupported>
     SimpleDictionaryUnorderedTypeHandler<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SimpleDictionaryUnorderedTypeHandler(ScriptContext * scriptContext, SimplePropertyDescriptor* propertyDescriptors, int propertyCount, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots)
-        : SimpleDictionaryTypeHandlerBase(scriptContext, propertyDescriptors, propertyCount, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots),
-        deletedPropertyIndex(NoSlots)
+        : SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>(scriptContext, propertyDescriptors, propertyCount, slotCapacity, inlineSlotCapacity, offsetOfInlineSlots),
+        deletedPropertyIndex(PropertyIndexRanges<TPropertyIndex>::NoSlots)
     {
-        isUnordered = true;
+        this->isUnordered = true;
     }
 
     template<class TPropertyIndex, class TMapKey, bool IsNotExtensibleSupported>
     SimpleDictionaryUnorderedTypeHandler<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SimpleDictionaryUnorderedTypeHandler(Recycler* recycler, int slotCapacity, int propertyCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots)
-        : SimpleDictionaryTypeHandlerBase(recycler, slotCapacity, propertyCapacity, inlineSlotCapacity, offsetOfInlineSlots),
-        deletedPropertyIndex(NoSlots)
+        : SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>(recycler, slotCapacity, propertyCapacity, inlineSlotCapacity, offsetOfInlineSlots),
+        deletedPropertyIndex(PropertyIndexRanges<TPropertyIndex>::NoSlots)
     {
-        isUnordered = true;
+        this->isUnordered = true;
     }
 
     template<class TPropertyIndex, class TMapKey, bool IsNotExtensibleSupported>
@@ -38,8 +38,8 @@ namespace Js
         // don't look like pointers. If the property index is too large, it will not be free-listed.
         return
             static_cast<int>(propertyIndex) >= 0 &&
-            static_cast<int>(propertyIndex) < propertyMap->Count() &&
-            propertyMap->GetValueAt(propertyIndex).propertyIndex == propertyIndex &&
+            static_cast<int>(propertyIndex) < this->propertyMap->Count() &&
+            this->propertyMap->GetValueAt(propertyIndex).propertyIndex == propertyIndex &&
             !TaggedInt::IsOverflow(propertyIndex);
     }
 
@@ -55,9 +55,9 @@ namespace Js
             return false;
         }
 
-        Assert(!TaggedInt::IsOverflow(NoSlots)); // the last deleted property's slot in the chain is going to store NoSlots as a tagged int
+        Assert(!TaggedInt::IsOverflow(PropertyIndexRanges<TPropertyIndex>::NoSlots)); // the last deleted property's slot in the chain is going to store NoSlots as a tagged int
 
-        SetSlotUnchecked(object, propertyIndex, TaggedInt::ToVarUnchecked(deletedPropertyIndex));
+        this->SetSlotUnchecked(object, propertyIndex, TaggedInt::ToVarUnchecked(deletedPropertyIndex));
         deletedPropertyIndex = propertyIndex;
         return true;
     }
@@ -70,13 +70,13 @@ namespace Js
         Assert(object);
         Assert(propertyIndex);
 
-        if(deletedPropertyIndex == NoSlots)
+        if(deletedPropertyIndex == PropertyIndexRanges<TPropertyIndex>::NoSlots)
         {
             return false;
         }
 
-        Assert(propertyMap->GetValueAt(deletedPropertyIndex).propertyIndex == deletedPropertyIndex);
-        Assert(propertyMap->GetValueAt(deletedPropertyIndex).Attributes & PropertyDeleted);
+        Assert(this->propertyMap->GetValueAt(deletedPropertyIndex).propertyIndex == deletedPropertyIndex);
+        Assert(this->propertyMap->GetValueAt(deletedPropertyIndex).Attributes & PropertyDeleted);
 
         *propertyIndex = deletedPropertyIndex;
         deletedPropertyIndex = static_cast<TPropertyIndex>(TaggedInt::ToInt32(object->GetSlot(deletedPropertyIndex)));
@@ -97,8 +97,8 @@ namespace Js
             return false;
         }
 
-        Assert(propertyMap->GetValueAt(existingPropertyIndex).propertyIndex == existingPropertyIndex);
-        Assert(propertyMap->GetValueAt(existingPropertyIndex).Attributes & PropertyDeleted);
+        Assert(this->propertyMap->GetValueAt(existingPropertyIndex).propertyIndex == existingPropertyIndex);
+        Assert(this->propertyMap->GetValueAt(existingPropertyIndex).Attributes & PropertyDeleted);
 
         const bool reused = TryReuseDeletedPropertyIndex(object, propertyIndex);
         Assert(reused); // at least one property index must have been free-listed since we're adding an existing deleted property
@@ -116,19 +116,19 @@ namespace Js
         // reverse order. This relies on the fact that BaseDictionary first reuses the last-deleted entry index in its
         // free-listing strategy. Should remove this dependence in the future.
 
-        TMapKey propertyKeyToPreserve = propertyMap->GetKeyAt(*propertyIndex);
-        SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptorToPreserve = propertyMap->GetValueAt(*propertyIndex);
+        TMapKey propertyKeyToPreserve = this->propertyMap->GetKeyAt(*propertyIndex);
+        SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptorToPreserve = this->propertyMap->GetValueAt(*propertyIndex);
         descriptorToPreserve.propertyIndex = existingPropertyIndex;
 
-        TMapKey propertyKeyToReuse = propertyMap->GetKeyAt(existingPropertyIndex);
-        SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptorToReuse = propertyMap->GetValueAt(existingPropertyIndex);
+        TMapKey propertyKeyToReuse = this->propertyMap->GetKeyAt(existingPropertyIndex);
+        SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptorToReuse = this->propertyMap->GetValueAt(existingPropertyIndex);
         descriptorToReuse.propertyIndex = *propertyIndex;
 
-        propertyMap->Remove(propertyKeyToPreserve);
-        propertyMap->Remove(propertyKeyToReuse);
-        int dictionaryIndex = propertyMap->Add(propertyKeyToPreserve, descriptorToPreserve);
+        this->propertyMap->Remove(propertyKeyToPreserve);
+        this->propertyMap->Remove(propertyKeyToReuse);
+        int dictionaryIndex = this->propertyMap->Add(propertyKeyToPreserve, descriptorToPreserve);
         Assert(dictionaryIndex == existingPropertyIndex);
-        dictionaryIndex = propertyMap->Add(propertyKeyToReuse, descriptorToReuse);
+        dictionaryIndex = this->propertyMap->Add(propertyKeyToReuse, descriptorToReuse);
         Assert(dictionaryIndex == *propertyIndex);
 
         return true;

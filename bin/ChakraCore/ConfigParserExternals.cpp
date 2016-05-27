@@ -14,7 +14,7 @@ void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
 {
 }
 
-LPWSTR JsUtil::ExternalApi::GetFeatureKeyName()
+LPCWSTR JsUtil::ExternalApi::GetFeatureKeyName()
 {
     return _u("");
 }

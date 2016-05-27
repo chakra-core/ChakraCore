@@ -1054,7 +1054,7 @@ namespace TTD
                 utf8::EncodeIntoAndNullTerminate(utf8Source, script, static_cast<charcount_t>(length));
 
                 SRCINFO *hsi = ctx->AddHostSrcInfo(&si);
-                ulong flags = 0;
+                uint32 flags = 0;
 
                 HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(ctx, flags, utf8Source, hsi, fbInfo->TopLevelBase.DbgSerializedBytecodeBuffer, nullptr, &globalBody);
                 AssertMsg(SUCCEEDED(hr), "This should not fail!!!");
@@ -1197,7 +1197,7 @@ namespace TTD
         ////
         //'eval(...)' functions
 
-        void ExtractTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen, ulong grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode, SlabAllocator& alloc)
+        void ExtractTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen, uint32 grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode, SlabAllocator& alloc)
         {
             NSSnapValues::ExtractTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, fb, topLevelCtr, moduleId, 0, source, sourceLen, alloc);
 
@@ -1209,7 +1209,7 @@ namespace TTD
 
         Js::FunctionBody* InflateTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
         {
-            ulong grfscr = ((ulong)fbInfo->EvalFlags) | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
+            uint32 grfscr = ((uint32)fbInfo->EvalFlags) | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
 
             LPCWSTR source = fbInfo->TopLevelBase.SourceCode.Contents;
             int32 sourceLen = (int32)fbInfo->TopLevelBase.SourceCode.Length;

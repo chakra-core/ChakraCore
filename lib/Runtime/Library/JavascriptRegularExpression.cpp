@@ -100,16 +100,6 @@ namespace Js
         return static_cast<JavascriptRegExp *>(RecyclableObject::FromVar(aValue));
     }
 
-    void JavascriptRegExp::SetPattern(UnifiedRegex::RegexPattern* pattern)
-    {
-        this->pattern = pattern;
-    }
-
-    void JavascriptRegExp::SetSplitPattern(UnifiedRegex::RegexPattern* splitPattern)
-    {
-        this->splitPattern = splitPattern;
-    }
-
     CharCount JavascriptRegExp::GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext)
     {
         int64 lastIndex = JavascriptConversion::ToLength(
@@ -871,7 +861,7 @@ namespace Js
         if (JavascriptConversion::IsCallable(exec))
         {
             RecyclableObject* execFn = RecyclableObject::FromVar(exec);
-            Var result = execFn->GetEntryPoint()(execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
+            Var result = CALL_FUNCTION(execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
 
             if (!JavascriptOperators::IsObjectOrNull(result))
             {

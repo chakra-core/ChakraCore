@@ -160,6 +160,7 @@ namespace TTD
                 {
                     BOOL ok = FALSE;
                     Js::PropertyId pid = iter.CurrentValue();
+                    AssertMsg(pid != Js::Constants::NoProperty, "This shouldn't happen!!!");
 
                     //This is a bit of a kludge
                     if(Js::IsInternalPropertyId(pid))

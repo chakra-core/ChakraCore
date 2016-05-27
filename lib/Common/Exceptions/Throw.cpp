@@ -2,14 +2,16 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#pragma once
 
 #include "CommonExceptionsPch.h"
+
+#ifndef USING_PAL_STDLIB
 // === C Runtime Header Files ===
 #pragma warning(push)
 #pragma warning(disable: 4995) /* 'function': name was marked as #pragma deprecated */
 #include <strsafe.h>
 #pragma warning(pop)
+#endif
 
 #include "StackOverflowException.h"
 #include "AsmJsParseException.h"
@@ -29,7 +31,9 @@
 #include "Core/Output.h"
 
 // Memory Management
-namespace Memory {}
+namespace Memory {
+    class ArenaAllocator;
+}
 using namespace Memory;
 #include "Memory/Allocator.h"
 #include "Memory/HeapAllocator.h"
@@ -39,25 +43,27 @@ using namespace Memory;
 #include "DataStructures/SizePolicy.h"
 #include "DataStructures/SList.h"
 #include "DataStructures/KeyValuePair.h"
+#include "DataStructures/DefaultContainerLockPolicy.h"
 #include "DataStructures/BaseDictionary.h"
 #include "Core/ConfigFlagsTable.h"
 
 #include "Core/StackBackTrace.h"
 
 
-
+#ifdef GENERATE_DUMP
 // dbghelp.h is not clean with warning 4091
 #pragma warning(push)
 #pragma warning(disable: 4091) /* warning C4091: 'typedef ': ignored on left of '' when no variable is declared */
 #include <dbghelp.h>
 #pragma warning(pop)
+#endif // GENERATE_DUMP
 
 extern "C"{
     BOOLEAN IsMessageBoxWPresent();
 }
 
 namespace Js {
-#ifdef GENERATE_DUMP
+#if defined(GENERATE_DUMP) && defined(STACK_BACK_TRACE)
     StackBackTrace * Throw::stackBackTrace = nullptr;
 #endif
     void Throw::FatalInternalError()
@@ -242,8 +248,11 @@ namespace Js {
     void Throw::LogAssert()
     {
         IsInAssert = true;
+
+#ifdef STACK_BACK_TRACE
         // This should be the last thing to happen in the process. Therefore, leaks are not an issue.
         stackBackTrace = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance, Throw::StackToSkip, Throw::StackTraceDepth);
+#endif
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -278,7 +287,10 @@ namespace Js {
             return false;
 #endif
         }
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+
+        // The following code is applicable only when we are hosted in an
+        // GUI environment
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && defined(_WIN32)
         // Then if DumpOncrashFlag is not specified it directly returns,
         // otherwise if will raise a non-continuable exception, generate the dump and terminate the process.
         // the popup message box might be useful when testing in IE

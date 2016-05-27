@@ -52,9 +52,10 @@ namespace Js
     ///----------------------------------------------------------------------------
 
 
-    enum Flag
+    enum Flag: unsigned short
     {
 #define FLAG(type, name, ...) name##Flag,
+
 #include "ConfigFlagsList.h"
         FlagCount,
         InvalidFlag,
@@ -75,7 +76,7 @@ namespace Js
     ///----------------------------------------------------------------------------
 
 
-    enum Phase
+    enum Phase: unsigned short
     {
 #define PHASE(name) name##Phase,
 #include "ConfigFlagsList.h"
@@ -117,12 +118,12 @@ namespace Js
 
     // Data
     private:
-                LPWSTR           pszValue;
+        char16*           pszValue;
 
     // Construction
     public:
         inline String();
-        inline String(__in_opt LPWSTR psz);
+        inline String(__in_opt const char16* psz);
         inline ~String();
 
 
@@ -135,7 +136,7 @@ namespace Js
         ///
         ///----------------------------------------------------------------------------
 
-        String& operator=(__in_opt LPWSTR psz)
+        String& operator=(__in_opt const char16* psz)
         {
             Set(psz);
             return *this;
@@ -152,14 +153,14 @@ namespace Js
         ///
         ///----------------------------------------------------------------------------
 
-        operator LPCWSTR () const
+        operator const char16* () const
         {
             return this->pszValue;
         }
 
     // Implementation
     private:
-        void Set(__in_opt LPWSTR pszValue);
+        void Set(__in_opt const char16* pszValue);
     };
 
     class NumberSet
@@ -435,7 +436,7 @@ namespace Js
 
         #define FLAG(type, name, ...) \
             \
-            type name;\
+            type name;                      \
 
         #include "ConfigFlagsList.h"
 
@@ -458,8 +459,8 @@ namespace Js
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
                 // special callback logic
-                void        FlagSetCallback_ES6All(Boolean value);
-                void        FlagSetCallback_ES6Experimental(Boolean value);
+                void        FlagSetCallback_ES6All(Js::Boolean value);
+                void        FlagSetCallback_ES6Experimental(Js::Boolean value);
 #endif
 
     public:

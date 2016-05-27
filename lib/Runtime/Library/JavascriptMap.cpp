@@ -112,7 +112,7 @@ namespace Js
                 }
 
                 // CONSIDER: if adder is the default built-in, fast path it and skip the JS call?
-                adder->GetEntryPoint()(adder, CallInfo(CallFlags_Value, 3), mapObject, key, value);
+                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 3), mapObject, key, value);
             }
         }
 
@@ -191,7 +191,7 @@ namespace Js
             Var key = iterator.Current().Key();
             Var value = iterator.Current().Value();
 
-            callBackFn->GetEntryPoint()(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, key, map);
+            CALL_FUNCTION(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, key, map);
         }
 
         return scriptContext->GetLibrary()->GetUndefined();

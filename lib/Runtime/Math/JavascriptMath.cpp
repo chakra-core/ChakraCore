@@ -95,26 +95,26 @@ namespace Js
 
         Var JavascriptMath::And_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-            int32 and = And_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVar(and, scriptContext);
+            int32 value = And_Helper(aLeft, aRight, scriptContext);
+            return JavascriptNumber::ToVar(value, scriptContext);
         }
 
         Var JavascriptMath::And_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
-            int32 and = And_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVarInPlace(and, scriptContext, result);
+            int32 value = And_Helper(aLeft, aRight, scriptContext);
+            return JavascriptNumber::ToVarInPlace(value, scriptContext, result);
         }
 
         Var JavascriptMath::Or_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-            int32 or = Or_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVar(or, scriptContext);
+            int32 value = Or_Helper(aLeft, aRight, scriptContext);
+            return JavascriptNumber::ToVar(value, scriptContext);
         }
 
         Var JavascriptMath::Or_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
-            int32 or = Or_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVarInPlace(or, scriptContext, result);
+            int32 value = Or_Helper(aLeft, aRight, scriptContext);
+            return JavascriptNumber::ToVarInPlace(value, scriptContext, result);
         }
 
         Var JavascriptMath::Xor_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
@@ -651,7 +651,7 @@ StringCommon:
             }
         }
 
-        Var __inline JavascriptMath::Add_DoubleHelper(double dblLeft, Var addRight, ScriptContext* scriptContext, JavascriptNumber*result)
+        Var inline JavascriptMath::Add_DoubleHelper(double dblLeft, Var addRight, ScriptContext* scriptContext, JavascriptNumber*result)
         {
             if (TaggedInt::Is(addRight))
             {
@@ -673,7 +673,7 @@ StringCommon:
             }
         }
 
-        Var __inline JavascriptMath::Add_DoubleHelper(Var addLeft, double dblRight, ScriptContext* scriptContext, JavascriptNumber*result)
+        Var inline JavascriptMath::Add_DoubleHelper(Var addLeft, double dblRight, ScriptContext* scriptContext, JavascriptNumber*result)
         {
             if (TaggedInt::Is(addLeft))
             {
@@ -695,7 +695,7 @@ StringCommon:
             }
         }
 
-        Var __inline JavascriptMath::Subtract_DoubleHelper(double dblLeft, Var subRight, ScriptContext* scriptContext, JavascriptNumber* result)
+        Var inline JavascriptMath::Subtract_DoubleHelper(double dblLeft, Var subRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
             if (TaggedInt::Is(subRight))
             {
@@ -717,7 +717,7 @@ StringCommon:
             }
         }
 
-        Var __inline JavascriptMath::Subtract_DoubleHelper(Var subLeft, double dblRight, ScriptContext* scriptContext, JavascriptNumber*result)
+        Var inline JavascriptMath::Subtract_DoubleHelper(Var subLeft, double dblRight, ScriptContext* scriptContext, JavascriptNumber*result)
         {
             if (TaggedInt::Is(subLeft))
             {
@@ -1041,7 +1041,7 @@ StringCommon:
                 else
                 {
                     AssertMsg(false, "Unable to initialize PRNG seeds with rand_s. Revert to using entropy.");
-
+#ifdef ENABLE_CUSTOM_ENTROPY
                     ThreadContext *threadContext = scriptContext->GetThreadContext();
 
                     threadContext->GetEntropy().AddThreadCycleTime();
@@ -1051,6 +1051,7 @@ StringCommon:
                     threadContext->GetEntropy().AddThreadCycleTime();
                     threadContext->GetEntropy().AddIoCounters();
                     *seed1 = threadContext->GetEntropy().GetRand();
+#endif
                 }
             }
         }

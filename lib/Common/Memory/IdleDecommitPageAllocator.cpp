@@ -9,7 +9,11 @@ IdleDecommitPageAllocator::IdleDecommitPageAllocator(AllocationPolicyManager * p
     Js::ConfigFlagsTable& flagTable,
 #endif
     uint maxFreePageCount, uint maxIdleFreePageCount,
-    bool zeroPages, BackgroundPageQueue *  backgroundPageQueue, uint maxAllocPageCount) :
+    bool zeroPages,
+#if ENABLE_BACKGROUND_PAGE_FREEING 
+    BackgroundPageQueue *  backgroundPageQueue,
+#endif
+    uint maxAllocPageCount) :
 #ifdef IDLE_DECOMMIT_ENABLED
     idleDecommitTryEnterWaitFactor(0),
     hasDecommitTimer(false),
@@ -19,7 +23,11 @@ IdleDecommitPageAllocator::IdleDecommitPageAllocator(AllocationPolicyManager * p
 #ifndef JD_PRIVATE
         flagTable,
 #endif
-    type, maxFreePageCount, zeroPages, backgroundPageQueue, maxAllocPageCount),
+    type, maxFreePageCount, zeroPages,
+#if ENABLE_BACKGROUND_PAGE_FREEING
+    backgroundPageQueue,
+#endif        
+    maxAllocPageCount),
     maxIdleDecommitFreePageCount(maxIdleFreePageCount),
     maxNonIdleDecommitFreePageCount(maxFreePageCount)
 {

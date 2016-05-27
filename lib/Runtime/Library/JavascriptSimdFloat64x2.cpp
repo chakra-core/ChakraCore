@@ -61,6 +61,8 @@ namespace Js
         {
             return true;
         }
+
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -78,6 +80,7 @@ namespace Js
             return true;
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 

@@ -13,9 +13,6 @@
 #include "Language/AsmJsModule.h"
 #endif
 
-extern "C" PVOID _ReturnAddress(VOID);
-#pragma intrinsic(_ReturnAddress)
-
 #ifdef _M_IX86
 #ifdef _CONTROL_FLOW_GUARD
 extern "C" PVOID __guard_check_icall_fptr;
@@ -25,6 +22,8 @@ extern "C" void __cdecl _alloca_probe_16();
 
 namespace Js
 {
+    const charcount_t JavascriptFunction::DIAG_MAX_FUNCTION_STRING;
+
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(JavascriptFunction);
     JavascriptFunction::JavascriptFunction(DynamicType * type)
         : DynamicObject(type), functionInfo(nullptr), constructorCache(&ConstructorCache::DefaultInstance)
@@ -139,7 +138,10 @@ namespace Js
     static char16 const funcName[] = _u("function anonymous");
     static char16 const genFuncName[] = _u("function* anonymous");
     static char16 const asyncFuncName[] = _u("async function anonymous");
-    static char16 const bracket[] = _u(" {\012");
+    static char16 const openFormals[] = _u("(");
+    static char16 const closeFormals[] = _u("\012)");
+    static char16 const openFuncBody[] = _u(" {");
+    static char16 const closeFuncBody[] = _u("\012}");
 
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
@@ -157,7 +159,7 @@ namespace Js
         JavascriptString* separator = library->GetCommaDisplayString();
 
         // Gather all the formals into a string like (fml1, fml2, fml3)
-        JavascriptString *formals = library->CreateStringFromCppLiteral(_u("("));
+        JavascriptString *formals = library->CreateStringFromCppLiteral(openFormals);
         for (uint i = 1; i < args.Info.Count - 1; ++i)
         {
             if (i != 1)
@@ -166,8 +168,7 @@ namespace Js
             }
             formals = JavascriptString::Concat(formals, JavascriptConversion::ToString(args.Values[i], scriptContext));
         }
-        formals = JavascriptString::Concat(formals, library->CreateStringFromCppLiteral(_u(")")));
-
+        formals = JavascriptString::Concat(formals, library->CreateStringFromCppLiteral(closeFormals));
         // Function body, last argument to Function(...)
         JavascriptString *fnBody = NULL;
         if (args.Info.Count > 1)
@@ -176,7 +177,12 @@ namespace Js
         }
 
         // Create a string representing the anonymous function
-        Assert(CountNewlines(funcName) + CountNewlines(bracket) == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
+        Assert(
+            CountNewlines(funcName) +
+            CountNewlines(openFormals) +
+            CountNewlines(closeFormals) +
+            CountNewlines(openFuncBody)
+            == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
 
         JavascriptString *bs = functionKind == FunctionKind::Async ?
             library->CreateStringFromCppLiteral(asyncFuncName) :
@@ -184,14 +190,13 @@ namespace Js
             library->CreateStringFromCppLiteral(genFuncName) :
             library->CreateStringFromCppLiteral(funcName);
         bs = JavascriptString::Concat(bs, formals);
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(bracket));
+        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(openFuncBody));
         if (fnBody != NULL)
         {
             bs = JavascriptString::Concat(bs, fnBody);
         }
 
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(_u("\012}")));
-
+        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(closeFuncBody));
         // Bug 1105479. Get the module id from the caller
         ModuleID moduleID = kmodGlobal;
 
@@ -656,8 +661,14 @@ namespace Js
         }
 #endif
 
+#ifdef DISABLE_SEH
+        // xplat: JavascriptArrayBuffer::AllocWrapper is disabled on cross-platform
+        // (IsValidVirtualBufferLength always returns false).
+        // SEH and ResumeForOutOfBoundsArrayRefs are not needed.
+        ret = CallRootFunctionInternal(args, scriptContext, inScript);
+#else
         // mark volatile, because otherwise VC will incorrectly optimize away load in the finally block
-        volatile ulong exceptionCode = 0;
+        volatile uint32 exceptionCode = 0;
         volatile int exceptionAction = EXCEPTION_CONTINUE_SEARCH;
         EXCEPTION_POINTERS exceptionInfo = {0};
         __try
@@ -683,6 +694,7 @@ namespace Js
                 UnexpectedExceptionHandling_fatal_error(&exceptionInfo);
             }
         }
+#endif
         //ret should never be null here
         Assert(ret);
         return ret;
@@ -1498,7 +1510,12 @@ LABEL1:
         }
 
         DebugOnly(JavascriptMethod directEntryPoint = funcBody->GetDirectEntryPoint(funcBody->GetDefaultEntryPointInfo()));
-        Assert(directEntryPoint != DefaultDeferredParsingThunk && directEntryPoint != ProfileDeferredParsingThunk);
+#ifdef ENABLE_SCRIPT_PROFILING
+        Assert(directEntryPoint != DefaultDeferredParsingThunk
+            && directEntryPoint != ProfileDeferredParsingThunk);
+#else // !ENABLE_SCRIPT_PROFILING
+        Assert(directEntryPoint != DefaultDeferredParsingThunk);
+#endif
         return (*functionRef)->UpdateUndeferredBody(funcBody);
     }
 
@@ -1597,12 +1614,13 @@ LABEL1:
             jmp eax
         }
     }
-#elif defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+#elif (defined(_M_X64) || defined(_M_ARM32_OR_ARM64)) && defined(_MSC_VER)
     //Do nothing: the implementation of JavascriptFunction::DeferredParsingThunk is declared (appropriately decorated) in
     // Library\amd64\javascriptfunctiona.asm
     // Library\arm\arm_DeferredParsingThunk.asm
     // Library\arm64\arm64_DeferredParsingThunk.asm
 #else
+    // xplat-todo: Implement defer deserialization for linux
     Var JavascriptFunction::DeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         Js::Throw::NotImplemented();
@@ -2476,7 +2494,7 @@ LABEL1:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction();
-                *value = accessor->GetEntryPoint()(accessor, 1, originalInstance);
+                *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
             }
             return true;
         }
@@ -2551,7 +2569,7 @@ LABEL1:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
-                *value = accessor->GetEntryPoint()(accessor, 1, originalInstance);
+                *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
             }
             return true;
         }

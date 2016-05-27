@@ -7,7 +7,9 @@
 #include "Base/ThreadBoundThreadContextManager.h"
 
 ThreadBoundThreadContextManager::EntryList ThreadBoundThreadContextManager::entries(&HeapAllocator::Instance);
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
 JsUtil::BackgroundJobProcessor * ThreadBoundThreadContextManager::s_sharedJobProcessor = NULL;
+#endif
 CriticalSection ThreadBoundThreadContextManager::s_sharedJobProcessorCreationLock;
 uint ThreadBoundThreadContextManager::s_maxNumberActiveThreadContexts = 0;
 
@@ -72,8 +74,10 @@ void ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread()
 
 void ThreadBoundThreadContextManager::DestroyAllContexts()
 {
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
     JsUtil::BackgroundJobProcessor * jobProcessor = NULL;
-
+#endif
+    
     {
         AutoCriticalSection lock(ThreadContext::GetCriticalSection());
 
@@ -138,6 +142,7 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
         entries.Remove(currentEntry);
         ThreadContextTLSEntry::CleanupThread();
 
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         if (s_sharedJobProcessor != NULL)
         {
             jobProcessor = s_sharedJobProcessor;
@@ -145,12 +150,15 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
 
             jobProcessor->Close();
         }
+#endif
     }
 
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
     if (jobProcessor != NULL)
     {
         HeapDelete(jobProcessor);
     }
+#endif
 }
 
 void ThreadBoundThreadContextManager::DestroyAllContextsAndEntries()
@@ -182,6 +190,7 @@ void ThreadBoundThreadContextManager::DestroyAllContextsAndEntries()
         ThreadContextTLSEntry::Delete(entry);
     }
 
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
     if (s_sharedJobProcessor != NULL)
     {
         s_sharedJobProcessor->Close();
@@ -189,10 +198,12 @@ void ThreadBoundThreadContextManager::DestroyAllContextsAndEntries()
         HeapDelete(s_sharedJobProcessor);
         s_sharedJobProcessor = NULL;
     }
+#endif
 }
 
 JsUtil::JobProcessor * ThreadBoundThreadContextManager::GetSharedJobProcessor()
 {
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
     if (s_sharedJobProcessor == NULL)
     {
         // Don't use ThreadContext::GetCriticalSection() because it's also locked during thread detach while the loader lock is
@@ -208,6 +219,9 @@ JsUtil::JobProcessor * ThreadBoundThreadContextManager::GetSharedJobProcessor()
     }
 
     return s_sharedJobProcessor;
+#else
+    return nullptr;
+#endif
 }
 
 void RentalThreadContextManager::DestroyThreadContext(ThreadContext* threadContext)

@@ -65,7 +65,7 @@ namespace Js
         return BreakpointProbeList::New(arena);
     }
 
-    HRESULT DebugDocument::SetBreakPoint(long ibos, BREAKPOINT_STATE breakpointState)
+    HRESULT DebugDocument::SetBreakPoint(int32 ibos, BREAKPOINT_STATE breakpointState)
     {
         ScriptContext* scriptContext = this->utf8SourceInfo->GetScriptContext();
 
@@ -197,7 +197,7 @@ namespace Js
         return foundStatement;
     }
 
-    BOOL DebugDocument::GetStatementSpan(long ibos, StatementSpan* pStatement)
+    BOOL DebugDocument::GetStatementSpan(int32 ibos, StatementSpan* pStatement)
     {
         StatementLocation statement;
         if (GetStatementLocation(ibos, &statement))
@@ -209,7 +209,7 @@ namespace Js
         return FALSE;
     }
 
-    FunctionBody * DebugDocument::GetFunctionBodyAt(long ibos)
+    FunctionBody * DebugDocument::GetFunctionBodyAt(int32 ibos)
     {
         StatementLocation location = {};
         if (GetStatementLocation(ibos, &location))
@@ -220,12 +220,12 @@ namespace Js
         return nullptr;
     }
 
-    BOOL DebugDocument::HasLineBreak(long _start, long _end)
+    BOOL DebugDocument::HasLineBreak(int32 _start, int32 _end)
     {
         return this->functionBody->HasLineBreak(_start, _end);
     }
 
-    BOOL DebugDocument::GetStatementLocation(long ibos, StatementLocation* plocation)
+    BOOL DebugDocument::GetStatementLocation(int32 ibos, StatementLocation* plocation)
     {
         if (ibos < 0)
         {
@@ -238,7 +238,7 @@ namespace Js
             return FALSE;
         }
 
-        ulong ubos = static_cast<ulong>(ibos);
+        uint32 ubos = static_cast<uint32>(ibos);
 
         // Getting the appropriate statement on the asked position works on the heuristic which requires two
         // probable candidates. These candidates will be closest to the ibos where first.range.start < ibos and
@@ -249,8 +249,8 @@ namespace Js
 
         this->utf8SourceInfo->MapFunction([&](FunctionBody* pFuncBody)
         {
-            ulong functionStart = pFuncBody->StartInDocument();
-            ulong functionEnd = functionStart + pFuncBody->LengthInBytes();
+            uint32 functionStart = pFuncBody->StartInDocument();
+            uint32 functionEnd = functionStart + pFuncBody->LengthInBytes();
 
             // For the first candidate, we should allow the current function to participate if its range
             // (instead of just start offset) is closer to the ubos compared to already found candidate1.

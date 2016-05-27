@@ -484,9 +484,9 @@ namespace Js
             propertyKey = propertyMap->GetKeyAt(i);
 
             // newTH->nextPropertyIndex will be less than desc.propertyIndex, when we have function with same name parameters
-            if (newTypeHandler->nextPropertyIndex < (U::PropertyIndexType)descriptor.propertyIndex)
+            if (newTypeHandler->nextPropertyIndex < static_cast<typename U::PropertyIndexType>(descriptor.propertyIndex))
             {
-                newTypeHandler->nextPropertyIndex = (U::PropertyIndexType)descriptor.propertyIndex;
+                newTypeHandler->nextPropertyIndex = static_cast<typename U::PropertyIndexType>(descriptor.propertyIndex);
             }
 
             Assert(newTypeHandler->nextPropertyIndex == descriptor.propertyIndex);
@@ -494,7 +494,7 @@ namespace Js
             newTypeHandler->Add(TMapKey_ConvertKey<UMapKey>(scriptContext, propertyKey), descriptor.Attributes, descriptor.isInitialized, descriptor.isFixed, transferUsedAsFixed && descriptor.usedAsFixed, scriptContext);
         }
 
-        newTypeHandler->nextPropertyIndex = (U::PropertyIndexType)nextPropertyIndex;
+        newTypeHandler->nextPropertyIndex = static_cast<typename U::PropertyIndexType>(nextPropertyIndex);
         newTypeHandler->SetNumDeletedProperties(numDeletedProperties);
 
         ClearSingletonInstance();
@@ -766,7 +766,7 @@ namespace Js
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
-    __inline BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::FindNextProperty_BigPropertyIndex(ScriptContext* scriptContext, TPropertyIndex& index,
+    inline BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::FindNextProperty_BigPropertyIndex(ScriptContext* scriptContext, TPropertyIndex& index,
         JavascriptString** propertyStringName, PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
     {
         Assert(propertyStringName);
@@ -889,7 +889,7 @@ namespace Js
     }
 
     template <typename TPropertyIndex>
-    __inline PropertyIndex DisallowBigPropertyIndex(TPropertyIndex index)
+    inline PropertyIndex DisallowBigPropertyIndex(TPropertyIndex index)
     {
         if (index <= Constants::PropertyIndexMax)
         {
@@ -900,7 +900,7 @@ namespace Js
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     template <bool allowLetConstGlobal>
-    __inline PropertyIndex SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetPropertyIndex_Internal(const PropertyRecord* propertyRecord)
+    inline PropertyIndex SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetPropertyIndex_Internal(const PropertyRecord* propertyRecord)
     {
         SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor;
         if (propertyMap->TryGetReference(propertyRecord, &descriptor) && !(descriptor->Attributes & (PropertyDeleted | (!allowLetConstGlobal ? PropertyLetConstGlobal : 0))))
@@ -1205,6 +1205,7 @@ namespace Js
             return SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetItem(instance, originalInstance, propertyRecord->GetNumericValue(), value, requestContext);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -1221,6 +1222,7 @@ namespace Js
             return GetPropertyFromDescriptor<false>(instance, descriptor, value, info);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -1682,7 +1684,8 @@ namespace Js
         }
         else
         {
-            return ConvertToNonSharedSimpleDictionaryType(instance)->DeleteProperty_Internal<allowLetConstGlobal>(instance, propertyId, propertyOperationFlags);
+            SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported> *simpleBase = ConvertToNonSharedSimpleDictionaryType(instance);
+            return simpleBase->DeleteProperty_Internal<allowLetConstGlobal>(instance, propertyId, propertyOperationFlags);
         }
         return true;
     }
@@ -3252,4 +3255,11 @@ namespace Js
     template class SimpleDictionaryTypeHandlerBase<PropertyIndex, JavascriptString*, true>;
     template class SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, false>;
     template class SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, true>;
+
+    template void Js::SimpleDictionaryTypeHandlerBase<unsigned short, Js::PropertyRecord const*, false>::Add<Js::PropertyRecord const*>(Js::PropertyRecord const*, unsigned char, bool, bool, bool, Js::ScriptContext* const);
+    template void Js::SimpleDictionaryTypeHandlerBase<unsigned short, Js::PropertyRecord const*, true>::Add<Js::PropertyRecord const*>(Js::PropertyRecord const*, unsigned char, bool, bool, bool, Js::ScriptContext* const);
+
+    // Instantiated here since this method is defined in this file
+    template void Js::PropertyIndexRangesBase<Js::PropertyIndexRanges<int> >::VerifySlotCapacity(int);
+    template void Js::PropertyIndexRangesBase<Js::PropertyIndexRanges<unsigned short> >::VerifySlotCapacity(int);
 }

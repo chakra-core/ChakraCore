@@ -44,7 +44,7 @@ if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {
     if (-not(Test-Path -Path "$Env:TF_BUILD_BINARIESDIRECTORY\logs")) {
         $dummy = New-Item -Path "$Env:TF_BUILD_BINARIESDIRECTORY\logs" -ItemType Directory -Force
     }
-    $logFile = "$Env:TF_BUILD_BINARIESDIRECTORY\logs\pre_build.log"
+    $logFile = "$Env:TF_BUILD_BINARIESDIRECTORY\logs\pre_build_${arch}_${flavor}.log"
     if (Test-Path -Path $logFile) {
         Remove-Item $logFile -Force
     }
@@ -63,7 +63,7 @@ $packagesConfigFileText = @"
 </packages>
 "@
 
-$PackagesFiles = Get-ChildItem -Path ${Env:TF_BUILD_SOURCESDIRECTORY} *.vcxproj -Recurse `
+$PackagesFiles = Get-ChildItem -Path $Env:TF_BUILD_SOURCESDIRECTORY *.vcxproj -Recurse `
     | % { Join-Path $_.DirectoryName "packages.config" }
 
 foreach ($file in $PackagesFiles) {

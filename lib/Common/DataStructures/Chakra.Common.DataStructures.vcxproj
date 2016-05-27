@@ -53,6 +53,7 @@
     <ClInclude Include="CharacterBuffer.h" />
     <ClInclude Include="CommonDataStructuresPch.h" />
     <ClInclude Include="ContinuousPageStack.h" />
+    <ClInclude Include="DefaultContainerLockPolicy.h" />
     <ClInclude Include="DoublyLinkedList.h" />
     <ClInclude Include="DoublyLinkedListElement.h" />
     <ClInclude Include="GrowingArray.h" />

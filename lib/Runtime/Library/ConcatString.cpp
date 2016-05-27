@@ -119,6 +119,9 @@ namespace Js
 
     /////////////////////// ConcatStringBuilder //////////////////////////
 
+    // MAX number of slots in one chunk. Until we fit into this, we realloc, otherwise create new chunk.
+    const int ConcatStringBuilder::c_maxChunkSlotCount;
+
     ConcatStringBuilder::ConcatStringBuilder(ScriptContext* scriptContext, int initialSlotCount) :
         ConcatStringBase(scriptContext->GetLibrary()->GetStringTypeStatic()),
         m_count(0), m_prevChunk(NULL)

@@ -95,7 +95,7 @@ namespace JsUtil
     class ImplicitKeyValueEntry : public ValueEntry<TValue>
     {
     public:
-        TKey Key() const { return ValueToKey<TKey, TValue>::ToKey(value); }
+        inline TKey Key() const { return ValueToKey<TKey, TValue>::ToKey(this->value); }
 
         void Set(TKey const& key, TValue const& value)
         {
@@ -150,15 +150,15 @@ namespace JsUtil
     {
     public:
         template<typename Comparer, typename TLookup>
-        __inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
+        inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
         {
-            return Comparer::Equals(Key(), otherKey);
+            return Comparer::Equals(this->Key(), otherKey);
         }
 
         template<typename Comparer>
-        __inline hash_t GetHashCode()
+        inline hash_t GetHashCode()
         {
-            return ((Comparer::GetHashCode(Key()) & 0x7fffffff) << 1) | 1;
+            return ((Comparer::GetHashCode(this->Key()) & 0x7fffffff) << 1) | 1;
         }
 
         void Set(TKey const& key, TValue const& value, int hashCode)
@@ -174,16 +174,16 @@ namespace JsUtil
     public:
         static const int INVALID_HASH_VALUE = 0;
         template<typename Comparer, typename TLookup>
-        __inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
+        inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
         {
-            Assert(TAGHASH(Comparer::GetHashCode(Key())) == this->hashCode);
-            return this->hashCode == otherHashCode && Comparer::Equals(Key(), otherKey);
+            Assert(TAGHASH(Comparer::GetHashCode(this->Key())) == this->hashCode);
+            return this->hashCode == otherHashCode && Comparer::Equals(this->Key(), otherKey);
         }
 
         template<typename Comparer>
-        __inline hash_t GetHashCode()
+        inline hash_t GetHashCode()
         {
-            Assert(TAGHASH(Comparer::GetHashCode(Key())) == this->hashCode);
+            Assert(TAGHASH(Comparer::GetHashCode(this->Key())) == this->hashCode);
             return hashCode;
         }
 

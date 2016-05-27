@@ -106,7 +106,7 @@ namespace Js
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(value);
         __m128i x86tmp1;
 
-        count = count &  SIMDGetShiftAmountMask(1);
+        count = count & SIMDUtils::SIMDGetShiftAmountMask(1);
 
        __m128i mask = _mm_set1_epi8((unsigned char)0xff >> count);
         x86tmp1 = _mm_srli_epi16(tmpaValue.m128i_value, count);

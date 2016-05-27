@@ -196,7 +196,7 @@ namespace Js
         // If we are deactivating the step controller during ProbeContainer close or attach/detach we should clear return value list
         // If we break other than step -> clear the list.
         // If we step in and we land on different function (we are in recording phase the current function) -> clear the list
-        if ((haltState == nullptr) || (haltState->stopType != Js::STOP_STEPCOMPLETE || this->stepType == STEP_IN && this->returnedValueRecordingDepth > 0))
+        if ((haltState == nullptr) || (haltState->stopType != Js::STOP_STEPCOMPLETE || (this->stepType == STEP_IN && this->returnedValueRecordingDepth > 0)))
         {
             ResetReturnedValueList();
         }

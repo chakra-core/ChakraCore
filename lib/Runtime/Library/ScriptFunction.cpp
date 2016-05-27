@@ -236,7 +236,7 @@ namespace Js
         // instead update the address in the function entrypoint info
         else
         {
-            entryPointInfo->address = entryPoint;
+            entryPointInfo->jsMethod = entryPoint;
         }
 
         if (!isAsmJS)
@@ -289,7 +289,12 @@ namespace Js
 
         // The type has change from the default, it is not share, just use that one.
         JavascriptMethod directEntryPoint = newFunctionInfo->GetDirectEntryPoint(newFunctionInfo->GetDefaultEntryPointInfo());
-        Assert(directEntryPoint != DefaultDeferredParsingThunk && directEntryPoint != ProfileDeferredParsingThunk);
+#ifdef ENABLE_SCRIPT_PROFILING
+        Assert(directEntryPoint != DefaultDeferredParsingThunk
+            && directEntryPoint != ProfileDeferredParsingThunk);
+#else
+        Assert(directEntryPoint != DefaultDeferredParsingThunk);
+#endif
 
         Js::FunctionEntryPointInfo* defaultEntryPointInfo = newFunctionInfo->GetDefaultFunctionEntryPointInfo();
         JavascriptMethod thunkEntryPoint = this->UpdateThunkEntryPoint(defaultEntryPointInfo,
@@ -554,7 +559,7 @@ namespace Js
                     rctxInfo->EnqueueNewFunctionBodyObject(this, slotArray.GetFunctionBody(), scopePathString.GetStrValue());
                 }
 
-                for(ulong j = 0; j < slotArrayCount; j++)
+                for(uint j = 0; j < slotArrayCount; j++)
                 {
                     Js::Var sval = slotArray.Get(j);
 

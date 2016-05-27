@@ -650,14 +650,14 @@ namespace Js
     template <>
     struct AsmJsComparer<float>
     {
-        __inline static bool Equals(float x, float y)
+        inline static bool Equals(float x, float y)
         {
             int32 i32x = *(int32*)&x;
             int32 i32y = *(int32*)&y;
             return i32x == i32y;
         }
 
-        __inline static hash_t GetHashCode(float i)
+        inline static hash_t GetHashCode(float i)
         {
             return (hash_t)i;
         }
@@ -666,14 +666,14 @@ namespace Js
     template <>
     struct AsmJsComparer<double>
     {
-        __inline static bool Equals(double x, double y)
+        inline static bool Equals(double x, double y)
         {
             int64 i64x = *(int64*)&x;
             int64 i64y = *(int64*)&y;
             return i64x == i64y;
         }
 
-        __inline static hash_t GetHashCode(double d)
+        inline static hash_t GetHashCode(double d)
         {
             __int64 i64 = *(__int64*)&d;
             return (uint)((i64 >> 32) ^ (uint)i64);

@@ -203,6 +203,7 @@ namespace Js
             return PathTypeHandlerBase::GetItem(instance, originalInstance, indexVal, value, requestContext);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -223,6 +224,7 @@ namespace Js
             requestContext->FindPropertyRecord(propertyName, propertyNameLength, &propertyRecord);
             if (propertyRecord == nullptr)
             {
+                *value = requestContext->GetMissingPropertyResult();
                 return false;
             }
         }
@@ -1045,14 +1047,14 @@ namespace Js
                 {
                     typeHandlerToUpdate->typePath = newTypePath;
 
-                    DynamicType * predecessorType = typeHandlerToUpdate->GetPredecessorType();
-                    if (predecessorType == nullptr)
+                    DynamicType * currPredecessorType = typeHandlerToUpdate->GetPredecessorType();
+                    if (currPredecessorType == nullptr)
                     {
                         break;
                     }
 
-                    Assert(predecessorType->GetTypeHandler()->IsPathTypeHandler());
-                    typeHandlerToUpdate = (PathTypeHandlerBase *)predecessorType->GetTypeHandler();
+                    Assert(currPredecessorType->GetTypeHandler()->IsPathTypeHandler());
+                    typeHandlerToUpdate = (PathTypeHandlerBase *)currPredecessorType->GetTypeHandler();
                     if (typeHandlerToUpdate->typePath != oldTypePath)
                     {
                         break;

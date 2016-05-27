@@ -4,7 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef ENABLE_SCRIPT_PROFILING
 #include "activprof.h"
+#endif
 
 #if DBG || ENABLE_REGEX_CONFIG_OPTIONS || defined(PROFILE_STRINGS)
 #define NEED_MISC_ALLOCATOR
@@ -177,6 +179,7 @@ namespace Js
     };
 #pragma pack(pop)
 
+#ifdef ENABLE_PROJECTION
     class ProjectionConfiguration
     {
     public:
@@ -193,6 +196,7 @@ namespace Js
     private:
         DWORD targetVersion;
     };
+#endif // ENABLE_PROJECTION
 
     class ScriptConfiguration
     {
@@ -258,7 +262,7 @@ namespace Js
         {
             return &projectionConfiguration;
         }
-        void SetHostType(long hostType) { this->HostType = hostType; }
+        void SetHostType(int32 hostType) { this->HostType = hostType; }
         void SetWinRTConstructorAllowed(bool allowed) { this->WinRTConstructorAllowed = allowed; }
         void SetProjectionTargetVersion(DWORD version)
         {
@@ -321,7 +325,6 @@ namespace Js
     typedef JsUtil::BaseDictionary<EvalMapString, ScriptFunction*, RecyclerNonLeafAllocator, PrimeSizePolicy> SecondLevelEvalCache;
     typedef TwoLevelHashRecord<FastEvalMapString, ScriptFunction*, SecondLevelEvalCache, EvalMapString> EvalMapRecord;
     typedef JsUtil::Cache<FastEvalMapString, EvalMapRecord*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<FastEvalMapString, EvalMRUSize>, FastEvalMapStringComparer> EvalCacheTopLevelDictionary;
-    typedef SList<Js::FunctionProxy*, Recycler> FunctionReferenceList;
     typedef JsUtil::Cache<EvalMapString, ParseableFunctionInfo*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<EvalMapString, EvalMRUSize>> NewFunctionCache;
     typedef JsUtil::BaseDictionary<ParseableFunctionInfo*, ParseableFunctionInfo*, Recycler, PrimeSizePolicy, RecyclerPointerComparer> ParseableFunctionInfoMap;
     // This is the dictionary used by script context to cache the eval.
@@ -331,7 +334,7 @@ namespace Js
     {
         PropertyString* strLen2[80];
 
-        __inline static uint PStrMapIndex(char16 ch)
+        inline static uint PStrMapIndex(char16 ch)
         {
             Assert(ch >= '0' && ch <= 'z');
             return ch - '0';
@@ -351,14 +354,21 @@ namespace Js
         int validPropStrings;
     };
 
-    // Holder for all cached pointers. These are allocated on a guest arena
-    // ensuring they cause the related objects to be pinned.
-    struct Cache
+    typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
+
+    // this is allocated in GC directly to avoid force pinning the object, it is linked from JavascriptLibrary such that it has
+    // the same lifetime as JavascriptLibrary, and it can be collected without ScriptContext Close.
+    // Allocate it as Finalizable such that it will be still available during JavascriptLibrary Dispose time
+    class Cache : public FinalizableObject
     {
+    public:
+        virtual void Finalize(bool isShutdown) override {}
+        virtual void Dispose(bool isShutdown) override {}
+        virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
+
         JavascriptString * lastNumberToStringRadix10String;
         EnumeratedObjectCache enumObjCache;
         JavascriptString * lastUtcTimeFromStrString;
-        TypePath* rootPath;
         EvalCacheDictionary* evalCacheDictionary;
         EvalCacheDictionary* indirectEvalCacheDictionary;
         NewFunctionCache* newFunctionCache;
@@ -368,12 +378,14 @@ namespace Js
         SourceContextInfo* noContextSourceContextInfo;
         SRCINFO* noContextGlobalSourceInfo;
         SRCINFO const ** moduleSrcInfo;
+        BuiltInLibraryFunctionMap* builtInLibraryFunctions;
     };
 
     class ScriptContext : public ScriptContextBase
     {
         friend class LowererMD;
         friend class RemoteScriptContext;
+        friend class GlobalObject; // InitializeCache
         friend class SourceTextModuleRecord; // for module bytecode gen.
 
     public:
@@ -399,14 +411,18 @@ namespace Js
         Js::JavascriptMethod DispatchDefaultInvoke;
         Js::JavascriptMethod DispatchProfileInvoke;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         typedef HRESULT (*GetDocumentContextFunction)(
             ScriptContext *pContext,
             Js::FunctionBody *pFunctionBody,
             IDebugDocumentContext **ppDebugDocumentContext);
         GetDocumentContextFunction GetDocumentContext;
+#endif // ENABLE_SCRIPT_DEBUGGING
 
+#ifdef ENABLE_SCRIPT_PROFILING
         typedef HRESULT (*CleanupDocumentContextFunction)(ScriptContext *pContext);
         CleanupDocumentContextFunction CleanupDocumentContext;
+#endif
 
         const ScriptContextBase* GetScriptContextBase() const { return static_cast<const ScriptContextBase*>(this); }
 
@@ -471,10 +487,12 @@ namespace Js
 #endif
 
         bool IsExceptionWrapperForBuiltInsEnabled();
-        bool IsEnumerateNonUserFunctionsOnly() const { return m_enumerateNonUserFunctionsOnly; }
-        bool IsTraceDomCall() const { return !!m_fTraceDomCall; }
         static bool IsExceptionWrapperForBuiltInsEnabled(ScriptContext* scriptContext);
         static bool IsExceptionWrapperForHelpersEnabled(ScriptContext* scriptContext);
+#ifdef ENABLE_SCRIPT_PROFILING
+        bool IsEnumerateNonUserFunctionsOnly() const { return m_enumerateNonUserFunctionsOnly; }
+        bool IsTraceDomCall() const { return !!m_fTraceDomCall; }
+#endif
 
         InlineCache * GetValueOfInlineCache() const { return valueOfInlineCache;}
         InlineCache * GetToStringInlineCache() const { return toStringInlineCache; }
@@ -485,7 +503,7 @@ namespace Js
     private:
         PropertyStringMap* propertyStrings[80];
 
-        JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, ulong grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
+        JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
 
         typedef void (*EventHandler)(ScriptContext *);
         ScriptContext ** registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
@@ -503,8 +521,6 @@ namespace Js
         ArenaAllocator* guestArena;
 
         ArenaAllocator* diagnosticArena;
-        void ** bindRefChunkCurrent;
-        void ** bindRefChunkEnd;
 
         bool startupComplete; // Indicates if the heuristic startup phase for this script context is complete
         bool isInvalidatedForHostObjects;  // Indicates that we've invalidate all objects in the host so stop calling them.
@@ -723,9 +739,6 @@ private:
         UnifiedRegex::TrigramAlphabet* trigramAlphabet;
         UnifiedRegex::RegexStacks *regexStacks;
 
-        FunctionReferenceList* dynamicFunctionReference;
-        uint dynamicFunctionReferenceDepth;
-
         JsUtil::Stack<Var>* operationStack;
         Recycler* recycler;
         RecyclerJavascriptNumberAllocator numberAllocator;
@@ -749,8 +762,10 @@ private:
         NativeCodeGenerator* nativeCodeGen;
 #endif
 
+#ifdef ENABLE_GLOBALIZATION
         TIME_ZONE_INFORMATION timeZoneInfo;
         uint lastTimeZoneUpdateTickCount;
+#endif // ENABLE_GLOBALIZATION
         DaylightTimeHelper daylightTimeHelper;
 
         HostScriptContext * hostScriptContext;
@@ -791,6 +806,7 @@ private:
         typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> SourceList;
         RecyclerRootPtr<SourceList> sourceList;
 
+#ifdef ENABLE_SCRIPT_PROFILING
         IActiveScriptProfilerHeapEnum* heapEnum;
 
         // Profiler Probes
@@ -804,6 +820,7 @@ private:
         IActiveScriptProfilerCallback2 *m_pProfileCallback2;
         BOOL m_fTraceDomCall;
         BOOL m_inProfileCallback;
+#endif // ENABLE_SCRIPT_PROFILING
 
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
@@ -839,6 +856,7 @@ private:
         void InitializeAllocations();
         void InitializePreGlobal();
         void InitializePostGlobal();
+        void InitializeCache();
 
         // Source Info
         void EnsureSourceContextInfoMap();
@@ -884,8 +902,6 @@ private:
 
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
-
-        TypePath* GetRootPath() { return cache->rootPath; }
 
 #ifdef ENABLE_DOM_FAST_PATH
         DOMFastPathIRHelperMap* EnsureDOMFastPathIRHelperMap();
@@ -975,6 +991,7 @@ private:
 
         ThreadContext * GetThreadContext() const { return threadContext; }
 
+#ifdef ENABLE_GLOBALIZATION
         TIME_ZONE_INFORMATION * GetTimeZoneInfo()
         {
             uint tickCount = GetTickCount();
@@ -986,6 +1003,7 @@ private:
             return &timeZoneInfo;
         }
         void UpdateTimeZoneInfo();
+#endif // ENABLE_GLOBALIZATION
 
         static const int MaxEvalSourceSize = 400;
 
@@ -1002,10 +1020,7 @@ private:
         template <class TDelegate>
         FunctionBody* FindFunction(TDelegate predicate);
 
-        __inline bool EnableEvalMapCleanup() { return CONFIG_FLAG(EnableEvalMapCleanup); };
-        void BeginDynamicFunctionReferences();
-        void EndDynamicFunctionReferences();
-        void RegisterDynamicFunctionReference(FunctionProxy* func);
+        inline bool EnableEvalMapCleanup() { return CONFIG_FLAG(EnableEvalMapCleanup); };
         uint GetNextSourceContextId();
 
         bool IsInNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo **ppFuncBody);
@@ -1148,7 +1163,7 @@ private:
         bool Close(bool inDestructor);
         void MarkForClose();
 #ifdef ENABLE_PROJECTION
-        void SetHostType(long hostType) { config.SetHostType(hostType); }
+        void SetHostType(int32 hostType) { config.SetHostType(hostType); }
         void SetWinRTConstructorAllowed(bool allowed) { config.SetWinRTConstructorAllowed(allowed); }
         void SetProjectionTargetVersion(DWORD version) { config.SetProjectionTargetVersion(version); }
 #endif
@@ -1199,9 +1214,9 @@ private:
         WellKnownHostType GetWellKnownHostType(Js::TypeId typeId) { return threadContext->GetWellKnownHostType(typeId); }
         void SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::TypeId typeId) { threadContext->SetWellKnownHostTypeId(wellKnownType, typeId); }
 
-        ParseNodePtr ParseScript(Parser* parser, const byte* script, size_t cb, SRCINFO const * pSrcInfo, 
+        ParseNodePtr ParseScript(Parser* parser, const byte* script, size_t cb, SRCINFO const * pSrcInfo,
             CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag, uint* sourceIndex);
-        JavascriptFunction* LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo, 
+        JavascriptFunction* LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo,
             CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag);
 
         ArenaAllocator* GeneralAllocator() { return &generalAllocator; }
@@ -1381,7 +1396,6 @@ private:
         }
 
     public:
-        void FreeLoopBody(void* codeAddress);
         void FreeFunctionEntryPoint(Js::JavascriptMethod method);
 
     private:
@@ -1426,17 +1440,26 @@ private:
 
         BOOL IsProfiling()
         {
+#ifdef ENABLE_SCRIPT_PROFILING
             return (m_pProfileCallback != nullptr);
+#else
+            return FALSE;
+#endif
         }
 
         BOOL IsInProfileCallback()
         {
+#ifdef ENABLE_SCRIPT_PROFILING
             return m_inProfileCallback;
+#else
+            return FALSE;
+#endif
         }
 
 #if DBG
         SourceContextInfo const * GetNoContextSourceContextInfo() const { return cache->noContextSourceContextInfo; }
 
+#ifdef ENABLE_SCRIPT_PROFILING
         int GetProfileSession()
         {
             AssertMsg(m_pProfileCallback != nullptr, "Asking for profile session when we aren't in one.");
@@ -1453,6 +1476,7 @@ private:
         {
             AssertMsg(m_pProfileCallback == nullptr, "How to stop when there is still the callback out there");
         }
+#endif // ENABLE_SCRIPT_PROFILING
 
         bool hadProfiled;
         bool HadProfiled() const { return hadProfiled; }
@@ -1462,7 +1486,9 @@ private:
 
         inline void CoreSetProfileEventMask(DWORD dwEventMask);
         typedef HRESULT (*RegisterExternalLibraryType)(Js::ScriptContext *pScriptContext);
+#ifdef ENABLE_SCRIPT_PROFILING
         HRESULT RegisterProfileProbe(IActiveScriptProfilerCallback *pProfileCallback, DWORD dwEventMask, DWORD dwContext, RegisterExternalLibraryType RegisterExternalLibrary, JavascriptMethod dispatchInvoke);
+#endif
         HRESULT SetProfileEventMask(DWORD dwEventMask);
         HRESULT DeRegisterProfileProbe(HRESULT hrReason, JavascriptMethod dispatchInvoke);
 
@@ -1485,9 +1511,11 @@ private:
 
         void UpdateRecyclerFunctionEntryPointsForDebugger();
         void SetFunctionInRecyclerToProfileMode(bool enumerateNonUserFunctionsOnly = false);
+#ifdef ENABLE_SCRIPT_PROFILING
         static void SetEntryPointToProfileThunk(JavascriptFunction* function);
         static void RestoreEntryPointFromProfileThunk(JavascriptFunction* function);
-
+#endif
+        
         static void RecyclerEnumClassEnumeratorCallback(void *address, size_t size);
         static void RecyclerFunctionCallbackForDebugger(void *address, size_t size);
 
@@ -1568,13 +1596,6 @@ private:
         void ReleaseDynamicAsmJsInterpreterThunk(BYTE* address, bool addtoFreeList);
 #endif
 
-        void SetProfileMode(BOOL fSet);
-        static JavascriptMethod GetProfileModeThunk(JavascriptMethod entryPoint);
-        static Var ProfileModeThunk_DebugModeWrapper(JavascriptFunction* function, ScriptContext* scriptContext, JavascriptMethod entryPoint, Arguments& args);
-        BOOL GetProfileInfo(
-            JavascriptFunction* function,
-            PROFILER_TOKEN &scriptId,
-            PROFILER_TOKEN &functionId);
         static Var DebugProfileProbeThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static JavascriptMethod ProfileModeDeferredParse(ScriptFunction **function);
         static Var ProfileModeDeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...);
@@ -1582,6 +1603,15 @@ private:
         // Thunks for deferred deserialization of function bodies from the byte code cache
         static JavascriptMethod ProfileModeDeferredDeserialize(ScriptFunction* function);
         static Var ProfileModeDeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...);
+
+#ifdef ENABLE_SCRIPT_PROFILING
+        void SetProfileMode(BOOL fSet);
+        static JavascriptMethod GetProfileModeThunk(JavascriptMethod entryPoint);
+        static Var ProfileModeThunk_DebugModeWrapper(JavascriptFunction* function, ScriptContext* scriptContext, JavascriptMethod entryPoint, Arguments& args);
+        BOOL GetProfileInfo(
+            JavascriptFunction* function,
+            PROFILER_TOKEN &scriptId,
+            PROFILER_TOKEN &functionId);
 
         HRESULT OnScriptCompiled(PROFILER_TOKEN scriptId, PROFILER_SCRIPT_TYPE type, IUnknown *pIDebugDocumentContext);
         HRESULT OnFunctionCompiled(
@@ -1593,15 +1623,16 @@ private:
         HRESULT OnFunctionEnter(PROFILER_TOKEN scriptId, PROFILER_TOKEN functionId);
         HRESULT OnFunctionExit(PROFILER_TOKEN scriptId, PROFILER_TOKEN functionId);
 
+        static HRESULT FunctionExitSenderThunk(PROFILER_TOKEN functionId, PROFILER_TOKEN scriptId, ScriptContext *pScriptContext);
+        static HRESULT FunctionExitByNameSenderThunk(const char16 *pwszFunctionName, ScriptContext *pScriptContext);
+#endif // ENABLE_SCRIPT_PROFILING
+
         bool SetDispatchProfile(bool fSet, JavascriptMethod dispatchInvoke);
         HRESULT OnDispatchFunctionEnter(const WCHAR *pwszFunctionName);
         HRESULT OnDispatchFunctionExit(const WCHAR *pwszFunctionName);
 
         void OnStartupComplete();
         void SaveStartupProfileAndRelease(bool isSaveOnClose = false);
-
-        static HRESULT FunctionExitSenderThunk(PROFILER_TOKEN functionId, PROFILER_TOKEN scriptId, ScriptContext *pScriptContext);
-        static HRESULT FunctionExitByNameSenderThunk(const char16 *pwszFunctionName, ScriptContext *pScriptContext);
 
 #if ENABLE_PROFILE_INFO
         void AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo);
@@ -1635,7 +1666,6 @@ private:
         JavascriptFunction* GetBuiltInLibraryFunction(JavascriptMethod entryPoint);
 
     private:
-        typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
         BuiltInLibraryFunctionMap* builtInLibraryFunctions;
 
 #ifdef RECYCLER_PERF_COUNTERS
@@ -1660,12 +1690,12 @@ private:
         AutoDynamicCodeReference(ScriptContext* scriptContext):
           m_scriptContext(scriptContext)
           {
-              scriptContext->BeginDynamicFunctionReferences();
+              scriptContext->GetLibrary()->BeginDynamicFunctionReferences();
           }
 
           ~AutoDynamicCodeReference()
           {
-              m_scriptContext->EndDynamicFunctionReferences();
+              m_scriptContext->GetLibrary()->EndDynamicFunctionReferences();
           }
 
     private:
@@ -1678,7 +1708,7 @@ private:
         // Remove eval map functions that haven't been recently used
         // TODO: Metric based on allocation size too? So don't clean if there hasn't been much allocated?
 
-        cacheType->Clean([this](const TCacheType::KeyType& key, TCacheType::ValueType value) {
+        cacheType->Clean([this](const typename TCacheType::KeyType& key, typename TCacheType::ValueType value) {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             if (CONFIG_FLAG(DumpEvalStringOnRemoval))
             {

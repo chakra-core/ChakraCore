@@ -39,7 +39,7 @@ namespace Js
             ScriptContext* scriptContext);
 
         static const char16* GetTypeName();
-        __inline SIMDValue GetValue() { return value; }
+        inline SIMDValue GetValue() { return value; }
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
         static size_t GetOffsetOfValue() { return offsetof(JavascriptSIMDFloat32x4, value); }

@@ -1273,7 +1273,7 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
     IR::RegOpnd *shamt = IR::RegOpnd::New(src2->GetType(), m_func);
     // en-register
     IR::Opnd *origShamt = EnregisterIntConst(instr, src2); //unnormalized shift amount
-    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, origShamt, IR::IntConstOpnd::New(Js::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt8, m_func), m_func); // normalizing by elm width (i.e. shamt % elm_width)
+    pInstr = IR::Instr::New(Js::OpCode::AND, shamt, origShamt, IR::IntConstOpnd::New(Js::SIMDUtils::SIMDGetShiftAmountMask(elementSizeInBytes), TyInt8, m_func), m_func); // normalizing by elm width (i.e. shamt % elm_width)
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 
@@ -3070,9 +3070,9 @@ LowererMD::Simd128LoadHeadSegment(IR::IndirOpnd *indirOpnd, ValueType arrType, I
     {
         //  MOV headSegment, [base + offset(head)]
         int32 headOffset = m_lowerer->GetArrayOffsetOfHeadSegment(arrType);
-        IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(arrayRegOpnd, headOffset, TyMachPtr, this->m_func);
+        IR::IndirOpnd * newIndirOpnd = IR::IndirOpnd::New(arrayRegOpnd, headOffset, TyMachPtr, this->m_func);
         headSegmentOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-        m_lowerer->InsertMove(headSegmentOpnd, indirOpnd, instr);
+        m_lowerer->InsertMove(headSegmentOpnd, newIndirOpnd, instr);
     }
 
     // change base to be the head segment instead of the array object

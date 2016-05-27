@@ -9,7 +9,7 @@ namespace IR
     class LabelInstr;
 }
 
-enum JsNativeValueType;
+enum JsNativeValueType: int;
 
 namespace Js
 {
@@ -28,8 +28,8 @@ namespace Js
         if (errorObject != nullptr && Js::JavascriptError::Is(errorObject)) \
         { \
             HRESULT hr = Js::JavascriptError::GetRuntimeError(Js::RecyclableObject::FromVar(errorObject), nullptr); \
-            if (JavascriptError::GetErrorNumberFromResourceID(JSERR_Property_CannotGet_NullOrUndefined) == (long)hr \
-                || JavascriptError::GetErrorNumberFromResourceID(JSERR_UseBeforeDeclaration) == (long)hr) \
+            if (JavascriptError::GetErrorNumberFromResourceID(JSERR_Property_CannotGet_NullOrUndefined) == (int32)hr \
+                || JavascriptError::GetErrorNumberFromResourceID(JSERR_UseBeforeDeclaration) == (int32)hr) \
             { \
                 if (scriptContext->IsScriptContextInDebugMode()) \
                 { \
@@ -224,6 +224,7 @@ namespace Js
         static BOOL HasItem(RecyclableObject* instance, uint64 index);
         static BOOL GetOwnItem(RecyclableObject* instance, uint32 index, Var* value, ScriptContext* requestContext);
         static Var GetItem(RecyclableObject* instance, uint64 index, ScriptContext* requestContext);
+        static Var GetItem(RecyclableObject* instance, uint32 index, ScriptContext* requestContext);
         static BOOL GetItem(RecyclableObject* instance, uint64 index, Var* value, ScriptContext* requestContext);
         static BOOL GetItem(RecyclableObject* instance, uint32 index, Var* value, ScriptContext* requestContext);
         static BOOL GetItem(Var instance, RecyclableObject* propertyObject, uint32 index, Var* value, ScriptContext* requestContext);
@@ -623,7 +624,7 @@ namespace Js
         static Var NewScObjectHostDispatchOrProxy(RecyclableObject * function, ScriptContext * requestContext);
         static Var NewScObjectCommon(RecyclableObject * functionObject, FunctionInfo * functionInfo, ScriptContext * scriptContext, bool isBaseClassConstructorNewScObject = false);
 
-        static BOOL Reject(bool throwOnError, ScriptContext* scriptContext, long errorCode, PropertyId propertyId);
+        static BOOL Reject(bool throwOnError, ScriptContext* scriptContext, int32 errorCode, PropertyId propertyId);
         static bool AreSamePropertyDescriptors(const PropertyDescriptor* x, const PropertyDescriptor* y, ScriptContext* scriptContext);
         static Var CanonicalizeAccessor(Var accessor, ScriptContext* scriptContext);
 

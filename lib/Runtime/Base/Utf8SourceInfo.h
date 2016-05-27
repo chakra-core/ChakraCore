@@ -398,12 +398,12 @@ namespace Js
 template <>
 struct DefaultComparer<Js::Utf8SourceInfo*>
 {
-    __inline static bool Equals(Js::Utf8SourceInfo* const& x, Js::Utf8SourceInfo* const& y)
+    inline static bool Equals(Js::Utf8SourceInfo* const& x, Js::Utf8SourceInfo* const& y)
     {
         return Js::Utf8SourceInfo::StaticEquals(x, y);
     }
 
-    __inline static hash_t GetHashCode(Js::Utf8SourceInfo* const& s)
+    inline static hash_t GetHashCode(Js::Utf8SourceInfo* const& s)
     {
         return Js::Utf8SourceInfo::StaticGetHashCode(s);
     }

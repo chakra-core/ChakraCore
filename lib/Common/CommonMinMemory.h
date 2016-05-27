@@ -5,13 +5,10 @@
 #pragma once
 
 #include "CommonMin.h"
+#include "TemplateParameter.h"
 
 // === Recycler Memory Header Files ===
 class FinalizableObject;
-namespace Js
-{
-    class DefaultListLockPolicy;
-}
 
 #ifdef ENABLE_BASIC_TELEMETRY
 #include "GCTelemetry.h"

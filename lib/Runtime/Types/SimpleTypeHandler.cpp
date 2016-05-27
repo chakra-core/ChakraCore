@@ -395,6 +395,7 @@ namespace Js
             {
                 if (descriptors[i].Attributes & PropertyDeleted)
                 {
+                    *value = requestContext->GetMissingPropertyResult();
                     return false;
                 }
                 *value = instance->GetSlot(i);
@@ -411,6 +412,7 @@ namespace Js
             return SimpleTypeHandler<size>::GetItem(instance, originalInstance, indexVal, value, scriptContext);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -427,6 +429,7 @@ namespace Js
             {
                 if (descriptors[i].Attributes & PropertyDeleted)
                 {
+                    *value = requestContext->GetMissingPropertyResult();
                     return false;
                 }
                 *value = instance->GetSlot(i);
@@ -435,6 +438,7 @@ namespace Js
             }
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 

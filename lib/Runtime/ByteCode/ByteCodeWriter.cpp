@@ -20,7 +20,7 @@ namespace Js
         DebugOnly(isInUse = false);
     }
 
-    void ByteCodeWriter::InitData(ArenaAllocator* alloc, long initCodeBufferSize)
+    void ByteCodeWriter::InitData(ArenaAllocator* alloc, int32 initCodeBufferSize)
     {
         Assert(!isInUse);
         Assert(!isInitialized);
@@ -121,7 +121,7 @@ namespace Js
     ///
     ///----------------------------------------------------------------------------
 #ifdef LOG_BYTECODE_AST_RATIO
-    void ByteCodeWriter::End(long currentAstSize, long maxAstSize)
+    void ByteCodeWriter::End(int32 currentAstSize, int32 maxAstSize)
 #else
     void ByteCodeWriter::End()
 #endif
@@ -3199,7 +3199,7 @@ StoreCommon:
     }
 
     template <>
-    __inline uint ByteCodeWriter::Data::EncodeT<SmallLayout>(OpCode op, ByteCodeWriter* writer)
+    inline uint ByteCodeWriter::Data::EncodeT<SmallLayout>(OpCode op, ByteCodeWriter* writer)
     {
 #ifdef BYTECODE_BRANCH_ISLAND
         if (writer->useBranchIsland)
@@ -3232,7 +3232,7 @@ StoreCommon:
     }
 
     template <LayoutSize layoutSize>
-    __inline uint ByteCodeWriter::Data::EncodeT(OpCode op, ByteCodeWriter* writer)
+    inline uint ByteCodeWriter::Data::EncodeT(OpCode op, ByteCodeWriter* writer)
     {
 #ifdef BYTECODE_BRANCH_ISLAND
         if (writer->useBranchIsland)
@@ -3261,7 +3261,7 @@ StoreCommon:
     }
 
     template <LayoutSize layoutSize>
-    __inline uint ByteCodeWriter::Data::EncodeT(OpCode op, const void* rawData, int byteSize, ByteCodeWriter* writer)
+    inline uint ByteCodeWriter::Data::EncodeT(OpCode op, const void* rawData, int byteSize, ByteCodeWriter* writer)
     {
         AssertMsg((rawData != nullptr) && (byteSize < 100), "Ensure valid data for opcode");
 
@@ -3270,13 +3270,13 @@ StoreCommon:
         return offset;
     }
 
-    __inline uint ByteCodeWriter::Data::Encode(const void* rawData, int byteSize)
+    inline uint ByteCodeWriter::Data::Encode(const void* rawData, int byteSize)
     {
         AssertMsg(rawData != nullptr, "Ensure valid data for opcode");
         return Write(rawData, byteSize);
     }
 
-    __inline uint ByteCodeWriter::Data::Write(__in_bcount(byteSize) const void* data, __in uint byteSize)
+    inline uint ByteCodeWriter::Data::Write(__in_bcount(byteSize) const void* data, __in uint byteSize)
     {
         // Simple case where the current chunk has enough space.
         uint bytesFree = current->RemainingBytes();

@@ -3,140 +3,145 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
-#include "../Runtime/Base/WindowsGlobalizationAdapter.h"
 
-using namespace Windows::Data::Text;
-
-static const CharTypeFlags charFlags[128] =
+namespace PlatformAgnostic
 {
-    UnknownChar,                 /* 0x00   */
-    UnknownChar,                 /* 0x01   */
-    UnknownChar,                 /* 0x02   */
-    UnknownChar,                 /* 0x03   */
-    UnknownChar,                 /* 0x04   */
-    UnknownChar,                 /* 0x05   */
-    UnknownChar,                 /* 0x06   */
-    UnknownChar,                 /* 0x07   */
-    UnknownChar,                 /* 0x08   */
-    SpaceChar,                   /* 0x09   */
-    LineCharGroup,               /* 0x0A   */
-    SpaceChar,                   /* 0x0B   */
-    SpaceChar,                   /* 0x0C   */
-    LineCharGroup,               /* 0x0D   */
-    UnknownChar,                 /* 0x0E   */
-    UnknownChar,                 /* 0x0F   */
-    UnknownChar,                 /* 0x10   */
-    UnknownChar,                 /* 0x11   */
-    UnknownChar,                 /* 0x12   */
-    UnknownChar,                 /* 0x13   */
-    UnknownChar,                 /* 0x14   */
-    UnknownChar,                 /* 0x15   */
-    UnknownChar,                 /* 0x16   */
-    UnknownChar,                 /* 0x17   */
-    UnknownChar,                 /* 0x18   */
-    UnknownChar,                 /* 0x19   */
-    UnknownChar,                 /* 0x1A   */
-    UnknownChar,                 /* 0x1B   */
-    UnknownChar,                 /* 0x1C   */
-    UnknownChar,                 /* 0x1D   */
-    UnknownChar,                 /* 0x1E   */
-    UnknownChar,                 /* 0x1F   */
-    SpaceChar,                   /* 0x20   */
-    UnknownChar,                 /* 0x21 ! */
-    UnknownChar,                 /* 0x22   */
-    UnknownChar,                 /* 0x23 # */
-    LetterCharGroup,             /* 0x24 $ */
-    UnknownChar,                 /* 0x25 % */
-    UnknownChar,                 /* 0x26 & */
-    UnknownChar,                 /* 0x27   */
-    UnknownChar,                 /* 0x28   */
-    UnknownChar,                 /* 0x29   */
-    UnknownChar,                 /* 0x2A   */
-    UnknownChar,                 /* 0x2B   */
-    UnknownChar,                 /* 0x2C   */
-    UnknownChar,                 /* 0x2D   */
-    UnknownChar,                 /* 0x2E   */
-    UnknownChar,                 /* 0x2F   */
-    DecimalCharGroup,            /* 0x30 0 */
-    DecimalCharGroup,            /* 0x31 1 */
-    DecimalCharGroup,            /* 0x32 2 */
-    DecimalCharGroup,            /* 0x33 3 */
-    DecimalCharGroup,            /* 0x34 4 */
-    DecimalCharGroup,            /* 0x35 5 */
-    DecimalCharGroup,            /* 0x36 6 */
-    DecimalCharGroup,            /* 0x37 7 */
-    DecimalCharGroup,            /* 0x38 8 */
-    DecimalCharGroup,            /* 0x39 9 */
-    UnknownChar,                 /* 0x3A   */
-    UnknownChar,                 /* 0x3B   */
-    UnknownChar,                 /* 0x3C < */
-    UnknownChar,                 /* 0x3D = */
-    UnknownChar,                 /* 0x3E > */
-    UnknownChar,                 /* 0x3F   */
-    UnknownChar,                 /* 0x40 @ */
-    HexCharGroup,                /* 0x41 A */
-    HexCharGroup,                /* 0x42 B */
-    HexCharGroup,                /* 0x43 C */
-    HexCharGroup,                /* 0x44 D */
-    HexCharGroup,                /* 0x45 E */
-    HexCharGroup,                /* 0x46 F */
-    LetterCharGroup,             /* 0x47 G */
-    LetterCharGroup,             /* 0x48 H */
-    LetterCharGroup,             /* 0x49 I */
-    LetterCharGroup,             /* 0x4A J */
-    LetterCharGroup,             /* 0x4B K */
-    LetterCharGroup,             /* 0x4C L */
-    LetterCharGroup,             /* 0x4D M */
-    LetterCharGroup,             /* 0x4E N */
-    LetterCharGroup,             /* 0x4F O */
-    LetterCharGroup,             /* 0x50 P */
-    LetterCharGroup,             /* 0x51 Q */
-    LetterCharGroup,             /* 0x52 R */
-    LetterCharGroup,             /* 0x53 S */
-    LetterCharGroup,             /* 0x54 T */
-    LetterCharGroup,             /* 0x55 U */
-    LetterCharGroup,             /* 0x56 V */
-    LetterCharGroup,             /* 0x57 W */
-    LetterCharGroup,             /* 0x58 X */
-    LetterCharGroup,             /* 0x59 Y */
-    LetterCharGroup,             /* 0x5A Z */
-    UnknownChar,                 /* 0x5B   */
-    UnknownChar,                 /* 0x5C   */
-    UnknownChar,                 /* 0x5D   */
-    UnknownChar,                 /* 0x5E   */
-    LetterCharGroup,             /* 0x5F _ */
-    UnknownChar,                 /* 0x60   */
-    HexCharGroup,                /* 0x61 a */
-    HexCharGroup,                /* 0x62 b */
-    HexCharGroup,                /* 0x63 c */
-    HexCharGroup,                /* 0x64 d */
-    HexCharGroup,                /* 0x65 e */
-    HexCharGroup,                /* 0x66 f */
-    LetterCharGroup,             /* 0x67 g */
-    LetterCharGroup,             /* 0x68 h */
-    LetterCharGroup,             /* 0x69 i */
-    LetterCharGroup,             /* 0x6A j */
-    LetterCharGroup,             /* 0x6B k */
-    LetterCharGroup,             /* 0x6C l */
-    LetterCharGroup,             /* 0x6D m */
-    LetterCharGroup,             /* 0x6E n */
-    LetterCharGroup,             /* 0x6F o */
-    LetterCharGroup,             /* 0x70 p */
-    LetterCharGroup,             /* 0x71 q */
-    LetterCharGroup,             /* 0x72 r */
-    LetterCharGroup,             /* 0x73 s */
-    LetterCharGroup,             /* 0x74 t */
-    LetterCharGroup,             /* 0x75 u */
-    LetterCharGroup,             /* 0x76 v */
-    LetterCharGroup,             /* 0x77 w */
-    LetterCharGroup,             /* 0x78 x */
-    LetterCharGroup,             /* 0x79 y */
-    LetterCharGroup,             /* 0x7A z */
-    UnknownChar,                 /* 0x7B   */
-    UnknownChar,                 /* 0x7C   */
-    UnknownChar,                 /* 0x7D   */
-    UnknownChar,                 /* 0x7E   */
-    UnknownChar                  /* 0x7F   */
+    namespace UnicodeText
+    {
+        // Technically, this is not specific to Unicode (in fact, it's used in the non-Unicode case)
+        // But it's in this namespace for convenience
+        static const CharacterTypeFlags charFlags[128] =
+        {
+            UnknownChar,                 /* 0x00   */
+            UnknownChar,                 /* 0x01   */
+            UnknownChar,                 /* 0x02   */
+            UnknownChar,                 /* 0x03   */
+            UnknownChar,                 /* 0x04   */
+            UnknownChar,                 /* 0x05   */
+            UnknownChar,                 /* 0x06   */
+            UnknownChar,                 /* 0x07   */
+            UnknownChar,                 /* 0x08   */
+            SpaceChar,                   /* 0x09   */
+            LineCharGroup,               /* 0x0A   */
+            SpaceChar,                   /* 0x0B   */
+            SpaceChar,                   /* 0x0C   */
+            LineCharGroup,               /* 0x0D   */
+            UnknownChar,                 /* 0x0E   */
+            UnknownChar,                 /* 0x0F   */
+            UnknownChar,                 /* 0x10   */
+            UnknownChar,                 /* 0x11   */
+            UnknownChar,                 /* 0x12   */
+            UnknownChar,                 /* 0x13   */
+            UnknownChar,                 /* 0x14   */
+            UnknownChar,                 /* 0x15   */
+            UnknownChar,                 /* 0x16   */
+            UnknownChar,                 /* 0x17   */
+            UnknownChar,                 /* 0x18   */
+            UnknownChar,                 /* 0x19   */
+            UnknownChar,                 /* 0x1A   */
+            UnknownChar,                 /* 0x1B   */
+            UnknownChar,                 /* 0x1C   */
+            UnknownChar,                 /* 0x1D   */
+            UnknownChar,                 /* 0x1E   */
+            UnknownChar,                 /* 0x1F   */
+            SpaceChar,                   /* 0x20   */
+            UnknownChar,                 /* 0x21 ! */
+            UnknownChar,                 /* 0x22   */
+            UnknownChar,                 /* 0x23 # */
+            LetterCharGroup,             /* 0x24 $ */
+            UnknownChar,                 /* 0x25 % */
+            UnknownChar,                 /* 0x26 & */
+            UnknownChar,                 /* 0x27   */
+            UnknownChar,                 /* 0x28   */
+            UnknownChar,                 /* 0x29   */
+            UnknownChar,                 /* 0x2A   */
+            UnknownChar,                 /* 0x2B   */
+            UnknownChar,                 /* 0x2C   */
+            UnknownChar,                 /* 0x2D   */
+            UnknownChar,                 /* 0x2E   */
+            UnknownChar,                 /* 0x2F   */
+            DecimalCharGroup,            /* 0x30 0 */
+            DecimalCharGroup,            /* 0x31 1 */
+            DecimalCharGroup,            /* 0x32 2 */
+            DecimalCharGroup,            /* 0x33 3 */
+            DecimalCharGroup,            /* 0x34 4 */
+            DecimalCharGroup,            /* 0x35 5 */
+            DecimalCharGroup,            /* 0x36 6 */
+            DecimalCharGroup,            /* 0x37 7 */
+            DecimalCharGroup,            /* 0x38 8 */
+            DecimalCharGroup,            /* 0x39 9 */
+            UnknownChar,                 /* 0x3A   */
+            UnknownChar,                 /* 0x3B   */
+            UnknownChar,                 /* 0x3C < */
+            UnknownChar,                 /* 0x3D = */
+            UnknownChar,                 /* 0x3E > */
+            UnknownChar,                 /* 0x3F   */
+            UnknownChar,                 /* 0x40 @ */
+            HexCharGroup,                /* 0x41 A */
+            HexCharGroup,                /* 0x42 B */
+            HexCharGroup,                /* 0x43 C */
+            HexCharGroup,                /* 0x44 D */
+            HexCharGroup,                /* 0x45 E */
+            HexCharGroup,                /* 0x46 F */
+            LetterCharGroup,             /* 0x47 G */
+            LetterCharGroup,             /* 0x48 H */
+            LetterCharGroup,             /* 0x49 I */
+            LetterCharGroup,             /* 0x4A J */
+            LetterCharGroup,             /* 0x4B K */
+            LetterCharGroup,             /* 0x4C L */
+            LetterCharGroup,             /* 0x4D M */
+            LetterCharGroup,             /* 0x4E N */
+            LetterCharGroup,             /* 0x4F O */
+            LetterCharGroup,             /* 0x50 P */
+            LetterCharGroup,             /* 0x51 Q */
+            LetterCharGroup,             /* 0x52 R */
+            LetterCharGroup,             /* 0x53 S */
+            LetterCharGroup,             /* 0x54 T */
+            LetterCharGroup,             /* 0x55 U */
+            LetterCharGroup,             /* 0x56 V */
+            LetterCharGroup,             /* 0x57 W */
+            LetterCharGroup,             /* 0x58 X */
+            LetterCharGroup,             /* 0x59 Y */
+            LetterCharGroup,             /* 0x5A Z */
+            UnknownChar,                 /* 0x5B   */
+            UnknownChar,                 /* 0x5C   */
+            UnknownChar,                 /* 0x5D   */
+            UnknownChar,                 /* 0x5E   */
+            LetterCharGroup,             /* 0x5F _ */
+            UnknownChar,                 /* 0x60   */
+            HexCharGroup,                /* 0x61 a */
+            HexCharGroup,                /* 0x62 b */
+            HexCharGroup,                /* 0x63 c */
+            HexCharGroup,                /* 0x64 d */
+            HexCharGroup,                /* 0x65 e */
+            HexCharGroup,                /* 0x66 f */
+            LetterCharGroup,             /* 0x67 g */
+            LetterCharGroup,             /* 0x68 h */
+            LetterCharGroup,             /* 0x69 i */
+            LetterCharGroup,             /* 0x6A j */
+            LetterCharGroup,             /* 0x6B k */
+            LetterCharGroup,             /* 0x6C l */
+            LetterCharGroup,             /* 0x6D m */
+            LetterCharGroup,             /* 0x6E n */
+            LetterCharGroup,             /* 0x6F o */
+            LetterCharGroup,             /* 0x70 p */
+            LetterCharGroup,             /* 0x71 q */
+            LetterCharGroup,             /* 0x72 r */
+            LetterCharGroup,             /* 0x73 s */
+            LetterCharGroup,             /* 0x74 t */
+            LetterCharGroup,             /* 0x75 u */
+            LetterCharGroup,             /* 0x76 v */
+            LetterCharGroup,             /* 0x77 w */
+            LetterCharGroup,             /* 0x78 x */
+            LetterCharGroup,             /* 0x79 y */
+            LetterCharGroup,             /* 0x7A z */
+            UnknownChar,                 /* 0x7B   */
+            UnknownChar,                 /* 0x7C   */
+            UnknownChar,                 /* 0x7D   */
+            UnknownChar,                 /* 0x7E   */
+            UnknownChar                  /* 0x7F   */
+        };
+    }
 };
 
     /*****************************************************************************
@@ -172,261 +177,102 @@ static const CharTypes charTypes[128] =
     _C_LET, _C_LET, _C_LET, _C_LC , _C_BAR, _C_RC , _C_TIL, _C_ERR,     /* 78-7F */
 };
 
-typedef struct
+
+#if ENABLE_UNICODE_API
+bool Js::CharClassifier::BigCharIsWhitespaceDefault(codepoint_t ch, const Js::CharClassifier *instance)
 {
-    OLECHAR chStart;
-    OLECHAR chFinish;
-
-} oldCharTypesRangeStruct;
-
-static const int cOldDigits = 156;
-static const oldCharTypesRangeStruct oldDigits[] = {
-    {   688,   734 }, {   736,   745 }, {   768,   837 }, {   864,   865 }, {   884,   885 },
-    {   890,   890 }, {   900,   901 }, {  1154,  1158 }, {  1369,  1369 }, {  1425,  1441 },
-    {  1443,  1465 }, {  1467,  1469 }, {  1471,  1471 }, {  1473,  1474 }, {  1476,  1476 },
-    {  1600,  1600 }, {  1611,  1618 }, {  1648,  1648 }, {  1750,  1773 }, {  2305,  2307 },
-    {  2364,  2381 }, {  2384,  2388 }, {  2402,  2403 }, {  2433,  2435 }, {  2492,  2492 },
-    {  2494,  2500 }, {  2503,  2504 }, {  2507,  2509 }, {  2519,  2519 }, {  2530,  2531 },
-    {  2546,  2554 }, {  2562,  2562 }, {  2620,  2620 }, {  2622,  2626 }, {  2631,  2632 },
-    {  2635,  2637 }, {  2672,  2676 }, {  2689,  2691 }, {  2748,  2757 }, {  2759,  2761 },
-    {  2763,  2765 }, {  2768,  2768 }, {  2817,  2819 }, {  2876,  2883 }, {  2887,  2888 },
-    {  2891,  2893 }, {  2902,  2903 }, {  2928,  2928 }, {  2946,  2947 }, {  3006,  3010 },
-    {  3014,  3016 }, {  3018,  3021 }, {  3031,  3031 }, {  3056,  3058 }, {  3073,  3075 },
-    {  3134,  3140 }, {  3142,  3144 }, {  3146,  3149 }, {  3157,  3158 }, {  3202,  3203 },
-    {  3262,  3268 }, {  3270,  3272 }, {  3274,  3277 }, {  3285,  3286 }, {  3330,  3331 },
-    {  3390,  3395 }, {  3398,  3400 }, {  3402,  3405 }, {  3415,  3415 }, {  3647,  3647 },
-    {  3759,  3769 }, {  3771,  3773 }, {  3776,  3780 }, {  3782,  3782 }, {  3784,  3789 },
-    {  3840,  3843 }, {  3859,  3871 }, {  3882,  3897 }, {  3902,  3903 }, {  3953,  3972 },
-    {  3974,  3979 }, {  8125,  8129 }, {  8141,  8143 }, {  8157,  8159 }, {  8173,  8175 },
-    {  8189,  8190 }, {  8192,  8207 }, {  8232,  8238 }, {  8260,  8260 }, {  8298,  8304 },
-    {  8308,  8316 }, {  8319,  8332 }, {  8352,  8364 }, {  8400,  8417 }, {  8448,  8504 },
-    {  8531,  8578 }, {  8592,  8682 }, {  8704,  8945 }, {  8960,  8960 }, {  8962,  9000 },
-    {  9003,  9082 }, {  9216,  9252 }, {  9280,  9290 }, {  9312,  9371 }, {  9450,  9450 },
-    {  9472,  9621 }, {  9632,  9711 }, {  9728,  9747 }, {  9754,  9839 }, {  9985,  9988 },
-    {  9990,  9993 }, {  9996, 10023 }, { 10025, 10059 }, { 10061, 10061 }, { 10063, 10066 },
-    { 10070, 10070 }, { 10072, 10078 }, { 10081, 10087 }, { 10102, 10132 }, { 10136, 10159 },
-    { 10161, 10174 }, { 12292, 12292 }, { 12294, 12294 }, { 12306, 12307 }, { 12320, 12335 },
-    { 12337, 12343 }, { 12351, 12351 }, { 12441, 12442 }, { 12688, 12703 }, { 12800, 12828 },
-    { 12832, 12867 }, { 12896, 12923 }, { 12927, 12976 }, { 12992, 13003 }, { 13008, 13054 },
-    { 13056, 13174 }, { 13179, 13277 }, { 13280, 13310 }, { 64286, 64286 }, { 65056, 65059 },
-    { 65122, 65122 }, { 65124, 65126 }, { 65129, 65129 }, { 65136, 65138 }, { 65140, 65140 },
-    { 65142, 65151 }, { 65284, 65284 }, { 65291, 65291 }, { 65308, 65310 }, { 65342, 65342 },
-    { 65344, 65344 }, { 65372, 65372 }, { 65374, 65374 }, { 65440, 65440 }, { 65504, 65510 },
-    { 65512, 65518 }
-};
-
-static const int cOldAlphas = 11;
-static const oldCharTypesRangeStruct oldAlphas[] = {
-    {   402,   402 }, {  9372,  9449 }, { 12293, 12293 }, { 12295, 12295 }, { 12443, 12446 },
-    { 12540, 12542 }, { 64297, 64297 }, { 65152, 65276 }, { 65392, 65392 }, { 65438, 65439 },
-    { 65533, 65533 }
-};
-
-CharTypes GetBigCharType(codepoint_t ch);
-CharTypes GetBigCharTypeES6(codepoint_t ch);
-
-CharTypeFlags GetBigCharFlags(codepoint_t ch, const Js::CharClassifier *instance);
-CharTypeFlags GetBigCharFlags5(codepoint_t ch, const Js::CharClassifier *instanceh);
-CharTypeFlags GetBigCharFlagsES6(codepoint_t ch, const Js::CharClassifier *instance);
-
-BOOL doBinSearch(OLECHAR ch, const oldCharTypesRangeStruct *pRanges, int cSize)
-{
-    int lo = 0;
-    int hi = cSize;
-    int mid;
-
-    while (lo != hi)
-    {
-        mid = lo + (hi - lo) / 2;
-        if (pRanges[mid].chStart <= ch && ch <= pRanges[mid].chFinish)
-            return true;
-        if (ch < pRanges[mid].chStart)
-            hi = mid;
-        else
-            lo = mid + 1;
-    }
-    return false;
+    return (instance->getBigCharFlagsFunc(ch, instance) & PlatformAgnostic::UnicodeText::CharacterTypeFlags::SpaceChar) != 0;
 }
 
-WORD oFindOldCharType(OLECHAR ch)
+bool Js::CharClassifier::BigCharIsIdStartDefault(codepoint_t ch, const Js::CharClassifier *instance)
 {
-    if ((OLECHAR) 65279 == ch)
-        return C1_SPACE;
-
-    if (doBinSearch(ch, oldAlphas, cOldAlphas))
-        return C1_ALPHA;
-
-    if (doBinSearch(ch, oldDigits, cOldDigits))
-        return C1_DIGIT;
-
-    return 0;
+    return (instance->getBigCharFlagsFunc(ch, instance) & PlatformAgnostic::UnicodeText::CharacterTypeFlags::IdLeadChar) != 0;
 }
 
-BOOL oGetCharType( DWORD dwInfoType, OLECHAR ch, LPWORD lpwCharType )
+bool Js::CharClassifier::BigCharIsIdContinueDefault(codepoint_t ch, const Js::CharClassifier *instance)
 {
-    BOOL res = GetStringTypeW( dwInfoType, &ch, 1, lpwCharType );
-    // BOM ( 0xfeff) is recognized as GetStringTypeW as WS.
-    if ((0x03FF & *lpwCharType) == 0x0200)
-    {
-        // Some of the char types changed for Whistler (Unicode 3.0).
-        // They will return 0x0200 on Whistler, indicating a defined char
-        // with no type attributes. We want to continue to support these
-        // characters, so we return the Win2K (Unicode 2.1) attributes.
-        // We only return the ones we care about - ALPHA for ALPHA, PUNCT
-        // for PUNCT or DIGIT, and SPACE for SPACE or BLANK.
-        WORD wOldCharType = oFindOldCharType(ch);
-        if (0 == wOldCharType)
-            return res;
-
-        *lpwCharType = wOldCharType;
-        return TRUE;
-    }
-    return res;
+    return (instance->getBigCharFlagsFunc(ch, instance) & PlatformAgnostic::UnicodeText::CharacterTypeFlags::IdChar) != 0;
 }
 
-CharTypes GetBigCharType(codepoint_t ch, const Js::CharClassifier *instance)
+CharTypes Js::CharClassifier::GetBigCharTypeES5(codepoint_t codepoint, const Js::CharClassifier *instance)
 {
-    if(ch > 0xFFFF)
+    using namespace PlatformAgnostic::UnicodeText;
+
+    if (codepoint > 0xFFFF)
     {
         return CharTypes::_C_ERR;
     }
 
-    OLECHAR oCh = (OLECHAR)ch;
-
-    WORD chType;
-
-    Assert( oCh >= 128 );
-#if (_WIN32 || _WIN64) // We use the Win32 API function GetStringTypeW for Unicode char. classification
-    if( oCh == 0x2028 || oCh == 0x2029 )
+    if (codepoint == kchLS || codepoint == kchPS)
     {
         return _C_NWL;
     }
-    if( oGetCharType( CT_CTYPE1, oCh, &chType) )
+
+    auto charType = GetLegacyCharacterClassificationType((char16)codepoint);
+    if (charType == CharacterClassificationType::Letter)
     {
-        if( chType & C1_ALPHA )
-            return _C_LET;
-        else if( chType & (C1_SPACE|C1_BLANK) )
-            return _C_WSP;
+        return CharTypes::_C_LET;
     }
-#else
-#warning No Unicode character support on this platform
-#endif
-    return _C_ERR;
+    else if (charType == CharacterClassificationType::Whitespace)
+    {
+        return CharTypes::_C_WSP;
+    }
+
+    return CharTypes::_C_ERR;
 }
 
-CharTypeFlags GetBigCharFlags(codepoint_t ch, const Js::CharClassifier *instance)
+PlatformAgnostic::UnicodeText::CharacterTypeFlags Js::CharClassifier::GetBigCharFlagsES5(codepoint_t ch, const Js::CharClassifier *instance)
 {
-    WORD chType;
-
-    if(ch > 0xFFFF)
-    {
-        return CharTypeFlags::UnknownChar;
-    }
-
-    OLECHAR oCh = (OLECHAR)ch;
-    Assert( oCh >= 128 );
-#if (_WIN32 || _WIN64) // We use the Win32 API function GetStringTypeW for Unicode char. classification
-    if( oCh == kchLS || oCh == kchPS )
-    {
-        return LineCharGroup;
-    }
-    if( oGetCharType( CT_CTYPE1, oCh, &chType) )
-    {
-        if( chType & C1_ALPHA )
-            return LetterCharGroup;
-        else if ( chType & (C1_DIGIT|C1_PUNCT) )
-        {
-            // non-ANSI digits can be used in identifiers but not in numeric constants - hence we
-            // return fChId instead of kgrfchDec
-            return IdChar;
-        }
-        else if( chType & (C1_SPACE|C1_BLANK) )
-            return SpaceChar;
-    }
-#else
-#warning No Unicode character support on this platform
-#endif
-    return UnknownChar;
-}
-
-
-CharTypeFlags GetBigCharFlags5(codepoint_t ch, const Js::CharClassifier *instance)
-{
+    using namespace PlatformAgnostic::UnicodeText;
     //In ES5 the unicode <ZWNJ> and <ZWJ> could be identifier parts
-    if(ch == 0x200c || ch == 0x200d)
+    if (ch == 0x200c || ch == 0x200d)
     {
-        return IdChar;
+        return PlatformAgnostic::UnicodeText::CharacterTypeFlags::IdChar;
     }
-    return GetBigCharFlags(ch, instance);
+
+    // Make sure that the codepoint fits within the char16 range
+    if (ch > 0xFFFF)
+    {
+        return UnknownChar;
+    }
+
+    return PlatformAgnostic::UnicodeText::GetLegacyCharacterTypeFlags((char16)ch);
 }
+
+
 
 /*
  * CharClassifier implementation
  */
 
-UnicodeGeneralCategory Js::CharClassifier::GetUnicodeCategoryFor(codepoint_t ch) const
-{
-    UnicodeGeneralCategory category;
-    AssertMsg(this->winGlobCharApi != nullptr, "ES6 Mode 'GetUnicodeCategoryFor' must mean winGlobCharApi is initialized.");
-
-    if(FAILED(this->winGlobCharApi->GetGeneralCategory(ch, &category)))
-    {
-        AssertMsg(false, "Should not fail here!");
-        return UnicodeGeneralCategory::UnicodeGeneralCategory_NotAssigned;
-    }
-
-    return category;
-}
-
 CharTypes Js::CharClassifier::GetBigCharTypeES6(codepoint_t ch, const Js::CharClassifier *instance)
 {
+    using namespace PlatformAgnostic::UnicodeText;
+
     Assert(ch > 0x7F);
-    UnicodeGeneralCategory category = instance->GetUnicodeCategoryFor(ch);
-
-    switch(category)
+    if (ch == 0xFEFF)
     {
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_LowercaseLetter:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_UppercaseLetter:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_TitlecaseLetter:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_ModifierLetter:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_OtherLetter:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_LetterNumber:
-        return CharTypes::_C_LET;
-
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_LineSeparator:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_ParagraphSeparator:
-        return CharTypes::_C_NWL;
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_SpaceSeparator:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_SpacingCombiningMark:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_NonspacingMark:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_ConnectorPunctuation:
         return CharTypes::_C_WSP;
+    }
 
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_DecimalDigitNumber:
-        return CharTypes::_C_DIG;
+    UnicodeGeneralCategoryClass categoryClass = PlatformAgnostic::UnicodeText::GetGeneralCategoryClass(ch);
 
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_ClosePunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_EnclosingMark:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_Control:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_Format:
-        if (ch == 0xFEFF)
-        {
+    switch(categoryClass)
+    {
+        case UnicodeGeneralCategoryClass::CategoryClassLetter:
+            return CharTypes::_C_LET;
+        case UnicodeGeneralCategoryClass::CategoryClassDigit:
+            return CharTypes::_C_DIG;
+        case UnicodeGeneralCategoryClass::CategoryClassLineSeparator:
+        case UnicodeGeneralCategoryClass::CategoryClassParagraphSeparator:
+            return CharTypes::_C_NWL;
+        case UnicodeGeneralCategoryClass::CategoryClassSpaceSeparator:
+        case UnicodeGeneralCategoryClass::CategoryClassSpacingCombiningMark:
+        case UnicodeGeneralCategoryClass::CategoryClassNonSpacingMark:
+        case UnicodeGeneralCategoryClass::CategoryClassConnectorPunctuation:
             return CharTypes::_C_WSP;
-        }
-        // Fall through, otherwise
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_Surrogate:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_PrivateUse:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_DashPunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_OpenPunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_InitialQuotePunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_FinalQuotePunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_OtherPunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_MathSymbol:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_CurrencySymbol:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_ModifierSymbol:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_OtherSymbol:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_NotAssigned:
-        return CharTypes::_C_UNK;
+        default:
+            break;
     }
 
     return CharTypes::_C_UNK;
@@ -446,60 +292,43 @@ ID_Continue:::
 These are also known simply as Identifier Characters, because they are a superset of the ID_Start characters.
 */
 
-CharTypeFlags Js::CharClassifier::GetBigCharFlagsES6(codepoint_t ch, const Js::CharClassifier *instance)
+PlatformAgnostic::UnicodeText::CharacterTypeFlags Js::CharClassifier::GetBigCharFlagsES6(codepoint_t ch, const Js::CharClassifier *instance)
 {
+    using namespace PlatformAgnostic::UnicodeText;
     Assert(ch > 0x7F);
 
-    UnicodeGeneralCategory category = instance->GetUnicodeCategoryFor(ch);
+    UnicodeGeneralCategoryClass categoryClass = PlatformAgnostic::UnicodeText::GetGeneralCategoryClass(ch);
 
-    switch(category)
+    switch(categoryClass)
     {
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_LowercaseLetter:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_UppercaseLetter:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_TitlecaseLetter:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_ModifierLetter:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_OtherLetter:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_LetterNumber:
-        return BigCharIsIdStartES6(ch, instance) ? CharTypeFlags::LetterCharGroup : CharTypeFlags::UnknownChar;
+        case UnicodeGeneralCategoryClass::CategoryClassLetter:
+            return BigCharIsIdStartES6(ch, instance) ? CharacterTypeFlags::LetterCharGroup : CharacterTypeFlags::UnknownChar;
 
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_SpacingCombiningMark:
-        return BigCharIsIdContinueES6(ch, instance) ? CharTypeFlags::IdChar : CharTypeFlags::SpaceChar;
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_NonspacingMark:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_ConnectorPunctuation:
-        return BigCharIsIdContinueES6(ch, instance) ? CharTypeFlags::IdChar : CharTypeFlags::UnknownChar;
+        case UnicodeGeneralCategoryClass::CategoryClassSpacingCombiningMark:
+            return BigCharIsIdContinueES6(ch, instance) ? CharacterTypeFlags::IdChar : CharacterTypeFlags::SpaceChar;
 
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_DecimalDigitNumber:
-        return BigCharIsIdContinueES6(ch, instance) ? CharTypeFlags::DecimalCharGroup : CharTypeFlags::DecimalChar;
+        case UnicodeGeneralCategoryClass::CategoryClassNonSpacingMark:
+        case UnicodeGeneralCategoryClass::CategoryClassConnectorPunctuation:
+            return BigCharIsIdContinueES6(ch, instance) ? CharacterTypeFlags::IdChar : CharacterTypeFlags::UnknownChar;
 
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_LineSeparator:
-        return CharTypeFlags::LineFeedChar;
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_ParagraphSeparator:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_SpaceSeparator:
-        return CharTypeFlags::SpaceChar;
+        case UnicodeGeneralCategoryClass::CategoryClassDigit:
+            return BigCharIsIdContinueES6(ch, instance) ? CharacterTypeFlags::DecimalCharGroup : CharacterTypeFlags::DecimalChar;
 
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_ClosePunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_EnclosingMark:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_Control:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_Format:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_Surrogate:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_PrivateUse:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_DashPunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_OpenPunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_InitialQuotePunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_FinalQuotePunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_OtherPunctuation:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_MathSymbol:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_CurrencySymbol:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_ModifierSymbol:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_OtherSymbol:
-    case UnicodeGeneralCategory::UnicodeGeneralCategory_NotAssigned:
-        return CharTypeFlags::UnknownChar;
+        case UnicodeGeneralCategoryClass::CategoryClassLineSeparator:
+            return CharacterTypeFlags::LineFeedChar;
+
+        case UnicodeGeneralCategoryClass::CategoryClassParagraphSeparator:
+        case UnicodeGeneralCategoryClass::CategoryClassSpaceSeparator:
+            return CharacterTypeFlags::SpaceChar;
+
+        default:
+            break;
     }
 
-    return CharTypeFlags::UnknownChar;
+    return CharacterTypeFlags::UnknownChar;
 }
 
-BOOL Js::CharClassifier::BigCharIsWhitespaceES6(codepoint_t ch, const CharClassifier *instance)
+bool Js::CharClassifier::BigCharIsWhitespaceES6(codepoint_t ch, const CharClassifier *instance)
 {
     Assert(ch > 0x7F);
 
@@ -508,33 +337,17 @@ BOOL Js::CharClassifier::BigCharIsWhitespaceES6(codepoint_t ch, const CharClassi
         return true;
     }
 
-    boolean toReturn = false;
-    AssertMsg(instance->winGlobCharApi != nullptr, "ES6 Mode 'BigCharIsWhitespaceES6' must mean winGlobCharApi is initialized.");
-    if (FAILED(instance->winGlobCharApi->IsWhitespace(ch, &toReturn)))
-    {
-        AssertMsg(false, "Should not fail here!");
-        return toReturn;
-    }
-
-    return toReturn;
+    return PlatformAgnostic::UnicodeText::IsWhitespace(ch);
 }
 
-BOOL Js::CharClassifier::BigCharIsIdStartES6(codepoint_t codePoint, const CharClassifier *instance)
+bool Js::CharClassifier::BigCharIsIdStartES6(codepoint_t codePoint, const CharClassifier *instance)
 {
     Assert(codePoint > 0x7F);
 
-    boolean toReturn = false;
-    AssertMsg(instance->winGlobCharApi != nullptr, "ES6 Mode 'BigCharIsIdStartES6' must mean winGlobCharApi is initialized.");
-    if (FAILED(instance->winGlobCharApi->IsIdStart(codePoint, &toReturn)))
-    {
-        AssertMsg(false, "Should not fail here!");
-        return toReturn;
-    }
-
-    return toReturn;
+    return PlatformAgnostic::UnicodeText::IsIdStart(codePoint);
 }
 
-BOOL Js::CharClassifier::BigCharIsIdContinueES6(codepoint_t codePoint, const CharClassifier *instance)
+bool Js::CharClassifier::BigCharIsIdContinueES6(codepoint_t codePoint, const CharClassifier *instance)
 {
     Assert(codePoint > 0x7F);
 
@@ -543,25 +356,19 @@ BOOL Js::CharClassifier::BigCharIsIdContinueES6(codepoint_t codePoint, const Cha
         return true;
     }
 
-    boolean toReturn = false;
-    AssertMsg(instance->winGlobCharApi != nullptr, "ES6 Mode 'BigCharIsIdContinueES6' must mean winGlobCharApi is initialized.");
-    if (FAILED(instance->winGlobCharApi->IsIdContinue(codePoint, &toReturn)))
-    {
-        AssertMsg(false, "Should not fail here!");
-        return toReturn;
-    }
-
-    return toReturn;
+    return PlatformAgnostic::UnicodeText::IsIdContinue(codePoint);
 }
+#endif
 
 template <bool isBigChar>
-BOOL Js::CharClassifier::IsWhiteSpaceFast(codepoint_t ch) const
+bool Js::CharClassifier::IsWhiteSpaceFast(codepoint_t ch) const
 {
+    using namespace PlatformAgnostic::UnicodeText;
     Assert(isBigChar ? ch > 0x7F : ch < 0x80);
-    return isBigChar ? this->bigCharIsWhitespaceFunc(ch, this) : (charFlags[ch] & CharTypeFlags::SpaceChar);
+    return isBigChar ? this->bigCharIsWhitespaceFunc(ch, this) : (charFlags[ch] & CharacterTypeFlags::SpaceChar) != 0;
 }
 
-BOOL Js::CharClassifier::IsBiDirectionalChar(codepoint_t ch) const
+bool Js::CharClassifier::IsBiDirectionalChar(codepoint_t ch) const
 {
     //From http://www.unicode.org/reports/tr9/#Directional_Formatting_Codes
     switch (ch)
@@ -578,112 +385,68 @@ BOOL Js::CharClassifier::IsBiDirectionalChar(codepoint_t ch) const
     case 0x200E: //LEFT-TO-RIGHT MARK Left-to-right zero-width character
     case 0x200F: //RIGHT-TO-LEFT MARK Right-to-left zero-width non-Arabic character
     case 0x061C: //ARABIC LETTER MARK Right-to-left zero-width Arabic character
-        return TRUE;
+        return true;
     default:
-        return FALSE;
+        return false;
     }
 }
 
 template<bool isBigChar>
-BOOL Js::CharClassifier::IsIdStartFast(codepoint_t ch) const
+bool Js::CharClassifier::IsIdStartFast(codepoint_t ch) const
 {
+    using namespace PlatformAgnostic::UnicodeText;
     Assert(isBigChar ? ch > 0x7F : ch < 0x80);
-    return isBigChar ? this->bigCharIsIdStartFunc(ch, this) : (charFlags[ch] & CharTypeFlags::IdLeadChar);
+    return isBigChar ? this->bigCharIsIdStartFunc(ch, this) : (charFlags[ch] & CharacterTypeFlags::IdLeadChar) != 0;
 }
 template<bool isBigChar>
-BOOL Js::CharClassifier::IsIdContinueFast(codepoint_t ch) const
+bool Js::CharClassifier::IsIdContinueFast(codepoint_t ch) const
 {
+    using namespace PlatformAgnostic::UnicodeText;
     Assert(isBigChar ? ch > 0x7F : ch < 0x80);
-    return isBigChar ? this->bigCharIsIdContinueFunc(ch, this) : (charFlags[ch] & CharTypeFlags::IdChar);
+    return isBigChar ? this->bigCharIsIdContinueFunc(ch, this) : (charFlags[ch] & CharacterTypeFlags::IdChar) != 0;
 }
 
 Js::CharClassifier::CharClassifier(ScriptContext * scriptContext)
 {
-    CharClassifierModes overallMode = (CONFIG_FLAG(ES6Unicode)) ? CharClassifierModes::ES6 : CharClassifierModes::ES5;
-    bool codePointSupport = overallMode == CharClassifierModes::ES6;
-    bool isES6UnicodeVerboseEnabled = scriptContext->GetConfig()->IsES6UnicodeVerboseEnabled();
+    bool isES6UnicodeModeEnabled = CONFIG_FLAG(ES6Unicode);
+    bool isFullUnicodeSupportAvailable = PlatformAgnostic::UnicodeText::IsExternalUnicodeLibraryAvailable();
 
-    initClassifier(scriptContext, overallMode, overallMode, overallMode, codePointSupport, isES6UnicodeVerboseEnabled, CharClassifierModes::ES6); // no fallback for chk
-}
-
-void Js::CharClassifier::initClassifier(ScriptContext * scriptContext, CharClassifierModes identifierSupport,
-                                        CharClassifierModes whiteSpaceSupport, CharClassifierModes generalCharClassificationSupport, bool codePointSupport, bool isES6UnicodeVerboseEnabled, CharClassifierModes es6FallbackMode)
-{
-    bool es6Supported = true;
-    bool es6ModeNeeded = identifierSupport == CharClassifierModes::ES6 || whiteSpaceSupport == CharClassifierModes::ES6 || generalCharClassificationSupport == CharClassifierModes::ES6;
-
-#ifdef ENABLE_ES6_CHAR_CLASSIFIER
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
-    Js::WindowsGlobalizationAdapter* globalizationAdapter = threadContext->GetWindowsGlobalizationAdapter();
-    Js::DelayLoadWindowsGlobalization* globLibrary = threadContext->GetWindowsGlobalizationLibrary();
-    if (es6ModeNeeded)
+#ifdef NTBUILD
+    AssertMsg(isFullUnicodeSupportAvailable, "Windows.Globalization needs to present with IUnicodeCharacterStatics support for Chakra.dll to work");
+    if (!isFullUnicodeSupportAvailable)
     {
-        HRESULT hr = globalizationAdapter->EnsureDataTextObjectsInitialized(globLibrary);
-        // Failed to load windows.globalization.dll or jsintl.dll. No unicodeStatics support
-        // in that case.
-        if (FAILED(hr))
-        {
-            es6Supported = false;
-            es6FallbackMode = CharClassifierModes::ES5;
-        }
-        else
-        {
-            this->winGlobCharApi = globalizationAdapter->GetUnicodeStatics();
-            if (this->winGlobCharApi == nullptr)
-            {
-                // No fallback mode, then assert
-                if (es6FallbackMode == CharClassifierModes::ES6)
-                {
-                    AssertMsg(false, "Windows::Data::Text::IUnicodeCharactersStatics not initialized");
-                    //Fallback to ES5 just in case for fre builds.
-                    es6FallbackMode = CharClassifierModes::ES5;
-                }
-                if (isES6UnicodeVerboseEnabled)
-                {
-                    Output::Print(_u("Windows::Data::Text::IUnicodeCharactersStatics not initialized\r\n"));
-                }
-                //Default to non-es6
-                es6Supported = false;
-            }
-        }
+        Js::Throw::FatalInternalError();
     }
-#else
-    es6Supported = false;
-    es6FallbackMode = CharClassifierModes::ES5;
 #endif
 
-    if (es6ModeNeeded && !es6Supported)
+#if ENABLE_UNICODE_API
+    // If we're in ES6 mode, and we have full support for Unicode character classification
+    // from an external library, then use the ES6/Surrogate pair supported versions of the functions
+    // Otherwise, fallback to the ES5 versions which don't need an external library
+    if (isES6UnicodeModeEnabled && isFullUnicodeSupportAvailable)
     {
-        identifierSupport = identifierSupport == CharClassifierModes::ES6 ? es6FallbackMode : identifierSupport;
-        whiteSpaceSupport = whiteSpaceSupport == CharClassifierModes::ES6 ? es6FallbackMode : whiteSpaceSupport;
-        generalCharClassificationSupport = generalCharClassificationSupport == CharClassifierModes::ES6 ? es6FallbackMode : generalCharClassificationSupport;
-    }
-
-
-    bigCharIsIdStartFunc = identifierSupport == CharClassifierModes::ES6 ? &CharClassifier::BigCharIsIdStartES6 : &CharClassifier::BigCharIsIdStartDefault;
-    bigCharIsIdContinueFunc = identifierSupport == CharClassifierModes::ES6 ? &CharClassifier::BigCharIsIdContinueES6 : &CharClassifier::BigCharIsIdContinueDefault;
-    bigCharIsWhitespaceFunc = whiteSpaceSupport == CharClassifierModes::ES6 ? &CharClassifier::BigCharIsWhitespaceES6 : &CharClassifier::BigCharIsWhitespaceDefault;
-
-    skipWhiteSpaceFunc = codePointSupport ? &CharClassifier::SkipWhiteSpaceSurrogate : &CharClassifier::SkipWhiteSpaceNonSurrogate;
-    skipWhiteSpaceStartEndFunc = codePointSupport ? &CharClassifier::SkipWhiteSpaceSurrogateStartEnd : &CharClassifier::SkipWhiteSpaceNonSurrogateStartEnd;
-
-    skipIdentifierFunc = codePointSupport ? &CharClassifier::SkipIdentifierSurrogate : &CharClassifier::SkipIdentifierNonSurrogate;
-    skipIdentifierStartEndFunc = codePointSupport ? &CharClassifier::SkipIdentifierSurrogateStartEnd : &CharClassifier::SkipIdentifierNonSurrogateStartEnd;
-
-    if (generalCharClassificationSupport == CharClassifierModes::ES6)
-    {
+        bigCharIsIdStartFunc = &CharClassifier::BigCharIsIdStartES6;
+        bigCharIsIdContinueFunc = &CharClassifier::BigCharIsIdContinueES6;
+        bigCharIsWhitespaceFunc = &CharClassifier::BigCharIsWhitespaceES6;
+        skipWhiteSpaceFunc = &CharClassifier::SkipWhiteSpaceSurrogate;
+        skipWhiteSpaceStartEndFunc = &CharClassifier::SkipWhiteSpaceSurrogateStartEnd;
+        skipIdentifierFunc = &CharClassifier::SkipIdentifierSurrogate;
+        skipIdentifierStartEndFunc = &CharClassifier::SkipIdentifierSurrogateStartEnd;
         getBigCharTypeFunc = &CharClassifier::GetBigCharTypeES6;
         getBigCharFlagsFunc = &CharClassifier::GetBigCharFlagsES6;
     }
-    else if (generalCharClassificationSupport == CharClassifierModes::ES5)
-    {
-        getBigCharTypeFunc = &GetBigCharType;
-        getBigCharFlagsFunc = &GetBigCharFlags5;
-    }
     else
+#endif
     {
-        getBigCharTypeFunc = &GetBigCharType;
-        getBigCharFlagsFunc = &GetBigCharFlags;
+        bigCharIsIdStartFunc = &CharClassifier::BigCharIsIdStartDefault;
+        bigCharIsIdContinueFunc = &CharClassifier::BigCharIsIdContinueDefault;
+        bigCharIsWhitespaceFunc = &CharClassifier::BigCharIsWhitespaceDefault;
+        skipWhiteSpaceFunc = &CharClassifier::SkipWhiteSpaceNonSurrogate;
+        skipWhiteSpaceStartEndFunc = &CharClassifier::SkipWhiteSpaceNonSurrogateStartEnd;
+        skipIdentifierFunc = &CharClassifier::SkipIdentifierNonSurrogate;
+        skipIdentifierStartEndFunc = &CharClassifier::SkipIdentifierNonSurrogateStartEnd;
+        getBigCharTypeFunc = &CharClassifier::GetBigCharTypeES5;
+        getBigCharFlagsFunc = &CharClassifier::GetBigCharFlagsES5;
     }
 }
 
@@ -884,10 +647,29 @@ const LPCUTF8 Js::CharClassifier::SkipIdentifierSurrogateStartEnd(LPCUTF8 psz, L
 
 CharTypes Js::CharClassifier::GetCharType(codepoint_t ch) const
 {
+#if ENABLE_UNICODE_API
     return FBigChar(ch) ? getBigCharTypeFunc(ch, this) : charTypes[ch];
+#else
+    Assert(!FBigChar(ch));
+    return charTypes[ch];
+#endif
 }
 
-CharTypeFlags Js::CharClassifier::GetCharFlags(codepoint_t ch) const
+#if ENABLE_UNICODE_API
+PlatformAgnostic::UnicodeText::CharacterTypeFlags Js::CharClassifier::GetCharFlags(codepoint_t ch) const
 {
-    return FBigChar(ch) ? getBigCharFlagsFunc(ch, this) : charFlags[ch];
+#if ENABLE_UNICODE_API
+    return FBigChar(ch) ? getBigCharFlagsFunc(ch, this) : PlatformAgnostic::UnicodeText::charFlags[ch];
+#else
+    return PlatformAgnostics::UnicodeText::charFlags[ch];
+#endif
 }
+#endif
+
+// Explicit instantiation
+template bool Js::CharClassifier::IsIdStartFast<true>(codepoint_t) const;
+template bool Js::CharClassifier::IsIdStartFast<false>(codepoint_t) const;
+template bool Js::CharClassifier::IsIdContinueFast<true>(codepoint_t) const;
+template bool Js::CharClassifier::IsIdContinueFast<false>(codepoint_t) const;
+template bool Js::CharClassifier::IsWhiteSpaceFast<true>(codepoint_t) const;
+template bool Js::CharClassifier::IsWhiteSpaceFast<false>(codepoint_t) const;

@@ -273,7 +273,7 @@ public:
     void GetEntryPointAddress(void** entrypoint, ptrdiff_t *size) override
     {
          Assert(entrypoint);
-         *entrypoint = this->GetEntryPoint()->address;
+         *entrypoint = this->GetEntryPoint()->jsMethod;
          *size = this->GetEntryPoint()->GetCodeSize();
     }
 
@@ -355,7 +355,7 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
     {
         Assert(entrypoint);
         Js::EntryPointInfo * entryPoint = this->GetEntryPoint();
-        *entrypoint = entryPoint->address;
+        *entrypoint = reinterpret_cast<void*>(entryPoint->jsMethod);
         *size = entryPoint->GetCodeSize();
     }
 

@@ -12,12 +12,12 @@ typedef uint hash_t;
 template <typename T>
 struct DefaultComparer
 {
-    __inline static bool Equals(const T &x, const T &y)
+    inline static bool Equals(const T &x, const T &y)
     {
         return x == y;
     }
 
-    __inline static hash_t GetHashCode(const T &i)
+    inline static hash_t GetHashCode(const T &i)
     {
         return (hash_t)i;
     }
@@ -26,12 +26,12 @@ struct DefaultComparer
 template <>
 struct DefaultComparer<double>
 {
-    __inline static bool Equals(double x, double y)
+    inline static bool Equals(double x, double y)
     {
         return x == y;
     }
 
-    __inline static hash_t GetHashCode(double d)
+    inline static hash_t GetHashCode(double d)
     {
         __int64 i64 = *(__int64*)&d;
         return (uint)((i64>>32) ^ (uint)i64);
@@ -41,12 +41,12 @@ struct DefaultComparer<double>
 template <typename T>
 struct DefaultComparer<T *>
 {
-    __inline static bool Equals(T * x, T * y)
+    inline static bool Equals(T * x, T * y)
     {
         return x == y;
     }
 
-    __inline static hash_t GetHashCode(T * i)
+    inline static hash_t GetHashCode(T * i)
     {
         // Shifting helps us eliminate any sameness due to our alignment strategy.
         // TODO: This works for Arena memory only. Recycler memory is 16 byte aligned.
@@ -59,12 +59,12 @@ struct DefaultComparer<T *>
 template <>
 struct DefaultComparer<size_t>
 {
-    __inline static bool Equals(size_t x, size_t y)
+    inline static bool Equals(size_t x, size_t y)
     {
         return x == y;
     }
 
-    __inline static uint GetHashCode(size_t i)
+    inline static uint GetHashCode(size_t i)
     {
 #if _WIN64
         // For 64 bits we want all 64 bits of the pointer to be represented in the hash code.
@@ -99,12 +99,12 @@ struct DefaultComparer<size_t>
 template <typename T>
 struct RecyclerPointerComparer
 {
-    __inline static bool Equals(T x, T y)
+    inline static bool Equals(T x, T y)
     {
         return x == y;
     }
 
-    __inline static hash_t GetHashCode(T i)
+    inline static hash_t GetHashCode(T i)
     {
         // Shifting helps us eliminate any sameness due to our alignment strategy.
         // TODO: This works for Recycler memory only. Arena memory is 8 byte aligned.
@@ -117,12 +117,12 @@ struct RecyclerPointerComparer
 template <>
 struct DefaultComparer<GUID>
 {
-    __inline static bool Equals(GUID const& x, GUID const& y)
+    inline static bool Equals(GUID const& x, GUID const& y)
     {
         return x == y;
     }
 
-     __inline static hash_t GetHashCode(GUID const& guid)
+     inline static hash_t GetHashCode(GUID const& guid)
      {
         char* p = (char*)&guid;
         int hash = 0;
@@ -138,12 +138,12 @@ struct DefaultComparer<GUID>
 template<typename T>
 struct StringComparer
 {
-    __inline static bool Equals(T str1, T str2)
+    inline static bool Equals(T str1, T str2)
     {
         return ::wcscmp(str1, str2) == 0;
     }
 
-    __inline static hash_t GetHashCode(T str)
+    inline static hash_t GetHashCode(T str)
     {
         int hash = 0;
         while (*str)
@@ -170,8 +170,7 @@ struct DefaultComparer<const WCHAR*> : public StringComparer<const WCHAR*> {};
 template <typename T, typename TComparer>
 struct SpecializedComparer
 {
-    template <typename T> class TComparerType;
-    template <> class TComparerType<T> : public TComparer {};
+    template <typename T> class TComparerType : public TComparer {};
 };
 
 namespace regex

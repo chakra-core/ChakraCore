@@ -44,7 +44,7 @@ Js::DynamicObject * JsrtDebuggerObjectBase::GetChildren(WeakArenaReference<Js::I
 
     Js::IDiagObjectModelWalkerBase* walker = walkerRef->GetStrongReference();
 
-    ulong childrensCount = 0;
+    uint32 childrensCount = 0;
 
     if (walker != nullptr)
     {
@@ -56,7 +56,7 @@ Js::DynamicObject * JsrtDebuggerObjectBase::GetChildren(WeakArenaReference<Js::I
 
         if (fromCount < childrensCount)
         {
-            for (ulong i = fromCount; i < childrensCount && (propertiesArrayCount + debuggerOnlyPropertiesArrayCount) < totalCount; ++i)
+            for (uint32 i = fromCount; i < childrensCount && (propertiesArrayCount + debuggerOnlyPropertiesArrayCount) < totalCount; ++i)
             {
                 Js::ResolvedObject resolvedObject;
 
@@ -75,7 +75,7 @@ Js::DynamicObject * JsrtDebuggerObjectBase::GetChildren(WeakArenaReference<Js::I
                     resolvedObject.propId = Js::Constants::NoProperty;
                 }
 
-                AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef = resolvedObject.GetObjectDisplay();
+                AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef(resolvedObject.GetObjectDisplay());
                 Js::IDiagObjectModelDisplay* resolvedObjectDisplay = objectDisplayWeakRef->GetStrongReference();
                 if (resolvedObjectDisplay != nullptr)
                 {
@@ -327,7 +327,7 @@ Js::DynamicObject * JsrtDebuggerStackFrame::GetLocalsObject(Js::ScriptContext* s
                 });
             }
 
-            ulong totalProperties = localsWalker->GetChildrenCount();
+            uint32 totalProperties = localsWalker->GetChildrenCount();
             if (totalProperties > 0)
             {
                 int index = 0;
@@ -389,8 +389,8 @@ Js::DynamicObject * JsrtDebuggerStackFrame::GetLocalsObject(Js::ScriptContext* s
                 }
 
                 // Add all locals variable(s) available under 'locals'
-                ulong localsCount = localsWalker->GetLocalVariablesCount();
-                for (ulong i = 0; i < localsCount; ++i)
+                uint32 localsCount = localsWalker->GetLocalVariablesCount();
+                for (uint32 i = 0; i < localsCount; ++i)
                 {
                     if (!localsWalker->GetLocal(i, &resolvedObject))
                     {
@@ -412,7 +412,7 @@ Js::DynamicObject * JsrtDebuggerStackFrame::GetLocalsObject(Js::ScriptContext* s
                     foundGroup = localsWalker->GetScopeObject(index++, &resolvedObject);
                     if (foundGroup == TRUE)
                     {
-                        AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef = resolvedObject.GetObjectDisplay();
+                        AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef(resolvedObject.GetObjectDisplay());
                         JsrtDebuggerObjectBase* debuggerObject = JsrtDebuggerObjectScope::Make(debuggerObjectsManager, objectDisplayWeakRef, scopesCount);
                         Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext);
                         Assert(object != nullptr);
@@ -686,8 +686,8 @@ Js::DynamicObject * JsrtDebuggerObjectFunction::GetJSONObject(Js::ScriptContext 
     Js::DynamicObject* functionObject = scriptContext->GetLibrary()->CreateObject();
 
     JsrtDebugUtils::AddScriptIdToObject(functionObject, this->functionBody->GetUtf8SourceInfo());
-    JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::line, this->functionBody->GetLineNumber(), scriptContext);
-    JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::column, this->functionBody->GetColumnNumber(), scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::line, (uint32) this->functionBody->GetLineNumber(), scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::column, (uint32) this->functionBody->GetColumnNumber(), scriptContext);
     JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::name, this->functionBody->GetDisplayName(), this->functionBody->GetDisplayNameLength(), scriptContext);
     JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetFunctionTypeDisplayString(), scriptContext);
     JsrtDebugUtils::AddPropertyToObject(functionObject, JsrtDebugPropertyId::handle, this->GetHandle(), scriptContext);

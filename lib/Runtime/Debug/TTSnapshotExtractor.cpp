@@ -324,7 +324,7 @@ namespace TTD
                             this->MarkFunctionBody(slotArray.GetFunctionBody());
                         }
 
-                        for(ulong j = 0; j < slotArrayCount; j++)
+                        for(uint j = 0; j < slotArrayCount; j++)
                         {
                             Js::Var sval = slotArray.Get(j);
                             this->MarkVisitVar(sval);

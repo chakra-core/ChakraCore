@@ -127,6 +127,7 @@
     Output::Print(__VA_ARGS__);\
     IR::Instr* __instr__ = instr;\
     if(__instr__) __instr__->DumpByteCodeOffset();\
+    if(__instr__) Output::Print(_u(" (%s)"), Js::OpCodeUtil::GetOpCodeName(__instr__->m_opcode));\
     Output::Print(_u("\n"));\
     Output::Flush(); \
 }
@@ -276,7 +277,8 @@ GlobOpt::Optimize()
     if (!func->DoGlobOpt())
     {
         this->lengthEquivBv = nullptr;
-        argumentsEquivBv = nullptr;
+        this->argumentsEquivBv = nullptr;
+        this->callerEquivBv = nullptr;
 
         // Still need to run the dead store phase to calculate the live reg on back edge
         this->BackwardPass(Js::DeadStorePhase);
@@ -286,7 +288,8 @@ GlobOpt::Optimize()
 
     {
         this->lengthEquivBv = this->func->m_symTable->m_propertyEquivBvMap->Lookup(Js::PropertyIds::length, nullptr); // Used to kill live "length" properties
-        argumentsEquivBv = func->m_symTable->m_propertyEquivBvMap->Lookup(Js::PropertyIds::arguments, nullptr); // Used to kill live "arguments" properties
+        this->argumentsEquivBv = func->m_symTable->m_propertyEquivBvMap->Lookup(Js::PropertyIds::arguments, nullptr); // Used to kill live "arguments" properties
+        this->callerEquivBv = func->m_symTable->m_propertyEquivBvMap->Lookup(Js::PropertyIds::caller, nullptr); // Used to kill live "caller" properties
 
         // The backward phase needs the glob opt's allocator to allocate the propertyTypeValueMap
         // in GlobOpt::EnsurePropertyTypeValue and ranges of instructions where int overflow may be ignored.
@@ -4531,27 +4534,9 @@ MemOpCheckInductionVariable:
         // Fallthrough if not an induction variable
     }
     default:
-        // Check prev instr because it could have been added by an optimization and we won't see it here.
-        if (OpCodeAttr::FastFldInstr(instr->m_opcode) || (instr->m_prev && OpCodeAttr::FastFldInstr(instr->m_prev->m_opcode)))
-        {
-            // Refuse any operations interacting with Fields
-            loop->memOpInfo->doMemOp = false;
-            TRACE_MEMOP_VERBOSE(loop, instr, _u("Field interaction detected"));
-            return false;
-        }
-
-        if (Js::OpCodeUtil::GetOpCodeLayout(instr->m_opcode) == Js::OpLayoutType::ElementSlot)
-        {
-            // Refuse any operations interacting with slots
-            loop->memOpInfo->doMemOp = false;
-            TRACE_MEMOP_VERBOSE(loop, instr, _u("Slot interaction detected"));
-            return false;
-        }
-
-        if (this->MayNeedBailOnImplicitCall(instr, src1Val, src2Val))
+        if (IsInstrInvalidForMemOp(instr, loop, src1Val, src2Val))
         {
             loop->memOpInfo->doMemOp = false;
-            TRACE_MEMOP_VERBOSE(loop, instr, _u("Implicit call bailout detected"));
             return false;
         }
 
@@ -4576,6 +4561,48 @@ MemOpCheckInductionVariable:
     }
 
     return true;
+}
+
+bool
+GlobOpt::IsInstrInvalidForMemOp(IR::Instr *instr, Loop *loop, Value *src1Val, Value *src2Val)
+{
+    // List of instruction that are valid with memop (ie: instr that gets removed if memop is emitted)
+    if (
+        this->currentBlock != loop->GetHeadBlock() &&
+        !instr->IsLabelInstr() &&
+        instr->IsRealInstr() &&
+        instr->m_opcode != Js::OpCode::IncrLoopBodyCount &&
+        instr->m_opcode != Js::OpCode::StLoopBodyCount &&
+        instr->m_opcode != Js::OpCode::Ld_A &&
+        instr->m_opcode != Js::OpCode::Ld_I4 &&
+        !(instr->IsBranchInstr() && instr->AsBranchInstr()->IsUnconditional())
+    )
+    {
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Instruction not accepted for memop"));
+        return true;
+    }
+
+    // Check prev instr because it could have been added by an optimization and we won't see it here.
+    if (OpCodeAttr::FastFldInstr(instr->m_opcode) || (instr->m_prev && OpCodeAttr::FastFldInstr(instr->m_prev->m_opcode)))
+    {
+        // Refuse any operations interacting with Fields
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Field interaction detected"));
+        return true;
+    }
+
+    if (Js::OpCodeUtil::GetOpCodeLayout(instr->m_opcode) == Js::OpLayoutType::ElementSlot)
+    {
+        // Refuse any operations interacting with slots
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Slot interaction detected"));
+        return true;
+    }
+
+    if (this->MayNeedBailOnImplicitCall(instr, src1Val, src2Val))
+    {
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Implicit call bailout detected"));
+        return true;
+    }
+    return false;
 }
 
 IR::Instr *
@@ -18545,14 +18572,14 @@ GlobOpt::OptHoistInvariant(
 
             if (instr->HasBailOutInfo())
             {
-                IR::BailOutKind bailoutKind = instr->GetBailOutKind();
-                Assert(bailoutKind == IR::BailOutIntOnly ||
-                    bailoutKind == IR::BailOutExpectingInteger ||
-                    bailoutKind == IR::BailOutOnNotPrimitive ||
-                    bailoutKind == IR::BailOutNumberOnly ||
-                    bailoutKind == IR::BailOutPrimitiveButString ||
-                    bailoutKind == IR::BailOutSimd128F4Only ||
-                    bailoutKind == IR::BailOutSimd128I4Only);
+                IR::BailOutKind instrBailoutKind = instr->GetBailOutKind();
+                Assert(instrBailoutKind == IR::BailOutIntOnly ||
+                    instrBailoutKind == IR::BailOutExpectingInteger ||
+                    instrBailoutKind == IR::BailOutOnNotPrimitive ||
+                    instrBailoutKind == IR::BailOutNumberOnly ||
+                    instrBailoutKind == IR::BailOutPrimitiveButString ||
+                    instrBailoutKind == IR::BailOutSimd128F4Only ||
+                    instrBailoutKind == IR::BailOutSimd128I4Only);
             }
             else if (src1StackSym && bailoutKind != IR::BailOutInvalid)
             {
@@ -20939,6 +20966,7 @@ GlobOpt::RemoveMemOpSrcInstr(IR::Instr* memopInstr, IR::Instr* srcInstr, BasicBl
         {
             switch (topInstr->m_prev->m_opcode)
             {
+            case Js::OpCode::BailOnNotArray:
             case Js::OpCode::NoImplicitCallUses:
             case Js::OpCode::ByteCodeUses:
                 topInstr = topInstr->m_prev;
@@ -20956,6 +20984,7 @@ GlobOpt::RemoveMemOpSrcInstr(IR::Instr* memopInstr, IR::Instr* srcInstr, BasicBl
         IR::Instr* removeInstr = topInstr;
         topInstr = topInstr->m_next;
         Assert(
+            removeInstr->m_opcode == Js::OpCode::BailOnNotArray ||
             removeInstr->m_opcode == Js::OpCode::NoImplicitCallUses ||
             removeInstr->m_opcode == Js::OpCode::ByteCodeUses ||
             removeInstr->m_opcode == Js::OpCode::LdIndir ||

@@ -104,7 +104,7 @@ namespace Js
         return id & TypePropertyCache_NumElements - 1;
     }
 
-    __inline bool TypePropertyCache::TryGetIndexForLoad(
+    inline bool TypePropertyCache::TryGetIndexForLoad(
         const bool checkMissing,
         const PropertyId id,
         PropertyIndex *const index,
@@ -118,7 +118,7 @@ namespace Js
         Assert(prototypeObjectWithProperty);
 
         const TypePropertyCacheElement &element = elements[ElementIndex(id)];
-        if(element.Id() != id || !checkMissing && element.IsMissing())
+        if(element.Id() != id || (!checkMissing && element.IsMissing()))
             return false;
 
         *index = element.Index();
@@ -128,7 +128,7 @@ namespace Js
         return true;
     }
 
-    __inline bool TypePropertyCache::TryGetIndexForStore(
+    inline bool TypePropertyCache::TryGetIndexForStore(
         const PropertyId id,
         PropertyIndex *const index,
         bool *const isInlineSlot) const

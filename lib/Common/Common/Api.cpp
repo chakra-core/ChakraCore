@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
 
-__inline void __stdcall js_memcpy_s(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_bcount(count) const void *src, size_t count)
+void __stdcall js_memcpy_s(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_bcount(count) const void *src, size_t count)
 {
     Assert((count) <= (sizeInBytes));
     if ((count) <= (sizeInBytes))
@@ -13,7 +13,7 @@ __inline void __stdcall js_memcpy_s(__bcount(sizeInBytes) void *dst, size_t size
         Js::Throw::FatalInternalError();
 }
 
-__inline void __stdcall js_wmemcpy_s(__ecount(sizeInWords) char16 *dst, size_t sizeInWords, __in_ecount(count) const char16 *src, size_t count)
+void __stdcall js_wmemcpy_s(__ecount(sizeInWords) char16 *dst, size_t sizeInWords, __in_ecount(count) const char16 *src, size_t count)
 {
     //Multiplication Overflow check
     Assert(count <= sizeInWords && count <= SIZE_MAX/sizeof(char16));

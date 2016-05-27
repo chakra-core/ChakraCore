@@ -45,9 +45,11 @@ public:
     static LPCWSTR GetJscriptDllFileName();
     static HRESULT GetJscriptFileVersion(DWORD* majorVersion, DWORD* minorVersion, DWORD *buildDateHash = nullptr, DWORD *buildTimeHash = nullptr);
 #if DBG
-    static bool IsInitialized() { return AutoSystemInfo::Data.initialized; }
+    static bool IsInitialized();
 #endif
+#if SYSINFO_IMAGE_BASE_AVAILABLE
     static bool IsJscriptModulePointer(void * ptr);
+#endif
     static DWORD const PageSize = 4096;
 
 #ifdef STACK_ALIGN
@@ -60,12 +62,15 @@ public:
 # elif defined(_M_IX86)
     static DWORD const StackAlign = 4;
 # else
-    #  error_missing_target
+    # error missing_target
 # endif
 #endif
 
+#if SYSINFO_IMAGE_BASE_AVAILABLE
     UINT_PTR dllLoadAddress;
     UINT_PTR dllHighAddress;
+#endif
+    
 private:
     AutoSystemInfo() : majorVersion(0), minorVersion(0), buildDateHash(0), buildTimeHash(0) { Initialize(); }
     void Initialize();
@@ -108,20 +113,9 @@ private:
     bool isLowMemoryDevice;
 
 public:
-    static bool ShouldQCMoreFrequently()
-    {
-        return Data.shouldQCMoreFrequently;
-    }
-
-    static bool SupportsOnlyMultiThreadedCOM()
-    {
-        return Data.supportsOnlyMultiThreadedCOM;
-    }
-
-    static bool IsLowMemoryDevice()
-    {
-        return Data.isLowMemoryDevice;
-    }
+    static bool ShouldQCMoreFrequently();
+    static bool SupportsOnlyMultiThreadedCOM();
+    static bool IsLowMemoryDevice();
 };
 
 
@@ -129,3 +123,4 @@ public:
 CompileAssert(AutoSystemInfo::PageSize == 4096);
 #define __in_ecount_pagesize __in_ecount(4096)
 #define __in_ecount_twopagesize __in_ecount(8192)
+

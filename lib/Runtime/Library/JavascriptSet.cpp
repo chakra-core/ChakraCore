@@ -92,7 +92,7 @@ namespace Js
 
             while (JavascriptOperators::IteratorStepAndValue(iter, scriptContext, &nextItem))
             {
-                adder->GetEntryPoint()(adder, CallInfo(CallFlags_Value, 2), setObject, nextItem);
+                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 2), setObject, nextItem);
             }
         }
 
@@ -198,7 +198,7 @@ namespace Js
         {
             Var value = iterator.Current();
 
-            callBackFn->GetEntryPoint()(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, value, args[0]);
+            CALL_FUNCTION(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, value, args[0]);
         }
 
         return scriptContext->GetLibrary()->GetUndefined();

@@ -40,29 +40,30 @@ JsrtContextCore::JsrtContextCore(JsrtRuntime * runtime) :
 /* static */
 JsrtContextCore *JsrtContextCore::New(JsrtRuntime * runtime)
 {
-    return RecyclerNewFinalizedLeaf(runtime->GetThreadContext()->EnsureRecycler(), JsrtContextCore, runtime);
+    return RecyclerNewFinalized(runtime->GetThreadContext()->EnsureRecycler(), JsrtContextCore, runtime);
 }
 
 void JsrtContextCore::Dispose(bool isShutdown)
 {
-    if (nullptr != this->GetScriptContext())
+    if (nullptr != this->GetJavascriptLibrary())
     {
+        Js::ScriptContext* scriptContxt = this->GetJavascriptLibrary()->GetScriptContext();
         if (this->GetRuntime()->GetJsrtDebugManager() != nullptr)
         {
-            this->GetRuntime()->GetJsrtDebugManager()->ClearDebugDocument(this->GetScriptContext());
+            this->GetRuntime()->GetJsrtDebugManager()->ClearDebugDocument(scriptContxt);
         }
-        this->GetScriptContext()->EnsureClearDebugDocument();
-        this->GetScriptContext()->GetDebugContext()->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
-        this->GetScriptContext()->GetDebugContext()->GetProbeContainer()->UninstallDebuggerScriptOptionCallback();
-        this->GetScriptContext()->MarkForClose();
-        this->SetScriptContext(nullptr);
+        scriptContxt->EnsureClearDebugDocument();
+        scriptContxt->GetDebugContext()->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
+        scriptContxt->GetDebugContext()->GetProbeContainer()->UninstallDebuggerScriptOptionCallback();
+        scriptContxt->MarkForClose();
+        this->SetJavascriptLibrary(nullptr);
         Unlink();
     }
 }
 
 Js::ScriptContext* JsrtContextCore::EnsureScriptContext()
 {
-    Assert(this->GetScriptContext() == nullptr);
+    Assert(this->GetJavascriptLibrary() == nullptr);
 
     ThreadContext* localThreadContext = this->GetRuntime()->GetThreadContext();
 
@@ -73,10 +74,11 @@ Js::ScriptContext* JsrtContextCore::EnsureScriptContext()
     hostContext = HeapNew(ChakraCoreHostScriptContext, newScriptContext);
     newScriptContext->SetHostScriptContext(hostContext);
 
-    this->SetScriptContext(newScriptContext.Detach());
+    this->SetJavascriptLibrary(newScriptContext.Detach()->GetLibrary());
 
     Js::JavascriptLibrary *library = this->GetScriptContext()->GetLibrary();
     Assert(library != nullptr);
+    localThreadContext->GetRecycler()->RootRelease(library->GetGlobalObject());
 
     library->GetEvalFunctionObject()->SetEntryPoint(&Js::GlobalObject::EntryEval);
     library->GetFunctionConstructor()->SetEntryPoint(&Js::JavascriptFunction::NewInstance);

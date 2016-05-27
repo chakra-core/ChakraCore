@@ -21,8 +21,6 @@
 #ifndef _CHAKRACORE_H_
 #define _CHAKRACORE_H_
 
-#include <windows.h>
-
 #include "ChakraCommon.h"
 
 #include "ChakraDebug.h"

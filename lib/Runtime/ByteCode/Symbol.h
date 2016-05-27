@@ -408,7 +408,7 @@ private:
 
 // specialize toKey to use the name in the symbol as the key
 template <>
-SymbolName JsUtil::ValueToKey<SymbolName, Symbol *>::ToKey(Symbol * const& sym)
+inline SymbolName JsUtil::ValueToKey<SymbolName, Symbol *>::ToKey(Symbol * const& sym)
 {
     return sym->GetName();
 }

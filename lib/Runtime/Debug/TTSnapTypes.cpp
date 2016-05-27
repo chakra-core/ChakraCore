@@ -14,7 +14,7 @@ namespace TTD
         {
             const Js::PropertyRecord* newPropertyRecord = nullptr;
 
-            if(!Js::IsInternalPropertyId(pRecord->PropertyId))
+            if((pRecord->PropertyId != Js::Constants::NoProperty) & (!Js::IsInternalPropertyId(pRecord->PropertyId)))
             {
                 switch(pRecord->PropertyId)
                 {
@@ -101,7 +101,7 @@ namespace TTD
             entry->PropertyRecordId = pid;
             entry->AttributeInfo = ((SnapAttributeTag)attr) & SnapAttributeTag::AttributeMask;
 
-            if(Js::IsInternalPropertyId(pid) || (attr & PropertyDeleted) == PropertyDeleted)
+            if((pid == Js::Constants::NoProperty) | Js::IsInternalPropertyId(pid) | ((attr & PropertyDeleted) == PropertyDeleted))
             {
                 entry->DataKind = SnapEntryDataKindTag::Clear;
             }

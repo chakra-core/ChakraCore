@@ -56,7 +56,7 @@ namespace UnifiedRegex
 
     struct RegexKeyComparer
     {
-        __inline static bool Equals(const RegexKey &key1, const RegexKey &key2)
+        inline static bool Equals(const RegexKey &key1, const RegexKey &key2)
         {
             return
                 Js::InternalStringComparer::Equals(
@@ -65,7 +65,7 @@ namespace UnifiedRegex
                 key1.Flags() == key2.Flags();
         }
 
-        __inline static hash_t GetHashCode(const RegexKey &key)
+        inline static hash_t GetHashCode(const RegexKey &key)
         {
             return Js::InternalStringComparer::GetHashCode(Js::InternalString(key.Source(), key.Length()));
         }

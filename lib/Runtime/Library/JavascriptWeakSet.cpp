@@ -71,7 +71,7 @@ namespace Js
 
             while (JavascriptOperators::IteratorStepAndValue(iter, scriptContext, &nextItem))
             {
-                adder->GetEntryPoint()(adder, CallInfo(CallFlags_Value, 2), weakSetObject, nextItem);
+                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 2), weakSetObject, nextItem);
             }
         }
 

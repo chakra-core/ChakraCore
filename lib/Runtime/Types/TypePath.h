@@ -32,7 +32,7 @@ public:
 
         // Template shared with diagnostics
         template <class Data>
-        __inline bool TryGetValue(PropertyId key, PropertyIndex* index, const Data& data)
+        inline bool TryGetValue(PropertyId key, PropertyIndex* index, const Data& data)
         {
             uint32 bucketIndex = key&(PowerOf2_BUCKETS-1);
 

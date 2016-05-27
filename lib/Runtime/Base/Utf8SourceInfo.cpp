@@ -6,6 +6,7 @@
 #include "Debug/DiagProbe.h"
 #include "Debug/BreakpointProbe.h"
 #include "Debug/DebugDocument.h"
+#include "Debug/DebugManager.h"
 
 namespace Js
 {
@@ -413,6 +414,7 @@ namespace Js
 
     bool Utf8SourceInfo::GetDebugDocumentName(BSTR * sourceName)
     {
+#ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->HasDebugDocument() && this->GetDebugDocument()->HasDocumentText())
         {
             // ToDo (SaAgarwa): Fix for JsRT debugging
@@ -422,6 +424,7 @@ namespace Js
                 return true;
             }
         }
+#endif
         return false;
     }
 }

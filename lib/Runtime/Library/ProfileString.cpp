@@ -8,6 +8,8 @@
 
 namespace Js
 {
+    const uint StringProfiler::k_MaxConcatLength;
+
     StringProfiler::StringProfiler(PageAllocator * pageAllocator)
       : allocator(_u("StringProfiler"), pageAllocator, Throw::OutOfMemory ),
         mainThreadId(GetCurrentThreadContextId() ),

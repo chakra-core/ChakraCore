@@ -6,6 +6,9 @@
 
 using namespace Js;
 
+const uint Constants::InvalidSourceIndex;
+const RegSlot Constants::NoRegister;
+
 const char16 Constants::AnonymousFunction[] = _u("Anonymous function");
 const char16 Constants::Anonymous[] = _u("anonymous");
 const char16 Constants::Empty[] = _u("");

@@ -779,7 +779,7 @@ namespace JsUtil
         }
 
         template <typename LookupType>
-        __inline int FindEntryWithKey(const LookupType& key) const
+        inline int FindEntryWithKey(const LookupType& key) const
         {
 #if PROFILE_DICTIONARY
             uint depth = 0;
@@ -792,7 +792,7 @@ namespace JsUtil
                 EntryType * localEntries = entries;
                 for (int i = localBuckets[targetBucket]; i >= 0; i = localEntries[i].next)
                 {
-                    if (localEntries[i].KeyEquals<Comparer<TKey>>(key, hashCode))
+                    if (localEntries[i].template KeyEquals<Comparer<TKey>>(key, hashCode))
                     {
 #if PROFILE_DICTIONARY
                         if (stats)
@@ -820,7 +820,7 @@ namespace JsUtil
         }
 
         template <typename LookupType>
-        __inline bool FindEntryWithKey(const LookupType& key, int *const i, int *const last, uint *const targetBucket)
+        inline bool FindEntryWithKey(const LookupType& key, int *const i, int *const last, uint *const targetBucket)
         {
 #if PROFILE_DICTIONARY
             uint depth = 0;
@@ -834,7 +834,7 @@ namespace JsUtil
                 EntryType * localEntries = entries;
                 for (*i = localBuckets[*targetBucket]; *i >= 0; *last = *i, *i = localEntries[*i].next)
                 {
-                    if (localEntries[*i].KeyEquals<Comparer<TKey>>(key, hashCode))
+                    if (localEntries[*i].template KeyEquals<Comparer<TKey>>(key, hashCode))
                     {
 #if PROFILE_DICTIONARY
                         if (stats)
@@ -897,7 +897,7 @@ namespace JsUtil
                 EntryType * localEntries = entries;
                 for (int i = localBuckets[targetBucket]; i >= 0; i = localEntries[i].next)
                 {
-                    if (localEntries[i].KeyEquals<Comparer<TKey>>(key, hashCode))
+                    if (localEntries[i].template KeyEquals<Comparer<TKey>>(key, hashCode))
                     {
 #if PROFILE_DICTIONARY
                         if (stats)
@@ -1023,7 +1023,7 @@ namespace JsUtil
 
                 if (!IsFreeEntry(newEntries[i]))
                 {
-                    uint hashCode = newEntries[i].GetHashCode<Comparer<TKey>>();
+                    uint hashCode = newEntries[i].template GetHashCode<Comparer<TKey>>();
                     int bucket = GetBucket(hashCode, newBucketCount);
                     newEntries[i].next = newBuckets[bucket];
                     newBuckets[bucket] = i;
@@ -1103,7 +1103,7 @@ namespace JsUtil
             *ppEntries = entries;
         }
 
-        __inline void RemoveAt(const int i, const int last, const uint targetBucket)
+        inline void RemoveAt(const int i, const int last, const uint targetBucket)
         {
             if (last < 0)
             {
@@ -1142,7 +1142,7 @@ namespace JsUtil
 
     protected:
         template<class TDictionary, class Leaf>
-        class IteratorBase abstract
+        class IteratorBase _ABSTRACT
         {
         protected:
             EntryType *const entries;
@@ -1387,11 +1387,11 @@ namespace JsUtil
     {
         typedef BaseDictionary<TKey, TElement, TAllocator, SizePolicy, Comparer, Entry, Lock> Base;
         typedef Entry<TKey, TElement> EntryType;
-
+        typedef typename Base::AllocatorType AllocatorType;
         friend struct JsDiag::RemoteDictionary<BaseHashSet<TElement, TAllocator, SizePolicy, TKey, Comparer, Entry, Lock>>;
 
     public:
-        BaseHashSet(AllocatorType * allocator, int capacity = 0) : BaseDictionary(allocator, capacity) {}
+        BaseHashSet(AllocatorType * allocator, int capacity = 0) : Base(allocator, capacity) {}
 
         using Base::GetAllocator;
 
@@ -1458,17 +1458,17 @@ namespace JsUtil
             return __super::Remove(ValueToKey<TKey, TElement>::ToKey(element));
         }
 
-        EntryIterator<const BaseHashSet> GetIterator() const
+        typename Base::template EntryIterator<const BaseHashSet> GetIterator() const
         {
             return EntryIterator<const BaseHashSet>(*this);
         }
 
-        EntryIterator<BaseHashSet> GetIterator()
+        typename Base::template EntryIterator<BaseHashSet> GetIterator()
         {
             return EntryIterator<BaseHashSet>(*this);
         }
 
-        BucketEntryIterator<BaseHashSet> GetIteratorWithRemovalSupport()
+        typename Base::template BucketEntryIterator<BaseHashSet> GetIteratorWithRemovalSupport()
         {
             return BucketEntryIterator<BaseHashSet>(*this);
         }
@@ -1542,26 +1542,8 @@ namespace JsUtil
         {
             __super::UnlockResize();
         }
-    public:
-        using Base::EntryIterator;
-        using Base::BucketEntryIterator;
 
-        friend class Base;
-
-        // The following syntax works in BaseDictionary (where the classes are defined), but not in derived
-        // classes such as BaseHashSet
-        //     template<class TDictionary, class Leaf> friend class IteratorBase;
-        //     template<class TDictionary> friend class EntryIterator;
-        //     template<class TDictionary> friend class BucketEntryIterator;
-        friend class Base::IteratorBase<const BaseHashSet, EntryIterator<const BaseHashSet>>;
-        friend class Base::IteratorBase<const BaseHashSet, BucketEntryIterator<const BaseHashSet>>;
-        friend class Base::IteratorBase<BaseHashSet, EntryIterator<BaseHashSet>>;
-        friend class Base::IteratorBase<BaseHashSet, BucketEntryIterator<BaseHashSet>>;
-        friend class EntryIterator<const BaseHashSet>;
-        friend class EntryIterator<BaseHashSet>;
-        friend class BucketEntryIterator<const BaseHashSet>;
-        friend class BucketEntryIterator<BaseHashSet>;
-
+        friend Base;
         PREVENT_ASSIGN(BaseHashSet);
     };
 
@@ -1572,7 +1554,7 @@ namespace JsUtil
         class SizePolicy = PowerOf2SizePolicy,
         template <typename ValueOrKey> class Comparer = DefaultComparer,
         template <typename K, typename V> class Entry = SimpleDictionaryEntry,
-        class LockPolicy = Js::DefaultListLockPolicy,   // Controls lock policy for read/map/write/add/remove items
+        class LockPolicy = Js::DefaultContainerLockPolicy,   // Controls lock policy for read/map/write/add/remove items
         class SyncObject = CriticalSection
     >
     class SynchronizedDictionary: protected BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry>
@@ -1580,24 +1562,26 @@ namespace JsUtil
     private:
         SyncObject* syncObj;
 
+        typedef BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry> Base;
     public:
         typedef TKey KeyType;
         typedef TValue ValueType;
-        typedef BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry>::EntryType EntryType;
+        typedef typename Base::AllocatorType AllocatorType;
+        typedef typename Base::EntryType EntryType;
         typedef SynchronizedDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry, LockPolicy, SyncObject> DictionaryType;
     private:
         friend class Js::RemoteDictionary<DictionaryType>;
 
     public:
         SynchronizedDictionary(AllocatorType * allocator, int capacity, SyncObject* syncObject):
-            BaseDictionary(allocator, capacity),
+            Base(allocator, capacity),
             syncObj(syncObject)
         {}
 
 #ifdef DBG
         void Dump()
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             __super::Dump();
         }
@@ -1605,91 +1589,91 @@ namespace JsUtil
 
         TAllocator *GetAllocator() const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::GetAllocator();
         }
 
         inline int Count() const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Count();
         }
 
         inline int Capacity() const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Capacity();
         }
 
         TValue Item(const TKey& key)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Item(key);
         }
 
         bool IsInAdd()
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::IsInAdd();
         }
 
         int Add(const TKey& key, const TValue& value)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::Add(key, value);
         }
 
         int AddNew(const TKey& key, const TValue& value)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::AddNew(key, value);
         }
 
         int Item(const TKey& key, const TValue& value)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::Item(key, value);
         }
 
         bool Contains(KeyValuePair<TKey, TValue> keyValuePair)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Contains(keyValuePair);
         }
 
         bool Remove(KeyValuePair<TKey, TValue> keyValuePair)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::Remove(keyValuePair);
         }
 
         void Clear()
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::Clear();
         }
 
         void Reset()
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::Reset();
         }
 
         bool ContainsKey(const TKey& key)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::ContainsKey(key);
         }
@@ -1697,14 +1681,14 @@ namespace JsUtil
         template <typename TLookup>
         inline const TValue& LookupWithKey(const TLookup& key, const TValue& defaultValue)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::LookupWithKey(key, defaultValue);
         }
 
         inline const TValue& Lookup(const TKey& key, const TValue& defaultValue)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Lookup(key, defaultValue);
         }
@@ -1712,58 +1696,58 @@ namespace JsUtil
         template <typename TLookup>
         bool TryGetValue(const TLookup& key, TValue* value)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::TryGetValue(key, value);
         }
 
         bool TryGetValueAndRemove(const TKey& key, TValue* value)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::TryGetValueAndRemove(key, value);
         }
 
         template <typename TLookup>
-        __inline bool TryGetReference(const TLookup& key, TValue** value)
+        inline bool TryGetReference(const TLookup& key, TValue** value)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::TryGetReference(key, value);
         }
 
         template <typename TLookup>
-        __inline bool TryGetReference(const TLookup& key, TValue** value, int* index)
+        inline bool TryGetReference(const TLookup& key, TValue** value, int* index)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::TryGetReference(key, value, index);
         }
 
         const TValue& GetValueAt(const int& index) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::GetValueAt(index);
         }
 
         TValue* GetReferenceAt(const int& index)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::GetReferenceAt(index);
         }
 
         TKey const& GetKeyAt(const int& index)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::GetKeyAt(index);
         }
 
         bool Remove(const TKey& key)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Remove(key);
         }
@@ -1772,7 +1756,7 @@ namespace JsUtil
         void MapReference(Fn fn)
         {
             // TODO: Verify that Map doesn't actually modify the list
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::MapReference(fn);
         }
@@ -1780,7 +1764,7 @@ namespace JsUtil
         template<class Fn>
         bool MapUntilReference(Fn fn) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::MapUntilReference(fn);
         }
@@ -1788,7 +1772,7 @@ namespace JsUtil
         template<class Fn>
         void MapAddress(Fn fn) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::MapAddress(fn);
         }
@@ -1796,7 +1780,7 @@ namespace JsUtil
         template<class Fn>
         bool MapUntilAddress(Fn fn) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::MapUntilAddress(fn);
         }
@@ -1804,7 +1788,7 @@ namespace JsUtil
         template<class Fn>
         void Map(Fn fn) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Map(fn);
         }
@@ -1812,7 +1796,7 @@ namespace JsUtil
         template<class Fn>
         bool MapUntil(Fn fn) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::MapUntil(fn);
         }
@@ -1820,7 +1804,7 @@ namespace JsUtil
         template<class Fn>
         void MapAndRemoveIf(Fn fn)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::MapAndRemoveIf(fn);
         }

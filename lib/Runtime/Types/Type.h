@@ -41,7 +41,7 @@ namespace Js
 
     public:
         static DWORD GetJavascriptLibraryOffset() { return offsetof(Type, javascriptLibrary); }
-        __inline TypeId GetTypeId() const { return typeId; }
+        inline TypeId GetTypeId() const { return typeId; }
         void SetTypeId(TypeId typeId) { this->typeId = typeId; }
         RecyclableObject* GetPrototype() const { return prototype; }
         JavascriptMethod GetEntryPoint() const { return entryPoint; }
@@ -58,10 +58,10 @@ namespace Js
         BOOL AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties() const;
         void SetAreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties(const bool truth);
 
-        __inline BOOL IsExternal() const { return (this->flags & TypeFlagMask_External) != 0; }
-        __inline BOOL SkipsPrototype() const { return (this->flags & TypeFlagMask_SkipsPrototype) != 0 ; }
-        __inline BOOL CanHaveInterceptors() const { return (this->flags & TypeFlagMask_CanHaveInterceptors) != 0; }
-        __inline BOOL IsFalsy() const;
+        inline BOOL IsExternal() const { return (this->flags & TypeFlagMask_External) != 0; }
+        inline BOOL SkipsPrototype() const { return (this->flags & TypeFlagMask_SkipsPrototype) != 0 ; }
+        inline BOOL CanHaveInterceptors() const { return (this->flags & TypeFlagMask_CanHaveInterceptors) != 0; }
+        inline BOOL IsFalsy() const { return flags & TypeFlagMask_IsFalsy; }
         void SetIsFalsy(const bool truth);
         void SetHasSpecialPrototype(const bool hasSpecialPrototype);
 

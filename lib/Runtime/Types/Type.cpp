@@ -117,11 +117,6 @@ namespace Js
         return flags & TypeFlagMask_AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties;
     }
 
-    BOOL Type::IsFalsy() const
-    {
-        return flags & TypeFlagMask_IsFalsy;
-    }
-
     void Type::SetIsFalsy(const bool truth)
     {
         if (truth)

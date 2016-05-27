@@ -56,15 +56,15 @@ namespace Js
     public:
         static bool IsDigit(int ch);
         static BOOL NumberUtilities::FHexDigit(char16 ch, int *pw);
-        static ulong MulLu(ulong lu1, ulong lu2, ulong *pluHi);
-        static int AddLu(ulong *plu1, ulong lu2);
+        static uint32 MulLu(uint32 lu1, uint32 lu2, uint32 *pluHi);
+        static int AddLu(uint32 *plu1, uint32 lu2);
 
-        static ulong &LuHiDbl(double &dbl);
-        static ulong &LuLoDbl(double &dbl);
+        static uint32 &LuHiDbl(double &dbl);
+        static uint32 &LuLoDbl(double &dbl);
         static INT64 TryToInt64(double d);
         static bool IsValidTryToInt64(__int64 value);   // Whether TryToInt64 resulted in a valid value.
 
-        static int CbitZeroLeft(ulong lu);
+        static int CbitZeroLeft(uint32 lu);
 
         static bool IsFinite(double value);
         static bool IsNan(double value);
@@ -110,9 +110,9 @@ namespace Js
 
         static bool IsInSupplementaryPlane(codepoint_t codePointValue);
 
-        static long LwFromDblNearest(double dbl);
-        static ulong LuFromDblNearest(double dbl);
-        static BOOL FDblIsLong(double dbl, long *plw);
+        static int32 LwFromDblNearest(double dbl);
+        static uint32 LuFromDblNearest(double dbl);
+        static BOOL FDblIsInt32(double dbl, int32 *plw);
 
         template<typename EncodedChar>
         static double DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim);

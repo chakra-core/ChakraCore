@@ -273,7 +273,7 @@ namespace TTD
             Js::PropertyIndex propertyIndex = (Js::PropertyIndex)i;
             Js::PropertyId propertyId = obj->GetPropertyId(propertyIndex);
 
-            if(!Js::IsInternalPropertyId(propertyId))
+            if((propertyId != Js::Constants::NoProperty) & (!Js::IsInternalPropertyId(propertyId)))
             {
                 AssertMsg(obj->HasOwnProperty(propertyId), "We are assuming this is own property count.");
 

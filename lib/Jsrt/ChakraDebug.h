@@ -20,8 +20,6 @@
 #ifndef _CHAKRADEBUG_H_
 #define _CHAKRADEBUG_H_
 
-#include <windows.h>
-
 #include "ChakraCommon.h"
 
     /// <summary>

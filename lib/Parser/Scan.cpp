@@ -18,15 +18,15 @@ int CountNewlines(LPCOLESTR psz, int cch)
     {
         switch (*psz++)
         {
-        case OLESTR('\xD'):
-            if (*psz == OLESTR('\xA'))
+        case _u('\xD'):
+            if (*psz == _u('\xA'))
             {
                 ++psz;
                 if (0 == cch--)
                     break;
             }
             // fall-through
-        case OLESTR('\xA'):
+        case _u('\xA'):
             cln++;
             break;
         }
@@ -181,19 +181,19 @@ void Scanner<EncodingPolicy>::SetText(EncodedCharPtr pszSrc, size_t offset, size
     m_pchLast = m_pchBase + offset + length;
     m_pchPrevLine = m_currentCharacter = m_pchMinLine = m_pchMinTok = pszSrc + offset;
 
-    RestoreMultiUnits(offset - charOffset);
+    this->RestoreMultiUnits(offset - charOffset);
 
     // Absorb any byte order mark at the start
     if(offset == 0)
     {
-        switch( PeekFull(m_currentCharacter, m_pchLast) )
+        switch( this->PeekFull(m_currentCharacter, m_pchLast) )
         {
         case 0xFFEE:    // "Opposite" endian BOM
             // We do not support big-endian encodings
             // fall-through
 
         case 0xFEFF:    // "Correct" BOM
-            ReadFull<true>(m_currentCharacter, m_pchLast);
+            this->template ReadFull<true>(m_currentCharacter, m_pchLast);
             break;
         }
     }
@@ -229,7 +229,7 @@ charcount_t Scanner<EncodingPolicy>::LineLength(EncodedCharPtr first, EncodedCha
 
     for (;;)
     {
-        switch( ReadFull<false>(p, last) )
+        switch( this->template ReadFull<false>(p, last) )
         {
             case kchNWL: // _C_NWL
             case kchRET:
@@ -243,23 +243,23 @@ charcount_t Scanner<EncodingPolicy>::LineLength(EncodedCharPtr first, EncodedCha
 }
 
 template <typename EncodingPolicy>
-charcount_t Scanner<EncodingPolicy>::UpdateLine(long &line, EncodedCharPtr start, EncodedCharPtr last, charcount_t ichStart, charcount_t ichEnd)
+charcount_t Scanner<EncodingPolicy>::UpdateLine(int32 &line, EncodedCharPtr start, EncodedCharPtr last, charcount_t ichStart, charcount_t ichEnd)
 {
     EncodedCharPtr p = start;
     charcount_t ich = ichStart;
-    long current = line;
+    int32 current = line;
     charcount_t lastStart = ichStart;
 
     while (ich < ichEnd)
     {
         ich++;
-        switch (ReadFull<false>(p, last))
+        switch (this->template ReadFull<false>(p, last))
         {
         case kchRET:
-            if (PeekFull(p, last) == kchNWL)
+            if (this->PeekFull(p, last) == kchNWL)
             {
                 ich++;
-                ReadFull<false>(p, last);
+                this->template ReadFull<false>(p, last);
             }
             // fall-through
 
@@ -291,18 +291,18 @@ bool Scanner<EncodingPolicy>::TryReadEscape(EncodedCharPtr& startingLocation, En
 
     // '\' is Assumed as there is only one caller
     // Read 'u' characters
-    if (currentLocation >= endOfSource || ReadFirst(currentLocation, endOfSource) != 'u')
+    if (currentLocation >= endOfSource || this->ReadFirst(currentLocation, endOfSource) != 'u')
     {
         return false;
     }
 
     bool expectCurly = false;
 
-    if (currentLocation < endOfSource && PeekFirst(currentLocation, endOfSource) == '{' && es6UnicodeMode)
+    if (currentLocation < endOfSource && this->PeekFirst(currentLocation, endOfSource) == '{' && es6UnicodeMode)
     {
         expectCurly = true;
         // Move past the character
-        ReadFirst(currentLocation, endOfSource);
+        this->ReadFirst(currentLocation, endOfSource);
     }
 
     uint i = 0;
@@ -312,7 +312,7 @@ bool Scanner<EncodingPolicy>::TryReadEscape(EncodedCharPtr& startingLocation, En
 
     for(; i < maxHexDigits && currentLocation < endOfSource; i++)
     {
-        if (!Js::NumberUtilities::FHexDigit(ch = ReadFirst(currentLocation, endOfSource), &hexValue))
+        if (!Js::NumberUtilities::FHexDigit(ch = this->ReadFirst(currentLocation, endOfSource), &hexValue))
         {
             break;
         }
@@ -358,14 +358,14 @@ bool Scanner<EncodingPolicy>::TryReadCodePointRest(codepoint_t lower, EncodedCha
 
     if (currentLocation < endOfSource)
     {
-        size_t restorePoint = m_cMultiUnits;
-        codepoint_t upper = ReadFull<bScan>(currentLocation, endOfSource);
+        size_t restorePoint = this->m_cMultiUnits;
+        codepoint_t upper = this->template ReadFull<bScan>(currentLocation, endOfSource);
 
         if (Js::NumberUtilities::IsSurrogateUpperPart(upper))
         {
             *outChar = Js::NumberUtilities::SurrogatePairAsCodePoint(lower, upper);
 
-            if (IsMultiUnitChar(static_cast<OLECHAR>(upper)))
+            if (this->IsMultiUnitChar(static_cast<OLECHAR>(upper)))
             {
                 *outContainsMultiUnitChar = true;
             }
@@ -374,7 +374,7 @@ bool Scanner<EncodingPolicy>::TryReadCodePointRest(codepoint_t lower, EncodedCha
         }
         else
         {
-            RestoreMultiUnits(restorePoint);
+            this->RestoreMultiUnits(restorePoint);
         }
     }
 
@@ -383,7 +383,7 @@ bool Scanner<EncodingPolicy>::TryReadCodePointRest(codepoint_t lower, EncodedCha
 
 template <typename EncodingPolicy>
 template <bool bScan>
-__inline bool Scanner<EncodingPolicy>::TryReadCodePoint(EncodedCharPtr &startingLocation, EncodedCharPtr endOfSource, codepoint_t *outChar, bool *hasEscape, bool *outContainsMultiUnitChar)
+inline bool Scanner<EncodingPolicy>::TryReadCodePoint(EncodedCharPtr &startingLocation, EncodedCharPtr endOfSource, codepoint_t *outChar, bool *hasEscape, bool *outContainsMultiUnitChar)
 {
     Assert(outChar != nullptr);
     Assert(outContainsMultiUnitChar != nullptr);
@@ -393,10 +393,10 @@ __inline bool Scanner<EncodingPolicy>::TryReadCodePoint(EncodedCharPtr &starting
         return false;
     }
 
-    codepoint_t ch = ReadFull<bScan>(startingLocation, endOfSource);
+    codepoint_t ch = this->template ReadFull<bScan>(startingLocation, endOfSource);
     if (FBigChar(ch))
     {
-        if (IsMultiUnitChar(static_cast<OLECHAR>(ch)))
+        if (this->IsMultiUnitChar(static_cast<OLECHAR>(ch)))
         {
             *outContainsMultiUnitChar = true;
         }
@@ -427,7 +427,7 @@ tokens Scanner<EncodingPolicy>::ScanIdentifier(bool identifyKwds, EncodedCharPtr
     bool fHasMultiChar = false;
 
     codepoint_t codePoint = INVALID_CODEPOINT;
-    size_t multiUnitsBeforeLast = m_cMultiUnits;
+    size_t multiUnitsBeforeLast = this->m_cMultiUnits;
 
     // Check if we started the id
     if (!TryReadCodePoint<true>(p, m_pchLast, &codePoint, &fHasEscape, &fHasMultiChar))
@@ -440,7 +440,7 @@ tokens Scanner<EncodingPolicy>::ScanIdentifier(bool identifyKwds, EncodedCharPtr
     if (!charClassifier->IsIdStart(codePoint))
     {
         // Put back the last character
-        RestoreMultiUnits(multiUnitsBeforeLast);
+        this->RestoreMultiUnits(multiUnitsBeforeLast);
 
         // If no chars. could be scanned as part of the identifier, return error.
         return tkScanError;
@@ -452,12 +452,12 @@ tokens Scanner<EncodingPolicy>::ScanIdentifier(bool identifyKwds, EncodedCharPtr
 template <typename EncodingPolicy>
 BOOL Scanner<EncodingPolicy>::FastIdentifierContinue(EncodedCharPtr&p, EncodedCharPtr last)
 {
-    if (MultiUnitEncoding)
+    if (EncodingPolicy::MultiUnitEncoding)
     {
         while (p < last)
         {
             EncodedChar currentChar = *p;
-            if (IsMultiUnitChar(currentChar))
+            if (this->IsMultiUnitChar(currentChar))
             {
                 // multi unit character, we may not have reach the end yet
                 return FALSE;
@@ -495,7 +495,7 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         // Slow path that has to deal with multi unit encoding
         codepoint_t codePoint = INVALID_CODEPOINT;
         EncodedCharPtr pchBeforeLast = p;
-        size_t multiUnitsBeforeLast = m_cMultiUnits;
+        size_t multiUnitsBeforeLast = this->m_cMultiUnits;
         if (TryReadCodePoint<true>(p, last, &codePoint, &fHasEscape, &fHasMultiChar))
         {
             Assert(codePoint < 0x110000u);
@@ -507,7 +507,7 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
 
         // Put back the last character
         p = pchBeforeLast;
-        RestoreMultiUnits(multiUnitsBeforeLast);
+        this->RestoreMultiUnits(multiUnitsBeforeLast);
         break;
     }
 
@@ -530,12 +530,12 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         {
             // If there are no escape, that the main scan loop would have found the keyword already
             // So we can just assume it is an ID
-            DebugOnly(long cch = UnescapeToTempBuf(pchMin, p));
+            DebugOnly(int32 cch = UnescapeToTempBuf(pchMin, p));
             DebugOnly(tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
             Assert(tk == tkID || (tk == tkYIELD && !m_fYieldIsKeyword) || (tk == tkAWAIT && !m_fAwaitIsKeyword));
             return tkID;
         }
-        long cch = UnescapeToTempBuf(pchMin, p);
+        int32 cch = UnescapeToTempBuf(pchMin, p);
         tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode());
         return (!m_fYieldIsKeyword && tk == tkYIELD) || (!m_fAwaitIsKeyword && tk == tkAWAIT) ? tkID : tk;
     }
@@ -545,22 +545,22 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         // We always need to check TkFromNameLenColor because
         // the main Scan switch doesn't detect all non-keyword that needs coloring
         // (e.g. int)
-        long cch = UnescapeToTempBuf(pchMin, p);
+        int32 cch = UnescapeToTempBuf(pchMin, p);
         return m_phtbl->TkFromNameLenColor(m_tempChBuf.m_prgch, cch);
     }
 
     // UTF16 Scanner are only for syntax coloring, so it shouldn't come here.
-    if (MultiUnitEncoding && !fHasMultiChar && !fHasEscape)
+    if (EncodingPolicy::MultiUnitEncoding && !fHasMultiChar && !fHasEscape)
     {
         Assert(sizeof(EncodedChar) == 1);
 
         // If there are no escape, that the main scan loop would have found the keyword already
         // So we can just assume it is an ID
-        DebugOnly(long cch = UnescapeToTempBuf(pchMin, p));
+        DebugOnly(int32 cch = UnescapeToTempBuf(pchMin, p));
         DebugOnly(tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
         Assert(tk == tkID || (tk == tkYIELD && !m_fYieldIsKeyword) || (tk == tkAWAIT && !m_fAwaitIsKeyword));
 
-        m_ptoken->SetIdentifier(reinterpret_cast<const char *>(pchMin), (long)(p - pchMin));
+        m_ptoken->SetIdentifier(reinterpret_cast<const char *>(pchMin), (int32)(p - pchMin));
         return tkID;
     }
 
@@ -590,7 +590,7 @@ IdentPtr Scanner<EncodingPolicy>::PidAt(size_t iecpMin, size_t iecpLim)
 }
 
 template <typename EncodingPolicy>
-ulong Scanner<EncodingPolicy>::UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPtr last)
+uint32 Scanner<EncodingPolicy>::UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPtr last)
 {
     m_tempChBuf.Init();
     while( p < last )
@@ -618,7 +618,7 @@ ulong Scanner<EncodingPolicy>::UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPt
 template <typename EncodingPolicy>
 IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last)
 {
-    long cch = UnescapeToTempBuf(p, last);
+    int32 cch = UnescapeToTempBuf(p, last);
     return m_phtbl->PidHashNameLen(m_tempChBuf.m_prgch, cch);
 }
 
@@ -628,19 +628,19 @@ IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedChar
     // If there is an escape sequence in the JS6 identifier or it is a UTF8
     // source then we have to convert it to the equivalent char so we use a
     // buffer for translation.
-    if ((MultiUnitEncoding && fHasMultiChar) || fHadEscape)
+    if ((EncodingPolicy::MultiUnitEncoding && fHasMultiChar) || fHadEscape)
     {
         return PidOfIdentiferAt(p, last);
     }
-    else if (MultiUnitEncoding)
+    else if (EncodingPolicy::MultiUnitEncoding)
     {
         Assert(sizeof(EncodedChar) == 1);
-        return m_phtbl->PidHashNameLen(reinterpret_cast<const char *>(p), (long)(last - p));
+        return m_phtbl->PidHashNameLen(reinterpret_cast<const char *>(p), (int32)(last - p));
     }
     else
     {
         Assert(sizeof(EncodedChar) == 2);
-        return m_phtbl->PidHashNameLen(reinterpret_cast< const char16 * >(p), (long)(last - p));
+        return m_phtbl->PidHashNameLen(reinterpret_cast< const char16 * >(p), (int32)(last - p));
     }
 }
 
@@ -652,9 +652,9 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
     likelyInt = true;
     // Reset
     m_OctOrLeadingZeroOnLastTKNumber = false;
-    if ('0' == PeekFirst(p, last))
+    if ('0' == this->PeekFirst(p, last))
     {
-        switch(PeekFirst(p + 1, last))
+        switch(this->PeekFirst(p + 1, last))
         {
         case '.':
         case 'e':
@@ -935,14 +935,15 @@ tokens Scanner<EncodingPolicy>::RescanRegExpTokenizer()
     ThreadContext *threadContext = ThreadContext::GetContextForCurrentThread();
     threadContext->EnsureRecycler();
     Js::TempArenaAllocatorObject *alloc = threadContext->GetTemporaryAllocator(_u("RescanRegExp"));
-    __try
-    {
-        tk = ScanRegExpConstantNoAST(alloc->GetAllocator());
-    }
-    __finally
-    {
-        threadContext->ReleaseTemporaryAllocator(alloc);
-    }
+    TryFinally(
+        [&]() /* try block */
+        {
+            tk = this->ScanRegExpConstantNoAST(alloc->GetAllocator());
+        },
+        [&](bool /* hasException */) /* finally block */
+        {
+            threadContext->ReleaseTemporaryAllocator(alloc);
+        });
 
     return tk;
 }
@@ -982,7 +983,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
             , ctAllocator
             , standardEncodedChars
             , standardChars
-            , IsFromExternalSource()
+            , this->IsFromExternalSource()
 #if ENABLE_REGEX_CONFIG_OPTIONS
             , w
 #endif
@@ -1008,13 +1009,13 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
     {
         // Avoid allocating pattern from recycler on background thread. The main thread will create the pattern
         // and hook it to this parse node.
-        pattern = parser.CompileProgram<false>(root, m_currentCharacter, totalLen, bodyChars, totalChars, flags);
+        pattern = parser.template CompileProgram<false>(root, m_currentCharacter, totalLen, bodyChars, totalChars, flags);
     }
     else
     {
-        pattern = parser.CompileProgram<true>(root, m_currentCharacter, totalLen, bodyChars, totalChars, flags);
+        pattern = parser.template CompileProgram<true>(root, m_currentCharacter, totalLen, bodyChars, totalChars, flags);
     }
-    RestoreMultiUnits(m_cMultiUnits + parser.GetMultiUnits()); // m_currentCharacter changed, sync MultiUnits
+    this->RestoreMultiUnits(this->m_cMultiUnits + parser.GetMultiUnits()); // m_currentCharacter changed, sync MultiUnits
 
     return m_ptoken->SetRegex(pattern, m_parser);
 }
@@ -1040,7 +1041,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstantNoAST(ArenaAllocator* alloc)
             , alloc
             , standardEncodedChars
             , standardChars
-            , IsFromExternalSource()
+            , this->IsFromExternalSource()
 #if ENABLE_REGEX_CONFIG_OPTIONS
             , 0
 #endif
@@ -1059,9 +1060,9 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstantNoAST(ArenaAllocator* alloc)
         // never reached
     }
 
-    UnifiedRegex::RegexPattern* pattern = parser.CompileProgram<false>(nullptr, m_currentCharacter, totalLen, bodyChars, totalChars, UnifiedRegex::NoRegexFlags);
+    UnifiedRegex::RegexPattern* pattern = parser.template CompileProgram<false>(nullptr, m_currentCharacter, totalLen, bodyChars, totalChars, UnifiedRegex::NoRegexFlags);
     Assert(pattern == nullptr);  // BuildAST == false, CompileProgram should return nullptr
-    RestoreMultiUnits(m_cMultiUnits + parser.GetMultiUnits()); // m_currentCharacter changed, sync MultiUnits
+    this->RestoreMultiUnits(this->m_cMultiUnits + parser.GetMultiUnits()); // m_currentCharacter changed, sync MultiUnits
 
     return (m_ptoken->tk = tkRegExp);
 
@@ -1076,7 +1077,7 @@ tokens Scanner<EncodingPolicy>::ScanStringTemplateBegin(EncodedCharPtr *pp)
     OLECHAR ch;
     EncodedCharPtr last = m_pchLast;
 
-    ch = ReadFirst(*pp, last);
+    ch = this->ReadFirst(*pp, last);
 
     if (ch == '`')
     {
@@ -1085,7 +1086,7 @@ tokens Scanner<EncodingPolicy>::ScanStringTemplateBegin(EncodedCharPtr *pp)
     }
     else if (ch == '$')
     {
-        ch = ReadFirst(*pp, last);
+        ch = this->ReadFirst(*pp, last);
 
         if (ch == '{')
         {
@@ -1113,7 +1114,7 @@ tokens Scanner<EncodingPolicy>::ScanStringTemplateMiddleOrEnd(EncodedCharPtr *pp
     OLECHAR ch;
     EncodedCharPtr last = m_pchLast;
 
-    ch = ReadFirst(*pp, last);
+    ch = this->ReadFirst(*pp, last);
 
     if (ch == '`')
     {
@@ -1125,7 +1126,7 @@ tokens Scanner<EncodingPolicy>::ScanStringTemplateMiddleOrEnd(EncodedCharPtr *pp
     }
     else if (ch == '$')
     {
-        ch = ReadFirst(*pp, last);
+        ch = this->ReadFirst(*pp, last);
 
         if (ch == '{')
         {
@@ -1172,15 +1173,15 @@ tokens Scanner<EncodingPolicy>::ScanStringConstant(OLECHAR delim, EncodedCharPtr
 
     for (;;)
     {
-        switch ((rawch = ch = ReadFirst(p, last)))
+        switch ((rawch = ch = this->ReadFirst(p, last)))
         {
         case kchRET:
             if (stringTemplateMode)
             {
-                if (PeekFirst(p, last) == kchNWL)
+                if (this->PeekFirst(p, last) == kchNWL)
                 {
                     // Eat the <LF> char, ignore return
-                    ReadFirst(p, last);
+                    this->ReadFirst(p, last);
                 }
 
                 // Both <CR> and <CR><LF> are normalized to <LF> in template cooked and raw values
@@ -1226,7 +1227,7 @@ LEcmaLineBreak:
         case '$':
             // If we are parsing a string literal part of a string template, ${ indicates we need to switch
             // to parsing an expression.
-            if (stringTemplateMode && PeekFirst(p, last) == '{')
+            if (stringTemplateMode && this->PeekFirst(p, last) == '{')
             {
                 // Rewind to the $ and return
                 p--;
@@ -1251,14 +1252,14 @@ LEcmaLineBreak:
 
         default:
 LMainDefault:
-            if (IsMultiUnitChar(ch))
+            if (this->IsMultiUnitChar(ch))
             {
                 if ((ch == kchLS || ch == kchPS))
                 {
                     goto LEcmaLineBreak;
                 }
 
-                rawch = ch = ReadRest<true>(ch, p, last);
+                rawch = ch = this->template ReadRest<true>(ch, p, last);
                 switch (ch)
                 {
                 case kchLS: // 0x2028, classifies as new line
@@ -1270,12 +1271,12 @@ LMainDefault:
 
         case kchBSL:
             // In raw mode '\\' is not an escape character, just add the char into the raw buffer.
-            m_tempChBufSecondary.AppendCh<createRawString>(ch);
+            m_tempChBufSecondary.template AppendCh<createRawString>(ch);
 
             m_EscapeOnLastTkStrCon=TRUE;
 
             // In raw mode, we append the raw char itself and not the escaped value so save the char.
-            rawch = ch = ReadFirst(p, last);
+            rawch = ch = this->ReadFirst(p, last);
             codepoint_t codePoint = 0;
             uint errorType = (uint)ERRbadHexDigit;
             switch (ch)
@@ -1300,38 +1301,38 @@ LMainDefault:
                 break;
             case 'x':
                 // Insert the 'x' here before jumping to parse the hex digits.
-                m_tempChBufSecondary.AppendCh<createRawString>(ch);
+                m_tempChBufSecondary.template AppendCh<createRawString>(ch);
 
                 // 2 hex digits
                 ch = 0;
                 goto LTwoHex;
             case 'u':
                 // Raw string just inserts a 'u' here.
-                m_tempChBufSecondary.AppendCh<createRawString>(ch);
+                m_tempChBufSecondary.template AppendCh<createRawString>(ch);
 
                 ch = 0;
-                if (Js::NumberUtilities::FHexDigit(c = ReadFirst(p, last), &wT))
+                if (Js::NumberUtilities::FHexDigit(c = this->ReadFirst(p, last), &wT))
                     goto LFourHex;
                 else if (c != '{' || !this->es6UnicodeMode)
                     goto ReturnScanError;
 
                 Assert(c == '{');
                 // c should definitely be a '{' which should be appended to the raw string.
-                m_tempChBufSecondary.AppendCh<createRawString>(c);
+                m_tempChBufSecondary.template AppendCh<createRawString>(c);
 
                 //At least one digit is expected
-                if (!Js::NumberUtilities::FHexDigit(c = ReadFirst(p, last), &wT))
+                if (!Js::NumberUtilities::FHexDigit(c = this->ReadFirst(p, last), &wT))
                 {
                     goto ReturnScanError;
                 }
 
-                m_tempChBufSecondary.AppendCh<createRawString>(c);
+                m_tempChBufSecondary.template AppendCh<createRawString>(c);
 
                 codePoint = static_cast<codepoint_t>(wT);
 
-                while(Js::NumberUtilities::FHexDigit(c = ReadFirst(p, last), &wT))
+                while(Js::NumberUtilities::FHexDigit(c = this->ReadFirst(p, last), &wT))
                 {
-                    m_tempChBufSecondary.AppendCh<createRawString>(c);
+                    m_tempChBufSecondary.template AppendCh<createRawString>(c);
                     codePoint <<= 4;
                     codePoint += static_cast<codepoint_t>(wT);
 
@@ -1369,28 +1370,28 @@ LMainDefault:
 LFourHex:
                 codePoint = 0x0;
                 // Append first hex digit character to the raw string.
-                m_tempChBufSecondary.AppendCh<createRawString>(c);
+                m_tempChBufSecondary.template AppendCh<createRawString>(c);
 
                 codePoint += static_cast<codepoint_t>(wT * 0x1000);
-                if (!Js::NumberUtilities::FHexDigit(c = ReadFirst(p, last), &wT))
+                if (!Js::NumberUtilities::FHexDigit(c = this->ReadFirst(p, last), &wT))
                     goto ReturnScanError;
 
                 // Append fourth (or second) hex digit character to the raw string.
-                m_tempChBufSecondary.AppendCh<createRawString>(c);
+                m_tempChBufSecondary.template AppendCh<createRawString>(c);
 
                 codePoint += static_cast<codepoint_t>(wT * 0x0100);
 
 LTwoHex:
                 // This code path doesn't expect curly.
-                if (!Js::NumberUtilities::FHexDigit(c = ReadFirst(p, last), &wT))
+                if (!Js::NumberUtilities::FHexDigit(c = this->ReadFirst(p, last), &wT))
                     goto ReturnScanError;
 
                 // Append first hex digit character to the raw string.
-                m_tempChBufSecondary.AppendCh<createRawString>(c);
+                m_tempChBufSecondary.template AppendCh<createRawString>(c);
 
                 codePoint += static_cast<codepoint_t>(wT * 0x0010);
 
-                if (!Js::NumberUtilities::FHexDigit(c = ReadFirst(p, last), &wT))
+                if (!Js::NumberUtilities::FHexDigit(c = this->ReadFirst(p, last), &wT))
                     goto ReturnScanError;
 
                 codePoint += static_cast<codepoint_t>(wT);
@@ -1419,7 +1420,7 @@ LTwoHex:
                 // Octal escape sequences are not allowed inside string template literals
                 if (stringTemplateMode)
                 {
-                    c = PeekFirst(p, last);
+                    c = this->PeekFirst(p, last);
                     if (ch != 0 || (c >= '0' && c <= '7'))
                     {
                         errorType = (uint)ERRES5NoOctal;
@@ -1428,7 +1429,7 @@ LTwoHex:
                     break;
                 }
 
-                wT = (c = ReadFirst(p, last)) - '0';
+                wT = (c = this->ReadFirst(p, last)) - '0';
                 if ((char16)wT > 7)
                 {
                     if (ch != 0 || ((char16)wT <= 9))
@@ -1460,7 +1461,7 @@ LTwoHex:
                 m_OctOrLeadingZeroOnLastTKNumber = true;
 
 LOneOctal:
-                wT = (c = ReadFirst(p, last)) - '0';
+                wT = (c = this->ReadFirst(p, last)) - '0';
                 if ((char16)wT > 7)
                 {
                     p--;
@@ -1474,10 +1475,10 @@ LOneOctal:
                 if (stringTemplateMode)
                 {
                     // If this is \<CR><LF> we can eat the <LF> right now
-                    if (PeekFirst(p, last) == kchNWL)
+                    if (this->PeekFirst(p, last) == kchNWL)
                     {
                         // Eat the <LF> char, ignore return
-                        ReadFirst(p, last);
+                        this->ReadFirst(p, last);
                     }
 
                     // Both \<CR> and \<CR><LF> are normalized to \<LF> in template raw string
@@ -1490,7 +1491,7 @@ LEcmaEscapeLineBreak:
                 if (stringTemplateMode)
                 {
                     // We're going to ignore the line continuation tokens for the cooked strings, but we need to append the token for raw strings
-                    m_tempChBufSecondary.AppendCh<createRawString>(rawch);
+                    m_tempChBufSecondary.template AppendCh<createRawString>(rawch);
 
                     // Template literal strings ignore all escaped line continuation tokens
                     NotifyScannedNewLine();
@@ -1531,9 +1532,9 @@ ReturnScanError:
                 break;
 
             default:
-                if (IsMultiUnitChar(ch))
+                if (this->IsMultiUnitChar(ch))
                 {
-                    rawch = ch = ReadRest<true>(ch, p, last);
+                    rawch = ch = this->template ReadRest<true>(ch, p, last);
                     switch (ch)
                     {
                     case kchLS:
@@ -1547,7 +1548,7 @@ ReturnScanError:
         }
 
         m_tempChBuf.AppendCh(ch);
-        m_tempChBufSecondary.AppendCh<createRawString>(rawch);
+        m_tempChBufSecondary.template AppendCh<createRawString>(rawch);
     }
 
 LBreak:
@@ -1600,7 +1601,7 @@ tokens Scanner<EncodingPolicy>::SkipComment(EncodedCharPtr *pp, /* out */ bool* 
 
     for (;;)
     {
-        switch((ch = ReadFirst(p, last)))
+        switch((ch = this->ReadFirst(p, last)))
         {
         case '*':
             if (*p == '/')
@@ -1645,9 +1646,9 @@ LLineBreak:
             break;
 
         default:
-            if (IsMultiUnitChar(ch))
+            if (this->IsMultiUnitChar(ch))
             {
-                ch = ReadRest<true>(ch, p, last);
+                ch = this->template ReadRest<true>(ch, p, last);
                 switch (ch)
                 {
                 case kchLS:
@@ -1686,7 +1687,7 @@ void Scanner<EncodingPolicy>::NotifyScannedNewLine()
     m_line++;
     m_pchPrevLine = m_pchMinLine;
     m_pchMinLine = m_currentCharacter;
-    m_cMinLineMultiUnits = m_cMultiUnits;
+    m_cMinLineMultiUnits = this->m_cMultiUnits;
 }
 
 /*****************************************************************************
@@ -1703,14 +1704,16 @@ tokens Scanner<EncodingPolicy>::ScanForcingPid()
         BYTE deferredParseFlagsSave = m_DeferredParseFlags;
         m_DeferredParseFlags = ScanFlagNone;
         tokens result = tkEOF;
-        __try
-        {
-           result = Scan();
-        }
-        __finally
-        {
-            m_DeferredParseFlags = deferredParseFlagsSave;
-        }
+        TryFinally(
+            [&]() /* try block */
+            {
+                result = this->Scan();
+            },
+            [&](bool) /* finally block */
+            {
+                this->m_DeferredParseFlags = deferredParseFlagsSave;
+            });
+        
         return result;
     }
     return Scan();
@@ -1744,6 +1747,8 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
     size_t multiUnits = 0;
     EncodedCharPtr p = m_currentCharacter;
     EncodedCharPtr last = m_pchLast;
+    bool seenDelimitedCommentEnd = false;
+    
     // store the last token
     m_tkPrevious = m_ptoken->tk;
     m_iecpLimTokPrevious = IecpLimTok();    // Introduced for use by lambda parsing to find correct span of expression lambdas
@@ -1751,14 +1756,13 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
     if (p >= last)
     {
         m_pchMinTok = p;
-        m_cMinTokMultiUnits = m_cMultiUnits;
+        m_cMinTokMultiUnits = this->m_cMultiUnits;
         goto LEof;
     }
     tokens token;
     m_fHadEol = FALSE;
     CharTypes chType;
     charcount_t commentStartLine;
-    bool seenDelimitedCommentEnd = false;
 
     if (m_scanState && *p != 0)
     {
@@ -1767,7 +1771,7 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
             firstChar = 0;
             secondChar = 0;
             m_pchMinTok = p;
-            m_cMinTokMultiUnits = m_cMultiUnits;
+            m_cMinTokMultiUnits = this->m_cMultiUnits;
             switch (m_scanState)
             {
             case ScanStateMultiLineComment:
@@ -1801,8 +1805,8 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
     {
 LLoop:
         m_pchMinTok = p;
-        m_cMinTokMultiUnits = m_cMultiUnits;
-        ch = ReadFirst(p, last);
+        m_cMinTokMultiUnits = this->m_cMultiUnits;
+        ch = this->ReadFirst(p, last);
 #if DEBUG
         chType = this->charClassifier->GetCharType((OLECHAR)ch);
 #endif
@@ -1815,20 +1819,20 @@ LLoop:
                 goto LNewLine;
             }
             {
-                BOOL isMultiUnit = IsMultiUnitChar((OLECHAR)ch);
+                BOOL isMultiUnit = this->IsMultiUnitChar((OLECHAR)ch);
                 if (isMultiUnit)
                 {
-                    ch = ReadRest<true>((OLECHAR)ch, p, last);
+                    ch = this->template ReadRest<true>((OLECHAR)ch, p, last);
                 }
 
                 if (es6UnicodeMode && Js::NumberUtilities::IsSurrogateLowerPart(ch))
                 {
-                    codepoint_t upper = PeekFull(p, last);
+                    codepoint_t upper = this->PeekFull(p, last);
 
                     if (Js::NumberUtilities::IsSurrogateUpperPart(upper))
                     {
                         ch = Js::NumberUtilities::SurrogatePairAsCodePoint(ch, upper);
-                        ReadFull<true>(p, last);
+                        this->template ReadFull<true>(p, last);
                     }
                 }
 
@@ -1886,7 +1890,9 @@ LEof:
             if (!Js::NumberUtilities::IsDigit(*p))
             {
                 // Not a double
-                if (m_scriptContext->GetConfig()->IsES6SpreadEnabled() && PeekFirst(p, last) == '.' && PeekFirst(p + 1, last) == '.')
+                if (m_scriptContext->GetConfig()->IsES6SpreadEnabled() &&
+                    this->PeekFirst(p, last) == '.' &&
+                    this->PeekFirst(p + 1, last) == '.')
                 {
                     token = tkEllipsis;
                     p += 2;
@@ -1904,12 +1910,12 @@ LEof:
                 double dbl;
                 Assert(chType == _C_DIG || chType == _C_DOT);
                 p = m_pchMinTok;
-                RestoreMultiUnits(m_cMinTokMultiUnits);
+                this->RestoreMultiUnits(m_cMinTokMultiUnits);
                 bool likelyInt = true;
                 pchT = FScanNumber(p, &dbl, likelyInt);
                 if (p == pchT)
                 {
-                    Assert(PeekFirst(p, last) != '.');
+                    Assert(this->PeekFirst(p, last) != '.');
                     if (m_fSyntaxColor)
                     {
                         return ScanError(m_currentCharacter + 1, tkFltCon);
@@ -1921,8 +1927,8 @@ LEof:
 
                 p = pchT;
 
-                long value;
-                if (likelyInt && Js::NumberUtilities::FDblIsLong(dbl, &value))
+                int32 value;
+                if (likelyInt && Js::NumberUtilities::FDblIsInt32(dbl, &value))
                 {
                     m_ptoken->SetLong(value);
                     token = tkIntCon;
@@ -2000,7 +2006,7 @@ LTarget:
         case '$': case '_':
 LIdentifier:
             Assert(this->charClassifier->IsIdStart(ch));
-            Assert(ch < 0x10000 && !IsMultiUnitChar((OLECHAR)ch));
+            Assert(ch < 0x10000 && !this->IsMultiUnitChar((OLECHAR)ch));
             token = ScanIdentifierContinue(identifyKwds, false, false, m_pchMinTok, p, &p);
             break;
 
@@ -2038,12 +2044,12 @@ LIdentifier:
 
         case '=':
             token = tkAsg;
-            switch (PeekFirst(p, last))
+            switch (this->PeekFirst(p, last))
             {
             case '=':
                 p++;
                 token = tkEQ;
-                if (PeekFirst(p, last) == '=')
+                if (this->PeekFirst(p, last) == '=')
                 {
                     p++;
                     token = tkEqv;
@@ -2057,11 +2063,11 @@ LIdentifier:
             break;
         case '!':
             token = tkBang;
-            if (PeekFirst(p, last) == '=')
+            if (this->PeekFirst(p, last) == '=')
             {
                 p++;
                 token = tkNE;
-                if (PeekFirst(p, last) == '=')
+                if (this->PeekFirst(p, last) == '=')
                 {
                     p++;
                     token = tkNEqv;
@@ -2070,7 +2076,7 @@ LIdentifier:
             break;
         case '+':
             token = tkAdd;
-            switch (PeekFirst(p, last))
+            switch (this->PeekFirst(p, last))
             {
             case '=':
                 p++;
@@ -2084,7 +2090,7 @@ LIdentifier:
             break;
         case '-':
             token = tkSub;
-            switch (PeekFirst(p, last))
+            switch (this->PeekFirst(p, last))
             {
             case '=':
                 p++;
@@ -2095,7 +2101,7 @@ LIdentifier:
                 token = tkDec;
                 if (!m_fIsModuleCode)
                 {
-                    if ('>' == PeekFirst(p, last) && (m_fHadEol || seenDelimitedCommentEnd)) // --> HTMLCloseComment
+                    if ('>' == this->PeekFirst(p, last) && (m_fHadEol || seenDelimitedCommentEnd)) // --> HTMLCloseComment
                     {
                         goto LSkipLineComment;
                     }
@@ -2105,7 +2111,7 @@ LIdentifier:
             break;
         case '*':
             token = tkStar;
-            switch(PeekFirst(p, last))
+            switch(this->PeekFirst(p, last))
             {
             case '=' :
                 p++;
@@ -2118,7 +2124,7 @@ LIdentifier:
                 }
                 p++;
                 token = tkExpo;
-                if (PeekFirst(p, last) == '=')
+                if (this->PeekFirst(p, last) == '=')
                 {
                     p++;
                     token = tkAsgExpo;
@@ -2127,7 +2133,7 @@ LIdentifier:
             break;
         case '/':
             token = tkDiv;
-            switch(PeekFirst(p, last))
+            switch(this->PeekFirst(p, last))
             {
             case '=':
                 p++;
@@ -2149,7 +2155,7 @@ LSkipLineComment:
                 pchT = NULL;
                 for (;;)
                 {
-                    switch ((ch = ReadFirst(p, last)))
+                    switch ((ch = this->ReadFirst(p, last)))
                     {
                     case kchLS:         // 0x2028, classifies as new line
                     case kchPS:         // 0x2029, classifies as new line
@@ -2165,7 +2171,7 @@ LEcmaCommentLineBreak:
                             // But only a single code unit in UTF16
                             p--;
                         }
-                        RestoreMultiUnits(multiUnits);
+                        this->RestoreMultiUnits(multiUnits);
                         goto LCommentLineBreak;
 
                     case kchNWL:
@@ -2190,11 +2196,11 @@ LCommentLineBreak:
                         continue;
 
                     default:
-                        if (IsMultiUnitChar((OLECHAR)ch))
+                        if (this->IsMultiUnitChar((OLECHAR)ch))
                         {
                             pchT = p - 1;
-                            multiUnits = m_cMultiUnits;
-                            switch (ch = ReadRest<true>((OLECHAR)ch, p, last))
+                            multiUnits = this->m_cMultiUnits;
+                            switch (ch = this->template ReadRest<true>((OLECHAR)ch, p, last))
                             {
                                 case kchLS:
                                 case kchPS:
@@ -2242,7 +2248,7 @@ LMultiLineComment:
         case '%':
             Assert(chType == _C_PCT);
             token = tkPct;
-            if (PeekFirst(p, last) == '=')
+            if (this->PeekFirst(p, last) == '=')
             {
                 p++;
                 token = tkAsgMod;
@@ -2251,7 +2257,7 @@ LMultiLineComment:
         case '<':
             Assert(chType == _C_LT);
             token = tkLT;
-            switch (PeekFirst(p, last))
+            switch (this->PeekFirst(p, last))
             {
             case '=':
                 p++;
@@ -2260,7 +2266,7 @@ LMultiLineComment:
             case '<':
                 p++;
                 token = tkLsh;
-                if (PeekFirst(p, last) == '=')
+                if (this->PeekFirst(p, last) == '=')
                 {
                     p++;
                     token = tkAsgLsh;
@@ -2269,7 +2275,7 @@ LMultiLineComment:
                 break;
             case '!':
                 // ES 2015 B.1.3 -  HTML comments are only allowed when parsing non-module code.
-                if (!m_fIsModuleCode && PeekFirst(p + 1, last) == '-' && PeekFirst(p + 2, last) == '-')
+                if (!m_fIsModuleCode && this->PeekFirst(p + 1, last) == '-' && this->PeekFirst(p + 2, last) == '-')
                 {
                     // This is a "<!--" comment - treat as //
                     if (p >= last)
@@ -2288,7 +2294,7 @@ LMultiLineComment:
         case '>':
             Assert(chType == _C_GT);
             token = tkGT;
-            switch (PeekFirst(p, last))
+            switch (this->PeekFirst(p, last))
             {
             case '=':
                 p++;
@@ -2297,7 +2303,7 @@ LMultiLineComment:
             case '>':
                 p++;
                 token = tkRsh;
-                switch (PeekFirst(p, last))
+                switch (this->PeekFirst(p, last))
                 {
                 case '=':
                     p++;
@@ -2319,7 +2325,7 @@ LMultiLineComment:
         case '^':
             Assert(chType == _C_XOR);
             token = tkXor;
-            if (PeekFirst(p, last) == '=')
+            if (this->PeekFirst(p, last) == '=')
             {
                 p++;
                 token = tkAsgXor;
@@ -2328,7 +2334,7 @@ LMultiLineComment:
         case '|':
             Assert(chType == _C_BAR);
             token = tkOr;
-            switch (PeekFirst(p, last))
+            switch (this->PeekFirst(p, last))
             {
             case '=':
                 p++;
@@ -2343,7 +2349,7 @@ LMultiLineComment:
         case '&':
             Assert(chType == _C_AMP);
             token = tkAnd;
-            switch (PeekFirst(p, last))
+            switch (this->PeekFirst(p, last))
             {
             case '=':
                 p++;
@@ -2360,7 +2366,7 @@ LMultiLineComment:
             Assert(chType == _C_QUO || chType == _C_APO);
 LScanStringConstant:
             pchT = p;
-            token = ScanStringConstant((OLECHAR)ch, &pchT);
+            token = this->ScanStringConstant((OLECHAR)ch, &pchT);
             p = pchT;
             break;
         }
@@ -2394,14 +2400,14 @@ IdentPtr Scanner<EncodingPolicy>::GetSecondaryBufferAsPid()
 }
 
 template <typename EncodingPolicy>
-LPCOLESTR Scanner<EncodingPolicy>::StringFromLong(long lw)
+LPCOLESTR Scanner<EncodingPolicy>::StringFromLong(int32 lw)
 {
     _ltow_s(lw, m_tempChBuf.m_prgch, m_tempChBuf.m_cchMax, 10);
     return m_tempChBuf.m_prgch;
 }
 
 template <typename EncodingPolicy>
-IdentPtr Scanner<EncodingPolicy>::PidFromLong(long lw)
+IdentPtr Scanner<EncodingPolicy>::PidFromLong(int32 lw)
 {
     return m_phtbl->PidHashName(StringFromLong(lw));
 }
@@ -2494,7 +2500,7 @@ void Scanner<EncodingPolicy>::SeekTo(const RestorePoint& restorePoint, uint *nex
 
 // Called by CompileScriptException::ProcessError to retrieve a BSTR for the line on which an error occurred.
 template<typename EncodingPolicy>
-HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(long ichMinLine, __out BSTR* pbstrLine)
+HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(int32 ichMinLine, __out BSTR* pbstrLine)
 {
     if( !pbstrLine )
     {
@@ -2507,8 +2513,8 @@ HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(long ichMinLine, __out BSTR* 
         return E_UNEXPECTED;
     }
 
-    EncodedCharPtr pStart = static_cast<size_t>(ichMinLine) == IchMinLine() ? m_pchMinLine : m_pchBase + CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, ichMinLine);
-    EncodedCharPtr pEnd = AdjustedLast();
+    typename EncodingPolicy::EncodedCharPtr pStart = static_cast<size_t>(ichMinLine) == IchMinLine() ? m_pchMinLine : m_pchBase + this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, ichMinLine);
+    typename EncodingPolicy::EncodedCharPtr pEnd = AdjustedLast();
 
     // Determine the length by scanning for the next newline
     charcount_t cch = LineLength(pStart, pEnd);
@@ -2520,7 +2526,7 @@ HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(long ichMinLine, __out BSTR* 
         return E_OUTOFMEMORY;
     }
 
-    ConvertToUnicode(*pbstrLine, cch, pStart);
+    this->ConvertToUnicode(*pbstrLine, cch, pStart);
     return S_OK;
 }
 

@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // JScriptDiag does not link with Runtime.lib and does not include .cpp files, so this file will be included as a header
-#pragma once
 #include "RuntimeLibraryPch.h"
 
 
@@ -147,7 +146,9 @@ namespace Js
 
     #endif
 
-    inline CharCount CompoundString::Block::PointerLengthFromCharLength(const CharCount charLength)
+    // ChakraDiag includes CompoundString.cpp as a header file so this method needs to be marked as inline 
+    // to handle that case
+    JS_DIAG_INLINE CharCount CompoundString::Block::PointerLengthFromCharLength(const CharCount charLength)
     {
         return PointerAlign(charLength) / (sizeof(void *) / sizeof(char16));
     }

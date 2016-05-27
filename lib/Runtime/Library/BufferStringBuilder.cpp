@@ -12,12 +12,7 @@ namespace Js
         Assert( dst != nullptr);
         Assert( ptr != nullptr);
 
-        if( cchDst < cch )
-        {
-            Throw::FatalInternalError();
-        }
-
-        wmemcpy_s(dst, cchDst, ptr, cch);
+        js_wmemcpy_s(dst, cchDst, ptr, cch);
 
         cchDst -= cch;
         return dst + cch;

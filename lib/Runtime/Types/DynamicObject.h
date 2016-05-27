@@ -54,6 +54,8 @@ namespace Js
         friend struct InlineCache;
         friend class ForInObjectEnumerator; // for cache enumerator
 
+        friend class JavascriptArray; // for xplat offsetof field access
+        friend class JavascriptNativeArray; // for xplat offsetof field access
         friend class JavascriptOperators; // for ReplaceType
         friend class PathTypeHandlerBase; // for ReplaceType
         friend class JavascriptLibrary;  // for ReplaceType

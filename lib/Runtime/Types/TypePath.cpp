@@ -5,6 +5,7 @@
 #include "RuntimeTypePch.h"
 
 namespace Js {
+    const uint TypePath::InitialTypePathSize;
 
     TypePath* TypePath::New(Recycler* recycler, uint size)
     {
@@ -39,7 +40,7 @@ namespace Js {
         return LookupInline(propId,typePathLength);
     }
 
-    __inline PropertyIndex TypePath::LookupInline(PropertyId propId,int typePathLength)
+    PropertyIndex TypePath::LookupInline(PropertyId propId,int typePathLength)
     {
         if (propId == Constants::NoProperty) {
            return Constants::NoSlot;

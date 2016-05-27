@@ -4,6 +4,11 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Utf8Codex.h"
 
+#ifndef _WIN32
+#undef _Analysis_assume_
+#define _Analysis_assume_(expr)
+#endif
+
 extern void CodexAssert(bool condition);
 
 namespace utf8

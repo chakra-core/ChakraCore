@@ -64,13 +64,13 @@ private:
 #define IDLE_COLLECT_VERBOSE_TRACE(msg, ...) \
     if (Js::Configuration::Global.flags.Verbose) \
             { \
-        IDLE_COLLECT_TRACE(msg, __VA_ARGS__); \
+        IDLE_COLLECT_TRACE(msg, ##__VA_ARGS__); \
             }
 
 #define IDLE_COLLECT_TRACE(msg, ...) \
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::IdleCollectPhase)) \
             {\
-        Output::Print(_u("%04X> ") msg, ::GetCurrentThreadId(), __VA_ARGS__); \
+        Output::Print(_u("%04X> ") msg, ::GetCurrentThreadId(), ##__VA_ARGS__); \
         Output::Flush(); \
             }
 #else
