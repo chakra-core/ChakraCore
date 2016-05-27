@@ -80,34 +80,6 @@ JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, b
     return JsNoError;
 }
 
-template <class Fn, class T>
-T CallbackWrapper(Fn fn, T default)
-{
-    T result = default;
-    try
-    {
-        AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
-        result = fn();
-    }
-    catch (Js::OutOfMemoryException)
-    {
-    }
-    catch (Js::StackOverflowException)
-    {
-    }
-    catch (Js::ExceptionBase)
-    {
-        AssertMsg(false, "Unexpected engine exception.");
-    }
-    catch (...)
-    {
-        AssertMsg(false, "Unexpected non-engine exception.");
-    }
-
-    return result;
-}
-
 template <class Fn>
 bool CallbackWrapper(Fn fn)
 {

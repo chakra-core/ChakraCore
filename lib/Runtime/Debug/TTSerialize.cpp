@@ -4,8 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
 
-#include <wchar.h>
-
 #if ENABLE_TTD
 
 namespace TTD
