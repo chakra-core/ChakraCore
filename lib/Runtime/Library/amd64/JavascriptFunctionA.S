@@ -7,11 +7,14 @@
 #include "unixasmmacros.inc"
 
 .extern _ZN2Js18JavascriptFunction13DeferredParseEPPNS_14ScriptFunctionE
+.extern _ZN2Js18JavascriptFunction19DeferredDeserializeEPNS_14ScriptFunctionE
 
 .global _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz
+.global _ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz
 
 #ifndef __APPLE__
 .type _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz, @function
+.type _ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz, @function
 #endif
 
 //------------------------------------------------------------------------------
@@ -118,6 +121,30 @@ _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8Call
         //
         lea rdi, [rbp + 10h]    // &function, setup by custom calling convention
         call _ZN2Js18JavascriptFunction13DeferredParseEPPNS_14ScriptFunctionE@plt
+
+        pop rsi
+        pop rdi
+        pop rbp
+
+        jmp rax
+
+// Var JavascriptFunction::DeferredDeserializeThunk(
+//              RecyclableObject* function, CallInfo callInfo, ...)
+.align 16
+_ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz:
+        push rbp
+        lea  rbp, [rsp]
+
+        // save argument registers used by custom calling convention
+        push rdi
+        push rsi
+
+        // Call
+        //  Js::JavascriptMethod JavascriptFunction::DeferredDeserialize(
+        //                              ScriptFunction* function)
+        //
+        //      RDI == function, setup by custom calling convention
+        call _ZN2Js18JavascriptFunction19DeferredDeserializeEPNS_14ScriptFunctionE@plt
 
         pop rsi
         pop rdi

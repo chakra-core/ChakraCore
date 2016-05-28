@@ -58,7 +58,7 @@ public:
     }
 
     static bool PrintException(LPCSTR fileName, JsErrorCode jsErrorCode);
-    static JsValueRef LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule);
+    static JsValueRef LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule);
     static DWORD_PTR GetNextSourceContext();
     static JsValueRef LoadScriptFileHelper(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, bool isSourceModule);
     static JsValueRef LoadScriptHelper(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState, bool isSourceModule);

@@ -618,7 +618,7 @@ namespace Js
         // Stop profiling if present
         DeRegisterProfileProbe(S_OK, nullptr);
 #endif
-        
+
         if (this->diagnosticArena != nullptr)
         {
             HeapDelete(this->diagnosticArena);
@@ -1591,6 +1591,7 @@ if (!sourceList)
 
         bool isLibraryCode = ((loadScriptFlag & LoadScriptFlag_LibraryCode) == LoadScriptFlag_LibraryCode);
 
+        bool utf8FromExternal = false;
         if ((loadScriptFlag & LoadScriptFlag_Utf8Source) != LoadScriptFlag_Utf8Source)
         {
             // Convert to UTF8 and then load that
@@ -1628,6 +1629,17 @@ if (!sourceList)
         }
         else
         {
+            // xplat-todo: This is temporary. How to tell if utf8 fromExternal?
+            if (cb >= 3 && script[0] == 0xEF && script[1] == 0xBB && script[2] == 0xBF) // ef bb bf
+            {
+                utf8Script = (LPUTF8)script;
+                cbNeeded = cb;
+            }
+            else
+            {
+                utf8FromExternal = true;
+            }
+
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             if (*ppSourceInfo == nullptr)
             {
@@ -1681,8 +1693,10 @@ if (!sourceList)
         }
 
         ParseNodePtr parseTree;
-        if ((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source)
+        if (utf8FromExternal)
         {
+            Assert((loadScriptFlag & LoadScriptFlag_Utf8Source)
+                    == LoadScriptFlag_Utf8Source);
             hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
                 sourceContextInfo);
         }
@@ -3274,11 +3288,11 @@ if (!sourceList)
                     || entryPoint == DefaultDeferredDeserializeThunk || entryPoint == ProfileDeferredDeserializeThunk
                     || entryPoint == CrossSite::DefaultThunk || entryPoint == CrossSite::ProfileThunk);
 #else
-                Assert(entryPoint == DefaultDeferredParsingThunk 
+                Assert(entryPoint == DefaultDeferredParsingThunk
                     || entryPoint == DefaultDeferredDeserializeThunk
                     || entryPoint == CrossSite::DefaultThunk);
 #endif
-                
+
                 Assert(!proxy->IsDeferred());
                 Assert(proxy->GetFunctionBody()->GetProfileSession() == proxy->GetScriptContext()->GetProfileSession());
 

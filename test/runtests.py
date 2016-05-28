@@ -106,10 +106,9 @@ not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 # xplat: temp hard coded to exclude unsupported tests
 if sys.platform != 'win32':
     not_tags.add('exclude_xplat')
-    not_tags.add('exclude_serialized')
     not_tags.add('require_backend')
     not_tags.add('require_debugger')
-not_compile_flags = set(['-serialized', '-simdjs']) \
+not_compile_flags = set(['-simdjs']) \
     if sys.platform != 'win32' else None
 
 class LogFile(object):
@@ -141,7 +140,8 @@ class LogFile(object):
         if not (self.file is None):
             self.file.close()
 
-log_file = LogFile(args.logfile)
+if __name__ == '__main__':
+    log_file = LogFile(args.logfile)
 
 def log_message(msg = ""):
     log_file.log(msg + "\n")

@@ -116,7 +116,7 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
     }
     else
     {
-        const wchar_t *fileContent;
+        LPCSTR fileContent;
         const wchar_t *fileName;
         const wchar_t *scriptInjectType = _u("self");
         size_t fileNameLength;
@@ -132,7 +132,7 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
 
         if (errorCode == JsNoError)
         {
-            IfFailGo(Helpers::WideStringToNarrowDynamic(fileName, &fileNameNarrow));
+            IfFailGo(WideStringToNarrowDynamic(fileName, &fileNameNarrow));
             hr = Helpers::LoadScriptFromFile(fileNameNarrow, fileContent);
             if (FAILED(hr))
             {
@@ -206,12 +206,18 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
                 size_t fileNameWideLength = 0;
                 const wchar_t* fileNameWide = nullptr;
                 IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[3], &fileNameWide, &fileNameWideLength));
-                IfFailGo(Helpers::WideStringToNarrowDynamic(fileNameWide, &fileName));
+                IfFailGo(WideStringToNarrowDynamic(fileNameWide, &fileName));
                 freeFileName = true;
             }
         }
 
-        returnValue = LoadScript(callee, fileName, fileContent, scriptInjectType, isSourceModule);
+        utf8::WideToNarrow script(fileContent);
+        if (script)
+        {
+            // TODO: This is CESU-8. How to tell the engine?
+            // TODO: How to handle this source (script) life time?
+            returnValue = LoadScript(callee, fileName, script, scriptInjectType, isSourceModule);
+        }
 
         if (freeFileName)
         {
@@ -237,7 +243,7 @@ Error:
     return returnValue;
 }
 
-JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule)
+JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule)
 {
     HRESULT hr = E_FAIL;
     JsErrorCode errorCode = JsNoError;
@@ -248,7 +254,6 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR f
     JsContextRef currentContext = JS_INVALID_REFERENCE;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
 
-    wchar_t* fullPath = nullptr;
     char fullPathNarrow[_MAX_PATH];
     size_t len = 0;
 
@@ -267,8 +272,6 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR f
         fullPathNarrow[i] = (char) tolower(fullPathNarrow[i]);
     }
 
-    // TODO: Remove when we have utf8 versions of the Jsrt APIs
-    Helpers::NarrowStringToWideDynamic(fullPathNarrow, &fullPath);
     if (wcscmp(scriptInjectType, _u("self")) == 0)
     {
         JsContextRef calleeContext;
@@ -278,11 +281,11 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR f
 
         if (isSourceModule)
         {
-            errorCode = ChakraRTInterface::JsRunModule(fileContent, GetNextSourceContext(), fullPath, &returnValue);
+            errorCode = ChakraRTInterface::JsRunModuleUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
         }
         else
         {
-            errorCode = ChakraRTInterface::JsRunScript(fileContent, GetNextSourceContext(), fullPath, &returnValue);
+            errorCode = ChakraRTInterface::JsRunScriptUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
         }
 
         if (errorCode == JsNoError)
@@ -306,11 +309,11 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR f
 
         if (isSourceModule)
         {
-            errorCode = ChakraRTInterface::JsRunModule(fileContent, GetNextSourceContext(), fullPath, &returnValue);
+            errorCode = ChakraRTInterface::JsRunModuleUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
         }
         else
         {
-            errorCode = ChakraRTInterface::JsRunScript(fileContent, GetNextSourceContext(), fullPath, &returnValue);
+            errorCode = ChakraRTInterface::JsRunScriptUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
         }
 
         if (errorCode == JsNoError)
