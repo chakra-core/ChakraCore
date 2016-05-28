@@ -22,7 +22,7 @@ char16* ttUri = nullptr;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;
 
-wchar_t* dbgIPAddr = nullptr;
+const char16* dbgIPAddr = nullptr;
 unsigned short dbgPort = 0;
 
 extern "C"
@@ -239,6 +239,9 @@ void StartupDebuggerAsNeeded()
 
 void CreateDirectoryIfNeeded(const char16* path)
 {
+#ifndef _WIN32
+    AssertMsg("Not XPLAT yet.");
+#else
     bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
 
     size_t fplength = (wcslen(path) + 2);
@@ -263,17 +266,21 @@ void CreateDirectoryIfNeeded(const char16* path)
     {
         DWORD lastError = GetLastError();
         LPTSTR pTemp = NULL;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
         fwprintf(stderr, _u(": %s"), pTemp);
 
         AssertMsg(false, "Failed Directory Create");
     }
 
     free(fullpath);
+#endif
 }
 
 void DeleteDirectory(const char16* path)
 {
+#ifndef _WIN32
+    AssertMsg("Not XPLAT yet.");
+#else
     HANDLE hFile;
     WIN32_FIND_DATA FileInformation;
 
@@ -329,6 +336,7 @@ void DeleteDirectory(const char16* path)
     }
 
     free(strPattern);
+#endif
 }
 
 void GetFileFromURI(const char16* uri, char16** res)
@@ -353,6 +361,10 @@ void GetFileFromURI(const char16* uri, char16** res)
 
 void GetDefaultTTDDirectory(char16** res, const char16* optExtraDir)
 {
+#ifndef _WIN32
+    *res = nullptr;
+    AssertMsg("Not XPLAT yet.");
+#else
     char16* path = (char16*)malloc(MAX_PATH * sizeof(char16));
     path[0] = _u('\0');
 
@@ -390,10 +402,15 @@ void GetDefaultTTDDirectory(char16** res, const char16* optExtraDir)
     }
 
     free(path);
+#endif
 }
 
 static void CALLBACK GetTTDDirectory(const char16* uri, char16** fullTTDUri)
 {
+#ifndef _WIN32
+    *fullTTDUri = nullptr;
+    AssertMsg("Not XPLAT yet.");
+#else
     if(uri[0] != _u('!'))
     {
         bool isPathDirName = (uri[wcslen(uri) - 1] == _u('\\'));
@@ -412,6 +429,7 @@ static void CALLBACK GetTTDDirectory(const char16* uri, char16** fullTTDUri)
     {
         GetDefaultTTDDirectory(fullTTDUri, uri + 1);
     }
+#endif
 }
 
 static void CALLBACK TTInitializeForWriteLogStreamCallback(const char16* uri)
@@ -425,6 +443,10 @@ static void CALLBACK TTInitializeForWriteLogStreamCallback(const char16* uri)
 
 static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write)
 {
+#ifndef _WIN32
+    AssertMsg("Not XPLAT yet.");
+    return 0;
+#else
     HANDLE res = INVALID_HANDLE_VALUE;
 
     if(read)
@@ -440,7 +462,7 @@ static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write)
     {
         DWORD lastError = GetLastError();
         LPTSTR pTemp = NULL;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
         fwprintf(stderr, _u(": %s\n"), pTemp);
         fwprintf(stderr, _u("Failed on file: %ls\n"), uri);
 
@@ -448,10 +470,15 @@ static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write)
     }
 
     return res;
+#endif
 }
 
 static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool write)
 {
+#ifndef _WIN32
+    AssertMsg("Not XPLAT yet.");
+    return 0;
+#else
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     size_t rlength = (wcslen(uri) + 16);
@@ -465,10 +492,15 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool
 
     free(logfile);
     return res;
+#endif
 }
 
 static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* uri, const char16* snapId, bool read, bool write)
 {
+#ifndef _WIN32
+    AssertMsg("Not XPLAT yet.");
+    return 0;
+#else
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     size_t rlength = (wcslen(uri) + 64 + 16);
@@ -484,10 +516,15 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* uri, const char
 
     free(snapfile);
     return res;
+#endif
 }
 
 static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char16* bodyCtrId, const char16* srcFileName, bool read, bool write)
 {
+#ifndef _WIN32
+    AssertMsg("Not XPLAT yet.");
+    return 0;
+#else
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     char16* sFile = nullptr;
@@ -507,10 +544,15 @@ static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char1
     free(sFile);
     free(srcPath);
     return res;
+#endif
 }
 
 static BOOL CALLBACK TTReadBytesFromStreamCallback(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount)
 {
+#ifndef _WIN32
+    AssertMsg("Not XPLAT yet.");
+    return FALSE;
+#else
     AssertMsg(strm != INVALID_HANDLE_VALUE, "Bad file handle.");
 
     *readCount = 0;
@@ -521,15 +563,20 @@ static BOOL CALLBACK TTReadBytesFromStreamCallback(HANDLE strm, BYTE* buff, DWOR
     {
         DWORD lastError = GetLastError();
         LPTSTR pTemp = NULL;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
         fwprintf(stderr, _u(": %s\n"), pTemp);
     }
 
     return ok;
+#endif
 }
 
 static BOOL CALLBACK TTWriteBytesToStreamCallback(HANDLE strm, BYTE* buff, DWORD size, DWORD* writtenCount)
 {
+#ifndef _WIN32
+    AssertMsg("Not XPLAT yet.");
+    return FALSE;
+#else
     AssertMsg(strm != INVALID_HANDLE_VALUE, "Bad file handle.");
 
     BOOL ok = WriteFile(strm, buff, size, writtenCount, NULL);
@@ -539,15 +586,19 @@ static BOOL CALLBACK TTWriteBytesToStreamCallback(HANDLE strm, BYTE* buff, DWORD
     {
         DWORD lastError = GetLastError();
         LPTSTR pTemp = NULL;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, LANG_NEUTRAL, (LPTSTR)&pTemp, 0, NULL);
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
         fwprintf(stderr, _u(": %s\n"), pTemp);
     }
 
     return ok;
+#endif
 }
 
 static void CALLBACK TTFlushAndCloseStreamCallback(HANDLE strm, bool read, bool write)
 {
+#ifndef _WIN32
+    AssertMsg("Not XPLAT yet.");
+#else
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     if(strm != INVALID_HANDLE_VALUE)
@@ -559,6 +610,7 @@ static void CALLBACK TTFlushAndCloseStreamCallback(HANDLE strm, bool read, bool 
 
         CloseHandle(strm);
     }
+#endif
 }
 
 HRESULT RunScript(const char* fileName, LPCWSTR fileContents, BYTE *bcBuffer, char *fullPath)
