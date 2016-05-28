@@ -240,7 +240,7 @@ void StartupDebuggerAsNeeded()
 void CreateDirectoryIfNeeded(const char16* path)
 {
 #ifndef _WIN32
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
 #else
     bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
 
@@ -279,7 +279,7 @@ void CreateDirectoryIfNeeded(const char16* path)
 void DeleteDirectory(const char16* path)
 {
 #ifndef _WIN32
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
 #else
     HANDLE hFile;
     WIN32_FIND_DATA FileInformation;
@@ -363,7 +363,7 @@ void GetDefaultTTDDirectory(char16** res, const char16* optExtraDir)
 {
 #ifndef _WIN32
     *res = nullptr;
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
 #else
     char16* path = (char16*)malloc(MAX_PATH * sizeof(char16));
     path[0] = _u('\0');
@@ -409,7 +409,7 @@ static void CALLBACK GetTTDDirectory(const char16* uri, char16** fullTTDUri)
 {
 #ifndef _WIN32
     *fullTTDUri = nullptr;
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
 #else
     if(uri[0] != _u('!'))
     {
@@ -444,7 +444,7 @@ static void CALLBACK TTInitializeForWriteLogStreamCallback(const char16* uri)
 static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write)
 {
 #ifndef _WIN32
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
     return 0;
 #else
     HANDLE res = INVALID_HANDLE_VALUE;
@@ -476,7 +476,7 @@ static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write)
 static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool write)
 {
 #ifndef _WIN32
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
     return 0;
 #else
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
@@ -498,7 +498,7 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool
 static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* uri, const char16* snapId, bool read, bool write)
 {
 #ifndef _WIN32
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
     return 0;
 #else
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
@@ -522,7 +522,7 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* uri, const char
 static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char16* bodyCtrId, const char16* srcFileName, bool read, bool write)
 {
 #ifndef _WIN32
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
     return 0;
 #else
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
@@ -550,7 +550,7 @@ static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char1
 static BOOL CALLBACK TTReadBytesFromStreamCallback(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount)
 {
 #ifndef _WIN32
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
     return FALSE;
 #else
     AssertMsg(strm != INVALID_HANDLE_VALUE, "Bad file handle.");
@@ -574,7 +574,7 @@ static BOOL CALLBACK TTReadBytesFromStreamCallback(HANDLE strm, BYTE* buff, DWOR
 static BOOL CALLBACK TTWriteBytesToStreamCallback(HANDLE strm, BYTE* buff, DWORD size, DWORD* writtenCount)
 {
 #ifndef _WIN32
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
     return FALSE;
 #else
     AssertMsg(strm != INVALID_HANDLE_VALUE, "Bad file handle.");
@@ -597,7 +597,7 @@ static BOOL CALLBACK TTWriteBytesToStreamCallback(HANDLE strm, BYTE* buff, DWORD
 static void CALLBACK TTFlushAndCloseStreamCallback(HANDLE strm, bool read, bool write)
 {
 #ifndef _WIN32
-    AssertMsg("Not XPLAT yet.");
+    AssertMsg(false, "Not XPLAT yet.");
 #else
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
