@@ -22,12 +22,6 @@ char16* ttUri = nullptr;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;
 
-//
-//TODO: this is a bit hacky we probably want to remove the use of wstring in this file.
-//
-#undef _STRINGIZE
-#include <string>
-
 wchar_t* dbgIPAddr = nullptr;
 unsigned short dbgPort = 0;
 
@@ -247,19 +241,24 @@ void CreateDirectoryIfNeeded(const char16* path)
 {
     bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
 
-    std::wstring fullpath(path);
+    size_t fplength = (wcslen(path) + 2);
+    wchar_t* fullpath = (wchar_t*)malloc(fplength * sizeof(char16));
+    fullpath[0] = _u('\0');
+
+    wcscat_s(fullpath, fplength, path);
     if(!isPathDirName)
     {
-        fullpath.append(_u("\\"));
+        wcscat_s(fullpath, fplength, _u("\\"));
     }
 
-    DWORD dwAttrib = GetFileAttributes(fullpath.c_str());
+    DWORD dwAttrib = GetFileAttributes(fullpath);
     if((dwAttrib != INVALID_FILE_ATTRIBUTES) && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
     {
+        free(fullpath);
         return;
     }
 
-    BOOL success = CreateDirectory(fullpath.c_str(), NULL);
+    BOOL success = CreateDirectory(fullpath, NULL);
     if(!success)
     {
         DWORD lastError = GetLastError();
@@ -269,6 +268,8 @@ void CreateDirectoryIfNeeded(const char16* path)
 
         AssertMsg(false, "Failed Directory Create");
     }
+
+    free(fullpath);
 }
 
 void DeleteDirectory(const char16* path)
@@ -278,47 +279,59 @@ void DeleteDirectory(const char16* path)
 
     bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
 
-    std::wstring strPattern(path);
+    size_t splength = (wcslen(path) + 5);
+    wchar_t* strPattern = (wchar_t*)malloc(splength * sizeof(char16));
+    strPattern[0] = _u('\0');
+
+    wcscat_s(strPattern, splength, path);
     if(!isPathDirName)
     {
-        strPattern.append(_u("\\"));
+        wcscat_s(strPattern, splength, _u("\\"));
     }
-    strPattern.append(_u("*.*"));
+    wcscat_s(strPattern, splength, _u("*.*"));
 
-    hFile = ::FindFirstFile(strPattern.c_str(), &FileInformation);
+    hFile = ::FindFirstFile(strPattern, &FileInformation);
     if(hFile != INVALID_HANDLE_VALUE)
     {
         do
         {
             if(FileInformation.cFileName[0] != '.')
             {
-                std::wstring strFilePath(path);
+                size_t sfplength = (wcslen(path) + wcslen(FileInformation.cFileName) + 2);
+                wchar_t* strFilePath = (wchar_t*)malloc(sfplength * sizeof(char16));
+                strFilePath[0] = _u('\0');
+
+                wcscat_s(strFilePath, sfplength, path);
                 if(!isPathDirName)
                 {
-                    strFilePath.append(_u("\\"));
+                    wcscat_s(strFilePath, sfplength, _u("\\"));
                 }
-                strFilePath.append(FileInformation.cFileName);
+                wcscat_s(strFilePath, sfplength, FileInformation.cFileName);
 
                 if(FileInformation.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
                 {
-                    DeleteDirectory(strFilePath.c_str());
-                    ::RemoveDirectory(strFilePath.c_str());
+                    DeleteDirectory(strFilePath);
+                    ::RemoveDirectory(strFilePath);
                 }
                 else
                 {
                     // Set file attributes
-                    ::SetFileAttributes(strFilePath.c_str(), FILE_ATTRIBUTE_NORMAL);
-                    ::DeleteFile(strFilePath.c_str());
+                    ::SetFileAttributes(strFilePath, FILE_ATTRIBUTE_NORMAL);
+                    ::DeleteFile(strFilePath);
                 }
+
+                free(strFilePath);
             }
         } while(::FindNextFile(hFile, &FileInformation) == TRUE);
 
         // Close handle
         ::FindClose(hFile);
     }
+
+    free(strPattern);
 }
 
-void GetFileFromURI(const char16* uri, std::wstring& res)
+void GetFileFromURI(const char16* uri, char16** res)
 {
     int urilen = (int)wcslen(uri);
     int fpos = 0;
@@ -331,12 +344,16 @@ void GetFileFromURI(const char16* uri, std::wstring& res)
         }
     }
 
-    res.append(uri + fpos);
+    size_t rlength = (wcslen(uri + fpos) + 1);
+    *res = (wchar_t*)malloc(rlength * sizeof(char16));
+    (*res)[0] = _u('\0');
+
+    wcscat_s(*res, rlength, uri + fpos);
 }
 
-void GetDefaultTTDDirectory(std::wstring& res, const char16* optExtraDir)
+void GetDefaultTTDDirectory(char16** res, const char16* optExtraDir)
 {
-    char16* path = (char16*)CoTaskMemAlloc(MAX_PATH * sizeof(char16));
+    char16* path = (char16*)malloc(MAX_PATH * sizeof(char16));
     path[0] = _u('\0');
 
     GetModuleFileName(NULL, path, MAX_PATH);
@@ -345,48 +362,56 @@ void GetDefaultTTDDirectory(std::wstring& res, const char16* optExtraDir)
     AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
 
     int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(char16));
-    res.append(path, 0, ccount);
-    res.append(_u("\\test\\_ttdlog\\"));
+
+    *res = (char16*)CoTaskMemAlloc(MAX_PATH * sizeof(char16));
+    (*res)[0] = _u('\0');
+
+    for(int i = 0; i < ccount; ++i)
+    {
+        (*res)[i] = path[i];
+    }
+    (*res)[ccount] = _u('\0');
+
+    wcscat_s(*res, MAX_PATH, _u("\\test\\_ttdlog\\"));
 
     if(wcslen(optExtraDir) == 0)
     {
-        res.append(_u("_defaultLog"));
+        wcscat_s(*res, MAX_PATH, _u("_defaultLog"));
     }
     else
     {
-        res.append(optExtraDir);
+        wcscat_s(*res, MAX_PATH, optExtraDir);
     }
 
-    char16 lastChar = res.back();
-    if(lastChar != _u('\\'))
+    bool isPathDirName = ((*res)[wcslen(*res) - 1] == _u('\\'));
+    if(!isPathDirName)
     {
-        res.append(_u("\\"));
+        wcscat_s(*res, MAX_PATH, _u("\\"));
     }
 
-    CoTaskMemFree(path);
+    free(path);
 }
 
 static void CALLBACK GetTTDDirectory(const char16* uri, char16** fullTTDUri)
 {
-    std::wstring logDir;
-
     if(uri[0] != _u('!'))
     {
-        logDir.append(uri);
+        bool isPathDirName = (uri[wcslen(uri) - 1] == _u('\\'));
+
+        size_t rlength = (wcslen(uri) + 2);
+        *fullTTDUri = (wchar_t*)CoTaskMemAlloc(rlength * sizeof(char16));
+        (*fullTTDUri)[0] = _u('\0');
+
+        wcscat_s(*fullTTDUri, rlength, uri);
+        if(!isPathDirName)
+        {
+            wcscat_s(*fullTTDUri, rlength, _u("\\"));
+        }
     }
     else
     {
-        GetDefaultTTDDirectory(logDir, uri + 1);
+        GetDefaultTTDDirectory(fullTTDUri, uri + 1);
     }
-
-    if(logDir.back() != _u('\\'))
-    {
-        logDir.push_back(_u('\\'));
-    }
-
-    int uriLength = (int)(logDir.length() + 1);
-    *fullTTDUri = (char16*)CoTaskMemAlloc(uriLength * sizeof(char16));
-    memcpy(*fullTTDUri, logDir.c_str(), uriLength * sizeof(char16));
 }
 
 static void CALLBACK TTInitializeForWriteLogStreamCallback(const char16* uri)
@@ -429,37 +454,59 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool
 {
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
-    std::wstring logFile(uri);
-    logFile.append(_u("ttdlog.log"));
+    size_t rlength = (wcslen(uri) + 16);
+    char16* logfile = (char16*)malloc(rlength * sizeof(char16));
+    logfile[0] = _u('\0');
 
-    return TTOpenStream_Helper(logFile.c_str(), read, write);
+    wcscat_s(logfile, rlength, uri);
+    wcscat_s(logfile, rlength, _u("ttdlog.log"));
+
+    HANDLE res = TTOpenStream_Helper(logfile, read, write);
+
+    free(logfile);
+    return res;
 }
 
 static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* uri, const char16* snapId, bool read, bool write)
 {
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
-    std::wstring snapFile(uri);
-    snapFile.append(_u("\\snap_"));
-    snapFile.append(snapId);
-    snapFile.append(_u(".snp"));
+    size_t rlength = (wcslen(uri) + 64 + 16);
+    char16* snapfile = (char16*)malloc(rlength * sizeof(char16));
+    snapfile[0] = _u('\0');
 
-    return TTOpenStream_Helper(snapFile.c_str(), read, write);
+    wcscat_s(snapfile, rlength, uri);
+    wcscat_s(snapfile, rlength, _u("\\snap_"));
+    wcscat_s(snapfile, rlength, snapId);
+    wcscat_s(snapfile, rlength, _u(".snp"));
+
+    HANDLE res = TTOpenStream_Helper(snapfile, read, write);
+
+    free(snapfile);
+    return res;
 }
 
 static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char16* bodyCtrId, const char16* srcFileName, bool read, bool write)
 {
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
-    std::wstring sFile;
-    GetFileFromURI(srcFileName, sFile);
+    char16* sFile = nullptr;
+    GetFileFromURI(srcFileName, &sFile);
 
-    std::wstring srcPath(uri);
-    srcPath.append(bodyCtrId);
-    srcPath.append(_u("_"));
-    srcPath.append(sFile.c_str());
+    size_t rlength = (wcslen(uri) + 64 + wcslen(sFile) + 4);
+    char16* srcPath = (char16*)malloc(rlength * sizeof(char16));
+    srcPath[0] = _u('\0');
 
-    return TTOpenStream_Helper(srcPath.c_str(), read, write);
+    wcscat_s(srcPath, rlength, uri);
+    wcscat_s(srcPath, rlength, bodyCtrId);
+    wcscat_s(srcPath, rlength, _u("_"));
+    wcscat_s(srcPath, rlength, sFile);
+
+    HANDLE res = TTOpenStream_Helper(srcPath, read, write);
+
+    free(sFile);
+    free(srcPath);
+    return res;
 }
 
 static BOOL CALLBACK TTReadBytesFromStreamCallback(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount)
