@@ -3,11 +3,12 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
+#include "Backend.h"// TODO: oop jit, move this whole file to backend
 
 #if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
-    FunctionCodeGenJitTimeData::FunctionCodeGenJitTimeData(FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined) :
+    FunctionCodeGenJitTimeData::FunctionCodeGenJitTimeData(Recycler *const recycler, FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined) :
         functionInfo(functionInfo), entryPointInfo(entryPoint), globalObjTypeSpecFldInfoCount(0), globalObjTypeSpecFldInfoArray(nullptr),
         weakFuncRef(nullptr), inlinees(nullptr), inlineeCount(0), ldFldInlineeCount(0), isInlined(isInlined), isAggressiveInliningEnabled(false),
 #ifdef FIELD_ACCESS_STATS
@@ -15,11 +16,18 @@ namespace Js
 #endif
         next(0)
     {
+        this->bodyData = RecyclerNewStruct(recycler, FunctionBodyJITData);
+        JITTimeFunctionBody::InitializeJITFunctionData(recycler, GetFunctionBody(), this->bodyData);
     }
 
     FunctionInfo *FunctionCodeGenJitTimeData::GetFunctionInfo() const
     {
         return this->functionInfo;
+    }
+
+    FunctionBodyJITData *FunctionCodeGenJitTimeData::GetJITBody() const
+    {
+        return this->bodyData;
     }
 
     FunctionBody *FunctionCodeGenJitTimeData::GetFunctionBody() const
@@ -43,6 +51,11 @@ namespace Js
         return inlinees ? inlinees[profiledCallSiteId] : nullptr;
     }
 
+    const FunctionCodeGenJitTimeData ** FunctionCodeGenJitTimeData::GetInlinees() const
+    {
+        return inlinees;
+    }
+
     const FunctionCodeGenJitTimeData *FunctionCodeGenJitTimeData::GetJitTimeDataFromFunctionInfo(FunctionInfo *polyFunctionInfo) const
     {
         const FunctionCodeGenJitTimeData *next = this;
@@ -59,6 +72,11 @@ namespace Js
         Assert(inlineCacheIndex < GetFunctionBody()->GetInlineCacheCount());
 
         return ldFldInlinees ? ldFldInlinees[inlineCacheIndex] : nullptr;
+    }
+
+    const FunctionCodeGenJitTimeData ** FunctionCodeGenJitTimeData::GetLdFldInlinees() const
+    {
+        return ldFldInlinees;
     }
 
     FunctionCodeGenJitTimeData *FunctionCodeGenJitTimeData::AddInlinee(
@@ -127,6 +145,11 @@ namespace Js
     uint FunctionCodeGenJitTimeData::InlineeCount() const
     {
         return inlineeCount;
+    }
+
+    uint FunctionCodeGenJitTimeData::LdFldInlineeCount() const
+    {
+        return ldFldInlineeCount;
     }
 
 #ifdef FIELD_ACCESS_STATS

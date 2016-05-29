@@ -38,22 +38,6 @@ CodeGenWorkItem::~CodeGenWorkItem()
     {
         HeapDelete(queuedFullJitWorkItem);
     }
-    if (this->jitData.bodyData.constTypeTable != nullptr)
-    {
-        HeapDeleteArray(this->functionBody->GetConstantCount(), this->jitData.bodyData.constTypeTable);
-    }
-    if (this->jitData.bodyData.loopHeaders != nullptr)
-    {
-        HeapDeleteArray(functionBody->GetLoopCount(), this->jitData.bodyData.loopHeaders);
-    }
-    if (this->jitData.bodyData.profiledRuntimeData != nullptr)
-    {
-        HeapDeleteArray(this->jitData.bodyData.runtimeDataCount, this->jitData.bodyData.profiledRuntimeData);
-    }
-    if (this->jitData.bodyData.asmJsData != nullptr)
-    {
-        HeapDelete(this->jitData.bodyData.asmJsData);
-    }
 }
 
 //

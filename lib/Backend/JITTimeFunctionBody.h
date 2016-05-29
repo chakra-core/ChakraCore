@@ -11,6 +11,7 @@ public:
     JITTimeFunctionBody(FunctionBodyJITData * bodyData);
 
     static void InitializeJITFunctionData(
+        __in Recycler,
         __in Js::FunctionBody * functionBody,
         __out FunctionBodyJITData * jitBody);
 

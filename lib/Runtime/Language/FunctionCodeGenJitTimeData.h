@@ -5,6 +5,9 @@
 #pragma once
 
 #if ENABLE_NATIVE_CODEGEN
+// forward ref
+struct FunctionBodyJITData;
+
 namespace Js
 {
     // - Data generated for jitting purposes
@@ -13,6 +16,7 @@ namespace Js
     class FunctionCodeGenJitTimeData
     {
     private:
+        FunctionBodyJITData * bodyData;
         FunctionInfo *const functionInfo;
 
         // Point's to an entry point if the work item needs the entry point alive- null for cases where the entry point isn't used
@@ -53,13 +57,14 @@ namespace Js
 #endif
 
     public:
-        FunctionCodeGenJitTimeData(FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined = true);
+        FunctionCodeGenJitTimeData(Recycler *const recycler, FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined = true);
 
     public:
         BVFixed *inlineesBv;
 
         FunctionInfo *GetFunctionInfo() const;
         FunctionBody *GetFunctionBody() const;
+        FunctionBodyJITData *GetJITBody() const;
         FunctionCodeGenJitTimeData *GetNext() const { return next; };
 
         const ObjTypeSpecFldInfoArray* GetObjTypeSpecFldInfoArray() const { return &this->objTypeSpecFldInfoArray; }
@@ -68,13 +73,16 @@ namespace Js
 
     public:
         const FunctionCodeGenJitTimeData *GetInlinee(const ProfileId profiledCallSiteId) const;
+        const FunctionCodeGenJitTimeData ** GetInlinees() const;
         const FunctionCodeGenJitTimeData *GetLdFldInlinee(const InlineCacheIndex inlineCacheIndex) const;
+        const FunctionCodeGenJitTimeData ** GetLdFldInlinees() const;
         FunctionCodeGenJitTimeData *AddInlinee(
             Recycler *const recycler,
             const ProfileId profiledCallSiteId,
             FunctionInfo *const inlinee,
             bool isInlined = true);
         uint InlineeCount() const;
+        uint LdFldInlineeCount() const;
         bool IsLdFldInlineePresent() const { return ldFldInlineeCount != 0; }
 
         RecyclerWeakReference<FunctionBody> *GetWeakFuncRef() const { return this->weakFuncRef; }

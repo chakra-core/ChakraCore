@@ -63,7 +63,7 @@ typedef struct StElemData
 
 typedef struct ProfileData
 {
-    unsigned __int64 flags;
+    int flags;
 
     BVFixedData * loopFlags;
 
@@ -296,12 +296,6 @@ typedef struct FunctionBodyJITData
     boolean disableInlineSpread;
     boolean hasNestedLoop;
     boolean hasNonBuiltInCallee;
-
-    // recursive
-    [size_is(profiledCallSiteCount)] FunctionBodyJITData * inlinees;
-    [size_is(inlineCacheCount)] FunctionBodyJITData * ldFldInlinees;
-    FunctionBodyJITData * next;
-
 } FunctionBodyJITData;
 
 // EntryPointInfo fields, read/write in JIT
@@ -325,11 +319,22 @@ typedef struct EntryPointInfoJITReadData
     __int3264 callsCountAddress; // // FunctionEntryPointInfo only
 } EntryPointInfoJITReadData;
 
+typedef struct FunctionJITTimeData
+{
+    FunctionBodyJITData * bodyData; // TODO: oop jit, can these repeat, should we share?
+
+    unsigned int inlineeCount;
+    unsigned int ldFldInlineeCount;
+    [size_is(inlineeCount)] FunctionJITTimeData * inlinees;
+    [size_is(ldFldInlineeCount)] FunctionJITTimeData * ldFldInlinees;
+    FunctionJITTimeData * next;
+} FunctionJITTimeData;
+
 // CodeGenWorkItem fields, read only in JIT
 typedef struct CodeGenWorkItemJITData
 {
     EntryPointInfoJITReadData readOnlyEPData;
-    FunctionBodyJITData bodyData;
+    FunctionJITTimeData jitData;
     __int3264 nativeDataAddr;
     unsigned int interpretedCount;
     unsigned int loopNumber;

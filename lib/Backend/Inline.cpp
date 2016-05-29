@@ -2661,7 +2661,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
                          this->topFunc->GetThreadContextInfo(),
                          this->topFunc->GetScriptContextInfo(),
                          this->topFunc->GetJITOutput()->GetOutputData(),
-                         workItem->RecyclableData()->JitTimeData(),
+                         jitWorkItem->GetJITData().jitData,
                          callInstr->m_func->m_runtimeData ?
                             callInstr->m_func->m_runtimeData->GetLdFldInlinee(inlineCacheIndex) :
                             this->topFunc->GetJnFunction()->GetLdFldInlineeCodeGenRuntimeData(inlineCacheIndex),

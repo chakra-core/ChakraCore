@@ -16,6 +16,7 @@ JITTimeFunctionBody::JITTimeFunctionBody(FunctionBodyJITData * bodyData) :
 /* static */
 void
 JITTimeFunctionBody::InitializeJITFunctionData(
+    __in Recycler * recycler,
     __in Js::FunctionBody *functionBody,
     __out FunctionBodyJITData * jitBody)
 {
@@ -39,7 +40,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         else
         {
             jitBody->constTypeCount = functionBody->GetConstantCount();
-            jitBody->constTypeTable = HeapNewArray(int32, functionBody->GetConstantCount());
+            jitBody->constTypeTable = RecyclerNewArray(recycler, int32, functionBody->GetConstantCount());
             for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
             {
                 Js::Var varConst = functionBody->GetConstantVar(reg);
@@ -137,7 +138,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     {
         jitBody->loopHeaderArrayAddr = (intptr_t)functionBody->GetLoopHeaderArrayPtr();
         jitBody->loopHeaderArrayLength = functionBody->GetLoopCount();
-        jitBody->loopHeaders = HeapNewArray(JITLoopHeader, functionBody->GetLoopCount());
+        jitBody->loopHeaders = RecyclerNewArray(recycler, JITLoopHeader, functionBody->GetLoopCount());
         for (uint i = 0; i < functionBody->GetLoopCount(); ++i)
         {
             jitBody->loopHeaders[i].startOffset = functionBody->GetLoopHeader(i)->startOffset;
@@ -206,7 +207,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
 
     if (functionBody->GetIsAsmJsFunction())
     {
-        jitBody->asmJsData = HeapNew(AsmJsJITData);
+        jitBody->asmJsData = RecyclerNew(recycler, AsmJsJITData);
         Js::AsmJsFunctionInfo * asmFuncInfo = functionBody->GetAsmJsFunctionInfo();
         jitBody->asmJsData->intConstCount = asmFuncInfo->GetIntConstCount();
         jitBody->asmJsData->doubleConstCount = asmFuncInfo->GetDoubleConstCount();
@@ -241,7 +242,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     {
         jitBody->runtimeDataCount = functionBody->GetProfiledCallSiteCount();
         Assert(functionBody->GetProfiledCallSiteCount() > 0);
-        jitBody->profiledRuntimeData = HeapNewArrayZ(FunctionJITRuntimeData, jitBody->runtimeDataCount);
+        jitBody->profiledRuntimeData = RecyclerNewArrayZ(recycler, FunctionJITRuntimeData, jitBody->runtimeDataCount);
         for (int i = 0; i < jitBody->runtimeDataCount; ++i)
         {
             if (functionBody->GetCodeGenRuntimeData()[i]->ClonedInlineCaches())
