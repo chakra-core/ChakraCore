@@ -1,5 +1,5 @@
 
-WScript.LoadScriptFile('C:\\Chakra\\ScratchJS\\loadTarget.js');
+WScript.LoadScriptFile('../../test/TTBasic/loadTarget.js');
 
 var msgFunction = foo('World');
 
