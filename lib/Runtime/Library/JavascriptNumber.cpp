@@ -7,6 +7,8 @@
 #include "Library/EngineInterfaceObject.h"
 #include "Library/IntlEngineInterfaceExtensionObject.h"
 
+using namespace PlatformAgnostic;
+
 namespace Js
 {
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(JavascriptNumber);
@@ -1017,7 +1019,7 @@ namespace Js
         WCHAR   szRes[bufSize];
         WCHAR * pszRes = NULL;
         WCHAR * pszToBeFreed = NULL;
-        int     count;
+        size_t  count;
 
         if (!Js::NumberUtilities::IsFinite(value))
         {
@@ -1032,11 +1034,12 @@ namespace Js
 
         JavascriptString *dblStr = JavascriptString::FromVar(FormatDoubleToString(value, NumberUtilities::FormatFixed, -1, scriptContext));
         const char16* szValue = dblStr->GetSz();
+        const size_t szLength = dblStr->GetLength();
 
-#ifdef ENABLE_GLOBALIZATION
-        count = GetNumberFormatEx(LOCALE_NAME_USER_DEFAULT, 0, szValue, NULL, NULL, 0);
+        pszRes = szRes;
+        count = Numbers::Utility::NumberToDefaultLocaleString(szValue, szLength, pszRes, bufSize);
 
-        if( count <= 0 )
+        if( count == 0 )
         {
             return dblStr;
         }
@@ -1045,36 +1048,28 @@ namespace Js
             if( count > bufSize )
             {
                 pszRes = pszToBeFreed = HeapNewArray(char16, count);
-            }
-            else
-            {
-                pszRes = szRes;
+
+                count = Numbers::Utility::NumberToDefaultLocaleString(szValue, szLength, pszRes, count);
+
+                if ( count == 0 )
+                {
+                     AssertMsg(false, "GetNumberFormatEx failed");
+                     JavascriptError::ThrowError(scriptContext, VBSERR_InternalError);
+                }
             }
 
-            int newCount = GetNumberFormatEx(LOCALE_NAME_USER_DEFAULT, 0, szValue, NULL, pszRes, count);
-
-            if (newCount <= 0 )
-            {
-                AssertMsg(false, "GetNumberFormatEx failed");
-                JavascriptError::ThrowError(scriptContext, VBSERR_InternalError);
-            }
-            else
+            if ( count != 0 )
             {
                 result = JavascriptString::NewCopySz(pszRes, scriptContext);
             }
         }
 
-        if (pszToBeFreed)
+        if ( pszToBeFreed )
         {
             HeapDeleteArray(count, pszToBeFreed);
         }
 
         return result;
-#else
-        // xplat-todo: Implement the locale specific version
-        AssertMsg(false, "JavascriptNumber::ToLocaleString is not yet implemented");
-        return dblStr;
-#endif // ENABLE_GLOBALIZATION
     }
 
     Var JavascriptNumber::CloneToScriptContext(Var aValue, ScriptContext* requestContext)

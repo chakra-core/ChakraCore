@@ -6,6 +6,7 @@ add_library (Chakra.Runtime.PlatformAgnostic
   Linux/UnicodeText.ICU.cpp
   Linux/DateTime.cpp
   Linux/HiResTimer.cpp
+  Linux/NumbersUtility.cpp
   Common/UnicodeText.Common.cpp
   )
   
