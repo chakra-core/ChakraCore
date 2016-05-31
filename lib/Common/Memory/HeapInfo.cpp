@@ -18,8 +18,13 @@ template __forceinline char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycl
 template __attribute__((always_inline)) char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat, size_t size);
 #endif
 
+// The VS2013 linker treats this as a redefinition of an already
+// defined constant and complains. So skip the declaration if we're compiling
+// with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const uint SmallAllocationBlockAttributes::MaxSmallObjectCount;
 const uint MediumAllocationBlockAttributes::MaxSmallObjectCount;
+#endif
 
 HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>  HeapInfo::smallAllocValidPointersMap;
 HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes> HeapInfo::mediumAllocValidPointersMap;
