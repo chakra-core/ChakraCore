@@ -252,10 +252,10 @@ CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 
 // LINUX BUILD TASKS
 // -----------------
 
-if (branch.startsWith('linux')) {
+if (branch.startsWith('linux') || branch.startsWith('master')) {
     osString = 'Ubuntu16.04'
 
-    // PR checks
+    // PR and CI checks
     CreateLinuxBuildTasks(osString, "ubuntu", branch, null)
 
     // daily builds
