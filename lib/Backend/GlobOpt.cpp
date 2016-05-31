@@ -18597,7 +18597,14 @@ GlobOpt::OptHoistInvariant(
                 {
                     instr->GetSrc1()->SetValueType(landingPadSrc1val->GetValueInfo()->Type());
                     EnsureBailTarget(loop);
-                    instr = instr->ConvertToBailOutInstr(instr, bailoutKind);
+                    if (block->IsLandingPad())
+                    {
+                        instr = instr->ConvertToBailOutInstr(instr, bailoutKind, loop->bailOutInfo->bailOutOffset);
+                    }
+                    else
+                    {
+                        instr = instr->ConvertToBailOutInstr(instr, bailoutKind);
+                    }
                 };
 
                 // A definite type in the source position and not a definite type in the destination (landing pad)
