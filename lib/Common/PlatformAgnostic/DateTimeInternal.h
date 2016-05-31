@@ -84,16 +84,12 @@ namespace DateTime
 
     typedef void* DaylightTimeHelperPlatformData;
 
-    class UtilityPlatformData
+    #define __CC_PA_TIMEZONE_ABVR_NAME_LENGTH 32
+    struct UtilityPlatformData
     {
-    public:
-        WCHAR standardZoneName[32];
-        size_t standardZoneNameLength;
-        uint32 lastTimeZoneUpdateTickCount;
-
-        void UpdateTimeZoneInfo();
-
-        UtilityPlatformData(): lastTimeZoneUpdateTickCount(0) { }
+        // cache always the last date's zone
+        WCHAR standardName[__CC_PA_TIMEZONE_ABVR_NAME_LENGTH];
+        size_t standardNameLength;
     };
 
     class HiresTimerPlatformData
