@@ -22,6 +22,7 @@ namespace Wasm
         virtual WasmOp ReadFromBlock() = 0;
         virtual WasmOp ReadFromCall() = 0;
         virtual bool IsBinaryReader() = 0;
+        virtual void Unread() = 0;
         WasmNode    m_currentNode;
         ModuleInfo * m_moduleInfo;
         WasmModule * m_module;

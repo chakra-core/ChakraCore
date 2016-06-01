@@ -4,15 +4,15 @@
 //-------------------------------------------------------------------------------------------------------
 
 //          (name                 , ID                   , SectionFlag, Precedent         )
-WASM_SECTION(Signatures           , "signatures"         , fSectNone  , Invalid           )
-WASM_SECTION(ImportTable          , "import_table"       , fSectNone  , Invalid           )
-WASM_SECTION(FunctionSignatures   , "function_signatures", fSectNone  , Signatures        )
-WASM_SECTION(IndirectFunctionTable, "function_table"     , fSectNone  , FunctionSignatures)
+WASM_SECTION(Signatures           , "type"               , fSectNone  , Invalid           )
+WASM_SECTION(ImportTable          , "import"             , fSectNone  , Invalid           )
+WASM_SECTION(FunctionSignatures   , "function"           , fSectNone  , Signatures        )
+WASM_SECTION(IndirectFunctionTable, "table"              , fSectNone  , FunctionSignatures)
 WASM_SECTION(Memory               , "memory"             , fSectNone  , Invalid           )
-WASM_SECTION(ExportTable          , "export_table"       , fSectNone  , FunctionSignatures)
-WASM_SECTION(StartFunction        , "start_function"     , fSectNone  , FunctionSignatures)
-WASM_SECTION(FunctionBodies       , "function_bodies"    , fSectNone  , FunctionSignatures)
-WASM_SECTION(DataSegments         , "data_segments"      , fSectNone  , Memory            )
-WASM_SECTION(Names                , "names"              , fSectNone,   Signatures        )
+WASM_SECTION(ExportTable          , "export"             , fSectNone  , FunctionSignatures)
+WASM_SECTION(StartFunction        , "start"              , fSectNone  , FunctionSignatures)
+WASM_SECTION(FunctionBodies       , "code"               , fSectNone  , FunctionSignatures)
+WASM_SECTION(DataSegments         , "data"               , fSectNone  , Memory            )
+WASM_SECTION(Names                , "name"               , fSectNone,   Signatures        )
 
 #undef WASM_SECTION
