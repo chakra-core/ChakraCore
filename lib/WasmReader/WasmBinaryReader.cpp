@@ -626,7 +626,7 @@ WasmBinaryReader::ReadSignatures()
         }
         if (resultCount == 1)
         {
-            Wasm::WasmTypes::WasmType type = ReadWasmType(len);
+            type = ReadWasmType(len);
             sig->SetResultType(type);
         }
         m_moduleInfo->AddSignature(sig);
