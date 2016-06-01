@@ -2213,42 +2213,40 @@ case_2:
         {
             while (i < inStrLim)
             {
-
                 // first range of ascii lower-case (97-122)
                 // second range of ascii lower-case (223-255)
                 // non-ascii chars (255+)
-                if ('a' <= *i)
+                if (*i >= 'a')
                 {
                     if (*i <= 'z') { break; }
-                    if ('ß' <= *i) { break; }
+                    if (*i >= 'ß') { break; }
                 }
-
                 i++;
             }
-        } else {
+        }
+        else
+        {
             Assert(toCase == ToLower);
             while (i < inStrLim)
             {
-
                 // first range of ascii uppercase (65-90)
                 // second range of ascii uppercase (192-222)
                 // non-ascii chars (255+)
-                if ('A' <= *i)
+                if (*i >= 'A')
                 {
                     if (*i <= 'Z') { break; }
-                    if ('À' <= *i)
+                    if (*i >= 'À')
                     { 
                         if (*i < 'ß') { break; }
-                        if ('ÿ' < *i) { break; }
+                        if (*i >= 'ÿ') { break; }
                     }
                 }
-
                 i++;
             }
         }
 
         // If no char needs casing, return immediately
-        if (i == inStrLim) return pThis;
+        if (i == inStrLim) { return pThis; }
 
         // Otherwise, copy the string and start casing
         charcount_t countToCase = (charcount_t)(inStrLim - i);
