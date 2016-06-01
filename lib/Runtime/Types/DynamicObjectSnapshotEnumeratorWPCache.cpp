@@ -88,12 +88,19 @@ namespace Js
             //      Since caching may happen differently at record/replay time we need to force this to ensure the log/order is consistent.
             //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
             //
+#if ENABLE_TTD
+            Js::ScriptContext* actionCtx = this->object->GetScriptContext();
+            if(actionCtx->ShouldPerformRecordAction() | actionCtx->ShouldPerformDebugAction())
+            {
+#endif
+                PropertyId tempPropertyId;
+                /* JavascriptString * tempPropertyString = */ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
 
-            PropertyId tempPropertyId;
-            /* JavascriptString * tempPropertyString = */ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
-
-            Assert(tempPropertyId == propertyId);
-            Assert(this->objectIndex == cachedData->indexes[enumeratedCount]);
+                Assert(tempPropertyId == propertyId);
+                Assert(this->objectIndex == cachedData->indexes[enumeratedCount]);
+#if ENABLE_TTD
+            }
+#endif
 #endif
             this->objectIndex = cachedData->indexes[enumeratedCount];
             propertyAttributes = cachedData->attributes[enumeratedCount];
@@ -125,9 +132,12 @@ namespace Js
             //      Since caching may happen differently at record/replay time we need to force this to ensure the log/order is consistent.
             //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
             //
-
-            PropertyId tempPropertyId;
-            /*JavascriptString* tempPropertyStringName =*/ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
+            Js::ScriptContext* actionCtx = this->object->GetScriptContext();
+            if(actionCtx->ShouldPerformRecordAction() | actionCtx->ShouldPerformDebugAction())
+            {
+                PropertyId tempPropertyId;
+                /*JavascriptString* tempPropertyStringName =*/ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
+            }
 #endif
             propertyStringName = nullptr;
         }
