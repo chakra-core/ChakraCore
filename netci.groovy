@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 // Import the utility functionality.
-import jobs.generation.Utilities;
+import jobs.generation.Utilities
 
 // Grab the github project name passed in
 def project = GithubProject
@@ -153,8 +153,6 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
                     def osTag = machineTypeToOSTagMap.get(machine)
                     // Set up checks which apply to PRs targeting any branch
                     Utilities.addGithubPRTriggerForBranch(newJob, linuxBranch, "${osTag} ${config}")
-                    // To enable PR checks only for specific target branches, use the following instead:
-                    // Utilities.addGithubPRTriggerForBranch(newJob, branch, checkName)
                 } else {
                     Utilities.addGithubPushTrigger(newJob)
                 }
@@ -253,13 +251,13 @@ CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 
 // -----------------
 
 if (branch.startsWith('linux') || branch.startsWith('master')) {
-    osString = 'Ubuntu16.04'
+    def osString = 'Ubuntu16.04'
 
     // PR and CI checks
     CreateLinuxBuildTasks(osString, "ubuntu", branch, null)
 
-    // daily builds
-    if (!branch.endsWith('-ci')) {
+    // daily builds - explicit branch names only
+    if (branch in ['linux', 'master']) {
         CreateLinuxBuildTasks(osString, "daily_ubuntu", branch,
             /* nonDefaultTaskSetup */ { newJob, isPR, config ->
                 DailyBuildTaskSetup(newJob, isPR,
