@@ -33,15 +33,17 @@ if (Test-Path Env:\BuildType) {
     $BuildPlatform = $buildTypeSegments[0]
     $BuildConfiguration = $buildTypeSegments[1]
     if ($buildTypeSegments[2]) {
+        # overwrite with new value if it exists, otherwise keep as "default"
         $BuildSubtype = $buildTypeSegments[2]
     }
 
     if ($BuildConfiguration -eq "codecoverage") {
         $BuildConfiguration = "test" # codecoverage builds are actually "test" configuration
         $BuildSubtype = "codecoverage" # keep information about codecoverage in the subtype
-        if (-not ($BuildSubtype -in @("pogo","codecoverage"))) {
-            Write-Error "Unsupported BuildSubtype: $BuildSubtype"
-        }
+    }
+
+    if (-not ($BuildSubtype -in @("default","pogo","codecoverage"))) {
+        Write-Error "Unsupported BuildSubtype: $BuildSubtype"
     }
 } elseif ((Test-Path Env:\BuildPlatform) -and (Test-Path Env:\BuildConfiguration)) {
     $BuildPlatform = $Env:BuildPlatform
@@ -49,11 +51,14 @@ if (Test-Path Env:\BuildType) {
     $BuildType = "${BuildPlatform}_${BuildConfiguration}"
 } else {
     Write-Error (@"
-Not enough information about BuildType
-  BuildType={0}
-  BuildPlatform={1}
-  BuildConfiguration={2}
+
+    Not enough information about BuildType:
+        BuildType={0}
+        BuildPlatform={1}
+        BuildConfiguration={2}
+
 "@ -f $Env:BuildType, $Env:BuildPlatform, $Env:BuildConfiguration)
+
     exit 1
 }
 

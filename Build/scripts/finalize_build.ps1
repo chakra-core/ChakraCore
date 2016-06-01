@@ -108,7 +108,6 @@ Get-ChildItem -Path (Join-Path $sourcesDir "Build") "*.nuspec" `
 # Copy POGO directory if present for this build
 #
 
-# TODO (doilij) REMOVE speculative POGO copy since all builds will be explicitly specified now
 $PogoFolder = Join-Path $Env:BinariesDirectory "bin\${Env:BuildType}_pogo"
 if (Test-Path $PogoFolder) {
     $BinDropPath = Join-Path $Env:DropPath "bin"

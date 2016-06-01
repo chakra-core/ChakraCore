@@ -6,7 +6,7 @@
 # Post-Build Script
 #
 # Run this script after the build step to consume the artifacts produced by the build,
-# run tests, and process and deploy build ogs.
+# run tests, and process and deploy build logs.
 #
 # There may be more non-script tasks in the build definition following this script.
 # Any final tasks that need to be done at the end of the build are contained in the

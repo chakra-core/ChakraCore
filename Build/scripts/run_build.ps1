@@ -73,7 +73,10 @@ $loggingParams = @(
     "/verbosity:normal"
     ) -join " "
 
-$cleanTarget = "/t:`"Clean`""
+$targets = ""
+if ($clean) {
+    $targets += "`"/t:Clean,Rebuild`""
+}
 
 $subtypeParams = ""
 if (($subtype -eq "pogo") -and $pogocmd) {
@@ -83,11 +86,6 @@ if (($subtype -eq "pogo") -and $pogocmd) {
         $subtypeParams = "/p:ENABLE_CODECOVERAGE=true"
     }
 
-    if ($clean) {
-        $cleanCommand = ". `"$msbuildExe`" $cleanTarget $defaultParams $loggingParams $subtypeParams"
-        ExecuteCommand $cleanCommand
-    }
-
-    $buildCommand = ". `"$msbuildExe`" $defaultParams $loggingParams $subtypeParams"
-    ExecuteCommand $buildCommand
+    $buildCommand = "& `"$msbuildExe`" $targets $defaultParams $loggingParams $subtypeParams"
+    ExecuteCommand "$buildCommand"
 }
