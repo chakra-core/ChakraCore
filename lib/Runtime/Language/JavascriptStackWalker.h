@@ -152,7 +152,6 @@ namespace Js
         void *framePointer;
         size_t stackCheckCodeHeight;
         InternalFrameType frameType;
-        InternalFrameType loopBodyFrameType;
         bool inlinedFramesOnStack;
 
         InternalFrameInfo() :
@@ -160,13 +159,12 @@ namespace Js
             framePointer(nullptr),
             stackCheckCodeHeight((uint)-1),
             frameType(InternalFrameType_None),
-            loopBodyFrameType(InternalFrameType_None),
             inlinedFramesOnStack(false)
         {
         }
 
         void Clear();
-        void Set(void *codeAddress, void *framePointer, size_t stackCheckCodeHeight, InternalFrameType frameType, InternalFrameType loopBodyFrameType, bool inlinedFramesOnStack);
+        void Set(void *codeAddress, void *framePointer, size_t stackCheckCodeHeight, InternalFrameType frameType, bool inlinedFramesOnStack);
     };
 #endif
 
@@ -228,7 +226,7 @@ namespace Js
 
 #if ENABLE_NATIVE_CODEGEN
         void ClearCachedInternalFrameInfo();
-        void SetCachedInternalFrameInfo(InternalFrameType frameType, InternalFrameType loopBodyFrameType, bool inlinedFramesOnStack);
+        void SetCachedInternalFrameInfo(InternalFrameType frameType, bool inlinedFramesOnStack);
         InternalFrameInfo GetCachedInternalFrameInfo() const { return this->lastInternalFrameInfo; }
 #endif
         bool IsCurrentPhysicalFrameForLoopBody() const;

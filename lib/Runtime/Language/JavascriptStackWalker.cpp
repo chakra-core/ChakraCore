@@ -416,7 +416,7 @@ namespace Js
         uint loopNum = LoopHeader::NoLoop;
         if (this->lastInternalFrameInfo.codeAddress != nullptr)
         {
-            if (this->lastInternalFrameInfo.loopBodyFrameType == InternalFrameType_LoopBody)
+            if (this->lastInternalFrameInfo.frameType == InternalFrameType_LoopBody)
             {
                 AnalysisAssert(this->interpreterFrame);
                 loopNum = this->interpreterFrame->GetCurrentLoopNum();
@@ -586,7 +586,7 @@ namespace Js
                         // inlined frames in the stack walk, we need to set the codeAddress on lastInternalFrameInfo,
                         // which would have otherwise been set upon closing the inlinedFrameWalker, now.
                         // Note that we already have an assert in CheckJavascriptFrame to ensure this.
-                        SetCachedInternalFrameInfo(InternalFrameType_LoopBody, InternalFrameType_LoopBody, false /*inlinedFramesOnStack*/);
+                        SetCachedInternalFrameInfo(InternalFrameType_LoopBody, false /*inlinedFramesOnStack*/);
                     }
 #else
                     // How did we bail out when JIT was disabled?
@@ -698,7 +698,7 @@ namespace Js
                 {
                     // Done walking inlined frames in a loop body, cache the native code address now
                     // in order to skip the loop body frame.
-                    this->SetCachedInternalFrameInfo(InternalFrameType_LoopBody, InternalFrameType_LoopBody, true /*inlinedFramesOnStack*/);
+                    this->SetCachedInternalFrameInfo(InternalFrameType_LoopBody, true /*inlinedFramesOnStack*/);
                     isJavascriptFrame = false;
                 }
             }
@@ -957,7 +957,7 @@ namespace Js
                     return true;
                 }
 
-                SetCachedInternalFrameInfo(InternalFrameType_LoopBody, InternalFrameType_LoopBody, false /*inlinedFramesOnStack*/);
+                SetCachedInternalFrameInfo(InternalFrameType_LoopBody, false /*inlinedFramesOnStack*/);
                 return false;
             }
 
@@ -1064,13 +1064,12 @@ namespace Js
         this->lastInternalFrameInfo.Clear();
     }
 
-    void JavascriptStackWalker::SetCachedInternalFrameInfo(InternalFrameType frameType, InternalFrameType loopBodyFrameType, bool inlinedFramesOnStack)
+    void JavascriptStackWalker::SetCachedInternalFrameInfo(InternalFrameType frameType, bool inlinedFramesOnStack)
     {
         if (!this->lastInternalFrameInfo.codeAddress)
         {
-            this->lastInternalFrameInfo.Set(this->GetCurrentCodeAddr(), this->currentFrame.GetFrame(), this->currentFrame.GetStackCheckCodeHeight(), frameType, loopBodyFrameType, inlinedFramesOnStack);
+            this->lastInternalFrameInfo.Set(this->GetCurrentCodeAddr(), this->currentFrame.GetFrame(), this->currentFrame.GetStackCheckCodeHeight(), frameType, inlinedFramesOnStack);
         }
-        this->lastInternalFrameInfo.loopBodyFrameType = loopBodyFrameType;
     }
 #endif
 
@@ -1420,7 +1419,7 @@ namespace Js
         return inlinedFrame;
     }
 
-    void InternalFrameInfo::Set(void *codeAddress, void *framePointer, size_t stackCheckCodeHeight, InternalFrameType frameType, InternalFrameType loopBodyFrameType, bool inlinedFramesOnStack)
+    void InternalFrameInfo::Set(void *codeAddress, void *framePointer, size_t stackCheckCodeHeight, InternalFrameType frameType, bool inlinedFramesOnStack)
     {
         // We skip a jitted loop body's native frame when walking the stack and refer to the loop body's interpreter frame to get the function. 
         // However, if the loop body has inlinees, to retrieve inlinee frames we need to cache some info about the loop body's native frame.
@@ -1428,7 +1427,6 @@ namespace Js
         this->framePointer = framePointer;
         this->stackCheckCodeHeight = stackCheckCodeHeight;
         this->frameType = frameType;
-        this->loopBodyFrameType = loopBodyFrameType;
         this->inlinedFramesOnStack = inlinedFramesOnStack;
     }
 
@@ -1438,7 +1436,6 @@ namespace Js
         this->framePointer = nullptr;
         this->stackCheckCodeHeight = (uint)-1;
         this->frameType = InternalFrameType_None;
-        this->loopBodyFrameType = InternalFrameType_None;
         this->inlinedFramesOnStack = false;
     }
 #endif
