@@ -80,6 +80,8 @@ namespace Wasm
             byte* end;
         };
 
+        static const unsigned int experimentalVersion = 0xa;
+
         class WasmBinaryReader : public BaseWasmReader
         {
         public:

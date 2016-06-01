@@ -423,7 +423,7 @@ WasmBinaryReader::ModuleHeader()
         ThrowDecodingError(_u("Malformed WASM module header!"));
     }
 
-    if (version != 10)
+    if (version != experimentalVersion)
     {
         ThrowDecodingError(_u("Invalid WASM version!"));
     }

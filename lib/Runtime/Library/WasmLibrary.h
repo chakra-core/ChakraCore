@@ -17,6 +17,7 @@ namespace Js
         };
 
         static Var instantiateModule(RecyclableObject* function, CallInfo callInfo, ...);
+        static const unsigned int experimentalVersion;
     };
 }
 #endif
