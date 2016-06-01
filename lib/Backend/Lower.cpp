@@ -2392,12 +2392,18 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::IncrLoopBodyCount:
+        {
             Assert(this->m_func->IsLoopBody());
             instr->m_opcode = Js::OpCode::Add_I4;
             instr->SetSrc2(IR::IntConstOpnd::New(1, TyUint32, this->m_func));
             this->m_lowererMD.EmitInt4Instr(instr);
-            break;
 
+            // Update the jittedLoopIterations field on the entryPointInfo
+            IR::MemRefOpnd *iterationsAddressOpnd = IR::MemRefOpnd::New(this->m_func->GetJittedLoopIterationsSinceLastBailoutAddress(), TyUint32, this->m_func);
+            m_lowererMD.CreateAssign(iterationsAddressOpnd, instr->GetDst(), instr);
+
+            break;
+        }
 #if !FLOATVAR
         case Js::OpCode::StSlotBoxTemp:
             this->LowerStSlotBoxTemp(instr);
