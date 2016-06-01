@@ -6,7 +6,7 @@
 # Post-Build Script
 #
 # Run this script after the build step to consume the artifacts produced by the build,
-# run tests, and process and deploy build logs.
+# run tests, and process and deploy build ogs.
 #
 # There may be more non-script tasks in the build definition following this script.
 # Any final tasks that need to be done at the end of the build are contained in the
@@ -18,6 +18,9 @@ param (
 
     [ValidateSet("debug", "release", "test", "codecoverage", "*")]
     [string]$flavor = "*",
+
+    [ValidateSet("default", "codecoverage", "pogo")]
+    [string]$subtype = "default",
 
     [string]$srcpath = "",
     [string]$binpath = "",
@@ -34,6 +37,7 @@ param (
     [string[]]$pogo = @(),
     [string]$pogoscript = "",
 
+    # TODO (doilij) do the vars $subtype and $Env:BuildName make this parameter obsolete?
     # Support output folders with e.g. _pogo suffix
     [string]$buildTypeSuffix = "",
 
@@ -46,65 +50,71 @@ if ($arch -eq "*") {
 
     . "$PSScriptRoot\util.ps1"
     foreach ($arch in ("x86", "x64", "arm")) {
-        ExecuteCommand "$PSScriptRoot\post_build.ps1 -arch $arch -flavor $flavor -srcpath ""$srcpath"" -binpath ""$binpath"" -objpath ""$objpath"" -srcsrvcmdpath ""$srcsrvcmdpath"" -bvtcmdpath ""$bvtcmdpath"" -repo ""$repo""" -logFile ""$logFile"";
+        ExecuteCommand "$PSScriptRoot\post_build.ps1 -arch $arch -flavor $flavor -srcpath ""$srcpath"" -binpath ""$binpath"" -objpath ""$objpath"" -srcsrvcmdpath ""$srcsrvcmdpath"" -bvtcmdpath ""$bvtcmdpath"" -repo ""$repo""" -logFile ""$logFile""
     }
 
 } elseif ($flavor -eq "*") {
 
     . "$PSScriptRoot\util.ps1"
     foreach ($flavor in ("debug", "test", "release")) {
-        ExecuteCommand "$PSScriptRoot\post_build.ps1 -arch $arch -flavor $flavor -srcpath ""$srcpath"" -binpath ""$binpath"" -objpath ""$objpath"" -srcsrvcmdpath ""$srcsrvcmdpath"" -bvtcmdpath ""$bvtcmdpath"" -repo ""$repo""" -logFile ""$logFile"";
+        ExecuteCommand "$PSScriptRoot\post_build.ps1 -arch $arch -flavor $flavor -srcpath ""$srcpath"" -binpath ""$binpath"" -objpath ""$objpath"" -srcsrvcmdpath ""$srcsrvcmdpath"" -bvtcmdpath ""$bvtcmdpath"" -repo ""$repo""" -logFile ""$logFile""
     }
 
 } else {
-    $OuterScriptRoot = $PSScriptRoot;
+
+    $OuterScriptRoot = $PSScriptRoot
     . "$PSScriptRoot\pre_post_util.ps1"
 
     if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {
-        $logFile = "${Env:TF_BUILD_BINARIESDIRECTORY}\logs\post_build_${arch}_${flavor}.log"
+        $logFile = "${Env:TF_BUILD_BINARIESDIRECTORY}\logs\post_build_${Env:BuildName}.log"
         if (Test-Path -Path $logFile) {
             Remove-Item $logFile -Force
         }
     }
 
     WriteMessage "======================================================================================"
-    WriteMessage "Post build script for $arch $flavor";
+    WriteMessage "Post build script for $arch $flavor"
     WriteMessage "======================================================================================"
-    $bvtcmdpath =  UseValueOrDefault $bvtcmdpath "" (Resolve-Path "$PSScriptRoot\..\..\test\runcitests.cmd");
 
-    WriteCommonArguments;
+    $bvtcmdpath =  UseValueOrDefault $bvtcmdpath "" (Resolve-Path "$PSScriptRoot\..\..\test\runcitests.cmd")
+
+    WriteCommonArguments
     WriteMessage "BVT Command  : $bvtcmdpath"
     WriteMessage ""
 
-    $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}_{5}{6}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $binpath, $arch, $flavor, $buildTypeSuffix);
-    $pogocmd = ("{0} {1} {2}" -f $pogoscript, $arch, $flavor);
-    $prefastlog = ("{0}\logs\PrefastCheck_{1}_{2}.log" -f $binpath, $arch, $flavor);
-    $prefastcmd = "$PSScriptRoot\check_prefast_error.ps1 -directory $objpath -logFile $prefastlog";
+    $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $binpath, $Env:BuildName)
+    $pogocmd = ("{0} {1} {2}" -f $pogoscript, $arch, $flavor)
+    $prefastlog = ("{0}\logs\PrefastCheck_{1}.log" -f $binpath, $Env:BuildName)
+    $prefastcmd = "$PSScriptRoot\check_prefast_error.ps1 -directory $objpath -logFile $prefastlog"
 
     # generate srcsrv
     if ((Test-Path $srcsrvcmdpath) -and (Test-Path $srcpath) -and (Test-Path $binpath)) {
-        ExecuteCommand($srcsrvcmd);
+        ExecuteCommand($srcsrvcmd)
     }
 
-    # do PoGO
+    # do POGO
     $doPogo=$False
     for ($i=0; $i -lt $pogo.length; $i=$i+2) {
         if (($pogo[$i] -eq $arch) -and ($pogo[$i+1] -eq $flavor)) {
             $doPogo=$True
         }
     }
-    if ($doPogo) {
-        WriteMessage "Building pogo for $arch $flavor"
-        ExecuteCommand($pogocmd);
+
+    if ($subtype -ne "codecoverage") {
+        if ($doPogo) {
+            WriteMessage "Building pogo for $arch $flavor"
+            ExecuteCommand($pogocmd)
+        }
+
+        # run tests
+        ExecuteCommand("$bvtcmdpath -$arch$flavor")
     }
 
-    # run test
-    ExecuteCommand("$bvtcmdpath -$arch$flavor");
-
     # check prefast
-    ExecuteCommand($prefastcmd);
+    ExecuteCommand($prefastcmd)
 
-    WriteMessage "";
+    WriteMessage ""
+
 }
 
 exit $global:exitcode

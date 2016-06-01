@@ -41,6 +41,8 @@ if "%JENKINS_USE_MSBUILD_12%" == "True" (
     goto :LABEL_USE_MSBUILD_12
 )
 
+:: TODO (doilij) The following is a duplicate of add_msbuild_path.cmd -- refactor this.
+
 where /q msbuild.exe
 IF "%ERRORLEVEL%" == "0" (
     goto :SkipMsBuildSetup
