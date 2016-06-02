@@ -86,6 +86,8 @@ if (!(exp)) \
 #include "ChakraDebug.h"
 
 typedef void * Var;
+#define IfJsrtErrorRet(expr) do { if((expr) != JsNoError) { return JS_INVALID_REFERENCE; } } while(0)
+#define IfJsrtErrorRetErrorCode(expr) do { JsErrorCode errorCode = (expr); if (errorCode != JsNoError) { return errorCode; } } while (0)
 
 #include "Helpers.h"
 

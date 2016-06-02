@@ -57,6 +57,11 @@ namespace Js
         virtual bool IsAreanaAllocPropertyString() { return false; }
 
         static uint32 GetOffsetOfPropertyCache() { return offsetof(PropertyString, propCache); }
+
+#if ENABLE_TTD
+        //Get the associated property id for this string if there is on (e.g. it is a propertystring otherwise return Js::PropertyIds::_none)
+        virtual Js::PropertyId TryGetAssociatedPropertyId() const override { return this->m_propertyRecord->GetPropertyId(); }
+#endif
     };
 
     class AreanaAllocPropertyString sealed : public PropertyString

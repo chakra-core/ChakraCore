@@ -53,6 +53,18 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeDebugPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TTActionEvents.cpp" />
+    <ClCompile Include="TTEventLog.cpp" />
+    <ClCompile Include="TTEvents.cpp" />
+    <ClCompile Include="TTInflateMap.cpp" />
+    <ClCompile Include="TTRuntmeInfoTracker.cpp" />
+    <ClCompile Include="TTSerialize.cpp" />
+    <ClCompile Include="TTSnapObjects.cpp" />
+    <ClCompile Include="TTSnapshot.cpp" />
+    <ClCompile Include="TTSnapshotExtractor.cpp" />
+    <ClCompile Include="TTSnapTypes.cpp" />
+    <ClCompile Include="TTSnapValues.cpp" />
+    <ClCompile Include="TTSupport.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DebugContext.h" />
@@ -68,8 +80,21 @@
     <ClInclude Include="ProbeContainer.h" />
     <ClInclude Include="RuntimeDebugPch.h" />
     <ClInclude Include="SourceContextInfo.h" />
+    <ClInclude Include="TTActionEvents.h" />
+    <ClInclude Include="TTEventLog.h" />
+    <ClInclude Include="TTEvents.h" />
+    <ClInclude Include="TTInflateMap.h" />
+    <ClInclude Include="TTRuntimeInfoTracker.h" />
+    <ClInclude Include="TTSerialize.h" />
+    <ClInclude Include="TTSerializeEnum.h" />
+    <ClInclude Include="TTSnapObjects.h" />
+    <ClInclude Include="TTSnapshot.h" />
+    <ClInclude Include="TTSnapshotExtractor.h" />
+    <ClInclude Include="TTSnapTypes.h" />
+    <ClInclude Include="TTSnapValues.h" />
+    <ClInclude Include="TTSupport.h" />
   </ItemGroup>
-  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')"/>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
