@@ -39,7 +39,7 @@ namespace Wasm
         virtual WasmOp ReadFromBlock() override;
         virtual WasmOp ReadFromCall() override;
         virtual WasmOp ReadExpr() override;
-        virtual void Unread() override { };
+        virtual WasmOp GetLastOp() override {return wnLIMIT;};
         virtual bool IsBinaryReader() override;
         static void __declspec(noreturn) ThrowSyntaxError();
 
