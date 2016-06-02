@@ -199,8 +199,9 @@ WasmBytecodeGenerator::GenerateFunction()
             }
             // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
             Wasm::WasmTypes::WasmType returnType = m_funcInfo->GetSignature()->GetResultType();
-            op = m_reader->GetLastOp();
-            if (op != wnRETURN && op != wnEND)
+
+            // If the last expression yielded a value, return it
+            if (exprInfo.location != Js::Constants::NoRegister)
             {
                 if (exprInfo.type != returnType && returnType != Wasm::WasmTypes::Void)
                 {
@@ -209,7 +210,6 @@ WasmBytecodeGenerator::GenerateFunction()
                 uint32 arity = 0;
                 if (returnType != Wasm::WasmTypes::Void)
                 {
-                    PushEvalStack(exprInfo);
                     arity = 1;
                 }
                 m_reader->m_currentNode.ret.arity = arity;
