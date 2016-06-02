@@ -110,7 +110,12 @@ if [[ ${#_VERBOSE} > 0 ]]; then
     echo ""
 fi
 
+CLANG_PATH=
 if [[ ${#_CXX} > 0 || ${#_CC} > 0 ]]; then
+    if [[ ${#_CXX} == 0 || ${#_CC} == 0 ]]; then
+        echo "ERROR: '-cxx' and '-cc' options must be used together."
+        exit 1
+    fi
     echo "Custom CXX ${_CXX}"
     echo "Custom CC  ${_CC}"
 
@@ -118,6 +123,7 @@ if [[ ${#_CXX} > 0 || ${#_CC} > 0 ]]; then
         echo "ERROR: Custom compiler not found on given path"
         exit 1
     fi
+    CLANG_PATH=$_CXX
 else
     RET_VAL=$(SAFE_RUN 'c++ --version')
     if [[ ! $RET_VAL =~ "clang" ]]; then
@@ -126,6 +132,7 @@ else
             echo "Clang++ found at /usr/bin/clang++"
             _CXX=/usr/bin/clang++
             _CC=/usr/bin/clang
+            CLANG_PATH=$_CXX
         else
             echo "ERROR: clang++ not found at /usr/bin/clang++"
             echo ""
@@ -133,7 +140,18 @@ else
             PRINT_USAGE
             exit 1
         fi
+    else
+        CLANG_PATH=c++
     fi
+fi
+
+# check clang version (min required 3.7)
+VERSION=$($CLANG_PATH --version | grep "version [0-9]*\.[0-9]*" --o -i | grep "[0-9]\.[0-9]*" --o)
+VERSION=${VERSION/./}
+
+if [[ $VERSION -lt 37 ]]; then
+    echo "ERROR: Minimum required Clang version is 3.7"
+    exit 1
 fi
 
 CC_PREFIX=""
