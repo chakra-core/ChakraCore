@@ -27,12 +27,16 @@ namespace PlatformAgnostic
             {
                 case NormalizationForm::C:
                     normalizer = Normalizer2::getNFCInstance(errorCode);
+                    break;
                 case NormalizationForm::D:
                     normalizer = Normalizer2::getNFDInstance(errorCode);
+                    break;
                 case NormalizationForm::KC:
                     normalizer = Normalizer2::getNFKCInstance(errorCode);
+                    break;
                 case NormalizationForm::KD:
                     normalizer = Normalizer2::getNFKDInstance(errorCode);
+                    break;
                 default:
                     AssertMsg(false, "Unsupported normalization form");
             };
@@ -40,6 +44,47 @@ namespace PlatformAgnostic
             AssertMsg(U_SUCCESS(errorCode), (char*) u_errorName(errorCode));
 
             return normalizer;
+        }
+
+        static bool IsUtf16StringValid(const UChar* str, int* invalidIndex)
+        {
+            // ask ICU to scan through the string and see if it can be
+            // converted to utf8. If it can't, see if the error is that
+            // the string is malformed.
+
+            Assert(invalidIndex != nullptr);
+            *invalidIndex = -1;
+            int32_t length = u_strlen(str);
+            int32_t i = 0;
+
+            for (;;)
+            {
+                // Iterate through the UTF16-LE string
+                // If we are at the end of the null terminated string, return true
+                // since the string is valid
+                // If not, check if the codepoint we have is a surrogate code unit.
+                // If it is, the string is malformed since U16_NEXT would have returned
+                // is the full codepoint if both code units in the surrogate pair were present
+                UChar32 c;
+                U16_NEXT(str, i, length, c);
+                if (c == 0)
+                {
+                    return true;
+                }                
+                if (U_IS_SURROGATE(c))
+                {
+                    if (U16_IS_LEAD(c))
+                    {
+                        *invalidIndex = i;
+                    }
+                    else
+                    {
+                        *invalidIndex = i - 1;
+                    }
+                    
+                    return false;
+                }
+            }            
         }
 
         static ApiError TranslateUErrorCode(UErrorCode icuError)
@@ -79,6 +124,17 @@ namespace PlatformAgnostic
 
             *pErrorOut = NoError;
 
+            // On Windows, IsNormalizedString returns failure if the string
+            // is a malformed utf16 string. Maintain the same behavior here.
+            // Note that Windows returns this failure only if the dest buffer
+            // is passed in, not in the estimation case
+            int invalidIndex = 0;
+            if (destString != nullptr && !IsUtf16StringValid((const UChar*) sourceString, &invalidIndex))
+            {
+                *pErrorOut = InvalidUnicodeText;
+                return -1 * invalidIndex; // mimicking the behavior of Win32 NormalizeString
+            }
+
             const Normalizer2* normalizer = TranslateToICUNormalizer(normalizationForm);
             Assert(normalizer != nullptr);
 
@@ -92,7 +148,15 @@ namespace PlatformAgnostic
                 *pErrorOut = TranslateUErrorCode(errorCode);
             }
 
+            // xplat-todo: we could possibly make this more efficient and save the buffer copy
+            // that destUniStr causes
             int32_t normalizedStringLength = destUniStr.length();
+            if (destLength == 0 && normalizedStringLength >= 0)
+            {
+                *pErrorOut = ApiError::InsufficientBuffer;
+                return normalizedStringLength;
+            }
+
             destUniStr.extract((UChar*) destString, destLength, errorCode);
             if (U_FAILURE(errorCode))
             {
@@ -108,6 +172,14 @@ namespace PlatformAgnostic
             Assert(testString != nullptr);
             UErrorCode errorCode = U_ZERO_ERROR;
 
+            // On Windows, IsNormalizedString returns failure if the string
+            // is a malformed utf16 string. Maintain the same behavior here.
+            int invalidIndex = 0;
+            if (!IsUtf16StringValid((const UChar*) testString, &invalidIndex))
+            {
+                return false;
+            }
+                
             const Normalizer2* normalizer = TranslateToICUNormalizer(normalizationForm);
             Assert(normalizer != nullptr);
 
@@ -131,12 +203,52 @@ namespace PlatformAgnostic
 
         bool IsIdStart(codepoint_t ch)
         {
-            return u_isIDStart(ch);
+            if (u_isIDStart(ch))
+            {
+                return true;
+            }
+
+            // Following codepoints are treated as part of ID_Start
+            // for backwards compatibility as per section 2.5 of the Unicode 8 spec
+            // See http://www.unicode.org/reports/tr31/tr31-23.html#Backward_Compatibility
+            // The exact list is in PropList.txt in the Unicode database
+            switch (ch)
+            {
+            case 0x2118: return true; // SCRIPT CAPITAL P
+            case 0x212E: return true; // ESTIMATED SYMBOL
+            case 0x309B: return true; // KATAKANA-HIRAGANA VOICED SOUND MARK
+            case 0x309C: return true; // KATAKANA-HIRAGANA SEMI-VOICED SOUND MARK
+            default: return false;
+            }
         }
         
         bool IsIdContinue(codepoint_t ch)
         {
-            return u_hasBinaryProperty(ch, UCHAR_ID_CONTINUE) == 1;
+            if (u_hasBinaryProperty(ch, UCHAR_ID_CONTINUE) == 1)
+            {
+                return true;
+            }
+
+            // Following codepoints are treated as part of ID_Continue
+            // for backwards compatibility as per section 2.5 of the Unicode 8 spec
+            // See http://www.unicode.org/reports/tr31/tr31-23.html#Backward_Compatibility
+            // The exact list is in PropList.txt in the Unicode database
+            switch (ch)
+            {
+            case 0x00B7: return true; // MIDDLE DOT
+            case 0x0387: return true; // GREEK ANO TELEIA
+            case 0x1369: return true; // ETHIOPIC DIGIT ONE
+            case 0x136A: return true; // ETHIOPIC DIGIT TWO
+            case 0x136B: return true; // ETHIOPIC DIGIT THREE
+            case 0x136C: return true; // ETHIOPIC DIGIT FOUR
+            case 0x136D: return true; // ETHIOPIC DIGIT FIVE
+            case 0x136E: return true; // ETHIOPIC DIGIT SIX
+            case 0x136F: return true; // ETHIOPIC DIGIT SEVEN
+            case 0x1370: return true; // ETHIOPIC DIGIT EIGHT
+            case 0x1371: return true; // ETHIOPIC DIGIT NINE
+            case 0x19DA: return true; // NEW TAI LUE THAM DIGIT ONE
+            default: return false;
+            }
         }
 
         UnicodeGeneralCategoryClass GetGeneralCategoryClass(codepoint_t ch)
