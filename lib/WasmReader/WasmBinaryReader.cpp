@@ -441,8 +441,9 @@ void
 WasmBinaryReader::CallNode()
 {
     UINT length = 0;
-    m_currentNode.call.arity = ReadConst<uint8>();
-    m_funcState.count++;
+    m_currentNode.call.arity = LEB128(length);
+    m_funcState.count += length;
+
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
     if (funcNum >= m_moduleInfo->GetFunctionCount())
@@ -456,8 +457,9 @@ void
 WasmBinaryReader::CallImportNode()
 {
     UINT length = 0;
-    m_currentNode.call.arity = ReadConst<uint8>();
-    m_funcState.count++;
+    m_currentNode.call.arity = LEB128(length);
+    m_funcState.count += length;
+
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
     if (funcNum >= m_moduleInfo->GetImportCount())
@@ -471,13 +473,16 @@ void
 WasmBinaryReader::CallIndirectNode()
 {
     UINT length = 0;
+    m_currentNode.call.arity = LEB128(length);
+    m_funcState.count += length;
+
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
     if (funcNum >= m_moduleInfo->GetSignatureCount())
     {
         ThrowDecodingError(_u("Function is out of bound"));
     }
-    m_currentNode.var.num = funcNum;
+    m_currentNode.call.num = funcNum;
 }
 
 // control flow

@@ -179,9 +179,7 @@ WasmBytecodeGenerator::GenerateFunction()
     m_funcInfo = wasmInfo;
     m_func->wasmInfo = m_funcInfo;
     m_nestedIfLevel = 0;
-    m_nestedCallDepth = 0;
     m_maxArgOutDepth = 0;
-    m_argOutDepth = 0;
 
     // TODO: fix these bools
     m_writer.Begin(m_func->body, &m_alloc, true, true, false);
@@ -629,8 +627,6 @@ template<WasmOp wasmOp>
 EmitInfo
 WasmBytecodeGenerator::EmitCall()
 {
-    ++m_nestedCallDepth;
-
     uint funcNum = Js::Constants::UninitializedValue;
     uint signatureId = Js::Constants::UninitializedValue;
     WasmSignature * calleeSignature = nullptr;
@@ -638,7 +634,7 @@ WasmBytecodeGenerator::EmitCall()
     switch (wasmOp)
     {
     case wnCALL:
-        funcNum = m_reader->m_currentNode.var.num;
+        funcNum = m_reader->m_currentNode.call.num;
         if (funcNum >= m_module->info->GetFunctionCount())
         {
             throw WasmCompilationException(_u("Call is to unknown function"));
@@ -647,7 +643,7 @@ WasmBytecodeGenerator::EmitCall()
         break;
     case wnCALL_IMPORT:
     {
-        funcNum = m_reader->m_currentNode.var.num;
+        funcNum = m_reader->m_currentNode.call.num;
         if (funcNum >= m_module->info->GetImportCount())
         {
             throw WasmCompilationException(L"Call is to unknown function");
@@ -657,14 +653,8 @@ WasmBytecodeGenerator::EmitCall()
         break;
     }
     case wnCALL_INDIRECT:
-        signatureId = m_reader->m_currentNode.var.num;
+        signatureId = m_reader->m_currentNode.call.num;
         calleeSignature = m_module->info->GetSignature(signatureId);
-
-        indirectIndexInfo = EmitExpr(m_reader->ReadFromCall());
-        if (indirectIndexInfo.type != WasmTypes::I32)
-        {
-            throw WasmCompilationException(_u("Indirect call index must be int type"));
-        }
         break;
     default:
         Assume(UNREACHED);
@@ -681,81 +671,65 @@ WasmBytecodeGenerator::EmitCall()
     else
     {
         startCallOp = Js::OpCodeAsmJs::I_StartCall;
-        argSize = (Js::ArgSlot)calleeSignature->GetParamSize();
+        argSize = (Js::ArgSlot)calleeSignature->GetParamsSize();
     }
+    // Add return value
+    argSize += sizeof(Js::Var);
 
-    if (calleeSignature->GetParamSize() >= UINT16_MAX)
+    if (argSize >= UINT16_MAX)
     {
         throw WasmCompilationException(_u("Argument size too big"));
     }
 
-    m_writer.AsmStartCall(startCallOp, argSize + sizeof(void*));
-
-    uint maxDepthForLevel = m_argOutDepth;
-    EmitInfo * argOuts = AnewArray(&m_alloc, EmitInfo, calleeSignature->GetParamCount());
+    m_writer.AsmStartCall(startCallOp, argSize);
 
     if (calleeSignature->GetParamCount() != m_reader->m_currentNode.call.arity)
     {
         throw WasmCompilationException(_u("Mismatch between call signature and arity"));
     }
 
-    for (uint i = 0; i < calleeSignature->GetParamCount(); ++i)
+    int32 argsBytesLeft = argSize;
+    for (int i = calleeSignature->GetParamCount() - 1; i >= 0; --i)
     {
-        // emit args
         EmitInfo info = PopEvalStack();
         if (calleeSignature->GetParam(i) != info.type)
         {
             throw WasmCompilationException(_u("Call argument does not match formal type"));
         }
-        argOuts[i] = info;
 
-        // if there are nested calls, track whichever is the deepest
-        if (maxDepthForLevel < m_argOutDepth)
-        {
-            maxDepthForLevel = m_argOutDepth;
-        }
-    }
-
-    Js::RegSlot nextLoc = 1;
-    for (uint i = 0; i < calleeSignature->GetParamCount(); ++i)
-    {
         Js::OpCodeAsmJs argOp = Js::OpCodeAsmJs::Nop;
-        Js::RegSlot argLoc = nextLoc;
-        switch (argOuts[i].type)
+        switch (info.type)
         {
         case WasmTypes::F32:
             Assert(wasmOp != wnCALL_IMPORT);
             // REVIEW: support FFI call with f32 params?
             argOp = Js::OpCodeAsmJs::I_ArgOut_Flt;
-            ++nextLoc;
             break;
         case WasmTypes::F64:
             if (wasmOp == wnCALL_IMPORT)
             {
                 argOp = Js::OpCodeAsmJs::ArgOut_Db;
-                ++nextLoc;
             }
             else
             {
                 argOp = Js::OpCodeAsmJs::I_ArgOut_Db;
-                // this indexes into physical stack, so on x86 we need double width
-                nextLoc += sizeof(double) / sizeof(Js::Var);
             }
             break;
         case WasmTypes::I32:
             argOp = wasmOp == wnCALL_IMPORT ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
-            ++nextLoc;
             break;
         default:
-            throw WasmCompilationException(_u("Unknown argument type %u"), argOuts[i].type);
+            throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
         }
+        argsBytesLeft -= wasmOp == wnCALL_IMPORT ? sizeof(Js::Var) : calleeSignature->GetParamSize(i);
+        if (argsBytesLeft < 0 || (argsBytesLeft % sizeof(Js::Var)) != 0) 
+        {
+            throw WasmCompilationException(_u("Error while emitting call arguments"));
+        }
+        Js::RegSlot argLoc = argsBytesLeft / sizeof(Js::Var);
 
-        m_writer.AsmReg2(argOp, argLoc, argOuts[i].location);
-    }
-
-    for (uint i = 1; i <= calleeSignature->GetParamCount(); ++i)
-    {
-        ReleaseLocation(&argOuts[calleeSignature->GetParamCount() - i]);
+        m_writer.AsmReg2(argOp, argLoc, info.location);
+        ReleaseLocation(&info);
     }
 
     if (!m_reader->IsBinaryReader()) {
@@ -777,6 +751,11 @@ WasmBytecodeGenerator::EmitCall()
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->importFuncOffset);
         break;
     case wnCALL_INDIRECT:
+        indirectIndexInfo = PopEvalStack();
+        if (indirectIndexInfo.type != WasmTypes::I32)
+        {
+            throw WasmCompilationException(_u("Indirect call index must be int type"));
+        }
         // todo:: Add bounds check. Asm.js doesn't need it because there has to be an & operator
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, calleeSignature->GetSignatureId() + m_module->indirFuncTableOffset);
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_Func, 0, 0, indirectIndexInfo.location);
@@ -796,7 +775,7 @@ WasmBytecodeGenerator::EmitCall()
     }
     else
     {
-        args = (Js::ArgSlot)(::ceil((double)(argSize / sizeof(Js::Var)))) + 1;
+        args = (Js::ArgSlot)(::ceil((double)(argSize / sizeof(Js::Var))));
         callOp = Js::OpCodeAsmJs::I_Call;
     }
 
@@ -833,22 +812,11 @@ WasmBytecodeGenerator::EmitCall()
     // track stack requirements for out params
 
     // + 1 for return address
-    maxDepthForLevel += args + 1;
-    if (m_nestedCallDepth > 1)
-    {
-        m_argOutDepth = maxDepthForLevel;
-    }
-    else
-    {
-        m_argOutDepth = 0;
-    }
+    uint maxDepthForLevel = args + 1;
     if (maxDepthForLevel > m_maxArgOutDepth)
     {
         m_maxArgOutDepth = maxDepthForLevel;
     }
-
-    Assert(m_nestedCallDepth > 0);
-    --m_nestedCallDepth;
 
     return retInfo;
 }
