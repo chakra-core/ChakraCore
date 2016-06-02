@@ -3233,12 +3233,12 @@ CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCa
 
 /////////////////////
 
-CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_ wchar_t* infoUri, _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
+CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ wchar_t* infoUri, _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
     return CreateRuntimeCore(attributes, infoUri, nullptr, snapInterval, snapHistoryLength, threadService, runtime);
 }
 
-CHAKRA_API JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes, _In_ wchar_t* infoUri, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
+CHAKRA_API JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ wchar_t* infoUri, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
     return CreateRuntimeCore(attributes, nullptr, infoUri, UINT_MAX, UINT_MAX, threadService, runtime);
 }
@@ -3484,7 +3484,7 @@ CHAKRA_API JsTTDReStartTimeTravelAfterRuntimeOperation()
 #endif
 }
 
-CHAKRA_API JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCreated, bool isCancel, bool isRepeating, JsValueRef function, INT64 callbackId)
+CHAKRA_API JsTTDNotifyHostCallbackCreatedOrCanceled(_In_ bool isCreated, _In_ bool isCancel, _In_ bool isRepeating, _In_ JsValueRef function, _In_ INT64 callbackId)
 {
 #if !ENABLE_TTD
     return JsErrorCategoryUsage;
@@ -3520,7 +3520,7 @@ CHAKRA_API JsTTDNotifyYield()
 #endif
 }
 
-CHAKRA_API JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime)
+CHAKRA_API JsTTDPrepContextsForTopLevelEventMove(_In_ JsRuntimeHandle runtimeHandle, _In_ INT64 targetEventTime, _Out_ INT64* targetStartSnapTime)
 {
 #if !ENABLE_TTD_DEBUGGING
     return JsErrorCategoryUsage;
@@ -3597,7 +3597,7 @@ CHAKRA_API JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, 
 #endif
 }
 
-CHAKRA_API JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTime)
+CHAKRA_API JsTTDMoveToTopLevelEvent(_In_ INT64 snapshotTime, _In_ INT64 eventTime)
 {
 #if !ENABLE_TTD_DEBUGGING
     return JsErrorCategoryUsage;
@@ -3688,7 +3688,7 @@ CHAKRA_API JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTime)
 #endif
 }
 
-CHAKRA_API JsTTDReplayExecution(INT64* rootEventTime)
+CHAKRA_API JsTTDReplayExecution(_Out_ INT64* rootEventTime)
 {
 #if !ENABLE_TTD_DEBUGGING
     return JsErrorCategoryUsage;

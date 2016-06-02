@@ -3017,7 +3017,7 @@ typedef unsigned char* ChakraBytePtr;
     /// <param name="read">If the handle should be opened for reading.</param>
     /// <param name="write">If the handle should be opened for writing.</param>
     /// <returns>A HANDLE opened in read/write mode as specified.</returns>
-    typedef HANDLE (CALLBACK *JsTTDGetSnapshotStreamCallback)(_In_z_ const wchar_t* uri, _In_z_ const wchar_t* snapId, _In_z_ bool read, _In_ bool write);
+    typedef HANDLE (CALLBACK *JsTTDGetSnapshotStreamCallback)(_In_z_ const wchar_t* uri, _In_z_ const wchar_t* snapId, _In_ bool read, _In_ bool write);
 
     /// <summary>
     ///     Construct a HANDLE that will be used to read/write information on source code loaded by the program.

@@ -245,7 +245,7 @@ void CreateDirectoryIfNeeded(const char16* path)
     bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
 
     size_t fplength = (wcslen(path) + 2);
-    wchar_t* fullpath = (wchar_t*)malloc(fplength * sizeof(char16));
+    char16* fullpath = new char16[fplength];
     fullpath[0] = _u('\0');
 
     wcscat_s(fullpath, fplength, path);
@@ -257,7 +257,7 @@ void CreateDirectoryIfNeeded(const char16* path)
     DWORD dwAttrib = GetFileAttributes(fullpath);
     if((dwAttrib != INVALID_FILE_ATTRIBUTES) && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
     {
-        free(fullpath);
+        delete[] fullpath;
         return;
     }
 
@@ -272,7 +272,7 @@ void CreateDirectoryIfNeeded(const char16* path)
         AssertMsg(false, "Failed Directory Create");
     }
 
-    free(fullpath);
+    delete[] fullpath;
 #endif
 }
 
@@ -287,7 +287,7 @@ void DeleteDirectory(const char16* path)
     bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
 
     size_t splength = (wcslen(path) + 5);
-    wchar_t* strPattern = (wchar_t*)malloc(splength * sizeof(char16));
+    char16* strPattern = new char16[splength];
     strPattern[0] = _u('\0');
 
     wcscat_s(strPattern, splength, path);
@@ -305,7 +305,7 @@ void DeleteDirectory(const char16* path)
             if(FileInformation.cFileName[0] != '.')
             {
                 size_t sfplength = (wcslen(path) + wcslen(FileInformation.cFileName) + 2);
-                wchar_t* strFilePath = (wchar_t*)malloc(sfplength * sizeof(char16));
+                char16* strFilePath = new char16[sfplength];
                 strFilePath[0] = _u('\0');
 
                 wcscat_s(strFilePath, sfplength, path);
@@ -327,7 +327,7 @@ void DeleteDirectory(const char16* path)
                     ::DeleteFile(strFilePath);
                 }
 
-                free(strFilePath);
+                delete[] strFilePath;
             }
         } while(::FindNextFile(hFile, &FileInformation) == TRUE);
 
@@ -335,7 +335,7 @@ void DeleteDirectory(const char16* path)
         ::FindClose(hFile);
     }
 
-    free(strPattern);
+    delete[] strPattern;
 #endif
 }
 
@@ -353,7 +353,7 @@ void GetFileFromURI(const char16* uri, char16** res)
     }
 
     size_t rlength = (wcslen(uri + fpos) + 1);
-    *res = (wchar_t*)malloc(rlength * sizeof(char16));
+    *res = new char16[rlength];
     (*res)[0] = _u('\0');
 
     wcscat_s(*res, rlength, uri + fpos);
@@ -365,7 +365,7 @@ void GetDefaultTTDDirectory(char16** res, const char16* optExtraDir)
     *res = nullptr;
     AssertMsg(false, "Not XPLAT yet.");
 #else
-    char16* path = (char16*)malloc(MAX_PATH * sizeof(char16));
+    char16* path = new char16[MAX_PATH];
     path[0] = _u('\0');
 
     GetModuleFileName(NULL, path, MAX_PATH);
@@ -376,6 +376,13 @@ void GetDefaultTTDDirectory(char16** res, const char16* optExtraDir)
     int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(char16));
 
     *res = (char16*)CoTaskMemAlloc(MAX_PATH * sizeof(char16));
+    if(*res == nullptr)
+    {
+        //This is for testing only so just assert and return here is ok
+        AssertMsg(false, "OOM");
+        return;
+    }
+
     (*res)[0] = _u('\0');
 
     for(int i = 0; i < ccount; ++i)
@@ -401,7 +408,7 @@ void GetDefaultTTDDirectory(char16** res, const char16* optExtraDir)
         wcscat_s(*res, MAX_PATH, _u("\\"));
     }
 
-    free(path);
+    delete[] path;
 #endif
 }
 
@@ -417,6 +424,13 @@ static void CALLBACK GetTTDDirectory(const char16* uri, char16** fullTTDUri)
 
         size_t rlength = (wcslen(uri) + 2);
         *fullTTDUri = (wchar_t*)CoTaskMemAlloc(rlength * sizeof(char16));
+        if(*fullTTDUri == nullptr)
+        {
+            //This is for testing only so just assert and return here is ok
+            AssertMsg(false, "OOM");
+            return;
+        }
+
         (*fullTTDUri)[0] = _u('\0');
 
         wcscat_s(*fullTTDUri, rlength, uri);
@@ -482,7 +496,7 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     size_t rlength = (wcslen(uri) + 16);
-    char16* logfile = (char16*)malloc(rlength * sizeof(char16));
+    char16* logfile = new char16[rlength];
     logfile[0] = _u('\0');
 
     wcscat_s(logfile, rlength, uri);
@@ -490,7 +504,7 @@ static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool
 
     HANDLE res = TTOpenStream_Helper(logfile, read, write);
 
-    free(logfile);
+    delete[] logfile;
     return res;
 #endif
 }
@@ -504,7 +518,7 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* uri, const char
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
     size_t rlength = (wcslen(uri) + 64 + 16);
-    char16* snapfile = (char16*)malloc(rlength * sizeof(char16));
+    char16* snapfile = new char16[rlength];
     snapfile[0] = _u('\0');
 
     wcscat_s(snapfile, rlength, uri);
@@ -514,7 +528,7 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* uri, const char
 
     HANDLE res = TTOpenStream_Helper(snapfile, read, write);
 
-    free(snapfile);
+    delete[] snapfile;
     return res;
 #endif
 }
@@ -531,7 +545,7 @@ static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char1
     GetFileFromURI(srcFileName, &sFile);
 
     size_t rlength = (wcslen(uri) + 64 + wcslen(sFile) + 4);
-    char16* srcPath = (char16*)malloc(rlength * sizeof(char16));
+    char16* srcPath = new char16[rlength];
     srcPath[0] = _u('\0');
 
     wcscat_s(srcPath, rlength, uri);
@@ -541,8 +555,8 @@ static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char1
 
     HANDLE res = TTOpenStream_Helper(srcPath, read, write);
 
-    free(sFile);
-    free(srcPath);
+    delete[] sFile;
+    delete[] srcPath;
     return res;
 #endif
 }
