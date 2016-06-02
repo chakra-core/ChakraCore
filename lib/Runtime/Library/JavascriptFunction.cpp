@@ -1583,12 +1583,8 @@ LABEL1:
     // Library\arm\arm_DeferredParsingThunk.asm
     // Library\arm64\arm64_DeferredParsingThunk.asm
 #else
-    // xplat-todo: Implement defer deserialization for linux
-    Var JavascriptFunction::DeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        Js::Throw::NotImplemented();
-        return nullptr;
-    }
+    // xplat implement in
+    // Library/amd64/JavascriptFunctionA.S
 #endif
 
     Js::JavascriptMethod JavascriptFunction::DeferredDeserialize(ScriptFunction* function)
