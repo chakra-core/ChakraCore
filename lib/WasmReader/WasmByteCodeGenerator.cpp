@@ -934,8 +934,7 @@ WasmBytecodeGenerator::EmitBrTable()
     const UINT defaultEntry = m_reader->m_currentNode.brTable.defaultTarget;
 
     // Compile scrutinee
-    WasmOp op = m_reader->ReadFromBlock();
-    EmitInfo scrutineeInfo = EmitExpr(op);
+    EmitInfo scrutineeInfo = PopEvalStack();
     if (scrutineeInfo.type != WasmTypes::I32)
     {
         throw WasmCompilationException(L"br_table expression must be of type I32");

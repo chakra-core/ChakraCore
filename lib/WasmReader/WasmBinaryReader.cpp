@@ -498,6 +498,14 @@ void
 WasmBinaryReader::BrTableNode()
 {
     UINT len = 0;
+    m_currentNode.brTable.arity = LEB128(len);
+    m_funcState.count += len;
+
+    if (m_currentNode.brTable.arity != 0)
+    {
+        ThrowDecodingError(_u("NYI: br_table yielding value"));
+    }
+
     m_currentNode.brTable.numTargets = LEB128(len);
     m_funcState.count += len;
     m_currentNode.brTable.targetTable = AnewArray(&m_alloc, UINT32, m_currentNode.brTable.numTargets);
