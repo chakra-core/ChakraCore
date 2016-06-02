@@ -24,11 +24,19 @@ WScript.Echo("test: isFinite(123) : " + nn);
 isFinite.foo = "Expando_In_IsFinite_Ok";
 WScript.Echo(isNaN.foo);
 
+function GetCharCodes(str) {
+    var result = [];
+    str.split("").forEach(function(_,i,a) {
+      result.push(a[i].charCodeAt(0));
+    });
+
+    return result.join();
+}
 
 WScript.Echo("*** Test URI  functions ***");
 var checkChar = "\u00a9";
 WScript.Echo("Test print wchar: \"\\u00a9\" ");
-WScript.Echo(checkChar);
+WScript.Echo(GetCharCodes(checkChar) == "169");
 
 var a = encodeURI("\u00a9");
 WScript.Echo("Test encode : encodeURI(\"\\u00a9\");");
@@ -37,7 +45,7 @@ WScript.Echo(a);
 
 WScript.Echo("Test decode back: ")
 var b = decodeURI(encodeURI("\u00a9"));
-WScript.Echo(b);
+WScript.Echo(GetCharCodes(b) == "169");
 
 WScript.Echo("Test encode :  encodeURI(\"http:\/\/www.isp.com\/app.cgi?arg1=1&arg2=hello world\");");
 a = encodeURI("http://www.isp.com/app.cgi?arg1=1&arg2=hello world");

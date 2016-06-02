@@ -7,11 +7,11 @@ test: isFinite(123) : true
 Expando_In_IsNaN_Ok
 *** Test URI  functions ***
 Test print wchar: "\u00a9" 
-©
+true
 Test encode : encodeURI("\u00a9");
 %C2%A9
 Test decode back: 
-©
+true
 Test encode :  encodeURI("http://www.isp.com/app.cgi?arg1=1&arg2=hello world");
 http://www.isp.com/app.cgi?arg1=1&arg2=hello%20world
 Test decode back: 

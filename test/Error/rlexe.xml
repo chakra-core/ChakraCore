@@ -118,7 +118,7 @@
     <default>
       <files>RuntimeCompileStackOverflow.js</files>
       <baseline>RuntimeCompileStackOverflow.baseline</baseline>
-      <tags>exclude_forceundodefer,exclude_arm</tags>
+      <tags>exclude_forceundodefer,exclude_arm,exclude_xplat</tags>
     </default>
   </test>
   <test>
