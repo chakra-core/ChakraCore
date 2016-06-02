@@ -89,15 +89,12 @@ namespace Wasm
 
     private:
 
-        WasmFunction * InitializeImport();
-
         EmitInfo EmitExpr(WasmOp op);
         EmitInfo EmitBlock();
         EmitInfo EmitLoop();
 
         template<WasmOp wasmOp>
         EmitInfo EmitCall();
-        EmitInfo EmitIfExpr();
         EmitInfo EmitIfElseExpr();
         EmitInfo EmitBrTable();
         EmitInfo EmitGetLocal();
@@ -152,7 +149,7 @@ namespace Wasm
         WasmLocal * m_locals;
 
         WasmFunctionInfo * m_funcInfo;
-        WasmFunction * m_func;
+        WasmFunction * m_currentFunc;
         WasmModule * m_module;
 
         uint m_nestedIfLevel;

@@ -16,7 +16,8 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, 
     m_reader(reader),
     m_f32RegSlots(nullptr),
     m_f64RegSlots(nullptr),
-    m_i32RegSlots(nullptr)
+    m_i32RegSlots(nullptr),
+    m_currentFunc(nullptr)
 {
     m_writer.Create();
 
@@ -113,7 +114,7 @@ WasmBytecodeGenerator::GenerateModule()
     }
 
 #if DBG_DUMP
-    if (m_func != nullptr && PHASE_TRACE(Js::WasmReaderPhase, m_func->body))
+    if (PHASE_TRACE1(Js::WasmReaderPhase))
     {
         ((Binary::WasmBinaryReader*)m_reader)->PrintOps();
     }
@@ -130,14 +131,6 @@ WasmBytecodeGenerator::GenerateModule()
 }
 
 WasmFunction *
-WasmBytecodeGenerator::InitializeImport()
-{
-    m_func = Anew(&m_alloc, WasmFunction);
-    m_func->wasmInfo = m_reader->m_currentNode.func.info;
-    return m_func;
-}
-
-WasmFunction *
 WasmBytecodeGenerator::GenerateFunction()
 {
     WasmFunctionInfo* wasmInfo = m_reader->m_currentNode.func.info;
@@ -151,10 +144,10 @@ WasmBytecodeGenerator::GenerateFunction()
     m_f64RegSlots = &f64Space;
     m_i32RegSlots = &i32Space;
 
-    m_func = Anew(&m_alloc, WasmFunction);
+    m_currentFunc = Anew(&m_alloc, WasmFunction);
     char16* functionName = RecyclerNewArrayZ(m_scriptContext->GetRecycler(), char16, 32);
     int nameLength = swprintf_s(functionName, 32, _u("wasm-function[%u]"), wasmInfo->GetNumber());
-    m_func->body = Js::FunctionBody::NewFromRecycler(
+    m_currentFunc->body = Js::FunctionBody::NewFromRecycler(
         m_scriptContext,
         functionName,
         nameLength,
@@ -170,19 +163,19 @@ WasmBytecodeGenerator::GenerateFunction()
 #endif
         );
     // TODO (michhol): numbering
-    m_func->body->SetSourceInfo(0);
-    m_func->body->AllocateAsmJsFunctionInfo();
-    m_func->body->SetIsAsmJsFunction(true);
-    m_func->body->SetIsAsmjsMode(true);
-    m_func->body->SetIsWasmFunction(true);
-    m_func->body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(true);
+    m_currentFunc->body->SetSourceInfo(0);
+    m_currentFunc->body->AllocateAsmJsFunctionInfo();
+    m_currentFunc->body->SetIsAsmJsFunction(true);
+    m_currentFunc->body->SetIsAsmjsMode(true);
+    m_currentFunc->body->SetIsWasmFunction(true);
+    m_currentFunc->body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(true);
     m_funcInfo = wasmInfo;
-    m_func->wasmInfo = m_funcInfo;
+    m_currentFunc->wasmInfo = m_funcInfo;
     m_nestedIfLevel = 0;
     m_maxArgOutDepth = 0;
 
     // TODO: fix these bools
-    m_writer.Begin(m_func->body, &m_alloc, true, true, false);
+    m_writer.Begin(m_currentFunc->body, &m_alloc, true, true, false);
     try
     {
         try
@@ -229,14 +222,14 @@ WasmBytecodeGenerator::GenerateFunction()
         m_writer.End();
 
 #if DBG_DUMP
-        if (PHASE_DUMP(Js::ByteCodePhase, m_func->body))
+        if (PHASE_DUMP(Js::ByteCodePhase, m_currentFunc->body))
         {
-            Js::AsmJsByteCodeDumper::DumpBasic(m_func->body);
+            Js::AsmJsByteCodeDumper::DumpBasic(m_currentFunc->body);
         }
 #endif
 
         // TODO: refactor out to separate procedure
-        Js::AsmJsFunctionInfo * info = m_func->body->GetAsmJsFunctionInfo();
+        Js::AsmJsFunctionInfo * info = m_currentFunc->body->GetAsmJsFunctionInfo();
         if (m_funcInfo->GetParamCount() >= Js::Constants::InvalidArgSlot)
         {
             Js::Throw::OutOfMemory();
@@ -255,9 +248,9 @@ WasmBytecodeGenerator::GenerateFunction()
         }
         if (paramCount > 0)
         {
-            m_func->body->SetHasImplicitArgIns(true);
-            m_func->body->SetInParamsCount(paramCount + 1);
-            m_func->body->SetReportedInParamsCount(paramCount + 1);
+            m_currentFunc->body->SetHasImplicitArgIns(true);
+            m_currentFunc->body->SetInParamsCount(paramCount + 1);
+            m_currentFunc->body->SetReportedInParamsCount(paramCount + 1);
             info->SetArgTypeArray(RecyclerNewArrayLeaf(m_scriptContext->GetRecycler(), Js::AsmJsVarType::Which, paramCount));
         }
         Js::ArgSlot paramSize = 0;
@@ -312,7 +305,7 @@ WasmBytecodeGenerator::GenerateFunction()
             + (int)((info->GetIntConstCount() + 1) * sizeof(int) + 0.5/*ceil*/) //
             + Js::AsmJsFunctionMemory::RequiredVarConstants;
 
-        m_func->body->CheckAndSetConstantCount(nbConst);
+        m_currentFunc->body->CheckAndSetConstantCount(nbConst);
 
         info->SetReturnType(GetAsmJsReturnType(m_funcInfo->GetResultType()));
 
@@ -321,8 +314,8 @@ WasmBytecodeGenerator::GenerateFunction()
         info->SetFloatByteOffset(info->GetIntByteOffset() + m_i32RegSlots->GetRegisterCount() * sizeof(int32));
         info->SetDoubleByteOffset(Math::Align<int>(info->GetFloatByteOffset() + m_f32RegSlots->GetRegisterCount() * sizeof(float), sizeof(double)));
 
-        m_func->body->SetOutParamMaxDepth(m_maxArgOutDepth);
-        m_func->body->SetVarCount(m_f32RegSlots->GetRegisterCount() + m_f64RegSlots->GetRegisterCount() + m_i32RegSlots->GetRegisterCount());
+        m_currentFunc->body->SetOutParamMaxDepth(m_maxArgOutDepth);
+        m_currentFunc->body->SetVarCount(m_f32RegSlots->GetRegisterCount() + m_f64RegSlots->GetRegisterCount() + m_i32RegSlots->GetRegisterCount());
     }
     catch (WasmCompilationException& ex)
     {
@@ -334,7 +327,7 @@ WasmBytecodeGenerator::GenerateFunction()
         WasmCompilationException* lazyTrap = Anew(&m_alloc, WasmCompilationException, _u("Delayed Wasm trap:\n  %s\n  Function %s"), ex.GetErrorMessage(), functionName);
         m_module->lazyTraps[wasmInfo->GetNumber()] = lazyTrap;
     }
-    return m_func;
+    return m_currentFunc;
 }
 
 void
@@ -391,7 +384,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitExpr(WasmOp op)
 {
 #if DBG_DUMP
-    if (PHASE_TRACE(Js::WasmReaderPhase, m_func->body))
+    if (PHASE_TRACE(Js::WasmReaderPhase, m_currentFunc->body))
     {
         PrintOpName(op);
     }
@@ -977,7 +970,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitMemRead()
 {
     const uint offset = m_reader->m_currentNode.mem.offset;
-    m_func->body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
+    m_currentFunc->body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
 
     EmitInfo exprInfo = PopEvalStack();
 
@@ -1006,7 +999,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitMemStore()
 {
     const uint offset = m_reader->m_currentNode.mem.offset;
-    m_func->body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
+    m_currentFunc->body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
     // TODO (michhol): combine with MemRead
 
     EmitInfo rhsInfo = PopEvalStack();
