@@ -156,9 +156,7 @@ namespace Wasm
         WasmModule * m_module;
 
         uint m_nestedIfLevel;
-        uint m_nestedCallDepth;
         uint m_maxArgOutDepth;
-        uint m_argOutDepth;
 
         BaseWasmReader * m_reader;
 

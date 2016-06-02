@@ -46,7 +46,7 @@ WasmSignature::GetParam(uint index) const
     {
         return m_params->GetBuffer()[index].t;
     }
-    return WasmTypes::Limit;
+    throw WasmCompilationException(_u("Parameter %d out of range (max %d)"), index, m_params->Count());
 }
 
 WasmTypes::WasmType
@@ -67,8 +67,34 @@ WasmSignature::GetSignatureId() const
     return m_id;
 }
 
+uint32 WasmSignature::GetParamSize(uint index) const
+{
+    switch (GetParam(index))
+    {
+    case WasmTypes::F32:
+    case WasmTypes::I32:
+        CompileAssert(sizeof(float) == sizeof(int32));
+#ifdef _M_X64
+        // on x64, we always alloc (at least) 8 bytes per arguments
+        return sizeof(void*);
+#elif _M_IX86
+        return sizeof(int32);
+#else
+        Assert(UNREACHED);
+#endif
+        break;
+    case WasmTypes::F64:
+    case WasmTypes::I64:
+        CompileAssert(sizeof(double) == sizeof(int64));
+        return sizeof(int64);
+        break;
+    default:
+        throw WasmCompilationException(_u("Invalid param type"));
+    }
+}
+
 uint32
-WasmSignature::GetParamSize() const
+WasmSignature::GetParamsSize() const
 {
     if (m_paramSize != Js::Constants::UninitializedValue)
     {
@@ -78,28 +104,7 @@ WasmSignature::GetParamSize() const
     uint32 m_paramSize = 0;
     for (uint32 i = 0; i < GetParamCount(); ++i)
     {
-        switch (GetParam(i))
-        {
-        case WasmTypes::F32:
-        case WasmTypes::I32:
-            CompileAssert(sizeof(float) == sizeof(int32));
-#ifdef _M_X64
-            // on x64, we always alloc (at least) 8 bytes per arguments
-            m_paramSize += sizeof(void*);
-#elif _M_IX86
-            m_paramSize += sizeof(int32);
-#else
-            Assert(UNREACHED);
-#endif
-            break;
-        case WasmTypes::F64:
-        case WasmTypes::I64:
-            CompileAssert(sizeof(double) == sizeof(int64));
-            m_paramSize += sizeof(int64);
-            break;
-        default:
-            Assume(UNREACHED);
-        }
+        m_paramSize += GetParamSize(i);
     }
 
     return m_paramSize;
