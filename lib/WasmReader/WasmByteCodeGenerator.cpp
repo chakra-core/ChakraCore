@@ -473,7 +473,9 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         info = EmitUnaryExpr<Js::OpCodeAsmJs::##op, WasmTypes::##resultType, WasmTypes::##inputType>(); \
         break;
 #include "WasmKeywords.h"
-
+    case wnNYI:
+        // todo:: add the name of the operator that is NYI
+        throw WasmCompilationException(_u("Operator NYI"));
     default:
         throw WasmCompilationException(_u("Unknown expression's op 0x%X"), op);
     }
