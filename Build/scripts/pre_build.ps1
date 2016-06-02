@@ -99,10 +99,8 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
     $info = GetBuildInfo $oauth $commitHash
 
     $BuildDate = ([datetime]$info.push.date).toString("yyMMdd-HHmm")
-    $BuildPushId = $info.push.pushId
-    $BuildPushIdPart1 = [int]([math]::Floor($buildPushId / 65536))
-    $BuildPushIdPart2 = [int]($buildPushId % 65536)
-    $BuildPushIdString = "{0}.{1}" -f $buildPushIdPart1.ToString("00000"), $buildPushIdPart2.ToString("00000")
+
+    $buildPushId, $buildPushIdPart1, $buildPushIdPart2, $buildPushIdString = GetBuildPushId $info
 
     # commit message
     $command = "$gitExe log -1 --name-status -p $commitHash"

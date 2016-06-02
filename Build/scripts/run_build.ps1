@@ -3,9 +3,7 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
-# Build Script
-#
-# Use this script to run the appropriate flavor of MSBuild command for the $Env:BuildSubtype
+# Use this script to run a build command for the given BuildType (arch, flavor, subtype)
 
 param (
     [ValidateSet("x86", "x64", "arm")]
@@ -25,15 +23,14 @@ param (
 
     [switch]$clean,
 
+    # $binDir will be inferred if not provided.
     [string]$binDir = "",
-    [string]$buildlogsDir = "buildlogs",
+    [string]$buildlogsSubdir = "buildlogs",
 
     # assume NuGet is on the path, otherwise the caller must specify an explicit path
     [string]$nugetExe = "NuGet.exe",
 
-    [string]$logFile = "",
-
-    [string]$pogocmd = ""
+    [string]$logFile = ""
 )
 
 $OuterScriptRoot = $PSScriptRoot
@@ -58,12 +55,12 @@ ExecuteCommand "& $nugetExe restore $solutionFile -NonInteractive"
 
 $msbuildExe = Locate-MSBuild
 if (-not $msbuildExe) {
-    Write-Error "Could not find msbuild.exe -- exiting..."
+    WriteErrorMessage "Could not find msbuild.exe -- exiting..."
     exit 1
 }
 
 $binDir = UseValueOrDefault "$binDir" "${Env:BinariesDirectory}" "${Env:BUILD_SOURCESDIRECTORY}\Build\VcBuild"
-$buildlogsPath = Join-Path $binDir $buildlogsDir
+$buildlogsPath = Join-Path $binDir $buildlogsSubdir
 
 $defaultParams = "$solutionFile /nologo /m /nr:false /p:platform=`"${arch}`" /p:configuration=`"${flavor}`""
 $loggingParams = @(
@@ -78,14 +75,9 @@ if ($clean) {
     $targets += "`"/t:Clean,Rebuild`""
 }
 
-$subtypeParams = ""
-if (($subtype -eq "pogo") -and $pogocmd) {
-    # TODO
-} else {
-    if ($subtype -eq "codecoverage") {
-        $subtypeParams = "/p:ENABLE_CODECOVERAGE=true"
-    }
-
-    $buildCommand = "& `"$msbuildExe`" $targets $defaultParams $loggingParams $subtypeParams"
-    ExecuteCommand "$buildCommand"
+if ($subtype -eq "codecoverage") {
+    $subtypeParams = "/p:ENABLE_CODECOVERAGE=true"
 }
+
+$buildCommand = "& `"$msbuildExe`" $targets $defaultParams $loggingParams $subtypeParams"
+ExecuteCommand "$buildCommand"

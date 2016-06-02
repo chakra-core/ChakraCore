@@ -70,17 +70,7 @@ $OuterScriptRoot = $PSScriptRoot # Used in pre_post_util.ps1
 
 $gitExe = GetGitPath
 
-$BuildName = $BuildType # pick a reasonable default even though this will be overwritten
-if ($BuildSubtype -eq "codecoverage") {
-    # TODO (doilij) eliminate tools' dependency on this particular formatting exception
-    # TODO (doilij) and then remove this logic
-    # Normalize the $BuildName of even if the $BuildType is e.g. x64_test_codecoverage
-    $BuildName = "${BuildPlatform}_codecoverage"
-} elseif ($BuildSubtype -eq "pogo") {
-    $BuildName = "${BuildPlatform}_${BuildConfiguration}_${BuildSubtype}"
-} else {
-    $BuildName = "${BuildPlatform}_${BuildConfiguration}"
-}
+$BuildName = ConstructBuildName -arch $BuildPlatform -flavor $BuildConfiguration -subtype $BuildSubtype
 
 $branch = $Env:BUILD_SOURCEBRANCH
 if (-not $branch) {
@@ -99,26 +89,18 @@ $CommitDateTime = [DateTime]$(iex "$gitExe log $CommitHash -1 --pretty=%aD")
 $CommitTime = Get-Date $CommitDateTime -Format yyMMdd.HHmm
 
 #
-# (borrowed from pre_build.ps1)
-# Get PushID and PushDate from VSO
-# TODO (doilij) refactor this into a method in a util script.
+# Get Build Info
 #
 
 $info = GetBuildInfo $oauth $CommitHash
 
 $BuildPushDate = [datetime]$info.push.date
 $PushDate = Get-Date $BuildPushDate -Format yyMMdd.HHmm
-$buildPushId = $info.push.pushId
-$buildPushIdPart1 = [int]([math]::Floor($buildPushId / 65536))
-$buildPushIdPart2 = [int]($buildPushId % 65536)
 
-$PushID = "{0}.{1}" -f $buildPushIdPart1.ToString("00000"), $buildPushIdPart2.ToString("00000")
-$VersionString = "${Env:VERSION_MAJOR}.${Env:VERSION_MINOR}.${PushID}"
+$buildPushId, $buildPushIdPart1, $buildPushIdPart2, $buildPushIdString = GetBuildPushId $info
+
+$VersionString = "${Env:VERSION_MAJOR}.${Env:VERSION_MINOR}.${buildPushIdString}"
 $PreviewVersionString = "${VersionString}-preview"
-
-#
-# (end code borrowed from pre_build.ps1)
-#
 
 # unless it is a build branch, subdivide the output directory by month
 if ($BranchPath.StartsWith("build")) {
@@ -127,7 +109,7 @@ if ($BranchPath.StartsWith("build")) {
     $YearAndMonth = (Get-Date $BuildPushDate -Format yyMM) + "\"
 }
 
-$BuildIdentifier = "${PushID}_${PushDate}_${Username}_${CommitHash}"
+$BuildIdentifier = "${buildPushIdString}_${PushDate}_${Username}_${CommitHash}"
 $ComputedDropPathSegment = "${BranchPath}\${YearAndMonth}${BuildIdentifier}"
 $BinariesDirectory = "${Env:BUILD_SOURCESDIRECTORY}\Build\VcBuild"
 
@@ -163,7 +145,7 @@ set BranchPath=${BranchPath}
 set YearAndMonth=${YearAndMonth}
 set BuildIdentifier=${BuildIdentifier}
 
-set PushID=${PushID}
+set buildPushIdString=${buildPushIdString}
 set VersionString=${VersionString}
 set PreviewVersionString=${PreviewVersionString}
 set PushDate=${PushDate}

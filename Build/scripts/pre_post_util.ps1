@@ -27,6 +27,27 @@ function GetBuildInfo($oauth, $commitHash) {
     return $info
 }
 
+function GetBuildPushId($info) {
+    $buildPushId = $info.push.pushId
+    $buildPushIdPart1 = [int]([math]::Floor($buildPushId / 65536))
+    $buildPushIdPart2 = [int]($buildPushId % 65536)
+    $buildPushIdString = "{0}.{1}" -f $buildPushIdPart1.ToString("00000"), $buildPushIdPart2.ToString("00000")
+
+    return @($buildPushId, $buildPushIdPart1, $buildPushIdPart2, $buildPushIdString)
+}
+
+function ConstructBuildName($arch, $flavor, $subtype) {
+    if ($subtype -eq "codecoverage") {
+        # TODO eliminate tools' dependency on this particular formatting exception
+        # Normalize the $BuildName of even if the $BuildType is e.g. x64_test_codecoverage
+        return "${arch}_codecoverage"
+    } elseif ($subtype -eq "pogo") {
+        return "${arch}_${flavor}_${subtype}"
+    } else {
+        return "${arch}_${flavor}"
+    }
+}
+
 # Compute paths
 
 if (("$arch" -eq "") -or ("$flavor" -eq "") -or ("$OuterScriptRoot" -eq ""))

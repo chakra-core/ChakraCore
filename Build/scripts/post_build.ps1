@@ -37,10 +37,6 @@ param (
     [string[]]$pogo = @(),
     [string]$pogoscript = "",
 
-    # TODO (doilij) do the vars $subtype and $Env:BuildName make this parameter obsolete?
-    # Support output folders with e.g. _pogo suffix
-    [string]$buildTypeSuffix = "",
-
     [switch]$noaction
 )
 
@@ -82,9 +78,9 @@ if ($arch -eq "*") {
     WriteMessage "BVT Command  : $bvtcmdpath"
     WriteMessage ""
 
-    $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $binpath, $Env:BuildName)
-    $pogocmd = ("{0} {1} {2}" -f $pogoscript, $arch, $flavor)
-    $prefastlog = ("{0}\logs\PrefastCheck_{1}.log" -f $binpath, $Env:BuildName)
+    $buildName = ConstructBuildName -arch $arch -flavor $flavor -subtype $subtype
+    $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $binpath, $buildName)
+    $prefastlog = ("{0}\logs\PrefastCheck_{1}.log" -f $binpath, $buildName)
     $prefastcmd = "$PSScriptRoot\check_prefast_error.ps1 -directory $objpath -logFile $prefastlog"
 
     # generate srcsrv
@@ -101,8 +97,9 @@ if ($arch -eq "*") {
     }
 
     if ($subtype -ne "codecoverage") {
-        if ($doPogo) {
+        if ($doPogo -and ("$pogoscript" -ne "")) {
             WriteMessage "Building pogo for $arch $flavor"
+            $pogocmd = ("{0} {1} {2}" -f $pogoscript, $arch, $flavor)
             ExecuteCommand($pogocmd)
         }
 
