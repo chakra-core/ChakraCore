@@ -192,17 +192,17 @@ WasmBytecodeGenerator::GenerateFunction()
             m_funcInfo->SetExitLabel(m_writer.DefineLabel());
             EnregisterLocals();
 
-            WasmOp op = wnLIMIT, newOp;
+            WasmOp op = wnLIMIT;
             EmitInfo exprInfo;
             EnterEvalStackScope();
-            while ((newOp = m_reader->ReadExpr()) != wnFUNC_END)
+            while ((op = m_reader->ReadExpr()) != wnFUNC_END)
             {
-                op = newOp;
                 exprInfo = EmitExpr(op);
             }
             // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
             Wasm::WasmTypes::WasmType returnType = m_funcInfo->GetSignature()->GetResultType();
-            if (op != wnRETURN)
+            op = m_reader->GetLastOp();
+            if (op != wnRETURN && op != wnEND)
             {
                 if (exprInfo.type != returnType && returnType != Wasm::WasmTypes::Void)
                 {
@@ -885,16 +885,14 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 
     m_writer.MarkAsmJsLabel(falseLabel);
 
-    m_reader->Unread();
-    WasmOp op = m_reader->ReadExpr(); // read wnEND or wnELSE
+    WasmOp op = m_reader->GetLastOp(); // wnEND or wnELSE
     EmitInfo retInfo;
     EmitInfo falseExpr;
     if (op == wnELSE)
     {
         falseExpr = EmitBlock(); 
-        m_reader->Unread();
         // Read END
-        op = m_reader->ReadExpr();
+        op = m_reader->GetLastOp();
     }
 
     if (trueExpr.type == WasmTypes::Void || falseExpr.type != trueExpr.type)

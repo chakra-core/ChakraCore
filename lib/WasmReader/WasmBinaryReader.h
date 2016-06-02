@@ -96,7 +96,7 @@ namespace Wasm
             virtual WasmOp ReadFromBlock() override;
             virtual WasmOp ReadFromCall() override;
             virtual WasmOp ReadExpr() override;
-            virtual void Unread() override { m_pc--; m_funcState.count--; }
+            virtual WasmOp GetLastOp() override;
 #if DBG_DUMP
             void PrintOps();
 #endif
@@ -152,6 +152,7 @@ namespace Wasm
             uint m_funcNumber;
             byte *m_start, *m_end, *m_pc;
             SectionHeader m_currentSection;
+            WasmBinOp m_lastOp;
             ReaderState m_funcState;   // func AST level
 
         private:

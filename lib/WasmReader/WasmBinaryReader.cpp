@@ -41,7 +41,7 @@ Signature::Signature(ArenaAllocator *alloc, uint count, ...)
 } // namespace WasmTypes
 
 WasmBinaryReader::WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length) :
-    m_alloc(_u("WasmBinaryDecoder"), alloc, Js::Throw::OutOfMemory)
+    m_alloc(_u("WasmBinaryDecoder"), alloc, Js::Throw::OutOfMemory), m_lastOp(WasmBinOp::wbLimit)
 {
     m_moduleInfo = Anew(&m_alloc, ModuleInfo, &m_alloc);
 
@@ -322,6 +322,11 @@ WasmBinaryReader::ReadExpr()
     return GetWasmToken(ASTNode());
 }
 
+Wasm::WasmOp WasmBinaryReader::GetLastOp()
+{
+    return GetWasmToken(m_lastOp);
+}
+
 /*
 Entry point for decoding a node
 */
@@ -411,6 +416,7 @@ WasmBinaryReader::ASTNode()
 #if DBG_DUMP
     m_ops->AddNew(op);
 #endif
+    m_lastOp = op;
     return op;
 }
 
