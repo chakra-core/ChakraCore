@@ -67,6 +67,7 @@ namespace Wasm
 
     struct WasmBrTableNode
     {
+        uint32 arity;
         uint32 numTargets;
         uint32* targetTable;
         uint32 defaultTarget;
