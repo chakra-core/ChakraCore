@@ -686,13 +686,22 @@ bool WScriptJsrt::PrintException(LPCSTR fileName, JsErrorCode jsErrorCode)
                 LPCWSTR errorStack = nullptr;
                 size_t errorStackLength = 0;
 
-                IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(_u("stack"), &stackPropertyId), false);
-                IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(exception, stackPropertyId, &stackProperty), false);
+                JsErrorCode errorCode = ChakraRTInterface::JsGetPropertyIdFromName(_u("stack"), &stackPropertyId);
 
-                IfJsrtErrorFail(ChakraRTInterface::JsGetValueType(stackProperty, &propertyType), false);
-
-                if (propertyType == JsUndefined)
+                if (errorCode == JsErrorCode::JsNoError)
                 {
+                    errorCode = ChakraRTInterface::JsGetProperty(exception, stackPropertyId, &stackProperty);
+                    if (errorCode == JsErrorCode::JsNoError)
+                    {
+                        errorCode = ChakraRTInterface::JsGetValueType(stackProperty, &propertyType);
+                    }
+                }
+
+                if (errorCode != JsErrorCode::JsNoError || propertyType == JsUndefined)
+                {
+                    const char *fName = fileName != nullptr ? fileName : "(unknown)";
+                    // do not mix char/wchar. print them separately
+                    fprintf(stderr, "thrown at %s:\n^\n", fName);
                     fwprintf(stderr, _u("%ls\n"), errorMessage);
                 }
                 else
