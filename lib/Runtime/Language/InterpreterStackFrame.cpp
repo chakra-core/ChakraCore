@@ -5875,6 +5875,18 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 {
                     this->CheckIfLoopIsHot(loopHeader->profiledLoopCounter);
                 }
+
+                if (newOffset >= loopHeader->endOffset)
+                {
+                    // Reset the totalJittedLoopIterations for the next invocation of this loop entry point
+                    entryPointInfo->totalJittedLoopIterations =
+                        static_cast<uint8>(
+                            min(
+                                static_cast<uint>(static_cast<uint8>(CONFIG_FLAG(MinBailOutsBeforeRejit))) *
+                                (Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() - 1),
+                                entryPointInfo->totalJittedLoopIterations));
+                    entryPointInfo->jittedLoopIterationsSinceLastBailout = 0;
+                }
                 m_reader.SetCurrentOffset(newOffset);
             }
 
