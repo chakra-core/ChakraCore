@@ -1114,23 +1114,22 @@ WasmBytecodeGenerator::EmitSelect()
     Js::ByteCodeLabel doneLabel = m_writer.DefineLabel();
 
     m_writer.AsmBrReg1(Js::OpCodeAsmJs::BrFalse_Int, falseLabel, conditionInfo.location);
-    m_i32RegSlots->ReleaseLocation(&conditionInfo);
+    ReleaseLocation(&conditionInfo);
 
-    EmitInfo trueInfo = PopEvalStack();
     m_writer.AsmBr(doneLabel);
     m_writer.MarkAsmJsLabel(falseLabel);
 
     EmitInfo falseInfo = PopEvalStack();
+    EmitInfo trueInfo = PopEvalStack();
     if (trueInfo.type != falseInfo.type)
     {
         throw WasmCompilationException(_u("select operands must both have same type"));
     }
 
     Js::OpCodeAsmJs op = GetLoadOp(trueInfo.type);
-    WasmRegisterSpace * regSpace = GetRegisterSpace(trueInfo.type);
 
     m_writer.AsmReg2(op, trueInfo.location, falseInfo.location);
-    regSpace->ReleaseLocation(&falseInfo);
+    ReleaseLocation(&falseInfo);
 
     m_writer.MarkAsmJsLabel(doneLabel);
 
