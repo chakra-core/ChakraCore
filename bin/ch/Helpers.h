@@ -7,7 +7,7 @@
 class Helpers
 {
 public :
-    static HRESULT LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, bool* isUtf8Out = nullptr, UINT* lengthBytesOut = nullptr);
+    static HRESULT LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* lengthBytesOut = nullptr);
     static LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode);
     static void LogError(__in __nullterminated const char16 *msg, ...);
 };

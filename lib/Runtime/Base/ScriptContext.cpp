@@ -1591,7 +1591,10 @@ if (!sourceList)
 
         bool isLibraryCode = ((loadScriptFlag & LoadScriptFlag_LibraryCode) == LoadScriptFlag_LibraryCode);
 
-        bool utf8FromExternal = false;
+        // We assume that any buffer that wasn't passed in with LoadScriptFlag_Utf8Source is UTF16-LE
+        // We convert this into CESU-8 using our codex library
+        // isRealUtf8 tracks whether the buffer is truly UTF8 or if it's CESU-8, for the purpose of parsing later
+        bool isRealUtf8 = false;
         if ((loadScriptFlag & LoadScriptFlag_Utf8Source) != LoadScriptFlag_Utf8Source)
         {
             // Convert to UTF8 and then load that
@@ -1629,16 +1632,12 @@ if (!sourceList)
         }
         else
         {
-            // xplat-todo: This is temporary. How to tell if utf8 fromExternal?
-            if (cb >= 3 && script[0] == 0xEF && script[1] == 0xBB && script[2] == 0xBF) // ef bb bf
-            {
-                utf8Script = (LPUTF8)script;
-                cbNeeded = cb;
-            }
-            else
-            {
-                utf8FromExternal = true;
-            }
+            // If LoadScriptFlag_Utf8Source was passed in, then the source buffer is guaranteed to actually be
+            // UTF8, and not CESU-8. JSRT APIs expect real UTF8 buffers to be passed in, not CESU-8, and ch.exe 
+            // only supports ANSI (utf8-compatible) and actual UTF8 files, not UTF16/UTF16-LE encoded files.
+            isRealUtf8 = true;
+            utf8Script = (LPUTF8)script;
+            cbNeeded = cb;
 
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             if (*ppSourceInfo == nullptr)
@@ -1693,7 +1692,7 @@ if (!sourceList)
         }
 
         ParseNodePtr parseTree;
-        if (utf8FromExternal)
+        if (isRealUtf8)
         {
             Assert((loadScriptFlag & LoadScriptFlag_Utf8Source)
                     == LoadScriptFlag_Utf8Source);

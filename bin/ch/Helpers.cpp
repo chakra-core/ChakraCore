@@ -4,14 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 
-HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, bool* isUtf8Out /*= nullptr*/, UINT* lengthBytesOut /*= nullptr*/)
+HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/)
 {
     HRESULT hr = S_OK;
     BYTE * pRawBytes = nullptr;
     UINT lengthBytes = 0;
-    bool isUtf8 = false;
     contents = nullptr;
-    FILE * file;
+    FILE * file = nullptr;
 
     //
     // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
@@ -42,79 +41,58 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, bool* isU
         IfFailGo(E_FAIL);
     }
 
-    //
-    // Determine the file length, in bytes.
-    //
-    fseek(file, 0, SEEK_END);
-    lengthBytes = ftell(file);
-    fseek(file, 0, SEEK_SET);
-    pRawBytes = (LPBYTE)malloc(lengthBytes + sizeof(WCHAR));
-    if (nullptr == pRawBytes)
+    if (file != nullptr)
     {
-        fwprintf(stderr, _u("out of memory"));
-        IfFailGo(E_OUTOFMEMORY);
-    }
+        // Determine the file length, in bytes.
+        fseek(file, 0, SEEK_END);
+        lengthBytes = ftell(file);
+        fseek(file, 0, SEEK_SET);
+        pRawBytes = (LPBYTE)malloc(lengthBytes + sizeof(WCHAR));
+        if (nullptr == pRawBytes)
+        {
+            fwprintf(stderr, _u("out of memory"));
+            IfFailGo(E_OUTOFMEMORY);
+        }
 
-    //
-    // Read the entire content as a binary block.
-    //
-    fread(pRawBytes, sizeof(BYTE), lengthBytes, file);
-    fclose(file);
-    *reinterpret_cast<WCHAR*>(pRawBytes + lengthBytes) = 0; // Null terminate it. Could be UTF16
+        //
+        // Read the entire content as a binary block.
+        //
+        fread(pRawBytes, sizeof(BYTE), lengthBytes, file);
+        *reinterpret_cast<WCHAR*>(pRawBytes + lengthBytes) = 0; // Null terminate it. Could be UTF16
 
-    //
-    // Read encoding, handling any conversion to Unicode.
-    //
-    // Warning: The UNICODE buffer for parsing is supposed to be provided by the host.
-    // This is not a complete read of the encoding. Some encodings like UTF7, UTF1, EBCDIC, SCSU, BOCU could be
-    // wrongly classified as ANSI
-    //
-    {
-        LPCWSTR contentsRaw = reinterpret_cast<LPCWSTR>(pRawBytes);
-        if ((0xEF == *pRawBytes && 0xBB == *(pRawBytes + 1) && 0xBF == *(pRawBytes + 2)))
+        //
+        // Read encoding, handling any conversion to Unicode.
+        //
+        // Warning: The UNICODE buffer for parsing is supposed to be provided by the host.
+        // This is not a complete read of the encoding. Some encodings like UTF7, UTF1, EBCDIC, SCSU, BOCU could be
+        // wrongly classified as ANSI
+        //
         {
-            isUtf8 = true;
-        }
-        else if (0xFFFE == *contentsRaw || (0x0000 == *contentsRaw && 0xFEFF == *(contentsRaw + 1)))
-        {
-            // unicode unsupported
-            fwprintf(stderr, _u("unsupported file encoding"));
-            IfFailGo(E_UNEXPECTED);
-        }
-        else if (0xFEFF == *contentsRaw)
-        {
-            // unicode LE
-            isUtf8 = false;
-        }
-        else
-        {
-            // Assume UTF8
-            isUtf8 = true;
+            LPCWSTR contentsRaw = reinterpret_cast<LPCWSTR>(pRawBytes);
+            if (0xFFFE == *contentsRaw || (0x0000 == *contentsRaw && 0xFEFF == *(contentsRaw + 1)) ||
+                0xFEFF == *contentsRaw)
+            {
+                // unicode unsupported
+                fwprintf(stderr, _u("unsupported file encoding. Only ANSI and UTF8 supported"));
+                IfFailGo(E_UNEXPECTED);
+            }
         }
     }
 
-    if (isUtf8)
-    {
-        contents = reinterpret_cast<LPCSTR>(pRawBytes);
-    }
-    else
-    {
-        LPSTR pNarrow = nullptr;
-        IfFailGo(WideStringToNarrowDynamic(reinterpret_cast<LPCWSTR>(pRawBytes), &pNarrow));
-        contents = pNarrow;
-    }
+    contents = reinterpret_cast<LPCSTR>(pRawBytes);
 
 Error:
     if (SUCCEEDED(hr))
     {
-        if (isUtf8Out)
-        {
-            *isUtf8Out = isUtf8;
-        }
         if (lengthBytesOut)
         {
             *lengthBytesOut = lengthBytes;
         }
+    }
+
+    if (file != nullptr)
+    {
+        fclose(file);
     }
 
     if (pRawBytes && reinterpret_cast<LPCSTR>(pRawBytes) != contents)

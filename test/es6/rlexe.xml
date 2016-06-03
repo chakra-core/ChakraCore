@@ -505,8 +505,8 @@
   </test>
   <test>
     <default>
-      <files>unicode_6_identifiers.js</files>
-      <baseline>unicode_6_identifiers.baseline</baseline>
+      <files>unicode_6_identifiers_utf8.js</files>
+      <baseline>unicode_6_identifiers_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
       <tags>exclude_win7,exclude_ship</tags>
     </default>
@@ -584,7 +584,7 @@
   </test>
   <test>
     <default>
-      <files>unicode_idDeferParseFunctions.js</files>
+      <files>unicode_idDeferParseFunctions_utf8.js</files>
       <compile-flags>-ES6Unicode</compile-flags>
     </default>
   </test>
@@ -627,8 +627,8 @@
   </test>
   <test>
     <default>
-      <files>unicode_regex_surrogate.js</files>
-      <baseline>unicode_regex_surrogate.baseline</baseline>
+      <files>unicode_regex_surrogate_utf8.js</files>
+      <baseline>unicode_regex_surrogate_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode -ES6RegExSticky</compile-flags>
       <tags>exclude_ship,Slow</tags>
       <timeout>300</timeout>
@@ -636,8 +636,8 @@
   </test>
   <test>
     <default>
-      <files>unicode_blue_533163.js</files>
-      <baseline>unicode_blue_533163.baseline</baseline>
+      <files>unicode_blue_533163_utf8.js</files>
+      <baseline>unicode_blue_533163_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
       <tags>exclude_ship</tags>
     </default>
