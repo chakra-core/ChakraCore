@@ -1,3 +1,7 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 var p1 = new Promise((resolve, reject) => resolve(5));  
 var p2 = p1.then((val) => { return val + 1; }); // 5  
