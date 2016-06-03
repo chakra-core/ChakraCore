@@ -209,6 +209,27 @@ namespace Js {
         return JsErrorOutOfMemory;  \
     }  \
 
+#if ENABLE_TTD
+#define CATCH_OTHER_EXCEPTIONS  \
+    catch (JsrtExceptionBase& e)  \
+    {  \
+        return e.GetJsErrorCode();  \
+    }   \
+    catch (Js::ExceptionBase)   \
+    {   \
+        AssertMsg(false, "Unexpected engine exception.");   \
+        return JsErrorFatal;    \
+    }   \
+    catch (TTD::TTDebuggerAbortException)   \
+    {   \
+        throw;   \
+    }   \
+    catch (...) \
+    {   \
+        AssertMsg(false, "Unexpected non-engine exception.");   \
+        return JsErrorFatal;    \
+    }
+#else
 #define CATCH_OTHER_EXCEPTIONS  \
     catch (JsrtExceptionBase& e)  \
     {  \
@@ -224,6 +245,7 @@ namespace Js {
         AssertMsg(false, "Unexpected non-engine exception.");   \
         return JsErrorFatal;    \
     }
+#endif
 
 // Use this version if execution is in script (use rarely)
 #define END_TRANSLATE_ERROROBJECT_TO_HRESULT_INSCRIPT(hr) \

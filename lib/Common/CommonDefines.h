@@ -321,6 +321,51 @@
 #define ENABLE_TEST_HOOKS
 #endif
 
+////////
+//Time Travel flags
+#define ENABLE_TTD 1
+
+#if ENABLE_TTD
+//Enable debugging specific aspects of TTD
+#define ENABLE_TTD_DEBUGGING 1
+
+//A workaround for VSCode getting angry with timing (adds a Sleep before sending msgs)
+//Also makes step out behave the same as step back
+#define TTD_VSCODE_WORK_AROUNDS 1
+
+//Enable various sanity checking features and asserts
+#define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1
+
+#define TTD_COMPRESSED_OUTPUT 0
+#define TTD_LOG_READER TextFormatReader
+#define TTD_LOG_WRITER TextFormatWriter
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+#define TTD_SNAP_READER TextFormatReader
+#define TTD_SNAP_WRITER TextFormatWriter
+#else
+#define TTD_SNAP_READER BinaryFormatReader
+#define TTD_SNAP_WRITER BinaryFormatWriter
+#endif
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+#define ENABLE_SNAPSHOT_COMPARE 1
+#define ENABLE_OBJECT_SOURCE_TRACKING 0
+#define ENABLE_BASIC_TRACE 0
+#define ENABLE_FULL_BC_TRACE 0
+#else
+#define ENABLE_SNAPSHOT_COMPARE 0
+#define ENABLE_OBJECT_SOURCE_TRACKING 0
+#define ENABLE_BASIC_TRACE 0
+#define ENABLE_FULL_BC_TRACE 0
+#endif
+
+#define ENABLE_TTD_STACK_STMTS (ENABLE_TTD_DEBUGGING || ENABLE_OBJECT_SOURCE_TRACKING || ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE)
+
+#endif
+//End Time Travel flags
+////////
+
 #endif // ENABLE_DEBUG_CONFIG_OPTIONS
 
 

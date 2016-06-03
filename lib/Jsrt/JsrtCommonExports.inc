@@ -104,3 +104,23 @@
     JsGetRuntime
     JsIdle
     JsSetPromiseContinuationCallback
+#if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
+    JsTTDCreateRecordRuntime
+    JsTTDCreateDebugRuntime
+    JsTTDCreateContext
+    JsTTDRunScript
+    JsTTDCallFunction
+    JsTTDSetDebuggerForReplay
+    JsTTDSetIOCallbacks
+    JsTTDStartTimeTravelRecording
+    JsTTDStopTimeTravelRecording
+    JsTTDEmitTimeTravelRecording
+    JsTTDStartTimeTravelDebugging
+    JsTTDPauseTimeTravelBeforeRuntimeOperation
+    JsTTDReStartTimeTravelAfterRuntimeOperation
+    JsTTDNotifyHostCallbackCreatedOrCanceled
+    JsTTDNotifyYield
+    JsTTDPrepContextsForTopLevelEventMove
+    JsTTDMoveToTopLevelEvent
+    JsTTDReplayExecution
+#endif

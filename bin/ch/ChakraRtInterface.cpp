@@ -129,6 +129,57 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
     m_jsApiHooks.pfJsrtDiagGetProperties = (JsAPIHooks::JsrtDiagGetProperties)GetChakraCoreSymbol(library, "JsDiagGetProperties");
     m_jsApiHooks.pfJsrtDiagGetObjectFromHandle = (JsAPIHooks::JsrtDiagGetObjectFromHandle)GetChakraCoreSymbol(library, "JsDiagGetObjectFromHandle");
     m_jsApiHooks.pfJsrtDiagEvaluate = (JsAPIHooks::JsrtDiagEvaluate)GetChakraCoreSymbol(library, "JsDiagEvaluate");
+
+#if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
+    m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = (JsAPIHooks::JsrtTTDCreateRecordRuntimePtr)GetProcAddress(library, "JsTTDCreateRecordRuntime");
+    m_jsApiHooks.pfJsrtTTDCreateDebugRuntime = (JsAPIHooks::JsrtTTDCreateDebugRuntimePtr)GetProcAddress(library, "JsTTDCreateDebugRuntime");
+    m_jsApiHooks.pfJsrtTTDCreateContext = (JsAPIHooks::JsrtTTDCreateContextPtr)GetProcAddress(library, "JsTTDCreateContext");
+    m_jsApiHooks.pfJsrtTTDRunScript = (JsAPIHooks::JsrtTTDRunScriptPtr)GetProcAddress(library, "JsTTDRunScript");
+    m_jsApiHooks.pfJsrtTTDCallFunction = (JsAPIHooks::JsrtTTDCallFunctionPtr)GetProcAddress(library, "JsTTDCallFunction");
+
+    m_jsApiHooks.pfJsrtTTDSetDebuggerForReplay = (JsAPIHooks::JsrtTTDSetDebuggerForReplayPtr)GetProcAddress(library, "JsTTDSetDebuggerForReplay");
+    m_jsApiHooks.pfJsrtTTDSetIOCallbacks = (JsAPIHooks::JsrtTTDSetIOCallbacksPtr)GetProcAddress(library, "JsTTDSetIOCallbacks");
+
+    m_jsApiHooks.pfJsrtTTDStartTimeTravelRecording = (JsAPIHooks::JsrtTTDStartTimeTravelRecordingPtr)GetProcAddress(library, "JsTTDStartTimeTravelRecording");
+    m_jsApiHooks.pfJsrtTTDStopTimeTravelRecording = (JsAPIHooks::JsrtTTDStopTimeTravelRecordingPtr)GetProcAddress(library, "JsTTDStopTimeTravelRecording");
+    m_jsApiHooks.pfJsrtTTDEmitTimeTravelRecording = (JsAPIHooks::JsrtTTDEmitTimeTravelRecordingPtr)GetProcAddress(library, "JsTTDEmitTimeTravelRecording");
+
+    m_jsApiHooks.pfJsrtTTDStartTimeTravelDebugging = (JsAPIHooks::JsrtTTDStartTimeTravelDebuggingPtr)GetProcAddress(library, "JsTTDStartTimeTravelDebugging");
+    m_jsApiHooks.pfJsrtTTDPauseTimeTravelBeforeRuntimeOperation = (JsAPIHooks::JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr)GetProcAddress(library, "JsTTDPauseTimeTravelBeforeRuntimeOperation");
+    m_jsApiHooks.pfJsrtTTDReStartTimeTravelAfterRuntimeOperation = (JsAPIHooks::JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr)GetProcAddress(library, "JsTTDReStartTimeTravelAfterRuntimeOperation");
+
+    m_jsApiHooks.pfJsrtTTDNotifyHostCallbackCreatedOrCanceled = (JsAPIHooks::JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)GetProcAddress(library, "JsTTDNotifyHostCallbackCreatedOrCanceled");
+    m_jsApiHooks.pfJsrtTTDNotifyYield = (JsAPIHooks::JsrtTTDNotifyYieldPtr)GetProcAddress(library, "JsTTDNotifyYield");
+
+    m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove = (JsAPIHooks::JsrtTTDPrepContextsForTopLevelEventMovePtr)GetProcAddress(library, "JsTTDPrepContextsForTopLevelEventMove");
+    m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = (JsAPIHooks::JsrtTTDMoveToTopLevelEventPtr)GetProcAddress(library, "JsTTDMoveToTopLevelEvent");
+    m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetProcAddress(library, "JsTTDReplayExecution");
+#else
+    m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = nullptr;
+    m_jsApiHooks.pfJsrtTTDCreateDebugRuntime = nullptr;
+    m_jsApiHooks.pfJsrtTTDCreateContext = nullptr;
+    m_jsApiHooks.pfJsrtTTDRunScript = nullptr;
+    m_jsApiHooks.pfJsrtTTDCallFunction = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDSetDebuggerForReplay = nullptr;
+    m_jsApiHooks.pfJsrtTTDSetIOCallbacks = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDStartTimeTravelRecording = nullptr;
+    m_jsApiHooks.pfJsrtTTDStopTimeTravelRecording = nullptr;
+    m_jsApiHooks.pfJsrtTTDEmitTimeTravelRecording = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDStartTimeTravelDebugging = nullptr;
+    m_jsApiHooks.pfJsrtTTDPauseTimeTravelBeforeRuntimeOperation = nullptr;
+    m_jsApiHooks.pfJsrtTTDReStartTimeTravelAfterRuntimeOperation = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDNotifyHostCallbackCreatedOrCanceled = nullptr;
+    m_jsApiHooks.pfJsrtTTDNotifyYield = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove = nullptr;
+    m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = nullptr;
+    m_jsApiHooks.pfJsrtTTDReplayExecution = nullptr;
+#endif
+
     return library;
 }
 

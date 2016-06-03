@@ -753,4 +753,17 @@ namespace Js
         }
         return ScriptFunction::OP_NewScFunc(environment, proxyRef);
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType StackScriptFunction::GetSnapTag_TTD() const
+    {
+        //Make sure this isn't accidentally handled by parent class
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void StackScriptFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::Invalid>(objData, nullptr);
+    }
+#endif
  }
