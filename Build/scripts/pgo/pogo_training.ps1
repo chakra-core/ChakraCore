@@ -21,17 +21,21 @@ param (
     [Parameter(Mandatory=$True)]
     [string]$arch,
 
+    [ValidateSet("default", "codecoverage", "pogo")]
+    [string]$subtype = "default",
+
     # force callers to specify this in case of future use
     [Parameter(Mandatory=$True)]
     [string]$flavor,
 
-    [string]$vcinstallroot = ${env:ProgramFiles(x86)},
+    [string]$vcinstallroot = ${Env:ProgramFiles(x86)},
     [string]$vcbinpath = "Microsoft Visual Studio 14.0\VC\bin",
     [string]$dllname = "pgort140.dll",
     [string]$dllCheckName = "pgort*.dll"
 )
 
-if (${Env:PogoConfig} -eq "False") {
+$pogoConfig = ($subtype -eq "pogo") -or (${Env:PogoConfig} -eq "True")
+if (-not $pogoConfig) {
     Write-Host "---- Not a Pogo Config. Skipping step."
     return 0
 }
@@ -55,7 +59,7 @@ for ($i = 0; $i -lt $scenarios.Length; $i = $i + 1) {
     $items = @()
     if (Test-Path $path -PathType Container) {
         # *.js files in directories
-        $items = Get-ChildItem -Path $path -Filter "*.js" | % {join-path $path $_ }
+        $items = Get-ChildItem -Path $path -Filter "*.js" | % { join-path $path $_ }
     } else {
         $items = @($path)
     }
