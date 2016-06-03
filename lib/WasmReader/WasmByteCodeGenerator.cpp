@@ -213,7 +213,15 @@ WasmBytecodeGenerator::GenerateFunction()
             {
                 throw WasmCompilationException(_u("Last expression return type mismatch return type"));
             }
-            m_reader->m_currentNode.ret.arity = 1;
+            if (returnType != Wasm::WasmTypes::Void)
+            {
+                m_reader->m_currentNode.ret.arity = 1;
+            }
+            else
+            {
+                m_reader->m_currentNode.ret.arity = 0;
+            }
+            // TODO: Don't need to check for arity match for implicit return
             EmitReturnExpr(&exprInfo);
         }
         ReleaseLocation(&exprInfo);
@@ -1332,6 +1340,10 @@ WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type) const
 EmitInfo
 WasmBytecodeGenerator::PopEvalStack()
 {
+    if (m_evalStack->Empty() || m_evalStack->Top()->Empty())
+    {
+        throw WasmCompilationException(_u("Missing operand"));
+    }
     return m_evalStack->Top()->Pop();
 }
 
@@ -1350,6 +1362,7 @@ WasmBytecodeGenerator::EnterEvalStackScope()
 void
 WasmBytecodeGenerator::ExitEvalStackScope()
 {
+    Assert(!m_evalStack->Empty());
     Adelete(&m_alloc, m_evalStack->Top());
     m_evalStack->Pop();
 }

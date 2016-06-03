@@ -2120,6 +2120,10 @@ namespace Js
                 HeapDelete((Wasm::Binary::WasmBinaryReader*)reader);
             }
         }
+        if (!exportObj && start)
+        {
+            *start = nullptr;
+        }
         return exportObj;
     }
 #endif
