@@ -44,6 +44,7 @@
     <ClCompile Include="Platform\Windows\HiResTimer.cpp" />
     <ClCompile Include="Platform\Windows\UnicodeText.cpp" />
     <ClCompile Include="Platform\Windows\NumbersUtility.cpp" />
+    <ClCompile Include="Platform\Windows\SystemInfo.cpp" />
 
     <ClCompile Include="Platform\Common\UnicodeText.Common.cpp" />
   </ItemGroup>

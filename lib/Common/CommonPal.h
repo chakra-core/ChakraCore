@@ -628,3 +628,4 @@ namespace PlatformAgnostic
 
 #include "PlatformAgnostic/DateTime.h"
 #include "PlatformAgnostic/Numbers.h"
+#include "PlatformAgnostic/SystemInfo.h"

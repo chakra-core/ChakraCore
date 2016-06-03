@@ -8,6 +8,7 @@ struct JsAPIHooks
 {
     typedef JsErrorCode (WINAPI *JsrtCreateRuntimePtr)(JsRuntimeAttributes attributes, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode (WINAPI *JsrtCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
+    typedef JsErrorCode (WINAPI *JsrtSetRuntimeMemoryLimitPtr)(JsRuntimeHandle runtime, size_t memoryLimit);
     typedef JsErrorCode (WINAPI *JsrtSetCurrentContextPtr)(JsContextRef context);
     typedef JsErrorCode (WINAPI *JsrtGetCurrentContextPtr)(JsContextRef* context);
     typedef JsErrorCode (WINAPI *JsrtDisposeRuntimePtr)(JsRuntimeHandle runtime);
@@ -75,6 +76,7 @@ struct JsAPIHooks
 
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
+    JsrtSetRuntimeMemoryLimitPtr pfJsrtSetRuntimeMemoryLimit;
     JsrtSetCurrentContextPtr pfJsrtSetCurrentContext;
     JsrtGetCurrentContextPtr pfJsrtGetCurrentContext;
     JsrtDisposeRuntimePtr pfJsrtDisposeRuntime;
@@ -216,6 +218,7 @@ public:
 
     static JsErrorCode WINAPI JsCreateRuntime(JsRuntimeAttributes attributes, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtCreateRuntime(attributes, threadService, runtime); }
     static JsErrorCode WINAPI JsCreateContext(JsRuntimeHandle runtime, JsContextRef *newContext) { return m_jsApiHooks.pfJsrtCreateContext(runtime, newContext); }
+    static JsErrorCode WINAPI JsSetRuntimeMemoryLimit(JsRuntimeHandle runtime, size_t memory) { return m_jsApiHooks.pfJsrtSetRuntimeMemoryLimit(runtime, memory); }
     static JsErrorCode WINAPI JsSetCurrentContext(JsContextRef context) { return m_jsApiHooks.pfJsrtSetCurrentContext(context); }
     static JsErrorCode WINAPI JsGetCurrentContext(JsContextRef* context) { return m_jsApiHooks.pfJsrtGetCurrentContext(context); }
     static JsErrorCode WINAPI JsDisposeRuntime(JsRuntimeHandle runtime) { return m_jsApiHooks.pfJsrtDisposeRuntime(runtime); }
