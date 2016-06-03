@@ -1050,6 +1050,15 @@ Js::Var BailOutRecord::BailOut(BailOutRecord const * bailOutRecord)
 #endif
 
     Js::JavascriptCallStackLayout *const layout = bailOutRecord->GetStackLayout();
+    Js::ScriptFunction * function = (Js::ScriptFunction *)layout->functionObject;
+
+    if (bailOutRecord->bailOutKind == IR::BailOutOnImplicitCalls)
+    {
+        function->GetScriptContext()->GetThreadContext()->CheckAndResetImplicitCallAccessorFlag();
+    }
+
+    Js::ImplicitCallFlags savedImplicitCallFlags = function->GetScriptContext()->GetThreadContext()->GetImplicitCallFlags();
+
     if(bailOutRecord->globalBailOutRecordTable->isLoopBody)
     {
         if (bailOutRecord->globalBailOutRecordTable->isInlinedFunction)
@@ -1060,9 +1069,9 @@ Js::Var BailOutRecord::BailOut(BailOutRecord const * bailOutRecord)
     }
     if(bailOutRecord->globalBailOutRecordTable->isInlinedFunction)
     {
-        return BailOutInlined(layout, bailOutRecord, _ReturnAddress());
+        return BailOutInlined(layout, bailOutRecord, _ReturnAddress(), savedImplicitCallFlags);
     }
-    return BailOutFromFunction(layout, bailOutRecord, _ReturnAddress(), argoutRestoreAddr);
+    return BailOutFromFunction(layout, bailOutRecord, _ReturnAddress(), argoutRestoreAddr, savedImplicitCallFlags);
 }
 
 uint32
@@ -1073,18 +1082,18 @@ BailOutRecord::BailOutFromLoopBody(Js::JavascriptCallStackLayout * layout, BailO
 }
 
 Js::Var
-BailOutRecord::BailOutFromFunction(Js::JavascriptCallStackLayout * layout, BailOutRecord const * bailOutRecord, void * returnAddress, void * argoutRestoreAddress)
+BailOutRecord::BailOutFromFunction(Js::JavascriptCallStackLayout * layout, BailOutRecord const * bailOutRecord, void * returnAddress, void * argoutRestoreAddress, Js::ImplicitCallFlags savedImplicitCallFlags)
 {
     Assert(bailOutRecord->parent == nullptr);
 
-    return BailOutCommon(layout, bailOutRecord, bailOutRecord->bailOutOffset, returnAddress, bailOutRecord->bailOutKind, nullptr, nullptr, argoutRestoreAddress);
+    return BailOutCommon(layout, bailOutRecord, bailOutRecord->bailOutOffset, returnAddress, bailOutRecord->bailOutKind, savedImplicitCallFlags, nullptr, nullptr, argoutRestoreAddress);
 }
 
 Js::Var
-BailOutRecord::BailOutInlined(Js::JavascriptCallStackLayout * layout, BailOutRecord const * bailOutRecord, void * returnAddress)
+BailOutRecord::BailOutInlined(Js::JavascriptCallStackLayout * layout, BailOutRecord const * bailOutRecord, void * returnAddress, Js::ImplicitCallFlags savedImplicitCallFlags)
 {
     Assert(bailOutRecord->parent != nullptr);
-    return BailOutInlinedCommon(layout, bailOutRecord, bailOutRecord->bailOutOffset, returnAddress, bailOutRecord->bailOutKind);
+    return BailOutInlinedCommon(layout, bailOutRecord, bailOutRecord->bailOutOffset, returnAddress, bailOutRecord->bailOutKind, savedImplicitCallFlags);
 }
 
 uint32
@@ -1109,7 +1118,7 @@ BailOutRecord::BailOutCommonNoCodeGen(Js::JavascriptCallStackLayout * layout, Ba
 
 Js::Var
 BailOutRecord::BailOutCommon(Js::JavascriptCallStackLayout * layout, BailOutRecord const * bailOutRecord,
-uint32 bailOutOffset, void * returnAddress, IR::BailOutKind bailOutKind, Js::Var branchValue, BailOutReturnValue * bailOutReturnValue, void * argoutRestoreAddress)
+uint32 bailOutOffset, void * returnAddress, IR::BailOutKind bailOutKind, Js::ImplicitCallFlags savedImplicitCallFlags, Js::Var branchValue, BailOutReturnValue * bailOutReturnValue, void * argoutRestoreAddress)
 {
     // Do not remove the following code.
     // Need to capture the int registers on stack as threadContext->bailOutRegisterSaveSpace is allocated from ThreadAlloc and is not scanned by recycler.
@@ -1119,13 +1128,13 @@ uint32 bailOutOffset, void * returnAddress, IR::BailOutKind bailOutKind, Js::Var
         sizeof(registerSaves));
 
     Js::Var result = BailOutCommonNoCodeGen(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutKind, branchValue, nullptr, bailOutReturnValue, argoutRestoreAddress);
-    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind, returnAddress);
+    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind, savedImplicitCallFlags, returnAddress);
     return result;
 }
 
 Js::Var
 BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, BailOutRecord const * bailOutRecord, uint32 bailOutOffset,
-    void * returnAddress, IR::BailOutKind bailOutKind, Js::Var branchValue)
+    void * returnAddress, IR::BailOutKind bailOutKind, Js::ImplicitCallFlags savedImplicitCallFlags, Js::Var branchValue)
 {
     Assert(bailOutRecord->parent != nullptr);
 
@@ -1140,7 +1149,7 @@ BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, Bail
     BailOutInlinedHelper(layout, currentBailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, &bailOutReturnValue, &innerMostInlinee, false, branchValue);
     Js::Var result = BailOutCommonNoCodeGen(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset, returnAddress, bailOutKind, branchValue,
         registerSaves, &bailOutReturnValue);
-    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, returnAddress);
+    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, savedImplicitCallFlags, returnAddress);
     return result;
 }
 
@@ -1704,7 +1713,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 // we "rethunk" the bailing out function rather that incurring a rejit.
 
 void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee,
-    BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind, void * returnAddress)
+    BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind, Js::ImplicitCallFlags savedImplicitCallFlags, void * returnAddress)
 {
     if (bailOutKind == IR::BailOnSimpleJitToFullJitLoopBody ||
         bailOutKind == IR::BailOutForGeneratorYield ||
@@ -1865,10 +1874,11 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 // Check if the implicit call flags in the profile have changed since we last JITed this
                 // function body. If so, and they indicate an implicit call of some sort occurred
                 // then we need to reJIT.
-                if (executeFunction->GetSavedImplicitCallsFlags() == Js::ImplicitCall_None ||
-                    executeFunction->GetSavedImplicitCallsFlags() == Js::ImplicitCall_HasNoInfo)
+                if ((executeFunction->GetSavedImplicitCallsFlags() & savedImplicitCallFlags) == Js::ImplicitCall_None)
                 {
-                    profileInfo->RecordImplicitCallFlags(executeFunction->GetScriptContext()->GetThreadContext()->GetImplicitCallFlags());
+                    profileInfo->RecordImplicitCallFlags(savedImplicitCallFlags);
+                    Assert(!profileInfo->IsLoopImplicitCallInfoDisabled());
+                    profileInfo->DisableLoopImplicitCallInfo();
                     rejitReason = RejitReason::ImplicitCallFlagsChanged;
                 }
                 else
@@ -1894,7 +1904,17 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 break;
 
             case IR::BailOutOnNotNativeArray:
-                rejitReason = RejitReason::ExpectingNativeArray;
+
+                // REVIEW: We have an issue with array profile info.  The info on the type of array we have won't 
+                //         get fixed by rejitting.  For now, just give up after 50 rejits.
+                if (profileInfo->GetRejitCount() >= 50)
+                {
+                    reThunk = true;
+                }
+                else
+                {
+                    rejitReason = RejitReason::ExpectingNativeArray;
+                }
                 break;
 
             case IR::BailOutConvertedNativeArray:
@@ -2095,7 +2115,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                         Output::Flush();
                     }
 #endif
-                    if (state <= executeFunction->GetSavedPolymorphicCacheState())
+                    if (state <= executeFunction->GetSavedPolymorphicCacheState() && executeFunction->GetDefaultEntryPointInfo()->address != function->GetEntryPoint())
                     {
                         reThunk = true;
                     }
@@ -2110,7 +2130,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
             case IR::BailOutFailedEquivalentTypeCheck:
             case IR::BailOutFailedEquivalentFixedFieldTypeCheck:
-                if (profileInfo->IsEquivalentObjTypeSpecDisabled())
+                if (profileInfo->IsEquivalentObjTypeSpecDisabled() && executeFunction->GetDefaultEntryPointInfo()->address != function->GetEntryPoint())
                 {
                     reThunk = true;
                 }
@@ -2159,6 +2179,21 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     if(PHASE_FORCE(Js::ReJITPhase, executeFunction) && rejitReason == RejitReason::None)
     {
         rejitReason = RejitReason::Forced;
+    }
+
+    // REVIEW: Temporary fix for RS1.  Disable Rejiting if it looks like it is not fixing the problem.
+    //         For RS2, turn this into an assert and let's fix all these issues.
+    if (!reThunk && rejitReason != RejitReason::None)
+    {
+        if (executeFunction->GetDynamicProfileInfo()->GetRejitCount() >= 100)
+        {
+            reThunk = true;
+            rejitReason = RejitReason::None;
+        }
+        else
+        {
+            executeFunction->GetDynamicProfileInfo()->IncRejitCount();
+        }
     }
 
     REJIT_KIND_TESTTRACE(bailOutKind, _u("Bailout from function: function: %s, bailOutKindName: (%S), bailOutCount: %d, callCount: %d, reJitReason: %S, reThunk: %s\r\n"),
@@ -2581,6 +2616,15 @@ Js::Var BranchBailOutRecord::BailOut(BranchBailOutRecord const * bailOutRecord, 
 #endif
 
     Js::JavascriptCallStackLayout *const layout = bailOutRecord->GetStackLayout();
+    Js::ScriptFunction * function = (Js::ScriptFunction *)layout->functionObject;
+
+    if (bailOutRecord->bailOutKind == IR::BailOutOnImplicitCalls)
+    {
+        function->GetScriptContext()->GetThreadContext()->CheckAndResetImplicitCallAccessorFlag();
+    }
+
+    Js::ImplicitCallFlags savedImplicitCallFlags = function->GetScriptContext()->GetThreadContext()->GetImplicitCallFlags();
+
     if(bailOutRecord->globalBailOutRecordTable->isLoopBody)
     {
         if (bailOutRecord->globalBailOutRecordTable->isInlinedFunction)
@@ -2591,13 +2635,13 @@ Js::Var BranchBailOutRecord::BailOut(BranchBailOutRecord const * bailOutRecord, 
     }
     if(bailOutRecord->globalBailOutRecordTable->isInlinedFunction)
     {
-        return BailOutInlined(layout, bailOutRecord, cond, _ReturnAddress());
+        return BailOutInlined(layout, bailOutRecord, cond, _ReturnAddress(), savedImplicitCallFlags);
     }
-    return BailOutFromFunction(layout, bailOutRecord, cond, _ReturnAddress(), argoutRestoreAddr);
+    return BailOutFromFunction(layout, bailOutRecord, cond, _ReturnAddress(), argoutRestoreAddr, savedImplicitCallFlags);
 }
 
 Js::Var
-BranchBailOutRecord::BailOutFromFunction(Js::JavascriptCallStackLayout * layout, BranchBailOutRecord const * bailOutRecord, BOOL cond, void * returnAddress, void * argoutRestoreAddress)
+BranchBailOutRecord::BailOutFromFunction(Js::JavascriptCallStackLayout * layout, BranchBailOutRecord const * bailOutRecord, BOOL cond, void * returnAddress, void * argoutRestoreAddress, Js::ImplicitCallFlags savedImplicitCallFlags)
 {
     Assert(bailOutRecord->parent == nullptr);
     uint32 bailOutOffset = cond? bailOutRecord->bailOutOffset : bailOutRecord->falseBailOutOffset;
@@ -2607,7 +2651,7 @@ BranchBailOutRecord::BailOutFromFunction(Js::JavascriptCallStackLayout * layout,
         Js::ScriptContext *scriptContext = layout->functionObject->GetScriptContext();
         branchValue = (cond ? scriptContext->GetLibrary()->GetTrue() : scriptContext->GetLibrary()->GetFalse());
     }
-    return __super::BailOutCommon(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutRecord->bailOutKind,  branchValue, nullptr, argoutRestoreAddress);
+    return __super::BailOutCommon(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutRecord->bailOutKind, savedImplicitCallFlags, branchValue, nullptr, argoutRestoreAddress);
 }
 
 uint32
@@ -2625,7 +2669,7 @@ BranchBailOutRecord::BailOutFromLoopBody(Js::JavascriptCallStackLayout * layout,
 }
 
 Js::Var
-BranchBailOutRecord::BailOutInlined(Js::JavascriptCallStackLayout * layout, BranchBailOutRecord const * bailOutRecord, BOOL cond, void * returnAddress)
+BranchBailOutRecord::BailOutInlined(Js::JavascriptCallStackLayout * layout, BranchBailOutRecord const * bailOutRecord, BOOL cond, void * returnAddress, Js::ImplicitCallFlags savedImplicitCallFlags)
 {
     Assert(bailOutRecord->parent != nullptr);
     uint32 bailOutOffset = cond? bailOutRecord->bailOutOffset : bailOutRecord->falseBailOutOffset;
@@ -2635,7 +2679,7 @@ BranchBailOutRecord::BailOutInlined(Js::JavascriptCallStackLayout * layout, Bran
         Js::ScriptContext *scriptContext = layout->functionObject->GetScriptContext();
         branchValue = (cond ? scriptContext->GetLibrary()->GetTrue() : scriptContext->GetLibrary()->GetFalse());
     }
-    return __super::BailOutInlinedCommon(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutRecord->bailOutKind, branchValue);
+    return __super::BailOutInlinedCommon(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutRecord->bailOutKind, savedImplicitCallFlags, branchValue);
 }
 
 uint32

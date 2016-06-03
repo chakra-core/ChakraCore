@@ -761,6 +761,10 @@ FlowGraph::BuildLoop(BasicBlock *headBlock, BasicBlock *tailBlock, Loop *parentL
     if (firstInstr->IsProfiledLabelInstr())
     {
         loop->SetImplicitCallFlags(firstInstr->AsProfiledLabelInstr()->loopImplicitCallFlags);
+        if (this->func->GetProfileInfo()->IsLoopImplicitCallInfoDisabled())
+        {
+            loop->SetImplicitCallFlags(this->func->GetProfileInfo()->GetImplicitCallFlags());
+        }
         loop->SetLoopFlags(firstInstr->AsProfiledLabelInstr()->loopFlags);
     }
     else
