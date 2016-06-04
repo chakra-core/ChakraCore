@@ -2982,6 +2982,7 @@ typedef unsigned char* ChakraBytePtr;
     /////////////////////
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Given the the uri location specified for the TTD output data, which may be relative or contain other implcit information, 
     ///     convert it into a fully normalized location descriptor. This fiully resolved location will be passed to the later callbacks 
     ///     such as JsTTDInitializeForWriteLogStreamCallback, JsTTDGetLogStreamCallback, and JsTTDGetSnapshotStreamCallback.
@@ -2991,6 +2992,7 @@ typedef unsigned char* ChakraBytePtr;
     typedef void (CALLBACK *JsTTDInitializeUriCallback)(_In_z_ const wchar_t* uri, _Out_ wchar_t** fullTTDUri);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Ensure that the location specified for outputting the TTD data is clean. Specifically, ensure that any previous TTD 
     ///     in the location has been removed.
     /// </summary>
@@ -2998,6 +3000,7 @@ typedef unsigned char* ChakraBytePtr;
     typedef void (CALLBACK *JsTTDInitializeForWriteLogStreamCallback)(_In_z_ const wchar_t* uri);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Construct a HANDLE that will be used to read/write the event log portion of the TTD data based on the uri 
     ///     provided by JsTTDInitializeUriCallback.
     /// </summary>
@@ -3009,6 +3012,7 @@ typedef unsigned char* ChakraBytePtr;
     typedef HANDLE (CALLBACK *JsTTDGetLogStreamCallback)(_In_z_ const wchar_t* uri, _In_ bool read, _In_ bool write);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Construct a HANDLE that will be used to read/write a snapshot and generate a unique uri that is associated with this snapshot.
     /// </summary>
     /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
@@ -3020,6 +3024,7 @@ typedef unsigned char* ChakraBytePtr;
     typedef HANDLE (CALLBACK *JsTTDGetSnapshotStreamCallback)(_In_z_ const wchar_t* uri, _In_z_ const wchar_t* snapId, _In_ bool read, _In_ bool write);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Construct a HANDLE that will be used to read/write information on source code loaded by the program.
     /// </summary>
     /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
@@ -3032,6 +3037,7 @@ typedef unsigned char* ChakraBytePtr;
     typedef HANDLE (CALLBACK *JsTTDGetSrcCodeStreamCallback)(_In_z_ const wchar_t* uri, _In_z_ const wchar_t* bodyCtrId, _In_z_ const wchar_t* srcFileName, _In_ bool read, _In_ bool write);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     A callback for reading data from a handle.
     /// </summary>
     /// <param name="strm">The HANDLE to read the data from.</param>
@@ -3042,6 +3048,7 @@ typedef unsigned char* ChakraBytePtr;
     typedef BOOL(CALLBACK *JsTTDReadBytesFromStreamCallback)(_In_ HANDLE strm, _Out_writes_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* readCount);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     A callback for writing data to a handle.
     /// </summary>
     /// <param name="strm">The HANDLE to write the data to.</param>
@@ -3052,6 +3059,7 @@ typedef unsigned char* ChakraBytePtr;
     typedef BOOL(CALLBACK *JsTTDWriteBytesToStreamCallback)(_In_ HANDLE strm, _In_reads_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* writtenCount);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Flush and close the stream represented by the HANDLE as needed.
     /// </summary>
     /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
@@ -3060,6 +3068,7 @@ typedef unsigned char* ChakraBytePtr;
     typedef void (CALLBACK *JsTTDFlushAndCloseStreamCallback)(_In_ HANDLE strm, _In_ bool read, _In_ bool write);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Creates a new runtime in Record Mode.
     /// </summary>
     /// <param name="attributes">The attributes of the runtime to be created.</param>
@@ -3082,6 +3091,7 @@ typedef unsigned char* ChakraBytePtr;
             _Out_ JsRuntimeHandle *runtime);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Creates a new runtime in Debug Mode.
     /// </summary>
     /// <param name="attributes">The attributes of the runtime to be created.</param>
@@ -3100,6 +3110,7 @@ typedef unsigned char* ChakraBytePtr;
             _Out_ JsRuntimeHandle *runtime);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Creates a script context in Time Travel mode for running scripts.
     /// </summary>
     /// <remarks>See <c>JsCreateContext</c> for more information.</remarks>
@@ -3112,6 +3123,7 @@ typedef unsigned char* ChakraBytePtr;
             _Out_ JsContextRef *newContext);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Executes a script with additional Time-Travel causality tracking via the <c>hostCallbackId</c>.
     /// </summary>
     /// <remarks>See <c>JsRunScript</c> for more information.</remarks>
@@ -3133,6 +3145,7 @@ typedef unsigned char* ChakraBytePtr;
             _Out_ JsValueRef *result);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Invokes a function with additional Time-Travel causality tracking via the <c>hostCallbackId</c>.
     /// </summary>
     /// <remarks>
@@ -3157,6 +3170,7 @@ typedef unsigned char* ChakraBytePtr;
             _Out_opt_ JsValueRef *result);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Set the current script context into debug/replay mode for replay without debugger attach.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
@@ -3164,6 +3178,7 @@ typedef unsigned char* ChakraBytePtr;
         JsTTDSetDebuggerForReplay();
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Set the functions that the TTD system uses to write info out of main memory when needed.
     /// </summary>
     /// <param name="runtime">The runtime to set the functions for (must be created in debug mode).</param>
@@ -3188,6 +3203,7 @@ typedef unsigned char* ChakraBytePtr;
             _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Start Time-Travel Recording.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
@@ -3195,6 +3211,7 @@ typedef unsigned char* ChakraBytePtr;
         JsTTDStartTimeTravelRecording();
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Stop Time-Travel Recording.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
@@ -3202,6 +3219,7 @@ typedef unsigned char* ChakraBytePtr;
         JsTTDStopTimeTravelRecording();
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Emit Time-Travel Recording.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
@@ -3209,6 +3227,7 @@ typedef unsigned char* ChakraBytePtr;
         JsTTDEmitTimeTravelRecording();
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Start Time-Travel Debugging.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
@@ -3216,6 +3235,7 @@ typedef unsigned char* ChakraBytePtr;
         JsTTDStartTimeTravelDebugging();
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Pause Time-Travel recording gefor executing code on behalf of debugger or other diagnostic/telemetry.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
@@ -3223,6 +3243,7 @@ typedef unsigned char* ChakraBytePtr;
         JsTTDPauseTimeTravelBeforeRuntimeOperation();
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     ReStart Time-Travel recording after executing code on behalf of debugger or other diagnostic/telemetry.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
@@ -3230,6 +3251,7 @@ typedef unsigned char* ChakraBytePtr;
         JsTTDReStartTimeTravelAfterRuntimeOperation();
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Notify the Js runtime that the host as created/canceled a callback with the given function and id.
     /// </summary>
     /// <param name="isCancel">True if the action is to create the callback with the callbackId.</param>
@@ -3247,6 +3269,7 @@ typedef unsigned char* ChakraBytePtr;
             _In_ INT64 callbackId);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Notify the Js runtime we are at a safe yield point in the event loop (i.e. no locals on the stack and we can proccess as desired).
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
@@ -3254,6 +3277,7 @@ typedef unsigned char* ChakraBytePtr;
         JsTTDNotifyYield();
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Before calling JsTTDMoveToTopLevelEvent (which inflates a snapshot and replays) check to see if we want to reset the script context.
     ///     We reset the script context if the move will require inflating from a different snapshot that the last one.
     /// </summary>
@@ -3268,6 +3292,7 @@ typedef unsigned char* ChakraBytePtr;
             _Out_ INT64* targetStartSnapTime);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Move to the given top-level call event time (assuming JsTTDPrepContextsForTopLevelEventMove) was called previously to reset any script contexts.
     ///     This also computes the ready-to-run snapshot if needed.
     /// </summary>
@@ -3280,6 +3305,7 @@ typedef unsigned char* ChakraBytePtr;
             _In_ INT64 eventTime);
 
     /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Execute from the current point in the log to the end returning the error code.
     ///     If the debugger requested an abort the code is JsNoError -- rootEventTime is the target event time we need to move to and re-execute from.
     ///     If we aborted at the end of the replay log the code is JsNoError -- rootEventTime is -1.

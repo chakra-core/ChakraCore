@@ -2305,8 +2305,10 @@ namespace TTD
         reader.ReadUInt64(NSTokens::Key::usedMemory, true);
         reader.ReadUInt64(NSTokens::Key::reservedMemory, true);
 
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         JsUtil::Stack<int64, HeapAllocator> callNestingStack(&HeapAllocator::Instance);
         bool doSep = false;
+#endif
 
         uint32 ecount = reader.ReadLengthValue(true);
         reader.ReadSequenceStart_WDefaultKey(true);
