@@ -325,7 +325,7 @@ class TestVariant(object):
         start_time = datetime.now()
         try:
             timer.start()
-            js_output = proc.communicate()[0].replace('\r','')
+            js_output = proc.communicate()[0].decode('utf-8').replace('\r','')
             exit_code = proc.wait()
         finally:
             timer.cancel()
@@ -356,16 +356,9 @@ class TestVariant(object):
             if baseline:
                 # perform baseline comparison
                 baseline = self._check_file(working_path, baseline)
-                expected_output = None
-                with open(baseline, 'r') as bs_file:
-                    baseline_output = bs_file.read()
-
-                # Cleanup carriage return
-                # todo: remove carriage return at the end of the line
-                #       or better fix ch to output same on all platforms
-                expected_output = re.sub('[\r]+\n', '\n', baseline_output)
-
-                # todo: implement wild cards support
+                with open(baseline, 'rb') as bs_file:
+                    expected_output = bs_file.read().decode('utf-8') \
+                                                    .replace('\r','')
                 if expected_output != js_output:
                     return self._show_failed(
                         expected_output=expected_output, **fail_args)
