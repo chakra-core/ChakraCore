@@ -123,6 +123,14 @@ NativeCodeGenerator::~NativeCodeGenerator()
         {
             Js::ScriptContextProfiler *codegenProfiler = this->backgroundCodeGenProfiler;
             this->backgroundCodeGenProfiler = this->backgroundCodeGenProfiler->next;
+            // background codegen profiler is allocated in background thread,
+            // clear the thead Id before release
+#ifdef DBG
+            if (codegenProfiler->pageAllocator != nullptr)
+            {
+                codegenProfiler->pageAllocator->SetDisableThreadAccessCheck();
+            }
+#endif
             codegenProfiler->Release();
         }
     }
@@ -2804,25 +2812,40 @@ void
 NativeCodeGenerator::ProfilePrint()
 {
     Js::ScriptContextProfiler *codegenProfiler = this->backgroundCodeGenProfiler;
+
     if (Js::Configuration::Global.flags.Verbose)
     {
         //Print individual CodegenProfiler information in verbose mode
         while (codegenProfiler)
         {
-            codegenProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+            if (codegenProfiler->IsInitialized())
+            {
+                codegenProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+            }
             codegenProfiler = codegenProfiler->next;
         }
     }
     else
     {
         //Merge all the codegenProfiler for single snapshot.
-        codegenProfiler = codegenProfiler->next;
-        while (codegenProfiler)
+        Js::ScriptContextProfiler* mergeToProfiler = codegenProfiler;
+        while (mergeToProfiler != nullptr && !mergeToProfiler->IsInitialized())
         {
-            this->backgroundCodeGenProfiler->ProfileMerge(codegenProfiler);
-            codegenProfiler = codegenProfiler->next;
+            mergeToProfiler = mergeToProfiler->next;
         }
-        this->backgroundCodeGenProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+        if (mergeToProfiler != nullptr)
+        {
+            codegenProfiler = mergeToProfiler->next;
+            while (codegenProfiler)
+            {
+                if (codegenProfiler->IsInitialized())
+                {
+                    mergeToProfiler->ProfileMerge(codegenProfiler);
+                }
+                codegenProfiler = codegenProfiler->next;
+            }
+            mergeToProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+        }
     }
 }
 
