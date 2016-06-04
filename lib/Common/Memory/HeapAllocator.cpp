@@ -355,11 +355,6 @@ HeapAllocator::HeapAllocator(bool useAllocMemProtect)
 
 HeapAllocator::~HeapAllocator()
 {
-    if (CONFIG_FLAG(PrivateHeap))
-    {
-        this->DestroyPrivateHeap();
-    }
-
 #ifdef HEAP_TRACK_ALLOC
     bool hasFakeHeapLeak = false;
     auto fakeHeapLeak = [&]()
@@ -418,6 +413,12 @@ HeapAllocator::~HeapAllocator()
     }
 #endif // CHECK_MEMORY_LEAK
 #endif // HEAP_TRACK_ALLOC
+
+    // destroy private heap after leak check
+    if (CONFIG_FLAG(PrivateHeap))
+    {
+        this->DestroyPrivateHeap();
+    }
 
 #ifdef INTERNAL_MEM_PROTECT_HEAP_ALLOC
     if (memProtectHeapHandle != nullptr)
