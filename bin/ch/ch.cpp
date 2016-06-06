@@ -461,6 +461,8 @@ static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write)
     AssertMsg(false, "Not XPLAT yet.");
     return 0;
 #else
+    AssertMsg((read | write) & (!read | !write), "Read/Write streams not supported yet -- defaulting to read only");
+
     HANDLE res = INVALID_HANDLE_VALUE;
 
     if(read)
