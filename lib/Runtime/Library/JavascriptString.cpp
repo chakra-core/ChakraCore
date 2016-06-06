@@ -2204,8 +2204,53 @@ case_2:
     {
         charcount_t count = pThis->GetLength();
 
+        const char16* inStr = pThis->GetString();
+        const char16* inStrLim = inStr + count;
+        const char16* i = inStr;
+
+        // Try to find out the chars that do not need casing (in the ASCII range)
+        if (toCase == ToUpper)
+        {
+            while (i < inStrLim)
+            {
+                // first range of ascii lower-case (97-122)
+                // second range of ascii lower-case (223-255)
+                // non-ascii chars (255+)
+                if (*i >= 'a')
+                {
+                    if (*i <= 'z') { break; }
+                    if (*i >= 'ß') { break; }
+                }
+                i++;
+            }
+        }
+        else
+        {
+            Assert(toCase == ToLower);
+            while (i < inStrLim)
+            {
+                // first range of ascii uppercase (65-90)
+                // second range of ascii uppercase (192-222)
+                // non-ascii chars (255+)
+                if (*i >= 'A')
+                {
+                    if (*i <= 'Z') { break; }
+                    if (*i >= 'À')
+                    { 
+                        if (*i < 'ß') { break; }
+                        if (*i >= 'ÿ') { break; }
+                    }
+                }
+                i++;
+            }
+        }
+
+        // If no char needs casing, return immediately
+        if (i == inStrLim) { return pThis; }
+
+        // Otherwise, copy the string and start casing
+        charcount_t countToCase = (charcount_t)(inStrLim - i);
         BufferStringBuilder builder(count, pThis->type->GetScriptContext());
-        const char16 *inStr = pThis->GetString();
         char16 *outStr = builder.DangerousGetWritableBuffer();
 
         char16* outStrLim = outStr + count;
@@ -2222,9 +2267,9 @@ case_2:
             DWORD converted =
 #endif
                 PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsUpper, outStr, count);
+                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsUpper, outStrLim - countToCase, countToCase);
 
-            Assert(converted == count);
+            Assert(converted == countToCase);
         }
         else
         {
@@ -2233,9 +2278,9 @@ case_2:
             DWORD converted =
 #endif
                 PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsLower, outStr, count);
+                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsLower, outStrLim - countToCase, countToCase);
 
-            Assert(converted == count);
+            Assert(converted == countToCase);
         }
 
         return builder.ToString();
