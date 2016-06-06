@@ -1061,6 +1061,12 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     }
     argc = cpos;
 
+    if(doTTRecord & doTTDebug)
+    {
+        fwprintf(stderr, L"Cannot run in record and debug at same time!!!");
+        ExitProcess(0);
+    }
+
     HostConfigFlags::pfnPrintUsage = PrintUsageFormat;
 
     // The following code is present to make sure we don't load
