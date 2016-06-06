@@ -300,3 +300,178 @@ void Helpers::LogError(__in __nullterminated const char16 *msg, ...)
     fflush(stdout);
     va_end(args);
 }
+
+void Helpers::CreateDirectoryIfNeeded(const char16* path)
+{
+#ifndef _WIN32
+    AssertMsg(false, "Not XPLAT yet.");
+#else
+    bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
+
+    size_t fplength = (wcslen(path) + 2);
+    char16* fullpath = new char16[fplength];
+    fullpath[0] = _u('\0');
+
+    wcscat_s(fullpath, fplength, path);
+    if(!isPathDirName)
+    {
+        wcscat_s(fullpath, fplength, _u("\\"));
+    }
+
+    DWORD dwAttrib = GetFileAttributes(fullpath);
+    if((dwAttrib != INVALID_FILE_ATTRIBUTES) && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        delete[] fullpath;
+        return;
+    }
+
+    BOOL success = CreateDirectory(fullpath, NULL);
+    if(!success)
+    {
+        DWORD lastError = GetLastError();
+        LPTSTR pTemp = NULL;
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
+        fwprintf(stderr, _u(": %s"), pTemp);
+
+        AssertMsg(false, "Failed Directory Create");
+    }
+
+    delete[] fullpath;
+#endif
+}
+
+void Helpers::DeleteDirectory(const char16* path)
+{
+#ifndef _WIN32
+    AssertMsg(false, "Not XPLAT yet.");
+#else
+    HANDLE hFile;
+    WIN32_FIND_DATA FileInformation;
+
+    bool isPathDirName = (path[wcslen(path) - 1] == _u('\\'));
+
+    size_t splength = (wcslen(path) + 5);
+    char16* strPattern = new char16[splength];
+    strPattern[0] = _u('\0');
+
+    wcscat_s(strPattern, splength, path);
+    if(!isPathDirName)
+    {
+        wcscat_s(strPattern, splength, _u("\\"));
+    }
+    wcscat_s(strPattern, splength, _u("*.*"));
+
+    hFile = ::FindFirstFile(strPattern, &FileInformation);
+    if(hFile != INVALID_HANDLE_VALUE)
+    {
+        do
+        {
+            if(FileInformation.cFileName[0] != '.')
+            {
+                size_t sfplength = (wcslen(path) + wcslen(FileInformation.cFileName) + 2);
+                char16* strFilePath = new char16[sfplength];
+                strFilePath[0] = _u('\0');
+
+                wcscat_s(strFilePath, sfplength, path);
+                if(!isPathDirName)
+                {
+                    wcscat_s(strFilePath, sfplength, _u("\\"));
+                }
+                wcscat_s(strFilePath, sfplength, FileInformation.cFileName);
+
+                if(FileInformation.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                {
+                    DeleteDirectory(strFilePath);
+                    ::RemoveDirectory(strFilePath);
+                }
+                else
+                {
+                    // Set file attributes
+                    ::SetFileAttributes(strFilePath, FILE_ATTRIBUTE_NORMAL);
+                    ::DeleteFile(strFilePath);
+                }
+
+                delete[] strFilePath;
+            }
+        } while(::FindNextFile(hFile, &FileInformation) == TRUE);
+
+        // Close handle
+        ::FindClose(hFile);
+    }
+
+    delete[] strPattern;
+#endif
+}
+
+void Helpers::GetFileFromURI(const char16* uri, char16** res)
+{
+    int urilen = (int)wcslen(uri);
+    int fpos = 0;
+    for(int spos = urilen - 1; spos >= 0; --spos)
+    {
+        if(uri[spos] == _u('\\') || uri[spos] == _u('/'))
+        {
+            fpos = spos + 1;
+            break;
+        }
+    }
+
+    size_t rlength = (wcslen(uri + fpos) + 1);
+    *res = new char16[rlength];
+    (*res)[0] = _u('\0');
+
+    wcscat_s(*res, rlength, uri + fpos);
+}
+
+void Helpers::GetDefaultTTDDirectory(char16** res, const char16* optExtraDir)
+{
+#ifndef _WIN32
+    *res = nullptr;
+    AssertMsg(false, "Not XPLAT yet.");
+#else
+    char16* path = new char16[MAX_PATH];
+    path[0] = _u('\0');
+
+    GetModuleFileName(NULL, path, MAX_PATH);
+
+    char16* spos = wcsstr(path, _u("\\Build\\VcBuild\\"));
+    AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
+
+    int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(char16));
+
+    *res = (char16*)CoTaskMemAlloc(MAX_PATH * sizeof(char16));
+    if(*res == nullptr)
+    {
+        //This is for testing only so just assert and return here is ok
+        AssertMsg(false, "OOM");
+        return;
+    }
+
+    (*res)[0] = _u('\0');
+
+    for(int i = 0; i < ccount; ++i)
+    {
+        (*res)[i] = path[i];
+    }
+    (*res)[ccount] = _u('\0');
+
+    wcscat_s(*res, MAX_PATH, _u("\\test\\_ttdlog\\"));
+
+    if(wcslen(optExtraDir) == 0)
+    {
+        wcscat_s(*res, MAX_PATH, _u("_defaultLog"));
+    }
+    else
+    {
+        wcscat_s(*res, MAX_PATH, optExtraDir);
+    }
+
+    bool isPathDirName = ((*res)[wcslen(*res) - 1] == _u('\\'));
+    if(!isPathDirName)
+    {
+        wcscat_s(*res, MAX_PATH, _u("\\"));
+    }
+
+    delete[] path;
+#endif
+}

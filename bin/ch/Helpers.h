@@ -13,4 +13,9 @@ public :
     static HRESULT NarrowStringToWideDynamic(LPCSTR sourceString, LPWSTR* destStringPtr);
     static LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode);
     static void LogError(__in __nullterminated const char16 *msg, ...);
+
+    static void CreateDirectoryIfNeeded(const char16* path);
+    static void DeleteDirectory(const char16* path);
+    static void GetFileFromURI(const char16* uri, char16** res);
+    static void GetDefaultTTDDirectory(char16** res, const char16* optExtraDir);
 };
