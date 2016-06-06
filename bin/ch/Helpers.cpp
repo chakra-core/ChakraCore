@@ -10,7 +10,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
     BYTE * pRawBytes = nullptr;
     UINT lengthBytes = 0;
     contents = nullptr;
-    FILE * file = nullptr;
+    FILE * file = NULL;
 
     //
     // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
@@ -41,13 +41,14 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
         IfFailGo(E_FAIL);
     }
 
-    if (file != nullptr)
+    if (file != NULL)
     {
         // Determine the file length, in bytes.
         fseek(file, 0, SEEK_END);
         lengthBytes = ftell(file);
         fseek(file, 0, SEEK_SET);
-        pRawBytes = (LPBYTE)malloc(lengthBytes + sizeof(WCHAR));
+        const size_t bufferLength = lengthBytes + sizeof(BYTE);
+        pRawBytes = (LPBYTE)malloc(bufferLength);
         if (nullptr == pRawBytes)
         {
             fwprintf(stderr, _u("out of memory"));
@@ -57,24 +58,36 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
         //
         // Read the entire content as a binary block.
         //
-        fread(pRawBytes, sizeof(BYTE), lengthBytes, file);
-        *reinterpret_cast<WCHAR*>(pRawBytes + lengthBytes) = 0; // Null terminate it. Could be UTF16
+        size_t readBytes = fread(pRawBytes, sizeof(BYTE), lengthBytes, file);
+        if (readBytes < lengthBytes * sizeof(BYTE))
+        {
+            IfFailGo(E_FAIL);
+        }
+
+        pRawBytes[lengthBytes] = 0; // Null terminate it. Could be UTF16
 
         //
-        // Read encoding, handling any conversion to Unicode.
+        // Read encoding to make sure it's supported
         //
         // Warning: The UNICODE buffer for parsing is supposed to be provided by the host.
         // This is not a complete read of the encoding. Some encodings like UTF7, UTF1, EBCDIC, SCSU, BOCU could be
         // wrongly classified as ANSI
         //
         {
-            LPCWSTR contentsRaw = reinterpret_cast<LPCWSTR>(pRawBytes);
-            if (0xFFFE == *contentsRaw || (0x0000 == *contentsRaw && 0xFEFF == *(contentsRaw + 1)) ||
-                0xFEFF == *contentsRaw)
+            C_ASSERT(sizeof(WCHAR) == 2);
+            if (bufferLength > 2)
             {
-                // unicode unsupported
-                fwprintf(stderr, _u("unsupported file encoding. Only ANSI and UTF8 supported"));
-                IfFailGo(E_UNEXPECTED);
+                if ((pRawBytes[0] == 0xFE && pRawBytes[1] == 0xFF) ||
+                    (pRawBytes[0] == 0xFF && pRawBytes[1] == 0xFE) ||
+                    (bufferLength > 4 && pRawBytes[0] == 0x00 && pRawBytes[1] == 0x00 &&
+                        ((pRawBytes[2] == 0xFE && pRawBytes[3] == 0xFF) ||
+                         (pRawBytes[2] == 0xFF && pRawBytes[3] == 0xFE))))
+
+                {
+                    // unicode unsupported
+                    fwprintf(stderr, _u("unsupported file encoding. Only ANSI and UTF8 supported"));
+                    IfFailGo(E_UNEXPECTED);
+                }
             }
         }
     }
@@ -90,7 +103,7 @@ Error:
         }
     }
 
-    if (file != nullptr)
+    if (file != NULL)
     {
         fclose(file);
     }

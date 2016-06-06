@@ -618,7 +618,7 @@ namespace Js
         // Stop profiling if present
         DeRegisterProfileProbe(S_OK, nullptr);
 #endif
-
+        
         if (this->diagnosticArena != nullptr)
         {
             HeapDelete(this->diagnosticArena);
@@ -1591,10 +1591,6 @@ if (!sourceList)
 
         bool isLibraryCode = ((loadScriptFlag & LoadScriptFlag_LibraryCode) == LoadScriptFlag_LibraryCode);
 
-        // We assume that any buffer that wasn't passed in with LoadScriptFlag_Utf8Source is UTF16-LE
-        // We convert this into CESU-8 using our codex library
-        // isRealUtf8 tracks whether the buffer is truly UTF8 or if it's CESU-8, for the purpose of parsing later
-        bool isRealUtf8 = false;
         if ((loadScriptFlag & LoadScriptFlag_Utf8Source) != LoadScriptFlag_Utf8Source)
         {
             // Convert to UTF8 and then load that
@@ -1632,13 +1628,6 @@ if (!sourceList)
         }
         else
         {
-            // If LoadScriptFlag_Utf8Source was passed in, then the source buffer is guaranteed to actually be
-            // UTF8, and not CESU-8. JSRT APIs expect real UTF8 buffers to be passed in, not CESU-8, and ch.exe 
-            // only supports ANSI (utf8-compatible) and actual UTF8 files, not UTF16/UTF16-LE encoded files.
-            isRealUtf8 = true;
-            utf8Script = (LPUTF8)script;
-            cbNeeded = cb;
-
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             if (*ppSourceInfo == nullptr)
             {
@@ -1692,10 +1681,8 @@ if (!sourceList)
         }
 
         ParseNodePtr parseTree;
-        if (isRealUtf8)
+        if ((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source)
         {
-            Assert((loadScriptFlag & LoadScriptFlag_Utf8Source)
-                    == LoadScriptFlag_Utf8Source);
             hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
                 sourceContextInfo);
         }
@@ -3287,11 +3274,11 @@ if (!sourceList)
                     || entryPoint == DefaultDeferredDeserializeThunk || entryPoint == ProfileDeferredDeserializeThunk
                     || entryPoint == CrossSite::DefaultThunk || entryPoint == CrossSite::ProfileThunk);
 #else
-                Assert(entryPoint == DefaultDeferredParsingThunk
+                Assert(entryPoint == DefaultDeferredParsingThunk 
                     || entryPoint == DefaultDeferredDeserializeThunk
                     || entryPoint == CrossSite::DefaultThunk);
 #endif
-
+                
                 Assert(!proxy->IsDeferred());
                 Assert(proxy->GetFunctionBody()->GetProfileSession() == proxy->GetScriptContext()->GetProfileSession());
 
