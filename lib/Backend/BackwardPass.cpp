@@ -444,7 +444,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
             // save the byteCodeUpwardExposedUsed from deleting for the block right after the memop loop
-            if (this->tag == Js::DeadStorePhase && !this->IsPrePass() && globOpt->DoMemOp(block->loop) && blockSucc->loop != block->loop)
+            if (this->tag == Js::DeadStorePhase && !this->IsPrePass() && globOpt->HasMemOp(block->loop) && blockSucc->loop != block->loop)
             {
                 Assert(block->loop->memOpInfo->inductionVariablesUsedAfterLoop == nullptr);
                 block->loop->memOpInfo->inductionVariablesUsedAfterLoop = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
@@ -7117,7 +7117,7 @@ BackwardPass::DoDeadStoreLdStForMemop(IR::Instr *instr)
 
     Loop *loop = this->currentBlock->loop;
 
-    if (globOpt->DoMemOp(loop))
+    if (globOpt->HasMemOp(loop))
     {
         if (instr->m_opcode == Js::OpCode::StElemI_A && instr->GetDst()->IsIndirOpnd())
         {
@@ -7185,7 +7185,7 @@ BackwardPass::RestoreInductionVariableValuesAfterMemOp(Loop *loop)
 bool
 BackwardPass::IsEmptyLoopAfterMemOp(Loop *loop)
 {
-    if (globOpt->DoMemOp(loop))
+    if (globOpt->HasMemOp(loop))
     {
         const auto IsInductionVariableUse = [&](IR::Opnd *opnd) -> bool
         {
