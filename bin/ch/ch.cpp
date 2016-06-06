@@ -682,7 +682,8 @@ HRESULT RunScript(const char* fileName, LPCWSTR fileContents, BYTE *bcBuffer, ch
         }
         catch(...)
         {
-            wprintf(_u("Exception."));
+            wprintf(_u("Terminal exception in Replay -- exiting."));
+            ExitProcess(0);
         }
 #endif
     }
