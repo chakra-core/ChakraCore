@@ -342,3 +342,14 @@ RT_ERROR_MSG(JSERR_ResolveExportFailed, 5647, "Resolve export %s failed due to c
 
 RT_ERROR_MSG(JSERR_ObjectCoercible, 5648, "", "Cannot convert null or undefined to object", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_SIMDConversion, 5649, "%s: cannot be converted to a number", "Cannot be converted to a number", kjstTypeError, 0)
+
+
+// JSON.parse errors. When this happens we want to make it explicitly clear the issue is in JSON.parse and not in the code
+RT_ERROR_MSG(JSERR_JsonSyntax, 5650, "JSON.parse Error: Unexpected input at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonNoColon, 5651,"JSON.parse Error: Expected ':' at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonNoRbrack, 5652, "JSON.parse Error: Expected ']' at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonNoRcurly, 5653, "JSON.parse Error: Expected '}' at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonBadNumber, 5654, "JSON.parse Error: Invalid number at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonIllegalChar, 5655, "JSON.parse Error: Invalid character at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonBadHexDigit, 5656, "JSON.parse Error: Expected hexadecimal digit at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonNoStrEnd, 5657, "JSON.parse Error: Unterminated string constant at position:%s", "JSON.parse syntax error", kjstTypeError, 0)

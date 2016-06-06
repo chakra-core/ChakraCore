@@ -89,4 +89,10 @@
       <baseline>jsonParseWalkTest.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>syntaxError.js</files>
+      <baseline>syntaxError.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
