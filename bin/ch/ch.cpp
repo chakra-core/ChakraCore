@@ -209,7 +209,7 @@ static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callback
     WScriptJsrt::CallbackMessage *msg = new WScriptJsrt::CallbackMessage(0, task);
 
 #if ENABLE_TTD
-    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(true, false, false, task, msg->GetId());
+    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(true /*isCreate*/, false /*isCancel*/, false /*isRepeating*/, task, msg->GetId());
 #endif
 
     messageQueue->InsertSorted(msg);
