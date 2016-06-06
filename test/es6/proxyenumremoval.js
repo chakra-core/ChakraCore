@@ -84,7 +84,6 @@ var proxy = new Proxy({b:1,a:2}, {
 for(var key in proxy){ keys += key;}
 passed &= keys==="a";
 
-/* duplicate key does not work, assertion on inserting propertyId to dictionary. Waiting for spec clarification
 // check property descriptor trap
 var keys=""
 var already_non_enmerable = false;
@@ -115,7 +114,6 @@ var proxy = new Proxy({}, {
 for(var key in proxy){ keys += key;}
 passed &= keys==="b";
 passed &= getPrototypeOfCalled===1;
-*/
 
 if (passed) {
   WScript.Echo("PASS");
