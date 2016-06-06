@@ -128,10 +128,6 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
         -D_DEBUG=1 # for PAL
         -DDBG_DUMP=1
     )
-    # xplat-todo: reenable this warning
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -Wno-writable-strings"
-    )
 elseif(CMAKE_BUILD_TYPE STREQUAL Test)
     add_definitions(
         -DENABLE_DEBUG_CONFIG_OPTIONS=1
