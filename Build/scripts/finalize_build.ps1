@@ -9,11 +9,27 @@
 # to clean up and produce metadata about the build.
 
 param (
+    [Parameter(Mandatory=$True)]
+    [ValidateSet("x86", "x64", "arm")]
+    [string]$arch,
+
+    [Parameter(Mandatory=$True)]
+    [ValidateSet("debug", "release", "test", "codecoverage")]
+    [string]$flavor,
+
+    [ValidateSet("default", "codecoverage", "pogo")]
+    [string]$subtype = "default",
+
     $corePathSegment = "" # e.g. "core"
 )
 
 $sourcesDir = $Env:BUILD_SOURCESDIRECTORY
 $coreSourcesDir = Join-Path $sourcesDir $corePathSegment
+
+$OuterScriptRoot = $PSScriptRoot
+. "$PSScriptRoot\pre_post_util.ps1"
+
+$buildName = ConstructBuildName -arch $arch -flavor $flavor -subtype $subtype
 
 #
 # Clean up the sentinel which previously marked this build flavor as incomplete.
@@ -51,8 +67,8 @@ if (Test-Path $testlogsSourcePath) {
 # Create build status JSON file for this flavor.
 #
 
-$buildErrFile = Join-Path $buildLogsDropPath "build.${Env:BuildName}.err"
-$testSummaryFile = Join-Path $testLogsDropPath "summary.${Env:BuildName}.log"
+$buildErrFile = Join-Path $buildLogsDropPath "build.${buildName}.err"
+$testSummaryFile = Join-Path $testLogsDropPath "summary.${arch}${flavor}.log"
 
 # if build.*.err contains any text then there were build errors
 $BuildSucceeded = $true

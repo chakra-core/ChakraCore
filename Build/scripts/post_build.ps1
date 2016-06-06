@@ -61,8 +61,10 @@ if ($arch -eq "*") {
     $OuterScriptRoot = $PSScriptRoot
     . "$PSScriptRoot\pre_post_util.ps1"
 
+    $buildName = ConstructBuildName -arch $arch -flavor $flavor -subtype $subtype
+
     if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {
-        $logFile = "${Env:TF_BUILD_BINARIESDIRECTORY}\logs\post_build.${Env:BuildName}.log"
+        $logFile = "${Env:TF_BUILD_BINARIESDIRECTORY}\logs\post_build.${buildName}.log"
         if (Test-Path -Path $logFile) {
             Remove-Item $logFile -Force
         }
@@ -78,7 +80,6 @@ if ($arch -eq "*") {
     WriteMessage "BVT Command  : $bvtcmdpath"
     WriteMessage ""
 
-    $buildName = ConstructBuildName -arch $arch -flavor $flavor -subtype $subtype
     $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $binpath, $buildName)
     $prefastlog = ("{0}\logs\PrefastCheck.{1}.log" -f $binpath, $buildName)
     $prefastcmd = "$PSScriptRoot\check_prefast_error.ps1 -directory $objpath -logFile $prefastlog"
