@@ -448,7 +448,7 @@ static void CALLBACK GetTTDDirectory(const char16* uri, char16** fullTTDUri)
 
 static void CALLBACK TTInitializeForWriteLogStreamCallback(const char16* uri)
 {
-    //If the directory does not exist then we want to write it
+    //If the directory does not exist then we want to create it
     CreateDirectoryIfNeeded(uri);
 
     //Clear the logging directory so it is ready for us to write into
