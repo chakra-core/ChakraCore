@@ -2082,7 +2082,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                         Output::Flush();
                     }
 #endif
-                    if (state <= executeFunction->GetSavedPolymorphicCacheState() && executeFunction->GetDefaultEntryPointInfo()->address != function->GetEntryPoint())
+                    if (state <= executeFunction->GetSavedPolymorphicCacheState())
                     {
                         reThunk = true;
                     }
@@ -2097,7 +2097,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
             case IR::BailOutFailedEquivalentTypeCheck:
             case IR::BailOutFailedEquivalentFixedFieldTypeCheck:
-                if (profileInfo->IsEquivalentObjTypeSpecDisabled() && executeFunction->GetDefaultEntryPointInfo()->address != function->GetEntryPoint())
+                if (profileInfo->IsEquivalentObjTypeSpecDisabled())
                 {
                     reThunk = true;
                 }
