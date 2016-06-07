@@ -309,7 +309,6 @@ HRESULT ExecuteTest(const char* fileName)
     HRESULT hr = S_OK;
     LPCSTR fileContents = nullptr;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
-    bool isUtf8 = false;
     UINT lengthBytes = 0;
 
     JsContextRef context = JS_INVALID_REFERENCE;
@@ -317,7 +316,7 @@ HRESULT ExecuteTest(const char* fileName)
     char fullPath[_MAX_PATH];
     size_t len = 0;
 
-    hr = Helpers::LoadScriptFromFile(fileName, fileContents, &isUtf8, &lengthBytes);
+    hr = Helpers::LoadScriptFromFile(fileName, fileContents, &lengthBytes);
 
     IfFailGo(hr);
     if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
@@ -359,39 +358,23 @@ HRESULT ExecuteTest(const char* fileName)
 
     if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
     {
-        if (isUtf8)
+        if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
         {
-            if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
-            {
-                CHAR libraryName[_MAX_PATH];
-                CHAR ext[_MAX_EXT];
-                _splitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
+            CHAR libraryName[_MAX_PATH];
+            CHAR ext[_MAX_EXT];
+            _splitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
 
-                IfFailGo(CreateLibraryByteCodeHeader(fileContents, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
-            }
-            else
-            {
-                fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
-                IfFailGo(E_FAIL);
-            }
+            IfFailGo(CreateLibraryByteCodeHeader(fileContents, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
         }
         else
         {
-            fwprintf(stderr, _u("FATAL ERROR: GenerateLibraryByteCodeHeader flag can only be used on UTF8 file, exiting\n"));
+            fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
             IfFailGo(E_FAIL);
         }
     }
     else if (HostConfigFlags::flags.SerializedIsEnabled)
     {
-        if (isUtf8)
-        {
-            CreateAndRunSerializedScript(fileName, fileContents, fullPath);
-        }
-        else
-        {
-            fwprintf(stderr, _u("FATAL ERROR: Serialized flag can only be used on UTF8 file, exiting\n"));
-            IfFailGo(E_FAIL);
-        }
+        CreateAndRunSerializedScript(fileName, fileContents, fullPath);
     }
     else
     {
