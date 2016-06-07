@@ -21,11 +21,11 @@ namespace Js
         jscriptBlockRegistrationCount(0),
         isDebuggerAttaching(false),
         nextBreakPointId(0),
-        localsDisplayFlags(LocalsDisplayFlags_None)
+        localsDisplayFlags(LocalsDisplayFlags_None),
+        dispatchHaltFrameAddress(nullptr)
     {
         Assert(_pThreadContext != nullptr);
 #if DBG
-        dispatchHaltFrameAddress = nullptr;
         // diagnosticPageAllocator may be used in multiple thread, but it's usage is synchronized.
         diagnosticPageAllocator.SetDisableThreadAccessCheck();
         diagnosticPageAllocator.debugName = _u("Diagnostic");

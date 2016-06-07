@@ -797,7 +797,12 @@ Js::JavascriptArray * JsrtDebugStackFrames::StackFrames(Js::ScriptContext * scri
 
     uint frameCount = 0;
 
-    for (Js::ScriptContext *tempScriptContext = scriptContext->GetThreadContext()->GetScriptContextList();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+
+    DWORD_PTR dispatchHaltFrameAddress = threadContext->GetDebugManager()->GetDispatchHaltFrameAddress();
+    AssertMsg(dispatchHaltFrameAddress, "Didn't set the dispatchHaltFrameAddress at time of break?");
+
+    for (Js::ScriptContext *tempScriptContext = threadContext->GetScriptContextList();
     tempScriptContext != nullptr && tempScriptContext->IsScriptContextInDebugMode();
         tempScriptContext = tempScriptContext->next)
     {
@@ -811,12 +816,19 @@ Js::JavascriptArray * JsrtDebugStackFrames::StackFrames(Js::ScriptContext * scri
                 for (int frameIndex = 0; frameIndex < count; ++frameIndex)
                 {
                     Js::DiagStackFrame* stackFrame = stackFrames->Peek(frameIndex);
-                    Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, frameCount);
 
-                    Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
-                    Js::JavascriptOperators::OP_SetElementI((Js::Var)stackTraceArray, Js::JavascriptNumber::ToVar(frameCount++, scriptContext), marshaledObj, scriptContext);
+                    DWORD_PTR stackAddress = stackFrame->GetStackAddress();
+                    // Only give frames which were preset when break was triggered as we might have other user (non-library) scripts executed after break
+                    if (stackAddress >= dispatchHaltFrameAddress)
+                    {
+                        Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, frameCount);
+
+                        Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
+                        Js::JavascriptOperators::OP_SetElementI((Js::Var)stackTraceArray, Js::JavascriptNumber::ToVar(frameCount++, scriptContext), marshaledObj, scriptContext);
+                    }
                 }
             }
+
             framePointers->ReleaseStrongReference();
             HeapDelete(framePointers);
         }
