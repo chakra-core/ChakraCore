@@ -904,39 +904,46 @@ namespace Js
         JsUtil::BaseDictionary<const char16*, Var, Recycler> dict(scriptContext->GetRecycler());
         JavascriptArray* arrResult = scriptContext->GetLibrary()->CreateArray();
 
-        // 13.7.5.15EnumerateObjectProperties(O)#
-        //  for (let key of Reflect.ownKeys(obj)) {    
+        // 13.7.5.15 EnumerateObjectProperties(O) (https://tc39.github.io/ecma262/#sec-enumerate-object-properties)
+        // for (let key of Reflect.ownKeys(obj)) {    
         Var trapResult = JavascriptOperators::GetOwnPropertyNames(this, scriptContext);
-        Assert(JavascriptArray::Is(trapResult));
-        ((JavascriptArray*)trapResult)->GetEnumerator(false, &enmeratorObj, scriptContext);
-        JavascriptEnumerator* pEnumerator = JavascriptEnumerator::FromVar(enmeratorObj);
-        while ((propertyName = pEnumerator->GetCurrentAndMoveNext(propertyId)) != NULL)
+        if (JavascriptArray::Is(trapResult))
         {
-            PropertyId  propId = JavascriptOperators::GetPropertyId(propertyName, scriptContext);
-            Var prop = JavascriptOperators::GetProperty(RecyclableObject::FromVar(trapResult), propId, scriptContext);
-            // if (typeof key === "string") {
-            if (JavascriptString::Is(prop))
+            ((JavascriptArray*)trapResult)->GetEnumerator(false, &enmeratorObj, scriptContext);
+            JavascriptEnumerator* pEnumerator = JavascriptEnumerator::FromVar(enmeratorObj);
+            while ((propertyName = pEnumerator->GetCurrentAndMoveNext(propertyId)) != NULL)
             {
-                Js::PropertyDescriptor desc;
-                JavascriptString* str = JavascriptString::FromVar(prop);
-                // let desc = Reflect.getOwnPropertyDescriptor(obj, key);
-                BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(this, str, scriptContext, &desc);
-                // if (desc && !visited.has(key)) {
-                if (ret && !dict.ContainsKey(str->GetSz()))
+                PropertyId  propId = JavascriptOperators::GetPropertyId(propertyName, scriptContext);
+                Var prop = JavascriptOperators::GetProperty(RecyclableObject::FromVar(trapResult), propId, scriptContext);
+                // if (typeof key === "string") {
+                if (JavascriptString::Is(prop))
                 {
-                    dict.Add(str->GetSz(), prop);
-                    //if (desc.enumerable) yield key;
-                    if (desc.IsEnumerable())
+                    Js::PropertyDescriptor desc;
+                    JavascriptString* str = JavascriptString::FromVar(prop);
+                    // let desc = Reflect.getOwnPropertyDescriptor(obj, key);
+                    BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(this, str, scriptContext, &desc);
+                    // if (desc && !visited.has(key)) {
+                    if (ret && !dict.ContainsKey(str->GetSz()))
                     {
-                        ret = arrResult->SetItem(index++, prop, PropertyOperation_None);
-                        Assert(ret);
+                        dict.Add(str->GetSz(), prop);
+                        // if (desc.enumerable) yield key;
+                        if (desc.IsEnumerable())
+                        {
+                            ret = arrResult->SetItem(index++, prop, PropertyOperation_None);
+                            Assert(ret);
+                        }
                     }
                 }
-            }            
+            }
+        }
+        else
+        {
+            AssertMsg(false, "Expect GetOwnPropertyNames result to be array");
         }
 
-        *enumerator = IteratorObjectEnumerator::Create(scriptContext, 
+        *enumerator = IteratorObjectEnumerator::Create(scriptContext,
             JavascriptOperators::GetIterator(RecyclableObject::FromVar(arrResult), scriptContext));
+
         return TRUE;
     }
 
