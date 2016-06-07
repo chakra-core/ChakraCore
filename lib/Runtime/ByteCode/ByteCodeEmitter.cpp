@@ -4226,7 +4226,7 @@ void ByteCodeGenerator::StartEmitCatch(ParseNode *pnodeCatch)
 
         // Catch object is stored in the catch scope if there may be an ambiguous lookup or a var declaration that hides it.
         scope->SetCapturesAll(funcInfo->GetCallsEval() || funcInfo->GetChildCallsEval() || sym->GetHasNonLocalReference());
-        scope->SetMustInstantiate(scope->GetCapturesAll() || funcInfo->IsGlobalFunction() || currentScope != funcInfo->GetBodyScope());
+        scope->SetMustInstantiate(scope->GetCapturesAll() || funcInfo->IsGlobalFunction());
 
         if (funcInfo->IsGlobalFunction())
         {
@@ -4239,27 +4239,17 @@ void ByteCodeGenerator::StartEmitCatch(ParseNode *pnodeCatch)
             // Also in order to make IsInSlot to return true - forcing the sym-has-non-local-reference.
             sym->SetHasNonLocalReference(true, this);
             sym->EnsureScopeSlot(funcInfo);
+        }
 
-            PushScope(scope);
-        }
-        else
-        {
-            // Add it to the parent function's scope and treat it like any other local.
-            // We can only do this if we don't need to get the symbol from a slot, though, because adding it to the
-            // parent's scope object on entry to the catch could re-size the slot array.
-            funcInfo->bodyScope->AddSymbol(sym);
-        }
+        PushScope(scope);
     }
 }
 
 void ByteCodeGenerator::EndEmitCatch(ParseNode *pnodeCatch)
 {
     Assert(pnodeCatch->nop == knopCatch);
-    if (pnodeCatch->sxCatch.scope->GetMustInstantiate() || pnodeCatch->sxCatch.pnodeParam->nop == knopParamPattern)
-    {
-        Assert(currentScope == pnodeCatch->sxCatch.scope);
-        PopScope();
-    }
+    Assert(currentScope == pnodeCatch->sxCatch.scope);
+    PopScope();
 }
 
 void ByteCodeGenerator::StartEmitBlock(ParseNode *pnodeBlock)
@@ -10796,11 +10786,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         byteCodeGenerator->Writer()->Reg1(Js::OpCode::Catch, location);
 
         Scope *scope = pnodeCatch->sxCatch.scope;
-
-        if (isPattern || scope->GetMustInstantiate())
-        {
-            byteCodeGenerator->PushScope(scope);
-        }
+        byteCodeGenerator->PushScope(scope);
 
         if (scope->GetMustInstantiate())
         {
@@ -10815,7 +10801,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
                 int index = Js::DebuggerScope::InvalidScopeIndex;
                 debuggerScope = byteCodeGenerator->RecordStartScopeObject(pnode, Js::DiagCatchScopeInSlot, funcInfo->InnerScopeToRegSlot(scope), &index);
-
                 byteCodeGenerator->Writer()->Num3(Js::OpCode::NewInnerScopeSlots, scope->GetInnerScopeIndex(), scope->GetScopeSlotCount() + Js::ScopeSlots::FirstSlotIndex, index);
             }
         }
@@ -10913,10 +10898,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             byteCodeGenerator->tryScopeRecordsList.UnlinkFromEnd();
         }
 
-        if (scope->GetMustInstantiate() || isPattern)
-        {
-            byteCodeGenerator->PopScope();
-        }
+        byteCodeGenerator->PopScope();
 
         byteCodeGenerator->RecordEndScopeObject(pnode);
 
