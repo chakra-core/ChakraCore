@@ -4,12 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimePlatformAgnosticPch.h"
-
-#ifndef _WIN32
-// Non-Windows Implementation
-// TODO: Probably should check for something specific to Linux instead of checking for not _WIN32
 #include "UnicodeText.h"
-
 #include <unicode/uchar.h>
 #include <unicode/ustring.h>
 #include <unicode/normalizer2.h>
@@ -282,4 +277,3 @@ namespace PlatformAgnostic
         }
     };
 };
-#endif

@@ -41,8 +41,10 @@
     </ClCompile>
     <ClCompile Include="Platform\Windows\DateTime.cpp" />
     <ClCompile Include="Platform\Windows\DaylightHelper.cpp" />
-    <ClCompile Include="Platform\Windows\UnicodeText.cpp" />
     <ClCompile Include="Platform\Windows\HiResTimer.cpp" />
+    <ClCompile Include="Platform\Windows\UnicodeText.cpp" />
+    <ClCompile Include="Platform\Windows\NumbersUtility.cpp" />
+
     <ClCompile Include="Platform\Common\UnicodeText.Common.cpp" />
   </ItemGroup>
   <ItemGroup>

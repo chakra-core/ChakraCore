@@ -627,3 +627,4 @@ namespace PlatformAgnostic
 };
 
 #include "PlatformAgnostic/DateTime.h"
+#include "PlatformAgnostic/Numbers.h"
