@@ -483,7 +483,7 @@ namespace Js
 
         return false;
     }
-#endif
+
     bool JavascriptStackWalker::InlinedFramesBeingWalked() const
     {
         if (lastInternalFrameInfo.codeAddress)
@@ -503,6 +503,7 @@ namespace Js
 
         return this->inlinedFramesOnStack;
     }
+#endif
 
     bool JavascriptStackWalker::GetSourcePosition(const WCHAR** sourceFileName, ULONG* line, LONG* column)
     {
@@ -534,14 +535,19 @@ namespace Js
         {
             // In case we have a cross site thunk, update the script context
             Js::JavascriptFunction *function = this->GetCurrentFunction();
+
+#if ENABLE_NATIVE_CODEGEN
             bool isCurrentPhysicalFrameForLoopBody = this->IsCurrentPhysicalFrameForLoopBody();
+#endif
             if (this->interpreterFrame)
             {
+#if ENABLE_NATIVE_CODEGEN
                 if (lastInternalFrameInfo.codeAddress != nullptr)
                 {
                     this->previousInterpreterFrameIsForLoopBody = true;
                 }
                 else
+#endif
                 {
                     this->previousInterpreterFrameIsForLoopBody = false;
                 }
@@ -550,8 +556,8 @@ namespace Js
                 if (this->interpreterFrame->GetFlags() & InterpreterStackFrameFlags_FromBailOut)
                 {
                     previousInterpreterFrameIsFromBailout = true;
-#if ENABLE_NATIVE_CODEGEN
 
+#if ENABLE_NATIVE_CODEGEN
                     Assert(!inlinedFramesBeingWalked);
                     if (includeInlineFrames)
                     {
@@ -601,9 +607,9 @@ namespace Js
             }
             else if (!this->isNativeLibraryFrame)
             {
+#if ENABLE_NATIVE_CODEGEN
                 Assert(!InlinedFramesOnStack() || (includeInlineFrames && isCurrentPhysicalFrameForLoopBody));
 
-#if ENABLE_NATIVE_CODEGEN
                 if (!InlinedFramesOnStack() && includeInlineFrames)
                 {
                     // Check whether there are inlined frames nested in this native frame. The corresponding check for
@@ -681,12 +687,13 @@ namespace Js
     {
         // Walk one frame up the call stack.
         this->interpreterFrame = NULL;
+
+#if ENABLE_NATIVE_CODEGEN
         if (lastInternalFrameInfo.codeAddress != nullptr && this->previousInterpreterFrameIsForLoopBody)
         {
             ClearCachedInternalFrameInfo();
         }
 
-#if ENABLE_NATIVE_CODEGEN
         if (inlinedFramesBeingWalked)
         {
             Assert(includeInlineFrames);
