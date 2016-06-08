@@ -6,7 +6,7 @@
 import "wtypes.idl";
 
 // TODO: OOP JIT, how do we make this better?
-#define VTABLE_COUNT 39
+const int VTABLE_COUNT = 40;
 
 typedef struct BVUnitData
 {

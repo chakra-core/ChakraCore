@@ -447,7 +447,7 @@ Func::Codegen()
             NativeCodeData::DataChunk *next2 = chunk;
             while (next2)
             {
-                for (int i = 0; i < next1->len / sizeof(void*); i++)
+                for (unsigned int i = 0; i < next1->len / sizeof(void*); i++)
                 {
                     if (((void**)next1->data)[i] == (void*)next2->data)
                     {

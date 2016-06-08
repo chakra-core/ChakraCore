@@ -3383,7 +3383,7 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
 
     if (Js::TaggedInt::Is(varConst))
     {
-        IntConstType value = Js::TaggedInt::ToInt32(varConst);
+        IntConstType value = Js::TaggedInt::ToInt32((Js::Var)varConst);
         instr = IR::Instr::New(Js::OpCode::LdC_A_I4, dstOpnd, IR::IntConstOpnd::New(value, TyInt32, func), func);
         if (dstOpnd->m_sym->IsSingleDef())
         {
@@ -3449,7 +3449,7 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
 #else
                     // Don't set m_isNotInt to true if the float constant value is an int32 or uint32. Uint32s may sometimes be
                     // treated as int32s for the purposes of int specialization.
-                    dstOpnd->m_sym->m_isNotInt = !Js::JavascriptNumber::IsInt32OrUInt32_NoChecks(varConst);
+                    dstOpnd->m_sym->m_isNotInt = !Js::JavascriptNumber::IsInt32OrUInt32_NoChecks((Js::Var)varConst);
 #endif
                 }
                 break;

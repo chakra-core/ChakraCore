@@ -1025,7 +1025,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             funcEPInfo->SetXDataInfo(xdataInfo);
 #endif
             scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
-            workItem->SetCodeAddress(jitWriteData.codeAddress);
+            workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
 
             workItem->GetEntryPoint()->SetCodeGenRecorded((PVOID)jitWriteData.codeAddress, jitWriteData.codeSize, nullptr, nullptr, nullptr);
 

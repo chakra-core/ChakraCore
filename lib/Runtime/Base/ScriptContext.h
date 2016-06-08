@@ -442,7 +442,7 @@ namespace Js
             contextData.recyclerVerifyPad = 0;
 #endif
             contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
-            CompileAssert(VTableValue::Count == 39); // need to update idl chen this changes
+            CompileAssert(VTableValue::Count == VTABLE_COUNT); // need to update idl chen this changes
             memcpy_s(contextData.vtableAddresses, 39 * sizeof(intptr_t), GetLibrary()->GetVTableAddresses(), VTableValue::Count * sizeof(INT_PTR));
             this->threadContext->m_codeGenManager.InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
         }

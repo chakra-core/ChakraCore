@@ -611,8 +611,11 @@ namespace Js
 
         JitTransferData* GetJitTransferData() { return this->jitTransferData; }
         JitTransferData* EnsureJitTransferData(Recycler* recycler);
+#if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
         XDataInfo* GetXDataInfo() { return this->xdataInfo; }
         void SetXDataInfo(XDataInfo* xdataInfo) { this->xdataInfo = xdataInfo; }
+#endif
+
 #ifdef FIELD_ACCESS_STATS
         FieldAccessStats* GetFieldAccessStats() { return this->fieldAccessStats; }
         FieldAccessStats* EnsureFieldAccessStats(Recycler* recycler);

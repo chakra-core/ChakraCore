@@ -3146,6 +3146,8 @@ namespace Js
 
 #if !defined(_M_X64_OR_ARM64)
         vtableAddresses[VTableValue::VtableJavascriptNumber] = VirtualTableInfo<Js::JavascriptNumber>::Address;
+#else
+        vtableAddresses[VTableValue::VtableJavascriptNumber] = nullptr;
 #endif
         vtableAddresses[VTableValue::VtableDynamicObject] = VirtualTableInfo<Js::DynamicObject>::Address;
         vtableAddresses[VTableValue::VtableInvalid] = Js::ScriptContextOptimizationOverrideInfo::InvalidVtable;

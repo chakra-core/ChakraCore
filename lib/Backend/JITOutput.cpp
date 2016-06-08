@@ -49,7 +49,7 @@ JITOutput::SetArgUsedForBranch(uint8 param)
 intptr_t
 JITOutput::GetCodeAddress() const
 {
-    return m_outputData->codeAddress;
+    return (intptr_t)m_outputData->codeAddress;
 }
 
 EmitBufferAllocation *

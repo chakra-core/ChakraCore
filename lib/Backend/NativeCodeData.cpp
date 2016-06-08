@@ -60,7 +60,7 @@ NativeCodeData::AddFixupEntryForPointerArray(void* startAddress, DataChunk * chu
 {
     DataChunk* chunk = (DataChunk*)((char*)startAddress - offsetof(DataChunk, data));
     Assert(chunk->len % sizeof(void*) == 0);
-    for (int i = 0; i < chunk->len / sizeof(void*); i++)
+    for (unsigned int i = 0; i < chunk->len / sizeof(void*); i++)
     {
         void* targetAddr = *(void**)startAddress;
 

@@ -33,7 +33,7 @@ intptr_t const JnHelperMethodAddresses[] =
 intptr_t const JnHelperMethodAddresses_SSE2[] =
 {
 #define SSE2MATH
-#define HELPERCALL(Name, Address, Attributes) static_cast<intptr_t>(Address),
+#define HELPERCALL(Name, Address, Attributes) reinterpret_cast<intptr_t>(Address),
 // Because of order-of-initialization problems with the vtable address static field
 // and this array, we're going to have to fill these in as we go along.
 #include "JnHelperMethodList.h"
