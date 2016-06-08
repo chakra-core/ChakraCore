@@ -9,11 +9,11 @@
 
 namespace Wasm
 {
-WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, BaseWasmReader * reader) :
+WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, byte* binaryBuffer, uint binaryBufferLength) :
     m_scriptContext(scriptContext),
     m_sourceInfo(sourceInfo),
     m_alloc(_u("WasmBytecodeGen"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
-    m_reader(reader),
+    m_reader(scriptContext->GetThreadContext()->GetPageAllocator(), binaryBuffer, binaryBufferLength),
     m_f32RegSlots(nullptr),
     m_f64RegSlots(nullptr),
     m_i32RegSlots(nullptr),
@@ -42,17 +42,17 @@ WasmBytecodeGenerator::GenerateModule()
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
 
     m_module = Anew(&m_alloc, WasmModule);
-    m_module->info = m_reader->m_moduleInfo;
+    m_module->info = m_reader.m_moduleInfo;
     m_module->heapOffset = 0;
     m_module->importFuncOffset = m_module->heapOffset + 1;
     m_module->funcOffset = m_module->heapOffset + 1;
 
-    m_reader->InitializeReader();
-    m_reader->m_module = m_module;
+    m_reader.InitializeReader();
+    m_reader.m_module = m_module;
 
     BVFixed* visitedSections = BVFixed::New(bSectLimit + 1, &m_alloc);
 
-    const auto readerProcess = [](WasmBytecodeGenerator* gen) { return gen->m_reader->ProcessCurrentSection(); };
+    const auto readerProcess = [](WasmBytecodeGenerator* gen) { return gen->m_reader.ProcessCurrentSection(); };
     // By default lest the reader process the section
 #define WASM_SECTION(name, id, flag, precedent) readerProcess,
     SectionProcessFunc sectionProcess[bSectLimit + 1] = {
@@ -77,7 +77,7 @@ WasmBytecodeGenerator::GenerateModule()
         {
             gen->m_module->lazyTraps = AnewArrayZ(&gen->m_alloc, WasmCompilationException*, gen->m_module->funcCount);
         }
-        return gen->m_reader->ReadFunctionBodies([](uint32 index, void* g) {
+        return gen->m_reader.ReadFunctionBodies([](uint32 index, void* g) {
             WasmBytecodeGenerator* gen = (WasmBytecodeGenerator*)g;
             if (index >= gen->m_module->funcCount) {
                 return false;
@@ -91,7 +91,7 @@ WasmBytecodeGenerator::GenerateModule()
     for (SectionCode sectionCode = (SectionCode)(bSectInvalid + 1); sectionCode < bSectLimit ; sectionCode = (SectionCode)(sectionCode + 1))
     {
         SectionCode precedent = SectionInfo::All[sectionCode].precedent;
-        if (m_reader->ReadNextSection((SectionCode)sectionCode))
+        if (m_reader.ReadNextSection((SectionCode)sectionCode))
         {
             if (precedent != bSectInvalid && !visitedSections->Test(precedent))
             {
@@ -116,7 +116,7 @@ WasmBytecodeGenerator::GenerateModule()
 #if DBG_DUMP
     if (PHASE_TRACE1(Js::WasmReaderPhase))
     {
-        ((Binary::WasmBinaryReader*)m_reader)->PrintOps();
+        m_reader.PrintOps();
     }
 #endif
     // If we see a FunctionSignatures section we need to see a FunctionBodies section
@@ -133,7 +133,7 @@ WasmBytecodeGenerator::GenerateModule()
 WasmFunction *
 WasmBytecodeGenerator::GenerateFunction()
 {
-    WasmFunctionInfo* wasmInfo = m_reader->m_currentNode.func.info;
+    WasmFunctionInfo* wasmInfo = m_reader.m_currentNode.func.info;
     TRACE_WASM_DECODER(_u("GenerateFunction %u \n"), wasmInfo->GetNumber());
 
     WasmRegisterSpace f32Space(ReservedRegisterCount);
@@ -186,7 +186,7 @@ WasmBytecodeGenerator::GenerateFunction()
             WasmOp op = wnLIMIT;
             EmitInfo exprInfo;
             EnterEvalStackScope();
-            while ((op = m_reader->ReadExpr()) != wnFUNC_END)
+            while ((op = m_reader.ReadExpr()) != wnFUNC_END)
             {
                 exprInfo = EmitExpr(op);
             }
@@ -205,7 +205,7 @@ WasmBytecodeGenerator::GenerateFunction()
                 {
                     arity = 1;
                 }
-                m_reader->m_currentNode.ret.arity = arity;
+                m_reader.m_currentNode.ret.arity = arity;
                 EmitReturnExpr(&exprInfo);
             }
             ExitEvalStackScope();
@@ -479,12 +479,12 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 EmitInfo
 WasmBytecodeGenerator::EmitGetLocal()
 {
-    if (m_funcInfo->GetLocalCount() < m_reader->m_currentNode.var.num)
+    if (m_funcInfo->GetLocalCount() < m_reader.m_currentNode.var.num)
     {
-        throw WasmCompilationException(_u("%u is not a valid local"), m_reader->m_currentNode.var.num);
+        throw WasmCompilationException(_u("%u is not a valid local"), m_reader.m_currentNode.var.num);
     }
 
-    WasmLocal local = m_locals[m_reader->m_currentNode.var.num];
+    WasmLocal local = m_locals[m_reader.m_currentNode.var.num];
 
     Js::OpCodeAsmJs op = GetLoadOp(local.type);
     WasmRegisterSpace * regSpace = GetRegisterSpace(local.type);
@@ -499,7 +499,7 @@ WasmBytecodeGenerator::EmitGetLocal()
 EmitInfo
 WasmBytecodeGenerator::EmitSetLocal()
 {
-    uint localNum = m_reader->m_currentNode.var.num;
+    uint localNum = m_reader.m_currentNode.var.num;
     if (localNum >= m_funcInfo->GetLocalCount())
     {
         throw WasmCompilationException(_u("%u is not a valid local"), localNum);
@@ -529,13 +529,13 @@ WasmBytecodeGenerator::EmitConst()
     switch (type)
     {
     case WasmTypes::F32:
-        m_writer.AsmFloat1Const1(Js::OpCodeAsmJs::Ld_FltConst, tmpReg, m_reader->m_currentNode.cnst.f32);
+        m_writer.AsmFloat1Const1(Js::OpCodeAsmJs::Ld_FltConst, tmpReg, m_reader.m_currentNode.cnst.f32);
         break;
     case WasmTypes::F64:
-        m_writer.AsmDouble1Const1(Js::OpCodeAsmJs::Ld_DbConst, tmpReg, m_reader->m_currentNode.cnst.f64);
+        m_writer.AsmDouble1Const1(Js::OpCodeAsmJs::Ld_DbConst, tmpReg, m_reader.m_currentNode.cnst.f64);
         break;
     case WasmTypes::I32:
-        m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, tmpReg, m_reader->m_currentNode.cnst.i32);
+        m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, tmpReg, m_reader.m_currentNode.cnst.i32);
         break;
     default:
         throw WasmCompilationException(_u("Unknown type %u"), type);
@@ -552,36 +552,16 @@ WasmBytecodeGenerator::EmitBlock()
     // TODO: this needs more work. must get temp that brs can store to as a target, and do type checking
     m_labels->Push(blockLabel);
     EmitInfo blockInfo;
-    if (m_reader->IsBinaryReader())
+    EnterEvalStackScope();
+    while ((op = m_reader.ReadFromBlock()) != wnEND && op != wnELSE)
     {
-        EmitInfo tmpInfo;
-        bool nonEmpty = false;
-        EnterEvalStackScope();
-        while ((op = m_reader->ReadFromBlock()) != wnEND && op != wnELSE)
-        {
-            nonEmpty = true;
-            tmpInfo = EmitExpr(op);
-        }
-        ExitEvalStackScope();
-        // block yields last value
-        if (nonEmpty) blockInfo = tmpInfo;
+        blockInfo = EmitExpr(op);
     }
-    else
-    {
-        op = m_reader->ReadFromBlock();
-        if (op == wnLIMIT)
-        {
-            throw WasmCompilationException(_u("Block must have at least one expression"));
-        }
-        do
-        {
-            EmitInfo info = EmitExpr(op);
-            ReleaseLocation(&info);
-            op = m_reader->ReadFromBlock();
-        } while (op != wnLIMIT);
-    }
+    ExitEvalStackScope();
+
     m_writer.MarkAsmJsLabel(blockLabel);
     m_labels->Pop();
+    // block yields last value
     return blockInfo;
 }
 
@@ -595,21 +575,18 @@ WasmBytecodeGenerator::EmitLoop()
     m_labels->Push(loopHeaderLabel);
     const uint loopId = m_writer.EnterLoop(loopHeaderLabel);
     EmitInfo loopInfo;
-    if (m_reader->IsBinaryReader())
+    WasmOp op;
+    EmitInfo info;
+    op = m_reader.ReadFromBlock();
+    EnterEvalStackScope();
+    while (op != wnEND)
     {
-        WasmOp op;
-        EmitInfo info;
-        op = m_reader->ReadFromBlock();
-        EnterEvalStackScope();
-        while (op != wnEND)
-        {
-            info = EmitExpr(op);
-            op = m_reader->ReadFromBlock();
-            if (op == wnEND)
-                loopInfo = info;         // loop yields last value
-        }
-        ExitEvalStackScope();
+        info = EmitExpr(op);
+        op = m_reader.ReadFromBlock();
+        if (op == wnEND)
+            loopInfo = info;         // loop yields last value
     }
+    ExitEvalStackScope();
     m_writer.MarkAsmJsLabel(loopTailLabel);
     m_labels->Pop();
     m_labels->Pop();
@@ -629,7 +606,7 @@ WasmBytecodeGenerator::EmitCall()
     switch (wasmOp)
     {
     case wnCALL:
-        funcNum = m_reader->m_currentNode.call.num;
+        funcNum = m_reader.m_currentNode.call.num;
         if (funcNum >= m_module->info->GetFunctionCount())
         {
             throw WasmCompilationException(_u("Call is to unknown function"));
@@ -638,7 +615,7 @@ WasmBytecodeGenerator::EmitCall()
         break;
     case wnCALL_IMPORT:
     {
-        funcNum = m_reader->m_currentNode.call.num;
+        funcNum = m_reader.m_currentNode.call.num;
         if (funcNum >= m_module->info->GetImportCount())
         {
             throw WasmCompilationException(L"Call is to unknown function");
@@ -648,7 +625,7 @@ WasmBytecodeGenerator::EmitCall()
         break;
     }
     case wnCALL_INDIRECT:
-        signatureId = m_reader->m_currentNode.call.num;
+        signatureId = m_reader.m_currentNode.call.num;
         calleeSignature = m_module->info->GetSignature(signatureId);
         break;
     default:
@@ -678,7 +655,7 @@ WasmBytecodeGenerator::EmitCall()
 
     m_writer.AsmStartCall(startCallOp, argSize);
 
-    if (calleeSignature->GetParamCount() != m_reader->m_currentNode.call.arity)
+    if (calleeSignature->GetParamCount() != m_reader.m_currentNode.call.arity)
     {
         throw WasmCompilationException(_u("Mismatch between call signature and arity"));
     }
@@ -725,15 +702,6 @@ WasmBytecodeGenerator::EmitCall()
 
         m_writer.AsmReg2(argOp, argLoc, info.location);
         ReleaseLocation(&info);
-    }
-
-    if (!m_reader->IsBinaryReader()) {
-        // [b-gekua] REVIEW: SExpr must consume RPAREN for call whereas Binary
-        // does not. This and other kinds of special casing for BinaryReader
-        // may be eliminated with a refactoring of WasmBinaryReader to use the
-        // same "protocol" for scoping constructs as SExprParser (i.e., signal
-        // the end of scope with wnLIMIT).
-        m_reader->ReadFromCall();
     }
 
     // emit call
@@ -848,14 +816,14 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 
     m_writer.MarkAsmJsLabel(falseLabel);
 
-    WasmOp op = m_reader->GetLastOp(); // wnEND or wnELSE
+    WasmOp op = m_reader.GetLastOp(); // wnEND or wnELSE
     EmitInfo retInfo;
     EmitInfo falseExpr;
     if (op == wnELSE)
     {
         falseExpr = EmitBlock(); 
         // Read END
-        op = m_reader->GetLastOp();
+        op = m_reader.GetLastOp();
     }
 
     if (trueExpr.type == WasmTypes::Void || falseExpr.type != trueExpr.type)
@@ -890,9 +858,9 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 EmitInfo
 WasmBytecodeGenerator::EmitBrTable()
 {
-    const uint numTargets = m_reader->m_currentNode.brTable.numTargets;
-    const UINT* targetTable = m_reader->m_currentNode.brTable.targetTable;
-    const UINT defaultEntry = m_reader->m_currentNode.brTable.defaultTarget;
+    const uint numTargets = m_reader.m_currentNode.brTable.numTargets;
+    const UINT* targetTable = m_reader.m_currentNode.brTable.targetTable;
+    const UINT defaultEntry = m_reader.m_currentNode.brTable.defaultTarget;
 
     // Compile scrutinee
     EmitInfo scrutineeInfo = PopEvalStack();
@@ -969,7 +937,7 @@ template<WasmOp wasmOp, WasmTypes::WasmType type>
 EmitInfo
 WasmBytecodeGenerator::EmitMemRead()
 {
-    const uint offset = m_reader->m_currentNode.mem.offset;
+    const uint offset = m_reader.m_currentNode.mem.offset;
     m_currentFunc->body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
 
     EmitInfo exprInfo = PopEvalStack();
@@ -998,7 +966,7 @@ template<WasmOp wasmOp, WasmTypes::WasmType type>
 EmitInfo
 WasmBytecodeGenerator::EmitMemStore()
 {
-    const uint offset = m_reader->m_currentNode.mem.offset;
+    const uint offset = m_reader.m_currentNode.mem.offset;
     m_currentFunc->body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
     // TODO (michhol): combine with MemRead
 
@@ -1042,7 +1010,7 @@ WasmBytecodeGenerator::GetConstReg(T constVal)
     Js::RegSlot location = m_funcInfo->GetConst(constVal);
     if (location == Js::Constants::NoRegister)
     {
-        WasmRegisterSpace * regSpace = GetRegisterSpace(m_reader->m_currentNode.type);
+        WasmRegisterSpace * regSpace = GetRegisterSpace(m_reader.m_currentNode.type);
         location = regSpace->AcquireConstRegister();
         m_funcInfo->AddConst(constVal, location);
     }
@@ -1054,7 +1022,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
 {
     if (m_funcInfo->GetResultType() == WasmTypes::Void)
     {
-        if (m_reader->m_currentNode.ret.arity != 0)
+        if (m_reader.m_currentNode.ret.arity != 0)
         {
             throw WasmCompilationException(_u("Nonzero arity for return op in void function"));
         }
@@ -1063,7 +1031,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
     }
     else
     {
-        if (m_reader->m_currentNode.ret.arity != 1)
+        if (m_reader.m_currentNode.ret.arity != 1)
         {
             throw WasmCompilationException(_u("Unexpected arity for return op"));
         }
@@ -1140,8 +1108,8 @@ template<WasmOp wasmOp>
 EmitInfo
 WasmBytecodeGenerator::EmitBr()
 {
-    UINT depth = m_reader->m_currentNode.br.depth;
-    bool hasSubExpr = m_reader->m_currentNode.br.hasSubExpr;
+    UINT depth = m_reader.m_currentNode.br.depth;
+    bool hasSubExpr = m_reader.m_currentNode.br.hasSubExpr;
 
     EmitInfo conditionInfo;
     if (wasmOp == WasmOp::wnBR_IF)

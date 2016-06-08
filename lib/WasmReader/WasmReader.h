@@ -72,10 +72,7 @@ namespace Wasm
 #include "ModuleInfo.h"
 
 #include "WasmSection.h"
-#include "BaseWasmReader.h"
 
-#include "SExprScanner.h"
-#include "SExprParser.h"
 #include "WasmBinaryReader.h"
 #include "WasmRegisterSpace.h"
 #include "WasmBytecodeGenerator.h"

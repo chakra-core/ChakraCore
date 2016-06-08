@@ -82,26 +82,46 @@ namespace Wasm
 
         static const unsigned int experimentalVersion = 0xb;
 
-        class WasmBinaryReader : public BaseWasmReader
+        typedef bool(*FunctionBodyCallback)(uint32 index, void* data);
+
+        class WasmBinaryReader
         {
         public:
             WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length);
             static void Init(Js::ScriptContext *scriptContext);
 
-            virtual void InitializeReader() override;
-            virtual bool IsBinaryReader() override;
-            virtual bool ReadNextSection(SectionCode nextSection) override;
-            virtual bool ProcessCurrentSection() override;
-            virtual bool ReadFunctionBodies(FunctionBodyCallback callback, void* callbackdata) override;
-            virtual WasmOp ReadFromBlock() override;
-            virtual WasmOp ReadFromCall() override;
-            virtual WasmOp ReadExpr() override;
-            virtual WasmOp GetLastOp() override;
+            void InitializeReader();
+            bool ReadNextSection(SectionCode nextSection);
+            // Fully read the section in the reader. Return true if the section fully read
+            bool ProcessCurrentSection();
+            bool ReadFunctionBodies(FunctionBodyCallback callback, void* callbackdata);
+            WasmOp ReadFromBlock();
+            WasmOp ReadFromCall();
+            WasmOp ReadExpr();
+            WasmOp GetLastOp();
 #if DBG_DUMP
             void PrintOps();
 #endif
+            // TODO: Move this to somewhere more appropriate and possible make m_alloc part of
+            // BaseWasmReader state.
+            char16* CvtUtf8Str(ArenaAllocator* m_alloc, LPUTF8 name, uint32 nameLen)
+            {
+                utf8::DecodeOptions decodeOptions = utf8::doDefault;
+                charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(name, nameLen, decodeOptions);
+                char16* contents = AnewArray(m_alloc, char16, utf16Len + 1);
+                if (contents == nullptr)
+                {
+                    Js::Throw::OutOfMemory();
+                }
+                utf8::DecodeIntoAndNullTerminate((char16*)contents, name, utf16Len, decodeOptions);
+                return contents;
+            }
 
+            WasmNode    m_currentNode;
+            ModuleInfo * m_moduleInfo;
+            WasmModule * m_module;
         private:
+            WasmFunctionInfo *  m_funcInfo;
             struct ReaderState
             {
                 UINT32 count; // current entry
@@ -148,7 +168,7 @@ namespace Wasm
             DECLSPEC_NORETURN void ThrowDecodingError(const char16* msg, ...);
             Wasm::WasmTypes::WasmType ReadWasmType(uint32& length);
 
-            ArenaAllocator      m_alloc;
+            ArenaAllocator m_alloc;
             uint m_funcNumber;
             byte *m_start, *m_end, *m_pc;
             SectionHeader m_currentSection;

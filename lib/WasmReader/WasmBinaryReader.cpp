@@ -91,12 +91,6 @@ WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
 }
 
 bool
-WasmBinaryReader::IsBinaryReader()
-{
-    return true;
-}
-
-bool
 WasmBinaryReader::ReadNextSection(SectionCode nextSection)
 {
     if (EndOfModule() || SectionInfo::All[nextSection].flag == fSectIgnore)
