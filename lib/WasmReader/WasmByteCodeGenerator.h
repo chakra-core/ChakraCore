@@ -83,7 +83,7 @@ namespace Wasm
         static const Js::RegSlot ScriptContextBufferRegister = 4;
         static const Js::RegSlot ReservedRegisterCount = 5;
 
-        WasmBytecodeGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, BaseWasmReader * reader);
+        WasmBytecodeGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, byte* binaryBuffer, uint binaryBufferLength);
         WasmModule * GenerateModule();
         WasmFunction * GenerateFunction();
 
@@ -126,10 +126,6 @@ namespace Wasm
 
         Js::ByteCodeLabel GetLabel(uint index);
 
-        void ReadParams(WasmNode * paramExpr);
-        void ReadResult(WasmNode * paramExpr);
-        void ReadLocals(WasmNode * localExpr);
-
         template <typename T>
         Js::RegSlot GetConstReg(T constVal);
 
@@ -155,7 +151,7 @@ namespace Wasm
         uint m_nestedIfLevel;
         uint m_maxArgOutDepth;
 
-        BaseWasmReader * m_reader;
+        Binary::WasmBinaryReader m_reader;
 
         Js::AsmJsByteCodeWriter m_writer;
         Js::ScriptContext * m_scriptContext;

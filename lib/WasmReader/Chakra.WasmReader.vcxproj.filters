@@ -2,8 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="WasmKeywords.h" />
-    <ClInclude Include="SExprParser.h" />
-    <ClInclude Include="SExprScanner.h" />
     <ClInclude Include="WasmKeywordSwitch.h" />
     <ClInclude Include="WasmTokens.h" />
     <ClInclude Include="WasmParseTree.h" />
@@ -12,7 +10,6 @@
     <ClInclude Include="WasmReaderPch.h" />
     <ClInclude Include="WasmBytecodeGenerator.h" />
     <ClInclude Include="WasmRegisterSpace.h" />
-    <ClInclude Include="BaseWasmReader.h" />
     <ClInclude Include="WasmBinaryReader.h" />
     <ClInclude Include="WasmBinaryOpcodes.h" />
     <ClInclude Include="ModuleInfo.h" />
@@ -23,8 +20,6 @@
     <ClInclude Include="WasmKeywordTypes.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SExprParser.cpp" />
-    <ClCompile Include="SExprScanner.cpp" />
     <ClCompile Include="WasmFunctionInfo.cpp" />
     <ClCompile Include="WasmReaderPch.cpp" />
     <ClCompile Include="WasmBytecodeGenerator.cpp" />
@@ -35,8 +30,4 @@
     <ClCompile Include="WasmSection.cpp" />
     <ClCompile Include="WasmDataSegment.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="SExprScan.js" />
-  </ItemGroup>
 </Project>
-

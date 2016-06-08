@@ -1989,7 +1989,6 @@ if (!sourceList)
 
         Assert(!this->threadContext->IsScriptActive());
         Assert(pse != nullptr);
-        Wasm::BaseWasmReader *reader = nullptr;
         Wasm::WasmBytecodeGenerator *bytecodeGen = nullptr;
         Js::Var exportObj = nullptr;
         try
@@ -2001,52 +2000,11 @@ if (!sourceList)
 
             if (!isBinary)
             {
-                // script in text form
-                // Convert to UTF8 and then load that
-                size_t length = wcslen(script);
-                if (!IsValidCharCount(length))
-                {
-                    Js::Throw::OutOfMemory();
-                }
-
-                // Allocate memory for the UTF8 output buffer.
-                // We need at most 3 bytes for each Unicode code point.
-                // The + 1 is to include the terminating NUL.
-                // Nit:  Technically, we know that the NUL only needs 1 byte instead of
-                // 3, but that's difficult to express in a SAL annotation for "EncodeInto".
-                size_t cbUtf8Buffer = (length + 1) * 3;
-
-                LPUTF8 utf8Script = RecyclerNewArrayLeafTrace(this->GetRecycler(), utf8char_t, cbUtf8Buffer);
-
-                Assert(length < MAXLONG);
-                size_t cbNeeded = utf8::EncodeIntoAndNullTerminate(utf8Script, script, static_cast<charcount_t>(length));
-
-#if DBG_DUMP
-                if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
-                {
-                    Output::Print(_u("Loading script.\n")
-                        _u("  Unicode (in bytes)    %u\n")
-                        _u("  UTF-8 size (in bytes) %u\n")
-                        _u("  Expected savings      %d\n"), length * sizeof(char16), cbNeeded, length * sizeof(char16) - cbNeeded);
-                }
-#endif
-
-                // Free unused bytes
-                Assert(cbNeeded + 1 <= cbUtf8Buffer);
-                *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo, false);
-                //
-                // Parse and execute the source file.
-                //
-                reader = HeapNew(Wasm::SExprParser, threadContext->GetPageAllocator(), utf8Script, cbNeeded);
+                throw Wasm::WasmCompilationException(_u("Only Wasm Binary format supported"));
             }
-            else
-            {
 
-                *ppSourceInfo = Utf8SourceInfo::New(this, (LPCUTF8)script, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
-                // Binary file
-                reader = HeapNew(Wasm::Binary::WasmBinaryReader, threadContext->GetPageAllocator(), (byte*)script, lengthBytes);
-            }
-            bytecodeGen = HeapNew(Wasm::WasmBytecodeGenerator, this, *ppSourceInfo, reader);
+            *ppSourceInfo = Utf8SourceInfo::New(this, (LPCUTF8)script, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
+            bytecodeGen = HeapNew(Wasm::WasmBytecodeGenerator, this, *ppSourceInfo, (byte*)script, lengthBytes);
             wasmModule = bytecodeGen->GenerateModule();
 
             Var* moduleMemoryPtr = RecyclerNewArrayZ(GetRecycler(), Var, wasmModule->memSize);
@@ -2102,17 +2060,6 @@ if (!sourceList)
         if (bytecodeGen)
         {
             HeapDelete(bytecodeGen);
-        }
-        if (reader)
-        {
-            if (!isBinary)
-            {
-                HeapDelete((Wasm::SExprParser*)reader);
-            }
-            else
-            {
-                HeapDelete((Wasm::Binary::WasmBinaryReader*)reader);
-            }
         }
         return exportObj;
     }
