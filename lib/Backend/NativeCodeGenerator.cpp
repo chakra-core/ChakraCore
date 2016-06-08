@@ -2812,16 +2812,12 @@ void
 NativeCodeGenerator::ProfilePrint()
 {
     Js::ScriptContextProfiler *codegenProfiler = this->backgroundCodeGenProfiler;
-
     if (Js::Configuration::Global.flags.Verbose)
     {
         //Print individual CodegenProfiler information in verbose mode
         while (codegenProfiler)
         {
-            if (codegenProfiler->IsInitialized())
-            {
-                codegenProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
-            }
+            codegenProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
             codegenProfiler = codegenProfiler->next;
         }
     }
