@@ -41,10 +41,30 @@ namespace Wasm
 
     class WasmCompilationException
     {
-        void PrintError(const char16* _msg, va_list arglist);
+        void FormatError(const char16* _msg, va_list arglist);
+        char16* errorMsg;
     public:
+        ~WasmCompilationException();
         WasmCompilationException(const char16* _msg, ...);
         WasmCompilationException(const char16* _msg, va_list arglist);
+
+        void SetErrorMessage(char16* _errorMsg)
+        {
+            errorMsg = _errorMsg;
+        }
+
+        const char16* GetErrorMessage() const
+        {
+            return errorMsg;
+        }
+
+        char16* ReleaseErrorMessage()
+        {
+            Assert(errorMsg);
+            char16* msg = errorMsg;
+            errorMsg = nullptr;
+            return msg;
+        };
     };
 
     typedef JsUtil::BaseDictionary<uint, LPCUTF8, ArenaAllocator> WasmExportDictionary;
@@ -69,15 +89,12 @@ namespace Wasm
 
     private:
 
-        WasmFunction * InitializeImport();
-
         EmitInfo EmitExpr(WasmOp op);
         EmitInfo EmitBlock();
         EmitInfo EmitLoop();
 
         template<WasmOp wasmOp>
         EmitInfo EmitCall();
-        EmitInfo EmitIfExpr();
         EmitInfo EmitIfElseExpr();
         EmitInfo EmitBrTable();
         EmitInfo EmitGetLocal();
@@ -122,18 +139,21 @@ namespace Wasm
         static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
         WasmRegisterSpace * GetRegisterSpace(WasmTypes::WasmType type) const;
 
+        EmitInfo PopEvalStack();
+        void PushEvalStack(EmitInfo);
+        void EnterEvalStackScope();
+        void ExitEvalStackScope();
+
         ArenaAllocator m_alloc;
 
         WasmLocal * m_locals;
 
         WasmFunctionInfo * m_funcInfo;
-        WasmFunction * m_func;
+        WasmFunction * m_currentFunc;
         WasmModule * m_module;
 
         uint m_nestedIfLevel;
-        uint m_nestedCallDepth;
         uint m_maxArgOutDepth;
-        uint m_argOutDepth;
 
         BaseWasmReader * m_reader;
 
@@ -146,5 +166,8 @@ namespace Wasm
         WasmRegisterSpace * m_f64RegSlots;
 
         SListCounted<Js::ByteCodeLabel> * m_labels;
+
+        typedef SList<EmitInfo> evalStackScope;
+        SList<evalStackScope*> * m_evalStack;
     };
 }

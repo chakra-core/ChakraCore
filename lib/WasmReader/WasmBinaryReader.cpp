@@ -41,7 +41,7 @@ Signature::Signature(ArenaAllocator *alloc, uint count, ...)
 } // namespace WasmTypes
 
 WasmBinaryReader::WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length) :
-    m_alloc(_u("WasmBinaryDecoder"), alloc, Js::Throw::OutOfMemory)
+    m_alloc(_u("WasmBinaryDecoder"), alloc, Js::Throw::OutOfMemory), m_lastOp(WasmBinOp::wbLimit)
 {
     m_moduleInfo = Anew(&m_alloc, ModuleInfo, &m_alloc);
 
@@ -85,8 +85,9 @@ WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
 {
     va_list argptr;
     va_start(argptr, msg);
-    Output::Print(_u("Binary decoding failed: "));
-    throw WasmCompilationException(msg, argptr);
+    // We need to do a format twice (or concat the 2 strings)
+    WasmCompilationException baseEx(msg, argptr);
+    throw WasmCompilationException(_u("Binary decoding failed:\n  %s"), baseEx.GetErrorMessage());
 }
 
 bool
@@ -181,17 +182,14 @@ WasmBinaryReader::ReadSectionHeader()
 
     SectionHeader header;
     header.start = m_pc;
+
+    idSize = LEB128(len);
+    const char *sectionName = (char*)(m_pc);
+    m_pc += idSize;
+
     sectionSize = LEB128(len);
     header.end = m_pc + sectionSize;
     CheckBytesLeft(sectionSize);
-
-    idSize = LEB128(len);
-    if (sectionSize < idSize + len)
-    {
-        ThrowDecodingError(_u("Invalid section size"));
-    }
-    const char *sectionName = (char*)(m_pc);
-    m_pc += idSize;
 
     for (int i = 0; i < bSectLimit ; i++)
     {
@@ -250,6 +248,7 @@ WasmBinaryReader::PrintOps()
 #include "WasmBinaryOpcodes.h"
         }
     }
+    HeapDeleteArray(m_ops->Count(), ops);
 }
 #endif
 
@@ -300,7 +299,6 @@ WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callba
                 ThrowDecodingError(_u("Error while processing function #%u"), i);
             }
             m_pc = end;
-            m_module->functions[i] = nullptr;
         }
     }
     return m_pc == m_currentSection.end;
@@ -322,6 +320,11 @@ WasmOp
 WasmBinaryReader::ReadExpr()
 {
     return GetWasmToken(ASTNode());
+}
+
+Wasm::WasmOp WasmBinaryReader::GetLastOp()
+{
+    return GetWasmToken(m_lastOp);
 }
 
 /*
@@ -351,7 +354,6 @@ WasmBinaryReader::ASTNode()
     {
     case wbBlock:
     case wbLoop:
-        BlockNode();
         break;
     case wbCall:
         CallNode();
@@ -370,9 +372,14 @@ WasmBinaryReader::ASTNode()
         BrTableNode();
         break;
     case wbReturn:
+        m_currentNode.ret.arity = ReadConst<UINT8>();
+        ++m_funcState.count;
         break;
     case wbI32Const:
         ConstNode<WasmTypes::bAstI32>();
+        break;
+    case wbI64Const:
+        ThrowDecodingError(_u("Int64 const NYI"));
         break;
     case wbF32Const:
         ConstNode<WasmTypes::bAstF32>();
@@ -382,13 +389,13 @@ WasmBinaryReader::ASTNode()
         break;
     case wbSetLocal:
     case wbGetLocal:
-    case wbSetGlobal:
-    case wbGetGlobal:
         VarNode();
         break;
-    case wbIfElse:
     case wbIf:
+    case wbElse:
         // no node attributes
+        break;
+    case wbEnd:
         break;
     case wbNop:
         break;
@@ -409,6 +416,7 @@ WasmBinaryReader::ASTNode()
 #if DBG_DUMP
     m_ops->AddNew(op);
 #endif
+    m_lastOp = op;
     return op;
 }
 
@@ -433,59 +441,65 @@ void
 WasmBinaryReader::CallNode()
 {
     UINT length = 0;
+    m_currentNode.call.arity = LEB128(length);
+    m_funcState.count += length;
+
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
     if (funcNum >= m_moduleInfo->GetFunctionCount())
     {
         ThrowDecodingError(_u("Function is out of bound"));
     }
-    m_currentNode.var.num = funcNum;
+    m_currentNode.call.num = funcNum;
 }
 
 void
 WasmBinaryReader::CallImportNode()
 {
     UINT length = 0;
+    m_currentNode.call.arity = LEB128(length);
+    m_funcState.count += length;
+
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
     if (funcNum >= m_moduleInfo->GetImportCount())
     {
         ThrowDecodingError(_u("Function is out of bound"));
     }
-    m_currentNode.var.num = funcNum;
+    m_currentNode.call.num = funcNum;
 }
 
 void
 WasmBinaryReader::CallIndirectNode()
 {
     UINT length = 0;
+    m_currentNode.call.arity = LEB128(length);
+    m_funcState.count += length;
+
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
     if (funcNum >= m_moduleInfo->GetSignatureCount())
     {
         ThrowDecodingError(_u("Function is out of bound"));
     }
-    m_currentNode.var.num = funcNum;
+    m_currentNode.call.num = funcNum;
 }
 
 // control flow
 void
-WasmBinaryReader::BlockNode()
-{
-    UINT len = 0;
-    m_currentNode.block.count = LEB128(len);
-    m_funcState.count += len;
-}
-
-void
 WasmBinaryReader::BrNode()
 {
     UINT len = 0;
+    m_currentNode.br.arity = ReadConst<uint8>();
+    m_funcState.count++;
+
+    if (m_currentNode.br.arity != 0)
+    {
+        ThrowDecodingError(_u("NYI: br yielding value"));
+    }
+
     m_currentNode.br.depth = LEB128(len);
     m_funcState.count += len;
-
-    ReadConst<uint8>(); // arity, ignored for now
-    m_funcState.count++;
 
     // TODO: binary encoding doesn't yet support br yielding value
     m_currentNode.br.hasSubExpr = false;
@@ -495,6 +509,14 @@ void
 WasmBinaryReader::BrTableNode()
 {
     UINT len = 0;
+    m_currentNode.brTable.arity = LEB128(len);
+    m_funcState.count += len;
+
+    if (m_currentNode.brTable.arity != 0)
+    {
+        ThrowDecodingError(_u("NYI: br_table yielding value"));
+    }
+
     m_currentNode.brTable.numTargets = LEB128(len);
     m_funcState.count += len;
     m_currentNode.brTable.targetTable = AnewArray(&m_alloc, UINT32, m_currentNode.brTable.numTargets);
@@ -574,7 +596,7 @@ WasmBinaryReader::GetWasmToken(WasmBinOp op)
 bool
 WasmBinaryReader::EndOfFunc()
 {
-    return m_funcState.count == m_funcState.size;
+    return m_funcState.count >= m_funcState.size;
 }
 
 bool
@@ -605,11 +627,14 @@ WasmBinaryReader::ReadSignatures()
         TRACE_WASM_DECODER(_u("Signature #%u"), i);
         WasmSignature * sig = Anew(&m_alloc, WasmSignature, &m_alloc);
 
+        char form = ReadConst<UINT8>();
+        if (form != 0x40)
+        {
+            ThrowDecodingError(_u("Unexpected type form 0x%X"), form);
+        }
         // TODO: use param count to create fixed size array
         UINT32 paramCount = LEB128(len);
-
-        Wasm::WasmTypes::WasmType type = ReadWasmType(len);
-        sig->SetResultType(type);
+        Wasm::WasmTypes::WasmType type;
 
         for (UINT32 j = 0; j < paramCount; j++)
         {
@@ -617,6 +642,16 @@ WasmBinaryReader::ReadSignatures()
             sig->AddParam(type);
         }
 
+        UINT32 resultCount = LEB128(len);
+        if (resultCount != 0 && resultCount != 1)
+        {
+            ThrowDecodingError(_u("Unexpected result count %u"), resultCount);
+        }
+        if (resultCount == 1)
+        {
+            type = ReadWasmType(len);
+            sig->SetResultType(type);
+        }
         m_moduleInfo->AddSignature(sig);
     }
 }

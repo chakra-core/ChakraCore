@@ -87,6 +87,7 @@ namespace Wasm
     {
         WasmModule() :
             functions(nullptr),
+            lazyTraps(nullptr),
             memSize(0),
             indirFuncTableOffset(0),
             heapOffset(0),
@@ -96,6 +97,7 @@ namespace Wasm
         {
         }
         WasmFunction** functions;
+        class WasmCompilationException** lazyTraps;
         ModuleInfo * info;
         uint heapOffset;
         uint funcOffset;

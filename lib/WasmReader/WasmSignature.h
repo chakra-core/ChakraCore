@@ -19,7 +19,8 @@ public:
     WasmTypes::WasmType GetParam(uint index) const;
     WasmTypes::WasmType GetResultType() const;
     uint32 GetParamCount() const;
-    uint32 GetParamSize() const;
+    uint32 GetParamSize(uint index) const;
+    uint32 GetParamsSize() const;
     uint32 GetSignatureId() const;
 
 private:

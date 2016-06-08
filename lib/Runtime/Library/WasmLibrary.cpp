@@ -29,13 +29,28 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("[Wasm].instantiateModule(,ffi)"));
         }
 
-        if (!Js::TypedArrayBase::Is(args[1]))
+        const BOOL isTypedArray = Js::TypedArrayBase::Is(args[1]);
+        const BOOL isArrayBuffer = Js::ArrayBuffer::Is(args[1]);
+        
+        if (!isTypedArray && !isArrayBuffer)
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[Wasm].instantiateModule(typedArray,)"));
         }
-        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
-        BYTE* buffer = array->GetByteBuffer();
-        uint byteLength = array->GetByteLength();
+
+        BYTE* buffer;
+        uint byteLength;
+        if (isTypedArray)
+        {
+            Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
+            buffer = array->GetByteBuffer();
+            byteLength = array->GetByteLength();
+        }
+        else
+        {
+            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
+            buffer = arrayBuffer->GetBuffer();
+            byteLength = arrayBuffer->GetByteLength();
+        }
 
         if (!Js::JavascriptObject::Is(args[2]))
         {
@@ -45,7 +60,7 @@ namespace Js
 
         CompileScriptException se;
         Js::Var exportObject;
-        Js::Var start;
+        Js::Var start = nullptr;
         Js::Utf8SourceInfo* utf8SourceInfo;
         BEGIN_LEAVE_SCRIPT_INTERNAL(scriptContext)
             exportObject = scriptContext->LoadWasmScript(
@@ -64,14 +79,6 @@ namespace Js
             );
         END_LEAVE_SCRIPT_INTERNAL(scriptContext)
 
-        if (start)
-        {
-            Js::ScriptFunction* f = Js::AsmJsScriptFunction::FromVar(start);
-            Js::CallInfo info(Js::CallFlags_New, 1);
-            Js::Arguments startArg(info, &start);
-            Js::JavascriptFunction::CallFunction<true>(f, f->GetEntryPoint(), startArg);
-        }
-
         HRESULT hr = se.ei.scode;
         if (FAILED(hr))
         {
@@ -80,6 +87,14 @@ namespace Js
                 Js::Throw::OutOfMemory();
             }
             JavascriptError::ThrowParserError(scriptContext, hr, &se);
+        }
+
+        if (exportObject && start)
+        {
+            Js::ScriptFunction* f = Js::AsmJsScriptFunction::FromVar(start);
+            Js::CallInfo info(Js::CallFlags_New, 1);
+            Js::Arguments startArg(info, &start);
+            Js::JavascriptFunction::CallFunction<true>(f, f->GetEntryPoint(), startArg);
         }
         return exportObject;
     }

@@ -80,7 +80,7 @@ namespace Wasm
             byte* end;
         };
 
-        static const unsigned int experimentalVersion = 0xa;
+        static const unsigned int experimentalVersion = 0xb;
 
         class WasmBinaryReader : public BaseWasmReader
         {
@@ -96,6 +96,7 @@ namespace Wasm
             virtual WasmOp ReadFromBlock() override;
             virtual WasmOp ReadFromCall() override;
             virtual WasmOp ReadExpr() override;
+            virtual WasmOp GetLastOp() override;
 #if DBG_DUMP
             void PrintOps();
 #endif
@@ -115,7 +116,6 @@ namespace Wasm
             void CallNode();
             void CallIndirectNode();
             void CallImportNode();
-            void BlockNode();
             void BrNode();
             void BrTableNode();
             WasmOp MemNode(WasmBinOp op);
@@ -152,6 +152,7 @@ namespace Wasm
             uint m_funcNumber;
             byte *m_start, *m_end, *m_pc;
             SectionHeader m_currentSection;
+            WasmBinOp m_lastOp;
             ReaderState m_funcState;   // func AST level
 
         private:

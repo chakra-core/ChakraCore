@@ -18,7 +18,7 @@ ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
     m_indirectFuncCount(0),
     m_exportCount(0),
     m_datasegCount(0),
-    m_startFunc(0) // XXX
+    m_startFunc(Js::Constants::UninitializedValue)
 {
     m_signatures = Anew(m_alloc, WasmSignatureArray, m_alloc, 0);
     m_indirectfuncs = nullptr;

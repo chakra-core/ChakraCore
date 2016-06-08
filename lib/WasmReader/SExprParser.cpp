@@ -209,7 +209,7 @@ SExprParser::ReadExprCore(SExprTokenType tok)
     case wtkRETURN:
         return ParseReturnExpr();
     case wtkIF:
-    case wtkIF_ELSE:
+    case wtkELSE:
         return ParseIfExpr();
     case wtkBR:
         return ParseBrExpr(wnBR);
