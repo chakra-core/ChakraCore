@@ -1340,13 +1340,8 @@ void
 WasmCompilationException::FormatError(const char16* _msg, va_list arglist)
 {
     char16 buf[2048];
-    size_t size;
 
-    size = _vsnwprintf_s(buf, _countof(buf), _TRUNCATE, _msg, arglist);
-    if (size == -1)
-    {
-        size = 2048;
-    }
+    _vsnwprintf_s(buf, _countof(buf), _TRUNCATE, _msg, arglist);
     errorMsg = SysAllocString(buf);
 }
 

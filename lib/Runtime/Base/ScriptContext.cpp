@@ -1806,9 +1806,6 @@ if (!sourceList)
     {
         FrameDisplay * frameDisplay = RecyclerNewPlus(ctx->GetRecycler(), sizeof(void*), FrameDisplay, 1);
         frameDisplay->SetItem(0, moduleMemoryPtr);
-        const auto createLazyTrap = [ctx](Wasm::WasmCompilationException* e) {
-            
-        };
 
         Wasm::WasmFunction ** functionArray = wasmModule->functions;
 
@@ -2072,7 +2069,7 @@ if (!sourceList)
             uint32 startFuncIdx = wasmModule->info->GetStartFunction();
             if (start)
             {
-                if (startFuncIdx != -1)
+                if (startFuncIdx != Js::Constants::UninitializedValue)
                 {
                     *start = localModuleFunctions[startFuncIdx];
                 }
