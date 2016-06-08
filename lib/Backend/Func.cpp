@@ -433,12 +433,17 @@ Func::Codegen()
     {
         // fill in the fixup list by scanning the memory
         // todo: this should be done while generating code
-        unsigned int count = 0;
+        
         NativeCodeData::DataChunk *chunk = (NativeCodeData::DataChunk*)dataAllocator->chunkList;
         NativeCodeData::DataChunk *next1 = chunk;
         while (next1)
         {
-            count++;
+            if (next1->fixupFunc) 
+            {
+                next1->fixupFunc(next1->data, chunk);
+            }
+
+#if DBG
             NativeCodeData::DataChunk *next2 = chunk;
             while (next2)
             {
@@ -446,20 +451,21 @@ Func::Codegen()
                 {
                     if (((void**)next1->data)[i] == (void*)next2->data)
                     {
-                        NativeCodeData::AddFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                        NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                        //NativeCodeData::AddFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data, chunk);
                     }
                 }
                 next2 = next2->next;
             }
+#endif
             next1 = next1->next;
         }
         ////
-
+        
 
         JITOutputData* jitOutputData = m_output.GetOutputData();
 
-
-        jitOutputData->nativeDataFixupTable = (NativeDataFixupTable*)midl_user_allocate(sizeof(NativeDataFixupTable) + sizeof(NativeDataFixupRecord)* (dataAllocator->allocCount - 1));
+        jitOutputData->nativeDataFixupTable = (NativeDataFixupTable*)midl_user_allocate(offsetof(NativeDataFixupTable, fixupRecords) + sizeof(NativeDataFixupRecord)* (dataAllocator->allocCount));
         jitOutputData->nativeDataFixupTable->count = dataAllocator->allocCount;
 
         jitOutputData->buffer = (NativeDataBuffer*)midl_user_allocate(offsetof(NativeDataBuffer, data) + dataAllocator->totalSize);
@@ -467,7 +473,7 @@ Func::Codegen()
 
 
         unsigned int len = 0;
-        count = 0;
+        unsigned int count = 0;
         next1 = chunk;
         while (next1)
         {

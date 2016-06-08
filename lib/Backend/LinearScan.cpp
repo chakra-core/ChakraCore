@@ -1903,7 +1903,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     linearScanMD.GenerateBailOut(instr, state.registerSaveSyms, _countof(state.registerSaveSyms));
 
     // generate the constant table
-    Js::Var * constants = NativeCodeDataNewArray(allocator, Js::Var, state.constantList.Count());
+    Js::Var * constants = NativeCodeDataNewArrayNoFixup(allocator, Js::Var, state.constantList.Count());
     uint constantCount = state.constantList.Count();
     while (!state.constantList.Empty())
     {

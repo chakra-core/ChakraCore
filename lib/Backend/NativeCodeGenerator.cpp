@@ -997,6 +997,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 __fastfail((uint)-1);
             }
 
+
             if (jitWriteData.nativeDataFixupTable)
             {
                 for (unsigned int i = 0; i < jitWriteData.nativeDataFixupTable->count; i++)
@@ -1017,6 +1018,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 // change the address with the fixup information
                 *workItem->GetEntryPoint()->GetNativeDataBufferRef() = (char*)jitWriteData.buffer->data;
             }
+
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
             XDataInfo * xdataInfo = XDataAllocator::Register(jitWriteData.xdataAddr, jitWriteData.codeAddress, jitWriteData.codeSize);

@@ -23,6 +23,10 @@ namespace Js
         {
             return NativeCodeDataNew(allocator, BranchDictionaryWrapper, allocator, dictionarySize);
         }
+        void Fixup(NativeCodeData::DataChunk* chunkList)
+        {
+            Assert(false); // not implemented yet
+        }
 
     };
 

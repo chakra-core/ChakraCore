@@ -85,6 +85,11 @@ namespace Js
         void SetValue(intptr_t value) { Assert(value != 0); this->value = value; }
         intptr_t const* GetAddressOfValue() { return &this->value; }
         void Invalidate() { this->value = 0; }
+        void Fixup(NativeCodeData::DataChunk* chunkList)
+        {
+            // TODO: is value a pointer?
+            Assert(false); // not implemented yet
+        }
     };
 
     class PropertyGuardValidator
@@ -104,6 +109,10 @@ namespace Js
             Js::PropertyGuard(value), index(index) {}
 
         int GetIndex() const { return this->index; }
+        void Fixup(NativeCodeData::DataChunk* chunkList)
+        {
+            __super::Fixup(chunkList);
+        }
     };
 
     class JitTypePropertyGuard : public Js::JitIndexedPropertyGuard
@@ -113,6 +122,11 @@ namespace Js
             JitIndexedPropertyGuard(reinterpret_cast<intptr_t>(type), index) {}
 
         Js::Type* GetType() const { return reinterpret_cast<Js::Type*>(this->GetValue()); }
+
+        void Fixup(NativeCodeData::DataChunk* chunkList)
+        {
+            __super::Fixup(chunkList);
+        }
     };
 
     struct TypeGuardTransferEntry
@@ -121,6 +135,29 @@ namespace Js
         JitIndexedPropertyGuard* guards[0];
 
         TypeGuardTransferEntry(): propertyId(Js::Constants::NoProperty) {}
+
+        void Fixup(NativeCodeData::DataChunk* chunkList)
+        {
+            NativeCodeData::DataChunk* chunk = (NativeCodeData::DataChunk*)((char*)this - offsetof(NativeCodeData::DataChunk, data));
+            unsigned int pointerCount = chunk->len / sizeof(void*);
+            void** pointers = (void**)chunk;
+            bool isPropertyId = true;
+            for (unsigned int i = 0; i < pointerCount; i++)
+            {
+                if (isPropertyId) 
+                {
+                    continue;
+                }
+
+                if (pointers[i] == nullptr) // end of one entry
+                {
+                    isPropertyId = true;
+                    continue;
+                }
+
+                NativeCodeData::AddFixupEntry(pointers[i], &pointers[i], pointers, chunkList);
+            }
+        }
     };
 
     class FakePropertyGuardWeakReference: public RecyclerWeakReference<Js::PropertyGuard>
@@ -171,6 +208,11 @@ namespace Js
         bool IsLoadedFromProto() const { return this->isLoadedFromProto; }
         void SetHasFixedValue() { this->hasFixedValue = true; }
         bool HasFixedValue() const { return this->hasFixedValue; }
+
+        void Fixup(NativeCodeData::DataChunk* chunkList)
+        {
+            Assert(false); // not implemented yet
+        }
     };
 
     class JitEquivalentTypeGuard : public JitIndexedPropertyGuard
@@ -204,6 +246,11 @@ namespace Js
         void SetCache(Js::EquivalentTypeCache* cache)
         {
             this->cache = cache;
+        }
+
+        void Fixup(NativeCodeData::DataChunk* chunkList)
+        {
+            Assert(false); // not implemented yet
         }
     };
 

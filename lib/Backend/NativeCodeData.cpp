@@ -18,20 +18,101 @@ NativeCodeData::~NativeCodeData()
     PERF_COUNTER_SUB(Code, TotalNativeCodeDataSize, this->size);
 }
 
-// dataAddr: target address
+// targetAddr: target address
 // startAddress: current data start address
 // addrToFixup: address that currently pointing to dataAddr, which need to be updated
 void
-NativeCodeData::AddFixupEntry(void* dataAddr, void* addrToFixup, void* startAddress)
+NativeCodeData::AddFixupEntry(void* targetAddr, void* addrToFixup, void* startAddress, DataChunk * chunkList)
 {
+    Assert(addrToFixup >= startAddress);
+    Assert(((__int64)addrToFixup) % sizeof(void*) == 0);
+
+    if (targetAddr == nullptr)
+    {
+        return;
+    }
+
+    DataChunk* targetChunk = ((DataChunk*)((char*)targetAddr - offsetof(DataChunk, data)));
+
+#if DBG
+    bool foundTargetChunk = false;
+    while (chunkList) 
+    {
+        foundTargetChunk |= (chunkList == targetChunk);
+        chunkList = chunkList->next;
+    }
+    AssertMsg(foundTargetChunk, "current pointer is not allocated with NativeCodeData allocator?"); // change to valid check instead of assertion?
+#endif
+
     DataChunk* chunk = (DataChunk*)((char*)startAddress - offsetof(DataChunk, data));
 
     NativeDataFixupEntry* entry = (NativeDataFixupEntry*)midl_user_allocate(sizeof(NativeDataFixupEntry));
     entry->addrOffset = (unsigned int)((__int64)addrToFixup - (__int64)startAddress);
-    entry->targetTotalOffset = ((DataChunk*)((char*)dataAddr - offsetof(DataChunk, data)))->offset;
+    Assert(entry->addrOffset <= chunk->len - sizeof(void*));    
+
+    entry->targetTotalOffset = targetChunk->offset;
     entry->next = chunk->fixupList;
     chunk->fixupList = entry;
+}
 
+void
+NativeCodeData::AddFixupEntryForPointerArray(void* startAddress, DataChunk * chunkList)
+{
+    DataChunk* chunk = (DataChunk*)((char*)startAddress - offsetof(DataChunk, data));
+    Assert(chunk->len % sizeof(void*) == 0);
+    for (int i = 0; i < chunk->len / sizeof(void*); i++)
+    {
+        void* targetAddr = *(void**)startAddress;
+
+        if (targetAddr == nullptr)
+        {
+            continue;
+        }
+
+        DataChunk* targetChunk = ((DataChunk*)((char*)targetAddr - offsetof(DataChunk, data)));
+
+#if DBG
+        bool foundTargetChunk = false;
+        DataChunk* chunk1 = chunkList;
+        while (chunk1 && !foundTargetChunk)
+        {
+            foundTargetChunk = (chunk1 == targetChunk);
+            chunk1 = chunk1->next;
+        }
+        AssertMsg(foundTargetChunk, "current pointer is not allocated with NativeCodeData allocator?"); // change to valid check instead of assertion?
+#endif
+
+        NativeDataFixupEntry* entry = (NativeDataFixupEntry*)midl_user_allocate(sizeof(NativeDataFixupEntry));
+        entry->addrOffset = i*sizeof(void*);
+        entry->targetTotalOffset = targetChunk->offset;
+        entry->next = chunk->fixupList;
+        chunk->fixupList = entry;
+    }
+}
+
+void
+NativeCodeData::VerifyExistFixupEntry(void* targetAddr, void* addrToFixup, void* startAddress)
+{
+    DataChunk* chunk = (DataChunk*)((char*)startAddress - offsetof(DataChunk, data));
+    if (chunk->len == 0) 
+    {
+        return;
+    }
+    unsigned int offset = (unsigned int)((char*)addrToFixup - (char*)startAddress);
+    Assert(offset <= chunk->len);
+
+    NativeDataFixupEntry* entry = chunk->fixupList;
+    while (entry)
+    {
+        if (entry->addrOffset == offset)
+        {
+            DataChunk* targetChunk = ((DataChunk*)((char*)targetAddr - offsetof(DataChunk, data)));
+            Assert(entry->targetTotalOffset == targetChunk->offset);
+            return;
+        }
+        entry = entry->next;
+    }
+    AssertMsg(false, "Data chunk not found");
 }
 
 void
@@ -74,11 +155,15 @@ NativeCodeData::Allocator::Alloc(size_t requestSize)
     requestSize = Math::Align(requestSize, sizeof(void*));
     DataChunk * newChunk = HeapNewStructPlus(requestSize, DataChunk);
 
+#if DBG
+    newChunk->dataType = nullptr;
+#endif
 
     newChunk->next = nullptr;
     newChunk->allocIndex = this->allocCount++;
     newChunk->len = (unsigned int)requestSize;
     newChunk->fixupList = nullptr;
+    newChunk->fixupFunc = nullptr;
     newChunk->offset = this->totalSize;
     if (this->chunkList == nullptr)
     {
