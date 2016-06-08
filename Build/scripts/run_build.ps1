@@ -81,3 +81,5 @@ if ($subtype -eq "codecoverage") {
 
 $buildCommand = "& `"$msbuildExe`" $targets $defaultParams $loggingParams $subtypeParams"
 ExecuteCommand "$buildCommand"
+
+exit $global:lastexitcode
