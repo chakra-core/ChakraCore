@@ -1095,14 +1095,10 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 
 #if DBG || defined(RECYCLER_MEMORY_VERIFY) || defined(RECYCLER_PAGE_HEAP)
 
-    // xplat-todo: reenable this Assert once GetThreadId is implemented on
-    // non-Win32 platforms
-#ifdef _WIN32
     // Either the mainThreadHandle is null (we're not thread bound)
     // or we should be calling this function on the main script thread
     Assert(this->mainThreadHandle == NULL ||
         ::GetCurrentThreadId() == ::GetThreadId(this->mainThreadHandle));
-#endif
 
     HeapBlock* heapBlock = this->FindHeapBlock(buffer);
 

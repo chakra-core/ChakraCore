@@ -1739,6 +1739,12 @@ PALAPI
 GetCurrentThreadId(
            VOID);
 
+PALIMPORT
+DWORD
+PALAPI
+GetThreadId(
+    HANDLE hThread);
+
 // To work around multiply-defined symbols in the Carbon framework.
 #define GetCurrentThread PAL_GetCurrentThread
 PALIMPORT

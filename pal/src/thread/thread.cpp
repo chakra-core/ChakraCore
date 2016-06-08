@@ -354,6 +354,54 @@ THREADGetThreadProcessId(
 
 /*++
 Function:
+  GetThreadId
+
+See MSDN doc.
+--*/
+DWORD
+PALAPI
+GetThreadId(
+    HANDLE hThread
+    // UNIXTODO Should take pThread parameter here (modify callers)
+    )
+{
+    DWORD dwThreadId = 0;
+    CPalThread *pThread;
+    PAL_ERROR palError = NO_ERROR;
+    IPalObject *pobjThread = 0;
+
+    // TODO: not sure if this could be done in a more efficient way.
+    PERF_ENTRY(GetThreadId);
+    ENTRY("GetThreadId()\n");
+
+    pThread = InternalGetCurrentThread();
+
+    palError = InternalGetThreadDataFromHandle(
+        pThread,
+        hThread,
+        0,
+        0,
+        &pobjThread
+        );
+
+    if (NO_ERROR != palError)
+    {
+        dwThreadId = (DWORD)pThread->GetThreadId();
+    }
+
+    if (NULL != pobjThread)
+    {
+        pobjThread->ReleaseReference(pThread);
+    }
+
+    LOGEXIT("GetThreadId returns DWORD %#x\n", dwThreadId);
+    PERF_EXIT(GetThreadId);
+
+    return dwThreadId;
+}
+
+/*++
+Function:
   GetCurrentThreadId
 
 See MSDN doc.
