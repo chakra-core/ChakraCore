@@ -6119,6 +6119,7 @@ CoCreateGuid(OUT GUID * pguid);
 #define wcscat        PAL_wcscat
 #define wcscpy        PAL_wcscpy
 #define wcslen        PAL_wcslen
+#define wmemcmp       PAL_wmemcmp
 #define wcsncmp       PAL_wcsncmp
 #define wcschr        PAL_wcschr
 #define wcsrchr       PAL_wcsrchr
@@ -6291,6 +6292,7 @@ PALIMPORT WCHAR * __cdecl _ltow(long, WCHAR *, int);
 
 PALIMPORT size_t __cdecl PAL_wcslen(const WCHAR *);
 PALIMPORT int __cdecl PAL_wcscmp(const WCHAR*, const WCHAR*);
+PALIMPORT int __cdecl PAL_wmemcmp(const WCHAR *, const WCHAR *, size_t);
 PALIMPORT int __cdecl PAL_wcsncmp(const WCHAR *, const WCHAR *, size_t);
 PALIMPORT WCHAR * __cdecl PAL_wcscat(WCHAR *, const WCHAR *);
 PALIMPORT WCHAR * __cdecl PAL_wcsncat(WCHAR *, const WCHAR *, size_t);
