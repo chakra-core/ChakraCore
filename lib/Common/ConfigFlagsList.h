@@ -900,7 +900,7 @@ FLAGPR           (Boolean, ES6, ES6Unscopables         , "Enable ES6 With Statem
 FLAGPR           (Boolean, ES6, ES6RegExSticky         , "Enable ES6 RegEx sticky flag"                             , DEFAULT_CONFIG_ES6RegExSticky)
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExPrototypeProperties, "Enable ES6 properties on the RegEx prototype"         , DEFAULT_CONFIG_ES6RegExPrototypeProperties)
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symbols"                                , DEFAULT_CONFIG_ES6RegExSymbols)
-FLAGPR           (Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstanceOf)
+FLAGPR_REGOVR_EXP(Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstanceOf)
 FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose trace"                                 , DEFAULT_CONFIG_ES6Verbose)
 FLAGPR_REGOVR_EXP(Boolean, ES6, ArrayBufferTransfer    , "Enable ArrayBuffer.transfer"                              , DEFAULT_CONFIG_ArrayBufferTransfer)
 // /ES6 (BLUE+1) features/flags
