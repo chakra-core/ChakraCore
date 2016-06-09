@@ -17,9 +17,9 @@ namespace Js
         next(0),
         bodyData(nullptr)
     {
-        Recycler * recycler = functionInfo->GetFunctionProxy()->GetScriptContext()->GetRecycler();
         if (GetFunctionInfo()->HasBody())
         {
+            Recycler * recycler = functionInfo->GetFunctionProxy()->GetScriptContext()->GetRecycler();
             this->bodyData = RecyclerNewStructZ(recycler, FunctionBodyJITData);
             JITTimeFunctionBody::InitializeJITFunctionData(recycler, GetFunctionBody(), this->bodyData);
         }

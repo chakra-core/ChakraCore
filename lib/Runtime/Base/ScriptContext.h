@@ -443,7 +443,7 @@ namespace Js
 #endif
             contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
             CompileAssert(VTableValue::Count == VTABLE_COUNT); // need to update idl chen this changes
-            memcpy_s(contextData.vtableAddresses, 39 * sizeof(intptr_t), GetLibrary()->GetVTableAddresses(), VTableValue::Count * sizeof(INT_PTR));
+            memcpy_s(contextData.vtableAddresses, VTABLE_COUNT * sizeof(intptr_t), GetLibrary()->GetVTableAddresses(), VTableValue::Count * sizeof(INT_PTR));
             this->threadContext->m_codeGenManager.InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
         }
 

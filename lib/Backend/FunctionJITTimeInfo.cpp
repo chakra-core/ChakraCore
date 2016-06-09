@@ -18,13 +18,12 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
     // using arena because we can't recycler allocate (may be on background), and heap freeing this is slightly complicated
     FunctionJITTimeData * jitData = AnewStructZ(alloc, FunctionJITTimeData);
     jitData->bodyData = codeGenData->GetJITBody();
-    jitData->inlineeCount = codeGenData->InlineeCount();
-    jitData->ldFldInlineeCount = codeGenData->LdFldInlineeCount();
     jitData->functionInfoAddr = (intptr_t)codeGenData->GetFunctionInfo();
 
     jitData->localFuncId = codeGenData->GetFunctionInfo()->GetLocalFunctionId();
     jitData->isAggressiveInliningEnabled = codeGenData->GetIsAggressiveInliningEnabled();
     jitData->isInlined = codeGenData->GetIsInlined();
+    jitData->weakFuncRef = (intptr_t)codeGenData->GetWeakFuncRef();
 
     jitData->inlineesBv = (BVFixedData*)codeGenData->inlineesBv;
 
@@ -51,7 +50,8 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
         }
         if (jitData->bodyData->profiledCallSiteCount > 0)
         {
-            jitData->inlinees = AnewArray(alloc, FunctionJITTimeData*, jitData->bodyData->profiledCallSiteCount);
+            jitData->inlineeCount = jitData->bodyData->profiledCallSiteCount;
+            jitData->inlinees = AnewArrayZ(alloc, FunctionJITTimeData*, jitData->bodyData->profiledCallSiteCount);
             for (Js::ProfileId i = 0; i < jitData->bodyData->profiledCallSiteCount; ++i)
             {
                 const Js::FunctionCodeGenJitTimeData * inlinee = codeGenData->GetInlinee(i);
@@ -63,7 +63,8 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
         }
         if (jitData->bodyData->inlineCacheCount > 0)
         {
-            jitData->ldFldInlinees = AnewArray(alloc, FunctionJITTimeData*, jitData->bodyData->inlineCacheCount);
+            jitData->ldFldInlineeCount = jitData->bodyData->inlineCacheCount;
+            jitData->ldFldInlinees = AnewArrayZ(alloc, FunctionJITTimeData*, jitData->bodyData->inlineCacheCount);
             for (Js::InlineCacheIndex i = 0; i < jitData->bodyData->inlineCacheCount; ++i)
             {
                 const Js::FunctionCodeGenJitTimeData * inlinee = codeGenData->GetLdFldInlinee(i);
