@@ -104,7 +104,6 @@ inline void DebugBreak()
 
 // These are not available in pal
 #define fwprintf_s      fwprintf
-#define wmemcmp         wcsncmp
 // sprintf_s overloaded in safecrt.h. Not sure why palrt.h redefines sprintf_s.
 #undef sprintf_s
 // #define sprintf_s PAL_sprintf_s

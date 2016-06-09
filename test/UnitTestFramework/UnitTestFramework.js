@@ -147,7 +147,7 @@ var testRunner = function testRunner() {
             try {
                 testBody();
             } catch (ex) {
-                var message = ex.message !== undefined ? ex.message : ex;
+                var message = ex.stack || ex.message || ex;
                 logTestNameIf(!_verbose);
                 helpers.writeln("Test threw exception: ", message);
                 isSuccess = false;
