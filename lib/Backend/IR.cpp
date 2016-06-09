@@ -3916,12 +3916,12 @@ Instr::DumpFieldCopyPropTestTrace()
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(L"TestTrace fieldcopyprop: function %s (%s) ",
             this->m_func->GetJITFunctionBody()->GetDisplayName(),
-            this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+            this->m_func->GetDebugNumberSet(debugStringBuffer));
         if (this->IsInlined())
         {
             Output::Print(L"inlined caller function %s (%s) ",
                 this->m_func->GetTopFunc()->GetJITFunctionBody()->GetDisplayName(),
-                this->m_func->GetTopFunc()->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+                this->m_func->GetTopFunc()->GetDebugNumberSet(debugStringBuffer));
         }
         this->DumpTestTrace();
     default:
@@ -3973,7 +3973,7 @@ Instr::DumpByteCodeOffset()
     {
         Output::SkipToColumn(78);
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L" Func #%s", this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(L" Func #%s", this->m_func->GetDebugNumberSet(debugStringBuffer));
     }
 #ifdef BAILOUT_INJECTION
     if (this->bailOutByteCodeLocation != (uint)-1)
@@ -4262,7 +4262,7 @@ PrintByteCodeOffsetEtc:
             if (!bailOutInfo->bailOutFunc->IsTopFunc())
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(L" Func %s", bailOutInfo->bailOutFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+                Output::Print(L" Func %s", bailOutInfo->bailOutFunc->GetDebugNumberSet(debugStringBuffer));
             }
             Output::Print(L" (%S)", this->GetBailOutKindName());
         }

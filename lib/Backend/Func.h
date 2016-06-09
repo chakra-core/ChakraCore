@@ -71,7 +71,7 @@ public:
         ThreadContextInfo * threadContextInfo,
         ScriptContextInfo * scriptContextInfo,
         JITOutputData * outputData,
-        const Js::FunctionCodeGenJitTimeData *const jitTimeData, const Js::FunctionCodeGenRuntimeData *const runtimeData,
+        const FunctionJITRuntimeInfo *const runtimeInfo,
         Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator,
         Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc = nullptr,
@@ -188,6 +188,11 @@ public:
         return m_workItem->GetJITFunctionBody();
     }
 
+    wchar_t* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const
+    {
+        return m_workItem->GetJITTimeInfo()->GetDebugNumberSet(bufferToWriteTo);
+    }
+
     void BuildIR();
     void Codegen();
 
@@ -203,12 +208,12 @@ public:
 
     uint GetLocalFunctionId() const
     {
-        return m_workItem->GetJITFunctionBody()->GetLocalFunctionId();
+        return m_workItem->GetJITTimeInfo()->GetLocalFunctionId();
     }
 
     uint GetSourceContextId() const
     {
-        return m_workItem->GetJITFunctionBody()->GetLocalFunctionId();
+        return m_workItem->GetJITFunctionBody()->GetSourceContextId();
     }
 
 
@@ -294,7 +299,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     }
     uint16 GetArgUsedForBranch() const;
 
-    RecyclerWeakReference<Js::FunctionBody> *GetWeakFuncRef() const;
+    intptr_t GetWeakFuncRef() const;
     // TODO: OOP JIT, remove this
     Js::FunctionBody * GetJnFunction() const { Assert(UNREACHED);  return m_jnFunction; }
 
@@ -464,8 +469,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
 public:
     JitArenaAllocator *    m_alloc;
-    const Js::FunctionCodeGenJitTimeData *const m_jitTimeData;
-    const Js::FunctionCodeGenRuntimeData *const m_runtimeData;
+    const FunctionJITRuntimeInfo *const m_runtimeInfo;
     ThreadContextInfo * m_threadContextInfo;
     ScriptContextInfo * m_scriptContextInfo;
     JITTimeWorkItem * m_workItem;
@@ -687,7 +691,7 @@ public:
     void                SetHasTempObjectProducingInstr(bool has) { this->hasTempObjectProducingInstr = has; }
 
     const JITTimeProfileInfo * GetProfileInfo() const { return GetJITFunctionBody()->GetProfileInfo(); }
-    bool                HasProfileInfo() const { return GetJITFunctionBody()->GetProfileInfo()->HasProfileInfo(); }
+    bool                HasProfileInfo() const { return GetJITFunctionBody()->HasProfileInfo(); }
     bool                HasArrayInfo()
     {
         const auto top = this->GetTopFunc();

@@ -284,7 +284,7 @@ LinearScan::RegAlloc()
 
 #if _M_IX86
 # if ENABLE_DEBUG_CONFIG_OPTIONS
-    if (Js::Configuration::Global.flags.Instrument.IsEnabled(Js::LinearScanPhase, this->func->GetJITFunctionBody()->GetSourceContextId(),this->func->GetJITFunctionBody()->GetLocalFunctionId()))
+    if (Js::Configuration::Global.flags.Instrument.IsEnabled(Js::LinearScanPhase, this->func->GetSourceContextId(),this->func->GetLocalFunctionId()))
     {
         this->DynamicStatsInstrument();
     }
@@ -1929,7 +1929,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         if(PHASE_DUMP(Js::BailOutPhase, this->func))
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"Bailout function: %s [%s]\n", funcBailOutData[i].func->GetJITFunctionBody()->GetDisplayName(), funcBailOutData[i].func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), i);
+            Output::Print(L"Bailout function: %s [%s]\n", funcBailOutData[i].func->GetJITFunctionBody()->GetDisplayName(), funcBailOutData[i].func->GetDebugNumberSet(debugStringBuffer), i);
             funcBailOutData[i].bailOutRecord->Dump();
         }
 #endif

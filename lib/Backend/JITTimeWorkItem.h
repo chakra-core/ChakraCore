@@ -13,11 +13,6 @@ public:
 
     CodeGenWorkItemType Type() const;
     ExecutionMode GetJitMode() const;
-    WCHAR * GetDisplayName() const;
-    size_t GetDisplayName(
-        _Out_writes_opt_z_(sizeInChars) WCHAR* displayName,
-        _In_ size_t sizeInChars);
-    uint GetInterpretedCount() const;
     uint GetLoopNumber() const;
 
     const JITLoopHeader * GetLoopHeader() const;
@@ -29,16 +24,20 @@ public:
     intptr_t GetCallsCountAddress() const;
 
     void InitializeReader(
-        Js::ByteCodeReader &reader,
-        Js::StatementReader &statementReader);
+        Js::ByteCodeReader * reader,
+        Js::StatementReader * statementReader);
 
     JITTimeFunctionBody * GetJITFunctionBody();
 
-    CodeGenWorkItemJITData* GetWorkItemData() { return m_workItemData; }
+    CodeGenWorkItemJITData* GetWorkItemData();
+
+    void SetJITTimeData(FunctionJITTimeData * jitData);
+    const FunctionJITTimeInfo * GetJITTimeInfo() const;
 
 private:
     CodeGenWorkItemJITData * m_workItemData;
     JITTimeFunctionBody m_jitBody;
+    Js::SmallSpanSequence m_statementMap;
 
 
 public: // TODO: (michhol) remove these. currently needed to compile
@@ -47,5 +46,4 @@ public: // TODO: (michhol) remove these. currently needed to compile
     void DumpNativeThrowSpanSequence() { __debugbreak(); }
     void RecordNativeMap(...) { __debugbreak(); }
     void RecordNativeThrowMap(...) { __debugbreak(); }
-    void SetFrameHeight(...) { __debugbreak(); }
 };

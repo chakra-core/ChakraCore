@@ -1459,8 +1459,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (this->m_func->GetMaxInlineeArgOutCount())
     {
         // subtracting 2 for frame pointer & return address
-        this->m_func->m_workItem->SetFrameHeight(this->m_func->m_workItem->GetEntryPoint(),
-            this->m_func->m_localStackHeight + this->m_func->m_ArgumentsOffset - 2 * MachRegInt);
+        this->m_func->GetJITOutput()->SetFrameHeight(this->m_func->m_localStackHeight + this->m_func->m_ArgumentsOffset - 2 * MachRegInt);
 
     }
 

@@ -225,9 +225,9 @@ private:
 #ifdef ENABLE_DOM_FAST_PATH
     void            LowerFastInlineDOMFastPathGetter(IR::Instr* getterInstr);
 #endif
-    void            GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef);
+    void            GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef);
     void            GenerateArrayInfoIsNativeIntArrayTest(IR::Instr * instr,  Js::ArrayCallSiteInfo * arrayInfo, IR::LabelInstr * helperLabel);
-    void            GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef);
+    void            GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef);
     void            GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(IR::Instr * instr,  Js::ArrayCallSiteInfo * arrayInfo, IR::LabelInstr * helperLabel);
     bool            IsEmitTempDst(IR::Opnd *opnd);
     bool            IsEmitTempSrc(IR::Opnd *opnd);
@@ -480,8 +480,8 @@ private:
     template <typename ArrayType>
     IR::RegOpnd *   GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed);
 
-    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef, uint32 length);
-    void            GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef, uint32 length);
+    void            GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef, uint32 length);
+    void            GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef, uint32 length);
     void            GenerateMemInit(IR::RegOpnd * opnd, int32 offset, int32 value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
     void            GenerateMemInit(IR::RegOpnd * opnd, int32 offset, uint32 value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
     void            GenerateMemInitNull(IR::RegOpnd * opnd, int32 offset, IR::Instr * insertBeforeInstr, bool isZeroed = false);

@@ -14,7 +14,7 @@
             L"Testtrace: %s function %s (%s): ", \
             Js::PhaseNames[phase], \
             instr->m_func->GetJITFunctionBody()->GetDisplayName(), \
-            instr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer)); \
+            instr->m_func->GetDebugNumberSet(debugStringBuffer)); \
         Output::Print(__VA_ARGS__); \
         Output::Flush(); \
     }
@@ -71,7 +71,7 @@
         Output::Print( \
             L"Function %s (%s, line %u)", \
             this->func->GetJITFunctionBody()->GetDisplayName(), \
-            this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), \
+            this->func->GetDebugNumberSet(debugStringBuffer), \
             this->func->GetJnFunction()->GetLineNumber()); \
         if(this->func->IsLoopBody()) \
         { \
@@ -82,7 +82,7 @@
             Output::Print( \
                 L", Inlinee %s (%s, line %u)", \
                 instr->m_func->GetJITFunctionBody()->GetDisplayName(), \
-                instr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), \
+                instr->m_func->GetDebugNumberSet(debugStringBuffer), \
                 instr->m_func->GetJnFunction()->GetLineNumber()); \
         } \
         Output::Print(L" - %s\n    ", Js::PhaseNames[phase]); \
@@ -123,7 +123,7 @@
 
 #define OUTPUT_MEMOP_TRACE(loop, instr, ...) {\
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];\
-    Output::Print(15, L"Function: %s%s, Loop: %u: ", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), loop->GetLoopNumber());\
+    Output::Print(15, L"Function: %s%s, Loop: %u: ", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer), loop->GetLoopNumber());\
     Output::Print(__VA_ARGS__);\
     IR::Instr* __instr__ = instr;\
     if(__instr__) __instr__->DumpByteCodeOffset();\
@@ -206,10 +206,10 @@ GlobOpt::GlobOpt(Func * func)
     doAggressiveMulIntTypeSpec(
         doTypeSpec &&
         !PHASE_OFF(Js::AggressiveMulIntTypeSpecPhase, func) &&
-        !func->GetProfileInfo()->IsAggressiveMulIntTypeSpecDisabled(func->IsLoopBody())),
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsAggressiveMulIntTypeSpecDisabled(func->IsLoopBody()))),
     doDivIntTypeSpec(
         doAggressiveIntTypeSpec &&
-        !func->GetProfileInfo()->IsDivIntTypeSpecDisabled(func->IsLoopBody())),
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsDivIntTypeSpecDisabled(func->IsLoopBody()))),
     doLossyIntTypeSpec(
         doTypeSpec &&
         DoLossyIntTypeSpec(func)),
@@ -245,11 +245,11 @@ GlobOpt::GlobOpt(Func * func)
         doBoundCheckElimination &&
         DoConstFold() &&
         !PHASE_OFF(Js::Phase::BoundCheckHoistPhase, func) &&
-        !func->GetProfileInfo()->IsBoundCheckHoistDisabled(func->IsLoopBody())),
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsBoundCheckHoistDisabled(func->IsLoopBody()))),
     doLoopCountBasedBoundCheckHoist(
         doBoundCheckHoist &&
         !PHASE_OFF(Js::Phase::LoopCountBasedBoundCheckHoistPhase, func) &&
-        !func->GetProfileInfo()->IsLoopCountBasedBoundCheckHoistDisabled(func->IsLoopBody())),
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsLoopCountBasedBoundCheckHoistDisabled(func->IsLoopBody()))),
     isAsmJSFunc(func->GetJITFunctionBody()->IsAsmJsMode())
 {
 }
@@ -3774,9 +3774,9 @@ GlobOpt::TrackArgumentsSym(IR::RegOpnd* opnd)
         Output::Print(L"Created a new alias s%d for arguments object in function %s(%s) topFunc %s(%s)\n",
             opnd->m_sym->m_id,
             blockData.curFunc->GetJITFunctionBody()->GetDisplayName(),
-            blockData.curFunc->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+            blockData.curFunc->GetDebugNumberSet(debugStringBuffer),
             this->func->GetJITFunctionBody()->GetDisplayName(),
-            this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2)
+            this->func->GetDebugNumberSet(debugStringBuffer2)
             );
         Output::Flush();
     }
@@ -7599,7 +7599,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
                 baseValueType.ToString(baseValueTypeStr);
                 Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not type specialize, because %s.\n",
                     this->func->GetJITFunctionBody()->GetDisplayName(),
-                    this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                    this->func->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                     baseValueTypeStr,
                     instr->DoStackArgsOpt(this->func) ? L"instruction uses the arguments object" :
@@ -7717,7 +7717,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
         dstVal->GetValueInfo()->Type().ToString(dstValTypeStr);
         Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, type specialized to %s producing %S",
             this->func->GetJITFunctionBody()->GetDisplayName(),
-            this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+            this->func->GetDebugNumberSet(debugStringBuffer),
             Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
             baseValueTypeStr,
             toType == TyInt32 ? L"int32" : L"float64",
@@ -12613,7 +12613,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because %s.\n",
                 this->func->GetJITFunctionBody()->GetDisplayName(),
-                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                this->func->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr,
                 instr->DoStackArgsOpt(this->func) ?
@@ -12668,7 +12668,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
                 baseValueType.ToString(baseValueTypeStr);
                 Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because src is not specialized.\n",
                               this->func->GetJITFunctionBody()->GetDisplayName(),
-                              this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                              this->func->GetDebugNumberSet(debugStringBuffer),
                               Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                               baseValueTypeStr);
                 Output::Flush();
@@ -12706,7 +12706,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because index is negative or likely not int.\n",
                 this->func->GetJITFunctionBody()->GetDisplayName(),
-                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                this->func->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr);
             Output::Flush();
@@ -12805,7 +12805,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, type specialized to %s.\n",
                 this->func->GetJITFunctionBody()->GetDisplayName(),
-                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                this->func->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr,
                 toType == TyInt32 ? L"int32" : L"float64");
@@ -12882,7 +12882,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
             baseValueType.ToString(baseValueTypeStr);
             Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not type specialize, because of array type.\n",
                 this->func->GetJITFunctionBody()->GetDisplayName(),
-                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                this->func->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr);
             Output::Flush();
@@ -13373,7 +13373,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                                 Output::Print(
                                     L"BailOut (compile-time): function: %s (%s) varSym: ",
                                     this->func->GetJITFunctionBody()->GetDisplayName(),
-                                    this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                                    this->func->GetDebugNumberSet(debugStringBuffer),
                                     varSym->m_id);
     #if DBG_DUMP
                                 varSym->Dump();
@@ -17636,7 +17636,7 @@ GlobOpt::PrepareForIgnoringIntOverflow(IR::Instr *const instr)
                     Output::Print(
                         L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u, Disabled ignoring overflows\n",
                         func->GetJITFunctionBody()->GetDisplayName(),
-                        func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                        func->GetDebugNumberSet(debugStringBuffer),
                         Js::PhaseNames[Js::ForwardPhase],
                         currentBlock->GetBlockNum());
                     Output::Print(L"    Input sym could not be turned into an int:   %u\n", couldNotConvertSymId);
@@ -17704,7 +17704,7 @@ GlobOpt::PrepareForIgnoringIntOverflow(IR::Instr *const instr)
         Output::Print(
             L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n",
             func->GetJITFunctionBody()->GetDisplayName(),
-            func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+            func->GetDebugNumberSet(debugStringBuffer),
             Js::PhaseNames[Js::ForwardPhase],
             currentBlock->GetBlockNum());
         Output::Print(L"    Input syms to be int-specialized (lossless): ");
@@ -17755,7 +17755,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
     // This can happen for Neg_A if it needs to bail out on negative zero, and perhaps other cases as well. It's too late to fix
     // the problem (overflows may already be ignored), so handle it by bailing out at compile-time and disabling tracking int
     // overflow.
-    Assert(!func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
+    Assert(!func->HasProfileInfo() || !func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
 
     if(PHASE_TRACE(Js::BailOutPhase, this->func))
     {
@@ -17763,7 +17763,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
         Output::Print(
             L"BailOut (compile-time): function: %s (%s) instr: ",
             func->GetJITFunctionBody()->GetDisplayName(),
-            func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+            func->GetDebugNumberSet(debugStringBuffer));
 #if DBG_DUMP
         instr->Dump();
 #else
@@ -17773,7 +17773,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
         Output::Flush();
     }
 
-    if(func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled())
+    if(func->HasProfileInfo() && func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled())
     {
         // Tracking int overflows is already off for some reason. Prevent trying to rejit again because it won't help and the
         // same thing will happen again and cause an infinite loop. Just abort jitting this function.
@@ -19001,7 +19001,7 @@ bool
 GlobOpt::IsSwitchOptEnabled(Func* func)
 {
     Assert(func->IsTopFunc());
-    return !PHASE_OFF(Js::SwitchOptPhase, func) && !func->GetProfileInfo()->IsSwitchOptDisabled() && !IsTypeSpecPhaseOff(func)
+    return !PHASE_OFF(Js::SwitchOptPhase, func) && (!func->HasProfileInfo() || !func->GetProfileInfo()->IsSwitchOptDisabled()) && !IsTypeSpecPhaseOff(func)
         && func->DoGlobOpt() && !func->HasTry();
 }
 
@@ -19009,7 +19009,7 @@ bool
 GlobOpt::DoEquivObjTypeSpec(Func* func)
 {
     return !PHASE_OFF(Js::ObjTypeSpecPhase, func) && !PHASE_OFF(Js::EquivObjTypeSpecPhase, func) &&
-        func->GetProfileInfo()->IsEquivalentObjTypeSpecDisabled();
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsEquivalentObjTypeSpecDisabled()); // REVIEW: OOP JIT, this was inverted before?
 }
 
 bool
@@ -19036,7 +19036,7 @@ GlobOpt::DoAggressiveIntTypeSpec(Func* func)
     return
         !PHASE_OFF(Js::AggressiveIntTypeSpecPhase, func) &&
         !IsTypeSpecPhaseOff(func) &&
-        !func->GetProfileInfo()->IsAggressiveIntTypeSpecDisabled(func->IsLoopBody());
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsAggressiveIntTypeSpecDisabled(func->IsLoopBody()));
 }
 
 bool
@@ -19064,7 +19064,7 @@ GlobOpt::DoLossyIntTypeSpec(Func* func)
     return
         !PHASE_OFF(Js::LossyIntTypeSpecPhase, func) &&
         !IsTypeSpecPhaseOff(func) &&
-        !func->GetProfileInfo()->IsLossyIntTypeSpecDisabled();
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsLossyIntTypeSpecDisabled());
 }
 
 bool
@@ -19080,7 +19080,7 @@ GlobOpt::DoFloatTypeSpec(Func* func)
     return
         !PHASE_OFF(Js::FloatTypeSpecPhase, func) &&
         !IsTypeSpecPhaseOff(func) &&
-        !func->GetProfileInfo()->IsFloatTypeSpecDisabled() &&
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsFloatTypeSpecDisabled()) &&
         AutoSystemInfo::Data.SSE2Available();
 }
 
@@ -19102,7 +19102,7 @@ GlobOpt::DoTypedArrayTypeSpec(Func* func)
 {
     return !PHASE_OFF(Js::TypedArrayTypeSpecPhase, func) &&
         !IsTypeSpecPhaseOff(func) &&
-        !func->GetProfileInfo()->IsTypedArrayTypeSpecDisabled(func->IsLoopBody())
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsTypedArrayTypeSpecDisabled(func->IsLoopBody()))
 #if defined(_M_IX86)
         && AutoSystemInfo::Data.SSE2Available()
 #endif
@@ -19127,7 +19127,7 @@ GlobOpt::DoArrayCheckHoist(Func *const func)
     Assert(func->IsTopFunc());
     return
         !PHASE_OFF(Js::ArrayCheckHoistPhase, func) &&
-        !func->GetProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody()) &&
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody())) &&
         !func->IsJitInDebugMode() && // StElemI fast path is not allowed when in debug mode, so it cannot have bailout
         func->DoGlobOptsForGeneratorFunc();
 }
@@ -19172,7 +19172,7 @@ GlobOpt::DoArrayMissingValueCheckHoist(Func *const func)
     return
         DoArrayCheckHoist(func) &&
         !PHASE_OFF(Js::ArrayMissingValueCheckHoistPhase, func) &&
-        !func->GetProfileInfo()->IsArrayMissingValueCheckHoistDisabled(func->IsLoopBody());
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsArrayMissingValueCheckHoistDisabled(func->IsLoopBody()));
 }
 
 bool
@@ -19198,7 +19198,7 @@ GlobOpt::DoArraySegmentHoist(const ValueType baseValueType, Func *const func)
 
     return
         !PHASE_OFF(Js::JsArraySegmentHoistPhase, func) &&
-        !func->GetProfileInfo()->IsJsArraySegmentHoistDisabled(func->IsLoopBody());
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsJsArraySegmentHoistDisabled(func->IsLoopBody()));
 }
 
 bool
@@ -19242,7 +19242,7 @@ GlobOpt::DoArrayLengthHoist(Func *const func)
     return
         DoArrayCheckHoist(func) &&
         !PHASE_OFF(Js::Phase::ArrayLengthHoistPhase, func) &&
-        !func->GetProfileInfo()->IsArrayLengthHoistDisabled(func->IsLoopBody());
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsArrayLengthHoistDisabled(func->IsLoopBody()));
 }
 
 bool
@@ -19266,7 +19266,7 @@ GlobOpt::DoLdLenIntSpec(IR::Instr *const instr, const ValueType baseValueType) c
 
     if(PHASE_OFF(Js::LdLenIntSpecPhase, func) ||
         IsTypeSpecPhaseOff(func) ||
-        func->GetProfileInfo()->IsLdLenIntSpecDisabled() ||
+        (func->HasProfileInfo() && func->GetProfileInfo()->IsLdLenIntSpecDisabled()) ||
         instr && !IsLoopPrePass() && instr->DoStackArgsOpt(func))
     {
         return false;
@@ -19339,7 +19339,7 @@ GlobOpt::CannotAllocateArgumentsObjectOnStack()
     if (PHASE_TESTTRACE(Js::StackArgOptPhase, this->func))
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"Stack args disabled for function %s(%s)\n", func->GetJITFunctionBody()->GetDisplayName(), func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(L"Stack args disabled for function %s(%s)\n", func->GetJITFunctionBody()->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer));
         Output::Flush();
     }
 #endif
@@ -20175,7 +20175,7 @@ GlobOpt::TraceSettings()
     Output::Print(L"    FloatTypeSpec: %s\r\n", this->DoFloatTypeSpec() ? L"enabled" : L"disabled");
     Output::Print(L"    AggressiveIntTypeSpec: %s\r\n", this->DoAggressiveIntTypeSpec() ? L"enabled" : L"disabled");
     Output::Print(L"    LossyIntTypeSpec: %s\r\n", this->DoLossyIntTypeSpec() ? L"enabled" : L"disabled");
-    Output::Print(L"    ArrayCheckHoist: %s\r\n", this->func->GetProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody()) ? L"disabled" : L"enabled");
+    Output::Print(L"    ArrayCheckHoist: %s\r\n", (this->func->HasProfileInfo() && this->func->GetProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody())) ? L"disabled" : L"enabled");
     Output::Print(L"    ImplicitCallFlags: %s\r\n", Js::DynamicProfileInfo::GetImplicitCallFlagsString(this->func->m_fg->implicitCallFlags));
     for (Loop * loop = this->func->m_fg->loopList; loop != NULL; loop = loop->next)
     {

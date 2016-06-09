@@ -15,8 +15,6 @@ public:
         __in Js::FunctionBody *functionBody,
         __out ProfileData * data);
 
-    bool HasProfileInfo() const;
-
     const Js::LdElemInfo * GetLdElemInfo(Js::ProfileId ldElemId) const;
     const Js::StElemInfo * GetStElemInfo(Js::ProfileId stElemId) const;
 
@@ -112,5 +110,5 @@ private:
 
     Js::CallSiteInfo * GetCallSiteInfo() const;
 
-    ProfileData * m_profileData;
+    ProfileData m_profileData;
 };

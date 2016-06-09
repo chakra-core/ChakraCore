@@ -310,7 +310,8 @@ Encoder::Encode()
     if (this->m_inlineeFrameMap->Count() > 0 &&
         !(this->m_inlineeFrameMap->Count() == 1 && this->m_inlineeFrameMap->Item(0).record == nullptr))
     {
-        entryPointInfo->RecordInlineeFrameMap(m_inlineeFrameMap);
+        // TODO: OOP JIT, inlinee frame map
+        //entryPointInfo->RecordInlineeFrameMap(m_inlineeFrameMap);
     }
 
     if (this->m_bailoutRecordMap->Count() > 0)
@@ -336,7 +337,7 @@ Encoder::Encode()
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(L"PinnedTypes: function %s(%s) pinned %d types.\n",
-                this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), pinnedTypeRefCount);
+                this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer), pinnedTypeRefCount);
             Output::Flush();
         }
 

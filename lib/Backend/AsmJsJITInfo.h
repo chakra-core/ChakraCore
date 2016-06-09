@@ -38,5 +38,5 @@ public:
     bool UsesHeapBuffer() const;
 
 private:
-    AsmJsJITData * m_data;
+    AsmJsJITData m_data;
 };

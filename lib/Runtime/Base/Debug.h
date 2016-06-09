@@ -39,11 +39,9 @@ WCHAR* DumpCallStack(uint frameCount = -1);
 #define OUTPUT_TRACE_FUNC(Phase, Func, ...) \
    if(PHASE_TRACE((Phase), (Func))) \
       { \
-        WCHAR workItem[256]; \
-        Func->m_workItem->GetDisplayName(workItem, _countof(workItem)); \
         WCHAR prefixValue[512]; \
-        swprintf_s(prefixValue, L"%s (#%d.%u, #%u)", workItem, \
-           (int)(Func)->GetJITFunctionBody()->GetSourceContextId(), (Func)->GetJITFunctionBody()->GetLocalFunctionId(), (Func)->GetJITFunctionBody()->GetFunctionNumber()); \
+        swprintf_s(prefixValue, L"%s (#%d.%u, #%u)", (Func)->GetJITFunctionBody()->GetDisplayName(), \
+           (int)(Func)->GetJITFunctionBody()->GetSourceContextId(), (Func)->GetWorkItem()->GetJITTimeInfo()->GetLocalFunctionId(), (Func)->GetJITFunctionBody()->GetFunctionNumber()); \
         Output::TraceWithPrefix((Phase), prefixValue, __VA_ARGS__); \
       }
 #define OUTPUT_VERBOSE_TRACE2(Phase, FunctionBody, ...) \

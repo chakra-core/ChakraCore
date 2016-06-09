@@ -5988,14 +5988,6 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    const FunctionCodeGenRuntimeData *FunctionBody::GetInlineeCodeGenRuntimeData(const ProfileId profiledCallSiteId) const
-    {
-        Assert(profiledCallSiteId < profiledCallSiteCount);
-
-        auto codeGenRuntimeData = this->GetCodeGenRuntimeData();
-        return codeGenRuntimeData ? codeGenRuntimeData[profiledCallSiteId] : nullptr;
-    }
-
     const FunctionCodeGenRuntimeData *FunctionBody::GetInlineeCodeGenRuntimeDataForTargetInlinee(const ProfileId profiledCallSiteId, Js::FunctionBody *inlineeFuncBody) const
     {
         Assert(profiledCallSiteId < profiledCallSiteCount);
@@ -6052,14 +6044,6 @@ namespace Js
         FunctionCodeGenRuntimeData *runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
         runtimeData->SetupRuntimeDataChain(inlineeData);
         return codeGenRuntimeData[profiledCallSiteId] = runtimeData;
-    }
-
-    const FunctionCodeGenRuntimeData *FunctionBody::GetLdFldInlineeCodeGenRuntimeData(const InlineCacheIndex inlineCacheIndex) const
-    {
-        Assert(inlineCacheIndex < inlineCacheCount);
-
-        FunctionCodeGenRuntimeData ** data = (FunctionCodeGenRuntimeData **)this->GetCodeGenGetSetRuntimeData();
-        return (data != nullptr) ? data[inlineCacheIndex] : nullptr;
     }
 
     FunctionCodeGenRuntimeData *FunctionBody::EnsureLdFldInlineeCodeGenRuntimeData(

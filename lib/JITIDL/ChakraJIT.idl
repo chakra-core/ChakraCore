@@ -8,6 +8,25 @@ import "wtypes.idl";
 // TODO: OOP JIT, how do we make this better?
 const int VTABLE_COUNT = 40;
 
+typedef struct ObjTypeSpecFldData
+{
+    // TODO: OOP JIT we may want to copy some of the data in these pointers
+    __int3264 protoObject;
+    __int3264 propertyGuard;
+    __int3264 typeSet;
+    __int3264 initialType;
+    __int3264 ctorCache;
+    __int3264 fixedFieldInfoArray;
+
+    int propertyId;
+    int typeId;
+    unsigned int id;
+
+    unsigned short flags;
+    unsigned short slotIndex;
+    unsigned short fixedFieldCount;
+} ObjTypeSpecFldData;
+
 typedef struct BVUnitData
 {
     unsigned __int3264 word;
@@ -109,6 +128,7 @@ typedef struct ProfileData
 
 typedef struct ThreadContextData
 {
+    boolean isThreadBound;
     __int3264 processHandle;
     __int3264 chakraBaseAddress;
     __int3264 crtBaseAddress;
@@ -121,11 +141,12 @@ typedef struct ThreadContextData
     __int3264 debugStepTypeAddr;
     __int3264 debugFrameAddressAddr;
     __int3264 debugScriptIdWhenSetAddr;
-    boolean isThreadBound;
 } ThreadContextData;
 
 typedef struct ScriptContextData
 {
+    boolean isRecyclerVerifyEnabled;
+    unsigned int recyclerVerifyPad;
     __int3264 vtableAddresses[VTABLE_COUNT];
 
     __int3264 nullAddr;
@@ -153,8 +174,6 @@ typedef struct ScriptContextData
     __int3264 floatArraySetElementFastPathVtableAddr;
     __int3264 numberAllocatorAddr;
     __int3264 recyclerAddr;
-    unsigned int recyclerVerifyPad;
-    boolean isRecyclerVerifyEnabled;
 } ScriptContextData;
 
 typedef struct SmallSpanSequenceData
@@ -168,15 +187,21 @@ typedef struct SmallSpanSequenceData
 
 typedef struct JITLoopHeader
 {
+    boolean isNested;
+    boolean isInTry;
     unsigned int interpretCount;
     unsigned int startOffset;
     unsigned int endOffset;
-    boolean isNested;
-    boolean isInTry;
 } JITLoopHeader;
 
 typedef struct AsmJsJITData
 {
+    boolean isHeapBufferConst;
+    boolean usesHeapBuffer;
+    unsigned short argByteSize;
+    unsigned short argCount;
+    [size_is(argCount)] byte * argTypeArray;
+    int retType;
     int intConstCount;
     int doubleConstCount;
     int floatConstCount;
@@ -194,12 +219,6 @@ typedef struct AsmJsJITData
     int floatByteOffset;
     int simdByteOffset;
     int totalSizeInBytes;
-    unsigned short argCount;
-    [size_is(argCount)] byte * argTypeArray;
-    unsigned short argByteSize;
-    int retType;
-    boolean isHeapBufferConst;
-    boolean usesHeapBuffer;
 } AsmJsJITData;
 
 typedef struct FunctionJITRuntimeData
@@ -208,51 +227,35 @@ typedef struct FunctionJITRuntimeData
     [size_is(clonedCacheCount)] __int3264 * clonedInlineCaches;
 } FunctionJITRuntimeData;
 
-// FunctionBody fields, read only in JIT
+// FunctionBody fields, read only in JIT, gathered in foreground
 typedef struct FunctionBodyJITData
 {
-    ProfileData * profileData;
+    byte flags;
 
-    unsigned int byteCodeLength;
-    [size_is(byteCodeLength)] byte * byteCodeBuffer;
+    // TODO: compress booleans into flags
+    boolean doBackendArgumentsOptimization;
+    boolean isLibraryCode;
+    boolean isAsmJsMode;
+    boolean hasImplicitArgIns;
+    boolean isStrictMode;
+    boolean isEval;
+    boolean hasScopeObject;
+    boolean hasCachedScopePropIds;
+    boolean inlineCachesOnFunctionObject;
+    boolean doInterruptProbe;
+    boolean isGlobalFunc;
+    boolean doJITLoopBody;
+    boolean disableInlineSpread;
+    boolean hasNestedLoop;
+    boolean hasNonBuiltInCallee;
 
-    unsigned int constCount;
-    [size_is(constCount)] __int3264 * constTable;
-    unsigned int constTypeCount;
-    [size_is(constTypeCount)] int * constTypeTable;
-
-    unsigned int inlineCacheCount;
-    [size_is(inlineCacheCount)] int * cacheIdToPropertyIdMap;
-    [size_is(inlineCacheCount)] __int3264 * inlineCaches;
-
-    __int3264 loopHeaderArrayAddr;
-    unsigned int loopHeaderArrayLength;
-    [size_is(loopHeaderArrayLength)] JITLoopHeader * loopHeaders;
-
-    unsigned int referencedPropertyIdCount;
-    [size_is(referencedPropertyIdCount)] int * referencedPropertyIdMap;
-
-    unsigned int nameLength;
-    [size_is(nameLength)] wchar_t * displayName;
-
-    unsigned int runtimeDataCount; // only needed for topfunc?
-    [size_is(runtimeDataCount)] FunctionJITRuntimeData * profiledRuntimeData;
-
-    SmallSpanSequenceData statementMap;
-
-    AsmJsJITData * asmJsData;
-
-    __int3264 functionBodyAddr;
-    __int3264 scriptIdAddr;
-    __int3264 probeCountAddr;
-    __int3264 flagsAddr;
-    __int3264 regAllocStoreCountAddr;
-    __int3264 regAllocLoadCountAddr;
-    __int3264 callCountStatsAddr;
-    __int3264 nestedFuncArrayAddr;
+    unsigned short envDepth;
+    unsigned short inParamCount;
+    unsigned short profiledIterations;
+    unsigned short argUsedForBranch;
+    unsigned short profiledCallSiteCount;
 
     unsigned int funcNumber;
-    unsigned int localFuncId;
     unsigned int sourceContextId;
     unsigned int nestedCount;
     unsigned int scopeSlotArraySize;
@@ -273,76 +276,95 @@ typedef struct FunctionBodyJITData
     unsigned int recursiveCallSiteCount;
     unsigned int isInstInlineCacheCount; // TODO: only used in Assert
 
-    unsigned short envDepth;
-    unsigned short inParamCount;
-    unsigned short profiledIterations;
-    unsigned short argUsedForBranch;
-    unsigned short profiledCallSiteCount;
+    SmallSpanSequenceData statementMap;
 
-    byte flags;
-    // TODO: compress booleans into flags
-    boolean doBackendArgumentsOptimization;
-    boolean isLibraryCode;
-    boolean isAsmJsMode;
-    boolean hasImplicitArgIns;
-    boolean isStrictMode;
-    boolean isEval;
-    boolean hasScopeObject;
-    boolean hasCachedScopePropIds;
-    boolean inlineCachesOnFunctionObject;
-    boolean doInterruptProbe;
-    boolean isGlobalFunc;
-    boolean doJITLoopBody;
-    boolean disableInlineSpread;
-    boolean hasNestedLoop;
-    boolean hasNonBuiltInCallee;
+    unsigned int byteCodeLength;
+    [size_is(byteCodeLength)] byte * byteCodeBuffer;
+
+    unsigned int constCount;
+    [size_is(constCount)] __int3264 * constTable;
+    unsigned int constTypeCount;
+    [size_is(constTypeCount)] int * constTypeTable;
+
+    unsigned int inlineCacheCount;
+    [size_is(inlineCacheCount)] int * cacheIdToPropertyIdMap;
+    [size_is(inlineCacheCount)] __int3264 * inlineCaches;
+
+    unsigned int loopHeaderArrayLength;
+    [size_is(loopHeaderArrayLength)] JITLoopHeader * loopHeaders;
+
+    unsigned int referencedPropertyIdCount;
+    [size_is(referencedPropertyIdCount)] int * referencedPropertyIdMap;
+
+    unsigned int nameLength;
+    [size_is(nameLength)] wchar_t * displayName;
+
+    unsigned int runtimeDataCount; // only needed for topfunc?
+    [size_is(runtimeDataCount)] FunctionJITRuntimeData * profiledRuntimeData;
+
+    ProfileData * profileData;
+
+    AsmJsJITData * asmJsData;
+
+    __int3264 loopHeaderArrayAddr;
+    __int3264 functionBodyAddr;
+    __int3264 scriptIdAddr;
+    __int3264 probeCountAddr;
+    __int3264 flagsAddr;
+    __int3264 regAllocStoreCountAddr;
+    __int3264 regAllocLoadCountAddr;
+    __int3264 callCountStatsAddr;
+    __int3264 nestedFuncArrayAddr;
 } FunctionBodyJITData;
 
 // EntryPointInfo fields, read/write in JIT
 typedef struct EntryPointInfoJITWriteData
 {
+    boolean hasJittedStackClosure;
     int localVarSlotsOffset; // FunctionEntryPointInfo only
     int localVarChangedOffset; // FunctionEntryPointInfo only
-    boolean hasJittedStackClosure;
+    unsigned int frameHeight;
 } EntryPointInfoJITWriteData;
 
 // FunctionBody fields, written to from JIT
 typedef struct FunctionBodyJITWriteData
 {
-    unsigned short argUsedForBranch;
     boolean hasBailoutInstr;
+    unsigned short argUsedForBranch;
 } FunctionBodyJITWriteData;
-
-// EntryPointInfo fields, read only in JIT
-typedef struct EntryPointInfoJITReadData
-{
-    __int3264 callsCountAddress; // // FunctionEntryPointInfo only
-} EntryPointInfoJITReadData;
 
 typedef struct FunctionJITTimeData
 {
+    boolean isAggressiveInliningEnabled;
+    boolean isInlined;
+    unsigned int localFuncId;
+    __int3264 functionInfoAddr;
+    __int3264 callsCountAddress;
+    __int3264 weakFuncRef;
     FunctionBodyJITData * bodyData; // TODO: oop jit, can these repeat, should we share?
 
+    BVFixedData * inlineesBv;
+
     unsigned int inlineeCount;
+    [size_is(inlineeCount)] struct FunctionJITTimeData ** inlinees;
     unsigned int ldFldInlineeCount;
-    [size_is(inlineeCount)] FunctionJITTimeData * inlinees;
-    [size_is(ldFldInlineeCount)] FunctionJITTimeData * ldFldInlinees;
-    FunctionJITTimeData * next;
+    [size_is(ldFldInlineeCount)] struct FunctionJITTimeData ** ldFldInlinees;
+    // ldFldInlineeCount == inlineCacheCount
+    [size_is(ldFldInlineeCount)] ObjTypeSpecFldData ** objTypeSpecFldInfoArray;
+    struct FunctionJITTimeData * next;
 } FunctionJITTimeData;
 
 // CodeGenWorkItem fields, read only in JIT
 typedef struct CodeGenWorkItemJITData
 {
-    EntryPointInfoJITReadData readOnlyEPData;
-    FunctionJITTimeData jitData;
-    __int3264 nativeDataAddr;
-    unsigned int interpretedCount;
-    unsigned int loopNumber;
-    unsigned int nameLength;
-    [size_is(nameLength)] wchar_t * displayName;
+    boolean isJitInDebugMode;  // Whether JIT is in debug mode for this work item.
     byte type;
     char jitMode;
-    boolean isJitInDebugMode;  // Whether JIT is in debug mode for this work item.
+
+    unsigned int loopNumber;
+
+    FunctionJITTimeData * jitData;
+    __int3264 nativeDataAddr;
 } CodeGenWorkItemJITData;
 
 typedef struct NativeDataFixupEntry
@@ -377,16 +399,21 @@ typedef struct NativeDataBuffer
 // Fields that JIT modifies
 typedef struct JITOutputData
 {
-    EntryPointInfoJITWriteData writeableEPData;
-    FunctionBodyJITWriteData writeableBodyData;
-    __int64 codeAddress;
-    __int64 xdataAddr;
-    unsigned int codeSize;
+    boolean isInPrereservedRegion;
+
     unsigned short pdataCount;
     unsigned short xdataSize;
-    boolean isInPrereservedRegion;
+
+    EntryPointInfoJITWriteData writeableEPData;
+    FunctionBodyJITWriteData writeableBodyData;
+
+    unsigned int codeSize;
+
     NativeDataFixupTable* nativeDataFixupTable;
     NativeDataBuffer* buffer;
+
+    __int64 codeAddress;
+    __int64 xdataAddr;
 } JITOutputData;
 
 [

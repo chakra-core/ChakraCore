@@ -175,7 +175,7 @@ ServerRemoteCodeGen(
 
     JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
 
-    Func func(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, nullptr, threadContextInfo->GetCodeGenAllocators(), nullptr, profileInfo, nullptr, true);
+    Func func(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, threadContextInfo->GetCodeGenAllocators(), nullptr, nullptr, true);
     func.m_symTable->SetStartingID(static_cast<SymID>(jitWorkItem->GetJITFunctionBody()->GetLocalsCount() + 1));
     func.Codegen();
     scriptContextInfo->EndJIT();

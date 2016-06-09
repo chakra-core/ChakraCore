@@ -6,8 +6,9 @@
 #include "BackEnd.h"
 
 JITTimeProfileInfo::JITTimeProfileInfo(ProfileData * profileData) :
-    m_profileData(profileData)
+    m_profileData(*profileData)
 {
+    CompileAssert(sizeof(JITTimeProfileInfo) == sizeof(ProfileData));
 }
 
 /* static */
@@ -104,49 +105,43 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->flags |= profileInfo->HasLdFldCallSiteInfo() ? Flags_hasLdFldCallSiteInfo : 0;
 }
 
-bool
-JITTimeProfileInfo::HasProfileInfo() const
-{
-    return m_profileData != nullptr;
-}
-
 const Js::LdElemInfo *
 JITTimeProfileInfo::GetLdElemInfo(Js::ProfileId ldElemId) const
 {
-    return &(reinterpret_cast<Js::LdElemInfo*>(m_profileData->ldElemData)[ldElemId]);
+    return &(reinterpret_cast<Js::LdElemInfo*>(m_profileData.ldElemData)[ldElemId]);
 }
 
 const Js::StElemInfo *
 JITTimeProfileInfo::GetStElemInfo(Js::ProfileId stElemId) const
 {
-    return &(reinterpret_cast<Js::StElemInfo*>(m_profileData->stElemData)[stElemId]);
+    return &(reinterpret_cast<Js::StElemInfo*>(m_profileData.stElemData)[stElemId]);
 }
 
 Js::ArrayCallSiteInfo *
 JITTimeProfileInfo::GetArrayCallSiteInfo(Js::ProfileId index) const
 {
     Assert(index < GetProfiledArrayCallSiteCount());
-    return &(reinterpret_cast<Js::ArrayCallSiteInfo*>(m_profileData->arrayCallSiteData)[index]);
+    return &(reinterpret_cast<Js::ArrayCallSiteInfo*>(m_profileData.arrayCallSiteData)[index]);
 }
 
 Js::FldInfo *
 JITTimeProfileInfo::GetFldInfo(uint fieldAccessId) const
 {
     Assert(fieldAccessId < GetProfiledFldCount());
-    return &(reinterpret_cast<Js::FldInfo*>(m_profileData->fldData)[fieldAccessId]);
+    return &(reinterpret_cast<Js::FldInfo*>(m_profileData.fldData)[fieldAccessId]);
 }
 
 ValueType
 JITTimeProfileInfo::GetSlotLoad(Js::ProfileId slotLoadId) const
 {
     Assert(slotLoadId < GetProfiledSlotCount());
-    return reinterpret_cast<ValueType*>(m_profileData->slotData)[slotLoadId];
+    return reinterpret_cast<ValueType*>(m_profileData.slotData)[slotLoadId];
 }
 
 Js::ThisInfo
 JITTimeProfileInfo::GetThisInfo() const
 {
-    return *reinterpret_cast<Js::ThisInfo*>(&m_profileData->thisData);
+    return *reinterpret_cast<const Js::ThisInfo*>(&m_profileData.thisData);
 }
 
 ValueType
@@ -160,28 +155,28 @@ JITTimeProfileInfo::GetReturnType(Js::OpCode opcode, Js::ProfileId callSiteId) c
     }
     Assert(Js::DynamicProfileInfo::IsProfiledReturnTypeOp(opcode));
     Assert(callSiteId < GetProfiledReturnTypeCount());
-    return reinterpret_cast<ValueType*>(m_profileData->returnTypeData)[callSiteId];
+    return reinterpret_cast<ValueType*>(m_profileData.returnTypeData)[callSiteId];
 }
 
 ValueType
 JITTimeProfileInfo::GetDivProfileInfo(Js::ProfileId divideId) const
 {
     Assert(divideId < GetProfiledDivOrRemCount());
-    return reinterpret_cast<ValueType*>(m_profileData->divideTypeInfo)[divideId];
+    return reinterpret_cast<ValueType*>(m_profileData.divideTypeInfo)[divideId];
 }
 
 ValueType
 JITTimeProfileInfo::GetSwitchProfileInfo(Js::ProfileId switchId) const
 {
     Assert(switchId < GetProfiledSwitchCount());
-    return reinterpret_cast<ValueType*>(m_profileData->switchTypeInfo)[switchId];
+    return reinterpret_cast<ValueType*>(m_profileData.switchTypeInfo)[switchId];
 }
 
 ValueType
 JITTimeProfileInfo::GetParameterInfo(Js::ArgSlot index) const
 {
     Assert(index < GetProfiledInParamsCount());
-    return reinterpret_cast<ValueType*>(m_profileData->parameterInfo)[index];
+    return reinterpret_cast<ValueType*>(m_profileData.parameterInfo)[index];
 }
 
 Js::ImplicitCallFlags
@@ -193,13 +188,13 @@ JITTimeProfileInfo::GetLoopImplicitCallFlags(uint loopNum) const
 
     // Mask out the dispose implicit call. We would bailout on reentrant dispose,
     // but it shouldn't affect optimization.
-    return (Js::ImplicitCallFlags)(m_profileData->loopImplicitCallFlags[loopNum] & Js::ImplicitCall_All);
+    return (Js::ImplicitCallFlags)(m_profileData.loopImplicitCallFlags[loopNum] & Js::ImplicitCall_All);
 }
 
 Js::ImplicitCallFlags
 JITTimeProfileInfo::GetImplicitCallFlags() const
 {
-    return static_cast<Js::ImplicitCallFlags>(m_profileData->implicitCallFlags);
+    return static_cast<Js::ImplicitCallFlags>(m_profileData.implicitCallFlags);
 }
 
 Js::LoopFlags
@@ -426,75 +421,71 @@ JITTimeProfileInfo::HasLdFldCallSiteInfo() const
 Js::ProfileId
 JITTimeProfileInfo::GetProfiledArrayCallSiteCount() const
 {
-    return static_cast<Js::ProfileId>(m_profileData->profiledArrayCallSiteCount);
+    return static_cast<Js::ProfileId>(m_profileData.profiledArrayCallSiteCount);
 }
 
 Js::ProfileId
 JITTimeProfileInfo::GetProfiledCallSiteCount() const
 {
-    return static_cast<Js::ProfileId>(m_profileData->profiledCallSiteCount);
+    return static_cast<Js::ProfileId>(m_profileData.profiledCallSiteCount);
 }
 
 Js::ProfileId
 JITTimeProfileInfo::GetProfiledReturnTypeCount() const
 {
-    return static_cast<Js::ProfileId>(m_profileData->profiledReturnTypeCount);
+    return static_cast<Js::ProfileId>(m_profileData.profiledReturnTypeCount);
 }
 
 Js::ProfileId
 JITTimeProfileInfo::GetProfiledDivOrRemCount() const
 {
-    return static_cast<Js::ProfileId>(m_profileData->profiledDivOrRemCount);
+    return static_cast<Js::ProfileId>(m_profileData.profiledDivOrRemCount);
 }
 
 Js::ProfileId
 JITTimeProfileInfo::GetProfiledSwitchCount() const
 {
-    return static_cast<Js::ProfileId>(m_profileData->profiledSwitchCount);
+    return static_cast<Js::ProfileId>(m_profileData.profiledSwitchCount);
 }
 
 Js::ProfileId
 JITTimeProfileInfo::GetProfiledSlotCount() const
 {
-    return static_cast<Js::ProfileId>(m_profileData->profiledSlotCount);
+    return static_cast<Js::ProfileId>(m_profileData.profiledSlotCount);
 }
 
 Js::ArgSlot
 JITTimeProfileInfo::GetProfiledInParamsCount() const
 {
-    return static_cast<Js::ArgSlot>(m_profileData->profiledInParamsCount);
+    return static_cast<Js::ArgSlot>(m_profileData.profiledInParamsCount);
 }
 
 uint
 JITTimeProfileInfo::GetProfiledFldCount() const
 {
-    return m_profileData->inlineCacheCount;
+    return m_profileData.inlineCacheCount;
 }
 
 uint
 JITTimeProfileInfo::GetLoopCount() const
 {
-    return m_profileData->loopCount;
+    return m_profileData.loopCount;
 }
 
 Js::CallSiteInfo *
 JITTimeProfileInfo::GetCallSiteInfo() const
 {
-    return reinterpret_cast<Js::CallSiteInfo*>(m_profileData->callSiteData);
+    return reinterpret_cast<Js::CallSiteInfo*>(m_profileData.callSiteData);
 }
 
 bool
 JITTimeProfileInfo::TestFlag(ProfileDataFlags flag) const
 {
-    if (!HasProfileInfo())
-    {
-        return false;
-    }
-    return (m_profileData->flags & flag) != 0;
+    return (m_profileData.flags & flag) != 0;
 }
 
 BVFixed *
 JITTimeProfileInfo::GetLoopFlags() const
 {
-    return (BVFixed*)m_profileData->loopFlags;
+    return (BVFixed*)m_profileData.loopFlags;
 }

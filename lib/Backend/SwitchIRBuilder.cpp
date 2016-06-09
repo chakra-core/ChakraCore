@@ -207,7 +207,7 @@ SwitchIRBuilder::SetProfiledInstruction(IR::Instr * instr, Js::ProfileId profile
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
             PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, L"Func %s, Switch %d: Expression Type : %S\n",
-                m_profiledSwitchInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                m_profiledSwitchInstr->m_func->GetDebugNumberSet(debugStringBuffer),
                 m_profiledSwitchInstr->AsProfiledInstr()->u.profileId, valueTypeStr);
         }
     }
@@ -728,7 +728,7 @@ SwitchIRBuilder::BuildBailOnNotInteger()
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, L"Func %s, Switch %d:Optimized for Integers\n",
-        m_profiledSwitchInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+        m_profiledSwitchInstr->m_func->GetDebugNumberSet(debugStringBuffer),
         m_profiledSwitchInstr->AsProfiledInstr()->u.profileId);
 }
 
@@ -755,7 +755,7 @@ SwitchIRBuilder::BuildBailOnNotString()
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, L"Func %s, Switch %d:Optimized for Strings\n",
-        m_profiledSwitchInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+        m_profiledSwitchInstr->m_func->GetDebugNumberSet(debugStringBuffer),
         m_profiledSwitchInstr->AsProfiledInstr()->u.profileId);
 }
 

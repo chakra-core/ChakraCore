@@ -466,6 +466,7 @@ namespace Js
     public:
         ObjTypeSpecFldInfo* GetInfo(FunctionBody *const functionBody, const uint index) const;
         ObjTypeSpecFldInfo* GetInfo(const uint index) const;
+        ObjTypeSpecFldInfo** GetInfoArray() const { return infoArray; }
 
         void SetInfo(Recycler *const recycler, FunctionBody *const functionBody,
             const uint index, ObjTypeSpecFldInfo* info);

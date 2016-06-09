@@ -7,7 +7,7 @@
 
 
 JITTimeWorkItem::JITTimeWorkItem(CodeGenWorkItemJITData * workItemData) :
-    m_workItemData(workItemData), m_jitBody(&workItemData->bodyData)
+    m_workItemData(workItemData), m_jitBody(workItemData->jitData->bodyData)
 {
 }
 
@@ -21,32 +21,6 @@ ExecutionMode
 JITTimeWorkItem::GetJitMode() const
 {
     return static_cast<ExecutionMode>(m_workItemData->jitMode);
-}
-
-WCHAR *
-JITTimeWorkItem::GetDisplayName() const
-{
-    return m_workItemData->displayName;
-}
-
-size_t
-JITTimeWorkItem::GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars)
-{
-    WCHAR * name = GetDisplayName();
-    size_t nameSizeInChars = wcslen(name) + 1;
-    size_t sizeInBytes = nameSizeInChars * sizeof(WCHAR);
-    // only do copy if provided buffer is big enough
-    if (displayName && sizeInChars >= nameSizeInChars)
-    {
-        js_memcpy_s(displayName, sizeInChars * sizeof(WCHAR), name, sizeInBytes);
-    }
-    return nameSizeInChars;
-}
-
-uint
-JITTimeWorkItem::GetInterpretedCount() const
-{
-    return m_workItemData->interpretedCount;
 }
 
 // loop number if IsLoopBody, otherwise Js::LoopHeader::NoLoop
@@ -76,7 +50,7 @@ JITTimeWorkItem::GetCallsCountAddress() const
 {
     Assert(Type() == JsFunctionType);
 
-    return m_workItemData->readOnlyEPData.callsCountAddress;
+    return m_workItemData->jitData->callsCountAddress;
 }
 
 const JITLoopHeader *
@@ -93,20 +67,39 @@ JITTimeWorkItem::GetLoopHeaderAddr() const
 
 void
 JITTimeWorkItem::InitializeReader(
-    Js::ByteCodeReader &reader,
-    Js::StatementReader &statementReader)
+    Js::ByteCodeReader * reader,
+    Js::StatementReader * statementReader)
 {
     uint startOffset = IsLoopBody() ? GetLoopHeader()->startOffset : 0;
 #if DBG
-    reader.Create(m_jitBody.GetByteCodeBuffer(), startOffset, m_jitBody.GetByteCodeLength());
+    reader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, m_jitBody.GetByteCodeLength());
 #else
-    reader.Create(m_jitBody.GetByteCodeBuffer(), startOffset);
+    reader->Create(m_jitBody.GetByteCodeBuffer(), startOffset);
 #endif
-    statementReader.Create(m_jitBody.GetByteCodeBuffer(), startOffset, m_jitBody.GetStatementMapSpanSequence());
+    m_jitBody.InitializeStatementMap(&m_statementMap);
+    statementReader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, &m_statementMap);
 }
 
 JITTimeFunctionBody *
 JITTimeWorkItem::GetJITFunctionBody()
 {
     return &m_jitBody;
+}
+
+CodeGenWorkItemJITData *
+JITTimeWorkItem::GetWorkItemData()
+{
+    return m_workItemData;
+}
+
+void
+JITTimeWorkItem::SetJITTimeData(FunctionJITTimeData * jitData)
+{
+    m_workItemData->jitData = jitData;
+}
+
+const FunctionJITTimeInfo *
+JITTimeWorkItem::GetJITTimeInfo() const
+{
+    return reinterpret_cast<const FunctionJITTimeInfo *>(m_workItemData->jitData);
 }

@@ -114,6 +114,8 @@
     <ClCompile Include="ScriptContextInfo.cpp" />
     <ClCompile Include="JITTimeProfileInfo.cpp" />
     <ClCompile Include="AsmJsJITInfo.cpp" />
+    <ClCompile Include="FunctionJITTimeInfo.cpp" />
+    <ClCompile Include="FunctionJITRuntimeInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -313,6 +315,8 @@
     <ClInclude Include="ScriptContextInfo.h" />
     <ClInclude Include="JITTimeProfileInfo.h" />
     <ClInclude Include="AsmJsJITInfo.h" />
+    <ClInclude Include="FunctionJITTimeInfo.h" />
+    <ClInclude Include="FunctionJITRuntimeInfo.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

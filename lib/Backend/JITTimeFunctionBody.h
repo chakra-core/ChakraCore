@@ -5,20 +5,24 @@
 
 #pragma once
 
+// forward decls
+class AsmJsJITInfo;
+class JITTimeProfileInfo;
+class FunctionJITRuntimeInfo;
+
 class JITTimeFunctionBody
 {
 public:
     JITTimeFunctionBody(FunctionBodyJITData * bodyData);
 
     static void InitializeJITFunctionData(
-        __in Recycler,
+        __in Recycler * recycler,
         __in Js::FunctionBody * functionBody,
         __out FunctionBodyJITData * jitBody);
 
     intptr_t GetAddr() const;
 
     uint GetFunctionNumber() const;
-    uint GetLocalFunctionId() const;
     uint GetSourceContextId() const;
     uint GetNestedCount() const;
     uint GetScopeSlotArraySize() const;
@@ -76,13 +80,11 @@ public:
     bool DoJITLoopBody() const;
     bool IsInlineSpreadDisabled() const;
     bool HasLoops() const;
-    bool ForceJITLoopBody() const;
     bool HasNonBuiltInCallee() const;
     bool HasNestedLoop() const;
     bool CanInlineRecursively(uint depth, bool tryAggressive = true) const;
 
     const byte * GetByteCodeBuffer() const;
-    Js::SmallSpanSequence * GetStatementMapSpanSequence();
 
 
     intptr_t GetNestedFuncRef(uint index) const;
@@ -105,21 +107,19 @@ public:
 
     const AsmJsJITInfo * GetAsmJsInfo() const;
     const JITTimeProfileInfo * GetProfileInfo() const;
+    bool HasProfileInfo() const;
 
     static bool LoopContains(const JITLoopHeader * loop1, const JITLoopHeader * loop2);
 
     wchar_t* GetDisplayName() const;
-    wchar_t* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const;
 
+    const FunctionJITRuntimeInfo *GetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId) const;
+    const FunctionJITRuntimeInfo *GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlineCacheIndex) const;
+
+    void InitializeStatementMap(__out Js::SmallSpanSequence * statementMap) const;
 private:
     Js::FunctionInfo::Attributes GetAttributes() const;
     Js::FunctionBody::FunctionBodyFlags GetFlags() const;
 
-    void InitializeStatementMap();
-
-    AsmJsJITInfo m_asmJsInfo;
-    Js::SmallSpanSequence m_statementMap;
-
-    JITTimeProfileInfo m_profileInfo;
-    const FunctionBodyJITData * const m_bodyData;
+    FunctionBodyJITData m_bodyData;
 };

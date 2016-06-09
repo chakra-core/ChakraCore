@@ -42,7 +42,7 @@ public:
 
     uint GetFunctionNumber() const
     {
-        return this->jitData.bodyData.funcNumber;
+        return this->jitData.jitData->bodyData->funcNumber;
     }
 
     ExecutionMode GetJitMode() const
@@ -229,21 +229,9 @@ struct JsFunctionCodeGen sealed : public CodeGenWorkItem
         bool isJitInDebugMode)
         : CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsFunctionType)
     {
-        this->nameSizeInChars = this->GetDisplayName(nullptr, 256);
-
-        WCHAR * displayName = HeapNewArray(WCHAR, this->nameSizeInChars);
-        this->jitData.nameLength = (unsigned int)this->GetDisplayName(displayName, this->nameSizeInChars);
-        if (this->nameSizeInChars > UINT32_MAX)
-        {
-            Js::Throw::OutOfMemory();
-        }
-        this->jitData.displayName = displayName;
-
-        this->jitData.interpretedCount = GetInterpretedCount();
         this->jitData.loopNumber = GetLoopNumber();
     }
 
-    size_t nameSizeInChars;
 public:
     uint GetByteCodeCount() const override
     {
@@ -306,14 +294,6 @@ public:
         reader.Create(this->functionBody, 0, IsJitInDebugMode());
         statementReader.Create(this->functionBody, 0, IsJitInDebugMode());
     }
-
-    ~JsFunctionCodeGen()
-    {
-        if (this->jitData.displayName != nullptr)
-        {
-            HeapDeleteArray(this->nameSizeInChars, this->jitData.displayName);
-        }
-    }
 };
 
 struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
@@ -325,21 +305,9 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
         symIdToValueTypeMap(nullptr),
         loopHeader(loopHeader)
     {
-        this->nameSizeInChars = this->GetDisplayName(nullptr, 256);
-
-        WCHAR * displayName = HeapNewArray(WCHAR, this->nameSizeInChars);
-        this->jitData.nameLength = (unsigned int)this->GetDisplayName(displayName, this->nameSizeInChars);
-        if (this->nameSizeInChars > UINT32_MAX)
-        {
-            Js::Throw::OutOfMemory();
-        }
-        this->jitData.displayName = displayName;
-
-        this->jitData.interpretedCount = GetInterpretedCount();
         this->jitData.loopNumber = GetLoopNumber();
     }
 
-    size_t nameSizeInChars;
     Js::LoopHeader * loopHeader;
     typedef JsUtil::BaseDictionary<uint, ValueType, HeapAllocator> SymIdToValueTypeMap;
     SymIdToValueTypeMap *symIdToValueTypeMap;
@@ -408,10 +376,6 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
         {
             HeapDelete(this->symIdToValueTypeMap);
             this->symIdToValueTypeMap = NULL;
-        }
-        if (this->jitData.displayName != nullptr)
-        {
-            HeapDeleteArray(this->GetDisplayName(nullptr, 256), this->jitData.displayName);
         }
     }
 };

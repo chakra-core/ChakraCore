@@ -93,7 +93,7 @@ IRBuilder::DoBailOnNoProfile()
         return false;
     }
 
-    if (this->m_func->GetProfileInfo()->IsNoProfileBailoutsDisabled())
+    if (m_func->HasProfileInfo() && m_func->GetProfileInfo()->IsNoProfileBailoutsDisabled())
     {
         return false;
     }
@@ -3131,12 +3131,11 @@ IRBuilder::BuildProfiledSlotLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::Sy
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if(Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::DynamicProfilePhase))
         {
-            const JITTimeFunctionBody * func = m_func->GetJITFunctionBody();
             const ValueType valueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
             char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             valueType.ToString(valueTypeStr);
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"TestTrace function %s (#%s) ValueType = %S ", m_func->GetJITFunctionBody()->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
+            Output::Print(L"TestTrace function %s (#%s) ValueType = %S ", m_func->GetJITFunctionBody()->GetDisplayName(), m_func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
             instr->DumpTestTrace();
         }
 #endif
@@ -3900,7 +3899,7 @@ IRBuilder::BuildProfiledFieldLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::S
             char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             valueType.ToString(valueTypeStr);
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"TestTrace function %s (%s) ValueType = %i ", m_func->GetJITFunctionBody()->GetDisplayName(), m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
+            Output::Print(L"TestTrace function %s (%s) ValueType = %i ", m_func->GetJITFunctionBody()->GetDisplayName(), m_func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
             instr->DumpTestTrace();
         }
 #endif
@@ -6017,10 +6016,10 @@ IRBuilder::BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot retu
             newOpcode = Js::OpCodeUtil::ConvertProfiledCallOpToNonProfiled(opcode);
             if(DoBailOnNoProfile())
             {
-                if(this->m_func->m_jitTimeData)
+                if(this->m_func->GetWorkItem()->GetJITTimeInfo())
                 {
-                    const Js::FunctionCodeGenJitTimeData *inlinerData = this->m_func->m_jitTimeData;
-                    if(!this->IsLoopBody() && inlinerData->inlineesBv && (!inlinerData->inlineesBv->Test(profileId)
+                    const FunctionJITTimeInfo *inlinerData = this->m_func->GetWorkItem()->GetJITTimeInfo();
+                    if(!this->IsLoopBody() && inlinerData->GetInlineesBV() && (!inlinerData->GetInlineesBV()->Test(profileId)
 #if DBG
                         || (PHASE_STRESS(Js::BailOnNoProfilePhase, this->m_func->GetTopFunc()) &&
                             (CONFIG_FLAG(SkipFuncCountForBailOnNoProfile) < 0 ||

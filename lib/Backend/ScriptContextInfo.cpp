@@ -212,3 +212,17 @@ ScriptContextInfo::IsJITActive()
 {
     return m_activeJITCount != 0;
 }
+
+// TODO: OOP JIT, populate the map
+JITDOMFastPathHelperMap*
+ScriptContextInfo::EnsureDOMFastPathHelperMap()
+{
+    // TODO: OOP JIT, critical section?
+    if (m_domFastPathHelperMap == nullptr)
+    {
+        // initial capacity set to 17; unlikely to grow much bigger
+        m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
+    }
+
+    return m_domFastPathHelperMap;
+}

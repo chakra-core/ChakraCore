@@ -3531,6 +3531,184 @@ namespace Js
         }
     }
 
+    // TODO: OOP JIT, can we avoid this (e.g. with macro list)?
+    BuiltinFunction JavascriptLibrary::GetBuiltinFunctionForFuncId(uint localFuncId)
+    {
+        switch (localFuncId)
+        {
+        case JavascriptBuiltInFunction::Math_Abs:
+            return BuiltinFunction::Math_Abs;
+
+        case JavascriptBuiltInFunction::Math_Acos:
+            return BuiltinFunction::Math_Acos;
+
+        case JavascriptBuiltInFunction::Math_Asin:
+            return BuiltinFunction::Math_Asin;
+
+        case JavascriptBuiltInFunction::Math_Atan:
+            return BuiltinFunction::Math_Atan;
+
+        case JavascriptBuiltInFunction::Math_Cos:
+            return BuiltinFunction::Math_Cos;
+
+        case JavascriptBuiltInFunction::Math_Exp:
+            return BuiltinFunction::Math_Exp;
+
+        case JavascriptBuiltInFunction::Math_Log:
+            return BuiltinFunction::Math_Log;
+
+        case JavascriptBuiltInFunction::Math_Pow:
+            return BuiltinFunction::Math_Pow;
+
+        case JavascriptBuiltInFunction::Math_Random:
+            return BuiltinFunction::Math_Random;
+
+        case JavascriptBuiltInFunction::Math_Sin:
+            return BuiltinFunction::Math_Sin;
+
+        case JavascriptBuiltInFunction::Math_Sqrt:
+            return BuiltinFunction::Math_Sqrt;
+
+        case JavascriptBuiltInFunction::Math_Tan:
+            return BuiltinFunction::Math_Tan;
+
+        case JavascriptBuiltInFunction::Math_Floor:
+            return BuiltinFunction::Math_Floor;
+
+        case JavascriptBuiltInFunction::Math_Ceil:
+            return BuiltinFunction::Math_Ceil;
+
+        case JavascriptBuiltInFunction::Math_Round:
+            return BuiltinFunction::Math_Round;
+
+        case JavascriptBuiltInFunction::Math_Max:
+            return BuiltinFunction::Math_Max;
+
+        case JavascriptBuiltInFunction::Math_Min:
+            return BuiltinFunction::Math_Min;
+
+        case JavascriptBuiltInFunction::Math_Imul:
+            return BuiltinFunction::Math_Imul;
+
+        case JavascriptBuiltInFunction::Math_Fround:
+            return BuiltinFunction::Math_Fround;
+
+        case JavascriptBuiltInFunction::JavascriptString_CodePointAt:
+            return BuiltinFunction::String_CodePointAt;
+
+        case JavascriptBuiltInFunction::JavascriptArray_Push:
+            return BuiltinFunction::Array_Push;
+
+        case JavascriptBuiltInFunction::JavascriptArray_Concat:
+            return BuiltinFunction::Array_Concat;
+
+        case JavascriptBuiltInFunction::JavascriptArray_IndexOf:
+            return BuiltinFunction::Array_IndexOf;
+
+        case JavascriptBuiltInFunction::JavascriptArray_Includes:
+            return BuiltinFunction::Array_Includes;
+
+        case JavascriptBuiltInFunction::JavascriptArray_IsArray:
+            return BuiltinFunction::Array_IsArray;
+
+        case JavascriptBuiltInFunction::JavascriptArray_Join:
+            return BuiltinFunction::Array_Join;
+
+        case JavascriptBuiltInFunction::JavascriptArray_LastIndexOf:
+            return BuiltinFunction::Array_LastIndexOf;
+
+        case JavascriptBuiltInFunction::JavascriptArray_Reverse:
+            return BuiltinFunction::Array_Reverse;
+
+        case JavascriptBuiltInFunction::JavascriptArray_Shift:
+            return BuiltinFunction::Array_Shift;
+
+        case JavascriptBuiltInFunction::JavascriptArray_Slice:
+            return BuiltinFunction::Array_Slice;
+
+        case JavascriptBuiltInFunction::JavascriptArray_Splice:
+            return BuiltinFunction::Array_Splice;
+
+        case JavascriptBuiltInFunction::JavascriptArray_Unshift:
+            return BuiltinFunction::Array_Unshift;
+
+        case JavascriptBuiltInFunction::JavascriptFunction_Apply:
+            return BuiltinFunction::Function_Apply;
+
+        case JavascriptBuiltInFunction::JavascriptString_CharAt:
+            return BuiltinFunction::String_CharAt;
+
+        case JavascriptBuiltInFunction::JavascriptString_CharCodeAt:
+            return BuiltinFunction::String_CharCodeAt;
+
+        case JavascriptBuiltInFunction::JavascriptString_FromCharCode:
+            return BuiltinFunction::String_FromCharCode;
+
+        case JavascriptBuiltInFunction::JavascriptString_FromCodePoint:
+            return BuiltinFunction::String_FromCodePoint;
+
+        case JavascriptBuiltInFunction::JavascriptString_Link:
+            return BuiltinFunction::String_Link;
+
+        case JavascriptBuiltInFunction::JavascriptString_LocaleCompare:
+            return BuiltinFunction::String_LocaleCompare;
+
+        case JavascriptBuiltInFunction::JavascriptString_Match:
+            return BuiltinFunction::String_Match;
+
+        case JavascriptBuiltInFunction::JavascriptString_Replace:
+            return BuiltinFunction::String_Replace;
+
+        case JavascriptBuiltInFunction::JavascriptString_Search:
+            return BuiltinFunction::String_Search;
+
+        case JavascriptBuiltInFunction::JavascriptRegExp_SymbolSearch:
+            return BuiltinFunction::RegExp_SymbolSearch;
+
+        case JavascriptBuiltInFunction::JavascriptString_Split:
+            return BuiltinFunction::String_Split;
+
+        case JavascriptBuiltInFunction::JavascriptString_Substr:
+            return BuiltinFunction::String_Substr;
+
+        case JavascriptBuiltInFunction::JavascriptString_Substring:
+            return BuiltinFunction::String_Substring;
+
+        case JavascriptBuiltInFunction::JavascriptString_ToLocaleLowerCase:
+            return BuiltinFunction::String_ToLocaleLowerCase;
+
+        case JavascriptBuiltInFunction::JavascriptString_ToLocaleUpperCase:
+            return BuiltinFunction::String_ToLocaleUpperCase;
+
+        case JavascriptBuiltInFunction::JavascriptString_ToLowerCase:
+            return BuiltinFunction::String_ToLowerCase;
+
+        case JavascriptBuiltInFunction::JavascriptString_ToUpperCase:
+            return BuiltinFunction::String_ToUpperCase;
+
+        case JavascriptBuiltInFunction::JavascriptString_Trim:
+            return BuiltinFunction::String_Trim;
+
+        case JavascriptBuiltInFunction::JavascriptString_TrimLeft:
+            return BuiltinFunction::String_TrimLeft;
+
+        case JavascriptBuiltInFunction::JavascriptString_TrimRight:
+            return BuiltinFunction::String_TrimRight;
+
+        case JavascriptBuiltInFunction::JavascriptString_PadStart:
+            return BuiltinFunction::String_PadStart;
+
+        case JavascriptBuiltInFunction::JavascriptString_PadEnd:
+            return BuiltinFunction::String_PadEnd;
+
+        case JavascriptBuiltInFunction::JavascriptRegExp_Exec:
+            return BuiltinFunction::RegExp_Exec;
+
+        default:
+            return BuiltinFunction::None;
+        }
+    }
+
     // Returns built-in enum value for given funcInfo. Ultimately this will work for all built-ins (not only Math.*).
     // Used by inliner.
     //static

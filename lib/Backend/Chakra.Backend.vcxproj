@@ -236,6 +236,8 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="AsmJsJITInfo.h" />
+    <ClInclude Include="FunctionJITRuntimeInfo.h" />
+    <ClInclude Include="FunctionJITTimeInfo.h" />
     <ClInclude Include="IRBaseTypeList.h" />
     <ClInclude Include="IRBuilderAsmJs.h" />
     <ClInclude Include="BackEndOpcodeAttrAsmJs.h" />
@@ -433,6 +435,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AsmJsJITInfo.cpp" />
+    <ClCompile Include="FunctionJITRuntimeInfo.cpp" />
+    <ClCompile Include="FunctionJITTimeInfo.cpp" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -108,7 +108,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
         {
             // Constants
             Assert(constantIndex < constantCount);
-            this->record->constants[constantIndex] = value.constValue.ToVar(func, func->GetJnFunction()->GetScriptContext());
+            this->record->constants[constantIndex] = value.constValue.ToVar(func, func->GetScriptContext());
             this->record->argOffsets[i] = constantIndex;
             constantIndex++;
         }
@@ -130,7 +130,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
     else
     {
         Assert(constantIndex < constantCount);
-        this->record->constants[constantIndex] = function.constValue.ToVar(func, func->GetJnFunction()->GetScriptContext());
+        this->record->constants[constantIndex] = function.constValue.ToVar(func, func->GetScriptContext());
         this->record->functionOffset = constantIndex;
     }
 }

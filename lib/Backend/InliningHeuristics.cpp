@@ -64,7 +64,7 @@ void InliningThreshold::SetHeuristics()
 }
 
 // Called from background thread to commit inlining.
-bool InliningHeuristics::BackendInlineIntoInliner(Func * inlinee,
+bool InliningHeuristics::BackendInlineIntoInliner(const FunctionJITTimeInfo * inlinee,
                                 Func * inliner,
                                 Func *topFunction,
                                 Js::ProfileId callSiteId,
@@ -97,16 +97,17 @@ bool InliningHeuristics::BackendInlineIntoInliner(Func * inlinee,
     wchar_t debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
-    bool doBackEndAggressiveInline = (constantArguments & inlinee->GetArgUsedForBranch()) != 0;
+    // TODO: OOP JIT, somehow need to track across functions
+    bool doBackEndAggressiveInline = (constantArguments & inlinee->GetBody()->GetArgUsedForBranch()) != 0;
 
     if (!PHASE_OFF(Js::InlineRecursivePhase, inliner)
-        && inlinee->GetJITFunctionBody()->GetAddr() == inliner->GetJITFunctionBody()->GetAddr()
-        && (!inlinee->GetJITFunctionBody()->CanInlineRecursively(recursiveInlineDepth, doBackEndAggressiveInline)))
+        && inlinee->GetBody()->GetAddr() == inliner->GetJITFunctionBody()->GetAddr()
+        && (!inlinee->GetBody()->CanInlineRecursively(recursiveInlineDepth, doBackEndAggressiveInline)))
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline (backend): Recursive inlining\tInlinee: %s (#%s)\tCaller: %s (#%s) \tRoot: %s (#%s) Depth: %d\n",
-            inlinee->GetJITFunctionBody()->GetDisplayName(), inlinee->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-            inliner->GetJITFunctionBody()->GetDisplayName(), inliner->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
-            topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3),
+            inlinee->GetBody()->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
+            inliner->GetJITFunctionBody()->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2),
+            topFunc->GetBody()->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3),
             recursiveInlineDepth);
         return false;
     }
@@ -131,14 +132,14 @@ bool InliningHeuristics::BackendInlineIntoInliner(Func * inlinee,
 
     const JITTimeProfileInfo *dynamicProfile = inliner->GetProfileInfo();
 
-    bool doConstantArgumentInlining = (dynamicProfile->GetConstantArgInfo(callSiteId) & inlinee->GetArgUsedForBranch()) != 0;
-    if (doConstantArgumentInlining && inlinee->GetJITFunctionBody()->GetNonLoadByteCodeCount() <  (uint)threshold.constantArgumentInlineThreshold)
+    bool doConstantArgumentInlining = (dynamicProfile && dynamicProfile->GetConstantArgInfo(callSiteId) & inlinee->GetBody()->GetArgUsedForBranch()) != 0;
+    if (doConstantArgumentInlining && inlinee->GetBody()->GetNonLoadByteCodeCount() <  (uint)threshold.constantArgumentInlineThreshold)
     {
         return true;
     }
 
 
-    if (topFunction->m_jitTimeData->GetIsAggressiveInliningEnabled())
+    if (topFunction->GetWorkItem()->GetJITTimeInfo()->IsAggressiveInliningEnabled())
     {
         return true;
     }
@@ -154,12 +155,12 @@ bool InliningHeuristics::BackendInlineIntoInliner(Func * inlinee,
         return true;
     }
 
-    if (isCallInsideLoop && inlinee->GetJITFunctionBody()->HasLoops() )                            // Don't inline function with loops inside another loop unless it is a leaf
+    if (isCallInsideLoop && inlinee->GetBody()->HasLoops() )                            // Don't inline function with loops inside another loop unless it is a leaf
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline (backend): Recursive loop inlining\tInlinee: %s (#%s)\tCaller: %s (#%s) \tRoot: %s (#%s)\n",
-            inlinee->GetJITFunctionBody()->GetDisplayName(), inlinee->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-            inliner->GetJITFunctionBody()->GetDisplayName(), inliner->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
-            topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3));
+            inlinee->GetBody()->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
+            inliner->GetJITFunctionBody()->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2),
+            topFunc->GetBody()->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3));
         return false;
     }
     byte scale = 1;
@@ -171,15 +172,15 @@ bool InliningHeuristics::BackendInlineIntoInliner(Func * inlinee,
 
     if (isCallOutsideLoopInTopFunc &&
         (threshold.outsideLoopInlineThreshold < 0 ||
-        inlinee->GetJITFunctionBody()->GetNonLoadByteCodeCount() > (uint)threshold.outsideLoopInlineThreshold * scale))
+        inlinee->GetBody()->GetNonLoadByteCodeCount() > (uint)threshold.outsideLoopInlineThreshold * scale))
     {
         Assert(!isCallInsideLoop);
         INLINE_TESTTRACE(L"INLINING: Skip Inline (backend): Inlining outside loop doesn't meet OutsideLoopInlineThreshold: %d \tBytecode size: %d\tInlinee: %s (#%s)\tCaller: %s (#%s) \tRoot: %s (#%s)\n",
             threshold.outsideLoopInlineThreshold,
-            inlinee->GetJITFunctionBody()->GetByteCodeCount(),
-            inlinee->GetJITFunctionBody()->GetDisplayName(), inlinee->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
-            inliner->GetJITFunctionBody()->GetDisplayName(), inliner->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
-            topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3));
+            inlinee->GetBody()->GetByteCodeCount(),
+            inlinee->GetBody()->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
+            inliner->GetJITFunctionBody()->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2),
+            topFunc->GetBody()->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3));
         return false;
     }
     return true;

@@ -10,8 +10,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ThreadContextInfo * threadContextInfo,
     ScriptContextInfo * scriptContextInfo,
     JITOutputData * outputData,
-    const Js::FunctionCodeGenJitTimeData *const jitTimeData,
-    const Js::FunctionCodeGenRuntimeData *const runtimeData,
+    const FunctionJITRuntimeInfo *const runtimeInfo,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
     CodeGenNumberAllocator * numberAllocator,
     Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc,
@@ -19,11 +18,10 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     Js::ProfileId callSiteIdInParentFunc, bool isGetterSetter) :
     m_alloc(alloc),
     m_workItem(workItem),
-    m_jitTimeData(jitTimeData),
     m_output(outputData),
     m_threadContextInfo(threadContextInfo),
     m_scriptContextInfo(scriptContextInfo),
-    m_runtimeData(runtimeData),
+    m_runtimeInfo(runtimeInfo),
     m_polymorphicInlineCacheInfo(polymorphicInlineCacheInfo),
     m_codeGenAllocators(codeGenAllocators),
     m_inlineeId(0),
@@ -130,7 +128,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , frameDisplayCheckTable(nullptr)
 {
 
-    Assert(this->IsInlined() == !!runtimeData);
+    Assert(this->IsInlined() == !!runtimeInfo);
 
     if (this->IsInlined())
     {
@@ -267,7 +265,7 @@ Func::Codegen()
 
         BEGIN_CODEGEN_PHASE(this, Js::InlinePhase);
 
-        InliningHeuristics heuristics(GetJITFunctionBody());
+        InliningHeuristics heuristics(GetWorkItem()->GetJITTimeInfo());
         Inline inliner(this, heuristics);
         inliner.Optimize();
 
@@ -1114,27 +1112,23 @@ Func::GetArgUsedForBranch() const
     return GetJITFunctionBody()->GetArgUsedForBranch() | GetJITOutput()->GetArgUsedForBranch();
 }
 
-RecyclerWeakReference<Js::FunctionBody> *
+intptr_t
 Func::GetWeakFuncRef() const
 {
-    if (this->m_jitTimeData == nullptr)
-    {
-        return nullptr;
-    }
+    // TODO: OOP JIT figure out if this can be null
 
-    return this->m_jitTimeData->GetWeakFuncRef();
+    return m_workItem->GetJITTimeInfo()->GetWeakFuncRef();
 }
 
 intptr_t
 Func::GetRuntimeInlineCache(const uint index) const
 {
-    if(this->m_runtimeData)
+    if(m_runtimeInfo != nullptr && m_runtimeInfo->HasClonedInlineCaches())
     {
-        // TODO: michhol OOP JIT, implement this
-        const auto inlineCache = this->m_runtimeData->ClonedInlineCaches()->GetInlineCache(this->m_jnFunction, index);
+        intptr_t inlineCache = m_runtimeInfo->GetClonedInlineCache(index);
         if(inlineCache)
         {
-            return (intptr_t)inlineCache;
+            return inlineCache;
         }
     }
 
@@ -1166,27 +1160,33 @@ Func::GetPolyCacheUtil(const uint index) const
 Js::ObjTypeSpecFldInfo*
 Func::GetObjTypeSpecFldInfo(const uint index) const
 {
-    if (this->m_jitTimeData == nullptr)
+    if (GetJITFunctionBody()->GetInlineCacheCount() == 0)
     {
+        Assert(UNREACHED);
         return nullptr;
     }
-    Assert(this->m_jitTimeData->GetObjTypeSpecFldInfoArray());
-
-    return this->m_jitTimeData->GetObjTypeSpecFldInfoArray()->GetInfo(this->m_jnFunction, index);
+    return GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(index);
 }
 
 Js::ObjTypeSpecFldInfo*
 Func::GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const
 {
+    Assert(UNREACHED); // TODO: OOP JIT
+#if 0
     Assert(this->m_jitTimeData != nullptr);
     return this->m_jitTimeData->GetGlobalObjTypeSpecFldInfo(propertyInfoId);
+#endif
+    return nullptr;
 }
 
 void
 Func::SetGlobalObjTypeSpecFldInfo(uint propertyInfoId, Js::ObjTypeSpecFldInfo* info)
 {
+    Assert(UNREACHED); // TODO: OOP JIT
+#if 0
     Assert(this->m_jitTimeData != nullptr);
     this->m_jitTimeData->SetGlobalObjTypeSpecFldInfo(propertyInfoId, info);
+#endif
 }
 
 void
@@ -1511,7 +1511,7 @@ Func::DumpFullFunctionName()
 {
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-    Output::Print(L"Function %s (%s)", GetJITFunctionBody()->GetDisplayName(), GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+    Output::Print(L"Function %s (%s)", GetJITFunctionBody()->GetDisplayName(), GetDebugNumberSet(debugStringBuffer));
 }
 #endif
 

@@ -46,6 +46,12 @@ JITOutput::SetArgUsedForBranch(uint8 param)
     m_outputData->writeableBodyData.argUsedForBranch |= (1 << (param - 1));
 }
 
+void
+JITOutput::SetFrameHeight(uint val)
+{
+    m_outputData->writeableEPData.frameHeight = val;
+}
+
 uint16
 JITOutput::GetArgUsedForBranch() const
 {

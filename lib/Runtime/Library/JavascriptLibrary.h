@@ -931,6 +931,7 @@ namespace Js
         JavascriptFunction** GetBuiltinFunctions();
         INT_PTR* GetVTableAddresses();
         static BuiltinFunction GetBuiltinFunctionForPropId(PropertyId id);
+        static BuiltinFunction GetBuiltinFunctionForFuncId(uint funcId);
         static BuiltinFunction GetBuiltInForFuncInfo(FunctionInfo* funcInfo, ScriptContext *scriptContext);
 #if DBG
         static void CheckRegisteredBuiltIns(JavascriptFunction** builtInFuncs, ScriptContext *scriptContext)

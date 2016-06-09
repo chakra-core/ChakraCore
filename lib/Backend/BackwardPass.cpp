@@ -190,7 +190,7 @@ BackwardPass::DoTrackCompoundedIntOverflow() const
     return
         !PHASE_OFF(Js::TrackCompoundedIntOverflowPhase, func) &&
         DoTrackIntOverflow() &&
-        !func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled();
+        (!func->HasProfileInfo() || !func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
 }
 
 bool
@@ -604,7 +604,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 
             PHASE_PRINT_TRACE(Js::ObjTypeSpecStorePhase, this->func,
                               L"ObjTypeSpecStore: func %s, edge %d => %d: ",
-                              this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                              this->func->GetDebugNumberSet(debugStringBuffer),
                               block->GetBlockNum(), blockSucc->GetBlockNum());
 
             auto fixupFrom = [block, blockSucc, this](Bucket<AddPropertyCacheBucket> &bucket)
@@ -706,9 +706,9 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                     wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(L"ObjTypeSpec: top function %s (%s), function %s (%s), write guard symbols on edge %d => %d: ",
                         this->func->GetTopFunc()->GetJITFunctionBody()->GetDisplayName(),
-                        this->func->GetTopFunc()->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetTopFunc()->GetDebugNumberSet(debugStringBuffer),
                         this->func->GetJITFunctionBody()->GetDisplayName(),
-                        this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2), block->GetBlockNum(),
+                        this->func->GetDebugNumberSet(debugStringBuffer2), block->GetBlockNum(),
                         blockSucc->GetBlockNum());
                 }
 #endif
@@ -755,9 +755,9 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                     wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(L"ObjTypeSpec: top function %s (%s), function %s (%s), guarded property operations on edge %d => %d: \n",
                         this->func->GetTopFunc()->GetJITFunctionBody()->GetDisplayName(),
-                        this->func->GetTopFunc()->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetTopFunc()->GetDebugNumberSet(debugStringBuffer),
                         this->func->GetJITFunctionBody()->GetDisplayName(),
-                        this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2),
+                        this->func->GetDebugNumberSet(debugStringBuffer2),
                         block->GetBlockNum(), blockSucc->GetBlockNum());
                 }
 #endif
@@ -852,7 +852,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::ObjTypeSpecStorePhase, this->func))
         {
             Output::Print(L"ObjTypeSpecStore: func %s, block %d: ",
-                          this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                          this->func->GetDebugNumberSet(debugStringBuffer),
                           block->GetBlockNum());
             if (stackSymToFinalType)
             {
@@ -867,7 +867,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::TraceObjTypeSpecTypeGuardsPhase, this->func))
         {
             Output::Print(L"ObjTypeSpec: func %s, block %d, guarded properties:\n",
-                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
+                this->func->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
             if (stackSymToGuardedProperties)
             {
                 stackSymToGuardedProperties->Dump();
@@ -882,7 +882,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
         {
             Output::Print(L"ObjTypeSpec: func %s, block %d, write guards: ",
-                this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
+                this->func->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
             if (stackSymToWriteGuardsMap)
             {
                 Output::Print(L"\n");
@@ -3974,7 +3974,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                     Js::ScriptContext* scriptContext = this->func->GetScriptContext();
 
                     Output::Print(L"EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) on operation %u \n",
-                        this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer),
                         scriptContext->GetPropertyNameLocked(opnd->GetPropertyId())->GetBuffer(), opnd->GetPropertyId(), opnd->GetObjTypeSpecFldId());
                     Output::Flush();
                 }
@@ -5745,7 +5745,7 @@ BackwardPass::EndIntOverflowDoesNotMatterRange()
             Output::Print(
                 L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n",
                 func->GetJITFunctionBody()->GetDisplayName(),
-                func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                func->GetDebugNumberSet(debugStringBuffer),
                 Js::PhaseNames[Js::BackwardPhase],
                 currentBlock->GetBlockNum());
             Output::Print(L"    Input syms to be int-specialized (lossless): ");

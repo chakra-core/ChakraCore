@@ -6,11 +6,9 @@
 #include "Backend.h"
 
 JITTimeFunctionBody::JITTimeFunctionBody(FunctionBodyJITData * bodyData) :
-    m_bodyData(bodyData),
-    m_asmJsInfo(bodyData->asmJsData),
-    m_profileInfo(bodyData->profileData)
+    m_bodyData(*bodyData)
 {
-    InitializeStatementMap();
+    CompileAssert(sizeof(JITTimeFunctionBody) == sizeof(FunctionBodyJITData));
 }
 
 /* static */
@@ -20,6 +18,8 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     __in Js::FunctionBody *functionBody,
     __out FunctionBodyJITData * jitBody)
 {
+    Assert(functionBody != nullptr);
+
     // bytecode
     jitBody->byteCodeLength = functionBody->GetByteCode()->GetLength();
     jitBody->byteCodeBuffer = functionBody->GetByteCode()->GetBuffer();
@@ -40,7 +40,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         else
         {
             jitBody->constTypeCount = functionBody->GetConstantCount();
-            jitBody->constTypeTable = RecyclerNewArray(recycler, int32, functionBody->GetConstantCount());
+            jitBody->constTypeTable = RecyclerNewArrayZ(recycler, int32, functionBody->GetConstantCount());
             for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
             {
                 Js::Var varConst = functionBody->GetConstantVar(reg);
@@ -59,13 +59,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
             }
         }
     }
-    else
-    {
-        jitBody->constTypeCount = 0;
-        jitBody->constTypeTable = nullptr;
-        jitBody->constTable = nullptr;
-    }
-
     // statement map
     Js::SmallSpanSequence * statementMap = functionBody->GetStatementMapSpanSequence();
 
@@ -76,21 +69,11 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->statementMap.actualOffsetLength = statementMap->pActualOffsetList->GetLength();
         jitBody->statementMap.actualOffsetList = statementMap->pActualOffsetList->GetBuffer();
     }
-    else
-    {
-        jitBody->statementMap.actualOffsetLength = 0;
-        jitBody->statementMap.actualOffsetList = nullptr;
-    }
 
     if (statementMap->pStatementBuffer)
     {
         jitBody->statementMap.statementLength = statementMap->pStatementBuffer->GetLength();
         jitBody->statementMap.statementBuffer = statementMap->pStatementBuffer->GetBuffer();
-    }
-    else
-    {
-        jitBody->statementMap.statementLength = 0;
-        jitBody->statementMap.statementBuffer = nullptr;
     }
 
     jitBody->inlineCacheCount = functionBody->GetInlineCacheCount();
@@ -99,26 +82,16 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->cacheIdToPropertyIdMap = functionBody->GetCacheIdToPropertyIdMap();
         jitBody->inlineCaches = reinterpret_cast<intptr_t*>(functionBody->GetInlineCaches());
     }
-    else
-    {
-        jitBody->inlineCaches = nullptr;
-        jitBody->cacheIdToPropertyIdMap = nullptr;
-    }
 
     // body data
     jitBody->functionBodyAddr = (intptr_t)functionBody;
 
     jitBody->funcNumber = functionBody->GetFunctionNumber();
-    jitBody->localFuncId = functionBody->GetLocalFunctionId();
     jitBody->sourceContextId = functionBody->GetSourceContextId();
     jitBody->nestedCount = functionBody->GetNestedCount();
     if (functionBody->GetNestedCount() > 0)
     {
         jitBody->nestedFuncArrayAddr = (intptr_t)functionBody->GetNestedFuncArray();
-    }
-    else
-    {
-        jitBody->nestedFuncArrayAddr = 0;
     }
     jitBody->scopeSlotArraySize = functionBody->scopeSlotArraySize;
     jitBody->attributes = functionBody->GetAttributes();
@@ -147,12 +120,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
             jitBody->loopHeaders[i].isInTry = functionBody->GetLoopHeader(i)->isInTry;
             jitBody->loopHeaders[i].interpretCount = functionBody->GetLoopInterpretCount(functionBody->GetLoopHeader(i));
         }
-    }
-    else
-    {
-        jitBody->loopHeaderArrayAddr = 0;
-        jitBody->loopHeaderArrayLength = 0;
-        jitBody->loopHeaders = nullptr;
     }
 
     jitBody->localFrameDisplayReg = functionBody->GetLocalFrameDisplayReg();
@@ -233,90 +200,60 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->asmJsData->usesHeapBuffer = asmFuncInfo->UsesHeapBuffer();
         jitBody->asmJsData->totalSizeInBytes = asmFuncInfo->GetTotalSizeinBytes();
     }
-    else
-    {
-        jitBody->asmJsData = nullptr;
-    }
-
-    if (functionBody->GetCodeGenRuntimeData())
-    {
-        jitBody->runtimeDataCount = functionBody->GetProfiledCallSiteCount();
-        Assert(functionBody->GetProfiledCallSiteCount() > 0);
-        jitBody->profiledRuntimeData = RecyclerNewArrayZ(recycler, FunctionJITRuntimeData, jitBody->runtimeDataCount);
-        for (int i = 0; i < jitBody->runtimeDataCount; ++i)
-        {
-            if (functionBody->GetCodeGenRuntimeData()[i]->ClonedInlineCaches())
-            {
-                jitBody->profiledRuntimeData[i]->clonedCacheCount = functionBody->GetInlineCacheCount();
-                jitBody->profiledRuntimeData[i]->clonedInlineCaches = functionBody->GetCodeGenRuntimeData()[i]->ClonedInlineCaches()->inlineCaches;
-            }
-        }
-    }
-    else
-    {
-        jitBody->runtimeDataCount = 0;
-        jitBody->profiledRuntimeData = nullptr;
-    }
 }
 
 intptr_t
 JITTimeFunctionBody::GetAddr() const
 {
-    return m_bodyData->functionBodyAddr;
+    return m_bodyData.functionBodyAddr;
 }
 
 uint
 JITTimeFunctionBody::GetFunctionNumber() const
 {
-    return m_bodyData->funcNumber;
-}
-
-uint
-JITTimeFunctionBody::GetLocalFunctionId() const
-{
-    return m_bodyData->localFuncId;
+    return m_bodyData.funcNumber;
 }
 
 uint
 JITTimeFunctionBody::GetSourceContextId() const
 {
-    return m_bodyData->sourceContextId;
+    return m_bodyData.sourceContextId;
 }
 
 uint
 JITTimeFunctionBody::GetNestedCount() const
 {
-    return m_bodyData->nestedCount;
+    return m_bodyData.nestedCount;
 }
 
 uint
 JITTimeFunctionBody::GetScopeSlotArraySize() const
 {
-    return m_bodyData->scopeSlotArraySize;
+    return m_bodyData.scopeSlotArraySize;
 }
 
 uint
 JITTimeFunctionBody::GetByteCodeCount() const
 {
-    return m_bodyData->byteCodeCount;
+    return m_bodyData.byteCodeCount;
 }
 
 uint
 JITTimeFunctionBody::GetByteCodeInLoopCount() const
 {
-    return m_bodyData->byteCodeInLoopCount;
+    return m_bodyData.byteCodeInLoopCount;
 }
 
 uint
 JITTimeFunctionBody::GetNonLoadByteCodeCount() const
 {
-    return m_bodyData->nonLoadByteCodeCount;
+    return m_bodyData.nonLoadByteCodeCount;
 }
 
 uint
 JITTimeFunctionBody::GetLoopCount() const
 {
-    return m_bodyData->loopCount;
+    return m_bodyData.loopCount;
 }
 
 bool
@@ -328,67 +265,67 @@ JITTimeFunctionBody::HasLoops() const
 uint
 JITTimeFunctionBody::GetByteCodeLength() const
 {
-    return m_bodyData->byteCodeLength;
+    return m_bodyData.byteCodeLength;
 }
 
 uint
 JITTimeFunctionBody::GetInnerScopeCount() const
 {
-    return m_bodyData->innerScopeCount;
+    return m_bodyData.innerScopeCount;
 }
 
 uint
 JITTimeFunctionBody::GetInlineCacheCount() const
 {
-    return m_bodyData->inlineCacheCount;
+    return m_bodyData.inlineCacheCount;
 }
 
 uint
 JITTimeFunctionBody::GetRecursiveCallSiteCount() const
 {
-    return m_bodyData->recursiveCallSiteCount;
+    return m_bodyData.recursiveCallSiteCount;
 }
 
 Js::RegSlot
 JITTimeFunctionBody::GetLocalFrameDisplayReg() const
 {
-    return static_cast<Js::RegSlot>(m_bodyData->localFrameDisplayReg);
+    return static_cast<Js::RegSlot>(m_bodyData.localFrameDisplayReg);
 }
 
 Js::RegSlot
 JITTimeFunctionBody::GetLocalClosureReg() const
 {
-    return static_cast<Js::RegSlot>(m_bodyData->localClosureReg);
+    return static_cast<Js::RegSlot>(m_bodyData.localClosureReg);
 }
 
 Js::RegSlot
 JITTimeFunctionBody::GetEnvReg() const
 {
-    return static_cast<Js::RegSlot>(m_bodyData->envReg);
+    return static_cast<Js::RegSlot>(m_bodyData.envReg);
 }
 
 Js::RegSlot
 JITTimeFunctionBody::GetFirstTmpReg() const
 {
-    return static_cast<Js::RegSlot>(m_bodyData->firstTmpReg);
+    return static_cast<Js::RegSlot>(m_bodyData.firstTmpReg);
 }
 
 Js::RegSlot
 JITTimeFunctionBody::GetFirstInnerScopeReg() const
 {
-    return static_cast<Js::RegSlot>(m_bodyData->firstInnerScopeReg);
+    return static_cast<Js::RegSlot>(m_bodyData.firstInnerScopeReg);
 }
 
 Js::RegSlot
 JITTimeFunctionBody::GetVarCount() const
 {
-    return static_cast<Js::RegSlot>(m_bodyData->varCount);
+    return static_cast<Js::RegSlot>(m_bodyData.varCount);
 }
 
 Js::RegSlot
 JITTimeFunctionBody::GetConstCount() const
 {
-    return static_cast<Js::RegSlot>(m_bodyData->constCount);
+    return static_cast<Js::RegSlot>(m_bodyData.constCount);
 }
 
 Js::RegSlot
@@ -406,13 +343,13 @@ JITTimeFunctionBody::GetTempCount() const
 Js::RegSlot
 JITTimeFunctionBody::GetFuncExprScopeReg() const
 {
-    return static_cast<Js::RegSlot>(m_bodyData->funcExprScopeRegister);
+    return static_cast<Js::RegSlot>(m_bodyData.funcExprScopeRegister);
 }
 
 Js::RegSlot
 JITTimeFunctionBody::GetThisRegForEventHandler() const
 {
-    return static_cast<Js::RegSlot>(m_bodyData->thisRegisterForEventHandler);
+    return static_cast<Js::RegSlot>(m_bodyData.thisRegisterForEventHandler);
 }
 
 Js::RegSlot
@@ -450,9 +387,9 @@ JITTimeFunctionBody::GetRestParamRegSlot() const
 Js::PropertyId
 JITTimeFunctionBody::GetPropertyIdFromCacheId(uint cacheId) const
 {
-    Assert(m_bodyData->cacheIdToPropertyIdMap);
+    Assert(m_bodyData.cacheIdToPropertyIdMap);
     Assert(cacheId < GetInlineCacheCount());
-    return static_cast<Js::PropertyId>(m_bodyData->cacheIdToPropertyIdMap[cacheId]);
+    return static_cast<Js::PropertyId>(m_bodyData.cacheIdToPropertyIdMap[cacheId]);
 }
 
 Js::PropertyId
@@ -464,40 +401,40 @@ JITTimeFunctionBody::GetReferencedPropertyId(uint index) const
     }
     uint mapIndex = index - TotalNumberOfBuiltInProperties;
 
-    Assert(m_bodyData->referencedPropertyIdMap != nullptr);
-    Assert(mapIndex < m_bodyData->referencedPropertyIdCount);
+    Assert(m_bodyData.referencedPropertyIdMap != nullptr);
+    Assert(mapIndex < m_bodyData.referencedPropertyIdCount);
 
-    return m_bodyData->referencedPropertyIdMap[mapIndex];
+    return m_bodyData.referencedPropertyIdMap[mapIndex];
 }
 
 uint16
 JITTimeFunctionBody::GetArgUsedForBranch() const
 {
-    return m_bodyData->argUsedForBranch;
+    return m_bodyData.argUsedForBranch;
 }
 
 uint16
 JITTimeFunctionBody::GetEnvDepth() const
 {
-    return m_bodyData->envDepth;
+    return m_bodyData.envDepth;
 }
 
 uint16
 JITTimeFunctionBody::GetProfiledIterations() const
 {
-    return m_bodyData->profiledIterations;
+    return m_bodyData.profiledIterations;
 }
 
 Js::ProfileId
 JITTimeFunctionBody::GetProfiledCallSiteCount() const
 {
-    return static_cast<Js::ProfileId>(m_bodyData->profiledCallSiteCount);
+    return static_cast<Js::ProfileId>(m_bodyData.profiledCallSiteCount);
 }
 
 Js::ArgSlot
 JITTimeFunctionBody::GetInParamsCount() const
 {
-    return static_cast<Js::ArgSlot>(m_bodyData->inParamCount);
+    return static_cast<Js::ArgSlot>(m_bodyData.inParamCount);
 }
 
 bool
@@ -530,43 +467,43 @@ JITTimeFunctionBody::HasOrParentHasArguments() const
 bool
 JITTimeFunctionBody::DoBackendArgumentsOptimization() const
 {
-    return m_bodyData->doBackendArgumentsOptimization != FALSE;
+    return m_bodyData.doBackendArgumentsOptimization != FALSE;
 }
 
 bool
 JITTimeFunctionBody::IsLibraryCode() const
 {
-    return m_bodyData->isLibraryCode != FALSE;
+    return m_bodyData.isLibraryCode != FALSE;
 }
 
 bool
 JITTimeFunctionBody::IsAsmJsMode() const
 {
-    return m_bodyData->isAsmJsMode != FALSE;
+    return m_bodyData.isAsmJsMode != FALSE;
 }
 
 bool
 JITTimeFunctionBody::IsStrictMode() const
 {
-    return m_bodyData->isStrictMode != FALSE;
+    return m_bodyData.isStrictMode != FALSE;
 }
 
 bool
 JITTimeFunctionBody::IsEval() const
 {
-    return m_bodyData->isEval != FALSE;
+    return m_bodyData.isEval != FALSE;
 }
 
 bool
 JITTimeFunctionBody::HasScopeObject() const
 {
-    return m_bodyData->hasScopeObject != FALSE;
+    return m_bodyData.hasScopeObject != FALSE;
 }
 
 bool
 JITTimeFunctionBody::HasNestedLoop() const
 {
-    return m_bodyData->hasNestedLoop != FALSE;
+    return m_bodyData.hasNestedLoop != FALSE;
 }
 
 bool
@@ -578,19 +515,19 @@ JITTimeFunctionBody::IsGenerator() const
 bool
 JITTimeFunctionBody::HasImplicitArgIns() const
 {
-    return m_bodyData->hasImplicitArgIns != FALSE;
+    return m_bodyData.hasImplicitArgIns != FALSE;
 }
 
 bool
 JITTimeFunctionBody::HasCachedScopePropIds() const
 {
-    return m_bodyData->hasCachedScopePropIds != FALSE;
+    return m_bodyData.hasCachedScopePropIds != FALSE;
 }
 
 bool
 JITTimeFunctionBody::HasInlineCachesOnFunctionObject() const
 {
-    return m_bodyData->inlineCachesOnFunctionObject != FALSE;
+    return m_bodyData.inlineCachesOnFunctionObject != FALSE;
 }
 
 bool
@@ -598,7 +535,7 @@ JITTimeFunctionBody::DoInterruptProbe() const
 {
     // TODO michhol: this is technically a threadcontext flag,
     // may want to pass all these when initializing thread context
-    return m_bodyData->doInterruptProbe != FALSE;
+    return m_bodyData.doInterruptProbe != FALSE;
 }
 
 bool
@@ -610,7 +547,7 @@ JITTimeFunctionBody::HasRestParameter() const
 bool
 JITTimeFunctionBody::IsGlobalFunc() const
 {
-    return m_bodyData->isGlobalFunc != FALSE;
+    return m_bodyData.isGlobalFunc != FALSE;
 }
 
 bool
@@ -622,35 +559,19 @@ JITTimeFunctionBody::IsNonTempLocalVar(uint32 varIndex) const
 bool
 JITTimeFunctionBody::DoJITLoopBody() const
 {
-    return m_bodyData->doJITLoopBody != FALSE;
+    return m_bodyData.doJITLoopBody != FALSE;
 }
 
 bool
 JITTimeFunctionBody::IsInlineSpreadDisabled() const
 {
-    return m_bodyData->disableInlineSpread != FALSE;
+    return m_bodyData.disableInlineSpread != FALSE;
 }
 
 bool
 JITTimeFunctionBody::HasNonBuiltInCallee() const
 {
-    return m_bodyData->hasNonBuiltInCallee != FALSE;
-}
-
-bool
-JITTimeFunctionBody::ForceJITLoopBody() const
-{
-    return
-        !PHASE_OFF(Js::JITLoopBodyPhase, this) &&
-        !PHASE_OFF(Js::FullJitPhase, this) &&
-        !this->IsGenerator() &&
-        !this->HasTry() &&
-        (
-            PHASE_FORCE(Js::JITLoopBodyPhase, this)
-#ifdef ENABLE_PREJIT
-            || Js::Configuration::Global.flags.Prejit
-#endif
-        );
+    return m_bodyData.hasNonBuiltInCallee != FALSE;
 }
 
 bool
@@ -686,116 +607,110 @@ JITTimeFunctionBody::CanInlineRecursively(uint depth, bool tryAggressive) const
 const byte *
 JITTimeFunctionBody::GetByteCodeBuffer() const
 {
-    return m_bodyData->byteCodeBuffer;
-}
-
-Js::SmallSpanSequence *
-JITTimeFunctionBody::GetStatementMapSpanSequence()
-{
-    return &m_statementMap;
+    return m_bodyData.byteCodeBuffer;
 }
 
 intptr_t
 JITTimeFunctionBody::GetScriptIdAddr() const
 {
-    return m_bodyData->scriptIdAddr;
+    return m_bodyData.scriptIdAddr;
 }
 
 intptr_t
 JITTimeFunctionBody::GetProbeCountAddr() const
 {
-    return m_bodyData->probeCountAddr;
+    return m_bodyData.probeCountAddr;
 }
 
 intptr_t
 JITTimeFunctionBody::GetFlagsAddr() const
 {
-    return m_bodyData->flagsAddr;
+    return m_bodyData.flagsAddr;
 }
 
 intptr_t
 JITTimeFunctionBody::GetRegAllocLoadCountAddr() const
 {
-    return m_bodyData->regAllocLoadCountAddr;
+    return m_bodyData.regAllocLoadCountAddr;
 }
 
 intptr_t
 JITTimeFunctionBody::GetRegAllocStoreCountAddr() const
 {
-    return m_bodyData->regAllocStoreCountAddr;
+    return m_bodyData.regAllocStoreCountAddr;
 }
 
 intptr_t
 JITTimeFunctionBody::GetCallCountStatsAddr() const
 {
-    return m_bodyData->callCountStatsAddr;
+    return m_bodyData.callCountStatsAddr;
 }
 
 intptr_t
 JITTimeFunctionBody::GetConstantVar(Js::RegSlot location) const
 {
-    Assert(m_bodyData->constTable != nullptr);
+    Assert(m_bodyData.constTable != nullptr);
     Assert(location < GetConstCount());
     Assert(location != 0);
 
-    return static_cast<intptr_t>(m_bodyData->constTable[location - Js::FunctionBody::FirstRegSlot]);
+    return static_cast<intptr_t>(m_bodyData.constTable[location - Js::FunctionBody::FirstRegSlot]);
 }
 
 intptr_t
 JITTimeFunctionBody::GetInlineCache(uint index) const
 {
-    Assert(m_bodyData->inlineCaches != nullptr);
+    Assert(m_bodyData.inlineCaches != nullptr);
     Assert(index < GetInlineCacheCount());
 #if 0 // TODO: michhol OOP JIT, add these asserts
     Assert(this->m_inlineCacheTypes[index] == InlineCacheTypeNone ||
         this->m_inlineCacheTypes[index] == InlineCacheTypeInlineCache);
     this->m_inlineCacheTypes[index] = InlineCacheTypeInlineCache;
 #endif
-    return static_cast<intptr_t>(m_bodyData->inlineCaches[index]);
+    return static_cast<intptr_t>(m_bodyData.inlineCaches[index]);
 }
 
 intptr_t
 JITTimeFunctionBody::GetIsInstInlineCache(uint index) const
 {
-    Assert(m_bodyData->inlineCaches != nullptr);
-    Assert(index < m_bodyData->isInstInlineCacheCount);
+    Assert(m_bodyData.inlineCaches != nullptr);
+    Assert(index < m_bodyData.isInstInlineCacheCount);
     index += GetInlineCacheCount();
 #if 0 // TODO: michhol OOP JIT, add these asserts
     Assert(this->m_inlineCacheTypes[index] == InlineCacheTypeNone ||
         this->m_inlineCacheTypes[index] == InlineCacheTypeIsInst);
     this->m_inlineCacheTypes[index] = InlineCacheTypeIsInst;
 #endif
-    return static_cast<intptr_t>(m_bodyData->inlineCaches[index]);
+    return static_cast<intptr_t>(m_bodyData.inlineCaches[index]);
 }
 
 Js::TypeId
 JITTimeFunctionBody::GetConstantType(Js::RegSlot location) const
 {
-    Assert(m_bodyData->constTable != nullptr);
+    Assert(m_bodyData.constTable != nullptr);
     Assert(location < GetConstCount());
     Assert(location != 0);
 
-    return static_cast<Js::TypeId>(m_bodyData->constTypeTable[location - Js::FunctionBody::FirstRegSlot]);
+    return static_cast<Js::TypeId>(m_bodyData.constTypeTable[location - Js::FunctionBody::FirstRegSlot]);
 }
 
 void *
 JITTimeFunctionBody::GetConstTable() const
 {
-    return m_bodyData->constTable;
+    return m_bodyData.constTable;
 }
 
 intptr_t
 JITTimeFunctionBody::GetRootObject() const
 {
-    Assert(m_bodyData->constTable != nullptr);
-    return m_bodyData->constTable[Js::FunctionBody::RootObjectRegSlot - Js::FunctionBody::FirstRegSlot];
+    Assert(m_bodyData.constTable != nullptr);
+    return m_bodyData.constTable[Js::FunctionBody::RootObjectRegSlot - Js::FunctionBody::FirstRegSlot];
 }
 
 intptr_t
 JITTimeFunctionBody::GetNestedFuncRef(uint index) const
 {
     Assert(index < GetNestedCount());
-    intptr_t baseAddr = m_bodyData->nestedFuncArrayAddr;
+    intptr_t baseAddr = m_bodyData.nestedFuncArrayAddr;
     return baseAddr + (index * sizeof(void*));
 }
 
@@ -803,7 +718,7 @@ intptr_t
 JITTimeFunctionBody::GetLoopHeaderAddr(uint loopNum) const
 {
     Assert(loopNum < GetLoopCount());
-    intptr_t baseAddr = m_bodyData->loopHeaderArrayAddr;
+    intptr_t baseAddr = m_bodyData.loopHeaderArrayAddr;
     return baseAddr + (loopNum * sizeof(Js::LoopHeader));
 }
 
@@ -811,20 +726,25 @@ const JITLoopHeader *
 JITTimeFunctionBody::GetLoopHeaderData(uint loopNum) const
 {
     Assert(loopNum < GetLoopCount());
-    return &m_bodyData->loopHeaders[loopNum];
+    return &m_bodyData.loopHeaders[loopNum];
 }
 
 const AsmJsJITInfo *
 JITTimeFunctionBody::GetAsmJsInfo() const
 {
-    return &m_asmJsInfo;
+    return reinterpret_cast<const AsmJsJITInfo *>(m_bodyData.asmJsData);
 }
-
 
 const JITTimeProfileInfo *
 JITTimeFunctionBody::GetProfileInfo() const
 {
-    return &m_profileInfo;
+    return reinterpret_cast<const JITTimeProfileInfo *>(m_bodyData.profileData);
+}
+
+bool
+JITTimeFunctionBody::HasProfileInfo() const
+{
+    return m_bodyData.profileData != nullptr;
 }
 
 /* static */
@@ -837,43 +757,61 @@ JITTimeFunctionBody::LoopContains(const JITLoopHeader * loop1, const JITLoopHead
 Js::FunctionBody::FunctionBodyFlags
 JITTimeFunctionBody::GetFlags() const
 {
-    return static_cast<Js::FunctionBody::FunctionBodyFlags>(m_bodyData->flags);
+    return static_cast<Js::FunctionBody::FunctionBodyFlags>(m_bodyData.flags);
 }
 
 Js::FunctionInfo::Attributes
 JITTimeFunctionBody::GetAttributes() const
 {
-    return static_cast<Js::FunctionInfo::Attributes>(m_bodyData->attributes);
+    return static_cast<Js::FunctionInfo::Attributes>(m_bodyData.attributes);
+}
+
+const FunctionJITRuntimeInfo *
+JITTimeFunctionBody::GetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId) const
+{
+    Assert(profiledCallSiteId < GetProfiledCallSiteCount());
+
+    const FunctionJITRuntimeInfo* data = reinterpret_cast<const FunctionJITRuntimeInfo*>(m_bodyData.profiledRuntimeData);
+    return data != nullptr ? &data[profiledCallSiteId] : nullptr;
+}
+
+const FunctionJITRuntimeInfo *
+JITTimeFunctionBody::GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlineCacheIndex) const
+{
+    Assert(inlineCacheIndex < GetInlineCacheCount());
+
+    const FunctionJITRuntimeInfo * data = reinterpret_cast<const FunctionJITRuntimeInfo*>(m_bodyData.profiledRuntimeData);
+    return data != nullptr ? &data[inlineCacheIndex] : nullptr;
 }
 
 void
-JITTimeFunctionBody::InitializeStatementMap()
+JITTimeFunctionBody::InitializeStatementMap(__out Js::SmallSpanSequence * statementMap) const
 {
-    const uint statementsLength = m_bodyData->statementMap.statementLength;
-    const uint offsetsLength = m_bodyData->statementMap.actualOffsetLength;
+    const uint statementsLength = m_bodyData.statementMap.statementLength;
+    const uint offsetsLength = m_bodyData.statementMap.actualOffsetLength;
 
-    m_statementMap.baseValue = m_bodyData->statementMap.baseValue;
+    statementMap->baseValue = m_bodyData.statementMap.baseValue;
 
     if (statementsLength > 0)
     {
         // TODO: (michhol OOP JIT) should be able to directly use statementMap.statementBuffer
-        m_statementMap.pStatementBuffer = JsUtil::GrowingUint32HeapArray::Create(statementsLength);
-        m_statementMap.pStatementBuffer->SetCount(statementsLength);
+        statementMap->pStatementBuffer = JsUtil::GrowingUint32HeapArray::Create(statementsLength);
+        statementMap->pStatementBuffer->SetCount(statementsLength);
         js_memcpy_s(
-            m_statementMap.pStatementBuffer->GetBuffer(),
-            m_statementMap.pStatementBuffer->Count() * sizeof(uint32),
-            m_bodyData->statementMap.statementBuffer,
+            statementMap->pStatementBuffer->GetBuffer(),
+            statementMap->pStatementBuffer->Count() * sizeof(uint32),
+            m_bodyData.statementMap.statementBuffer,
             statementsLength * sizeof(uint32));
     }
 
     if (offsetsLength > 0)
     {
-        m_statementMap.pActualOffsetList = JsUtil::GrowingUint32HeapArray::Create(offsetsLength);
-        m_statementMap.pActualOffsetList->SetCount(offsetsLength);
+        statementMap->pActualOffsetList = JsUtil::GrowingUint32HeapArray::Create(offsetsLength);
+        statementMap->pActualOffsetList->SetCount(offsetsLength);
         js_memcpy_s(
-            m_statementMap.pActualOffsetList->GetBuffer(),
-            m_statementMap.pActualOffsetList->Count() * sizeof(uint32),
-            m_bodyData->statementMap.actualOffsetList,
+            statementMap->pActualOffsetList->GetBuffer(),
+            statementMap->pActualOffsetList->Count() * sizeof(uint32),
+            m_bodyData.statementMap.actualOffsetList,
             offsetsLength * sizeof(uint32));
     }
 }
@@ -881,15 +819,5 @@ JITTimeFunctionBody::InitializeStatementMap()
 wchar_t*
 JITTimeFunctionBody::GetDisplayName() const
 {
-    return m_bodyData->displayName;
-}
-
-wchar_t*
-JITTimeFunctionBody::GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const
-{
-    // (#%u.%u), #%u --> (source file Id . function Id) , function Number
-    int len = swprintf_s(bufferToWriteTo, MAX_FUNCTION_BODY_DEBUG_STRING_SIZE, L" (#%d.%u), #%u",
-        (int)GetSourceContextId(), GetLocalFunctionId(), GetFunctionNumber());
-    Assert(len > 8);
-    return bufferToWriteTo;
+    return m_bodyData.displayName;
 }

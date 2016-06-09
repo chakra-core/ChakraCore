@@ -870,16 +870,19 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 foreground ? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
                 scriptContext->GetRecycler());
 
-            auto funcEPInfo = (Js::FunctionEntryPointInfo*)workItem->GetEntryPoint();
-            workItem->GetJITData()->readOnlyEPData.callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
-
             workItem->GetJITData()->nativeDataAddr = (__int3264)workItem->GetEntryPoint()->GetNativeDataBufferRef();
-            workItem->GetJITData()->jitData = BuildJITTimeData(workItem->RecyclableData()->JitTimeData());
-            JITOutputData jitWriteData = {0};
-            ProfileData profileData;
-            JITTimeProfileInfo::InitializeJITProfileData(body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr, body, &profileData);
 
-            workItem->GetJITData()->profileData = body->HasDynamicProfileInfo() ? &profileData : nullptr;
+            // TODO: oop jit can we be more efficient here?
+            ArenaAllocator alloc(L"JitData", pageAllocator, Js::Throw::OutOfMemory);
+
+            workItem->GetJITData()->jitData = FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData());
+            Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
+            if (workItem->Type() == JsFunctionType)
+            {
+                auto funcEPInfo = (Js::FunctionEntryPointInfo*)epInfo;
+                workItem->GetJITData()->jitData->callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
+            }
+            JITOutputData jitWriteData = {0};
 
             HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
                 workItem->GetJITData(),
@@ -891,6 +894,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 __fastfail((uint)-1);
             }
 
+            workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.writeableEPData.frameHeight);
 
             if (jitWriteData.nativeDataFixupTable)
             {
@@ -916,7 +920,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
             XDataInfo * xdataInfo = XDataAllocator::Register(jitWriteData.xdataAddr, jitWriteData.codeAddress, jitWriteData.codeSize);
-            funcEPInfo->SetXDataInfo(xdataInfo);
+            epInfo->SetXDataInfo(xdataInfo);
 #endif
             scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
             workItem->SetCodeAddress((size_t)jitWriteData.codeAddress);
@@ -1936,37 +1940,6 @@ NativeCodeGenerator::RemoveProactiveJobs()
     //}
 }
 
-// TODO: OOP JIT, maybe run this as part of GatherCodeGenData?
-FunctionJITTimeData * NativeCodeGenerator::BuildJITTimeData(const Js::FunctionCodeGenJitTimeData *const codeGenData)
-{
-    FunctionJITTimeData * jitData = RecyclerNewStructZ(this->scriptContext->GetRecycler(), FunctionJITTimeData);
-    jitData->bodyData = codeGenData->GetJITBody();
-    jitData->inlineeCount = codeGenData->InlineeCount();
-    jitData->ldFldInlineeCount = codeGenData->LdFldInlineeCount();
-    if (codeGenData->InlineeCount() > 0)
-    {
-        jitData->inlinees = RecyclerNewArray(this->scriptContext->GetRecycler(), FunctionJITTimeData, codeGenData->InlineeCount());
-        for (int i = 0; i < codeGenData->InlineeCount(); ++i)
-        {
-            jitData->inlinees[i] = BuildJITTimeData(codeGenData->GetInlinees()[i]);
-        }
-    }
-    if (codeGenData->InlineeCount() > 0)
-    {
-        jitData->ldFldInlinees = RecyclerNewArray(this->scriptContext->GetRecycler(), FunctionJITTimeData, codeGenData->LdFldInlineeCount());
-        for (int i = 0; i < codeGenData->LdFldInlineeCount(); ++i)
-        {
-            jitData->ldFldInlinees[i] = BuildJITTimeData(codeGenData->GetLdFldInlinees()[i]);
-        }
-    }
-    if (codeGenData->GetNext() != nullptr)
-    {
-        jitData->next = BuildJITTimeData(codeGenData->GetNext());
-    }
-    return jitData;
-}
-
-
 template<bool IsInlinee>
 void
 NativeCodeGenerator::GatherCodeGenData(
@@ -2457,7 +2430,7 @@ NativeCodeGenerator::GatherCodeGenData(
     } autoCleanup(functionBody);
 
     const auto profiledCallSiteCount = functionBody->GetProfiledCallSiteCount();
-    Assert(profiledCallSiteCount != 0 || functionBody->GetAnyDynamicProfileInfo()->hasLdFldCallSiteInfo());
+    Assert(profiledCallSiteCount != 0 || functionBody->GetAnyDynamicProfileInfo()->HasLdFldCallSiteInfo());
     if (profiledCallSiteCount && !isJitTimeDataComputed)
     {
         jitTimeData->inlineesBv = BVFixed::New<Recycler>(profiledCallSiteCount, recycler);

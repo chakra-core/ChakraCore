@@ -304,7 +304,7 @@ bool InliningDecider::GetBuiltInInfo(
     Js::OpCode *const inlineCandidateOpCode,
     ValueType *const returnType,
     Js::ScriptContext *const scriptContext /* = nullptr*/
-    )
+)
 {
     Assert(funcInfo);
     Assert(inlineCandidateOpCode);
@@ -313,14 +313,33 @@ bool InliningDecider::GetBuiltInInfo(
     *inlineCandidateOpCode = (Js::OpCode)0;
     *returnType = ValueType::Uninitialized;
 
-    if(funcInfo->HasBody())
+    if (funcInfo->HasBody())
     {
         return false;
     }
+    return InliningDecider::GetBuiltInInfo(
+        funcInfo->GetLocalFunctionId(),
+        inlineCandidateOpCode,
+        returnType,
+        scriptContext);
+}
+
+bool InliningDecider::GetBuiltInInfo(
+    uint localFuncId,
+    Js::OpCode *const inlineCandidateOpCode,
+    ValueType *const returnType,
+    Js::ScriptContext *const scriptContext /* = nullptr*/
+    )
+{
+    Assert(inlineCandidateOpCode);
+    Assert(returnType);
+
+    *inlineCandidateOpCode = (Js::OpCode)0;
+    *returnType = ValueType::Uninitialized;
 
     // TODO: consider adding another column to JavascriptBuiltInFunctionList.h/LibraryFunction.h
     // and getting helper method from there instead of multiple switch labels. And for return value types too.
-    switch (funcInfo->GetLocalFunctionId())
+    switch (localFuncId)
     {
     case Js::JavascriptBuiltInFunction::Math_Abs:
         *inlineCandidateOpCode = Js::OpCode::InlineMathAbs;
@@ -590,15 +609,7 @@ bool InliningDecider::GetBuiltInInfo(
 #if defined(_M_X64) || defined(_M_IX86)
     default:
     {
-        // inline only if simdjs and simd128 type-spec is enabled.
-        if (scriptContext->GetConfig()->IsSimdjsEnabled() && SIMD128_TYPE_SPEC_FLAG)
-        {
-            *inlineCandidateOpCode = scriptContext->GetThreadContext()->GetSimdOpcodeFromFuncInfo(funcInfo);
-        }
-        else
-        {
-            return false;
-        }
+        return false;
     }
 #endif
     }

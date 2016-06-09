@@ -57,7 +57,7 @@ namespace Js
 #endif
 
     public:
-        FunctionCodeGenJitTimeData(Recycler *const recycler, FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined = true);
+        FunctionCodeGenJitTimeData(FunctionInfo *const functionInfo, EntryPointInfo *const entryPoint, bool isInlined = true);
 
     public:
         BVFixed *inlineesBv;
@@ -73,9 +73,9 @@ namespace Js
 
     public:
         const FunctionCodeGenJitTimeData *GetInlinee(const ProfileId profiledCallSiteId) const;
-        const FunctionCodeGenJitTimeData ** GetInlinees() const;
+        FunctionCodeGenJitTimeData ** GetInlinees();
         const FunctionCodeGenJitTimeData *GetLdFldInlinee(const InlineCacheIndex inlineCacheIndex) const;
-        const FunctionCodeGenJitTimeData ** GetLdFldInlinees() const;
+        FunctionCodeGenJitTimeData ** GetLdFldInlinees();
         FunctionCodeGenJitTimeData *AddInlinee(
             Recycler *const recycler,
             const ProfileId profiledCallSiteId,

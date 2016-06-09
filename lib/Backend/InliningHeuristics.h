@@ -27,14 +27,14 @@ class InliningHeuristics
 {
     friend class InliningDecider;
 
-    const JITTimeFunctionBody * topFunc;
+    const FunctionJITTimeInfo * topFunc;
     InliningThreshold threshold;
 
 public:
 
 public:
-    InliningHeuristics(const JITTimeFunctionBody * topFunc) :topFunc(topFunc), threshold(topFunc->GetNonLoadByteCodeCount()) {};
-    bool BackendInlineIntoInliner(Func * inlinee,
+    InliningHeuristics(const FunctionJITTimeInfo * topFunc) :topFunc(topFunc), threshold(topFunc->GetBody()->GetNonLoadByteCodeCount()) {};
+    bool BackendInlineIntoInliner(const FunctionJITTimeInfo * inlinee,
                                 Func * inliner,
                                 Func *topFunc,
                                 Js::ProfileId,
@@ -46,11 +46,11 @@ public:
                                 uint16 constantArguments
                                 );
 private:
-    static bool IsInlineeLeaf(Func * inlinee)
+    static bool IsInlineeLeaf(const FunctionJITTimeInfo * inlinee)
     {
-        return inlinee->HasProfileInfo()
-            && (!PHASE_OFF(Js::InlineBuiltInCallerPhase, inlinee) ? !inlinee->GetJITFunctionBody()->HasNonBuiltInCallee() : inlinee->GetJITFunctionBody()->GetProfiledCallSiteCount() == 0)
-            && !inlinee->GetProfileInfo()->HasLdFldCallSiteInfo();
+        return inlinee->GetBody()->HasProfileInfo()
+            && (!PHASE_OFF(Js::InlineBuiltInCallerPhase, inlinee) ? !inlinee->GetBody()->HasNonBuiltInCallee() : inlinee->GetBody()->GetProfiledCallSiteCount() == 0)
+            && !inlinee->GetBody()->GetProfileInfo()->HasLdFldCallSiteInfo();
     }
 
 };

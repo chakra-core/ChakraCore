@@ -2316,7 +2316,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     //      just move false to dobailout
                     this->InsertMove(dobailout, IR::IntConstOpnd::New(0, dobailoutType, m_func, true), instr->m_next);
                 }
-                else if (m_func->GetJITFunctionBody()->ForceJITLoopBody())
+                else if (m_func->GetWorkItem()->GetJITTimeInfo()->ForceJITLoopBody())
                 {
                     // If we're forcing jit loop bodies, move true to dobailout
                     this->InsertMove(dobailout, IR::IntConstOpnd::New(1, dobailoutType, m_func, true), instr->m_next);
@@ -3552,7 +3552,7 @@ Lowerer::LowerNewScArray(IR::Instr *arrInstr)
 
     if (arrInstr->IsProfiledInstr() && arrInstr->m_func->HasProfileInfo())
     {
-        RecyclerWeakReference<Js::FunctionBody> *weakFuncRef = arrInstr->m_func->GetWeakFuncRef();
+        intptr_t weakFuncRef = arrInstr->m_func->GetWeakFuncRef();
         Assert(weakFuncRef);
 
         Js::ProfileId profileId = static_cast<Js::ProfileId>(arrInstr->AsProfiledInstr()->u.profileId);
@@ -3590,7 +3590,7 @@ BOOL Lowerer::IsSmallObject(uint32 length)
 }
 
 void
-Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef, uint32 length)
+Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef, uint32 length)
 {
     if (PHASE_OFF(Js::ArrayCtorFastPathPhase, m_func) || CONFIG_FLAG(ForceES5Array))
     {
@@ -3810,7 +3810,7 @@ Lowerer::GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteI
 }
 
 void
-Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef, uint32 length)
+Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef, uint32 length)
 {
     if (PHASE_OFF(Js::ArrayCtorFastPathPhase, m_func))
     {
@@ -3879,7 +3879,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
 }
 
 void
-Lowerer::GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef)
+Lowerer::GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef)
 {
     // Helper will deal with ForceES5ARray
     if (PHASE_OFF(Js::ArrayLiteralFastPathPhase, m_func) || CONFIG_FLAG(ForceES5Array))
@@ -3945,7 +3945,7 @@ Lowerer::GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
 }
 
 void
-Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, RecyclerWeakReference<Js::FunctionBody> * weakFuncRef)
+Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef)
 {
     if (PHASE_OFF(Js::ArrayLiteralFastPathPhase, m_func) || CONFIG_FLAG(ForceES5Array))
     {
@@ -4009,7 +4009,7 @@ Lowerer::LowerNewScIntArray(IR::Instr *arrInstr)
 
     if ((arrInstr->IsJitProfilingInstr() || arrInstr->IsProfiledInstr()) && arrInstr->m_func->HasProfileInfo())
     {
-        RecyclerWeakReference<Js::FunctionBody> *weakFuncRef = arrInstr->m_func->GetWeakFuncRef();
+        intptr_t weakFuncRef = arrInstr->m_func->GetWeakFuncRef();
         if (weakFuncRef)
         {
             // Technically a load of the same memory address either way.
@@ -4050,7 +4050,7 @@ Lowerer::LowerNewScFltArray(IR::Instr *arrInstr)
 
     if ((arrInstr->IsJitProfilingInstr() || arrInstr->IsProfiledInstr()) && arrInstr->m_func->HasProfileInfo())
     {
-        RecyclerWeakReference<Js::FunctionBody> *weakFuncRef = arrInstr->m_func->GetWeakFuncRef();
+        intptr_t weakFuncRef = arrInstr->m_func->GetWeakFuncRef();
         if (weakFuncRef)
         {
             Js::ProfileId profileId =
@@ -4522,7 +4522,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"FixedNewObj: function %s (%s): lowering non-fixed new script object for %s, because %s.\n",
-                    newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
+                    newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetDebugNumberSet(debugStringBuffer), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
                     newObjInstr->IsProfiledInstr() ? L"constructor cache hasn't been cloned" : L"instruction is not profiled");
                 Output::Flush();
             }
@@ -4550,7 +4550,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
             wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
             Output::Print(L"FixedNewObj: function %s (%s): lowering skipped new script object for %s with %s ctor <unknown> (%s %s).\n",
-                newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
+                newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
                 newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? L"inlined" : L"called",
                 ctorName, ctorBody ? ctorBody->GetDebugNumberSet(debugStringBuffer) : L"(null)");
             Output::Flush();
@@ -4581,7 +4581,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
         if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
         {
             Output::Print(L"FixedNewObj: function %s (%s): lowering fixed new script object for %s with %s ctor <unknown> (%s %s): type = %p, slots = %d, inlined slots = %d.\n",
-                newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
+                newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
                 newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? L"inlined" : L"called",
                 constructorName, constructorBody ? constructorBody->GetDebugNumberSet(debugStringBuffer) : L"(null)",
                 ctorCache->type, ctorCache->slotCount, ctorCache->inlineSlotCount);
@@ -4589,7 +4589,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
         else
         {
             Output::Print(L"FixedNewObj: function %s (%s): lowering fixed new script object for %s with %s ctor <unknown> (%s %s): slots = %d, inlined slots = %d.\n",
-                newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
+                newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
                 newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? L"inlined" : L"called",
                 constructorName, debugStringBuffer, ctorCache->slotCount, ctorCache->inlineSlotCount);
         }
@@ -4895,7 +4895,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
         startMarkerInstr = InsertLoweredRegionStartMarker(newObjInstr);
     }
 
-    RecyclerWeakReference<Js::FunctionBody> *weakFuncRef = nullptr;
+    intptr_t weakFuncRef = 0;
     Js::ArrayCallSiteInfo *arrayInfo = nullptr;
     Assert(newObjInstr->IsProfiledInstr());
 
@@ -5004,7 +5004,7 @@ Lowerer::LowerNewScObjArrayNoArg(IR::Instr *newObjInstr)
 
     Assert(newObjInstr->IsProfiledInstr());
 
-    RecyclerWeakReference<Js::FunctionBody> *weakFuncRef = nullptr;
+    intptr_t weakFuncRef = 0;
     Js::ArrayCallSiteInfo *arrayInfo = nullptr;
     Js::ProfileId profileId = static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId);
     if (profileId != Js::Constants::NoProfileId)
@@ -6856,7 +6856,7 @@ Lowerer::PinTypeRef(Js::Type* type, void* typeRef, IR::Instr* instr, Js::Propert
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(L"PinnedTypes: function %s(%s) instr %s property %s(#%u) pinned %s reference 0x%p to type 0x%p.\n",
-            this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+            this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
             Js::OpCodeUtil::GetOpCodeName(instr->m_opcode), GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId,
             typeRef == type ? L"strong" : L"weak", typeRef, type);
         Output::Flush();
@@ -6954,10 +6954,8 @@ Lowerer::CreateTypePropertyGuardForGuardedProperties(Js::Type* type, IR::Propert
                 if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
                 {
                     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    wchar_t workItemName[256];
-                    this->m_func->m_workItem->GetDisplayName(workItemName, _countof(workItemName));
                     Output::Print(L"ObjTypeSpec: function %s(%s) registered guard 0x%p with value 0x%p for property %s (%u).\n",
-                        workItemName, this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                        m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
                         guard, guard->GetValue(), this->GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                     Output::Flush();
                 }
@@ -6989,7 +6987,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR:
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"ObjTypeSpec: function %s(%s) registered equivalent type spec guard 0x%p with value 0x%p for property %s (%u).\n",
-                    this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
                     guard, guard->GetValue(), GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                 Output::Flush();
             }
@@ -7070,7 +7068,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR:
                     Js::FunctionBody* topFunctionBody = this->m_func->GetJnFunction();
                     Js::ScriptContext* scriptContext = topFunctionBody->GetScriptContext();
                     Output::Print(L"EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) \n",
-                        m_func->GetJITFunctionBody()->GetDisplayName(), m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer), propertyId, scriptContext->GetPropertyNameLocked(propertyId)->GetBuffer());
+                        m_func->GetJITFunctionBody()->GetDisplayName(), m_func->GetDebugNumberSet(debugStringBuffer), propertyId, scriptContext->GetPropertyNameLocked(propertyId)->GetBuffer());
                     Output::Flush();
                 }
                 Assert(propIdCount < propOpCount);
@@ -7125,7 +7123,7 @@ Lowerer::LinkCtorCacheToGuardedProperties(Js::JitTimeConstructorCache* ctorCache
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"ObjTypeSpec: function %s(%s) registered ctor cache 0x%p with value 0x%p for property %s (%u).\n",
-                    this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
                     ctorCache->runtimeCache, ctorCache->type, GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                 Output::Flush();
             }
@@ -7182,7 +7180,7 @@ Lowerer::LinkGuardToGuardedProperties(Js::EntryPointInfo* entryPointInfo, const 
                     {
                         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                         Output::Print(L"ObjTypeStore: function %s(%s): no shared property guard for property % (%u).\n",
-                            this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                            this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
                             GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                         Output::Flush();
                     }
@@ -15044,7 +15042,7 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
                     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(L"Typed Array Lowering: function: %s (%s): instr %s, not specialized by glob opt due to negative or not likely int index.\n",
                         this->m_func->GetJITFunctionBody()->GetDisplayName(),
-                        this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                        this->m_func->GetDebugNumberSet(debugStringBuffer),
                         Js::OpCodeUtil::GetOpCodeName(ldElem->m_opcode));
                     Output::Flush();
                 }
@@ -15224,7 +15222,7 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"Typed Array Lowering: function: %s (%s), instr: %s, base value type: %S, %s.",
                     this->m_func->GetJITFunctionBody()->GetDisplayName(),
-                    this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(ldElem->m_opcode),
                     baseValueTypeStr,
                     (!dst->IsVar() ? L"specialized" : L"not specialized"));
@@ -15507,7 +15505,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"Typed Array Lowering: function: %s (%s): instr %s, not specialized by glob opt due to negative or not likely int index.\n",
                     this->m_func->GetJITFunctionBody()->GetDisplayName(),
-                    this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(stElem->m_opcode));
                 Output::Flush();
             }
@@ -15543,7 +15541,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(L"Typed Array Lowering: function: %s (%s), instr: %s, base value type: %S, %s.",
                 this->m_func->GetJITFunctionBody()->GetDisplayName(),
-                this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                this->m_func->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(stElem->m_opcode),
                 baseValueTypeStr,
                 (!src->IsVar() ? L"specialized" : L"not specialized"));
@@ -18707,7 +18705,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
                 #endif
                 PHASE_PRINT_TRACE(Js::AddFldFastPathPhase, this->m_func,
                     L"AddFldFastPath: function: %s(%s) property: %s(#%d) no fast path, because the phase is off.\n",
-                    this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
                     this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(), propertySym->m_propertyId);
             }
 
@@ -18748,7 +18746,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
 #endif
         PHASE_PRINT_TRACE(Js::AddFldFastPathPhase, this->m_func,
             L"AddFldFastPath: function: %s(%s) property: %s(#%d) %s fast path for %s.\n",
-            this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer),
+            this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
             this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(), propertySym->m_propertyId,
             usePolymorphicInlineCache ? L"poly" : L"mono", doStore ? L"store and add" : L"add only");
     }

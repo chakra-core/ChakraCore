@@ -5,6 +5,8 @@
 
 #pragma once
 
+typedef JsUtil::BaseDictionary<intptr_t, IR::JnHelperMethod, HeapAllocator, PowerOf2SizePolicy> JITDOMFastPathHelperMap;
+
 class ScriptContextInfo
 {
 public:
@@ -39,6 +41,8 @@ public:
 
     intptr_t GetVTableAddress(VTableValue vtableType) const;
 
+    JITDOMFastPathHelperMap *  EnsureDOMFastPathHelperMap();
+
     bool IsRecyclerVerifyEnabled() const;
     uint GetRecyclerVerifyPad() const;
     bool IsPRNGSeeded() const;
@@ -52,4 +56,6 @@ private:
     bool m_isPRNGSeeded;
 
     uint m_activeJITCount;
+
+    JITDOMFastPathHelperMap * m_domFastPathHelperMap;
 };

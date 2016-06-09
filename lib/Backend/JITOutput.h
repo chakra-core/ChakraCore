@@ -16,6 +16,7 @@ public:
     void SetVarChangedOffset(int32 offset);
     void SetHasBailoutInstr(bool val);
     void SetArgUsedForBranch(uint8 param);
+    void SetFrameHeight(uint val);
 
     uint16 GetArgUsedForBranch() const;
     intptr_t GetCodeAddress() const;

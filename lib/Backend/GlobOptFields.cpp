@@ -215,7 +215,7 @@ GlobOpt::DoObjTypeSpec(Loop *loop) const
     {
         return false;
     }
-    if (this->func->IsLoopBody() && this->func->GetProfileInfo()->IsObjTypeSpecDisabledInJitLoopBody())
+    if (this->func->IsLoopBody() && this->func->HasProfileInfo() && this->func->GetProfileInfo()->IsObjTypeSpecDisabledInJitLoopBody())
     {
         return false;
     }
@@ -601,7 +601,7 @@ GlobOpt::PreparePrepassFieldHoisting(Loop * loop)
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"FieldHoist: START LOOP function %s (%s)\n", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(L"FieldHoist: START LOOP function %s (%s)\n", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer));
     }
 #endif
 
@@ -1555,7 +1555,7 @@ GlobOpt::GenerateHoistFieldLoad(PropertySym * sym, Loop * loop, IR::Instr * inst
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"    FieldHoist: function %s (%s) ", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetJITFunctionBody()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(L"    FieldHoist: function %s (%s) ", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer));
         newInstr->DumpTestTrace();
     }
 #endif
