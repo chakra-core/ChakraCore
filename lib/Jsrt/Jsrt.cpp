@@ -80,12 +80,6 @@ JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, b
     return JsNoError;
 }
 
-template <class Fn>
-bool CallbackWrapper(Fn fn)
-{
-    return CallbackWrapper(fn, false);
-}
-
 /////////////////////
 
 //A create runtime function that we can funnel to for regular and record or debug aware creation
@@ -94,13 +88,6 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wcha
     return GlobalAPIWrapper([&]() -> JsErrorCode {
         PARAM_NOT_NULL(runtimeHandle);
         *runtimeHandle = nullptr;
-
-#if ENABLE_TTD
-        if(optRecordUri != nullptr || optDebugUri != nullptr)
-        {
-            attributes = static_cast<JsRuntimeAttributes>(attributes | JsRuntimeAttributeEnableExperimentalFeatures);
-        }
-#endif
 
         const JsRuntimeAttributes JsRuntimeAttributesAll =
             (JsRuntimeAttributes)(
@@ -117,7 +104,7 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wcha
         );
 
         Assert((attributes & ~JsRuntimeAttributesAll) == 0);
-        if((attributes & ~JsRuntimeAttributesAll) != 0)
+        if ((attributes & ~JsRuntimeAttributesAll) != 0)
         {
             return JsErrorInvalidArgument;
         }
@@ -126,7 +113,7 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wcha
         bool enableExperimentalFeatures = (attributes & JsRuntimeAttributeEnableExperimentalFeatures) != 0;
         ThreadContext * threadContext = HeapNew(ThreadContext, policyManager, threadService, enableExperimentalFeatures);
 
-        if(((attributes & JsRuntimeAttributeDisableBackgroundWork) != 0)
+        if (((attributes & JsRuntimeAttributeDisableBackgroundWork) != 0)
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             && !Js::Configuration::Global.flags.ConcurrentRuntime
 #endif
@@ -138,7 +125,7 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wcha
 #endif
         }
 
-        if(!threadContext->IsRentalThreadingEnabledInJSRT()
+        if (!threadContext->IsRentalThreadingEnabledInJSRT()
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             || Js::Configuration::Global.flags.DisableRentalThreading
 #endif
@@ -147,30 +134,30 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wcha
             threadContext->SetIsThreadBound();
         }
 
-        if(attributes & JsRuntimeAttributeAllowScriptInterrupt)
+        if (attributes & JsRuntimeAttributeAllowScriptInterrupt)
         {
             threadContext->SetThreadContextFlag(ThreadContextFlagCanDisableExecution);
         }
 
-        if(attributes & JsRuntimeAttributeDisableEval)
+        if (attributes & JsRuntimeAttributeDisableEval)
         {
             threadContext->SetThreadContextFlag(ThreadContextFlagEvalDisabled);
         }
 
-        if(attributes & JsRuntimeAttributeDisableNativeCodeGeneration)
+        if (attributes & JsRuntimeAttributeDisableNativeCodeGeneration)
         {
             threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        if(Js::Configuration::Global.flags.PrimeRecycler)
+        if (Js::Configuration::Global.flags.PrimeRecycler)
         {
             threadContext->EnsureRecycler()->Prime();
         }
 #endif
 
 #if ENABLE_TTD
-        if(optRecordUri != nullptr || optDebugUri != nullptr)
+        if (optRecordUri != nullptr || optDebugUri != nullptr)
         {
             AssertMsg(optRecordUri == nullptr || optDebugUri == nullptr, "We should only have 1 but we fail on context create if both are set");
 
@@ -205,7 +192,7 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wcha
 }
 
 //A create context function that we can funnel to for regular and record or debug aware creation
-JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool createUnderTT, _Out_ JsContextRef *newContext)
+JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool createUnderTimeTravel, _Out_ JsContextRef *newContext)
 {
     return GlobalAPIWrapper([&]() -> JsErrorCode {
         PARAM_NOT_NULL(newContext);
@@ -214,71 +201,79 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
         JsrtRuntime * runtime = JsrtRuntime::FromHandle(runtimeHandle);
         ThreadContext * threadContext = runtime->GetThreadContext();
 
-        if(threadContext->GetRecycler() && threadContext->GetRecycler()->IsHeapEnumInProgress())
+        if (threadContext->GetRecycler() && threadContext->GetRecycler()->IsHeapEnumInProgress())
         {
             return JsErrorHeapEnumInProgress;
         }
-        else if(threadContext->IsInThreadServiceCallback())
+        else if (threadContext->IsInThreadServiceCallback())
         {
             return JsErrorInThreadServiceCallback;
         }
 
         ThreadContextScope scope(threadContext);
 
-        if(!scope.IsValid())
+        if (!scope.IsValid())
         {
             return JsErrorWrongThread;
         }
 
 #if ENABLE_TTD
-        if(createUnderTT & !threadContext->IsTTRequested)
+        if(createUnderTimeTravel)
         {
-            AssertMsg(false, "Can't create a context under TT if runtime is not set to support TT!!!");
-            return JsErrorCategoryUsage;
-        }
+            if(!threadContext->IsTTRequested)
+            {
+                AssertMsg(false, "Can't create a context under TT if runtime is not set to support TT!!!");
+                return JsErrorCategoryUsage;
+            }
 
-        if(createUnderTT & (threadContext->IsTTRecordRequested & threadContext->IsTTDebugRequested))
-        {
-            AssertMsg(false, "Can't set both of these at the same time!!!");
-            return JsErrorCategoryUsage;
+            if(threadContext->IsTTRecordRequested & threadContext->IsTTDebugRequested)
+            {
+                AssertMsg(false, "Can't set both of these at the same time!!!");
+                return JsErrorCategoryUsage;
+            }
         }
 #endif
 
         JsrtContext * context = JsrtContext::New(runtime);
 
 #if ENABLE_TTD
-        if(createUnderTT && threadContext->IsTTRequested && !threadContext->IsTTDInitialized())
+        if (createUnderTimeTravel)
         {
+            if(threadContext->IsTTRequested && !threadContext->IsTTDInitialized())
+            {
+                if(threadContext->TTDInitializeTTDUriFunction == nullptr)
+                {
+                    AssertMsg(false, "Must set this callback function first!!!");
+                    return JsErrorCategoryUsage;
+                }
+
+                wchar_t* ttdlogStr = nullptr;
+                threadContext->TTDInitializeTTDUriFunction(threadContext->TTDUri, &ttdlogStr);
+                if(ttdlogStr == nullptr)
+                {
+                    AssertMsg(false, "OOM on path allocation!!!");
+                    return JsErrorFatal;
+                }
+
 #if ENABLE_TTD_DEBUGGING
-            threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
+                threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
 #endif
 
-            if(threadContext->TTDInitializeTTDUriFunction == nullptr)
-            {
-                AssertMsg(false, "Must set this callback function first!!!");
-                return JsErrorCategoryUsage;
+                threadContext->InitTimeTravel(ttdlogStr, threadContext->IsTTRecordRequested, threadContext->IsTTDebugRequested, threadContext->TTSnapInterval, threadContext->TTSnapHistoryLength);
+
+                CoTaskMemFree(ttdlogStr);
             }
 
-            wchar_t* ttdlogStr = nullptr;
-            threadContext->TTDInitializeTTDUriFunction(threadContext->TTDUri, &ttdlogStr);
-
-            threadContext->InitTimeTravel(ttdlogStr, threadContext->IsTTRecordRequested, threadContext->IsTTDebugRequested, threadContext->TTSnapInterval, threadContext->TTSnapHistoryLength);
-
-            CoTaskMemFree(ttdlogStr);
-        }
-
-        if(createUnderTT)
-        {
             HostScriptContextCallbackFunctor callbackFunctor(context, &JsrtContext::OnScriptLoad_TTDCallback);
             threadContext->BeginCtxTimeTravel(context->GetScriptContext(), callbackFunctor);
 
-            if(threadContext->IsTTRecordRequested)
+            if (threadContext->IsTTRecordRequested | threadContext->IsTTDebugRequested)
             {
                 //
                 //TODO: We currently force this into debug mode in record as well to make sure parsing/bytecode generation is same as during replay.
                 //      Later we will want to be clever during inflate and not do this.
                 //
-                context->GetScriptContext()->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
+                context->GetScriptContext()->InitializeDebugging();
             }
 
             threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
@@ -289,7 +284,7 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
 
         JsrtDebugManager* jsrtDebugManager = runtime->GetJsrtDebugManager();
 
-        if(jsrtDebugManager != nullptr)
+        if (jsrtDebugManager != nullptr)
         {
             Js::ScriptContext* scriptContext = context->GetScriptContext();
             scriptContext->InitializeDebugging();
@@ -312,7 +307,7 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
 //A call function method that we can funnel to for regular and causal aware invokes
 JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
 {
-    if(result != nullptr)
+    if (result != nullptr)
     {
         *result = nullptr;
     }
@@ -320,7 +315,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
     return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_FUNCTION(function, scriptContext);
 
-        if(cargs == 0 || args == nullptr) {
+        if (cargs == 0 || args == nullptr) {
             return JsErrorInvalidArgument;
         }
 
@@ -336,12 +331,12 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
 #if ENABLE_TTD
         double ttdStartTime = -1.0;
 
-        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+        if (PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
         {
             TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, jsFunction, cargs, jsArgs.Values);
             TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext, callEvent);
 
-            if(scriptContext->TTDRootNestingCount == 0)
+            if (scriptContext->TTDRootNestingCount == 0)
             {
                 TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
                 elog->ResetCallStackForTopLevelCall(elog->GetLastEventTime(), hostCallbackId);
@@ -350,7 +345,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
             }
 
             Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
-            if(result != nullptr)
+            if (result != nullptr)
             {
                 *result = varResult;
                 Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
@@ -361,7 +356,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         else
         {
             Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
-            if(result != nullptr)
+            if (result != nullptr)
             {
                 *result = varResult;
                 Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
@@ -369,7 +364,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         }
 
         //Update the time elapsed since a snapshot if needed
-        if(ttdStartTime >= 0.0)
+        if (ttdStartTime >= 0.0)
         {
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
 
@@ -378,7 +373,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         }
 #else
         Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
-        if(result != nullptr)
+        if (result != nullptr)
         {
             *result = varResult;
             Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
@@ -393,7 +388,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
 
 CHAKRA_API JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
-    return CreateRuntimeCore(attributes, nullptr, nullptr, UINT_MAX, UINT_MAX, threadService, runtimeHandle);
+    return CreateRuntimeCore(attributes, nullptr /*optRecordUri*/, nullptr /*optRecordUri*/, UINT_MAX /*optSnapInterval*/, UINT_MAX /*optLogLength*/, threadService, runtimeHandle);
 }
 
 template <CollectionFlags flags>
@@ -577,20 +572,20 @@ CHAKRA_API JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
 #if ENABLE_TTD
             unsigned int lCount = 0;
             recycler->RootAddRef(ref, &lCount);
-            if(count != nullptr)
+            if (count != nullptr)
             {
                 *count = lCount;
             }
 
             Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-            if((lCount == 1) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
+            if ((lCount == 1) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
             {
-                if(!scriptContext->GetThreadContext()->TTDLog->IsPropertyRecordRef(ref))
+                if (!scriptContext->GetThreadContext()->TTDLog->IsPropertyRecordRef(ref))
                 {
                     Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
                     scriptContext->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
 
-                    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+                    if (PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
                     {
                         scriptContext->GetThreadContext()->TTDLog->RecordJsRTAddRootRef(scriptContext, (Js::Var)ref);
                     }
@@ -643,7 +638,7 @@ CHAKRA_API JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
         return GlobalAPIWrapper([&]() -> JsErrorCode
         {
             // Note, some references may live in arena-allocated memory, so we need to do this check
-            if(!recycler->IsValidObject(ref))
+            if (!recycler->IsValidObject(ref))
             {
                 return JsNoError;
             }
@@ -651,23 +646,23 @@ CHAKRA_API JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
 #if ENABLE_TTD
             unsigned int lCount = 0;
             recycler->RootRelease(ref, &lCount);
-            if(count != nullptr)
+            if (count != nullptr)
             {
                 *count = lCount;
             }
 
             //At shutdown we may get called when Context is destroyed so don't try and access it and don't do any TTD stuff
-            if(JsrtContext::GetCurrent() != nullptr)
+            if (JsrtContext::GetCurrent() != nullptr)
             {
                 Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-                if((lCount == 0) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
+                if ((lCount == 0) & scriptContext->ShouldPerformRootAddOrRemoveRefAction())
                 {
-                    if(!scriptContext->GetThreadContext()->TTDLog->IsPropertyRecordRef(ref))
+                    if (!scriptContext->GetThreadContext()->TTDLog->IsPropertyRecordRef(ref))
                     {
                         Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
                         scriptContext->TTDContextInfo->RemoveTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(obj), obj);
 
-                        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+                        if (PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
                         {
                             scriptContext->GetThreadContext()->TTDLog->RecordJsRTRemoveRootRef(scriptContext, (Js::Var)ref);
                         }
@@ -728,7 +723,7 @@ CHAKRA_API JsSetObjectBeforeCollectCallback(_In_ JsRef ref, _In_opt_ void *callb
 
 CHAKRA_API JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ JsContextRef *newContext)
 {
-    return CreateContextCore(runtimeHandle, false, newContext);
+    return CreateContextCore(runtimeHandle, false /*createUnderTimeTravel*/, newContext);
 }
 
 CHAKRA_API JsGetCurrentContext(_Out_ JsContextRef *currentContext)
@@ -773,7 +768,7 @@ CHAKRA_API JsGetContextOfObject(_In_ JsValueRef object, _Out_ JsContextRef *cont
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if(!Js::RecyclableObject::Is(object))
+        if (!Js::RecyclableObject::Is(object))
         {
             RETURN_NO_EXCEPTION(JsErrorArgumentNotObject);
         }
@@ -1692,9 +1687,9 @@ CHAKRA_API JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ JsTypedArra
 
 #if ENABLE_TTD
     Js::ScriptContext* scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
-    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+    if (PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
     {
-        if(arrayBuffer != nullptr)
+        if (arrayBuffer != nullptr)
         {
             BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
             {
@@ -2171,7 +2166,7 @@ CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
 CHAKRA_API JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
 {
     return CallFunctionCore(-1, function, args, cargs, result);
-    }
+}
 
 CHAKRA_API JsConstructObject(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_ JsValueRef *result)
 {
@@ -2443,7 +2438,7 @@ CHAKRA_API JsGetAndClearException(_Out_ JsValueRef *exception)
       recordedException = scriptContext->GetAndClearRecordedException();
     END_TRANSLATE_OOM_TO_HRESULT(hr)
 
-    if(hr == E_OUTOFMEMORY)
+    if (hr == E_OUTOFMEMORY)
     {
         recordedException = scriptContext->GetThreadContext()->GetRecordedException();
     }
@@ -2459,12 +2454,12 @@ CHAKRA_API JsGetAndClearException(_Out_ JsValueRef *exception)
     }
 
 #if ENABLE_TTD
-    BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(currentContext->GetScriptContext())
+    BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(scriptContext)
     {
         PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(scriptContext, scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetAndClearException(scriptContext, &__ttd_resultPtr));
         PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(exception);
     }
-    END_JS_RUNTIME_CALL(currentContext->GetScriptContext())
+    END_JS_RUNTIME_CALL(scriptContext)
 #endif
 
     return JsNoError;
@@ -2839,7 +2834,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         //
         //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
         //
-        if(scriptContext->ShouldPerformRecordTopLevelFunction())
+        if (scriptContext->ShouldPerformRecordTopLevelFunction())
         {
             //Make sure we have the body and text information available
             Js::FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
@@ -2876,7 +2871,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+        if (PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
         {
             //
             //TODO: Module support not implemented yet
@@ -2908,12 +2903,12 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 #if ENABLE_TTD
             double ttdStartTime = -1.0;
 
-            if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+            if (PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
             {
                 TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, scriptFunction, args.Info.Count, args.Values);
                 TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(scriptContext, callEvent);
 
-                if(scriptContext->TTDRootNestingCount == 0)
+                if (scriptContext->TTDRootNestingCount == 0)
                 {
                     TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
                     elog->ResetCallStackForTopLevelCall(elog->GetLastEventTime(), hostCallbackId);
@@ -2922,7 +2917,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
                 }
 
                 Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
-                if(result != nullptr)
+                if (result != nullptr)
                 {
                     *result = varResult;
                 }
@@ -2933,14 +2928,14 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             {
                 Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
 
-                if(result != nullptr)
+                if (result != nullptr)
                 {
                     *result = varResult;
                 }
             }
 
             //Update the time elapsed since a snapshot if needed
-            if(ttdStartTime >= 0.0)
+            if (ttdStartTime >= 0.0)
             {
                 TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
 
@@ -3057,7 +3052,7 @@ JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, in
         const Js::Utf8SourceInfo *sourceInfo = functionBody->GetUtf8SourceInfo();
         size_t cSourceCodeLength = sourceInfo->GetCbLength(_u("JsSerializeScript"));
 
-        // trucation of code length can lead to accessing random memory. Reject the call.
+        // truncation of code length can lead to accessing random memory. Reject the call.
         if (cSourceCodeLength > DWORD_MAX)
         {
             return JsErrorOutOfMemory;
@@ -3233,58 +3228,67 @@ CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCa
 
 /////////////////////
 
-CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ wchar_t* infoUri, _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
+CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ wchar_t* infoUri, 
+    _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, 
+    _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
     return CreateRuntimeCore(attributes, infoUri, nullptr, snapInterval, snapHistoryLength, threadService, runtime);
+#endif
 }
 
-CHAKRA_API JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ wchar_t* infoUri, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
+CHAKRA_API JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ wchar_t* infoUri, 
+    _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
     return CreateRuntimeCore(attributes, nullptr, infoUri, UINT_MAX, UINT_MAX, threadService, runtime);
+#endif
 }
 
 CHAKRA_API JsTTDCreateContext(_In_ JsRuntimeHandle runtime, _Out_ JsContextRef *newContext)
 {
-    return CreateContextCore(runtime, true, newContext);
-}
-
-CHAKRA_API JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const wchar_t *script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef *result)
-{
-    return RunScriptCore(hostCallbackId, script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, false /*isModule*/, result);
-}
-
-CHAKRA_API JsTTDCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef function, _In_reads_(argumentCount) JsValueRef *arguments, _In_ unsigned short argumentCount, _Out_opt_ JsValueRef *result)
-{
-    return CallFunctionCore(hostCallbackId, function, arguments, argumentCount, result);
-}
-
-CHAKRA_API JsTTDSetDebuggerForReplay()
-{
-#if !ENABLE_TTD_DEBUGGING
+#if !ENABLE_TTD
     return JsErrorCategoryUsage;
 #else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    if(currentContext->GetRuntime()->GetThreadContext()->TTDLog == nullptr)
-    {
-        AssertMsg(false, "Need to create in TTD mode.");
-        return JsErrorCategoryUsage;
-    }
-
-    //Checks if already in debug mode internally so we don't need to check before calling.
-    currentContext->GetScriptContext()->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
-
-    return JsNoError;
+    return CreateContextCore(runtime, true, newContext);
 #endif
 }
 
-CHAKRA_API JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime, _In_ JsTTDInitializeUriCallback ttdInitializeUriFunction, _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, _In_ JsTTDGetLogStreamCallback getLogStreamInfo, _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream)
+CHAKRA_API JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const wchar_t *script, _In_ JsSourceContext sourceContext, 
+    _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef *result)
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    return RunScriptCore(hostCallbackId, script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, false /*isModule*/, result);
+#endif
+}
+
+CHAKRA_API JsTTDCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef function, 
+    _In_reads_(argumentCount) JsValueRef *arguments, _In_ unsigned short argumentCount, _Out_opt_ JsValueRef *result)
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    return CallFunctionCore(hostCallbackId, function, arguments, argumentCount, result);
+#endif
+}
+
+CHAKRA_API JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime, 
+    _In_ JsTTDInitializeUriCallback ttdInitializeUriFunction, _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, 
+    _In_ JsTTDGetLogStreamCallback getLogStreamInfo, _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, 
+    _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream)
 {
 #if !ENABLE_TTD
     return JsErrorCategoryUsage;
 #else
     ThreadContext* threadContext = JsrtRuntime::FromHandle(runtime)->GetThreadContext();
 
-    if(ttdInitializeUriFunction == nullptr || writeInitializeFunction == nullptr 
+    if (ttdInitializeUriFunction == nullptr || writeInitializeFunction == nullptr 
         || getLogStreamInfo == nullptr || getSnapshotStreamInfo == nullptr || getSrcCodeStreamInfo == nullptr 
         || readBytesFromStream == nullptr || writeBytesToStream == nullptr || flushAndCloseStream == nullptr)
     {
@@ -3312,19 +3316,19 @@ CHAKRA_API JsTTDStartTimeTravelRecording()
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
     ThreadContext* threadContext = scriptContext->GetThreadContext();
-    if(threadContext->TTDLog == nullptr)
+    if (threadContext->TTDLog == nullptr)
     {
         AssertMsg(false, "Need to create in TTD mode.");
         return JsErrorCategoryUsage;
     }
 
-    if(scriptContext->IsTTDDetached())
+    if (scriptContext->IsTTDDetached())
     {
         AssertMsg(false, "Cannot re-start TTD after detach.");
         return JsErrorCategoryUsage;
     }
 
-    if(scriptContext->IsTTDActive())
+    if (scriptContext->IsTTDActive())
     {
         AssertMsg(false, "Already started TTD.");
         return JsErrorCategoryUsage;
@@ -3352,19 +3356,19 @@ CHAKRA_API JsTTDStopTimeTravelRecording()
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
     ThreadContext* threadContext = scriptContext->GetThreadContext();
-    if(threadContext->TTDLog == nullptr)
+    if (threadContext->TTDLog == nullptr)
     {
         AssertMsg(false, "Need to create in TTD mode.");
         return JsErrorCategoryUsage;
     }
 
-    if(scriptContext->IsTTDDetached())
+    if (scriptContext->IsTTDDetached())
     {
         AssertMsg(false, "Already stopped TTD.");
         return JsErrorCategoryUsage;
     }
 
-    if(!scriptContext->IsTTDActive())
+    if (!scriptContext->IsTTDActive())
     {
         AssertMsg(false, "TTD was never started.");
         return JsErrorCategoryUsage;
@@ -3391,19 +3395,19 @@ CHAKRA_API JsTTDEmitTimeTravelRecording()
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
     ThreadContext* threadContext = scriptContext->GetThreadContext();
-    if(threadContext->TTDLog == nullptr)
+    if (threadContext->TTDLog == nullptr)
     {
         AssertMsg(false, "Need to create in TTD mode.");
         return JsErrorCategoryUsage;
     }
 
-    if(scriptContext->IsTTDDetached())
+    if (scriptContext->IsTTDDetached())
     {
         AssertMsg(false, "Already stopped TTD.");
         return JsErrorCategoryUsage;
     }
 
-    if(!scriptContext->IsTTDActive())
+    if (!scriptContext->IsTTDActive())
     {
         AssertMsg(false, "TTD was never started.");
         return JsErrorCategoryUsage;
@@ -3429,19 +3433,19 @@ CHAKRA_API JsTTDStartTimeTravelDebugging()
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
     ThreadContext* threadContext = scriptContext->GetThreadContext();
-    if(threadContext->TTDLog == nullptr)
+    if (threadContext->TTDLog == nullptr)
     {
         AssertMsg(false, "Need to create in TTD mode.");
         return JsErrorCategoryUsage;
     }
 
-    if(scriptContext->IsTTDDetached())
+    if (scriptContext->IsTTDDetached())
     {
         AssertMsg(false, "Cannot re-start TTD after detach.");
         return JsErrorCategoryUsage;
     }
 
-    if(scriptContext->IsTTDActive())
+    if (scriptContext->IsTTDActive())
     {
         AssertMsg(false, "Already started TTD.");
         return JsErrorCategoryUsage;
@@ -3460,7 +3464,7 @@ CHAKRA_API JsTTDPauseTimeTravelBeforeRuntimeOperation()
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
 
-    if(currentContext->GetRuntime()->GetThreadContext()->TTDLog != nullptr)
+    if (currentContext->GetRuntime()->GetThreadContext()->TTDLog != nullptr)
     {
         currentContext->GetRuntime()->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
     }
@@ -3475,7 +3479,7 @@ CHAKRA_API JsTTDReStartTimeTravelAfterRuntimeOperation()
     return JsErrorCategoryUsage;
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
-    if(currentContext->GetRuntime()->GetThreadContext()->TTDLog != nullptr)
+    if (currentContext->GetRuntime()->GetThreadContext()->TTDLog != nullptr)
     {
         currentContext->GetRuntime()->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
     }
@@ -3484,7 +3488,8 @@ CHAKRA_API JsTTDReStartTimeTravelAfterRuntimeOperation()
 #endif
 }
 
-CHAKRA_API JsTTDNotifyHostCallbackCreatedOrCanceled(_In_ bool isCreated, _In_ bool isCancel, _In_ bool isRepeating, _In_ JsValueRef function, _In_ INT64 callbackId)
+CHAKRA_API JsTTDNotifyHostCallbackCreatedOrCanceled(_In_ bool isCreated, _In_ bool isCancel, _In_ bool isRepeating, 
+    _In_ JsValueRef function, _In_ INT64 callbackId)
 {
 #if !ENABLE_TTD
     return JsErrorCategoryUsage;
@@ -3492,7 +3497,9 @@ CHAKRA_API JsTTDNotifyHostCallbackCreatedOrCanceled(_In_ bool isCreated, _In_ bo
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
 
-    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+    VALIDATE_INCOMING_FUNCTION(function, scriptContext);
+
+    if (PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
     {
         Js::JavascriptFunction* jsFunction = (function != nullptr) ? Js::JavascriptFunction::FromVar(function) : nullptr;
 
@@ -3511,7 +3518,7 @@ CHAKRA_API JsTTDNotifyYield()
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
 
-    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+    if (PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
     {
         scriptContext->GetThreadContext()->TTDLog->RecordJsRTEventLoopYieldPoint(scriptContext);
     }
@@ -3527,20 +3534,20 @@ CHAKRA_API JsTTDPrepContextsForTopLevelEventMove(_In_ JsRuntimeHandle runtimeHan
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-    if(scriptContext->GetThreadContext()->TTDLog == nullptr)
+    if (scriptContext->GetThreadContext()->TTDLog == nullptr)
     {
         AssertMsg(false, "Should only happen in TT debugging mode.");
         return JsErrorCategoryUsage;
     }
 
     //Make sure we don't have any pending recorded exceptions
-    if(scriptContext->HasRecordedException())
+    if (scriptContext->HasRecordedException())
     {
         scriptContext->GetAndClearRecordedException(nullptr);
     }
 
     //a special indicator to use the time from the argument flag or log diagnostic report
-    if(targetEventTime == -2)
+    if (targetEventTime == -2)
     {
         targetEventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
     }
@@ -3548,7 +3555,7 @@ CHAKRA_API JsTTDPrepContextsForTopLevelEventMove(_In_ JsRuntimeHandle runtimeHan
     bool createFreshCtxs = false;
     *targetStartSnapTime = scriptContext->GetThreadContext()->TTDLog->FindSnapTimeForEventTime(targetEventTime, &createFreshCtxs);
 
-    if(createFreshCtxs)
+    if (createFreshCtxs)
     {
         try
         {
@@ -3580,7 +3587,7 @@ CHAKRA_API JsTTDPrepContextsForTopLevelEventMove(_In_ JsRuntimeHandle runtimeHan
 
             context->GetScriptContext()->InitializeDebuggingActionsAsNeeded_TTD();
 
-            scriptContext->InitializeDebugging();
+            context->GetScriptContext()->InitializeDebugging();
             context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeInlineBreakEngine(runtime->GetJsrtDebugManager());
             context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeDebuggerScriptOptionCallback(runtime->GetJsrtDebugManager());
             threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
@@ -3588,12 +3595,12 @@ CHAKRA_API JsTTDPrepContextsForTopLevelEventMove(_In_ JsRuntimeHandle runtimeHan
         catch(...)
         {
             //something went horribly wrong
-
-            *targetStartSnapTime = -1;
+            AssertMsg(false, "Unexpected fatal Error");
+            return JsErrorFatal;
         }
     }
 
-    return (*targetStartSnapTime != -1) ? JsNoError : JsErrorFatal;
+    return JsNoError;
 #endif
 }
 
@@ -3604,7 +3611,7 @@ CHAKRA_API JsTTDMoveToTopLevelEvent(_In_ INT64 snapshotTime, _In_ INT64 eventTim
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-    if(scriptContext->GetThreadContext()->TTDLog == nullptr)
+    if (scriptContext->GetThreadContext()->TTDLog == nullptr)
     {
         AssertMsg(false, "Should only happen in TT debugging mode.");
         return JsErrorCategoryUsage;
@@ -3614,7 +3621,7 @@ CHAKRA_API JsTTDMoveToTopLevelEvent(_In_ INT64 snapshotTime, _In_ INT64 eventTim
     JsErrorCode res = JsNoError;
 
     //a special indicator to use the time from the argument flag
-    if(eventTime == -2)
+    if (eventTime == -2)
     {
         eventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
     }
@@ -3630,7 +3637,7 @@ CHAKRA_API JsTTDMoveToTopLevelEvent(_In_ INT64 snapshotTime, _In_ INT64 eventTim
         elog->PopMode(TTD::TTDMode::ExcludedExecution);
 
         //If the log has a BP requested then we should set the actual bp here
-        if(scriptContext->GetThreadContext()->TTDLog->HasPendingTTDBP())
+        if (scriptContext->GetThreadContext()->TTDLog->HasPendingTTDBP())
         {
             TTD::TTDebuggerSourceLocation bpLocation;
             scriptContext->GetThreadContext()->TTDLog->GetPendingTTDBPInfo(bpLocation);
@@ -3652,7 +3659,7 @@ CHAKRA_API JsTTDMoveToTopLevelEvent(_In_ INT64 snapshotTime, _In_ INT64 eventTim
             // Don't see a use case for supporting multiple breakpoints at same location.
             // If a breakpoint already exists, just return that
             Js::BreakpointProbe* probe = debugDocument->FindBreakpoint(statement);
-            if(probe == nullptr)
+            if (probe == nullptr)
             {
                 BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
                 {
@@ -3695,7 +3702,7 @@ CHAKRA_API JsTTDReplayExecution(_Out_ INT64* rootEventTime)
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-    if(scriptContext->GetThreadContext()->TTDLog == nullptr)
+    if (scriptContext->GetThreadContext()->TTDLog == nullptr)
     {
         AssertMsg(false, "Should only happen in TT debugging mode.");
         return JsErrorCategoryUsage;
@@ -3710,7 +3717,7 @@ CHAKRA_API JsTTDReplayExecution(_Out_ INT64* rootEventTime)
     {
         //if the debugger bails out with a move time request set info on the requested event time here
         //rest of breakpoint info should have been set by the debugger callback before aborting
-        if(abortException.IsEventTimeMove() || abortException.IsTopLevelException())
+        if (abortException.IsEventTimeMove() || abortException.IsTopLevelException())
         {
             *rootEventTime = abortException.GetTargetEventTime();
         }

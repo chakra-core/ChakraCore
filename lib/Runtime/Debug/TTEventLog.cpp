@@ -592,7 +592,7 @@ namespace TTD
 
     void EventLog::InitForTTDRecord()
     {
-        //Prepr the logging stream so it is ready for us to write into
+        //Prepare the logging stream so it is ready for us to write into
         this->m_threadContext->TTDWriteInitializeFunction(this->m_logInfoRootDir.Contents);
 
         //pin all the current properties so they don't move/disappear on us

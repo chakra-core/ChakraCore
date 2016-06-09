@@ -138,7 +138,7 @@ public:
 
     HRESULT SetDispatchInvoke(Js::JavascriptMethod dispatchInvoke) override
     {
-        // AssertMsg(false, "no hostdispatch in jsrt");
+        AssertMsg(false, "no hostdispatch in jsrt");
         return E_NOTIMPL;
     }
 

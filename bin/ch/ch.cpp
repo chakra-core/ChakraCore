@@ -217,15 +217,7 @@ static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callback
 
 void StartupDebuggerAsNeeded()
 {
-    if(dbgIPAddr == nullptr)
-    {
-        if(doTTDebug)
-        {
-            //we need to force the script context into dbg mode for replay even if we don't attach the debugger -- so do that here
-            ChakraRTInterface::JsTTDSetDebuggerForReplay();
-        }
-}
-    else
+    if(dbgIPAddr != nullptr)
     {
         //
         //TODO: not sure how to set IP and other stuff here !!!
@@ -388,16 +380,16 @@ static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char1
 #endif
 }
 
-static BOOL CALLBACK TTReadBytesFromStreamCallback(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount)
+static bool CALLBACK TTReadBytesFromStreamCallback(HANDLE handle, BYTE* buff, DWORD size, DWORD* readCount)
 {
 #ifndef _WIN32
     AssertMsg(false, "Not XPLAT yet.");
     return FALSE;
 #else
-    AssertMsg(strm != INVALID_HANDLE_VALUE, "Bad file handle.");
+    AssertMsg(handle != INVALID_HANDLE_VALUE, "Bad file handle.");
 
     *readCount = 0;
-    BOOL ok = ReadFile(strm, buff, size, readCount, NULL);
+    BOOL ok = ReadFile(handle, buff, size, readCount, NULL);
     AssertMsg(ok, "Read failed.");
 
     if(!ok)
@@ -408,19 +400,19 @@ static BOOL CALLBACK TTReadBytesFromStreamCallback(HANDLE strm, BYTE* buff, DWOR
         fwprintf(stderr, _u(": %s\n"), pTemp);
     }
 
-    return ok;
+    return ok ? true : false;
 #endif
 }
 
-static BOOL CALLBACK TTWriteBytesToStreamCallback(HANDLE strm, BYTE* buff, DWORD size, DWORD* writtenCount)
+static bool CALLBACK TTWriteBytesToStreamCallback(HANDLE handle, BYTE* buff, DWORD size, DWORD* writtenCount)
 {
 #ifndef _WIN32
     AssertMsg(false, "Not XPLAT yet.");
     return FALSE;
 #else
-    AssertMsg(strm != INVALID_HANDLE_VALUE, "Bad file handle.");
+    AssertMsg(handle != INVALID_HANDLE_VALUE, "Bad file handle.");
 
-    BOOL ok = WriteFile(strm, buff, size, writtenCount, NULL);
+    BOOL ok = WriteFile(handle, buff, size, writtenCount, NULL);
     AssertMsg(*writtenCount == size, "Write Failed");
 
     if(!ok)
@@ -431,25 +423,25 @@ static BOOL CALLBACK TTWriteBytesToStreamCallback(HANDLE strm, BYTE* buff, DWORD
         fwprintf(stderr, _u(": %s\n"), pTemp);
     }
 
-    return ok;
+    return ok ? true : false;
 #endif
 }
 
-static void CALLBACK TTFlushAndCloseStreamCallback(HANDLE strm, bool read, bool write)
+static void CALLBACK TTFlushAndCloseStreamCallback(HANDLE handle, bool read, bool write)
 {
 #ifndef _WIN32
     AssertMsg(false, "Not XPLAT yet.");
 #else
     AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
 
-    if(strm != INVALID_HANDLE_VALUE)
+    if(handle != INVALID_HANDLE_VALUE)
     {
         if(write)
         {
-            FlushFileBuffers(strm);
+            FlushFileBuffers(handle);
         }
 
-        CloseHandle(strm);
+        CloseHandle(handle);
     }
 #endif
 }
@@ -635,6 +627,8 @@ HRESULT ExecuteTest(const char* fileName)
             return E_FAIL;
         }
 
+        jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
+
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
         chRuntime = runtime;
 
@@ -670,6 +664,9 @@ HRESULT ExecuteTest(const char* fileName)
 #if ENABLE_TTD
         if(doTTRecord)
         {
+            //Ensure we run with experimental features (as that is what Node does right now).
+            jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
+
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, snapInterval, snapHistoryLength, nullptr, &runtime));
             chRuntime = runtime;
 
@@ -678,8 +675,6 @@ HRESULT ExecuteTest(const char* fileName)
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
-
-            StartupDebuggerAsNeeded();
         }
         else
         {

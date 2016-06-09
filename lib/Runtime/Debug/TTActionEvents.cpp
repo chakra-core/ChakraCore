@@ -45,8 +45,7 @@ namespace TTD
                 isSnap = true;
                 return snapEvent->RestoreTimestamp;
             }
-
-            if(NSLogEvents::IsJsRTActionRootCall(evt))
+            else if(NSLogEvents::IsJsRTActionRootCall(evt))
             {
                 const NSLogEvents::JsRTCallFunctionAction* rootEntry = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(evt);
 
@@ -54,8 +53,10 @@ namespace TTD
                 hasRtrSnap = rootEntry->AdditionalInfo->RtRSnap != nullptr;
                 return rootEntry->AdditionalInfo->CallEventTime;
             }
-
-            return -10;
+            else
+            {
+                return -1;
+            }
         }
 
         int64 GetTimeFromRootCallOrSnapshot(const EventLogEntry* evt)
@@ -280,6 +281,7 @@ namespace TTD
                 //TODO: we don't have support for OOM yet (and adding support will require a non-trivial amount of work)
                 //
                 AssertMsg(false, "OOM is not supported");
+                return;
             }
 
             Js::Var exception = nullptr;
@@ -517,7 +519,9 @@ namespace TTD
             if(cbAction->RegisterLocation != nullptr)
             {
                 cbAction->RegisterLocation->Clear();
+
                 HeapDelete(cbAction->RegisterLocation);
+                cbAction->RegisterLocation = nullptr;
             }
         }
 

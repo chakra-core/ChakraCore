@@ -136,7 +136,6 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
     m_jsApiHooks.pfJsrtTTDRunScript = (JsAPIHooks::JsrtTTDRunScriptPtr)GetChakraCoreSymbol(library, "JsTTDRunScript");
     m_jsApiHooks.pfJsrtTTDCallFunction = (JsAPIHooks::JsrtTTDCallFunctionPtr)GetChakraCoreSymbol(library, "JsTTDCallFunction");
 
-    m_jsApiHooks.pfJsrtTTDSetDebuggerForReplay = (JsAPIHooks::JsrtTTDSetDebuggerForReplayPtr)GetChakraCoreSymbol(library, "JsTTDSetDebuggerForReplay");
     m_jsApiHooks.pfJsrtTTDSetIOCallbacks = (JsAPIHooks::JsrtTTDSetIOCallbacksPtr)GetChakraCoreSymbol(library, "JsTTDSetIOCallbacks");
 
     m_jsApiHooks.pfJsrtTTDStartTimeTravelRecording = (JsAPIHooks::JsrtTTDStartTimeTravelRecordingPtr)GetChakraCoreSymbol(library, "JsTTDStartTimeTravelRecording");

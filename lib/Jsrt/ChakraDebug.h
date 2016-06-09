@@ -587,7 +587,9 @@
     ///     Construct a HANDLE that will be used to read/write the event log portion of the TTD data based on the uri 
     ///     provided by JsTTDInitializeUriCallback.
     /// </summary>
-    /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
+    /// <remarks>
+    ///     <para>Exactly one of read or write will be set to true.</para>
+    /// </remarks>
     /// <param name="uri">The fully resolved location for the TTD data as provied by JsTTDInitializeUriCallback.</param>
     /// <param name="read">If the handle should be opened for reading.</param>
     /// <param name="write">If the handle should be opened for writing.</param>
@@ -598,7 +600,9 @@
     ///     TTD API -- may change in future versions:
     ///     Construct a HANDLE that will be used to read/write a snapshot and generate a unique uri that is associated with this snapshot.
     /// </summary>
-    /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
+    /// <remarks>
+    ///     <para>Exactly one of read or write will be set to true.</para>
+    /// </remarks>
     /// <param name="uri">The fully resolved root location for the TTD data as provied by JsTTDInitializeUriCallback.</param>
     /// <param name="snapId">A unique string identifier for this snapshot.</param>
     /// <param name="read">If the handle should be opened for reading.</param>
@@ -610,7 +614,9 @@
     ///     TTD API -- may change in future versions:
     ///     Construct a HANDLE that will be used to read/write information on source code loaded by the program.
     /// </summary>
-    /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
+    /// <remarks>
+    ///     <para>Exactly one of read or write will be set to true.</para>
+    /// </remarks>
     /// <param name="uri">The fully resolved root location for the TTD source code data.</param>
     /// <param name="bodyCtrId">A unique string identifier for this source file.</param>
     /// <param name="srcFileName">The base filename for this source code.</param>
@@ -623,32 +629,35 @@
     ///     TTD API -- may change in future versions:
     ///     A callback for reading data from a handle.
     /// </summary>
-    /// <param name="strm">The HANDLE to read the data from.</param>
+    /// <param name="handle">The HANDLE to read the data from.</param>
     /// <param name="buff">The buffer to place the data into.</param>
     /// <param name="size">The max number of bytes that should be read.</param>
     /// <param name="readCount">The actual number of bytes read and placed in the buffer.</param>
-    /// <returns>TRUE if the read was successful FALSE otherwise.</returns>
-    typedef BOOL(CALLBACK *JsTTDReadBytesFromStreamCallback)(_In_ HANDLE strm, _Out_writes_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* readCount);
+    /// <returns>true if the read was successful false otherwise.</returns>
+    typedef bool(CALLBACK *JsTTDReadBytesFromStreamCallback)(_In_ HANDLE handle, _Out_writes_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* readCount);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
     ///     A callback for writing data to a handle.
     /// </summary>
-    /// <param name="strm">The HANDLE to write the data to.</param>
+    /// <param name="handle">The HANDLE to write the data to.</param>
     /// <param name="buff">The buffer to copy the data from.</param>
     /// <param name="size">The max number of bytes that should be written.</param>
     /// <param name="readCount">The actual number of bytes written to the HANDLE.</param>
-    /// <returns>TRUE if the write was successful FALSE otherwise.</returns>
-    typedef BOOL(CALLBACK *JsTTDWriteBytesToStreamCallback)(_In_ HANDLE strm, _In_reads_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* writtenCount);
+    /// <returns>true if the write was successful false otherwise.</returns>
+    typedef bool(CALLBACK *JsTTDWriteBytesToStreamCallback)(_In_ HANDLE handle, _In_reads_(size) BYTE* buff, _In_ DWORD size, _Out_ DWORD* writtenCount);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
     ///     Flush and close the stream represented by the HANDLE as needed.
     /// </summary>
-    /// <remarks><para>Exactly one of read or write will be set to true.</para></remarks>
+    /// <remarks>
+    ///     <para>Exactly one of read or write will be set to true.</para>
+    /// </remarks>
+    /// <param name="handle">The HANDLE to close.</param>
     /// <param name="read">If the handle was opened for reading.</param>
     /// <param name="write">If the handle was opened for writing.</param>
-    typedef void (CALLBACK *JsTTDFlushAndCloseStreamCallback)(_In_ HANDLE strm, _In_ bool read, _In_ bool write);
+    typedef void (CALLBACK *JsTTDFlushAndCloseStreamCallback)(_In_ HANDLE handle, _In_ bool read, _In_ bool write);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -657,10 +666,12 @@
     /// <param name="attributes">The attributes of the runtime to be created.</param>
     /// <param name="infoUri">The uri where the recorded Time-Travel data should be stored.</param>
     /// <param name="snapInterval">The interval to wait between snapshots (measured in millis).</param>
-    /// <param name="snapHistoryLength">The length of time to maintain before discadring (measured in number of snapshots).</param>
+    /// <param name="snapHistoryLength">The amount of history to maintain before discarding -- measured in number of snapshots and controls how far back in time a trace can be reversed.</param>
     /// <param name="threadService">The thread service for the runtime. Can be null.</param>
     /// <param name="runtime">The runtime created.</param>
-    /// <remarks>See <c>JsCreateRuntime</c> for additional information.</remarks>
+    /// <remarks>
+    ///     <para>See <c>JsCreateRuntime</c> for additional information.</para>
+    /// </remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
@@ -681,7 +692,9 @@
     /// <param name="infoUri">The uri where the recorded Time-Travel data should be loaded from.</param>
     /// <param name="threadService">The thread service for the runtime. Can be null.</param>
     /// <param name="runtime">The runtime created.</param>
-    /// <remarks>See <c>JsCreateRuntime</c> for additional information.</remarks>
+    /// <remarks>
+    ///     <para>See <c>JsCreateRuntime</c> for additional information.</para>
+    /// </remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
@@ -696,7 +709,9 @@
     ///     TTD API -- may change in future versions:
     ///     Creates a script context in Time Travel mode for running scripts.
     /// </summary>
-    /// <remarks>See <c>JsCreateContext</c> for more information.</remarks>
+    /// <remarks>
+    ///     <para>See <c>JsCreateContext</c> for more information.</para>
+    /// </remarks>
     /// <param name="runtime">The runtime the script context is being created in.</param>
     /// <param name="newContext">The created script context.</param>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
@@ -709,7 +724,9 @@
     ///     TTD API -- may change in future versions:
     ///     Executes a script with additional Time-Travel causality tracking via the <c>hostCallbackId</c>.
     /// </summary>
-    /// <remarks>See <c>JsRunScript</c> for more information.</remarks>
+    /// <remarks>
+    ///     <para>See <c>JsRunScript</c> for more information.</para>
+    /// </remarks>
     /// <param name="hostCallbackId">
     ///     A unique id that specifies which callback execution caused this code to be registered for execution (e.g., the timeoutId from setTimeout).
     ///     If there is no applicable causual event then -1.
@@ -732,8 +749,10 @@
     ///     Invokes a function with additional Time-Travel causality tracking via the <c>hostCallbackId</c>.
     /// </summary>
     /// <remarks>
-    ///     Requires thisArg as first argument of arguments. 
-    ///     Requires an active script context.
+    ///     <para>
+    ///         Requires thisArg as first argument of arguments. 
+    ///         Requires an active script context.
+    ///     </para>
     /// </remarks>
     /// <param name="hostCallbackId">
     ///     A unique id that specifies which callback execution caused this code to be registered for execution (e.g., the timeoutId from setTimeout).
@@ -754,15 +773,7 @@
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Set the current script context into debug/replay mode for replay without debugger attach.
-    /// </summary>
-    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
-    CHAKRA_API
-        JsTTDSetDebuggerForReplay();
-
-    /// <summary>
-    ///     TTD API -- may change in future versions:
-    ///     Set the functions that the TTD system uses to write info out of main memory when needed.
+    ///     Initialize functions that the TTD system uses to write info out of main memory when needed.
     /// </summary>
     /// <param name="runtime">The runtime to set the functions for (must be created in debug mode).</param>
     /// <param name="ttdInitializeTTDUriFunction">The <c>JsTTDInitializeUriCallback</c> function for converting the user provided location into an absolute location for reading/writing time travel recording data.</param>
@@ -819,7 +830,7 @@
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Pause Time-Travel recording gefor executing code on behalf of debugger or other diagnostic/telemetry.
+    ///     Pause Time-Travel recording before executing code on behalf of debugger or other diagnostic/telemetry.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
@@ -837,7 +848,7 @@
     ///     TTD API -- may change in future versions:
     ///     Notify the Js runtime that the host as created/canceled a callback with the given function and id.
     /// </summary>
-    /// <param name="isCancel">True if the action is to create the callback with the callbackId.</param>
+    /// <param name="isCreated">True if the action is to create the callback with the callbackId.</param>
     /// <param name="isCancel">True if the action is to cancel the callback with the callbackId.</param>
     /// <param name="isRepeating">True if the action is to create a repeating callback (e.g., setInterval).</param>
     /// <param name="function">The function associated with the callbackId.</param>
@@ -890,12 +901,13 @@
     /// <summary>
     ///     TTD API -- may change in future versions:
     ///     Execute from the current point in the log to the end returning the error code.
-    ///     If the debugger requested an abort the code is JsNoError -- rootEventTime is the target event time we need to move to and re-execute from.
-    ///     If we aborted at the end of the replay log the code is JsNoError -- rootEventTime is -1.
-    ///     If there was an unhandled script exception the code is JsErrorCategoryScript.
     /// </summary>
     /// <param name="rootEventTime">The event time that we should move to next or notification (-1) that replay has ended.</param>
-    /// <returns>See summary.</returns>
+    /// <returns>
+    ///     If the debugger requested an abort the code is JsNoError -- rootEventTime is the target event time we need to move to and re - execute from.
+    ///     If we aborted at the end of the replay log the code is JsNoError -- rootEventTime is -1.
+    ///     If there was an unhandled script exception the code is JsErrorCategoryScript.
+    /// </returns>
     CHAKRA_API
         JsTTDReplayExecution(
             _Out_ INT64* rootEventTime);

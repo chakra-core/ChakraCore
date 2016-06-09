@@ -180,9 +180,9 @@ namespace TTD
     typedef HANDLE(CALLBACK *TTDGetSnapshotStreamCallback)(const char16* uri, const char16* snapId, bool read, bool write);
     typedef HANDLE(CALLBACK *TTDGetSrcCodeStreamCallback)(const char16* uri, const char16* srcid, const char16* srcFileName, bool read, bool write);
 
-    typedef BOOL(CALLBACK *TTDReadBytesFromStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount);
-    typedef BOOL(CALLBACK *TTDWriteBytesToStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* writtenCount);
-    typedef void(CALLBACK *TTDFlushAndCloseStreamCallback)(HANDLE strm, bool read, bool write);
+    typedef bool(CALLBACK *TTDReadBytesFromStreamCallback)(HANDLE handle, BYTE* buff, DWORD size, DWORD* readCount);
+    typedef bool(CALLBACK *TTDWriteBytesToStreamCallback)(HANDLE handle, BYTE* buff, DWORD size, DWORD* writtenCount);
+    typedef void(CALLBACK *TTDFlushAndCloseStreamCallback)(HANDLE handle, bool read, bool write);
 
     struct IOStreamFunctions
     {

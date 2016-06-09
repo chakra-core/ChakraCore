@@ -115,11 +115,11 @@ namespace TTD
 
             byte byteOrderArray[2] = { 0xFF, 0xFE };
             DWORD byteOrderCount = 0;
-            BOOL okBOC = streamFunctions.pfWriteBytesToStream(srcStream, byteOrderArray, 2, &byteOrderCount);
+            bool okBOC = streamFunctions.pfWriteBytesToStream(srcStream, byteOrderArray, 2, &byteOrderCount);
             AssertMsg(okBOC && byteOrderCount == 2, "Write Failed!!!");
 
             DWORD writtenCount = 0;
-            BOOL ok = streamFunctions.pfWriteBytesToStream(srcStream, (byte*)sourceBuffer, length * sizeof(wchar), &writtenCount);
+            bool ok = streamFunctions.pfWriteBytesToStream(srcStream, (byte*)sourceBuffer, length * sizeof(wchar), &writtenCount);
             AssertMsg(ok && writtenCount == length * sizeof(wchar), "Write Failed!!!");
 
             streamFunctions.pfFlushAndCloseStream(srcStream, false, true);
@@ -131,11 +131,11 @@ namespace TTD
 
             byte byteOrderArray[2] = { 0x0, 0x0 };
             DWORD byteOrderCount = 0;
-            BOOL okBOC = streamFunctions.pfReadBytesFromStream(srcStream, byteOrderArray, 2, &byteOrderCount);
+            bool okBOC = streamFunctions.pfReadBytesFromStream(srcStream, byteOrderArray, 2, &byteOrderCount);
             AssertMsg(okBOC && byteOrderCount == 2 && byteOrderArray[0] == 0xFF && byteOrderArray[1] == 0xFE, "Write Failed!!!");
 
             DWORD readCount = 0;
-            BOOL ok = streamFunctions.pfReadBytesFromStream(srcStream, (byte*)sourceBuffer, length * sizeof(wchar), &readCount);
+            bool ok = streamFunctions.pfReadBytesFromStream(srcStream, (byte*)sourceBuffer, length * sizeof(wchar), &readCount);
             AssertMsg(ok && readCount == length * sizeof(wchar), "Read Failed!!!");
 
             //make sure null terminated
