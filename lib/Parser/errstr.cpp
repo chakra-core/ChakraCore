@@ -136,7 +136,7 @@ BSTR BstrGetResourceString(int32 isz)
 
     UINT id = (WORD)isz;
     const char16* szT = LoadResourceStr(id);
-    if (!szT)
+    if (!szT || !szT[0])
     {
         return NULL;
     }
