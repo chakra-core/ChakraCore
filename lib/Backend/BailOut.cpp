@@ -1877,7 +1877,6 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 if ((executeFunction->GetSavedImplicitCallsFlags() & savedImplicitCallFlags) == Js::ImplicitCall_None)
                 {
                     profileInfo->RecordImplicitCallFlags(savedImplicitCallFlags);
-                    Assert(!profileInfo->IsLoopImplicitCallInfoDisabled());
                     profileInfo->DisableLoopImplicitCallInfo();
                     rejitReason = RejitReason::ImplicitCallFlagsChanged;
                 }
