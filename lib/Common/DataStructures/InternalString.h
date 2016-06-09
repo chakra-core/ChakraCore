@@ -32,15 +32,15 @@ namespace Js
 
     struct InternalStringComparer
     {
-        __inline static bool Equals(InternalString const& str1, InternalString const& str2)
+        inline static bool Equals(InternalString const& str1, InternalString const& str2)
         {
             return str1.GetLength() == str2.GetLength() &&
-                JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1.GetBuffer(), str2.GetBuffer(), str1.GetLength());
+                JsUtil::CharacterBuffer<char16>::StaticEquals(str1.GetBuffer(), str2.GetBuffer(), str1.GetLength());
         }
 
-        __inline static hash_t GetHashCode(InternalString const& str)
+        inline static hash_t GetHashCode(InternalString const& str)
         {
-            return JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(str.GetBuffer(), str.GetLength());
+            return JsUtil::CharacterBuffer<char16>::StaticGetHashCode(str.GetBuffer(), str.GetLength());
         }
     };
 }

@@ -21,8 +21,7 @@ extern "C" {
 #define RtlUshortByteSwap(_x)    _byteswap_ushort((USHORT)(_x))
 #define RtlUlongByteSwap(_x)     _byteswap_ulong((_x))
 #define RtlUlonglongByteSwap(_x) _byteswap_uint64((_x))
-#else
-
+#elif defined(_WIN32)
 #if (NTDDI_VERSION >= NTDDI_WIN2K)
 NTSYSAPI
 USHORT
@@ -50,4 +49,21 @@ RtlUlonglongByteSwap(
     );
 #endif
 
+#elif defined(__APPLE__)
+#include <libkern/OSByteOrder.h> 
+
+#define RtlUshortByteSwap(_x)    OSSwapInt16((_x))
+#define RtlUlongByteSwap(_x)     OSSwapInt32((_x))
+#define RtlUlonglongByteSwap(_x) OSSwapInt64((_x))
+
+#elif defined(__linux__)
+#include <byteswap.h>
+
+#define RtlUshortByteSwap(_x)    __bswap_16((_x))
+#define RtlUlongByteSwap(_x)     __bswap_32((_x))
+#define RtlUlonglongByteSwap(_x) __bswap_64((_x))
+
+#else
+// TODO: include endian.h for BSD?
+#error "ByteSwap.h: Not implemented for this platform"
 #endif

@@ -69,7 +69,7 @@ CriticalSection ThreadContext::s_csThreadContext;
 size_t ThreadContext::processNativeCodeSize = 0;
 ThreadContext * ThreadContext::globalListFirst = nullptr;
 ThreadContext * ThreadContext::globalListLast = nullptr;
-uint ThreadContext::activeScriptSiteCount = 0;
+__declspec(thread) uint ThreadContext::activeScriptSiteCount = 0;
 
 const Js::PropertyRecord * const ThreadContext::builtInPropertyRecords[] =
 {
@@ -88,7 +88,8 @@ ThreadContext::RecyclableData::RecyclableData(Recycler *const recycler) :
     typesWithProtoPropertyCache(recycler),
     propertyGuards(recycler, 128),
     oldEntryPointInfo(nullptr),
-    returnedValueList(nullptr)
+    returnedValueList(nullptr),
+    constructorCacheInvalidationCount(0)
 {
 }
 
@@ -113,7 +114,11 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     isOptimizedForManyInstances(Js::Configuration::Global.flags.OptimizeForManyInstances),
     bgJit(Js::Configuration::Global.flags.BgJit),
     pageAllocator(allocationPolicyManager, PageAllocatorType_Thread, Js::Configuration::Global.flags, 0, PageAllocator::DefaultMaxFreePageCount,
-        false, &backgroundPageQueue),
+        false
+#if ENABLE_BACKGROUND_PAGE_FREEING
+        , &backgroundPageQueue
+#endif
+        ),
     recycler(nullptr),
     hasCollectionCallBack(false),
     callDispose(true),
@@ -183,7 +188,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     loopDepth(0),
     maxGlobalFunctionExecTime(0.0),
     isAllJITCodeInPreReservedRegion(true),
-    activityId(GUID_NULL),
     tridentLoadAddress(nullptr),
     debugManager(nullptr)
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
@@ -199,8 +203,10 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 
     isScriptActive = false;
 
+#ifdef ENABLE_CUSTOM_ENTROPY
     entropy.Initialize();
-
+#endif
+    
 #if ENABLE_NATIVE_CODEGEN
     this->bailOutRegisterSaveSpace = AnewArrayZ(this->GetThreadAlloc(), Js::Var, GetBailOutRegisterSaveSlotCount());
 #endif
@@ -1411,10 +1417,9 @@ ThreadContext::SetForceOneIdleCollection()
 BOOLEAN
 ThreadContext::IsOnStack(void const *ptr)
 {
-
-#if defined(_M_IX86)
+#if defined(_M_IX86) && defined(_MSC_VER)
     return ptr < (void*)__readfsdword(0x4) && ptr >= (void*)__readfsdword(0xE0C);
-#elif defined(_M_AMD64)
+#elif defined(_M_AMD64) && defined(_MSC_VER)
     return ptr < (void*)__readgsqword(0x8) && ptr >= (void*)__readgsqword(0x1478);
 #elif defined(_M_ARM)
     ULONG lowLimit, highLimit;
@@ -1423,6 +1428,12 @@ ThreadContext::IsOnStack(void const *ptr)
     return isOnStack;
 #elif defined(_M_ARM64)
     ULONG64 lowLimit, highLimit;
+    ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
+    bool isOnStack = (void*)lowLimit <= ptr && ptr < (void*)highLimit;
+    return isOnStack;
+#elif !defined(_MSC_VER)
+    ULONG_PTR lowLimit = 0;
+    ULONG_PTR highLimit = 0;
     ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
     bool isOnStack = (void*)lowLimit <= ptr && ptr < (void*)highLimit;
     return isOnStack;
@@ -1562,8 +1573,8 @@ void
 ThreadContext::ProbeStack(size_t size, Js::RecyclableObject * obj, Js::ScriptContext *scriptContext)
 {
     AssertCanHandleStackOverflowCall(obj->IsExternal() ||
-        Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
-        Js::JavascriptFunction::FromVar(obj)->IsExternalFunction());
+        (Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
+        Js::JavascriptFunction::FromVar(obj)->IsExternalFunction()));
     if (!this->IsStackAvailable(size))
     {
         if (this->IsExecutionDisabled())
@@ -1574,8 +1585,8 @@ ThreadContext::ProbeStack(size_t size, Js::RecyclableObject * obj, Js::ScriptCon
         }
 
         if (obj->IsExternal() ||
-            Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
-            Js::JavascriptFunction::FromVar(obj)->IsExternalFunction())
+            (Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
+            Js::JavascriptFunction::FromVar(obj)->IsExternalFunction()))
         {
             Js::JavascriptError::ThrowStackOverflowError(scriptContext);
         }
@@ -1963,7 +1974,7 @@ void ThreadContext::ReleaseDebugManager()
     Assert(crefSContextForDiag > 0);
     Assert(this->debugManager != nullptr);
 
-    long lref = InterlockedDecrement(&crefSContextForDiag);
+    LONG lref = InterlockedDecrement(&crefSContextForDiag);
 
     if (lref == 0)
     {
@@ -2527,6 +2538,39 @@ ThreadContext::ClearInlineCachesWithDeadWeakRefs()
 }
 
 void
+ThreadContext::ClearInvalidatedUniqueGuards()
+{
+    // If a propertyGuard was invalidated, make sure to remove it's entry from unique property guard table of other property records.
+    PropertyGuardDictionary &guards = this->recyclableData->propertyGuards;
+
+    guards.Map([this](Js::PropertyRecord const * propertyRecord, PropertyGuardEntry* entry, const RecyclerWeakReference<const Js::PropertyRecord>* weakRef)
+    {
+        entry->uniqueGuards.MapAndRemoveIf([=](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef)
+        {
+            Js::PropertyGuard* guard = guardWeakRef->Get();
+            bool shouldRemove = guard != nullptr && !guard->IsValid();
+            if (shouldRemove)
+            {
+                if (PHASE_TRACE1(Js::TracePropertyGuardsPhase) || PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase))
+                {
+                    Output::Print(_u("FixedFields: invalidating guard: name: %s, address: 0x%p, value: 0x%p, value address: 0x%p\n"),
+                                  propertyRecord->GetBuffer(), guard, guard->GetValue(), guard->GetAddressOfValue());
+                    Output::Flush();
+                }
+                if (PHASE_TESTTRACE1(Js::TracePropertyGuardsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase))
+                {
+                    Output::Print(_u("FixedFields: invalidating guard: name: %s, value: 0x%p\n"),
+                                  propertyRecord->GetBuffer(), guard->GetValue());
+                    Output::Flush();
+                }
+            }
+
+            return shouldRemove;
+        });
+    });
+}
+
+void
 ThreadContext::ClearInlineCaches()
 {
     if (PHASE_TRACE1(Js::InlineCachePhase))
@@ -2686,7 +2730,7 @@ ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
     InlineCacheList* inlineCacheList;
     if (protoInlineCacheByPropId.TryGetValueAndRemove(propertyId, &inlineCacheList))
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     }
 }
 
@@ -2703,12 +2747,12 @@ ThreadContext::InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId)
     InlineCacheList* inlineCacheList;
     if (storeFieldInlineCacheByPropId.TryGetValueAndRemove(propertyId, &inlineCacheList))
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     }
 }
 
 void
-ThreadContext::InvalidateInlineCacheList(InlineCacheList* inlineCacheList)
+ThreadContext::InvalidateAndDeleteInlineCacheList(InlineCacheList* inlineCacheList)
 {
     Assert(inlineCacheList != nullptr);
 
@@ -2728,7 +2772,7 @@ ThreadContext::InvalidateInlineCacheList(InlineCacheList* inlineCacheList)
         }
     }
     NEXT_SLISTBASE_ENTRY;
-    inlineCacheList->Clear();
+    Adelete(&this->inlineCacheThreadInfoAllocator, inlineCacheList);
     this->registeredInlineCacheCount = this->registeredInlineCacheCount > cacheCount ? this->registeredInlineCacheCount - cacheCount : 0;
 }
 
@@ -2911,6 +2955,8 @@ ThreadContext::RegisterUniquePropertyGuard(Js::PropertyId propertyId, RecyclerWe
     const Js::PropertyRecord * propertyRecord = GetPropertyName(propertyId);
 
     bool foundExistingGuard;
+
+    
     PropertyGuardEntry* entry = EnsurePropertyGuardEntry(propertyRecord, foundExistingGuard);
 
     entry->uniqueGuards.Item(guardWeakRef);
@@ -2939,7 +2985,7 @@ ThreadContext::RegisterConstructorCache(Js::PropertyId propertyId, Js::Construct
 }
 
 void
-ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry)
+ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation)
 {
     Assert(entry != nullptr);
 
@@ -2963,7 +3009,8 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
         guard->Invalidate();
     }
 
-    entry->uniqueGuards.Map([propertyRecord](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef)
+    uint count = 0;
+    entry->uniqueGuards.Map([&count, propertyRecord](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef)
     {
         Js::PropertyGuard* guard = guardWeakRef->Get();
         if (guard != nullptr)
@@ -2983,10 +3030,26 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
             }
 
             guard->Invalidate();
+            count++;
         }
     });
 
     entry->uniqueGuards.Clear();
+
+    
+    // Count no. of invalidations done so far. Exclude if this is all property guards invalidation in which case
+    // the unique Guards will be cleared anyway.
+    if (!isAllPropertyGuardsInvalidation)
+    {
+        this->recyclableData->constructorCacheInvalidationCount += count;
+        if (this->recyclableData->constructorCacheInvalidationCount > (uint)CONFIG_FLAG(ConstructorCacheInvalidationThreshold))
+        {
+            // TODO: In future, we should compact the uniqueGuards dictionary so this function can be called from PreCollectionCallback
+            // instead
+            this->ClearInvalidatedUniqueGuards();
+            this->recyclableData->constructorCacheInvalidationCount = 0;
+        }
+    }
 
     if (entry->entryPoints && entry->entryPoints->Count() > 0)
     {
@@ -3026,7 +3089,7 @@ ThreadContext::InvalidatePropertyGuards(Js::PropertyId propertyId)
     PropertyGuardEntry* entry;
     if (guards.TryGetValueAndRemove(propertyRecord, &entry))
     {
-        InvalidatePropertyGuardEntry(propertyRecord, entry);
+        InvalidatePropertyGuardEntry(propertyRecord, entry, false);
     }
 }
 
@@ -3038,7 +3101,7 @@ ThreadContext::InvalidateAllPropertyGuards()
     {
         guards.Map([this](Js::PropertyRecord const * propertyRecord, PropertyGuardEntry* entry, const RecyclerWeakReference<const Js::PropertyRecord>* weakRef)
         {
-            InvalidatePropertyGuardEntry(propertyRecord, entry);
+            InvalidatePropertyGuardEntry(propertyRecord, entry, true);
         });
 
         guards.Clear();
@@ -3051,7 +3114,7 @@ ThreadContext::InvalidateAllProtoInlineCaches()
 {
     protoInlineCacheByPropId.Map([this](Js::PropertyId propertyId, InlineCacheList* inlineCacheList)
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     });
     protoInlineCacheByPropId.ResetNoDelete();
 }
@@ -3067,7 +3130,7 @@ ThreadContext::InvalidateAllStoreFieldInlineCaches()
 {
     storeFieldInlineCacheByPropId.Map([this](Js::PropertyId propertyId, InlineCacheList* inlineCacheList)
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     });
     storeFieldInlineCacheByPropId.ResetNoDelete();
 }
@@ -3414,7 +3477,7 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
     {
         return TRUE;
     }
-    
+
     if (!this->IsAllJITCodeInPreReservedRegion())
     {
         CustomHeap::CodePageAllocators::AutoLock autoLock(&this->codePageAllocators);
@@ -3620,7 +3683,14 @@ ThreadServiceWrapper* ThreadContext::GetThreadServiceWrapper()
 
 uint ThreadContext::GetRandomNumber()
 {
+#ifdef ENABLE_CUSTOM_ENTROPY
     return (uint)GetEntropy().GetRand();
+#else
+    uint randomNumber = 0;
+    errno_t e = rand_s(&randomNumber);
+    Assert(e == 0);
+    return randomNumber;
+#endif
 }
 
 #ifdef ENABLE_JS_ETW
@@ -3842,6 +3912,7 @@ void ThreadContext::ClearThreadContextFlag(ThreadContextFlags contextFlag)
     this->threadContextFlags = (ThreadContextFlags)(this->threadContextFlags & ~contextFlag);
 }
 
+#ifdef ENABLE_GLOBALIZATION
 #ifdef _CONTROL_FLOW_GUARD
 Js::DelayLoadWinCoreMemory * ThreadContext::GetWinCoreMemoryLibrary()
 {
@@ -3913,6 +3984,7 @@ Js::DelayLoadWinRtFoundation* ThreadContext::GetWinRtFoundationLibrary()
     return &delayLoadWinRtFoundationLibrary;
 }
 #endif
+#endif // ENABLE_GLOBALIZATION
 
 bool ThreadContext::IsCFGEnabled()
 {
@@ -4065,6 +4137,8 @@ ThreadContext::ClearRootTrackerScriptContext(Js::ScriptContext * scriptContext)
 }
 #endif
 
+#ifdef ENABLE_BASIC_TELEMETRY
+#if ENABLE_NATIVE_CODEGEN
 JITTimer::JITTimer()
 {
     Reset();
@@ -4116,6 +4190,7 @@ void JITTimer::LogTime(double ms)
         stats.greaterThan300ms++;
     }
 }
+#endif // NATIVE_CODE_GEN
 
 ParserTimer::ParserTimer()
 {
@@ -4172,6 +4247,7 @@ void ParserTimer::LogTime(double ms)
         stats.greaterThan300ms++;
     }
 }
+#endif // ENABLE_BASIC_TELEMETRY
 
 AutoTagNativeLibraryEntry::AutoTagNativeLibraryEntry(Js::RecyclableObject* function, Js::CallInfo callInfo, PCWSTR name, void* addr)
 {

@@ -16,10 +16,7 @@
  *  of the hash function so things don't go out of sync.
  */
 
-// scaffolding - define ULONG
-typedef unsigned long ULONG;
-
-ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, long cch)
+ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, int32 cch)
 {
     ULONG luHash = 0;
 
@@ -28,7 +25,7 @@ ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, long cch)
     return luHash;
 }
 
-ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, long cch)
+ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, int32 cch)
 {
     utf8::DecodeOptions options = utf8::doAllowThreeByteSurrogates;
     ULONG luHash = 0;
@@ -38,7 +35,7 @@ ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, long cch)
     return luHash;
 }
 
-ULONG CaseSensitiveComputeHashCch(char const * prgch, long cch)
+ULONG CaseSensitiveComputeHashCch(char const * prgch, int32 cch)
 {
     ULONG luHash = 0;
 

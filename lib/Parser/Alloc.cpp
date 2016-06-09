@@ -23,7 +23,7 @@ struct __ALIGN_FOO__ {
 
 #define AlignFull(VALUE) (~(~((VALUE) + (ALIGN_FULL-1)) | (ALIGN_FULL-1)))
 
-NoReleaseAllocator::NoReleaseAllocator(long cbFirst, long cbMax)
+NoReleaseAllocator::NoReleaseAllocator(int32 cbFirst, int32 cbMax)
     : m_pblkList(NULL)
     , m_ibCur(0)
     , m_ibMax(0)
@@ -42,19 +42,19 @@ NoReleaseAllocator::NoReleaseAllocator(long cbFirst, long cbMax)
     Assert((0 < cbMax  ) && (cbMax   < SHRT_MAX));
 }
 
-void * NoReleaseAllocator::Alloc(long cb)
+void * NoReleaseAllocator::Alloc(int32 cb)
 {
     Assert(cb > 0);
     if (cb <= 0)
         return NULL;
 
-    const long kcbHead = AlignFull(sizeof(NoReleaseAllocator::NraBlock));
+    const int32 kcbHead = AlignFull(sizeof(NoReleaseAllocator::NraBlock));
     void * pv;
 
     if (cb > m_ibMax - m_ibCur)
     {
-        long cbBlock;
-        long cbAlloc;
+        int32 cbBlock;
+        int32 cbAlloc;
         NraBlock * pblk;
 
         if (cb >= m_cbMaxBlock)
@@ -144,7 +144,7 @@ void * NoReleaseAllocator::Alloc(long cb)
 #endif //DEBUG
     pv = (byte *)m_pblkList + kcbHead + m_ibCur;
     DEBUG_TRASHMEM(pv, cb);
-    m_ibCur += (long)AlignFull(cb);
+    m_ibCur += (int32)AlignFull(cb);
     Assert(m_ibCur >= 0);
     return pv;
 }

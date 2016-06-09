@@ -53,8 +53,15 @@ namespace Js
 
         Var GetOptions();
 
-        inline void SetPattern(UnifiedRegex::RegexPattern* pattern);
-        inline void SetSplitPattern(UnifiedRegex::RegexPattern* splitPattern);
+        void SetPattern(UnifiedRegex::RegexPattern* pattern)
+        {
+            this->pattern = pattern;
+        }
+
+        void SetSplitPattern(UnifiedRegex::RegexPattern* splitPattern)
+        {
+            this->splitPattern = splitPattern;
+        }
 
         static CharCount GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext);
         static void SetLastIndexProperty(Var instance, CharCount lastIndex, ScriptContext* scriptContext);

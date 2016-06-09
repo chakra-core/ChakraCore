@@ -39,8 +39,9 @@ namespace Js
         {
             swprintf_s(stringBuffer, countBuffer, _u("SIMD.Uint32x4(%u, %u, %u, %u)"), value.u32[SIMD_X], value.u32[SIMD_Y], value.u32[SIMD_Z], value.u32[SIMD_W]);
         }
+
         static const char16* GetTypeName();
-        __inline SIMDValue GetValue() { return value; }
+        inline SIMDValue GetValue() { return value; }
 
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 

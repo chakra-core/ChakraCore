@@ -141,21 +141,21 @@ void CDirectory::InitStats(int num)
     NumVariationsRun = NumFailures = NumDiffs = 0;
 }
 
-long CDirectory::IncRun(int inc)
+int32 CDirectory::IncRun(int inc)
 {
     ::NumVariationsRun[RLS_TOTAL] += inc; // overall count
     ::NumVariationsRun[stat] += inc; // mode stat
     return NumVariationsRun += inc; // per directory count
 }
 
-long CDirectory::IncFailures(int inc)
+int32 CDirectory::IncFailures(int inc)
 {
     ::NumFailuresTotal[RLS_TOTAL] += inc; // overall count
     ::NumFailuresTotal[stat] += inc; // mode stat
     return NumFailures += inc; // per directory count
 }
 
-long CDirectory::IncDiffs()
+int32 CDirectory::IncDiffs()
 {
     ::NumDiffsTotal[RLS_TOTAL]++; // overall count
     ::NumDiffsTotal[stat]++; // mode stat

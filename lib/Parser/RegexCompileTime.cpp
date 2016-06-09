@@ -11,6 +11,13 @@ namespace UnifiedRegex
     // Compiler (inlines etc)
     // ----------------------------------------------------------------------
 
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    const CharCount Compiler::initInstBufSize;
+#endif
+
     uint8* Compiler::Emit(size_t size)
     {
         Assert(size <= UINT32_MAX);
@@ -2354,7 +2361,8 @@ namespace UnifiedRegex
                 // The firing condition is not strong enough yet.
                 fires = false;
                 // Check conditions (2) and (3) first because they're faster, then check condition (1).
-                if (numNonEmpty == 0 || isFollowIrrefutable && allSimpleOneChar && totalChars == firstSet->Count())
+                if (numNonEmpty == 0 ||
+                    (isFollowIrrefutable && allSimpleOneChar && totalChars == firstSet->Count()))
                 {
                     fires = true;
                 }

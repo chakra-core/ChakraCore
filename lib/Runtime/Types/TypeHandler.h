@@ -185,19 +185,19 @@ namespace Js
         void SetSlotUnchecked(DynamicObject * instance, int index, Var value);
 
     public:
-        __inline PropertyIndex AdjustSlotIndexForInlineSlots(PropertyIndex slotIndex)
+        inline PropertyIndex AdjustSlotIndexForInlineSlots(PropertyIndex slotIndex)
         {
             return slotIndex != Constants::NoSlot ? AdjustValidSlotIndexForInlineSlots(slotIndex) : Constants::NoSlot;
         }
 
-        __inline PropertyIndex AdjustValidSlotIndexForInlineSlots(PropertyIndex slotIndex)
+        inline PropertyIndex AdjustValidSlotIndexForInlineSlots(PropertyIndex slotIndex)
         {
             Assert(slotIndex != Constants::NoSlot);
             return slotIndex < inlineSlotCapacity ?
                 slotIndex + (offsetOfInlineSlots / sizeof(Var)) : slotIndex - (PropertyIndex)inlineSlotCapacity;
         }
 
-        __inline void PropertyIndexToInlineOrAuxSlotIndex(PropertyIndex propertyIndex, PropertyIndex * inlineOrAuxSlotIndex, bool * isInlineSlot) const
+        inline void PropertyIndexToInlineOrAuxSlotIndex(PropertyIndex propertyIndex, PropertyIndex * inlineOrAuxSlotIndex, bool * isInlineSlot) const
         {
             if (propertyIndex < inlineSlotCapacity)
             {

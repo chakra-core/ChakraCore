@@ -35,9 +35,13 @@ namespace Js {
             uint lastUpdateTickCount;
             bool isDaylightTimeApplicable;
             bool isJanuary1Critical;
+// xplat-todo: implement DaylightTimeHelper
+
+#ifdef _WIN32
             TimeZoneInfo();
             bool IsValid(double time);
             void Update(double time);
+#endif            
         };
         TimeZoneInfo cache1, cache2;
         bool useFirstCache;

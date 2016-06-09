@@ -38,7 +38,10 @@ public:
 #endif
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    void SetMaxPageCount(size_t maxPageCount) { this->maxPageCount = max<size_t>(maxPageCount, 1); }
+    void SetMaxPageCount(size_t maxPageCount)
+    {
+        this->maxPageCount = maxPageCount > 1 ? maxPageCount : 1;
+    }
 #endif
 
     static const uint MaxSplitTargets = 3;     // Not counting original stack, so this supports 4-way parallel
@@ -66,7 +69,7 @@ private:
 
 
 template <typename T>
-__inline
+inline
 bool PageStack<T>::Pop(T * item)
 {
     Assert(currentChunk != nullptr);
@@ -104,7 +107,7 @@ bool PageStack<T>::Pop(T * item)
 }
 
 template <typename T>
-__inline
+inline
 bool PageStack<T>::Push(T item)
 {
     if (nextEntry == chunkEnd)

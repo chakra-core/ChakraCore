@@ -25,7 +25,7 @@ namespace UnifiedRegex
         int count;
         // Array of capacity entries, first count are used, in increasing character order
 
-        __inline bool Find(Char c, int& outi);
+        inline bool Find(Char c, int& outi);
 
     public:
         inline CharTrie() : isAccepting(false), capacity(0), count(0), children(0) {}

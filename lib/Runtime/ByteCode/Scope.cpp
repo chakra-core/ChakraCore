@@ -21,7 +21,8 @@ void Scope::SetHasLocalInClosure(bool has)
     // (Note: if any catch var is closure-captured, we won't merge the catch scope with the function scope.
     // So don't mark the function scope "has local in closure".)
     bool notCatch = this->scopeType != ScopeType_Catch && this->scopeType != ScopeType_CatchParamPattern;
-    if (has && (this == func->GetBodyScope() || this == func->GetParamScope()) || (GetCanMerge() && notCatch))
+    if ((has && (this == func->GetBodyScope() || this == func->GetParamScope())) ||
+        (GetCanMerge() && notCatch))
     {
         func->SetHasLocalInClosure(true);
     }
@@ -103,9 +104,6 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *by
     Scope *paramScope = pnodeScope->sxFnc.pnodeScopes->sxBlock.scope;
     Scope *bodyScope = pnodeScope->sxFnc.pnodeBodyScope->sxBlock.scope;
 
-    Assert(paramScope->m_symList == nullptr || paramScope->symbolTable == nullptr);
-    Assert(bodyScope->m_symList == nullptr || bodyScope->symbolTable == nullptr);
-
     if (paramScope->Count() == 0)
     {
         // Once the scopes are merged, there's no reason to instantiate the param scope.
@@ -138,7 +136,6 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *by
     paramScope->m_count = 0;
     paramScope->scopeSlotCount = 0;
     paramScope->m_symList = nullptr;
-    paramScope->symbolTable = nullptr;
 
     // Remove the parameter scope from the scope chain.
     bodyScope->SetEnclosingScope(paramScope->GetEnclosingScope());

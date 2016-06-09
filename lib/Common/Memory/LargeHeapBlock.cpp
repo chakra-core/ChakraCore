@@ -8,7 +8,9 @@ CompileAssert(
     sizeof(LargeObjectHeader) == HeapConstants::ObjectGranularity ||
     sizeof(LargeObjectHeader) == HeapConstants::ObjectGranularity * 2);
 
+#ifdef STACK_BACK_TRACE
 const StackBackTrace* LargeHeapBlock::s_StackTraceAllocFailed = (StackBackTrace*)1;
+#endif
 
 void *
 LargeObjectHeader::GetAddress() { return ((char *)this) + sizeof(LargeObjectHeader); }
@@ -170,7 +172,7 @@ LargeHeapBlock::Delete(LargeHeapBlock * heapBlock)
 
 LargeHeapBlock::LargeHeapBlock(__in char * address, size_t pageCount, Segment * segment, uint objectCount, LargeHeapBucket* bucket)
     : HeapBlock(LargeBlockType), pageCount(pageCount), allocAddressEnd(address), objectCount(objectCount), bucket(bucket), freeList(this)
-#ifdef RECYCLER_PAGE_HEAP
+#if defined(RECYCLER_PAGE_HEAP) && defined(STACK_BACK_TRACE)
     , pageHeapAllocStack(nullptr), pageHeapFreeStack(nullptr)
 #endif
 {
@@ -199,7 +201,7 @@ LargeHeapBlock::~LargeHeapBlock()
         "ReleasePages needs to be called before delete");
     RECYCLER_PERF_COUNTER_DEC(LargeHeapBlockCount);
 
-#ifdef RECYCLER_PAGE_HEAP
+#if defined(RECYCLER_PAGE_HEAP) && defined(STACK_BACK_TRACE)
     if (this->pageHeapAllocStack != nullptr)
     {
         if (this->pageHeapAllocStack != s_StackTraceAllocFailed)
@@ -483,7 +485,7 @@ LargeHeapBlock::AllocFreeListEntry(size_t size, ObjectInfoBits attributes, Large
     header->objectIndex = headerIndex;
     header->objectSize = originalSize;
     header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & StoredObjectInfoBitMask));
-    header->markOnOOMRescan = nullptr;
+    header->markOnOOMRescan = false;
     header->SetNext(this->heapInfo->recycler->Cookie, nullptr);
 
     HeaderList()[headerIndex] = header;
@@ -1975,6 +1977,7 @@ LargeHeapBlock::GetTrackerDataArray()
 void
 LargeHeapBlock::CapturePageHeapAllocStack()
 {
+#ifdef STACK_BACK_TRACE
     if (this->InPageHeapMode()) // pageheap can be enabled only for some of the buckets
     {
         // These asserts are true because explicit free is disallowed in
@@ -1999,11 +2002,13 @@ LargeHeapBlock::CapturePageHeapAllocStack()
             this->pageHeapAllocStack = const_cast<StackBackTrace*>(s_StackTraceAllocFailed); // allocate failed, mark it we have tried
         }
     }
+#endif
 }
 
 void
 LargeHeapBlock::CapturePageHeapFreeStack()
 {
+#ifdef STACK_BACK_TRACE
     if (this->InPageHeapMode()) // pageheap can be enabled only for some of the buckets
     {
         // These asserts are true because explicit free is disallowed in
@@ -2021,5 +2026,6 @@ LargeHeapBlock::CapturePageHeapFreeStack()
                 Recycler::s_numFramesToSkipForPageHeapFree, Recycler::s_numFramesToCaptureForPageHeap);
         }
     }
+#endif
 }
 #endif

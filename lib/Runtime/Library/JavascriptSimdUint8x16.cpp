@@ -40,7 +40,7 @@ namespace Js
     Var JavascriptSIMDUint8x16::CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue,
         const Var* args, uint numArgs, CallInfo callInfo)
     {
-        char16 *typeString = _u("SIMD.Uint8x16(");
+        const char16 *typeString = _u("SIMD.Uint8x16(");
         return JavascriptSIMDObject::FromVar(&obj)->ToLocaleString<uint8, 16>(args, numArgs, typeString,
             simdValue.u8, &callInfo, &requestContext);
     }

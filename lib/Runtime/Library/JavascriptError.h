@@ -81,14 +81,14 @@ namespace Js
 
         static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr);
         static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO *ei, IErrorInfo * perrinfo = nullptr, RestrictedErrorStrings * proerrstr = nullptr, bool useErrInfoDescription = false);
-        static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, long hCode, EXCEPINFO* pei, bool useErrInfoDescription = false);
+        static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei, bool useErrInfoDescription = false);
         static JavascriptError* MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType, IErrorInfo * perrinfo = nullptr, RestrictedErrorStrings * proerrstr = nullptr);
 
 #define THROW_ERROR_DECL(err_method) \
-        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, long hCode, EXCEPINFO* ei, IErrorInfo* perrinfo = nullptr, RestrictedErrorStrings* proerrstr = nullptr, bool useErrInfoDescription = false); \
-        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, long hCode, PCWSTR varName = nullptr); \
-        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, long hCode, JavascriptString* varName); \
-        static void __declspec(noreturn) err_method##Var(ScriptContext* scriptContext, long hCode, ...);
+        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* ei, IErrorInfo* perrinfo = nullptr, RestrictedErrorStrings* proerrstr = nullptr, bool useErrInfoDescription = false); \
+        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName = nullptr); \
+        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName); \
+        static void __declspec(noreturn) err_method##Var(ScriptContext* scriptContext, int32 hCode, ...);
 
         THROW_ERROR_DECL(ThrowError)
         THROW_ERROR_DECL(ThrowEvalError)
@@ -102,13 +102,13 @@ namespace Js
         static void __declspec(noreturn) ThrowDispatchError(ScriptContext* scriptContext, HRESULT hCode, PCWSTR message);
         static void __declspec(noreturn) ThrowOutOfMemoryError(ScriptContext *scriptContext);
         static void __declspec(noreturn) ThrowParserError(ScriptContext* scriptContext, HRESULT hrParser, CompileScriptException* se);
-        static ErrorTypeEnum MapParseError(long hCode);
-        static JavascriptError* MapParseError(ScriptContext* scriptContext, long hCode);
+        static ErrorTypeEnum MapParseError(int32 hCode);
+        static JavascriptError* MapParseError(ScriptContext* scriptContext, int32 hCode);
         static HRESULT GetRuntimeError(RecyclableObject* errorObject, __out_opt LPCWSTR * pMessage);
         static HRESULT GetRuntimeErrorWithScriptEnter(RecyclableObject* errorObject, __out_opt LPCWSTR * pMessage);
-        static void __declspec(noreturn) ThrowStackOverflowError(ScriptContext *scriptContext, PVOID returnAddress = false);
-        static void SetErrorMessageProperties(JavascriptError *pError, long errCode, PCWSTR message, ScriptContext* scriptContext);
-        static void SetErrorMessage(JavascriptError *pError, long errCode, PCWSTR varName, ScriptContext* scriptContext);
+        static void __declspec(noreturn) ThrowStackOverflowError(ScriptContext *scriptContext, PVOID returnAddress = nullptr);
+        static void SetErrorMessageProperties(JavascriptError *pError, HRESULT errCode, PCWSTR message, ScriptContext* scriptContext);
+        static void SetErrorMessage(JavascriptError *pError, HRESULT errCode, PCWSTR varName, ScriptContext* scriptContext);
         static void SetErrorMessage(JavascriptError *pError, HRESULT hr, ScriptContext* scriptContext, va_list argList);
         static void SetErrorType(JavascriptError *pError, ErrorTypeEnum errorType);
 
@@ -137,11 +137,11 @@ namespace Js
 
         static DWORD GetAdjustedResourceStringHr(DWORD hr, bool isFormatString);
 
-        static long GetErrorNumberFromResourceID(long resourceId);
+        static int32 GetErrorNumberFromResourceID(int32 resourceId);
 
         JavascriptError* CreateNewErrorOfSameType(JavascriptLibrary* targetJavascriptLibrary);
         JavascriptError* CloneErrorMsgAndNumber(JavascriptLibrary* targetJavascriptLibrary);
-        static void TryThrowTypeError(ScriptContext * checkScriptContext, ScriptContext * scriptContext, long hCode, PCWSTR varName = nullptr);
+        static void TryThrowTypeError(ScriptContext * checkScriptContext, ScriptContext * scriptContext, int32 hCode, PCWSTR varName = nullptr);
         static JavascriptError* CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse);
 
     private:

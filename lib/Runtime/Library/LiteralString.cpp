@@ -20,9 +20,11 @@ namespace Js
         AssertMsg(!ThreadContext::IsOnStack((void*)content),
             "LiteralString object created using stack buffer...");
 #endif
+#if SYSINFO_IMAGE_BASE_AVAILABLE
        AssertMsg(AutoSystemInfo::IsJscriptModulePointer((void *)content)
            || type->GetScriptContext()->GetRecycler()->IsValidObject((void *)content),
            "LiteralString can only be used with static or GC strings");
+#endif
 
 #ifdef PROFILE_STRINGS
         StringProfiler::RecordNewString( type->GetScriptContext(), content, charLength );

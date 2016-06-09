@@ -89,23 +89,25 @@ namespace Js
 
         static void ValidateSyntax(ScriptContext* scriptContext, const char16 *source, int sourceLength, bool isGenerator, bool isAsync, void (Parser::*validateSyntax)());
         static void UpdateThisForEval(Var &varThis, ModuleID moduleID, ScriptContext *scriptContext, BOOL strictMode) ;
-        static ScriptFunction* DefaultEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
-        static ScriptFunction* ProfileModeEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
+        static ScriptFunction* DefaultEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
+#ifdef ENABLE_SCRIPT_PROFILING
+        static ScriptFunction* ProfileModeEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
+#endif        
 #ifdef IR_VIEWER
         static Var IRDumpEvalHelper(ScriptContext* scriptContext, const char16 *source,
-            int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle,
+            int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle,
             BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
 #endif /* IR_VIEWER */
 
         static bool Is(Var aValue);
         static GlobalObject* FromVar(Var aValue);
 
-        typedef ScriptFunction* (*EvalHelperType)(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
+        typedef ScriptFunction* (*EvalHelperType)(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
         EvalHelperType EvalHelper;
 
         static Var EntryEvalHelper(ScriptContext* scriptContext, RecyclableObject* function, CallInfo callInfo, Arguments& args);
         static Var VEval(JavascriptLibrary* library, FrameDisplay* environment, ModuleID moduleID, bool isStrictMode, bool isIndirect,
-            Arguments& args, bool isLibraryCode, bool registerDocument, ulong additionalGrfscr);
+            Arguments& args, bool isLibraryCode, bool registerDocument, uint32 additionalGrfscr);
 
         virtual BOOL HasProperty(PropertyId propertyId) override;
         virtual BOOL HasOwnProperty(PropertyId propertyId) override;

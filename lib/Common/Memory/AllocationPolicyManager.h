@@ -119,13 +119,13 @@ public:
     }
 
 private:
-    __inline bool RequestAllocImpl(size_t byteCount)
+    inline bool RequestAllocImpl(size_t byteCount)
     {
         size_t newCurrentMemory = currentMemory + byteCount;
 
         if (newCurrentMemory < currentMemory ||
             newCurrentMemory > memoryLimit ||
-            memoryAllocationCallback != NULL && !memoryAllocationCallback(context, MemoryAllocateEvent::MemoryAllocate, byteCount))
+            (memoryAllocationCallback != NULL && !memoryAllocationCallback(context, MemoryAllocateEvent::MemoryAllocate, byteCount)))
         {
             if (memoryAllocationCallback != NULL)
             {
@@ -141,7 +141,7 @@ private:
         }
     }
 
-    __inline void ReportFreeImpl(MemoryAllocateEvent allocationEvent, size_t byteCount)
+    inline void ReportFreeImpl(MemoryAllocateEvent allocationEvent, size_t byteCount)
     {
         Assert(currentMemory >= byteCount);
 

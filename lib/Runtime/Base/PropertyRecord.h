@@ -21,7 +21,7 @@ namespace Js
 {
     class PropertyRecord : FinalizableObject
     {
-        friend class ThreadContext;
+        friend class ::ThreadContext;
         template <int LEN>
         friend struct BuiltInPropertyRecord;
         friend class InternalPropertyRecords;
@@ -160,24 +160,24 @@ namespace Js
 
     struct PropertyRecordPointerComparer
     {
-        __inline static bool Equals(PropertyRecord const * str1, PropertyRecord const * str2)
+        inline static bool Equals(PropertyRecord const * str1, PropertyRecord const * str2)
         {
             return (str1->GetLength() == str2->GetLength() &&
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetBuffer(), str2->GetBuffer(), str1->GetLength()));
         }
 
-        __inline static bool Equals(PropertyRecord const * str1, JsUtil::CharacterBuffer<WCHAR> const * str2)
+        inline static bool Equals(PropertyRecord const * str1, JsUtil::CharacterBuffer<WCHAR> const * str2)
         {
             return (str1->GetLength() == str2->GetLength() && !Js::IsInternalPropertyId(str1->GetPropertyId()) &&
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetBuffer(), str2->GetBuffer(), str1->GetLength()));
         }
 
-        __inline static hash_t GetHashCode(PropertyRecord const * str)
+        inline static hash_t GetHashCode(PropertyRecord const * str)
         {
             return str->GetHashCode();
         }
 
-        __inline static hash_t GetHashCode(JsUtil::CharacterBuffer<WCHAR> const * str)
+        inline static hash_t GetHashCode(JsUtil::CharacterBuffer<WCHAR> const * str)
         {
             return JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(str->GetBuffer(), str->GetLength());
         }
@@ -186,12 +186,12 @@ namespace Js
     template<typename T>
     struct PropertyRecordStringHashComparer
     {
-        __inline static bool Equals(T str1, T str2)
+        inline static bool Equals(T str1, T str2)
         {
             static_assert(false, "Unexpected type T; note T == PropertyId not allowed!");
         }
 
-        __inline static hash_t GetHashCode(T str)
+        inline static hash_t GetHashCode(T str)
         {
             // T == PropertyId is not allowed because there is no way to get the string hash
             // from just a PropertyId value, the PropertyRecord is required for that.
@@ -202,12 +202,12 @@ namespace Js
     template<>
     struct PropertyRecordStringHashComparer<PropertyRecord const *>
     {
-        __inline static bool Equals(PropertyRecord const * str1, PropertyRecord const * str2)
+        inline static bool Equals(PropertyRecord const * str1, PropertyRecord const * str2)
         {
             return str1 == str2;
         }
 
-        __inline static bool Equals(PropertyRecord const * str1, JsUtil::CharacterBuffer<WCHAR> const & str2)
+        inline static bool Equals(PropertyRecord const * str1, JsUtil::CharacterBuffer<WCHAR> const & str2)
         {
             return (!str1->IsSymbol() &&
                 str1->GetLength() == str2.GetLength() &&
@@ -215,7 +215,7 @@ namespace Js
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetBuffer(), str2.GetBuffer(), str1->GetLength()));
         }
 
-        __inline static bool Equals(PropertyRecord const * str1, HashedCharacterBuffer<char16> const & str2)
+        inline static bool Equals(PropertyRecord const * str1, HashedCharacterBuffer<char16> const & str2)
         {
             return (!str1->IsSymbol() &&
                 str1->GetHashCode() == str2.GetHashCode() &&
@@ -224,9 +224,9 @@ namespace Js
                 JsUtil::CharacterBuffer<char16>::StaticEquals(str1->GetBuffer(), str2.GetBuffer(), str1->GetLength()));
         }
 
-        __inline static bool Equals(PropertyRecord const * str1, JavascriptString * str2);
+        inline static bool Equals(PropertyRecord const * str1, JavascriptString * str2);
 
-        __inline static hash_t GetHashCode(const PropertyRecord* str)
+        inline static hash_t GetHashCode(const PropertyRecord* str)
         {
             return str->GetHashCode();
         }
@@ -235,13 +235,13 @@ namespace Js
     template<>
     struct PropertyRecordStringHashComparer<JsUtil::CharacterBuffer<WCHAR>>
     {
-        __inline static bool Equals(JsUtil::CharacterBuffer<WCHAR> const & str1, JsUtil::CharacterBuffer<WCHAR> const & str2)
+        inline static bool Equals(JsUtil::CharacterBuffer<WCHAR> const & str1, JsUtil::CharacterBuffer<WCHAR> const & str2)
         {
             return (str1.GetLength() == str2.GetLength() &&
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1.GetBuffer(), str2.GetBuffer(), str1.GetLength()));
         }
 
-        __inline static hash_t GetHashCode(JsUtil::CharacterBuffer<WCHAR> const & str)
+        inline static hash_t GetHashCode(JsUtil::CharacterBuffer<WCHAR> const & str)
         {
             return JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(str.GetBuffer(), str.GetLength());
         }
@@ -250,7 +250,7 @@ namespace Js
     template<>
     struct PropertyRecordStringHashComparer<HashedCharacterBuffer<char16>>
     {
-        __inline static hash_t GetHashCode(HashedCharacterBuffer<char16> const & str)
+        inline static hash_t GetHashCode(HashedCharacterBuffer<char16> const & str)
         {
             return str.GetHashCode();
         }
@@ -273,17 +273,17 @@ namespace Js
 template <>
 struct DefaultComparer<const Js::PropertyRecord*>
 {
-    __inline static hash_t GetHashCode(const Js::PropertyRecord* str)
+    inline static hash_t GetHashCode(const Js::PropertyRecord* str)
     {
         return DefaultComparer<Js::PropertyId>::GetHashCode(str->GetPropertyId());
     }
 
-    __inline static bool Equals(const Js::PropertyRecord* str, Js::PropertyId propertyId)
+    inline static bool Equals(const Js::PropertyRecord* str, Js::PropertyId propertyId)
     {
         return str->GetPropertyId() == propertyId;
     }
 
-    __inline static bool Equals(const Js::PropertyRecord* str1, const Js::PropertyRecord* str2)
+    inline static bool Equals(const Js::PropertyRecord* str1, const Js::PropertyRecord* str2)
     {
         return str1 == str2;
     }

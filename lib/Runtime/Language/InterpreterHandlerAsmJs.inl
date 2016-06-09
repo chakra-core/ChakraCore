@@ -394,9 +394,6 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_StArrConst_F4   , OP_SimdStArrConstIndex  , AsmSimdTypedArr   )
   EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_StArrConst_I4   , OP_SimdStArrConstIndex  , AsmSimdTypedArr   )
 
-  EXDEF2_WMS   ( SIMD_F4_2toF4_1    , Simd128_MinNum_F4            , Js::SIMDFloat32x4Operation::OpMinNum   )
-  EXDEF2_WMS   ( SIMD_F4_2toF4_1    , Simd128_MaxNum_F4            , Js::SIMDFloat32x4Operation::OpMaxNum   )
-  
   EXDEF2_WMS   ( SIMD_U4_1toF4_1    , Simd128_FromUint32x4_F4      , Js::SIMDFloat32x4Operation::OpFromUint32x4  )
   EXDEF2_WMS   ( SIMD_I8_1toF4_1    , Simd128_FromInt16x8Bits_F4   , Js::SIMDUtils::FromSimdBits            )
   EXDEF2_WMS   ( SIMD_I16_1toF4_1   , Simd128_FromInt8x16Bits_F4   , Js::SIMDUtils::FromSimdBits            )

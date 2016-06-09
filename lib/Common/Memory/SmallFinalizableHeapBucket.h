@@ -44,7 +44,7 @@ protected:
     void VerifyMark();
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
     template <typename TBlockType>
     friend class HeapBucketT;
@@ -58,9 +58,7 @@ protected:
 };
 
 #define DeclareFinalizableHeapBucket(type) \
-    template <class TBlockAttributes> class Small##type##HeapBucketT : public SmallFinalizableHeapBucketBaseT<Small##type##HeapBlockT<TBlockAttributes> >{}; \
-    extern template class SmallFinalizableHeapBucketBaseT<Small##type##HeapBlockT<SmallAllocationBlockAttributes>>; \
-    extern template class SmallFinalizableHeapBucketBaseT<Small##type##HeapBlockT<MediumAllocationBlockAttributes>>;
+    template <class TBlockAttributes> class Small##type##HeapBucketT : public SmallFinalizableHeapBucketBaseT<Small##type##HeapBlockT<TBlockAttributes> >{};
 
 DeclareFinalizableHeapBucket(Finalizable);
 #ifdef RECYCLER_WRITE_BARRIER

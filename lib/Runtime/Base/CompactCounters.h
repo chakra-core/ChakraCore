@@ -9,7 +9,7 @@
 
 namespace Js
 {
-    template<class T, typename CountT = T::CounterFields>
+    template<class T, typename CountT = typename T::CounterFields>
     struct CompactCounters
     {
         struct Fields {

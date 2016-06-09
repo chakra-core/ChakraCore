@@ -358,7 +358,7 @@ namespace Js
     struct OpLayoutT_Int1Const1
     {
         typename SizePolicy::RegSlotType     I0;
-        typename int                         C1;
+                 int                         C1;
     };
 
     template <typename SizePolicy>

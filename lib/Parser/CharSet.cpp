@@ -1870,4 +1870,16 @@ namespace UnifiedRegex
     }
 #endif
 
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+	const int  CharSetNode::directBits;
+    const uint CharSetNode::directSize;
+    const uint CharSetNode::innerMask;
+    const int  CharSetNode::bitsPerLeafLevel;
+    const int  CharSetNode::branchingPerLeafLevel;
+    const uint CharSetNode::leafMask;
+    const uint CharSetNode::levels;
+#endif
 }

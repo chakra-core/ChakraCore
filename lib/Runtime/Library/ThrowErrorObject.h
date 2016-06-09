@@ -25,11 +25,11 @@ namespace Js
         static bool Is(Var aValue);
         static ThrowErrorObject* FromVar(Var aValue);
 
-        static RecyclableObject* CreateThrowTypeErrorObject(ScriptContext* scriptContext, long hCode, PCWSTR varName);
-        static RecyclableObject* CreateThrowTypeErrorObject(ScriptContext* scriptContext, long hCode, JavascriptString* varName);
+        static RecyclableObject* CreateThrowTypeErrorObject(ScriptContext* scriptContext, int32 hCode, PCWSTR varName);
+        static RecyclableObject* CreateThrowTypeErrorObject(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName);
 
     private:
         typedef JavascriptError* (JavascriptLibrary::*CreateErrorFunc)();
-        static RecyclableObject* CreateThrowErrorObject(CreateErrorFunc createError, ScriptContext* scriptContext, long hCode, PCWSTR varName);
+        static RecyclableObject* CreateThrowErrorObject(CreateErrorFunc createError, ScriptContext* scriptContext, int32 hCode, PCWSTR varName);
     };
 }

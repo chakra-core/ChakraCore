@@ -4,8 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include <intsafe.h>
-
 // Parser Includes
 #include "Parser.h"
 #include "keywords.h"

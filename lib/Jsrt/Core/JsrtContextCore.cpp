@@ -71,6 +71,7 @@ Js::ScriptContext* JsrtContextCore::EnsureScriptContext()
 
     Js::JavascriptLibrary *library = this->GetScriptContext()->GetLibrary();
     Assert(library != nullptr);
+    localThreadContext->GetRecycler()->RootRelease(library->GetGlobalObject());
 
     library->GetEvalFunctionObject()->SetEntryPoint(&Js::GlobalObject::EntryEval);
     library->GetFunctionConstructor()->SetEntryPoint(&Js::JavascriptFunction::NewInstance);

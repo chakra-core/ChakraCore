@@ -146,6 +146,7 @@ private:
 };
 }
 
+
 template<class T> inline
 const T& min(const T& a, const NoWriteBarrierField<T>& b) { return a < b ? a : b; }
 
@@ -164,6 +165,7 @@ const T& max(const T& a, const NoWriteBarrierField<T>& b) { return a > b ? a : b
 
 template<class T> inline
 const T& max(const NoWriteBarrierField<T>& a, const NoWriteBarrierField<T>& b) { return a > b ? a : b; }
+
 
 // Disallow memcpy, memmove of WriteBarrierPtr
 

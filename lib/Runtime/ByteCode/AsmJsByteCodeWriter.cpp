@@ -10,7 +10,7 @@
 namespace Js
 {
     template <>
-    __inline uint ByteCodeWriter::Data::EncodeT<SmallLayout>(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
+    inline uint ByteCodeWriter::Data::EncodeT<SmallLayout>(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
     {
         Assert(op < Js::OpCodeAsmJs::ByteCodeLast);
 
@@ -44,7 +44,7 @@ namespace Js
     }
 
     template <LayoutSize layoutSize>
-    __inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
+    inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
     {
         Assert(op < Js::OpCodeAsmJs::ByteCodeLast);
         CompileAssert(layoutSize != SmallLayout);
@@ -106,7 +106,7 @@ namespace Js
     }
 
     template <LayoutSize layoutSize>
-    __inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, const void* rawData, int byteSize, ByteCodeWriter* writer, bool isPatching)
+    inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, const void* rawData, int byteSize, ByteCodeWriter* writer, bool isPatching)
     {
         AssertMsg((rawData != nullptr) && (byteSize < 100), "Ensure valid data for opcode");
 
@@ -115,7 +115,7 @@ namespace Js
         return offset;
     }
 
-    void AsmJsByteCodeWriter::InitData(ArenaAllocator* alloc, long initCodeBufferSize)
+    void AsmJsByteCodeWriter::InitData(ArenaAllocator* alloc, int32 initCodeBufferSize)
     {
         ByteCodeWriter::InitData(alloc, initCodeBufferSize);
 #ifdef BYTECODE_BRANCH_ISLAND

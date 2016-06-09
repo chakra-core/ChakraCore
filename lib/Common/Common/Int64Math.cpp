@@ -4,10 +4,25 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
 #include "Common/Int64Math.h"
-#include <intrin.h>
 
-#if _M_X64
-#pragma intrinsic(_mul128)
+#if defined(_M_X64)
+#if defined(_MSC_VER)
+    #pragma intrinsic(_mul128)
+#else
+    static int64 _mul128(const int64 left, const int64 right, int64 *high) noexcept
+    {
+        int64 low;
+        __asm__
+        (
+            "imulq %[right]\n"
+            // (I)MUL (Q/64) R[D/A]X <- RAX * r/m64
+            : "=d"(*high), "=a"(low)
+            : [right]"rm"(right), "1"(left)
+        );
+
+        return low;
+    }
+#endif
 #endif
 
 bool
@@ -18,13 +33,14 @@ Int64Math::Add(int64 left, int64 right, int64 *pResult)
     return ((left ^ *pResult) & (right ^ *pResult)) < 0;
 }
 
+// Returns true if we overflowed, false if we didn't
 bool
 Int64Math::Mul(int64 left, int64 right, int64 *pResult)
 {
-#if _M_X64
+#if defined(_M_X64)
     int64 high;
     *pResult = _mul128(left, right, &high);
-    return high != 0;
+    return ((*pResult > 0) && high != 0) || ((*pResult < 0) && (high != -1));
 #else
     *pResult = left * right;
     return (left != 0 && right != 0 && (*pResult / left) != right);
@@ -52,7 +68,7 @@ Int64Math::Div(int64 left, int64 right, int64 *pResult)
 {
     AssertMsg(right != 0, "Divide by zero...");
 
-    if (right == -1 && left == MININT64)
+    if (right == -1 && left == INT64_MIN)
     {
         //Special check for INT64_MIN/-1
         return true;
@@ -66,7 +82,7 @@ bool
 Int64Math::Mod(int64 left, int64 right, int64 *pResult)
 {
     AssertMsg(right != 0, "Mod by zero...");
-    if (right == -1 && left == MININT64)
+    if (right == -1 && left == INT64_MIN)
     {
         //Special check for INT64_MIN/-1
         return true;
@@ -115,7 +131,7 @@ bool
 Int64Math::Neg(int64 val, int64 *pResult)
 {
     *pResult = -val;
-    return *pResult == MININT64;
+    return *pResult == INT64_MIN;
 }
 
 bool

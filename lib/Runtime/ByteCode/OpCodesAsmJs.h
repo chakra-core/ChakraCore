@@ -133,9 +133,9 @@ MACRO_WMS   ( Rol_Int                   , Int3         , None            ) // in
 MACRO_WMS   ( Ror_Int                   , Int3         , None            ) // int32 Rotate right
 
 // Unsigned int math
-MACRO_WMS   ( Mul_UInt                  , Int3         , None            ) // unsigned int32 Arithmetic '*'
-MACRO_WMS   ( Div_UInt                  , Int3         , None            ) // unsigned int32 Arithmetic '/'
-MACRO_WMS   ( Rem_UInt                  , Int3         , None            ) // unsigned int32 Arithmetic '%'
+MACRO_WMS   ( Mul_UInt                  , Int3         , None            ) // uint32 Arithmetic '*'
+MACRO_WMS   ( Div_UInt                  , Int3         , None            ) // uint32 Arithmetic '/'
+MACRO_WMS   ( Rem_UInt                  , Int3         , None            ) // uint32 Arithmetic '%'
 
 // Double math
 MACRO_WMS   ( Ld_DbConst                , Double1Const1 , None           ) // Sets a double register from a const double
@@ -165,10 +165,10 @@ MACRO_WMS   ( CmNe_Int                  , Int3         , None            ) // in
 MACRO_WMS   ( Eqz_Int                 , Int2         , None            ) // int32 Comparison with 0
 
 // Unsigned int comparisons
-MACRO_WMS   ( CmLt_UnInt                , Int3         , None            ) // unsigned int32 Comparison <
-MACRO_WMS   ( CmLe_UnInt                , Int3         , None            ) // unsigned int32 Comparison <=
-MACRO_WMS   ( CmGt_UnInt                , Int3         , None            ) // unsigned int32 Comparison >
-MACRO_WMS   ( CmGe_UnInt                , Int3         , None            ) // unsigned int32 Comparison >=
+MACRO_WMS   ( CmLt_UnInt                , Int3         , None            ) // uint32 Comparison <
+MACRO_WMS   ( CmLe_UnInt                , Int3         , None            ) // uint32 Comparison <=
+MACRO_WMS   ( CmGt_UnInt                , Int3         , None            ) // uint32 Comparison >
+MACRO_WMS   ( CmGe_UnInt                , Int3         , None            ) // uint32 Comparison >=
 
 // Double comparisons
 MACRO_WMS   ( CmLt_Db                   , Int1Double2   , None           ) // double Comparison <

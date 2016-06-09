@@ -19,7 +19,9 @@
 #define ProfileEntryThunk Js::ScriptContext::DebugProfileProbeThunk
 
 #define DefaultDeferredParsingThunk Js::JavascriptFunction::DeferredParsingThunk
+#ifdef ENABLE_SCRIPT_PROFILING
 #define ProfileDeferredParsingThunk Js::ScriptContext::ProfileModeDeferredParsingThunk
+#endif
 
 #define DefaultDeferredDeserializeThunk Js::JavascriptFunction::DeferredDeserializeThunk
 #define ProfileDeferredDeserializeThunk Js::ScriptContext::ProfileModeDeferredDeserializeThunk

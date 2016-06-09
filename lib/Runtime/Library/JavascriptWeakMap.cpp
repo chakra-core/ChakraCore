@@ -127,7 +127,7 @@ namespace Js
                     value = undefined;
                 }
 
-                adder->GetEntryPoint()(adder, CallInfo(CallFlags_Value, 3), weakMapObject, key, value);
+                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 3), weakMapObject, key, value);
             }
         }
 

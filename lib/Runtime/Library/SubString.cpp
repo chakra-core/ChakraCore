@@ -8,7 +8,7 @@ namespace Js
 {
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(SubString);
 
-    __inline SubString::SubString(void const * originalFullStringReference, const char16* subString, charcount_t length, ScriptContext *scriptContext) :
+    inline SubString::SubString(void const * originalFullStringReference, const char16* subString, charcount_t length, ScriptContext *scriptContext) :
         JavascriptString(scriptContext->GetLibrary()->GetStringTypeStatic())
     {
         this->SetBuffer(subString);

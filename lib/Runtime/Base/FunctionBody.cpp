@@ -33,6 +33,13 @@
 
 namespace Js
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    uint const ScopeSlots::MaxEncodedSlotCount;
+#endif
+
     CriticalSection FunctionProxy::GlobalLock;
 
 #ifdef FIELD_ACCESS_STATS
@@ -71,12 +78,12 @@ namespace Js
         PERF_COUNTER_INC(Code, TotalFunction);
     }
 
-    inline Recycler* FunctionProxy::GetRecycler() const
+    Recycler* FunctionProxy::GetRecycler() const
     {
-        return m_scriptContext->GetRecycler(); 
+        return m_scriptContext->GetRecycler();
     }
 
-    inline void* FunctionProxy::GetAuxPtr(AuxPointerType e) const
+    void* FunctionProxy::GetAuxPtr(AuxPointerType e) const
     {
         if (this->auxPtrs == nullptr)
         {
@@ -87,7 +94,8 @@ namespace Js
         Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
         return AuxPtrsT::GetAuxPtr(this, e);
     }
-    inline void* FunctionProxy::GetAuxPtrWithLock(AuxPointerType e) const
+
+    void* FunctionProxy::GetAuxPtrWithLock(AuxPointerType e) const
     {
         if (this->auxPtrs == nullptr)
         {
@@ -97,11 +105,11 @@ namespace Js
         return AuxPtrsT::GetAuxPtr(this, e);
     }
 
-    inline void FunctionProxy::SetAuxPtr(AuxPointerType e, void* ptr)
+    void FunctionProxy::SetAuxPtr(AuxPointerType e, void* ptr)
     {
         // On process detach this can be called from another thread but the ThreadContext should be locked
         Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
-        
+
         if (ptr == nullptr && GetAuxPtr(e) == nullptr)
         {
             return;
@@ -548,7 +556,7 @@ namespace Js
 
         this->AddEntryPointToEntryPointList(this->GetDefaultFunctionEntryPointInfo());
 
-        Assert(this->GetDefaultEntryPointInfo()->address != nullptr);
+        Assert(this->GetDefaultEntryPointInfo()->jsMethod != nullptr);
 
         InitDisableInlineApply();
         InitDisableInlineSpread();
@@ -946,7 +954,7 @@ namespace Js
     FunctionBody::RecordNativeBaseAddress(BYTE* baseAddress, ptrdiff_t size, NativeCodeData * data, NativeCodeData * transferData,
         CodeGenNumberChunk * numberChunks, EntryPointInfo* entryPoint, uint loopNum)
     {
-        entryPoint->SetCodeGenRecorded(baseAddress, size, data, transferData, numberChunks);
+        entryPoint->SetCodeGenRecorded(reinterpret_cast<Js::JavascriptMethod>(baseAddress), size, data, transferData, numberChunks);
     }
 #endif
 
@@ -1035,8 +1043,8 @@ namespace Js
 
     void FunctionProxy::SetReferenceInParentFunction(FunctionProxyPtrPtr reference)
     {
-        // No need to tag the reference because the first field of the nested array 
-        // is count, so the reference here won't be same as address of the parent nested 
+        // No need to tag the reference because the first field of the nested array
+        // is count, so the reference here won't be same as address of the parent nested
         // array (even for index 0)
         this->m_referenceInParentFunction = reference;
     }
@@ -1151,7 +1159,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             validationCookie = (void*)scriptContext->GetNativeCodeGenerator();
 #endif
-             
+
             this->m_defaultEntryPointInfo = RecyclerNewFinalized(scriptContext->GetRecycler(),
                 FunctionEntryPointInfo, this, entryPoint, scriptContext->GetThreadContext(), validationCookie);
         }
@@ -1167,8 +1175,14 @@ namespace Js
     ParseableFunctionInfo* ParseableFunctionInfo::New(ScriptContext* scriptContext, int nestedCount,
         LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, Js::PropertyRecordList* propertyRecords, Attributes attributes)
     {
-        Assert(scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk
-            || scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
+#ifdef ENABLE_SCRIPT_PROFILING
+        Assert(
+            scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk ||
+            scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
+#else
+        Assert(scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
+#endif
+
 #ifdef PERF_COUNTERS
         PERF_COUNTER_INC(Code, DeferredFunction);
 #endif
@@ -1296,12 +1310,12 @@ namespace Js
     }
 
     void
-    ParseableFunctionInfo::SetGrfscr(ulong grfscr)
+    ParseableFunctionInfo::SetGrfscr(uint32 grfscr)
     {
         this->m_grfscr = grfscr;
     }
 
-    ulong
+    uint32
     ParseableFunctionInfo::GetGrfscr() const
     {
         return this->m_grfscr;
@@ -1374,7 +1388,7 @@ namespace Js
         return GetNestedArray()->functionProxyArray;
     }
 
-    void ParseableFunctionInfo::SetNestedFunc(FunctionProxy* nestedFunc, uint index, ulong flags)
+    void ParseableFunctionInfo::SetNestedFunc(FunctionProxy* nestedFunc, uint index, uint32 flags)
     {
         AssertMsg(index < this->GetNestedCount(), "Trying to write past the nested func array");
 
@@ -1431,7 +1445,7 @@ namespace Js
 
     void ParseableFunctionInfo::ClearNestedFunctionParentFunctionReference()
     {
-        this->ForEachNestedFunc([](FunctionProxy* proxy, uint32 index) 
+        this->ForEachNestedFunc([](FunctionProxy* proxy, uint32 index)
         {
             if (proxy)
             {
@@ -1474,7 +1488,8 @@ namespace Js
     ScriptFunctionType * FunctionProxy::EnsureDeferredPrototypeType()
     {
         Assert(this->GetFunctionProxy() == this);
-        return (deferredPrototypeType != nullptr)? deferredPrototypeType : AllocDeferredPrototypeType();
+        return deferredPrototypeType != nullptr ?
+            static_cast<ScriptFunctionType*>(deferredPrototypeType) : AllocDeferredPrototypeType();
     }
 
     ScriptFunctionType * FunctionProxy::AllocDeferredPrototypeType()
@@ -1487,8 +1502,8 @@ namespace Js
 
     JavascriptMethod FunctionProxy::GetDirectEntryPoint(ProxyEntryPointInfo* entryPoint) const
     {
-        Assert((JavascriptMethod)entryPoint->address != nullptr);
-        return (JavascriptMethod)entryPoint->address;
+        Assert(entryPoint->jsMethod != nullptr);
+        return entryPoint->jsMethod;
     }
 
     // Function object type list methods
@@ -1780,7 +1795,7 @@ namespace Js
 
                 LPCUTF8 pszStart = this->GetStartOfDocument();
 
-                ulong grfscr = funcBody->GetGrfscr() | fscrDeferredFnc;
+                uint32 grfscr = funcBody->GetGrfscr() | fscrDeferredFnc;
 
                 // For the global function we want to re-use the glo functionbody which is already created in the non-debug mode
                 if (!funcBody->GetIsGlobalFunc())
@@ -1965,7 +1980,7 @@ namespace Js
 
         LPCUTF8 pszStart = this->GetStartOfDocument();
 
-        ulong grfscr = funcBody->GetGrfscr() | fscrDeferredFnc | fscrDeferredFncExpression;
+        uint32 grfscr = funcBody->GetGrfscr() | fscrDeferredFnc | fscrDeferredFncExpression;
 
         uint nextFunctionId = funcBody->GetLocalFunctionId();
 
@@ -2023,7 +2038,7 @@ namespace Js
         }
     }
 
-    bool ParseableFunctionInfo::IsFakeGlobalFunc(ulong flags) const
+    bool ParseableFunctionInfo::IsFakeGlobalFunc(uint32 flags) const
     {
         return GetIsGlobalFunc() && !(flags & fscrGlobalCode);
     }
@@ -2770,7 +2785,7 @@ namespace Js
         return FALSE;
     }
 
-    void FunctionBody::FindClosestStatements(long characterOffset, StatementLocation *firstStatementLocation, StatementLocation *secondStatementLocation)
+    void FunctionBody::FindClosestStatements(int32 characterOffset, StatementLocation *firstStatementLocation, StatementLocation *secondStatementLocation)
     {
         auto statementMaps = this->GetStatementMaps();
         if (statementMaps)
@@ -2966,7 +2981,7 @@ namespace Js
     //      if (profiling) - ProfileDeferredParsingThunk, ProfileDeferredDeserializeThunk, ProfileEntryThunk, CheckCodeGenThunk
     bool FunctionProxy::HasValidNonProfileEntryPoint() const
     {
-        JavascriptMethod directEntryPoint = (JavascriptMethod)this->GetDefaultEntryPointInfo()->address;
+        JavascriptMethod directEntryPoint = this->GetDefaultEntryPointInfo()->jsMethod;
         JavascriptMethod originalEntryPoint = this->originalEntryPoint;
 
         // Check the direct entry point to see if it is codegen thunk
@@ -2984,9 +2999,10 @@ namespace Js
 #endif
         ;
     }
+#ifdef ENABLE_SCRIPT_PROFILING
     bool FunctionProxy::HasValidProfileEntryPoint() const
     {
-        JavascriptMethod directEntryPoint = (JavascriptMethod)this->GetDefaultEntryPointInfo()->address;
+        JavascriptMethod directEntryPoint = this->GetDefaultEntryPointInfo()->jsMethod;
         if (this->originalEntryPoint == DefaultDeferredParsingThunk)
         {
             return directEntryPoint == ProfileDeferredParsingThunk;
@@ -3016,6 +3032,7 @@ namespace Js
         return true;
 #endif
     }
+#endif
 
     bool FunctionProxy::HasValidEntryPoint() const
     {
@@ -3024,18 +3041,27 @@ namespace Js
         {
             return this->HasValidNonProfileEntryPoint();
         }
+#ifdef ENABLE_SCRIPT_PROFILING
         if (m_scriptContext->IsProfiling())
         {
             return this->HasValidProfileEntryPoint();
         }
+
         return this->HasValidNonProfileEntryPoint() || this->HasValidProfileEntryPoint();
+#else
+        return this->HasValidNonProfileEntryPoint();
+#endif
     }
 
 #endif
     void ParseableFunctionInfo::SetDeferredParsingEntryPoint()
     {
+#ifdef ENABLE_SCRIPT_PROFILING
         Assert(m_scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk
             || m_scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
+#else
+        Assert(m_scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
+#endif
 
         this->SetEntryPoint(this->GetDefaultEntryPointInfo(), m_scriptContext->DeferredParsingThunk);
         originalEntryPoint = DefaultDeferredParsingThunk;
@@ -3043,10 +3069,17 @@ namespace Js
 
     void ParseableFunctionInfo::SetInitialDefaultEntryPoint()
     {
+#ifdef ENABLE_SCRIPT_PROFILING
         Assert(m_scriptContext->CurrentThunk == ProfileEntryThunk || m_scriptContext->CurrentThunk == DefaultEntryThunk);
         Assert(originalEntryPoint == DefaultDeferredParsingThunk || originalEntryPoint == ProfileDeferredParsingThunk ||
                originalEntryPoint == DefaultDeferredDeserializeThunk || originalEntryPoint == ProfileDeferredDeserializeThunk ||
                originalEntryPoint == DefaultEntryThunk || originalEntryPoint == ProfileEntryThunk);
+#else
+        Assert(m_scriptContext->CurrentThunk == DefaultEntryThunk);
+        Assert(originalEntryPoint == DefaultDeferredParsingThunk ||
+               originalEntryPoint == DefaultDeferredDeserializeThunk ||
+               originalEntryPoint == DefaultEntryThunk);
+#endif
         Assert(this->m_defaultEntryPointInfo != nullptr);
 
         // CONSIDER: we can optimize this to generate the dynamic interpreter thunk up front
@@ -3153,7 +3186,7 @@ namespace Js
             return;
         }
         bool isAsmJs = this->GetIsAsmjsMode();
-        Assert(IsIntermediateCodeGenThunk((JavascriptMethod)entryPointInfo->address) || CONFIG_FLAG(Prejit) || this->m_isFromNativeCodeModule || isAsmJs);
+        Assert(IsIntermediateCodeGenThunk(entryPointInfo->jsMethod) || CONFIG_FLAG(Prejit) || this->m_isFromNativeCodeModule || isAsmJs);
         entryPointInfo->EnsureIsReadyToCall();
 
         // keep originalEntryPoint updated with the latest known good native entry point
@@ -3164,11 +3197,11 @@ namespace Js
 
         if (entryPointInfo->entryPointIndex == 0 && this->NeedEnsureDynamicProfileInfo())
         {
-            entryPointInfo->address = DynamicProfileInfo::EnsureDynamicProfileInfoThunk;
+            entryPointInfo->jsMethod = DynamicProfileInfo::EnsureDynamicProfileInfoThunk;
         }
         else
         {
-            entryPointInfo->address = directEntryPoint;
+            entryPointInfo->jsMethod = reinterpret_cast<Js::JavascriptMethod>(directEntryPoint);
         }
         if (isAsmJs)
         {
@@ -3229,7 +3262,7 @@ namespace Js
 #if DBG
         this->GetLoopNumber(loopHeader);
 #endif
-        return (Js::JavascriptMethod)(loopHeader->GetEntryPointInfo(entryPointIndex)->address);
+        return loopHeader->GetEntryPointInfo(entryPointIndex)->jsMethod;
     }
 
     void FunctionBody::SetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, EntryPointInfo* entryPointInfo, Js::JavascriptMethod entryPoint)
@@ -3244,8 +3277,16 @@ namespace Js
         }
 #endif
         Assert(((LoopEntryPointInfo*) entryPointInfo)->loopHeader == loopHeader);
-        Assert(entryPointInfo->address == nullptr);
-        entryPointInfo->address = (void*)entryPoint;
+        Assert(reinterpret_cast<void*>(entryPointInfo->jsMethod) == nullptr);
+        entryPointInfo->jsMethod = entryPoint;
+
+        ((Js::LoopEntryPointInfo*)entryPointInfo)->totalJittedLoopIterations = 
+            static_cast<uint8>(
+                min(
+                    static_cast<uint>(static_cast<uint8>(CONFIG_FLAG(MinBailOutsBeforeRejitForLoops))) *
+                    (Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() - 1),
+                    0xffu));
+
         // reset the counter to 1 less than the threshold for TJLoopBody
         if (loopHeader->GetCurrentEntryPointInfo()->GetIsAsmJSFunction())
         {
@@ -3434,7 +3475,7 @@ namespace Js
         newFunctionBody->SetReferencedPropertyIdMap(this->GetReferencedPropertyIdMap());
         newFunctionBody->SetPropertyIdsForScopeSlotArray(this->GetPropertyIdsForScopeSlotArray(), this->scopeSlotArraySize);
         newFunctionBody->SetPropertyIdOnRegSlotsContainer(this->GetPropertyIdOnRegSlotsContainer());
-        
+
 
         if (this->byteCodeBlock == nullptr)
         {
@@ -3642,7 +3683,7 @@ namespace Js
         this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionBody));
     }
 
-    FunctionBody * FunctionBody::GetStackNestedFuncParentStrongRef() 
+    FunctionBody * FunctionBody::GetStackNestedFuncParentStrongRef()
     {
         Assert(this->GetStackNestedFuncParent() != nullptr);
         return this->GetStackNestedFuncParent()->Get();
@@ -3737,11 +3778,11 @@ namespace Js
 
         ParseableFunctionInfo* newFunctionInfo = ParseableFunctionInfo::New(scriptContext,
             this->GetNestedCount(),
-            this->GetLocalFunctionId(), 
-            sourceInfo, this->GetDisplayName(), 
+            this->GetLocalFunctionId(),
+            sourceInfo, this->GetDisplayName(),
             this->GetDisplayNameLength(),
-            this->GetShortDisplayNameOffset(), 
-            this->GetBoundPropertyRecords(), 
+            this->GetShortDisplayNameOffset(),
+            this->GetBoundPropertyRecords(),
             this->GetAttributes());
 
         if (this->GetScopeInfo() != nullptr)
@@ -3958,7 +3999,7 @@ namespace Js
         this->RecordConstant(location, intConst);
     }
 
-    void FunctionBody::RecordStrConstant(RegSlot location, LPCOLESTR psz, ulong cch)
+    void FunctionBody::RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch)
     {
         ScriptContext *scriptContext = this->GetScriptContext();
         PropertyRecord const * propertyRecord;
@@ -4128,7 +4169,7 @@ namespace Js
         }
     }
 #endif
-    
+
     void FunctionBody::DumpStatementMaps()
     {
         // Source Map to ByteCode
@@ -4534,6 +4575,7 @@ namespace Js
         this->GetPropertyIdOnRegSlotsContainer()->SetFormalArgs(formalArgs);
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     HRESULT FunctionBody::RegisterFunction(BOOL fChangeMode, BOOL fOnlyCurrent)
     {
         if (!this->IsFunctionParsed())
@@ -4629,20 +4671,20 @@ namespace Js
         //  If the entrypoint is CodeGenOnDemand or CodeGen - then we don't change the entry points
         ProxyEntryPointInfo* defaultEntryPointInfo = this->GetDefaultEntryPointInfo();
 
-        if (!IsIntermediateCodeGenThunk((JavascriptMethod) defaultEntryPointInfo->address)
-            && defaultEntryPointInfo->address != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)
+        if (!IsIntermediateCodeGenThunk(defaultEntryPointInfo->jsMethod)
+            && defaultEntryPointInfo->jsMethod != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)
         {
             if (this->originalEntryPoint == DefaultDeferredParsingThunk)
             {
-                defaultEntryPointInfo->address = ProfileDeferredParsingThunk;
+                defaultEntryPointInfo->jsMethod = ProfileDeferredParsingThunk;
             }
             else if (this->originalEntryPoint == DefaultDeferredDeserializeThunk)
             {
-                defaultEntryPointInfo->address = ProfileDeferredDeserializeThunk;
+                defaultEntryPointInfo->jsMethod = ProfileDeferredDeserializeThunk;
             }
             else
             {
-                defaultEntryPointInfo->address = ProfileEntryThunk;
+                defaultEntryPointInfo->jsMethod = ProfileEntryThunk;
             }
         }
 
@@ -4650,7 +4692,7 @@ namespace Js
         // to make sure that new JavascriptFunction instances use profile thunk.
         if (this->deferredPrototypeType)
         {
-            this->deferredPrototypeType->SetEntryPoint((JavascriptMethod)this->GetDefaultEntryPointInfo()->address);
+            this->deferredPrototypeType->SetEntryPoint(this->GetDefaultEntryPointInfo()->jsMethod);
             this->deferredPrototypeType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
         }
 
@@ -4658,7 +4700,7 @@ namespace Js
         if (!this->HasValidEntryPoint())
         {
             OUTPUT_TRACE_DEBUGONLY(Js::ScriptProfilerPhase, _u("FunctionBody::SetEntryToProfileMode, Assert due to HasValidEntryPoint(), directEntrypoint : 0x%0IX, originalentrypoint : 0x%0IX\n"),
-                (JavascriptMethod)this->GetDefaultEntryPointInfo()->address, this->originalEntryPoint);
+                this->GetDefaultEntryPointInfo()->jsMethod, this->originalEntryPoint);
 
             AssertMsg(false, "Not a valid EntryPoint");
         }
@@ -4666,6 +4708,7 @@ namespace Js
 
 #endif //ENABLE_NATIVE_CODEGEN
     }
+#endif // ENABLE_SCRIPT_PROFILING
 
 #if DBG
     void FunctionBody::MustBeInDebugMode()
@@ -4826,16 +4869,22 @@ namespace Js
     void FunctionBody::SetEntryToDeferParseForDebugger()
     {
         ProxyEntryPointInfo* defaultEntryPointInfo = this->GetDefaultEntryPointInfo();
-        if (defaultEntryPointInfo->address != DefaultDeferredParsingThunk && defaultEntryPointInfo->address != ProfileDeferredParsingThunk)
+        if (defaultEntryPointInfo->jsMethod != DefaultDeferredParsingThunk
+#ifdef ENABLE_SCRIPT_PROFILING
+            && defaultEntryPointInfo->jsMethod != ProfileDeferredParsingThunk
+#endif
+            )
         {
+#ifdef ENABLE_SCRIPT_PROFILING
             // Just change the thunk, the cleanup will be done once the function gets called.
             if (this->m_scriptContext->CurrentThunk == ProfileEntryThunk)
             {
-                defaultEntryPointInfo->address = ProfileDeferredParsingThunk;
+                defaultEntryPointInfo->jsMethod = ProfileDeferredParsingThunk;
             }
             else
+#endif
             {
-                defaultEntryPointInfo->address = DefaultDeferredParsingThunk;
+                defaultEntryPointInfo->jsMethod = DefaultDeferredParsingThunk;
             }
 
             this->originalEntryPoint = DefaultDeferredParsingThunk;
@@ -4887,13 +4936,13 @@ namespace Js
         this->entryPoints->ClearAndZero();
         this->CreateNewDefaultEntryPoint();
         this->originalEntryPoint = DefaultEntryThunk;
-        m_defaultEntryPointInfo->address = m_scriptContext->CurrentThunk;
+        m_defaultEntryPointInfo->jsMethod = m_scriptContext->CurrentThunk;
 
         if (this->deferredPrototypeType)
         {
             // Update old entry points on the deferred prototype type,
             // as they may point to old native code gen regions which age gone now.
-            this->deferredPrototypeType->SetEntryPoint((JavascriptMethod)this->GetDefaultEntryPointInfo()->address);
+            this->deferredPrototypeType->SetEntryPoint(this->GetDefaultEntryPointInfo()->jsMethod);
             this->deferredPrototypeType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
         }
         ReinitializeExecutionModeAndLimits();
@@ -6286,7 +6335,7 @@ namespace Js
                 directEntryPoint = currentThunk == DefaultEntryThunk ? originalEntryPoint : currentThunk;
             }
 
-            entryPointInfo->address = directEntryPoint;
+            entryPointInfo->jsMethod = directEntryPoint;
             SetDefaultFunctionEntryPointInfo(entryPointInfo, originalEntryPoint);
         }
 
@@ -6819,7 +6868,7 @@ namespace Js
         const bool doSimpleJit = DoSimpleJit();
         const bool doInterpreterProfile = DoInterpreterProfile();
         const bool fullyScaled =
-            IsNewSimpleJit() && doSimpleJit && ScaleLimit(simpleJitLimit) ||
+            (IsNewSimpleJit() && doSimpleJit && ScaleLimit(simpleJitLimit)) ||
             (
                 doInterpreterProfile
                     ?   DoInterpreterAutoProfile() &&
@@ -6830,9 +6879,9 @@ namespace Js
                 IsNewSimpleJit()
                     ?   doInterpreterProfile &&
                         (ScaleLimit(profilingInterpreter1Limit) || ScaleLimit(profilingInterpreter0Limit))
-                    :   doInterpreterProfile && ScaleLimit(profilingInterpreter0Limit) ||
-                        doSimpleJit && ScaleLimit(simpleJitLimit) ||
-                        doInterpreterProfile && ScaleLimit(profilingInterpreter1Limit)
+                    :   (doInterpreterProfile && ScaleLimit(profilingInterpreter0Limit)) ||
+                        (doSimpleJit && ScaleLimit(simpleJitLimit)) ||
+                        (doInterpreterProfile && ScaleLimit(profilingInterpreter1Limit))
             );
         Assert(fullyScaled);
         Assert(scale == 0);
@@ -6913,12 +6962,12 @@ namespace Js
         VerifyExecutionModeLimits();
 
         if(&limit == profilingInterpreter0Limit.AddressOf() ||
-            !IsNewSimpleJit() && &limit == simpleJitLimit.AddressOf() ||
+            (!IsNewSimpleJit() && &limit == simpleJitLimit.AddressOf()) ||
             &limit == profilingInterpreter1Limit.AddressOf())
         {
             const uint16 newCommittedProfiledIterations = committedProfiledIterations + clampedExecutedIterations;
             committedProfiledIterations =
-                newCommittedProfiledIterations >= committedProfiledIterations ? newCommittedProfiledIterations : MAXUINT16;
+                newCommittedProfiledIterations >= committedProfiledIterations ? newCommittedProfiledIterations : UINT16_MAX;
         }
     }
 
@@ -6936,7 +6985,9 @@ namespace Js
         // Simple JIT counts down and transitions on overflow
         const uint8 callCount = simpleJitEntryPointInfo->callsCount;
         Assert(simpleJitLimit == 0 ? callCount == 0 : simpleJitLimit > callCount);
-        return callCount == 0 ? simpleJitLimit : simpleJitLimit - callCount - 1;
+        return callCount == 0 ?
+            static_cast<uint16>(simpleJitLimit) :
+            static_cast<uint16>(simpleJitLimit) - callCount - 1;
     }
 
     void FunctionBody::ResetSimpleJitLimitAndCallCount()
@@ -6987,11 +7038,11 @@ namespace Js
             {
                 uint32 interpretedCount = GetInterpretedCount();
                 const uint16 clampedInterpretedCount =
-                    interpretedCount <= MAXUINT16
+                    interpretedCount <= UINT16_MAX
                         ? static_cast<uint16>(interpretedCount)
-                        : MAXUINT16;
+                        : UINT16_MAX;
                 const uint16 newProfiledIterations = profiledIterations + clampedInterpretedCount;
-                profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : MAXUINT16;
+                profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : UINT16_MAX;
                 break;
             }
 
@@ -6999,7 +7050,7 @@ namespace Js
                 if(!IsNewSimpleJit())
                 {
                     const uint16 newProfiledIterations = profiledIterations + GetSimpleJitExecutedIterations();
-                    profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : MAXUINT16;
+                    profiledIterations = newProfiledIterations >= profiledIterations ? newProfiledIterations : UINT16_MAX;
                 }
                 break;
         }
@@ -7602,7 +7653,7 @@ namespace Js
                     // isShutdown is false because cleanup is called only in the !isShutdown case
                     entryPoint->Finalize(isShutdown);
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
                     // Do this separately since calling EntryPoint::Finalize doesn't capture the stack trace
                     // and in some calls to CleanupRecyclerData, we do want the stack trace captured.
 
@@ -7773,7 +7824,9 @@ namespace Js
 
     void FunctionBody::InitDisableInlineApply()
     {
-        SetDisableInlineApply(this->functionId != Js::Constants::NoFunctionId && PHASE_OFF(Js::InlinePhase, this) || PHASE_OFF(Js::InlineApplyPhase, this));
+        SetDisableInlineApply(
+            (this->functionId != Js::Constants::NoFunctionId && PHASE_OFF(Js::InlinePhase, this)) ||
+            PHASE_OFF(Js::InlineApplyPhase, this));
     }
 
     bool FunctionBody::CheckCalleeContextForInlining(FunctionProxy* calleeFunctionProxy)
@@ -8219,7 +8272,7 @@ namespace Js
 
     void EntryPointInfo::OnNativeCodeInstallFailure()
     {
-        // If more data is transferred from the background thread to the main thread in ProcessJitTransferData, 
+        // If more data is transferred from the background thread to the main thread in ProcessJitTransferData,
         // corresponding fields on the entryPointInfo should be rolled back here.
         this->runtimeTypeRefs = nullptr;
         this->FreePropertyGuards();
@@ -8747,7 +8800,7 @@ namespace Js
     }
 #endif
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
     void EntryPointInfo::CaptureCleanupStackTrace()
     {
         if (this->cleanupStack != nullptr)
@@ -8775,7 +8828,7 @@ namespace Js
 
         this->Cleanup(isShutdown, false);
 
-#if DBG
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         if (this->cleanupStack != nullptr)
         {
             this->cleanupStack->Delete(&NoCheckHeapAllocator::Instance);
@@ -8854,11 +8907,12 @@ namespace Js
 #if !DBG
             captureCleanupStack = captureCleanupStack && Js::Configuration::Global.flags.FreTestDiagMode;
 #endif
-
+#if ENABLE_DEBUG_STACK_BACK_TRACE
             if (captureCleanupStack)
             {
                 this->CaptureCleanupStackTrace();
             }
+#endif
 #endif
 
 #if ENABLE_NATIVE_CODEGEN
@@ -8909,7 +8963,7 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    // This function needs review when we enable lazy bailouts- 
+    // This function needs review when we enable lazy bailouts-
     // Is calling Reset enough? Does Reset sufficiently resets the state of the entryPointInfo?
     void EntryPointInfo::ResetOnLazyBailoutFailure()
     {
@@ -8917,9 +8971,9 @@ namespace Js
 
         // Reset the entry point upon a lazy bailout.
         this->Reset(true);
-        Assert(this->address != nullptr);
-        FreeNativeCodeGenAllocation(GetScriptContext(), this->address);
-        this->address = nullptr;
+        Assert(this->jsMethod != nullptr);
+        FreeNativeCodeGenAllocation(GetScriptContext(), this->jsMethod);
+        this->jsMethod = nullptr;
     }
 #endif
 
@@ -8932,8 +8986,8 @@ namespace Js
     }
 #endif
 
-    FunctionEntryPointInfo::FunctionEntryPointInfo(FunctionProxy * functionProxy, void * address, ThreadContext* context, void* cookie) :
-        EntryPointInfo(address, functionProxy->GetScriptContext()->GetLibrary(), cookie, context),
+    FunctionEntryPointInfo::FunctionEntryPointInfo(FunctionProxy * functionProxy, Js::JavascriptMethod method, ThreadContext* context, void* cookie) :
+        EntryPointInfo(method, functionProxy->GetScriptContext()->GetLibrary(), cookie, context),
         localVarSlotsOffset(Js::Constants::InvalidOffset),
         localVarChangedOffset(Js::Constants::InvalidOffset),
         callsCount(0),
@@ -9222,7 +9276,7 @@ namespace Js
                     // the new entrypoint will be set to interpreter
                     newEntryPoint = functionBody->CreateNewDefaultEntryPoint();
                     newEntryPoint->SetIsAsmJSFunction(true);
-                    newEntryPoint->address = AsmJsDefaultEntryThunk;
+                    newEntryPoint->jsMethod = AsmJsDefaultEntryThunk;
                     newEntryPoint->SetModuleAddress(GetModuleAddress());
                     functionBody->SetIsAsmJsFullJitScheduled(false);
                     functionBody->SetExecutionMode(functionBody->GetDefaultInterpreterExecutionMode());
@@ -9261,8 +9315,8 @@ namespace Js
                 }
                 else
                 {
-                    Assert(functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo());                    
-                    Assert(((FunctionEntryPointInfo*)functionType->GetEntryPointInfo())->IsCleanedUp() 
+                    Assert(functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo());
+                    Assert(((FunctionEntryPointInfo*)functionType->GetEntryPointInfo())->IsCleanedUp()
                         || (DWORD_PTR)functionType->GetEntryPoint() != this->GetNativeAddress());
                 }
             });
@@ -9283,9 +9337,9 @@ namespace Js
                 const JavascriptMethod simpleJitNativeAddress = reinterpret_cast<JavascriptMethod>(GetNativeAddress());
                 functionBody->MapEntryPoints([&](const int entryPointIndex, FunctionEntryPointInfo *const entryPointInfo)
                 {
-                    if(entryPointInfo != this && entryPointInfo->address == simpleJitNativeAddress)
+                    if(entryPointInfo != this && entryPointInfo->jsMethod == simpleJitNativeAddress)
                     {
-                        entryPointInfo->address = newDirectEntryPoint;
+                        entryPointInfo->jsMethod = newDirectEntryPoint;
                     }
                 });
                 if(functionBody->GetOriginalEntryPoint_Unchecked() == simpleJitNativeAddress)
@@ -9360,7 +9414,7 @@ namespace Js
 
                 if (validationCookie == currentCookie)
                 {
-                    scriptContext->FreeLoopBody((Js::JavascriptMethod)this->GetNativeAddress());
+                    scriptContext->FreeFunctionEntryPoint(reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()));
                 }
             }
 
@@ -9376,7 +9430,7 @@ namespace Js
     void LoopEntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
         // Since we call the address on the entryPointInfo for loop bodies, all we need to do is to roll back
-        // the fields on the entryPointInfo related to transferring data from jit thread to main thread (already 
+        // the fields on the entryPointInfo related to transferring data from jit thread to main thread (already
         // being done in EntryPointInfo::OnNativeCodeInstallFailure). On the next loop iteration, the interpreter
         // will call EntryPointInfo::EnsureIsReadyToCall and we'll try to process jit transfer data again.
     }
@@ -9666,7 +9720,7 @@ namespace Js
         return m_hasFuncExprScopeRegister ? GetCountField(CounterFields::FuncExprScopeRegister) : Constants::NoRegister;
     }
 
-    void FunctionBody::SetFirstTmpRegister(RegSlot reg) 
+    void FunctionBody::SetFirstTmpRegister(RegSlot reg)
     {
         if (reg == Constants::NoRegister)
         {

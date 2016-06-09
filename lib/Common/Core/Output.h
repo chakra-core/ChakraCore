@@ -3,11 +3,15 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
+
+// xplat-todo: error: ISO C++ forbids forward references to 'enum' types
+#if defined(ENABLE_TRACE) 
 namespace Js
 {
-    enum Flag;
-    enum Phase;
+enum Flag: unsigned short;
+enum Phase: unsigned short;
 };
+#endif
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && defined(BGJIT_STATS)
 #define OUTPUT_TRACE(Phase, ...) Output::Trace((Phase), __VA_ARGS__)
@@ -50,11 +54,14 @@ namespace Js
     {
         virtual void Write(const char16* msg) = 0;
     };
+
+#ifdef STACK_BACK_TRACE
     struct IStackTraceHelper
     {
         virtual size_t PrintStackTrace(ULONG framesToSkip, ULONG framesToCapture) = 0;  // Returns # of chars printed.
         virtual ULONG GetStackTrace(ULONG framesToSkip, ULONG framesToCapture, void** stackFrames) = 0; // Returns # of frames captured.
     };
+#endif
 } // namespace Js.
 
 
@@ -85,9 +92,12 @@ public:
         }
 
         return retValue;
-    }
+    }    
     static void     SetInMemoryLogger(Js::ILogger* logger);
+#ifdef STACK_BACK_TRACE
     static void     SetStackTraceHelper(Js::IStackTraceHelper* helper);
+#endif
+    
 #endif // ENABLE_TRACE
     static size_t __cdecl Print(const char16 *form, ...);
     static size_t __cdecl Print(int column, const char16 *form, ...);

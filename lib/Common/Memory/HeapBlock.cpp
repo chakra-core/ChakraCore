@@ -53,6 +53,7 @@ HeapBlock::SetNeedOOMRescan(Recycler * recycler)
     this->needOOMRescan = true;
     recycler->SetNeedOOMRescan();
 }
+
 //========================================================================================================
 // SmallHeapBlock
 //========================================================================================================
@@ -152,25 +153,6 @@ uint
 SmallHeapBlockT<TBlockAttributes>::GetPageCount() const
 {
     return TBlockAttributes::PageCount;
-}
-
-template <>
-uint
-SmallHeapBlockT<SmallAllocationBlockAttributes>::GetUnusablePageCount()
-{
-    return 0;
-}
-
-template <>
-void
-SmallHeapBlockT<SmallAllocationBlockAttributes>::ProtectUnusablePages()
-{
-}
-
-template <>
-void
-SmallHeapBlockT<SmallAllocationBlockAttributes>::RestoreUnusablePages()
-{
 }
 
 template <>
@@ -407,6 +389,7 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
     this->address = nullptr;
 }
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
 template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::BackgroundReleasePagesSweep(Recycler* recycler)
@@ -424,6 +407,7 @@ SmallHeapBlockT<TBlockAttributes>::BackgroundReleasePagesSweep(Recycler* recycle
     this->segment = nullptr;
     this->Reset();
 }
+#endif
 
 template <class TBlockAttributes>
 void
@@ -695,7 +679,7 @@ template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::VerifyMarkBitVector()
 {
-    this->GetRecycler()->heapBlockMap.VerifyMarkCountForPages<TBlockAttributes::BitVectorCount>(this->address, TBlockAttributes::PageCount);
+    this->GetRecycler()->heapBlockMap.template VerifyMarkCountForPages<TBlockAttributes::BitVectorCount>(this->address, TBlockAttributes::PageCount);
 }
 
 template <class TBlockAttributes>
@@ -1585,7 +1569,7 @@ SmallHeapBlockT<TBlockAttributes>::EnumerateObjects(ObjectInfoBits infoBits, voi
 }
 
 template <class TBlockAttributes>
-__inline
+inline
 void SmallHeapBlockT<TBlockAttributes>::FillFreeMemory(__in_bcount(size) void * address, size_t size)
 {
 #ifdef RECYCLER_MEMORY_VERIFY
@@ -1911,9 +1895,12 @@ SmallHeapBlockT<TBlockAttributes>::IsWithBarrier() const
 }
 #endif
 
+namespace Memory
+{
 // Instantiate the template
 template class SmallHeapBlockT<SmallAllocationBlockAttributes>;
 template class SmallHeapBlockT<MediumAllocationBlockAttributes>;
+};
 
 #define TBlockTypeAttributes SmallAllocationBlockAttributes
 #include "SmallBlockDeclarations.inl"

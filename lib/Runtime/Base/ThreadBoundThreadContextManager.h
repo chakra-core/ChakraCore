@@ -28,7 +28,9 @@ public:
 
 private:
     static EntryList entries;
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
     static JsUtil::BackgroundJobProcessor * s_sharedJobProcessor;
+#endif
     static CriticalSection s_sharedJobProcessorCreationLock;
 };
 

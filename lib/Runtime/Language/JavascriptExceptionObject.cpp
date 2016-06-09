@@ -202,8 +202,8 @@ namespace Js
         m_throwingFunction = StackScriptFunction::EnsureBoxed(BOX_PARAM(function, returnAddress, _u("throw")));
         m_throwingFunctionByteCodeOffset = byteCodeOffset;
     }
-#if DBG
 
+#if ENABLE_DEBUG_STACK_BACK_TRACE
     void JavascriptExceptionObject::FillStackBackTrace()
     {
         // Note: this->scriptContext can be NULL when we throw Out Of Memory exception.

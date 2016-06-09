@@ -3,7 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
+#ifndef USING_PAL_STDLIB
 #include <strsafe.h>
+#endif
 #include "ByteCode/ByteCodeApi.h"
 #include "Exceptions/EvalDisabledException.h"
 
@@ -167,7 +169,7 @@ namespace Js
 
         // used arbitrary defaults for these, but it seems to work
         ModuleID moduleID = 0;
-        ulong grfscr = 0;
+        uint32 grfscr = 0;
         LPCOLESTR pszTitle = _u("");
         BOOL registerDocument = false;
 
@@ -223,7 +225,7 @@ namespace Js
         Js::Var lineNumber = Js::JavascriptNumber::ToVar((int64) lineNum, scriptContext);
         Js::Var colNumber = Js::JavascriptNumber::ToVar((int64) colNum, scriptContext);
         Js::Var functionIdNumberVar = Js::JavascriptNumber::ToVar(functionId, scriptContext);
-        Js::Var utf8SourceInfoVar = Js::JavascriptNumber::ToVar((long) utf8SrcInfo, scriptContext);
+        Js::Var utf8SourceInfoVar = Js::JavascriptNumber::ToVar((int32) utf8SrcInfo, scriptContext);
 
         // assign properties to function info object
         SetProperty(fnInfoObj, _u("filename"), filenameString);
@@ -396,18 +398,18 @@ namespace Js
 
         Js::JavascriptNumber *jsUtf8SourceInfoNumber = NULL;
         Js::JavascriptNumber *jsFunctionIdNumber = NULL;
-        long utf8SourceInfoNumber = 0;  // null
-        long functionIdNumber = -1;  // start with invalid function id
+        int32 utf8SourceInfoNumber = 0;  // null
+        int32 functionIdNumber = -1;  // start with invalid function id
 
         // extract value of jsVarUtf8SourceInfo
         if (Js::TaggedInt::Is(jsVarUtf8SourceInfo))
         {
-            utf8SourceInfoNumber = (long)TaggedInt::ToInt64(jsVarUtf8SourceInfo); // REVIEW: just truncate?
+            utf8SourceInfoNumber = (int32)TaggedInt::ToInt64(jsVarUtf8SourceInfo); // REVIEW: just truncate?
         }
         else if (Js::JavascriptNumber::Is(jsVarUtf8SourceInfo))
         {
             jsUtf8SourceInfoNumber = (Js::JavascriptNumber *)jsVarUtf8SourceInfo;
-            utf8SourceInfoNumber = (long)JavascriptNumber::GetValue(jsUtf8SourceInfoNumber);    // REVIEW: just truncate?
+            utf8SourceInfoNumber = (int32)JavascriptNumber::GetValue(jsUtf8SourceInfoNumber);    // REVIEW: just truncate?
         }
         else
         {
@@ -418,12 +420,12 @@ namespace Js
         // extract value of jsVarFunctionId
         if (Js::TaggedInt::Is(jsVarFunctionId))
         {
-            functionIdNumber = (long)TaggedInt::ToInt64(jsVarFunctionId); // REVIEW: just truncate?
+            functionIdNumber = (int32)TaggedInt::ToInt64(jsVarFunctionId); // REVIEW: just truncate?
         }
         else if (Js::JavascriptNumber::Is(jsVarFunctionId))
         {
             jsFunctionIdNumber = (Js::JavascriptNumber *)jsVarFunctionId;
-            functionIdNumber = (long)JavascriptNumber::GetValue(jsFunctionIdNumber); // REVIEW: just truncate?
+            functionIdNumber = (int32)JavascriptNumber::GetValue(jsFunctionIdNumber); // REVIEW: just truncate?
         }
         else
         {
@@ -561,7 +563,7 @@ namespace Js
     }
 
     Var GlobalObject::VEval(JavascriptLibrary* library, FrameDisplay* environment, ModuleID moduleID, bool strictMode, bool isIndirect,
-        Arguments& args, bool isLibraryCode, bool registerDocument, ulong additionalGrfscr)
+        Arguments& args, bool isLibraryCode, bool registerDocument, uint32 additionalGrfscr)
     {
         Assert(library);
         ScriptContext* scriptContext = library->GetScriptContext();
@@ -596,7 +598,7 @@ namespace Js
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
         if (!scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript))
         {
-            ulong grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
+            uint32 grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
             if (isLibraryCode)
             {
                 grfscr |= fscrIsLibraryCode;
@@ -700,12 +702,13 @@ namespace Js
             // Executing the eval causes the scope chain to escape.
             pfuncScript->InvalidateCachedScopeChain();
         }
-        Var varResult = pfuncScript->GetEntryPoint()(pfuncScript, CallInfo(CallFlags_Eval, 1), varThis);
+        Var varResult = CALL_FUNCTION(pfuncScript, CallInfo(CallFlags_Eval, 1), varThis);
         pfuncScript->SetEnvironment(nullptr);
         return varResult;
     }
 
-    ScriptFunction* GlobalObject::ProfileModeEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
+#ifdef ENABLE_SCRIPT_PROFILING
+    ScriptFunction* GlobalObject::ProfileModeEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
     {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -728,6 +731,7 @@ namespace Js
 
         return pEvalFunction;
     }
+#endif
 
     void GlobalObject::ValidateSyntax(ScriptContext* scriptContext, const char16 *source, int sourceLength, bool isGenerator, bool isAsync, void (Parser::*validateSyntax)())
     {
@@ -790,7 +794,7 @@ namespace Js
         }
     }
 
-    ScriptFunction* GlobalObject::DefaultEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
+    ScriptFunction* GlobalObject::DefaultEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
     {
         Assert(sourceLength >= 0);
         AnalysisAssert(scriptContext);
@@ -961,7 +965,7 @@ namespace Js
 
 #ifdef IR_VIEWER
     Var GlobalObject::IRDumpEvalHelper(ScriptContext* scriptContext, const char16 *source,
-        int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle,
+        int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle,
         BOOL registerDocument, BOOL isIndirect, BOOL strictMode)
     {
         // TODO (t-doilij) clean up this function, specifically used for IR dump (don't execute bytecode; potentially dangerous)

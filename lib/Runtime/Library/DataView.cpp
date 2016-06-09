@@ -174,7 +174,7 @@ namespace Js
 
         DataView* dataView = DataView::FromVar(args[0]);
         uint32 offset = JavascriptConversion::ToUInt32(args[1], scriptContext);
-        return dataView->GetValue<int8>(offset, _u("DataView.prototype.GetInt8"), FALSE);
+        return dataView->template GetValue<int8>(offset, _u("DataView.prototype.GetInt8"), FALSE);
     }
 
     Var DataView::EntryGetUint8(RecyclableObject* function, CallInfo callInfo, ...)
@@ -253,7 +253,7 @@ namespace Js
 
         DataView* dataView = DataView::FromVar(args[0]);
         uint32 offset = JavascriptConversion::ToUInt32(args[1], scriptContext);
-        return dataView->GetValue<uint16>(offset, _u("DataView.prototype.GetUint16"), isLittleEndian);
+        return dataView->template GetValue<uint16>(offset, _u("DataView.prototype.GetUint16"), isLittleEndian);
     }
 
     Var DataView::EntryGetUint32(RecyclableObject* function, CallInfo callInfo, ...)
@@ -680,30 +680,30 @@ namespace Js
     }
 
 #ifdef _M_ARM
-        // Provide template specialization (only) for memory access at unaligned float/double address which causes data alignment exception otherwise.
-        template<>
-        Var DataView::GetValueWithCheck<float>(uint32 byteOffset, char16 *funcName, BOOL isLittleEndian = FALSE)
-        {
-            return this->GetValueWithCheck<float, float UNALIGNED*>(byteOffset, isLittleEndian, funcName);
-        }
+    // Provide template specialization (only) for memory access at unaligned float/double address which causes data alignment exception otherwise.
+    template<>
+    Var DataView::GetValueWithCheck<float>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    {
+        return this->GetValueWithCheck<float, float UNALIGNED*>(byteOffset, isLittleEndian, funcName);
+    }
 
-        template<>
-        Var DataView::GetValueWithCheck<double>(uint32 byteOffset, char16 *funcName, BOOL isLittleEndian = FALSE)
-        {
-            return this->GetValueWithCheck<double, double UNALIGNED*>(byteOffset, isLittleEndian, funcName);
-        }
+    template<>
+    Var DataView::GetValueWithCheck<double>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    {
+        return this->GetValueWithCheck<double, double UNALIGNED*>(byteOffset, isLittleEndian, funcName);
+    }
 
-        template<>
-        void DataView::SetValue<float>(uint32 byteOffset, float value, char16 *funcName, BOOL isLittleEndian = FALSE)
-        {
-            this->SetValue<float, float UNALIGNED*>(byteOffset, value, isLittleEndian, funcName);
-        }
+    template<>
+    void DataView::SetValue<float>(uint32 byteOffset, float value, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    {
+        this->SetValue<float, float UNALIGNED*>(byteOffset, value, isLittleEndian, funcName);
+    }
 
-        template<>
-        void DataView::SetValue<double>(uint32 byteOffset, double value, char16 *funcName, BOOL isLittleEndian = FALSE)
-        {
-            this->SetValue<double, double UNALIGNED*>(byteOffset, value, isLittleEndian, funcName);
-        }
+    template<>
+    void DataView::SetValue<double>(uint32 byteOffset, double value, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    {
+        this->SetValue<double, double UNALIGNED*>(byteOffset, value, isLittleEndian, funcName);
+    }
 #endif
 
 }

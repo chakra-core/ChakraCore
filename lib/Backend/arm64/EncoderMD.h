@@ -74,7 +74,7 @@ public:
     static bool     CanEncodeModConst12(DWORD constant) { __debugbreak(); return 0; }
     static bool     CanEncodeLoadStoreOffset(int32 offset) { __debugbreak(); return 0; }
     static void     BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *pOffset, Func * func) { __debugbreak(); }
-    static bool     EncodeImmediate16(long constant, DWORD * result);
+    static bool     EncodeImmediate16(int32 constant, DWORD * result);
 
     void            EncodeInlineeCallInfo(IR::Instr *instr, uint32 offset) { __debugbreak(); }
 

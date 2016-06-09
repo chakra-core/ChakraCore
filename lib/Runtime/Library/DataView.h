@@ -43,7 +43,7 @@ namespace Js
 
         static BOOL Is(Var aValue);
 
-        static __inline DataView* FromVar(Var aValue)
+        static inline DataView* FromVar(Var aValue)
         {
             Assert(DataView::Is(aValue));
             return static_cast<DataView*>(aValue);
@@ -88,11 +88,11 @@ namespace Js
         template<> void SwapRoutine(int32* input, int32* dest) {*dest =  RtlUlongByteSwap(*input);}
         template<> void SwapRoutine(uint32* input, uint32* dest) {*dest =  RtlUlongByteSwap(*input);}
         // we don't want type conversion here, we just want to swap the bytes.
-        template<> void SwapRoutine(float* input, float* dest) { *((ulong*)dest) = RtlUlongByteSwap(*((ulong*)input)); }
+        template<> void SwapRoutine(float* input, float* dest) { *((uint32*)dest) = RtlUlongByteSwap(*((uint32*)input)); }
         template<> void SwapRoutine(double* input, double* dest) {*((uint64*)dest) = RtlUlonglongByteSwap(*((uint64*)input)); }
 
         template<typename TypeName>
-        Var GetValue(uint32 byteOffset, char16* funcName, BOOL isLittleEndian = FALSE)
+        Var GetValue(uint32 byteOffset, const char16* funcName, BOOL isLittleEndian = FALSE)
         {
             ScriptContext* scriptContext = GetScriptContext();
             if (this->GetArrayBuffer()->IsDetached())
@@ -120,13 +120,13 @@ namespace Js
         }
 
         template<typename TypeName>
-        inline Var GetValueWithCheck(uint32 byteOffset, char16* funcName, BOOL isLittleEndian = FALSE)
+        inline Var GetValueWithCheck(uint32 byteOffset, const char16* funcName, BOOL isLittleEndian = FALSE)
         {
             return GetValueWithCheck<TypeName, TypeName*>(byteOffset, isLittleEndian, funcName);
         }
 
         template<typename TypeName, typename PointerAccessTypeName>
-        Var GetValueWithCheck(uint32 byteOffset, BOOL isLittleEndian, char16* funcName)
+        Var GetValueWithCheck(uint32 byteOffset, BOOL isLittleEndian, const char16* funcName)
         {
             ScriptContext* scriptContext = GetScriptContext();
             if (this->GetArrayBuffer()->IsDetached())
@@ -154,13 +154,13 @@ namespace Js
         }
 
         template<typename TypeName>
-        inline void SetValue(uint32 byteOffset, TypeName value, char16 *funcName, BOOL isLittleEndian = FALSE)
+        inline void SetValue(uint32 byteOffset, TypeName value, const char16 *funcName, BOOL isLittleEndian = FALSE)
         {
             SetValue<TypeName, TypeName*>(byteOffset, value, isLittleEndian, funcName);
         }
 
         template<typename TypeName, typename PointerAccessTypeName>
-        void SetValue(uint32 byteOffset, TypeName value, BOOL isLittleEndian, char16 *funcName)
+        void SetValue(uint32 byteOffset, TypeName value, BOOL isLittleEndian, const char16 *funcName)
         {
             ScriptContext* scriptContext = GetScriptContext();
             if (this->GetArrayBuffer()->IsDetached())
@@ -188,10 +188,10 @@ namespace Js
 #ifdef _M_ARM
         // For ARM, memory access for float/double address causes data alignment exception if the address is not aligned.
         // Provide template specialization (only) for these scenarios.
-        template<> Var GetValueWithCheck<float>(uint32 byteOffset, char16 *funcName, BOOL isLittleEndian /* = FALSE */);
-        template<> Var GetValueWithCheck<double>(uint32 byteOffset, char16 *funcName, BOOL isLittleEndian /* = FALSE */);
-        template<> void SetValue<float>(uint32 byteOffset, float value, char16 *funcName, BOOL isLittleEndian /* = FALSE */);
-        template<> void SetValue<double>(uint32 byteOffset, double value, char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> Var GetValueWithCheck<float>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> Var GetValueWithCheck<double>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> void SetValue<float>(uint32 byteOffset, float value, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> void SetValue<double>(uint32 byteOffset, double value, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
 #endif
 
         uint32 byteOffset;

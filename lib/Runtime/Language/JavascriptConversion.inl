@@ -5,12 +5,14 @@
 #pragma once
 
 #if defined(_M_IX86) || defined(_M_X64)
+#ifdef _WIN32
 #include <emmintrin.h>
+#endif
 #endif
 
 namespace Js {
 
-    __inline BOOL JavascriptConversion::ToBoolean(Var aValue,ScriptContext* scriptContext)
+    inline BOOL JavascriptConversion::ToBoolean(Var aValue,ScriptContext* scriptContext)
     {
         if (TaggedInt::Is(aValue))
         {
@@ -29,14 +31,14 @@ namespace Js {
         }
     }
 
-    __inline bool JavascriptConversion::ToBool(Var aValue,ScriptContext* scriptContext)
+    inline bool JavascriptConversion::ToBool(Var aValue,ScriptContext* scriptContext)
     {
         return !!JavascriptConversion::ToBoolean(aValue, scriptContext);
     }
 
     /// ToNumber() returns an integer value, as described in (ES3.0: S9.3).
 
-    __inline double JavascriptConversion::ToNumber(Var aValue, ScriptContext* scriptContext)
+    inline double JavascriptConversion::ToNumber(Var aValue, ScriptContext* scriptContext)
     {
         // Optimize for TaggedInt and double before falling back to ToNumber_Full
         if( TaggedInt::Is(aValue) )
@@ -52,7 +54,7 @@ namespace Js {
         return ToNumber_Full(aValue, scriptContext);
     }
 
-    __inline double JavascriptConversion::ToInteger(Var aValue, ScriptContext* scriptContext)
+    inline double JavascriptConversion::ToInteger(Var aValue, ScriptContext* scriptContext)
     {
         return
             TaggedInt::Is(aValue) ?
@@ -61,7 +63,7 @@ namespace Js {
     }
 
 
-    __inline int32 JavascriptConversion::ToInt32(Var aValue, ScriptContext* scriptContext)
+    inline int32 JavascriptConversion::ToInt32(Var aValue, ScriptContext* scriptContext)
     {
         return
             TaggedInt::Is(aValue) ?
@@ -69,7 +71,7 @@ namespace Js {
             ToInt32_Full(aValue, scriptContext);
     }
 
-    __inline uint32 JavascriptConversion::ToUInt32(Var aValue, ScriptContext* scriptContext)
+    inline uint32 JavascriptConversion::ToUInt32(Var aValue, ScriptContext* scriptContext)
     {
         return
             TaggedInt::Is(aValue) ?
@@ -77,7 +79,7 @@ namespace Js {
             ToUInt32_Full(aValue, scriptContext);
     }
 
-    __inline uint16 JavascriptConversion::ToUInt16(Var aValue, ScriptContext* scriptContext)
+    inline uint16 JavascriptConversion::ToUInt16(Var aValue, ScriptContext* scriptContext)
     {
         return
             TaggedInt::Is(aValue) ?
@@ -85,21 +87,21 @@ namespace Js {
             ToUInt16_Full(aValue, scriptContext);
     }
 
-   __inline int8 JavascriptConversion::ToInt8(Var aValue, ScriptContext* scriptContext)
+   inline int8 JavascriptConversion::ToInt8(Var aValue, ScriptContext* scriptContext)
    {
        return TaggedInt::Is(aValue) ?
            (int8) TaggedInt::ToInt32(aValue) :
            (int8) ToInt32(aValue, scriptContext);
    }
 
-   __inline uint8 JavascriptConversion::ToUInt8(Var aValue, ScriptContext* scriptContext)
+   inline uint8 JavascriptConversion::ToUInt8(Var aValue, ScriptContext* scriptContext)
    {
        return TaggedInt::Is(aValue) ?
            (uint8) TaggedInt::ToInt32(aValue) :
            (uint8) ToUInt32(aValue, scriptContext);
    }
 
-   __inline uint8 JavascriptConversion::ToUInt8Clamped(Var aValue, ScriptContext* scriptContext)
+   inline uint8 JavascriptConversion::ToUInt8Clamped(Var aValue, ScriptContext* scriptContext)
    {
        double dval;
 
@@ -179,24 +181,24 @@ namespace Js {
        }
    }
 
-   __inline int16 JavascriptConversion::ToInt16(Var aValue, ScriptContext* scriptContext)
+   inline int16 JavascriptConversion::ToInt16(Var aValue, ScriptContext* scriptContext)
    {
        return TaggedInt::Is(aValue) ?
            (int16) TaggedInt::ToInt32(aValue) :
            (int16) ToUInt32(aValue, scriptContext);
    }
 
-   __inline float JavascriptConversion::ToFloat(Var aValue, ScriptContext* scriptContext)
+   inline float JavascriptConversion::ToFloat(Var aValue, ScriptContext* scriptContext)
    {
        return (float)ToNumber(aValue, scriptContext);
    }
 
-   __inline bool JavascriptConversion::SameValue(Var aValue, Var bValue)
+   inline bool JavascriptConversion::SameValue(Var aValue, Var bValue)
    {
        return SameValueCommon<false>(aValue, bValue);
    }
 
-   __inline bool JavascriptConversion::SameValueZero(Var aValue, Var bValue)
+   inline bool JavascriptConversion::SameValueZero(Var aValue, Var bValue)
    {
        return SameValueCommon<true>(aValue, bValue);
    }

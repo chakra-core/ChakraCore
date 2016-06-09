@@ -126,8 +126,8 @@
     <ProjectReference Include="..\..\lib\Runtime\Base\Chakra.Runtime.Base.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110ee}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\lib\WasmReader\Chakra.WasmReader.vcxproj">
-      <Project>{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}</Project>
+    <ProjectReference Include="..\..\lib\Runtime\PlatformAgnostic\Chakra.Runtime.PlatformAgnostic.vcxproj">
+      <Project>{129ac184-877c-441f-ac49-a692ce700e62}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\lib\Runtime\ByteCode\Chakra.Runtime.ByteCode.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110f5}</Project>
@@ -143,6 +143,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\lib\Runtime\Math\Chakra.Runtime.Math.vcxproj">
       <Project>{abc904ad-9415-46f8-aa23-e33193f81f7c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\lib\WasmReader\Chakra.WasmReader.vcxproj">
+      <Project>{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\lib\Runtime\Types\Chakra.Runtime.Types.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110f6}</Project>

@@ -15,7 +15,7 @@ SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallFi
 
     ushort objectSize = (ushort)bucket->sizeCat;
     ushort objectCount = (ushort)(TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / objectSize;
-    return NoMemProtectHeapNewNoThrowPlusPrefixZ(GetAllocPlusSize(objectCount), SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount);
+    return NoMemProtectHeapNewNoThrowPlusPrefixZ(Base::GetAllocPlusSize(objectCount), SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount);
 }
 
 template <class TBlockAttributes>
@@ -25,7 +25,7 @@ SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>::Delete(SmallFinalizable
     Assert(heapBlock->IsAnyFinalizableBlock());
     Assert(heapBlock->IsWithBarrier());
 
-    NoMemProtectHeapDeletePlusPrefix(GetAllocPlusSize(heapBlock->objectCount), heapBlock);
+    NoMemProtectHeapDeletePlusPrefix(Base::GetAllocPlusSize(heapBlock->objectCount), heapBlock);
 }
 #endif
 
@@ -39,7 +39,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallFinalizableHe
 
     ushort objectSize = (ushort)bucket->sizeCat;
     ushort objectCount = (ushort)(TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / objectSize;
-    return NoMemProtectHeapNewNoThrowPlusPrefixZ(GetAllocPlusSize(objectCount), SmallFinalizableHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount);
+    return NoMemProtectHeapNewNoThrowPlusPrefixZ(Base::GetAllocPlusSize(objectCount), SmallFinalizableHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount);
 }
 
 template <class TBlockAttributes>
@@ -47,12 +47,12 @@ void
 SmallFinalizableHeapBlockT<TBlockAttributes>::Delete(SmallFinalizableHeapBlockT<TBlockAttributes> * heapBlock)
 {
     Assert(heapBlock->IsFinalizableBlock());
-    NoMemProtectHeapDeletePlusPrefix(GetAllocPlusSize(heapBlock->objectCount), heapBlock);
+    NoMemProtectHeapDeletePlusPrefix(Base::GetAllocPlusSize(heapBlock->objectCount), heapBlock);
 }
 
-template <class SmallAllocationBlockAttributes>
+template <>
 SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
-    : SmallNormalHeapBlockT(bucket, objectSize, objectCount, SmallFinalizableBlockType)
+    : Base(bucket, objectSize, objectCount, HeapBlock::SmallFinalizableBlockType)
 {
     // We used AllocZ
     Assert(this->finalizeCount == 0);
@@ -64,7 +64,7 @@ SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::SmallFinalizableHeap
 
 template <>
 SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
-: SmallNormalHeapBlockT(bucket, objectSize, objectCount, MediumFinalizableBlockType)
+    : Base(bucket, objectSize, objectCount, MediumFinalizableBlockType)
 {
     // We used AllocZ
     Assert(this->finalizeCount == 0);
@@ -77,7 +77,7 @@ SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::SmallFinalizableHea
 #ifdef RECYCLER_WRITE_BARRIER
 template <class TBlockAttributes>
 SmallFinalizableHeapBlockT<TBlockAttributes>::SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>> * bucket, ushort objectSize, ushort objectCount, HeapBlockType blockType)
-    : SmallNormalHeapBlockT(bucket, objectSize, objectCount, blockType)
+    : SmallNormalHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, blockType)
 {
     // We used AllocZ
     Assert(this->finalizeCount == 0);
@@ -108,7 +108,7 @@ __declspec(noinline)
 void
 SmallFinalizableHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAddress, MarkContext * markContext)
 {
-    ushort objectIndex = GetAddressIndex(objectAddress);
+    ushort objectIndex = this->GetAddressIndex(objectAddress);
 
     if (objectIndex == SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit)
     {
@@ -116,9 +116,9 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAd
         return;
     }
 
-    unsigned char * attributes = &ObjectInfo(objectIndex);
+    unsigned char * attributes = &this->ObjectInfo(objectIndex);
 
-    if (!UpdateAttributesOfMarkedObjects(markContext, objectAddress, objectSize, *attributes,
+    if (!this->UpdateAttributesOfMarkedObjects(markContext, objectAddress, this->objectSize, *attributes,
         [&](unsigned char _attributes) { *attributes = _attributes; }))
     {
         // Couldn't mark children- bail out and come back later
@@ -219,7 +219,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::RescanTrackedObject(FinalizableObj
     RECYCLER_STATS_INC_IF(ObjectInfo(objectIndex) & FinalizeBit, recycler, finalizeCount);
 
     // We have processed this object as tracked, we can clear the NewTrackBit
-    ObjectInfo(objectIndex) &= ~NewTrackBit;
+    this->ObjectInfo(objectIndex) &= ~NewTrackBit;
 
     return true;
 #else
@@ -228,9 +228,6 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::RescanTrackedObject(FinalizableObj
 #endif
 }
 #endif
-
-template SweepState SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable);
-template SweepState SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable);
 
 template <class TBlockAttributes>
 SweepState
@@ -264,7 +261,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::DisposeObjects()
     // For now, we always touch the page by zeroing out disposed object which should be moved as well.
 
     ForEachPendingDisposeObject([&] (uint index) {
-        void * objectAddress = address + (objectSize * index);
+        void * objectAddress = this->address + (this->objectSize * index);
 
         // Dispose the object.
         // Note that Dispose can cause reentrancy, which can cause allocation, which can cause collection.
@@ -280,7 +277,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::DisposeObjects()
 
         // Properly enqueue the processed object
         // This will also clear the ObjectInfo bits so it's not marked as PendingDispose anymore
-        EnqueueProcessedObject(&disposedObjectList, &disposedObjectListTail, objectAddress, index);
+        this->EnqueueProcessedObject(&disposedObjectList, &disposedObjectListTail, objectAddress, index);
 
         RECYCLER_STATS_INC(this->heapBucket->heapInfo->recycler, finalizeSweepCount);
 #ifdef RECYCLER_FINALIZE_CHECK
@@ -307,7 +304,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::TransferDisposedObjects()
 
     DebugOnly(this->isPendingDispose = false);
 
-    TransferProcessedObjects(this->disposedObjectList, this->disposedObjectListTail);
+    this->TransferProcessedObjects(this->disposedObjectList, this->disposedObjectListTail);
     this->disposedObjectList = nullptr;
     this->disposedObjectListTail = nullptr;
 
@@ -315,7 +312,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::TransferDisposedObjects()
     // So just update the free object head.
     this->lastFreeObjectHead = this->freeObjectList;
 
-    RECYCLER_SLOW_CHECK(CheckFreeBitVector(true));
+    RECYCLER_SLOW_CHECK(this->CheckFreeBitVector(true));
 }
 
 template <class TBlockAttributes>
@@ -331,7 +328,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::AddDisposedObjectFreeBitVector(Sma
         while (true)
         {
             uint bitIndex = this->GetAddressBitIndex(freeObject);
-            Assert(IsValidBitIndex(bitIndex));
+            Assert(this->IsValidBitIndex(bitIndex));
 
             // not allocable yet
             Assert(!this->GetDebugFreeBitVector()->Test(bitIndex));
@@ -357,7 +354,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::FinalizeAllObjects()
     if (this->finalizeCount != 0)
     {
         DebugOnly(uint processedCount = 0);
-        ForEachAllocatedObject(FinalizeBit, [&](uint index, void * objectAddress)
+        this->ForEachAllocatedObject(FinalizeBit, [&](uint index, void * objectAddress)
         {
             FinalizableObject * finalizableObject = ((FinalizableObject *)objectAddress);
 
@@ -369,8 +366,8 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::FinalizeAllObjects()
             DebugOnly(processedCount++);
         });
 
-        ForEachPendingDisposeObject([&] (uint index) {
-            void * objectAddress = address + (objectSize * index);
+        this->ForEachPendingDisposeObject([&] (uint index) {
+            void * objectAddress = this->address + (this->objectSize * index);
             ((FinalizableObject *)objectAddress)->Dispose(true);
 #ifdef RECYCLER_FINALIZE_CHECK
             this->heapBucket->heapInfo->liveFinalizableObjectCount--;
@@ -421,7 +418,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::CheckDisposedObjectFreeBitVector()
         while (true)
         {
             uint bitIndex = this->GetAddressBitIndex(freeObject);
-            Assert(IsValidBitIndex(bitIndex));
+            Assert(this->IsValidBitIndex(bitIndex));
             Assert(!this->GetDebugFreeBitVector()->Test(bitIndex));
             Assert(free->Test(bitIndex));
             verifyFreeCount++;
@@ -440,15 +437,18 @@ template <class TBlockAttributes>
 bool
 SmallFinalizableHeapBlockT<TBlockAttributes>::GetFreeObjectListOnAllocator(FreeObject ** freeObjectList)
 {
-    return GetFreeObjectListOnAllocatorImpl<SmallFinalizableHeapBlockT<TBlockAttributes>>(freeObjectList);
+    return this->template GetFreeObjectListOnAllocatorImpl<SmallFinalizableHeapBlockT<TBlockAttributes>>(freeObjectList);
 }
 
 #endif
 
-template class SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>;
-template class SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>;
+namespace Memory
+{
+    template class SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>;
+    template class SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>;
 
 #ifdef RECYCLER_WRITE_BARRIER
-template class SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;
-template class SmallFinalizableWithBarrierHeapBlockT<MediumAllocationBlockAttributes>;
+    template class SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;
+    template class SmallFinalizableWithBarrierHeapBlockT<MediumAllocationBlockAttributes>;
 #endif
+}

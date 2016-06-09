@@ -285,14 +285,8 @@ namespace Js
             funcInfo->SetHasCachedScope(this->isCached);
             byteCodeGenerator->PushScope(scope);
 
-            if (byteCodeGenerator->UseParserBindings())
-            {
-                // The scope is already populated, so we're done.
-                return;
-            }
-
-            scriptContext = byteCodeGenerator->GetScriptContext();
-            alloc = byteCodeGenerator->GetAllocator();
+            // The scope is already populated, so we're done.
+            return;
         }
 
         // Load scope symbols

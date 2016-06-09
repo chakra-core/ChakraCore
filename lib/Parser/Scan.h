@@ -4,12 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef ENABLE_GLOBALIZATION
 namespace Js
 {
     class DelayLoadWindowsGlobalization;
 }
 #include "Windows.Globalization.h"
-
+#endif
 
 int CountNewlines(LPCOLESTR psz, int cch = -1);
 
@@ -25,9 +26,9 @@ private:
         {
             IdentPtr pid;
             const char * pchMin;
-            long length;
+            int32 length;
         };
-        long lw;
+        int32 lw;
         struct
         {
             double dbl;
@@ -67,7 +68,7 @@ public:
         return CreateIdentifier(hashTbl);
     }
 
-    long GetLong() const
+    int32 GetLong() const
     {
         Assert(tk == tkIntCon);
         return u.lw;
@@ -114,7 +115,7 @@ public:
 
     // UTF16 Scanner are only for syntax coloring.  Only support
     // defer pid creation for UTF8
-    void SetIdentifier(const char * pchMin, long len)
+    void SetIdentifier(const char * pchMin, int32 len)
     {
         this->u.pid = nullptr;
         this->u.pchMin = pchMin;
@@ -126,7 +127,7 @@ public:
         this->u.pchMin = nullptr;
     }
 
-    void SetLong(long value)
+    void SetLong(int32 value)
     {
         this->u.lw = value;
     }
@@ -292,8 +293,8 @@ typedef UTF8EncodingPolicyBase<false> NotNullTerminatedUTF8EncodingPolicy;
 
 interface IScanner
 {
-    virtual void GetErrorLineInfo(__out long& ichMin, __out long& ichLim, __out long& line, __out long& ichMinLine) = 0;
-    virtual HRESULT SysAllocErrorLine(long ichMinLine, __out BSTR* pbstrLine) = 0;
+    virtual void GetErrorLineInfo(__out int32& ichMin, __out int32& ichLim, __out int32& line, __out int32& ichMinLine) = 0;
+    virtual HRESULT SysAllocErrorLine(int32 ichMinLine, __out BSTR* pbstrLine) = 0;
 };
 
 // Flags that can be provided to the Scan functions.
@@ -405,10 +406,10 @@ public:
     {
         return m_fHadEol;
     }
-    IdentPtr PidFromLong(long lw);
+    IdentPtr PidFromLong(int32 lw);
     IdentPtr PidFromDbl(double dbl);
 
-    LPCOLESTR StringFromLong(long lw);
+    LPCOLESTR StringFromLong(int32 lw);
     LPCOLESTR StringFromDbl(double dbl);
 
     IdentPtr GetSecondaryBufferAsPid();
@@ -469,7 +470,7 @@ public:
     {
         Assert(m_currentCharacter - m_pchBase >= 0);
         Assert(m_currentCharacter - m_pchBase <= LONG_MAX);
-        return static_cast< charcount_t >(m_currentCharacter - m_pchBase - m_cMultiUnits);
+        return static_cast< charcount_t >(m_currentCharacter - m_pchBase - this->m_cMultiUnits);
     }
 
     void SetErrorPosition(charcount_t ichMinError, charcount_t ichLimError)
@@ -529,15 +530,15 @@ public:
         DebugOnly(m_iecpLimTokPrevious = (size_t)-1);
         size_t length = m_pchLast - m_pchBase;
         if (offset > length) offset = static_cast< charcount_t >(length);
-        size_t ibOffset = CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, offset);
+        size_t ibOffset = this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, offset);
         m_currentCharacter = m_pchBase + ibOffset;
         Assert(ibOffset >= offset);
-        RestoreMultiUnits(ibOffset - offset);
+        this->RestoreMultiUnits(ibOffset - offset);
         m_line = lineNumber;
     }
 
     // IScanner methods
-    virtual void GetErrorLineInfo(__out long& ichMin, __out long& ichLim, __out long& line, __out long& ichMinLine)
+    virtual void GetErrorLineInfo(__out int32& ichMin, __out int32& ichLim, __out int32& line, __out int32& ichMinLine)
     {
         ichMin = this->IchMinError();
         ichLim = this->IchLimError();
@@ -550,8 +551,8 @@ public:
         }
     }
 
-    virtual HRESULT SysAllocErrorLine(long ichMinLine, __out BSTR* pbstrLine);
-    charcount_t UpdateLine(long &line, EncodedCharPtr start, EncodedCharPtr last, charcount_t ichStart, charcount_t ichEnd);
+    virtual HRESULT SysAllocErrorLine(int32 ichMinLine, __out BSTR* pbstrLine);
+    charcount_t UpdateLine(int32 &line, EncodedCharPtr start, EncodedCharPtr last, charcount_t ichStart, charcount_t ichEnd);
     class TemporaryBuffer
     {
         friend Scanner<EncodingPolicy>;
@@ -560,8 +561,8 @@ public:
         // Keep a reference to the scanner.
         // We will use it to signal an error if we fail to allocate the buffer.
         Scanner<EncodingPolicy>* m_pscanner;
-        ulong m_cchMax;
-        ulong m_ichCur;
+        uint32 m_cchMax;
+        uint32 m_ichCur;
         __field_ecount(m_cchMax) OLECHAR *m_prgch;
         byte m_rgbInit[256];
 
@@ -614,7 +615,7 @@ public:
             byte *prgbNew;
             byte *prgbOld = (byte *)m_prgch;
 
-            unsigned long cbNew;
+            ULONG cbNew;
             if (FAILED(ULongMult(m_cchMax, sizeof(OLECHAR) * 2, &cbNew)))
             {
                 m_pscanner->Error(ERRnoMemory);
@@ -714,7 +715,7 @@ private:
     {
         Assert(FAILED(hr));
         m_pchMinTok = m_currentCharacter;
-        m_cMinTokMultiUnits = m_cMultiUnits;
+        m_cMinTokMultiUnits = this->m_cMultiUnits;
         AssertMem(m_perr);
         m_perr->Throw(hr);
     }
@@ -748,7 +749,7 @@ private:
     EncodedCharPtr FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last, bool fHadEscape, bool fHasMultiChar);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last);
-    ulong UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPtr last);
+    uint32 UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPtr last);
 
     void SaveSrcPos(void)
     {
@@ -756,11 +757,11 @@ private:
     }
     OLECHAR PeekNextChar(void)
     {
-        return PeekFull(m_currentCharacter, m_pchLast);
+        return this->PeekFull(m_currentCharacter, m_pchLast);
     }
     OLECHAR ReadNextChar(void)
     {
-        return ReadFull<true>(m_currentCharacter, m_pchLast);
+        return this->template ReadFull<true>(m_currentCharacter, m_pchLast);
     }
 
     EncodedCharPtr AdjustedLast() const
@@ -786,9 +787,9 @@ private:
     bool TryReadCodePointRest(codepoint_t lower, EncodedCharPtr &startingLocation, EncodedCharPtr endOfSource, codepoint_t *outChar, bool *outContainsMultiUnitChar);
 
     template <bool bScan>
-    __inline bool TryReadCodePoint(EncodedCharPtr &startingLocation, EncodedCharPtr endOfSource, codepoint_t *outChar, bool *hasEscape, bool *outContainsMultiUnitChar);
+    inline bool TryReadCodePoint(EncodedCharPtr &startingLocation, EncodedCharPtr endOfSource, codepoint_t *outChar, bool *hasEscape, bool *outContainsMultiUnitChar);
 
-    __inline BOOL IsIdContinueNext(EncodedCharPtr startingLocation, EncodedCharPtr endOfSource)
+    inline BOOL IsIdContinueNext(EncodedCharPtr startingLocation, EncodedCharPtr endOfSource)
     {
         codepoint_t nextCodepoint;
         bool ignore;

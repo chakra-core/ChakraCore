@@ -5,21 +5,12 @@
 #pragma once
 
 namespace Js {
-
-    const DWORD ExceptionCode = ('jsc' | 0xE0000000);
-
-    // As magic numbers increase, we have to keep track of the versions that we are
-    // backwards compatible with.
-    // Old CRTs also recognize unknown magic numbers with a >= test.  Therefore, we just increment the
-    // the magic number by one every time we need another.
-    //
-
     const DWORD  ExceptionParameters = 1;
     const int    ExceptionObjectIndex = 0;
 
     class JavascriptExceptionContext;
 
-    class JavascriptExceptionObject
+    class JavascriptExceptionObject: public InScriptExceptionBase
     {
     public:
         typedef Var (__stdcall *HostWrapperCreateFuncType)(Var var, ScriptContext * sourceScriptContext, ScriptContext * destScriptContext);
@@ -37,7 +28,7 @@ namespace Js {
             {
                 memset(&exceptionContext, 0, sizeof(exceptionContext));
             }
-#if DBG
+#if ENABLE_DEBUG_STACK_BACK_TRACE
             this->stackBackTrace = nullptr;
 #endif
         }
@@ -60,7 +51,7 @@ namespace Js {
         {
             return &exceptionContext;
         }
-#if DBG
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         void FillStackBackTrace();
 #endif
 
@@ -188,7 +179,7 @@ namespace Js {
         HostWrapperCreateFuncType hostWrapperCreateFunc;
 
         JavascriptExceptionContext exceptionContext;
-#if DBG
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace * stackBackTrace;
         static const int StackToSkip = 2;
         static const int StackTraceDepth = 30;

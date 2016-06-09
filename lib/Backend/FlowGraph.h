@@ -664,7 +664,6 @@ public:
     typedef struct
     {
         MemOpList *candidates;
-        bool doMemOp : 1;
         BVSparse<JitArenaAllocator> *inductionVariablesUsedAfterLoop;
         InductionVariableChangeInfoMap *inductionVariableChangeInfoMap;
         InductionVariableOpndPerUnrollMap *inductionVariableOpndPerUnrollMap;
@@ -674,6 +673,7 @@ public:
         IR::RegOpnd* startIndexOpndCache[4];
     } MemOpInfo;
 
+    bool doMemOp : 1;
     MemOpInfo *memOpInfo;
 
     struct RegAlloc
@@ -729,7 +729,7 @@ public:
     BasicBlock *        GetHeadBlock() const { Assert(headBlock == blockList.Head()); return headBlock; }
     bool                IsDescendentOrSelf(Loop const * loop) const;
 
-    bool                EnsureMemOpVariablesInitialized();
+    void                EnsureMemOpVariablesInitialized();
 
     Js::ImplicitCallFlags GetImplicitCallFlags();
     void                SetImplicitCallFlags(Js::ImplicitCallFlags flags);

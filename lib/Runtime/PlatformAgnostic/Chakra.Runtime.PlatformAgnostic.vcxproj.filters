@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Platform\Windows\UnicodeText.cpp">
+      <Filter>Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Linux\UnicodeText.ICU.cpp">
+      <Filter>Platform\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="RuntimePlatformAgnosticPch.cpp" />
+    <ClCompile Include="Platform\Common\UnicodeText.Common.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Interfaces">
+      <UniqueIdentifier>{8f95626a-111e-4c10-874a-d2729b8d495a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{b7acf62f-56f2-48b3-96c0-8b680e1e5d28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Linux">
+      <UniqueIdentifier>{97c4ec36-63dc-4c58-adba-078e4e29b452}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Windows">
+      <UniqueIdentifier>{3db2b9a8-b7a8-4571-8383-b4c5a6e7970f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="UnicodeText.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="ChakraPlatform.h" />
+    <ClInclude Include="RuntimePlatformAgnosticPch.h" />
+  </ItemGroup>
+</Project>

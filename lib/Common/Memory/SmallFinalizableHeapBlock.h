@@ -12,6 +12,9 @@ template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
 template <class TBlockAttributes>
 class SmallFinalizableHeapBlockT : public SmallNormalHeapBlockT<TBlockAttributes>
 {
+    typedef SmallNormalHeapBlockT<TBlockAttributes> Base;
+    typedef typename Base::SmallHeapBlockBitVector SmallHeapBlockBitVector;
+    typedef typename Base::HeapBlockType HeapBlockType;
     friend class HeapBucketT<SmallFinalizableHeapBlockT>;
 public:
     typedef TBlockAttributes HeapBlockAttributes;
@@ -20,8 +23,8 @@ public:
     static SmallFinalizableHeapBlockT * New(HeapBucketT<SmallFinalizableHeapBlockT> * bucket);
     static void Delete(SmallFinalizableHeapBlockT * block);
 
-    SmallFinalizableHeapBlockT * GetNextBlock() const { return SmallHeapBlockT<TBlockAttributes>::GetNextBlock()->AsFinalizableBlock<TBlockAttributes>(); }
-    void SetNextBlock(SmallFinalizableHeapBlockT * next) { __super::SetNextBlock(next); }
+    SmallFinalizableHeapBlockT * GetNextBlock() const { return SmallHeapBlockT<TBlockAttributes>::GetNextBlock()->template AsFinalizableBlock<TBlockAttributes>(); }
+    void SetNextBlock(SmallFinalizableHeapBlockT * next) { Base::SetNextBlock(next); }
 
     void ProcessMarkedObject(void* candidate, MarkContext * markContext);
 
@@ -57,10 +60,10 @@ public:
         {
             for (uint i = 0; i < this->objectCount; i++)
             {
-                if ((ObjectInfo(i) & PendingDisposeBit) != 0)
+                if ((this->ObjectInfo(i) & PendingDisposeBit) != 0)
                 {
                     // When pending dispose, exactly the PendingDisposeBits should be set
-                    Assert(ObjectInfo(i) == PendingDisposeObjectBits);
+                    Assert(this->ObjectInfo(i) == PendingDisposeObjectBits);
 
                     fn(i);
                 }
@@ -71,7 +74,7 @@ public:
 #if DBG
             for (uint i = 0; i < this->objectCount; i++)
             {
-                Assert((ObjectInfo(i) & PendingDisposeBit) == 0);
+                Assert((this->ObjectInfo(i) & PendingDisposeBit) == 0);
             }
 #endif
         }
@@ -99,7 +102,7 @@ public:
 
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override
     {
-        return FindHeapObjectImpl<SmallFinalizableHeapBlockT>(objectAddress, recycler, flags, heapObject);
+        return this->template FindHeapObjectImpl<SmallFinalizableHeapBlockT<TBlockAttributes>>(objectAddress, recycler, flags, heapObject);
     }
 protected:
     SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableHeapBlockT>  * bucket, ushort objectSize, ushort objectCount);
@@ -116,7 +119,7 @@ protected:
     FreeObject* disposedObjectList;
     FreeObject* disposedObjectListTail;
 
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #ifdef RECYCLER_MEMORY_VERIFY
     friend void SmallHeapBlockT<TBlockAttributes>::Verify(bool pendingDispose);
 #endif
@@ -126,6 +129,7 @@ protected:
 template <class TBlockAttributes>
 class SmallFinalizableWithBarrierHeapBlockT : public SmallFinalizableHeapBlockT<TBlockAttributes>
 {
+    typedef SmallFinalizableHeapBlockT<TBlockAttributes> Base;
     friend class HeapBucketT<SmallFinalizableWithBarrierHeapBlockT>;
 public:
     typedef TBlockAttributes HeapBlockAttributes;
@@ -140,26 +144,20 @@ public:
 
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override sealed
     {
-        return FindHeapObjectImpl<SmallFinalizableWithBarrierHeapBlockT>(objectAddress, recycler, flags, heapObject);
+        return this->template FindHeapObjectImpl<SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>>(objectAddress, recycler, flags, heapObject);
     }
 protected:
     SmallFinalizableWithBarrierHeapBlockT(HeapBucketT<SmallFinalizableWithBarrierHeapBlockT> * bucket, ushort objectSize, ushort objectCount)
-        : SmallFinalizableHeapBlockT(bucket, objectSize, objectCount, TBlockAttributes::IsSmallBlock ? SmallFinalizableBlockWithBarrierType : MediumFinalizableBlockWithBarrierType)
+        : SmallFinalizableHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, TBlockAttributes::IsSmallBlock ? Base::SmallFinalizableBlockWithBarrierType : Base::MediumFinalizableBlockWithBarrierType)
     {
     }
 };
 #endif
 
-extern template class SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>;
-extern template class SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>;
-
 typedef SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>  SmallFinalizableHeapBlock;
 typedef SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>    MediumFinalizableHeapBlock;
 
 #ifdef RECYCLER_WRITE_BARRIER
-extern template class SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;
-extern template class SmallFinalizableWithBarrierHeapBlockT<MediumAllocationBlockAttributes>;
-
 typedef SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>   SmallFinalizableWithBarrierHeapBlock;
 typedef SmallFinalizableWithBarrierHeapBlockT<MediumAllocationBlockAttributes>     MediumFinalizableWithBarrierHeapBlock;
 #endif

@@ -448,7 +448,9 @@ namespace Js
         {
             //In ES5 mode strict equals (===) on same instance of object type VariantDate succeeds.
             //Hence equals needs to succeed.
-            goto ReturnTrue;
+            //goto ReturnTrue;
+            *value = TRUE;
+            return TRUE;
         }
 
         double dblLeft, dblRight;

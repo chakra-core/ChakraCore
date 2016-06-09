@@ -27,7 +27,9 @@ WasmMath::Eqz(int value)
 template<typename T>
 inline T WasmMath::Copysign(T aLeft, T aRight)
 {
-    return copysign(aLeft, aRight);
+    //return copysign(aLeft, aRight);
+    //Todo:: fix copysign for ChakraFull
+    return 0;
 }
 
 template<typename T>
