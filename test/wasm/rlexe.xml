@@ -18,12 +18,18 @@
        <files>misc.js</files>
        <baseline>misc.baseline</baseline>
      </default>
+</test> 
+<test>
+    <default>
+       <files>controlflow.js</files>
+       <baseline>controlflow.baseline</baseline>
+    </default>
 </test>
 <test>
     <default>
-        <files>misc.js</files>
-        <baseline>misc.baseline</baseline>
-        <compile-flags>-maic:0</compile-flags>
+       <files>controlflow.js</files>
+       <baseline>controlflow.baseline</baseline>
+       <compile-flags>-maic:0</compile-flags>
     </default>
 </test>
 </regress-exe>
