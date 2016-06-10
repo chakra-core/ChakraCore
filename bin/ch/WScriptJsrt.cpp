@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
@@ -582,150 +582,6 @@ bool WScriptJsrt::CreateNamedFunction(const char16* nameString, JsNativeFunction
     return true;
 }
 
-#ifdef ENABLE_WASM
-JsValueRef __stdcall WScriptJsrt::LoadWasmCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
-{
-    HRESULT hr = E_FAIL;
-    JsValueRef ffi = JS_INVALID_REFERENCE;
-    JsValueRef returnValue = JS_INVALID_REFERENCE;
-    JsErrorCode errorCode = JsNoError;
-
-    if (argumentCount < 2 || argumentCount > 5)
-    {
-        fwprintf(stderr, _u("Too many or too few arguments.\n"));
-    }
-    else
-    {
-        const char16 *fileContent;
-        const char16 *fileNameWide;
-        const char16 *scriptInjectType = L"self";
-        size_t fileNameLength;
-        size_t scriptInjectTypeLength;
-        bool isBinaryFormat = false;
-
-        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[1], &fileNameWide, &fileNameLength));
-
-        if (argumentCount > 2)
-        {
-            ffi = arguments[2];
-        }
-
-        if (argumentCount > 3)
-        {
-            IfJsrtErrorSetGo(ChakraRTInterface::JsBooleanToBool(arguments[3], &isBinaryFormat));
-        }
-
-
-        if (argumentCount > 4)
-        {
-            IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[4], &scriptInjectType, &scriptInjectTypeLength));
-        }
-
-
-        if (errorCode == JsNoError)
-        {
-            UINT lengthBytes = 0;
-
-            char *fileName;
-            IfFailGo(Helpers::WideStringToNarrowDynamic(fileNameWide, &fileName));
-
-            if (!isBinaryFormat)
-            {
-                hr = Helpers::LoadScriptFromFile(fileName, fileContent);
-            }
-            else
-            {
-                hr = Helpers::LoadBinaryFile(fileName, fileContent, lengthBytes);
-            }
-            if (FAILED(hr))
-            {
-                fwprintf(stderr, _u("Couldn't load file.\n"));
-            }
-            else
-            {
-                returnValue = LoadWasm(fileName, fileNameLength, fileContent, isBinaryFormat, lengthBytes, scriptInjectType, ffi);
-            }
-            free(fileName);
-        }
-    }
-
-Error:
-    return returnValue;
-}
-
-JsValueRef WScriptJsrt::LoadWasm(LPCSTR fileName, size_t fileNameLength, const char16* fileContent, const bool isBinary, const UINT lengthBytes, LPCWSTR scriptInjectType, JsValueRef ffi)
-{
-    HRESULT hr = E_FAIL;
-    JsErrorCode errorCode = JsNoError;
-    LPCWSTR errorMessage = L"Internal error.";
-    size_t errorMessageLength = wcslen(errorMessage);
-    JsValueRef returnValue = JS_INVALID_REFERENCE;
-    JsErrorCode innerErrorCode = JsNoError;
-
-    char16 fullPath[_MAX_PATH];
-    char16* fileNameWide;
-    IfFailGo(Helpers::NarrowStringToWideDynamic(fileName, &fileNameWide));
-    if (_wfullpath(fullPath, fileNameWide, _MAX_PATH) == nullptr)
-    {
-        free(fileNameWide);
-        IfFailGo(E_FAIL);
-    }
-    free(fileNameWide);
-
-    // canonicalize that path name to lower case for the profile storage
-    size_t len = wcslen(fullPath);
-    for (size_t i = 0; i < len; i++)
-    {
-        fullPath[i] = towlower(fullPath[i]);
-    }
-
-    if (wcscmp(scriptInjectType, _u("self")) == 0)
-    {
-        errorCode = ChakraRTInterface::JsRunWasmScript(fileContent, 0, fullPath, isBinary, lengthBytes, ffi, &returnValue);
-        if (errorCode != JsNoError)
-        {
-            PrintException(fileName, errorCode);
-        }
-    }
-    else
-    {
-        errorCode = JsErrorInvalidArgument;
-        errorMessage = _u("Unsupported argument type inject type.");
-    }
-
-
-Error:
-    JsValueRef value = returnValue;
-    if (errorCode != JsNoError)
-    {
-        if (innerErrorCode != JsNoError)
-        {
-            // Failed to retrieve the inner error message, so set a custom error string
-            errorMessage = ConvertErrorCodeToMessage(errorCode);
-        }
-
-        JsValueRef error = JS_INVALID_REFERENCE;
-        JsValueRef messageProperty = JS_INVALID_REFERENCE;
-        errorMessageLength = wcslen(errorMessage);
-        innerErrorCode = ChakraRTInterface::JsPointerToString(errorMessage, errorMessageLength, &messageProperty);
-        if (innerErrorCode == JsNoError)
-        {
-            innerErrorCode = ChakraRTInterface::JsCreateError(messageProperty, &error);
-            if (innerErrorCode == JsNoError)
-            {
-                innerErrorCode = ChakraRTInterface::JsSetException(error);
-            }
-        }
-
-        ChakraRTInterface::JsDoubleToNumber(errorCode, &value);
-    }
-
-    _flushall();
-
-    return value;
-}
-#endif
-
 bool WScriptJsrt::InstallObjectsOnObject(JsValueRef object, const char16* name, JsNativeFunction nativeFunction)
 {
     JsValueRef propertyValueRef;
@@ -756,9 +612,6 @@ bool WScriptJsrt::Initialize()
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, _u("RequestAsyncBreak"), RequestAsyncBreakCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, _u("LoadBinaryFile"), LoadBinaryFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, _u("LoadTextFile"), LoadTextFileCallback));
-#ifdef ENABLE_WASM
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, _u("LoadWasmFile"), LoadWasmCallback));
-#endif
 
     // ToDo Remove
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, _u("Edit"), EmptyCallback));

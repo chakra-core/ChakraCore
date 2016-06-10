@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -64,9 +64,6 @@ public:
     static JsValueRef LoadScriptHelper(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState, bool isSourceModule);
     static bool InstallObjectsOnObject(JsValueRef object, const char16* name, JsNativeFunction nativeFunction);
 
-#ifdef ENABLE_WASM
-    static JsValueRef LoadWasm(LPCSTR fileName, size_t fileNameLength, const char16* fileContent, const bool isBinary, const UINT lengthBytes, LPCWSTR scriptInjectType, JsValueRef ffi);
-#endif
 private:
     static bool CreateArgumentsObject(JsValueRef *argsObject);
     static bool CreateNamedFunction(const char16*, JsNativeFunction callback, JsValueRef* functionVar);
@@ -87,10 +84,6 @@ private:
 
     static JsValueRef __stdcall LoadBinaryFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall LoadTextFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-
-#ifdef ENABLE_WASM
-    static JsValueRef __stdcall LoadWasmCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
-#endif
 
     static MessageQueue *messageQueue;
     static DWORD_PTR sourceContext;
