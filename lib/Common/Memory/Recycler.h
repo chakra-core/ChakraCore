@@ -2393,7 +2393,9 @@ struct ForceLeafAllocator<RecyclerNonLeafAllocator>
     typedef RecyclerLeafAllocator AllocatorType;
 };
 
-// TODO: enable -profile for GC phases
+// TODO: enable -profile for GC phases.
+// access the same profiler object from multiple GC threads which shares one recyler object,
+// but profiler object is not thread safe
 #if defined(PROFILE_EXEC) && 0
 #define RECYCLER_PROFILE_EXEC_BEGIN(recycler, phase) if (recycler->profiler != nullptr) { recycler->profiler->Begin(phase); }
 #define RECYCLER_PROFILE_EXEC_END(recycler, phase) if (recycler->profiler != nullptr) { recycler->profiler->End(phase); }
