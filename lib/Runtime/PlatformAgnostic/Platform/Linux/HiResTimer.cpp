@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#include "Runtime.h"
+#include "Common.h"
 #include <time.h>
 #include <sys/time.h>
 #include "ChakraPlatform.h"
