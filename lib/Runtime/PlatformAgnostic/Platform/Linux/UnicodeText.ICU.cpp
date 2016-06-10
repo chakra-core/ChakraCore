@@ -324,7 +324,9 @@ namespace PlatformAgnostic
             //  * C1_SPACE corresponds to the Unicode Zs category.
             //  * C1_BLANK corresponds to a hardcoded list thats ill-defined.
             // We'll skip that compatibility here and just check for Zs.
-            if ((charTypeMask & U_GC_ZS_MASK) != 0)
+            // We explicitly check for 0xFEFF to satisfy the unit test in es5/Lex_u3.js   
+            if ((charTypeMask & U_GC_ZS_MASK) != 0 ||
+                character == 0xFEFF)                
             {
                 return CharacterClassificationType::Whitespace;
             }
