@@ -325,6 +325,18 @@ namespace UnifiedRegex
             ResetGroup(i);
     }
 
+#if ENABLE_REGEX_CONFIG_OPTIONS
+    bool Inst::IsBaselineMode()
+    {
+        return Js::Configuration::Global.flags.BaselineMode;
+    }
+
+    Label Inst::GetPrintLabel(Label label)
+    {
+        return IsBaselineMode() ? (Label)0xFFFF : label;
+    }
+#endif
+
     // ----------------------------------------------------------------------
     // Mixins
     // ----------------------------------------------------------------------
@@ -657,7 +669,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void JumpMixin::Print(DebugWriter* w, const char16* litbuf) const
     {
-        w->Print(_u("targetLabel: L%04x"), targetLabel);
+        w->Print(_u("targetLabel: L%04x"), Inst::GetPrintLabel(targetLabel));
     }
 #endif
 
@@ -673,21 +685,22 @@ namespace UnifiedRegex
     {
         w->Print(_u("loopId: %d, repeats: "), loopId);
         repeats.Print(w);
-        w->Print(_u(", exitLabel: L%04x, hasOuterLoops: %s, hasInnerNondet: %s"), exitLabel, hasOuterLoops ? _u("true") : _u("false"), hasInnerNondet ? _u("true") : _u("false"));
+        w->Print(_u(", exitLabel: L%04x, hasOuterLoops: %s, hasInnerNondet: %s"),
+            Inst::GetPrintLabel(exitLabel), hasOuterLoops ? _u("true") : _u("false"), hasInnerNondet ? _u("true") : _u("false"));
     }
 #endif
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void RepeatLoopMixin::Print(DebugWriter* w, const char16* litbuf) const
     {
-        w->Print(_u("beginLabel: L%04x"), beginLabel);
+        w->Print(_u("beginLabel: L%04x"), Inst::GetPrintLabel(beginLabel));
     }
 #endif
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void TryMixin::Print(DebugWriter* w, const char16* litbuf) const
     {
-        w->Print(_u("failLabel: L%04x"), failLabel);
+        w->Print(_u("failLabel: L%04x"), Inst::GetPrintLabel(failLabel));
     }
 #endif
 
@@ -3825,7 +3838,8 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     int BeginAssertionInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        w->Print(_u("L%04x: BeginAssertion(isNegation: %s, nextLabel: L%04x, "), label, isNegation ? _u("true") : _u("false"), nextLabel);
+        w->Print(_u("L%04x: BeginAssertion(isNegation: %s, nextLabel: L%04x, "),
+            label, isNegation ? _u("true") : _u("false"), GetPrintLabel(nextLabel));
         BodyGroupsMixin::Print(w, litbuf);
         w->PrintEOL(_u(")"));
         return sizeof(*this);
@@ -5009,6 +5023,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void Program::Print(DebugWriter* w)
     {
+        const bool isBaselineMode = Js::Configuration::Global.flags.BaselineMode;
         w->PrintEOL(_u("Program {"));
         w->Indent();
         w->PrintEOL(_u("source:       %s"), source);
@@ -5034,8 +5049,9 @@ namespace UnifiedRegex
                 }
                 uint8* instsLim = rep.insts.insts + rep.insts.instsLen;
                 uint8* curr = rep.insts.insts;
+                int i = 0;
                 while (curr != instsLim)
-                    curr += ((Inst*)curr)->Print(w, (Label)(curr - rep.insts.insts), rep.insts.litbuf);
+                    curr += ((Inst*)curr)->Print(w, (Label)(isBaselineMode ? i++ : curr - rep.insts.insts), rep.insts.litbuf);
                 w->Unindent();
                 w->PrintEOL(_u("}"));
             }

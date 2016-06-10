@@ -362,7 +362,7 @@ goto :main
   )
 
   if "%_Binary%" == "-binary:ch.exe" (
-    set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -WERExceptionSupport -ExtendedErrorStackForTestHost
+    set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -WERExceptionSupport -ExtendedErrorStackForTestHost -BaselineMode
   )
 
   if "%_TESTCONFIG%"=="interpreted" (
