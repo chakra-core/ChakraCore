@@ -164,7 +164,6 @@ namespace Wasm
 
         SListCounted<Js::ByteCodeLabel> * m_labels;
 
-        typedef SList<EmitInfo> evalStackScope;
-        SList<evalStackScope*> * m_evalStack;
+        JsUtil::Stack<EmitInfo> m_evalStack;
     };
 }

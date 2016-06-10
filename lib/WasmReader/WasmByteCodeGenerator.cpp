@@ -23,7 +23,8 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, 
     m_f32RegSlots(nullptr),
     m_f64RegSlots(nullptr),
     m_i32RegSlots(nullptr),
-    m_currentFunc(nullptr)
+    m_currentFunc(nullptr),
+    m_evalStack(&m_alloc)
 {
     m_writer.Create();
 
@@ -32,7 +33,6 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, 
     m_writer.InitData(&m_alloc, astSize);
 
     m_labels = Anew(&m_alloc, SListCounted<Js::ByteCodeLabel>, &m_alloc);
-    m_evalStack = Anew(&m_alloc, SList<evalStackScope*>, &m_alloc);
 
     // Initialize maps needed by binary reader
     Binary::WasmBinaryReader::Init(scriptContext);
@@ -179,6 +179,7 @@ WasmBytecodeGenerator::GenerateFunction()
     m_currentFunc->wasmInfo = m_funcInfo;
     m_nestedIfLevel = 0;
     m_maxArgOutDepth = 0;
+    m_evalStack.Clear();
 
     // TODO: fix these bools
     m_writer.Begin(m_currentFunc->body, &m_alloc, true, true, false);
@@ -1294,30 +1295,38 @@ WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type) const
 EmitInfo
 WasmBytecodeGenerator::PopEvalStack()
 {
-    return m_evalStack->Top()->Pop();
+    // The scope marker should at least be there
+    Assert(!m_evalStack.Empty());
+    EmitInfo info = m_evalStack.Pop();
+    if (info.type == WasmTypes::Limit)
+    {
+        throw WasmCompilationException(_u("Missing operand"));
+    }
+    return info;
 }
 
 void
 WasmBytecodeGenerator::PushEvalStack(EmitInfo info)
 {
-    m_evalStack->Top()->Push(info);
+    Assert(!m_evalStack.Empty());
+    m_evalStack.Push(info);
 }
 
 void
 WasmBytecodeGenerator::EnterEvalStackScope()
 {
-    m_evalStack->Push(Anew(&m_alloc, evalStackScope, &m_alloc));
+    m_evalStack.Push(EmitInfo(WasmTypes::Limit));
 }
 
 void
 WasmBytecodeGenerator::ExitEvalStackScope()
 {
-    FOREACH_SLIST_ENTRY(EmitInfo, data, m_evalStack->Top())
+    Assert(!m_evalStack.Empty());
+    EmitInfo info;
+    while(info = m_evalStack.Pop(), info.type != WasmTypes::Limit)
     {
-        ReleaseLocation(&data);
-    } NEXT_SLIST_ENTRY;
-    Adelete(&m_alloc, m_evalStack->Top());
-    m_evalStack->Pop();
+        ReleaseLocation(&info);
+    }
 }
 
 void
