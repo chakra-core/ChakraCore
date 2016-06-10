@@ -7,6 +7,12 @@
 
 #ifdef ENABLE_WASM
 
+#if DBG_DUMP
+#define DebugPrintOp(op) if (PHASE_TRACE(Js::WasmReaderPhase, m_currentFunc->body)) { PrintOpName(op); }
+#else
+#define DebugPrintOp(op)
+#endif
+
 namespace Wasm
 {
 WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, byte* binaryBuffer, uint binaryBufferLength) :
@@ -180,6 +186,10 @@ WasmBytecodeGenerator::GenerateFunction()
     {
         try
         {
+            if (PHASE_OFF(Js::WasmBytecodePhase, m_currentFunc->body) && PHASE_ON1(Js::WasmLazyTrapPhase)) 
+            {
+                throw WasmCompilationException(_u("Compilation skipped"));
+            }
             m_funcInfo->SetExitLabel(m_writer.DefineLabel());
             EnregisterLocals();
 
@@ -190,6 +200,7 @@ WasmBytecodeGenerator::GenerateFunction()
             {
                 exprInfo = EmitExpr(op);
             }
+            DebugPrintOp(op);
             // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
             Wasm::WasmTypes::WasmType returnType = m_funcInfo->GetSignature()->GetResultType();
 
@@ -209,7 +220,6 @@ WasmBytecodeGenerator::GenerateFunction()
                 EmitReturnExpr(&exprInfo);
             }
             ExitEvalStackScope();
-            ReleaseLocation(&exprInfo);
         }
         catch (...)
         {
@@ -367,8 +377,9 @@ WasmBytecodeGenerator::EnregisterLocals()
     }
 }
 
+#if DBG_DUMP
 void
-WasmBytecodeGenerator::PrintOpName(WasmOp op)
+WasmBytecodeGenerator::PrintOpName(WasmOp op) const
 {
     switch (op)
     {
@@ -379,16 +390,12 @@ WasmBytecodeGenerator::PrintOpName(WasmOp op)
 #include "WasmKeywords.h"
     }
 }
+#endif
 
 EmitInfo
 WasmBytecodeGenerator::EmitExpr(WasmOp op)
 {
-#if DBG_DUMP
-    if (PHASE_TRACE(Js::WasmReaderPhase, m_currentFunc->body))
-    {
-        PrintOpName(op);
-    }
-#endif
+    DebugPrintOp(op);
 
     EmitInfo info;
 
@@ -545,22 +552,43 @@ WasmBytecodeGenerator::EmitConst()
 }
 
 EmitInfo
-WasmBytecodeGenerator::EmitBlock()
+WasmBytecodeGenerator::EmitBlock(uint* loopId /*= nullptr*/)
 {
     WasmOp op;
     Js::ByteCodeLabel blockLabel = m_writer.DefineLabel();
+
     // TODO: this needs more work. must get temp that brs can store to as a target, and do type checking
     m_labels->Push(blockLabel);
+    if (loopId)
+    {
+        *loopId = m_writer.EnterLoop(blockLabel);
+    }
     EmitInfo blockInfo;
     EnterEvalStackScope();
     while ((op = m_reader.ReadFromBlock()) != wnEND && op != wnELSE)
     {
         blockInfo = EmitExpr(op);
     }
+    DebugPrintOp(op);
     ExitEvalStackScope();
 
-    m_writer.MarkAsmJsLabel(blockLabel);
+    // After we've release all the tmps used by this block, get a new one and make sure the yielded value is there
+    if (blockInfo.type != WasmTypes::Void)
+    {
+        Js::RegSlot loc = GetRegisterSpace(blockInfo.type)->AcquireTmpRegister();
+        if (loc != blockInfo.location) 
+        {
+            m_writer.AsmReg2(GetLoadOp(blockInfo.type), loc, blockInfo.location);
+            blockInfo.location = loc;
+        }
+    }
+
+    if (!loopId)
+    {
+        m_writer.MarkAsmJsLabel(blockLabel);
+    }
     m_labels->Pop();
+
     // block yields last value
     return blockInfo;
 }
@@ -570,25 +598,9 @@ WasmBytecodeGenerator::EmitLoop()
 {
     Js::ByteCodeLabel loopTailLabel = m_writer.DefineLabel();
     m_labels->Push(loopTailLabel);
-
-    Js::ByteCodeLabel loopHeaderLabel = m_writer.DefineLabel();
-    m_labels->Push(loopHeaderLabel);
-    const uint loopId = m_writer.EnterLoop(loopHeaderLabel);
-    EmitInfo loopInfo;
-    WasmOp op;
-    EmitInfo info;
-    op = m_reader.ReadFromBlock();
-    EnterEvalStackScope();
-    while (op != wnEND)
-    {
-        info = EmitExpr(op);
-        op = m_reader.ReadFromBlock();
-        if (op == wnEND)
-            loopInfo = info;         // loop yields last value
-    }
-    ExitEvalStackScope();
+    uint loopId;
+    EmitInfo loopInfo = EmitBlock(&loopId);
     m_writer.MarkAsmJsLabel(loopTailLabel);
-    m_labels->Pop();
     m_labels->Pop();
     m_writer.ExitLoop(loopId);
 
@@ -1300,6 +1312,10 @@ WasmBytecodeGenerator::EnterEvalStackScope()
 void
 WasmBytecodeGenerator::ExitEvalStackScope()
 {
+    FOREACH_SLIST_ENTRY(EmitInfo, data, m_evalStack->Top())
+    {
+        ReleaseLocation(&data);
+    } NEXT_SLIST_ENTRY;
     Adelete(&m_alloc, m_evalStack->Top());
     m_evalStack->Pop();
 }
