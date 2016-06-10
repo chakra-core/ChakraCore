@@ -17,6 +17,9 @@ namespace PlatformAgnostic
         static UErrorCode g_lastErrorCode = U_ZERO_ERROR;
 #endif
 
+        static_assert(sizeof(char16) == sizeof(UChar),
+            "This implementation depends on ICU char size matching char16's size");
+
         // Helper ICU conversion facilities
         static const Normalizer2* TranslateToICUNormalizer(NormalizationForm normalizationForm)
         {
@@ -46,16 +49,23 @@ namespace PlatformAgnostic
             return normalizer;
         }
 
-        static bool IsUtf16StringValid(const UChar* str, int* invalidIndex)
+        // 
+        // Check if a UTF16 string is valid according to the UTF16 standard
+        // Specifically, check that we don't have any invalid surrogate pairs
+        // If the string is valid, we return true. 
+        // If not, we set invalidIndex to the index of the first invalid char index
+        // and return false
+        // If the invalid char is a lead surrogate pair, we return its index
+        // Otherwise, we treat the char before as the invalid one and return index - 1
+        // This function has defined behavior only for null-terminated strings.
+        // If the string is not null terminated, the behavior is undefined (likely hang)
+        //
+        static bool IsUtf16StringValid(const UChar* str, size_t length, size_t* invalidIndex)
         {
-            // ask ICU to scan through the string and see if it can be
-            // converted to utf8. If it can't, see if the error is that
-            // the string is malformed.
-
             Assert(invalidIndex != nullptr);
             *invalidIndex = -1;
-            int32_t length = u_strlen(str);
-            int32_t i = 0;
+
+            size_t i = 0;
 
             for (;;)
             {
@@ -78,11 +88,17 @@ namespace PlatformAgnostic
                         *invalidIndex = i;
                     }
                     else
-                    {
+                    { 
+                        Assert(i > 0);
                         *invalidIndex = i - 1;
                     }
                     
                     return false;
+                }
+
+                if (i >= length)
+                {
+                    return true;
                 }
             }            
         }
@@ -128,8 +144,8 @@ namespace PlatformAgnostic
             // is a malformed utf16 string. Maintain the same behavior here.
             // Note that Windows returns this failure only if the dest buffer
             // is passed in, not in the estimation case
-            int invalidIndex = 0;
-            if (destString != nullptr && !IsUtf16StringValid((const UChar*) sourceString, &invalidIndex))
+            size_t invalidIndex = 0;
+            if (destString != nullptr && !IsUtf16StringValid((const UChar*) sourceString, sourceLength, &invalidIndex))
             {
                 *pErrorOut = InvalidUnicodeText;
                 return -1 * invalidIndex; // mimicking the behavior of Win32 NormalizeString
@@ -172,10 +188,16 @@ namespace PlatformAgnostic
             Assert(testString != nullptr);
             UErrorCode errorCode = U_ZERO_ERROR;
 
+            size_t length = static_cast<size_t>(testStringLength);
+            if (testStringLength < 0)
+            {
+                length = u_strlen((const UChar*) testString);
+            }
+            
             // On Windows, IsNormalizedString returns failure if the string
             // is a malformed utf16 string. Maintain the same behavior here.
-            int invalidIndex = 0;
-            if (!IsUtf16StringValid((const UChar*) testString, &invalidIndex))
+            size_t invalidIndex = 0;
+            if (!IsUtf16StringValid((const UChar*) testString, length, &invalidIndex))
             {
                 return false;
             }
@@ -183,7 +205,7 @@ namespace PlatformAgnostic
             const Normalizer2* normalizer = TranslateToICUNormalizer(normalizationForm);
             Assert(normalizer != nullptr);
 
-            const UnicodeString testUniStr((const UChar*) testString, testStringLength);
+            const UnicodeString testUniStr((const UChar*) testString, length);
             bool isNormalized = normalizer->isNormalized(testUniStr, errorCode);
 
             Assert(U_SUCCESS(errorCode));
@@ -326,7 +348,8 @@ namespace PlatformAgnostic
             // We'll skip that compatibility here and just check for Zs.
             // We explicitly check for 0xFEFF to satisfy the unit test in es5/Lex_u3.js   
             if ((charTypeMask & U_GC_ZS_MASK) != 0 ||
-                character == 0xFEFF)                
+                character == 0xFEFF ||
+                character == 0xFFFE)
             {
                 return CharacterClassificationType::Whitespace;
             }
