@@ -3,32 +3,32 @@
     "this": "Object {...}",
     "{exception}": "number 1",
     "locals": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "undefined undefined",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>"
+      "globalVar": "undefined undefined"
     }
   },
   {
     "this": "Object {...}",
     "{exception}": "Error Caught Error",
     "locals": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "undefined undefined",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>"
+      "globalVar": "undefined undefined"
     }
   },
   {
     "this": {
+      "Wasm": "Object {...}",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "Object {...}",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>",
-      "Wasm": "Object {...}"
+      "globalVar": "Object {...}"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -52,21 +52,21 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "Object {...}",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>"
+      "globalVar": "Object {...}"
     }
   },
   {
     "this": {
+      "Wasm": "Object {...}",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "Object {...}",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>",
-      "Wasm": "Object {...}"
+      "globalVar": "Object {...}"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -111,11 +111,11 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
-      "globalVar": "Object {...}",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>"
+      "globalVar": "Object {...}"
     }
   }
 ]
