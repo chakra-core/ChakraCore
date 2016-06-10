@@ -6,8 +6,8 @@
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "undefined undefined",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>"
+      "read": "function read",
+      "readbuffer": "function readbuffer"
     }
   },
   {
@@ -17,8 +17,8 @@
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "undefined undefined",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>"
+      "read": "function read",
+      "readbuffer": "function readbuffer"
     }
   },
   {
@@ -26,8 +26,8 @@
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "Wasm": "Object {...}"
     },
     "arguments": {
@@ -55,8 +55,8 @@
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>"
+      "read": "function read",
+      "readbuffer": "function readbuffer"
     }
   },
   {
@@ -64,8 +64,8 @@
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
       "Wasm": "Object {...}"
     },
     "arguments": {
@@ -114,8 +114,8 @@
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}",
-      "read": "function <large string>",
-      "readbuffer": "function <large string>"
+      "read": "function read",
+      "readbuffer": "function readbuffer"
     }
   }
 ]
