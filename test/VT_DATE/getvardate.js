@@ -92,8 +92,11 @@ for (var i = 0; i < 1000; i++)
 
 function writeLine(str)
 {
-    str = str.replace(/\(PDT\)/g, "(Pacific Daylight Time)")
-             .replace(/\(PST\)/g, "(Pacific Standard Time)");
+    if (typeof str === "string") {
+        str = str.replace(/\(PDT\)/g, "(Pacific Daylight Time)")
+                 .replace(/\(PST\)/g, "(Pacific Standard Time)");
+    }
+
     WScript.Echo("" + str);
 }
 
