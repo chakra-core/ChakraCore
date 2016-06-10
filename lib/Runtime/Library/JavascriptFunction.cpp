@@ -1204,11 +1204,11 @@ dbl_align:
         unsigned count = args.Info.Count;
         if (count == 0)
         {
-            varResult = entryPoint((JavascriptFunction*)function, args.Info);
+            varResult = CALL_ENTRYPOINT(entryPoint, (JavascriptFunction*)function, args.Info);
         }
         else if (count == 1)
         {
-            varResult = entryPoint((JavascriptFunction*)function, args.Info, args.Values[0]);
+            varResult = CALL_ENTRYPOINT(entryPoint, (JavascriptFunction*)function, args.Info, args.Values[0]);
         }
         else
         {
