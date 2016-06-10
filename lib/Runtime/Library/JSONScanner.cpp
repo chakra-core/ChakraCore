@@ -82,7 +82,7 @@ namespace JSON
                     const char16* saveCurrentChar = currentChar;
                     if(!IsJSONNumber())
                     {
-                        Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadNumber);
+                       ThrowSyntaxError(JSERR_JsonBadNumber);
                     }
                     currentChar = saveCurrentChar;
                     double val;
@@ -90,7 +90,7 @@ namespace JSON
                     val = Js::NumberUtilities::StrToDbl(currentChar, &end, scriptContext);
                     if(currentChar == end)
                     {
-                        Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadNumber);
+                       ThrowSyntaxError(JSERR_JsonBadNumber);
                     }
                     AssertMsg(!Js::JavascriptNumber::IsNan(val), "Bad result from string to double conversion");
                     pToken->tk = tkFltCon;
@@ -121,7 +121,7 @@ namespace JSON
                     currentChar += 3;
                     return (pToken->tk = tkNULL);
                 }
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+               ThrowSyntaxError(JSERR_JsonIllegalChar);
 
             case 't':
                 //check for 'true'
@@ -130,7 +130,7 @@ namespace JSON
                     currentChar += 3;
                     return (pToken->tk = tkTRUE);
                 }
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+               ThrowSyntaxError(JSERR_JsonIllegalChar);
 
             case 'f':
                 //check for 'false'
@@ -139,7 +139,7 @@ namespace JSON
                     currentChar += 4;
                     return (pToken->tk = tkFALSE);
                 }
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+               ThrowSyntaxError(JSERR_JsonIllegalChar);
 
             case '{':
                 return (pToken->tk = tkLCurly);
@@ -148,7 +148,7 @@ namespace JSON
                 return (pToken->tk = tkRCurly);
 
             default:
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+               ThrowSyntaxError(JSERR_JsonIllegalChar);
             }
 
         }
@@ -245,12 +245,12 @@ namespace JSON
             else if (ch <= 0x1F)
             {
                 //JSON doesn't accept \u0000 - \u001f range, LS(\u2028) and PS(\u2029) are ok
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+               ThrowSyntaxError(JSERR_JsonIllegalChar);
             }
             else if ( 0 == ch )
             {
                 currentChar--;
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRnoStrEnd);
+               ThrowSyntaxError(JSERR_JsonNoStrEnd);
             }
             else if ('\\' == ch)
             {
@@ -258,7 +258,7 @@ namespace JSON
                 // unlikely V5.8 regular chars are not escaped, i.e '\g'' in a string is illegal not 'g'
                 if (currentChar >= inputText + inputLen )
                 {
-                    Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRnoStrEnd);
+                   ThrowSyntaxError(JSERR_JsonNoStrEnd);
                 }
 
                 ch = ReadNextChar();
@@ -266,7 +266,7 @@ namespace JSON
                 {
                 case 0:
                     currentChar--;
-                    Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRnoStrEnd);
+                   ThrowSyntaxError(JSERR_JsonNoStrEnd);
 
                 case '"':
                 case '/':
@@ -301,30 +301,30 @@ namespace JSON
                         if (currentChar + 3 >= inputText + inputLen)
                         {
                             //no room left for 4 hex chars
-                            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRnoStrEnd);
+                           ThrowSyntaxError(JSERR_JsonNoStrEnd);
 
                         }
                         if (!Js::NumberUtilities::FHexDigit((WCHAR)ReadNextChar(), &tempHex))
                         {
-                            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadHexDigit);
+                           ThrowSyntaxError(JSERR_JsonBadHexDigit);
                         }
                         chcode = tempHex * 0x1000;
 
                         if (!Js::NumberUtilities::FHexDigit((WCHAR)ReadNextChar(), &tempHex))
                         {
-                            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadHexDigit);
+                           ThrowSyntaxError(JSERR_JsonBadHexDigit);
                         }
                         chcode += tempHex * 0x0100;
 
                         if (!Js::NumberUtilities::FHexDigit((WCHAR)ReadNextChar(), &tempHex))
                         {
-                            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadHexDigit);
+                           ThrowSyntaxError(JSERR_JsonBadHexDigit);
                         }
                         chcode += tempHex * 0x0010;
 
                         if (!Js::NumberUtilities::FHexDigit((WCHAR)ReadNextChar(), &tempHex))
                         {
-                            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadHexDigit);
+                           ThrowSyntaxError(JSERR_JsonBadHexDigit);
                         }
                         chcode += tempHex;
                         AssertMsg(chcode == (chcode & 0xFFFF), "Bad unicode code");
@@ -334,7 +334,7 @@ namespace JSON
 
                 default:
                     // Any other '\o' is an error in JSON
-                    Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+                   ThrowSyntaxError(JSERR_JsonIllegalChar);
                 }
 
                 // flush
@@ -367,7 +367,7 @@ namespace JSON
         if (!endFound)
         {
             // no ending '"' found
-            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRnoStrEnd);
+           ThrowSyntaxError(JSERR_JsonNoStrEnd);
         }
 
         if (isStringDirectInputTextMapped == false)

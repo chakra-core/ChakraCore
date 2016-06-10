@@ -2551,6 +2551,7 @@ namespace Js
                                                      library->AddFunctionToLibraryObjectWithName(functionPrototype, PropertyIds::_symbolHasInstance, PropertyIds::_RuntimeFunctionNameId_hasInstance,
                                                                                                  &JavascriptFunction::EntryInfo::SymbolHasInstance, 1));
             functionPrototype->SetWritable(PropertyIds::_symbolHasInstance, false);
+            functionPrototype->SetConfigurable(PropertyIds::_symbolHasInstance, false);
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));

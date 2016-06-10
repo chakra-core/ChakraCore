@@ -187,6 +187,8 @@ namespace Js
         {
             returnTypeInfo[i] = ValueType::Uninitialized;
         }
+
+        this->rejitCount = 0;
 #if DBG
         for (ProfileId i = 0; i < functionBody->GetProfiledArrayCallSiteCount(); ++i)
         {

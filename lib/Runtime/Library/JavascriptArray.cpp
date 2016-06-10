@@ -8998,13 +8998,9 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.filter"));
         }
 
-        RecyclableObject* newObj = nullptr;
-        JavascriptArray* newArr = nullptr;
         BigIndex length;
         JavascriptArray* pArr = nullptr;
         RecyclableObject* dynamicObject = nullptr;
-        RecyclableObject* callBackFn = nullptr;
-        Var thisArg = nullptr;
 
         if (JavascriptArray::Is(args[0]) && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject())
         {
@@ -9038,11 +9034,23 @@ Case0:
             length = pArr->length;
         }
 
+        if (length.IsSmallIndex())
+        {
+            return JavascriptArray::FilterHelper(pArr, dynamicObject, length.GetSmallIndex(), args, scriptContext);
+        }
+        return JavascriptArray::FilterHelper(pArr, dynamicObject, length.GetBigIndex(), args, scriptContext);
+    }
+
+    template <typename T>
+    Var JavascriptArray::FilterHelper(JavascriptArray* pArr, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
+    {
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.filter"));
         }
-        callBackFn = RecyclableObject::FromVar(args[1]);
+
+        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        Var thisArg = nullptr;
 
         if (args.Info.Count > 2)
         {
@@ -9054,7 +9062,8 @@ Case0:
         }
 
         // If the source object is an Array exotic object we should try to load the constructor property and use it to construct the return object.
-        newObj = ArraySpeciesCreate(dynamicObject, 0, scriptContext);
+        RecyclableObject* newObj = ArraySpeciesCreate(obj, 0, scriptContext);
+        JavascriptArray* newArr = nullptr;
 
         if (newObj == nullptr)
         {
@@ -9071,28 +9080,25 @@ Case0:
             }
         }
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var selected = nullptr;
-        BigIndex i = 0u;
 
         if (pArr)
         {
-            uint32 arrayLength = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
+            Assert(length <= MaxArrayLength);
+            uint32 i = 0;
 
-            // If source was an array object, the return object might be any random object
-            for (uint32 k = 0; k < arrayLength; k++)
+            for (uint32 k = 0; k < length; k++)
             {
                 if (!pArr->DirectGetItemAtFull(k, &element))
                 {
                     continue;
                 }
 
-                selected = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
-                                                                element,
-                                                                JavascriptNumber::ToVar(k, scriptContext),
-                                                                pArr);
+                selected = callBackFn->GetEntryPoint()(callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
+                    element,
+                    JavascriptNumber::ToVar(k, scriptContext),
+                    pArr);
 
                 if (JavascriptConversion::ToBoolean(selected, scriptContext))
                 {
@@ -9103,7 +9109,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), i, element);
+                        JavascriptArray::SetArrayLikeObjects(newObj, i, element);
                     }
                     ++i;
                 }
@@ -9111,15 +9117,17 @@ Case0:
         }
         else
         {
-            for (BigIndex k = 0u; k < length; ++k)
+            BigIndex i = 0u;
+
+            for (T k = 0; k < length; k++)
             {
-                if (JavascriptOperators::HasItem(dynamicObject, k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex()))
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    element = JavascriptOperators::GetItem(dynamicObject, k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex(), scriptContext);
-                    selected = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
+                    selected = callBackFn->GetEntryPoint()(callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
                         element,
-                        JavascriptNumber::ToVar(k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex(), scriptContext),
-                        dynamicObject);
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
 
                     if (JavascriptConversion::ToBoolean(selected, scriptContext))
                     {
@@ -9129,7 +9137,7 @@ Case0:
                         }
                         else
                         {
-                            JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), i, element);
+                            JavascriptArray::SetArrayLikeObjects(newObj, i, element);
                         }
                         ++i;
                     }
@@ -9185,7 +9193,6 @@ Case0:
             if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
             {
                 length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-
             }
             else
             {
