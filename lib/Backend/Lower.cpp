@@ -3106,16 +3106,18 @@ Lowerer::LoadOptimizationOverridesValueOpnd(IR::Instr *instr, OptimizationOverri
 IR::Opnd *
 Lowerer::LoadNumberAllocatorValueOpnd(IR::Instr *instr, NumberAllocatorValue valueType)
 {
-    Js::ScriptContext *scriptContext = instr->m_func->GetScriptContext();
-    bool allowNativeCodeBumpAllocation = scriptContext->GetNumberAllocator()->AllowNativeCodeBumpAllocation();
+    
+    ScriptContextInfo *scriptContext = instr->m_func->GetScriptContextInfo();
+    // TODO: pass in allowNativeCodeBumpAllocation
+    bool allowNativeCodeBumpAllocation = false;//scriptContext->GetNumberAllocator()->AllowNativeCodeBumpAllocation();
 
     switch (valueType)
     {
     case NumberAllocatorValue::NumberAllocatorEndAddress:
-        return IR::MemRefOpnd::New(((char *)scriptContext->GetNumberAllocator()) + Js::RecyclerJavascriptNumberAllocator::GetEndAddressOffset(), TyMachPtr, instr->m_func);
+        return IR::MemRefOpnd::New(((char *)scriptContext->GetNumberAllocatorAddr()) + Js::RecyclerJavascriptNumberAllocator::GetEndAddressOffset(), TyMachPtr, instr->m_func);
     case NumberAllocatorValue::NumberAllocatorFreeObjectList:
         return IR::MemRefOpnd::New(
-            ((char *)scriptContext->GetNumberAllocator()) +
+            ((char *)scriptContext->GetNumberAllocatorAddr()) +
                 (allowNativeCodeBumpAllocation ? Js::RecyclerJavascriptNumberAllocator::GetFreeObjectListOffset() : Js::RecyclerJavascriptNumberAllocator::GetEndAddressOffset()),
             TyMachPtr, instr->m_func);
     default:

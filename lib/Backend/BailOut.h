@@ -175,6 +175,9 @@ public:
         FixupNativeDataPointer(constants, chunkList);
         FixupNativeDataPointer(ehBailoutData, chunkList);
         FixupNativeDataPointer(stackLiteralBailOutRecord, chunkList);
+#ifdef _M_IX86
+        FixupNativeDataPointer(startCallArgRestoreAdjustCounts, chunkList);
+#endif
     }
 
 public:
@@ -245,6 +248,7 @@ protected:
     {
         Js::RegSlot regSlot;
         uint initFldCount;
+        void Fixup(NativeCodeData::DataChunk* chunkList) {}
     };
 
     struct ArgOutOffsetInfo
@@ -387,6 +391,8 @@ struct GlobalBailOutRecordDataRow
     // SIMD_JS
     unsigned isSimd128F4 : 1;
     unsigned isSimd128I4 : 1;
+
+    void Fixup(NativeCodeData::DataChunk* chunkList) {}
 };
 
 struct GlobalBailOutRecordDataTable

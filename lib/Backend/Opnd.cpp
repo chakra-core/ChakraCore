@@ -1552,13 +1552,53 @@ FloatConstOpnd::New(Js::Var floatVar, IRType type, Func *func)
     return floatConstOpnd;
 }
 
+#if !FLOATVAR
+FloatConstOpndOOP *
+FloatConstOpndOOP::New(Js::Var floatVar, IRType type, Func *func)
+{  
+    FloatConstOpndOOP * floatConstOpnd = JitAnew(func->m_alloc, IR::FloatConstOpndOOP);
+
+    Js::StaticType* numType = (Js::StaticType*)JitAnewArray(func->m_alloc, char, sizeof(Js::StaticType));
+    floatConstOpnd->m_numberCopy = (Js::JavascriptNumber*)JitAnewArray(func->m_alloc, char, sizeof(Js::JavascriptNumber));
+    
+    SIZE_T bytesRead;
+    HANDLE hProcess = func->GetThreadContextInfo()->GetProcessHandle();    
+    ::ReadProcessMemory(hProcess, floatVar, floatConstOpnd->m_numberCopy, sizeof(Js::JavascriptNumber), &bytesRead);
+    
+
+    char* remoteType = (char*)floatConstOpnd->m_numberCopy + floatConstOpnd->m_numberCopy->GetOffsetOfType();
+    ::ReadProcessMemory(hProcess, *(void**)remoteType, numType, sizeof(Js::StaticType), &bytesRead);
+
+    *(void**)(remoteType) = numType;
+
+    Assert(Js::JavascriptNumber::Is(floatConstOpnd->m_numberCopy));
+
+    floatConstOpnd->m_value = Js::JavascriptNumber::GetValue(floatConstOpnd->m_numberCopy);
+    floatConstOpnd->m_type = type;
+    floatConstOpnd->m_kind = OpndKindFloatConst;
+    floatConstOpnd->m_number = floatVar;
+
+    return floatConstOpnd;
+}
+#endif
+
+
 AddrOpnd *
 FloatConstOpnd::GetAddrOpnd(Func *func, bool dontEncode)
 {
 #if !FLOATVAR
     if (this->m_number)
     {
-        return AddrOpnd::New(this->m_number, (Js::TaggedNumber::Is(this->m_number) ? AddrOpndKindConstantVar : AddrOpndKindDynamicVar), func, dontEncode);
+        if (false) // in-proc JIT
+        {
+            return AddrOpnd::New(this->m_number, (Js::TaggedNumber::Is(this->m_number) ? AddrOpndKindConstantVar : AddrOpndKindDynamicVar), func, dontEncode);
+        }
+        else // OOP JIT
+        {
+            AddrOpnd* addrOpnd = AddrOpnd::New(((FloatConstOpndOOP*)this)->m_numberCopy, (Js::TaggedNumber::Is(this->m_number) ? AddrOpndKindConstantVar : AddrOpndKindDynamicVar), func, dontEncode);
+            addrOpnd->m_address = this->m_number;
+            return addrOpnd;
+        }
     }
 #endif
 

@@ -344,11 +344,22 @@ public:
     AddrOpnd               *GetAddrOpnd(Func *func, bool dontEncode = false);
 public:
     FloatConstType          m_value;
-private:
+protected:
 #if !FLOATVAR
     Js::Var                 m_number;
 #endif
 };
+
+#if !FLOATVAR
+class FloatConstOpndOOP : public FloatConstOpnd
+{
+public:
+    static FloatConstOpndOOP * New(Js::Var floatVar, IRType type, Func *func);
+    FloatConstOpndOOP() {}
+public:
+    Js::JavascriptNumber    *m_numberCopy;
+};
+#endif
 
 class Simd128ConstOpnd sealed : public Opnd
 {

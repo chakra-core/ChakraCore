@@ -6,8 +6,8 @@
 
 #define NativeCodeDataNew(alloc, T, ...) AllocatorNew(NativeCodeData::AllocatorT<T>, alloc, T, __VA_ARGS__)
 #define NativeCodeDataNewZ(alloc, T, ...) AllocatorNewZ(NativeCodeData::AllocatorT<T>, alloc, T, __VA_ARGS__)
-#define NativeCodeDataNewArray(alloc, T, count) AllocatorNewArray(NativeCodeData::AllocatorT<T>, alloc, T, count)
-#define NativeCodeDataNewArrayZ(alloc, T, count) AllocatorNewArrayZ(NativeCodeData::AllocatorT<T>, alloc, T, count)
+#define NativeCodeDataNewArray(alloc, T, count) AllocatorNewArray(NativeCodeData::AllocatorT<NativeCodeData::Array<T>>, alloc, T, count)
+#define NativeCodeDataNewArrayZ(alloc, T, count) AllocatorNewArrayZ(NativeCodeData::AllocatorT<NativeCodeData::Array<T>>, alloc, T, count)
 #define NativeCodeDataNewPlusZ(size, alloc, T, ...) AllocatorNewPlusZ(NativeCodeData::AllocatorT<T>, alloc, size, T, __VA_ARGS__)
 
 
@@ -24,7 +24,7 @@ class NativeCodeData
 {
 
 public:
-    
+
     struct DataChunk
     {
         unsigned int len;
@@ -33,7 +33,7 @@ public:
 #if DBG
         const char* dataType;
 #endif
-        
+
         // todo: use union?
         void(*fixupFunc)(void* _this, NativeCodeData::DataChunk*);
         NativeDataFixupEntry *fixupList;
@@ -42,6 +42,15 @@ public:
         char data[0];
     };
 
+    static DataChunk* GetDataChunk(void* data)
+    {
+        return (NativeCodeData::DataChunk*)((char*)data - offsetof(NativeCodeData::DataChunk, data));
+    }
+
+    static unsigned int GetDataTotalOffset(void* data)
+    {
+        return GetDataChunk(data)->offset;
+    }
 
     NativeCodeData(DataChunk * chunkList);
     DataChunk * chunkList;
@@ -90,6 +99,20 @@ public:
     };
 
     template<typename T>
+    class Array
+    {
+    public:
+        void Fixup(NativeCodeData::DataChunk* chunkList)
+        {
+            int count = NativeCodeData::GetDataChunk(this)->len / sizeof(T);
+            while (count-- > 0) 
+            {
+                (((T*)this) + count)->Fixup(chunkList);
+            }
+        }
+    };
+
+    template<typename T>
     class AllocatorT :public Allocator
     {
         char* AddFixup(char* dataBlock)
@@ -98,7 +121,7 @@ public:
             chunk->fixupFunc = &Fixup;
 #if DBG
             chunk->dataType = typeid(T).name();
-#endif     
+#endif
             return dataBlock;
         }
 
@@ -192,8 +215,22 @@ NativeCodeData::AllocatorT<uint>::AllocZero(size_t requestedBytes)
 }
 #endif
 
-
-template<> void NativeCodeData::AllocatorT<Js::Var>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList)
+template<> void NativeCodeData::Array<int>::Fixup(NativeCodeData::DataChunk* chunkList)
 {
-    NativeCodeData::AddFixupEntryForPointerArray(pThis, chunkList);
+}
+
+template<> void NativeCodeData::Array<unsigned int>::Fixup(NativeCodeData::DataChunk* chunkList)
+{
+}
+
+template<> void NativeCodeData::Array<Js::Var>::Fixup(NativeCodeData::DataChunk* chunkList)
+{
+    NativeCodeData::AddFixupEntryForPointerArray(this, chunkList);
+}
+
+struct GlobalBailOutRecordDataTable;
+
+template<> void NativeCodeData::Array<GlobalBailOutRecordDataTable *>::Fixup(NativeCodeData::DataChunk* chunkList)
+{
+    NativeCodeData::AddFixupEntryForPointerArray(this, chunkList);
 }

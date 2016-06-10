@@ -3437,8 +3437,21 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
             }
             case Js::TypeIds_Number:
             {
-                // TODO (michhol): OOP JIT. we may need to unbox before sending over const table
-                srcOpnd = IR::FloatConstOpnd::New((Js::Var)varConst, TyFloat64, func);
+                // TODO (michhol): OOP JIT. we may need to unbox before sending over const table                
+
+                if (false)
+                {
+                    srcOpnd = IR::FloatConstOpnd::New((Js::Var)varConst, TyFloat64, func);
+                }
+                else
+                {
+#if !FLOATVAR
+                    srcOpnd = IR::FloatConstOpndOOP::New((Js::Var)varConst, TyFloat64, func);
+#else
+                    srcOpnd = IR::FloatConstOpnd::New((Js::Var)varConst, TyFloat64, func);
+#endif
+                }
+
                 instr = IR::Instr::New(Js::OpCode::LdC_A_R8, dstOpnd, srcOpnd, func);
                 if (dstOpnd->m_sym->IsSingleDef())
                 {
@@ -3449,7 +3462,9 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
 #else
                     // Don't set m_isNotInt to true if the float constant value is an int32 or uint32. Uint32s may sometimes be
                     // treated as int32s for the purposes of int specialization.
-                    dstOpnd->m_sym->m_isNotInt = !Js::JavascriptNumber::IsInt32OrUInt32_NoChecks((Js::Var)varConst);
+                    dstOpnd->m_sym->m_isNotInt = !Js::JavascriptNumber::IsInt32OrUInt32(((IR::FloatConstOpnd*)srcOpnd)->m_value);
+
+                    
 #endif
                 }
                 break;

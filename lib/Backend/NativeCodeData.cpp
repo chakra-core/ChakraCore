@@ -94,6 +94,7 @@ void
 NativeCodeData::VerifyExistFixupEntry(void* targetAddr, void* addrToFixup, void* startAddress)
 {
     DataChunk* chunk = (DataChunk*)((char*)startAddress - offsetof(DataChunk, data));
+    DataChunk* targetChunk = ((DataChunk*)((char*)targetAddr - offsetof(DataChunk, data)));
     if (chunk->len == 0) 
     {
         return;
@@ -106,7 +107,6 @@ NativeCodeData::VerifyExistFixupEntry(void* targetAddr, void* addrToFixup, void*
     {
         if (entry->addrOffset == offset)
         {
-            DataChunk* targetChunk = ((DataChunk*)((char*)targetAddr - offsetof(DataChunk, data)));
             Assert(entry->targetTotalOffset == targetChunk->offset);
             return;
         }

@@ -138,7 +138,7 @@ namespace Js
 
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
-            NativeCodeData::DataChunk* chunk = (NativeCodeData::DataChunk*)((char*)this - offsetof(NativeCodeData::DataChunk, data));
+            NativeCodeData::DataChunk* chunk = NativeCodeData::GetDataChunk(this);
             unsigned int pointerCount = chunk->len / sizeof(void*);
             void** pointers = (void**)chunk;
             bool isPropertyId = true;

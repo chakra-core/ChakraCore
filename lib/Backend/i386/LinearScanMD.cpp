@@ -117,10 +117,38 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
     // Pass in the bailout record
     //     push bailOutRecord
     {
-        IR::Instr *const newInstr = IR::Instr::New(Js::OpCode::PUSH, func);
-        newInstr->SetSrc1(IR::AddrOpnd::New(bailOutInfo->bailOutRecord, IR::AddrOpndKindDynamicBailOutRecord, func, true));
-        instr->InsertBefore(newInstr);
-        newInstr->CopyNumber(instr);
+        if (false) // in-proc jit
+        {
+            IR::Instr *const newInstr = IR::Instr::New(Js::OpCode::PUSH, func);
+            newInstr->SetSrc1(IR::AddrOpnd::New(bailOutInfo->bailOutRecord, IR::AddrOpndKindDynamicBailOutRecord, func, true));
+            instr->InsertBefore(newInstr);
+            newInstr->CopyNumber(instr);
+        }
+        else // oop jit
+        {
+            unsigned int bailoutRecordOffset = NativeCodeData::GetDataTotalOffset(bailOutInfo->bailOutRecord);
+
+            // mov rcx, dataAddr
+            Lowerer::InsertMove(
+                IR::RegOpnd::New(nullptr, RegEAX, TyMachPtr, func),
+                IR::AddrOpnd::New(func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, IR::AddrOpndKindDynamicMisc, func, true),
+                instr);
+
+            // mov rcx, [rcx]
+            Lowerer::InsertMove(
+                IR::RegOpnd::New(nullptr, RegEAX, TyMachPtr, func),
+                IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func), 0, TyMachPtr, func, true),
+                instr);
+
+            // add rcx, bailoutRecord_offset
+            auto eax = IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func);
+            Lowerer::InsertAdd(false, eax, eax, IR::IntConstOpnd::New(bailoutRecordOffset, TyUint32, this->func, true), instr);
+
+            IR::Instr *const newInstr = IR::Instr::New(Js::OpCode::PUSH, func);
+            newInstr->SetSrc1(IR::RegOpnd::New(nullptr, RegEAX, TyUint32, func));
+            instr->InsertBefore(newInstr);
+            newInstr->CopyNumber(instr);
+        }
     }
 
     firstInstr = firstInstr->m_next;

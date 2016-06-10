@@ -719,6 +719,9 @@ namespace Js
     Js::JavascriptFunction* ObjTypeSpecFldInfo::GetFieldValueAsFunctionIfAvailable() const
     {
         Assert(IsMono() || (IsPoly() && !DoesntHaveEquivalence()));
+
+        if (PHASE_OFF1(ObjTypeSpecPhase)) return nullptr; // TODO: (lei)remove this after obj type spec for OOPJIT implemented
+
         return this->fixedFieldInfoArray[0].fieldValue != nullptr && JavascriptFunction::Is(this->fixedFieldInfoArray[0].fieldValue) ?
             JavascriptFunction::FromVar(this->fixedFieldInfoArray[0].fieldValue) : nullptr;
     }
@@ -741,6 +744,9 @@ namespace Js
     Js::Var ObjTypeSpecFldInfo::GetFieldValueAsFixedDataIfAvailable() const
     {
         Assert(HasFixedValue() && this->fixedFieldCount == 1);
+
+        if (PHASE_OFF1(ObjTypeSpecPhase)) return nullptr; // TODO: (lei)remove this after obj type spec for OOPJIT implemented
+
         return this->fixedFieldInfoArray[0].fieldValue;
     }
 

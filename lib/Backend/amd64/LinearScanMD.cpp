@@ -263,7 +263,7 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
         linearScan->SetSrcRegs(newInstr);
     }
 
-    
+
     if (false)
     {
         // Pass in the bailout record
@@ -277,7 +277,7 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
     else
     {
         // OOP JIT
-        int bailoutRecordOffset = ((NativeCodeData::DataChunk*)((char*)bailOutInfo->bailOutRecord - offsetof(NativeCodeData::DataChunk, data)))->offset;
+        int bailoutRecordOffset = NativeCodeData::GetDataTotalOffset(bailOutInfo->bailOutRecord);
 
         // move rcx, dataAddr
         Lowerer::InsertMove(
@@ -285,7 +285,7 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
             IR::AddrOpnd::New(func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, IR::AddrOpndKindDynamicMisc, func, true),
             instr);
 
-        // mov rcx, [rcx]        
+        // mov rcx, [rcx]
         Lowerer::InsertMove(
             IR::RegOpnd::New(nullptr, RegRCX, TyMachPtr, func),
             IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegRCX, TyVar, this->func), 0, TyMachPtr, func, true),
@@ -293,7 +293,7 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
 
         // add rcx, bailoutRecord_offset
         auto rcx = IR::RegOpnd::New(nullptr, RegRCX, TyVar, this->func);
-        Lowerer::InsertAdd(false, rcx, rcx, IR::IntConstOpnd::New(bailoutRecordOffset, TyUint64, this->func, true), instr);        
+        Lowerer::InsertAdd(false, rcx, rcx, IR::IntConstOpnd::New(bailoutRecordOffset, TyUint64, this->func, true), instr);
 
     }
 
