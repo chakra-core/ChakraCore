@@ -2823,12 +2823,15 @@ NativeCodeGenerator::ProfilePrint()
     {
         //Merge all the codegenProfiler for single snapshot.
         Js::ScriptContextProfiler* mergeToProfiler = codegenProfiler;
+
+        // find the first initialized profiler
         while (mergeToProfiler != nullptr && !mergeToProfiler->IsInitialized())
         {
             mergeToProfiler = mergeToProfiler->next;
         }
         if (mergeToProfiler != nullptr)
         {
+            // merge the rest profiler to the above initialized profiler
             codegenProfiler = mergeToProfiler->next;
             while (codegenProfiler)
             {
