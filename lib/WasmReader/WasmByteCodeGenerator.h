@@ -90,7 +90,7 @@ namespace Wasm
     private:
 
         EmitInfo EmitExpr(WasmOp op);
-        EmitInfo EmitBlock();
+        EmitInfo EmitBlock(uint* loopId = nullptr);
         EmitInfo EmitLoop();
 
         template<WasmOp wasmOp>
@@ -101,8 +101,10 @@ namespace Wasm
         EmitInfo EmitSetLocal();
         EmitInfo EmitReturnExpr(EmitInfo *lastStmtExprInfo = nullptr);
         EmitInfo EmitSelect();
-        void PrintOpName(WasmOp op);
-
+#if DBG_DUMP
+        void PrintOpName(WasmOp op) const;
+        void PrintEvalStack() const;
+#endif
         template<WasmOp wasmOp>
         EmitInfo EmitBr();
 

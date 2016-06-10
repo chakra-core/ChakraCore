@@ -327,15 +327,6 @@ Entry point for decoding a node
 WasmBinOp
 WasmBinaryReader::ASTNode()
 {
-    // [b-gekua] REVIEW: It would be best to figure out how to unify
-    // SExprParser and WasmBinaryReader's interface for those Nodes
-    // that are repeatedly called (scoping construct) such as Blocks and Calls.
-    // SExprParser uses an interface such that ReadFromX() will be
-    // repeatedly called until we reach the end of the scope (at which
-    // point ReadFromX() should return a wnLIMIT to signal this). This
-    // Would eliminate a lot of the special casing in WasmBytecodeGenerator's
-    // EmitX() functions. The gotcha is that this may involve adding
-    // state to WasmBinaryReader to indicate how far in the scope we are.
     if (EndOfFunc())
     {
         // end of AST
