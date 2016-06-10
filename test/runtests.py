@@ -444,6 +444,12 @@ def load_tests(folder, file):
     except IOError:
         return []
 
+    def test_override(condition, check_tag, check_value, test):
+        target = condition.find(check_tag)
+        if target != None and target.text == check_value:
+            for override in condition.find('override'):
+                test[override.tag] = override.text
+
     def load_test(testXml):
         test = dict()
         for c in testXml.find('default'):
@@ -453,6 +459,11 @@ def load_tests(folder, file):
                 test[c.tag] = test[c.tag] + ',' + c.text
             else:
                 test[c.tag] = c.text
+
+        condition = testXml.find('condition')
+        if condition != None:
+            test_override(condition, 'target', arch_alias, test)
+
         return test
 
     tests = [load_test(x) for x in xml]
