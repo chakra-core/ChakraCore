@@ -33,9 +33,7 @@ namespace Js
         DebuggingFlags debuggingFlags;
         UINT nextBreakPointId;
         DWORD localsDisplayFlags;
-#if DBG
         void * dispatchHaltFrameAddress;
-#endif
     public:
         StepController stepController;
         AsyncBreakController asyncBreakController;
@@ -64,8 +62,9 @@ namespace Js
         FrameDisplay *GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne);
         void UpdateConsoleScope(DynamicObject* copyFromScope, ScriptContext* scriptContext);
         PageAllocator * GetDiagnosticPageAllocator() { return &this->diagnosticPageAllocator; }
-#if DBG
         void SetDispatchHaltFrameAddress(void * returnAddress) { this->dispatchHaltFrameAddress = returnAddress; }
+        DWORD_PTR GetDispatchHaltFrameAddress() const { return (DWORD_PTR)this->dispatchHaltFrameAddress; }
+#if DBG
         void ValidateDebugAPICall();
 #endif
         void SetDebuggerAttaching(bool attaching) { this->isDebuggerAttaching = attaching; }

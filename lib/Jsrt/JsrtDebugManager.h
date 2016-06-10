@@ -27,7 +27,7 @@ public:
 
     bool EnableAsyncBreak(Js::ScriptContext* scriptContext);
 
-    void CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject* eventDataObject, Js::ScriptContext* scriptContext);
+    void CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject* eventDataObject, Js::ScriptContext* scriptContext, bool isBreak);
     void CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEvent, Js::DynamicObject* eventDataObject, Js::ScriptContext* scriptContext);
 
     Js::JavascriptArray* GetScripts(Js::ScriptContext* scriptContext);
@@ -55,7 +55,7 @@ public:
     JsDiagBreakOnExceptionAttributes GetBreakOnException();
 
     JsDiagDebugEvent GetDebugEventFromStopType(Js::StopType stopType);
-
+    ThreadContext* GetThreadContext() const { return this->threadContext; }
 private:
     ThreadContext* threadContext;
     JsDiagDebugEventCallback debugEventCallback;

@@ -201,7 +201,7 @@ void JsrtDebugManager::ReportScriptCompile(Js::JavascriptFunction* scriptFunctio
             jsDiagDebugEvent = JsDiagDebugEventSourceCompile;
         }
 
-        this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject, scriptContext);
+        this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject, scriptContext, false /*isBreak*/);
     }
 }
 
@@ -327,15 +327,16 @@ bool JsrtDebugManager::EnableAsyncBreak(Js::ScriptContext* scriptContext)
     return false;
 }
 
-void JsrtDebugManager::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject* eventDataObject, Js::ScriptContext* scriptContext)
+void JsrtDebugManager::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject* eventDataObject, Js::ScriptContext* scriptContext, bool isBreak)
 {
     class AutoClear
     {
     public:
-        AutoClear(JsrtDebugManager* jsrtDebug)
+        AutoClear(JsrtDebugManager* jsrtDebug, void* dispatchHaltFrameAddress)
         {
             this->jsrtDebugManager = jsrtDebug;
             jsrtDebugManager->callBackDepth++;
+            this->jsrtDebugManager->GetThreadContext()->GetDebugManager()->SetDispatchHaltFrameAddress(dispatchHaltFrameAddress);
         }
 
         ~AutoClear()
@@ -355,7 +356,7 @@ void JsrtDebugManager::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::D
                     jsrtDebugManager->stackFrames = nullptr;
                 }
             }
-
+            this->jsrtDebugManager->GetThreadContext()->GetDebugManager()->SetDispatchHaltFrameAddress(nullptr);
             this->jsrtDebugManager = nullptr;
         }
     private:
@@ -364,8 +365,20 @@ void JsrtDebugManager::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::D
 
     auto funcPtr = [&]()
     {
-        AutoClear autoClear(this);
-        this->debugEventCallback(debugEvent, eventDataObject, this->callbackState);
+        if (isBreak)
+        {
+            void *frameAddress = _AddressOfReturnAddress();
+            // If we are reporting break we should clear all objects after call returns
+
+            // Save the frame address, when asking for stack we will only give stack which is under this address
+            // because host can execute javascript after break which should not be part of stack.
+            AutoClear autoClear(this, frameAddress);
+            this->debugEventCallback(debugEvent, eventDataObject, this->callbackState);
+        }
+        else
+        {
+            this->debugEventCallback(debugEvent, eventDataObject, this->callbackState);
+        }
     };
 
     if (scriptContext->GetThreadContext()->IsScriptActive())
@@ -386,12 +399,7 @@ void JsrtDebugManager::CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEven
 {
     AutoSetDispatchHaltFlag autoSetDispatchHaltFlag(scriptContext, scriptContext->GetThreadContext());
 
-#if DBG
-    void *frameAddress = _AddressOfReturnAddress();
-    scriptContext->GetThreadContext()->GetDebugManager()->SetDispatchHaltFrameAddress(frameAddress);
-#endif
-
-    this->CallDebugEventCallback(debugEvent, eventDataObject, scriptContext);
+    this->CallDebugEventCallback(debugEvent, eventDataObject, scriptContext, true /*isBreak*/);
 
     for (Js::ScriptContext *tempScriptContext = scriptContext->GetThreadContext()->GetScriptContextList();
     tempScriptContext != nullptr && !tempScriptContext->IsClosed();
