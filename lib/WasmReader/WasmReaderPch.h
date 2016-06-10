@@ -13,6 +13,7 @@
 #ifdef ENABLE_WASM
 // AsmJsFunctionMemory::RequiredVarConstants
 #include "../Language/AsmJsModule.h"
+#include "../Language/WAsmJsConstants.h"
 #endif
 
 // Runtime includes
