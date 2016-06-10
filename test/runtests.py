@@ -194,7 +194,8 @@ class TestVariant(object):
     def __init__(self, name, compile_flags=[]):
         self.name = name
         self.compile_flags = \
-            ['-WERExceptionSupport', '-ExtendedErrorStackForTestHost'] + compile_flags
+            ['-WERExceptionSupport', '-ExtendedErrorStackForTestHost',
+             '-BaselineMode'] + compile_flags
         self.tags = tags.copy()
         self.not_tags = not_tags.union(
             ['{}_{}'.format(x, name) for x in ('fails','exclude')])
