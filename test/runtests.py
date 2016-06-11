@@ -106,6 +106,7 @@ not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 # xplat: temp hard coded to exclude unsupported tests
 if sys.platform != 'win32':
     not_tags.add('exclude_xplat')
+    not_tags.add('Intl')
     not_tags.add('require_backend')
     not_tags.add('require_debugger')
 not_compile_flags = set(['-simdjs']) \

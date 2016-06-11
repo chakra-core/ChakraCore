@@ -210,9 +210,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     this->bailOutRegisterSaveSpace = AnewArrayZ(this->GetThreadAlloc(), Js::Var, GetBailOutRegisterSaveSlotCount());
 #endif
 
-#ifdef ENABLE_SIMDJS
-    // SIMD_JS
-#if ENABLE_NATIVE_CODEGEN
+#if defined(ENABLE_SIMDJS) && ENABLE_NATIVE_CODEGEN
     simdFuncInfoToOpcodeMap = Anew(this->GetThreadAlloc(), FuncInfoToOpcodeMap, this->GetThreadAlloc());
     simdOpcodeToSignatureMap = AnewArrayZ(this->GetThreadAlloc(), SimdFuncSignature, Js::Simd128OpcodeCount());
     {
@@ -222,9 +220,8 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 #define MACRO_SIMD_EXTEND_WMS(op, LayoutAsmJs, OpCodeAttrAsmJs, OpCodeAttr, ...) MACRO_SIMD_WMS(op, LayoutAsmJs, OpCodeAttrAsmJs, OpCodeAttr, __VA_ARGS__)
 
 #include "ByteCode/OpCodesSimd.h"
-#endif
     }
-#endif
+#endif // defined(ENABLE_SIMDJS) && ENABLE_NATIVE_CODEGEN
 
 #if DBG_DUMP
     scriptSiteCount = 0;

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -1070,7 +1070,7 @@
   <test>
     <default>
       <files>bug_OS_2553885.js</files>
-      <tags>exclude_win7,BugFix</tags>
+      <tags>exclude_win7,BugFix,Intl</tags>
     </default>
   </test>
   <test>
