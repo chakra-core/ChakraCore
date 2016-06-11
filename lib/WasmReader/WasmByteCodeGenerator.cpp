@@ -219,6 +219,11 @@ WasmBytecodeGenerator::GenerateFunction()
                 m_reader.m_currentNode.ret.arity = arity;
                 EmitReturnExpr(&exprInfo);
             }
+            else if (returnType == Wasm::WasmTypes::Void) 
+            {
+                m_reader.m_currentNode.ret.arity = 0;
+                EmitReturnExpr(&exprInfo);
+            }
             ExitEvalStackScope();
         }
         catch (...)
