@@ -189,11 +189,10 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
     else
     {
         const wchar_t *fileContent;
-        char *fileName = (char*) "script.js";
+        char *fileName = nullptr;
         const wchar_t *scriptInjectType = _u("self");
         size_t fileContentLength;
         size_t scriptInjectTypeLength;
-        bool freeFileName = false;
 
         IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[1], &fileContent, &fileContentLength));
 
@@ -207,7 +206,6 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
                 const wchar_t* fileNameWide = nullptr;
                 IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[3], &fileNameWide, &fileNameWideLength));
                 IfFailGo(WideStringToNarrowDynamic(fileNameWide, &fileName));
-                freeFileName = true;
             }
         }
 
@@ -219,7 +217,7 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
             returnValue = LoadScript(callee, fileName, script, scriptInjectType, isSourceModule);
         }
 
-        if (freeFileName)
+        if (fileName)
         {
             free(fileName);
         }
@@ -260,16 +258,24 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fi
     IfJsrtErrorSetGo(ChakraRTInterface::JsGetCurrentContext(&currentContext));
     IfJsrtErrorSetGo(ChakraRTInterface::JsGetRuntime(currentContext, &runtime));
 
-    if (_fullpath(fullPathNarrow, fileName, _MAX_PATH) == nullptr)
+    if (fileName)
     {
-        IfFailGo(E_FAIL);
+        if (_fullpath(fullPathNarrow, fileName, _MAX_PATH) == nullptr)
+        {
+            IfFailGo(E_FAIL);
+        }
+        // canonicalize that path name to lower case for the profile storage
+        // REVIEW: This doesn't work for UTF8...
+        len = strlen(fullPathNarrow);
+        for (size_t i = 0; i < len; i++)
+        {
+            fullPathNarrow[i] = (char)tolower(fullPathNarrow[i]);
+        }
     }
-    // canonicalize that path name to lower case for the profile storage
-    // REVIEW: This doesn't work for UTF8...
-    len = strlen(fullPathNarrow);
-    for (size_t i = 0; i < len; i++)
+    else
     {
-        fullPathNarrow[i] = (char) tolower(fullPathNarrow[i]);
+        // No fileName provided (WScript.LoadScript()), use dummy "script.js"
+        strcpy_s(fullPathNarrow, "script.js");
     }
 
     if (wcscmp(scriptInjectType, _u("self")) == 0)
