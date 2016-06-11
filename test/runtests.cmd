@@ -325,7 +325,7 @@ goto :main
 
   set _BuildTypeMapped=%_BuildType%
 
-  :: codecoverage need to mapped to test config
+  :: codecoverage needs to be mapped to test config
   if "%_BuildTypeMapped%" == "codecoverage" set _BuildTypeMapped=test
 
   if "%Disable_JIT%" == "1" (
