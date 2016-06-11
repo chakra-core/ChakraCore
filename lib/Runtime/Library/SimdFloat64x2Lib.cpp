@@ -93,7 +93,7 @@ namespace Js
             JavascriptSIMDFloat32x4 *instance = JavascriptSIMDFloat32x4::FromVar(args[1]);
             Assert(instance);
 
-            return SIMDConvertTypeFromBits<JavascriptSIMDFloat32x4, JavascriptSIMDFloat64x2>(instance, scriptContext);
+            return SIMDUtils::SIMDConvertTypeFromBits<JavascriptSIMDFloat32x4, JavascriptSIMDFloat64x2>(*instance, *scriptContext);
         }
 
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("fromFloat32x4Bits"));
@@ -133,7 +133,7 @@ namespace Js
             JavascriptSIMDInt32x4 *instance = JavascriptSIMDInt32x4::FromVar(args[1]);
             Assert(instance);
 
-            return SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDFloat64x2>(instance, scriptContext);
+            return SIMDUtils::SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDFloat64x2>(*instance, *scriptContext);
         }
 
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("fromInt32x4Bits"));
@@ -790,7 +790,7 @@ namespace Js
             Var lane0 = args[2];
             Var lane1 = args[3];
 
-            return SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[1], lane0, lane1, NULL, NULL, 2, scriptContext);
+            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[1], lane0, lane1, NULL, NULL, 2, scriptContext);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("swizzle"));
     }
@@ -818,7 +818,7 @@ namespace Js
             Var lane0 = args[3];
             Var lane1 = args[4];
 
-            return SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[2], lane0, lane1, NULL, NULL, 4, scriptContext);
+            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[2], lane0, lane1, NULL, NULL, 4, scriptContext);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("shuffle"));
     }
@@ -843,7 +843,7 @@ namespace Js
             JavascriptSIMDInt32x4 *mask = JavascriptSIMDInt32x4::FromVar(args[1]);
             Assert(mask);
 
-            JavascriptSIMDFloat64x2 *fmask = (JavascriptSIMDFloat64x2*)SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDFloat64x2>(mask, scriptContext);
+            JavascriptSIMDFloat64x2 *fmask = (JavascriptSIMDFloat64x2*)SIMDUtils::SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDFloat64x2>(*mask, *scriptContext);
             JavascriptSIMDFloat64x2 *tvalue = JavascriptSIMDFloat64x2::FromVar(args[2]);
             JavascriptSIMDFloat64x2 *fvalue = JavascriptSIMDFloat64x2::FromVar(args[3]);
             Assert(fmask && tvalue && fvalue);
@@ -873,7 +873,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDFloat64x2>(args[1], args[2], 2 * FLOAT64_SIZE, scriptContext);
+        return SIMDUtils::SIMD128TypedArrayLoad<JavascriptSIMDFloat64x2>(args[1], args[2], 2 * FLOAT64_SIZE, scriptContext);
     }
 
     Var SIMDFloat64x2Lib::EntryLoad1(RecyclableObject* function, CallInfo callInfo, ...)
@@ -886,7 +886,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDFloat64x2>(args[1], args[2], 1 * FLOAT64_SIZE, scriptContext);
+        return SIMDUtils::SIMD128TypedArrayLoad<JavascriptSIMDFloat64x2>(args[1], args[2], 1 * FLOAT64_SIZE, scriptContext);
     }
 
     Var SIMDFloat64x2Lib::EntryStore(RecyclableObject* function, CallInfo callInfo, ...)
@@ -901,7 +901,7 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDFloat64x2::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDFloat64x2>(args[1], args[2], args[3], 2 * FLOAT64_SIZE, scriptContext);
+            SIMDUtils::SIMD128TypedArrayStore<JavascriptSIMDFloat64x2>(args[1], args[2], args[3], 2 * FLOAT64_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Float64x2.store"));
@@ -920,7 +920,7 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDFloat64x2::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDFloat64x2>(args[1], args[2], args[3], 1 * FLOAT64_SIZE, scriptContext);
+            SIMDUtils::SIMD128TypedArrayStore<JavascriptSIMDFloat64x2>(args[1], args[2], args[3], 1 * FLOAT64_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Float64x2.store"));

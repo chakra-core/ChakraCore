@@ -17,10 +17,15 @@ namespace JsUtil
         Assert(manager);
         Assert(!isClosed);
 
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         if(processesInBackground)
             static_cast<BackgroundJobProcessor *>(this)->PrioritizeManagerAndWait(manager, milliseconds);
         else
+#endif
+        {
+            Assert(!processesInBackground);
             static_cast<ForegroundJobProcessor *>(this)->PrioritizeManagerAndWait(manager, milliseconds);
+        }
     }
 
     template<class TJobManager, class TJobHolder>
@@ -30,10 +35,15 @@ namespace JsUtil
         Assert(manager);
         Assert(!isClosed);
 
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         if(processesInBackground)
             return static_cast<BackgroundJobProcessor *>(this)->AddJobAndProcessProactively(manager, holder);
         else
+#endif
+        {
+            Assert(!processesInBackground);
             return static_cast<ForegroundJobProcessor *>(this)->AddJobAndProcessProactively(manager, holder);
+        }
     }
 
     template<class TJobManager, class TJobHolder>
@@ -43,23 +53,33 @@ namespace JsUtil
         Assert(manager);
         Assert(!isClosed);
 
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         if(processesInBackground)
             return static_cast<BackgroundJobProcessor *>(this)->PrioritizeJob(manager, holder, function);
         else
+#endif
+        {
+            Assert(!processesInBackground);
             return static_cast<ForegroundJobProcessor *>(this)->PrioritizeJob(manager, holder, function);
+        }
     }
 
     template<class TJobManager, class TJobHolder>
     void JobProcessor::PrioritizeJobAndWait(TJobManager *const manager, const TJobHolder holder, void* function)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>();
         Assert(manager);
         Assert(!isClosed);
 
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         if(processesInBackground)
             static_cast<BackgroundJobProcessor *>(this)->PrioritizeJobAndWait(manager, holder, function);
         else
+#endif
+        {
+            Assert(!processesInBackground);
             static_cast<ForegroundJobProcessor *>(this)->PrioritizeJobAndWait(manager, holder, function);
+        }
     }
 
     // -------------------------------------------------------------------------------------------------------------------------
@@ -164,7 +184,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     void ForegroundJobProcessor::PrioritizeJobAndWait(TJobManager *const manager, const TJobHolder holder, void* function)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>();
         Assert(manager);
         Assert(manager->isWaitable);
         Assert(!IsClosed());
@@ -195,6 +215,7 @@ namespace JsUtil
     // BackgroundJobProcessor
     // -------------------------------------------------------------------------------------------------------------------------
 
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
     template<class TJobManager, class TJobHolder>
     void BackgroundJobProcessor::AddJobAndProcessProactively(TJobManager *const manager, const TJobHolder holder)
     {
@@ -369,7 +390,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     void BackgroundJobProcessor::PrioritizeJobAndWait(TJobManager *const manager, const TJobHolder holder, void* function)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>();
         Assert(manager);
         Assert(manager->isWaitable);
         Assert(!IsClosed());
@@ -461,4 +482,5 @@ namespace JsUtil
         // waiting for the job because the wait is indefinite, and a job is processed only once
         manager->AfterWaitForJob(holder);
     }
+#endif
 }

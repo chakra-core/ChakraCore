@@ -30,7 +30,7 @@ namespace Js
     }
 
     template<>
-    __inline SparseArraySegment<int> *SparseArraySegment<int>::AllocateLiteralHeadSegment(
+    inline SparseArraySegment<int> *SparseArraySegment<int>::AllocateLiteralHeadSegment(
         Recycler *const recycler,
         const uint32 length)
     {
@@ -42,7 +42,7 @@ namespace Js
     }
 
     template<>
-    __inline SparseArraySegment<double> *SparseArraySegment<double>::AllocateLiteralHeadSegment(
+    inline SparseArraySegment<double> *SparseArraySegment<double>::AllocateLiteralHeadSegment(
         Recycler *const recycler,
         const uint32 length)
     {
@@ -54,7 +54,7 @@ namespace Js
     }
 
     template<typename T>
-    __inline SparseArraySegment<T> *SparseArraySegment<T>::AllocateLiteralHeadSegment(
+    SparseArraySegment<T> *SparseArraySegment<T>::AllocateLiteralHeadSegment(
         Recycler *const recycler,
         const uint32 length)
     {
@@ -63,7 +63,7 @@ namespace Js
 
     template<typename T>
     template<bool isLeaf>
-    __inline SparseArraySegment<T> *SparseArraySegment<T>::AllocateLiteralHeadSegmentImpl(
+    SparseArraySegment<T> *SparseArraySegment<T>::AllocateLiteralHeadSegmentImpl(
         Recycler *const recycler,
         const uint32 length)
     {
@@ -73,7 +73,7 @@ namespace Js
     }
 
     template<>
-    SparseArraySegment<int> * SparseArraySegment<int>::AllocateSegment(Recycler* recycler, uint32 left, uint32 length, SparseArraySegmentBase *nextSeg)
+    inline SparseArraySegment<int> * SparseArraySegment<int>::AllocateSegment(Recycler* recycler, uint32 left, uint32 length, SparseArraySegmentBase *nextSeg)
     {
         if (DoNativeArrayLeafSegment() && nextSeg == nullptr)
         {
@@ -83,7 +83,7 @@ namespace Js
     }
 
     template<>
-    SparseArraySegment<double> * SparseArraySegment<double>::AllocateSegment(Recycler* recycler, uint32 left, uint32 length, SparseArraySegmentBase *nextSeg)
+    inline SparseArraySegment<double> * SparseArraySegment<double>::AllocateSegment(Recycler* recycler, uint32 left, uint32 length, SparseArraySegmentBase *nextSeg)
     {
         if (DoNativeArrayLeafSegment() && nextSeg == nullptr)
         {
@@ -121,7 +121,7 @@ namespace Js
     }
 
     template<>
-    SparseArraySegment<int> * SparseArraySegment<int>::AllocateSegment(Recycler* recycler, uint32 left, uint32 length, uint32 size, SparseArraySegmentBase *nextSeg)
+    inline SparseArraySegment<int> * SparseArraySegment<int>::AllocateSegment(Recycler* recycler, uint32 left, uint32 length, uint32 size, SparseArraySegmentBase *nextSeg)
     {
         if (DoNativeArrayLeafSegment() && nextSeg == nullptr)
         {
@@ -131,7 +131,7 @@ namespace Js
     }
 
     template<>
-    SparseArraySegment<double> * SparseArraySegment<double>::AllocateSegment(Recycler* recycler, uint32 left, uint32 length, uint32 size, SparseArraySegmentBase *nextSeg)
+    inline SparseArraySegment<double> * SparseArraySegment<double>::AllocateSegment(Recycler* recycler, uint32 left, uint32 length, uint32 size, SparseArraySegmentBase *nextSeg)
     {
         if (DoNativeArrayLeafSegment() && nextSeg == nullptr)
         {
@@ -141,7 +141,7 @@ namespace Js
     }
 
     template<typename T>
-    SparseArraySegment<T> * SparseArraySegment<T>::AllocateSegment(Recycler* recycler, uint32 left, uint32 length, uint32 size, SparseArraySegmentBase *nextSeg)
+    inline SparseArraySegment<T> * SparseArraySegment<T>::AllocateSegment(Recycler* recycler, uint32 left, uint32 length, uint32 size, SparseArraySegmentBase *nextSeg)
     {
         return AllocateSegmentImpl<false>(recycler, left, length, size, nextSeg);
     }
@@ -169,7 +169,7 @@ namespace Js
     }
 
     template<>
-    SparseArraySegment<int>* SparseArraySegment<int>::AllocateSegment(Recycler* recycler, SparseArraySegmentBase* prev, uint32 index)
+    inline SparseArraySegment<int>* SparseArraySegment<int>::AllocateSegment(Recycler* recycler, SparseArraySegmentBase* prev, uint32 index)
     {
         if (DoNativeArrayLeafSegment() && prev->next == nullptr)
         {
@@ -179,7 +179,7 @@ namespace Js
     }
 
     template<>
-    SparseArraySegment<double>* SparseArraySegment<double>::AllocateSegment(Recycler* recycler, SparseArraySegmentBase* prev, uint32 index)
+    inline SparseArraySegment<double>* SparseArraySegment<double>::AllocateSegment(Recycler* recycler, SparseArraySegmentBase* prev, uint32 index)
     {
         if (DoNativeArrayLeafSegment() && prev->next == nullptr)
         {
@@ -391,7 +391,7 @@ namespace Js
     }
 
     template<>
-    SparseArraySegment<int>* SparseArraySegment<int>::GrowBy(Recycler *recycler, uint32 n)
+    inline SparseArraySegment<int>* SparseArraySegment<int>::GrowBy(Recycler *recycler, uint32 n)
     {
         if (!DoNativeArrayLeafSegment() || this->next != nullptr)
         {
@@ -401,7 +401,7 @@ namespace Js
     }
 
     template<>
-    SparseArraySegment<double>* SparseArraySegment<double>::GrowBy(Recycler *recycler, uint32 n)
+    inline SparseArraySegment<double>* SparseArraySegment<double>::GrowBy(Recycler *recycler, uint32 n)
     {
         if (!DoNativeArrayLeafSegment() || this->next != nullptr)
         {
@@ -441,7 +441,7 @@ namespace Js
     // Grows segment in the front. Note that the result new segment's left is changed.
     //
     template<>
-    SparseArraySegment<int>* SparseArraySegment<int>::GrowFrontByMax(Recycler *recycler, uint32 n)
+    inline SparseArraySegment<int>* SparseArraySegment<int>::GrowFrontByMax(Recycler *recycler, uint32 n)
     {
         if (DoNativeArrayLeafSegment() && this->next == nullptr)
         {
@@ -451,7 +451,7 @@ namespace Js
     }
 
     template<>
-    SparseArraySegment<double>* SparseArraySegment<double>::GrowFrontByMax(Recycler *recycler, uint32 n)
+    inline SparseArraySegment<double>* SparseArraySegment<double>::GrowFrontByMax(Recycler *recycler, uint32 n)
     {
         if (DoNativeArrayLeafSegment() && this->next == nullptr)
         {

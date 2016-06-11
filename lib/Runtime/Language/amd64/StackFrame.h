@@ -4,6 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+///
+/// Note: The below description is applicable to the x86-x64 calling
+/// convention on Windows. For other platforms, look at the comments in
+/// the appropriate cpp file like StackFrame.SystemV.cpp
+///
+
 /*
  * Stackwalking on x86-64:
  * ----------------------
@@ -73,6 +79,7 @@
 namespace Js {
     class ScriptContext;
 
+#ifdef _WIN32
     class Amd64StackFrame {
     public:
         Amd64StackFrame();
@@ -109,9 +116,9 @@ namespace Js {
         CONTEXT          *callerContext;
         size_t            stackCheckCodeHeight;
 
-        __inline void EnsureFunctionEntry();
-        __inline bool EnsureCallerContext(bool isCurrentContextNative);
-        __inline void OnCurrentContextUpdated();
+        inline void EnsureFunctionEntry();
+        inline bool EnsureCallerContext(bool isCurrentContextNative);
+        inline void OnCurrentContextUpdated();
 
         static bool NextFromNativeAddress(CONTEXT * context);
         static bool Next(CONTEXT *context, ULONG64 imageBase, RUNTIME_FUNCTION *runtimeFunction);
@@ -119,9 +126,52 @@ namespace Js {
         static const size_t stackCheckCodeHeightNotThreadBound = StackFrameConstants::StackCheckCodeHeightNotThreadBound;
         static const size_t stackCheckCodeHeightWithInterruptProbe = StackFrameConstants::StackCheckCodeHeightWithInterruptProbe;
     };
+#else
+
+    // Models a stack frame based on SystemV ABI for AMD64
+    // This is very similar to the model for x86
+    class Amd64StackFrame
+    {
+    public:
+        Amd64StackFrame() : frame(nullptr), codeAddr(nullptr), stackCheckCodeHeight(0), addressOfCodeAddr(nullptr) {};
+
+        bool InitializeByFrameId(void * frameAddress, ScriptContext* scriptContext);
+        bool InitializeByReturnAddress(void * returnAddress, ScriptContext* scriptContext);
+
+        bool Next();
+
+        void *  GetInstructionPointer() { return codeAddr; }
+        void ** GetArgv(bool isCurrentContextNative = false, bool shouldCheckForNativeAddr = true) { return frame + 2; } 
+        void *  GetReturnAddress(bool isCurrentContextNative = false, bool shouldCheckForNativeAddr = true) { return frame[1]; } 
+        void *  GetAddressOfReturnAddress(bool isCurrentContextNative = false, bool shouldCheckForNativeAddr = true) { return &frame[1]; } 
+        void *  GetAddressOfInstructionPointer() const { return addressOfCodeAddr; }
+        void *  GetFrame() const { return (void *)frame; }
+
+        void SetReturnAddress(void * address) { frame[1] = address; }
+        bool SkipToFrame(void * frameAddress);
+
+        size_t GetStackCheckCodeHeight() { return this->stackCheckCodeHeight; }
+        static bool IsInStackCheckCode(void *entry, void *codeAddr, size_t stackCheckCodeHeight);
+
+    private:
+        void ** frame;      // rbp
+        void * codeAddr;    // rip
+        void * addressOfCodeAddr;
+        size_t stackCheckCodeHeight;
+
+        static const size_t stackCheckCodeHeightThreadBound = StackFrameConstants::StackCheckCodeHeightThreadBound;
+        static const size_t stackCheckCodeHeightNotThreadBound = StackFrameConstants::StackCheckCodeHeightNotThreadBound;
+        static const size_t stackCheckCodeHeightWithInterruptProbe = StackFrameConstants::StackCheckCodeHeightWithInterruptProbe;
+    };
+
+#endif
 
     class Amd64ContextsManager
     {
+    public:
+        Amd64ContextsManager();
+
+#ifdef _WIN32
     private:
         static const int CONTEXT_PAIR_COUNT = 2;
 
@@ -141,13 +191,12 @@ namespace Js {
         _Ret_writes_(CONTEXT_PAIR_COUNT) CONTEXT* InternalGet(
             _In_range_(GENERAL_CONTEXT, OOM_CONTEXT) ContextsIndex index);
 
-    public:
-        Amd64ContextsManager();
-
     private:
         friend class Amd64StackFrame;
 
         _Ret_writes_(CONTEXT_PAIR_COUNT) CONTEXT* Allocate();
         void Release(_In_ CONTEXT* contexts);
+#endif
     };
+
 };

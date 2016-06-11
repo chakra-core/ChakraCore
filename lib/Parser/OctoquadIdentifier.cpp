@@ -314,7 +314,7 @@ namespace UnifiedRegex
     }
 
     // It exploits the fact that each quad of bits has at most only one bit set.
-    __inline bool oneBitSetInEveryQuad(uint32 x)
+    inline bool oneBitSetInEveryQuad(uint32 x)
     {
         x -= 0x11111111;
         return (x & 0x88888888u) == 0;

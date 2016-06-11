@@ -176,8 +176,11 @@ void HeapAllocator::DestroyPrivateHeap()
 {
     if (this->m_privateHeap != nullptr)
     {
+        // xplat-todo: PAL no HeapDestroy?
+#ifdef _WIN32
         BOOL success = HeapDestroy(this->m_privateHeap);
         Assert(success);
+#endif
         this->m_privateHeap = nullptr;
     }
 }
@@ -355,11 +358,6 @@ HeapAllocator::HeapAllocator(bool useAllocMemProtect)
 
 HeapAllocator::~HeapAllocator()
 {
-    if (CONFIG_FLAG(PrivateHeap))
-    {
-        this->DestroyPrivateHeap();
-    }
-
 #ifdef HEAP_TRACK_ALLOC
     bool hasFakeHeapLeak = false;
     auto fakeHeapLeak = [&]()
@@ -418,6 +416,12 @@ HeapAllocator::~HeapAllocator()
     }
 #endif // CHECK_MEMORY_LEAK
 #endif // HEAP_TRACK_ALLOC
+
+    // destroy private heap after leak check
+    if (CONFIG_FLAG(PrivateHeap))
+    {
+        this->DestroyPrivateHeap();
+    }
 
 #ifdef INTERNAL_MEM_PROTECT_HEAP_ALLOC
     if (memProtectHeapHandle != nullptr)
@@ -589,10 +593,12 @@ MemoryLeakCheck::~MemoryLeakCheck()
             Output::Print(_u("Total leaked: %d bytes (%d objects)\n"), leakedBytes, leakedCount);
             Output::Flush();
         }
+#ifdef GENERATE_DUMP
         if (enableOutput)
         {
             Js::Throw::GenerateDump(Js::Configuration::Global.flags.DumpOnCrash, true, true);
         }
+#endif
     }
 }
 

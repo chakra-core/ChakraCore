@@ -89,6 +89,13 @@ var tests = [
         }
         f9();
         f9();
+        
+        function f12() {
+            var result = ((a = (w = a => a * a) => w) => a)()()(10); 
+            
+            assert.areEqual(100, result, "The inner lambda function properly maps to the right symbol for a");
+        };
+        f12();
     } 
  }, 
  { 

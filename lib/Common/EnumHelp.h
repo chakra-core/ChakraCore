@@ -21,7 +21,7 @@
 #define BEGIN_ENUM(name, storage)           \
     struct name                             \
     {                                       \
-        enum _E;                             \
+        enum _E : storage;                  \
                                             \
         inline name()                       \
         {                                   \
@@ -118,7 +118,7 @@
             return (_E) _value;               \
         }                                   \
                                             \
-        enum _E                              \
+        enum _E : storage                   \
         {                                   \
 
 

@@ -21,11 +21,11 @@ namespace Js
         jscriptBlockRegistrationCount(0),
         isDebuggerAttaching(false),
         nextBreakPointId(0),
-        localsDisplayFlags(LocalsDisplayFlags_None)
+        localsDisplayFlags(LocalsDisplayFlags_None),
+        dispatchHaltFrameAddress(nullptr)
     {
         Assert(_pThreadContext != nullptr);
 #if DBG
-        dispatchHaltFrameAddress = nullptr;
         // diagnosticPageAllocator may be used in multiple thread, but it's usage is synchronized.
         diagnosticPageAllocator.SetDisableThreadAccessCheck();
         diagnosticPageAllocator.debugName = _u("Diagnostic");
@@ -155,8 +155,8 @@ namespace Js
         DynamicObject* consoleScope = this->GetConsoleScope(scriptContext);
         Js::RecyclableObject* recyclableObject = Js::RecyclableObject::FromVar(copyFromScope);
 
-        ulong newPropCount = recyclableObject->GetPropertyCount();
-        for (ulong i = 0; i < newPropCount; i++)
+        uint32 newPropCount = recyclableObject->GetPropertyCount();
+        for (uint32 i = 0; i < newPropCount; i++)
         {
             Js::PropertyId propertyId = recyclableObject->GetPropertyId((Js::PropertyIndex)i);
             // For deleted properties we won't have a property id

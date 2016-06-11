@@ -6,6 +6,8 @@
 
 namespace Js
 {
+    class SimplePathTypeHandler;
+
     class PathTypeHandlerBase : public DynamicTypeHandler
     {
         friend class DynamicObject;
@@ -21,7 +23,7 @@ namespace Js
     protected:
         PathTypeHandlerBase(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
 
-        DEFINE_VTABLE_CTOR_NO_REGISTER(PathTypeHandlerBase, DynamicTypeHandler, typePath(0));
+        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandlerBase, DynamicTypeHandler, typePath(0));
 
     public:
         virtual BOOL IsLockable() const override { return true; }
@@ -216,7 +218,7 @@ namespace Js
     private:
         SimplePathTypeHandler(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
 
-        DEFINE_VTABLE_CTOR_NO_REGISTER(SimplePathTypeHandler, PathTypeHandlerBase, successorPropertyRecord(nullptr), successorTypeWeakRef(nullptr));
+        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(SimplePathTypeHandler, PathTypeHandlerBase, successorPropertyRecord(nullptr), successorTypeWeakRef(nullptr));
 
     protected:
         virtual bool GetSuccessor(const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> ** typeWeakRef) override;
@@ -248,7 +250,7 @@ namespace Js
     private:
         PathTypeHandler(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
 
-        DEFINE_VTABLE_CTOR_NO_REGISTER(PathTypeHandler, PathTypeHandlerBase, propertySuccessors(nullptr));
+        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandler, PathTypeHandlerBase, propertySuccessors(nullptr));
 
     protected:
         virtual bool GetSuccessor(const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> ** typeWeakRef) override;

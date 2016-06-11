@@ -15,13 +15,6 @@
   </test>
   <test>
     <default>
-      <files>capture.js</files>
-      <compile-flags>-off:parserbind</compile-flags>
-      <baseline>capture.baseline</baseline>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>oos2.js</files>
     </default>
   </test>

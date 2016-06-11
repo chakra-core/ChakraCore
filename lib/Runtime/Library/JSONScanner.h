@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-#include <wchar.h>
 
 namespace JSON
 {
@@ -21,9 +20,16 @@ namespace JSON
             ::Js::ScriptContext* sc, const char16* current, ArenaAllocator* allocator);
 
         void Finalizer();
-        char16* GetCurrentString(){return currentString;}
-        uint GetCurrentStringLen(){return currentIndex;}
+        char16* GetCurrentString() { return currentString; } 
+        uint GetCurrentStringLen() { return currentIndex; }
+        uint GetScanPosition() { return uint(currentChar - inputText); }
 
+        void __declspec(noreturn) ThrowSyntaxError(int wErr)
+        {
+            char16 scanPos[16];
+            ::_itow_s(GetScanPosition(), scanPos, _countof(scanPos) / sizeof(char16), 10);
+            Js::JavascriptError::ThrowSyntaxError(scriptContext, wErr, scanPos);
+        }
 
     private:
 
@@ -47,12 +53,12 @@ namespace JSON
 
         RangeCharacterPairList* GetCurrentRangeCharacterPairList(void);
 
-        __inline char16 ReadNextChar(void)
+        inline char16 ReadNextChar(void)
         {
             return *currentChar++;
         }
 
-        __inline char16 PeekNextChar(void)
+        inline char16 PeekNextChar(void)
         {
             return *currentChar;
         }

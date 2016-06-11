@@ -9,7 +9,9 @@
 typedef Js::X86StackFrame StackFrame;
 #elif defined(_M_X64)
 #include "Language/amd64/StackFrame.h"
+#ifdef _WIN32 // xplat-todo
 #include "Language/amd64/StackFrame.inl"
+#endif
 typedef Js::Amd64StackFrame StackFrame;
 #elif defined(_M_ARM)
 #include "Language/arm/StackFrame.h"
@@ -150,21 +152,19 @@ namespace Js
         void *framePointer;
         size_t stackCheckCodeHeight;
         InternalFrameType frameType;
-        InternalFrameType loopBodyFrameType;
-        bool frameConsumed;
+        bool hasInlinedFramesOnStack;
 
         InternalFrameInfo() :
             codeAddress(nullptr),
             framePointer(nullptr),
             stackCheckCodeHeight((uint)-1),
             frameType(InternalFrameType_None),
-            loopBodyFrameType(InternalFrameType_None),
-            frameConsumed(false)
+            hasInlinedFramesOnStack(false)
         {
         }
 
         void Clear();
-        void Set(void *codeAddress, void *framePointer, size_t stackCheckCodeHeight, InternalFrameType frameType, InternalFrameType loopBodyFrameType);
+        void Set(void *codeAddress, void *framePointer, size_t stackCheckCodeHeight, InternalFrameType frameType, bool hasInlinedFramesOnStack);
     };
 #endif
 
@@ -226,7 +226,7 @@ namespace Js
 
 #if ENABLE_NATIVE_CODEGEN
         void ClearCachedInternalFrameInfo();
-        void SetCachedInternalFrameInfo(InternalFrameType frameType, InternalFrameType loopBodyFrameType);
+        void SetCachedInternalFrameInfo(InternalFrameType frameType, bool hasInlinedFramesOnStack);
         InternalFrameInfo GetCachedInternalFrameInfo() const { return this->lastInternalFrameInfo; }
 #endif
         bool IsCurrentPhysicalFrameForLoopBody() const;
@@ -315,20 +315,27 @@ namespace Js
 #endif
         CallInfo                inlinedFrameCallInfo;
         bool                    inlinedFramesBeingWalked    : 1;
+        bool                    hasInlinedFramesOnStack     : 1;
         bool                    isJavascriptFrame           : 1;
         bool                    isNativeLibraryFrame        : 1;
         bool                    isInitialFrame              : 1; // If we need to walk the initial frame
         bool                    shouldDetectPartiallyInitializedInterpreterFrame : 1;
         bool                    previousInterpreterFrameIsFromBailout : 1;
-        bool                    ehFramesBeingWalkedFromBailout : 1;
-        bool                    forceFullWalk; // ignoring hasCaller
+        bool                    previousInterpreterFrameIsForLoopBody : 1;
+        bool                    forceFullWalk               : 1; // ignoring hasCaller
 
-        Var GetThisFromFrame() const;
-        Var GetCurrentArgumentsObject() const;
-        void SetCurrentArgumentsObject(Var args);
-        Var GetCurrentNativeArgumentsObject() const;
-        void SetCurrentNativeArgumentsObject(Var args);
+        Var GetThisFromFrame() const;                   // returns 'this' object from the physical frame
+        Var GetCurrentArgumentsObject() const;          // returns arguments object from the current frame, which may be virtual (belonging to an inlinee)
+        void SetCurrentArgumentsObject(Var args);       // sets arguments object for the current frame, which may be virtual (belonging to an inlinee)
+        Var GetCurrentNativeArgumentsObject() const;    // returns arguments object from the physical native frame
+        void SetCurrentNativeArgumentsObject(Var args); // sets arguments object on the physical native frame
+        bool TryGetByteCodeOffsetFromInterpreterFrame(uint32& offset) const;
 #if ENABLE_NATIVE_CODEGEN
+        bool TryGetByteCodeOffsetFromNativeFrame(uint32& offset) const;
+        bool TryGetByteCodeOffsetOfInlinee(Js::JavascriptFunction* function, uint loopNum, DWORD_PTR pCodeAddr, Js::FunctionBody** inlinee, uint32& offset) const;
+        uint GetLoopNumber() const;
+        bool InlinedFramesBeingWalked() const;
+        bool HasInlinedFramesOnStack() const;
         InternalFrameInfo lastInternalFrameInfo;
 #endif
         mutable StackFrame currentFrame;

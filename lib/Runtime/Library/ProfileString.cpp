@@ -8,6 +8,13 @@
 
 namespace Js
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    const uint StringProfiler::k_MaxConcatLength;
+#endif
+
     StringProfiler::StringProfiler(PageAllocator * pageAllocator)
       : allocator(_u("StringProfiler"), pageAllocator, Throw::OutOfMemory ),
         mainThreadId(GetCurrentThreadContextId() ),

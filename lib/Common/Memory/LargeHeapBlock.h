@@ -85,6 +85,8 @@ public:
     LargeHeapBlock* heapBlock;
 };
 
+class HeapInfo;
+
 // CONSIDER: Templatizing this so that we don't have free list support if we don't need it
 class LargeHeapBlock sealed : public HeapBlock
 {
@@ -261,14 +263,19 @@ private:
 #ifdef RECYCLER_PAGE_HEAP
     PageHeapMode pageHeapMode;
     char* guardPageAddress;
+#ifdef STACK_BACK_TRACE
     StackBackTrace* pageHeapAllocStack;
     StackBackTrace* pageHeapFreeStack;
-
+#endif
+    
 public:
-    __inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
+    inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
+
     void CapturePageHeapAllocStack();
     void CapturePageHeapFreeStack();
+#ifdef STACK_BACK_TRACE
     const static StackBackTrace* s_StackTraceAllocFailed;
+#endif
 #endif
 
 #if DBG
@@ -280,7 +287,7 @@ public:
     bool hadTrimmed;
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
     friend class HeapInfo;
     HeapInfo * heapInfo;

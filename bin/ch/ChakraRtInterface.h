@@ -44,7 +44,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtAddRefPtr)(JsRef ref, unsigned int* count);
     typedef JsErrorCode (WINAPI *JsrtGetValueType)(JsValueRef value, JsValueType *type);
     typedef JsErrorCode (WINAPI *JsrtSetIndexedPropertyPtr)(JsValueRef object, JsValueRef index, JsValueRef value);
-    typedef JsErrorCode (WINAPI *JsrtSerializeScriptPtr)(const char16 *script, BYTE *buffer, unsigned long *bufferSize);
+    typedef JsErrorCode (WINAPI *JsrtSerializeScriptPtr)(const char16 *script, BYTE *buffer, unsigned int *bufferSize);
     typedef JsErrorCode (WINAPI *JsrtRunSerializedScriptPtr)(const char16 *script, BYTE *buffer, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result);
     typedef JsErrorCode (WINAPI *JsrtSetPromiseContinuationCallbackPtr)(JsPromiseContinuationCallback callback, void *callbackState);
     typedef JsErrorCode (WINAPI *JsrtGetContextOfObject)(JsValueRef object, JsContextRef *callbackState);
@@ -141,7 +141,15 @@ public:
         int argc;
         LPWSTR* argv;
         HostPrintUsageFuncPtr hostPrintUsage;
-        BSTR* filename;
+        char* filename;
+
+        ~ArgInfo()
+        {
+            if (filename != nullptr)
+            {
+                free(filename);
+            }
+        }
     };
 
 #define CHECKED_CALL_RETURN(func, retVal, ...) (m_testHooksSetup && m_testHooks.pf##func? m_testHooks.pf##func(__VA_ARGS__) : retVal)
@@ -151,7 +159,7 @@ private:
     static bool m_testHooksSetup;
     static bool m_testHooksInitialized;
     static bool m_usageStringPrinted;
-    static ArgInfo m_argInfo;
+    static ArgInfo* m_argInfo;
     static TestHooks m_testHooks;
     static JsAPIHooks m_jsApiHooks;
 
@@ -161,7 +169,7 @@ private:
 public:
     static HRESULT OnChakraCoreLoaded(TestHooks& testHooks);
 
-    static HINSTANCE LoadChakraDll(ArgInfo& argInfo);
+    static HINSTANCE LoadChakraDll(ArgInfo* argInfo);
     static void UnloadChakraDll(HINSTANCE library);
 
     static HRESULT SetAssertToConsoleFlag(bool flag) { return CHECKED_CALL(SetAssertToConsoleFlag, flag); }
@@ -235,7 +243,7 @@ public:
     static JsErrorCode WINAPI JsAddRef(JsRef ref, unsigned int* count) { return m_jsApiHooks.pfJsrtAddRef(ref, count); }
     static JsErrorCode WINAPI JsGetValueType(JsValueRef value, JsValueType *type) { return m_jsApiHooks.pfJsrtGetValueType(value, type); }
     static JsErrorCode WINAPI JsSetIndexedProperty(JsValueRef object, JsValueRef index, JsValueRef value) { return m_jsApiHooks.pfJsrtSetIndexedProperty(object, index, value); }
-    static JsErrorCode WINAPI JsSerializeScript(const char16 *script, BYTE *buffer, unsigned long *bufferSize) { return m_jsApiHooks.pfJsrtSerializeScript(script, buffer, bufferSize); }
+    static JsErrorCode WINAPI JsSerializeScript(const char16 *script, BYTE *buffer, unsigned int *bufferSize) { return m_jsApiHooks.pfJsrtSerializeScript(script, buffer, bufferSize); }
     static JsErrorCode WINAPI JsRunSerializedScript(const char16 *script, BYTE *buffer, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result) { return m_jsApiHooks.pfJsrtRunSerializedScript(script, buffer, sourceContext, sourceUrl, result); }
     static JsErrorCode WINAPI JsSetPromiseContinuationCallback(JsPromiseContinuationCallback callback, void *callbackState) { return m_jsApiHooks.pfJsrtSetPromiseContinuationCallback(callback, callbackState); }
     static JsErrorCode WINAPI JsGetContextOfObject(JsValueRef object, JsContextRef* context) { return m_jsApiHooks.pfJsrtGetContextOfObject(object, context); }

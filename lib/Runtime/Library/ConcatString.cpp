@@ -119,6 +119,14 @@ namespace Js
 
     /////////////////////// ConcatStringBuilder //////////////////////////
 
+    // MAX number of slots in one chunk. Until we fit into this, we realloc, otherwise create new chunk.
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    const int ConcatStringBuilder::c_maxChunkSlotCount;
+#endif
+
     ConcatStringBuilder::ConcatStringBuilder(ScriptContext* scriptContext, int initialSlotCount) :
         ConcatStringBase(scriptContext->GetLibrary()->GetStringTypeStatic()),
         m_count(0), m_prevChunk(NULL)

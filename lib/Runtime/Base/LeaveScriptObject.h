@@ -8,7 +8,7 @@
 //----------------------------------
 // EnterScriptStart/EnterScriptEnd
 //----------------------------------
-#if defined(DBG) && defined(_M_IX86)
+#if defined(DBG) && defined(_M_IX86) && defined(_MSC_VER)
 #define SAVE_FS0()  __entryExitRecord.scriptEntryFS0 = (void*)__readfsdword(0)
 #else
 #define SAVE_FS0()

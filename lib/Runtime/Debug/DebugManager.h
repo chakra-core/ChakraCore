@@ -20,7 +20,7 @@ namespace Js
     private:
         InterpreterHaltState* pCurrentInterpreterLocation; // NULL if not Halted at a Probe
         DWORD_PTR secondaryCurrentSourceContext;           // For resolving ambiguity among generated files, e.g. eval, anonymous, etc.
-        ulong debugSessionNumber;                          // A unique number, which will be used to sync all probecontainer when on break
+        uint32 debugSessionNumber;                          // A unique number, which will be used to sync all probecontainer when on break
         RecyclerRootPtr<Js::DynamicObject> pConsoleScope;
         ThreadContext* pThreadContext;
         bool isAtDispatchHalt;
@@ -33,9 +33,7 @@ namespace Js
         DebuggingFlags debuggingFlags;
         UINT nextBreakPointId;
         DWORD localsDisplayFlags;
-#if DBG
         void * dispatchHaltFrameAddress;
-#endif
     public:
         StepController stepController;
         AsyncBreakController asyncBreakController;
@@ -56,7 +54,7 @@ namespace Js
         DWORD_PTR AllocateSecondaryHostSourceContext();
         void SetCurrentInterpreterLocation(InterpreterHaltState* pHaltState);
         void UnsetCurrentInterpreterLocation();
-        ulong GetDebugSessionNumber() const { return debugSessionNumber; }
+        uint32 GetDebugSessionNumber() const { return debugSessionNumber; }
 #ifdef ENABLE_MUTATION_BREAKPOINT
         MutationBreakpoint* GetActiveMutationBreakpoint() const;
 #endif
@@ -64,8 +62,9 @@ namespace Js
         FrameDisplay *GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne);
         void UpdateConsoleScope(DynamicObject* copyFromScope, ScriptContext* scriptContext);
         PageAllocator * GetDiagnosticPageAllocator() { return &this->diagnosticPageAllocator; }
-#if DBG
         void SetDispatchHaltFrameAddress(void * returnAddress) { this->dispatchHaltFrameAddress = returnAddress; }
+        DWORD_PTR GetDispatchHaltFrameAddress() const { return (DWORD_PTR)this->dispatchHaltFrameAddress; }
+#if DBG
         void ValidateDebugAPICall();
 #endif
         void SetDebuggerAttaching(bool attaching) { this->isDebuggerAttaching = attaching; }

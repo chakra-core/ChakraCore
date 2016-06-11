@@ -29,6 +29,7 @@ static BOOL FGetStringFromLibrary(HMODULE hlib, int istring, __out_ecount(cchMax
     istring &= 0x0F;
     BOOL fRet = FALSE;
 
+#ifdef ENABLE_GLOBALIZATION
     psz[0] = '\0';
 
     if (NULL == hlib)
@@ -106,22 +107,23 @@ LError:
     }
 
 #endif
-
+#endif // ENABLE_GLOBALIZATION
     return fRet;
 }
 
 
-BOOL FGetResourceString(long isz, __out_ecount(cchMax) OLECHAR *psz, int cchMax)
+BOOL FGetResourceString(int32 isz, __out_ecount(cchMax) OLECHAR *psz, int cchMax)
 {
     return FGetStringFromLibrary((HINSTANCE)g_hInstance, isz, psz, cchMax);
 }
 
 // Get a bstr version of the error string
 __declspec(noinline) // Don't inline. This function needs 2KB stack.
-BSTR BstrGetResourceString(long isz)
+BSTR BstrGetResourceString(int32 isz)
 {
     // NOTE - isz is expected to be HRESULT
 
+#ifdef _WIN32
     OLECHAR szT[1024];
 
     if (!FGetResourceString(isz, szT,
@@ -129,6 +131,17 @@ BSTR BstrGetResourceString(long isz)
     {
         return NULL;
     }
+#else
+    const char16* LoadResourceStr(UINT id);
+
+    UINT id = (WORD)isz;
+    const char16* szT = LoadResourceStr(id);
+    if (!szT)
+    {
+        return NULL;
+    }
+
+#endif
 
     return SysAllocString(szT);
 }

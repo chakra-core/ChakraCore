@@ -78,3 +78,18 @@ testcycle2();
 // run JITted code
 testcycle2();
 
+var func3 = function () {
+  return func3.caller;
+}
+
+function v9() {
+  return func3();
+}
+function v14() {
+  func3(1);
+  var v15 = v9();
+  WScript.Echo(v15);
+}
+v14();
+v14();
+

@@ -4,7 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonExceptionsPch.h"
 
-__inline void ReportFatalException(
+#ifdef _MSC_VER
+inline
+#endif
+void ReportFatalException(
     __in ULONG_PTR context,
     __in HRESULT exceptionCode,
     __in ErrorReason reasonCode,
@@ -17,6 +20,10 @@ __inline void ReportFatalException(
     {
         DebugBreak();
     }
+
+#ifdef DISABLE_SEH
+    TerminateProcess(GetCurrentProcess(), (UINT)DBG_TERMINATE_PROCESS);
+#else
     __try
     {
         ULONG_PTR ExceptionInformation[2];
@@ -27,6 +34,7 @@ __inline void ReportFatalException(
     __except(FatalExceptionFilter(GetExceptionInformation()))
     {
     }
+#endif // DISABLE_SEH
 }
 
 // Disable optimization make sure all the frames are still available in Dr. Watson bug reports.

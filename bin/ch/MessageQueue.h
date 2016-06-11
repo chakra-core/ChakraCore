@@ -22,36 +22,179 @@ public:
     unsigned int GetTime() { return m_time; };
     unsigned int GetId() { return m_id; };
 
-    virtual HRESULT Call(LPCWSTR fileName) = 0;
+    virtual HRESULT Call(LPCSTR fileName) = 0;
+};
 
-    struct Comparator
+template <typename T>
+class SortedList 
+{
+    template <typename T>
+    struct DListNode
     {
-        bool operator()(MessageBase const* const& lhs, MessageBase const* const& rhs) const
-        {
-            return lhs->m_time > rhs->m_time;
-        }
+        T data;
+        DListNode<T>* prev;
+        DListNode<T>* next;
+
+    public:
+        DListNode(const T& data) :
+            data(data),
+            prev(nullptr),
+            next(nullptr)
+        { }
     };
+
+public:
+    SortedList():
+        head(nullptr)
+    {
+    }
+
+    ~SortedList()
+    {
+        while (head != nullptr)
+        {
+            Remove(head);
+        }
+    }
+
+    // Scan through the sorted list
+    // Insert before the first node that satisfies the LessThan function
+    // This function maintains the invariant that the list is always sorted
+    void Insert(const T& data)
+    {
+        DListNode<T>* curr = head;
+        DListNode<T>* node = new DListNode<T>(data);
+        DListNode<T>* prev = nullptr; 
+
+        // Now, if we have to insert, we have to insert *after* some node
+        while (curr != nullptr)
+        {
+            if (T::LessThan(data, curr->data))
+            {
+                break;
+            }
+            prev = curr;
+            curr = curr->next;
+        }
+
+        InsertAfter(node, prev);
+    }
+
+    T Pop()
+    {
+        T data = head->data;
+        Remove(head);
+        return data;
+    }
+
+    template <typename PredicateFn>
+    void Remove(PredicateFn fn)
+    {
+        DListNode<T>* node = head;
+
+        while (node != nullptr)
+        {
+            if (fn(node->data))
+            {
+                Remove(node);
+                return;
+            }
+        }
+    }
+
+    bool IsEmpty()
+    {
+        return head == nullptr;
+    }
+
+private:
+    void Remove(DListNode<T>* node)
+    {
+        if (node->prev == nullptr)
+        {
+            head = node->next;
+        }
+        else
+        {
+            node->prev->next = node->next;
+        }
+
+        if (node->next != nullptr)
+        {
+            node->next->prev = node->prev;
+        }
+
+        delete node;
+    }
+
+    void InsertAfter(DListNode<T>* newNode, DListNode<T>* node)
+    {
+        // If the list is empty, just set head to newNode
+        if (head == nullptr)
+        {
+            Assert(node == nullptr);
+            head = newNode;
+            return;
+        }
+
+        // If node is null here, we must be trying to insert before head
+        if (node == nullptr)
+        {
+            newNode->next = head;
+            head->prev = newNode;
+            head = newNode;
+            return;
+        }
+
+        Assert(node);
+        newNode->next = node->next;
+        newNode->prev = node;
+
+        if (node->next)
+        {
+            node->next->prev = newNode;
+        }
+
+        node->next = newNode;
+    }
+
+    DListNode<T>* head;
 };
 
 class MessageQueue
 {
-    std::multimap<unsigned int, MessageBase*> m_queue;
+    struct ListEntry
+    {
+        unsigned int time;
+        MessageBase* message;
+
+        ListEntry(unsigned int time, MessageBase* message):
+            time(time),
+            message(message)
+        { }
+
+        static bool LessThan(const ListEntry& first, const ListEntry& second)
+        {
+            return first.time < second.time;
+        }
+    };
+
+    SortedList<ListEntry> m_queue;
 
 public:
-    void Push(MessageBase *message)
+    void InsertSorted(MessageBase *message)
     {
         message->BeginTimer();
-        m_queue.insert(std::make_pair(message->GetTime(), message));
+        unsigned int time = message->GetTime();
+        m_queue.Insert(ListEntry(time, message));
     }
 
     MessageBase* PopAndWait()
     {
-        Assert(!m_queue.empty());
+        Assert(!m_queue.IsEmpty());
 
-        auto it = m_queue.begin();
-        MessageBase *tmp = it->second;
-
-        m_queue.erase(it);
+        ListEntry entry = m_queue.Pop();
+        MessageBase *tmp = entry.message;
 
         int waitTime = tmp->GetTime() - GetTickCount();
         if(waitTime > 0)
@@ -64,36 +207,36 @@ public:
 
     bool IsEmpty()
     {
-        return m_queue.empty();
+        return m_queue.IsEmpty();
     }
 
     void RemoveById(unsigned int id)
     {
         // Search for the message with the correct id, and delete it. Can be updated
         // to a hash to improve speed, if necessary.
-        for(auto it = m_queue.begin(); it != m_queue.end(); ++it)
+        m_queue.Remove([id](const ListEntry& entry) 
         {
-            MessageBase *msg = it->second;
+            MessageBase *msg = entry.message;
             if(msg->GetId() == id)
             {
-                m_queue.erase(it);
                 delete msg;
-                break;
+                return true;
             }
-        }
+
+            return false;
+        });
     }
 
     void RemoveAll()
     {
-        while (!m_queue.empty())
-        {
-            auto it = m_queue.begin();
-            MessageBase *msg = it->second;
-            m_queue.erase(it);
+        m_queue.Remove([](const ListEntry& entry) { 
+            MessageBase* msg = entry.message;
             delete msg;
-        }
+            return true;
+        });
     }
-    HRESULT ProcessAll(LPCWSTR fileName)
+
+    HRESULT ProcessAll(LPCSTR fileName)
     {
         while(!IsEmpty())
         {
@@ -121,7 +264,7 @@ public:
         CustomBase(time, customArg), m_func(func)
     {}
 
-    virtual HRESULT Call(LPCWSTR fileName) override
+    virtual HRESULT Call(LPCSTR fileName) override
     {
         return m_func(*this);
     }

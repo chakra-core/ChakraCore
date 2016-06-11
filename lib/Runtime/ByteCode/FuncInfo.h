@@ -253,7 +253,7 @@ public:
     //    1) new Function code's global code
     //    2) global code generated from the reparsing deferred parse function
 
-    bool IsFakeGlobalFunction(ulong flags) const {
+    bool IsFakeGlobalFunction(uint32 flags) const {
         return IsGlobalFunction() && !(flags & fscrGlobalCode);
     }
 

@@ -685,7 +685,7 @@ namespace Js
     }
 
     template<typename GroupFn>
-    static void RegexHelper::ReplaceFormatString
+    void RegexHelper::ReplaceFormatString
         ( ScriptContext* scriptContext
         , int numGroups
         , GroupFn getGroup
@@ -966,7 +966,7 @@ namespace Js
 
         BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("RegexHelper"))
         {
-            results->Map([&](int i, RecyclableObject* resultObj) {
+            results->Map([&](int resultIndex, RecyclableObject* resultObj) {
                 int64 length = JavascriptConversion::ToLength(
                     JavascriptOperators::GetProperty(resultObj, PropertyIds::length, scriptContext),
                     scriptContext);
@@ -1398,7 +1398,7 @@ namespace Js
         if (indexMatched != CharCountFlag)
         {
             Var pThis = scriptContext->GetLibrary()->GetUndefined();
-            JavascriptString* replace = JavascriptConversion::ToString(replacefn->GetEntryPoint()(replacefn, 4, pThis, match, JavascriptNumber::ToVar((int)indexMatched, scriptContext), input), scriptContext);
+            JavascriptString* replace = JavascriptConversion::ToString(CALL_FUNCTION(replacefn, CallInfo(4), pThis, match, JavascriptNumber::ToVar((int)indexMatched, scriptContext), input), scriptContext);
             const char16* inputStr = input->GetString();
             const char16* prefixStr = inputStr;
             CharCount prefixLength = indexMatched;
@@ -1435,7 +1435,7 @@ namespace Js
         ary->DirectAppendItem(subString);
     }
 
-    __inline UnifiedRegex::RegexPattern *RegexHelper::GetSplitPattern(ScriptContext* scriptContext, JavascriptRegExp *regularExpression)
+    inline UnifiedRegex::RegexPattern *RegexHelper::GetSplitPattern(ScriptContext* scriptContext, JavascriptRegExp *regularExpression)
     {
         UnifiedRegex::RegexPattern* splitPattern = regularExpression->GetSplitPattern();
         if (!splitPattern)

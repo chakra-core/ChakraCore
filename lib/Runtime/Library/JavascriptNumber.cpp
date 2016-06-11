@@ -172,7 +172,7 @@ namespace Js
 
         uint32 uexp = static_cast<uint32>(y);
         int32 result = 1;
-        
+
         while (true)
         {
             if ((uexp & 1) != 0)
@@ -705,7 +705,7 @@ namespace Js
         }
         return JavascriptNumber::ToLocaleStringIntl(args, callInfo, scriptContext);
     }
-    
+
     JavascriptString* JavascriptNumber::ToLocaleStringIntl(Var* values, CallInfo callInfo, ScriptContext* scriptContext)
     {
         Assert(values);
@@ -803,7 +803,7 @@ namespace Js
             {
                 radix = TaggedInt::ToInt32(aRadix);
             }
-            else if(!JavascriptOperators::GetTypeId(aRadix) == TypeIds_Undefined)
+            else if(JavascriptOperators::GetTypeId(aRadix) != TypeIds_Undefined)
             {
                 radix = (int)JavascriptConversion::ToInteger(aRadix,scriptContext);
             }
@@ -1033,6 +1033,7 @@ namespace Js
         JavascriptString *dblStr = JavascriptString::FromVar(FormatDoubleToString(value, NumberUtilities::FormatFixed, -1, scriptContext));
         const char16* szValue = dblStr->GetSz();
 
+#ifdef ENABLE_GLOBALIZATION
         count = GetNumberFormatEx(LOCALE_NAME_USER_DEFAULT, 0, szValue, NULL, NULL, 0);
 
         if( count <= 0 )
@@ -1069,6 +1070,11 @@ namespace Js
         }
 
         return result;
+#else
+        // xplat-todo: Implement the locale specific version
+        AssertMsg(false, "JavascriptNumber::ToLocaleString is not yet implemented");
+        return dblStr;
+#endif // ENABLE_GLOBALIZATION
     }
 
     Var JavascriptNumber::CloneToScriptContext(Var aValue, ScriptContext* requestContext)

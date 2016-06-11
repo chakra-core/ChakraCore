@@ -12,7 +12,19 @@
 #error "Platform is not handled"
 #endif
 
+#ifdef _MSC_VER
 template __forceinline char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat, size_t size);
+#else
+template __attribute__((always_inline)) char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat, size_t size);
+#endif
+
+// The VS2013 linker treats this as a redefinition of an already
+// defined constant and complains. So skip the declaration if we're compiling
+// with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const uint SmallAllocationBlockAttributes::MaxSmallObjectCount;
+const uint MediumAllocationBlockAttributes::MaxSmallObjectCount;
+#endif
 
 HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>  HeapInfo::smallAllocValidPointersMap;
 HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes> HeapInfo::mediumAllocValidPointersMap;
@@ -82,7 +94,7 @@ void HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMap(Vali
         ushort * validPointers = buffer;
         buffer += TBlockAttributes::MaxSmallObjectCount;
 
-        SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector * invalidBitVector = &invalidTable[i];
+        typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector * invalidBitVector = &invalidTable[i];
         invalidBitVector->SetAll();
 
         uint bucketSize;
@@ -881,6 +893,8 @@ HeapInfo::AddLargeHeapBlock(size_t size)
 void HeapInfo::SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent)
 {
     Recycler * recycler = recyclerSweep.GetRecycler();
+    // TODO: Remove below workaround for unreferenced local after enabled -profile for GC
+    static_cast<Recycler*>(recycler);
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
         heapBuckets[i].SweepFinalizableObjects(recyclerSweep);
@@ -1773,8 +1787,11 @@ BOOL MediumAllocationBlockAttributes::IsAlignedObjectSize(size_t sizeCat)
     return HeapInfo::IsAlignedMediumObjectSize(sizeCat);
 }
 
+namespace Memory
+{
 template class HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>;
 template class ValidPointers<SmallAllocationBlockAttributes>;
 
 template class HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>;
 template class ValidPointers<MediumAllocationBlockAttributes>;
+};

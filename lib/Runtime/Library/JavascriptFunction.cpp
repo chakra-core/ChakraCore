@@ -13,9 +13,6 @@
 #include "Language/AsmJsModule.h"
 #endif
 
-extern "C" PVOID _ReturnAddress(VOID);
-#pragma intrinsic(_ReturnAddress)
-
 #ifdef _M_IX86
 #ifdef _CONTROL_FLOW_GUARD
 extern "C" PVOID __guard_check_icall_fptr;
@@ -25,6 +22,13 @@ extern "C" void __cdecl _alloca_probe_16();
 
 namespace Js
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    const charcount_t JavascriptFunction::DIAG_MAX_FUNCTION_STRING;
+#endif
+
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(JavascriptFunction);
     JavascriptFunction::JavascriptFunction(DynamicType * type)
         : DynamicObject(type), functionInfo(nullptr), constructorCache(&ConstructorCache::DefaultInstance)
@@ -625,8 +629,14 @@ namespace Js
         }
 #endif
 
+#ifdef DISABLE_SEH
+        // xplat: JavascriptArrayBuffer::AllocWrapper is disabled on cross-platform
+        // (IsValidVirtualBufferLength always returns false).
+        // SEH and ResumeForOutOfBoundsArrayRefs are not needed.
+        ret = CallRootFunctionInternal(args, scriptContext, inScript);
+#else
         // mark volatile, because otherwise VC will incorrectly optimize away load in the finally block
-        volatile ulong exceptionCode = 0;
+        volatile uint32 exceptionCode = 0;
         volatile int exceptionAction = EXCEPTION_CONTINUE_SEARCH;
         EXCEPTION_POINTERS exceptionInfo = {0};
         __try
@@ -652,6 +662,7 @@ namespace Js
                 UnexpectedExceptionHandling_fatal_error(&exceptionInfo);
             }
         }
+#endif
         //ret should never be null here
         Assert(ret);
         return ret;
@@ -1467,7 +1478,12 @@ LABEL1:
         }
 
         DebugOnly(JavascriptMethod directEntryPoint = funcBody->GetDirectEntryPoint(funcBody->GetDefaultEntryPointInfo()));
-        Assert(directEntryPoint != DefaultDeferredParsingThunk && directEntryPoint != ProfileDeferredParsingThunk);
+#ifdef ENABLE_SCRIPT_PROFILING
+        Assert(directEntryPoint != DefaultDeferredParsingThunk
+            && directEntryPoint != ProfileDeferredParsingThunk);
+#else // !ENABLE_SCRIPT_PROFILING
+        Assert(directEntryPoint != DefaultDeferredParsingThunk);
+#endif
         return (*functionRef)->UpdateUndeferredBody(funcBody);
     }
 
@@ -1566,12 +1582,13 @@ LABEL1:
             jmp eax
         }
     }
-#elif defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
+#elif (defined(_M_X64) || defined(_M_ARM32_OR_ARM64)) && defined(_MSC_VER)
     //Do nothing: the implementation of JavascriptFunction::DeferredParsingThunk is declared (appropriately decorated) in
     // Library\amd64\javascriptfunctiona.asm
     // Library\arm\arm_DeferredParsingThunk.asm
     // Library\arm64\arm64_DeferredParsingThunk.asm
 #else
+    // xplat-todo: Implement defer deserialization for linux
     Var JavascriptFunction::DeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         Js::Throw::NotImplemented();
@@ -2445,7 +2462,7 @@ LABEL1:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorCallerAccessorFunction();
-                *value = accessor->GetEntryPoint()(accessor, 1, originalInstance);
+                *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
             }
             return true;
         }
@@ -2520,7 +2537,7 @@ LABEL1:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorArgumentsAccessorFunction();
-                *value = accessor->GetEntryPoint()(accessor, 1, originalInstance);
+                *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
             }
             return true;
         }
@@ -2680,7 +2697,7 @@ LABEL1:
 
         BOOL result = DynamicObject::SetProperty(propertyId, value, flags, info);
 
-        if (propertyId == PropertyIds::prototype)
+        if (propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance)
         {
             PropertyValueInfo::SetNoCache(info, this);
             InvalidateConstructorCacheOnPrototypeChange();
@@ -2694,7 +2711,7 @@ LABEL1:
     {
         BOOL result = __super::SetPropertyWithAttributes(propertyId, value, attributes, info, flags, possibleSideEffects);
 
-        if (propertyId == PropertyIds::prototype)
+        if (propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance)
         {
             PropertyValueInfo::SetNoCache(info, this);
             InvalidateConstructorCacheOnPrototypeChange();
@@ -2742,7 +2759,7 @@ LABEL1:
 
         BOOL result = DynamicObject::DeleteProperty(propertyId, flags);
 
-        if (result && propertyId == PropertyIds::prototype)
+        if (result && propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance)
         {
             InvalidateConstructorCacheOnPrototypeChange();
             this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);
@@ -2959,17 +2976,13 @@ LABEL1:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count < 2)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Function[Symbol.hasInstance]"));
-        }
-
         RecyclableObject * constructor = RecyclableObject::FromVar(args[0]);
-        Var instance = args[1];
-        if (!JavascriptConversion::IsCallable(constructor))
+        if (!JavascriptConversion::IsCallable(constructor) || args.Info.Count < 2)
         {
             return JavascriptBoolean::ToVar(FALSE, scriptContext);
         }
+
+        Var instance = args[1];
 
         Assert(JavascriptProxy::Is(constructor) || JavascriptFunction::Is(constructor));
         return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, NULL), scriptContext);

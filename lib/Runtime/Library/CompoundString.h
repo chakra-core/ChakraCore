@@ -493,7 +493,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    __inline const char16 *CompoundString::Builder<MinimumCharCapacity>::GetAppendStringBuffer(
+    inline const char16 *CompoundString::Builder<MinimumCharCapacity>::GetAppendStringBuffer(
         JavascriptString *const s) const
     {
         Assert(s);
@@ -628,7 +628,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::Append(const char16 c)
+    inline void CompoundString::Builder<MinimumCharCapacity>::Append(const char16 c)
     {
         if(!compoundString)
         {
@@ -640,7 +640,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(const char16 c)
+    inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(const char16 c)
     {
         if(!compoundString)
         {
@@ -652,7 +652,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::Append(JavascriptString *const s)
+    inline void CompoundString::Builder<MinimumCharCapacity>::Append(JavascriptString *const s)
     {
         if(!compoundString)
         {
@@ -664,7 +664,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(JavascriptString *const s)
+    inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(JavascriptString *const s)
     {
         if(!compoundString)
         {
@@ -676,7 +676,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::Append(
+    inline void CompoundString::Builder<MinimumCharCapacity>::Append(
         JavascriptString *const s,
         const CharCount startIndex,
         const CharCount appendCharLength)
@@ -691,7 +691,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(
+    inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(
         JavascriptString *const s,
         const CharCount startIndex,
         const CharCount appendCharLength)
@@ -707,7 +707,7 @@ namespace Js
 
     template<CharCount MinimumCharCapacity>
     template<CharCount AppendCharLengthPlusOne>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::Append(
+    inline void CompoundString::Builder<MinimumCharCapacity>::Append(
         const char16 (&s)[AppendCharLengthPlusOne],
         const bool isCppLiteral)
     {
@@ -722,7 +722,7 @@ namespace Js
 
     template<CharCount MinimumCharCapacity>
     template<CharCount AppendCharLengthPlusOne>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(
+    inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(
         const char16 (&s)[AppendCharLengthPlusOne],
         const bool isCppLiteral)
     {
@@ -736,7 +736,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::Append(
+    inline void CompoundString::Builder<MinimumCharCapacity>::Append(
         __in_xcount(appendCharLength) const char16 *const s,
         const CharCount appendCharLength)
     {
@@ -750,7 +750,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(
+    inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(
         __in_xcount(appendCharLength) const char16 *const s,
         const CharCount appendCharLength)
     {
@@ -765,7 +765,7 @@ namespace Js
 
     template<CharCount MinimumCharCapacity>
     template<class TValue, class FConvertToString>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::Append(
+    inline void CompoundString::Builder<MinimumCharCapacity>::Append(
         const TValue &value,
         const CharCount maximumAppendCharLength,
         const FConvertToString ConvertToString)
@@ -781,7 +781,7 @@ namespace Js
 
     template<CharCount MinimumCharCapacity>
     template<class TValue, class FConvertToString>
-    __inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(
+    inline void CompoundString::Builder<MinimumCharCapacity>::AppendChars(
         const TValue &value,
         const CharCount maximumAppendCharLength,
         const FConvertToString ConvertToString)
@@ -809,7 +809,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    __inline JavascriptString *CompoundString::Builder<MinimumCharCapacity>::ToString()
+    inline JavascriptString *CompoundString::Builder<MinimumCharCapacity>::ToString()
     {
     #if DBG
         // Should not append to the builder after this function is called
@@ -845,7 +845,7 @@ namespace Js
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     template<class String>
-    __inline bool CompoundString::TryAppendGeneric(const char16 c, String *const toString)
+    inline bool CompoundString::TryAppendGeneric(const char16 c, String *const toString)
     {
         Assert(toString);
         Assert(!toString->IsFinalized());
@@ -864,7 +864,7 @@ namespace Js
     }
 
     template<class String>
-    __inline bool CompoundString::TryAppendGeneric(
+    inline bool CompoundString::TryAppendGeneric(
         JavascriptString *const s,
         const CharCount appendCharLength,
         String *const toString)
@@ -888,7 +888,7 @@ namespace Js
     }
 
     template<class String>
-    __inline bool CompoundString::TryAppendFewCharsGeneric(
+    inline bool CompoundString::TryAppendFewCharsGeneric(
         __in_xcount(appendCharLength) const char16 *const s,
         const CharCount appendCharLength,
         String *const toString)
@@ -915,7 +915,7 @@ namespace Js
     }
 
     template<class String>
-    __inline bool CompoundString::TryAppendGeneric(
+    inline bool CompoundString::TryAppendGeneric(
         __in_xcount(appendCharLength) const char16 *const s,
         const CharCount appendCharLength,
         String *const toString)
@@ -938,7 +938,7 @@ namespace Js
     }
 
     template<class String>
-    __inline bool CompoundString::TryAppendGeneric(
+    inline bool CompoundString::TryAppendGeneric(
         JavascriptString *const s,
         void *const packedSubstringInfo,
         void *const packedSubstringInfo2,
@@ -970,7 +970,7 @@ namespace Js
     }
 
     template<class String>
-    __inline void CompoundString::AppendGeneric(const char16 c, String *const toString, const bool appendChars)
+    inline void CompoundString::AppendGeneric(const char16 c, String *const toString, const bool appendChars)
     {
         Assert(toString);
         Assert(!toString->IsFinalized());
@@ -993,7 +993,7 @@ namespace Js
     }
 
     template<class String>
-    __inline void CompoundString::AppendGeneric(
+    inline void CompoundString::AppendGeneric(
         JavascriptString *const s,
         String *const toString,
         const bool appendChars)
@@ -1052,7 +1052,7 @@ namespace Js
     }
 
     template<class String>
-    __inline void CompoundString::AppendGeneric(
+    inline void CompoundString::AppendGeneric(
         JavascriptString *const s,
         const CharCount startIndex,
         const CharCount appendCharLength,
@@ -1128,7 +1128,7 @@ namespace Js
     }
 
     template<CharCount AppendCharLengthPlusOne, class String>
-    __inline void CompoundString::AppendGeneric(
+    inline void CompoundString::AppendGeneric(
         const char16 (&s)[AppendCharLengthPlusOne],
         const bool isCppLiteral,
         String *const toString,
@@ -1192,7 +1192,7 @@ namespace Js
     }
 
     template<class String>
-    __inline void CompoundString::AppendGeneric(
+    inline void CompoundString::AppendGeneric(
         __in_xcount(appendCharLength) const char16 *const s,
         const CharCount appendCharLength,
         String *const toString,
@@ -1243,7 +1243,7 @@ namespace Js
     }
 
     template<class TValue, class FConvertToString, class String>
-    __inline void CompoundString::AppendGeneric(
+    inline void CompoundString::AppendGeneric(
         const TValue &value,
         CharCount maximumAppendCharLength,
         const FConvertToString ConvertToString,
@@ -1287,23 +1287,23 @@ namespace Js
             return;
         }
         AnalysisAssert(convertBuffer == localConvertBuffer);
-        AppendGeneric(localConvertBuffer, appendCharLength, toString, appendChars);
+        AppendGeneric(static_cast<const char16* const>(localConvertBuffer), appendCharLength, toString, appendChars);
     }
 
     template<CharCount AppendCharLengthPlusOne>
-    __inline void CompoundString::Append(const char16 (&s)[AppendCharLengthPlusOne], const bool isCppLiteral)
+    inline void CompoundString::Append(const char16 (&s)[AppendCharLengthPlusOne], const bool isCppLiteral)
     {
         AppendGeneric(s, isCppLiteral, this, false);
     }
 
     template<CharCount AppendCharLengthPlusOne>
-    __inline void CompoundString::AppendChars(const char16 (&s)[AppendCharLengthPlusOne], const bool isCppLiteral)
+    inline void CompoundString::AppendChars(const char16 (&s)[AppendCharLengthPlusOne], const bool isCppLiteral)
     {
         AppendGeneric(s, isCppLiteral, this, true);
     }
 
     template<class TValue, class FConvertToString>
-    __inline void CompoundString::Append(
+    inline void CompoundString::Append(
         const TValue &value,
         const CharCount maximumAppendCharLength,
         const FConvertToString ConvertToString)
@@ -1312,7 +1312,7 @@ namespace Js
     }
 
     template<class TValue, class FConvertToString>
-    __inline void CompoundString::AppendChars(
+    inline void CompoundString::AppendChars(
         const TValue &value,
         const CharCount maximumAppendCharLength,
         const FConvertToString ConvertToString)

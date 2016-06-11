@@ -2,7 +2,8 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-__inline
+
+inline
 bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
 {
     Assert(objectAddress != nullptr);
@@ -27,7 +28,7 @@ bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
 }
 
 #if ENABLE_CONCURRENT_GC
-__inline
+inline
 bool MarkContext::AddTrackedObject(FinalizableObject * obj)
 {
     Assert(obj != nullptr);
@@ -45,7 +46,7 @@ bool MarkContext::AddTrackedObject(FinalizableObject * obj)
 #endif
 
 template <bool parallel, bool interior>
-__inline
+inline
 void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 {
     Assert(byteCount != 0);
@@ -88,7 +89,7 @@ void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 
 
 template <bool parallel, bool interior>
-__inline
+inline
 void MarkContext::ScanObject(void ** obj, size_t byteCount)
 {
     BEGIN_DUMP_OBJECT(recycler, obj);
@@ -100,7 +101,7 @@ void MarkContext::ScanObject(void ** obj, size_t byteCount)
 
 
 template <bool parallel, bool interior>
-__inline
+inline
 void MarkContext::Mark(void * candidate, void * parentReference)
 {
     // We should never reach here while we are processing Rescan.
@@ -138,7 +139,7 @@ void MarkContext::Mark(void * candidate, void * parentReference)
 #endif
 }
 
-__inline
+inline
 void MarkContext::MarkTrackedObject(FinalizableObject * trackedObject)
 {
 #if ENABLE_CONCURRENT_GC
@@ -159,7 +160,7 @@ void MarkContext::MarkTrackedObject(FinalizableObject * trackedObject)
 }
 
 template <bool parallel, bool interior>
-__inline
+inline
 void MarkContext::ProcessMark()
 {
 #ifdef RECYCLER_STRESS

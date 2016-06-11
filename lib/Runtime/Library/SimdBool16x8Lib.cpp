@@ -83,7 +83,7 @@ namespace Js
         {
             // if value arg is missing, then it is undefined.
             Var laneVar = args.Info.Count >= 3 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
-            bool result = SIMD128ExtractLane<JavascriptSIMDBool16x8, 8, bool>(args[1], laneVar, scriptContext);
+            bool result = (SIMDUtils::SIMD128ExtractLane<JavascriptSIMDBool16x8, 8, int16>(args[1], laneVar, scriptContext)) ? true : false;
             return JavascriptBoolean::ToVar(result, scriptContext);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, _u("ExtractLane"));
@@ -106,8 +106,8 @@ namespace Js
             Var laneVar = args.Info.Count >= 4 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
             Var argVal = args.Info.Count >= 4 ? args[3] : scriptContext->GetLibrary()->GetUndefined();
             bool value = JavascriptConversion::ToBool(argVal, scriptContext);
-
-            SIMDValue result = SIMD128ReplaceLane<JavascriptSIMDBool16x8, 8, bool>(args[1], laneVar, value, scriptContext);
+            int16 intValue = (value) ? -1 : 0;
+            SIMDValue result = SIMDUtils::SIMD128ReplaceLane<JavascriptSIMDBool16x8, 8, int16>(args[1], laneVar, intValue, scriptContext);
 
             return JavascriptSIMDBool16x8::New(&result, scriptContext);
         }

@@ -3,21 +3,22 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-
 namespace Js
 {
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
     class DynamicObjectSnapshotEnumerator : public DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true>
     {
+        typedef DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true> Base;
+
     protected:
         int initialPropertyCount;
 
         DynamicObjectSnapshotEnumerator(ScriptContext* scriptContext)
-            : DynamicObjectEnumerator(scriptContext)
+            : DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true>(scriptContext)
         {
         }
 
-        DEFINE_VTABLE_CTOR(DynamicObjectSnapshotEnumerator, DynamicObjectEnumerator);
+        DEFINE_VTABLE_CTOR(DynamicObjectSnapshotEnumerator, Base);
         DEFINE_MARSHAL_ENUMERATOR_TO_SCRIPT_CONTEXT(DynamicObjectSnapshotEnumerator);
 
         Var GetCurrentAndMoveNextFromArray(PropertyId& propertyId, PropertyAttributes* attributes);

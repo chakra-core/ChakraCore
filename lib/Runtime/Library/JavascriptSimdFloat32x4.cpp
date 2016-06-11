@@ -44,7 +44,7 @@ namespace Js
     Var JavascriptSIMDFloat32x4::CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue,
         const Var* args, uint numArgs, CallInfo callInfo)
     {
-        char16 *typeString = _u("SIMD.Float32x4(");
+        const char16 *typeString = _u("SIMD.Float32x4(");
         return JavascriptSIMDObject::FromVar(&obj)->ToLocaleString<float, 4>(args, numArgs, typeString,
             simdValue.f32, &callInfo, &requestContext);
     }

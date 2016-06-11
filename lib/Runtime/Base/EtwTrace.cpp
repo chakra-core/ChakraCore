@@ -371,6 +371,7 @@ void EtwTrace::LogMethodNativeLoadEvent(FunctionBody* body, FunctionEntryPointIn
 
 void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint, uint16 loopNumber)
 {
+    Assert(loopNumber == body->GetLoopNumberWithLock(loopHeader));
     LogLoopBodyEventBG(EventWriteMethodLoad, body, loopHeader, entryPoint, loopNumber);
 
 #ifdef VTUNE_PROFILING
@@ -387,8 +388,7 @@ void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, 
         {
             methodInfo.method_id = iJIT_GetNewMethodID();
             size_t len = utf8::EncodeInto(utf8MethodName, methodName, (charcount_t)methodLength);
-            uint loopNumber = body->GetLoopNumber(loopHeader) + 1;
-            sprintf_s((char*)(utf8MethodName + len), length - len," %s %d", LoopStr, loopNumber);
+            sprintf_s((char*)(utf8MethodName + len), length - len," %s %d", LoopStr, loopNumber + 1);
             methodInfo.method_name = (char*)utf8MethodName;
             methodInfo.method_load_address = (void*)entryPoint->GetNativeAddress();
             methodInfo.method_size = (uint)entryPoint->GetCodeSize();        // Size in memory - Must be exact
@@ -399,7 +399,7 @@ void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, 
             methodInfo.env = iJDE_JittingAPI;
 
             iJIT_NotifyEvent(iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED, &methodInfo);
-            OUTPUT_TRACE(Js::ProfilerPhase, _u("Loop body load event: %s Loop %d\n"), methodName, loopNumber);
+            OUTPUT_TRACE(Js::ProfilerPhase, _u("Loop body load event: %s Loop %d\n"), methodName, loopNumber + 1);
 
             if(urlLength > 0)
             {

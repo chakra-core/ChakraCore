@@ -191,7 +191,7 @@ namespace Js
     template <class T>
     ES5ArrayTypeHandlerBase<T>* ES5ArrayTypeHandlerBase<T>::New(Recycler * recycler, int initialCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots)
     {
-        return NewTypeHandler<ES5ArrayTypeHandlerBase<T>>(recycler, initialCapacity, inlineSlotCapacity, offsetOfInlineSlots);
+        return DictionaryTypeHandlerBase<T>::template NewTypeHandler<ES5ArrayTypeHandlerBase<T>>(recycler, initialCapacity, inlineSlotCapacity, offsetOfInlineSlots);
     }
 
     template <class T>
@@ -249,7 +249,8 @@ namespace Js
         Js::Type* oldType = arrayInstance->GetType();
 #endif
         bool isCrossSiteObject = false;
-        __try
+
+        try
         {
             if (!CrossSite::IsCrossSiteObjectTyped(arrayInstance))
             {
@@ -271,25 +272,23 @@ namespace Js
             doneConversion = true;
 #endif
         }
-        __finally
+        catch(Js::ExceptionBase)
         {
-            if (AbnormalTermination())
+            Assert(!doneConversion);
+            // change vtbl shouldn't OOM. revert back the vtable.
+            if (isCrossSiteObject)
             {
-                Assert(!doneConversion);
-                // change vtbl shouldn't OOM. revert back the vtable.
-                if (isCrossSiteObject)
-                {
-                    Assert(VirtualTableInfo<CrossSiteObject<ES5Array>>::HasVirtualTable(arrayInstance));
-                    VirtualTableInfo<CrossSiteObject<JavascriptArray>>::SetVirtualTable(arrayInstance);
-                }
-                else
-                {
-                    Assert(VirtualTableInfo<ES5Array>::HasVirtualTable(arrayInstance));
-                    VirtualTableInfo<JavascriptArray>::SetVirtualTable(arrayInstance);
-                }
-                // The only allocation is in ChangeType, which won't have changed the type yet.
-                Assert(arrayInstance->GetType() == oldType);
+                Assert(VirtualTableInfo<CrossSiteObject<ES5Array>>::HasVirtualTable(arrayInstance));
+                VirtualTableInfo<CrossSiteObject<JavascriptArray>>::SetVirtualTable(arrayInstance);
             }
+            else
+            {
+                Assert(VirtualTableInfo<ES5Array>::HasVirtualTable(arrayInstance));
+                VirtualTableInfo<JavascriptArray>::SetVirtualTable(arrayInstance);
+            }
+            // The only allocation is in ChangeType, which won't have changed the type yet.
+            Assert(arrayInstance->GetType() == oldType);
+            throw;
         }
     }
 
@@ -380,7 +379,7 @@ namespace Js
         {
             if (descriptor->Attributes & PropertyDeleted)
             {
-                if (!(this->GetFlags() & IsExtensibleFlag))
+                if (!(this->GetFlags() & this->IsExtensibleFlag))
                 {
                     return CantExtend(flags, scriptContext);
                 }
@@ -416,7 +415,7 @@ namespace Js
         //
         // Not found in attribute map. Extend or update data item.
         //
-        if (!(this->GetFlags() & IsExtensibleFlag))
+        if (!(this->GetFlags() & this->IsExtensibleFlag))
         {
             if (!HasDataItem(arr, index))
             {
@@ -454,7 +453,7 @@ namespace Js
         if (!(attributes & PropertyWritable))
         {
             this->ClearHasOnlyWritableDataProperties();
-            if(GetFlags() & IsPrototypeFlag)
+            if(this->GetFlags() & this->IsPrototypeFlag)
             {
                 instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
             }
@@ -515,7 +514,7 @@ namespace Js
             if (!(descriptor->Attributes & PropertyWritable))
             {
                 this->ClearHasOnlyWritableDataProperties();
-                if(GetFlags() & IsPrototypeFlag)
+                if(this->GetFlags() & this->IsPrototypeFlag)
                 {
                     instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
                 }
@@ -531,7 +530,7 @@ namespace Js
             if (!(attributes & PropertyWritable))
             {
                 this->ClearHasOnlyWritableDataProperties();
-                if(GetFlags() & IsPrototypeFlag)
+                if(this->GetFlags() & this->IsPrototypeFlag)
                 {
                     instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
                 }
@@ -554,11 +553,11 @@ namespace Js
         JavascriptLibrary* lib = instance->GetLibrary();
         if (getter)
         {
-            getter = CanonicalizeAccessor(getter, lib);
+            getter = this->CanonicalizeAccessor(getter, lib);
         }
         if (setter)
         {
-            setter = CanonicalizeAccessor(setter, lib);
+            setter = this->CanonicalizeAccessor(setter, lib);
         }
 
         // conversion from data-property to accessor property
@@ -593,7 +592,7 @@ namespace Js
         }
 
         this->ClearHasOnlyWritableDataProperties();
-        if(GetFlags() & IsPrototypeFlag)
+        if(this->GetFlags() & this->IsPrototypeFlag)
         {
             instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
         }
@@ -873,7 +872,7 @@ namespace Js
 
         if (!writable)
         {
-            ClearHasOnlyWritableDataProperties();
+            this->ClearHasOnlyWritableDataProperties();
         }
     }
 
@@ -1030,7 +1029,7 @@ namespace Js
                     if (!(descriptor->Attributes & PropertyWritable))
                     {
                         this->ClearHasOnlyWritableDataProperties();
-                        if(GetFlags() & IsPrototypeFlag)
+                        if(this->GetFlags() & this->IsPrototypeFlag)
                         {
                             instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
                         }
@@ -1060,7 +1059,7 @@ namespace Js
                     if (!(newAttr & PropertyWritable))
                     {
                         this->ClearHasOnlyWritableDataProperties();
-                        if(GetFlags() & IsPrototypeFlag)
+                        if(this->GetFlags() & this->IsPrototypeFlag)
                         {
                             instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
                         }
@@ -1124,7 +1123,7 @@ namespace Js
         if (propertyId == PropertyIds::length)
         {
             SetLengthWritable(value ? true : false);
-            if(!value && GetFlags() & IsPrototypeFlag)
+            if(!value && this->GetFlags() & this->IsPrototypeFlag)
             {
                 instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
             }

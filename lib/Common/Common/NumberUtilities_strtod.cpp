@@ -10,8 +10,8 @@ namespace Js
 static inline BOOL FNzDigit(int ch)
 { return ch >= '1' && ch <= '9'; }
 
-static const long klwMaxExp10 = 310;     // Upper bound on base 10 exponent
-static const long klwMinExp10 = -325;    // Lower bound on base 10 exponent
+static const int32 klwMaxExp10 = 310;     // Upper bound on base 10 exponent
+static const int32 klwMinExp10 = -325;    // Lower bound on base 10 exponent
 static const int kcbMaxRgb = 50;
 static const int kcchMaxSig = 20;        // 20 significant digits. ECMA allows this.
 
@@ -24,7 +24,7 @@ static const double g_rgdblTens[] =
     1e20, 1e21, 1e22, 1e23, 1e24, 1e25, 1e26, 1e27, 1e28
 };
 
-static inline char16 ToDigit(long wVal)
+static inline char16 ToDigit(int32 wVal)
 {
     //return reinterpret_cast<char16>((wVal < 10) ? '0' + (ushort) wVal : 'a' - 10 + (ushort) wVal);
     return (ushort)((wVal < 10) ? '0' + (ushort) wVal : 'a' - 10 + (ushort) wVal);
@@ -36,14 +36,14 @@ Big floating point number.
 struct BIGNUM
 {
     // WARNING: some asm code below assumes the ordering of these fields.
-    ulong m_lu0;
-    ulong m_lu1;
-    ulong m_lu2;
+    uint32 m_lu0;
+    uint32 m_lu1;
+    uint32 m_lu2;
     int m_wExp;
 
     // This is a bound on the absolute value of the error. It is based at
     // one bit before the least significant bit of m_lu0.
-    ulong m_luError;
+    uint32 m_luError;
 
     // Test to see if the num is zero. This works even if we're not normalized.
     BOOL FZero(void)
@@ -54,10 +54,10 @@ struct BIGNUM
     void Normalize(void);
 
     // Round based on the given extra data using IEEE round to nearest rule.
-    void Round(ulong luExtra)
+    void Round(uint32 luExtra)
     {
         if (0 == (luExtra & 0x80000000) ||
-            0 == (luExtra & 0x7FFFFFFF) && 0 == (m_lu0 & 1))
+            (0 == (luExtra & 0x7FFFFFFF) && 0 == (m_lu0 & 1)))
         {
             if (luExtra)
                 m_luError++;
@@ -79,11 +79,11 @@ struct BIGNUM
     }
 
     // Multiply by ten and add a base 10 digit.
-    void MulTenAdd(byte bAdd, ulong *pluExtra);
+    void MulTenAdd(byte bAdd, uint32 *pluExtra);
 
     // Set the value from decimal digits and decimal exponent
     template <typename EncodedChar>
-    void SetFromRgchExp(const EncodedChar *pch, long cch, long lwExp);
+    void SetFromRgchExp(const EncodedChar *pch, int32 cch, int32 lwExp);
 
     // Multiply by a BIGNUM
     void Mul(const BIGNUM *pnumOp);
@@ -92,12 +92,12 @@ struct BIGNUM
     double GetDbl(void);
 
     // Lop off the integer part and return it.
-    ulong LuMod1(void)
+    uint32 LuMod1(void)
     {
         if (m_wExp <= 0)
             return 0;
         Assert(m_wExp <= 32);
-        ulong luT = m_lu2 >> (32 - m_wExp);
+        uint32 luT = m_lu2 >> (32 - m_wExp);
         m_lu2 &= 0x7FFFFFFF >> (m_wExp - 1);
         Normalize();
         return luT;
@@ -107,7 +107,7 @@ struct BIGNUM
     void MakeUpperBound(void)
     {
         Assert(m_luError < 0xFFFFFFFF);
-        ulong luT = (m_luError + 1) >> 1;
+        uint32 luT = (m_luError + 1) >> 1;
 
         if (luT &&
             Js::NumberUtilities::AddLu(&m_lu0, luT) &&
@@ -127,10 +127,10 @@ struct BIGNUM
     void MakeLowerBound(void)
     {
         Assert(m_luError < 0xFFFFFFFF);
-        ulong luT = (m_luError + 1) >> 1;
+        uint32 luT = (m_luError + 1) >> 1;
 
         if (luT &&
-            !Js::NumberUtilities::AddLu(&m_lu0, (ulong)-(long)luT) &&
+            !Js::NumberUtilities::AddLu(&m_lu0, (uint32)-(int32)luT) &&
             !Js::NumberUtilities::AddLu(&m_lu1, 0xFFFFFFFF))
         {
             Js::NumberUtilities::AddLu(&m_lu2, 0xFFFFFFFF);
@@ -283,12 +283,12 @@ void BIGNUM::Normalize(void)
 }
 
 
-void BIGNUM::MulTenAdd(byte bAdd, ulong *pluExtra)
+void BIGNUM::MulTenAdd(byte bAdd, uint32 *pluExtra)
 {
     Assert(bAdd <= 9);
     Assert(m_lu2 & 0x80000000);
 
-    ulong rglu[5];
+    uint32 rglu[5];
 
     // First "multiply" by eight
     m_wExp += 3;
@@ -309,12 +309,12 @@ void BIGNUM::MulTenAdd(byte bAdd, ulong *pluExtra)
                 Assert(ilu < 4);
                 rglu[ilu + 1] = bAdd >> ibit;
                 if (ibit > 0)
-                    rglu[ilu] = (ulong)bAdd << (32 - ibit);
+                    rglu[ilu] = (uint32)bAdd << (32 - ibit);
             }
             else
             {
                 Assert(ilu < 5);
-                rglu[ilu] = (ulong)bAdd << (32 - ibit);
+                rglu[ilu] = (uint32)bAdd << (32 - ibit);
             }
         }
     }
@@ -344,19 +344,19 @@ void BIGNUM::MulTenAdd(byte bAdd, ulong *pluExtra)
 }
 
 template<typename EncodedChar>
-void BIGNUM::SetFromRgchExp(const EncodedChar *prgch, long cch, long lwExp)
+void BIGNUM::SetFromRgchExp(const EncodedChar *prgch, int32 cch, int32 lwExp)
 {
     Assert(cch > 0);
     AssertArrMemR(prgch, cch);
 
     const BIGNUM *prgnum;
     int wT;
-    ulong luExtra;
+    uint32 luExtra;
     const EncodedChar *pchLim = prgch + cch;
 
     // Record the first digit
     Assert(FNzDigit(prgch[0]));
-    m_lu2 = (ulong)(prgch[0] - '0') << 28;
+    m_lu2 = (uint32)(prgch[0] - '0') << 28;
     m_lu1 = 0;
     m_lu0 = 0;
     m_wExp = 4;
@@ -410,7 +410,7 @@ void BIGNUM::SetFromRgchExp(const EncodedChar *prgch, long cch, long lwExp)
 
 void BIGNUM::Mul(const BIGNUM *pnumOp)
 {
-    ulong rglu[6];
+    uint32 rglu[6];
 
     Assert(m_lu2 & 0x80000000);
     Assert(pnumOp->m_lu2 & 0x80000000);
@@ -491,7 +491,7 @@ LDigit3:
         adc DWORD PTR [ebx+20],edx
     }
 #else //!I386_ASM
-    ulong luLo, luHi, luT;
+    uint32 luLo, luHi, luT;
     int wCarry;
 
     if (0 != (luT = m_lu0))
@@ -626,7 +626,7 @@ LNormalized:
 double BIGNUM::GetDbl(void)
 {
     double dbl;
-    ulong luEx;
+    uint32 luEx;
     int wExp;
 
     Assert(m_lu2 & 0x80000000);
@@ -639,13 +639,13 @@ double BIGNUM::GetDbl(void)
         return dbl;
     }
 
-    // Round after filling in the bits. In the extra ulong, we set the low bit
+    // Round after filling in the bits. In the extra uint32, we set the low bit
     // if there are any extra non-zero bits. This is for breaking the tie when
     // deciding whether to round up or down.
     if (wExp > 0)
     {
         // Normalized.
-        Js::NumberUtilities::LuHiDbl(dbl) = ((ulong)wExp << 20) | ((m_lu2 & 0x7FFFFFFF) >> 11);
+        Js::NumberUtilities::LuHiDbl(dbl) = ((uint32)wExp << 20) | ((m_lu2 & 0x7FFFFFFF) >> 11);
         Js::NumberUtilities::LuLoDbl(dbl) = m_lu2 << 21 | m_lu1 >> 11;
         luEx = m_lu1 << 21 | (m_lu0 != 0);
     }
@@ -717,18 +717,18 @@ we adjust it to be exactly half way to the previous representable value
 and re-compare.
 ***************************************************************************/
 template <typename EncodedChar>
-static double AdjustDbl(double dbl, const EncodedChar *prgch, long cch, long lwExp)
+static double AdjustDbl(double dbl, const EncodedChar *prgch, int32 cch, int32 lwExp)
 {
     Js::BigInt biDec, biDbl;
-    long c2Dec, c2Dbl;
-    long c5Dec, c5Dbl;
+    int32 c2Dec, c2Dbl;
+    int32 c5Dec, c5Dbl;
     int wAddHi, wT;
-    long iT;
-    long wExp2;
-    ulong rglu[2];
-    ulong luT;
+    int32 iT;
+    int32 wExp2;
+    uint32 rglu[2];
+    uint32 luT;
     BOOL f;
-    long clu;
+    int32 clu;
 
     if (!biDec.FInitFromDigits(prgch, cch, &cch))
         goto LFail;
@@ -856,7 +856,7 @@ static double AdjustDbl(double dbl, const EncodedChar *prgch, long cch, long lwE
             goto LFail;
 
         wT = biDbl.Compare(&biDec);
-        if (wT > 0 || 0 == wT && 0 != (Js::NumberUtilities::LuLoDbl(dbl) & 1))
+        if (wT > 0 || (0 == wT && 0 != (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
         {
             // Return the next lower value.
             if (!Js::NumberUtilities::AddLu(&Js::NumberUtilities::LuLoDbl(dbl), 0xFFFFFFFF))
@@ -876,7 +876,7 @@ static double AdjustDbl(double dbl, const EncodedChar *prgch, long cch, long lwE
             goto LFail;
 
         wT = biDbl.Compare(&biDec);
-        if (wT < 0 || 0 == wT && 0 != (Js::NumberUtilities::LuLoDbl(dbl) & 1))
+        if (wT < 0 || (0 == wT && 0 != (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
         {
             // Return the next higher value.
             if (Js::NumberUtilities::AddLu(&Js::NumberUtilities::LuLoDbl(dbl), 1))
@@ -895,7 +895,7 @@ String to Double.
 template <typename EncodedChar>
 double Js::NumberUtilities::StrToDbl( const EncodedChar *psz, const EncodedChar **ppchLim, bool& likelyInt )
 {
-    ulong lu;
+    uint32 lu;
     BIGNUM num;
     BIGNUM numHi;
     BIGNUM numLo;
@@ -913,14 +913,14 @@ double Js::NumberUtilities::StrToDbl( const EncodedChar *psz, const EncodedChar 
     // points to the first digit and pchLimDig points just past the last
     // digit. cchDig is the number of digits. pchLimDig - pchMinDig may be
     // cchDig + 1 (if there is a decimal point).
-    long cchDig = 0;
+    int32 cchDig = 0;
     const EncodedChar *pchMinDig = NULL;
     const EncodedChar *pchLimDig = NULL;
 
     int signExp = 1;    // sign of the exponent
     int signMan = 0;    // sign of the mantissa
-    long lwAdj = 0;        // exponent adjustment
-    long lwExp = 0;        // the exponent
+    int32 lwAdj = 0;        // exponent adjustment
+    int32 lwExp = 0;        // the exponent
 
     const EncodedChar *pchSave;
     const EncodedChar *pch = psz;
@@ -1071,7 +1071,7 @@ LEnd:
 
         // Here, we are going to consider that there are only kcchMaxSig digits (effectively the same as replacing excessive
         // digits with a '0' to make them insignificant, as the spec requests). So, the following need to be done:
-        const long numExcessiveDigits = cchDig - kcchMaxSig;
+        const int32 numExcessiveDigits = cchDig - kcchMaxSig;
 
         // Move pchLimDig to the left over numExcessiveDigits digits. Note that it needs to move over digits; the decimal point
         // does not count as a digit. We determine if pchLimDig would jump over the decimal point by using the lwAdj value and
@@ -1191,7 +1191,7 @@ LEnd:
 
     // Convert to a big number.
     Assert(pchLimDig - pchMinDig >= 0 && pchLimDig - pchMinDig <= LONG_MAX);
-    num.SetFromRgchExp(pchMinDig, (long)(pchLimDig - pchMinDig), lwExp);
+    num.SetFromRgchExp(pchMinDig, (int32)(pchLimDig - pchMinDig), lwExp);
 
     // If there is no error in the big number, just convert it to a double.
     if (0 == num.m_luError)
@@ -1199,7 +1199,7 @@ LEnd:
         dbl = num.GetDbl();
 #if DBG
         Assert(pchLimDig - pchMinDig >= 0 && pchLimDig - pchMinDig <= LONG_MAX);
-        dblLo = AdjustDbl(dbl, pchMinDig, (long)(pchLimDig - pchMinDig), lwExp);
+        dblLo = AdjustDbl(dbl, pchMinDig, (int32)(pchLimDig - pchMinDig), lwExp);
         Assert(dbl == dblLo);
 #endif //DBG
         goto LDone;
@@ -1220,7 +1220,7 @@ LEnd:
 #if DBG
         Assert(dbl == num.GetDbl());
         Assert(pchLimDig - pchMinDig >= 0 && pchLimDig - pchMinDig <= LONG_MAX);
-        dblLo = AdjustDbl(dbl, pchMinDig, (long)(pchLimDig - pchMinDig), lwExp);
+        dblLo = AdjustDbl(dbl, pchMinDig, (int32)(pchLimDig - pchMinDig), lwExp);
         Assert(dbl == dblLo || Js::NumberUtilities::IsNan(dblLo));
 #endif //DBG
         goto LDone;
@@ -1232,7 +1232,7 @@ LEnd:
     // x = 1.2345678901234568347913049445e+200;
     //
     Assert(pchLimDig - pchMinDig >= 0 && pchLimDig - pchMinDig <= LONG_MAX);
-    dbl = AdjustDbl(num.GetDbl(), pchMinDig, (long)(pchLimDig - pchMinDig), lwExp);
+    dbl = AdjustDbl(num.GetDbl(), pchMinDig, (int32)(pchLimDig - pchMinDig), lwExp);
 
 LDone:
     // This assert was removed because it would fire on VERY rare occasions. Not
@@ -1275,7 +1275,7 @@ static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int
     Js::BigInt biNum, biDen, biHi, biLo;
     Js::BigInt *pbiLo;
     Js::BigInt biT;
-    ulong rglu[2];
+    uint32 rglu[2];
 
     // Caller should take care of 0, negative and non-finite values.
     Assert(Js::NumberUtilities::IsFinite(dbl));
@@ -1492,7 +1492,7 @@ static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int
         }
 
         // if (biNum < *pbiLo || biNum == *pbiLo && even)
-        if (w1 < 0 || 0 == w1 && 0 == (Js::NumberUtilities::LuLoDbl(dbl) & 1))
+        if (w1 < 0 || (0 == w1 && 0 == (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
         {
             // if (biNum + biHi > biDen)
             if (w2 > 0)
@@ -1501,7 +1501,7 @@ static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int
                 if (!biNum.FShiftLeft(1))
                     goto LFail;
                 w2 = biNum.Compare(&biDen);
-                if ((w2 > 0 || w2 == 0 && (bT & 1)) && bT++ == 9)
+                if ((w2 > 0 || (w2 == 0 && (bT & 1))) && bT++ == 9)
                     goto LRoundUp9;
             }
             Assert(ib < kcbMaxRgb);
@@ -1566,11 +1566,11 @@ static BOOL FDblToRgbFast(double dbl, _Out_writes_to_(kcbMaxRgb, (*ppbLim - prgb
 {
     int ib;
     int iT;
-    ulong luT;
-    ulong luScale;
+    uint32 luT;
+    uint32 luScale;
     const BIGNUM *pnum;
     byte bHH = 0, bHL = 0, bLH = 0, bLL = 0;
-    ulong luHH, luHL, luLH, luLL;
+    uint32 luHH, luHL, luLH, luLL;
     BIGNUM numHH, numHL, numLH, numLL, numBase;
     int wExp2;
     int wExp10 = 0;
@@ -2531,7 +2531,7 @@ BOOL Js::NumberUtilities::FNonZeroFiniteDblToStr(double dbl, _In_range_(2, 36) i
                 dbl *= radix;
             }
 
-            Js::NumberUtilities::LuHiDbl(valueT) = (ulong)(0x03FF + wExp2) << 20;
+            Js::NumberUtilities::LuHiDbl(valueT) = (uint32)(0x03FF + wExp2) << 20;
             Js::NumberUtilities::LuLoDbl(valueT) = 0;
         }
         else
@@ -2635,7 +2635,7 @@ BOOL Js::NumberUtilities::FNonZeroFiniteDblToStr(double dbl, _In_range_(2, 36) i
             wExp = wExp2 / cbitDigit;
             wExp2 = wExp * cbitDigit;
 
-            Js::NumberUtilities::LuHiDbl(valueDen) = (ulong)(0x03FF + wExp2) << 20;
+            Js::NumberUtilities::LuHiDbl(valueDen) = (uint32)(0x03FF + wExp2) << 20;
             Js::NumberUtilities::LuLoDbl(valueDen) = 0;
             cchSig = abs(wExp) + 1;
         }

@@ -214,8 +214,8 @@ namespace JsUtil
         TRemovePolicyType removePolicy;
 
         template <bool isLeaf> T * AllocArray(int size);
-        template <> T * AllocArray<true>(int size) { return AllocatorNewArrayLeaf(TAllocator, alloc, T, size); }
-        template <> T * AllocArray<false>(int size) { return AllocatorNewArray(TAllocator, alloc, T, size); }
+        template <> T * AllocArray<true>(int size) { return AllocatorNewArrayLeaf(TAllocator, this->alloc, T, size); }
+        template <> T * AllocArray<false>(int size) { return AllocatorNewArray(TAllocator, this->alloc, T, size); }
 
         PREVENT_COPY(List); // Disable copy constructor and operator=
 
@@ -227,7 +227,7 @@ namespace JsUtil
 
         virtual void Delete() override
         {
-            AllocatorDelete(TAllocator, alloc, this);
+            AllocatorDelete(TAllocator, this->alloc, this);
         }
 
         void EnsureArray()
@@ -237,15 +237,15 @@ namespace JsUtil
 
         void EnsureArray(int32 requiredCapacity)
         {
-            if (buffer == nullptr)
+            if (this->buffer == nullptr)
             {
                 int32 newSize = max(requiredCapacity, increment);
 
-                buffer = AllocArray<isLeaf>(newSize);
-                count = 0;
-                length = newSize;
+                this->buffer = AllocArray<isLeaf>(newSize);
+                this->count = 0;
+                this->length = newSize;
             }
-            else if (count == length || requiredCapacity > length)
+            else if (this->count == length || requiredCapacity > this->length)
             {
                 int32 newLength = 0, newBufferSize = 0, oldBufferSize = 0;
 
@@ -265,13 +265,13 @@ namespace JsUtil
 
                 T* newbuffer = AllocArray<isLeaf>(newLength);
 
-                js_memcpy_s(newbuffer, newBufferSize, buffer, oldBufferSize);
+                js_memcpy_s(newbuffer, newBufferSize, this->buffer, oldBufferSize);
 
                 auto freeFunc = AllocatorInfo::GetFreeFunc();
-                AllocatorFree(this->alloc, freeFunc, buffer, oldBufferSize);
+                AllocatorFree(this->alloc, freeFunc, this->buffer, oldBufferSize);
 
-                length = newLength;
-                buffer = newbuffer;
+                this->length = newLength;
+                this->buffer = newbuffer;
             }
         }
 
@@ -292,10 +292,11 @@ namespace JsUtil
             return AllocatorNew(TAllocator, alloc, List, alloc, increment);
         }
 
-        List(TAllocator* alloc, int increment = DefaultIncrement) : increment(increment), removePolicy(this), ReadOnlyList(alloc)
+        List(TAllocator* alloc, int increment = DefaultIncrement) :
+            increment(increment), removePolicy(this), ParentType(alloc)
         {
-            buffer = nullptr;
-            count = 0;
+            this->buffer = nullptr;
+            this->count = 0;
             length = 0;
         }
 
@@ -311,13 +312,13 @@ namespace JsUtil
 
         const T& Item(int index) const
         {
-            return ReadOnlyList::Item(index);
+            return ParentType::Item(index);
         }
 
         T& Item(int index)
         {
-            Assert(index >= 0 && index < count);
-            return buffer[index];
+            Assert(index >= 0 && index < this->count);
+            return this->buffer[index];
         }
 
         T& Last()
@@ -345,15 +346,15 @@ namespace JsUtil
 
         void Item(int index, const T& item)
         {
-            Assert(index >= 0 && index < count);
-            buffer[index] = item;
+            Assert(index >= 0 && index < this->count);
+            this->buffer[index] = item;
         }
 
         void SetItem(int index, const T& item)
         {
             EnsureArray(index + 1);
-            buffer[index] = item;
-            count = max(count, index + 1);
+            this->buffer[index] = item;
+            this->count = max(this->count, index + 1);
         }
 
         void SetExistingItem(int index, const T& item)
@@ -375,16 +376,16 @@ namespace JsUtil
                 return Add(item);
             }
 
-            buffer[indexToSetAt] = item;
+            this->buffer[indexToSetAt] = item;
             return indexToSetAt;
         }
 
         int Add(const T& item)
         {
             EnsureArray();
-            buffer[count] = item;
-            int pos = count;
-            count++;
+            this->buffer[this->count] = item;
+            int pos = this->count;
+            this->count++;
             return pos;
         }
 
@@ -428,15 +429,17 @@ namespace JsUtil
         template <bool weaklyRefItems>
         T CompactEnd()
         {
-            while (count != 0)
+            while (this->count != 0)
             {
-                AnalysisAssert(!weaklyRefItems || (buffer[count - 1] != nullptr));
-                if ((weaklyRefItems ? buffer[count - 1]->Get() != nullptr : buffer[count - 1] != nullptr))
+                AnalysisAssert(!weaklyRefItems || (this->buffer[this->count - 1] != nullptr));
+                if (weaklyRefItems ?
+                    this->buffer[this->count - 1]->Get() != nullptr :
+                    this->buffer[this->count - 1] != nullptr)
                 {
-                    return buffer[count - 1];
+                    return this->buffer[this->count - 1];
                 }
-                count--;
-                buffer[count] = nullptr;
+                this->count--;
+                this->buffer[this->count] = nullptr;
             }
 
             return nullptr;
@@ -449,9 +452,9 @@ namespace JsUtil
 
         T RemoveAtEnd()
         {
-            Assert(count >= 1);
-            T item = this->Item(count - 1);
-            RemoveAt(count - 1);
+            Assert(this->count >= 1);
+            T item = this->Item(this->count - 1);
+            RemoveAt(this->count - 1);
             return item;
         }
 
@@ -462,17 +465,17 @@ namespace JsUtil
 
         void Clear()
         {
-            count = 0;
+            this->count = 0;
         }
 
         void ClearAndZero()
         {
-            if(count == 0)
+            if(this->count == 0)
             {
                 return;
             }
 
-            memset(buffer, 0, count * sizeof(T));
+            memset(this->buffer, 0, this->count * sizeof(T));
             Clear();
         }
 
@@ -481,9 +484,9 @@ namespace JsUtil
             // We can call QSort only if the remove policy for this list is CopyRemovePolicy
             CompileAssert((IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, false> >::IsTrue) ||
                 (IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, true> >::IsTrue));
-            if(count)
+            if(this->count)
             {
-                JsUtil::QuickSort<T, TComparerType>::Sort(buffer, buffer + (count-1));
+                JsUtil::QuickSort<T, TComparerType>::Sort(this->buffer, this->buffer + (this->count - 1));
             }
         }
 
@@ -492,16 +495,16 @@ namespace JsUtil
             // We can call QSort only if the remove policy for this list is CopyRemovePolicy
             CompileAssert((IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, false> >::IsTrue) ||
                 (IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, true> >::IsTrue));
-            if (count)
+            if (this->count)
             {
-                qsort_s(buffer, count, sizeof(T), _PtFuncCompare, _Context);
+                qsort_s(this->buffer, this->count, sizeof(T), _PtFuncCompare, _Context);
             }
         }
 
         template<class DebugSite, class TMapFunction>
         HRESULT Map(DebugSite site, TMapFunction map) const // external debugging version
         {
-            return Js::Map(site, this->buffer, count, map);
+            return Js::Map(site, this->buffer, this->count, map);
         }
 
         template<class TMapFunction>
@@ -513,7 +516,7 @@ namespace JsUtil
         template<class TMapFunction>
         bool MapUntilFrom(int start, TMapFunction map) const
         {
-            for (int i = start; i < count; i++)
+            for (int i = start; i < this->count; i++)
             {
                 if (TRemovePolicyType::IsItemValid(this->buffer[i]))
                 {
@@ -547,7 +550,7 @@ namespace JsUtil
         template<class TMapFunction>
         void MapFrom(int start, TMapFunction map) const
         {
-            for (int i = start; i < count; i++)
+            for (int i = start; i < this->count; i++)
             {
                 if (TRemovePolicyType::IsItemValid(this->buffer[i]))
                 {
@@ -573,10 +576,10 @@ namespace JsUtil
             if (this->buffer != nullptr)
             {
                 auto freeFunc = AllocatorInfo::GetFreeFunc();
-                AllocatorFree(this->alloc, freeFunc, buffer, sizeof(T) * length); // TODO: Better version of DeleteArray?
+                AllocatorFree(this->alloc, freeFunc, this->buffer, sizeof(T) * length); // TODO: Better version of DeleteArray?
 
                 this->buffer = nullptr;
-                count = 0;
+                this->count = 0;
                 length = 0;
             }
         }
@@ -586,26 +589,6 @@ namespace JsUtil
 
 namespace Js
 {
-    class DefaultListLockPolicy
-    {
-    public:
-        class NoLock
-        {
-        public:
-            template <class SyncObject>
-            NoLock(SyncObject*)
-            {
-                // No lock, do nothing.
-            }
-        };
-
-        typedef AutoCriticalSection DefaultLock;
-
-        typedef NoLock      ReadLock;       // To read/map items. Default to no lock.
-        typedef NoLock      WriteLock;      // To write an item. Default to no lock.
-        typedef DefaultLock AddRemoveLock;  // To add/remove item
-    };
-
     //
     // A simple wrapper on List to synchronize access.
     // Note that this wrapper class only exposes a few methods of List (through "private" inheritance).
@@ -614,7 +597,7 @@ namespace Js
     template <
         class T,                                    // Item type in the list
         class ListType,
-        class LockPolicy = DefaultListLockPolicy,   // Controls lock policy for read/map/write/add/remove items
+        class LockPolicy = DefaultContainerLockPolicy,   // Controls lock policy for read/map/write/add/remove items
         class SyncObject = CriticalSection
     >
     class SynchronizableList sealed: private ListType // Make base class private to lock down exposed methods
@@ -643,62 +626,62 @@ namespace Js
 
         int Count() const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
             return __super::Count();
         }
 
         const T& Item(int index) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
             return __super::Item(index);
         }
 
         void Item(int index, const T& item)
         {
-            LockPolicy::WriteLock autoLock(syncObj);
+            typename LockPolicy::WriteLock autoLock(syncObj);
             __super::Item(index, item);
         }
 
         void SetExistingItem(int index, const T& item)
         {
-            LockPolicy::WriteLock autoLock(syncObj);
+            typename LockPolicy::WriteLock autoLock(syncObj);
             __super::SetExistingItem(index, item);
         }
 
         bool IsItemValid(int index)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
             return __super::IsItemValid(index);
         }
 
         int SetAtFirstFreeSpot(const T& item)
         {
-            LockPolicy::WriteLock autoLock(syncObj);
+            typename LockPolicy::WriteLock autoLock(syncObj);
             return __super::SetAtFirstFreeSpot(item);
         }
 
         void ClearAndZero()
         {
-            LockPolicy::WriteLock autoLock(syncObj);
+            typename LockPolicy::WriteLock autoLock(syncObj);
             __super::ClearAndZero();
         }
 
         void RemoveAt(int index)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
             return __super::RemoveAt(index);
         }
 
         int Add(const T& item)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
             return __super::Add(item);
         }
 
         template<class TMapFunction>
         void Map(TMapFunction map) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
             __super::Map(map);
         }
 
@@ -863,6 +846,8 @@ namespace Js
     template <typename TListType, bool clearOldEntries = false>
     class WeakRefFreeListedRemovePolicy : public FreeListedRemovePolicy<TListType, clearOldEntries>
     {
+        typedef FreeListedRemovePolicy<TListType, clearOldEntries> Base;
+        typedef typename Base::TElementType TElementType;
     private:
         uint lastWeakReferenceCleanupId;
 
@@ -879,7 +864,7 @@ namespace Js
             this->lastWeakReferenceCleanupId = list->alloc->GetWeakReferenceCleanupId();
         }
     public:
-        WeakRefFreeListedRemovePolicy(TListType * list) : FreeListedRemovePolicy(list)
+        WeakRefFreeListedRemovePolicy(TListType * list) : Base(list)
         {
             this->lastWeakReferenceCleanupId = list->alloc->GetWeakReferenceCleanupId();
         }

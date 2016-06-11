@@ -95,6 +95,7 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <!-- OS BUG 7117880
   <test>
     <default>
       <files>toStringTag.js</files>
@@ -102,6 +103,7 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>proto_basic.js</files>
@@ -1178,8 +1180,7 @@
 <test>
     <default>
         <files>ES6HasInstance.js</files>
-        <compile-flags>-es6HasInstance</compile-flags>
-        <baseline>ES6HasInstance.baseline</baseline>
+        <compile-flags>-es6HasInstance -args summary -endargs</compile-flags>
     </default>
 </test>
 <test>

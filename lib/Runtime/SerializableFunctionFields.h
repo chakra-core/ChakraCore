@@ -30,7 +30,7 @@
 
 #if DEFINE_PARSEABLE_FUNCTION_INFO_FIELDS
 PROTECTED_FIELDS
-    DECLARE_SERIALIZABLE_FIELD(ulong, m_grfscr, ULong);                     // For values, see fscr* values in scrutil.h.
+    DECLARE_SERIALIZABLE_FIELD(uint32, m_grfscr, ULong);                     // For values, see fscr* values in scrutil.h.
     DECLARE_SERIALIZABLE_FIELD(ArgSlot, m_inParamCount, ArgSlot);           // Count of 'in' parameters to method
     DECLARE_SERIALIZABLE_FIELD(ArgSlot, m_reportedInParamCount, ArgSlot);   // Count of 'in' parameters to method excluding default and rest
     DECLARE_SERIALIZABLE_FIELD(charcount_t, m_cchStartOffset, CharCount);   // offset in characters from the start of the document.

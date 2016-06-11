@@ -364,7 +364,7 @@ namespace Js
             memset(&si, 0, sizeof(si));
             si.sourceContextInfo = sourceContextInfo;
             SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
-            ulong flags = fscrIsLibraryCode | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
+            uint32 flags = fscrIsLibraryCode | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
 
             HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_intl, nullptr, &this->intlByteCode);
 
@@ -1010,17 +1010,18 @@ namespace Js
         DWORD lastError = S_OK;
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("localeCompare"))
         {
+            using namespace PlatformAgnostic;
             char16 * aLeft = nullptr;
             char16 * aRight = nullptr;
             charcount_t size1 = 0;
             charcount_t size2 = 0;
-            _NORM_FORM canonicalEquivalentForm = NormalizationC;
-            if (!IsNormalizedString(canonicalEquivalentForm, str1->GetSz(), -1))
+            auto canonicalEquivalentForm = UnicodeText::NormalizationForm::C;
+            if (!UnicodeText::IsNormalizedString(canonicalEquivalentForm, str1->GetSz(), -1))
             {
                 aLeft = str1->GetNormalizedString(canonicalEquivalentForm, tempAllocator, size1);
             }
 
-            if (!IsNormalizedString(canonicalEquivalentForm, str2->GetSz(), -1))
+            if (!UnicodeText::IsNormalizedString(canonicalEquivalentForm, str2->GetSz(), -1))
             {
                 aRight = str2->GetNormalizedString(canonicalEquivalentForm, tempAllocator, size2);
             }
@@ -1036,6 +1037,7 @@ namespace Js
                 size2 = str2->GetLength();
             }
 
+            // xplat-todo: Need to replace this with platform-agnostic API
             compareResult = CompareStringEx(givenLocale != nullptr ? givenLocale : defaultLocale, compareFlags, aLeft, size1, aRight, size2, NULL, NULL, 0);
 
             // Get the last error code so that it won't be affected by END_TEMP_ALLOCATOR.

@@ -43,7 +43,6 @@
   <!-- Change configuration name to output to a different folder -->
   <!-- POGO instrumentation -->
   <PropertyGroup>
-    <IsPogoBuild />
     <IsPogoBuild Condition="('$(POGO_TYPE)'=='PGO' OR '$(POGO_TYPE)'=='PGI')">true</IsPogoBuild>
     <OutDirName Condition="'$(IsPogoBuild)'=='true'">$(Configuration.ToLower())_pogo</OutDirName>
   </PropertyGroup>

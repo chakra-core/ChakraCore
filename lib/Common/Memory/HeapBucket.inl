@@ -6,12 +6,13 @@
 
 template <typename TBlockType>
 template <ObjectInfoBits attributes, bool nothrow>
-__inline char *
+
+inline char *
 HeapBucketT<TBlockType>::RealAlloc(Recycler * recycler, size_t sizeCat, size_t size)
 {
     Assert(sizeCat == this->sizeCat);
 
-    char * memBlock = allocatorHead.InlinedAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask)>(recycler, sizeCat);
+    char * memBlock = allocatorHead.template InlinedAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask)>(recycler, sizeCat);
 
     if (memBlock == nullptr)
     {

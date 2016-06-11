@@ -45,8 +45,6 @@ namespace Js {
             static FunctionInfo Xor;
             static FunctionInfo Min;
             static FunctionInfo Max;
-            static FunctionInfo MinNum;
-            static FunctionInfo MaxNum;
             static FunctionInfo Scale;
             // CompareOps
             static FunctionInfo LessThan;
@@ -111,8 +109,6 @@ namespace Js {
         static Var EntryXor(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryMin(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryMax(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryMinNum(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryMaxNum(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryScale(RecyclableObject* function, CallInfo callInfo, ...);
         // CompareOps
         static Var EntryLessThan(RecyclableObject* function, CallInfo callInfo, ...);

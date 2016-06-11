@@ -2718,7 +2718,7 @@ void ByteCodeGenerator::EmitProgram(ParseNode *pnodeProg)
     this->trackEnvDepth = true;
     AssignPropertyIds(pnodeProg->sxFnc.funcInfo->byteCodeFunction);
 
-    long initSize = this->maxAstSize / AstBytecodeRatioEstimate;
+    int32 initSize = this->maxAstSize / AstBytecodeRatioEstimate;
 
     // Use the temp allocator in bytecode write temp buffer.
     m_writer.InitData(this->alloc, initSize);
@@ -4226,7 +4226,7 @@ void ByteCodeGenerator::StartEmitCatch(ParseNode *pnodeCatch)
 
         // Catch object is stored in the catch scope if there may be an ambiguous lookup or a var declaration that hides it.
         scope->SetCapturesAll(funcInfo->GetCallsEval() || funcInfo->GetChildCallsEval() || sym->GetHasNonLocalReference());
-        scope->SetMustInstantiate(scope->GetCapturesAll() || funcInfo->IsGlobalFunction() || currentScope != funcInfo->GetBodyScope());
+        scope->SetMustInstantiate(scope->GetCapturesAll() || funcInfo->IsGlobalFunction());
 
         if (funcInfo->IsGlobalFunction())
         {
@@ -4239,27 +4239,17 @@ void ByteCodeGenerator::StartEmitCatch(ParseNode *pnodeCatch)
             // Also in order to make IsInSlot to return true - forcing the sym-has-non-local-reference.
             sym->SetHasNonLocalReference(true, this);
             sym->EnsureScopeSlot(funcInfo);
+        }
 
-            PushScope(scope);
-        }
-        else
-        {
-            // Add it to the parent function's scope and treat it like any other local.
-            // We can only do this if we don't need to get the symbol from a slot, though, because adding it to the
-            // parent's scope object on entry to the catch could re-size the slot array.
-            funcInfo->bodyScope->AddSymbol(sym);
-        }
+        PushScope(scope);
     }
 }
 
 void ByteCodeGenerator::EndEmitCatch(ParseNode *pnodeCatch)
 {
     Assert(pnodeCatch->nop == knopCatch);
-    if (pnodeCatch->sxCatch.scope->GetMustInstantiate() || pnodeCatch->sxCatch.pnodeParam->nop == knopParamPattern)
-    {
-        Assert(currentScope == pnodeCatch->sxCatch.scope);
-        PopScope();
-    }
+    Assert(currentScope == pnodeCatch->sxCatch.scope);
+    PopScope();
 }
 
 void ByteCodeGenerator::StartEmitBlock(ParseNode *pnodeBlock)
@@ -6166,9 +6156,10 @@ void EmitDestructuredArray(
             elem = list;
         }
 
-        if (elem->nop == knopEllipsis)
+        if (elem->nop == knopEllipsis
+            || (elem->nop == knopEmpty && list->nop == knopEmpty))
         {
-            // Rest must be the last argument - no need to continue.
+            // Rest and last empty slot do not require any more processing.
             break;
         }
 
@@ -6189,6 +6180,7 @@ void EmitDestructuredArray(
         default:
             break;
         }
+
 
         byteCodeGenerator->StartStatement(elem);
 
@@ -7270,9 +7262,8 @@ void EmitCallTarget(
         }
 
         Emit(pnodeTarget->sxBin.pnode1, byteCodeGenerator, funcInfo, false);
-        Js::PropertyId propertyId = pnodeTarget->sxBin.pnode2->sxPid.PropertyIdFromNameNode();
-        Js::RegSlot callObjLocation = pnodeTarget->sxBin.pnode1->location;
-        Js::RegSlot protoLocation = callObjLocation;
+        Js::PropertyId propertyId = pnodeTarget->sxBin.pnode2->sxPid.PropertyIdFromNameNode();        
+        Js::RegSlot protoLocation = pnodeTarget->sxBin.pnode1->location;
         EmitSuperMethodBegin(pnodeTarget, byteCodeGenerator, funcInfo);
         EmitMethodFld(pnodeTarget, protoLocation, propertyId, byteCodeGenerator, funcInfo);
 
@@ -7295,9 +7286,8 @@ void EmitCallTarget(
         Emit(pnodeTarget->sxBin.pnode1, byteCodeGenerator, funcInfo, false);
         Emit(pnodeTarget->sxBin.pnode2, byteCodeGenerator, funcInfo, false);
 
-        Js::RegSlot indexLocation = pnodeTarget->sxBin.pnode2->location;
-        Js::RegSlot callObjLocation = pnodeTarget->sxBin.pnode1->location;
-        Js::RegSlot protoLocation = callObjLocation;
+        Js::RegSlot indexLocation = pnodeTarget->sxBin.pnode2->location;        
+        Js::RegSlot protoLocation = pnodeTarget->sxBin.pnode1->location;
         EmitSuperMethodBegin(pnodeTarget, byteCodeGenerator, funcInfo);
         EmitMethodElem(pnodeTarget, protoLocation, indexLocation, byteCodeGenerator);
 
@@ -9521,7 +9511,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         funcInfo->AcquireLoc(pnode);
         if (pnode->sxUni.pnode1->nop == knopInt)
         {
-            long value = pnode->sxUni.pnode1->sxInt.lw;
+            int32 value = pnode->sxUni.pnode1->sxInt.lw;
             Js::OpCode op = value ? Js::OpCode::LdFalse : Js::OpCode::LdTrue;
             byteCodeGenerator->Writer()->Reg1(op, pnode->location);
         }
@@ -10796,11 +10786,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         byteCodeGenerator->Writer()->Reg1(Js::OpCode::Catch, location);
 
         Scope *scope = pnodeCatch->sxCatch.scope;
-
-        if (isPattern || scope->GetMustInstantiate())
-        {
-            byteCodeGenerator->PushScope(scope);
-        }
+        byteCodeGenerator->PushScope(scope);
 
         if (scope->GetMustInstantiate())
         {
@@ -10815,7 +10801,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
                 int index = Js::DebuggerScope::InvalidScopeIndex;
                 debuggerScope = byteCodeGenerator->RecordStartScopeObject(pnode, Js::DiagCatchScopeInSlot, funcInfo->InnerScopeToRegSlot(scope), &index);
-
                 byteCodeGenerator->Writer()->Num3(Js::OpCode::NewInnerScopeSlots, scope->GetInnerScopeIndex(), scope->GetScopeSlotCount() + Js::ScopeSlots::FirstSlotIndex, index);
             }
         }
@@ -10913,10 +10898,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             byteCodeGenerator->tryScopeRecordsList.UnlinkFromEnd();
         }
 
-        if (scope->GetMustInstantiate() || isPattern)
-        {
-            byteCodeGenerator->PopScope();
-        }
+        byteCodeGenerator->PopScope();
 
         byteCodeGenerator->RecordEndScopeObject(pnode);
 

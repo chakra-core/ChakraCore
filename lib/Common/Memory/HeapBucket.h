@@ -83,7 +83,7 @@ protected:
 #ifdef RECYCLER_PAGE_HEAP
     bool isPageHeapEnabled;
 public:
-    bool IsPageHeapEnabled(ObjectInfoBits attributes) const
+    inline bool IsPageHeapEnabled(ObjectInfoBits attributes) const
     {
         // LargeHeapBlock does not support TrackBit today
         return isPageHeapEnabled && ((attributes & ClientTrackableObjectBits) == 0);
@@ -115,7 +115,7 @@ public:
 template <typename TBlockType>
 class HeapBucketT : public HeapBucket
 {
-    typedef typename SmallHeapBlockAllocator<TBlockType> TBlockAllocatorType;
+    typedef SmallHeapBlockAllocator<TBlockType> TBlockAllocatorType;
 
 public:
     HeapBucketT();
@@ -124,7 +124,7 @@ public:
     bool IntegrateBlock(char * blockAddress, PageSegment * segment, Recycler * recycler);
 
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char * RealAlloc(Recycler * recycler, size_t sizeCat, size_t size);
+    inline char * RealAlloc(Recycler * recycler, size_t sizeCat, size_t size);
 
 #ifdef RECYCLER_PAGE_HEAP
     char * PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow);
@@ -147,7 +147,7 @@ public:
     void SetupBackgroundSweep(RecyclerSweep& recyclerSweep);
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
 
     TBlockAllocatorType * GetAllocator() { return &allocatorHead;}
@@ -245,7 +245,7 @@ protected:
     friend class HeapBucketGroup;
 
     friend class HeapInfo;
-    friend typename TBlockType;
+    friend TBlockType;
 
     template <class TBucketAttributes>
     friend class SmallHeapBlockT;

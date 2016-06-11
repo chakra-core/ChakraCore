@@ -300,7 +300,7 @@ namespace Js
     {
         SIMDValue result;
 
-        count = count & SIMDGetShiftAmountMask(2);
+        count = count & SIMDUtils::SIMDGetShiftAmountMask(2);
 
         result.i16[0] = value.i16[0] << count;
         result.i16[1] = value.i16[1] << count;
@@ -318,7 +318,7 @@ namespace Js
     {
         SIMDValue result;
 
-        count = count & SIMDGetShiftAmountMask(2);
+        count = count & SIMDUtils::SIMDGetShiftAmountMask(2);
 
         result.i16[0] = value.i16[0] >> count;
         result.i16[1] = value.i16[1] >> count;

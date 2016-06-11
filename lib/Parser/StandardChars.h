@@ -26,42 +26,42 @@ namespace UnifiedRegex
         static const uint8 values[NumChars];
 
     public:
-        __inline static bool IsWord(Char c)
+        inline static bool IsWord(Char c)
         {
             return (classes[CTU(c)] & Word) != 0;
         }
 
-        __inline static bool IsNewline(Char c)
+        inline static bool IsNewline(Char c)
         {
             return (classes[CTU(c)] & Newline) != 0;
         }
 
-        __inline static bool IsWhitespace(Char c)
+        inline static bool IsWhitespace(Char c)
         {
             return (classes[CTU(c)] & Whitespace) != 0;
         }
 
-        __inline static bool IsLetter(Char c)
+        inline static bool IsLetter(Char c)
         {
             return (classes[CTU(c)] & Letter) != 0;
         }
 
-        __inline static bool IsDigit(Char c)
+        inline static bool IsDigit(Char c)
         {
             return (classes[CTU(c)] & Digit) != 0;
         }
 
-        __inline static bool IsOctal(Char c)
+        inline static bool IsOctal(Char c)
         {
             return (classes[CTU(c)] & Octal) != 0;
         }
 
-        __inline static bool IsHex(Char c)
+        inline static bool IsHex(Char c)
         {
             return (classes[CTU(c)] & Hex) != 0;
         }
 
-        __inline static uint DigitValue(Char c)
+        inline static uint DigitValue(Char c)
         {
             return values[CTU(c)];
         }
@@ -73,42 +73,42 @@ namespace UnifiedRegex
     public:
         inline StandardChars(ArenaAllocator* allocator) {}
 
-        __inline bool IsWord(Char c) const
+        inline bool IsWord(Char c) const
         {
             return ASCIIChars::IsWord(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline bool IsNewline(Char c) const
+        inline bool IsNewline(Char c) const
         {
             return ASCIIChars::IsNewline(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline bool IsWhitespaceOrNewline(Char c) const
+        inline bool IsWhitespaceOrNewline(Char c) const
         {
             return ASCIIChars::IsWhitespace(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline bool IsLetter(Char c) const
+        inline bool IsLetter(Char c) const
         {
             return ASCIIChars::IsLetter(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline bool IsDigit(Char c) const
+        inline bool IsDigit(Char c) const
         {
             return ASCIIChars::IsDigit(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline bool IsOctal(Char c) const
+        inline bool IsOctal(Char c) const
         {
             return ASCIIChars::IsOctal(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline bool IsHex(Char c) const
+        inline bool IsHex(Char c) const
         {
             return ASCIIChars::IsHex(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline uint DigitValue(Char c) const
+        inline uint DigitValue(Char c) const
         {
             return ASCIIChars::DigitValue(ASCIIChars::UTC(CTU(c)));
         }
@@ -225,6 +225,11 @@ namespace UnifiedRegex
             return true;
         }
 
+        // This class is instantiated as a global const instance
+        // C++ requires that a default constructor be provided in that case
+        // See http://stackoverflow.com/questions/7411515/why-does-c-require-a-user-provided-default-constructor-to-default-construct-a
+        TrivialCaseMapper() {}
+
         static const TrivialCaseMapper Instance;
     };
 
@@ -259,17 +264,17 @@ namespace UnifiedRegex
     public:
         StandardChars(ArenaAllocator* allocator);
 
-        __inline bool IsWord(Char c) const
+        inline bool IsWord(Char c) const
         {
             return CTU(c) < ASCIIChars::NumChars && ASCIIChars::IsWord(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline bool IsNewline(Char c) const
+        inline bool IsNewline(Char c) const
         {
             return CTU(c) < ASCIIChars::NumChars ? ASCIIChars::IsNewline(ASCIIChars::UTC(CTU(c))) : (CTU(c) & 0xfffe) == 0x2028;
         }
 
-        __inline bool IsWhitespaceOrNewline(Char c) const
+        inline bool IsWhitespaceOrNewline(Char c) const
         {
             if (CTU(c) < ASCIIChars::NumChars)
                 return ASCIIChars::IsWhitespace(ASCIIChars::UTC(CTU(c)));
@@ -279,27 +284,27 @@ namespace UnifiedRegex
                        CTU(c) == 0x3000 || CTU(c) == 0xfeff;
         }
 
-        __inline bool IsLetter(Char c) const
+        inline bool IsLetter(Char c) const
         {
             return CTU(c) < ASCIIChars::NumChars && ASCIIChars::IsLetter(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline bool IsDigit(Char c) const
+        inline bool IsDigit(Char c) const
         {
             return CTU(c) < ASCIIChars::NumChars && ASCIIChars::IsDigit(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline bool IsOctal(Char c) const
+        inline bool IsOctal(Char c) const
         {
             return CTU(c) < ASCIIChars::NumChars && ASCIIChars::IsOctal(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline bool IsHex(Char c) const
+        inline bool IsHex(Char c) const
         {
             return CTU(c) < ASCIIChars::NumChars && ASCIIChars::IsHex(ASCIIChars::UTC(CTU(c)));
         }
 
-        __inline uint DigitValue(Char c) const
+        inline uint DigitValue(Char c) const
         {
             return CTU(c) < ASCIIChars::NumChars ? ASCIIChars::DigitValue(ASCIIChars::UTC(CTU(c))) : 0;
         }

@@ -83,6 +83,7 @@
     <ClInclude Include="..\CommonBasic.h" />
     <ClInclude Include="..\CommonMin.h" />
     <ClInclude Include="..\CommonMinMemory.h" />
+    <ClInclude Include="..\CommonPal.h" />
     <ClInclude Include="..\Common.h" />
     <ClInclude Include="..\BackendApi.h" />
     <ClInclude Include="..\CommonInl.h" />

@@ -25,7 +25,6 @@ inline void FreeExcepInfo(EXCEPINFO *pei)
 
 void CopyException (EXCEPINFO *pexcepinfoDest, const EXCEPINFO *pexcepinfoSource);
 
-BOOL FSupportsErrorInfo(IUnknown *punk, REFIID riid);
 HRESULT GetErrorInfo(EXCEPINFO *pexcepinfo);
 
 HRESULT MapHr(HRESULT hr, ErrorTypeEnum * errorTypeOut = nullptr);
@@ -36,8 +35,8 @@ class ActiveScriptError;
 class ScriptException
 {
 public:
-    long ichMin;
-    long ichLim;
+    int32 ichMin;
+    int32 ichLim;
     EXCEPINFO ei;
 
 public:
@@ -54,8 +53,8 @@ public:
 class CompileScriptException : public ScriptException
 {
 public:
-    long line;       // line number of error (zero based)
-    long ichMinLine; // starting char of the line
+    int32 line;       // line number of error (zero based)
+    int32 ichMinLine; // starting char of the line
     bool hasLineNumberInfo;
     // TODO: if the line contains \0 character the substring following \0 will not be included:
     BSTR bstrLine;   // source line (if available)

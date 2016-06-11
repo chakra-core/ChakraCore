@@ -171,14 +171,15 @@ JsValueRef Debugger::Evaluate(JsValueRef callee, bool isConstructCall, JsValueRe
     int stackFrameIndex;
     JsValueRef result = JS_INVALID_REFERENCE;
 
-    if (argumentCount > 2) {
+    if (argumentCount > 2)
+    {
         IfJsErrorFailLogAndRet(ChakraRTInterface::JsNumberToInt(arguments[1], &stackFrameIndex));
 
         LPCWSTR str = nullptr;
         size_t length;
         IfJsErrorFailLogAndRet(ChakraRTInterface::JsValueToWchar(arguments[2], &str, &length));
 
-        IfJsErrorFailLogAndRet(ChakraRTInterface::JsDiagEvaluate(str, stackFrameIndex, &result));
+        ChakraRTInterface::JsDiagEvaluate(str, stackFrameIndex, &result);
     }
 
     return result;
@@ -292,6 +293,7 @@ Error:
 
 bool Debugger::SetBaseline()
 {
+#ifdef _WIN32
     LPSTR script = nullptr;
     FILE *file = nullptr;
     int numChars = 0;
@@ -357,6 +359,10 @@ Error:
     }
 
     return hr == S_OK;
+#else
+    // xplat-todo: Implement this on Linux
+    return false;
+#endif
 }
 
 bool Debugger::SetInspectMaxStringLength()
@@ -451,7 +457,7 @@ bool Debugger::HandleDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef eventDat
     return this->CallFunctionNoResult(_u("HandleDebugEvent"), debugEventRef, eventData);
 }
 
-bool Debugger::CompareOrWriteBaselineFile(LPCWSTR fileName)
+bool Debugger::CompareOrWriteBaselineFile(LPCSTR fileName)
 {
     AutoRestoreContext autoRestoreContext(this->m_context);
 
@@ -490,8 +496,8 @@ bool Debugger::CompareOrWriteBaselineFile(LPCWSTR fileName)
             return false;
         }
 
-        wchar_t baselineFilename[256];
-        swprintf_s(baselineFilename, _countof(baselineFilename), HostConfigFlags::flags.dbgbaselineIsEnabled ? _u("%s.dbg.baseline.rebase") : _u("%s.dbg.baseline"), fileName);
+        char16 baselineFilename[256];
+        swprintf_s(baselineFilename, _countof(baselineFilename), HostConfigFlags::flags.dbgbaselineIsEnabled ? _u("%S.dbg.baseline.rebase") : _u("%S.dbg.baseline"), fileName);
 
         FILE *file = nullptr;
         if (_wfopen_s(&file, baselineFilename, _u("wt")) != 0)

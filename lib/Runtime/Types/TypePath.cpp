@@ -5,6 +5,12 @@
 #include "RuntimeTypePch.h"
 
 namespace Js {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    const uint TypePath::InitialTypePathSize;
+#endif
 
     TypePath* TypePath::New(Recycler* recycler, uint size)
     {
@@ -39,7 +45,7 @@ namespace Js {
         return LookupInline(propId,typePathLength);
     }
 
-    __inline PropertyIndex TypePath::LookupInline(PropertyId propId,int typePathLength)
+    PropertyIndex TypePath::LookupInline(PropertyId propId,int typePathLength)
     {
         if (propId == Constants::NoProperty) {
            return Constants::NoSlot;

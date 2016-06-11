@@ -120,7 +120,7 @@ namespace UnifiedRegex
         inline CharCount Pos();
 
         inline bool IsEOF();
-        inline bool ECCanConsume(CharCount n);
+        inline bool ECCanConsume(CharCount n = 1);
         inline EncodedChar ECLookahead(CharCount n = 0);
         inline EncodedChar ECLookback(CharCount n = 0);
         inline void ECConsume(CharCount n = 1);

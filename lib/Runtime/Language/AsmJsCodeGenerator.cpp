@@ -31,8 +31,9 @@ namespace Js
             EntryPointInfo* entrypointInfo = (EntryPointInfo*)funcEntrypointInfo;
             Assert(entrypointInfo->GetIsAsmJSFunction());
             //set entrypointinfo address and nativeAddress with TJ address
-            entrypointInfo->address = address;
-            entrypointInfo->SetNativeAddress((void*)address);
+            Js::JavascriptMethod method = reinterpret_cast<Js::JavascriptMethod>(address);
+            entrypointInfo->jsMethod = method;
+            entrypointInfo->SetNativeAddress(method);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             funcEntrypointInfo->SetIsTJMode(true);
 #endif
