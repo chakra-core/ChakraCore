@@ -106,12 +106,16 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         # -Wno-switch # switch values not handled
 
     # CXX COMPILER FLAGS
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -fdelayed-template-parsing"
-    )
 
+    # xplat-todo for release build
+    # -fno-inline.... -> -mno-omit.... are needed for more accurate stack inf.
+    # Release Builds: Not sure if this has to be as strict as the debug/test?
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -fno-omit-frame-pointer"
+        -fdelayed-template-parsing\
+        -fno-inline-functions\
+        -fno-omit-frame-pointer\
+        -fno-optimize-sibling-calls\
+        -mno-omit-leaf-frame-pointer" # this is for compat reasons. i.e. It is a noop with gcc
     )
   
     # CXX / CC COMPILER FLAGS
