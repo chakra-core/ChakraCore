@@ -2844,7 +2844,7 @@ namespace Js
         return false;
     }
 
-    BOOL TypedArrayBase::ValidateIndexAndDirectSetItem(__in Js::Var index, __in Js::Var value, __in bool * isNumericIndex)
+    BOOL TypedArrayBase::ValidateIndexAndDirectSetItem(__in Js::Var index, __in Js::Var value, __out bool * isNumericIndex)
     {
         bool skipSetItem = false;
         uint32 indexToSet = ValidateAndReturnIndex(index, &skipSetItem, isNumericIndex);
@@ -2875,7 +2875,7 @@ namespace Js
     //    b. if index < 0 or index >= length, skip set operation
     //    NOTE: if index == -0, it is treated as 0 and perform set operation
     //          as per 7.1.12.1 of ES6 spec 7.1.12.1 ToString Applied to the Number Type
-    uint32 TypedArrayBase::ValidateAndReturnIndex(__in Js::Var index, __in bool * skipOperation, __in bool * isNumericIndex)
+    uint32 TypedArrayBase::ValidateAndReturnIndex(__in Js::Var index, __out bool * skipOperation, __out bool * isNumericIndex)
     {
         *skipOperation = false;
         *isNumericIndex = true;
