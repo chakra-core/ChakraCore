@@ -28,7 +28,6 @@ Abstract:
 #include <stdarg.h>
 
 #ifdef __cplusplus
-typedef char16_t wchar_16; // __wchar_16_cpp (which is defined in palinternal.h) needs to be redefined to wchar_16.
 
 extern "C"
 {                               
@@ -59,7 +58,7 @@ extern "C"
     __cdecl
     PAL_vfwprintf(
         PAL_FILE *stream,
-        const wchar_16 *format,
+        const char16_t *format,
         va_list ap);  
 } 
 
@@ -92,7 +91,7 @@ namespace CorUnix
     InternalVfwprintf(
         CPalThread *pthrCurrent,
         PAL_FILE *stream,
-        const wchar_16 *format,
+        const char16_t *format,
         va_list ap); 
     
 }
@@ -125,10 +124,9 @@ namespace CorUnix
     __cdecl
     PAL_vfwprintf(
         PAL_FILE *stream,
-        const wchar_16 *format,
+        const char16_t *format,
         va_list ap);     
 
 #endif // __cplusplus
 
 #endif // _PRINTFCPP_HPP
-

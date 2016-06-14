@@ -5,9 +5,9 @@
 .intel_syntax noprefix
 #include "unixasmmacros.inc"
 
+// expected fvisibility=default
 .global C_FUNC(amd64_CallWithFakeFrame)
 .global C_FUNC(amd64_ReturnFromCallWithFakeFrame)
-
         // r8       = arg0.
         // rcx      = args size.
         // rdx      = spill size.
@@ -22,7 +22,7 @@ C_FUNC(amd64_CallWithFakeFrame):
         // The stack walker uses this marker to skip this frame.
         // Note that we use rip-relative addressing here since this
         // library is shared and therefore the code has to be position independent
-        lea rax, [rip+C_FUNC(amd64_ReturnFromCallWithFakeFrame)]
+        lea rax, [rip + C_FUNC(amd64_ReturnFromCallWithFakeFrame)]
         mov [rsp+8h], rax
 
         mov rax, [rsp + 28h]
@@ -57,9 +57,9 @@ C_FUNC(amd64_CallWithFakeFrame):
 
         jmp rdi
 
-
         // rcx = args size.
         // rdx = spill size.
+
 .balign 16
 C_FUNC(amd64_ReturnFromCallWithFakeFrame):
         add  rsp, rcx

@@ -2869,7 +2869,12 @@ void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
 #endif
 }
 
-static thread_local ULONG_PTR s_cachedThreadStackHighLimit = 0;
+#ifndef __APPLE__
+#define THREAD_LOCAL thread_local
+#else
+#define THREAD_LOCAL _Thread_local
+#endif
+static THREAD_LOCAL ULONG_PTR s_cachedThreadStackHighLimit = 0;
 
 bool IsAddressOnStack(ULONG_PTR address)
 {

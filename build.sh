@@ -176,7 +176,7 @@ if [[ ${#_CXX} > 0 ]]; then
     CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
 fi
 
-build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE,,}"
+build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
 if [ ! -d "$build_directory" ]; then
     SAFE_RUN `mkdir -p $build_directory`
 fi

@@ -19,7 +19,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     endif()
     set(CLR_CMAKE_PLATFORM_LINUX 1)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    add_definitions(-DPLATFORM_UNIX)
+    add_definitions(
+        -DPLATFORM_UNIX
+        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu 
+    )
 
     set(CLR_CMAKE_PLATFORM_UNIX 1)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
@@ -75,6 +78,11 @@ if(CLR_CMAKE_PLATFORM_UNIX)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
         -Wno-implicit-function-declaration"
     )
+
+    # todo: fix general visibility of the interface
+    # do not set to `fvisibility=hidden` as it is going to 
+    # prevent the required interface is being exported
+    # clang by default sets fvisibility=default
 
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
