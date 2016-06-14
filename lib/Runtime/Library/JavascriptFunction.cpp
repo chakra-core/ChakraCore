@@ -22,7 +22,12 @@ extern "C" void __cdecl _alloca_probe_16();
 
 namespace Js
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
     const charcount_t JavascriptFunction::DIAG_MAX_FUNCTION_STRING;
+#endif
 
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(JavascriptFunction);
     JavascriptFunction::JavascriptFunction(DynamicType * type)
@@ -2688,7 +2693,7 @@ LABEL1:
 
         BOOL result = DynamicObject::SetProperty(propertyId, value, flags, info);
 
-        if (propertyId == PropertyIds::prototype)
+        if (propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance)
         {
             PropertyValueInfo::SetNoCache(info, this);
             InvalidateConstructorCacheOnPrototypeChange();
@@ -2702,7 +2707,7 @@ LABEL1:
     {
         BOOL result = __super::SetPropertyWithAttributes(propertyId, value, attributes, info, flags, possibleSideEffects);
 
-        if (propertyId == PropertyIds::prototype)
+        if (propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance)
         {
             PropertyValueInfo::SetNoCache(info, this);
             InvalidateConstructorCacheOnPrototypeChange();
@@ -2750,7 +2755,7 @@ LABEL1:
 
         BOOL result = DynamicObject::DeleteProperty(propertyId, flags);
 
-        if (result && propertyId == PropertyIds::prototype)
+        if (result && propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance)
         {
             InvalidateConstructorCacheOnPrototypeChange();
             this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);
@@ -2967,17 +2972,13 @@ LABEL1:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count < 2)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Function[Symbol.hasInstance]"));
-        }
-
         RecyclableObject * constructor = RecyclableObject::FromVar(args[0]);
-        Var instance = args[1];
-        if (!JavascriptConversion::IsCallable(constructor))
+        if (!JavascriptConversion::IsCallable(constructor) || args.Info.Count < 2)
         {
             return JavascriptBoolean::ToVar(FALSE, scriptContext);
         }
+
+        Var instance = args[1];
 
         Assert(JavascriptProxy::Is(constructor) || JavascriptFunction::Is(constructor));
         return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, NULL), scriptContext);

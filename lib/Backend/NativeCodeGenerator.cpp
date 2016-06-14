@@ -123,6 +123,14 @@ NativeCodeGenerator::~NativeCodeGenerator()
         {
             Js::ScriptContextProfiler *codegenProfiler = this->backgroundCodeGenProfiler;
             this->backgroundCodeGenProfiler = this->backgroundCodeGenProfiler->next;
+            // background codegen profiler is allocated in background thread,
+            // clear the thead Id before release
+#ifdef DBG
+            if (codegenProfiler->pageAllocator != nullptr)
+            {
+                codegenProfiler->pageAllocator->SetDisableThreadAccessCheck();
+            }
+#endif
             codegenProfiler->Release();
         }
     }
@@ -2816,13 +2824,27 @@ NativeCodeGenerator::ProfilePrint()
     else
     {
         //Merge all the codegenProfiler for single snapshot.
-        codegenProfiler = codegenProfiler->next;
-        while (codegenProfiler)
+        Js::ScriptContextProfiler* mergeToProfiler = codegenProfiler;
+
+        // find the first initialized profiler
+        while (mergeToProfiler != nullptr && !mergeToProfiler->IsInitialized())
         {
-            this->backgroundCodeGenProfiler->ProfileMerge(codegenProfiler);
-            codegenProfiler = codegenProfiler->next;
+            mergeToProfiler = mergeToProfiler->next;
         }
-        this->backgroundCodeGenProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+        if (mergeToProfiler != nullptr)
+        {
+            // merge the rest profiler to the above initialized profiler
+            codegenProfiler = mergeToProfiler->next;
+            while (codegenProfiler)
+            {
+                if (codegenProfiler->IsInitialized())
+                {
+                    mergeToProfiler->ProfileMerge(codegenProfiler);
+                }
+                codegenProfiler = codegenProfiler->next;
+            }
+            mergeToProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+        }
     }
 }
 

@@ -33,7 +33,12 @@
 
 namespace Js
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
     uint const ScopeSlots::MaxEncodedSlotCount;
+#endif
 
     CriticalSection FunctionProxy::GlobalLock;
 
@@ -3245,6 +3250,14 @@ namespace Js
         Assert(((LoopEntryPointInfo*) entryPointInfo)->loopHeader == loopHeader);
         Assert(reinterpret_cast<void*>(entryPointInfo->jsMethod) == nullptr);
         entryPointInfo->jsMethod = entryPoint;
+
+        ((Js::LoopEntryPointInfo*)entryPointInfo)->totalJittedLoopIterations = 
+            static_cast<uint8>(
+                min(
+                    static_cast<uint>(static_cast<uint8>(CONFIG_FLAG(MinBailOutsBeforeRejitForLoops))) *
+                    (Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() - 1),
+                    0xffu));
+
         // reset the counter to 1 less than the threshold for TJLoopBody
         if (loopHeader->GetCurrentEntryPointInfo()->GetIsAsmJSFunction())
         {

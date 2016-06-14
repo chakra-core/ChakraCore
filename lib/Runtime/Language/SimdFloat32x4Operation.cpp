@@ -215,11 +215,6 @@ namespace Js
     Min/Max(a, b) spec semantics:
     If any value is NaN, return NaN
     a < b ? a : b; where +0.0 > -0.0 (vice versa for Max)
-
-    MinNum/MaxNum(a, b) spec semantics:
-    If 1st value is NaN, return 2nd
-    If 2nd value is NaN, return 1st
-    return Min/Max(a, b)
     */
     SIMDValue SIMDFloat32x4Operation::OpMin(const SIMDValue& aValue, const SIMDValue& bValue)
     {
@@ -278,44 +273,6 @@ namespace Js
             else
             {
                 result.f32[i] = a < b ? b : a;
-            }
-        }
-        return result;
-    }
-
-    SIMDValue SIMDFloat32x4Operation::OpMinNum(const SIMDValue& aValue, const SIMDValue& bValue)
-    {
-        SIMDValue result = OpMin(aValue, bValue);
-        for (uint i = 0; i < 4; i++)
-        {
-            float a = aValue.f32[i];
-            float b = bValue.f32[i];
-            if (Js::NumberUtilities::IsNan(a))
-            {
-                result.f32[i] = b;
-            }
-            else if (Js::NumberUtilities::IsNan(b))
-            {
-                result.f32[i] = a;
-            }
-        }
-        return result;
-    }
-
-    SIMDValue SIMDFloat32x4Operation::OpMaxNum(const SIMDValue& aValue, const SIMDValue& bValue)
-    {
-        SIMDValue result = OpMax(aValue, bValue);
-        for (uint i = 0; i < 4; i++)
-        {
-            float a = aValue.f32[i];
-            float b = bValue.f32[i];
-            if (Js::NumberUtilities::IsNan(a))
-            {
-                result.f32[i] = b;
-            }
-            else if (Js::NumberUtilities::IsNan(b))
-            {
-                result.f32[i] = a;
             }
         }
         return result;

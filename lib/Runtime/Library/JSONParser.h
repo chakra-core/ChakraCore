@@ -70,7 +70,7 @@ namespace JSON
         void CheckCurrentToken(int tk, int wErr)
         {
             if (m_token.tk != tk)
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, wErr);
+                m_scanner.ThrowSyntaxError(wErr);
             Scan();
         }
 

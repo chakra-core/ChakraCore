@@ -566,10 +566,11 @@ PHASE(All)
 #define DEFAULT_CONFIG_SkipFuncCountForBailOnNoProfile (0) //Initial Number of functions in a func body to be skipped from forcibly inserting BailOnNoProfile.
 #endif
 #define DEFAULT_CONFIG_BailOnNoProfileLimit    200      // The limit of bailout on no profile info before triggering a rejit
-#define DEFAULT_CONFIG_BailOnNoProfileRejitLimit (-1)   // The limit of bailout on no profile info before disable all the no profile bailouts
-#define DEFAULT_CONFIG_CallsToBailoutsRatioForRejit 5   // Ratio of function calls to bailouts on a single bailout record
-                                                        // above which a rejit is considered
+#define DEFAULT_CONFIG_BailOnNoProfileRejitLimit (50)   // The limit of bailout on no profile info before disable all the no profile bailouts
+#define DEFAULT_CONFIG_CallsToBailoutsRatioForRejit 10   // Ratio of function calls to bailouts above which a rejit is considered
+#define DEFAULT_CONFIG_LoopIterationsToBailoutsRatioForRejit 50 // Ratio of loop iteration count to bailouts above which a rejit of the loop body is considered
 #define DEFAULT_CONFIG_MinBailOutsBeforeRejit 2         // Minimum number of bailouts for a single bailout record after which a rejit is considered
+#define DEFAULT_CONFIG_MinBailOutsBeforeRejitForLoops 2         // Minimum number of bailouts for a single bailout record after which a rejit is considered
 #define DEFAULT_CONFIG_RejitMaxBailOutCount 500         // Maximum number of bailouts for a single bailout record after which rejit is forced.
 
 
@@ -603,6 +604,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_FuncObjectInlineCacheThreshold   (2) // Maximum number of inline caches a function body may have to allow for inline caches to be allocated on the function object.
 #define DEFAULT_CONFIG_ShareInlineCaches (true)
 #define DEFAULT_CONFIG_InlineCacheInvalidationListCompactionThreshold (4)
+#define DEFAULT_CONFIG_ConstructorCacheInvalidationThreshold (500)
 
 #define DEFAULT_CONFIG_InMemoryTrace                (false)
 #define DEFAULT_CONFIG_InMemoryTraceBufferSize      (1024)
@@ -899,7 +901,7 @@ FLAGPR           (Boolean, ES6, ES6Unscopables         , "Enable ES6 With Statem
 FLAGPR           (Boolean, ES6, ES6RegExSticky         , "Enable ES6 RegEx sticky flag"                             , DEFAULT_CONFIG_ES6RegExSticky)
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExPrototypeProperties, "Enable ES6 properties on the RegEx prototype"         , DEFAULT_CONFIG_ES6RegExPrototypeProperties)
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symbols"                                , DEFAULT_CONFIG_ES6RegExSymbols)
-FLAGPR           (Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstanceOf)
+FLAGPR_REGOVR_EXP(Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstanceOf)
 FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose trace"                                 , DEFAULT_CONFIG_ES6Verbose)
 FLAGPR_REGOVR_EXP(Boolean, ES6, ArrayBufferTransfer    , "Enable ArrayBuffer.transfer"                              , DEFAULT_CONFIG_ArrayBufferTransfer)
 // /ES6 (BLUE+1) features/flags
@@ -1132,9 +1134,10 @@ FLAGNR(Boolean, ProfileBailOutRecordMemory, "Profile bailout record memory stati
 #endif
 
 FLAGNR(Number,  RejitMaxBailOutCount, "Maximum number of bailouts for a bailout record after which rejit is forced", DEFAULT_CONFIG_RejitMaxBailOutCount)
-FLAGNR(Number,  CallsToBailoutsRatioForRejit, "Ratio of function calls to bailouts on a single bailout record above which a rejit is considered", DEFAULT_CONFIG_CallsToBailoutsRatioForRejit)
+FLAGNR(Number,  CallsToBailoutsRatioForRejit, "Ratio of function calls to bailouts above which a rejit is considered", DEFAULT_CONFIG_CallsToBailoutsRatioForRejit)
+FLAGNR(Number,  LoopIterationsToBailoutsRatioForRejit, "Ratio of loop iteration count to bailouts above which a rejit of the loop body is considered", DEFAULT_CONFIG_LoopIterationsToBailoutsRatioForRejit)
 FLAGNR(Number,  MinBailOutsBeforeRejit, "Minimum number of bailouts for a single bailout record after which a rejit is considered", DEFAULT_CONFIG_MinBailOutsBeforeRejit)
-
+FLAGNR(Number,  MinBailOutsBeforeRejitForLoops, "Minimum number of bailouts for a single bailout record after which a rejit is considered", DEFAULT_CONFIG_MinBailOutsBeforeRejitForLoops)
 FLAGNR(Boolean, LibraryStackFrame           , "Display library stack frame", DEFAULT_CONFIG_LibraryStackFrame)
 FLAGNR(Boolean, LibraryStackFrameDebugger   , "Assume debugger support for library stack frame", DEFAULT_CONFIG_LibraryStackFrameDebugger)
 #ifdef RECYCLER_STRESS
@@ -1317,6 +1320,7 @@ FLAGNR(Number, PRNGSeed1, "Override seed1 for Math.Random()", 0)
 
 FLAGNR(Boolean, ClearInlineCachesOnCollect, "Clear all inline caches on every garbage collection", false)
 FLAGNR(Number, InlineCacheInvalidationListCompactionThreshold, "Compact inline cache invalidation lists if their utilization falls below this threshold", DEFAULT_CONFIG_InlineCacheInvalidationListCompactionThreshold)
+FLAGNR(Number, ConstructorCacheInvalidationThreshold, "Clear uniquePropertyGuard entries from recyclableData if number of invalidations of constructor caches happened are more than the threshold.", DEFAULT_CONFIG_ConstructorCacheInvalidationThreshold)
 
 #ifdef IR_VIEWER
 FLAGNR(Boolean, IRViewer, "Enable IRViewer functionality (improved UI for various stages of IR generation)", false)

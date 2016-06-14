@@ -187,7 +187,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -321,7 +321,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -455,7 +455,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -648,7 +648,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -841,7 +841,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -878,7 +878,7 @@ true
 .........."nullMember": null,
 .........."stringmember": "this string ends the obj. You should not see functionMember and undefinedMember"
 }
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Object with nested objects and array  ------
 {
@@ -908,14 +908,14 @@ true
 ..........},
 .........."stringmember": "this string ends the obj. You should not see functionMember and undefinedMember"
 }
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Simple array  ------
 [
 .........."document.location",
 .........."foolish"
 ]
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Complex array  ------
 [
@@ -944,7 +944,7 @@ true
 ..........],
 .........."[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"
 ]
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: complex string 2  ------
 PASS
@@ -1022,7 +1022,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -1156,7 +1156,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -1312,7 +1312,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -1468,7 +1468,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -1517,7 +1517,7 @@ true
 .........."document.location",
 .........."foolish"
 ]
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Complex array  ------
 [
@@ -1540,7 +1540,7 @@ true
 ..........],
 .........."[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"
 ]
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: complex string 2  ------
 PASS
@@ -1618,7 +1618,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -1752,7 +1752,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -1918,7 +1918,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -2084,7 +2084,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -2131,14 +2131,14 @@ true
 ....................}
 ..........}
 }
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Simple array  ------
 [
 .........."document.location",
 .........."foolish"
 ]
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Complex array  ------
 [
@@ -2163,7 +2163,7 @@ true
 ..........],
 .........."[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"
 ]
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: complex string 2  ------
 PASS
@@ -2241,7 +2241,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -2375,7 +2375,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -2541,7 +2541,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -2707,7 +2707,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -2754,14 +2754,14 @@ true
 ....................}
 ..........}
 }
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Simple array  ------
 [
 .........."document.location",
 .........."foolish"
 ]
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Complex array  ------
 [
@@ -2786,7 +2786,7 @@ true
 ..........],
 .........."[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"
 ]
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: complex string 2  ------
 PASS
@@ -2864,7 +2864,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -2998,7 +2998,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -3195,7 +3195,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -3392,7 +3392,7 @@ null
 
 ------ JSON test stringify: undefined  ------
 undefined
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:1
 
 ------ JSON test stringify: Date(2008, 10, 10)  ------
 "2008-11-10T08:00:00.000Z"
@@ -3429,7 +3429,7 @@ true
 .........."nullMember": null,
 .........."stringmember": "this string ends the obj. You should not see functionMember and undefinedMember"
 }
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Object with nested objects and array  ------
 {
@@ -3463,14 +3463,14 @@ true
 ..........},
 .........."stringmember": "this string ends the obj. You should not see functionMember and undefinedMember"
 }
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Simple array  ------
 [
 .........."document.location",
 .........."foolish"
 ]
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: Complex array  ------
 [
@@ -3499,7 +3499,7 @@ true
 ..........],
 .........."[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"
 ]
-!!Exception: SyntaxError: Invalid character
+!!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
 ------ JSON test stringify: complex string 2  ------
 PASS

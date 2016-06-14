@@ -6998,7 +6998,8 @@ CommonNumber:
         if (scriptContext->GetConfig()->IsES6HasInstanceEnabled())
         {
             Var instOfHandler = JavascriptOperators::GetProperty(constructor, PropertyIds::_symbolHasInstance, scriptContext);
-            if (JavascriptOperators::IsUndefinedObject(instOfHandler))
+            if (JavascriptOperators::IsUndefinedObject(instOfHandler) 
+                || instOfHandler == scriptContext->GetBuiltInLibraryFunction(JavascriptFunction::EntryInfo::SymbolHasInstance.GetOriginalEntryPoint()))
             {
                 return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, inlineCache), scriptContext);
             }

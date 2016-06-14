@@ -747,6 +747,7 @@ FlowGraph::BuildLoop(BasicBlock *headBlock, BasicBlock *tailBlock, Loop *parentL
     loop->hasDeadStoreCollectionPass = false;
     loop->hasDeadStorePrepass = false;
     loop->memOpInfo = nullptr;
+    loop->doMemOp = true;
 
     NoRecoverMemoryJitArenaAllocator tempAlloc(_u("BE-LoopBuilder"), this->func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
 
@@ -761,6 +762,10 @@ FlowGraph::BuildLoop(BasicBlock *headBlock, BasicBlock *tailBlock, Loop *parentL
     if (firstInstr->IsProfiledLabelInstr())
     {
         loop->SetImplicitCallFlags(firstInstr->AsProfiledLabelInstr()->loopImplicitCallFlags);
+        if (this->func->GetProfileInfo()->IsLoopImplicitCallInfoDisabled())
+        {
+            loop->SetImplicitCallFlags(this->func->GetProfileInfo()->GetImplicitCallFlags());
+        }
         loop->SetLoopFlags(firstInstr->AsProfiledLabelInstr()->loopFlags);
     }
     else
@@ -782,8 +787,10 @@ Loop::MemSetCandidate* Loop::MemOpCandidate::AsMemSet()
     return (Loop::MemSetCandidate*)this;
 }
 
-bool Loop::EnsureMemOpVariablesInitialized()
+void
+Loop::EnsureMemOpVariablesInitialized()
 {
+    Assert(this->doMemOp);
     if (this->memOpInfo == nullptr)
     {
         JitArenaAllocator *allocator = this->GetFunc()->GetTopFunc()->m_fg->alloc;
@@ -793,32 +800,10 @@ bool Loop::EnsureMemOpVariablesInitialized()
         this->memOpInfo->startIndexOpndCache[1] = nullptr;
         this->memOpInfo->startIndexOpndCache[2] = nullptr;
         this->memOpInfo->startIndexOpndCache[3] = nullptr;
-        if (this->GetLoopFlags().isInterpreted && !this->GetLoopFlags().memopMinCountReached)
-        {
-#if DBG_DUMP
-            Func* func = this->GetFunc();
-            if (Js::Configuration::Global.flags.Verbose && PHASE_TRACE(Js::MemOpPhase, func))
-            {
-                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(_u("MemOp skipped: minimum loop count not reached: Function: %s %s,  Loop: %d\n"),
-                              func->GetJnFunction()->GetDisplayName(),
-                              func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
-                              this->GetLoopNumber()
-                              );
-            }
-#endif
-            this->memOpInfo->doMemOp = false;
-            this->memOpInfo->inductionVariableChangeInfoMap = nullptr;
-            this->memOpInfo->inductionVariableOpndPerUnrollMap = nullptr;
-            this->memOpInfo->candidates = nullptr;
-            return false;
-        }
-        this->memOpInfo->doMemOp = true;
         this->memOpInfo->inductionVariableChangeInfoMap = JitAnew(allocator, Loop::InductionVariableChangeInfoMap, allocator);
         this->memOpInfo->inductionVariableOpndPerUnrollMap = JitAnew(allocator, Loop::InductionVariableOpndPerUnrollMap, allocator);
         this->memOpInfo->candidates = JitAnew(allocator, Loop::MemOpList, allocator);
     }
-    return true;
 }
 
 // Walk the basic blocks backwards until we find the loop header.

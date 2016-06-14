@@ -14,8 +14,13 @@
 
 template _ALWAYSINLINE char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat, size_t size);
 
+// The VS2013 linker treats this as a redefinition of an already
+// defined constant and complains. So skip the declaration if we're compiling
+// with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const uint SmallAllocationBlockAttributes::MaxSmallObjectCount;
 const uint MediumAllocationBlockAttributes::MaxSmallObjectCount;
+#endif
 
 HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>  HeapInfo::smallAllocValidPointersMap;
 HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes> HeapInfo::mediumAllocValidPointersMap;
@@ -884,6 +889,8 @@ HeapInfo::AddLargeHeapBlock(size_t size)
 void HeapInfo::SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent)
 {
     Recycler * recycler = recyclerSweep.GetRecycler();
+    // TODO: Remove below workaround for unreferenced local after enabled -profile for GC
+    static_cast<Recycler*>(recycler);
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
         heapBuckets[i].SweepFinalizableObjects(recyclerSweep);

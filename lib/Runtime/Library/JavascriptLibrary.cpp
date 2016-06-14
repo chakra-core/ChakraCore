@@ -2547,6 +2547,7 @@ namespace Js
                                                      library->AddFunctionToLibraryObjectWithName(functionPrototype, PropertyIds::_symbolHasInstance, PropertyIds::_RuntimeFunctionNameId_hasInstance,
                                                                                                  &JavascriptFunction::EntryInfo::SymbolHasInstance, 1));
             functionPrototype->SetWritable(PropertyIds::_symbolHasInstance, false);
+            functionPrototype->SetConfigurable(PropertyIds::_symbolHasInstance, false);
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
@@ -2700,8 +2701,6 @@ namespace Js
 
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Min] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::min,    &SIMDFloat32x4Lib::EntryInfo::Min,   3);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Max] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::max,    &SIMDFloat32x4Lib::EntryInfo::Max,   3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::minNum, &SIMDFloat32x4Lib::EntryInfo::MinNum, 3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::maxNum, &SIMDFloat32x4Lib::EntryInfo::MaxNum, 3);
         // unary ops
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Abs] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::abs,            &SIMDFloat32x4Lib::EntryInfo::Abs,            2);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Neg] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::neg,            &SIMDFloat32x4Lib::EntryInfo::Neg,            2);
@@ -7173,8 +7172,6 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(xor_, SIMDFloat32x4Lib::EntryXor);
         REG_OBJECTS_LIB_FUNC(min, SIMDFloat32x4Lib::EntryMin);
         REG_OBJECTS_LIB_FUNC(max, SIMDFloat32x4Lib::EntryMax);
-        REG_OBJECTS_LIB_FUNC(minNum, SIMDFloat32x4Lib::EntryMinNum);
-        REG_OBJECTS_LIB_FUNC(maxNum, SIMDFloat32x4Lib::EntryMaxNum);
         REG_OBJECTS_LIB_FUNC(abs, SIMDFloat32x4Lib::EntryAbs);
         REG_OBJECTS_LIB_FUNC(neg, SIMDFloat32x4Lib::EntryNeg);
         REG_OBJECTS_LIB_FUNC(not_, SIMDFloat32x4Lib::EntryNot);

@@ -250,7 +250,7 @@ public:
     void            TransferDstAttributesTo(Instr * instr);
     IR::Instr *     Copy();
     IR::Instr *     Clone();
-    IR::Instr *     ConvertToBailOutInstr(IR::Instr * bailOutTarget, BailOutKind kind);
+    IR::Instr *     ConvertToBailOutInstr(IR::Instr * bailOutTarget, BailOutKind kind, uint32 bailOutOffset = Js::Constants::NoByteCodeOffset);
     IR::Instr *     ConvertToBailOutInstr(BailOutInfo * bailOutInfo, BailOutKind kind, bool useAuxBailout = false);
     IR::Instr *     GetNextRealInstr() const;
     IR::Instr *     GetNextRealInstrOrLabel() const;

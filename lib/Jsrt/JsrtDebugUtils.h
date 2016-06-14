@@ -11,9 +11,9 @@ BEGIN_ENUM_UINT(JsrtDebugPropertyId)
 END_ENUM_UINT()
 
 BEGIN_ENUM_UINT(JsrtDebugPropertyAttribute)
-    NONE,
-    HAVE_CHILDRENS,
-    READ_ONLY_VALUE,
+    NONE = 0x1,
+    HAVE_CHILDRENS = 0x2,
+    READ_ONLY_VALUE = 0x4,
 END_ENUM_UINT()
 
 class JsrtDebugUtils

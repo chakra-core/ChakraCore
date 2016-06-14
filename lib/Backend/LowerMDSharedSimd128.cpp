@@ -348,10 +348,6 @@ IR::Instr* LowererMD::Simd128LowerUnMappedInstruction(IR::Instr *instr)
     case Js::OpCode::Simd128_Max_F4:
         return Simd128LowerMinMax_F4(instr);
 
-    case Js::OpCode::Simd128_MinNum_F4:
-    case Js::OpCode::Simd128_MaxNum_F4:
-        return Simd128LowerMinMaxNum(instr);
-
     case Js::OpCode::Simd128_AnyTrue_B4:
     case Js::OpCode::Simd128_AnyTrue_B8:
     case Js::OpCode::Simd128_AnyTrue_B16:
@@ -2241,128 +2237,6 @@ IR::Instr* LowererMD::Simd128LowerMinMax_F4(IR::Instr* instr)
     instr->Remove();
     return pInstr;
 
-}
-
-
-IR::Instr* LowererMD::Simd128LowerMinMaxNum(IR::Instr* instr)
-{
-    IR::Instr *pInstr;
-    IR::Opnd* dst = instr->GetDst();
-    IR::Opnd* src1 = instr->GetSrc1();
-    IR::Opnd* src2 = instr->GetSrc2();
-    Assert(dst->IsRegOpnd() && dst->IsSimd128());
-    Assert(src1->IsRegOpnd() && src1->IsSimd128());
-    Assert(src2->IsRegOpnd() && src2->IsSimd128());
-    IR::RegOpnd* tmp1 = IR::RegOpnd::New(src1->GetType(), m_func);
-    IR::RegOpnd* tmp2 = IR::RegOpnd::New(src1->GetType(), m_func);
-    IR::RegOpnd* mask = IR::RegOpnd::New(src1->GetType(), m_func);
-    IR::RegOpnd* mask2 = IR::RegOpnd::New(src1->GetType(), m_func);
-
-    if (instr->m_opcode == Js::OpCode::Simd128_MinNum_F4)
-    {
-        // dst = MINPS src1, src2
-        // This is the correct result or b if either is NaN or both are +/-0.0
-        pInstr = IR::Instr::New(Js::OpCode::MINPS, dst, src1, src2, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // mask = CMPUNORD src2, src2
-        // Find NaNs in b
-        pInstr = IR::Instr::New(Js::OpCode::CMPUNORDPS, mask, src2, src2, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // mask2 = PCMPEQD src1, [X86_TWO_31_I4]
-        // Find -0.0 in a
-        pInstr = IR::Instr::New(Js::OpCode::PCMPEQD, mask2, src1, IR::MemRefOpnd::New((void*)&X86_TWO_31_I4, TySimd128I4, m_func), m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // mask2 = ANDPS mask2, [X86_TWO_31_I4]
-        // mask2 is -0.0 where a is -0.0
-        pInstr = IR::Instr::New(Js::OpCode::ANDPS, mask2, mask2, IR::MemRefOpnd::New((void*)&X86_TWO_31_I4, TySimd128I4, m_func), m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // dst = ORPS dst, mask2
-        // For lanes where a is -0.0, the result is either correct (negative), or b which is possibly +0.0
-        // Safe to force sign to negative for those lanes, +0.0 becomes -0.0.
-        pInstr = IR::Instr::New(Js::OpCode::ORPS, dst, dst, mask2, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // tmp1 = ANDPS src1, mask
-        // tmp2 = ANDNPS mask, dst
-        // dst = ORPS tmp1, tmp2
-        // For NaNs in b, choose a, else keep result.
-        pInstr = IR::Instr::New(Js::OpCode::ANDPS, tmp1, src1, mask, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        pInstr = IR::Instr::New(Js::OpCode::ANDNPS, tmp2, mask, dst, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        pInstr = IR::Instr::New(Js::OpCode::ORPS, dst, tmp1, tmp2, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-    }
-    else if (instr->m_opcode == Js::OpCode::Simd128_MaxNum_F4)
-    {
-        // dst = MAXPS src1, src2
-        // This is the correct result or b if either is NaN or both are +/-0.0
-        pInstr = IR::Instr::New(Js::OpCode::MAXPS, dst, src1, src2, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // Find NaNs in b
-        // mask = CMPUNORPS src2, src2
-        pInstr = IR::Instr::New(Js::OpCode::CMPUNORDPS, mask, src2, src2, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // mask2 = PCMPEQD src1, [X86_ALL_ZEROS]
-        // Find +0.0 in a
-        pInstr = IR::Instr::New(Js::OpCode::PCMPEQD, mask2, src1, IR::MemRefOpnd::New((void*)&X86_ALL_ZEROS, TySimd128I4, m_func), m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // mask2 = ANDPS mask2, [X86_TWO_31_I4]
-        // mask2 is -0.0 (sign mask) where a is +0.0
-        pInstr = IR::Instr::New(Js::OpCode::ANDPS, mask2, mask2, IR::MemRefOpnd::New((void*)&X86_TWO_31_I4, TySimd128I4, m_func), m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // dst = ANDNPS mask2, dst
-        // For lanes where a is +0.0, the result is either correct (positive), or b which is possibly -0.0
-        // Safe to force sign to positive for those lanes, +0.0 becomes -0.0.
-        pInstr = IR::Instr::New(Js::OpCode::ANDNPS, dst, mask2, dst, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        // tmp1 = ANDPS src1, mask
-        // tmp2 = ANDNPS mask, dst
-        // dst = ORPS tmp1, tmp2
-        // For NaNs in b, choose a, else keep result.
-        pInstr = IR::Instr::New(Js::OpCode::ANDPS, tmp1, src1, mask, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        pInstr = IR::Instr::New(Js::OpCode::ANDNPS, tmp2, mask, dst, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-
-        pInstr = IR::Instr::New(Js::OpCode::ORPS, dst, tmp1, tmp2, m_func);
-        instr->InsertBefore(pInstr);
-        Legalize(pInstr);
-    }
-    else
-    {
-        Assert(UNREACHED);
-    }
-    pInstr = instr->m_prev;
-    instr->Remove();
-    return pInstr;
 }
 
 IR::Instr* LowererMD::Simd128LowerAnyTrue(IR::Instr* instr)
