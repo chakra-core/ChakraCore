@@ -6,11 +6,11 @@
 .intel_syntax noprefix
 #include "unixasmmacros.inc"
 
-.extern _ZN2Js18JavascriptFunction13DeferredParseEPPNS_14ScriptFunctionE
-.extern _ZN2Js18JavascriptFunction19DeferredDeserializeEPNS_14ScriptFunctionE
+.extern C_FUNC(_ZN2Js18JavascriptFunction13DeferredParseEPPNS_14ScriptFunctionE)
+.extern C_FUNC(_ZN2Js18JavascriptFunction19DeferredDeserializeEPNS_14ScriptFunctionE)
 
-.global _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz
-.global _ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz
+.global C_FUNC(_ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz)
+.global C_FUNC(_ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz)
 
 #ifndef __APPLE__
 .type _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz, @function
@@ -107,8 +107,8 @@ NESTED_END amd64_CallFunction, _TEXT
 
 
 // extrn ?DeferredParse@JavascriptFunction@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVScriptFunction@2@@Z : PROC
-.align 16
-_ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz:
+.balign 16
+C_FUNC(_ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz):
         push rbp
         lea  rbp, [rsp]
 
@@ -120,7 +120,7 @@ _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8Call
         //  JavascriptMethod JavascriptFunction::DeferredParse(ScriptFunction**)
         //
         lea rdi, [rbp + 10h]    // &function, setup by custom calling convention
-        call _ZN2Js18JavascriptFunction13DeferredParseEPPNS_14ScriptFunctionE@plt
+        call C_PLTFUNC(_ZN2Js18JavascriptFunction13DeferredParseEPPNS_14ScriptFunctionE)
 
         pop rsi
         pop rdi
@@ -130,8 +130,8 @@ _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableObjectENS_8Call
 
 // Var JavascriptFunction::DeferredDeserializeThunk(
 //              RecyclableObject* function, CallInfo callInfo, ...)
-.align 16
-_ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz:
+.balign 16
+C_FUNC(_ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz):
         push rbp
         lea  rbp, [rsp]
 
@@ -144,7 +144,7 @@ _ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8
         //                              ScriptFunction* function)
         //
         //      RDI == function, setup by custom calling convention
-        call _ZN2Js18JavascriptFunction19DeferredDeserializeEPNS_14ScriptFunctionE@plt
+        call C_PLTFUNC(_ZN2Js18JavascriptFunction19DeferredDeserializeEPNS_14ScriptFunctionE)
 
         pop rsi
         pop rdi
