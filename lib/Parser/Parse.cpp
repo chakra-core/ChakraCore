@@ -8876,6 +8876,31 @@ ParseNodePtr Parser::ParseCatch()
 
         pnodeCatchScope = StartParseBlock<buildAST>(PnodeBlockType::Regular, isPattern ? ScopeType_CatchParamPattern : ScopeType_Catch);
 
+        if (buildAST)
+        {
+            // Add this catch to the current scope list.
+
+            if (m_ppnodeExprScope)
+            {
+                Assert(*m_ppnodeExprScope == nullptr);
+                *m_ppnodeExprScope = pnode;
+                m_ppnodeExprScope = &pnode->sxCatch.pnodeNext;
+            }
+            else
+            {
+                Assert(m_ppnodeScope);
+                Assert(*m_ppnodeScope == nullptr);
+                *m_ppnodeScope = pnode;
+                m_ppnodeScope = &pnode->sxCatch.pnodeNext;
+            }
+
+            // Keep a list of function expressions (not declarations) at this scope.
+
+            ppnodeExprScopeSave = m_ppnodeExprScope;
+            m_ppnodeExprScope = &pnode->sxCatch.pnodeScopes;
+            pnode->sxCatch.pnodeScopes = nullptr;
+        }
+
         if (isPattern)
         {
             ParseNodePtr pnodePattern = ParseDestructuredLiteral<buildAST>(tkLET, true /*isDecl*/, true /*topLevel*/, DIC_ForceErrorOnInitializer);
@@ -8928,31 +8953,6 @@ ParseNodePtr Parser::ParseCatch()
             }
 
             m_pscan->Scan();
-        }
-
-        if (buildAST)
-        {
-            // Add this catch to the current scope list.
-
-            if (m_ppnodeExprScope)
-            {
-                Assert(*m_ppnodeExprScope == nullptr);
-                *m_ppnodeExprScope = pnode;
-                m_ppnodeExprScope = &pnode->sxCatch.pnodeNext;
-            }
-            else
-            {
-                Assert(m_ppnodeScope);
-                Assert(*m_ppnodeScope == nullptr);
-                *m_ppnodeScope = pnode;
-                m_ppnodeScope = &pnode->sxCatch.pnodeNext;
-            }
-
-            // Keep a list of function expressions (not declarations) at this scope.
-
-            ppnodeExprScopeSave = m_ppnodeExprScope;
-            m_ppnodeExprScope = &pnode->sxCatch.pnodeScopes;
-            pnode->sxCatch.pnodeScopes = nullptr;
         }
 
         charcount_t ichLim;
