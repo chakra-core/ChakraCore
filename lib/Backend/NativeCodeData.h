@@ -11,10 +11,10 @@
 #define NativeCodeDataNewPlusZ(size, alloc, T, ...) AllocatorNewPlusZ(NativeCodeData::AllocatorT<T>, alloc, size, T, __VA_ARGS__)
 
 
-#define NativeCodeDataNewNoFixup(alloc, T, ...) AllocatorNew(NativeCodeData::Allocator, alloc, T, __VA_ARGS__)
-#define NativeCodeDataNewZNoFixup(alloc, T, ...) AllocatorNewZ(NativeCodeData::Allocator, alloc, T, __VA_ARGS__)
-#define NativeCodeDataNewArrayNoFixup(alloc, T, count) AllocatorNewArray(NativeCodeData::Allocator, alloc, T, count)
-#define NativeCodeDataNewArrayZNoFixup(alloc, T, count) AllocatorNewArrayZ(NativeCodeData::Allocator, alloc, T, count)
+#define NativeCodeDataNewNoFixup(alloc, T, ...) AllocatorNew(NativeCodeData::AllocatorNoFixup<T>, alloc, T, __VA_ARGS__)
+#define NativeCodeDataNewZNoFixup(alloc, T, ...) AllocatorNewZ(NativeCodeData::AllocatorNoFixup<T>, alloc, T, __VA_ARGS__)
+#define NativeCodeDataNewArrayNoFixup(alloc, T, count) AllocatorNewArray(NativeCodeData::AllocatorNoFixup<NativeCodeData::Array<T>>, alloc, T, count)
+#define NativeCodeDataNewArrayZNoFixup(alloc, T, count) AllocatorNewArrayZ(NativeCodeData::AllocatorNoFixup<NativeCodeData::Array<T>>, alloc, T, count)
 
 #define FixupNativeDataPointer(field, chunkList) NativeCodeData::AddFixupEntry(this->field, &this->field, this, chunkList)
 
@@ -113,15 +113,61 @@ public:
     };
 
     template<typename T>
-    class AllocatorT :public Allocator
+    class AllocatorNoFixup : public Allocator
     {
+    public:
+        char * Alloc(size_t requestedBytes)
+        {
+            char* dataBlock = __super::Alloc(requestedBytes);
+#if DBG
+            DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
+            chunk->dataType = typeid(T).name();
+            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            {                
+                Output::Print(L"NativeCodeData AllocNoFix: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n",
+                    chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+            }
+#endif
+
+            return dataBlock;
+        }
+        char * AllocZero(size_t requestedBytes)
+        {
+            char* dataBlock = __super::AllocZero(requestedBytes);
+
+#if DBG
+            DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
+            chunk->dataType = typeid(T).name();
+            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            {
+                Output::Print(L"NativeCodeData AllocNoFix: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n",
+                    chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+            }
+#endif
+
+            return dataBlock;
+        }
+    };
+
+    template<typename T>
+    class AllocatorT : public Allocator
+    {
+#if DBG
+        __declspec(noinline) // compiler inline this function even in chk build... maybe because it's in .h file?
+#endif
         char* AddFixup(char* dataBlock)
         {
-            DataChunk* chunk = (DataChunk*)(dataBlock - offsetof(DataChunk, data));
+            DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
             chunk->fixupFunc = &Fixup;
 #if DBG
             chunk->dataType = typeid(T).name();
 #endif
+            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            {
+                Output::Print(L"NativeCodeData Alloc: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n",
+                    chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+            }
+
             return dataBlock;
         }
 
@@ -225,7 +271,6 @@ template<> void NativeCodeData::Array<unsigned int>::Fixup(NativeCodeData::DataC
 
 template<> void NativeCodeData::Array<Js::Var>::Fixup(NativeCodeData::DataChunk* chunkList)
 {
-    NativeCodeData::AddFixupEntryForPointerArray(this, chunkList);
 }
 
 struct GlobalBailOutRecordDataTable;

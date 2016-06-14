@@ -902,9 +902,24 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 {
                     auto& record = jitWriteData.nativeDataFixupTable->fixupRecords[i];
                     auto updateList = record.updateList;
+
+                    if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                    {
+                        Output::Print(L"NativeCodeData Fixup: allocIndex:%d, len:%x, totalOffset:%x, startAddress:%p\n",
+                            record.index, record.length, record.startOffset, jitWriteData.buffer->data + record.startOffset);
+                    }
+
                     while (updateList)
                     {
-                        *(void**)(jitWriteData.buffer->data + record.startOffset + updateList->addrOffset) = jitWriteData.buffer->data + updateList->targetTotalOffset;
+                        void* addrToFixup = jitWriteData.buffer->data + record.startOffset + updateList->addrOffset;
+                        void* targetAddr = jitWriteData.buffer->data + updateList->targetTotalOffset;
+
+                        if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                        {
+                            Output::Print(L"\t NativeCodeData Fixup Entry: +%p(%p) ==> %p:\n", addrToFixup, *(void**)(addrToFixup), targetAddr);
+                        }
+
+                        *(void**)(addrToFixup) = targetAddr;
                         auto current = updateList;
                         updateList = updateList->next;
                         midl_user_free(current);

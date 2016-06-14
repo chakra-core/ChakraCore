@@ -76,7 +76,9 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
             CompileAssert(sizeof(ObjTypeSpecFldData) == sizeof(Js::ObjTypeSpecFldInfo));
             jitData->objTypeSpecFldInfoArray = reinterpret_cast<ObjTypeSpecFldData**>(codeGenData->GetObjTypeSpecFldInfoArray()->GetInfoArray());
         }
-        if (functionBody->GetCodeGenRuntimeData())
+
+        auto codegenRuntimeData = functionBody->GetCodeGenRuntimeData();
+        if (codegenRuntimeData)
         {
             jitData->bodyData->runtimeDataCount = jitData->bodyData->profiledCallSiteCount;
             Assert(jitData->bodyData->profiledCallSiteCount > 0);
@@ -84,13 +86,13 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
             // REVIEW: OOP JIT is this safe to be doing in background? I'm guessing probably not...
             for (uint i = 0; i < jitData->bodyData->runtimeDataCount; ++i)
             {
-                if (functionBody->GetCodeGenRuntimeData()[i]->ClonedInlineCaches()->HasInlineCaches())
+                if (codegenRuntimeData[i] && codegenRuntimeData[i]->ClonedInlineCaches()->HasInlineCaches())
                 {
                     jitData->bodyData->profiledRuntimeData[i].clonedCacheCount = jitData->bodyData->inlineCacheCount;
                     for (uint j = 0; j < jitData->bodyData->inlineCacheCount; ++j)
                     {
                         // REVIEW: OOP JIT, what to do with WriteBarrierPtr?
-                        jitData->bodyData->profiledRuntimeData[i].clonedInlineCaches = (intptr_t*)functionBody->GetCodeGenRuntimeData()[i]->ClonedInlineCaches()->GetInlineCache(j);
+                        jitData->bodyData->profiledRuntimeData[i].clonedInlineCaches = (intptr_t*)codegenRuntimeData[i]->ClonedInlineCaches()->GetInlineCache(j);
                     }
                 }
             }

@@ -341,6 +341,7 @@ PHASE(All)
         PHASE(PerfHint)
         PHASE(DeferSourceLoad)
         PHASE(ObjectMutationBreakpoint)
+        PHASE(NativeCodeData)
 #undef PHASE
 #endif
 

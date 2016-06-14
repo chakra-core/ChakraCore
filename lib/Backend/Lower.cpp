@@ -6118,7 +6118,7 @@ Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr)
     Assert(newScFuncInstr->m_func->GetJITFunctionBody()->DoStackNestedFunc());
     Func * func = newScFuncInstr->m_func;
     uint index = newScFuncInstr->GetSrc1()->AsIntConstOpnd()->AsUint32();
-    Assert(index < func->GetJnFunction()->GetNestedCount());
+    Assert(index < func->GetJITFunctionBody()->GetNestedCount());
 
     intptr_t nestedProxy = func->GetJITFunctionBody()->GetNestedFuncRef(index);
     // the stackAllocate Call below for this sym is passing a size that is not represented by any IRType and hence passing TyMisc for the constructor
