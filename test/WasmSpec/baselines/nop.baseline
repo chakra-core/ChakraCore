@@ -1,0 +1,2 @@
+nop.wast:79: $assert_return_15 unexpectedly threw: Error: Compiling wasm failed: function as-return-value[13]: Nonzero arity for return op in void function
+19/20 tests passed.

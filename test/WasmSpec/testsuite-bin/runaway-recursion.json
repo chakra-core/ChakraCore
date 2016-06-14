@@ -1,0 +1,16 @@
+{
+  "modules": [{
+    "filename": "runaway-recursion.0.wasm",
+    "commands": [{
+      "type": "assert_trap",
+      "name": "$assert_trap_0",
+      "file": "runaway-recursion.wast",
+      "line": 16
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_1",
+      "file": "runaway-recursion.wast",
+      "line": 17
+    }]
+  }]
+}

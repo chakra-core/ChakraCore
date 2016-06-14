@@ -1,0 +1,14 @@
+memory_trap.wast:24: $assert_return_0 unexpectedly threw: Error: Compiling wasm failed: function wasm-function[0]: Operator MemorySize NYI
+memory_trap.wast:25: $assert_return_1 unexpectedly threw: Error: Compiling wasm failed: function wasm-function[0]: Operator MemorySize NYI
+memory_trap.wast:26: $assert_trap_2 failed, runtime trap NYI
+memory_trap.wast:27: $assert_trap_3 failed, runtime trap NYI
+memory_trap.wast:28: $assert_trap_4 failed, runtime trap NYI
+memory_trap.wast:29: $assert_trap_5 failed, runtime trap NYI
+memory_trap.wast:30: $assert_trap_6 failed, runtime trap NYI
+memory_trap.wast:31: $assert_trap_7 failed, runtime trap NYI
+memory_trap.wast:32: $assert_trap_8 failed, runtime trap NYI
+memory_trap.wast:33: $assert_trap_9 failed, runtime trap NYI
+memory_trap.wast:34: $assert_trap_10 failed, runtime trap NYI
+memory_trap.wast:35: $assert_trap_11 failed, runtime trap NYI
+memory_trap.wast:36: $assert_trap_12 failed, runtime trap NYI
+0/13 tests passed.

@@ -1859,13 +1859,14 @@ if (!sourceList)
         }
         catch (Wasm::WasmCompilationException ex)
         {
+            Wasm::WasmCompilationException newEx(_u("function %s: %s"), body->GetDisplayName(), ex.GetErrorMessage());
             if (propagateError)
             {
-                throw;
+                throw newEx;
             }
             Js::JavascriptLibrary *library = scriptContext->GetLibrary();
             Js::JavascriptError *pError = library->CreateError();
-            Js::JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, ex.ReleaseErrorMessage(), scriptContext);
+            Js::JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, newEx.ReleaseErrorMessage(), scriptContext);
 
             func->GetDynamicType()->SetEntryPoint(WasmLazyTrapCallback);
             entypointInfo->jsMethod = WasmLazyTrapCallback;

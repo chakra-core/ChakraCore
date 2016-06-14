@@ -1,0 +1,3 @@
+store_retval.wast:30: $invoke_0 unexpectedly threw: Error: Compiling wasm failed: function run[0]: I64 support NYI
+$invoke_0 = undefined
+0/0 tests passed.

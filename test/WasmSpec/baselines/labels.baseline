@@ -1,0 +1,3 @@
+labels.wast:302: $assert_return_23 unexpectedly threw: Error: Compiling wasm failed: function misc1[16]: Invalid type for LHS
+labels.wast:303: $assert_return_24 unexpectedly threw: Error: Compiling wasm failed: function misc2[17]: Invalid type for LHS
+24/26 tests passed.

@@ -1,0 +1,9 @@
+{
+  "modules": [{
+    "filename": "binary.0.wasm",
+    "commands": []
+  }, {
+    "filename": "binary.1.wasm",
+    "commands": []
+  }]
+}

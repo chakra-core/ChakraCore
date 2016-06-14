@@ -1,0 +1,16 @@
+{
+  "modules": [{
+    "filename": "imports.0.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "imports.wast",
+      "line": 24
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_1",
+      "file": "imports.wast",
+      "line": 25
+    }]
+  }]
+}
