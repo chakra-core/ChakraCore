@@ -8356,35 +8356,66 @@ namespace Js
             this->inlineeFrameMap->Copy(tempInlineeFrameMap);
         }
     }
+    void EntryPointInfo::RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
+    {
+        this->inlineeFrameOffsetArrayOffset = offsetsArrayOffset;
+        this->inlineeFrameOffsetArrayCount = offsetsArrayCount;
+    }
 
     InlineeFrameRecord* EntryPointInfo::FindInlineeFrame(void* returnAddress)
     {
-        if (this->inlineeFrameMap == nullptr)
-        {
-            return nullptr;
-        }
-
-        size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
-        int index = this->inlineeFrameMap->BinarySearch([=](const NativeOffsetInlineeFramePair& pair, int index) {
-            if (pair.offset >= offset)
+        if (false) // in-proc JIT
+        { 
+            if (this->inlineeFrameMap == nullptr)
             {
-                if (index == 0 || index > 0 && this->inlineeFrameMap->Item(index - 1).offset < offset)
+                return nullptr;
+            }
+
+            size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
+            int index = this->inlineeFrameMap->BinarySearch([=](const NativeOffsetInlineeFramePair& pair, int index) {
+                if (pair.offset >= offset)
                 {
-                    return 0;
+                    if (index == 0 || index > 0 && this->inlineeFrameMap->Item(index - 1).offset < offset)
+                    {
+                        return 0;
+                    }
+                    else
+                    {
+                        return 1;
+                    }
                 }
-                else
+                return -1;
+            });
+
+            if (index == -1)
+            {
+                return nullptr;
+            }
+            return this->inlineeFrameMap->Item(index).record;
+        }
+        else // OOP JIT
+        {
+            NativeOffsetInlineeFrameRecordOffset* offsets = (NativeOffsetInlineeFrameRecordOffset*)(this->nativeDataBuffer + this->inlineeFrameOffsetArrayOffset);
+            size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
+
+            // TODO: binary search
+
+            for (unsigned int i = 0; i < this->inlineeFrameOffsetArrayCount - 1; i++)
+            {
+                if (offsets[i].offset <= offset && offset < offsets[i + 1].offset)
                 {
-                    return 1;
+                    if (offsets[i].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
+                    {
+                        return nullptr;
+                    }
+                    else
+                    {
+                        return (InlineeFrameRecord*)(this->nativeDataBuffer + offsets[i].recordOffset);
+                    }
                 }
             }
-            return -1;
-        });
-
-        if (index == -1)
-        {
             return nullptr;
         }
-        return this->inlineeFrameMap->Item(index).record;
     }
 
     void EntryPointInfo::DoLazyBailout(BYTE** addressOfInstructionPointer, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord)

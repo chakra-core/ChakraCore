@@ -132,6 +132,13 @@ struct NativeOffsetInlineeFramePair
     InlineeFrameRecord* record;
 };
 
+struct NativeOffsetInlineeFrameRecordOffset
+{
+    uint32 offset;
+    uint32 recordOffset;
+    static uint32 InvalidRecordOffset;
+};
+
 struct InlineeFrameInfo
 {
     typedef JsUtil::List<InlineFrameInfoValue, JitArenaAllocator, /*isLeaf*/ false> ArgList;

@@ -23,6 +23,9 @@
 #define BAILOUT_FLUSH(functionBody)
 #endif
 
+
+unsigned int NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset = (unsigned int)(-1);
+
 void BailoutConstantValue::InitVarConstValue(Js::Var value)
 {
     this->type = TyVar;

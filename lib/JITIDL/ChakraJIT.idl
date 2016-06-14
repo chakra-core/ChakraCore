@@ -414,6 +414,9 @@ typedef struct JITOutputData
 
     __int64 codeAddress;
     __int64 xdataAddr;
+    
+    unsigned int inlineeFrameOffsetArrayOffset;
+    unsigned int inlineeFrameOffsetArrayCount;
 } JITOutputData;
 
 [

@@ -23,6 +23,7 @@ public:
 
     EmitBufferAllocation * RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize);
     void RecordNativeCode(Func *func, const BYTE* sourceBuffer, EmitBufferAllocation * alloc);
+    void RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
 
 #if _M_X64 || _M_ARM
     size_t RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr, HANDLE processHandle);

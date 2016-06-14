@@ -508,6 +508,8 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
         InlineeFrameMap*  inlineeFrameMap;
+        unsigned int inlineeFrameOffsetArrayOffset;
+        unsigned int inlineeFrameOffsetArrayCount;
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         StackBackTrace*    cleanupStack;
@@ -922,6 +924,7 @@ namespace Js
         virtual void Invalidate(bool prolongEntryPoint) { Assert(false); }
         void RecordBailOutMap(JsUtil::List<LazyBailOutRecord, ArenaAllocator>* bailoutMap);
         void RecordInlineeFrameMap(JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator>* tempInlineeFrameMap);
+        void RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
         InlineeFrameRecord* FindInlineeFrame(void* returnAddress);
         bool HasInlinees() { return this->frameHeight > 0; }
         void DoLazyBailout(BYTE** addressOfReturnAddress, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord);

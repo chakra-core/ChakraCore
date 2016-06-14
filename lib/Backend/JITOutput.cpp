@@ -106,6 +106,13 @@ JITOutput::RecordNativeCode(Func *func, const BYTE* sourceBuffer, EmitBufferAllo
 #endif
 }
 
+void
+JITOutput::RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
+{
+    m_outputData->inlineeFrameOffsetArrayOffset = offsetsArrayOffset;
+    m_outputData->inlineeFrameOffsetArrayCount = offsetsArrayCount;
+}
+
 #if _M_X64
 size_t
 JITOutput::RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr, HANDLE processHandle)

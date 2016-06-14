@@ -36,6 +36,8 @@ private:
     ArenaAllocator *m_tempAlloc;
 
     InlineeFrameMap* m_inlineeFrameMap;
+    uint32 m_inlineeFrameMapDataOffset;
+    uint32 m_inlineeFrameMapRecordCount;
     typedef JsUtil::List<LazyBailOutRecord, ArenaAllocator> BailoutRecordMap;
     BailoutRecordMap* m_bailoutRecordMap;
 #if DBG_DUMP

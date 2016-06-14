@@ -310,8 +310,31 @@ Encoder::Encode()
     if (this->m_inlineeFrameMap->Count() > 0 &&
         !(this->m_inlineeFrameMap->Count() == 1 && this->m_inlineeFrameMap->Item(0).record == nullptr))
     {
+
         // TODO: OOP JIT, inlinee frame map
-        //entryPointInfo->RecordInlineeFrameMap(m_inlineeFrameMap);
+        if (false) // in-proc JIT
+        {
+            entryPointInfo->RecordInlineeFrameMap(m_inlineeFrameMap);
+        }
+        else // OOP JIT
+        {
+            NativeOffsetInlineeFrameRecordOffset* pairs = NativeCodeDataNewArrayZNoFixup(m_func->GetNativeCodeDataAllocator(), NativeOffsetInlineeFrameRecordOffset, this->m_inlineeFrameMap->Count());
+
+            this->m_inlineeFrameMap->Map([&pairs](int i, NativeOffsetInlineeFramePair& p) 
+            {
+                pairs[i].offset = p.offset;
+                if (p.record)
+                {
+                    pairs[i].recordOffset = NativeCodeData::GetDataChunk(p.record)->offset;
+                }
+                else
+                {
+                    pairs[i].recordOffset = NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset;
+                }
+            });
+
+            m_func->GetJITOutput()->RecordInlineeFrameOffsetsInfo(NativeCodeData::GetDataChunk(pairs)->offset, this->m_inlineeFrameMap->Count());
+        }
     }
 
     if (this->m_bailoutRecordMap->Count() > 0)
