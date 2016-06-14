@@ -1,0 +1,15 @@
+{
+  "modules": [{
+    "filename": "comments.0.wasm",
+    "commands": []
+  }, {
+    "filename": "comments.1.wasm",
+    "commands": []
+  }, {
+    "filename": "comments.2.wasm",
+    "commands": []
+  }, {
+    "filename": "comments.3.wasm",
+    "commands": []
+  }]
+}

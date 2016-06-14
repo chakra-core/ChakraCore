@@ -1,0 +1,22 @@
+97
+98
+99
+122
+25185
+25185
+25699
+1684234849
+$invoke_0 = undefined
+0
+0
+0
+0
+0
+0
+0
+0
+$invoke_1 = undefined
+address.wast:33: $assert_trap_2 failed, runtime trap NYI
+address.wast:34: $assert_trap_3 failed, runtime trap NYI
+address.wast:35: $assert_trap_4 failed, runtime trap NYI
+0/3 tests passed.

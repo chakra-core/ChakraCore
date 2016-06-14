@@ -1,0 +1,56 @@
+{
+  "modules": [{
+    "filename": "get_local.0.wasm",
+    "commands": [{
+      "type": "assert_return",
+      "name": "$assert_return_0",
+      "file": "get_local.wast",
+      "line": 64
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_1",
+      "file": "get_local.wast",
+      "line": 65
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_2",
+      "file": "get_local.wast",
+      "line": 66
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_3",
+      "file": "get_local.wast",
+      "line": 67
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_4",
+      "file": "get_local.wast",
+      "line": 69
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_5",
+      "file": "get_local.wast",
+      "line": 70
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_6",
+      "file": "get_local.wast",
+      "line": 71
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_7",
+      "file": "get_local.wast",
+      "line": 72
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_8",
+      "file": "get_local.wast",
+      "line": 75
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_9",
+      "file": "get_local.wast",
+      "line": 82
+    }]
+  }]
+}
