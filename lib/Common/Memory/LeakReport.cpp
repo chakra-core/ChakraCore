@@ -154,11 +154,12 @@ LeakReport::EnsureLeakReportFile()
     Print(_u("Chakra Leak Report - PID: %d\n"), ::GetCurrentProcessId());
 
     struct tm local_time;
-    uint64_t time_ms = (uint64_t) PlatformAgnostic::DateTime::HiResTimer::GetSystemTime(); // utc
-    time_t time_sec = time_ms / 1000; // get rid of the milliseconds
+    uint64 time_ms = (uint64) PlatformAgnostic::DateTime::HiResTimer::GetSystemTime(); // utc
 #ifdef _MSC_VER
+    __time64_t time_sec = time_ms / 1000; // get rid of the milliseconds
     _localtime64_s(&local_time, &time_sec);
 #else
+    time_t time_sec = time_ms / 1000; // get rid of the milliseconds
     localtime_r(&time_sec, &local_time);
 #endif
     Print(_u("%04d-%02d-%02d %02d:%02d:%02d.%03d\n"),
