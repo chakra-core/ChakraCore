@@ -957,6 +957,10 @@ public:
         argOutCount(0),
         totalOutParamCount(0),
         callSequence(nullptr),
+        capturedValuesCandicate(nullptr),
+        capturedValues(nullptr),
+        capturedArgs(nullptr),
+        changedSyms(nullptr),
         hasCSECandidates(false),
         curFunc(func),
         hasDataRef(nullptr),
@@ -1006,6 +1010,11 @@ public:
     uint                                    totalOutParamCount;
     SListBase<IR::Opnd *> *                 callSequence;
     StackLiteralInitFldDataMap *            stackLiteralInitFldDataMap;
+
+    CapturedValues *                        capturedValuesCandicate;
+    CapturedValues *                        capturedValues;
+    BVSparse<JitArenaAllocator> *           capturedArgs;
+    BVSparse<JitArenaAllocator> *           changedSyms;
 
     uint                                    inlinedArgOutCount;
 
@@ -1377,6 +1386,7 @@ private:
     StackSym *              GetTaggedIntConstantStackSym(const int32 intConstantValue) const;
     StackSym *              GetOrCreateTaggedIntConstantStackSym(const int32 intConstantValue) const;
     Sym *                   SetSymStore(ValueInfo *valueInfo, Sym *sym);
+    void                    SetSymStoreDirect(ValueInfo *valueInfo, Sym *sym);
     Value *                 InsertNewValue(Value *val, IR::Opnd *opnd);
     Value *                 InsertNewValue(GlobOptBlockData * blockData, Value *val, IR::Opnd *opnd);
     Value *                 SetValue(GlobOptBlockData * blockData, Value *val, IR::Opnd *opnd);
