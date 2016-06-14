@@ -99,7 +99,7 @@ namespace Wasm
         EmitInfo EmitBrTable();
         EmitInfo EmitGetLocal();
         EmitInfo EmitSetLocal();
-        EmitInfo EmitReturnExpr(EmitInfo *lastStmtExprInfo = nullptr);
+        EmitInfo EmitReturnExpr();
         EmitInfo EmitSelect();
 #if DBG_DUMP
         void PrintOpName(WasmOp op) const;
