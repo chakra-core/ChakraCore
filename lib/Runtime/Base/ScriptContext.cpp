@@ -81,6 +81,7 @@ namespace Js
         sourceSize(0),
         deferredBody(false),
         isScriptContextActuallyClosed(false),
+        isFinalized(false),
         isInvalidatedForHostObjects(false),
         fastDOMenabled(false),
         directHostTypeId(TypeIds_GlobalObject),
@@ -359,6 +360,7 @@ namespace Js
 
     ScriptContext::~ScriptContext()
     {
+        Assert(isFinalized);
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
         AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
 
@@ -377,6 +379,7 @@ namespace Js
             // clear out all inline caches to remove our proto inline caches from the thread context
             threadContext->ClearInlineCaches();
 
+            ClearInlineCaches();
             Assert(!this->hasProtoOrStoreFieldInlineCache);
         }
 
@@ -384,10 +387,9 @@ namespace Js
         {
             // clear out all inline caches to remove our proto inline caches from the thread context
             threadContext->ClearIsInstInlineCaches();
+            ClearIsInstInlineCaches();
             Assert(!this->hasIsInstInlineCache);
         }
-
-        threadContext->UnregisterScriptContext(this);
 
         // Only call RemoveFromPendingClose if we are in a pending close state.
         if (isClosed && !isScriptContextActuallyClosed)
@@ -1445,6 +1447,7 @@ if (!sourceList)
 
     void ScriptContext::InvalidatePropertyStringCache(PropertyId propertyId, Type* type)
     {
+        Assert(!isFinalized);
         PropertyStringCacheMap* propertyStringMap = this->javascriptLibrary->GetPropertyStringMap();
         if (propertyStringMap != nullptr)
         {
@@ -4161,7 +4164,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     void ScriptContext::ClearPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesCaches()
     {
         Assert(registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext != nullptr);
-        javascriptLibrary->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+        if (!isFinalized)
+        {
+            javascriptLibrary->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+        }
 
         // Caller will unregister the script context from the thread context
         registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext = nullptr;
