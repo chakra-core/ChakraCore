@@ -1444,9 +1444,8 @@ case_2:
 
         if (UnicodeText::IsNormalizedString(form, pThis->GetSz(), pThis->GetLength()))
         {
-            return JavascriptString::NewWithSz(pThis->GetSz(), scriptContext);
+            return pThis;
         }
-
 
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("normalize"));
 
