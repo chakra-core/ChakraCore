@@ -2630,8 +2630,8 @@ CHAKRA_API JsSerializeScript(_In_z_ const wchar_t *script, _Out_writes_to_opt_(*
 
 template <typename TLoadCallback, typename TUnloadCallback>
 JsErrorCode RunSerializedScriptCore(
-    LPCUTF8 script,
     TLoadCallback scriptLoadCallback, TUnloadCallback scriptUnloadCallback,
+    JsSourceContext scriptLoadSourceContext, // only used by scriptLoadCallback
     unsigned char *buffer,
     JsSourceContext sourceContext, const wchar_t *sourceUrl,
     bool parseOnly, JsValueRef *result)
@@ -2647,18 +2647,10 @@ JsErrorCode RunSerializedScriptCore(
         PARAM_NOT_NULL(sourceUrl);
 
         Js::ISourceHolder *sourceHolder = nullptr;
-        if (script != nullptr)
-        {
-            Assert(scriptLoadCallback == nullptr);
-            Assert(scriptUnloadCallback == nullptr);
-        }
-        else
-        {
-            PARAM_NOT_NULL(scriptLoadCallback);
-            PARAM_NOT_NULL(scriptUnloadCallback);
-            typedef Js::JsrtSourceHolder<TLoadCallback, TUnloadCallback> TSourceHolder;
-            sourceHolder = RecyclerNewFinalized(scriptContext->GetRecycler(), TSourceHolder, scriptLoadCallback, scriptUnloadCallback, sourceContext);
-        }
+        PARAM_NOT_NULL(scriptLoadCallback);
+        PARAM_NOT_NULL(scriptUnloadCallback);
+        typedef Js::JsrtSourceHolder<TLoadCallback, TUnloadCallback> TSourceHolder;
+        sourceHolder = RecyclerNewFinalized(scriptContext->GetRecycler(), TSourceHolder, scriptLoadCallback, scriptUnloadCallback, scriptLoadSourceContext);
 
         SourceContextInfo *sourceContextInfo;
         SRCINFO *hsi;
@@ -2693,15 +2685,7 @@ JsErrorCode RunSerializedScriptCore(
         }
 
         hsi = scriptContext->AddHostSrcInfo(&si);
-
-        if (script != nullptr)
-        {
-            hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, script, hsi, buffer, nullptr, &functionBody);
-        }
-        else
-        {
-            hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, sourceHolder, hsi, buffer, nullptr, &functionBody);
-        }
+        hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, sourceHolder, hsi, buffer, nullptr, &functionBody);
 
         if (FAILED(hr))
         {
@@ -2740,26 +2724,51 @@ JsErrorCode RunSerializedScriptCore(
 }
 
 #ifdef _WIN32
+
+static bool CHAKRA_CALLBACK DummyScriptLoadSourceCallback(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const wchar_t** scriptBuffer)
+{
+    // sourceContext is actually the script source pointer
+    *scriptBuffer = reinterpret_cast<const wchar_t*>(sourceContext);
+    return true;
+}
+
+static void CHAKRA_CALLBACK DummyScriptUnloadCallback(_In_ JsSourceContext sourceContext)
+{
+    // Do nothing
+}
+
 CHAKRA_API JsParseSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext,
     _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunSerializedScriptCore<JsSerializedScriptLoadSourceCallback, JsSerializedScriptUnloadCallback>(nullptr/*script*/, nullptr, nullptr, buffer, sourceContext, sourceUrl, true, result);
+    return RunSerializedScriptCore(
+        DummyScriptLoadSourceCallback, DummyScriptUnloadCallback,
+        reinterpret_cast<JsSourceContext>(script), // use script source pointer as scriptLoadSourceContext
+        buffer, sourceContext, sourceUrl, true, result);
 }
 
 CHAKRA_API JsRunSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext,
     _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunSerializedScriptCore<JsSerializedScriptLoadSourceCallback, JsSerializedScriptUnloadCallback>(nullptr/*script*/, nullptr, nullptr, buffer, sourceContext, sourceUrl, false, result);
+    return RunSerializedScriptCore(
+        DummyScriptLoadSourceCallback, DummyScriptUnloadCallback,
+        reinterpret_cast<JsSourceContext>(script), // use script source pointer as scriptLoadSourceContext
+        buffer, sourceContext, sourceUrl, false, result);
 }
 
 CHAKRA_API JsParseSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback, _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback, _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunSerializedScriptCore<JsSerializedScriptLoadSourceCallback, JsSerializedScriptUnloadCallback>(nullptr, scriptLoadCallback, scriptUnloadCallback, buffer, sourceContext, sourceUrl, true, result);
+    return RunSerializedScriptCore(
+        scriptLoadCallback, scriptUnloadCallback,
+        sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
+        buffer, sourceContext, sourceUrl, true, result);
 }
 
 CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback, _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback, _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_opt_ JsValueRef * result)
 {
-    return RunSerializedScriptCore<JsSerializedScriptLoadSourceCallback, JsSerializedScriptUnloadCallback>(nullptr, scriptLoadCallback, scriptUnloadCallback, buffer, sourceContext, sourceUrl, false, result);
+    return RunSerializedScriptCore(
+        scriptLoadCallback, scriptUnloadCallback,
+        sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
+        buffer, sourceContext, sourceUrl, false, result);
 }
 #endif // _WIN32
 
@@ -2795,7 +2804,10 @@ CHAKRA_API JsRunSerializedScriptUtf8(
         return JsErrorOutOfMemory;
     }
 
-    return RunSerializedScriptCore(nullptr, scriptLoadCallback, scriptUnloadCallback, buffer, sourceContext, url, false, result);
+    return RunSerializedScriptCore(
+        scriptLoadCallback, scriptUnloadCallback,
+        sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
+        buffer, sourceContext, url, false, result);
 }
 
 CHAKRA_API JsExperimentalApiRunModuleUtf8(
