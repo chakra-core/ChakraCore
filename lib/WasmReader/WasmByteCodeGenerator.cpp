@@ -217,12 +217,12 @@ WasmBytecodeGenerator::GenerateFunction()
                     arity = 1;
                 }
                 m_reader.m_currentNode.ret.arity = arity;
-                EmitReturnExpr(&exprInfo);
+                EmitReturnExpr();
             }
             else if (returnType == Wasm::WasmTypes::Void) 
             {
                 m_reader.m_currentNode.ret.arity = 0;
-                EmitReturnExpr(&exprInfo);
+                EmitReturnExpr();
             }
             ExitEvalStackScope();
         }
@@ -1035,7 +1035,7 @@ WasmBytecodeGenerator::GetConstReg(T constVal)
 }
 
 EmitInfo
-WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
+WasmBytecodeGenerator::EmitReturnExpr()
 {
     if (m_funcInfo->GetResultType() == WasmTypes::Void)
     {
@@ -1076,10 +1076,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
         }
 
         m_writer.Conv(retOp, 0, retExprInfo.location);
-        if (!lastStmtExprInfo)
-        {
-            ReleaseLocation(&retExprInfo);
-        }
+        ReleaseLocation(&retExprInfo);
     }
     m_writer.AsmBr(m_funcInfo->GetExitLabel());
 
