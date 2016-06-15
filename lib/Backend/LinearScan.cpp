@@ -1649,6 +1649,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             if (currentBailOutRecord->argOutOffsetInfo->outParamOffsets == nullptr)
             {
                 Assert(currentBailOutRecord->argOutOffsetInfo->startCallOutParamCounts == nullptr);
+                currentBailOutRecord->argOutOffsetInfo->startCallIndex = i;
                 currentBailOutRecord->argOutOffsetInfo->startCallOutParamCounts = &startCallOutParamCounts[i];
 #ifdef _M_IX86
                 currentBailOutRecord->startCallArgRestoreAdjustCounts = &startCallArgRestoreAdjustCounts[i];

@@ -176,7 +176,12 @@ public:
         FixupNativeDataPointer(ehBailoutData, chunkList);
         FixupNativeDataPointer(stackLiteralBailOutRecord, chunkList);
 #ifdef _M_IX86
-        FixupNativeDataPointer(startCallArgRestoreAdjustCounts, chunkList);
+        // special handling for startCallOutParamCounts and outParamOffsets, becuase it points to middle of the allocation
+        if (argOutOffsetInfo)
+        {
+            uint* startCallArgRestoreAdjustCountsStart = startCallArgRestoreAdjustCounts - argOutOffsetInfo->startCallIndex;
+            NativeCodeData::AddFixupEntry(startCallArgRestoreAdjustCounts, startCallArgRestoreAdjustCountsStart, &this->startCallArgRestoreAdjustCounts, this, chunkList);
+        }
 #endif
     }
 
@@ -262,14 +267,21 @@ protected:
         int * outParamOffsets;
         uint startCallCount;
         uint argOutSymStart;
+        uint startCallIndex;
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
             FixupNativeDataPointer(argOutFloat64Syms, chunkList);
             FixupNativeDataPointer(argOutLosslessInt32Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128F4Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128I4Syms, chunkList);
-            FixupNativeDataPointer(startCallOutParamCounts, chunkList);
-            FixupNativeDataPointer(outParamOffsets, chunkList);
+
+            // special handling for startCallOutParamCounts and outParamOffsets, becuase it points to middle of the allocation
+            uint* startCallOutParamCountsStart = startCallOutParamCounts - startCallIndex;
+            NativeCodeData::AddFixupEntry(startCallOutParamCounts, startCallOutParamCountsStart, &this->startCallOutParamCounts, this, chunkList);
+
+            int* outParamOffsetsStart = outParamOffsets - argOutSymStart;
+            NativeCodeData::AddFixupEntry(outParamOffsets, outParamOffsetsStart, &this->outParamOffsets, this, chunkList);
+            
         }
     };
 

@@ -916,7 +916,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
                         if (PHASE_TRACE1(Js::NativeCodeDataPhase))
                         {
-                            Output::Print(L"\t NativeCodeData Fixup Entry: +%p(%p) ==> %p:\n", addrToFixup, *(void**)(addrToFixup), targetAddr);
+                            Output::Print(L"\tEntry: +%x %p(%p) ==> %p\n", updateList->addrOffset, addrToFixup, *(void**)(addrToFixup), targetAddr);
                         }
 
                         *(void**)(addrToFixup) = targetAddr;

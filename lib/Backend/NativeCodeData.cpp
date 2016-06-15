@@ -18,11 +18,18 @@ NativeCodeData::~NativeCodeData()
     PERF_COUNTER_SUB(Code, TotalNativeCodeDataSize, this->size);
 }
 
+void
+NativeCodeData::AddFixupEntry(void* targetAddr, void* addrToFixup, void* startAddress, DataChunk * chunkList)
+{
+    return NativeCodeData::AddFixupEntry(targetAddr, targetAddr, addrToFixup, startAddress, chunkList);
+}
+
 // targetAddr: target address
+// targetStartAddr: target start address, some fied might reference to middle of another data chunk, like outParamOffsets
 // startAddress: current data start address
 // addrToFixup: address that currently pointing to dataAddr, which need to be updated
 void
-NativeCodeData::AddFixupEntry(void* targetAddr, void* addrToFixup, void* startAddress, DataChunk * chunkList)
+NativeCodeData::AddFixupEntry(void* targetAddr, void* targetStartAddr, void* addrToFixup, void* startAddress, DataChunk * chunkList)
 {
     Assert(addrToFixup >= startAddress);
     Assert(((__int64)addrToFixup) % sizeof(void*) == 0);
@@ -32,7 +39,11 @@ NativeCodeData::AddFixupEntry(void* targetAddr, void* addrToFixup, void* startAd
         return;
     }
 
-    DataChunk* targetChunk = NativeCodeData::GetDataChunk(targetAddr);
+    Assert(targetStartAddr);
+    
+    unsigned int inDataOffset = (unsigned int)((char*)targetAddr - (char*)targetStartAddr);
+    DataChunk* targetChunk = NativeCodeData::GetDataChunk(targetStartAddr);
+    Assert(targetChunk->len >= inDataOffset);
 
 #if DBG
     bool foundTargetChunk = false;
@@ -42,7 +53,7 @@ NativeCodeData::AddFixupEntry(void* targetAddr, void* addrToFixup, void* startAd
         chunkList = chunkList->next;
     }
     AssertMsg(foundTargetChunk, "current pointer is not allocated with NativeCodeData allocator?"); // change to valid check instead of assertion?
-#endif
+#endif    
 
     DataChunk* chunk = NativeCodeData::GetDataChunk(startAddress);
 
@@ -50,7 +61,7 @@ NativeCodeData::AddFixupEntry(void* targetAddr, void* addrToFixup, void* startAd
     entry->addrOffset = (unsigned int)((__int64)addrToFixup - (__int64)startAddress);
     Assert(entry->addrOffset <= chunk->len - sizeof(void*));    
 
-    entry->targetTotalOffset = targetChunk->offset;
+    entry->targetTotalOffset = targetChunk->offset + inDataOffset;
     entry->next = chunk->fixupList;
     chunk->fixupList = entry;
 
