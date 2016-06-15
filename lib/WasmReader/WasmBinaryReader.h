@@ -99,6 +99,7 @@ namespace Wasm
             WasmOp ReadFromCall();
             WasmOp ReadExpr();
             WasmOp GetLastOp();
+            WasmBinOp GetLastBinOp() const { return m_lastOp; }
 #if DBG_DUMP
             void PrintOps();
 #endif

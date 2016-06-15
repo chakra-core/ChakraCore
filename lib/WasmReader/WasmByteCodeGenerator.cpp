@@ -336,10 +336,10 @@ WasmBytecodeGenerator::GenerateFunction()
     {
         if (!PHASE_ON1(Js::WasmLazyTrapPhase))
         {
-            throw WasmCompilationException(_u("%s\n  Function %s"), ex.GetErrorMessage(), functionName);
+            throw WasmCompilationException(_u("function %s: %s"), functionName, ex.GetErrorMessage());
         }
         Assert(m_module->lazyTraps != nullptr);
-        WasmCompilationException* lazyTrap = Anew(&m_alloc, WasmCompilationException, _u("Delayed Wasm trap:\n  %s\n  Function %s"), ex.GetErrorMessage(), functionName);
+        WasmCompilationException* lazyTrap = Anew(&m_alloc, WasmCompilationException, _u("(delayed) function %s: %s"), functionName, ex.GetErrorMessage());
         m_module->lazyTraps[wasmInfo->GetNumber()] = lazyTrap;
     }
     return m_currentFunc;
@@ -479,8 +479,16 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         break;
 #include "WasmKeywords.h"
     case wnNYI:
-        // todo:: add the name of the operator that is NYI
-        throw WasmCompilationException(_u("Operator NYI"));
+        switch (m_reader.GetLastBinOp())
+        {
+#define WASM_OPCODE(opname, opcode, token, sig) \
+    case opcode: \
+        throw WasmCompilationException(_u("Operator " #opname## " NYI"));
+        break;
+#include "WasmBinaryOpcodes.h"
+        default:
+            break;
+        }
     default:
         throw WasmCompilationException(_u("Unknown expression's op 0x%X"), op);
     }
@@ -690,8 +698,10 @@ WasmBytecodeGenerator::EmitCall()
         switch (info.type)
         {
         case WasmTypes::F32:
-            Assert(wasmOp != wnCALL_IMPORT);
-            // REVIEW: support FFI call with f32 params?
+            if (wasmOp == wnCALL_IMPORT) 
+            {
+                throw WasmCompilationException(_u("External calls with float argument NYI"));
+            }
             argOp = Js::OpCodeAsmJs::I_ArgOut_Flt;
             break;
         case WasmTypes::F64:
