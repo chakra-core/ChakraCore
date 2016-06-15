@@ -11,6 +11,7 @@ from threading import Timer
 import sys
 import os
 import subprocess as SP
+import traceback
 import argparse
 import xml.etree.ElementTree as ET
 import re
@@ -112,6 +113,15 @@ if sys.platform != 'win32':
 not_compile_flags = set(['-simdjs']) \
     if sys.platform != 'win32' else None
 
+# use tags/not_tags/not_compile_flags as case-insensitive
+def lower_set(s):
+    return set([x.lower() for x in s] if s else [])
+
+tags = lower_set(tags)
+not_tags = lower_set(not_tags)
+not_compile_flags = lower_set(not_compile_flags)
+
+
 class LogFile(object):
     def __init__(self, log_file_path = None):
         self.file = None
@@ -150,6 +160,34 @@ def log_message(msg = ""):
 def print_and_log(msg = ""):
     print(msg)
     log_message(msg)
+
+# remove carriage returns at end of line to avoid platform difference
+def normalize_new_line(text):
+    return re.sub(b'[\r]+\n', b'\n', text)
+
+# A test simply contains a collection of test attributes.
+# Misc attributes added by test run:
+#   filename        full path of test file
+#   elapsed_time    elapsed time when running the test
+#
+class Test(dict):
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+    # support dot syntax for normal attribute access
+    def __getattr__(self, key):
+        return super(Test, self).__getattr__(key) if key.startswith('__') \
+                else self.get(key)
+
+    # mark start of this test run, to compute elapsed_time
+    def start(self):
+        self.start_time = datetime.now()
+
+    # mark end of this test run, compute elapsed_time
+    def done(self):
+        if not self.elapsed_time:
+            self.elapsed_time = (datetime.now() - self.start_time)\
+                                .total_seconds()
 
 # records pass_count/fail_count
 class PassFailCount(object):
@@ -209,7 +247,7 @@ class TestVariant(object):
     # check if this test variant should run a given test
     def _should_test(self, test):
         tags = test.get('tags')
-        tags = set(tags.split(',')) if tags else self._empty_set
+        tags = set(tags.lower().split(',')) if tags else self._empty_set
         if not tags.isdisjoint(self.not_tags):
             return False
         if self.tags and not self.tags.issubset(tags):
@@ -223,13 +261,13 @@ class TestVariant(object):
 
     # print output from multi-process run, to be sent with result message
     def _print(self, line):
-        self._print_lines.append(line)
+        self._print_lines.append(str(line))
 
     # queue a test result from multi-process runs
-    def _log_result(self, filename, fail, elapsed_time):
+    def _log_result(self, test, fail):
         output = '\n'.join(self._print_lines) # collect buffered _print output
         self._print_lines = []
-        self.msg_queue.put((filename, fail, elapsed_time, output))
+        self.msg_queue.put((test.filename, fail, test.elapsed_time, output))
 
     # (on main process) process one queued message
     def _process_msg(self, msg):
@@ -258,20 +296,19 @@ class TestVariant(object):
         self._process_msg(self.msg_queue.get())
 
     # log a failed test with details
-    def _show_failed(self, flags, filename,
-                    output, exit_code, elapsed_time,
+    def _show_failed(self, test, flags, exit_code, output,
                     expected_output=None, timedout=False):
         if timedout:
             self._print('ERROR: Test timed out!')
-        self._print('{} {} {}'.format(binary, ' '.join(flags), filename));
+        self._print('{} {} {}'.format(binary, ' '.join(flags), test.filename))
         if expected_output == None or timedout:
             self._print("\nOutput:")
             self._print("----------------------------")
             self._print(output)
             self._print("----------------------------")
         else:
-            lst_output = output.split('\n')
-            lst_expected = expected_output.split('\n')
+            lst_output = output.split(b'\n')
+            lst_expected = expected_output.split(b'\n')
             ln = min(len(lst_output), len(lst_expected))
             for i in range(0, ln):
                 if lst_output[i] != lst_expected[i]:
@@ -286,7 +323,7 @@ class TestVariant(object):
                     break
 
         self._print("exit code: {}".format(exit_code))
-        self._log_result(filename, fail=True, elapsed_time=elapsed_time)
+        self._log_result(test, fail=True)
 
     # temp: try find real file name on hard drive if case mismatch
     def _check_file(self, folder, filename):
@@ -306,17 +343,28 @@ class TestVariant(object):
         return path
 
     # run one test under this variant
-    def test_one(self, folder, test):
-        js_file = self._check_file(folder, test['files'])
-        js_output = ""
+    def test_one(self, test):
+        try:
+            test.start()
+            self._run_one_test(test)
+        except Exception:
+            test.done()
+            self._print(traceback.format_exc())
+            self._log_result(test, fail=True)
+
+    # internally perform one test run
+    def _run_one_test(self, test):
+        folder = test.folder
+        js_file = test.filename = self._check_file(folder, test.files)
+        js_output = b''
 
         working_path = os.path.dirname(js_file)
-        file_name = os.path.basename(js_file)
 
         flags = test.get('compile-flags')
         flags = self.compile_flags + (flags.split() if flags else [])
-        cmd = [binary] + flags + [file_name]
+        cmd = [binary] + flags + [os.path.basename(js_file)]
 
+        test.start()
         proc = SP.Popen(cmd, stdout=SP.PIPE, stderr=SP.STDOUT, cwd=working_path)
         timeout_data = [proc, False]
         def timeout_func(timeout_data):
@@ -324,19 +372,17 @@ class TestVariant(object):
             timeout_data[1] = True
         timeout = test.get('timeout', args.timeout) # test override or default
         timer = Timer(timeout, timeout_func, [timeout_data])
-        start_time = datetime.now()
         try:
             timer.start()
-            js_output = proc.communicate()[0].replace('\r','')
+            js_output = normalize_new_line(proc.communicate()[0])
             exit_code = proc.wait()
         finally:
             timer.cancel()
-        elapsed_time = (datetime.now() - start_time).total_seconds()
+        test.done()
 
         # shared _show_failed args
-        fail_args = { 'flags': flags, 'filename': js_file,
-                    'output': js_output, 'exit_code': exit_code,
-                    'elapsed_time': elapsed_time };
+        fail_args = { 'test': test, 'flags': flags,
+                      'exit_code': exit_code, 'output': js_output };
 
         # check timed out
         if (timeout_data[1]):
@@ -349,8 +395,8 @@ class TestVariant(object):
         # check output
         if 'baseline' not in test:
             # output lines must be 'pass' or 'passed' or empty
-            lines = (line.lower() for line in js_output.split('\n'))
-            if any(line != '' and line != 'pass' and line != 'passed'
+            lines = (line.lower() for line in js_output.split(b'\n'))
+            if any(line != b'' and line != b'pass' and line != b'passed'
                     for line in lines):
                 return self._show_failed(**fail_args)
         else:
@@ -358,27 +404,25 @@ class TestVariant(object):
             if baseline:
                 # perform baseline comparison
                 baseline = self._check_file(working_path, baseline)
-                expected_output = None
-                with open(baseline, 'r') as bs_file:
+                with open(baseline, 'rb') as bs_file:
                     baseline_output = bs_file.read()
 
                 # Cleanup carriage return
                 # todo: remove carriage return at the end of the line
                 #       or better fix ch to output same on all platforms
-                expected_output = re.sub('[\r]+\n', '\n', baseline_output)
+                expected_output = normalize_new_line(baseline_output)
 
-                # todo: implement wild cards support
                 if expected_output != js_output:
                     return self._show_failed(
                         expected_output=expected_output, **fail_args)
 
         # passed
-        self._log_result(js_file, fail=False, elapsed_time=elapsed_time)
+        self._log_result(test, fail=False)
 
     # run tests under this variant, using given multiprocessing Pool
     def run(self, tests, pool):
-        print_and_log('\n############# Starting {} variant #############'.format(
-            self.name))
+        print_and_log('\n############# Starting {} variant #############'\
+                        .format(self.name))
         if self.tags:
             print_and_log('  tags: {}'.format(self.tags))
         for x in self.not_tags:
@@ -386,18 +430,18 @@ class TestVariant(object):
         print_and_log()
 
         # filter tests to run
-        tests = [x for x in tests if self._should_test(x[1])]
+        tests = [x for x in tests if self._should_test(x)]
         self.test_count = len(tests)
 
         # run tests in parallel
-        result = pool.map_async(run_one,
-                    [(self,folder,test) for folder,test in tests])
+        result = pool.map_async(run_one, [(self,test) for test in tests])
         while self.test_result.total_count() != self.test_count:
             self._process_one_msg()
 
     # print test result summary
     def print_summary(self):
-        print_and_log('\n######## Logs for {} variant ########'.format(self.name))
+        print_and_log('\n######## Logs for {} variant ########'\
+                        .format(self.name))
         for folder, result in sorted(self.test_result.folders.items()):
             print_and_log('{}: {}'.format(folder, result))
         print_and_log("----------------------------")
@@ -405,9 +449,12 @@ class TestVariant(object):
 
 # global run one test function for multiprocessing, used by TestVariant
 def run_one(data):
-    variant, folder, test = data
-    variant.test_one(folder, test)
-
+    try:
+        variant, test = data
+        variant.test_one(test)
+    except Exception:
+        print('ERROR: Unhandled exception!!!')
+        traceback.print_exc()
 
 # record folder/tags info from test_root/rlexedirs.xml
 class FolderTags(object):
@@ -427,7 +474,8 @@ class FolderTags(object):
             key = d.find('files').text.lower() # avoid case mismatch
             tags = d.find('tags')
             self._folder_tags[key] = \
-                set(tags.text.split(',')) if tags != None else self._empty_set
+                set(tags.text.lower().split(',')) if tags != None \
+                    else self._empty_set
 
     # check if should test a given folder
     def should_test(self, folder):
@@ -453,7 +501,7 @@ def load_tests(folder, file):
                 test[override.tag] = override.text
 
     def load_test(testXml):
-        test = dict()
+        test = Test(folder=folder)
         for c in testXml.find('default'):
             if c.tag == 'timeout':                       # timeout seconds
                 test[c.tag] = int(c.text)
@@ -470,9 +518,9 @@ def load_tests(folder, file):
 
     tests = [load_test(x) for x in xml]
     if file != None:
-        tests = [x for x in tests if x.get('files') == file]
+        tests = [x for x in tests if x.files == file]
         if len(tests) == 0 and is_jsfile(file):
-            tests = [{'files':file, 'baseline':''}]
+            tests = [Test(folder=folder, files=file, baseline='')]
     return tests
 
 def is_jsfile(path):
@@ -493,7 +541,7 @@ def main():
         else:
             folder, file = path, None
         if folder_tags.should_test(folder):
-            tests += ((folder,test) for test in load_tests(folder, file))
+            tests += load_tests(folder, file)
 
     # test variants
     variants = [
