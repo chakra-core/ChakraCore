@@ -10171,6 +10171,11 @@ CommonNumber:
     // contains a proxy anywhere in the prototype chain.
     bool JavascriptOperators::CheckIfPrototypeChainContainsProxyObject(RecyclableObject* prototype)
     {
+        if (prototype == nullptr)
+        {
+            return false;
+        }
+
         Assert(JavascriptOperators::IsObjectOrNull(prototype));
 
         while (prototype->GetTypeId() != TypeIds_Null)

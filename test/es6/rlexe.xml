@@ -708,6 +708,11 @@
   </test>
   <test>
     <default>
+      <files>nullPropertyDescriptor.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>object-is.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
