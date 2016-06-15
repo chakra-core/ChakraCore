@@ -936,6 +936,14 @@ namespace Js
         DumpIntReg(data->I2);
     }
 
+    template <class T>
+    void AsmJsByteCodeDumper::DumpBrInt1Const1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpOffset(data->RelativeJumpOffset, reader);
+        DumpIntReg(data->I1);
+        DumpI4(data->C1);
+    }
+
     // Float32x4
     template <class T>
     void AsmJsByteCodeDumper::DumpFloat32x4_2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)

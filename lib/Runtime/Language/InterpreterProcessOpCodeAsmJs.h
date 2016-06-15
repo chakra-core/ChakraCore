@@ -409,6 +409,18 @@ if (switchProfileMode) \
     }
 #define PROCESS_BR_ASM_Mem(name, func) PROCESS_BR_ASM_Mem_COMMON(name, func,)
 
+#define PROCESS_BR_ASM_Const_COMMON(name, func,suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+        PROCESS_READ_LAYOUT_ASMJS(name, BrInt1Const1, suffix); \
+        if (func(GetRegRawInt(playout->I1), playout->C1)) \
+        { \
+            ip = m_reader.SetCurrentRelativeOffset(ip, playout->RelativeJumpOffset); \
+        } \
+        break; \
+    }
+#define PROCESS_BR_ASM_Const(name, func) PROCESS_BR_ASM_Const_COMMON(name, func,)
+
 #define PROCESS_BR_ASM_MemStack_COMMON(name, func,suffix) \
     case OpCodeAsmJs::name: \
     { \

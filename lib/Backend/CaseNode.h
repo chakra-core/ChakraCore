@@ -16,6 +16,28 @@ private:
     IR::BranchInstr*    caseInstr;      // caseInstr - stores the case instruction
     IR::Opnd*           lowerBound;     // lowerBound - used for integer cases
 
+    int32 GetIntConst(IR::Opnd* opnd)
+    {
+        Assert(IsIntConst(opnd));
+        return opnd->IsIntConstOpnd() ? opnd->AsIntConstOpnd()->AsInt32() : opnd->GetStackSym()->GetIntConstValue();
+    }
+
+    Js::JavascriptString* GetStringConst(IR::Opnd* opnd)
+    {
+        Assert(IsStrConst(opnd));
+        return Js::JavascriptString::FromVar(opnd->GetStackSym()->GetConstAddress());
+    }
+
+    bool IsIntConst(IR::Opnd* opnd)
+    {
+        return opnd->IsIntConstOpnd() || opnd->GetStackSym()->IsIntConst();
+    }
+
+    bool IsStrConst(IR::Opnd* opnd)
+    {
+        return opnd->GetStackSym()->m_isStrConst;
+    }
+
 public:
     CaseNode(IR::BranchInstr* caseInstr, uint32 offset, uint32 targetOffset, IR::Opnd* lowerBound = nullptr)
         : caseInstr(caseInstr),
@@ -25,27 +47,50 @@ public:
     {
     }
 
-    int32 GetSrc2IntConst()
+    int32 GetUpperBoundIntConst()
     {
-        AssertMsg(caseInstr->GetSrc2()->GetStackSym()->IsIntConst(),"Source2 operand is not an integer constant");
-        return caseInstr->GetSrc2()->GetStackSym()->GetIntConstValue();
+        AssertMsg(IsUpperBoundIntConst(), "Source2 operand is not an integer constant");
+        return GetIntConst(GetUpperBound());
     }
 
-    Js::JavascriptString* GetSrc2StringConst()
+    Js::JavascriptString* GetUpperBoundStrConst()
     {
-        AssertMsg(caseInstr->GetSrc2()->GetStackSym()->m_isStrConst,"Source2 operand is not an integer constant");
-        return Js::JavascriptString::FromVar(caseInstr->GetSrc2()->GetStackSym()->GetConstAddress());
+        AssertMsg(IsUpperBoundStrConst(),"Source2 operand is not a string constant");
+        return GetStringConst(GetUpperBound());
     }
 
-    bool IsSrc2IntConst()
+    bool IsUpperBoundIntConst()
     {
-        return caseInstr->GetSrc2()->GetStackSym()->IsIntConst();
+        return IsIntConst(GetUpperBound());
     }
 
-    bool IsSrc2StrConst()
+    bool IsUpperBoundStrConst()
     {
-        return caseInstr->GetSrc2()->GetStackSym()->m_isStrConst;
+        return IsStrConst(GetUpperBound());
     }
+
+    int32 GetLowerBoundIntConst()
+    {
+        AssertMsg(IsLowerBoundIntConst(), "LowerBound is not an integer constant");
+        return GetIntConst(lowerBound);
+    }
+
+    Js::JavascriptString* GetLowerBoundStrConst()
+    {
+        AssertMsg(IsLowerBoundStrConst(), "LowerBound is not a string constant");
+        return GetStringConst(lowerBound);
+    }
+
+    bool IsLowerBoundIntConst()
+    {
+        return IsIntConst(lowerBound);
+    }
+
+    bool IsLowerBoundStrConst()
+    {
+        return IsStrConst(lowerBound);
+    }
+
     uint32 GetOffset()
     {
         return offset;

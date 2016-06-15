@@ -77,6 +77,7 @@ MACRO_WMS   ( BrEq_Int                  , BrInt2       , None            ) // Ju
 MACRO_WMS   ( BeginSwitch_Int           , Int2         , None            ) // Start of an integer switch statement, same function as Ld_Int
 MACRO       ( EndSwitch_Int             , AsmBr        , OpNoFallThrough ) // End of an integer switch statement, jumps to default case or past end of switch
 MACRO_WMS   ( Case_Int                  , BrInt2       , None            ) // Integer branch, same function as BrInt2
+MACRO_WMS   ( Case_IntConst             , BrInt1Const1 , None            ) // Integer branch with inline const, same function as BrInt2
 
 // Type conversion
 MACRO_WMS   ( Reinterpret_ITF           , Float1Int1   , None            ) // reinterpret bits of int to float

@@ -76,6 +76,7 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( I1toI1Mem        , BeginSwitch_Int, (int)                                            )
   DEF2    ( BR_ASM           , EndSwitch_Int, OP_Br                                              )
   DEF2_WMS( BR_ASM_Mem       , Case_Int     , AsmJsMath::CmpEq<int>                              )
+  DEF2_WMS( BR_ASM_Const     , Case_IntConst, AsmJsMath::CmpEq<int>                              )
 
   DEF2_WMS( I1toI1Mem        , Neg_Int      , AsmJsMath::Neg<int>                                ) // int unary '-'
   DEF2_WMS( I1toI1Mem        , Not_Int      , AsmJsMath::Not                                     ) // int unary '~'

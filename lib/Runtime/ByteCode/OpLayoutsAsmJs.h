@@ -453,6 +453,13 @@ namespace Js
         typename SizePolicy::RegSlotType     I2;
     };
 
+    template <typename SizePolicy>
+    struct OpLayoutT_BrInt1Const1
+    {
+        int32  RelativeJumpOffset;
+        typename SizePolicy::RegSlotType     I1;
+        int32     C1;
+    };
 
     /* Float32x4 layouts */
     //--------------------
