@@ -86,8 +86,7 @@ WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
     va_list argptr;
     va_start(argptr, msg);
     // We need to do a format twice (or concat the 2 strings)
-    WasmCompilationException baseEx(msg, argptr);
-    throw WasmCompilationException(_u("Binary decoding failed:\n  %s"), baseEx.GetErrorMessage());
+    throw WasmCompilationException(msg, argptr);
 }
 
 bool

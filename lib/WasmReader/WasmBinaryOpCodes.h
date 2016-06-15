@@ -182,8 +182,8 @@ WASM_SIMPLE_OPCODE(F32Neg,              0x7c, NEG_F32,          F_F)
 WASM_SIMPLE_OPCODE(F32CopySign,         0x7d, COPYSIGN_F32,     F_FF)
 WASM_SIMPLE_OPCODE(F32Ceil,             0x7e, CEIL_F32,         F_F)
 WASM_SIMPLE_OPCODE(F32Floor,            0x7f, FLOOR_F32,        F_F)
-WASM_SIMPLE_OPCODE(F32Trunc,            0x80, TRUNC_F32,        F_F)
-WASM_SIMPLE_OPCODE(F32NearestInt,       0x81, NEAREST_F32,      F_F)
+WASM_SIMPLE_OPCODE(F32Trunc,            0x80, NYI,              F_F) //TRUNC_F32
+WASM_SIMPLE_OPCODE(F32NearestInt,       0x81, NYI,              F_F) //NEAREST_F32
 WASM_SIMPLE_OPCODE(F32Sqrt,             0x82, SQRT_F32,         F_F)
 WASM_SIMPLE_OPCODE(F32Eq,               0x83, EQ_F32,           I_FF)
 WASM_SIMPLE_OPCODE(F32Ne,               0x84, NEQ_F32,          I_FF)
@@ -199,11 +199,11 @@ WASM_SIMPLE_OPCODE(F64Min,              0x8d, MIN_F64,          D_DD)
 WASM_SIMPLE_OPCODE(F64Max,              0x8e, MAX_F64,          D_DD)
 WASM_SIMPLE_OPCODE(F64Abs,              0x8f, ABS_F64,          D_D)
 WASM_SIMPLE_OPCODE(F64Neg,              0x90, NEG_F64,          D_D)
-WASM_SIMPLE_OPCODE(F64CopySign,         0x91, COPYSIGN_F64,     D_DD)
+WASM_SIMPLE_OPCODE(F64CopySign,         0x91, NYI,              D_DD) //COPYSIGN_F64
 WASM_SIMPLE_OPCODE(F64Ceil,             0x92, CEIL_F64,         D_D)
 WASM_SIMPLE_OPCODE(F64Floor,            0x93, FLOOR_F64,        D_D)
-WASM_SIMPLE_OPCODE(F64Trunc,            0x94, TRUNC_F64,        D_D)
-WASM_SIMPLE_OPCODE(F64NearestInt,       0x95, NEAREST_F64,      D_D)
+WASM_SIMPLE_OPCODE(F64Trunc,            0x94, NYI,              D_D) //TRUNC_F64
+WASM_SIMPLE_OPCODE(F64NearestInt,       0x95, NYI,              D_D) //NEAREST_F64
 WASM_SIMPLE_OPCODE(F64Sqrt,             0x96, SQRT_F64,         D_D)
 WASM_SIMPLE_OPCODE(F64Eq,               0x97, EQ_F64,           I_DD)
 WASM_SIMPLE_OPCODE(F64Ne,               0x98, NEQ_F64,          I_DD)
@@ -213,8 +213,8 @@ WASM_SIMPLE_OPCODE(F64Gt,               0x9b, GT_F64,           I_DD)
 WASM_SIMPLE_OPCODE(F64Ge,               0x9c, GE_F64,           I_DD)
 WASM_SIMPLE_OPCODE(I32SConvertF32,      0x9d, TRUNC_S_F32_I32,  I_F)
 WASM_SIMPLE_OPCODE(I32SConvertF64,      0x9e, TRUNC_S_F64_I32,  I_D)
-WASM_SIMPLE_OPCODE(I32UConvertF32,      0x9f, TRUNC_U_F32_I32,  I_F)
-WASM_SIMPLE_OPCODE(I32UConvertF64,      0xa0, TRUNC_U_F64_I32,  I_D)
+WASM_SIMPLE_OPCODE(I32UConvertF32,      0x9f, NYI,              I_F) //TRUNC_U_F32_I32
+WASM_SIMPLE_OPCODE(I32UConvertF64,      0xa0, NYI,              I_D) //TRUNC_U_F64_I32
 WASM_SIMPLE_OPCODE(I32ConvertI64,       0xa1, NYI,              I_L)
 WASM_SIMPLE_OPCODE(I64SConvertF32,      0xa2, NYI,              L_F)
 WASM_SIMPLE_OPCODE(I64SConvertF64,      0xa3, NYI,              L_D)
@@ -223,13 +223,13 @@ WASM_SIMPLE_OPCODE(I64UConvertF64,      0xa5, NYI,              L_D)
 WASM_SIMPLE_OPCODE(I64SConvertI32,      0xa6, NYI,              L_I)
 WASM_SIMPLE_OPCODE(I64UConvertI32,      0xa7, NYI,              L_I)
 WASM_SIMPLE_OPCODE(F32SConvertI32,      0xa8, CONVERT_S_I32_F32,F_I)
-WASM_SIMPLE_OPCODE(F32UConvertI32,      0xa9, CONVERT_U_I32_F32,F_I)
+WASM_SIMPLE_OPCODE(F32UConvertI32,      0xa9, NYI,              F_I) //CONVERT_U_I32_F32
 WASM_SIMPLE_OPCODE(F32SConvertI64,      0xaa, NYI,              F_L)
 WASM_SIMPLE_OPCODE(F32UConvertI64,      0xab, NYI,              F_L)
 WASM_SIMPLE_OPCODE(F32ConvertF64,       0xac, DEMOTE_F64_F32,   F_D)
-WASM_SIMPLE_OPCODE(F32ReinterpretI32,   0xad, REINTERPRET_I32_F32, F_I)
+WASM_SIMPLE_OPCODE(F32ReinterpretI32,   0xad, NYI,              F_I) //REINTERPRET_I32_F32
 WASM_SIMPLE_OPCODE(F64SConvertI32,      0xae, CONVERT_S_I32_F64,D_I)
-WASM_SIMPLE_OPCODE(F64UConvertI32,      0xaf, CONVERT_U_I32_F64,D_I)
+WASM_SIMPLE_OPCODE(F64UConvertI32,      0xaf, NYI,              D_I) //CONVERT_U_I32_F64
 WASM_SIMPLE_OPCODE(F64SConvertI64,      0xb0, NYI,              D_L)
 WASM_SIMPLE_OPCODE(F64UConvertI64,      0xb1, NYI,              D_L)
 WASM_SIMPLE_OPCODE(F64ConvertF32,       0xb2, PROMOTE_F32_F64,  D_F)

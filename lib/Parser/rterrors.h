@@ -275,7 +275,7 @@ RT_ERROR_MSG(JSERR_DeletePropertyWithSuper, 5146, "Unable to delete property '%s
 RT_ERROR_MSG(JSERR_DetachedTypedArray, 5147, "%s: The ArrayBuffer is detached.", "The ArrayBuffer is detached.", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_AsmJsCompileError, 5148, "%s: Compiling asm.js failed.", "Compiling asm.js failed.", kjstError, 0)
 RT_ERROR_MSG(JSERR_ImmutablePrototypeSlot, 5149, "%s: Can't set the prototype of this object.", "Can't set the prototype of this object.", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_WasmCompileError, 5150, "Compiling wasm failed:  %s", "Compiling wasm failed.", kjstError, 0)
+RT_ERROR_MSG(JSERR_WasmCompileError, 5150, "Compiling wasm failed: %s", "Compiling wasm failed.", kjstError, 0)
 
 /* Error messages for misbehaved Async Operations for use in Promise.js */
 RT_ERROR_MSG(ASYNCERR_NoErrorInErrorState, 5200, "", "Status is 'error', but getResults did not return an error", kjstError, 0)
