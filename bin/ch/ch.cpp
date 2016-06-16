@@ -261,6 +261,28 @@ Error:
     return hr;
 }
 
+static HRESULT CreateRuntime(JsRuntimeHandle *runtime)
+{
+    HRESULT hr = E_FAIL;
+    IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, runtime));
+
+#ifndef _WIN32
+    // On Posix, malloc may not return NULL even if there is no
+    // memory left. However, kernel will send SIGKILL to process
+    // in case we use that `not actually available` memory address.
+    // (See posix man malloc and OOM)
+
+    size_t memoryLimit;
+    if (PlatformAgnostic::SystemInfo::GetTotalRam(&memoryLimit))
+    {
+        IfJsErrorFailLog(ChakraRTInterface::JsSetRuntimeMemoryLimit(*runtime, memoryLimit));
+    }
+#endif
+    hr = S_OK;
+Error:
+    return hr;
+}
+
 HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, char *fullPath)
 {
     HRESULT hr = S_OK;
@@ -272,7 +294,7 @@ HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, 
 
     // Bytecode buffer is created in one runtime and will be executed on different runtime.
 
-    IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
+    IfFailGo(CreateRuntime(&runtime));
 
     IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
     IfJsErrorFailLog(ChakraRTInterface::JsGetCurrentContext(&current));
@@ -323,7 +345,7 @@ HRESULT ExecuteTest(const char* fileName)
     {
         jsrtAttributes = (JsRuntimeAttributes)(jsrtAttributes | JsRuntimeAttributeSerializeLibraryByteCode);
     }
-    IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
+    IfFailGo(CreateRuntime(&runtime));
 
     if (HostConfigFlags::flags.DebugLaunch)
     {

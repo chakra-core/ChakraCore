@@ -27,6 +27,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE -pie")
 target_link_libraries (ch
   PRIVATE Chakra.Pal
   PRIVATE Chakra.Common.Codex
+  PRIVATE Chakra.Runtime.PlatformAgnostic
   -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/ch.version
   )
 

@@ -69,6 +69,7 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
 
     m_jsApiHooks.pfJsrtCreateRuntime = (JsAPIHooks::JsrtCreateRuntimePtr)GetChakraCoreSymbol(library, "JsCreateRuntime");
     m_jsApiHooks.pfJsrtCreateContext = (JsAPIHooks::JsrtCreateContextPtr)GetChakraCoreSymbol(library, "JsCreateContext");
+    m_jsApiHooks.pfJsrtSetRuntimeMemoryLimit = (JsAPIHooks::JsrtSetRuntimeMemoryLimitPtr)GetChakraCoreSymbol(library, "JsSetRuntimeMemoryLimit");
     m_jsApiHooks.pfJsrtSetCurrentContext = (JsAPIHooks::JsrtSetCurrentContextPtr)GetChakraCoreSymbol(library, "JsSetCurrentContext");
     m_jsApiHooks.pfJsrtGetCurrentContext = (JsAPIHooks::JsrtGetCurrentContextPtr)GetChakraCoreSymbol(library, "JsGetCurrentContext");
     m_jsApiHooks.pfJsrtDisposeRuntime = (JsAPIHooks::JsrtDisposeRuntimePtr)GetChakraCoreSymbol(library, "JsDisposeRuntime");
