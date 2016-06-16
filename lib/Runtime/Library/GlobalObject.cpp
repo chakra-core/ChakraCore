@@ -1620,7 +1620,7 @@ LHexError:
         return scriptContext->GetLibrary()->GetUndefined();
     }
 
-#if ENABLE_TTD
+#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
     //Log a string in the telemetry system (and print to the console)
     Var GlobalObject::EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...)
     {

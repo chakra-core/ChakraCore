@@ -51,7 +51,7 @@ namespace Js
             static FunctionInfo UnEscape;
             static FunctionInfo CollectGarbage;
 
-#if ENABLE_TTD
+#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
             static FunctionInfo TelemetryLog;
 #endif
 
@@ -77,7 +77,7 @@ namespace Js
 
         static Var EntryCollectGarbage(RecyclableObject* function, CallInfo callInfo, ...);
 
-#if ENABLE_TTD
+#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
         static Var EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
 

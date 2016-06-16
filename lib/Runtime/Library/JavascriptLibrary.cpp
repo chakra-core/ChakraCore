@@ -1263,7 +1263,7 @@ namespace Js
             AddFunctionToLibraryObject(globalObject, PropertyIds::CollectGarbage, &GlobalObject::EntryInfo::CollectGarbage, 0);
         }
 
-#if ENABLE_TTD
+#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
         AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("telemetryLog"), &GlobalObject::EntryInfo::TelemetryLog, 3);
 #endif
 
@@ -4707,9 +4707,9 @@ namespace Js
         else
         {
 #if ENABLE_TTD
-			//
-			//TODO: need to implement support for this path
-			//
+            //
+            //TODO: need to implement support for this path
+            //
             AssertMsg(false, "Path not implemented in TTD!!!");
 #endif
 

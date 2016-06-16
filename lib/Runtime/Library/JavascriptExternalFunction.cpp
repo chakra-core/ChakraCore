@@ -273,15 +273,9 @@ namespace Js
 
         if(scriptContext->ShouldPerformDebugAction())
         {
-            //
-            //TODO: should we move these ++/-- operations into an auto managed class like in the record case below
-            //
-
-            scriptContext->TTDRootNestingCount++;
+            TTD::TTDReplayExternalFunctionCallActionPopper logPopper(externalFunction);
 
             scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
-
-            scriptContext->TTDRootNestingCount--;
         }
         else if(scriptContext->ShouldPerformRecordAction())
         {
@@ -366,15 +360,9 @@ namespace Js
 #if ENABLE_TTD
         if(scriptContext->ShouldPerformDebugAction())
         {
-            //
-            //TODO: should we move these ++/-- operations into an auto managed class like in the record case below
-            //
-
-            scriptContext->TTDRootNestingCount++;
+            TTD::TTDReplayExternalFunctionCallActionPopper logPopper(externalFunction);
 
             scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
-
-            scriptContext->TTDRootNestingCount--;
         }
         else if(scriptContext->ShouldPerformRecordAction())
         {

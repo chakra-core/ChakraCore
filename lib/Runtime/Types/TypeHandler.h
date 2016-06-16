@@ -604,12 +604,8 @@ namespace Js
          //Return true if the mark should visit the given property id (we want to skip most internal property ids)
          static bool ShouldMarkPropertyId_TTD(Js::PropertyId pid)
          {
-             if((pid == Js::Constants::NoProperty) | Js::IsInternalPropertyId(pid))
-             {
-                 return false;
-             }
-
-             return true;
+             //Use bitwise operators to allow compiler to reorder these operations since both conditions are cheap and we call in a tight loop
+             return ((pid != Js::Constants::NoProperty) & (!Js::IsInternalPropertyId(pid)));
          }
 
          //Use to extract the handler specific information during snapshot

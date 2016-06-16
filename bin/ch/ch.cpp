@@ -215,237 +215,6 @@ static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callback
     messageQueue->InsertSorted(msg);
 }
 
-void StartupDebuggerAsNeeded()
-{
-    if(dbgIPAddr != nullptr)
-    {
-        //
-        //TODO: not sure how to set IP and other stuff here !!!
-        //
-        AssertMsg(false, "Broken");
-
-        Debugger* debugger = Debugger::GetDebugger(chRuntime);
-        debugger->StartDebugging(chRuntime);
-    }
-}
-
-static void CALLBACK GetTTDDirectory(const char16* uri, char16** fullTTDUri)
-{
-#ifndef _WIN32
-    *fullTTDUri = nullptr;
-    AssertMsg(false, "Not XPLAT yet.");
-#else
-    if(uri[0] != _u('!'))
-    {
-        bool isPathDirName = (uri[wcslen(uri) - 1] == _u('\\'));
-
-        size_t rlength = (wcslen(uri) + 2);
-        *fullTTDUri = (wchar_t*)CoTaskMemAlloc(rlength * sizeof(char16));
-        if(*fullTTDUri == nullptr)
-        {
-            //This is for testing only so just assert and return here is ok
-            AssertMsg(false, "OOM");
-            return;
-        }
-
-        (*fullTTDUri)[0] = _u('\0');
-
-        wcscat_s(*fullTTDUri, rlength, uri);
-        if(!isPathDirName)
-        {
-            wcscat_s(*fullTTDUri, rlength, _u("\\"));
-        }
-    }
-    else
-    {
-        Helpers::GetDefaultTTDDirectory(fullTTDUri, uri + 1);
-    }
-#endif
-}
-
-static void CALLBACK TTInitializeForWriteLogStreamCallback(const char16* uri)
-{
-    //If the directory does not exist then we want to create it
-    Helpers::CreateDirectoryIfNeeded(uri);
-
-    //Clear the logging directory so it is ready for us to write into
-    Helpers::DeleteDirectory(uri);
-}
-
-static HANDLE TTOpenStream_Helper(const char16* uri, bool read, bool write)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return 0;
-#else
-    AssertMsg((read | write) & (!read | !write), "Read/Write streams not supported yet -- defaulting to read only");
-
-    HANDLE res = INVALID_HANDLE_VALUE;
-
-    if(read)
-    {
-        res = CreateFile(uri, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    }
-    else
-    {
-        res = CreateFile(uri, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    }
-
-    if(res == INVALID_HANDLE_VALUE)
-    {
-        DWORD lastError = GetLastError();
-        LPTSTR pTemp = NULL;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
-        fwprintf(stderr, _u(": %s\n"), pTemp);
-        fwprintf(stderr, _u("Failed on file: %ls\n"), uri);
-
-        AssertMsg(false, "Failed File Open");
-    }
-
-    return res;
-#endif
-}
-
-static HANDLE CALLBACK TTGetLogStreamCallback(const char16* uri, bool read, bool write)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return 0;
-#else
-    AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
-
-    size_t rlength = (wcslen(uri) + 16);
-    char16* logfile = new char16[rlength];
-    logfile[0] = _u('\0');
-
-    wcscat_s(logfile, rlength, uri);
-    wcscat_s(logfile, rlength, _u("ttdlog.log"));
-
-    HANDLE res = TTOpenStream_Helper(logfile, read, write);
-
-    delete[] logfile;
-    return res;
-#endif
-}
-
-static HANDLE CALLBACK TTGetSnapshotStreamCallback(const char16* uri, const char16* snapId, bool read, bool write)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return 0;
-#else
-    AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
-
-    size_t rlength = (wcslen(uri) + 64 + 16);
-    char16* snapfile = new char16[rlength];
-    snapfile[0] = _u('\0');
-
-    wcscat_s(snapfile, rlength, uri);
-    wcscat_s(snapfile, rlength, _u("\\snap_"));
-    wcscat_s(snapfile, rlength, snapId);
-    wcscat_s(snapfile, rlength, _u(".snp"));
-
-    HANDLE res = TTOpenStream_Helper(snapfile, read, write);
-
-    delete[] snapfile;
-    return res;
-#endif
-}
-
-static HANDLE CALLBACK TTGetSrcCodeStreamCallback(const char16* uri, const char16* bodyCtrId, const char16* srcFileName, bool read, bool write)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return 0;
-#else
-    AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
-
-    char16* sFile = nullptr;
-    Helpers::GetFileFromURI(srcFileName, &sFile);
-
-    size_t rlength = (wcslen(uri) + 64 + wcslen(sFile) + 4);
-    char16* srcPath = new char16[rlength];
-    srcPath[0] = _u('\0');
-
-    wcscat_s(srcPath, rlength, uri);
-    wcscat_s(srcPath, rlength, bodyCtrId);
-    wcscat_s(srcPath, rlength, _u("_"));
-    wcscat_s(srcPath, rlength, sFile);
-
-    HANDLE res = TTOpenStream_Helper(srcPath, read, write);
-
-    delete[] sFile;
-    delete[] srcPath;
-    return res;
-#endif
-}
-
-static bool CALLBACK TTReadBytesFromStreamCallback(HANDLE handle, BYTE* buff, DWORD size, DWORD* readCount)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return FALSE;
-#else
-    AssertMsg(handle != INVALID_HANDLE_VALUE, "Bad file handle.");
-
-    *readCount = 0;
-    BOOL ok = ReadFile(handle, buff, size, readCount, NULL);
-    AssertMsg(ok, "Read failed.");
-
-    if(!ok)
-    {
-        DWORD lastError = GetLastError();
-        LPTSTR pTemp = NULL;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
-        fwprintf(stderr, _u(": %s\n"), pTemp);
-    }
-
-    return ok ? true : false;
-#endif
-}
-
-static bool CALLBACK TTWriteBytesToStreamCallback(HANDLE handle, BYTE* buff, DWORD size, DWORD* writtenCount)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-    return FALSE;
-#else
-    AssertMsg(handle != INVALID_HANDLE_VALUE, "Bad file handle.");
-
-    BOOL ok = WriteFile(handle, buff, size, writtenCount, NULL);
-    AssertMsg(*writtenCount == size, "Write Failed");
-
-    if(!ok)
-    {
-        DWORD lastError = GetLastError();
-        LPTSTR pTemp = NULL;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
-        fwprintf(stderr, _u(": %s\n"), pTemp);
-    }
-
-    return ok ? true : false;
-#endif
-}
-
-static void CALLBACK TTFlushAndCloseStreamCallback(HANDLE handle, bool read, bool write)
-{
-#ifndef _WIN32
-    AssertMsg(false, "Not XPLAT yet.");
-#else
-    AssertMsg((read | write) & !(read & write), "Should be either read or write and at least one.");
-
-    if(handle != INVALID_HANDLE_VALUE)
-    {
-        if(write)
-        {
-            FlushFileBuffers(handle);
-        }
-
-        CloseHandle(handle);
-    }
-#endif
-}
-
 HRESULT RunScript(const char* fileName, LPCWSTR fileContents, BYTE *bcBuffer, char *fullPath)
 {
     HRESULT hr = S_OK;
@@ -632,13 +401,11 @@ HRESULT ExecuteTest(const char* fileName)
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
         chRuntime = runtime;
 
-        ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
+        ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::GetTTDDirectory, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTGetLogStreamCallback, &Helpers::TTGetSnapshotStreamCallback, &Helpers::TTGetSrcCodeStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
 
         JsContextRef context = JS_INVALID_REFERENCE;
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
-
-        StartupDebuggerAsNeeded();
 
         IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr));
 #endif
@@ -670,7 +437,7 @@ HRESULT ExecuteTest(const char* fileName)
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, snapInterval, snapHistoryLength, nullptr, &runtime));
             chRuntime = runtime;
 
-            ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
+            ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::GetTTDDirectory, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTGetLogStreamCallback, &Helpers::TTGetSnapshotStreamCallback, &Helpers::TTGetSrcCodeStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
 
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));

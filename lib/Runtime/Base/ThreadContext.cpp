@@ -348,6 +348,7 @@ ThreadContext::~ThreadContext()
     if(this->TTDUri != nullptr)
     {
         HeapDeleteArray(wcslen(this->TTDUri) + 1, this->TTDUri);
+        this->TTDUri = nullptr;
     }
 
     if(this->TTDLog != nullptr)

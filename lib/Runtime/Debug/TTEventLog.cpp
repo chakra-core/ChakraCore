@@ -64,6 +64,17 @@ namespace TTD
         this->m_function->GetScriptContext()->TTDRootNestingCount--;
     }
 
+    TTDReplayExternalFunctionCallActionPopper::TTDReplayExternalFunctionCallActionPopper(Js::JavascriptFunction* function)
+        : m_function(function)
+    {
+        this->m_function->GetScriptContext()->TTDRootNestingCount++;
+    }
+
+    TTDReplayExternalFunctionCallActionPopper::~TTDReplayExternalFunctionCallActionPopper()
+    {
+        this->m_function->GetScriptContext()->TTDRootNestingCount--;
+    }
+
     TTDRecordJsRTFunctionCallActionPopper::TTDRecordJsRTFunctionCallActionPopper(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction)
         : m_ctx(ctx), m_callAction(callAction)
     {

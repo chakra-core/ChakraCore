@@ -26,7 +26,7 @@ BUILTIN(GlobalObject, Escape, EntryEscape, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, UnEscape, EntryUnEscape, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, CollectGarbage, EntryCollectGarbage, FunctionInfo::ErrorOnNew)
 
-#if ENABLE_TTD
+#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
 BUILTIN(GlobalObject, TelemetryLog, EntryTelemetryLog, FunctionInfo::ErrorOnNew)
 #endif
 

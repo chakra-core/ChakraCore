@@ -1605,7 +1605,7 @@ if (!sourceList)
         LoadScriptFlag loadScriptFlag,
         uint* sourceIndex)
     {
-        if(pSrcInfo == nullptr)
+        if (pSrcInfo == nullptr)
         {
             pSrcInfo = this->cache->noContextGlobalSourceInfo;
         }

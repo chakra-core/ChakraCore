@@ -95,10 +95,13 @@ namespace Js
             {
                 scriptContext->GetThreadContext()->TTDLog->ReplayDateStringEvent(scriptContext, &res);
             }
-
-            if(scriptContext->ShouldPerformRecordAction())
+            else if(scriptContext->ShouldPerformRecordAction())
             {
                 scriptContext->GetThreadContext()->TTDLog->RecordDateStringEvent(res);
+            }
+            else
+            {
+                ;
             }
 #endif
             return res;
@@ -138,10 +141,13 @@ namespace Js
             {
                 scriptContext->GetThreadContext()->TTDLog->ReplayDateTimeEvent(&resTime);
             }
-
-            if(scriptContext->ShouldPerformRecordAction())
+            else if(scriptContext->ShouldPerformRecordAction())
             {
                 scriptContext->GetThreadContext()->TTDLog->RecordDateTimeEvent(resTime);
+            }
+            else
+            {
+                ;
             }
 #endif
 
@@ -804,10 +810,13 @@ namespace Js
         {
             scriptContext->GetThreadContext()->TTDLog->ReplayDateTimeEvent(&dblRetVal);
         }
-
-        if(scriptContext->ShouldPerformRecordAction())
+        else if(scriptContext->ShouldPerformRecordAction())
         {
             scriptContext->GetThreadContext()->TTDLog->RecordDateTimeEvent(dblRetVal);
+        }
+        else
+        {
+            ;
         }
 #endif
 

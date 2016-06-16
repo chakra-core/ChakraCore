@@ -65,6 +65,17 @@ namespace TTD
     };
 
     //A class to ensure that even when exceptions are thrown we record the time difference info
+    class TTDReplayExternalFunctionCallActionPopper
+    {
+    private:
+        Js::JavascriptFunction* m_function;
+
+    public:
+        TTDReplayExternalFunctionCallActionPopper(Js::JavascriptFunction* function);
+        ~TTDReplayExternalFunctionCallActionPopper();
+    };
+
+    //A class to ensure that even when exceptions are thrown we record the time difference info
     class TTDRecordJsRTFunctionCallActionPopper
     {
     private:
