@@ -130,6 +130,16 @@ namespace Js
         FunctionBody* functionBody = funcInfo->GetParsedFunctionBody();
         AsmJsModuleInfo* asmInfo = functionBody->AllocateAsmJsModuleInfo();
 
+        if (funcInfo->byteCodeFunction->GetIsNamedFunctionExpression())
+        {
+            Assert(GetModuleFunctionNode()->sxFnc.pnodeName && GetModuleFunctionNode()->sxFnc.pnodeName->sxVar.sym->IsInSlot(funcInfo));
+            ParseNodePtr nameNode = GetModuleFunctionNode()->sxFnc.pnodeName;
+            GetByteCodeGenerator()->AssignPropertyId(nameNode->name());
+            // if module is a named function expression, we may need to restore this for debugger
+            AsmJsFunctionDeclaration* closure = Anew(&mAllocator, AsmJsFunctionDeclaration, nameNode->sxVar.pid, AsmJsSymbol::ClosureFunction, &mAllocator);
+            DefineIdentifier(nameNode->sxVar.pid, closure);
+        }
+
         int argCount = 0;
         if (mBufferArgName)
         {
@@ -314,6 +324,9 @@ namespace Js
                     slot->builtinSIMDFunc = mathFunc->GetSimdBuiltInFunction();
                     break;
                 }
+                case AsmJsSymbol::ClosureFunction:
+                    // we don't need to store any additional info in this case
+                    break;
                 default:
                     Assume(UNREACHED);
                 }
@@ -2690,6 +2703,10 @@ namespace Js
                 break;
             case AsmJsSymbol::MathConstant:
                 value = JavascriptNumber::NewWithCheck(asmSlot->mathConstVal, scriptContext);
+                break;
+            case AsmJsSymbol::ClosureFunction:
+                // we can't reference this inside functions but must set to something, so set it to be undefined
+                value = scriptContext->GetLibrary()->GetUndefined();
                 break;
             case AsmJsSymbol::ArrayView:
             {
