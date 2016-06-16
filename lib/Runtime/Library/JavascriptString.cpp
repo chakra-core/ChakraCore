@@ -2220,7 +2220,7 @@ case_2:
                 if (*i >= 'a')
                 {
                     if (*i <= 'z') { break; }
-                    if (*i >= 'ß') { break; }
+                    if (*i >= 223) { break; }
                 }
                 i++;
             }
@@ -2236,10 +2236,10 @@ case_2:
                 if (*i >= 'A')
                 {
                     if (*i <= 'Z') { break; }
-                    if (*i >= 'À')
+                    if (*i >= 192)
                     { 
-                        if (*i < 'ß') { break; }
-                        if (*i >= 'ÿ') { break; }
+                        if (*i < 223) { break; }
+                        if (*i >= 255) { break; }
                     }
                 }
                 i++;

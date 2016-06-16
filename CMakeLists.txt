@@ -78,6 +78,7 @@ if(CLR_CMAKE_PLATFORM_UNIX)
 
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Werror\
         -Wno-microsoft\
         -Wno-unused-value\
         -Wno-int-to-void-pointer-cast\
@@ -112,7 +113,6 @@ if(CLR_CMAKE_PLATFORM_UNIX)
     # Release Builds: Not sure if this has to be as strict as the debug/test?
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -fdelayed-template-parsing\
-        -fno-inline-functions\
         -fno-omit-frame-pointer\
         -fno-optimize-sibling-calls\
         -mno-omit-leaf-frame-pointer" # this is for compat reasons. i.e. It is a noop with gcc

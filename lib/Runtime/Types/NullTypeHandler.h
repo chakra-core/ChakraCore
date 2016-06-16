@@ -91,6 +91,6 @@ namespace Js
         static NullTypeHandler defaultInstance;
 
     public:
-        static NullTypeHandler * GetDefaultInstance() { return &defaultInstance; }
+        static NullTypeHandler * GetDefaultInstance();
     };
 }

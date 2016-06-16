@@ -2755,7 +2755,7 @@ LABEL1:
 
         BOOL result = DynamicObject::DeleteProperty(propertyId, flags);
 
-        if (result && propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance)
+        if (result && (propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance))
         {
             InvalidateConstructorCacheOnPrototypeChange();
             this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);
