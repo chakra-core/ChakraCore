@@ -310,7 +310,7 @@ void Helpers::TTReportLastIOErrorAsNeeded(BOOL ok, char* msg)
         LPTSTR pTemp = NULL;
         FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
         fwprintf(stderr, _u(": %s"), pTemp);
-        fwprintf(stderr, _u("msg is: %s"), msg);
+        fprintf(stderr, "msg is: %s", msg);
 
         AssertMsg(false, "IO Error!!!");
     }
