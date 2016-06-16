@@ -166,7 +166,7 @@ GetMethodAddress(IR::HelperCallOpnd* opnd)
 // Import function ptr require dynamic initialization, and cause the table to be in read-write memory.
 // Additionally, all function ptrs are automatically marked as safe CFG addresses by the compiler.
 // __declspec(guard(ignore)) can be used on methods to have the compiler not mark these as valid CFG targets.
-DECLSPEC_GUARDIGNORE __declspec(noinline) void * const GetNonTableMethodAddress(JnHelperMethod helperMethod)
+DECLSPEC_GUARDIGNORE _NOINLINE void * const GetNonTableMethodAddress(JnHelperMethod helperMethod)
 {
     switch (helperMethod)
     {

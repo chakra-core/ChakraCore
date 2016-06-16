@@ -57,7 +57,7 @@ void (*InitializeAdditionalProperties)(ThreadContext *threadContext) = DefaultIn
 // To make sure the marker function doesn't get inlined, optimized away, or merged with other functions we disable optimization.
 // If this method ends up causing a perf problem in the future, we should replace it with asm versions which should be lighter.
 #pragma optimize("g", off)
-__declspec(noinline) extern "C" void* MarkerForExternalDebugStep()
+_NOINLINE extern "C" void* MarkerForExternalDebugStep()
 {
     // We need to return something here to prevent this function from being merged with other empty functions by the linker.
     static int __dummy;
@@ -1455,7 +1455,7 @@ ThreadContext::SetStackLimitForCurrentThread(PBYTE limit)
     this->stackLimitForCurrentThread = limit;
 }
 
-__declspec(noinline) //Win8 947081: might use wrong _AddressOfReturnAddress() if this and caller are inlined
+_NOINLINE //Win8 947081: might use wrong _AddressOfReturnAddress() if this and caller are inlined
 bool
 ThreadContext::IsStackAvailable(size_t size)
 {
@@ -1491,7 +1491,7 @@ ThreadContext::IsStackAvailable(size_t size)
     return false;
 }
 
-__declspec(noinline) //Win8 947081: might use wrong _AddressOfReturnAddress() if this and caller are inlined
+_NOINLINE //Win8 947081: might use wrong _AddressOfReturnAddress() if this and caller are inlined
 bool
 ThreadContext::IsStackAvailableNoThrow(size_t size)
 {

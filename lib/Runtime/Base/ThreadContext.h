@@ -1320,8 +1320,8 @@ public:
     }
 
     static BOOLEAN IsOnStack(void const *ptr);
-    __declspec(noinline) bool IsStackAvailable(size_t size);
-    __declspec(noinline) bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
+    _NOINLINE bool IsStackAvailable(size_t size);
+    _NOINLINE bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
     static bool IsCurrentStackAvailable(size_t size);
     void ProbeStackNoDispose(size_t size, Js::ScriptContext *scriptContext, PVOID returnAddress = nullptr);
     void ProbeStack(size_t size, Js::ScriptContext *scriptContext, PVOID returnAddress = nullptr);

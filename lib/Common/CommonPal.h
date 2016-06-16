@@ -4,11 +4,27 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#define __MAKE_WARNING__(X) "This compiler does not support '" ## X ## "'"
 // Define _ALWAYSINLINE for template that want to always inline, but doesn't allow inline linkage in clang
 #if defined(__GNUC__) || defined(__clang__)
-#define _ALWAYSINLINE __attribute__((always_inline))
-#else
-#define _ALWAYSINLINE __forceinline
+    #if __has_attribute(always_inline)
+        #define _ALWAYSINLINE __attribute__((always_inline))
+        #define __forceinline inline _ALWAYSINLINE
+    #else // No always_inline support
+        #pragma message __MAKE_WARNING__("always_inline")
+        #define _ALWAYSINLINE inline
+        #define __forceinline _ALWAYSINLINE
+    #endif
+    #if __has_attribute(noinline)
+        #define _NOINLINE __attribute__((noinline))
+    #else // No noinline support
+        #pragma message __MAKE_WARNING__("noinline")
+        #define _NOINLINE
+    #endif
+#else // Windows
+    #define _ALWAYSINLINE __forceinline
+    #define _NOINLINE __declspec(noinline)
+    #define __forceinline inline
 #endif
 
 #ifdef _WIN32
@@ -57,12 +73,6 @@ __forceinline void  __int2c()
 #include "inc/rt/palrt.h"
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
-
-#if defined(__GNUC__) || defined(__clang__)
-#define __forceinline inline __attribute__((always_inline))
-#else
-#define __forceinline inline
-#endif
 
 typedef char16_t char16;
 #define _u(s) u##s
