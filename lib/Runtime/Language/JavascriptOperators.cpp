@@ -1382,10 +1382,20 @@ CommonNumber:
             return aRight;
         }
 
-        Var iteratorVar = CALL_FUNCTION(function, CallInfo(Js::CallFlags_Value, 1), aRight);
+        ThreadContext *threadContext = scriptContext->GetThreadContext();
+
+        Var iteratorVar = 
+            threadContext->ExecuteImplicitCall(function, ImplicitCall_Accessor, [=]() -> Var
+                {
+                    return CALL_FUNCTION(function, CallInfo(Js::CallFlags_Value, 1), aRight);
+                });
 
         if (!JavascriptOperators::IsObject(iteratorVar))
         {
+            if (!threadContext->RecordImplicitException())
+            {
+                return scriptContext->GetLibrary()->GetUndefined();
+            }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
         }
 
@@ -10454,18 +10464,30 @@ CommonNumber:
     {
         Var func = JavascriptOperators::GetProperty(iterator, PropertyIds::next, scriptContext);
 
+        ThreadContext *threadContext = scriptContext->GetThreadContext();
         if (!JavascriptConversion::IsCallable(func))
         {
+            if (!threadContext->RecordImplicitException())
+            {
+                return scriptContext->GetLibrary()->GetUndefined();
+            }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
         }
 
         RecyclableObject* callable = RecyclableObject::FromVar(func);
-        Js::Var args[] = { iterator, value };
-        Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args) + (value == nullptr ? -1 : 0));
-        Var result = JavascriptFunction::CallFunction<true>(callable, callable->GetEntryPoint(), Js::Arguments(callInfo, args));
+        Var result = threadContext->ExecuteImplicitCall(callable, ImplicitCall_Accessor, [=]() -> Var
+            {
+                Js::Var args[] = { iterator, value };
+                Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args) + (value == nullptr ? -1 : 0));
+                return JavascriptFunction::CallFunction<true>(callable, callable->GetEntryPoint(), Arguments(callInfo, args));
+            });
 
         if (!JavascriptOperators::IsObject(result))
         {
+            if (!threadContext->RecordImplicitException())
+            {
+                return scriptContext->GetLibrary()->GetUndefined();
+            }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
         }
 
