@@ -90,6 +90,12 @@
   </test>
   <test>
     <default>
+      <files>function.name.js</files>
+      <compile-flags>-ES6Generators -es6toprimitive -ES6Classes -es6functionnamefull -force:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>superDotOSBug3930962.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
       <tags>BugFix</tags>
