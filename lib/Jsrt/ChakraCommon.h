@@ -34,12 +34,6 @@
 typedef DWORD_PTR ChakraCookie;
 typedef BYTE* ChakraBytePtr;
 #else // Non-Windows VC++
-#include <stdint.h>     // Needed for uintptr_t
-#ifndef __cplusplus
-#include <stdbool.h>    // Needed fo bool
-#include <stdio.h>      // for NULL
-#define nullptr NULL
-#endif
 
 // SAL compat
 #define _Return_type_success_(x)
@@ -1023,6 +1017,12 @@ typedef unsigned char* ChakraBytePtr;
             _Out_opt_ unsigned int *nextIdleTick);
 
 #ifdef _WIN32
+#define CSTR_TYPE wchar_t
+#else // !_WIN32
+// non-Windows ChakraCore overrides wchar_t to char16_t
+#define CSTR_TYPE char16_t
+#endif // _WIN32
+
     /// <summary>
     ///     Parses a script and returns a function representing the script.
     /// </summary>
@@ -1040,9 +1040,9 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     CHAKRA_API
         JsParseScript(
-            _In_z_ const wchar_t *script,
+            _In_z_ const CSTR_TYPE *script,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const CSTR_TYPE *sourceUrl,
             _Out_ JsValueRef *result);
 
     /// <summary>
@@ -1063,9 +1063,9 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     CHAKRA_API
         JsParseScriptWithAttributes(
-            _In_z_ const wchar_t *script,
+            _In_z_ const CSTR_TYPE *script,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const CSTR_TYPE *sourceUrl,
             _In_ JsParseScriptAttributes parseAttributes,
             _Out_ JsValueRef *result);
 
@@ -1086,9 +1086,9 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     CHAKRA_API
         JsRunScript(
-            _In_z_ const wchar_t *script,
+            _In_z_ const CSTR_TYPE *script,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const CSTR_TYPE *sourceUrl,
             _Out_ JsValueRef *result);
 
     /// <summary>
@@ -1108,9 +1108,9 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     CHAKRA_API
         JsExperimentalApiRunModule(
-            _In_z_ const wchar_t *script,
+            _In_z_ const CSTR_TYPE *script,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const CSTR_TYPE *sourceUrl,
             _Out_ JsValueRef *result);
 
     /// <summary>
@@ -1137,10 +1137,11 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     CHAKRA_API
         JsSerializeScript(
-            _In_z_ const wchar_t *script,
+            _In_z_ const CSTR_TYPE *script,
             _Out_writes_to_opt_(*bufferSize, *bufferSize) BYTE *buffer,
             _Inout_ unsigned int *bufferSize);
 
+#ifdef _WIN32
     /// <summary>
     ///     Parses a serialized script and returns a function representing the script.
     ///     Provides the ability to lazy load the script source only if/when it is needed.
@@ -1173,7 +1174,7 @@ typedef unsigned char* ChakraBytePtr;
             _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
             _In_ BYTE *buffer,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const CSTR_TYPE *sourceUrl,
             _Out_ JsValueRef * result);
 
     /// <summary>
@@ -1210,8 +1211,9 @@ typedef unsigned char* ChakraBytePtr;
             _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
             _In_ BYTE *buffer,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const CSTR_TYPE *sourceUrl,
             _Out_opt_ JsValueRef * result);
+#endif
 
     /// <summary>
     ///     Parses a serialized script and returns a function representing the script.
@@ -1237,10 +1239,10 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     CHAKRA_API
         JsParseSerializedScript(
-            _In_z_ const wchar_t *script,
+            _In_z_ const CSTR_TYPE *script,
             _In_ BYTE *buffer,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const CSTR_TYPE *sourceUrl,
             _Out_ JsValueRef *result);
 
     /// <summary>
@@ -1269,10 +1271,10 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     CHAKRA_API
         JsRunSerializedScript(
-            _In_z_ const wchar_t *script,
+            _In_z_ const CSTR_TYPE *script,
             _In_ BYTE *buffer,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const CSTR_TYPE *sourceUrl,
             _Out_ JsValueRef *result);
 
     /// <summary>
@@ -1295,7 +1297,7 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     CHAKRA_API
         JsGetPropertyIdFromName(
-            _In_z_ const wchar_t *name,
+            _In_z_ const CSTR_TYPE *name,
             _Out_ JsPropertyIdRef *propertyId);
 
     /// <summary>
@@ -1318,7 +1320,7 @@ typedef unsigned char* ChakraBytePtr;
     CHAKRA_API
         JsGetPropertyNameFromId(
             _In_ JsPropertyIdRef propertyId,
-            _Outptr_result_z_ const wchar_t **name);
+            _Outptr_result_z_ const CSTR_TYPE **name);
 
     /// <summary>
     ///     Creates a string value from a string pointer.
@@ -1334,7 +1336,7 @@ typedef unsigned char* ChakraBytePtr;
     /// </returns>
     CHAKRA_API
         JsPointerToString(
-            _In_reads_(stringLength) const wchar_t *stringValue,
+            _In_reads_(stringLength) const CSTR_TYPE *stringValue,
             _In_ size_t stringLength,
             _Out_ JsValueRef *value);
 
@@ -1362,9 +1364,10 @@ typedef unsigned char* ChakraBytePtr;
     CHAKRA_API
         JsStringToPointer(
             _In_ JsValueRef value,
-            _Outptr_result_buffer_(*stringLength) const wchar_t **stringValue,
+            _Outptr_result_buffer_(*stringLength) const CSTR_TYPE **stringValue,
             _Out_ size_t *stringLength);
-#endif // _WIN32
+
+#undef CSTR_TYPE
 
     /// <summary>
     ///     Parses a script and returns a function representing the script.

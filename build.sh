@@ -29,6 +29,7 @@ PRINT_USAGE() {
     echo "  -n, --ninja         Build with ninja instead of make"
     echo "      --xcode         Generate XCode project"
     echo "  -t, --test-build    Test build (by default Release build)"
+    echo "      --static        Build as static library (by default shared library)"
     echo "  -v, --verbose       Display verbose output including all options"
     echo ""
     echo "example:"
@@ -47,6 +48,7 @@ CMAKE_GEN=
 MAKE=make
 MULTICORE_BUILD=""
 ICU_PATH=""
+STATIC_LIBRARY=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -105,9 +107,13 @@ while [[ $# -gt 0 ]]; do
         MAKE=ninja
         ;;
 
-    --xcode)
+	--xcode)
         CMAKE_GEN="-G Xcode -DCC_XCODE_PROJECT=1"
         MAKE=0
+        ;;
+
+    --static)
+        STATIC_LIBRARY="-DSTATIC_LIBRARY=1"
         ;;
 
     *)
@@ -190,7 +196,7 @@ fi
 pushd $build_directory > /dev/null
 
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
 
 if [[ $? == 0 ]]; then
     if [[ $MAKE != 0 ]]; then

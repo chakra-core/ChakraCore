@@ -1,7 +1,7 @@
 add_library (ChakraCore SHARED
-    ChakraCoreDllFunc.cpp
-    ConfigParserExternals.cpp
-    TestHooks.cpp
+  ChakraCoreDllFunc.cpp
+  ConfigParserExternals.cpp
+  TestHooks.cpp
 )
   
 target_include_directories (
@@ -29,76 +29,70 @@ target_include_directories (
 #  icuuc: For the ICU (xplat-todo: Make this optional)
 #
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-    target_link_libraries(ChakraCore
-      -Wl,--no-undefined
-      -Wl,--start-group
-      -Wl,--whole-archive
-      Chakra.Jsrt
-      Chakra.Jsrt.Core
-      -Wl,--no-whole-archive
-      Chakra.Runtime.Types
-      Chakra.Runtime.Math
-      Chakra.Runtime.Library
-      Chakra.Runtime.Language
-      Chakra.Runtime.Debug
-      Chakra.Runtime.ByteCode
-      Chakra.Runtime.PlatformAgnostic
-      Chakra.Runtime.Base
-      Chakra.Parser
-      Chakra.Common.Util
-      Chakra.Common.Memory
-      Chakra.Common.Common
-      Chakra.Common.Core
-      Chakra.Common.DataStructures
-      Chakra.Common.Exceptions
-      Chakra.Common.Codex
-      -Wl,--end-group
-      Chakra.Pal
-      pthread
-      stdc++
-      dl
-      icuuc
-      -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
+  set(lib_target
+    -Wl,--no-undefined
+    -Wl,--start-group
+    -Wl,--whole-archive
+    Chakra.Jsrt
+    Chakra.Jsrt.Core
+    -Wl,--no-whole-archive
     )
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    # todo: combine link libraries into a list
-    # reminder: order of the link libraries matters
-    # we miss multiple keywords below
-    # can we handle the creation of the list
-    # with a single IF/case per platform?
+  set(lib_target
+    -Wl,-undefined,error
+    Chakra.Jsrt
+    Chakra.Jsrt.Core
+    )
+else()
+  message("This platform is not yet supported")
+endif() # Linux ?
 
-    target_link_libraries(ChakraCore
-      -Wl,-undefined,error
-    #   -Wl,--start-group
-    #   -Wl,--whole-archive
-      Chakra.Jsrt
-      Chakra.Jsrt.Core
-    #   -Wl,--no-whole-archive
-      Chakra.Runtime.Types
-      Chakra.Runtime.Math
-      Chakra.Runtime.Library
-      Chakra.Runtime.Language
-      Chakra.Runtime.Debug
-      Chakra.Runtime.ByteCode
-      Chakra.Runtime.PlatformAgnostic
-      Chakra.Runtime.Base
-      Chakra.Parser
-      Chakra.Common.Util
-      Chakra.Common.Memory
-      Chakra.Common.Common
-      Chakra.Common.Core
-      Chakra.Common.DataStructures
-      Chakra.Common.Exceptions
-      Chakra.Common.Codex
-    #   -Wl,--end-group
-      Chakra.Pal
-      pthread
-      stdc++
-      dl
-      icucore
-    #   -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
+# common link deps
+set(lib_target "${lib_target}"
+  Chakra.Runtime.Types
+  Chakra.Runtime.Math
+  Chakra.Runtime.Library
+  Chakra.Runtime.Language
+  Chakra.Runtime.Debug
+  Chakra.Runtime.ByteCode
+  Chakra.Runtime.PlatformAgnostic
+  Chakra.Runtime.Base
+  Chakra.Parser
+  Chakra.Common.Util
+  Chakra.Common.Memory
+  Chakra.Common.Common
+  Chakra.Common.Core
+  Chakra.Common.DataStructures
+  Chakra.Common.Exceptions
+  Chakra.Common.Codex
+  )
+
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  set(lib_target "${lib_target}"
+    -Wl,--end-group
+    Chakra.Pal
+    pthread
+    stdc++
+    dl
+    icuuc
+    )
+elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  set(lib_target "${lib_target}"
+    Chakra.Pal
+    pthread
+    stdc++
+    dl
+    icucore
+    )
+endif() # Linux ?
+
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  set(lib_target "${lib_target}"
+    -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
     )
 endif()
+
+target_link_libraries (ChakraCore ${lib_target})
 
 if(NOT CC_XCODE_PROJECT)
   set(CC_LIB_EXT "so")

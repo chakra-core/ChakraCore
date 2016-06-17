@@ -625,6 +625,7 @@ CHAKRA_API JsDiagGetObjectFromHandle(
     });
 }
 
+#ifdef _WIN32
 CHAKRA_API JsDiagEvaluate(
     _In_ const wchar_t *expression,
     _In_ unsigned int stackFrameIndex,
@@ -670,3 +671,4 @@ CHAKRA_API JsDiagEvaluate(
 
     }, false /*allowInObjectBeforeCollectCallback*/, true /*scriptExceptionAllowed*/);
 }
+#endif

@@ -72,6 +72,8 @@ JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, b
 
 CHAKRA_API JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
+    VALIDATE_ENTER_CURRENT_THREAD();
+
     return GlobalAPIWrapper([&] () -> JsErrorCode {
         PARAM_NOT_NULL(runtimeHandle);
         *runtimeHandle = nullptr;
@@ -494,6 +496,8 @@ CHAKRA_API JsGetCurrentContext(_Out_ JsContextRef *currentContext)
 
 CHAKRA_API JsSetCurrentContext(_In_ JsContextRef newContext)
 {
+    VALIDATE_ENTER_CURRENT_THREAD();
+
     return GlobalAPIWrapper([&] () -> JsErrorCode {
         JsrtContext *currentContext = JsrtContext::GetCurrent();
         Recycler* recycler = currentContext != nullptr ? currentContext->GetScriptContext()->GetRecycler() : nullptr;
