@@ -5767,7 +5767,7 @@ Case0:
                 newArr = CreateNewArrayHelper(static_cast<uint32>(newLenT), isIntArray, isFloatArray, pArr, scriptContext);
                 newObj = newArr;
             }
-            else if (JavascriptOperators::IsConstructor(constructor) && JavascriptLibrary::IsTypedArrayConstructor(constructor, scriptContext))
+            else if (JavascriptOperators::IsConstructor(constructor))
             {
                 if (pArr)
                 {
@@ -5778,7 +5778,7 @@ Case0:
 
                 Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(newLenT, scriptContext) };
                 Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-                newObj = RecyclableObject::FromVar(JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext));
+                newObj = RecyclableObject::FromVar(TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), (uint32)newLenT, scriptContext));
             }
             else
             {
@@ -8832,7 +8832,7 @@ Case0:
             {
                 Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(length, scriptContext) };
                 Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-                newObj = RecyclableObject::FromVar(JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext));
+                newObj = RecyclableObject::FromVar(TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), (uint32)length, scriptContext));
             }
             else if (isTypedArrayEntryPoint)
             {
@@ -9788,7 +9788,9 @@ Case0:
 
             Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(len, scriptContext) };
             Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-            newObj = JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+            newObj = isTypedArrayEntryPoint ?
+                TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), len, scriptContext) :
+                JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
 
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
             if (JavascriptArray::Is(newObj))
