@@ -25,5 +25,4 @@ if [[ $build_type != "-d" && $build_type != "-t" ]]; then
     fi
 fi
 
-# todo-xpat: Enable others tests 
-"$test_path/runtests.py" $build_type $test_path/Basics/hello.js
+"$test_path/runtests.py" $build_type
