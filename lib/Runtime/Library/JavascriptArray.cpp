@@ -9647,11 +9647,9 @@ Case0:
                 newObj = newArr;
             }
 
-            Var nextValue;
             uint32 k = 0;
 
-            while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextValue))
-            {
+            JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var nextValue) {
                 if (mapping)
                 {
                     Assert(mapFn != nullptr);
@@ -9672,7 +9670,7 @@ Case0:
                 }
 
                 k++;
-            }
+            });
 
             JavascriptOperators::SetProperty(newObj, newObj, Js::PropertyIds::length, JavascriptNumber::ToVar(k, scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible);
         }

@@ -1241,4 +1241,16 @@
     <tags>exclude_dynapogo</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>iteratorClose.js</files>
+    <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>iteratorClose.js</files>
+    <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+  </default>
+</test>
 </regress-exe>

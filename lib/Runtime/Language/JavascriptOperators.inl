@@ -31,6 +31,32 @@ namespace Js
         }
     }
 
+    // A helper function which will do the IteratorStep and fetch value - however in the event of an exception it will perform the IteratorClose as well.
+    template <typename THandler>
+    void JavascriptOperators::DoIteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, THandler handler)
+    {
+        Var nextItem = nullptr;
+        bool shouldCallReturn = false;
+        try
+        {
+            while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextItem))
+            {
+                shouldCallReturn = true;
+                handler(nextItem);
+                shouldCallReturn = false;
+            }
+        }
+        catch (JavascriptExceptionObject * exceptionObj)
+        {
+            if (shouldCallReturn)
+            {
+                // Closing the iterator
+                JavascriptOperators::IteratorClose(iterator, scriptContext);
+            }
+            throw exceptionObj;
+        }
+    }
+
     template <BOOL stopAtProxy, class Func>
     void JavascriptOperators::MapObjectAndPrototypes(RecyclableObject* object, Func func)
     {

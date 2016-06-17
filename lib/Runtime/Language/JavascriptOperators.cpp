@@ -10459,6 +10459,27 @@ CommonNumber:
         return RecyclableObject::FromVar(iterator);
     }
 
+    void JavascriptOperators::IteratorClose(RecyclableObject* iterator, ScriptContext* scriptContext)
+    {
+        try
+        {
+            Var func = JavascriptOperators::GetProperty(iterator, PropertyIds::return_, scriptContext);
+
+            if (JavascriptConversion::IsCallable(func))
+            {
+                RecyclableObject* callable = RecyclableObject::FromVar(func);
+                Js::Var args[] = { iterator };
+                Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args));
+                JavascriptFunction::CallFunction<true>(callable, callable->GetEntryPoint(), Js::Arguments(callInfo, args));
+            }
+        }
+        catch (JavascriptExceptionObject *)
+        {
+            // We have arrived in this function due to AbruptCompletion (which is an exception), so we don't need to
+            // propagate the exception of calling return function
+        }
+    }
+
     // IteratorNext as described in ES6.0 (draft 22) Section 7.4.2
     RecyclableObject* JavascriptOperators::IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, Var value)
     {

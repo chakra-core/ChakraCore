@@ -87,11 +87,9 @@ namespace Js
 
         if (iter != nullptr)
         {
-            Var nextItem;
             Var undefined = library->GetUndefined();
 
-            while (JavascriptOperators::IteratorStepAndValue(iter, scriptContext, &nextItem))
-            {
+            JavascriptOperators::DoIteratorStepAndValue(iter, scriptContext, [&](Var nextItem) {
                 if (!JavascriptOperators::IsObject(nextItem))
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
@@ -113,7 +111,7 @@ namespace Js
 
                 // CONSIDER: if adder is the default built-in, fast path it and skip the JS call?
                 CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 3), mapObject, key, value);
-            }
+            });
         }
 
         return isCtorSuperCall ?

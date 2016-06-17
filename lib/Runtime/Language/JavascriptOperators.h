@@ -408,6 +408,11 @@ namespace Js
         static RecyclableObject* GetIterator(Var instance, ScriptContext* scriptContext, bool optional = false);
         static RecyclableObject* GetIterator(RecyclableObject* instance, ScriptContext* scriptContext, bool optional = false);
         static RecyclableObject* IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, Var value = nullptr);
+        static void IteratorClose(RecyclableObject* iterator, ScriptContext* scriptContext);
+
+        template <typename THandler>
+        static void DoIteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, THandler handler);
+
         static bool IteratorComplete(RecyclableObject* iterResult, ScriptContext* scriptContext);
         static Var IteratorValue(RecyclableObject* iterResult, ScriptContext* scriptContext);
         static bool IteratorStep(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject** result);
