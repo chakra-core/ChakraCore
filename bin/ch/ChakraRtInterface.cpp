@@ -8,7 +8,11 @@
 LPCSTR chakraDllName = "chakracore.dll";
 #else
 #include <dlfcn.h>
+#ifdef __APPLE__
+LPCSTR chakraDllName = "libChakraCore.dylib";
+#else
 LPCSTR chakraDllName = "libChakraCore.so";
+#endif
 #endif
 
 bool ChakraRTInterface::m_testHooksSetup = false;

@@ -231,7 +231,7 @@ See MSDN doc.
 int
 __cdecl
 PAL_wprintf(
-      const wchar_16 *format,
+      const char16_t *format,
       ...)
 {
     LONG Length;
@@ -373,9 +373,9 @@ See MSDN doc.
 int
 __cdecl
 _snwprintf(
-     wchar_16 *buffer,
+     char16_t *buffer,
      size_t count,
-     const wchar_16 *format,
+     const char16_t *format,
      ...)
 {
     LONG Length;
@@ -404,7 +404,7 @@ int
 __cdecl
 PAL_fwprintf(
      PAL_FILE *stream,
-     const wchar_16 *format,
+     const char16_t *format,
      ...)
 {
     LONG Length;
@@ -1548,8 +1548,8 @@ See MSDN doc.
 int
 __cdecl
 PAL_swprintf(
-          wchar_16 *buffer,
-          const wchar_16 *format,
+          char16_t *buffer,
+          const char16_t *format,
           ...)
 {
     LONG Length;
@@ -1576,8 +1576,8 @@ See MSDN doc.
 int
 __cdecl
 PAL_swscanf(
-          const wchar_16 *buffer,
-          const wchar_16 *format,
+          const char16_t *buffer,
+          const char16_t *format,
           ...)
 {
     int Length;
@@ -1660,8 +1660,8 @@ See MSDN doc.
 --*/
 int 
 __cdecl 
-PAL_vswprintf(wchar_16 *buffer, 
-              const wchar_16 *format, 
+PAL_vswprintf(char16_t *buffer, 
+              const char16_t *format, 
               va_list argptr)
 {
     LONG Length;
@@ -1687,9 +1687,9 @@ See MSDN doc.
 --*/
 int 
 __cdecl 
-_vsnwprintf(wchar_16 *buffer, 
+_vsnwprintf(char16_t *buffer, 
             size_t count, 
-            const wchar_16 *format, 
+            const char16_t *format, 
             va_list argptr)
 {
     LONG Length;
