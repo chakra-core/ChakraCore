@@ -354,7 +354,12 @@ PHASE(All)
 #define DEFAULT_CONFIG_ASMJS                (true)
 #define DEFAULT_CONFIG_AsmJsEdge            (false)
 #define DEFAULT_CONFIG_AsmJsStopOnError     (false)
-#define DEFAULT_CONFIG_SIMDJS               (false)
+#ifdef COMPILE_DISABLE_Simdjs
+    // If Simdjs needs to be disabled by compile flag, DEFAULT_CONFIG_SIMDJS should be false
+    #define DEFAULT_CONFIG_SIMDJS               (false)
+#else
+    #define DEFAULT_CONFIG_SIMDJS               (false)
+#endif
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo     (true)
@@ -477,15 +482,30 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6Classes              (true)
 #define DEFAULT_CONFIG_ES6DateParseFix         (true)
 #define DEFAULT_CONFIG_ES6DefaultArgs          (true)
-#define DEFAULT_CONFIG_ES6DefaultArgsSplitScope (false)
+#ifdef COMPILE_DISABLE_ES6DefaultArgsSplitScope
+    // If ES6DefaultArgsSplitScope needs to be disabled by compile flag, COMPILE_DISABLE_ES6DefaultArgsSplitScope should be false
+    #define DEFAULT_CONFIG_ES6DefaultArgsSplitScope (false)
+#else
+    #define DEFAULT_CONFIG_ES6DefaultArgsSplitScope (false)
+#endif
 #define DEFAULT_CONFIG_ES6Destructuring        (true)
 #define DEFAULT_CONFIG_ES6ForLoopSemantics     (true)
 #define DEFAULT_CONFIG_ES6FunctionName         (true)
-#define DEFAULT_CONFIG_ES6FunctionNameFull     (false)
+#ifdef COMPILE_DISABLE_ES6FunctionNameFull
+    // If ES6FunctionNameFull needs to be disabled by compile flag, COMPILE_DISABLE_ES6FunctionNameFull should be false
+    #define DEFAULT_CONFIG_ES6FunctionNameFull     (false)
+#else
+    #define DEFAULT_CONFIG_ES6FunctionNameFull     (false)
+#endif
 #define DEFAULT_CONFIG_ES6Generators           (true)
 #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (false)
 #define DEFAULT_CONFIG_ES6Math                 (true)
-#define DEFAULT_CONFIG_ES6Module               (false)
+#ifdef COMPILE_DISABLE_ES6Module
+    // If ES6Module needs to be disabled by compile flag, DEFAULT_CONFIG_ES6Module should be false
+    #define DEFAULT_CONFIG_ES6Module               (false)
+#else
+    #define DEFAULT_CONFIG_ES6Module               (false)
+#endif
 #define DEFAULT_CONFIG_ES6Object               (true)
 #define DEFAULT_CONFIG_ES6Number               (true)
 #define DEFAULT_CONFIG_ES6ObjectLiterals       (true)
@@ -495,7 +515,12 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6Spread               (true)
 #define DEFAULT_CONFIG_ES6String               (true)
 #define DEFAULT_CONFIG_ES6StringPrototypeFixes (true)
-#define DEFAULT_CONFIG_ES6PrototypeChain       (false)
+#ifdef COMPILE_DISABLE_ES6PrototypeChain
+    // If ES6PrototypeChain needs to be disabled by compile flag, DEFAULT_CONFIG_ES6PrototypeChain should be false
+    #define DEFAULT_CONFIG_ES6PrototypeChain       (false)
+#else
+    #define DEFAULT_CONFIG_ES6PrototypeChain       (false)
+#endif
 #define DEFAULT_CONFIG_ES6ToPrimitive          (false)
 #define DEFAULT_CONFIG_ES6ToLength             (false)
 #define DEFAULT_CONFIG_ES6ToStringTag          (false)
@@ -504,12 +529,42 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6UnicodeVerbose       (true)
 #define DEFAULT_CONFIG_ES6Unscopables          (true)
 #define DEFAULT_CONFIG_ES6RegExSticky          (true)
-#define DEFAULT_CONFIG_ES6RegExPrototypeProperties (false)
-#define DEFAULT_CONFIG_ES6RegExSymbols         (false)
-#define DEFAULT_CONFIG_ES6HasInstanceOf        (false)
-#define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
-#define DEFAULT_CONFIG_ES7AsyncAwait           (false)
-#define DEFAULT_CONFIG_ES7Builtins             (false)
+#ifdef COMPILE_DISABLE_ES6RegExPrototypeProperties
+    // If ES6RegExPrototypeProperties needs to be disabled by compile flag, DEFAULT_CONFIG_ES6RegExPrototypeProperties should be false
+    #define DEFAULT_CONFIG_ES6RegExPrototypeProperties (false)
+#else
+    #define DEFAULT_CONFIG_ES6RegExPrototypeProperties (false)
+#endif
+#ifdef COMPILE_DISABLE_ES6RegExSymbols
+    // If ES6RegExSymbols needs to be disabled by compile flag, DEFAULT_CONFIG_ES6RegExSymbols should be false
+    #define DEFAULT_CONFIG_ES6RegExSymbols         (false)
+#else
+    #define DEFAULT_CONFIG_ES6RegExSymbols         (false)
+#endif
+#ifdef COMPILE_DISABLE_ES6HasInstance
+    // If ES6HasInstance needs to be disabled by compile flag, DEFAULT_CONFIG_ES6HasInstanceOf should be false
+    #define DEFAULT_CONFIG_ES6HasInstanceOf        (false)
+#else
+    #define DEFAULT_CONFIG_ES6HasInstanceOf        (false)
+#endif
+#ifdef COMPILE_DISABLE_ArrayBufferTransfer
+    // If ArrayBufferTransfer needs to be disabled by compile flag, DEFAULT_CONFIG_ArrayBufferTransfer should be false
+    #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
+#else
+    #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
+#endif
+#ifdef COMPILE_DISABLE_ES7AsyncAwait
+    // If ES7AsyncAwait needs to be disabled by compile flag, DEFAULT_CONFIG_ES7AsyncAwait should be false
+    #define DEFAULT_CONFIG_ES7AsyncAwait           (false)
+#else
+    #define DEFAULT_CONFIG_ES7AsyncAwait           (false)
+#endif
+#ifdef COMPILE_DISABLE_ES7Builtins
+    // If ES7Builtins needs to be disabled by compile flag, DEFAULT_CONFIG_ES7Builtins should be false
+    #define DEFAULT_CONFIG_ES7Builtins             (false)
+#else
+    #define DEFAULT_CONFIG_ES7Builtins             (false)
+#endif
 #define DEFAULT_CONFIG_ES7ExponentionOperator  (true)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
@@ -749,6 +804,9 @@ FLAGR (Boolean, Asmjs                 , "Enable Asmjs", DEFAULT_CONFIG_ASMJS)
 FLAGNR(Boolean, AsmJsStopOnError      , "Stop execution on any AsmJs validation errors", DEFAULT_CONFIG_AsmJsStopOnError)
 FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have backward incompatible changes or not validate on old demos", DEFAULT_CONFIG_AsmJsEdge)
 
+#ifndef COMPILE_DISABLE_Simdjs
+    #define COMPILE_DISABLE_Simdjs 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, Simdjs, "Enable Simdjs", DEFAULT_CONFIG_SIMDJS)
 FLAGR(Boolean, Simd128TypeSpec, "Enable type-specialization of Simd128 symbols", false)
 
@@ -863,22 +921,42 @@ FLAGNRC(Boolean, ES6Experimental           , "Enable all experimental features",
 // Per ES6 feature/flag
 
 FLAGPR           (Boolean, ES6, ES6Species             , "Enable ES6 '@@species' properties and built-in behaviors" , DEFAULT_CONFIG_ES6Species)
+
+#ifndef COMPILE_DISABLE_ES7AsyncAwait
+    #define COMPILE_DISABLE_ES7AsyncAwait 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES7AsyncAwait          , "Enable ES7 'async' and 'await' keywords"                  , DEFAULT_CONFIG_ES7AsyncAwait)
 FLAGPR           (Boolean, ES6, ES6Classes             , "Enable ES6 'class' and 'extends' keywords"                , DEFAULT_CONFIG_ES6Classes)
 FLAGPR           (Boolean, ES6, ES6DateParseFix        , "Enable ES6 Date.parse fixes"                              , DEFAULT_CONFIG_ES6DateParseFix)
 FLAGPR           (Boolean, ES6, ES6DefaultArgs         , "Enable ES6 Default Arguments"                             , DEFAULT_CONFIG_ES6DefaultArgs)
+
+#ifndef COMPILE_DISABLE_ES6DefaultArgsSplitScope
+    #define COMPILE_DISABLE_ES6DefaultArgsSplitScope 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6DefaultArgsSplitScope, "Enable ES6 Default Arguments to have its own scope"      , DEFAULT_CONFIG_ES6DefaultArgsSplitScope)
 FLAGPR           (Boolean, ES6, ES6Destructuring       , "Enable ES6 Destructuring"                                 , DEFAULT_CONFIG_ES6Destructuring)
 FLAGPR           (Boolean, ES6, ES6ForLoopSemantics    , "Enable ES6 for loop per iteration bindings"               , DEFAULT_CONFIG_ES6ForLoopSemantics)
 FLAGPR           (Boolean, ES6, ES6FunctionName        , "Enable ES6 function.name"                                 , DEFAULT_CONFIG_ES6FunctionName)
+
+#ifndef COMPILE_DISABLE_ES6FunctionNameFull
+    #define COMPILE_DISABLE_ES6FunctionNameFull 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6FunctionNameFull    , "Enable ES6 Full function.name"                            , DEFAULT_CONFIG_ES6FunctionNameFull)
 FLAGPR           (Boolean, ES6, ES6Generators          , "Enable ES6 generators"                                    , DEFAULT_CONFIG_ES6Generators)
 FLAGPR           (Boolean, ES6, ES7ExponentiationOperator, "Enable ES7 exponentiation operator (**)"                , DEFAULT_CONFIG_ES7ExponentionOperator)
+
+#ifndef COMPILE_DISABLE_ES7Builtins
+    #define COMPILE_DISABLE_ES7Builtins 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES7Builtins            , "Enable ES7 built-ins"                                     , DEFAULT_CONFIG_ES7Builtins)
 FLAGPR           (Boolean, ES6, ES7ValuesEntries       , "Enable ES7 Object.values and Object.entries"              , DEFAULT_CONFIG_ES7ValuesEntries)
 FLAGPR           (Boolean, ES6, ES7TrailingComma       , "Enable ES7 trailing comma in function"                    , DEFAULT_CONFIG_ES7TrailingComma)
 FLAGPR           (Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
 FLAGPR           (Boolean, ES6, ES6Math                , "Enable ES6 Math extensions"                               , DEFAULT_CONFIG_ES6Math)
+
+#ifndef COMPILE_DISABLE_ES6Module
+    #define COMPILE_DISABLE_ES6Module 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6Module              , "Enable ES6 Modules"                                       , DEFAULT_CONFIG_ES6Module)
 FLAGPR           (Boolean, ES6, ES6Object              , "Enable ES6 Object extensions"                             , DEFAULT_CONFIG_ES6Object)
 FLAGPR           (Boolean, ES6, ES6Number              , "Enable ES6 Number extensions"                             , DEFAULT_CONFIG_ES6Number)
@@ -889,6 +967,10 @@ FLAGPR           (Boolean, ES6, ES6Rest                , "Enable ES6 Rest parame
 FLAGPR           (Boolean, ES6, ES6Spread              , "Enable ES6 Spread support"                                , DEFAULT_CONFIG_ES6Spread)
 FLAGPR           (Boolean, ES6, ES6String              , "Enable ES6 String extensions"                             , DEFAULT_CONFIG_ES6String)
 FLAGPR           (Boolean, ES6, ES6StringPrototypeFixes, "Enable ES6 String.prototype fixes"                        , DEFAULT_CONFIG_ES6StringPrototypeFixes)
+
+#ifndef COMPILE_DISABLE_ES6PrototypeChain
+    #define COMPILE_DISABLE_ES6PrototypeChain 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6PrototypeChain      , "Enable ES6 prototypes (Example: Date prototype is object)", DEFAULT_CONFIG_ES6PrototypeChain)
 FLAGPR           (Boolean, ES6, ES6ToPrimitive         , "Enable ES6 ToPrimitive symbol"                            , DEFAULT_CONFIG_ES6ToPrimitive)
 FLAGPR           (Boolean, ES6, ES6ToLength            , "Enable ES6 ToLength fixes"                                , DEFAULT_CONFIG_ES6ToLength)
@@ -898,10 +980,26 @@ FLAGPR           (Boolean, ES6, ES6Unicode             , "Enable ES6 Unicode 6.0
 FLAGPR           (Boolean, ES6, ES6UnicodeVerbose      , "Enable ES6 Unicode 6.0 verbose failure output"            , DEFAULT_CONFIG_ES6UnicodeVerbose)
 FLAGPR           (Boolean, ES6, ES6Unscopables         , "Enable ES6 With Statement Unscopables"                    , DEFAULT_CONFIG_ES6Unscopables)
 FLAGPR           (Boolean, ES6, ES6RegExSticky         , "Enable ES6 RegEx sticky flag"                             , DEFAULT_CONFIG_ES6RegExSticky)
+
+#ifndef COMPILE_DISABLE_ES6RegExPrototypeProperties
+    #define COMPILE_DISABLE_ES6RegExPrototypeProperties 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExPrototypeProperties, "Enable ES6 properties on the RegEx prototype"         , DEFAULT_CONFIG_ES6RegExPrototypeProperties)
+
+#ifndef COMPILE_DISABLE_ES6RegExSymbols
+    #define COMPILE_DISABLE_ES6RegExSymbols 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symbols"                                , DEFAULT_CONFIG_ES6RegExSymbols)
+
+#ifndef COMPILE_DISABLE_ES6HasInstance
+    #define COMPILE_DISABLE_ES6HasInstance 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstanceOf)
 FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose trace"                                 , DEFAULT_CONFIG_ES6Verbose)
+
+#ifndef COMPILE_DISABLE_ArrayBufferTransfer
+    #define COMPILE_DISABLE_ArrayBufferTransfer 0
+#endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ArrayBufferTransfer    , "Enable ArrayBuffer.transfer"                              , DEFAULT_CONFIG_ArrayBufferTransfer)
 // /ES6 (BLUE+1) features/flags
 
