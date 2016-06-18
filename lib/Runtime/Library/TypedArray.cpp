@@ -1664,7 +1664,7 @@ namespace Js
 
             Js::Var constructorArgs[] = { constructor, buffer, JavascriptNumber::ToVar(beginByteOffset, scriptContext), JavascriptNumber::ToVar(newLength, scriptContext) };
             Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-            newTypedArray = JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+            newTypedArray = RecyclableObject::FromVar(TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), newLength, scriptContext));
         }
         else
         {
@@ -1750,7 +1750,7 @@ namespace Js
 
                 Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(len, scriptContext) };
                 Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-                newObj = JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+                newObj = TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), len, scriptContext);
 
                 TypedArrayBase* newTypedArrayBase = nullptr;
                 JavascriptArray* newArr = nullptr;
@@ -1814,7 +1814,7 @@ namespace Js
 
             Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(len, scriptContext) };
             Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-            newObj = JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+            newObj = TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), len, scriptContext);
 
             TypedArrayBase* newTypedArrayBase = nullptr;
             JavascriptArray* newArr = nullptr;
@@ -2073,7 +2073,7 @@ namespace Js
 
             Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(captured, scriptContext) };
             Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-            newObj = RecyclableObject::FromVar(JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext));
+            newObj = RecyclableObject::FromVar(TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), captured, scriptContext));
 
             if (TypedArrayBase::Is(newObj))
             {
@@ -3034,6 +3034,40 @@ namespace Js
             }
         }
         return Js::JavascriptNumber::ToVarNoCheck(currentRes, scriptContext);
+    }
+
+    // static
+    Var TypedArrayBase::ValidateTypedArray(Var aValue, ScriptContext *scriptContext)
+    {
+        if (!TypedArrayBase::Is(aValue))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray);
+        }
+
+        TypedArrayBase *typedArrayBase = TypedArrayBase::FromVar(aValue);
+        ArrayBuffer *arrayBuffer = typedArrayBase->GetArrayBuffer();
+        if (arrayBuffer->IsDetached())
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
+        }
+
+        return arrayBuffer;
+    }
+
+    // static
+    Var TypedArrayBase::TypedArrayCreate(Var constructor, Arguments *args, uint32 length, ScriptContext *scriptContext)
+    {
+        Var newObj = JavascriptOperators::NewScObject(constructor, *args, scriptContext);
+
+        TypedArrayBase::ValidateTypedArray(newObj, scriptContext);
+
+        // ECMA262 22.2.4.6 TypedArrayCreate line 3. "If argumentList is a List of a single Number" (args[0] == constructor)
+        if (args->Info.Count == 2 && TypedArrayBase::FromVar(newObj)->GetLength() < length)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArrayLength);
+        }
+
+        return newObj;
     }
 
     template<>

@@ -137,6 +137,8 @@ namespace Js
         // Returns false if this is not a TypedArray or it's not detached
         static BOOL IsDetachedTypedArray(Var aValue);
         static HRESULT GetBuffer(Var aValue, ArrayBuffer** outBuffer, uint32* outOffset, uint32* outLength);
+        static Var ValidateTypedArray(Var aValue, ScriptContext *scriptContext);
+        static Var TypedArrayCreate(Var constructor, Arguments *args, uint32 length, ScriptContext *scriptContext);
 
         virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) = 0;
         virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) = 0;
