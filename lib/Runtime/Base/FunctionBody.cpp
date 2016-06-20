@@ -1912,6 +1912,9 @@ namespace Js
 
         if (fParsed == TRUE)
         {
+            // Restore if the function has nameIdentifier reference, as that name on the left side will not be parsed again while deferparse.
+            funcBody->SetIsNameIdentifierRef(this->GetIsNameIdentifierRef());
+
             this->UpdateFunctionBodyImpl(funcBody);
             this->m_hasBeenParsed = true;
         }
