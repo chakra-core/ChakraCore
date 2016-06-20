@@ -84,9 +84,19 @@ if(CLR_CMAKE_PLATFORM_UNIX)
     # prevent the required interface is being exported
     # clang by default sets fvisibility=default
 
+if(NOT CC_XCODE_PROJECT)
+    # todo: enable for XCode too
+    # XCode is a bit more strict
+    # keep this until we fix all the warnings there.
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Werror"
+        )
+endif()
+
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -Werror\
+        -Wno-missing-braces\
+        -Wno-reorder\
         -Wno-microsoft\
         -Wno-unused-value\
         -Wno-int-to-void-pointer-cast\
@@ -174,7 +184,6 @@ include_directories(
     pal/inc/rt
     ${ICU_INCLUDE_PATH}
     )
-
 
 add_subdirectory (pal)
 

@@ -60,13 +60,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
       icuuc
       -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
     )
-    #
-    # Post build step to copy the built shared library
-    # to BuildLinux (or whatever the CMakeBuildDir is)
-    add_custom_command(TARGET ChakraCore POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.so"
-       ${CHAKRACORE_BINARY_DIR}/)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     # todo: combine link libraries into a list
     # reminder: order of the link libraries matters
@@ -105,11 +98,19 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
       icucore
     #   -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
     )
-    #
-    # Post build step to copy the built shared library
-    # to BuildLinux (or whatever the CMakeBuildDir is)
-    add_custom_command(TARGET ChakraCore POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-      "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.dylib"
-       ${CHAKRACORE_BINARY_DIR}/)
+endif()
+
+if(NOT CC_XCODE_PROJECT)
+  set(CC_LIB_EXT "so")
+  # Post build step to copy the built shared library
+  # to BuildLinux (or whatever the CMakeBuildDir is)
+  if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(CC_LIB_EXT "dylib")
+  endif()
+  
+  add_custom_command(TARGET ChakraCore POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.${CC_LIB_EXT}"
+    ${CHAKRACORE_BINARY_DIR}/
+    )
 endif()

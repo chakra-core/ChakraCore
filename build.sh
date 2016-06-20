@@ -27,6 +27,7 @@ PRINT_USAGE() {
     echo "      --icu=PATH      Path to ICU include folder (see example below)"
     echo "  -j [N], --jobs[=N]  Multicore build, allow N jobs at once"
     echo "  -n, --ninja         Build with ninja instead of make"
+    echo "      --xcode         Generate XCode project"
     echo "  -t, --test-build    Test build (by default Release build)"
     echo "  -v, --verbose       Display verbose output including all options"
     echo ""
@@ -102,6 +103,11 @@ while [[ $# -gt 0 ]]; do
     -n | --ninja)
         CMAKE_GEN="-G Ninja"
         MAKE=ninja
+        ;;
+
+    --xcode)
+        CMAKE_GEN="-G Xcode -DCC_XCODE_PROJECT=1"
+        MAKE=0
         ;;
 
     *)
@@ -186,5 +192,12 @@ pushd $build_directory > /dev/null
 echo Generating $BUILD_TYPE makefiles
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
 
-$MAKE $MULTICORE_BUILD 2>&1 | tee build.log
+if [[ $? == 0 ]]; then
+    if [[ $MAKE != 0 ]]; then
+        $MAKE $MULTICORE_BUILD 2>&1 | tee build.log
+    else
+        echo "Visit given folder above for xcode project file ----^"
+    fi
+fi
+
 popd > /dev/null
