@@ -1653,7 +1653,7 @@ private:
     bool                    IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value *src1Val, Value *src2Val, BasicBlock * block, bool hasLiveFields, bool mayNeedImplicitCallBailOut, bool isForwardPass);
     static bool             IsTypeCheckProtected(const IR::Instr * instr);
     static bool             MayNeedBailOnImplicitCall(const IR::Instr * instr, Value *src1Val, Value *src2Val);
-    static bool             MayNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val, bool callsToPrimitive);
+    static bool             MaySrcNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val);
 
     void                    GenerateBailAfterOperation(IR::Instr * *const pInstr, IR::BailOutKind kind);
 public:

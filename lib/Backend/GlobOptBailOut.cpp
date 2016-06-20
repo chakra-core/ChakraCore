@@ -905,7 +905,7 @@ GlobOpt::MayNeedBailOut(Loop * loop) const
 }
 
 bool
-GlobOpt::MayNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val, bool callsToPrimitive)
+GlobOpt::MaySrcNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val)
 {
     switch (opnd->GetKind())
     {
@@ -916,7 +916,7 @@ GlobOpt::MayNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val, bool callsToPrim
     case IR::OpndKindReg:
         // Only need implicit call if the operation will call ToPrimitive and we haven't prove
         // that it is already a primitive
-        return callsToPrimitive &&
+        return 
             !(val && val->GetValueInfo()->IsPrimitive()) &&
             !opnd->AsRegOpnd()->GetValueType().IsPrimitive() &&
             !opnd->AsRegOpnd()->m_sym->IsInt32() &&
@@ -1093,27 +1093,20 @@ GlobOpt::MayNeedBailOnImplicitCall(const IR::Instr * instr, Value *src1Val, Valu
         break;
     }
 
-    IR::Opnd * opnd = instr->GetSrc1();
-
-    bool callsToPrimitive = OpCodeAttr::CallsValueOf(instr->m_opcode);
-    if (opnd != nullptr && MayNeedBailOnImplicitCall(opnd, src1Val, callsToPrimitive))
+    if (OpCodeAttr::HasImplicitCall(instr->m_opcode))
     {
-        return true;
-    }
-    opnd = instr->GetSrc2();
-    if (opnd != nullptr && MayNeedBailOnImplicitCall(opnd, src2Val, callsToPrimitive))
-    {
+        // Operation has an implicit call regardless of operand attributes.
         return true;
     }
 
-    opnd = instr->GetDst();
+    IR::Opnd * opnd = instr->GetDst();
 
     if (opnd)
     {
         switch (opnd->GetKind())
         {
         case IR::OpndKindReg:
-            return false;
+            break;
 
         case IR::OpndKindSym:
             // No implicit call if we are just storing to a stack sym. Note that stores to non-configurable root
@@ -1142,6 +1135,17 @@ GlobOpt::MayNeedBailOnImplicitCall(const IR::Instr * instr, Value *src1Val, Valu
         default:
             Assume(UNREACHED);
         }
+    }
+
+    opnd = instr->GetSrc1();
+    if (opnd != nullptr && MaySrcNeedBailOnImplicitCall(opnd, src1Val))
+    {
+        return true;
+    }
+    opnd = instr->GetSrc2();
+    if (opnd != nullptr && MaySrcNeedBailOnImplicitCall(opnd, src2Val))
+    {
+        return true;
     }
 
     return false;

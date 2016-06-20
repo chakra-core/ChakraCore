@@ -2882,24 +2882,19 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     }
 
     // Insert in landing pad
-    if (OpCodeAttr::HasImplicitCall(ldInstr->m_opcode))
+    if (ldInstr->HasAnyImplicitCalls())
     {
         IR::Instr * bailInstr = EnsureDisableImplicitCallRegion(loop);
 
         bailInstr->InsertBefore(ldInstr);
     }
+    else if (loop->endDisableImplicitCall)
+    {
+        loop->endDisableImplicitCall->InsertBefore(ldInstr);
+    }
     else
     {
-        // Currently there are only LdSlot and LdSlotArr that are PRE candidate and doesn't have implicit call
-        Assert(ldInstr->m_opcode == Js::OpCode::LdSlot || ldInstr->m_opcode == Js::OpCode::LdSlotArr);
-        if (loop->endDisableImplicitCall)
-        {
-            loop->endDisableImplicitCall->InsertBefore(ldInstr);
-        }
-        else
-        {
-            loop->landingPad->InsertAfter(ldInstr);
-        }
+        loop->landingPad->InsertAfter(ldInstr);
     }
 
     ldInstr->ClearByteCodeOffset();
@@ -7079,13 +7074,13 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         // fall-through
     case Js::OpCode::Conv_Str:
     // This opcode is commented out since we don't track regex information in GlobOpt now.
-    //case Js::OpCode::Coerse_Regex:
-    case Js::OpCode::Coerse_Str:
+    //case Js::OpCode::Coerce_Regex:
+    case Js::OpCode::Coerce_Str:
         AssertMsg(instr->GetDst()->GetValueType().IsString(),
             "Creator of this instruction should have set the type");
         // fall-through
-    case Js::OpCode::Coerse_StrOrRegex:
-        // We don't set the ValueType of src1 for Coerse_StrOrRegex, hence skip the ASSERT
+    case Js::OpCode::Coerce_StrOrRegex:
+        // We don't set the ValueType of src1 for Coerce_StrOrRegex, hence skip the ASSERT
         if (this->IsLoopPrePass() || src1ValueInfo == nullptr || !src1ValueInfo->IsString())
         {
             break;
@@ -17955,7 +17950,7 @@ GlobOpt::PreLowerCanonicalize(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2V
             return;
         }
         // Make sure we don't swap 2 srcs with valueOf calls.
-        if (OpCodeAttr::CallsValueOf(instr->m_opcode))
+        if (OpCodeAttr::OpndHasImplicitCall(instr->m_opcode))
         {
             if (instr->IsBranchInstr())
             {
@@ -18449,7 +18444,7 @@ GlobOpt::OptIsInvariant(
         return false;
     }
 
-    bool allowNonPrimitives = !OpCodeAttr::CallsValueOf(instr->m_opcode);
+    bool allowNonPrimitives = !OpCodeAttr::OpndHasImplicitCall(instr->m_opcode);
 
     switch(instr->m_opcode)
     {

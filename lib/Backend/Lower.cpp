@@ -2772,15 +2772,15 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerConvStr(instr);
             break;
 
-        case Js::OpCode::Coerse_Str:
+        case Js::OpCode::Coerce_Str:
             this->LowerCoerseStr(instr);
             break;
 
-        case Js::OpCode::Coerse_StrOrRegex:
+        case Js::OpCode::Coerce_StrOrRegex:
             this->LowerCoerseStrOrRegex(instr);
             break;
 
-        case Js::OpCode::Coerse_Regex:
+        case Js::OpCode::Coerce_Regex:
             this->LowerCoerseRegex(instr);
             break;
 
