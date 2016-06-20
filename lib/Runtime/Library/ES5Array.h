@@ -92,6 +92,14 @@ namespace Js
         // Get non-index enumerator for SCA
         virtual BOOL GetNonIndexEnumerator(Var* enumerator, ScriptContext* requestContext) override;
         virtual BOOL IsItemEnumerable(uint32 index) override;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
     AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(ES5Array, &RecyclableObject::DumpObjectFunction);
 }

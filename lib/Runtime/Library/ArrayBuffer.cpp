@@ -746,6 +746,17 @@ namespace Js
         return TRUE;
     }
 
+#if ENABLE_TTD
+    void ArrayBufferParent::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        extractor->MarkVisitVar(this->arrayBuffer);
+    }
+
+    void ArrayBufferParent::ProcessCorePaths()
+    {
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->arrayBuffer, _u("!buffer"));
+    }
+#endif
 
     JavascriptArrayBuffer::JavascriptArrayBuffer(uint32 length, DynamicType * type) :
         ArrayBuffer(length, type, (IsValidVirtualBufferLength(length)) ? AllocWrapper : malloc)
@@ -977,6 +988,31 @@ namespace Js
         return newArrayBuffer;
     }
 
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptArrayBuffer::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject;
+    }
+
+    void JavascriptArrayBuffer::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapArrayBufferInfo* sabi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapArrayBufferInfo>();
+
+        sabi->Length = this->GetByteLength();
+        if(sabi->Length == 0)
+        {
+            sabi->Buff = nullptr;
+        }
+        else
+        {
+            sabi->Buff = alloc.SlabAllocateArray<byte>(sabi->Length);
+            memcpy(sabi->Buff, this->GetBuffer(), sabi->Length);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayBufferInfo*, TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject>(objData, sabi);
+    }
+#endif
+
     ProjectionArrayBuffer::ProjectionArrayBuffer(uint32 length, DynamicType * type) :
         ArrayBuffer(length, type, CoTaskMemAlloc)
     {
@@ -1035,4 +1071,30 @@ namespace Js
         : ArrayBuffer(buffer, length, type)
     {
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ExternalArrayBuffer::GetSnapTag_TTD() const
+    {
+        //We re-map ExternalArrayBuffers to regular buffers since the 'real' host will be gone when we replay
+        return TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject;
+    }
+
+    void ExternalArrayBuffer::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapArrayBufferInfo* sabi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapArrayBufferInfo>();
+
+        sabi->Length = this->GetByteLength();
+        if(sabi->Length == 0)
+        {
+            sabi->Buff = nullptr;
+        }
+        else
+        {
+            sabi->Buff = alloc.SlabAllocateArray<byte>(sabi->Length);
+            memcpy(sabi->Buff, this->GetBuffer(), sabi->Length);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayBufferInfo*, TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject>(objData, sabi);
+    }
+#endif
 }

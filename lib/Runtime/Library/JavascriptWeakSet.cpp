@@ -102,6 +102,17 @@ namespace Js
 
         DynamicObject* keyObj = DynamicObject::FromVar(key);
 
+#if ENABLE_TTD
+        //
+        //This makes the set decidedly less weak -- forces it to only release when we clean the tracking set but determinizes the behavior nicely
+        //      We want to improve this.
+        //
+        if(scriptContext->ShouldPerformDebugAction() | scriptContext->ShouldPerformRecordAction())
+        {
+            scriptContext->TTDContextInfo->TTDWeakReferencePinSet->Add(keyObj);
+        }
+#endif
+
         weakSet->Add(keyObj);
 
         return weakSet;
@@ -183,4 +194,40 @@ namespace Js
         stringBuilder->AppendCppLiteral(_u("WeakSet"));
         return TRUE;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptWeakSet::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapSetObject;
+    }
+
+    void JavascriptWeakSet::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapSetInfo* ssi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapSetInfo>();
+        uint32 setCountEst = this->Size();
+
+        ssi->SetSize = 0;
+        ssi->SetValueArray = alloc.SlabReserveArraySpace<TTD::TTDVar>(setCountEst + 1); //always reserve at least 1 element
+
+        this->Map([&](DynamicObject* key)
+        {
+            AssertMsg(ssi->SetSize < setCountEst, "We are writting junk");
+
+            ssi->SetValueArray[ssi->SetSize] = key;
+            ssi->SetSize++;
+        });
+
+        if(ssi->SetSize == 0)
+        {
+            ssi->SetValueArray = nullptr;
+            alloc.SlabAbortArraySpace<TTD::TTDVar>(setCountEst + 1);
+        }
+        else
+        {
+            alloc.SlabCommitArraySpace<TTD::TTDVar>(ssi->SetSize, setCountEst + 1);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapSetInfo*, TTD::NSSnapObjects::SnapObjectType::SnapSetObject>(objData, ssi);
+    }
+#endif
 }

@@ -687,7 +687,7 @@ namespace Js
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         ARGUMENTS(args, callInfo);
         Assert(!(callInfo.Flags & CallFlags_New));
-        
+
         ScriptContext* scriptContext = function->GetScriptContext();
         Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
         Var resolve = undefinedVar;
@@ -840,8 +840,8 @@ namespace Js
         {
             Assert(args[1] != nullptr);
 
-            return args[1];
-        }
+        return args[1];
+    }
         else
         {
             return function->GetScriptContext()->GetLibrary()->GetUndefined();
@@ -1066,6 +1066,114 @@ namespace Js
         CALL_FUNCTION(promiseCatch, CallInfo(CallFlags_Value, 2), promise, failFunction);
     }
 
+#if ENABLE_TTD
+    void JavascriptPromise::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        if(this->result != nullptr)
+        {
+            extractor->MarkVisitVar(this->result);
+        }
+
+        if(this->resolveReactions != nullptr)
+        {
+            for(int32 i = 0; i < this->resolveReactions->Count(); ++i)
+            {
+                this->resolveReactions->Item(i)->MarkVisitPtrs(extractor);
+            }
+        }
+
+        if(this->rejectReactions != nullptr)
+        {
+            for(int32 i = 0; i < this->rejectReactions->Count(); ++i)
+            {
+                this->rejectReactions->Item(i)->MarkVisitPtrs(extractor);
+            }
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptPromise::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapPromiseObject;
+    }
+
+    void JavascriptPromise::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        JsUtil::List<TTD_PTR_ID, HeapAllocator> depOnList(&HeapAllocator::Instance);
+
+        TTD::NSSnapObjects::SnapPromiseInfo* spi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapPromiseInfo>();
+
+        spi->Result = this->result;
+
+        if(this->result != nullptr && TTD::JsSupport::IsVarComplexKind(this->result))
+        {
+            depOnList.Add(TTD_CONVERT_VAR_TO_PTR_ID(this->result));
+        }
+
+        spi->Status = this->status;
+
+        spi->ResolveReactionCount = (this->resolveReactions != nullptr) ? this->resolveReactions->Count() : 0;
+        spi->ResolveReactions = nullptr;
+        if(spi->ResolveReactionCount != 0)
+        {
+            spi->ResolveReactions = alloc.SlabAllocateArray<TTD::NSSnapValues::SnapPromiseReactionInfo>(spi->ResolveReactionCount);
+
+            for(uint32 i = 0; i < spi->ResolveReactionCount; ++i)
+            {
+                this->resolveReactions->Item(i)->ExtractSnapPromiseReactionInto(spi->ResolveReactions + i, depOnList, alloc);
+            }
+        }
+
+        spi->RejectReactionCount = (this->rejectReactions != nullptr) ? this->rejectReactions->Count() : 0;
+        spi->RejectReactions = nullptr;
+        if(spi->RejectReactionCount != 0)
+        {
+            spi->RejectReactions = alloc.SlabAllocateArray<TTD::NSSnapValues::SnapPromiseReactionInfo>(spi->RejectReactionCount);
+
+            for(uint32 i = 0; i < spi->RejectReactionCount; ++i)
+            {
+                this->rejectReactions->Item(i)->ExtractSnapPromiseReactionInto(spi->RejectReactions+ i, depOnList, alloc);
+            }
+        }
+
+        //see what we need to do wrt dependencies
+        if(depOnList.Count() == 0)
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapPromiseInfo*, TTD::NSSnapObjects::SnapObjectType::SnapPromiseObject>(objData, spi);
+        }
+        else
+        {
+            uint32 depOnCount = depOnList.Count();
+            TTD_PTR_ID* depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
+
+            for(uint32 i = 0; i < depOnCount; ++i)
+            {
+                depOnArray[i] = depOnList.Item(i);
+            }
+
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapPromiseInfo*, TTD::NSSnapObjects::SnapObjectType::SnapPromiseObject>(objData, spi, alloc, depOnCount, depOnArray);
+        }
+    }
+
+    JavascriptPromise* JavascriptPromise::InitializePromise_TTD(ScriptContext* scriptContext, uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions)
+    {
+        Recycler* recycler = scriptContext->GetRecycler();
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+
+        JavascriptPromise* promise = library->CreatePromise();
+
+        promise->status = (PromiseStatus)status;
+        promise->result = result;
+
+        promise->resolveReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
+        promise->resolveReactions->Copy(&resolveReactions);
+
+        promise->rejectReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
+        promise->rejectReactions->Copy(&rejectReactions);
+
+        return promise;
+    }
+#endif
+
     // NewPromiseCapability as described in ES6.0 (draft 29) Section 25.4.1.6
     JavascriptPromiseCapability* JavascriptPromise::NewPromiseCapability(Var constructor, ScriptContext* scriptContext)
     {
@@ -1085,7 +1193,7 @@ namespace Js
         JavascriptLibrary* library = scriptContext->GetLibrary();
         Var undefinedVar = library->GetUndefined();
         JavascriptPromiseCapability* promiseCapability = JavascriptPromiseCapability::New(undefinedVar, undefinedVar, undefinedVar, scriptContext);
-        
+
         JavascriptPromiseCapabilitiesExecutorFunction* executor = library->CreatePromiseCapabilitiesExecutorFunction(EntryCapabilitiesExecutorFunction, promiseCapability);
 
         CallInfo callinfo = Js::CallInfo((Js::CallFlags)(Js::CallFlags::CallFlags_Value | Js::CallFlags::CallFlags_New), 2);
@@ -1183,6 +1291,38 @@ namespace Js
         this->alreadyResolvedWrapper->alreadyResolved = is;
     }
 
+#if ENABLE_TTD
+    void JavascriptPromiseResolveOrRejectFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(this->promise != nullptr, "Was not expecting that!!!");
+
+        extractor->MarkVisitVar(this->promise);
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptPromiseResolveOrRejectFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapPromiseResolveOrRejectFunctionObject;
+    }
+
+    void JavascriptPromiseResolveOrRejectFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapPromiseResolveOrRejectFunctionInfo* sprri = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapPromiseResolveOrRejectFunctionInfo>();
+
+        uint32 depOnCount = 1;
+        TTD_PTR_ID* depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
+
+        sprri->PromiseId = TTD_CONVERT_VAR_TO_PTR_ID(this->promise);
+        depOnArray[0] = sprri->PromiseId;
+
+        sprri->IsReject = this->isReject;
+
+        sprri->AlreadyResolvedWrapperId = TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(this->alreadyResolvedWrapper);
+        sprri->AlreadyResolvedValue = this->alreadyResolvedWrapper->alreadyResolved;
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapPromiseResolveOrRejectFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapPromiseResolveOrRejectFunctionObject>(objData, sprri, alloc, depOnCount, depOnArray);
+    }
+#endif
+
     JavascriptPromiseAsyncSpawnExecutorFunction::JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generatorFunction, Var target)
         : RuntimeFunction(type, functionInfo), generatorFunction(generatorFunction), target(target)
     { }
@@ -1216,6 +1356,24 @@ namespace Js
     {
         return this->target;
     }
+
+#if ENABLE_TTD
+    void JavascriptPromiseAsyncSpawnExecutorFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(false, "Not Implemented Yet");
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAsyncSpawnExecutorFunction::GetSnapTag_TTD() const
+    {
+        AssertMsg(false, "Not Implemented Yet");
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptPromiseAsyncSpawnExecutorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(false, "Not Implemented Yet");
+    }
+#endif
 
     JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var argument, JavascriptFunction* resolve, JavascriptFunction* reject, bool isReject)
         : RuntimeFunction(type, functionInfo), generator(generator), argument(argument), resolve(resolve), reject(reject), isReject(isReject)
@@ -1266,6 +1424,24 @@ namespace Js
         return this->argument;
     }
 
+#if ENABLE_TTD
+    void JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(false, "Not Implemented Yet");
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::GetSnapTag_TTD() const
+    {
+        AssertMsg(false, "Not Implemented Yet");
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(false, "Not Implemented Yet");
+    }
+#endif
+
     JavascriptPromiseCapabilitiesExecutorFunction::JavascriptPromiseCapabilitiesExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptPromiseCapability* capability)
         : RuntimeFunction(type, functionInfo), capability(capability)
     { }
@@ -1294,6 +1470,24 @@ namespace Js
     {
         return this->capability;
     }
+
+#if ENABLE_TTD
+    void JavascriptPromiseCapabilitiesExecutorFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(false, "Not Implemented Yet");
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptPromiseCapabilitiesExecutorFunction::GetSnapTag_TTD() const
+    {
+        AssertMsg(false, "Not Implemented Yet");
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptPromiseCapabilitiesExecutorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(false, "Not Implemented Yet");
+    }
+#endif
 
     JavascriptPromiseCapability* JavascriptPromiseCapability::New(Var promise, Var resolve, Var reject, ScriptContext* scriptContext)
     {
@@ -1330,6 +1524,41 @@ namespace Js
         this->reject = reject;
     }
 
+#if ENABLE_TTD
+    void JavascriptPromiseCapability::MarkVisitPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(this->promise != nullptr && this->resolve != nullptr && this->reject != nullptr, "Seems odd, I was not expecting this!!!");
+
+        extractor->MarkVisitVar(this->promise);
+
+        extractor->MarkVisitVar(this->resolve);
+        extractor->MarkVisitVar(this->reject);
+    }
+
+    void JavascriptPromiseCapability::ExtractSnapPromiseCapabilityInto(TTD::NSSnapValues::SnapPromiseCapabilityInfo* snapPromiseCapability, JsUtil::List<TTD_PTR_ID, HeapAllocator>& depOnList, TTD::SlabAllocator& alloc)
+    {
+        snapPromiseCapability->CapabilityId = TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(this);
+
+        snapPromiseCapability->PromiseVar = this->promise;
+        if(TTD::JsSupport::IsVarComplexKind(this->promise))
+        {
+            depOnList.Add(TTD_CONVERT_VAR_TO_PTR_ID(this->resolve));
+        }
+
+        snapPromiseCapability->ResolveVar = this->resolve;
+        if(TTD::JsSupport::IsVarComplexKind(this->resolve))
+        {
+            depOnList.Add(TTD_CONVERT_VAR_TO_PTR_ID(this->resolve));
+        }
+
+        snapPromiseCapability->RejectVar = this->reject;
+        if(TTD::JsSupport::IsVarComplexKind(this->reject))
+        {
+            depOnList.Add(TTD_CONVERT_VAR_TO_PTR_ID(this->reject));
+        }
+    }
+#endif
+
     JavascriptPromiseReaction* JavascriptPromiseReaction::New(JavascriptPromiseCapability* capabilities, RecyclableObject* handler, ScriptContext* scriptContext)
     {
         return RecyclerNew(scriptContext->GetRecycler(), JavascriptPromiseReaction, capabilities, handler);
@@ -1345,6 +1574,29 @@ namespace Js
         return this->handler;
     }
 
+#if ENABLE_TTD
+    void JavascriptPromiseReaction::MarkVisitPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(this->handler != nullptr && this->capabilities != nullptr, "Seems odd, I was not expecting this!!!");
+
+        extractor->MarkVisitVar(this->handler);
+
+        this->capabilities->MarkVisitPtrs(extractor);
+    }
+
+    void JavascriptPromiseReaction::ExtractSnapPromiseReactionInto(TTD::NSSnapValues::SnapPromiseReactionInfo* snapPromiseReaction, JsUtil::List<TTD_PTR_ID, HeapAllocator>& depOnList, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(this->handler != nullptr && this->capabilities != nullptr, "Seems odd, I was not expecting this!!!");
+
+        snapPromiseReaction->PromiseReactionId = TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(this);
+
+        snapPromiseReaction->HandlerObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->handler);
+        depOnList.Add(snapPromiseReaction->HandlerObjId);
+
+        this->capabilities->ExtractSnapPromiseCapabilityInto(&snapPromiseReaction->Capabilities, depOnList, alloc);
+    }
+#endif
+
     JavascriptPromiseReaction* JavascriptPromiseReactionTaskFunction::GetReaction()
     {
         return this->reaction;
@@ -1354,6 +1606,56 @@ namespace Js
     {
         return this->argument;
     }
+
+#if ENABLE_TTD
+    void JavascriptPromiseReactionTaskFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(this->argument != nullptr && this->reaction != nullptr, "Was not expecting this!!!");
+
+        extractor->MarkVisitVar(this->argument);
+
+        this->reaction->MarkVisitPtrs(extractor);
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptPromiseReactionTaskFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapPromiseReactionTaskFunctionObject;
+    }
+
+    void JavascriptPromiseReactionTaskFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapPromiseReactionTaskFunctionInfo* sprtfi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapPromiseReactionTaskFunctionInfo>();
+
+        JsUtil::List<TTD_PTR_ID, HeapAllocator> depOnList(&HeapAllocator::Instance);
+
+        sprtfi->Argument = this->argument;
+
+        if(this->argument != nullptr && TTD::JsSupport::IsVarComplexKind(this->argument))
+        {
+            depOnList.Add(TTD_CONVERT_VAR_TO_PTR_ID(this->argument));
+        }
+
+        this->reaction->ExtractSnapPromiseReactionInto(&sprtfi->Reaction, depOnList, alloc);
+
+        //see what we need to do wrt dependencies
+        if(depOnList.Count() == 0)
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapPromiseReactionTaskFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapPromiseReactionTaskFunctionObject>(objData, sprtfi);
+        }
+        else
+        {
+            uint32 depOnCount = depOnList.Count();
+            TTD_PTR_ID* depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
+
+            for(uint32 i = 0; i < depOnCount; ++i)
+            {
+                depOnArray[i] = depOnList.Item(i);
+            }
+
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapPromiseReactionTaskFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapPromiseReactionTaskFunctionObject>(objData, sprtfi, alloc, depOnCount, depOnArray);
+        }
+    }
+#endif
 
     JavascriptPromise* JavascriptPromiseResolveThenableTaskFunction::GetPromise()
     {
@@ -1369,6 +1671,24 @@ namespace Js
     {
         return this->thenFunction;
     }
+
+#if ENABLE_TTD
+    void JavascriptPromiseResolveThenableTaskFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(false, "Not Implemented Yet");
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptPromiseResolveThenableTaskFunction::GetSnapTag_TTD() const
+    {
+        AssertMsg(false, "Not Implemented Yet");
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptPromiseResolveThenableTaskFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(false, "Not Implemented Yet");
+    }
+#endif
 
     JavascriptPromiseAllResolveElementFunction::JavascriptPromiseAllResolveElementFunction(DynamicType* type)
         : RuntimeFunction(type, &Js::JavascriptPromise::EntryInfo::AllResolveElementFunction), index(0), values(nullptr), capabilities(nullptr), remainingElementsWrapper(nullptr), alreadyCalled(false)
@@ -1432,6 +1752,24 @@ namespace Js
     {
         this->alreadyCalled = is;
     }
+
+#if ENABLE_TTD
+    void JavascriptPromiseAllResolveElementFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(false, "Not Implemented Yet");
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAllResolveElementFunction::GetSnapTag_TTD() const
+    {
+        AssertMsg(false, "Not Implemented Yet");
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptPromiseAllResolveElementFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(false, "Not Implemented Yet");
+    }
+#endif
 
     Var JavascriptPromise::EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...)
     {

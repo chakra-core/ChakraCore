@@ -43,6 +43,19 @@ namespace Js
         DictionaryTypeHandler * ConvertToDictionaryType(DynamicObject* instance, int initSlotCapacity, BOOL isProto);
         SimpleDictionaryTypeHandler * ConvertToSimpleDictionaryType(DynamicObject* instance, int initSlotCapacity, BOOL isProto);
         ES5ArrayTypeHandler * ConvertToES5ArrayType(DynamicObject* instance, int initSlotCapacity);
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override
+        {
+            ;
+        }
+
+        virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override
+        {
+            return 0;
+        }
+#endif
     };
 
     class DefaultDeferredTypeFilter

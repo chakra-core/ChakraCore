@@ -11303,6 +11303,70 @@ Case0:
         return BoxStackInstance<JavascriptArray>(instance);
     }
 
+#if ENABLE_TTD
+    void JavascriptArray::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(this->GetTypeId() == Js::TypeIds_Array || this->GetTypeId() == Js::TypeIds_ES5Array, "Should only be used on basic arrays (or called as super from ES5Array.");
+
+        ScriptContext* ctx = this->GetScriptContext();
+
+        uint32 index = Js::JavascriptArray::InvalidIndex;
+        while(true)
+        {
+            index = this->GetNextIndex(index);
+            if(index == Js::JavascriptArray::InvalidIndex) // End of array
+            {
+                break;
+            }
+
+            Js::Var aval = nullptr;
+            if(this->DirectGetVarItemAt(index, &aval, ctx))
+            {
+                extractor->MarkVisitVar(aval);
+            }
+        }
+    }
+
+    void JavascriptArray::ProcessCorePaths()
+    {
+        AssertMsg(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic arrays.");
+
+        ScriptContext* ctx = this->GetScriptContext();
+
+        uint32 index = Js::JavascriptArray::InvalidIndex;
+        while(true)
+        {
+            index = this->GetNextIndex(index);
+            if(index == Js::JavascriptArray::InvalidIndex) // End of array
+            {
+                break;
+            }
+
+            Js::Var aval = nullptr;
+            if(this->DirectGetVarItemAt(index, &aval, ctx))
+            {
+                TTD::UtilSupport::TTAutoString pathExt;
+                ctx->TTDWellKnownInfo->BuildArrayIndexBuffer(index, pathExt);
+
+                ctx->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, aval, pathExt.GetStrValue());
+            }
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptArray::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapArrayObject;
+    }
+
+    void JavascriptArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic Js arrays.");
+
+        TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>* sai = TTD::NSSnapObjects::ExtractArrayValues<TTD::TTDVar>(this, alloc);
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>*, TTD::NSSnapObjects::SnapObjectType::SnapArrayObject>(objData, sai);
+    }
+#endif
+
     JavascriptNativeArray::JavascriptNativeArray(JavascriptNativeArray * instance) :
         JavascriptArray(instance, false),
         weakRefToFuncBody(instance->weakRefToFuncBody)
@@ -11330,6 +11394,25 @@ Case0:
         return JavascriptArray::BoxStackInstance<JavascriptNativeIntArray>(instance);
     }
 
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptNativeIntArray::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject;
+    }
+
+    void JavascriptNativeIntArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(this->GetTypeId() == Js::TypeIds_NativeIntArray, "Should only be used on native int arrays.");
+
+#if ENABLE_COPYONACCESS_ARRAY
+        AssertMsg(this->GetTypeId() != Js::TypeIds_CopyOnAccessNativeIntArray, "Need to handle this case seperately.");
+#endif
+
+        TTD::NSSnapObjects::SnapArrayInfo<int32>* sai = TTD::NSSnapObjects::ExtractArrayValues<int32>(this, alloc);
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<int32>*, TTD::NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>(objData, sai);
+    }
+#endif
+
     JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead) :
         JavascriptNativeArray(instance)
     {
@@ -11350,6 +11433,21 @@ Case0:
     {
         return JavascriptArray::BoxStackInstance<JavascriptNativeFloatArray>(instance);
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptNativeFloatArray::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject;
+    }
+
+    void JavascriptNativeFloatArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(this->GetTypeId() == Js::TypeIds_NativeFloatArray, "Should only be used on native float arrays.");
+
+        TTD::NSSnapObjects::SnapArrayInfo<double>* sai = TTD::NSSnapObjects::ExtractArrayValues<double>(this, alloc);
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<double>*, TTD::NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>(objData, sai);
+    }
+#endif
 
     template<typename T>
     RecyclableObject*

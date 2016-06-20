@@ -934,4 +934,20 @@ namespace Js
         }
         return error;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptError::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapErrorObject;
+    }
+
+    void JavascriptError::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        //
+        //TODO: we don't capture the details of the error right now (and just create a generic one on inflate) so we need to fix this eventually
+        //
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapErrorObject>(objData, nullptr);
+    }
+#endif
 }

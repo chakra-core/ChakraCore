@@ -1239,7 +1239,7 @@ namespace JsUtil
         public:
             EntryIterator(TDictionary &dictionary) : Base(dictionary, 0), entryCount(dictionary.count)
             {
-                if(IsValid() && IsFreeEntry(entries[entryIndex]))
+                if(IsValid() && IsFreeEntry(this->entries[this->entryIndex]))
                 {
                     MoveNext();
                 }
@@ -1248,11 +1248,11 @@ namespace JsUtil
         public:
             bool IsValid() const
             {
-                Assert(dictionary.count == entryCount);
-                Assert(entryIndex >= 0);
-                Assert(entryIndex <= entryCount);
+                Assert(this->dictionary.count == this->entryCount);
+                Assert(this->entryIndex >= 0);
+                Assert(this->entryIndex <= entryCount);
 
-                return Base::IsValid() && entryIndex < entryCount;
+                return Base::IsValid() && this->entryIndex < this->entryCount;
             }
 
         public:
@@ -1262,8 +1262,8 @@ namespace JsUtil
 
                 do
                 {
-                    ++entryIndex;
-                } while(IsValid() && IsFreeEntry(entries[entryIndex]));
+                    ++(this->entryIndex);
+                } while(IsValid() && IsFreeEntry(this->entries[this->entryIndex]));
             }
         };
 
@@ -1460,12 +1460,12 @@ namespace JsUtil
 
         typename Base::template EntryIterator<const BaseHashSet> GetIterator() const
         {
-            return EntryIterator<const BaseHashSet>(*this);
+            return typename Base::template EntryIterator<const BaseHashSet>(*this);
         }
 
         typename Base::template EntryIterator<BaseHashSet> GetIterator()
         {
-            return EntryIterator<BaseHashSet>(*this);
+            return typename Base::template EntryIterator<BaseHashSet>(*this);
         }
 
         typename Base::template BucketEntryIterator<BaseHashSet> GetIteratorWithRemovalSupport()

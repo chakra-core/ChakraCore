@@ -103,6 +103,18 @@
 </dir>
 <dir>
   <default>
+    <files>TTExecuteBasic</files>
+    <tags>sequential</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>TTBasic</files>
+    <tags>sequential</tags>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>Optimizer</files>
     <tags>require_backend</tags>
   </default>

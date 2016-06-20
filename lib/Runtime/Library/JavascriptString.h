@@ -86,6 +86,11 @@ namespace Js
         virtual const char16* GetSz();     // Get string, NULL terminated
         virtual void const * GetOriginalStringReference();  // Get the original full string (Same as GetString() unless it is a SubString);
 
+#if ENABLE_TTD
+        //Get the associated property id for this string if there is on (e.g. it is a propertystring otherwise return Js::PropertyIds::_none)
+        virtual Js::PropertyId TryGetAssociatedPropertyId() const { return Js::PropertyIds::_none; }
+#endif
+
     public:
         template <typename StringType>
         void Copy(__out_ecount(bufLen) char16 *const buffer, const charcount_t bufLen);

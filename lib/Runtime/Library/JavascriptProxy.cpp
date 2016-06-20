@@ -2352,4 +2352,60 @@ namespace Js
 
         return trapResult;
     }
+
+#if ENABLE_TTD
+    void JavascriptProxy::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        if(this->handler != nullptr)
+        {
+            extractor->MarkVisitVar(this->handler);
+        }
+
+        if(this->target != nullptr)
+        {
+            extractor->MarkVisitVar(this->target);
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptProxy::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapProxyObject;
+    }
+
+    void JavascriptProxy::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        uint32 depOnCount = (this->handler != nullptr ? 1 : 0) + (this->target != nullptr ? 1 : 0);
+        TTD_PTR_ID* depOnArray = (depOnCount != 0) ? alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount) : nullptr;
+
+        TTD::NSSnapObjects::SnapProxyInfo* spi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapProxyInfo>();
+
+        uint32 pos = 0;
+        spi->HandlerId = TTD_INVALID_PTR_ID;
+        if(this->handler != nullptr)
+        {
+            spi->HandlerId = TTD_CONVERT_VAR_TO_PTR_ID(this->handler);
+            depOnArray[pos] = TTD_CONVERT_VAR_TO_PTR_ID(this->handler);
+
+            pos++;
+        }
+
+        spi->TargetId = TTD_INVALID_PTR_ID;
+        if(this->target != nullptr)
+        {
+            spi->TargetId = TTD_CONVERT_VAR_TO_PTR_ID(this->target);
+            depOnArray[pos] = TTD_CONVERT_VAR_TO_PTR_ID(this->target);
+
+            pos++;
+        }
+
+        if(depOnCount == 0)
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapProxyInfo*, TTD::NSSnapObjects::SnapObjectType::SnapProxyObject>(objData, spi);
+        }
+        else
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapProxyInfo*, TTD::NSSnapObjects::SnapObjectType::SnapProxyObject>(objData, spi, alloc, depOnCount, depOnArray);
+        }
+    }
+#endif
 }

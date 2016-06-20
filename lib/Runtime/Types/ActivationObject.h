@@ -34,6 +34,12 @@ namespace Js
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         static bool Is(void* instance);
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     // A block-ActivationObject is a scope for an ES6 block that should only receive block-scoped inits,
@@ -61,6 +67,12 @@ namespace Js
         }
 
         BlockActivationObject* Clone(ScriptContext *scriptContext);
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     // A pseudo-ActivationObject is a scope like a "catch" scope that shouldn't receive var inits.
@@ -80,6 +92,12 @@ namespace Js
         {
             return VirtualTableInfo<Js::PseudoActivationObject>::HasVirtualTable(instance);
         }
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class ConsoleScopeActivationObject : public ActivationObject
@@ -100,6 +118,12 @@ namespace Js
         {
             return VirtualTableInfo<Js::ConsoleScopeActivationObject>::HasVirtualTable(instance);
         }
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class ActivationObjectEx : public ActivationObject
@@ -191,5 +215,11 @@ namespace Js
         uint lastFuncSlot;
         bool committed;
         FuncCacheEntry cache[1];
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 };
