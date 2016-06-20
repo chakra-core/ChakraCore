@@ -70,6 +70,7 @@ namespace Js
         };
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewInstanceRestrictedMode(RecyclableObject* function, CallInfo callInfo, ...);
 
 #if ENABLE_TTD
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;

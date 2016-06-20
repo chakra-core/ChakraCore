@@ -893,6 +893,8 @@ HeapInfo::AddLargeHeapBlock(size_t size)
 void HeapInfo::SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent)
 {
     Recycler * recycler = recyclerSweep.GetRecycler();
+    // TODO: Remove below workaround for unreferenced local after enabled -profile for GC
+    static_cast<Recycler*>(recycler);
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
         heapBuckets[i].SweepFinalizableObjects(recyclerSweep);

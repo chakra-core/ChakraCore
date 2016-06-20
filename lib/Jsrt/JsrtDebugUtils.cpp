@@ -27,9 +27,7 @@ void JsrtDebugUtils::AddFileNameOrScriptTypeToObject(Js::DynamicObject* object, 
 
         Js::FunctionBody* anyFunctionBody = utf8SourceInfo->GetAnyParsedFunction();
 
-        Assert(anyFunctionBody != nullptr);
-
-        LPCWSTR sourceName = anyFunctionBody->GetSourceName();
+        LPCWSTR sourceName = (anyFunctionBody != nullptr) ? anyFunctionBody->GetSourceName() : Js::Constants::UnknownScriptCode;
 
         JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::scriptType, sourceName, wcslen(sourceName), utf8SourceInfo->GetScriptContext());
     }

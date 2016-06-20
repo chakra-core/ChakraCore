@@ -3117,14 +3117,24 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
         {
             PreVisitCatch(pnodeScope, byteCodeGenerator);
 
-            Visit(pnodeScope->sxCatch.pnodeParam, byteCodeGenerator, prefix, postfix);
             if (pnodeScope->sxCatch.pnodeParam->nop == knopParamPattern)
             {
+                Parser::MapBindIdentifier(pnodeScope->sxCatch.pnodeParam->sxParamPattern.pnode1, [byteCodeGenerator](ParseNodePtr pnode)
+                {
+                    Assert(pnode->nop == knopLetDecl);
+                    pnode->sxVar.sym->SetLocation(byteCodeGenerator->NextVarRegister());
+                });
+
                 if (pnodeScope->sxCatch.pnodeParam->sxParamPattern.location == Js::Constants::NoRegister)
                 {
                     pnodeScope->sxCatch.pnodeParam->sxParamPattern.location = byteCodeGenerator->NextVarRegister();
                 }
             }
+            else
+            {
+                Visit(pnodeScope->sxCatch.pnodeParam, byteCodeGenerator, prefix, postfix);
+            }
+
             bool isMergedScope;
             pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxCatch.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxCatch.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);

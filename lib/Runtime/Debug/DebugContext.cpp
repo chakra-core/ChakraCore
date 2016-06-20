@@ -148,6 +148,9 @@ namespace Js
             return hr;
         }
 
+        // VSO 6707388 - Cache ScriptContext as multiple calls below can go out of engine and ScriptContext can be closed which will delete DebugContext
+        Js::ScriptContext* cachedScriptContext = this->scriptContext;
+
         utf8SourceInfoList->MapUntil([&](int index, Js::Utf8SourceInfo * sourceInfo) -> bool
         {
             OUTPUT_TRACE(Js::DebuggerPhase, _u("DebugContext::RundownSourcesAndReparse scriptContext 0x%p, sourceInfo 0x%p, HasDebugDocument %d\n"),
@@ -211,14 +214,14 @@ namespace Js
 
                 if (shouldReparseFunctions)
                 {
-                    if (this->scriptContext == nullptr || this->scriptContext->IsClosed())
+                    if (cachedScriptContext->IsClosed())
                     {
                         // scriptContext can be closed in previous call
                         hr = E_FAIL;
                         return true;
                     }
 
-                    BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(this->scriptContext, false)
+                    BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(cachedScriptContext, false)
                     {
                         pFuncBody->Parse();
                         // This is the first call to the function, ensure dynamic profile info
@@ -258,11 +261,11 @@ namespace Js
             return false;
         });
 
-        if (this->scriptContext != nullptr && !this->scriptContext->IsClosed())
+        if (!cachedScriptContext->IsClosed())
         {
-            if (shouldPerformSourceRundown && this->scriptContext->HaveCalleeSources())
+            if (shouldPerformSourceRundown && cachedScriptContext->HaveCalleeSources())
             {
-                this->scriptContext->MapCalleeSources([=](Js::Utf8SourceInfo* calleeSourceInfo)
+                cachedScriptContext->MapCalleeSources([=](Js::Utf8SourceInfo* calleeSourceInfo)
                 {
                     if (this->hostDebugContext != nullptr)
                     {
@@ -271,6 +274,11 @@ namespace Js
                 });
             }
         }
+        else
+        {
+            hr = E_FAIL;
+        }
+
         threadContext->ReleaseTemporaryAllocator(tempAllocator);
 
         return hr;

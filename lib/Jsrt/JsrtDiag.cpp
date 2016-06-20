@@ -658,14 +658,15 @@ CHAKRA_API JsDiagEvaluate(
             return JsErrorInvalidArgument;
         }
 
-        Js::DynamicObject* result = debuggerStackFrame->Evaluate(scriptContext, expression, static_cast<int>(len), false);
+        Js::DynamicObject* result = nullptr;
+        bool success = debuggerStackFrame->Evaluate(scriptContext, expression, static_cast<int>(len), false, &result);
 
         if (result != nullptr)
         {
             *evalResult = result;
-            return JsNoError;
         }
 
-        return JsErrorDiagUnableToPerformAction;
-    });
+        return success ? JsNoError : JsErrorScriptException;
+
+    }, false /*allowInObjectBeforeCollectCallback*/, true /*scriptExceptionAllowed*/);
 }

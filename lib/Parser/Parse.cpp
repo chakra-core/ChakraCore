@@ -8876,6 +8876,31 @@ ParseNodePtr Parser::ParseCatch()
 
         pnodeCatchScope = StartParseBlock<buildAST>(PnodeBlockType::Regular, isPattern ? ScopeType_CatchParamPattern : ScopeType_Catch);
 
+        if (buildAST)
+        {
+            // Add this catch to the current scope list.
+
+            if (m_ppnodeExprScope)
+            {
+                Assert(*m_ppnodeExprScope == nullptr);
+                *m_ppnodeExprScope = pnode;
+                m_ppnodeExprScope = &pnode->sxCatch.pnodeNext;
+            }
+            else
+            {
+                Assert(m_ppnodeScope);
+                Assert(*m_ppnodeScope == nullptr);
+                *m_ppnodeScope = pnode;
+                m_ppnodeScope = &pnode->sxCatch.pnodeNext;
+            }
+
+            // Keep a list of function expressions (not declarations) at this scope.
+
+            ppnodeExprScopeSave = m_ppnodeExprScope;
+            m_ppnodeExprScope = &pnode->sxCatch.pnodeScopes;
+            pnode->sxCatch.pnodeScopes = nullptr;
+        }
+
         if (isPattern)
         {
             ParseNodePtr pnodePattern = ParseDestructuredLiteral<buildAST>(tkLET, true /*isDecl*/, true /*topLevel*/, DIC_ForceErrorOnInitializer);
@@ -8928,31 +8953,6 @@ ParseNodePtr Parser::ParseCatch()
             }
 
             m_pscan->Scan();
-        }
-
-        if (buildAST)
-        {
-            // Add this catch to the current scope list.
-
-            if (m_ppnodeExprScope)
-            {
-                Assert(*m_ppnodeExprScope == nullptr);
-                *m_ppnodeExprScope = pnode;
-                m_ppnodeExprScope = &pnode->sxCatch.pnodeNext;
-            }
-            else
-            {
-                Assert(m_ppnodeScope);
-                Assert(*m_ppnodeScope == nullptr);
-                *m_ppnodeScope = pnode;
-                m_ppnodeScope = &pnode->sxCatch.pnodeNext;
-            }
-
-            // Keep a list of function expressions (not declarations) at this scope.
-
-            ppnodeExprScopeSave = m_ppnodeExprScope;
-            m_ppnodeExprScope = &pnode->sxCatch.pnodeScopes;
-            pnode->sxCatch.pnodeScopes = nullptr;
         }
 
         charcount_t ichLim;
@@ -12056,6 +12056,13 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     {
         // Go recursively
         pnodeElem = ParseDestructuredLiteral<buildAST>(declarationType, isDecl, false /*topLevel*/, seenRest ? DIC_ShouldNotParseInitializer : DIC_None);
+        if (!isDecl)
+        {
+            BOOL fCanAssign;
+            IdentToken token;
+            // Look for postfix operator
+            pnodeElem = ParsePostfixOperators<buildAST>(pnodeElem, TRUE, FALSE, &fCanAssign, &token);
+        }
     }
     else if (m_token.tk == tkSUPER || m_token.tk == tkID)
     {
@@ -12186,35 +12193,45 @@ ParseNodePtr Parser::ParseDestructuredArrayLiteral(tokens declarationType, bool 
     bool hasMissingValues = false;
     bool seenRest = false;
 
-    while (true)
+    if (m_token.tk != tkRBrack)
     {
-        if (seenRest) // Rest must be in the last position.
+        while (true)
         {
-            Error(ERRDestructRestLast);
-        }
-
-        ParseNodePtr pnodeElem = ParseDestructuredVarDecl<buildAST>(declarationType, isDecl, &seenRest, topLevel);
-        if (buildAST)
-        {
-            if (pnodeElem == nullptr && buildAST)
+            if (seenRest) // Rest must be in the last position.
             {
-                pnodeElem = CreateNodeWithScanner<knopEmpty>();
-                hasMissingValues = true;
+                Error(ERRDestructRestLast);
             }
-            AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeElem);
-        }
-        count++;
 
-        if (m_token.tk == tkRBrack)
-        {
-            break;
-        }
+            ParseNodePtr pnodeElem = ParseDestructuredVarDecl<buildAST>(declarationType, isDecl, &seenRest, topLevel);
+            if (buildAST)
+            {
+                if (pnodeElem == nullptr && buildAST)
+                {
+                    pnodeElem = CreateNodeWithScanner<knopEmpty>();
+                    hasMissingValues = true;
+                }
+                AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeElem);
+            }
+            count++;
 
-        if (m_token.tk != tkComma)
-        {
-            Error(ERRDestructNoOper);
+            if (m_token.tk == tkRBrack)
+            {
+                break;
+            }
+
+            if (m_token.tk != tkComma)
+            {
+                Error(ERRDestructNoOper);
+            }
+
+            m_pscan->Scan();
+
+            // break if we have the trailing comma as well, eg. [a,]
+            if (m_token.tk == tkRBrack)
+            {
+                break;
+            }
         }
-        m_pscan->Scan();
     }
 
     if (buildAST)

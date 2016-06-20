@@ -761,6 +761,17 @@ var tests = [
             assert.areEqual("get", desc.get.name);
             assert.areEqual("set", desc.set.name);
         }
+    },
+	{
+        name: "Function name will be set only when LHS is identifier reference.",
+        body: function()
+        {
+            var obj = {};
+            obj.foo = function() {
+                assert.areEqual(obj.foo.name, "");
+            }
+            obj.foo();
+        }
     }
 
 ];

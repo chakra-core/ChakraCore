@@ -394,6 +394,14 @@
     /// <param name="properties">Object of properties array (properties, scopes and globals).</param>
     /// <remarks>
     ///     <para>
+    ///     propertyAttributes is a bit mask of
+    ///         NONE = 0x1,
+    ///         HAVE_CHILDRENS = 0x2,
+    ///         READ_ONLY_VALUE = 0x4,
+    ///     </para>
+    /// </remarks>
+    /// <remarks>
+    ///     <para>
     ///     {
     ///         "thisObject": {
     ///             "name": "this",
@@ -539,18 +547,31 @@
     /// <param name="evalResult">Result of evaluation.</param>
     /// <remarks>
     ///     <para>
+    ///     evalResult when evaluating 'this' and return is JsNoError
     ///     {
     ///         "name" : "this",
     ///         "type" : "object",
-    ///         "display" : "{...}",
     ///         "className" : "Object",
+    ///         "display" : "{...}",
+    ///         "propertyAttributes" : 1,
+    ///         "handle" : 18
+    ///     }
+    ///
+    ///     evalResult when evaluating a script which throws JavaScript error and return is JsErrorScriptException
+    ///     {
+    ///         "name" : "a.b.c",
+    ///         "type" : "object",
+    ///         "className" : "Error",
+    ///         "display" : "'a' is undefined",
     ///         "propertyAttributes" : 1,
     ///         "handle" : 18
     ///     }
     ///     </para>
     /// </remarks>
     /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    ///     The code <c>JsNoError</c> if the operation succeeded, evalResult will contain the result
+    ///     The code <c>JsErrorScriptException</c> if evaluate generated a JavaScript exception, evalResult will contain the error details
+    ///     Other error code for invalid parameters or API was not called at break
     /// </returns>
     /// <remarks>
     ///     The current runtime should be in debug state. This API can only be called when runtime is at a break.

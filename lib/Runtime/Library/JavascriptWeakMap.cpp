@@ -103,11 +103,9 @@ namespace Js
 
         if (iter != nullptr)
         {
-            Var nextItem;
             Var undefined = library->GetUndefined();
 
-            while (JavascriptOperators::IteratorStepAndValue(iter, scriptContext, &nextItem))
-            {
+            JavascriptOperators::DoIteratorStepAndValue(iter, scriptContext, [&](Var nextItem) {
                 if (!JavascriptOperators::IsObject(nextItem))
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
@@ -128,7 +126,7 @@ namespace Js
                 }
 
                 CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 3), weakMapObject, key, value);
-            }
+            });
         }
 
         return isCtorSuperCall ?

@@ -2803,62 +2803,64 @@ if (!sourceList)
 
         hr = this->GetDebugContext()->RundownSourcesAndReparse(shouldPerformSourceRundown, /*shouldReparseFunctions*/ true);
 
+        if (this->IsClosed())
+        {
+            return hr;
+        }
+
         // Debugger attach/detach failure is catastrophic, take down the process
         DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
 
-        if (!this->IsClosed())
-        {
-            HRESULT hrEntryPointUpdate = S_OK;
-            BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
+        HRESULT hrEntryPointUpdate = S_OK;
+        BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
 #ifdef ASMJS_PLAT
-                TempArenaAllocatorObject* tmpAlloc = GetTemporaryAllocator(_u("DebuggerTransition"));
-                debugTransitionAlloc = tmpAlloc->GetAllocator();
+            TempArenaAllocatorObject* tmpAlloc = GetTemporaryAllocator(_u("DebuggerTransition"));
+            debugTransitionAlloc = tmpAlloc->GetAllocator();
 
-                asmJsEnvironmentMap = Anew(debugTransitionAlloc, AsmFunctionMap, debugTransitionAlloc);
+            asmJsEnvironmentMap = Anew(debugTransitionAlloc, AsmFunctionMap, debugTransitionAlloc);
 #endif
 
-                // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
-                this->UpdateRecyclerFunctionEntryPointsForDebugger();
+            // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
+            this->UpdateRecyclerFunctionEntryPointsForDebugger();
 
 #ifdef ASMJS_PLAT
-                auto asmEnvIter = asmJsEnvironmentMap->GetIterator();
-                while (asmEnvIter.IsValid())
-                {
-                    // we are attaching, change frame setup for asm.js frame to javascript frame
-                    SList<AsmJsScriptFunction *> * funcList = asmEnvIter.CurrentValue();
-                    Assert(!funcList->Empty());
-                    void* newEnv = AsmJsModuleInfo::ConvertFrameForJavascript(asmEnvIter.CurrentKey(), funcList->Head());
-                    funcList->Iterate([&](AsmJsScriptFunction * func)
-                    {
-                        func->GetEnvironment()->SetItem(0, newEnv);
-                    });
-                    asmEnvIter.MoveNext();
-                }
-
-                // walk through and clean up the asm.js fields as a discrete step, because module might be multiply linked
-                auto asmCleanupIter = asmJsEnvironmentMap->GetIterator();
-                while (asmCleanupIter.IsValid())
-                {
-                    SList<AsmJsScriptFunction *> * funcList = asmCleanupIter.CurrentValue();
-                    Assert(!funcList->Empty());
-                    funcList->Iterate([](AsmJsScriptFunction * func)
-                    {
-                        func->SetModuleMemory(nullptr);
-                        func->GetFunctionBody()->ResetAsmJsInfo();
-                    });
-                    asmCleanupIter.MoveNext();
-                }
-
-                ReleaseTemporaryAllocator(tmpAlloc);
-#endif
-            END_TRANSLATE_OOM_TO_HRESULT(hrEntryPointUpdate);
-
-            if (hrEntryPointUpdate != S_OK)
+            auto asmEnvIter = asmJsEnvironmentMap->GetIterator();
+            while (asmEnvIter.IsValid())
             {
-                // should only be here for OOM
-                Assert(hrEntryPointUpdate == E_OUTOFMEMORY);
-                return hrEntryPointUpdate;
+                // we are attaching, change frame setup for asm.js frame to javascript frame
+                SList<AsmJsScriptFunction *> * funcList = asmEnvIter.CurrentValue();
+                Assert(!funcList->Empty());
+                void* newEnv = AsmJsModuleInfo::ConvertFrameForJavascript(asmEnvIter.CurrentKey(), funcList->Head());
+                funcList->Iterate([&](AsmJsScriptFunction * func)
+                {
+                    func->GetEnvironment()->SetItem(0, newEnv);
+                });
+                asmEnvIter.MoveNext();
             }
+
+            // walk through and clean up the asm.js fields as a discrete step, because module might be multiply linked
+            auto asmCleanupIter = asmJsEnvironmentMap->GetIterator();
+            while (asmCleanupIter.IsValid())
+            {
+                SList<AsmJsScriptFunction *> * funcList = asmCleanupIter.CurrentValue();
+                Assert(!funcList->Empty());
+                funcList->Iterate([](AsmJsScriptFunction * func)
+                {
+                    func->SetModuleMemory(nullptr);
+                    func->GetFunctionBody()->ResetAsmJsInfo();
+                });
+                asmCleanupIter.MoveNext();
+            }
+
+            ReleaseTemporaryAllocator(tmpAlloc);
+#endif
+        END_TRANSLATE_OOM_TO_HRESULT(hrEntryPointUpdate);
+
+        if (hrEntryPointUpdate != S_OK)
+        {
+            // should only be here for OOM
+            Assert(hrEntryPointUpdate == E_OUTOFMEMORY);
+            return hrEntryPointUpdate;
         }
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerAttached: done 0x%p, hr = 0x%X\n"), this, hr);
@@ -2897,6 +2899,11 @@ if (!sourceList)
 
         // Force a reparse so that indirect function caches are updated.
         hr = this->GetDebugContext()->RundownSourcesAndReparse(/*shouldPerformSourceRundown*/ false, /*shouldReparseFunctions*/ true);
+
+        if (this->IsClosed())
+        {
+            return hr;
+        }
 
         // Debugger attach/detach failure is catastrophic, take down the process
         DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);

@@ -90,6 +90,12 @@
   </test>
   <test>
     <default>
+      <files>function.name.js</files>
+      <compile-flags>-ES6Generators -es6toprimitive -ES6Classes -es6functionnamefull -force:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>superDotOSBug3930962.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
       <tags>BugFix</tags>
@@ -708,6 +714,11 @@
   </test>
   <test>
     <default>
+      <files>nullPropertyDescriptor.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>object-is.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
@@ -1234,6 +1245,18 @@
     <files>OS_5500719.js</files>
     <compile-flags>-forceserialized</compile-flags>
     <tags>exclude_dynapogo</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>iteratorClose.js</files>
+    <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>iteratorClose.js</files>
+    <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
   </default>
 </test>
 </regress-exe>
