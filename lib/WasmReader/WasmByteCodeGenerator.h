@@ -90,7 +90,8 @@ namespace Wasm
     private:
 
         EmitInfo EmitExpr(WasmOp op);
-        EmitInfo EmitBlock(uint* loopId = nullptr);
+        EmitInfo EmitBlock();
+        EmitInfo EmitBlockCommon();
         EmitInfo EmitLoop();
 
         template<WasmOp wasmOp>

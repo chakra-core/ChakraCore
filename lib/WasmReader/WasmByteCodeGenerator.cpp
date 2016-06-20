@@ -572,17 +572,9 @@ WasmBytecodeGenerator::EmitConst()
 }
 
 EmitInfo
-WasmBytecodeGenerator::EmitBlock(uint* loopId /*= nullptr*/)
+WasmBytecodeGenerator::EmitBlockCommon()
 {
     WasmOp op;
-    Js::ByteCodeLabel blockLabel = m_writer.DefineLabel();
-
-    // TODO: this needs more work. must get temp that brs can store to as a target, and do type checking
-    m_labels->Push(blockLabel);
-    if (loopId)
-    {
-        *loopId = m_writer.EnterLoop(blockLabel);
-    }
     EmitInfo blockInfo;
     EnterEvalStackScope();
     while ((op = m_reader.ReadFromBlock()) != wnEND && op != wnELSE)
@@ -596,17 +588,23 @@ WasmBytecodeGenerator::EmitBlock(uint* loopId /*= nullptr*/)
     if (blockInfo.type != WasmTypes::Void)
     {
         Js::RegSlot loc = GetRegisterSpace(blockInfo.type)->AcquireTmpRegister();
-        if (loc != blockInfo.location) 
+        if (loc != blockInfo.location)
         {
             m_writer.AsmReg2(GetLoadOp(blockInfo.type), loc, blockInfo.location);
             blockInfo.location = loc;
         }
     }
+    return blockInfo;
+}
 
-    if (!loopId)
-    {
-        m_writer.MarkAsmJsLabel(blockLabel);
-    }
+EmitInfo
+WasmBytecodeGenerator::EmitBlock()
+{
+    Js::ByteCodeLabel blockLabel = m_writer.DefineLabel();
+
+    // TODO: this needs more work. must get temp that brs can store to as a target, and do type checking
+    m_labels->Push(blockLabel);
+    EmitInfo blockInfo = EmitBlockCommon();
     m_labels->Pop();
 
     // block yields last value
@@ -617,10 +615,22 @@ EmitInfo
 WasmBytecodeGenerator::EmitLoop()
 {
     Js::ByteCodeLabel loopTailLabel = m_writer.DefineLabel();
+    Js::ByteCodeLabel loopHeadLabel = m_writer.DefineLabel();
+    Js::ByteCodeLabel loopLandingPadLabel = m_writer.DefineLabel();
+
+    uint loopId = m_writer.EnterLoop(loopHeadLabel);
+    // We don't want nested block to jump directly to the loop header
+    // instead, jump to the landing pad and let it jump back to the loop header
+    m_labels->Push(loopLandingPadLabel);
     m_labels->Push(loopTailLabel);
-    uint loopId;
-    EmitInfo loopInfo = EmitBlock(&loopId);
+    EmitInfo loopInfo = EmitBlockCommon();
+
+    // By default we don't loop, jump over the landing pad
+    m_writer.Br(loopTailLabel);
+    m_writer.MarkAsmJsLabel(loopLandingPadLabel);
+    m_writer.Br(loopHeadLabel);
     m_writer.MarkAsmJsLabel(loopTailLabel);
+    m_labels->Pop();
     m_labels->Pop();
     m_writer.ExitLoop(loopId);
 
