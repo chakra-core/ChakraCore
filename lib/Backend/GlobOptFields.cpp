@@ -2932,7 +2932,6 @@ GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, const Js::Type *type, Js::E
     else
     {
         JsTypeValueInfo* valueInfo = JsTypeValueInfo::New(this->alloc, type, typeSet);
-        valueInfo->SetSymStore(typeSym);
         this->SetSymStoreDirect(valueInfo, typeSym);
         Value* value = NewValue(valueInfo);
         SetValue(blockData, value, typeSym);

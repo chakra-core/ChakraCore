@@ -957,7 +957,7 @@ public:
         argOutCount(0),
         totalOutParamCount(0),
         callSequence(nullptr),
-        capturedValuesCandicate(nullptr),
+        capturedValuesCandidate(nullptr),
         capturedValues(nullptr),
         capturedArgs(nullptr),
         changedSyms(nullptr),
@@ -1011,7 +1011,7 @@ public:
     SListBase<IR::Opnd *> *                 callSequence;
     StackLiteralInitFldDataMap *            stackLiteralInitFldDataMap;
 
-    CapturedValues *                        capturedValuesCandicate;
+    CapturedValues *                        capturedValuesCandidate;
     CapturedValues *                        capturedValues;
     BVSparse<JitArenaAllocator> *           capturedArgs;
     BVSparse<JitArenaAllocator> *           changedSyms;

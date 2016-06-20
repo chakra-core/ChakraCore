@@ -266,7 +266,7 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
     capturedValues.copyPropSyms.Reset();
 
     // cache the pointer of current bailout as potential baseline for later bailout in this block
-    block->globOptData.capturedValuesCandicate = &bailOutInfo->capturedValues;
+    block->globOptData.capturedValuesCandidate = &bailOutInfo->capturedValues;
 }
 
 void

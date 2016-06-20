@@ -5081,7 +5081,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         this->currentBlock->globOptData.capturedArgs->ClearAll();
         this->currentBlock->globOptData.changedSyms->ClearAll();
         this->currentBlock->globOptData.capturedValues = 
-            this->currentBlock->globOptData.capturedValuesCandicate;
+            this->currentBlock->globOptData.capturedValuesCandidate;
     }
 
     return instrNext;
@@ -18944,7 +18944,7 @@ GlobOpt::OptHoistInvariant(
         {
             // if the old bailout is deleted, reset capturedvalues cached in block
             block->globOptData.capturedValues = nullptr;
-            block->globOptData.capturedValuesCandicate = nullptr;
+            block->globOptData.capturedValuesCandidate = nullptr;
         }
     }
 
