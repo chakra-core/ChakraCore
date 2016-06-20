@@ -112,6 +112,7 @@ if ($BranchPath.StartsWith("build")) {
 $BuildIdentifier = "${buildPushIdString}_${PushDate}_${Username}_${CommitHash}"
 $ComputedDropPathSegment = "${BranchPath}\${YearAndMonth}${BuildIdentifier}"
 $BinariesDirectory = "${Env:BUILD_SOURCESDIRECTORY}\Build\VcBuild"
+$ObjectDirectory = "${BinariesDirectory}\obj\${BuildPlatform}_${BuildConfiguration}"
 
 # Create a sentinel file for each build flavor to track whether the build is complete.
 # * ${arch}_${flavor}.incomplete       # will be deleted when the build of this flavor completes
@@ -178,7 +179,7 @@ set TF_BUILD_SOURCEGETVERSION=LG:${branch}:${CommitHash}
 set TF_BUILD_DROPLOCATION=${BinariesDirectory}
 
 set TF_BUILD_SOURCESDIRECTORY=${Env:BUILD_SOURCESDIRECTORY}
-REM set TF_BUILD_BUILDDIRECTORY=${Env:AGENT_BUILDDIRECTORY}\b  # note: inferred location works
+set TF_BUILD_BUILDDIRECTORY=${ObjectDirectory}
 set TF_BUILD_BINARIESDIRECTORY=${BinariesDirectory}
 
 set TF_BUILD_BUILDDEFINITIONNAME=${Env:BUILD_DEFINITIONNAME}
