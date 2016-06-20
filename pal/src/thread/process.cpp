@@ -1276,6 +1276,46 @@ TerminateProcess(
 
 /*++
 Function:
+  GetProcessIoCounters
+
+Note:
+  hProcess is a handle on the current process.
+
+See MSDN doc.
+--*/
+
+BOOL
+PALAPI
+GetProcessIoCounters(
+    IN  HANDLE       hProcess,
+    OUT PIO_COUNTERS lpIoCounters
+)
+{
+    BOOL ret = FALSE;
+    struct rusage usage;
+
+    // xplat-todo: getrusage cannot query an arbitrary process, so for
+    // now we basically have to ignore the hProcess argument.
+    if (getrusage(RUSAGE_SELF, &usage) == 0)
+    {
+        ret = TRUE;
+
+        lpIoCounters->ReadOperationCount = usage.ru_inblock;
+        lpIoCounters->WriteOperationCount = usage.ru_oublock;
+        // xplat-todo: unclear how to figure out the 'Other'
+        // operations. The exact number of bytes written/read is
+        // available in /proc/<id>/io but there is no API for it.
+        lpIoCounters->OtherOperationCount = 0;
+        lpIoCounters->ReadTransferCount = 0;
+        lpIoCounters->WriteTransferCount = 0;
+        lpIoCounters->OtherTransferCount = 0;
+    }
+
+    return ret;
+}
+
+/*++
+Function:
   PROCEndProcess
   
   Called from TerminateProcess and ExitProcess. This does the work of
