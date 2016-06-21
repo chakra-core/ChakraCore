@@ -4,6 +4,37 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "Core/AtomLockGuids.h"
+#ifdef CHAKRA_STATIC_LIBRARY
+#include "Runtime.h"
+#include "Core/ConfigParser.h"
+#include "Base/ThreadContextTlsEntry.h"
+#include "Base/ThreadBoundThreadContextManager.h"
+#ifdef DYNAMIC_PROFILE_STORAGE
+#include "Language/DynamicProfileStorage.h"
+#endif
+#include "JsrtContext.h"
+#include "../ChakraCore/TestHooks.h"
+
+void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
+{
+    autoSystemInfo->buildDateHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__DATE__, _countof(__DATE__));
+    autoSystemInfo->buildTimeHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__TIME__, _countof(__TIME__));
+}
+
+bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)
+{
+    return false;
+}
+
+void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
+{
+}
+
+LPCWSTR JsUtil::ExternalApi::GetFeatureKeyName()
+{
+    return _u("");
+}
+#endif
 
 unsigned int MessageBase::s_messageCount = 0;
 Debugger* Debugger::debugger = nullptr;
@@ -487,14 +518,20 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     HostConfigFlags::HandleArgsFlag(argc, argv);
 
     ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, nullptr };
-    HINSTANCE chakraLibrary = ChakraRTInterface::LoadChakraDll(&argInfo);
+    HINSTANCE chakraLibrary = nullptr;
+    bool success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
+
+#if defined(CHAKRA_STATIC_LIBRARY)
+    // handle command line flags
+    OnChakraCoreLoaded();
+#endif
 
     if (argInfo.filename == nullptr)
     {
         WideStringToNarrowDynamic(argv[1], &argInfo.filename);
     }
 
-    if (chakraLibrary != nullptr)
+    if (success)
     {
 #ifdef _WIN32
         HANDLE threadHandle;
@@ -525,8 +562,6 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 int main(int argc, char** argv)
 {
     PAL_InitializeChakraCore(argc, argv);
-
-    const char* strProgramFile = argv[0];
 
     // Ignoring mem-alloc failures here as this is
     // simply a test tool. We can add more error checking

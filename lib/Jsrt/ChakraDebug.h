@@ -582,5 +582,4 @@
             _In_ unsigned int stackFrameIndex,
             _Out_ JsValueRef *evalResult);
 #endif // _WIN32
-
 #endif // _CHAKRADEBUG_H_

@@ -179,7 +179,12 @@ JsValueRef Debugger::Evaluate(JsValueRef callee, bool isConstructCall, JsValueRe
         size_t length;
         IfJsErrorFailLogAndRet(ChakraRTInterface::JsValueToWchar(arguments[2], &str, &length));
 
+#ifdef _WIN32
         ChakraRTInterface::JsDiagEvaluate(str, stackFrameIndex, &result);
+#else
+        // todo-xplat: Implement JsDiagEvaluate UTF8
+        AssertMsg(false, "Not implemented");
+#endif
     }
 
     return result;
@@ -286,7 +291,9 @@ bool Debugger::InstallDebugCallbacks(JsValueRef hostDebugObject)
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetStackProperties"), Debugger::GetStackProperties));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetProperties"), Debugger::GetProperties));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagGetObjectFromHandle"), Debugger::GetObjectFromHandle));
+#ifdef _WIN32
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(hostDebugObject, _u("JsDiagEvaluate"), Debugger::Evaluate));
+#endif
 Error:
     return hr != S_OK;
 }
