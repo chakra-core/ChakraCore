@@ -115,18 +115,18 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
 
 def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSetup ->
     [true, false].each { isPR ->
-        ['debug', 'release'].each { buildType ->
+        ['debug', 'release', 'test'].each { buildType ->
             def config = "linux_${buildType}"
             config = (configTag == null) ? config : "${configTag}_${config}"
 
             // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
             def jobName = Utilities.getFullJobName(project, config, isPR)
 
-            def testableConfig = buildType in ['debug']
+            def testableConfig = buildType in ['debug', 'test']
 
             def infoScript = 'bash jenkins/get_system_info.sh'
-            def debugFlag = buildType == 'debug' ? '--debug' : ''
-            def buildScript = "bash ./build.sh -j=`nproc` ${debugFlag} --cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
+            def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
+            def buildScript = "bash ./build.sh -j=`nproc` ${buildFlag} --cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
             def testScript = "bash test/runtests.sh"
 
             def newJob = job(jobName) {
