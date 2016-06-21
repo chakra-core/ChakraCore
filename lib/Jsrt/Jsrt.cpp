@@ -864,6 +864,18 @@ CHAKRA_API JsPointerToString(_In_reads_(stringLength) const wchar_t *stringValue
     });
 }
 
+CHAKRA_API JsPointerToStringUtf8(_In_reads_(stringLength) const char *stringValue, _In_ size_t stringLength, _Out_ JsValueRef *string)
+{
+    PARAM_NOT_NULL(stringValue);
+    utf8::NarrowToWide wstr(stringValue, stringLength);
+    if (!wstr)
+    {
+        return JsErrorOutOfMemory;
+    }
+
+    return JsPointerToString(wstr, wstr.Length(), string);
+}
+
 // TODO: The annotation of stringPtr is wrong.  Need to fix definition in chakrart.h
 // The warning is '*stringPtr' could be '0' : this does not adhere to the specification for the function 'JsStringToPointer'.
 #pragma warning(suppress:6387)
@@ -887,6 +899,35 @@ CHAKRA_API JsStringToPointer(_In_ JsValueRef stringValue, _Outptr_result_buffer_
         *stringLength = jsString->GetLength();
         return JsNoError;
     });
+}
+
+CHAKRA_API JsStringToPointerUtf8(_In_ JsValueRef stringValue, _Outptr_result_buffer_(*stringLength) const char **stringPtr, _Out_ size_t *stringLength)
+{
+    const wchar_t* wstr;
+    size_t wstrLen;
+    JsErrorCode err = JsStringToPointer(stringValue, &wstr, &wstrLen);
+    if (err == JsNoError)
+    {
+        PARAM_NOT_NULL(stringPtr);
+        PARAM_NOT_NULL(stringLength);
+        *stringPtr = nullptr;
+        *stringLength = 0;
+
+        // xplat-todo: fix lifetime. caller allocate space, or caller free?
+        // xplat-todo: fix encoding. The result is cesu8.
+        utf8::WideToNarrow str(wstr, wstrLen);
+        if (str)
+        {
+            *stringPtr = str.Detach();
+            *stringLength = str.Length();
+        }
+        else
+        {
+            err = JsErrorOutOfMemory;
+        }
+    }
+
+    return err;
 }
 
 CHAKRA_API JsConvertValueToString(_In_ JsValueRef value, _Out_ JsValueRef *result)
@@ -2241,9 +2282,21 @@ CHAKRA_API JsGetPropertyIdFromName(_In_z_ const wchar_t *name, _Out_ JsPropertyI
         {
             return JsErrorOutOfMemory;
         }
-
-
     });
+}
+
+CHAKRA_API JsGetPropertyIdFromNameUtf8(_In_z_ const char *name, _Out_ JsPropertyIdRef *propertyId)
+{
+    // xplat-todo: should pass in utf8 length
+    PARAM_NOT_NULL(name);
+    utf8::NarrowToWide wname(name);
+    if (!wname)
+    {
+      return JsErrorOutOfMemory;
+    }
+
+    // xplat-todo: does following accept embedded null?
+    return JsGetPropertyIdFromName(wname, propertyId);
 }
 
 CHAKRA_API JsGetPropertyIdFromSymbol(_In_ JsValueRef symbol, _Out_ JsPropertyIdRef *propertyId)
@@ -2772,6 +2825,15 @@ CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCa
 }
 #endif // _WIN32
 
+CHAKRA_API JsParseScriptUtf8(
+    _In_z_ const char *script,
+    _In_ JsSourceContext sourceContext,
+    _In_z_ const char *sourceUrl,
+    _Out_ JsValueRef *result)
+{
+    return RunScriptCore(script, sourceContext, sourceUrl, /*parseOnly*/true,
+            JsParseScriptAttributeNone, /*isSourceModule*/false, result);
+}
 
 CHAKRA_API JsRunScriptUtf8(
     _In_z_ const char *script,

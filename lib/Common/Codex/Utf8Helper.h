@@ -14,9 +14,11 @@ namespace utf8
     /// The returned string is null terminated.
     ///
     template <class Allocator>
-    HRESULT WideStringToNarrow(LPCWSTR sourceString, LPSTR* destStringPtr)
+    HRESULT WideStringToNarrow(
+        LPCWSTR sourceString, size_t sourceCount,
+        LPSTR* destStringPtr, size_t* destCount)
     {
-        size_t cchSourceString = wcslen(sourceString);
+        size_t cchSourceString = sourceCount;
 
         if (cchSourceString >= MAXUINT32)
         {
@@ -37,9 +39,11 @@ namespace utf8
             return E_OUTOFMEMORY;
         }
 
-        utf8::EncodeIntoAndNullTerminate(destString, sourceString, (charcount_t) cchSourceString);
+        size_t cbEncoded = utf8::EncodeIntoAndNullTerminate(destString, sourceString, (charcount_t) cchSourceString);
+        Assert(cbEncoded <= cbDestString);
         static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
         *destStringPtr = (char*)destString;
+        *destCount = cbEncoded;
         return S_OK;
     }
 
@@ -50,9 +54,11 @@ namespace utf8
     /// The returned string is null terminated.
     ///
     template <class Allocator>
-    HRESULT NarrowStringToWide(LPCSTR sourceString, LPWSTR* destStringPtr)
+    HRESULT NarrowStringToWide(
+        LPCSTR sourceString, size_t sourceCount,
+        LPWSTR* destStringPtr, size_t* destCount)
     {
-        size_t cbSourceString = strlen(sourceString);
+        size_t cbSourceString = sourceCount;
         charcount_t cchDestString = utf8::ByteIndexIntoCharacterIndex((LPCUTF8) sourceString, cbSourceString);
         size_t cbDestString = (cchDestString + 1) * sizeof(WCHAR);
 
@@ -69,8 +75,10 @@ namespace utf8
         }
 
         utf8::DecodeIntoAndNullTerminate(destString, (LPCUTF8) sourceString, cchDestString);
+        Assert(destString[cchDestString] == 0);
         static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
         *destStringPtr = destString;
+        *destCount = cchDestString;
         return S_OK;
     }
 
@@ -83,12 +91,16 @@ namespace utf8
 
     inline HRESULT WideStringToNarrowDynamic(LPCWSTR sourceString, LPSTR* destStringPtr)
     {
-        return WideStringToNarrow<malloc_allocator>(sourceString, destStringPtr);
+        size_t unused;
+        return WideStringToNarrow<malloc_allocator>(
+            sourceString, wcslen(sourceString), destStringPtr, &unused);
     }
 
     inline HRESULT NarrowStringToWideDynamic(LPCSTR sourceString, LPWSTR* destStringPtr)
     {
-        return NarrowStringToWide<malloc_allocator>(sourceString, destStringPtr);
+        size_t unused;
+        return NarrowStringToWide<malloc_allocator>(
+            sourceString, strlen(sourceString), destStringPtr, &unused);
     }
 
 
@@ -96,16 +108,28 @@ namespace utf8
     class NarrowWideStringConverter
     {
     public:
-        static HRESULT Convert(SrcType src, DstType* dst);
+        static size_t Length(const SrcType& src);
+        static HRESULT Convert(
+            SrcType src, size_t srcCount, DstType* dst, size_t* dstCount);
     };
 
     template <class Allocator>
     class NarrowWideStringConverter<Allocator, LPCSTR, LPWSTR>
     {
     public:
-        static HRESULT Convert(LPCSTR sourceString, LPWSTR* destStringPtr)
+        // Note: Typically caller should pass in Utf8 string length. Following
+        // is used as fallback.
+        static size_t Length(LPCSTR src)
         {
-            return NarrowStringToWide<Allocator>(sourceString, destStringPtr);
+            return strnlen(src, INT_MAX);
+        }
+
+        static HRESULT Convert(
+            LPCSTR sourceString, size_t sourceCount,
+            LPWSTR* destStringPtr, size_t* destCount)
+        {
+            return NarrowStringToWide<Allocator>(
+                sourceString, sourceCount, destStringPtr, destCount);
         }
     };
 
@@ -113,22 +137,40 @@ namespace utf8
     class NarrowWideStringConverter<Allocator, LPCWSTR, LPSTR>
     {
     public:
-        static HRESULT Convert(LPCWSTR sourceString, LPSTR* destStringPtr)
+        // Note: Typically caller should pass in WCHAR string length. Following
+        // is used as fallback.
+        static size_t Length(LPCWSTR src)
         {
-            return WideStringToNarrow<Allocator>(sourceString, destStringPtr);
+            return wcslen(src);
+        }
+
+        static HRESULT Convert(
+            LPCWSTR sourceString, size_t sourceCount,
+            LPSTR* destStringPtr, size_t* destCount)
+        {
+            return WideStringToNarrow<Allocator>(
+                sourceString, sourceCount, destStringPtr, destCount);
         }
     };
 
     template <class Allocator, class SrcType, class DstType>
     class NarrowWideConverter
     {
+        typedef NarrowWideStringConverter<Allocator, SrcType, DstType>
+            StringConverter;
     private:
         DstType dst;
+        size_t dstCount;
 
     public:
-        NarrowWideConverter(const SrcType& src): dst()
+        NarrowWideConverter(const SrcType& src, size_t srcCount = -1): dst()
         {
-            NarrowWideStringConverter<Allocator, SrcType, DstType>::Convert(src, &dst);
+            if (srcCount == -1)
+            {
+                srcCount = StringConverter::Length(src);
+            }
+
+            StringConverter::Convert(src, srcCount, &dst, &dstCount);
         }
 
         ~NarrowWideConverter()
@@ -139,9 +181,21 @@ namespace utf8
             }
         }
 
+        DstType Detach()
+        {
+            DstType result = dst;
+            dst = DstType();
+            return result;
+        }
+
         operator DstType()
         {
             return dst;
+        }
+
+        size_t Length() const
+        {
+            return dstCount;
         }
     };
 
