@@ -269,7 +269,7 @@ private:
 #endif
     
 public:
-    __inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
+    inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
 
     void CapturePageHeapAllocStack();
     void CapturePageHeapFreeStack();

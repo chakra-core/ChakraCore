@@ -14,6 +14,8 @@
 using namespace Windows::Globalization;
 #pragma warning(push)
 #pragma warning(disable:4309) // truncation of constant value
+#pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
+
 #if DISABLE_JIT
 #if _M_AMD64
 #include "InJavascript/Intl.js.nojit.bc.64b.h"

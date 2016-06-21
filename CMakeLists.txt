@@ -19,7 +19,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     endif()
     set(CLR_CMAKE_PLATFORM_LINUX 1)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    add_definitions(-DPLATFORM_UNIX)
+    add_definitions(
+        -DPLATFORM_UNIX
+        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu 
+    )
 
     set(CLR_CMAKE_PLATFORM_UNIX 1)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
@@ -76,8 +79,14 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -Wno-implicit-function-declaration"
     )
 
+    # todo: fix general visibility of the interface
+    # do not set to `fvisibility=hidden` as it is going to 
+    # prevent the required interface is being exported
+    # clang by default sets fvisibility=default
+
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Werror\
         -Wno-microsoft\
         -Wno-unused-value\
         -Wno-int-to-void-pointer-cast\
@@ -106,10 +115,17 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         # -Wno-switch # switch values not handled
 
     # CXX COMPILER FLAGS
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -fdelayed-template-parsing"
-    )
 
+    # xplat-todo for release build
+    # -fno-inline.... -> -mno-omit.... are needed for more accurate stack inf.
+    # Release Builds: Not sure if this has to be as strict as the debug/test?
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -fdelayed-template-parsing\
+        -fno-omit-frame-pointer\
+        -fno-optimize-sibling-calls\
+        -mno-omit-leaf-frame-pointer" # this is for compat reasons. i.e. It is a noop with gcc
+    )
+  
     # CXX / CC COMPILER FLAGS
     add_compile_options(
         -fms-extensions
@@ -124,11 +140,17 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
         -D_DEBUG=1 # for PAL
         -DDBG_DUMP=1
     )
-    # xplat-todo: reenable this warning
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -Wno-writable-strings"
+elseif(CMAKE_BUILD_TYPE STREQUAL Test)
+    add_definitions(
+        -DENABLE_DEBUG_CONFIG_OPTIONS=1
     )
 endif(CMAKE_BUILD_TYPE STREQUAL Debug)
+
+if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -O3"
+    )
+endif(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
     add_definitions(

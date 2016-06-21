@@ -45,7 +45,7 @@ public:
 };
 
 template<>
-ValueNumber JsUtil::ValueToKey<ValueNumber, ValueRelativeOffset>::ToKey(const ValueRelativeOffset &valueRelativeOffset)
+inline ValueNumber JsUtil::ValueToKey<ValueNumber, ValueRelativeOffset>::ToKey(const ValueRelativeOffset &valueRelativeOffset)
 {
     return valueRelativeOffset.BaseValueNumber();
 }

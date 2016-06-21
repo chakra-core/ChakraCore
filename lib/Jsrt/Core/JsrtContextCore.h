@@ -13,7 +13,7 @@ public:
     static JsrtContextCore *New(JsrtRuntime * runtime);
     virtual void Dispose(bool isShutdown) override;
 
-    void OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo);
+    void OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
 private:
     DEFINE_VTABLE_CTOR(JsrtContextCore, JsrtContext);
     JsrtContextCore(JsrtRuntime * runtime);

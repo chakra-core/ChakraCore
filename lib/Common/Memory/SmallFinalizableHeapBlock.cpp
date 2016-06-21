@@ -104,7 +104,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsi
 }
 
 template <class TBlockAttributes>
-__declspec(noinline)
+_NOINLINE
 void
 SmallFinalizableHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAddress, MarkContext * markContext)
 {

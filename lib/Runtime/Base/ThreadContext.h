@@ -14,6 +14,8 @@ namespace Js
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
 }
 
+using namespace PlatformAgnostic;
+
 struct IAuthorFileContext;
 
 class HostScriptContext;
@@ -55,6 +57,8 @@ class InterruptPoller _ABSTRACT
 
 public:
     InterruptPoller(ThreadContext *tc);
+
+    virtual ~InterruptPoller() { }
 
     void CheckInterruptPoll();
     void GetStatementCount(ULONG *pluHi, ULONG *pluLo);
@@ -282,7 +286,7 @@ struct ParserStats
 class ParserTimer
 {
 private:
-    Js::HiResTimer timer;
+    DateTime::HiResTimer timer;
     ParserStats stats;
 public:
     ParserTimer();
@@ -296,7 +300,7 @@ public:
 class JITTimer
 {
 private:
-    Js::HiResTimer timer;
+    DateTime::HiResTimer timer;
     JITStats stats;
 public:
     JITTimer();
@@ -438,7 +442,7 @@ public:
     }
 #endif
 
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
     // used by inliner. Maps Simd FuncInfo (library func) to equivalent opcode.
     typedef JsUtil::BaseDictionary<Js::FunctionInfo *, Js::OpCode, ArenaAllocator> FuncInfoToOpcodeMap;
     FuncInfoToOpcodeMap * simdFuncInfoToOpcodeMap;
@@ -463,7 +467,6 @@ public:
     _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
     _x86_SIMDValue * GetSimdTempArea() { return X86_TEMP_SIMD; }
 #endif
-
 #endif
 
 private:
@@ -494,9 +497,9 @@ private:
         typedef JsUtil::WeaklyReferencedKeyDictionary<Js::EntryPointInfo, BYTE> EntryPointDictionary;
         // The sharedGuard is strongly referenced and will be kept alive by ThreadContext::propertyGuards until it's invalidated or
         // the property record itself is collected.  If the code using the guard needs access to it after it's been invalidated, it
-        // (the code) is responsible for keeping it alive.  Each unique guard, is weakly referenced, such that it can be reclaimed
-        // if not referenced elsewhere even without being invalidated.  It's up to the owner of that guard to keep it alive as long
-        // as necessary.
+        // (the code) is responsible for keeping it alive.
+        // Each unique guard, is weakly referenced, such that it can be reclaimed if not referenced elsewhere even without being
+        // invalidated.  The entry of a unique guard is removed from the table once the corresponding cache is invalidated.
         Js::PropertyGuard* sharedGuard;
         PropertyGuardHashSet uniqueGuards;
         EntryPointDictionary* entryPoints;
@@ -594,6 +597,8 @@ private:
         // Just holding the reference to the returnedValueList of the stepController. This way that list will not get recycled prematurely.
         Js::ReturnedValueList *returnedValueList;
 
+        uint constructorCacheInvalidationCount;
+
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         // use for autoProxy called from Debug.setAutoProxyName. we need to keep the buffer from GetSz() alive.
         LPCWSTR autoProxyName;
@@ -685,7 +690,7 @@ private:
     size_t nativeCodeSize;
     size_t sourceCodeSize;
 
-    Js::HiResTimer hTimer;
+    DateTime::HiResTimer hTimer;
 
     int stackProbeCount;
     // Count stack probes and poll for continuation every n probes
@@ -753,7 +758,7 @@ private:
     // Number of script context attached with probe manager.
     // This counter will be used as addref when the script context is created, this way we maintain the life of diagnostic object.
     // Once no script context available , diagnostic will go away.
-    long crefSContextForDiag;
+    LONG crefSContextForDiag;
 
     Entropy entropy;
 
@@ -1016,7 +1021,7 @@ public:
 
 
 
-    Js::HiResTimer * GetHiResTimer() { return &hTimer; }
+    DateTime::HiResTimer * GetHiResTimer() { return &hTimer; }
     ArenaAllocator* GetThreadAlloc() { return &threadAlloc; }
     static CriticalSection * GetCriticalSection() { return &s_csThreadContext; }
 
@@ -1210,7 +1215,7 @@ public:
 private:
     void RegisterInlineCache(InlineCacheListMapByPropertyId& inlineCacheMap, Js::InlineCache* inlineCache, Js::PropertyId propertyId);
     static bool IsInlineCacheRegistered(InlineCacheListMapByPropertyId& inlineCacheMap, const Js::InlineCache* inlineCache, Js::PropertyId propertyId);
-    void InvalidateInlineCacheList(InlineCacheList *inlineCacheList);
+    void InvalidateAndDeleteInlineCacheList(InlineCacheList *inlineCacheList);
     void CompactInlineCacheList(InlineCacheList *inlineCacheList);
     void CompactInlineCacheInvalidationLists();
     void CompactProtoInlineCaches();
@@ -1223,7 +1228,7 @@ private:
 #if ENABLE_NATIVE_CODEGEN
     void InvalidateFixedFieldGuard(Js::PropertyGuard* guard);
     PropertyGuardEntry* EnsurePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, bool& foundExistingEntry);
-    void InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry);
+    void InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation);
 #endif
 
 public:
@@ -1274,6 +1279,7 @@ public:
 #ifdef PERSISTENT_INLINE_CACHES
     void ClearInlineCachesWithDeadWeakRefs();
 #endif
+    void ClearInvalidatedUniqueGuards();
     void ClearInlineCaches();
     void ClearIsInstInlineCaches();
     void ClearEquivalentTypeCaches();
@@ -1314,8 +1320,8 @@ public:
     }
 
     static BOOLEAN IsOnStack(void const *ptr);
-    __declspec(noinline) bool IsStackAvailable(size_t size);
-    __declspec(noinline) bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
+    _NOINLINE bool IsStackAvailable(size_t size);
+    _NOINLINE bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
     static bool IsCurrentStackAvailable(size_t size);
     void ProbeStackNoDispose(size_t size, Js::ScriptContext *scriptContext, PVOID returnAddress = nullptr);
     void ProbeStack(size_t size, Js::ScriptContext *scriptContext, PVOID returnAddress = nullptr);

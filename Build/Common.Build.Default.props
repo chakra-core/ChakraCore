@@ -43,7 +43,6 @@
   <!-- Change configuration name to output to a different folder -->
   <!-- POGO instrumentation -->
   <PropertyGroup>
-    <IsPogoBuild />
     <IsPogoBuild Condition="('$(POGO_TYPE)'=='PGO' OR '$(POGO_TYPE)'=='PGI')">true</IsPogoBuild>
     <OutDirName Condition="'$(IsPogoBuild)'=='true'">$(Configuration.ToLower())_pogo</OutDirName>
   </PropertyGroup>
@@ -64,6 +63,7 @@
   <PropertyGroup>
     <OutBaseDir Condition="'$(OutBaseDir)'!=''">$(OutBaseDir)\$(SolutionName)</OutBaseDir>
     <OutBaseDir Condition="'$(OutBaseDir)'==''">$(SolutionDir)VcBuild</OutBaseDir>
+    <OutBaseDir Condition="'$(Clang)'!=''">$(OutBaseDir).$(Clang)</OutBaseDir>    
     <OutBaseDir Condition="'$(BuildJIT)'=='false'">$(OutBaseDir).NoJIT</OutBaseDir>
     <IntBaseDir Condition="'$(IntBaseDir)'==''">$(OutBaseDir)</IntBaseDir>
   </PropertyGroup>

@@ -966,7 +966,7 @@ namespace Js
 
         BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("RegexHelper"))
         {
-            results->Map([&](int i, RecyclableObject* resultObj) {
+            results->Map([&](int resultIndex, RecyclableObject* resultObj) {
                 int64 length = JavascriptConversion::ToLength(
                     JavascriptOperators::GetProperty(resultObj, PropertyIds::length, scriptContext),
                     scriptContext);
@@ -2256,7 +2256,7 @@ namespace Js
     JavascriptString* RegexHelper::GetMatchStrFromResult(RecyclableObject* result, ScriptContext* scriptContext)
     {
         return JavascriptConversion::ToString(
-            JavascriptOperators::GetItem(result, 0, scriptContext),
+            JavascriptOperators::GetItem(result, (uint32)0, scriptContext),
             scriptContext);
     }
 

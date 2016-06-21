@@ -39,7 +39,7 @@ using namespace CorUnix;
 int CoreWvsnprintf(CPalThread *pthrCurrent, LPWSTR Buffer, size_t Count, LPCWSTR Format, va_list ap);
 int CoreVsnprintf(CPalThread *pthrCurrent, LPSTR Buffer, size_t Count, LPCSTR Format, va_list ap);
 int CoreVfprintf(CPalThread *pthrCurrent, PAL_FILE *stream, const char *format, va_list ap);
-int CoreVfwprintf(CPalThread *pthrCurrent, PAL_FILE *stream, const wchar_16 *format, va_list ap);
+int CoreVfwprintf(CPalThread *pthrCurrent, PAL_FILE *stream, const char16_t *format, va_list ap);
 
 extern "C"
 {
@@ -84,7 +84,7 @@ static int Internal_Convertfwrite(CPalThread *pthrCurrent, const void *buffer, s
             InternalFree(newBuff);
             return -1;
         }
-        ret = InternalFwrite(newBuff, 1, count, stream, &iError);
+        ret = InternalFwrite(newBuff, 1, nsize, stream, &iError);
         if (iError != 0)
         {
             ERROR("InternalFwrite did not write the whole buffer. Error is %d\n", iError);
@@ -1039,7 +1039,7 @@ static INT Internal_AddPaddingVfwprintf(CPalThread *pthrCurrent, PAL_FILE *strea
     }
 
     if (Length > 0) {
-        Written = Internal_Convertfwrite(pthrCurrent, OutOriginal, sizeof(wchar_16), Length, 
+        Written = Internal_Convertfwrite(pthrCurrent, OutOriginal, sizeof(char16_t), Length, 
             (FILE*)(stream->bsdFilePtr), convert);
 
         if (-1 == Written)
@@ -1115,7 +1115,7 @@ Parameters:
     - stdarg parameter list
 *******************************************************************************/
 
-int __cdecl PAL_vfwprintf(PAL_FILE *stream, const wchar_16 *format, va_list ap)
+int __cdecl PAL_vfwprintf(PAL_FILE *stream, const char16_t *format, va_list ap)
 {
     return CoreVfwprintf(InternalGetCurrentThread(), stream, format, ap);
 }
@@ -1137,12 +1137,12 @@ int CorUnix::InternalVfprintf(CPalThread *pthrCurrent, PAL_FILE *stream, const c
     return CoreVfprintf(pthrCurrent, stream, format, ap);
 }
 
-int CorUnix::InternalVfwprintf(CPalThread *pthrCurrent, PAL_FILE *stream, const wchar_16 *format, va_list ap)
+int CorUnix::InternalVfwprintf(CPalThread *pthrCurrent, PAL_FILE *stream, const char16_t *format, va_list ap)
 {
     return CoreVfwprintf(pthrCurrent, stream, format, ap);
 }
 
-int CoreVfwprintf(CPalThread *pthrCurrent, PAL_FILE *stream, const wchar_16 *format, va_list aparg)
+int CoreVfwprintf(CPalThread *pthrCurrent, PAL_FILE *stream, const char16_t *format, va_list aparg)
 {
     CHAR TempBuff[1024]; /* used to hold a single %<foo> format string */
     LPCWSTR Fmt = format;
@@ -1518,7 +1518,7 @@ int CoreVfwprintf(CPalThread *pthrCurrent, PAL_FILE *stream, const wchar_16 *for
                 ret = Internal_Convertfwrite(
                                     pthrCurrent, 
                                     TempWideBuffer, 
-                                    sizeof(wchar_16), 
+                                    sizeof(char16_t), 
                                     mbtowcResult-1, 
                                     (FILE*)stream->bsdFilePtr,
                                     textMode);
@@ -1548,7 +1548,7 @@ int CoreVfwprintf(CPalThread *pthrCurrent, PAL_FILE *stream, const wchar_16 *for
             ret = Internal_Convertfwrite(
                                     pthrCurrent, 
                                     Fmt++, 
-                                    sizeof(wchar_16), 
+                                    sizeof(char16_t), 
                                     1, 
                                     (FILE*)stream->bsdFilePtr,
                                     textMode); /* copy regular chars into buffer */

@@ -53,13 +53,10 @@ function asmModule(stdlib, imports) {
     
     var f4min = f4.min;
     var f4max = f4.max;
-    
-    var f4minNum = f4.minNum;
-    var f4maxNum = f4.maxNum;
+
     var f4reciprocalApproximation = f4.reciprocalApproximation;
     var f4reciprocalSqrtApproximation = f4.reciprocalSqrtApproximation;
-    
-    
+
     var f4sqrt = f4.sqrt;
 
     var f4lessThan = f4.lessThan;
@@ -70,10 +67,6 @@ function asmModule(stdlib, imports) {
     var f4greaterThanOrEqual = f4.greaterThanOrEqual;
 
     var f4select = f4.select;
-    var f4and = f4.and;
-    var f4or = f4.or;
-    var f4xor = f4.xor;
-    var f4not = f4.not;
 
     
     
@@ -105,8 +98,8 @@ function asmModule(stdlib, imports) {
         loopIndex = 0;
         while ( (loopIndex|0) < (loopCOUNT|0)) {
 
-            d = f4minNum(b, c);
-            b = f4maxNum(b, c);
+            d = f4min(b, c);
+            b = f4max(b, c);
             loopIndex = (loopIndex + 1) | 0;
         }
 
@@ -123,8 +116,8 @@ function asmModule(stdlib, imports) {
         loopIndex = 0;
         while ( (loopIndex|0) < (loopCOUNT|0)) {
 
-            d = f4minNum(b, c);
-            b = f4maxNum(b, c);
+            d = f4min(b, c);
+            b = f4max(b, c);
             loopIndex = (loopIndex + 1) | 0;
         }
 

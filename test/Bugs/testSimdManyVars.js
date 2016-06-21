@@ -18,10 +18,6 @@ function asmModule(stdlib, imports) {
     var i4equal = i4.equal;
     var i4greaterThan = i4.greaterThan;
     var i4select = i4.select;
-    var i4and = i4.and;
-    var i4or = i4.or;
-    var i4xor = i4.xor;
-    var i4not = i4.not;
 
     var f4 = stdlib.SIMD.Float32x4;
     var f4check = f4.check;
@@ -58,11 +54,6 @@ function asmModule(stdlib, imports) {
     var f4greaterThanOrEqual = f4.greaterThanOrEqual;
 
     var f4select = f4.select;
-    var f4and = f4.and;
-    var f4or = f4.or;
-    var f4xor = f4.xor;
-    var f4not = f4.not;
-
     var i8 = stdlib.SIMD.Int16x8;
     var i8check = i8.check;
 

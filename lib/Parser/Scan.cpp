@@ -243,11 +243,11 @@ charcount_t Scanner<EncodingPolicy>::LineLength(EncodedCharPtr first, EncodedCha
 }
 
 template <typename EncodingPolicy>
-charcount_t Scanner<EncodingPolicy>::UpdateLine(long &line, EncodedCharPtr start, EncodedCharPtr last, charcount_t ichStart, charcount_t ichEnd)
+charcount_t Scanner<EncodingPolicy>::UpdateLine(int32 &line, EncodedCharPtr start, EncodedCharPtr last, charcount_t ichStart, charcount_t ichEnd)
 {
     EncodedCharPtr p = start;
     charcount_t ich = ichStart;
-    long current = line;
+    int32 current = line;
     charcount_t lastStart = ichStart;
 
     while (ich < ichEnd)
@@ -530,12 +530,12 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         {
             // If there are no escape, that the main scan loop would have found the keyword already
             // So we can just assume it is an ID
-            DebugOnly(long cch = UnescapeToTempBuf(pchMin, p));
+            DebugOnly(int32 cch = UnescapeToTempBuf(pchMin, p));
             DebugOnly(tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
             Assert(tk == tkID || (tk == tkYIELD && !m_fYieldIsKeyword) || (tk == tkAWAIT && !m_fAwaitIsKeyword));
             return tkID;
         }
-        long cch = UnescapeToTempBuf(pchMin, p);
+        int32 cch = UnescapeToTempBuf(pchMin, p);
         tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode());
         return (!m_fYieldIsKeyword && tk == tkYIELD) || (!m_fAwaitIsKeyword && tk == tkAWAIT) ? tkID : tk;
     }
@@ -545,7 +545,7 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         // We always need to check TkFromNameLenColor because
         // the main Scan switch doesn't detect all non-keyword that needs coloring
         // (e.g. int)
-        long cch = UnescapeToTempBuf(pchMin, p);
+        int32 cch = UnescapeToTempBuf(pchMin, p);
         return m_phtbl->TkFromNameLenColor(m_tempChBuf.m_prgch, cch);
     }
 
@@ -556,11 +556,11 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
 
         // If there are no escape, that the main scan loop would have found the keyword already
         // So we can just assume it is an ID
-        DebugOnly(long cch = UnescapeToTempBuf(pchMin, p));
+        DebugOnly(int32 cch = UnescapeToTempBuf(pchMin, p));
         DebugOnly(tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode()));
         Assert(tk == tkID || (tk == tkYIELD && !m_fYieldIsKeyword) || (tk == tkAWAIT && !m_fAwaitIsKeyword));
 
-        m_ptoken->SetIdentifier(reinterpret_cast<const char *>(pchMin), (long)(p - pchMin));
+        m_ptoken->SetIdentifier(reinterpret_cast<const char *>(pchMin), (int32)(p - pchMin));
         return tkID;
     }
 
@@ -618,7 +618,7 @@ uint32 Scanner<EncodingPolicy>::UnescapeToTempBuf(EncodedCharPtr p, EncodedCharP
 template <typename EncodingPolicy>
 IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last)
 {
-    long cch = UnescapeToTempBuf(p, last);
+    int32 cch = UnescapeToTempBuf(p, last);
     return m_phtbl->PidHashNameLen(m_tempChBuf.m_prgch, cch);
 }
 
@@ -635,12 +635,12 @@ IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedChar
     else if (EncodingPolicy::MultiUnitEncoding)
     {
         Assert(sizeof(EncodedChar) == 1);
-        return m_phtbl->PidHashNameLen(reinterpret_cast<const char *>(p), (long)(last - p));
+        return m_phtbl->PidHashNameLen(reinterpret_cast<const char *>(p), (int32)(last - p));
     }
     else
     {
         Assert(sizeof(EncodedChar) == 2);
-        return m_phtbl->PidHashNameLen(reinterpret_cast< const char16 * >(p), (long)(last - p));
+        return m_phtbl->PidHashNameLen(reinterpret_cast< const char16 * >(p), (int32)(last - p));
     }
 }
 
@@ -1831,8 +1831,10 @@ LLoop:
 
                     if (Js::NumberUtilities::IsSurrogateUpperPart(upper))
                     {
+                        // Consume the rest of the utf8 bytes for the codepoint
+                        OLECHAR decodedUpper = this->ReadSurrogatePairUpper(p, last);
+                        Assert(decodedUpper == (OLECHAR) upper);
                         ch = Js::NumberUtilities::SurrogatePairAsCodePoint(ch, upper);
-                        this->template ReadFull<true>(p, last);
                     }
                 }
 
@@ -1927,8 +1929,8 @@ LEof:
 
                 p = pchT;
 
-                long value;
-                if (likelyInt && Js::NumberUtilities::FDblIsLong(dbl, &value))
+                int32 value;
+                if (likelyInt && Js::NumberUtilities::FDblIsInt32(dbl, &value))
                 {
                     m_ptoken->SetLong(value);
                     token = tkIntCon;
@@ -2400,14 +2402,14 @@ IdentPtr Scanner<EncodingPolicy>::GetSecondaryBufferAsPid()
 }
 
 template <typename EncodingPolicy>
-LPCOLESTR Scanner<EncodingPolicy>::StringFromLong(long lw)
+LPCOLESTR Scanner<EncodingPolicy>::StringFromLong(int32 lw)
 {
     _ltow_s(lw, m_tempChBuf.m_prgch, m_tempChBuf.m_cchMax, 10);
     return m_tempChBuf.m_prgch;
 }
 
 template <typename EncodingPolicy>
-IdentPtr Scanner<EncodingPolicy>::PidFromLong(long lw)
+IdentPtr Scanner<EncodingPolicy>::PidFromLong(int32 lw)
 {
     return m_phtbl->PidHashName(StringFromLong(lw));
 }
@@ -2500,7 +2502,7 @@ void Scanner<EncodingPolicy>::SeekTo(const RestorePoint& restorePoint, uint *nex
 
 // Called by CompileScriptException::ProcessError to retrieve a BSTR for the line on which an error occurred.
 template<typename EncodingPolicy>
-HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(long ichMinLine, __out BSTR* pbstrLine)
+HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(int32 ichMinLine, __out BSTR* pbstrLine)
 {
     if( !pbstrLine )
     {

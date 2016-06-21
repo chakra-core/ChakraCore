@@ -499,11 +499,13 @@ namespace Js
             bool disableEquivalentObjTypeSpec : 1;
             bool disableObjTypeSpec_jitLoopBody : 1;
             bool disablePowIntIntTypeSpec : 1;
+            bool disableLoopImplicitCallInfo : 1;
         } bits;
 
         uint32 m_recursiveInlineInfo; // Bit is set for each callsites where the function is called recursively
-        BYTE currentInlinerVersion; // Used to detect when inlining profile changes
         uint32 polymorphicCacheState;
+        uint16 rejitCount;
+        BYTE currentInlinerVersion; // Used to detect when inlining profile changes
         bool hasFunctionBody;
 
 #if DBG
@@ -533,12 +535,14 @@ namespace Js
         static CriticalSection s_csOutput;
         template <typename T>
         static void WriteData(T data, FILE * file);
+#if defined(_MSC_VER) && !defined(__clang__)
         template <>
         static void WriteData<char16 const *>(char16 const * sz, FILE * file);
         template <>
         static void WriteData<FunctionInfo *>(FunctionInfo * functionInfo, FILE * file); // Not defined, to prevent accidentally writing function info
         template <>
         static void WriteData<FunctionBody *>(FunctionBody * functionInfo, FILE * file);
+#endif
         template <typename T>
         static void WriteArray(uint count, T * arr, FILE * file);
 #endif
@@ -642,6 +646,8 @@ namespace Js
         void DisableFloatTypeSpec() { this->bits.disableFloatTypeSpec = true; }
         bool IsCheckThisDisabled() const { return this->bits.disableCheckThis; }
         void DisableCheckThis() { this->bits.disableCheckThis = true; }
+        bool IsLoopImplicitCallInfoDisabled() const { return this->bits.disableLoopImplicitCallInfo; }
+        void DisableLoopImplicitCallInfo() { this->bits.disableLoopImplicitCallInfo = true; }
 
         bool IsArrayCheckHoistDisabled(const bool isJitLoopBody) const
         {
@@ -783,6 +789,9 @@ namespace Js
         void DisablePowIntIntTypeSpec() { this->bits.disablePowIntIntTypeSpec = true; }
 
         static bool IsCallSiteNoInfo(Js::LocalFunctionId functionId) { return functionId == CallSiteNoInfo; }
+        int IncRejitCount() { return this->rejitCount++; }
+        int GetRejitCount() { return this->rejitCount; }
+
 #if DBG_DUMP
         void Dump(FunctionBody* functionBody, ArenaAllocator * dynamicProfileInfoAllocator = nullptr);
 #endif

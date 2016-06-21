@@ -17,6 +17,7 @@ set(LINK_FLAGS ${LINK_FLAGS} "-Wl,-whole-archive")
 
 target_link_libraries (GCStress
   Chakra.Common.Memory
+  Chakra.Runtime.PlatformAgnostic
   Chakra.Common.Common
   Chakra.Common.Core
   Chakra.Common.DataStructures

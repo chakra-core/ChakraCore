@@ -573,7 +573,7 @@ IR::Instr *
 LowererMDArch::LowerCallIDynamic(IR::Instr *callInstr, IR::Instr*saveThisArgOutInstr, IR::Opnd *argsLength, ushort callFlags, IR::Instr * insertBeforeInstrForCFG)
 {
     callInstr->InsertBefore(saveThisArgOutInstr); //Move this Argout next to call;
-    this->LoadDynamicArgument(saveThisArgOutInstr, 3); /*this pointer is the 3rd argument
+    this->LoadDynamicArgument(saveThisArgOutInstr, 3); //this pointer is the 3rd argument
 
     /*callInfo*/
     if (callInstr->m_func->IsInlinee())
@@ -706,10 +706,8 @@ LowererMDArch::GeneratePreCall(IR::Instr * callInstr, IR::Opnd  *functionObjOpnd
 #endif
 
     // Setup the first call argument - pointer to the function being called.
-    {
-        IR::Instr *mov = IR::Instr::New(Js::OpCode::MOV, GetArgSlotOpnd(1), functionObjOpnd, m_func);
-        callInstr->InsertBefore(mov);
-    }
+    IR::Instr * instrMovArg1 = IR::Instr::New(Js::OpCode::MOV, GetArgSlotOpnd(1), functionObjOpnd, m_func);
+    callInstr->InsertBefore(instrMovArg1);
 }
 
 IR::Instr *
@@ -793,6 +791,7 @@ LowererMDArch::LowerCallPut(IR::Instr *callInstr)
 IR::Instr *
 LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
 {
+    UNREFERENCED_PARAMETER(argCount);
     IR::Instr *retInstr = callInstr;
     callInstr->m_opcode = Js::OpCode::CALL;
 
@@ -1250,7 +1249,6 @@ LowererMDArch::GenerateStackAllocation(IR::Instr *instr, uint32 size)
 
         IR::RegOpnd *raxOpnd = IR::RegOpnd::New(nullptr, RegRAX, TyMachReg, this->m_func);
         IR::RegOpnd *rcxOpnd = IR::RegOpnd::New(nullptr, RegRCX, TyMachReg, this->m_func);
-        IR::RegOpnd *rspOpnd = IR::RegOpnd::New(nullptr, RegRSP, TyMachReg, this->m_func);
 
         IR::Instr * subInstr = IR::Instr::New(Js::OpCode::SUB, rspOpnd, rspOpnd, stackSizeOpnd, this->m_func);
         instr->InsertAfter(subInstr);

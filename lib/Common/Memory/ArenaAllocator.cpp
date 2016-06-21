@@ -6,15 +6,15 @@
 
 #define ASSERT_THREAD() AssertMsg(this->pageAllocator->ValidThreadAccess(), "Arena allocation should only be used by a single thread")
 
+// The VS2013 linker treats this as a redefinition of an already
+// defined constant and complains. So skip the declaration if we're compiling
+// with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const uint Memory::StandAloneFreeListPolicy::MaxEntriesGrowth;
-
-#ifdef _MSC_VER
-template __forceinline BVSparseNode * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut, bool create);
-#else
-// Clang/GCC support
-// We need this function to be inlined for perf
-template __attribute__((always_inline)) BVSparseNode * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut, bool create);
 #endif
+
+// We need this function to be inlined for perf
+template _ALWAYSINLINE BVSparseNode * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut, bool create);
 
 ArenaData::ArenaData(PageAllocator * pageAllocator) :
     pageAllocator(pageAllocator),
@@ -455,13 +455,8 @@ ReleaseHeapMemory()
     }
 }
 
-#ifdef _MSC_VER
-template __forceinline char *ArenaAllocatorBase<InPlaceFreeListPolicy, 0, 0, 0>::AllocInternal(size_t requestedBytes);
-template __forceinline char *ArenaAllocatorBase<InPlaceFreeListPolicy, 3, 0, 0>::AllocInternal(size_t requestedBytes);
-#else
-template __attribute__((always_inline)) char *ArenaAllocatorBase<InPlaceFreeListPolicy, 0, 0, 0>::AllocInternal(size_t requestedBytes);
-template __attribute__((always_inline)) char *ArenaAllocatorBase<InPlaceFreeListPolicy, 3, 0, 0>::AllocInternal(size_t requestedBytes);
-#endif
+template _ALWAYSINLINE char *ArenaAllocatorBase<InPlaceFreeListPolicy, 0, 0, 0>::AllocInternal(size_t requestedBytes);
+template _ALWAYSINLINE char *ArenaAllocatorBase<InPlaceFreeListPolicy, 3, 0, 0>::AllocInternal(size_t requestedBytes);
 
 template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg, bool RequireObjectAlignment, size_t MaxObjectSize>
 char *

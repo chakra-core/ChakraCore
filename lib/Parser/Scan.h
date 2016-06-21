@@ -26,9 +26,9 @@ private:
         {
             IdentPtr pid;
             const char * pchMin;
-            long length;
+            int32 length;
         };
-        long lw;
+        int32 lw;
         struct
         {
             double dbl;
@@ -68,7 +68,7 @@ public:
         return CreateIdentifier(hashTbl);
     }
 
-    long GetLong() const
+    int32 GetLong() const
     {
         Assert(tk == tkIntCon);
         return u.lw;
@@ -115,7 +115,7 @@ public:
 
     // UTF16 Scanner are only for syntax coloring.  Only support
     // defer pid creation for UTF8
-    void SetIdentifier(const char * pchMin, long len)
+    void SetIdentifier(const char * pchMin, int32 len)
     {
         this->u.pid = nullptr;
         this->u.pchMin = pchMin;
@@ -127,7 +127,7 @@ public:
         this->u.pchMin = nullptr;
     }
 
-    void SetLong(long value)
+    void SetLong(int32 value)
     {
         this->u.lw = value;
     }
@@ -163,6 +163,13 @@ protected:
     static OLECHAR ReadFull(EncodedCharPtr &p, EncodedCharPtr last) { return *p++; }
     static OLECHAR PeekFirst(EncodedCharPtr p, EncodedCharPtr last) { return *p; }
     static OLECHAR PeekFull(EncodedCharPtr p, EncodedCharPtr last) { return *p; }
+
+    static OLECHAR ReadSurrogatePairUpper(const EncodedCharPtr&, const EncodedCharPtr& last)
+    {
+        AssertMsg(false, "method should not be called while scanning UTF16 string");
+        return 0xfffe;
+    }
+
     static void RestoreMultiUnits(size_t multiUnits) { }
     static size_t CharacterOffsetToUnitOffset(EncodedCharPtr start, EncodedCharPtr current, EncodedCharPtr last, charcount_t offset) { return offset; }
 
@@ -203,6 +210,14 @@ protected:
     {
         EncodedChar ch = (nullTerminated || p < last) ? *p++ : (p++, 0);
         return !IsMultiUnitChar(ch) ? static_cast< OLECHAR >(ch) : ReadRest<bScan>(ch, p, last);
+    }
+
+    OLECHAR ReadSurrogatePairUpper(EncodedCharPtr &p, EncodedCharPtr last)
+    {
+        EncodedChar ch = (nullTerminated || p < last) ? *p++ : (p++, 0);
+        Assert(IsMultiUnitChar(ch));
+        this->m_decodeOptions |= utf8::DecodeOptions::doSecondSurrogatePair;
+        return ReadRest<true>(ch, p, last);
     }
 
     static OLECHAR PeekFirst(EncodedCharPtr p, EncodedCharPtr last) { return (nullTerminated || p < last) ? static_cast< OLECHAR >(*p) : 0; }
@@ -293,8 +308,8 @@ typedef UTF8EncodingPolicyBase<false> NotNullTerminatedUTF8EncodingPolicy;
 
 interface IScanner
 {
-    virtual void GetErrorLineInfo(__out long& ichMin, __out long& ichLim, __out long& line, __out long& ichMinLine) = 0;
-    virtual HRESULT SysAllocErrorLine(long ichMinLine, __out BSTR* pbstrLine) = 0;
+    virtual void GetErrorLineInfo(__out int32& ichMin, __out int32& ichLim, __out int32& line, __out int32& ichMinLine) = 0;
+    virtual HRESULT SysAllocErrorLine(int32 ichMinLine, __out BSTR* pbstrLine) = 0;
 };
 
 // Flags that can be provided to the Scan functions.
@@ -406,10 +421,10 @@ public:
     {
         return m_fHadEol;
     }
-    IdentPtr PidFromLong(long lw);
+    IdentPtr PidFromLong(int32 lw);
     IdentPtr PidFromDbl(double dbl);
 
-    LPCOLESTR StringFromLong(long lw);
+    LPCOLESTR StringFromLong(int32 lw);
     LPCOLESTR StringFromDbl(double dbl);
 
     IdentPtr GetSecondaryBufferAsPid();
@@ -538,7 +553,7 @@ public:
     }
 
     // IScanner methods
-    virtual void GetErrorLineInfo(__out long& ichMin, __out long& ichLim, __out long& line, __out long& ichMinLine)
+    virtual void GetErrorLineInfo(__out int32& ichMin, __out int32& ichLim, __out int32& line, __out int32& ichMinLine)
     {
         ichMin = this->IchMinError();
         ichLim = this->IchLimError();
@@ -551,8 +566,8 @@ public:
         }
     }
 
-    virtual HRESULT SysAllocErrorLine(long ichMinLine, __out BSTR* pbstrLine);
-    charcount_t UpdateLine(long &line, EncodedCharPtr start, EncodedCharPtr last, charcount_t ichStart, charcount_t ichEnd);
+    virtual HRESULT SysAllocErrorLine(int32 ichMinLine, __out BSTR* pbstrLine);
+    charcount_t UpdateLine(int32 &line, EncodedCharPtr start, EncodedCharPtr last, charcount_t ichStart, charcount_t ichEnd);
     class TemporaryBuffer
     {
         friend Scanner<EncodingPolicy>;

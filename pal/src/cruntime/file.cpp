@@ -389,8 +389,8 @@ see MSDN doc.
 PAL_FILE *
 __cdecl
 _wfopen(
-    const wchar_16 *fileName,
-    const wchar_16 *mode)
+    const char16_t *fileName,
+    const char16_t *mode)
 {
     CHAR mbFileName[ _MAX_PATH ];
     CHAR mbMode[ 10 ];
@@ -436,8 +436,8 @@ see MSDN doc.
 PAL_FILE *
 __cdecl
 _wfsopen(
-    const wchar_16 *fileName,
-    const wchar_16 *mode,
+    const char16_t *fileName,
+    const char16_t *mode,
     int shflag)
 {
     // UNIXTODO: Implement this.
@@ -557,9 +557,9 @@ int __cdecl PAL__close(int handle)
     return fflush(NULL);
  }
  
-wchar_16 *
+char16_t *
 __cdecl
-PAL_fgetws(wchar_16 *s, int n, PAL_FILE *f)
+PAL_fgetws(char16_t *s, int n, PAL_FILE *f)
 {
     ASSERT (0);
     return NULL;

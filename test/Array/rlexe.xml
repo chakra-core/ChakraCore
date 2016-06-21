@@ -373,8 +373,8 @@
   </test>
   <test>
     <default>
-      <files>array_lastIndexOf.js</files>
-      <baseline>array_lastIndexOf.baseline</baseline>
+      <files>array_lastindexof.js</files>
+      <baseline>array_lastindexof.baseline</baseline>
     </default>
   </test>
   <test>
@@ -593,8 +593,8 @@
   </test>
   <test>
     <default>
-      <files>newFromArgs.js</files>
-      <baseline>newFromArgs.baseline</baseline>
+      <files>newfromargs.js</files>
+      <baseline>newfromargs.baseline</baseline>
     </default>
   </test>
   <test>

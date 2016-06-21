@@ -72,11 +72,11 @@ Notes :
 void
 __cdecl
 _wsplitpath(
-            const wchar_16 *dospath,
-            wchar_16 *drive,
-            wchar_16 *dir,
-            wchar_16 *fname,
-            wchar_16 *ext)
+            const char16_t *dospath,
+            char16_t *drive,
+            char16_t *dir,
+            char16_t *fname,
+            char16_t *ext)
 {
     WCHAR path[_MAX_PATH+1];
     LPCWSTR slash_ptr = NULL;
@@ -445,11 +445,11 @@ See MSDN doc.
 void   
 __cdecl 
 _wmakepath(
-          wchar_16 *path, 
-          const wchar_16 *drive, 
-          const wchar_16 *dir, 
-          const wchar_16 *fname, 
-          const wchar_16 *ext)
+          char16_t *path, 
+          const char16_t *drive, 
+          const char16_t *dir, 
+          const char16_t *fname, 
+          const char16_t *ext)
 {
     CHAR Dir[ _MAX_DIR ]={0};
     CHAR FileName[ _MAX_FNAME ]={0};

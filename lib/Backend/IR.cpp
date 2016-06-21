@@ -1377,7 +1377,7 @@ LabelInstr::Init(Js::OpCode opcode, IRKind kind, Func *func, bool isOpHelper)
 
     this->m_pc.pc = nullptr;
     this->m_id = ++(func->GetTopFunc()->m_labelCount);
-    AssertMsg(this->m_id != 0, "Label numbers wrapped around??!?");
+    AssertMsg(this->m_id != 0, "Label numbers wrapped around?");
 }
 
 ///----------------------------------------------------------------------------
@@ -2942,10 +2942,10 @@ Instr::TransferTo(Instr * instr)
 }
 
 IR::Instr *
-Instr::ConvertToBailOutInstr(IR::Instr * bailOutTarget, IR::BailOutKind kind)
+Instr::ConvertToBailOutInstr(IR::Instr * bailOutTarget, IR::BailOutKind kind, uint32 bailOutOffset)
 {
     Func * func = bailOutTarget->m_func;
-    BailOutInfo * bailOutInfo = JitAnew(func->m_alloc, BailOutInfo, bailOutTarget->GetByteCodeOffset(), func);
+    BailOutInfo * bailOutInfo = JitAnew(func->m_alloc, BailOutInfo, bailOutOffset == Js::Constants::NoByteCodeOffset ? bailOutTarget->GetByteCodeOffset() : bailOutOffset , func);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     bailOutInfo->bailOutOpcode = this->m_opcode;
 #endif

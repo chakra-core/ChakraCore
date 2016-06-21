@@ -108,6 +108,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm64\EncoderMD.cpp">
       <Filter>arm64</Filter>
     </ClCompile>
+    <ClCompile Include="BackendApi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />

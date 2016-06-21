@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -95,6 +95,7 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <!-- OS BUG 7117880
   <test>
     <default>
       <files>toStringTag.js</files>
@@ -102,6 +103,7 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>proto_basic.js</files>
@@ -503,8 +505,8 @@
   </test>
   <test>
     <default>
-      <files>unicode_6_identifiers.js</files>
-      <baseline>unicode_6_identifiers.baseline</baseline>
+      <files>unicode_6_identifiers_utf8.js</files>
+      <baseline>unicode_6_identifiers_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
       <tags>exclude_win7,exclude_ship</tags>
     </default>
@@ -582,7 +584,7 @@
   </test>
   <test>
     <default>
-      <files>unicode_idDeferParseFunctions.js</files>
+      <files>unicode_idDeferParseFunctions_utf8.js</files>
       <compile-flags>-ES6Unicode</compile-flags>
     </default>
   </test>
@@ -625,8 +627,8 @@
   </test>
   <test>
     <default>
-      <files>unicode_regex_surrogate.js</files>
-      <baseline>unicode_regex_surrogate.baseline</baseline>
+      <files>unicode_regex_surrogate_utf8.js</files>
+      <baseline>unicode_regex_surrogate_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode -ES6RegExSticky</compile-flags>
       <tags>exclude_ship,Slow</tags>
       <timeout>300</timeout>
@@ -634,8 +636,8 @@
   </test>
   <test>
     <default>
-      <files>unicode_blue_533163.js</files>
-      <baseline>unicode_blue_533163.baseline</baseline>
+      <files>unicode_blue_533163_utf8.js</files>
+      <baseline>unicode_blue_533163_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
       <tags>exclude_ship</tags>
     </default>
@@ -690,8 +692,12 @@
   </test>
   <test>
     <default>
+      <files>proxybug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>proxyenumbug.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -1064,7 +1070,7 @@
   <test>
     <default>
       <files>bug_OS_2553885.js</files>
-      <tags>exclude_win7,BugFix</tags>
+      <tags>exclude_win7,BugFix,Intl</tags>
     </default>
   </test>
   <test>
@@ -1076,7 +1082,7 @@
 
   <test>
     <default>
-      <files>bug_OS3198161.js</files>
+      <files>bug_os3198161.js</files>
       <compile-flags>-es6all</compile-flags>
       <tags>BugFix</tags>
     </default>
@@ -1161,7 +1167,7 @@
 </test>
 <test>
     <default>
-        <files>Expo.js</files>
+        <files>expo.js</files>
         <compile-flags>-args summary -endargs -es7exponentiationoperator</compile-flags>
     </default>
 </test>
@@ -1173,9 +1179,8 @@
 </test>
 <test>
     <default>
-        <files>ES6HasInstance.js</files>
-        <compile-flags>-es6HasInstance</compile-flags>
-        <baseline>ES6HasInstance.baseline</baseline>
+        <files>es6HasInstance.js</files>
+        <compile-flags>-es6HasInstance -args summary -endargs</compile-flags>
     </default>
 </test>
 <test>

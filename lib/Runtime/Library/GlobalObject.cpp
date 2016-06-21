@@ -46,6 +46,7 @@ namespace Js
         JavascriptLibrary* localLibrary = RecyclerNewFinalized(scriptContext->GetRecycler(), JavascriptLibrary, this);
         scriptContext->SetLibrary(localLibrary);
         type->javascriptLibrary = localLibrary;
+        scriptContext->InitializeCache();
         localLibrary->Initialize(scriptContext, this);
         library = localLibrary;
     }
@@ -224,7 +225,7 @@ namespace Js
         Js::Var lineNumber = Js::JavascriptNumber::ToVar((int64) lineNum, scriptContext);
         Js::Var colNumber = Js::JavascriptNumber::ToVar((int64) colNum, scriptContext);
         Js::Var functionIdNumberVar = Js::JavascriptNumber::ToVar(functionId, scriptContext);
-        Js::Var utf8SourceInfoVar = Js::JavascriptNumber::ToVar((long) utf8SrcInfo, scriptContext);
+        Js::Var utf8SourceInfoVar = Js::JavascriptNumber::ToVar((int32) utf8SrcInfo, scriptContext);
 
         // assign properties to function info object
         SetProperty(fnInfoObj, _u("filename"), filenameString);
@@ -397,18 +398,18 @@ namespace Js
 
         Js::JavascriptNumber *jsUtf8SourceInfoNumber = NULL;
         Js::JavascriptNumber *jsFunctionIdNumber = NULL;
-        long utf8SourceInfoNumber = 0;  // null
-        long functionIdNumber = -1;  // start with invalid function id
+        int32 utf8SourceInfoNumber = 0;  // null
+        int32 functionIdNumber = -1;  // start with invalid function id
 
         // extract value of jsVarUtf8SourceInfo
         if (Js::TaggedInt::Is(jsVarUtf8SourceInfo))
         {
-            utf8SourceInfoNumber = (long)TaggedInt::ToInt64(jsVarUtf8SourceInfo); // REVIEW: just truncate?
+            utf8SourceInfoNumber = (int32)TaggedInt::ToInt64(jsVarUtf8SourceInfo); // REVIEW: just truncate?
         }
         else if (Js::JavascriptNumber::Is(jsVarUtf8SourceInfo))
         {
             jsUtf8SourceInfoNumber = (Js::JavascriptNumber *)jsVarUtf8SourceInfo;
-            utf8SourceInfoNumber = (long)JavascriptNumber::GetValue(jsUtf8SourceInfoNumber);    // REVIEW: just truncate?
+            utf8SourceInfoNumber = (int32)JavascriptNumber::GetValue(jsUtf8SourceInfoNumber);    // REVIEW: just truncate?
         }
         else
         {
@@ -419,12 +420,12 @@ namespace Js
         // extract value of jsVarFunctionId
         if (Js::TaggedInt::Is(jsVarFunctionId))
         {
-            functionIdNumber = (long)TaggedInt::ToInt64(jsVarFunctionId); // REVIEW: just truncate?
+            functionIdNumber = (int32)TaggedInt::ToInt64(jsVarFunctionId); // REVIEW: just truncate?
         }
         else if (Js::JavascriptNumber::Is(jsVarFunctionId))
         {
             jsFunctionIdNumber = (Js::JavascriptNumber *)jsVarFunctionId;
-            functionIdNumber = (long)JavascriptNumber::GetValue(jsFunctionIdNumber); // REVIEW: just truncate?
+            functionIdNumber = (int32)JavascriptNumber::GetValue(jsFunctionIdNumber); // REVIEW: just truncate?
         }
         else
         {

@@ -295,7 +295,7 @@ namespace Js
         MapAndThrowError(scriptContext, pError, hr, pei, useErrInfoDescription);
     }
 
-    void __declspec(noreturn) JavascriptError::MapAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, long hCode, EXCEPINFO* pei, bool useErrInfoDescription/* = false*/)
+    void __declspec(noreturn) JavascriptError::MapAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei, bool useErrInfoDescription/* = false*/)
     {
         Assert(pError != nullptr);
 
@@ -348,13 +348,13 @@ namespace Js
         return pError; \
     } \
     \
-    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, long hCode, EXCEPINFO* pei, IErrorInfo* perrinfo, RestrictedErrorStrings * proerrstr, bool useErrInfoDescription) \
+    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* pei, IErrorInfo* perrinfo, RestrictedErrorStrings * proerrstr, bool useErrInfoDescription) \
     { \
         JavascriptError *pError = create_method(scriptContext, perrinfo, proerrstr); \
         MapAndThrowError(scriptContext, pError, hCode, pei, useErrInfoDescription); \
     } \
     \
-    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, long hCode, PCWSTR varName) \
+    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName) \
     { \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
         JavascriptError *pError = library->create_method(); \
@@ -362,7 +362,7 @@ namespace Js
         JavascriptExceptionOperators::Throw(pError, scriptContext); \
     } \
     \
-    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, long hCode, JavascriptString* varName) \
+    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName) \
     { \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
         JavascriptError *pError = library->create_method(); \
@@ -370,7 +370,7 @@ namespace Js
         JavascriptExceptionOperators::Throw(pError, scriptContext); \
     } \
     \
-    void __declspec(noreturn) JavascriptError::err_method##Var(ScriptContext* scriptContext, long hCode, ...) \
+    void __declspec(noreturn) JavascriptError::err_method##Var(ScriptContext* scriptContext, int32 hCode, ...) \
     { \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
         JavascriptError *pError = library->create_method(); \
@@ -454,7 +454,7 @@ namespace Js
         pError->SetNotEnumerable(PropertyIds::description);
 
         hr = JavascriptError::GetErrorNumberFromResourceID(hr);
-        JavascriptOperators::InitProperty(pError, PropertyIds::number, JavascriptNumber::ToVar(hr, scriptContext));
+        JavascriptOperators::InitProperty(pError, PropertyIds::number, JavascriptNumber::ToVar((int32)hr, scriptContext));
         pError->SetNotEnumerable(PropertyIds::number);
     }
 
@@ -581,7 +581,15 @@ namespace Js
     BOOL JavascriptError::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
         char16 const *pszMessage = nullptr;
-        GetRuntimeErrorWithScriptEnter(this, &pszMessage);
+
+        if (!this->GetScriptContext()->GetThreadContext()->IsScriptActive())
+        {
+            GetRuntimeErrorWithScriptEnter(this, &pszMessage);
+        }
+        else
+        {
+            GetRuntimeError(this, &pszMessage);
+        }
 
         if (pszMessage)
         {
@@ -686,7 +694,7 @@ namespace Js
         JavascriptError::MapAndThrowError(scriptContext, pError, ei.scode, &ei);
     }
 
-    ErrorTypeEnum JavascriptError::MapParseError(long hCode)
+    ErrorTypeEnum JavascriptError::MapParseError(int32 hCode)
     {
         switch (hCode)
         {
@@ -703,7 +711,7 @@ namespace Js
         }
     }
 
-    JavascriptError* JavascriptError::MapParseError(ScriptContext* scriptContext, long hCode)
+    JavascriptError* JavascriptError::MapParseError(ScriptContext* scriptContext, int32 hCode)
     {
         ErrorTypeEnum errorType = JavascriptError::MapParseError(hCode);
         return MapError(scriptContext, errorType);
@@ -805,9 +813,9 @@ namespace Js
 
     // Gets the error number associated with the resource ID for an error message.
     // When 'errorNumSource' is 0 (the default case), the resource ID is used as the error number.
-    long JavascriptError::GetErrorNumberFromResourceID(long resourceId)
+    int32 JavascriptError::GetErrorNumberFromResourceID(int32 resourceId)
     {
-        long result;
+        int32 result;
         switch (resourceId)
         {
     #define RT_ERROR_MSG(name, errnum, str1, str2, jst, errorNumSource) \
@@ -877,7 +885,7 @@ namespace Js
         return jsNewError;
     }
 
-    void JavascriptError::TryThrowTypeError(ScriptContext * checkScriptContext, ScriptContext * scriptContext, long hCode, PCWSTR varName)
+    void JavascriptError::TryThrowTypeError(ScriptContext * checkScriptContext, ScriptContext * scriptContext, int32 hCode, PCWSTR varName)
     {
         // Don't throw if implicit exceptions are disabled
         if (checkScriptContext->GetThreadContext()->RecordImplicitException())

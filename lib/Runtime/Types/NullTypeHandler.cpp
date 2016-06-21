@@ -107,6 +107,7 @@ namespace Js
             return DynamicTypeHandler::GetItem(instance, originalInstance, indexVal, value, requestContext);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -330,6 +331,9 @@ namespace Js
 
     template<bool IsPrototypeTemplate>
     NullTypeHandler<IsPrototypeTemplate> NullTypeHandler<IsPrototypeTemplate>::defaultInstance;
+
+    template<bool IsPrototypeTemplate>
+    NullTypeHandler<IsPrototypeTemplate> * NullTypeHandler<IsPrototypeTemplate>::GetDefaultInstance() { return &defaultInstance; }
 
     template class NullTypeHandler<false>;
     template class NullTypeHandler<true>;

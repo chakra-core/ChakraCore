@@ -312,9 +312,9 @@ int MemoryProfiler::CreateArenaUsageSummary(ArenaAllocator * alloc, bool liveOnl
 
     summaries = AnewArray(alloc, ArenaMemoryDataSummary *, count);
 
-    for (int i = 0; i < count; i++)
+    for (int j = 0; j < count; j++)
     {
-        ArenaMemoryDataSummary * summary = arenaDataMap.Item(name[i]);
+        ArenaMemoryDataSummary * summary = arenaDataMap.Item(name[j]);
         ArenaMemoryData * data = summary->data;
 
         ArenaMemoryDataSummary * localSummary;

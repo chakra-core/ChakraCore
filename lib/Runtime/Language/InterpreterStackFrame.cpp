@@ -1401,6 +1401,7 @@ namespace Js
         }
 
         RegSlot closureReg = executeFunction->GetLocalClosureRegister();
+        Var funcExprScope = nullptr;
         if (closureReg != Js::Constants::NoRegister)
         {
             Assert(closureReg >= executeFunction->GetConstantCount());
@@ -1412,9 +1413,8 @@ namespace Js
                     // t0 = NewPseudoScope
                     // t1 = LdFrameDisplay t0 env
 
-                    Var funcExprScope = JavascriptOperators::OP_NewPseudoScope(GetScriptContext());
+                    funcExprScope = JavascriptOperators::OP_NewPseudoScope(GetScriptContext());
                     SetReg(funcExprScopeReg, funcExprScope);
-                    environment = OP_LdFrameDisplay(funcExprScope, environment, GetScriptContext());
                 }
 
                 this->NewScopeObject();
@@ -1430,6 +1430,11 @@ namespace Js
         if (frameDisplayReg != Js::Constants::NoRegister && closureReg != Js::Constants::NoRegister)
         {
             Assert(frameDisplayReg >= executeFunction->GetConstantCount());
+
+            if (funcExprScope != nullptr)
+            {
+                environment = OP_LdFrameDisplay(funcExprScope, environment, GetScriptContext());
+            }
 
             void *argHead = this->GetLocalClosure();
             this->SetLocalFrameDisplay(this->NewFrameDisplay(argHead, environment));
@@ -2199,7 +2204,7 @@ namespace Js
         m_outSp        = m_outParams;
     }
 
-    __declspec(noinline)
+    _NOINLINE
     Var InterpreterStackFrame::DebugProcessThunk(void* returnAddress, void* addressOfReturnAddress)
     {
         PushPopFrameHelper pushPopFrameHelper(this, returnAddress, addressOfReturnAddress);
@@ -2312,7 +2317,7 @@ namespace Js
     }
 #endif
 
-    __declspec(noinline)
+    _NOINLINE
     Var InterpreterStackFrame::ProcessThunk(void* address, void* addressOfReturnAddress)
     {
         PushPopFrameHelper pushPopFrameHelper(this, address, addressOfReturnAddress);
@@ -3306,7 +3311,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetMethodProperty_NoFastPath(Var instance, unaligned T *playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetMethodProperty_NoFastPath(Var instance, unaligned T *playout)
     {
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
 
@@ -3352,7 +3357,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetRootMethodProperty_NoFastPath(unaligned T *playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetRootMethodProperty_NoFastPath(unaligned T *playout)
     {
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
 
@@ -3416,7 +3421,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetMethodPropertyScoped_NoFastPath(unaligned T *playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetMethodPropertyScoped_NoFastPath(unaligned T *playout)
     {
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
         Js::Var instance = GetReg(playout->Instance);
@@ -3515,6 +3520,7 @@ namespace Js
         case AsmJsRetType::Float:
             m_localFloatSlots[0] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             break;
+#ifdef ENABLE_SIMDJS
         case AsmJsRetType::Float32x4:
         case AsmJsRetType::Int32x4:
         case AsmJsRetType::Bool32x4:
@@ -3530,6 +3536,7 @@ namespace Js
             simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->jsMethod, asmInfo->GetArgCount(), m_outParams);
             m_localSimdSlots[0] = X86SIMDValue::ToSIMDValue(simdVal);
             break;
+#endif
         }
         Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
         if (scriptContext->GetConfig()->IsSimdjsEnabled())
@@ -3848,7 +3855,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetRootProperty_NoFastPath(unaligned T* playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetRootProperty_NoFastPath(unaligned T* playout)
     {
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
         Var rootInstance = this->GetRootObject();
@@ -4058,7 +4065,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetProperty_NoFastPath(Var instance, unaligned T* playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetProperty_NoFastPath(Var instance, unaligned T* playout)
     {
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
 
@@ -4224,7 +4231,7 @@ namespace Js
 
 
     template <typename T>
-    __declspec(noinline) void InterpreterStackFrame::OP_GetPropertyScoped_NoFastPath(const unaligned OpLayoutT_ElementP<T>* playout)
+    _NOINLINE void InterpreterStackFrame::OP_GetPropertyScoped_NoFastPath(const unaligned OpLayoutT_ElementP<T>* playout)
     {
         // Implicit root object as default instance
         Var defaultInstance = GetReg(Js::FunctionBody::RootObjectRegSlot);
@@ -4279,7 +4286,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::OP_SetPropertyScoped_NoFastPath(unaligned T* playout, PropertyOperationFlags flags)
+    _NOINLINE void InterpreterStackFrame::OP_SetPropertyScoped_NoFastPath(unaligned T* playout, PropertyOperationFlags flags)
     {
         // Implicit root object as default instance
         Var defaultInstance = GetReg(Js::FunctionBody::RootObjectRegSlot);
@@ -4364,7 +4371,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::DoSetProperty_NoFastPath(unaligned T* playout, Var instance, PropertyOperationFlags flags)
+    _NOINLINE void InterpreterStackFrame::DoSetProperty_NoFastPath(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
@@ -4395,7 +4402,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::DoSetSuperProperty_NoFastPath(unaligned T* playout, Var instance, PropertyOperationFlags flags)
+    _NOINLINE void InterpreterStackFrame::DoSetSuperProperty_NoFastPath(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
@@ -4623,7 +4630,7 @@ namespace Js
     }
 
     template <class T>
-    __declspec(noinline) void InterpreterStackFrame::DoInitProperty_NoFastPath(unaligned T* playout, Var instance)
+    _NOINLINE void InterpreterStackFrame::DoInitProperty_NoFastPath(unaligned T* playout, Var instance)
     {
         JavascriptOperators::PatchInitValue<false>(
             GetFunctionBody(),
@@ -5869,6 +5876,18 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 if (!entryPointInfo->GetIsAsmJSFunction())
                 {
                     this->CheckIfLoopIsHot(loopHeader->profiledLoopCounter);
+                }
+
+                if (newOffset >= loopHeader->endOffset)
+                {
+                    // Reset the totalJittedLoopIterations for the next invocation of this loop entry point
+                    entryPointInfo->totalJittedLoopIterations =
+                        static_cast<uint8>(
+                            min(
+                                static_cast<uint>(static_cast<uint8>(CONFIG_FLAG(MinBailOutsBeforeRejit))) *
+                                (Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() - 1),
+                                entryPointInfo->totalJittedLoopIterations));
+                    entryPointInfo->jittedLoopIterationsSinceLastBailout = 0;
                 }
                 m_reader.SetCurrentOffset(newOffset);
             }
@@ -7477,7 +7496,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
 
-        value = SIMDLdData(data, dataWidth);
+        value = SIMDUtils::SIMDLdData(data, dataWidth);
         SetRegRawSimd(dstReg, value);
     }
 
@@ -7498,7 +7517,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
 
-        value = SIMDLdData(data, dataWidth);
+        value = SIMDUtils::SIMDLdData(data, dataWidth);
         SetRegRawSimd(dstReg, value);
     }
 
@@ -7518,7 +7537,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
-        SIMDStData(data, value, dataWidth);
+        SIMDUtils::SIMDStData(data, value, dataWidth);
     }
 
     template <class T>
@@ -7537,7 +7556,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
-        SIMDStData(data, value, dataWidth);
+        SIMDUtils::SIMDStData(data, value, dataWidth);
 
     }
 

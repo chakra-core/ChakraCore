@@ -41,7 +41,7 @@ namespace UnifiedRegex
             Assert(
                 !GetScriptContext()->GetDynamicRegexMap()->TryGetValue(
                     RegexKey(source.GetBuffer(), source.GetLength(), GetFlags()),
-                    &p) ||
+                    &p) || ( source.GetLength() == 0 ) ||
                 p != this);
         }
 #endif

@@ -227,6 +227,15 @@ public:
         });
     }
 
+    void RemoveAll()
+    {
+        m_queue.Remove([](const ListEntry& entry) { 
+            MessageBase* msg = entry.message;
+            delete msg;
+            return true;
+        });
+    }
+
     HRESULT ProcessAll(LPCSTR fileName)
     {
         while(!IsEmpty())
@@ -251,7 +260,7 @@ private:
     Func m_func;
 
 public:
-    CustomMessage(unsigned int time, const typename CustomBase::CustomArgType& customArg, const Func& func) :
+    CustomMessage(unsigned int time, JsValueRef customArg, const Func& func) :
         CustomBase(time, customArg), m_func(func)
     {}
 

@@ -93,8 +93,8 @@ DbCheckPostLower::Check()
                 {
                     if (targetLabel->isOpHelper && !targetLabel->m_noHelperAssert)
                     {
-                        IR::Instr *instrNext = instr->GetNextRealInstrOrLabel();
-                        Assert(!(instrNext->IsLabelInstr() && instrNext->AsLabelInstr()->isOpHelper));
+                        IR::Instr *instrNextDebug = instr->GetNextRealInstrOrLabel();
+                        Assert(!(instrNextDebug->IsLabelInstr() && instrNextDebug->AsLabelInstr()->isOpHelper));
                     }
                 }
                 else

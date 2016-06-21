@@ -9,6 +9,10 @@
 
 namespace Js
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
     // Redeclare static constants
     const UINT64 NumberConstantsBase::k_Nan;
     const INT64 NumberUtilitiesBase::Pos_InvalidInt64;
@@ -31,6 +35,7 @@ namespace Js
     const uint32 NumberConstants::k_Float32NegZero;
     const uint32 NumberConstants::k_Float32TwoToFraction;
     const uint32 NumberConstants::k_Float32NegTwoToFraction;
+#endif
 
     const double NumberConstants::MAX_VALUE = *(double*)(&NumberConstants::k_PosMax);
     const double NumberConstants::MIN_VALUE = *(double*)(&NumberConstants::k_PosMin);
@@ -332,15 +337,15 @@ namespace Js
     }
 
 
-    long NumberUtilities::LwFromDblNearest(double dbl)
+    int32 NumberUtilities::LwFromDblNearest(double dbl)
     {
         if (Js::NumberUtilities::IsNan(dbl))
             return 0;
         if (dbl > 0x7FFFFFFFL)
             return 0x7FFFFFFFL;
-        if (dbl < (long)0x80000000L)
-            return (long)0x80000000L;
-        return (long)dbl;
+        if (dbl < (int32)0x80000000L)
+            return (int32)0x80000000L;
+        return (int32)dbl;
     }
 
     uint32 NumberUtilities::LuFromDblNearest(double dbl)
@@ -354,12 +359,12 @@ namespace Js
         return (uint32)dbl;
     }
 
-    BOOL NumberUtilities::FDblIsLong(double dbl, long *plw)
+    BOOL NumberUtilities::FDblIsInt32(double dbl, int32 *plw)
     {
         AssertMem(plw);
         double dblT;
 
-        *plw = (long)dbl;
+        *plw = (int32)dbl;
         dblT = (double)*plw;
         return Js::NumberUtilities::LuHiDbl(dblT) == Js::NumberUtilities::LuHiDbl(dbl) && Js::NumberUtilities::LuLoDbl(dblT) == Js::NumberUtilities::LuLoDbl(dbl);
     }

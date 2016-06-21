@@ -33,7 +33,12 @@
 
 namespace Js
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
     uint const ScopeSlots::MaxEncodedSlotCount;
+#endif
 
     CriticalSection FunctionProxy::GlobalLock;
 
@@ -2751,7 +2756,7 @@ namespace Js
         return FALSE;
     }
 
-    void FunctionBody::FindClosestStatements(long characterOffset, StatementLocation *firstStatementLocation, StatementLocation *secondStatementLocation)
+    void FunctionBody::FindClosestStatements(int32 characterOffset, StatementLocation *firstStatementLocation, StatementLocation *secondStatementLocation)
     {
         auto statementMaps = this->GetStatementMaps();
         if (statementMaps)
@@ -3245,6 +3250,14 @@ namespace Js
         Assert(((LoopEntryPointInfo*) entryPointInfo)->loopHeader == loopHeader);
         Assert(reinterpret_cast<void*>(entryPointInfo->jsMethod) == nullptr);
         entryPointInfo->jsMethod = entryPoint;
+
+        ((Js::LoopEntryPointInfo*)entryPointInfo)->totalJittedLoopIterations = 
+            static_cast<uint8>(
+                min(
+                    static_cast<uint>(static_cast<uint8>(CONFIG_FLAG(MinBailOutsBeforeRejitForLoops))) *
+                    (Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() - 1),
+                    0xffu));
+
         // reset the counter to 1 less than the threshold for TJLoopBody
         if (loopHeader->GetCurrentEntryPointInfo()->GetIsAsmJSFunction())
         {
@@ -8559,7 +8572,6 @@ namespace Js
         BYTE* instructionPointer = *addressOfInstructionPointer;
         Assert(instructionPointer > (BYTE*)this->nativeAddress && instructionPointer < ((BYTE*)this->nativeAddress + this->codeSize));
         size_t offset = instructionPointer - (BYTE*)this->nativeAddress;
-        LazyBailOutRecord record;
         int found = this->bailoutRecordMap->BinarySearch([=](const LazyBailOutRecord& record, int index)
         {
             // find the closest entry which is greater than the current offset.

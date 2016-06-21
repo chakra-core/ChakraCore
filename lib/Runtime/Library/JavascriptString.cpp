@@ -1339,6 +1339,9 @@ case_2:
         const char16* pThatStr = pThat->GetString();
         int thatStrCount = pThat->GetLength();
 
+        // xplat-todo: doing a locale-insensitive compare here
+        // but need to move locale-specific string comparison to
+        // platform agnostic interface
 #ifdef ENABLE_GLOBALIZATION
         LCID lcid = GetUserDefaultLCID();
         int result = CompareStringW(lcid, NULL, pThisStr, thisStrCount, pThatStr, thatStrCount );
@@ -1350,12 +1353,10 @@ case_2:
                 VBSERR_InternalError /* TODO-ERROR: _u("Failed compare operation")*/ );
         }
         return JavascriptNumber::ToVar(result-2, scriptContext);
-#else
-        // xplat-todo: doing a locale-insensitive compare here
-        // but need to move locale-specific string comparison to
-        // platform agnostic interface
-        AssertMsg(false, "toLocaleString is not yet implemented on linux");
-        return JavascriptNumber::ToVar(wcscmp(pThisStr, pThatStr), scriptContext);
+#else // !ENABLE_GLOBALIZATION
+        // no ICU / or external support for localization. Use c-lib
+        const int result = wcscmp(pThisStr, pThatStr);
+        return JavascriptNumber::ToVar(result > 0 ? 1 : result == 0 ? 0 : -1, scriptContext);
 #endif
     }
 
@@ -2204,8 +2205,53 @@ case_2:
     {
         charcount_t count = pThis->GetLength();
 
+        const char16* inStr = pThis->GetString();
+        const char16* inStrLim = inStr + count;
+        const char16* i = inStr;
+
+        // Try to find out the chars that do not need casing (in the ASCII range)
+        if (toCase == ToUpper)
+        {
+            while (i < inStrLim)
+            {
+                // first range of ascii lower-case (97-122)
+                // second range of ascii lower-case (223-255)
+                // non-ascii chars (255+)
+                if (*i >= 'a')
+                {
+                    if (*i <= 'z') { break; }
+                    if (*i >= 223) { break; }
+                }
+                i++;
+            }
+        }
+        else
+        {
+            Assert(toCase == ToLower);
+            while (i < inStrLim)
+            {
+                // first range of ascii uppercase (65-90)
+                // second range of ascii uppercase (192-222)
+                // non-ascii chars (255+)
+                if (*i >= 'A')
+                {
+                    if (*i <= 'Z') { break; }
+                    if (*i >= 192)
+                    { 
+                        if (*i < 223) { break; }
+                        if (*i >= 255) { break; }
+                    }
+                }
+                i++;
+            }
+        }
+
+        // If no char needs casing, return immediately
+        if (i == inStrLim) { return pThis; }
+
+        // Otherwise, copy the string and start casing
+        charcount_t countToCase = (charcount_t)(inStrLim - i);
         BufferStringBuilder builder(count, pThis->type->GetScriptContext());
-        const char16 *inStr = pThis->GetString();
         char16 *outStr = builder.DangerousGetWritableBuffer();
 
         char16* outStrLim = outStr + count;
@@ -2222,9 +2268,9 @@ case_2:
             DWORD converted =
 #endif
                 PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsUpper, outStr, count);
+                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsUpper, outStrLim - countToCase, countToCase);
 
-            Assert(converted == count);
+            Assert(converted == countToCase);
         }
         else
         {
@@ -2233,9 +2279,9 @@ case_2:
             DWORD converted =
 #endif
                 PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsLower, outStr, count);
+                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsLower, outStrLim - countToCase, countToCase);
 
-            Assert(converted == count);
+            Assert(converted == countToCase);
         }
 
         return builder.ToString();
@@ -2878,7 +2924,7 @@ case_2:
     bool JavascriptString::ToDouble(double * result)
     {
         const char16* pch;
-        long len = this->m_charLength;
+        int32 len = this->m_charLength;
         if (0 == len)
         {
             *result = 0;
@@ -3301,7 +3347,7 @@ case_2:
 
         const char16 searchLast = searchStr[searchLen-1];
 
-        unsigned long lMatchedJump = searchLen;
+        uint32 lMatchedJump = searchLen;
         if (jmpTable[searchLast].shift > 0)
         {
             lMatchedJump = jmpTable[searchLast].shift;
@@ -3345,7 +3391,7 @@ case_2:
     int JavascriptString::LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, int len, const char16* searchStr, int searchLen, int position)
     {
         const char16 searchFirst = searchStr[0];
-        unsigned long lMatchedJump = searchLen;
+        uint32 lMatchedJump = searchLen;
         if (jmpTable[searchFirst].shift > 0)
         {
             lMatchedJump = jmpTable[searchFirst].shift;
@@ -3395,7 +3441,7 @@ case_2:
             {
                 if ( jmpTable[c].shift == 0 )
                 {
-                    jmpTable[c].shift = (unsigned long)(searchStr + searchLen - 1 - p2);
+                    jmpTable[c].shift = (uint32)(searchStr + searchLen - 1 - p2);
                 }
             }
             else
@@ -3424,7 +3470,7 @@ case_2:
             {
                 if ( jmpTable[c].shift == 0 )
                 {
-                    jmpTable[c].shift = (unsigned long)(p2 - searchStr);
+                    jmpTable[c].shift = (uint32)(p2 - searchStr);
                 }
             }
             else
@@ -3701,27 +3747,30 @@ case_2:
 
     BOOL JavascriptString::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return GetPropertyBuiltIns(propertyId, value);
+        return GetPropertyBuiltIns(propertyId, value, requestContext);
     }
     BOOL JavascriptString::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyRecord const* propertyRecord;
         this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
 
-        if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value))
+        if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
         {
-            return true;
-        }
-        return false;
-    }
-    bool JavascriptString::GetPropertyBuiltIns(PropertyId propertyId, Var* value)
-    {
-        if (propertyId == PropertyIds::length)
-        {
-            *value = JavascriptNumber::ToVar(this->GetLength(), this->GetScriptContext());
             return true;
         }
 
+        *value = requestContext->GetMissingPropertyResult();
+        return false;
+    }
+    bool JavascriptString::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
+    {
+        if (propertyId == PropertyIds::length)
+        {
+            *value = JavascriptNumber::ToVar(this->GetLength(), requestContext);
+            return true;
+        }
+
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
     BOOL JavascriptString::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)

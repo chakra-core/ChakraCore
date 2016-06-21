@@ -569,10 +569,10 @@ public:
 
 private:
     // Static entry point for thread creation
-    static unsigned int StaticThreadProc(LPVOID lpParameter);
+    static unsigned int CALLBACK StaticThreadProc(LPVOID lpParameter);
 
     // Static entry point for thread service usage
-    static void StaticBackgroundWorkCallback(void * callbackData);
+    static void CALLBACK StaticBackgroundWorkCallback(void * callbackData);
 
 private:
     WorkFunc workFunc;
@@ -749,7 +749,6 @@ private:
     };
     DListBase<GuestArenaAllocator> guestArenaList;
     DListBase<ArenaData*> externalGuestArenaList;    // guest arenas are scanned for roots
-    HeapInfo autoHeap;
 #ifdef RECYCLER_PAGE_HEAP
 
     inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
@@ -993,6 +992,10 @@ private:
     PageAllocator backgroundProfilerPageAllocator;
     DListBase<ArenaAllocator> backgroundProfilerArena;
 #endif
+
+    // destruct autoHeap after backgroundProfilerPageAllocator;
+    HeapInfo autoHeap;
+
 #ifdef PROFILE_MEM
     RecyclerMemoryData * memoryData;
 #endif
@@ -1697,12 +1700,12 @@ private:
     bool AbortConcurrent(bool restoreState);
     void FinalizeConcurrent(bool restoreState);
 
-    static unsigned int  StaticThreadProc(LPVOID lpParameter);
+    static unsigned int CALLBACK StaticThreadProc(LPVOID lpParameter);
     static int ExceptFilter(LPEXCEPTION_POINTERS pEP);
     DWORD ThreadProc();
 
     void DoBackgroundWork(bool forceForeground = false);
-    static void StaticBackgroundWorkCallback(void * callbackData);
+    static void CALLBACK StaticBackgroundWorkCallback(void * callbackData);
 
     BOOL CollectOnConcurrentThread();
     bool StartConcurrent(CollectionState const state);
@@ -2312,7 +2315,13 @@ template <bool isLeaf>
 class ListTypeAllocatorFunc<Recycler, isLeaf>
 {
 public:
+    typedef char * (Recycler::*AllocFuncType)(size_t);
     typedef bool (Recycler::*FreeFuncType)(void*, size_t);
+
+    static AllocFuncType GetAllocFunc()
+    {
+        return isLeaf ? &Recycler::AllocLeaf : &Recycler::Alloc;
+    }
 
     static FreeFuncType GetFreeFunc()
     {
@@ -2390,7 +2399,10 @@ struct ForceLeafAllocator<RecyclerNonLeafAllocator>
     typedef RecyclerLeafAllocator AllocatorType;
 };
 
-#ifdef PROFILE_EXEC
+// TODO: enable -profile for GC phases.
+// access the same profiler object from multiple GC threads which shares one recyler object,
+// but profiler object is not thread safe
+#if defined(PROFILE_EXEC) && 0
 #define RECYCLER_PROFILE_EXEC_BEGIN(recycler, phase) if (recycler->profiler != nullptr) { recycler->profiler->Begin(phase); }
 #define RECYCLER_PROFILE_EXEC_END(recycler, phase) if (recycler->profiler != nullptr) { recycler->profiler->End(phase); }
 

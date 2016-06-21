@@ -4,8 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
+// The VS2013 linker treats this as a redefinition of an already
+// defined constant and complains. So skip the declaration if we're compiling
+// with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const uint Memory::HeapBlockMap32::L1Count;
 const uint Memory::HeapBlockMap32::L2Count;
+#endif
 
 #if defined(_M_X64_OR_ARM64)
 HeapBlockMap32::HeapBlockMap32(__in char * startAddress) :
@@ -1070,7 +1075,8 @@ HeapBlockMap32::RescanHeapBlockOnOOM(TBlockType* heapBlock, char* pageAddress, H
     // The following assert makes sure that this method is called only once per heap block
     Assert(blockStartAddress == pageAddress);
 
-    for (int i = 0; i < TBlockType::HeapBlockAttributes::PageCount; i++)
+    int inUsePageCount = heapBlock->GetPageCount() - heapBlock->GetUnusablePageCount();
+    for (int i = 0; i < inUsePageCount; i++)
     {
         char* pageAddressToScan = blockStartAddress + (i * AutoSystemInfo::PageSize);
 

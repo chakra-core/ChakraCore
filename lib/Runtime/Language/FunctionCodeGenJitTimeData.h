@@ -193,7 +193,7 @@ namespace Js
             this->fixedFieldCount = fixedFieldCount;
         }
 
-        static ObjTypeSpecFldInfo* CreateFrom(uint id, InlineCache* cache, uint cacheId,
+        static ObjTypeSpecFldInfo* CreateFrom(uint id, InlineCache* cache, uint const cacheId,
             EntryPointInfo *entryPoint, FunctionBody* const topFunctionBody, FunctionBody *const functionBody, FieldAccessStatsPtr inlineCacheStats);
 
         static ObjTypeSpecFldInfo* CreateFrom(uint id, PolymorphicInlineCache* cache, uint cacheId,
@@ -288,6 +288,11 @@ namespace Js
         bool DoesntHaveEquivalence() const
         {
             return this->doesntHaveEquivalence;
+        }
+
+        bool IsBuiltIn() const
+        {
+            return this->isBuiltIn;
         }
 
         void ClearFlags()

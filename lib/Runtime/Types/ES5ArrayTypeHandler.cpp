@@ -673,6 +673,7 @@ namespace Js
         {
             if (descriptor->Attributes & PropertyDeleted)
             {
+                *value = requestContext->GetMissingItemResult();
                 return false;
             }
 
@@ -683,11 +684,12 @@ namespace Js
             }
             else
             {
-                *value = instance->GetLibrary()->GetUndefined();
+                *value = requestContext->GetMissingItemResult();
             }
             return true;
         }
 
+        *value = requestContext->GetMissingItemResult();
         return false;
     }
 

@@ -254,7 +254,7 @@
   </test>
   <test>
     <default>
-      <files>bug_resetisdead.js</files>
+      <files>Bug_resetisdead.js</files>
       <compile-flags>-on:prelowererpeeps</compile-flags>
     </default>
   </test>
@@ -280,6 +280,7 @@
     <default>
       <files>b208.js</files>
       <baseline>b208.baseline</baseline>
+      <tags>require_backend</tags>
       <compile-flags> -bgjit- -simdjs -simd128typespec -mic:1 -lic:1 -off:simplejit</compile-flags>
     </default>
   </test>
@@ -287,7 +288,7 @@
     <default>
       <files>b208_asmjs.js</files>
       <baseline>b208_asmjs.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
       <compile-flags>-simdjs -AsmJsStopOnError -maic:0</compile-flags>
     </default>
   </test> 
@@ -295,7 +296,7 @@
     <default>
       <files>b208_asmjs.js</files>
       <baseline>b208_asmjs.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
       <compile-flags> -bgjit- -simdjs -simd128typespec -asmjs- -mic:1 -lic:1 -off:simplejit</compile-flags>
     </default>
   </test>
@@ -303,8 +304,24 @@
     <default>
       <files>testSimdManyVars.js</files>
       <baseline>testSimdManyVars.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
       <compile-flags> -simdjs -asmjs -off:backend -testtrace:asmjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>b95.js</files>
+      <baseline>b95.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
+      <compile-flags>-simdjs -testtrace:asmjs  -asmjs -maic:0</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>b108.js</files>
+      <baseline>b108.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
+      <compile-flags>-simdjs  -asmjs -testtrace:asmjs -asmjsstoponerror</compile-flags>
     </default>
   </test>
 </regress-exe>

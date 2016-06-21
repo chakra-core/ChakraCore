@@ -24,7 +24,7 @@ namespace Js {
 
         static void CheckAndThrowOutOfMemory(BOOLEAN status);
 
-        static bool ReportAssert(__in LPSTR fileName, uint lineNumber, __in LPSTR error, __in LPSTR message);
+        static bool ReportAssert(__in LPCSTR fileName, uint lineNumber, __in LPCSTR error, __in LPCSTR message);
         static void LogAssert();
 #ifdef GENERATE_DUMP
         static int GenerateDump(PEXCEPTION_POINTERS exceptInfo, LPCWSTR filePath, int ret = EXCEPTION_CONTINUE_SEARCH, bool needLock = false);

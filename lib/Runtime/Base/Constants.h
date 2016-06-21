@@ -92,7 +92,6 @@ namespace Js
         static const unsigned MinStackRegex = 8 * 0x400 * WIN64_STACK_FACTOR; // 8 KB
 
         static const unsigned MinStackRuntime = 32 * 0x0400 * WIN64_STACK_FACTOR;
-        static const unsigned MinStackHost = 40 * 0x0400 * WIN64_STACK_FACTOR;
         static const unsigned MinStackCallout = 32 * 0x0400 * WIN64_STACK_FACTOR;
 
         static const unsigned MinStackParseOneTerm = 0x100 * WIN64_STACK_FACTOR;

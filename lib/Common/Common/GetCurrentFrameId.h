@@ -21,8 +21,13 @@
 #define GET_CURRENT_FRAME_ID(f) \
     __asm { mov f, ebp }
 #elif defined(_M_X64)
+#ifdef _WIN32
 #define GET_CURRENT_FRAME_ID(f) \
     (f = _ReturnAddress())
+#else
+#define GET_CURRENT_FRAME_ID(f) \
+    (f = __builtin_frame_address(0))
+#endif
 #elif defined(_M_ARM)
 // ARM, like x86, uses the frame pointer rather than code address
 #define GET_CURRENT_FRAME_ID(f) \

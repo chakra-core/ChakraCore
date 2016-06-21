@@ -33,7 +33,7 @@
   </test>
   <test>
     <default>
-      <files>toString.js</files>
+      <files>tostring.js</files>
       <baseline>toString.baseline</baseline>
     </default>
   </test>

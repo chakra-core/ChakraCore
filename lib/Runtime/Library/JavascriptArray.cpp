@@ -2795,7 +2795,7 @@ namespace Js
         }
 
         ScriptContext* requestContext = type->GetScriptContext();
-        return JavascriptOperators::GetItem(this, this->GetPrototype(), index, (Var*)outVal, requestContext);
+        return JavascriptOperators::GetItem(this, this->GetPrototype(), index, outVal, requestContext);
     }
 
     //
@@ -2979,7 +2979,8 @@ namespace Js
                     {
                         if (JavascriptOperators::HasItem(itemObject, idxSubItem))
                         {
-                            JavascriptOperators::GetItem(itemObject, idxSubItem, &subItem, scriptContext);
+                            subItem = JavascriptOperators::GetItem(itemObject, idxSubItem, scriptContext);
+
                             if (pDestArray)
                             {
                                 pDestArray->DirectSetItemAt(idxDest, subItem);
@@ -4272,7 +4273,6 @@ CaseDefault:
                     {
                         cs->Append(separator);
                     }
-                    Var value;
                     if (JavascriptOperators::GetItem(object, i, &value, scriptContext))
                     {
                         cs->Append(JavascriptArray::JoinToString(value, scriptContext));
@@ -5183,8 +5183,8 @@ Case0:
                     lowerExists = typedArrayBase->HasItem(lower);
                     upperExists = typedArrayBase->HasItem(upper);
 
-                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue, false));
-                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue, false));
+                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
+                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                 }
             }
             else
@@ -5203,21 +5203,21 @@ Case0:
                     {
                         if (upperExists)
                         {
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue, false));
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue, false));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                         }
                         else
                         {
                             // This will always fail for a TypedArray if lower < length
                             h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(lower, PropertyOperation_ThrowIfNotExtensible));
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue, false));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                         }
                     }
                     else
                     {
                         if (upperExists)
                         {
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue, false));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
                             // This will always fail for a TypedArray if upper < length
                             h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(upper, PropertyOperation_ThrowIfNotExtensible));
                         }
@@ -5231,18 +5231,11 @@ Case0:
             {
                 T upper = length - lower - 1;
 
-                lowerExists = JavascriptOperators::HasItem(obj, lower);
-                if (lowerExists)
-                {
-                    BOOL getResult = JavascriptOperators::GetItem(obj, lower, &lowerValue, scriptContext);
-                    Assert(getResult);
-                }
-                upperExists = JavascriptOperators::HasItem(obj, upper);
-                if (upperExists)
-                {
-                    BOOL getResult = JavascriptOperators::GetItem(obj, upper, &upperValue, scriptContext);
-                    Assert(getResult);
-                }
+                lowerExists = JavascriptOperators::HasItem(obj, lower) &&
+                              JavascriptOperators::GetItem(obj, lower, &lowerValue, scriptContext);
+
+                upperExists = JavascriptOperators::HasItem(obj, upper) &&
+                              JavascriptOperators::GetItem(obj, upper, &upperValue, scriptContext);
 
                 if (lowerExists)
                 {
@@ -5483,11 +5476,9 @@ Case0:
             uint32 lengthToUin32Max = length.IsSmallIndex() ? length.GetSmallIndex() : MaxArrayLength;
             for (uint32 i = 0u; i < lengthToUin32Max; i++)
             {
-                Var element;
                 if (JavascriptOperators::HasItem(dynamicObject, i + 1))
                 {
-                    BOOL getResult = JavascriptOperators::GetItem(dynamicObject, i + 1, &element, scriptContext);
-                    Assert(getResult);
+                    Var element = JavascriptOperators::GetItem(dynamicObject, i + 1, scriptContext);
                     h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(dynamicObject, dynamicObject, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible, /*skipPrototypeCheck*/ true));
                 }
                 else
@@ -5498,11 +5489,9 @@ Case0:
 
             for (uint64 i = MaxArrayLength; length > i; i++)
             {
-                Var element;
                 if (JavascriptOperators::HasItem(dynamicObject, i + 1))
                 {
-                    BOOL getResult = JavascriptOperators::GetItem(dynamicObject, i + 1, &element, scriptContext);
-                    Assert(getResult);
+                    Var element = JavascriptOperators::GetItem(dynamicObject, i + 1, scriptContext);
                     h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(dynamicObject, dynamicObject, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible));
                 }
                 else
@@ -5940,7 +5929,7 @@ Case0:
                 // The object we got back from the constructor might not be a TypedArray. In fact, it could be any object.
                 if (newTypedArray)
                 {
-                    newTypedArray->DirectSetItem(i, element, false);
+                    newTypedArray->DirectSetItem(i, element);
                 }
                 else if (newArr)
                 {
@@ -5954,23 +5943,19 @@ Case0:
         }
         else
         {
-            Var element;
-
             for (uint32 i = 0; i < newLen; i++)
             {
-                if (!JavascriptOperators::HasItem(obj, i+start))
+                if (JavascriptOperators::HasItem(obj, i + start))
                 {
-                    continue;
-                }
-                BOOL getResult = JavascriptOperators::GetItem(obj, i + start, &element, scriptContext);
-                Assert(getResult);
-                if (newArr != nullptr)
-                {
-                    newArr->DirectSetItemAt(i, element);
-                }
-                else
-                {
-                    JavascriptOperators::OP_SetElementI_UInt32(newObj, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible);
+                    Var element = JavascriptOperators::GetItem(obj, i + start, scriptContext);
+                    if (newArr != nullptr)
+                    {
+                        newArr->DirectSetItemAt(i, element);
+                    }
+                    else
+                    {
+                        JavascriptOperators::OP_SetElementI_UInt32(newObj, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible);
+                    }
                 }
             }
         }
@@ -7112,11 +7097,9 @@ Case0:
         {
             for (uint32 i = 0; i < deleteLen; i++)
             {
-               Var element;
                if (JavascriptOperators::HasItem(pObj, start+i))
                {
-                   BOOL getResult = JavascriptOperators::GetItem(pObj, start + i, &element, scriptContext);
-                   Assert(getResult);
+                   Var element = JavascriptOperators::GetItem(pObj, start + i, scriptContext);
                    if (pnewArr)
                    {
                        pnewArr->DirectSetItemAt(i, element);
@@ -7148,11 +7131,9 @@ Case0:
             uint32 j = 0;
             for (uint32 i = start + deleteLen; i < len; i++)
             {
-                Var element;
                 if (JavascriptOperators::HasItem(pObj, i))
                 {
-                    BOOL getResult = JavascriptOperators::GetItem(pObj, i, &element, scriptContext);
-                    Assert(getResult);
+                    Var element = JavascriptOperators::GetItem(pObj, i, scriptContext);
                     h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(pObj, pObj, start + insertLen + j, element, scriptContext, PropertyOperation_ThrowIfNotExtensible));
                 }
                 else
@@ -7240,11 +7221,9 @@ Case0:
                 uint64 i64 = end;
                 for (; i64 > UINT32_MAX; i64--)
                 {
-                    Var element;
                     if (JavascriptOperators::HasItem(obj, i64 - 1))
                     {
-                        BOOL getResult = JavascriptOperators::GetItem(obj, i64 - 1, &element, scriptContext);
-                        Assert(getResult);
+                        Var element = JavascriptOperators::GetItem(obj, i64 - 1, scriptContext);
                         h.ThrowTypeErrorOnFailure(index_trace::SetItem(obj, dst, element, PropertyOperation_ThrowIfNotExtensible));
                     }
                     else
@@ -7262,11 +7241,9 @@ Case0:
             }
             for (; i > start; i--)
             {
-                Var element;
                 if (JavascriptOperators::HasItem(obj, i-1))
                 {
-                    BOOL getResult = JavascriptOperators::GetItem(obj, i - 1, &element, scriptContext);
-                    Assert(getResult);
+                    Var element = JavascriptOperators::GetItem(obj, i - 1, scriptContext);
                     h.ThrowTypeErrorOnFailure(index_trace::SetItem(obj, dst, element, PropertyOperation_ThrowIfNotExtensible));
                 }
                 else
@@ -7564,7 +7541,7 @@ Case0:
     {
         uint32 lu, luDig;
 
-        long cch = (long)wcslen(propName);
+        int32 cch = (int32)wcslen(propName);
         char16* pch = const_cast<char16 *>(propName);
 
         lu = *pch - '0';
@@ -7798,10 +7775,10 @@ Case0:
         CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
-        Var undefined = scriptContext->GetLibrary()->GetUndefined();
 
         if (pArr)
         {
+            Var undefined = scriptContext->GetLibrary()->GetUndefined();
             for (uint32 k = 0; k < length; k++)
             {
                 element = undefined;
@@ -7843,8 +7820,7 @@ Case0:
         {
             for (uint32 k = 0; k < length; k++)
             {
-                element = undefined;
-                JavascriptOperators::GetItem(obj, k, &element, scriptContext);
+                element = JavascriptOperators::GetItem(obj, k, scriptContext);
                 Var index = JavascriptNumber::ToVar(k, scriptContext);
 
                 testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
@@ -7857,7 +7833,6 @@ Case0:
                     return findIndex ? index : element;
                 }
             }
-
         }
 
         return findIndex ? JavascriptNumber::ToVar(-1, scriptContext) : scriptContext->GetLibrary()->GetUndefined();
@@ -8146,21 +8121,19 @@ Case0:
             for (T k = 0; k < length; k++)
             {
                 // According to es6 spec, we need to call Has first before calling Get
-                if (!JavascriptOperators::HasItem(obj, k))
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    continue;
-                }
-                BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
-                Assert(getResult);
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
 
-                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
-                    element,
-                    JavascriptNumber::ToVar(k, scriptContext),
-                    obj);
+                    testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
+                        element,
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
 
-                if (!JavascriptConversion::ToBoolean(testResult, scriptContext))
-                {
-                    return scriptContext->GetLibrary()->GetFalse();
+                    if (!JavascriptConversion::ToBoolean(testResult, scriptContext))
+                    {
+                        return scriptContext->GetLibrary()->GetFalse();
+                    }
                 }
             }
 
@@ -8321,20 +8294,18 @@ Case0:
         {
             for (T k = 0; k < length; k++)
             {
-                if (!JavascriptOperators::HasItem(obj, k))
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    continue;
-                }
-                BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
-                Assert(getResult);
-                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
-                    element,
-                    JavascriptNumber::ToVar(k, scriptContext),
-                    obj);
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
+                    testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
+                        element,
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
 
-                if (JavascriptConversion::ToBoolean(testResult, scriptContext))
-                {
-                    return scriptContext->GetLibrary()->GetTrue();
+                    if (JavascriptConversion::ToBoolean(testResult, scriptContext))
+                    {
+                        return scriptContext->GetLibrary()->GetTrue();
+                    }
                 }
             }
         }
@@ -8598,7 +8569,7 @@ Case0:
                     {
                         Var val = typedArrayBase->DirectGetItem(fromIndex);
 
-                        typedArrayBase->DirectSetItem(toIndex, val, false);
+                        typedArrayBase->DirectSetItem(toIndex, val);
                     }
                     else if (pArr)
                     {
@@ -8710,7 +8681,7 @@ Case0:
             {
                 if (typedArrayBase)
                 {
-                    typedArrayBase->DirectSetItem(u32k, fillValue, false);
+                    typedArrayBase->DirectSetItem(u32k, fillValue);
                 }
                 else if (pArr)
                 {
@@ -8965,7 +8936,7 @@ Case0:
                 // the normal Set path.
                 if (newTypedArray)
                 {
-                    newTypedArray->DirectSetItem(k, mappedValue, false);
+                    newTypedArray->DirectSetItem(k, mappedValue);
                 }
                 else if (newArr)
                 {
@@ -8981,25 +8952,22 @@ Case0:
         {
             for (uint32 k = 0; k < length; k++)
             {
-                if (!JavascriptOperators::HasItem(obj, k))
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    continue;
-                }
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
+                    mappedValue = CALL_FUNCTION(callBackFn, callBackFnInfo, thisArg,
+                        element,
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
 
-                BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
-                Assert(getResult);
-                mappedValue = CALL_FUNCTION(callBackFn, callBackFnInfo, thisArg,
-                    element,
-                    JavascriptNumber::ToVar(k, scriptContext),
-                    obj);
-
-                if (newArr)
-                {
-                    newArr->DirectSetItemAt(k, mappedValue);
-                }
-                else
-                {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                    if (newArr)
+                    {
+                        newArr->DirectSetItemAt(k, mappedValue);
+                    }
+                    else
+                    {
+                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                    }
                 }
             }
         }
@@ -9030,13 +8998,9 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.filter"));
         }
 
-        RecyclableObject* newObj = nullptr;
-        JavascriptArray* newArr = nullptr;
         BigIndex length;
         JavascriptArray* pArr = nullptr;
         RecyclableObject* dynamicObject = nullptr;
-        RecyclableObject* callBackFn = nullptr;
-        Var thisArg = nullptr;
 
         if (JavascriptArray::Is(args[0]) && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject())
         {
@@ -9070,11 +9034,23 @@ Case0:
             length = pArr->length;
         }
 
+        if (length.IsSmallIndex())
+        {
+            return JavascriptArray::FilterHelper(pArr, dynamicObject, length.GetSmallIndex(), args, scriptContext);
+        }
+        return JavascriptArray::FilterHelper(pArr, dynamicObject, length.GetBigIndex(), args, scriptContext);
+    }
+
+    template <typename T>
+    Var JavascriptArray::FilterHelper(JavascriptArray* pArr, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
+    {
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.filter"));
         }
-        callBackFn = RecyclableObject::FromVar(args[1]);
+
+        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        Var thisArg = nullptr;
 
         if (args.Info.Count > 2)
         {
@@ -9086,7 +9062,8 @@ Case0:
         }
 
         // If the source object is an Array exotic object we should try to load the constructor property and use it to construct the return object.
-        newObj = ArraySpeciesCreate(dynamicObject, 0, scriptContext);
+        RecyclableObject* newObj = ArraySpeciesCreate(obj, 0, scriptContext);
+        JavascriptArray* newArr = nullptr;
 
         if (newObj == nullptr)
         {
@@ -9103,28 +9080,26 @@ Case0:
             }
         }
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var selected = nullptr;
-        BigIndex i = 0u;
 
         if (pArr)
         {
-            uint32 arrayLength = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
+            Assert(length <= MaxArrayLength);
+            uint32 i = 0;
 
-            // If source was an array object, the return object might be any random object
-            for (uint32 k = 0; k < arrayLength; k++)
+            for (uint32 k = 0; k < length; k++)
             {
                 if (!pArr->DirectGetItemAtFull(k, &element))
                 {
                     continue;
                 }
 
-                selected = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
-                                                                element,
-                                                                JavascriptNumber::ToVar(k, scriptContext),
-                                                                pArr);
+                selected = CALL_ENTRYPOINT(callBackFn->GetEntryPoint(), callBackFn, CallInfo(CallFlags_Value, 4),
+                    thisArg,
+                    element,
+                    JavascriptNumber::ToVar(k, scriptContext),
+                    pArr);
 
                 if (JavascriptConversion::ToBoolean(selected, scriptContext))
                 {
@@ -9135,7 +9110,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), i, element);
+                        JavascriptArray::SetArrayLikeObjects(newObj, i, element);
                     }
                     ++i;
                 }
@@ -9143,30 +9118,31 @@ Case0:
         }
         else
         {
-            for (BigIndex k = 0u; k < length; ++k)
-            {
-                if (!JavascriptOperators::HasItem(dynamicObject, k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex()))
-                {
-                    continue;
-                }
-                BOOL getResult = JavascriptOperators::GetItem(dynamicObject, k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex(), &element, scriptContext);
-                Assert(getResult);
-                selected = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
-                                                                element,
-                                                                JavascriptNumber::ToVar(k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex(), scriptContext),
-                                                                dynamicObject);
+            BigIndex i = 0u;
 
-                if (JavascriptConversion::ToBoolean(selected, scriptContext))
+            for (T k = 0; k < length; k++)
+            {
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    if (newArr)
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
+                    selected = CALL_ENTRYPOINT(callBackFn->GetEntryPoint(), callBackFn, CallInfo(CallFlags_Value, 4),
+                        thisArg,
+                        element,
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
+
+                    if (JavascriptConversion::ToBoolean(selected, scriptContext))
                     {
-                        newArr->DirectSetItemAt(i, element);
+                        if (newArr)
+                        {
+                            newArr->DirectSetItemAt(i, element);
+                        }
+                        else
+                        {
+                            JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                        }
+                        ++i;
                     }
-                    else
-                    {
-                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), i, element);
-                    }
-                    ++i;
                 }
             }
         }
@@ -9219,7 +9195,6 @@ Case0:
             if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
             {
                 length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-
             }
             else
             {
@@ -9307,14 +9282,11 @@ Case0:
             {
                 for (; k < length && bPresent == false; k++)
                 {
-                    if (!JavascriptOperators::HasItem(obj, k))
+                    if (JavascriptOperators::HasItem(obj, k))
                     {
-                        continue;
+                        accumulator = JavascriptOperators::GetItem(obj, k, scriptContext);
+                        bPresent = true;
                     }
-
-                    BOOL getResult = JavascriptOperators::GetItem(obj, k, &accumulator, scriptContext);
-                    Assert(getResult);
-                    bPresent = true;
                 }
             }
 
@@ -9369,18 +9341,16 @@ Case0:
         {
             for (; k < length; k++)
             {
-                if (!JavascriptOperators::HasItem(obj, k))
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    continue;
-                }
-                BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
-                Assert(getResult);
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
 
-                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
-                    accumulator,
-                    element,
-                    JavascriptNumber::ToVar(k, scriptContext),
-                    obj);
+                    accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
+                        accumulator,
+                        element,
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
+                }
             }
         }
 
@@ -9519,13 +9489,11 @@ Case0:
                 for (; k < length && bPresent == false; k++)
                 {
                     index = length - k - 1;
-                    if (!JavascriptOperators::HasItem(obj, index))
+                    if (JavascriptOperators::HasItem(obj, index))
                     {
-                        continue;
+                        accumulator = JavascriptOperators::GetItem(obj, index, scriptContext);
+                        bPresent = true;
                     }
-                    BOOL getResult = JavascriptOperators::GetItem(obj, index, &accumulator, scriptContext);
-                    Assert(getResult);
-                    bPresent = true;
                 }
             }
             if (bPresent == false)
@@ -9581,18 +9549,15 @@ Case0:
             for (; k < length; k++)
             {
                 index = length - k - 1;
-                if (!JavascriptOperators::HasItem(obj, index))
+                if (JavascriptOperators::HasItem(obj, index))
                 {
-                    continue;
+                    element = JavascriptOperators::GetItem(obj, index, scriptContext);
+                    accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
+                        accumulator,
+                        element,
+                        JavascriptNumber::ToVar(index, scriptContext),
+                        obj);
                 }
-
-                BOOL getResult = JavascriptOperators::GetItem(obj, index, &element, scriptContext);
-                Assert(getResult);
-                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
-                    accumulator,
-                    element,
-                    JavascriptNumber::ToVar(index, scriptContext),
-                    obj);
             }
         }
 
@@ -9870,7 +9835,7 @@ Case0:
             {
                 Var kValue = args[k + 1];
 
-                newTypedArray->DirectSetItem(k, kValue, false);
+                newTypedArray->DirectSetItem(k, kValue);
             }
         }
         else
@@ -12088,14 +12053,26 @@ Case0:
 
         if (this->length < 10)
         {
-            BEGIN_JS_RUNTIME_CALL(requestContext);
+            auto funcPtr = [&]()
             {
                 ENTER_PINNED_SCOPE(JavascriptString, valueStr);
                 valueStr = JavascriptArray::JoinHelper(this, GetLibrary()->GetCommaDisplayString(), requestContext);
                 stringBuilder->Append(valueStr->GetString(), valueStr->GetLength());
                 LEAVE_PINNED_SCOPE();
+            };
+
+            if (!requestContext->GetThreadContext()->IsScriptActive())
+            {
+                BEGIN_JS_RUNTIME_CALL(requestContext);
+                {
+                    funcPtr();
+                }
+                END_JS_RUNTIME_CALL(requestContext);
             }
-            END_JS_RUNTIME_CALL(requestContext);
+            else
+            {
+                funcPtr();
+            }
         }
         else
         {

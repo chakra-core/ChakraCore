@@ -117,15 +117,9 @@ DefaultRecyclerCollectionWrapper::DisposeObjects(Recycler * recycler)
 
 static void* GetStackBase();
 
-#ifdef _MSC_VER
-template __forceinline char * Recycler::AllocWithAttributesInlined<NoBit, false>(size_t size);
-template __forceinline char* Recycler::RealAlloc<NoBit, false>(HeapInfo* heap, size_t size);
-template __forceinline _Ret_notnull_ void * __cdecl operator new<Recycler>(size_t byteSize, Recycler * alloc, char * (Recycler::*AllocFunc)(size_t));
-#else
-template __attribute__((always_inline)) char * Recycler::AllocWithAttributesInlined<NoBit, false>(size_t size);
-template __attribute__((always_inline)) char* Recycler::RealAlloc<NoBit, false>(HeapInfo* heap, size_t size);
-template __attribute__((always_inline)) void * __cdecl operator new<Recycler>(size_t byteSize, Recycler * alloc, char * (Recycler::*AllocFunc)(size_t));
-#endif
+template _ALWAYSINLINE char * Recycler::AllocWithAttributesInlined<NoBit, false>(size_t size);
+template _ALWAYSINLINE char* Recycler::RealAlloc<NoBit, false>(HeapInfo* heap, size_t size);
+template _ALWAYSINLINE _Ret_notnull_ void * __cdecl operator new<Recycler>(size_t byteSize, Recycler * alloc, char * (Recycler::*AllocFunc)(size_t));
 
 Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllocator * pageAllocator, void (*outOfMemoryFunc)(), Js::ConfigFlagsTable& configFlagsTable) :
     collectionState(CollectionStateNotCollecting),
@@ -1101,14 +1095,10 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 
 #if DBG || defined(RECYCLER_MEMORY_VERIFY) || defined(RECYCLER_PAGE_HEAP)
 
-    // xplat-todo: reenable this Assert once GetThreadId is implemented on
-    // non-Win32 platforms
-#ifdef _WIN32
     // Either the mainThreadHandle is null (we're not thread bound)
     // or we should be calling this function on the main script thread
     Assert(this->mainThreadHandle == NULL ||
         ::GetCurrentThreadId() == ::GetThreadId(this->mainThreadHandle));
-#endif
 
     HeapBlock* heapBlock = this->FindHeapBlock(buffer);
 
@@ -5276,6 +5266,8 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 
 #ifdef PROFILE_EXEC
     Js::Phase concurrentPhase = Js::ConcurrentCollectPhase;
+    // TODO: Remove this workaround for unreferenced local after enabled -profile for GC
+    static_cast<Js::Phase>(concurrentPhase);
 #endif
 #if ENABLE_PARTIAL_GC
     RECYCLER_PROFILE_EXEC_BEGIN2(this, Js::RecyclerPhase,
@@ -5666,8 +5658,8 @@ Recycler::ThreadProc()
 #ifdef ENABLE_JS_ETW
     // Create an ETW ActivityId for this thread, to help tools correlate ETW events we generate
     GUID activityId = { 0 };
-    auto result = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
-    Assert(result == ERROR_SUCCESS);
+    auto eventActivityIdControlResult = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
+    Assert(eventActivityIdControlResult == ERROR_SUCCESS);
 #endif
 
     // Signal that the thread has started
@@ -6204,8 +6196,8 @@ RecyclerParallelThread::StaticThreadProc(LPVOID lpParameter)
 #ifdef ENABLE_JS_ETW
         // Create an ETW ActivityId for this thread, to help tools correlate ETW events we generate
         GUID activityId = { 0 };
-        auto result = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
-        Assert(result == ERROR_SUCCESS);
+        auto eventActivityIdControlResult = EventActivityIdControl(EVENT_ACTIVITY_CTRL_CREATE_SET_ID, &activityId);
+        Assert(eventActivityIdControlResult == ERROR_SUCCESS);
 #endif
 
         // If this thread is created on demand we already have work to process and do not need to wait

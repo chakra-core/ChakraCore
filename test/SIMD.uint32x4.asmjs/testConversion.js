@@ -188,7 +188,6 @@ var m = asmModule(this, {g1:SIMD.Uint32x4(0x55, 0x55, 0x55, 0x55), g2:SIMD.Int32
 // printSimdBaseline(m.func7(SIMD.Float32x4(0.5,1.4,2.4,5.5)), "SIMD.Uint32x4", "m.func7()", "Func7");
 // printSimdBaseline(m.func8(), "SIMD.Uint32x4", "m.func8()", "Func8"); 
 
-
 var ret1 = SIMD.Uint32x4.fromInt32x4Bits(m.func1());
 var ret2 = SIMD.Uint32x4.fromInt32x4Bits(m.func2());
 var ret3 = SIMD.Uint32x4.fromInt32x4Bits(m.func3());
@@ -204,9 +203,16 @@ equalSimd([1, 2, 3, 4], ret3, SIMD.Uint32x4, "Func3")
 equalSimd([0, 0, 0, 0], ret4, SIMD.Uint32x4, "Func4")
 equalSimd([2863311530, 2863311530, 2863311530, 2863311530], ret5, SIMD.Uint32x4, "Func5")
 equalSimd([1431655765, 1431655765, 1431655765, 1431655765], ret6, SIMD.Uint32x4, "Func6")
-equalSimd([0, 1, 2, 5], ret7, SIMD.Uint32x4, "Func7")
-equalSimd([11141290, 11141290, 11141290, 11141290], ret8, SIMD.Uint32x4, "Func8")
 
+equalSimd([0, 1, 2, 5], ret7, SIMD.Uint32x4, "Func7")
+ret7 = SIMD.Uint32x4.fromInt32x4Bits(m.func7(SIMD.Float32x4(0.5,0.0,-.5,-.6)));
+equalSimd([0, 0, 0, 0], ret7, SIMD.Uint32x4, "Func7")
+ret7 = SIMD.Uint32x4.fromInt32x4Bits(m.func7(SIMD.Float32x4(-0.5, 1.0, -0.0, -0.0)));
+equalSimd([0, 1, 0, 0], ret7, SIMD.Uint32x4, "Func7");
+ret7 = SIMD.Uint32x4.fromInt32x4Bits(m.func7(SIMD.Float32x4(0.5,0.0,-.5,-.999)));
+equalSimd([0, 0, 0, 0], ret7, SIMD.Uint32x4, "Func7")
+
+equalSimd([11141290, 11141290, 11141290, 11141290], ret8, SIMD.Uint32x4, "Func8")
 
 // passing:
 
@@ -218,7 +224,6 @@ var ret7 = SIMD.Uint32x4.fromInt32x4Bits(m.func7(SIMD.Float32x4(0.5,1.4,2.4,5.5)
 var ret8 = SIMD.Uint32x4.fromInt32x4Bits(m.func7(SIMD.Float32x4(0.5,0x80000000,0x100000000 - 0x81 /*2^32 - (2^7 + 1) rounded to 2^32 - 2^8*/ ,0)));
 var ret9 = SIMD.Uint32x4.fromInt32x4Bits(m.func7(SIMD.Float32x4(-0.0, -0.0, -0.0, -0.0)));
 
-
 equalSimd([0, 1, 2, 5], ret7, SIMD.Uint32x4, "Func7_1")
 equalSimd([0, 2147483648, 4294967040, 0], ret8, SIMD.Uint32x4, "Func7_2")
 equalSimd([0, 0, 0, 0], ret9, SIMD.Uint32x4, "Func7_3")
@@ -226,20 +231,44 @@ equalSimd([0, 0, 0, 0], ret9, SIMD.Uint32x4, "Func7_3")
 // throwing
 try 
 {
+    m.func7(SIMD.Float32x4(-0.0, -NaN, -0.0, -0.0));
+    print("ERROR Func17_4");
+} catch (e)
+{
+    // PASS
+}
+try 
+{
+    m.func7(SIMD.Float32x4(-0.0, Infinity, -0.0, -0.0));
+    print("ERROR Func17_4");
+} catch (e)
+{
+    // PASS
+}
+try 
+{
+    m.func7(SIMD.Float32x4(-0.0, -Infinity, -0.0, -0.0));
+    print("ERROR Func17_4");
+} catch (e)
+{
+    // PASS
+}
+try 
+{
     m.func7(SIMD.Float32x4(-0.0, NaN, -0.0, -0.0));
     print("ERROR Func17_4");
 } catch (e)
 {
-        // PASS
+    // PASS
 }
 
 try 
 {
-    m.func7(SIMD.Float32x4(-0.5, 1.0, -0.0, -0.0));
+    m.func7(SIMD.Float32x4(-1,0.0,-.5,-.999));
     print("ERROR Func17_5");
 } catch (e)
 {
-        // PASS
+    // PASS
 }
 
 try 
@@ -248,7 +277,7 @@ try
     print("ERROR Func17_6");
 } catch (e)
 {
-        // PASS
+    // PASS
 }
 
 try 
@@ -257,10 +286,8 @@ try
     print("ERROR Func17_8");
 } catch (e)
 {
-        // PASS
+    // PASS
 }
-
-
 
 var ret = SIMD.Uint32x4.fromInt32x4Bits(m.func8());
 equalSimd([11141290, 11141290, 11141290, 11141290], ret, SIMD.Uint32x4, "Func8")

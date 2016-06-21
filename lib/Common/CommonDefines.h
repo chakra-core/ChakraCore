@@ -12,11 +12,11 @@
 //----------------------------------------------------------------------------------------------------
 #define CHAKRA_CORE_MAJOR_VERSION 1
 #define CHAKRA_CORE_MINOR_VERSION 2
-#define CHAKRA_CORE_VERSION_RELEASE 0
+#define CHAKRA_CORE_VERSION_RELEASE 1
 #define CHAKRA_CORE_VERSION_PRERELEASE 1
 #define CHAKRA_CORE_VERSION_RELEASE_QFE 0
 
-#define CHAKRA_VERSION_RELEASE 0
+#define CHAKRA_VERSION_RELEASE 1
 
 // NOTE: need to update the GUID in ByteCodeCacheReleaseFileVersion.h as well
 
@@ -120,8 +120,10 @@
 #define ENABLE_SCRIPT_DEBUGGING
 // dep: IActiveScriptProfilerCallback, IActiveScriptProfilerHeapEnum
 #define ENABLE_SCRIPT_PROFILING
+#ifndef __clang__
 // xplat-todo: change DISABLE_SEH to ENABLE_SEH and move here
 #define ENABLE_SIMDJS
+#endif
 
 #define ENABLE_CUSTOM_ENTROPY
 #endif

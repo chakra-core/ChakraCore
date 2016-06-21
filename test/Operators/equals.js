@@ -3,7 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-function write(v) { WScript.Echo(v + ""); }
+function write(v) {
+    v = v.replace(/\(PDT\)/g, "(Pacific Daylight Time)")
+         .replace(/\(PST\)/g, "(Pacific Standard Time)");
+    WScript.Echo(v + "");
+}
 
 function foo() {}
 
@@ -58,4 +62,3 @@ for (var i=0; i<all.length; ++i) {
         write("a["+i+"]("+all[i]+") != a["+j+"]("+all[j]+") : " + (all[i] != all[j]));
     }
 }
-

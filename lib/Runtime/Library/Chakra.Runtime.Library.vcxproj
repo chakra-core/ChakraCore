@@ -26,17 +26,20 @@
     <ClCompile>
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory)..;
+        $(MSBuildThisFileDirectory)..\..\Backend;
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
-        $(MSBuildThisFileDirectory)..\..\Backend;
         $(MSBuildThisFileDirectory)..\Math;
         $(ChakraManifestsIncludeDirectory);
         $(ManifestsInboxIncludeDirectory);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <!-- For mscorlib.tlb used in JavascriptErrorDebug.cpp -->
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SdkLibPath)\clr45</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+        %(AdditionalIncludeDirectories);
+        $(SdkLibPath)\clr45
+      </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>RuntimeLibraryPch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -66,7 +69,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool16x8Lib.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool8x16.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16Lib.cpp" />
-
     <ClCompile Include="$(MSBuildThisFileDirectory)ArrayBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BoundFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BufferStringBuilder.cpp" />
@@ -152,7 +154,6 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)SubString.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UriHelper.cpp" />
-
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptErrorDebug.cpp" />
@@ -177,7 +178,6 @@
     <ClInclude Include="JavascriptSimdBool32x4.h" />
     <ClInclude Include="JavascriptSimdBool16x8.h" />
     <ClInclude Include="JavascriptSimdBool8x16.h" />
-
     <ClInclude Include="SimdFloat32x4Lib.h" />
     <ClInclude Include="SimdFloat64x2Lib.h" />
     <ClInclude Include="SimdInt32x4Lib.h" />
@@ -189,7 +189,6 @@
     <ClInclude Include="SimdBool32x4Lib.h" />
     <ClInclude Include="SimdBool16x8Lib.h" />
     <ClInclude Include="SimdBool8x16Lib.h" />
-
     <ClInclude Include="ArrayBuffer.h" />
     <ClInclude Include="BoundFunction.h" />
     <ClInclude Include="BufferStringBuilder.h" />

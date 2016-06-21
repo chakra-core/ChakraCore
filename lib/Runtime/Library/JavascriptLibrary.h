@@ -415,6 +415,15 @@ namespace Js
         PromiseContinuationCallback nativeHostPromiseContinuationFunction;
         void *nativeHostPromiseContinuationFunctionState;
 
+        typedef SList<Js::FunctionProxy*, Recycler> FunctionReferenceList;
+
+        void * bindRefChunkBegin;
+        void ** bindRefChunkCurrent;
+        void ** bindRefChunkEnd;
+        TypePath* rootPath;         // this should be in library instead of ScriptContext::Cache
+        void* scriptContextCache;   // forward declaration for point to ScriptContext::Cache such that we don't need to hard pin it.
+        FunctionReferenceList* dynamicFunctionReference;
+        uint dynamicFunctionReferenceDepth;
         FinalizableObject* jsrtContextObject;
 
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<RecyclableObject>*, Recycler, PowerOf2SizePolicy, RecyclerWeakReference<RecyclableObject>*, StringTemplateCallsiteObjectComparer> StringTemplateCallsiteObjectList;
@@ -462,18 +471,6 @@ namespace Js
         template <size_t N>
         JavascriptFunction * AddFunctionToLibraryObjectWithPropertyName(DynamicObject* object, const char16(&propertyName)[N], FunctionInfo * functionInfo, int length);
 
-        bool isHybridDebugging; // If this library is in hybrid debugging mode
-        bool isLibraryReadyForHybridDebugging; // If this library is ready for hybrid debugging (library objects using deferred type handler have been un-deferred)
-
-        bool IsHybridDebugging() const { return isHybridDebugging; }
-        void EnsureLibraryReadyForHybridDebugging();
-        DynamicObject* EnsureReadyIfHybridDebugging(DynamicObject* obj);
-        template <class T> T* EnsureReadyIfHybridDebugging(T* obj)
-        {
-            DynamicObject * dynamicObject = obj;
-            return (T*)EnsureReadyIfHybridDebugging(dynamicObject);
-        }
-
         static SimpleTypeHandler<1> SharedPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedFunctionWithoutPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedFunctionWithPrototypeTypeHandlerV11;
@@ -508,16 +505,20 @@ namespace Js
                               identityFunction(nullptr),
                               throwerFunction(nullptr),
                               jsrtContextObject(nullptr),
+                              scriptContextCache(nullptr),
                               externalLibraryList(nullptr),
                               cachedForInEnumerator(nullptr),
 #if ENABLE_COPYONACCESS_ARRAY
                               cacheForCopyOnAccessArraySegments(nullptr),
 #endif
-                              isHybridDebugging(false),
-                              isLibraryReadyForHybridDebugging(false),
                               referencedPropertyRecords(nullptr),
                               stringTemplateCallsiteObjectList(nullptr),
-                              moduleRecordList(nullptr)
+                              moduleRecordList(nullptr),
+                              rootPath(nullptr),
+                              bindRefChunkBegin(nullptr),
+                              bindRefChunkCurrent(nullptr),
+                              bindRefChunkEnd(nullptr),
+                              dynamicFunctionReference(nullptr)
         {
             globalObject = globalObject;
         }
@@ -762,6 +763,13 @@ namespace Js
         int GetRegexGlobalGetterSlotIndex() const { return regexGlobalGetterSlotIndex;  }
         int GetRegexStickyGetterSlotIndex() const { return regexStickyGetterSlotIndex;  }
         int GetRegexUnicodeGetterSlotIndex() const { return regexUnicodeGetterSlotIndex;  }
+
+        TypePath* GetRootPath() const { return rootPath; }
+        void BindReference(void * addr);
+        void CleanupForClose();
+        void BeginDynamicFunctionReferences();
+        void EndDynamicFunctionReferences();
+        void RegisterDynamicFunctionReference(FunctionProxy* func);
 
         void SetDebugObjectNonUserAccessor(FunctionInfo *funcGetter, FunctionInfo *funcSetter);
 
@@ -1043,8 +1051,6 @@ namespace Js
         void NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
 
         static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
-
-        HRESULT EnsureReadyIfHybridDebugging(bool isScriptEngineReady = true);
 
         CharStringCache& GetCharStringCache() { return charStringCache;  }
         static JavascriptLibrary * FromCharStringCache(CharStringCache * cache)

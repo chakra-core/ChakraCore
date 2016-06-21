@@ -112,14 +112,14 @@ LError:
 }
 
 
-BOOL FGetResourceString(long isz, __out_ecount(cchMax) OLECHAR *psz, int cchMax)
+BOOL FGetResourceString(int32 isz, __out_ecount(cchMax) OLECHAR *psz, int cchMax)
 {
     return FGetStringFromLibrary((HINSTANCE)g_hInstance, isz, psz, cchMax);
 }
 
 // Get a bstr version of the error string
-__declspec(noinline) // Don't inline. This function needs 2KB stack.
-BSTR BstrGetResourceString(long isz)
+_NOINLINE // Don't inline. This function needs 2KB stack.
+BSTR BstrGetResourceString(int32 isz)
 {
     // NOTE - isz is expected to be HRESULT
 
@@ -136,7 +136,7 @@ BSTR BstrGetResourceString(long isz)
 
     UINT id = (WORD)isz;
     const char16* szT = LoadResourceStr(id);
-    if (!szT)
+    if (!szT || !szT[0])
     {
         return NULL;
     }

@@ -123,10 +123,10 @@ SmallHeapBlockAllocator<TBlockType>::Clear()
 
         while (freeObject)
         {
-            HeapBlock* heapBlock = this->bucket->GetRecycler()->FindHeapBlock((void*) freeObject);
-            Assert(heapBlock != nullptr);
-            Assert(!heapBlock->IsLargeHeapBlock());
-            TBlockType* smallBlock = (TBlockType*)heapBlock;
+            HeapBlock* heapBlockVerify = this->bucket->GetRecycler()->FindHeapBlock((void*) freeObject);
+            Assert(heapBlockVerify != nullptr);
+            Assert(!heapBlockVerify->IsLargeHeapBlock());
+            TBlockType* smallBlock = (TBlockType*)heapBlockVerify;
 
             smallBlock->ClearExplicitFreeBitForObject((void*) freeObject);
             freeObject = freeObject->GetNext();
@@ -256,9 +256,5 @@ namespace Memory
 {
     EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(SmallHeapBlockAllocator)
 
-#ifdef _MSC_VER
-    template __forceinline char* SmallHeapBlockAllocator<SmallNormalHeapBlock>::InlinedAllocImpl</*canFaultInject*/true>(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
-#else
-    template __attribute__((always_inline)) char* SmallHeapBlockAllocator<SmallNormalHeapBlock>::InlinedAllocImpl</*canFaultInject*/true>(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
-#endif
+    template _ALWAYSINLINE char* SmallHeapBlockAllocator<SmallNormalHeapBlock>::InlinedAllocImpl</*canFaultInject*/true>(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
 }

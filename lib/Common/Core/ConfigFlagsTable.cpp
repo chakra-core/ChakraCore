@@ -6,8 +6,6 @@
 #include "Memory/PageHeapBlockTypeFilter.h"
 
 #include <initguid.h>
-// {17DC713D-8B3E-4434-9DC8-90C275C75194}
-DEFINE_GUID(HybridDebuggingGuid, 0x17dc713d, 0x8b3e, 0x4434, 0x9d, 0xc8, 0x90, 0xc2, 0x75, 0xc7, 0x51, 0x94);
 
 #undef DebugBreak
 
@@ -573,18 +571,20 @@ namespace Js
                 VerifyExecutionModeLimits();
             }
 
-            if(IsEnabled(SimpleJitAfterFlag))
+            if (IsEnabled(SimpleJitAfterFlag))
             {
                 Enable(AutoProfilingInterpreter0LimitFlag);
                 Enable(ProfilingInterpreter0LimitFlag);
                 Enable(AutoProfilingInterpreter1LimitFlag);
                 Enable(EnforceExecutionModeLimitsFlag);
 
-                Js::Number iterationsNeeded = SimpleJitAfter;
-                ProfilingInterpreter0Limit = min(ProfilingInterpreter0Limit, iterationsNeeded);
-                iterationsNeeded -= ProfilingInterpreter0Limit;
-                AutoProfilingInterpreter0Limit = iterationsNeeded;
-                AutoProfilingInterpreter1Limit = 0;
+                {
+                    Js::Number iterationsNeeded = SimpleJitAfter;
+                    ProfilingInterpreter0Limit = min(ProfilingInterpreter0Limit, iterationsNeeded);
+                    iterationsNeeded -= ProfilingInterpreter0Limit;
+                    AutoProfilingInterpreter0Limit = iterationsNeeded;
+                    AutoProfilingInterpreter1Limit = 0;
+                }
 
                 if(IsEnabled(FullJitAfterFlag))
                 {
@@ -1168,27 +1168,14 @@ namespace Js
     // Configuration options
     //
 
-    Configuration::Configuration() : isHybridDebugging(false)
+    Configuration::Configuration()
     {
-        if(IsDebuggerPresent())
-        {
-            if(IsEqualGUID(hybridDebuggingGuid, HybridDebuggingGuid))
-            {
-                isHybridDebugging = true;
-            }
-        }
     }
 
     bool Configuration::EnableJitInDebugMode()
     {
-        return (!IsHybridDebugging() || CONFIG_FLAG(EnableJitInHybridDebugging)) && CONFIG_FLAG(EnableJitInDiagMode);
+        return CONFIG_FLAG(EnableJitInDiagMode);
     }
-
-    bool Configuration::IsHybridDebugging()
-    {
-        return isHybridDebugging;
-    }
-
 
     Configuration        Configuration::Global;
 

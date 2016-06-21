@@ -57,7 +57,7 @@ void (*InitializeAdditionalProperties)(ThreadContext *threadContext) = DefaultIn
 // To make sure the marker function doesn't get inlined, optimized away, or merged with other functions we disable optimization.
 // If this method ends up causing a perf problem in the future, we should replace it with asm versions which should be lighter.
 #pragma optimize("g", off)
-__declspec(noinline) extern "C" void* MarkerForExternalDebugStep()
+_NOINLINE extern "C" void* MarkerForExternalDebugStep()
 {
     // We need to return something here to prevent this function from being merged with other empty functions by the linker.
     static int __dummy;
@@ -88,7 +88,8 @@ ThreadContext::RecyclableData::RecyclableData(Recycler *const recycler) :
     typesWithProtoPropertyCache(recycler),
     propertyGuards(recycler, 128),
     oldEntryPointInfo(nullptr),
-    returnedValueList(nullptr)
+    returnedValueList(nullptr),
+    constructorCacheInvalidationCount(0)
 {
 }
 
@@ -210,8 +211,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     this->bailOutRegisterSaveSpace = AnewArrayZ(this->GetThreadAlloc(), Js::Var, GetBailOutRegisterSaveSlotCount());
 #endif
 
-    // SIMD_JS
-#if ENABLE_NATIVE_CODEGEN
+#if defined(ENABLE_SIMDJS) && ENABLE_NATIVE_CODEGEN
     simdFuncInfoToOpcodeMap = Anew(this->GetThreadAlloc(), FuncInfoToOpcodeMap, this->GetThreadAlloc());
     simdOpcodeToSignatureMap = AnewArrayZ(this->GetThreadAlloc(), SimdFuncSignature, Js::Simd128OpcodeCount());
     {
@@ -222,7 +222,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 
 #include "ByteCode/OpCodesSimd.h"
     }
-#endif
+#endif // defined(ENABLE_SIMDJS) && ENABLE_NATIVE_CODEGEN
 
 #if DBG_DUMP
     scriptSiteCount = 0;
@@ -552,7 +552,7 @@ void ThreadContext::ValidateThreadContext()
 #endif
 }
 
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
 void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
 {
     Assert(simdFuncInfoToOpcodeMap != nullptr);
@@ -581,7 +581,7 @@ void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
         simdFuncSignature.args[iArg] = va_arg(arguments, ValueType);
     }
 
-    simdOpcodeToSignatureMap[Js::SimdOpcodeAsIndex(op)] = simdFuncSignature;
+    simdOpcodeToSignatureMap[Js::SIMDUtils::SimdOpcodeAsIndex(op)] = simdFuncSignature;
 
     va_end(arguments);
 }
@@ -630,8 +630,7 @@ Js::OpCode ThreadContext::GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo)
 void ThreadContext::GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature)
 {
     Assert(simdOpcodeToSignatureMap != nullptr);
-    funcSignature = simdOpcodeToSignatureMap[SimdOpcodeAsIndex(op)];
-
+    funcSignature = simdOpcodeToSignatureMap[Js::SIMDUtils::SimdOpcodeAsIndex(op)];
 }
 #endif
 
@@ -1432,11 +1431,7 @@ ThreadContext::IsOnStack(void const *ptr)
     bool isOnStack = (void*)lowLimit <= ptr && ptr < (void*)highLimit;
     return isOnStack;
 #elif !defined(_MSC_VER)
-    ULONG_PTR lowLimit = 0;
-    ULONG_PTR highLimit = 0;
-    ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
-    bool isOnStack = (void*)lowLimit <= ptr && ptr < (void*)highLimit;
-    return isOnStack;
+    return ::IsAddressOnStack((ULONG_PTR) ptr);
 #else
     AssertMsg(FALSE, "IsOnStack -- not implemented yet case");
     Js::Throw::NotImplemented();
@@ -1460,7 +1455,7 @@ ThreadContext::SetStackLimitForCurrentThread(PBYTE limit)
     this->stackLimitForCurrentThread = limit;
 }
 
-__declspec(noinline) //Win8 947081: might use wrong _AddressOfReturnAddress() if this and caller are inlined
+_NOINLINE //Win8 947081: might use wrong _AddressOfReturnAddress() if this and caller are inlined
 bool
 ThreadContext::IsStackAvailable(size_t size)
 {
@@ -1496,7 +1491,7 @@ ThreadContext::IsStackAvailable(size_t size)
     return false;
 }
 
-__declspec(noinline) //Win8 947081: might use wrong _AddressOfReturnAddress() if this and caller are inlined
+_NOINLINE //Win8 947081: might use wrong _AddressOfReturnAddress() if this and caller are inlined
 bool
 ThreadContext::IsStackAvailableNoThrow(size_t size)
 {
@@ -1882,6 +1877,12 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
         Assert(lastRecord->leaveForHost || lastRecord->leaveForAsyncHostOperation);
         lastRecord->hasReentered = true;
         record->next = lastRecord;
+
+        // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+        if (!IsOnStack(lastRecord) || (uintptr_t)record >= (uintptr_t)lastRecord)
+        {
+            EntryExitRecord_Corrupted_fatal_error();
+        }
     }
 
     this->entryExitRecord = record;
@@ -1891,7 +1892,14 @@ void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
 {
     AssertMsg(record && record == this->entryExitRecord, "Mismatch script entry/exit");
 
-    this->entryExitRecord = this->entryExitRecord->next;
+    // these are on stack, which grows down. if this condition doesn't hold, then the list somehow got messed up
+    Js::ScriptEntryExitRecord * next = this->entryExitRecord->next;
+    if (next && (!IsOnStack(next) || (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
+    {
+        EntryExitRecord_Corrupted_fatal_error();
+    }
+
+    this->entryExitRecord = next;
 }
 
 BOOL ThreadContext::ReserveStaticTypeIds(__in int first, __in int last)
@@ -1961,7 +1969,7 @@ void ThreadContext::ReleaseDebugManager()
     Assert(crefSContextForDiag > 0);
     Assert(this->debugManager != nullptr);
 
-    long lref = InterlockedDecrement(&crefSContextForDiag);
+    LONG lref = InterlockedDecrement(&crefSContextForDiag);
 
     if (lref == 0)
     {
@@ -2525,6 +2533,39 @@ ThreadContext::ClearInlineCachesWithDeadWeakRefs()
 }
 
 void
+ThreadContext::ClearInvalidatedUniqueGuards()
+{
+    // If a propertyGuard was invalidated, make sure to remove it's entry from unique property guard table of other property records.
+    PropertyGuardDictionary &guards = this->recyclableData->propertyGuards;
+
+    guards.Map([this](Js::PropertyRecord const * propertyRecord, PropertyGuardEntry* entry, const RecyclerWeakReference<const Js::PropertyRecord>* weakRef)
+    {
+        entry->uniqueGuards.MapAndRemoveIf([=](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef)
+        {
+            Js::PropertyGuard* guard = guardWeakRef->Get();
+            bool shouldRemove = guard != nullptr && !guard->IsValid();
+            if (shouldRemove)
+            {
+                if (PHASE_TRACE1(Js::TracePropertyGuardsPhase) || PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase))
+                {
+                    Output::Print(_u("FixedFields: invalidating guard: name: %s, address: 0x%p, value: 0x%p, value address: 0x%p\n"),
+                                  propertyRecord->GetBuffer(), guard, guard->GetValue(), guard->GetAddressOfValue());
+                    Output::Flush();
+                }
+                if (PHASE_TESTTRACE1(Js::TracePropertyGuardsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase))
+                {
+                    Output::Print(_u("FixedFields: invalidating guard: name: %s, value: 0x%p\n"),
+                                  propertyRecord->GetBuffer(), guard->GetValue());
+                    Output::Flush();
+                }
+            }
+
+            return shouldRemove;
+        });
+    });
+}
+
+void
 ThreadContext::ClearInlineCaches()
 {
     if (PHASE_TRACE1(Js::InlineCachePhase))
@@ -2684,7 +2725,7 @@ ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
     InlineCacheList* inlineCacheList;
     if (protoInlineCacheByPropId.TryGetValueAndRemove(propertyId, &inlineCacheList))
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     }
 }
 
@@ -2701,12 +2742,12 @@ ThreadContext::InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId)
     InlineCacheList* inlineCacheList;
     if (storeFieldInlineCacheByPropId.TryGetValueAndRemove(propertyId, &inlineCacheList))
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     }
 }
 
 void
-ThreadContext::InvalidateInlineCacheList(InlineCacheList* inlineCacheList)
+ThreadContext::InvalidateAndDeleteInlineCacheList(InlineCacheList* inlineCacheList)
 {
     Assert(inlineCacheList != nullptr);
 
@@ -2726,7 +2767,7 @@ ThreadContext::InvalidateInlineCacheList(InlineCacheList* inlineCacheList)
         }
     }
     NEXT_SLISTBASE_ENTRY;
-    inlineCacheList->Clear();
+    Adelete(&this->inlineCacheThreadInfoAllocator, inlineCacheList);
     this->registeredInlineCacheCount = this->registeredInlineCacheCount > cacheCount ? this->registeredInlineCacheCount - cacheCount : 0;
 }
 
@@ -2909,6 +2950,8 @@ ThreadContext::RegisterUniquePropertyGuard(Js::PropertyId propertyId, RecyclerWe
     const Js::PropertyRecord * propertyRecord = GetPropertyName(propertyId);
 
     bool foundExistingGuard;
+
+    
     PropertyGuardEntry* entry = EnsurePropertyGuardEntry(propertyRecord, foundExistingGuard);
 
     entry->uniqueGuards.Item(guardWeakRef);
@@ -2937,7 +2980,7 @@ ThreadContext::RegisterConstructorCache(Js::PropertyId propertyId, Js::Construct
 }
 
 void
-ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry)
+ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation)
 {
     Assert(entry != nullptr);
 
@@ -2961,7 +3004,8 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
         guard->Invalidate();
     }
 
-    entry->uniqueGuards.Map([propertyRecord](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef)
+    uint count = 0;
+    entry->uniqueGuards.Map([&count, propertyRecord](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef)
     {
         Js::PropertyGuard* guard = guardWeakRef->Get();
         if (guard != nullptr)
@@ -2981,10 +3025,26 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
             }
 
             guard->Invalidate();
+            count++;
         }
     });
 
     entry->uniqueGuards.Clear();
+
+    
+    // Count no. of invalidations done so far. Exclude if this is all property guards invalidation in which case
+    // the unique Guards will be cleared anyway.
+    if (!isAllPropertyGuardsInvalidation)
+    {
+        this->recyclableData->constructorCacheInvalidationCount += count;
+        if (this->recyclableData->constructorCacheInvalidationCount > (uint)CONFIG_FLAG(ConstructorCacheInvalidationThreshold))
+        {
+            // TODO: In future, we should compact the uniqueGuards dictionary so this function can be called from PreCollectionCallback
+            // instead
+            this->ClearInvalidatedUniqueGuards();
+            this->recyclableData->constructorCacheInvalidationCount = 0;
+        }
+    }
 
     if (entry->entryPoints && entry->entryPoints->Count() > 0)
     {
@@ -3024,7 +3084,7 @@ ThreadContext::InvalidatePropertyGuards(Js::PropertyId propertyId)
     PropertyGuardEntry* entry;
     if (guards.TryGetValueAndRemove(propertyRecord, &entry))
     {
-        InvalidatePropertyGuardEntry(propertyRecord, entry);
+        InvalidatePropertyGuardEntry(propertyRecord, entry, false);
     }
 }
 
@@ -3036,7 +3096,7 @@ ThreadContext::InvalidateAllPropertyGuards()
     {
         guards.Map([this](Js::PropertyRecord const * propertyRecord, PropertyGuardEntry* entry, const RecyclerWeakReference<const Js::PropertyRecord>* weakRef)
         {
-            InvalidatePropertyGuardEntry(propertyRecord, entry);
+            InvalidatePropertyGuardEntry(propertyRecord, entry, true);
         });
 
         guards.Clear();
@@ -3049,7 +3109,7 @@ ThreadContext::InvalidateAllProtoInlineCaches()
 {
     protoInlineCacheByPropId.Map([this](Js::PropertyId propertyId, InlineCacheList* inlineCacheList)
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     });
     protoInlineCacheByPropId.ResetNoDelete();
 }
@@ -3065,7 +3125,7 @@ ThreadContext::InvalidateAllStoreFieldInlineCaches()
 {
     storeFieldInlineCacheByPropId.Map([this](Js::PropertyId propertyId, InlineCacheList* inlineCacheList)
     {
-        InvalidateInlineCacheList(inlineCacheList);
+        InvalidateAndDeleteInlineCacheList(inlineCacheList);
     });
     storeFieldInlineCacheByPropId.ResetNoDelete();
 }

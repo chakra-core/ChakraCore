@@ -22,7 +22,12 @@ extern "C" void __cdecl _alloca_probe_16();
 
 namespace Js
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
     const charcount_t JavascriptFunction::DIAG_MAX_FUNCTION_STRING;
+#endif
 
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(JavascriptFunction);
     JavascriptFunction::JavascriptFunction(DynamicType * type)
@@ -138,7 +143,10 @@ namespace Js
     static char16 const funcName[] = _u("function anonymous");
     static char16 const genFuncName[] = _u("function* anonymous");
     static char16 const asyncFuncName[] = _u("async function anonymous");
-    static char16 const bracket[] = _u(" {\012");
+    static char16 const openFormals[] = _u("(");
+    static char16 const closeFormals[] = _u("\012)");
+    static char16 const openFuncBody[] = _u(" {");
+    static char16 const closeFuncBody[] = _u("\012}");
 
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
@@ -156,7 +164,7 @@ namespace Js
         JavascriptString* separator = library->GetCommaDisplayString();
 
         // Gather all the formals into a string like (fml1, fml2, fml3)
-        JavascriptString *formals = library->CreateStringFromCppLiteral(_u("("));
+        JavascriptString *formals = library->CreateStringFromCppLiteral(openFormals);
         for (uint i = 1; i < args.Info.Count - 1; ++i)
         {
             if (i != 1)
@@ -165,8 +173,7 @@ namespace Js
             }
             formals = JavascriptString::Concat(formals, JavascriptConversion::ToString(args.Values[i], scriptContext));
         }
-        formals = JavascriptString::Concat(formals, library->CreateStringFromCppLiteral(_u(")")));
-
+        formals = JavascriptString::Concat(formals, library->CreateStringFromCppLiteral(closeFormals));
         // Function body, last argument to Function(...)
         JavascriptString *fnBody = NULL;
         if (args.Info.Count > 1)
@@ -175,7 +182,12 @@ namespace Js
         }
 
         // Create a string representing the anonymous function
-        Assert(CountNewlines(funcName) + CountNewlines(bracket) == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
+        Assert(
+            CountNewlines(funcName) +
+            CountNewlines(openFormals) +
+            CountNewlines(closeFormals) +
+            CountNewlines(openFuncBody)
+            == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
 
         JavascriptString *bs = functionKind == FunctionKind::Async ?
             library->CreateStringFromCppLiteral(asyncFuncName) :
@@ -183,14 +195,13 @@ namespace Js
             library->CreateStringFromCppLiteral(genFuncName) :
             library->CreateStringFromCppLiteral(funcName);
         bs = JavascriptString::Concat(bs, formals);
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(bracket));
+        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(openFuncBody));
         if (fnBody != NULL)
         {
             bs = JavascriptString::Concat(bs, fnBody);
         }
 
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(_u("\012}")));
-
+        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(closeFuncBody));
         // Bug 1105479. Get the module id from the caller
         ModuleID moduleID = kmodGlobal;
 
@@ -647,10 +658,8 @@ namespace Js
             // 0xE06D7363 is C++ exception code
             if (exceptionCode != 0 && !IsDebuggerPresent() && exceptionCode != 0xE06D7363 && exceptionAction != EXCEPTION_CONTINUE_EXECUTION)
             {
-                exceptionInfo;
-
                 // ensure that hosts are not doing SEH across Chakra frames, as that can lead to bad state (e.g. destructors not being called)
-                RaiseFailFastException(NULL, NULL, NULL);
+                UnexpectedExceptionHandling_fatal_error(&exceptionInfo);
             }
         }
 #endif
@@ -1200,11 +1209,11 @@ dbl_align:
         unsigned count = args.Info.Count;
         if (count == 0)
         {
-            varResult = entryPoint((JavascriptFunction*)function, args.Info);
+            varResult = CALL_ENTRYPOINT(entryPoint, (JavascriptFunction*)function, args.Info);
         }
         else if (count == 1)
         {
-            varResult = entryPoint((JavascriptFunction*)function, args.Info, args.Values[0]);
+            varResult = CALL_ENTRYPOINT(entryPoint, (JavascriptFunction*)function, args.Info, args.Values[0]);
         }
         else
         {
@@ -1579,12 +1588,8 @@ LABEL1:
     // Library\arm\arm_DeferredParsingThunk.asm
     // Library\arm64\arm64_DeferredParsingThunk.asm
 #else
-    // xplat-todo: Implement defer deserialization for linux
-    Var JavascriptFunction::DeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        Js::Throw::NotImplemented();
-        return nullptr;
-    }
+    // xplat implement in
+    // Library/amd64/JavascriptFunctionA.S
 #endif
 
     Js::JavascriptMethod JavascriptFunction::DeferredDeserialize(ScriptFunction* function)
@@ -2081,8 +2086,8 @@ LABEL1:
         if (instrData.isLoad)
         {
             Var exceptionInfoReg = exceptionInfo->ContextRecord;
-            Var* exceptionInfoIntReg = (Var*)((uint64)exceptionInfoReg + offsetof(CONTEXT, CONTEXT::Rax)); // offset in the contextRecord for RAX , the assert below checks for any change in the exceptionInfo struct
-            Var* exceptionInfoFloatReg = (Var*)((uint64)exceptionInfoReg + offsetof(CONTEXT, CONTEXT::Xmm0));// offset in the contextRecord for XMM0 , the assert below checks for any change in the exceptionInfo struct
+            Var* exceptionInfoIntReg = (Var*)((uint64)exceptionInfoReg + offsetof(CONTEXT, Rax)); // offset in the contextRecord for RAX , the assert below checks for any change in the exceptionInfo struct
+            Var* exceptionInfoFloatReg = (Var*)((uint64)exceptionInfoReg + offsetof(CONTEXT, Xmm0));// offset in the contextRecord for XMM0 , the assert below checks for any change in the exceptionInfo struct
             Assert((DWORD64)*exceptionInfoIntReg == exceptionInfo->ContextRecord->Rax);
             Assert((uint64)*exceptionInfoFloatReg == exceptionInfo->ContextRecord->Xmm0.Low);
 
@@ -2688,7 +2693,7 @@ LABEL1:
 
         BOOL result = DynamicObject::SetProperty(propertyId, value, flags, info);
 
-        if (propertyId == PropertyIds::prototype)
+        if (propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance)
         {
             PropertyValueInfo::SetNoCache(info, this);
             InvalidateConstructorCacheOnPrototypeChange();
@@ -2702,7 +2707,7 @@ LABEL1:
     {
         BOOL result = __super::SetPropertyWithAttributes(propertyId, value, attributes, info, flags, possibleSideEffects);
 
-        if (propertyId == PropertyIds::prototype)
+        if (propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance)
         {
             PropertyValueInfo::SetNoCache(info, this);
             InvalidateConstructorCacheOnPrototypeChange();
@@ -2750,7 +2755,7 @@ LABEL1:
 
         BOOL result = DynamicObject::DeleteProperty(propertyId, flags);
 
-        if (result && propertyId == PropertyIds::prototype)
+        if (result && (propertyId == PropertyIds::prototype || propertyId == PropertyIds::_symbolHasInstance))
         {
             InvalidateConstructorCacheOnPrototypeChange();
             this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);
@@ -2967,17 +2972,13 @@ LABEL1:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count < 2)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Function[Symbol.hasInstance]"));
-        }
-
         RecyclableObject * constructor = RecyclableObject::FromVar(args[0]);
-        Var instance = args[1];
-        if (!JavascriptConversion::IsCallable(constructor))
+        if (!JavascriptConversion::IsCallable(constructor) || args.Info.Count < 2)
         {
             return JavascriptBoolean::ToVar(FALSE, scriptContext);
         }
+
+        Var instance = args[1];
 
         Assert(JavascriptProxy::Is(constructor) || JavascriptFunction::Is(constructor));
         return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, NULL), scriptContext);

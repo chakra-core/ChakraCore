@@ -31,9 +31,9 @@ namespace Js
         int jscriptBlockRegistrationCount;
         bool isDebuggerAttaching;
         DebuggingFlags debuggingFlags;
-#if DBG
+        UINT nextBreakPointId;
+        DWORD localsDisplayFlags;
         void * dispatchHaltFrameAddress;
-#endif
     public:
         StepController stepController;
         AsyncBreakController asyncBreakController;
@@ -62,8 +62,9 @@ namespace Js
         FrameDisplay *GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne);
         void UpdateConsoleScope(DynamicObject* copyFromScope, ScriptContext* scriptContext);
         PageAllocator * GetDiagnosticPageAllocator() { return &this->diagnosticPageAllocator; }
-#if DBG
         void SetDispatchHaltFrameAddress(void * returnAddress) { this->dispatchHaltFrameAddress = returnAddress; }
+        DWORD_PTR GetDispatchHaltFrameAddress() const { return (DWORD_PTR)this->dispatchHaltFrameAddress; }
+#if DBG
         void ValidateDebugAPICall();
 #endif
         void SetDebuggerAttaching(bool attaching) { this->isDebuggerAttaching = attaching; }
@@ -87,6 +88,39 @@ namespace Js
 
             return -1;
         }
+
+        UINT GetNextBreakpointId()
+        {
+            return ++nextBreakPointId;
+        }
+
+        enum LocalsDisplayFlags
+        {
+            LocalsDisplayFlags_None = 0x0,
+            LocalsDisplayFlags_NoGroupMethods = 0x1
+        };
+
+        void SetLocalsDisplayFlags(LocalsDisplayFlags localsDisplayFlags)
+        {
+            this->localsDisplayFlags |= localsDisplayFlags;
+        }
+
+        bool IsLocalsDisplayFlagsSet(LocalsDisplayFlags localsDisplayFlags)
+        {
+            return (this->localsDisplayFlags & localsDisplayFlags) == (DWORD)localsDisplayFlags;
+        }
     };
 }
+
+class AutoSetDispatchHaltFlag
+{
+public:
+    AutoSetDispatchHaltFlag(Js::ScriptContext *scriptContext, ThreadContext *threadContext);
+    ~AutoSetDispatchHaltFlag();
+private:
+    // Primary reason for caching both because once we break to debugger our engine is open for re-entrancy. That means the
+    // connection to scriptcontet to threadcontext can go away (imagine the GC is called when we are broken)
+    Js::ScriptContext * m_scriptContext;
+    ThreadContext * m_threadContext;
+};
 

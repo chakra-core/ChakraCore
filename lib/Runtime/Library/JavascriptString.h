@@ -8,7 +8,7 @@ namespace Js
 {
     typedef struct
     {
-        unsigned long shift;
+        uint32 shift;
     } Boyer_Moore_Jump;
 
     // Boyer Moore table for only the first character in the search string.
@@ -162,7 +162,7 @@ namespace Js
         template <typename T, bool copyBuffer>
         static JavascriptString* NewWithBufferT(const char16 * content, charcount_t charLength, ScriptContext * scriptContext);
 
-        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value);
+        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* scriptContext);
         static const char stringToIntegerMap[128];
         static const uint8 maxUintStringLengthTable[37];
     protected:

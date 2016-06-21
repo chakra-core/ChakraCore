@@ -432,7 +432,7 @@ GetStringTypeExW(
     UnicodeDataRec unicodeDataRec;
 #endif /* !HAVE_COREFOUNDATION */
     BOOL bRet = TRUE;
-    wchar_t  wcstr ;
+    char16_t  wcstr ;
     PERF_ENTRY(GetStringTypeExW);
     ENTRY("GetStringTypeExW(Locale=%#x, dwInfoType=%#x, lpSrcStr=%p (%S), "
     "cchSrc=%d, lpCharType=%p)\n",

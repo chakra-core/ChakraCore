@@ -200,28 +200,28 @@ namespace Js
         switch (argCount) {
         case 0:
             Assert(false);
-            ret = entryPoint(funcPtr, callInfo);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo);
             break;
         case 1:
-            ret = entryPoint(funcPtr, callInfo, instance);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance);
             break;
         case 2:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0]);
             break;
         case 3:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0], stackPtr[1]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1]);
             break;
         case 4:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2]);
             break;
         case 5:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3]);
             break;
         case 6:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4]);
             break;
         case 7:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4], stackPtr[5]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4], stackPtr[5]);
             break;
         default: {
             // Don't need stack probe here- we just did so above
@@ -277,7 +277,7 @@ namespace Js
     Var JavascriptOperators::Typeof(Var var, ScriptContext* scriptContext)
     {
 #ifdef ENABLE_SIMDJS
-        if (IsSimdType(var) && scriptContext->GetConfig()->IsSimdjsEnabled())
+        if (SIMDUtils::IsSimdType(var) && scriptContext->GetConfig()->IsSimdjsEnabled())
         {
             switch ((JavascriptOperators::GetTypeId(var)))
             {
@@ -577,7 +577,7 @@ namespace Js
             }
         }
 #ifdef ENABLE_SIMDJS
-        else if (IsSimdType(aLeft) && IsSimdType(aRight))
+        else if (SIMDUtils::IsSimdType(aLeft) && SIMDUtils::IsSimdType(aRight))
         {
             return StrictEqualSIMD(aLeft, aRight, requestContext);
         }
@@ -630,7 +630,7 @@ namespace Js
         double dblLeft, dblRight;
 
 #ifdef ENABLE_SIMDJS
-        if (IsSimdType(aLeft) || IsSimdType(aRight))
+        if (SIMDUtils::IsSimdType(aLeft) || SIMDUtils::IsSimdType(aRight))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_SIMDConversion, _u("SIMD type"));
         }
@@ -1721,6 +1721,7 @@ CommonNumber:
                 }
             }
 #endif
+            *value = requestContext->GetMissingPropertyResult();
             return FALSE;
         }
     }
@@ -1761,6 +1762,7 @@ CommonNumber:
             }
             object = JavascriptOperators::GetPrototypeNoTrap(object);
         }
+        *value = requestContext->GetMissingPropertyResult();
         return FALSE;
     }
 
@@ -1842,7 +1844,7 @@ CommonNumber:
             JavascriptError::ThrowReferenceError(scriptContext, JSERR_UndefVariable, propertyName);
         }
 
-        return scriptContext->GetLibrary()->GetUndefined();
+        return scriptContext->GetMissingPropertyResult();
     }
 
     Var JavascriptOperators::OP_GetThisScoped(FrameDisplay *pScope, Var defaultInstance, ScriptContext* scriptContext)
@@ -1911,7 +1913,7 @@ CommonNumber:
             Assert(value != nullptr);
             return value;
         }
-        return requestContext->GetLibrary()->GetUndefined();
+        return requestContext->GetMissingPropertyResult();
     }
 
     BOOL JavascriptOperators::GetPropertyReference(Var instance, RecyclableObject* propertyObject, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo* info)
@@ -1995,6 +1997,7 @@ CommonNumber:
                 }
             }
 #endif
+            *value = requestContext->GetMissingPropertyResult();
             return foundProperty;
         }
 
@@ -2511,7 +2514,7 @@ CommonNumber:
             {
                 break;
             }
-            object = JavascriptOperators::GetPrototypeNoTrap(object);
+            object = JavascriptOperators::GetPrototype(object);
         }
         return FALSE;
     }
@@ -2843,10 +2846,10 @@ CommonNumber:
                     JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
                 }
 
-                PropertyValueInfo info;
-                PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
+                PropertyValueInfo info2;
+                PropertyValueInfo::SetCacheInfo(&info2, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
                 PropertyOperationFlags setPropertyOpFlags = allowUndecInConsoleScope ? PropertyOperation_AllowUndeclInConsoleScope : PropertyOperation_None;
-                object->SetProperty(propertyId, newValue, setPropertyOpFlags, &info);
+                object->SetProperty(propertyId, newValue, setPropertyOpFlags, &info2);
 
 #if DBG_DUMP
                 if (PHASE_VERBOSE_TRACE1(Js::InlineCachePhase))
@@ -2856,7 +2859,7 @@ CommonNumber:
 #endif
                 if (!JavascriptProxy::Is(object) && !allowUndecInConsoleScope)
                 {
-                    CacheOperators::CachePropertyWrite(object, false, type, propertyId, &info, scriptContext);
+                    CacheOperators::CachePropertyWrite(object, false, type, propertyId, &info2, scriptContext);
                 }
 
                 if (isLexicalThisSlotSymbol && !JavascriptOperators::HasProperty(object, PropertyIds::_lexicalNewTargetSymbol))
@@ -2908,8 +2911,8 @@ CommonNumber:
         RecyclableObject* obj = RecyclableObject::FromVar(defaultInstance);
         {
             //SetPropertyScoped does not use inline cache for default instance
-            PropertyValueInfo info;
-            JavascriptOperators::SetRootProperty(obj, propertyId, newValue, &info, scriptContext, (PropertyOperationFlags)(propertyOperationFlags | PropertyOperation_Root));
+            PropertyValueInfo info2;
+            JavascriptOperators::SetRootProperty(obj, propertyId, newValue, &info2, scriptContext, (PropertyOperationFlags)(propertyOperationFlags | PropertyOperation_Root));
         }
     }
     template void JavascriptOperators::PatchSetPropertyScoped<false, InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, FrameDisplay *pDisplay, PropertyId propertyId, Var newValue, Var defaultInstance, PropertyOperationFlags propertyOperationFlags);
@@ -3046,6 +3049,7 @@ CommonNumber:
             }
             object = JavascriptOperators::GetPrototypeNoTrap(object);
         }
+        *value = requestContext->GetMissingItemResult();
         return false;
     }
 
@@ -3064,6 +3068,7 @@ CommonNumber:
             }
             object = JavascriptOperators::GetPrototypeNoTrap(object);
         }
+        *value = requestContext->GetMissingItemResult();
         return false;
     }
 
@@ -5056,12 +5061,17 @@ CommonNumber:
             return false;
         }
 
-        if (JavascriptProxy::Is(instance) || instance->IsExternal())
+        TypeId typeId = instance->GetTypeId();
+        if (typeId == TypeIds_Proxy || typeId == TypeIds_HostDispatch)
         {
             return false;
         }
-        if (DynamicType::Is(instance->GetTypeId()) && 
+        if (DynamicType::Is(typeId) && 
             static_cast<DynamicObject*>(instance)->GetTypeHandler()->IsStringTypeHandler())
+        {
+            return false;
+        }
+        if (instance->IsExternal())
         {
             return false;
         }
@@ -5489,10 +5499,7 @@ CommonNumber:
     {
         ActivationObjectEx *scopeObj = (ActivationObjectEx*)ActivationObjectEx::FromVar(varScope);
         Assert(scopeObj->GetTypeHandler()->GetInlineSlotCapacity() == 0);
-        ScriptFunction *func;
-        FuncCacheEntry *entry;
-        FunctionProxy  *proxy;
-        uint scopeSlot;
+
         uint funcCount = info->count;
 
         if (funcCount == 0)
@@ -5505,10 +5512,10 @@ CommonNumber:
         {
             for (uint i = 0; i < funcCount; i++)
             {
-                entry = scopeObj->GetFuncCacheEntry(i);
-                func = entry->func;
+                const FuncCacheEntry *entry = scopeObj->GetFuncCacheEntry(i);
+                ScriptFunction *func = entry->func;
 
-                proxy = func->GetFunctionProxy();
+                FunctionProxy * proxy = func->GetFunctionProxy();
                 if (proxy != proxy->GetFunctionProxy())
                 {
                     // The FunctionProxy has changed since the object was cached, e.g., due to execution
@@ -5523,7 +5530,7 @@ CommonNumber:
                 func->ReplaceType(proxy->EnsureDeferredPrototypeType());
                 func->ResetConstructorCacheToDefault();
 
-                scopeSlot = info->elements[i].scopeSlot;
+                uint scopeSlot = info->elements[i].scopeSlot;
                 if (scopeSlot != Constants::NoProperty)
                 {
                     // CONSIDER: Store property IDs in FuncInfoArray in debug builds so we can properly assert in SetAuxSlot
@@ -5539,11 +5546,11 @@ CommonNumber:
         {
             const FuncInfoEntry *entry = &info->elements[i];
             uint nestedIndex = entry->nestedIndex;
-            scopeSlot = entry->scopeSlot;
+            uint scopeSlot = entry->scopeSlot;
 
-            proxy = funcParent->GetFunctionBody()->GetNestedFunc(nestedIndex);
+            FunctionProxy * proxy = funcParent->GetFunctionBody()->GetNestedFunc(nestedIndex);
 
-            func = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
+            ScriptFunction *func = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
 
             func->SetEnvironment(pDisplay);
             JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(func, EtwTrace::GetFunctionId(proxy)));
@@ -6991,7 +6998,8 @@ CommonNumber:
         if (scriptContext->GetConfig()->IsES6HasInstanceEnabled())
         {
             Var instOfHandler = JavascriptOperators::GetProperty(constructor, PropertyIds::_symbolHasInstance, scriptContext);
-            if (JavascriptOperators::IsUndefinedObject(instOfHandler))
+            if (JavascriptOperators::IsUndefinedObject(instOfHandler) 
+                || instOfHandler == scriptContext->GetBuiltInLibraryFunction(JavascriptFunction::EntryInfo::SymbolHasInstance.GetOriginalEntryPoint()))
             {
                 return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, inlineCache), scriptContext);
             }
@@ -8973,7 +8981,7 @@ CommonNumber:
             }
             if (descriptor->WritableSpecified())
             {
-                long hCode = descriptor->IsWritable() ? JSERR_InvalidAttributeTrue : JSERR_InvalidAttributeFalse;
+                int32 hCode = descriptor->IsWritable() ? JSERR_InvalidAttributeTrue : JSERR_InvalidAttributeFalse;
                 JavascriptError::ThrowTypeError(scriptContext, hCode, _u("writable"));
             }
         }
@@ -9113,7 +9121,7 @@ CommonNumber:
         }
     }
 
-    BOOL JavascriptOperators::Reject(bool throwOnError, ScriptContext* scriptContext, long errorCode, PropertyId propertyId)
+    BOOL JavascriptOperators::Reject(bool throwOnError, ScriptContext* scriptContext, int32 errorCode, PropertyId propertyId)
     {
         Assert(scriptContext);
 
@@ -9530,13 +9538,8 @@ CommonNumber:
             }
         }
 
-        if (superRef == nullptr)
-        {
-            // We didn't find a super reference. Emit a reference error.
-            JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference, _u("super"));
-        }
-
-        return superRef;
+        // We didn't find a super reference. Emit a reference error.
+        JavascriptError::ThrowReferenceError(scriptContext, JSERR_BadSuperReference, _u("super"));
     }
 
     Var JavascriptOperators::OP_ScopedLdSuper(Var scriptFunction, ScriptContext * scriptContext)
@@ -10558,6 +10561,17 @@ CommonNumber:
     BOOL JavascriptOperators::GetPropertyReference(RecyclableObject *instance, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo* info)
     {
         return JavascriptOperators::GetPropertyReference(instance, instance, propertyId, value, requestContext, info);
+    }
+
+    Var JavascriptOperators::GetItem(RecyclableObject* instance, uint32 index, ScriptContext* requestContext)
+    {
+        Var value;
+        if (GetItem(instance, index, &value, requestContext))
+        {
+            return value;
+        }
+
+        return requestContext->GetMissingItemResult();
     }
 
     Var JavascriptOperators::GetItem(RecyclableObject* instance, uint64 index, ScriptContext* requestContext)

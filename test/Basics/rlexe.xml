@@ -221,15 +221,15 @@
   </test>
   <test>
     <default>
-      <files>Switch.js</files>
-      <baseline>Switch.baseline</baseline>
+      <files>switch.js</files>
+      <baseline>switch.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>Switch2.js</files>
-      <baseline>Switch2.baseline</baseline>
+      <baseline>switch2.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
     </default>
   </test>
@@ -288,8 +288,8 @@
   </test>
   <test>
     <default>
-      <files>Witheval.js</files>
-      <baseline>Witheval.baseline</baseline>
+      <files>witheval.js</files>
+      <baseline>witheval.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
     </default>
   </test>
@@ -321,8 +321,8 @@
   </test>
   <test>
     <default>
-      <files>ScopedAccessors.js</files>
-      <baseline>ScopedAccessors.baseline</baseline>
+      <files>scopedaccessors.js</files>
+      <baseline>scopedaccessors.baseline</baseline>
     </default>
   </test>
   <test>

@@ -51,7 +51,6 @@ namespace Js
     ScriptContext::ScriptContext(ThreadContext* threadContext) :
         ScriptContextBase(),
         interpreterArena(nullptr),
-        dynamicFunctionReference(nullptr),
         moduleSrcInfoCount(0),
         // Regex globals
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -78,9 +77,6 @@ namespace Js
         guestArena(nullptr),
         raiseMessageToDebuggerFunctionType(nullptr),
         transitionToDebugModeIfFirstSourceFn(nullptr),
-#ifdef ENABLE_GLOBALIZATION
-        lastTimeZoneUpdateTickCount(0),
-#endif
         sourceSize(0),
         deferredBody(false),
         isScriptContextActuallyClosed(false),
@@ -95,6 +91,8 @@ namespace Js
         CurrentCrossSiteThunk(CrossSite::DefaultThunk),
         DeferredParsingThunk(DefaultDeferredParsingThunk),
         DeferredDeserializationThunk(DefaultDeferredDeserializeThunk),
+        DispatchDefaultInvoke(nullptr),
+        DispatchProfileInvoke(nullptr),
         m_pBuiltinFunctionIdMap(nullptr),
         diagnosticArena(nullptr),
         hostScriptContext(nullptr),
@@ -125,8 +123,6 @@ namespace Js
         hasIsInstInlineCache(false),
         registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(nullptr),
         cache(nullptr),
-        bindRefChunkCurrent(nullptr),
-        bindRefChunkEnd(nullptr),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
         isWeakReferenceDictionaryListCleared(false)
@@ -684,10 +680,8 @@ namespace Js
         {
             ReleaseGuestArena();
             guestArena = nullptr;
-            cache = nullptr;
-            bindRefChunkCurrent = nullptr;
-            bindRefChunkEnd = nullptr;
         }
+        cache = nullptr;
 
         builtInLibraryFunctions = nullptr;
 
@@ -700,6 +694,7 @@ namespace Js
         // and InternalClose gets called in the destructor code path
         if (javascriptLibrary != nullptr)
         {
+            javascriptLibrary->CleanupForClose();
             javascriptLibrary->Uninitialize();
         }
 
@@ -1008,7 +1003,6 @@ namespace Js
     RegexPatternMruMap* ScriptContext::GetDynamicRegexMap() const
     {
         Assert(!isScriptContextActuallyClosed);
-        Assert(guestArena);
         Assert(cache);
         Assert(cache->dynamicRegexMap);
 
@@ -1083,28 +1077,15 @@ namespace Js
         this->threadContext->ReleaseTemporaryGuestAllocator(tempGuestAllocator);
     }
 
-    void ScriptContext::InitializePreGlobal()
+    void ScriptContext::InitializeCache()
     {
-        this->guestArena = this->GetRecycler()->CreateGuestArena(_u("Guest"), Throw::OutOfMemory);
-#if ENABLE_PROFILE_INFO
-#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
-        if (DynamicProfileInfo::NeedProfileInfoList())
-        {
-            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), SListBase<DynamicProfileInfo *>), recycler);
-        }
-#endif
-#endif
+        this->cache = RecyclerNewFinalized(recycler, Cache);
+        this->javascriptLibrary->scriptContextCache = this->cache;
 
-        {
-            AutoCriticalSection critSec(this->threadContext->GetEtwRundownCriticalSection());
-            this->cache = AnewStructZ(guestArena, Cache);
-        }
-
-        this->cache->rootPath = TypePath::New(recycler);
         this->cache->dynamicRegexMap =
             RegexPatternMruMap::New(
-            recycler,
-            REGEX_CONFIG_FLAG(DynamicRegexMruListSize) <= 0 ? 16 : REGEX_CONFIG_FLAG(DynamicRegexMruListSize));
+                recycler,
+                REGEX_CONFIG_FLAG(DynamicRegexMruListSize) <= 0 ? 16 : REGEX_CONFIG_FLAG(DynamicRegexMruListSize));
 
         SourceContextInfo* sourceContextInfo = RecyclerNewStructZ(this->GetRecycler(), SourceContextInfo);
         sourceContextInfo->dwHostSourceContext = Js::Constants::NoHostSourceContext;
@@ -1116,6 +1097,19 @@ namespace Js
         srcInfo->sourceContextInfo = this->cache->noContextSourceContextInfo;
         srcInfo->moduleID = kmodGlobal;
         this->cache->noContextGlobalSourceInfo = srcInfo;
+    }
+
+    void ScriptContext::InitializePreGlobal()
+    {
+        this->guestArena = this->GetRecycler()->CreateGuestArena(_u("Guest"), Throw::OutOfMemory);
+#if ENABLE_PROFILE_INFO
+#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
+        if (DynamicProfileInfo::NeedProfileInfoList())
+        {
+            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), SListBase<DynamicProfileInfo *>), recycler);
+        }
+#endif
+#endif
 
 #if ENABLE_BACKGROUND_PARSING
         if (PHASE_ON1(Js::ParallelParsePhase))
@@ -1133,14 +1127,7 @@ namespace Js
         this->CreateProfiler();
 #endif
 
-#ifdef FIELD_ACCESS_STATS
-        this->fieldAccessStatsByFunctionNumber = RecyclerNew(this->recycler, FieldAccessStatsByFunctionNumberMap, recycler);
-        BindReference(this->fieldAccessStatsByFunctionNumber);
-#endif
-
         this->operationStack = Anew(GeneralAllocator(), JsUtil::Stack<Var>, GeneralAllocator());
-
-        this->GetDebugContext()->Initialize();
 
         Tick::InitType();
     }
@@ -1158,13 +1145,20 @@ namespace Js
 
     void ScriptContext::InitializePostGlobal()
     {
+        this->GetDebugContext()->Initialize();
+
         this->GetDebugContext()->GetProbeContainer()->Initialize(this);
 
         AssertMsg(this->CurrentThunk == DefaultEntryThunk, "Creating non default thunk while initializing");
         AssertMsg(this->DeferredParsingThunk == DefaultDeferredParsingThunk, "Creating non default thunk while initializing");
         AssertMsg(this->DeferredDeserializationThunk == DefaultDeferredDeserializeThunk, "Creating non default thunk while initializing");
 
-        if (!sourceList)
+#ifdef FIELD_ACCESS_STATS
+        this->fieldAccessStatsByFunctionNumber = RecyclerNew(this->recycler, FieldAccessStatsByFunctionNumberMap, recycler);
+        BindReference(this->fieldAccessStatsByFunctionNumber);
+#endif
+
+if (!sourceList)
         {
             AutoCriticalSection critSec(threadContext->GetEtwRundownCriticalSection());
             sourceList.Root(RecyclerNew(this->GetRecycler(), SourceList, this->GetRecycler()), this->GetRecycler());
@@ -1233,10 +1227,7 @@ namespace Js
     void ScriptContext::InitializeGlobalObject()
     {
         GlobalObject * localGlobalObject = GlobalObject::New(this);
-        if (!GetThreadContext()->IsJSRT())
-        {
-            GetRecycler()->RootAddRef(localGlobalObject);
-        }
+        GetRecycler()->RootAddRef(localGlobalObject);
 
         // Assigned the global Object after we have successfully AddRef (in case of OOM)
         globalObject = localGlobalObject;
@@ -2090,36 +2081,6 @@ namespace Js
         return success;
     }
 
-    void ScriptContext::BeginDynamicFunctionReferences()
-    {
-        if (this->dynamicFunctionReference == nullptr)
-        {
-            this->dynamicFunctionReference = RecyclerNew(this->recycler, FunctionReferenceList, this->recycler);
-            this->BindReference(this->dynamicFunctionReference);
-            this->dynamicFunctionReferenceDepth = 0;
-        }
-
-        this->dynamicFunctionReferenceDepth++;
-    }
-
-    void ScriptContext::EndDynamicFunctionReferences()
-    {
-        Assert(this->dynamicFunctionReference != nullptr);
-
-        this->dynamicFunctionReferenceDepth--;
-
-        if (this->dynamicFunctionReferenceDepth == 0)
-        {
-            this->dynamicFunctionReference->Clear();
-        }
-    }
-
-    void ScriptContext::RegisterDynamicFunctionReference(FunctionProxy* func)
-    {
-        Assert(this->dynamicFunctionReferenceDepth > 0);
-        this->dynamicFunctionReference->Push(func);
-    }
-
     void ScriptContext::AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript)
     {
         EvalCacheDictionary *dict = isIndirect ? this->cache->indirectEvalCacheDictionary : this->cache->evalCacheDictionary;
@@ -2336,14 +2297,6 @@ namespace Js
             }
             return si;
     }
-
-#ifdef ENABLE_GLOBALIZATION
-    void ScriptContext::UpdateTimeZoneInfo()
-    {
-        GetTimeZoneInformation(&timeZoneInfo);
-        _tzset();
-    }
-#endif
 
 #ifdef PROFILE_EXEC
     void
@@ -2777,68 +2730,66 @@ namespace Js
         // Disable QC while functions are re-parsed as this can be time consuming
         AutoDisableInterrupt autoDisableInterrupt(this->threadContext->GetInterruptPoller(), true);
 
-        if ((hr = this->GetDebugContext()->RundownSourcesAndReparse(shouldPerformSourceRundown, /*shouldReparseFunctions*/ true)) == S_OK)
+        hr = this->GetDebugContext()->RundownSourcesAndReparse(shouldPerformSourceRundown, /*shouldReparseFunctions*/ true);
+
+        if (this->IsClosed())
         {
-            HRESULT hr2 = this->GetLibrary()->EnsureReadyIfHybridDebugging(); // Prepare library if hybrid debugging attach
-            Assert(hr2 != E_FAIL);   // Omitting HRESULT
+            return hr;
         }
 
         // Debugger attach/detach failure is catastrophic, take down the process
         DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
 
-        if (!this->IsClosed())
-        {
-            HRESULT hrEntryPointUpdate = S_OK;
-            BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
+        HRESULT hrEntryPointUpdate = S_OK;
+        BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
 #ifdef ASMJS_PLAT
-                TempArenaAllocatorObject* tmpAlloc = GetTemporaryAllocator(_u("DebuggerTransition"));
-                debugTransitionAlloc = tmpAlloc->GetAllocator();
+            TempArenaAllocatorObject* tmpAlloc = GetTemporaryAllocator(_u("DebuggerTransition"));
+            debugTransitionAlloc = tmpAlloc->GetAllocator();
 
-                asmJsEnvironmentMap = Anew(debugTransitionAlloc, AsmFunctionMap, debugTransitionAlloc);
+            asmJsEnvironmentMap = Anew(debugTransitionAlloc, AsmFunctionMap, debugTransitionAlloc);
 #endif
 
-                // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
-                this->UpdateRecyclerFunctionEntryPointsForDebugger();
+            // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
+            this->UpdateRecyclerFunctionEntryPointsForDebugger();
 
 #ifdef ASMJS_PLAT
-                auto asmEnvIter = asmJsEnvironmentMap->GetIterator();
-                while (asmEnvIter.IsValid())
-                {
-                    // we are attaching, change frame setup for asm.js frame to javascript frame
-                    SList<AsmJsScriptFunction *> * funcList = asmEnvIter.CurrentValue();
-                    Assert(!funcList->Empty());
-                    void* newEnv = AsmJsModuleInfo::ConvertFrameForJavascript(asmEnvIter.CurrentKey(), funcList->Head());
-                    funcList->Iterate([&](AsmJsScriptFunction * func)
-                    {
-                        func->GetEnvironment()->SetItem(0, newEnv);
-                    });
-                    asmEnvIter.MoveNext();
-                }
-
-                // walk through and clean up the asm.js fields as a discrete step, because module might be multiply linked
-                auto asmCleanupIter = asmJsEnvironmentMap->GetIterator();
-                while (asmCleanupIter.IsValid())
-                {
-                    SList<AsmJsScriptFunction *> * funcList = asmCleanupIter.CurrentValue();
-                    Assert(!funcList->Empty());
-                    funcList->Iterate([](AsmJsScriptFunction * func)
-                    {
-                        func->SetModuleMemory(nullptr);
-                        func->GetFunctionBody()->ResetAsmJsInfo();
-                    });
-                    asmCleanupIter.MoveNext();
-                }
-
-                ReleaseTemporaryAllocator(tmpAlloc);
-#endif
-            END_TRANSLATE_OOM_TO_HRESULT(hrEntryPointUpdate);
-
-            if (hrEntryPointUpdate != S_OK)
+            auto asmEnvIter = asmJsEnvironmentMap->GetIterator();
+            while (asmEnvIter.IsValid())
             {
-                // should only be here for OOM
-                Assert(hrEntryPointUpdate == E_OUTOFMEMORY);
-                return hrEntryPointUpdate;
+                // we are attaching, change frame setup for asm.js frame to javascript frame
+                SList<AsmJsScriptFunction *> * funcList = asmEnvIter.CurrentValue();
+                Assert(!funcList->Empty());
+                void* newEnv = AsmJsModuleInfo::ConvertFrameForJavascript(asmEnvIter.CurrentKey(), funcList->Head());
+                funcList->Iterate([&](AsmJsScriptFunction * func)
+                {
+                    func->GetEnvironment()->SetItem(0, newEnv);
+                });
+                asmEnvIter.MoveNext();
             }
+
+            // walk through and clean up the asm.js fields as a discrete step, because module might be multiply linked
+            auto asmCleanupIter = asmJsEnvironmentMap->GetIterator();
+            while (asmCleanupIter.IsValid())
+            {
+                SList<AsmJsScriptFunction *> * funcList = asmCleanupIter.CurrentValue();
+                Assert(!funcList->Empty());
+                funcList->Iterate([](AsmJsScriptFunction * func)
+                {
+                    func->SetModuleMemory(nullptr);
+                    func->GetFunctionBody()->ResetAsmJsInfo();
+                });
+                asmCleanupIter.MoveNext();
+            }
+
+            ReleaseTemporaryAllocator(tmpAlloc);
+#endif
+        END_TRANSLATE_OOM_TO_HRESULT(hrEntryPointUpdate);
+
+        if (hrEntryPointUpdate != S_OK)
+        {
+            // should only be here for OOM
+            Assert(hrEntryPointUpdate == E_OUTOFMEMORY);
+            return hrEntryPointUpdate;
         }
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerAttached: done 0x%p, hr = 0x%X\n"), this, hr);
@@ -2877,6 +2828,11 @@ namespace Js
 
         // Force a reparse so that indirect function caches are updated.
         hr = this->GetDebugContext()->RundownSourcesAndReparse(/*shouldPerformSourceRundown*/ false, /*shouldReparseFunctions*/ true);
+
+        if (this->IsClosed())
+        {
+            return hr;
+        }
 
         // Debugger attach/detach failure is catastrophic, take down the process
         DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
@@ -4007,14 +3963,7 @@ namespace Js
         Assert(!bindRef.ContainsKey(addr));     // Make sure we don't bind the same pointer twice
         bindRef.AddNew(addr);
 #endif
-        if (bindRefChunkCurrent == bindRefChunkEnd)
-        {
-            bindRefChunkCurrent = AnewArrayZ(this->guestArena, void *, ArenaAllocator::ObjectAlignment / sizeof(void *));
-            bindRefChunkEnd = bindRefChunkCurrent + ArenaAllocator::ObjectAlignment / sizeof(void *);
-        }
-        Assert((bindRefChunkCurrent + 1) <= bindRefChunkEnd);
-        *bindRefChunkCurrent = addr;
-        bindRefChunkCurrent++;
+        javascriptLibrary->BindReference(addr);
 
 #ifdef RECYCLER_PERF_COUNTERS
         this->bindReferenceCount++;
@@ -4383,7 +4332,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 Assert(this->recycler);
 
                 builtInLibraryFunctions = RecyclerNew(this->recycler, BuiltInLibraryFunctionMap, this->recycler);
-                BindReference(builtInLibraryFunctions);
+                cache->builtInLibraryFunctions = builtInLibraryFunctions;
             }
 
             builtInLibraryFunctions->Item(entryPoint, function);
@@ -5077,7 +5026,6 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         Output::Flush();
     }
     void ScriptContext::SetNextPendingClose(ScriptContext * nextPendingClose) {
-        Assert(this->nextPendingClose == nullptr && nextPendingClose != nullptr);
         this->nextPendingClose = nextPendingClose;
     }
 

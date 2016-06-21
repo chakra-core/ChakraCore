@@ -2210,12 +2210,12 @@ namespace UnifiedRegex
             return toReturn;
         }
 
+        // If negation, we want to complement the simple chars.
+        // When a set is negated, optimizations skip checking if applicable, so we can go ahead and negate it here.
+        CharSet<codepoint_t> negatedSet;
+
         if (!this->caseInsensitiveFlagPresent)
         {
-            // If negation, we want to complement the simple chars.
-            // When a set is negated, optimizations skip checking if applicable, so we can go ahead and negate it here.
-            CharSet<codepoint_t> negatedSet;
-
             if (isNegation)
             {
                 // Complement all characters, and use it as the set toTranslate
@@ -2400,15 +2400,15 @@ namespace UnifiedRegex
                 {
                     if (!IsEOF())
                     {
-                        EncodedChar ec = ECLookahead();
-                        switch (ec)
+                        EncodedChar ecLookahead = ECLookahead();
+                        switch (ecLookahead)
                         {
                         case '-':
                         case ']':
                             singleton = c;
                             break;
                         default:
-                            singleton = UTC(Chars<EncodedChar>::CTU(ec) % 32);
+                            singleton = UTC(Chars<EncodedChar>::CTU(ecLookahead) % 32);
                             ECConsume();
                             break;
                         }

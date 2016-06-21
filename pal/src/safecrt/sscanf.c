@@ -108,8 +108,8 @@ static int __cdecl vnscan_fn (
 
 static int __cdecl vwscan_fn (
         WINPUTFN inputfn,
-        const wchar_t *string,
-        const wchar_t *format,
+        const char16_t *string,
+        const char16_t *format,
         va_list arglist
         )
 {
@@ -124,14 +124,14 @@ static int __cdecl vwscan_fn (
         infile->_flag = _IOREAD|_IOSTRG|_IOMYBUF;
         infile->_ptr = infile->_base = (char *) string;
 
-        if(count>(INT_MAX/sizeof(wchar_t)))
+        if(count>(INT_MAX/sizeof(char16_t)))
         {
             /* old-style functions allow any large value to mean unbounded */
             infile->_cnt = INT_MAX;
         }
         else
         {
-            infile->_cnt = (int)count*sizeof(wchar_t);
+            infile->_cnt = (int)count*sizeof(char16_t);
         }
 
         retval = (inputfn(infile, format, arglist));
@@ -141,9 +141,9 @@ static int __cdecl vwscan_fn (
 
 static int __cdecl vnwscan_fn (
         WINPUTFN inputfn,
-        const wchar_t *string,
+        const char16_t *string,
         size_t count,
-        const wchar_t *format,
+        const char16_t *format,
         va_list arglist
         )
 {
@@ -163,14 +163,14 @@ static int __cdecl vnwscan_fn (
             count = length;
         }
 
-        if(count>(INT_MAX/sizeof(wchar_t)))
+        if(count>(INT_MAX/sizeof(char16_t)))
         {
             /* old-style functions allow any large value to mean unbounded */
             infile->_cnt = INT_MAX;
         }
         else
         {
-            infile->_cnt = (int)count*sizeof(wchar_t);
+            infile->_cnt = (int)count*sizeof(char16_t);
         }
 
         retval = (inputfn(infile, format, arglist));
@@ -220,8 +220,8 @@ int __cdecl _snscanf_s (
 }
 
 int __cdecl swscanf_s (
-        const wchar_t *string,
-        const wchar_t *format,
+        const char16_t *string,
+        const char16_t *format,
         ...
         )
 {
@@ -234,9 +234,9 @@ int __cdecl swscanf_s (
 }
 
 int __cdecl _snwscanf_s (
-        const wchar_t *string,
+        const char16_t *string,
         size_t count,
-        const wchar_t *format,
+        const char16_t *format,
         ...
         )
 {

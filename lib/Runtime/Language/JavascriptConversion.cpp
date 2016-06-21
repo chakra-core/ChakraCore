@@ -277,7 +277,7 @@ CommonNumber:
             default:
             {
 #ifdef ENABLE_SIMDJS
-                if (IsSimdType(aValue))
+                if (SIMDUtils::IsSimdType(aValue))
                 {
                     *object = scriptContext->GetLibrary()->CreateSIMDObject(aValue, JavascriptOperators::GetTypeId(aValue));
                 }
@@ -428,7 +428,7 @@ CommonNumber:
 
         default:
 #ifdef ENABLE_SIMDJS
-            if (IsSimdType(aValue))
+            if (SIMDUtils::IsSimdType(aValue))
             {
                 return aValue;
             }
@@ -558,7 +558,7 @@ CommonNumber:
         {
             ScriptContext *const scriptContext = recyclableObject->GetScriptContext();
 
-            long hCode;
+            int32 hCode;
 
             switch (hint)
             {

@@ -953,17 +953,18 @@ SECOND_PASS:
             for (uint i = 0; i < length; i++)
             {
                 T val;
-                if (fromArray->DirectGetItemAt(fromStartIndex + i, &val))
+                if (!fromArray->DirectGetItemAt(fromStartIndex + i, &val))
                 {
-                    DirectSetItem_Full(toStartIndex + i, val);
+                    return false;
                 }
+                DirectSetItem_Full(toStartIndex + i, val);
             }
             return true;
         }
 
         const auto isSegmentValid = [length](Js::SparseArraySegment<T>* segment, uint32 startIndex) {
             uint32 end, segmentEnd;
-            // Check the segment is long enough
+            // Check the segment is int32 enough
             return (
                 segment &&
                 !UInt32Math::Add(startIndex, length, &end) &&
