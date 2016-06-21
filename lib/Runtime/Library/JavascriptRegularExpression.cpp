@@ -1510,4 +1510,25 @@ namespace Js
             ? specialPropertyIdsAll
             : specialPropertyIdsWithoutUnicode;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptRegExp::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapRegexObject;
+    }
+
+    void JavascriptRegExp::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapRegexInfo* sri = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapRegexInfo>();
+
+        UnifiedRegex::RegexPattern* pattern = this->pattern;
+        alloc.CopyStringIntoWLength(pattern->GetSource().GetBuffer(), pattern->GetSource().GetLength(), sri->RegexStr);
+        //split regex should be automatically generated from regex string and flags so no need to exttract it as well
+
+        sri->Flags = this->GetFlags();
+        sri->LastIndexOrFlag = this->GetLastIndex();
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapRegexInfo*, TTD::NSSnapObjects::SnapObjectType::SnapRegexObject>(objData, sri);
+    }
+#endif
 } // namespace Js

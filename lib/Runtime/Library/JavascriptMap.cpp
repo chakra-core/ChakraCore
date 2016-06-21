@@ -405,4 +405,54 @@ namespace Js
 
         return args[0];
     }
+
+#if ENABLE_TTD
+    void JavascriptMap::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        auto iterator = GetIterator();
+        while(iterator.Next())
+        {
+            extractor->MarkVisitVar(iterator.Current().Key());
+            extractor->MarkVisitVar(iterator.Current().Value());
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptMap::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapMapObject;
+    }
+
+    void JavascriptMap::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapMapInfo* smi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapMapInfo>();
+        smi->MapSize = 0;
+
+        if(this->Size() == 0)
+        {
+            smi->MapKeyValueArray = nullptr;
+        }
+        else
+        {
+            smi->MapKeyValueArray = alloc.SlabAllocateArray<TTD::TTDVar>(this->Size() * 2);
+
+            auto iter = this->GetIterator();
+            while(iter.Next())
+            {
+                smi->MapKeyValueArray[smi->MapSize] = iter.Current().Key();
+                smi->MapKeyValueArray[smi->MapSize + 1] = iter.Current().Value();
+                smi->MapSize += 2;
+            }
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapMapInfo*, TTD::NSSnapObjects::SnapObjectType::SnapMapObject>(objData, smi);
+    }
+
+    JavascriptMap* JavascriptMap::CreateForSnapshotRestore(ScriptContext* ctx)
+    {
+        JavascriptMap* res = ctx->GetLibrary()->CreateMap();
+        res->map = RecyclerNew(ctx->GetRecycler(), MapDataMap, ctx->GetRecycler());
+
+        return res;
+    }
+#endif
 }

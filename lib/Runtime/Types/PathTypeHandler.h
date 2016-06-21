@@ -202,6 +202,13 @@ namespace Js
     public:
         virtual void ShrinkSlotAndInlineSlotCapacity(uint16 newInlineSlotCapacity) = 0;
         virtual bool GetMaxPathLength(uint16 * maxPathLength) = 0;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override;
+
+        virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override;
+#endif
     };
 
     typedef SimpleDictionaryTypeHandlerBase<PropertyIndex, const PropertyRecord*, true> SimpleDictionaryTypeHandlerWithNontExtensibleSupport;

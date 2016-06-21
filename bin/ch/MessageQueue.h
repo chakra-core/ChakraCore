@@ -245,6 +245,8 @@ public:
             // Omit checking return value for async function, since it shouldn't affect others.
             msg->Call(fileName);
             delete msg;
+
+            ChakraRTInterface::JsTTDNotifyYield();
         }
         return S_OK;
     }

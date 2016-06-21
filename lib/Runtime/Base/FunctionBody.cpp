@@ -4281,7 +4281,6 @@ namespace Js
         return startOffset;
     }
 
-
 #ifdef IR_VIEWER
 /* BEGIN potentially reusable code */
 
@@ -4383,6 +4382,13 @@ namespace Js
 
 /* END potentially reusable code */
 #endif /* IR_VIEWER */
+
+#if ENABLE_TTD
+    void FunctionBody::GetSourceLineFromStartOffset_TTD(const uint startOffset, ULONG* line, LONG* col)
+    {
+        GetLineCharOffsetFromStartChar(startOffset, line, col);
+    }
+#endif
 
 #ifdef IR_VIEWER
     Js::DynamicObject * FunctionBody::GetIRDumpBaseObject()

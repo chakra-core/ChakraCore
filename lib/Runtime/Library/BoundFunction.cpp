@@ -459,4 +459,84 @@ namespace Js
     {
         return this->targetFunction->HasInstance(instance, scriptContext, inlineCache);
     }
+
+#if ENABLE_TTD
+    void BoundFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        extractor->MarkVisitVar(this->targetFunction);
+
+        if(this->boundThis != nullptr)
+        {
+            extractor->MarkVisitVar(this->boundThis);
+        }
+
+        for(uint32 i = 0; i < this->count; ++i)
+        {
+            extractor->MarkVisitVar(this->boundArgs[i]);
+        }
+    }
+
+    void BoundFunction::ProcessCorePaths()
+    {
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->targetFunction, _u("!targetFunction"));
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->boundThis, _u("!boundThis"));
+
+        AssertMsg(this->count == 0, "Should only have empty args in core image");
+    }
+
+    TTD::NSSnapObjects::SnapObjectType BoundFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapBoundFunctionObject;
+    }
+
+    void BoundFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapBoundFunctionInfo* bfi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapBoundFunctionInfo>();
+
+        bfi->TargetFunction = TTD_CONVERT_VAR_TO_PTR_ID(this->targetFunction);
+        bfi->BoundThis = (this->boundThis != nullptr) ? TTD_CONVERT_VAR_TO_PTR_ID(this->boundThis) : TTD_INVALID_PTR_ID;
+
+        bfi->ArgCount = this->count;
+        bfi->ArgArray = nullptr;
+
+        if(bfi->ArgCount > 0)
+        {
+            bfi->ArgArray = alloc.SlabAllocateArray<TTD::TTDVar>(bfi->ArgCount);
+        }
+
+        uint32 depCount = 2;
+        TTD_PTR_ID* depArray = alloc.SlabReserveArraySpace<TTD_PTR_ID>(depCount + bfi->ArgCount);
+        depArray[0] = bfi->TargetFunction;
+        depArray[1] = bfi->BoundThis;
+
+        if(bfi->ArgCount > 0)
+        {
+            for(uint32 i = 0; i < bfi->ArgCount; ++i)
+            {
+                bfi->ArgArray[i] = this->boundArgs[i];
+                if(TTD::JsSupport::IsVarPtrValued(this->boundArgs[i]))
+                {
+                    depArray[depCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->boundArgs[i]);
+                    depCount++;
+                }
+            }
+        }
+        alloc.SlabCommitArraySpace<TTD_PTR_ID>(depCount, depCount + bfi->ArgCount);
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapBoundFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapBoundFunctionObject>(objData, bfi, alloc, depCount, depArray);
+    }
+
+    BoundFunction* BoundFunction::InflateBoundFunction(ScriptContext* ctx, RecyclableObject* function, Var bThis, uint32 ct, Var* args)
+    {
+        BoundFunction* res = RecyclerNew(ctx->GetRecycler(), BoundFunction, ctx->GetLibrary()->GetBoundFunctionType());
+
+        res->boundThis = bThis;
+        res->count = ct;
+        res->boundArgs = args;
+
+        res->targetFunction = function;
+
+        return res;
+    }
+#endif
 } // namespace Js

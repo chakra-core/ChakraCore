@@ -361,4 +361,109 @@ namespace Js
     {
         return GetTypeHandler()->GetDescriptor(index, ppDescriptor);
     }
+
+#if ENABLE_TTD
+    void ES5Array::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        this->JavascriptArray::MarkVisitKindSpecificPtrs(extractor);
+
+        uint32 length = this->GetLength();
+        uint32 descriptorIndex = Js::JavascriptArray::InvalidIndex;
+        IndexPropertyDescriptor* descriptor = nullptr;
+        void* descriptorValidationToken = nullptr;
+
+        do
+        {
+            descriptorIndex = this->GetNextDescriptor(descriptorIndex, &descriptor, &descriptorValidationToken);
+            if(descriptorIndex == Js::JavascriptArray::InvalidIndex || descriptorIndex >= length)
+            {
+                break;
+            }
+
+            if((descriptor->Attributes & PropertyDeleted) != PropertyDeleted)
+            {
+                if(descriptor->Getter != nullptr)
+                {
+                    extractor->MarkVisitVar(descriptor->Getter);
+                }
+
+                if(descriptor->Setter != nullptr)
+                {
+                    extractor->MarkVisitVar(descriptor->Setter);
+                }
+            }
+
+        } while(true);
+    }
+
+    TTD::NSSnapObjects::SnapObjectType ES5Array::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapES5ArrayObject;
+    }
+
+    void ES5Array::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>* sai = TTD::NSSnapObjects::ExtractArrayValues<TTD::TTDVar>(this, alloc);
+
+        TTD::NSSnapObjects::SnapES5ArrayInfo* es5ArrayInfo = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapES5ArrayInfo>();
+
+        //
+        //TODO: reserving memory for entire length might be a problem if we have very large sparse arrays.
+        //
+
+        uint32 length = this->GetLength();
+
+        es5ArrayInfo->GetterSetterCount = 0;
+        es5ArrayInfo->GetterSetterEntries = alloc.SlabReserveArraySpace<TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry>(length + 1); //ensure we don't do a 0 reserve
+
+        uint32 descriptorIndex = Js::JavascriptArray::InvalidIndex;
+        IndexPropertyDescriptor* descriptor = nullptr;
+        void* descriptorValidationToken = nullptr;
+
+        do
+        {
+            descriptorIndex = this->GetNextDescriptor(descriptorIndex, &descriptor, &descriptorValidationToken);
+            if(descriptorIndex == Js::JavascriptArray::InvalidIndex || descriptorIndex >= length)
+            {
+                break;
+            }
+
+            if((descriptor->Attributes & PropertyDeleted) != PropertyDeleted)
+            {
+                TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry* entry = es5ArrayInfo->GetterSetterEntries + es5ArrayInfo->GetterSetterCount;
+                es5ArrayInfo->GetterSetterCount++;
+
+                entry->Index = (uint32)descriptorIndex;
+                entry->Attributes = descriptor->Attributes;
+
+                entry->Getter = nullptr;
+                if(descriptor->Getter != nullptr)
+                {
+                    entry->Getter = descriptor->Getter;
+                }
+
+                entry->Setter = nullptr;
+                if(descriptor->Setter != nullptr)
+                {
+                    entry->Setter = descriptor->Setter;
+                }
+            }
+
+        } while(true);
+
+        if(es5ArrayInfo->GetterSetterCount != 0)
+        {
+            alloc.SlabCommitArraySpace<TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry>(es5ArrayInfo->GetterSetterCount, length + 1);
+        }
+        else
+        {
+            alloc.SlabAbortArraySpace<TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry>(length + 1);
+            es5ArrayInfo->GetterSetterEntries = nullptr;
+        }
+
+        es5ArrayInfo->BasicArrayData = sai;
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapES5ArrayInfo*, TTD::NSSnapObjects::SnapObjectType::SnapES5ArrayObject>(objData, es5ArrayInfo);
+    }
+#endif
 }

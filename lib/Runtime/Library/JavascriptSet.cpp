@@ -328,4 +328,52 @@ namespace Js
         stringBuilder->AppendCppLiteral(_u("Set"));
         return TRUE;
     }
+
+#if ENABLE_TTD
+    void JavascriptSet::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        auto iterator = this->GetIterator();
+        while(iterator.Next())
+        {
+            extractor->MarkVisitVar(iterator.Current());
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptSet::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapSetObject;
+    }
+
+    void JavascriptSet::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapSetInfo* ssi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapSetInfo>();
+        ssi->SetSize = 0;
+
+        if(this->Size() == 0)
+        {
+            ssi->SetValueArray = nullptr;
+        }
+        else
+        {
+            ssi->SetValueArray = alloc.SlabAllocateArray<TTD::TTDVar>(this->Size());
+
+            auto iter = this->GetIterator();
+            while(iter.Next())
+            {
+                ssi->SetValueArray[ssi->SetSize] = iter.Current();
+                ssi->SetSize++;
+            }
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapSetInfo*, TTD::NSSnapObjects::SnapObjectType::SnapSetObject>(objData, ssi);
+    }
+
+    JavascriptSet* JavascriptSet::CreateForSnapshotRestore(ScriptContext* ctx)
+    {
+        JavascriptSet* res = ctx->GetLibrary()->CreateSet();
+        res->set = RecyclerNew(ctx->GetRecycler(), SetDataSet, ctx->GetRecycler());
+
+        return res;
+    }
+#endif
 }
