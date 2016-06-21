@@ -8364,8 +8364,8 @@ namespace Js
 
     InlineeFrameRecord* EntryPointInfo::FindInlineeFrame(void* returnAddress)
     {
-        if (false) // in-proc JIT
-        { 
+        if (this->nativeDataBuffer == nullptr) // in-proc JIT
+        {
             if (this->inlineeFrameMap == nullptr)
             {
                 return nullptr;

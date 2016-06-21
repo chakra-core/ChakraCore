@@ -1589,7 +1589,7 @@ FloatConstOpnd::GetAddrOpnd(Func *func, bool dontEncode)
 #if !FLOATVAR
     if (this->m_number)
     {
-        if (false) // in-proc JIT
+        if (!func->IsOOPJIT()) // in-proc JIT
         {
             return AddrOpnd::New(this->m_number, (Js::TaggedNumber::Is(this->m_number) ? AddrOpndKindConstantVar : AddrOpndKindDynamicVar), func, dontEncode);
         }
@@ -1932,7 +1932,16 @@ AddrOpnd::NewFromNumber(int32 value, Func *func, bool dontEncode /* = false */)
     }
     else
     {
-        Js::Var number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
+        Js::Var number = nullptr;
+        if (!func->IsOOPJIT()) // in-proc jit
+        {
+            number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
+        }
+        else // OOP JIT
+        {
+            number = func->AllocateOOPNumber((double)value);
+        }
+
         return New(number, AddrOpndKindDynamicVar, func, dontEncode);
     }
 }
@@ -1946,7 +1955,16 @@ AddrOpnd::NewFromNumber(int64 value, Func *func, bool dontEncode /* = false */)
     }
     else
     {
-        Js::Var number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
+        Js::Var number = nullptr;
+        if (!func->IsOOPJIT()) // in-proc jit
+        {
+            number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
+        }
+        else // OOP JIT
+        {
+            number = func->AllocateOOPNumber((double)value);
+        }
+
         return New(number, AddrOpndKindDynamicVar, func, dontEncode);
     }
 }
@@ -1984,7 +2002,16 @@ AddrOpnd::NewFromNumber(double value, Func *func, bool dontEncode /* = false */)
         return New(Js::TaggedInt::ToVarUnchecked(nValue), AddrOpndKindConstantVar, func, dontEncode);
     }
 
-    Js::Var number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
+    Js::Var number = nullptr;
+    if (!func->IsOOPJIT()) // in-proc jit
+    {
+        number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
+    }
+    else // OOP JIT
+    {
+        number = func->AllocateOOPNumber((double)value);
+    }
+
     return New(number, AddrOpndKindDynamicVar, func, dontEncode);
 }
 

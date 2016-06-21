@@ -3439,7 +3439,7 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
             {
                 // TODO (michhol): OOP JIT. we may need to unbox before sending over const table                
 
-                if (false)
+                if (!func->IsOOPJIT())
                 {
                     srcOpnd = IR::FloatConstOpnd::New((Js::Var)varConst, TyFloat64, func);
                 }

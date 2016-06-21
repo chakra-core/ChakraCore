@@ -164,6 +164,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     entryPointToBuiltInOperationIdCache(&threadAlloc, 0),
 #if ENABLE_NATIVE_CODEGEN
     codeGenNumberThreadAllocator(nullptr),
+    xProcNumberPageSegmentManager(nullptr),
 #endif
     dynamicObjectEnumeratorCacheMap(&HeapAllocator::Instance, 16),
     //threadContextFlags(ThreadContextFlagNoFlag),
@@ -432,6 +433,8 @@ ThreadContext::~ThreadContext()
 #if ENABLE_NATIVE_CODEGEN
         HeapDelete(this->codeGenNumberThreadAllocator);
         this->codeGenNumberThreadAllocator = nullptr;
+        HeapDelete(this->xProcNumberPageSegmentManager);
+        this->xProcNumberPageSegmentManager = nullptr;
 #endif
 
         if (this->debugManager != nullptr)
@@ -680,6 +683,9 @@ Recycler* ThreadContext::EnsureRecycler()
         // otherwise, the recycler dtor may encounter problems
         AutoPtr<CodeGenNumberThreadAllocator> localCodeGenNumberThreadAllocator(
             HeapNew(CodeGenNumberThreadAllocator, newRecycler));
+        AutoPtr<XProcNumberPageSegmentManager> localXProcNumberPageSegmentManager(
+            HeapNew(XProcNumberPageSegmentManager, newRecycler));
+        
 #endif
 
         this->recyclableData.Root(RecyclerNewZ(newRecycler, RecyclableData, newRecycler), newRecycler);
@@ -711,6 +717,7 @@ Recycler* ThreadContext::EnsureRecycler()
             InitializePropertyMaps(); // has many dependencies on the recycler and other members of the thread context
 #if ENABLE_NATIVE_CODEGEN
             this->codeGenNumberThreadAllocator = localCodeGenNumberThreadAllocator.Detach();
+            this->xProcNumberPageSegmentManager = localXProcNumberPageSegmentManager.Detach();
 #endif
         }
         catch(...)
@@ -2294,6 +2301,10 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
         if (codeGenNumberThreadAllocator)
         {
             codeGenNumberThreadAllocator->Integrate();
+        }
+        if (this->xProcNumberPageSegmentManager)
+        {
+            this->xProcNumberPageSegmentManager->Integrate();
         }
 #endif
     }

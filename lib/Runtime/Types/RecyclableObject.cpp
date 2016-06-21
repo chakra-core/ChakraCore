@@ -108,7 +108,10 @@ namespace Js
 #endif
 #endif
 #if DBG || defined(PROFILE_TYPES)
-        RecordAllocation(type->GetScriptContext());
+        if (false) // In-proc JIT
+        {
+            RecordAllocation(type->GetScriptContext());
+        }
 #endif
     }
 

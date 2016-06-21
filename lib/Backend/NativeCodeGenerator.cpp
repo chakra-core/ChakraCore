@@ -884,6 +884,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             }
             JITOutputData jitWriteData = {0};
 
+            threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(workItem->GetJITData()->xProcNumberPageSegment);
+
             HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
                 workItem->GetJITData(),
                 scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
@@ -895,6 +897,21 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             }
 
             workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.writeableEPData.frameHeight);
+
+            if (jitWriteData.numberPageSegments)
+            {
+                if (jitWriteData.numberPageSegments->pageAddress == 0)
+                {
+                    midl_user_free(jitWriteData.numberPageSegments);
+                    jitWriteData.numberPageSegments = nullptr;
+                }
+                else
+                {
+                    // TODO: when codegen fail, need to return the segment as well
+                    auto numberChunks = threadContext->GetXProcNumberPageSegmentManager()->RegisterSegments(jitWriteData.numberPageSegments);
+                    epInfo->SetNumberChunks(numberChunks);
+                }
+            }
 
             if (jitWriteData.nativeDataFixupTable)
             {

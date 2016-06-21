@@ -18,6 +18,10 @@ namespace Js
     {
         Assert(type->GetTypeId() == TypeIds_Number);
     }
+
+    __inline JavascriptNumber::JavascriptNumber(double value, StaticType * type, bool oopJIT) : RecyclableObject(type), m_value(value)
+    {
+    }
 #endif
 
     __forceinline Var JavascriptNumber::ToVar(int32 nValue, ScriptContext* scriptContext)

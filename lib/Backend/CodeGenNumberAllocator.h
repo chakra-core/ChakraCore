@@ -63,6 +63,7 @@ CompileAssert(
 
 class CodeGenNumberThreadAllocator
 {
+    friend struct XProcNumberPageSegmentManager;
 public:
     CodeGenNumberThreadAllocator(Recycler * recycler);
     ~CodeGenNumberThreadAllocator();
@@ -144,3 +145,41 @@ private:
     bool finalized;
 #endif
 };
+
+namespace Js
+{
+    class StaticType;
+}
+
+struct XProcNumberPageSegmentImpl : public XProcNumberPageSegment
+{
+    XProcNumberPageSegmentImpl();
+    Js::JavascriptNumber* AllocateNumber(HANDLE hProcess, double value, Js::StaticType* numberTypeStatic, void* javascriptNumberVtbl);
+    unsigned int GetTotalSize() { return this->pageCount * AutoSystemInfo::PageSize; }
+    void* GetEndAddress() { return (void*)(this->pageAddress + this->pageCount * AutoSystemInfo::PageSize); }
+    void* GetCommitEndAddress() { return (void*)(this->pageAddress + this->committedEnd); }
+    // TODO: using CodeGenNumberThreadAllocator to allocate the chunks only, abstract chunk alloc code out of CodeGenNumberThreadAllocator
+    CodeGenNumberThreadAllocator* GetChunkAllocator() { return (CodeGenNumberThreadAllocator*) this->chunkAllocator; }
+};
+
+static_assert(sizeof(XProcNumberPageSegmentImpl) == sizeof(XProcNumberPageSegment), "should not have data member in XProcNumberPageSegmentImpl");
+
+struct XProcNumberPageSegmentManager
+{
+    CriticalSection cs;
+    XProcNumberPageSegmentImpl* segmentsList;
+    Recycler* recycler;
+    unsigned int integratedSegmentCount;
+    XProcNumberPageSegmentManager(Recycler* recycler)
+        :segmentsList(nullptr), recycler(recycler), integratedSegmentCount(0)
+    {
+    }
+
+    ~XProcNumberPageSegmentManager();
+
+    void GetFreeSegment(XProcNumberPageSegment& seg);
+    CodeGenNumberChunk* RegisterSegments(XProcNumberPageSegment* segments);
+
+    void Integrate();
+};
+

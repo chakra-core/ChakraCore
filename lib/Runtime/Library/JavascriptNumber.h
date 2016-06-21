@@ -19,7 +19,7 @@ namespace Js
 #endif
     public:
         JavascriptNumber(double value, StaticType*);
-
+        JavascriptNumber(double value, StaticType*, bool oopJIT);
         static uint32 GetValueOffset()
         {
             return offsetof(JavascriptNumber, m_value);

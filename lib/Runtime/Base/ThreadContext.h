@@ -655,6 +655,7 @@ private:
     JsUtil::JobProcessor *jobProcessor;
     Js::Var * bailOutRegisterSaveSpace;
     CodeGenNumberThreadAllocator * codeGenNumberThreadAllocator;
+    XProcNumberPageSegmentManager * xProcNumberPageSegmentManager;
 #endif
 
     RecyclerRootPtr<RecyclableData> recyclableData;
@@ -1124,6 +1125,10 @@ public:
     CodeGenNumberThreadAllocator * GetCodeGenNumberThreadAllocator() const
     {
         return codeGenNumberThreadAllocator;
+    }
+    XProcNumberPageSegmentManager * GetXProcNumberPageSegmentManager() const
+    {
+        return this->xProcNumberPageSegmentManager;
     }
 #endif
     void ResetFunctionCount() { Assert(this->GetScriptSiteHolderCount() == 0); this->functionCount = 0; }

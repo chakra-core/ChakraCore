@@ -529,6 +529,8 @@ namespace Js
 
         char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
 
+        void SetNumberChunks(CodeGenNumberChunk * chunks) { numberChunks = chunks; }
+
     private:
 #if ENABLE_NATIVE_CODEGEN
         typedef SListCounted<ConstructorCache*, Recycler> ConstructorCacheList;

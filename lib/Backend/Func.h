@@ -100,6 +100,10 @@ public:
     {
         return &this->m_codeGenAllocators->emitBufferManager;
     }
+    XProcNumberPageSegmentImpl* GetXProcNumberAllocator()
+    {
+        return (XProcNumberPageSegmentImpl*)this->GetJITOutput()->GetOutputData()->numberPageSegments;
+    }
 
     Js::ScriptContextProfiler *GetCodeGenProfiler() const
     {
@@ -109,6 +113,8 @@ public:
         return nullptr;
 #endif
     }
+
+    bool IsOOPJIT() { return true; }
 
     void InitLocalClosureSyms();
 
@@ -434,6 +440,8 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     bool IsTJLoopBody()const {
         return this->isTJLoopBody;
     }
+
+    Js::JavascriptNumber* AllocateOOPNumber(double value);
 
     Js::ObjTypeSpecFldInfo* GetObjTypeSpecFldInfo(const uint index) const;
     Js::ObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const;

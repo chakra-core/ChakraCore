@@ -312,7 +312,7 @@ Encoder::Encode()
     {
 
         // TODO: OOP JIT, inlinee frame map
-        if (false) // in-proc JIT
+        if (!m_func->IsOOPJIT()) // in-proc JIT
         {
             entryPointInfo->RecordInlineeFrameMap(m_inlineeFrameMap);
         }

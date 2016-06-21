@@ -176,6 +176,14 @@ PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, bool exter
     }
 }
 
+template<typename T>
+PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, void* address, uint pageCount, uint committedCount) :
+    SegmentBase(allocator, allocator->maxAllocPageCount), decommitPageCount(0), freePageCount(0)
+{
+    this->address = (char*)address;
+    this->segmentPageCount = pageCount;
+}
+
 #ifdef PAGEALLOCATOR_PROTECT_FREEPAGE
 template<typename T>
 bool
@@ -714,6 +722,15 @@ PageAllocatorBase<T>::AllocPageSegment(DListBase<PageSegmentBase<T>>& segmentLis
         segmentList.RemoveHead(&NoThrowNoMemProtectHeapAllocator::Instance);
         return nullptr;
     }
+    return segment;
+}
+
+template<typename T>
+PageSegmentBase<T> *
+PageAllocatorBase<T>::AllocPageSegment(DListBase<PageSegmentBase<T>>& segmentList, PageAllocatorBase<T> * pageAllocator, void* address, uint pageCount, uint committedCount)
+{
+    PageSegmentBase<T> * segment = segmentList.PrependNode(&NoThrowNoMemProtectHeapAllocator::Instance, pageAllocator, address, pageCount, committedCount);
+
     return segment;
 }
 

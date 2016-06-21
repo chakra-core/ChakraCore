@@ -264,7 +264,7 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
     }
 
 
-    if (false)
+    if (!func->IsOOPJIT())
     {
         // Pass in the bailout record
         //     mov  rcx, bailOutRecord

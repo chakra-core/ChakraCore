@@ -211,6 +211,8 @@ CodeGenNumberThreadAllocator::Integrate()
 
     while (!pendingIntegrationChunkBlock.Empty())
     {
+        // REVIEW: the above number block integration can be moved into this loop
+
         TRACK_ALLOC_INFO(recycler, CodeGenNumberChunk, Recycler, 0, (size_t)-1);
 
         BlockRecord& record = pendingIntegrationChunkBlock.Head();
@@ -286,4 +288,236 @@ CodeGenNumberAllocator::Finalize()
     this->chunkTail = nullptr;
     this->currentChunkNumberCount = 0;
     return finalizedChunk;
+}
+
+
+Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(HANDLE hProcess, double value, Js::StaticType* numberTypeStatic, void* javascriptNumberVtbl)
+{
+    XProcNumberPageSegmentImpl* tail = this;
+
+    if (this->pageAddress != 0)
+    {
+        while (tail->nextSegment)
+        {
+            tail = (XProcNumberPageSegmentImpl*)tail->nextSegment;
+        }
+
+        if (tail->pageAddress + tail->committedEnd - tail->allocEndAddress >= sizeCat)
+        {
+            auto number = tail->allocEndAddress;
+            tail->allocEndAddress += sizeCat;
+
+            Js::JavascriptNumber localNumber(value, numberTypeStatic, true);
+
+            // change vtable to the remote one
+            *(void**)&localNumber = javascriptNumberVtbl;
+
+            // initialize number by WriteProcessMemory
+            SIZE_T bytesWritten;
+            WriteProcessMemory(hProcess, (void*)number, &localNumber, sizeof(localNumber), &bytesWritten);
+
+            return (Js::JavascriptNumber*) number;
+        }
+
+        // alloc blocks
+        if ((void*)tail->committedEnd < tail->GetEndAddress())
+        {
+            Assert((unsigned int)((char*)tail->GetEndAddress() - (char*)tail->committedEnd) >= tail->blockSize);
+            // TODO: implement guard pages (still necessary for OOP JIT?)
+            auto ret = ::VirtualAllocEx(hProcess, tail->GetCommitEndAddress(), tail->blockSize, MEM_COMMIT, PAGE_READWRITE);
+            if (!ret)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            tail->committedEnd += tail->blockSize;
+            return AllocateNumber(hProcess, value, numberTypeStatic, javascriptNumberVtbl);
+        }
+    }
+
+    // alloc new segment
+    void* pages = ::VirtualAllocEx(hProcess, nullptr, this->pageCount * AutoSystemInfo::PageSize, MEM_RESERVE, PAGE_READWRITE);
+    if (pages == nullptr)
+    {
+        Js::Throw::OutOfMemory();
+    }
+
+    if (tail->pageAddress == 0)
+    {
+        tail = new (tail) XProcNumberPageSegmentImpl();
+        tail->pageAddress = (int)pages;
+        tail->allocStartAddress = this->pageAddress;
+        tail->allocEndAddress = this->pageAddress;
+        tail->nextSegment = nullptr;
+        return AllocateNumber(hProcess, value, numberTypeStatic, javascriptNumberVtbl);
+    }
+    else
+    {
+        XProcNumberPageSegmentImpl* seg = new (midl_user_allocate(sizeof(XProcNumberPageSegment))) XProcNumberPageSegmentImpl();
+        tail->nextSegment = seg;
+        return seg->AllocateNumber(hProcess, value, numberTypeStatic, javascriptNumberVtbl);
+    }
+}
+
+
+XProcNumberPageSegmentImpl::XProcNumberPageSegmentImpl()
+{
+    this->pageCount = Memory::IdleDecommitPageAllocator::DefaultMaxAllocPageCount;
+    this->sizeCat = HeapInfo::GetAlignedSizeNoCheck(sizeof(Js::JavascriptNumber));
+    this->blockSize = SmallAllocationBlockAttributes::PageCount*AutoSystemInfo::PageSize;
+    this->blockIntegratedSize = 0;
+    this->pageSegment = 0;
+}
+
+CodeGenNumberChunk* ::XProcNumberPageSegmentManager::RegisterSegments(XProcNumberPageSegment* segments)
+{
+    Assert(segments->pageAddress && segments->allocStartAddress && segments->allocEndAddress);
+
+
+    XProcNumberPageSegmentImpl* segmentImpl = (XProcNumberPageSegmentImpl*)segments;
+
+    auto temp = segmentImpl;
+    CodeGenNumberChunk* chunk = nullptr;
+    int numberCount = CodeGenNumberChunk::MaxNumberCount;
+    while (temp)
+    {
+        auto start = temp->allocStartAddress;
+
+        if (temp->GetChunkAllocator() == nullptr)
+        {
+            temp->chunkAllocator = (intptr_t)HeapNew(CodeGenNumberThreadAllocator, this->recycler);
+        }
+
+        while (start < temp->allocEndAddress)
+        {
+            if (numberCount == CodeGenNumberChunk::MaxNumberCount)
+            {
+                auto newChunk = temp->GetChunkAllocator()->AllocChunk();
+                newChunk->next = chunk;
+                chunk = newChunk;
+                numberCount = 0;
+            }
+            chunk->numbers[numberCount++] = (Js::JavascriptNumber*)start;
+            start += temp->sizeCat;
+        }
+
+        temp->GetChunkAllocator()->FlushAllocations();
+
+        temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+    }
+
+    AutoCriticalSection autoCS(&cs);
+    if (this->segmentsList == nullptr)
+    {
+        this->segmentsList = segmentImpl;
+    }
+    else
+    {
+        auto temp = segmentsList;
+        while (temp->nextSegment)
+        {
+            temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+        }
+        temp->nextSegment = segmentImpl;
+    }
+
+    return chunk;
+}
+
+void XProcNumberPageSegmentManager::GetFreeSegment(XProcNumberPageSegment& seg)
+{
+    AutoCriticalSection autoCS(&cs);
+
+    memset(&seg, 0, sizeof(seg));
+
+    if (segmentsList == nullptr)
+    {
+        new (&seg) XProcNumberPageSegmentImpl();
+        return;
+    }
+
+    auto temp = segmentsList;
+    auto prev = &segmentsList;
+    while (temp)
+    {
+        if (temp->allocEndAddress != temp->pageAddress + (int)(temp->pageCount*AutoSystemInfo::PageSize)) // not full
+        {
+            *prev = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+
+            // remove from the list
+            memcpy(&seg, temp, sizeof(seg));
+            midl_user_free(temp);
+            return;
+        }
+        prev = (XProcNumberPageSegmentImpl**)&temp->nextSegment;
+        temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+    }
+}
+
+void XProcNumberPageSegmentManager::Integrate()
+{
+    AutoCriticalSection autoCS(&cs);
+
+    auto temp = this->segmentsList;
+    auto prev = &this->segmentsList;
+    while (temp)
+    {
+        if (temp->pageSegment == 0)
+        {
+            auto leafPageAllocator = recycler->GetRecyclerLeafPageAllocator();
+            DListBase<PageSegment> segmentList;
+            temp->pageSegment = (intptr_t)leafPageAllocator->AllocPageSegment(segmentList, leafPageAllocator,
+                (void*)temp->pageAddress, temp->pageCount, temp->committedEnd / AutoSystemInfo::PageSize);
+            leafPageAllocator->IntegrateSegments(segmentList, 1, temp->pageCount);
+
+            this->integratedSegmentCount++;
+        }
+
+        if (!temp->GetChunkAllocator()->pendingIntegrationChunkBlock.Empty())
+        {
+            Assert(sizeof(CodeGenNumberChunk) == sizeof(Js::JavascriptNumber));
+            size_t minIntegrateSize = temp->blockSize*CodeGenNumberChunk::MaxNumberCount;
+            for (; temp->pageAddress + temp->blockIntegratedSize + minIntegrateSize < (unsigned int)temp->allocEndAddress;
+                temp->blockIntegratedSize += minIntegrateSize)
+            {
+                TRACK_ALLOC_INFO(recycler, Js::JavascriptNumber, Recycler, 0, (size_t)-1);
+
+                if (!recycler->IntegrateBlock<LeafBit>((char*)temp->pageAddress + temp->blockIntegratedSize, (PageSegment*)temp->pageSegment, temp->sizeCat, sizeof(Js::JavascriptNumber)))
+                {
+                    Js::Throw::OutOfMemory();
+                }
+            }
+        }
+
+        temp->GetChunkAllocator()->Integrate();
+
+        if (temp->blockIntegratedSize >= temp->pageCount*AutoSystemInfo::PageSize)
+        {
+            // all pages are integrated, don't need this segment any more
+            *prev = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+            HeapDelete(temp->GetChunkAllocator());
+            midl_user_free(temp);
+            temp = *prev;
+        }
+        else
+        {
+            prev = (XProcNumberPageSegmentImpl**)&temp->nextSegment;
+            temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;
+        }
+
+    }
+}
+
+XProcNumberPageSegmentManager::~XProcNumberPageSegmentManager()
+{
+    auto temp = segmentsList;
+    while (temp)
+    {
+        auto next = temp->nextSegment;
+        if (temp->chunkAllocator)
+        {
+            HeapDelete((CodeGenNumberThreadAllocator*)temp->chunkAllocator);
+        }
+        midl_user_free(temp);
+        temp = (XProcNumberPageSegmentImpl*)next;
+    }
 }
