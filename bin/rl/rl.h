@@ -549,6 +549,21 @@ public:
         return toReturn;
     }
 
+    TWorkObject* GetNextItem_NoBlock(DWORD waitTime)
+    {
+        DWORD dwWait = 0;
+        TWorkObject* toReturn = NULL;
+
+        dwWait = this->WaitForWork(waitTime);
+
+        if(dwWait == WAIT_OBJECT_0) {
+            // pick an item off the head of the work list
+            toReturn = this->Pop();
+        }
+
+        return toReturn;
+    }
+
 #ifndef NODEBUG
     void Dump()
     {

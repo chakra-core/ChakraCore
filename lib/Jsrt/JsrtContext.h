@@ -58,6 +58,9 @@ public:
     virtual void Finalize(bool isShutdown) override sealed;
     virtual void Mark(Recycler * recycler) override sealed;
 
+#if ENABLE_TTD
+    static void OnScriptLoad_TTDCallback(void* jsrtCtx, Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+#endif
     void OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
 protected:
     DEFINE_VTABLE_CTOR_NOBASE(JsrtContext);

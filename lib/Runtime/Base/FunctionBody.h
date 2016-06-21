@@ -2997,11 +2997,16 @@ namespace Js
 #endif
 
         uint GetStatementStartOffset(const uint statementIndex);
+
 #ifdef IR_VIEWER
         void GetSourceLineFromStartOffset(const uint startOffset, LPCUTF8 *sourceBegin, LPCUTF8 *sourceEnd,
             ULONG * line, LONG * col);
         void GetStatementSourceInfo(const uint statementIndex, LPCUTF8 *sourceBegin, LPCUTF8 *sourceEnd,
             ULONG * line, LONG * col);
+#endif
+
+#if ENABLE_TTD
+        void GetSourceLineFromStartOffset_TTD(const uint startOffset, ULONG* line, LONG* col);
 #endif
 
 #ifdef ENABLE_SCRIPT_PROFILING

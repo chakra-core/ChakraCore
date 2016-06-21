@@ -54,6 +54,68 @@ class ByteCodeGenerator;
 interface IActiveScriptDataCache;
 class ActiveScriptProfilerHeapEnum;
 
+////////
+
+#include "Debug/TTSupport.h"
+#include "Debug/TTSerialize.h"
+
+class HostScriptContextCallbackFunctor;
+
+namespace TTD
+{
+    class ScriptContextTTD;
+    class RuntimeContextInfo;
+
+    //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion  
+    //if this bit layout is for the "live" state or potentially only for the snapshot state or the representations change later
+    typedef Js::Var TTDVar;
+
+    namespace NSSnapType
+    {
+        struct SnapPropertyRecord;
+        struct SnapHandlerPropertyEntry;
+        struct SnapHandler;
+        struct SnapType;
+    }
+
+    namespace NSSnapValues
+    {
+        struct SnapPrimitiveValue;
+        struct SlotArrayInfo;
+        struct ScriptFunctionScopeInfo;
+
+        struct TopLevelScriptLoadFunctionBodyResolveInfo;
+        struct TopLevelNewFunctionBodyResolveInfo;
+        struct TopLevelEvalFunctionBodyResolveInfo;
+
+        struct FunctionBodyResolveInfo;
+        struct SnapContext;
+    }
+
+    namespace NSSnapObjects
+    {
+        struct SnapObject;
+    }
+
+    class SnapShot;
+    class SnapshotExtractor;
+
+    class TTDExceptionFramePopper;
+    struct SingleCallCounter;
+
+    namespace NSLogEvents
+    {
+        struct EventLogEntry;
+    }
+
+    class EventLog;
+
+    class TTDebuggerAbortException;
+    class TTDebuggerSourceLocation;
+}
+
+////////
+
 namespace Js
 {
     //
@@ -312,6 +374,16 @@ namespace Js
     };
 }
 
+namespace TTD
+{
+    //typedef for a pin set (ensure that objects are kept live).
+    typedef JsUtil::BaseHashSet<Js::PropertyRecord*, Recycler> PropertyRecordPinSet;
+    typedef JsUtil::BaseHashSet<Js::FunctionBody*, Recycler> FunctionBodyPinSet;
+    typedef JsUtil::BaseHashSet<Js::RecyclableObject*, Recycler> ObjectPinSet;
+    typedef JsUtil::BaseHashSet<Js::FrameDisplay*, Recycler> EnvironmentPinSet;
+    typedef JsUtil::BaseHashSet<Js::Var, Recycler> SlotArrayPinSet;
+}
+
 #include "PlatformAgnostic/ChakraPlatform.h"
 #include "DataStructures/EvalMapString.h"
 
@@ -491,6 +563,22 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types/ScriptFunctionType.h"
 #include "Library/ScriptFunction.h"
 
+#include "Library/JavascriptProxy.h"
+
+#if ENABLE_TTD
+#include "screrror.h"
+
+#include "Debug/TTRuntimeInfoTracker.h"
+#include "Debug/TTInflateMap.h"
+#include "Debug/TTSnapTypes.h"
+#include "Debug/TTSnapValues.h"
+#include "Debug/TTSnapObjects.h"
+#include "Debug/TTSnapshot.h"
+#include "Debug/TTSnapshotExtractor.h"
+#include "Debug/TTEvents.h"
+#include "Debug/TTActionEvents.h"
+#include "Debug/TTEventLog.h"
+#endif
 
 //
 // .inl files

@@ -186,6 +186,12 @@ namespace Js
     public:
         static uint32 GetOffsetOfBuffer()  { return offsetof(TypedArrayBase, buffer); }
         static uint32 GetOffsetOfLength()  { return offsetof(TypedArrayBase, length); }
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     template <typename TypeName, bool clamped = false, bool virtualAllocated = false>

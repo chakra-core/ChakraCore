@@ -67,6 +67,29 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtDiagGetProperties)(unsigned int objectHandle, unsigned int fromCount, unsigned int totalCount, JsValueRef * propertiesObject);
     typedef JsErrorCode(WINAPI *JsrtDiagGetObjectFromHandle)(unsigned int handle, JsValueRef * handleObject);
     typedef JsErrorCode(WINAPI *JsrtDiagEvaluate)(const wchar_t * expression, unsigned int stackFrameIndex, JsValueRef * evalResult);
+
+    typedef JsErrorCode(WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, char16* infoUri, UINT32 snapInterval, UINT32 snapHistoryLength, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
+    typedef JsErrorCode(WINAPI *JsrtTTDCreateDebugRuntimePtr)(JsRuntimeAttributes attributes, char16* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
+    typedef JsErrorCode(WINAPI *JsrtTTDCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
+    typedef JsErrorCode(WINAPI *JsrtTTDRunScriptPtr)(INT64 hostCallbackId, const char16 *script, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result);
+    typedef JsErrorCode(WINAPI *JsrtTTDCallFunctionPtr)(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
+
+    typedef JsErrorCode(WINAPI *JsrtTTDSetIOCallbacksPtr)(JsRuntimeHandle runtime, JsTTDInitializeUriCallback ttdInitializeTTDUriFunction, JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, JsTTDGetLogStreamCallback getLogStreamInfo, JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, JsTTDReadBytesFromStreamCallback readBytesFromStream, JsTTDWriteBytesToStreamCallback writeBytesToStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream);
+
+    typedef JsErrorCode(WINAPI *JsrtTTDStartTimeTravelRecordingPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDStopTimeTravelRecordingPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDEmitTimeTravelRecordingPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDStartTimeTravelDebuggingPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr)();
+    typedef JsErrorCode(WINAPI *JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr)();
+
+    typedef JsErrorCode(WINAPI *JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)(bool isCreate, bool isCancel, bool isRepeating, JsValueRef function, INT64 callbackId);
+    typedef JsErrorCode(WINAPI *JsrtTTDNotifyYieldPtr)();
+
+    typedef JsErrorCode(WINAPI *JsrtTTDPrepContextsForTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime);
+    typedef JsErrorCode(WINAPI *JsrtTTDMoveToTopLevelEventPtr)(INT64 snapshotStartTime, INT64 eventTime);
+    typedef JsErrorCode(WINAPI *JsrtTTDReplayExecutionPtr)(INT64* rootEventTime);
+
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
     JsrtSetCurrentContextPtr pfJsrtSetCurrentContext;
@@ -129,6 +152,28 @@ struct JsAPIHooks
     JsrtDiagGetProperties pfJsrtDiagGetProperties;
     JsrtDiagGetObjectFromHandle pfJsrtDiagGetObjectFromHandle;
     JsrtDiagEvaluate pfJsrtDiagEvaluate;
+
+    JsrtTTDCreateRecordRuntimePtr pfJsrtTTDCreateRecordRuntime;
+    JsrtTTDCreateDebugRuntimePtr pfJsrtTTDCreateDebugRuntime;
+    JsrtTTDCreateContextPtr pfJsrtTTDCreateContext;
+    JsrtTTDRunScriptPtr pfJsrtTTDRunScript;
+    JsrtTTDCallFunctionPtr pfJsrtTTDCallFunction;
+
+    JsrtTTDSetIOCallbacksPtr pfJsrtTTDSetIOCallbacks;
+
+    JsrtTTDStartTimeTravelRecordingPtr pfJsrtTTDStartTimeTravelRecording;
+    JsrtTTDStopTimeTravelRecordingPtr pfJsrtTTDStopTimeTravelRecording;
+    JsrtTTDEmitTimeTravelRecordingPtr pfJsrtTTDEmitTimeTravelRecording;
+    JsrtTTDStartTimeTravelDebuggingPtr pfJsrtTTDStartTimeTravelDebugging;
+    JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr pfJsrtTTDPauseTimeTravelBeforeRuntimeOperation;
+    JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr pfJsrtTTDReStartTimeTravelAfterRuntimeOperation;
+
+    JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr pfJsrtTTDNotifyHostCallbackCreatedOrCanceled;
+    JsrtTTDNotifyYieldPtr pfJsrtTTDNotifyYield;
+
+    JsrtTTDPrepContextsForTopLevelEventMovePtr pfJsrtTTDPrepContextsForTopLevelEventMove;
+    JsrtTTDMoveToTopLevelEventPtr pfJsrtTTDMoveToTopLevelEvent;
+    JsrtTTDReplayExecutionPtr pfJsrtTTDReplayExecution;
 };
 
 class ChakraRTInterface
@@ -272,6 +317,29 @@ public:
         IfJsrtErrorFailLogAndRetErrorCode(ChakraRTInterface::JsStringToPointer(strValue, stringValue, length));
         return JsNoError;
     }
+
+    static JsErrorCode WINAPI JsTTDCreateRecordRuntime(JsRuntimeAttributes attributes, char16* infoUri, UINT32 snapInterval, UINT32 snapHistoryLength, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateRecordRuntime(attributes, infoUri, snapInterval, snapHistoryLength, threadService, runtime); }
+    static JsErrorCode WINAPI JsTTDCreateDebugRuntime(JsRuntimeAttributes attributes, char16* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateDebugRuntime(attributes, infoUri, threadService, runtime); }
+    static JsErrorCode WINAPI JsTTDCreateContext(JsRuntimeHandle runtime, JsContextRef *newContext) { return m_jsApiHooks.pfJsrtTTDCreateContext(runtime, newContext); }
+    static JsErrorCode WINAPI JsTTDRunScript(INT64 hostCallbackId, const char16 *script, DWORD_PTR sourceContext, const char16 *sourceUrl, JsValueRef* result) { return m_jsApiHooks.pfJsrtTTDRunScript(hostCallbackId, script, sourceContext, sourceUrl, result); }
+    static JsErrorCode WINAPI JsTTDCallFunction(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result) { return m_jsApiHooks.pfJsrtTTDCallFunction(hostCallbackId, function, arguments, argumentCount, result); }
+
+    static JsErrorCode WINAPI JsTTDSetIOCallbacks(JsRuntimeHandle runtime, JsTTDInitializeUriCallback ttdInitializeTTDUriFunction, JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, JsTTDGetLogStreamCallback getLogStreamInfo, JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, JsTTDReadBytesFromStreamCallback readBytesFromStream, JsTTDWriteBytesToStreamCallback writeBytesToStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream) { return m_jsApiHooks.pfJsrtTTDSetIOCallbacks(runtime, ttdInitializeTTDUriFunction, writeInitializeFunction, getLogStreamInfo, getSnapshotStreamInfo, getSrcCodeStreamInfo, readBytesFromStream, writeBytesToStream, flushAndCloseStream); }
+
+    static JsErrorCode WINAPI JsTTDStartTimeTravelRecording() { return m_jsApiHooks.pfJsrtTTDStartTimeTravelRecording(); }
+    static JsErrorCode WINAPI JsTTDStopTimeTravelRecording() { return m_jsApiHooks.pfJsrtTTDStopTimeTravelRecording(); }
+    static JsErrorCode WINAPI JsTTDEmitTimeTravelRecording() { return m_jsApiHooks.pfJsrtTTDEmitTimeTravelRecording(); }
+    static JsErrorCode WINAPI JsTTDStartTimeTravelDebugging() { return m_jsApiHooks.pfJsrtTTDStartTimeTravelDebugging(); }
+
+    static JsErrorCode WINAPI JsTTDPauseTimeTravelBeforeRuntimeOperation() { return m_jsApiHooks.pfJsrtTTDPauseTimeTravelBeforeRuntimeOperation(); }
+    static JsErrorCode WINAPI JsTTDReStartTimeTravelAfterRuntimeOperation() { return m_jsApiHooks.pfJsrtTTDReStartTimeTravelAfterRuntimeOperation(); }
+
+    static JsErrorCode WINAPI JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCreate, bool isCancel, bool isRepeating, JsValueRef function, INT64 callbackId) { return m_jsApiHooks.pfJsrtTTDNotifyHostCallbackCreatedOrCanceled(isCreate, isCancel, isRepeating, function, callbackId); }
+    static JsErrorCode WINAPI JsTTDNotifyYield() { return m_jsApiHooks.pfJsrtTTDNotifyYield(); }
+
+    static JsErrorCode WINAPI JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime) { return m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove(runtimeHandle, targetEventTime, targetStartSnapTime); }
+    static JsErrorCode WINAPI JsTTDMoveToTopLevelEvent(INT64 snapshotStartTime, INT64 eventTime) { return m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent(snapshotStartTime, eventTime); }
+    static JsErrorCode WINAPI JsTTDReplayExecution(INT64* rootEventTime) { return m_jsApiHooks.pfJsrtTTDReplayExecution(rootEventTime); }
 };
 
 class AutoRestoreContext

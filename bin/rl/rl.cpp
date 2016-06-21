@@ -408,6 +408,7 @@ CProtectedLong CntDeleteFileFatals;
 CHandle heventDirsEnumerated;
 
 CDirectoryQueue DirectoryQueue;
+CDirectoryQueue DirectoryTestQueue;
 CDirectoryAndTestCaseQueue DirectoryAndTestCaseQueue;
 CThreadInfo*    ThreadInfo = NULL;
 
@@ -4703,49 +4704,49 @@ ThreadWorker( void *arg )
       TargetVM = NULL;
    }
 
-   while (TRUE) {
-      if (bThreadStop)
-         break;
+   while(TRUE) {
+       if(bThreadStop)
+           break;
 
-      // Poll for new stuff. If the thread is set to stop, then go away.
+       // Poll for new stuff. If the thread is set to stop, then go away.
 
-      if (FSingleThreadPerDir)
-      {
-          // Use DirectoryQueue and schedule each directory on a single thread.
-          pDir = DirectoryQueue.GetNextItem();
+       // Use DirectoryQueue and schedule each directory on a single thread.
+       pDir = DirectoryTestQueue.GetNextItem_NoBlock(1000);
+       if(pDir == NULL)
+           break;
 
-          if (pDir == NULL)
-             break;
+       while(TRUE) {
+           RegressDirectory(pDir);
 
-          while (TRUE) {
-             RegressDirectory(pDir);
+           // We're done with this directory.  If we are doing both
+           // baselines and diffs, and it was a baseline directory,
+           // changed to diffs and run again.
 
-             // We're done with this directory.  If we are doing both
-             // baselines and diffs, and it was a baseline directory,
-             // changed to diffs and run again.
+           if(FBaseDiff && pDir->IsBaseline())
+               pDir->SetDiffFlag();
+           else
+               break;
+       }
 
-             if (FBaseDiff && pDir->IsBaseline())
-                pDir->SetDiffFlag();
-             else
-                break;
-          }
+       delete pDir;
+       pDir = NULL;
+   }
 
-          delete pDir;
-          pDir = NULL;
-      }
-      else
-      {
-          // Use DirectoryAndTestCaseQueue and schedule each test on it's own thread.
-          pDirAndTest = DirectoryAndTestCaseQueue.GetNextItem();
+   while(TRUE) {
+       if(bThreadStop)
+           break;
 
-          if (pDirAndTest == NULL)
-             break;
+       // Poll for new stuff. If the thread is set to stop, then go away.
 
-          PerformSingleRegression(pDirAndTest->_pDir, pDirAndTest->_pTest);
+       // Use DirectoryAndTestCaseQueue and schedule each test on it's own thread.
+       pDirAndTest = DirectoryAndTestCaseQueue.GetNextItem_NoBlock(1000);
+       if(pDirAndTest == NULL)
+           break;
 
-          delete pDirAndTest;
-          pDirAndTest = NULL;
-      }
+       PerformSingleRegression(pDirAndTest->_pDir, pDirAndTest->_pTest);
+
+       delete pDirAndTest;
+       pDirAndTest = NULL;
    }
 
    // Make sure we've flushed all the output, especially if we're stopping
@@ -4787,6 +4788,7 @@ main(int argc, char *argv[])
    DWORD err;
    time_t start_total;
    UINT elapsed_total;
+   char flagBuff[64];
 
    start_total = time(NULL);
 
@@ -4958,11 +4960,6 @@ main(int argc, char *argv[])
             if (!FBaseline)
                pDirectory->SetDiffFlag();
 
-            // Always put the directory into the DirectoryQueue.
-            // We will use this queue to clean up the CDirectory objects if FSingleThreadPerDir is
-            // turned off.
-            DirectoryQueue.Append(pDirectory);
-
             if (FRLFE) {
                if (Mode == RM_EXE) {
                   RLFEAddTest(RLS_EXE, pDirectory);
@@ -4975,8 +4972,20 @@ main(int argc, char *argv[])
                }
             }
 
-            if (!FSingleThreadPerDir)
+            strcpy_s(flagBuff, "sequential");
+            BOOL isSerialDirectory = HasInfoList(pDir->defaultTestInfo.data[TIK_TAGS], XML_DELIM, flagBuff, XML_DELIM, false);
+
+            if(isSerialDirectory)
             {
+                DirectoryTestQueue.Append(pDirectory);
+            }
+            else
+            {
+                // Always put the directory into the DirectoryQueue.
+                // We will use this queue to clean up the CDirectory objects if FSingleThreadPerDir is
+                // turned off.
+                DirectoryQueue.Append(pDirectory);
+
                 // Keep track of tests as a flat list so we can split tests
                 // in the same directory across multiple threads.
 

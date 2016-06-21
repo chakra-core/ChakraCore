@@ -12,6 +12,18 @@ add_library (Chakra.Runtime.Debug STATIC
     ProbeContainer.cpp
     RuntimeDebugPch.cpp
     SourceContextInfo.cpp
+    TTActionEvents.cpp
+    TTEventLog.cpp
+    TTEvents.cpp
+    TTInflateMap.cpp
+    TTRuntmeInfoTracker.cpp
+    TTSerialize.cpp
+    TTSnapObjects.cpp
+    TTSnapshot.cpp
+    TTSnapshotExtractor.cpp
+    TTSnapTypes.cpp
+    TTSnapValues.cpp
+    TTSupport.cpp
     )
 
 target_include_directories (

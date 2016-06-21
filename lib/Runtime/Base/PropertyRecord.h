@@ -19,7 +19,7 @@ class ThreadContext;
 
 namespace Js
 {
-    class PropertyRecord : FinalizableObject
+    class PropertyRecord : public FinalizableObject
     {
         friend class ::ThreadContext;
         template <int LEN>

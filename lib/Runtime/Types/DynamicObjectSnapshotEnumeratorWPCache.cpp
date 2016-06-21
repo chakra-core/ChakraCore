@@ -82,13 +82,29 @@ namespace Js
             propertyStringName = propertyString;
             propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
 
-#if DBG
+#if ENABLE_TTD
+            //
+            //TODO: We have code in GetCurrentAndMoveNextFromObject to record replay the order in which properties are enumerated. 
+            //      Since caching may happen differently at record/replay time we need to force this to ensure the log/order is consistent.
+            //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
+            //
+            Js::ScriptContext* actionCtx = this->object->GetScriptContext();
+            if(actionCtx->ShouldPerformRecordAction() | actionCtx->ShouldPerformDebugAction())
+            {
+                PropertyId tempPropertyId;
+                /* JavascriptString * tempPropertyString = */ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
+
+                Assert(tempPropertyId == propertyId);
+                Assert(this->objectIndex == cachedData->indexes[enumeratedCount]);
+            }
+#elif DBG
             PropertyId tempPropertyId;
             /* JavascriptString * tempPropertyString = */ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
 
             Assert(tempPropertyId == propertyId);
             Assert(this->objectIndex == cachedData->indexes[enumeratedCount]);
 #endif
+
             this->objectIndex = cachedData->indexes[enumeratedCount];
             propertyAttributes = cachedData->attributes[enumeratedCount];
 
@@ -113,10 +129,23 @@ namespace Js
         }
         else
         {
-#if DBG
+#if ENABLE_TTD
+            //
+            //TODO: We have code in GetCurrentAndMoveNextFromObject to record replay the order in which properties are enumerated. 
+            //      Since caching may happen differently at record/replay time we need to force this to ensure the log/order is consistent.
+            //      Later we may want to optimize by lifting the TTD code from the call and explicitly calling it here (but not the rest of the enumeration work).
+            //
+            Js::ScriptContext* actionCtx = this->object->GetScriptContext();
+            if(actionCtx->ShouldPerformRecordAction() | actionCtx->ShouldPerformDebugAction())
+            {
+                PropertyId tempPropertyId;
+                /*JavascriptString* tempPropertyStringName =*/ this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes);
+            }
+#elif DBG
             PropertyId tempPropertyId;
             Assert(this->GetCurrentAndMoveNextFromObject(this->objectIndex, tempPropertyId, attributes) == nullptr);
 #endif
+
             propertyStringName = nullptr;
         }
 

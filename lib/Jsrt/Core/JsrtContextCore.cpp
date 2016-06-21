@@ -22,6 +22,13 @@ void JsrtContext::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8
     ((JsrtContextCore *)this)->OnScriptLoad(scriptFunction, utf8SourceInfo, compileException);
 }
 
+#if ENABLE_TTD
+void JsrtContext::OnScriptLoad_TTDCallback(void* jsrtCtx, Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
+{
+    ((JsrtContextCore *)jsrtCtx)->OnScriptLoad(scriptFunction, utf8SourceInfo, compileException);
+}
+#endif
+
 JsrtContextCore::JsrtContextCore(JsrtRuntime * runtime) :
     JsrtContext(runtime)
 {

@@ -698,4 +698,51 @@ namespace Js
     {
         return !ThreadContext::IsOnStack(instance);
     }
+
+#if ENABLE_TTD
+    void DynamicTypeHandler::ExtractSnapHandler(TTD::NSSnapType::SnapHandler* handler, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
+    {
+        handler->HandlerId = TTD_CONVERT_TYPEINFO_TO_PTR_ID(this);
+
+        handler->InlineSlotCapacity = this->inlineSlotCapacity;
+        handler->TotalSlotCapacity = this->slotCapacity;
+
+        handler->MaxPropertyIndex = 0;
+        handler->PropertyInfoArray = nullptr;
+
+        if(handler->TotalSlotCapacity != 0)
+        {
+            handler->PropertyInfoArray = alloc.SlabReserveArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->TotalSlotCapacity);
+            memset(handler->PropertyInfoArray, 0, handler->TotalSlotCapacity * sizeof(TTD::NSSnapType::SnapHandlerPropertyEntry));
+
+            handler->MaxPropertyIndex = this->ExtractSlotInfo_TTD(handler->PropertyInfoArray, threadContext, alloc);
+            AssertMsg(handler->MaxPropertyIndex <= handler->TotalSlotCapacity, "Huh we have more property entries than slots to put them in.");
+
+            if(handler->MaxPropertyIndex != 0)
+            {
+                alloc.SlabCommitArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->MaxPropertyIndex, handler->TotalSlotCapacity);
+            }
+            else
+            {
+                alloc.SlabAbortArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->TotalSlotCapacity);
+                handler->PropertyInfoArray = nullptr;
+            }
+        }
+
+        //The kind of type this snaptype record is associated with and the extensible flag
+        handler->IsExtensibleFlag = this->GetFlags() & IsExtensibleFlag;
+    }
+
+    void DynamicTypeHandler::SetExtensibleFlag_TTD(byte extensibleFlag)
+    {
+        if(extensibleFlag == IsExtensibleFlag)
+        {
+            this->flags |= extensibleFlag;
+        }
+        else
+        {
+            this->flags = (this->flags & ~IsExtensibleFlag);
+        }
+    }
+#endif
 }

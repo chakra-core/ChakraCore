@@ -132,9 +132,9 @@ namespace Js
 
         constructorPrototypeObjectType->SetHasNoEnumerableProperties(true);
 
-        if (scriptContext->GetConfig()->IsTypedArrayEnabled())
+        if(scriptContext->GetConfig()->IsTypedArrayEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled())
+            if(scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled())
             {
                 arrayBufferPrototype = DynamicObject::New(recycler,
                     DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -379,7 +379,7 @@ namespace Js
             datePrototype = RecyclerNewZ(recycler, JavascriptDate, initDateValue, tempDynamicType);
         }
 
-        if (scriptContext->GetConfig()->IsES6PrototypeChain())
+        if(scriptContext->GetConfig()->IsES6PrototypeChain())
         {
             errorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -487,21 +487,21 @@ namespace Js
             DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
             DeferredTypeHandler<InitializeStringIteratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6PromiseEnabled())
+        if(scriptContext->GetConfig()->IsES6PromiseEnabled())
         {
             promisePrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
                 DeferredTypeHandler<InitializePromisePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
         }
 
-        if (scriptContext->GetConfig()->IsES6ProxyEnabled())
+        if(scriptContext->GetConfig()->IsES6ProxyEnabled())
         {
             javascriptEnumeratorIteratorPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
                 DeferredTypeHandler<InitializeJavascriptEnumeratorIteratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
         }
 
-        if (scriptContext->GetConfig()->IsES6GeneratorsEnabled())
+        if(scriptContext->GetConfig()->IsES6GeneratorsEnabled())
         {
             generatorFunctionPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, functionPrototype, nullptr,
@@ -512,7 +512,7 @@ namespace Js
                 DeferredTypeHandler<InitializeGeneratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
         }
 
-        if (scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if(scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             asyncFunctionPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, functionPrototype, nullptr,
@@ -1262,6 +1262,10 @@ namespace Js
         {
             AddFunctionToLibraryObject(globalObject, PropertyIds::CollectGarbage, &GlobalObject::EntryInfo::CollectGarbage, 0);
         }
+
+#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("telemetryLog"), &GlobalObject::EntryInfo::TelemetryLog, 3);
+#endif
 
 #ifdef IR_VIEWER
         if (Js::Configuration::Global.flags.IsEnabled(Js::IRViewerFlag))
@@ -4058,19 +4062,19 @@ namespace Js
         scriptContext->SetBuiltInLibraryFunction(JavascriptString::EntryInfo::ValueOf.GetOriginalEntryPoint(),
                                                                   library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::valueOf,            &JavascriptString::EntryInfo::ValueOf,              0));
 
-        /* No inlining                String_Anchor        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::anchor,             &JavascriptString::EntryInfo::Anchor,               1);
-        /* No inlining                String_Big           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::big,                &JavascriptString::EntryInfo::Big,                  0);
-        /* No inlining                String_Blink         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::blink,              &JavascriptString::EntryInfo::Blink,                0);
-        /* No inlining                String_Bold          */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::bold,               &JavascriptString::EntryInfo::Bold,                 0);
-        /* No inlining                String_Fixed         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fixed,              &JavascriptString::EntryInfo::Fixed,                0);
-        /* No inlining                String_FontColor     */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fontcolor,          &JavascriptString::EntryInfo::FontColor,            1);
-        /* No inlining                String_FontSize      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fontsize,           &JavascriptString::EntryInfo::FontSize,             1);
-        /* No inlining                String_Italics       */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::italics,            &JavascriptString::EntryInfo::Italics,              0);
-        builtinFuncs[BuiltinFunction::String_Link]          = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::link,               &JavascriptString::EntryInfo::Link,                 1);
-        /* No inlining                String_Small         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::Small,              &JavascriptString::EntryInfo::Small,                0);
-        /* No inlining                String_Strike        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::strike,             &JavascriptString::EntryInfo::Strike,               0);
-        /* No inlining                String_Sub           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::sub,                &JavascriptString::EntryInfo::Sub,                  0);
-        /* No inlining                String_Sup           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::sup,                &JavascriptString::EntryInfo::Sup,                  0);
+            /* No inlining                String_Anchor        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::anchor,             &JavascriptString::EntryInfo::Anchor,               1);
+            /* No inlining                String_Big           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::big,                &JavascriptString::EntryInfo::Big,                  0);
+            /* No inlining                String_Blink         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::blink,              &JavascriptString::EntryInfo::Blink,                0);
+            /* No inlining                String_Bold          */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::bold,               &JavascriptString::EntryInfo::Bold,                 0);
+            /* No inlining                String_Fixed         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fixed,              &JavascriptString::EntryInfo::Fixed,                0);
+            /* No inlining                String_FontColor     */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fontcolor,          &JavascriptString::EntryInfo::FontColor,            1);
+            /* No inlining                String_FontSize      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fontsize,           &JavascriptString::EntryInfo::FontSize,             1);
+            /* No inlining                String_Italics       */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::italics,            &JavascriptString::EntryInfo::Italics,              0);
+            builtinFuncs[BuiltinFunction::String_Link]          = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::link,               &JavascriptString::EntryInfo::Link,                 1);
+            /* No inlining                String_Small         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::Small,              &JavascriptString::EntryInfo::Small,                0);
+            /* No inlining                String_Strike        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::strike,             &JavascriptString::EntryInfo::Strike,               0);
+            /* No inlining                String_Sub           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::sub,                &JavascriptString::EntryInfo::Sub,                  0);
+            /* No inlining                String_Sup           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::sup,                &JavascriptString::EntryInfo::Sup,                  0);
 
         if (scriptContext->GetConfig()->IsES6StringExtensionsEnabled())
         {
@@ -4636,8 +4640,56 @@ namespace Js
     {
         Assert(JavascriptFunction::Is(taskVar));
 
-        if (this->nativeHostPromiseContinuationFunction)
+        if(this->nativeHostPromiseContinuationFunction)
         {
+#if ENABLE_TTD
+            if(this->scriptContext->ShouldPerformDebugAction())
+            {
+                scriptContext->TTDRootNestingCount++;
+
+                this->scriptContext->GetThreadContext()->TTDLog->ReplayEnqueueTaskEvent(scriptContext, taskVar);
+
+                scriptContext->TTDRootNestingCount--;
+            }
+            else if(this->scriptContext->ShouldPerformRecordAction())
+            {
+                this->scriptContext->TTDRootNestingCount++;
+                TTD::NSLogEvents::EventLogEntry* evt = this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskEvent(taskVar);
+
+                BEGIN_LEAVE_SCRIPT(this->scriptContext);
+                try
+                {
+                    this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
+                }
+                catch(...)
+                {
+                    // Hosts are required not to pass exceptions back across the callback boundary. If
+                    // this happens, it is a bug in the host, not something that we are expected to
+                    // handle gracefully.
+                    Js::Throw::FatalInternalError();
+                }
+                END_LEAVE_SCRIPT(this->scriptContext);
+
+                this->scriptContext->GetThreadContext()->TTDLog->RecordEnqueueTaskEvent_Complete(evt);
+                this->scriptContext->TTDRootNestingCount--;
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT(scriptContext);
+                try
+                {
+                    this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
+                }
+                catch(...)
+                {
+                    // Hosts are required not to pass exceptions back across the callback boundary. If
+                    // this happens, it is a bug in the host, not something that we are expected to
+                    // handle gracefully.
+                    Js::Throw::FatalInternalError();
+                }
+                END_LEAVE_SCRIPT(scriptContext);
+            }
+#else
             BEGIN_LEAVE_SCRIPT(scriptContext);
             try
             {
@@ -4650,9 +4702,17 @@ namespace Js
                 Js::Throw::FatalInternalError();
             }
             END_LEAVE_SCRIPT(scriptContext);
+#endif
         }
         else
         {
+#if ENABLE_TTD
+            //
+            //TODO: need to implement support for this path
+            //
+            AssertMsg(false, "Path not implemented in TTD!!!");
+#endif
+
             HRESULT hr = scriptContext->GetHostScriptContext()->EnqueuePromiseTask(taskVar);
             if (hr != S_OK)
             {
@@ -4790,6 +4850,234 @@ namespace Js
         return RecyclerNew(scriptContext->GetRecycler(), JavascriptRegExp, emptyRegexPattern,
                            this->GetRegexType());
     }
+
+#if ENABLE_TTD
+    Js::PropertyId JavascriptLibrary::ExtractPrimitveSymbolId_TTD(Var value)
+    {
+        return Js::JavascriptSymbol::FromVar(value)->GetValue()->GetPropertyId();
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePrimitveSymbol_TTD(Js::PropertyId pid)
+    {
+        return this->CreateSymbol(this->scriptContext->GetPropertyName(pid));
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePrimitveSymbol_TTD(Js::JavascriptString* str)
+    {
+        return this->CreateSymbol(str);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateBooleanObject_TTD(Var value)
+    {
+        if(value == nullptr)
+        {
+            return this->CreateBooleanObject();
+        }
+        else
+        {
+            return this->CreateBooleanObject(JavascriptBoolean::FromVar(value)->GetValue());
+        }
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateNumberObject_TTD(Var value)
+    {
+        return this->CreateNumberObject(value);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateStringObject_TTD(Var value)
+    {
+        if(value == nullptr)
+        {
+            return this->CreateStringObject(nullptr);
+        }
+        else
+        {
+            return this->CreateStringObject(JavascriptString::FromVar(value));
+        }
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateSymbolObject_TTD(Var value)
+    {
+        if(value == nullptr)
+        {
+            return this->CreateSymbolObject(nullptr);
+        }
+        else
+        {
+            return this->CreateSymbolObject(JavascriptSymbol::FromVar(value));
+        }
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateDate_TTD(double value)
+    {
+        return this->CreateDate(value);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateRegex_TTD(const char16* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex)
+    {
+        Js::JavascriptRegExp* re = Js::JavascriptRegExp::CreateRegEx(patternSource, patternLength, flags, this->scriptContext);
+        re->SetLastIndex(lastIndex);
+
+        return re;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateError_TTD()
+    {
+        return this->CreateError();
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateES5Array_TTD()
+    {
+        Js::JavascriptArray* arrayObj = this->CreateArray();
+        arrayObj->GetTypeHandler()->ConvertToTypeWithItemAttributes(arrayObj);
+
+        return arrayObj;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateSet_TTD()
+    {
+        return JavascriptSet::CreateForSnapshotRestore(this->scriptContext);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateWeakSet_TTD()
+    {
+        return this->CreateWeakSet();
+    }
+
+    void JavascriptLibrary::AddSetElementInflate_TTD(Js::JavascriptSet* set, Var value)
+    {
+        set->Add(value);
+    }
+
+    void JavascriptLibrary::AddWeakSetElementInflate_TTD(Js::JavascriptWeakSet* set, Var value)
+    {
+        set->GetScriptContext()->TTDContextInfo->TTDWeakReferencePinSet->Add(Js::DynamicObject::FromVar(value));
+
+        set->Add(Js::DynamicObject::FromVar(value));
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateMap_TTD()
+    {
+        return JavascriptMap::CreateForSnapshotRestore(this->scriptContext);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateWeakMap_TTD()
+    {
+        return this->CreateWeakMap();
+    }
+
+    void JavascriptLibrary::AddMapElementInflate_TTD(Js::JavascriptMap* map, Var key, Var value)
+    {
+        map->Set(key, value);
+    }
+
+    void JavascriptLibrary::AddWeakMapElementInflate_TTD(Js::JavascriptWeakMap* map, Var key, Var value)
+    {
+        map->GetScriptContext()->TTDContextInfo->TTDWeakReferencePinSet->Add(Js::DynamicObject::FromVar(key));
+
+        map->Set(Js::DynamicObject::FromVar(key), value);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateExternalFunction_TTD(Js::JavascriptString* fname)
+    {
+        return this->CreateExternalFunction(nullptr, fname, nullptr, 0, 0);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args)
+    {
+        return BoundFunction::InflateBoundFunction(this->scriptContext, function, bThis, ct, args);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateProxy_TTD(RecyclableObject* handler, RecyclableObject* target)
+    {
+        JavascriptProxy* newProxy = RecyclerNew(this->scriptContext->GetRecycler(), JavascriptProxy, this->GetProxyType(), this->scriptContext, target, handler);
+
+        if(target != nullptr && JavascriptConversion::IsCallable(target))
+        {
+            newProxy->ChangeType();
+            newProxy->GetDynamicType()->SetEntryPoint(JavascriptProxy::FunctionCallTrap);
+        }
+
+        return newProxy;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateRevokeFunction_TTD(RecyclableObject* proxy)
+    {
+        RuntimeFunction* revoker = RecyclerNewEnumClass(this->scriptContext->GetRecycler(), this->EnumFunctionClass, RuntimeFunction, this->CreateFunctionWithLengthAndPrototypeType(&JavascriptProxy::EntryInfo::Revoke), &JavascriptProxy::EntryInfo::Revoke);
+
+        revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(0), PropertyNone, NULL);
+        revoker->SetInternalProperty(Js::InternalPropertyIds::RevocableProxy, proxy, PropertyOperationFlags::PropertyOperation_Force, nullptr);
+
+        return revoker;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateHeapArguments_TTD(uint32 numOfArguments, uint32 formalCount, ActivationObject* frameObject, byte* deletedArray)
+    {
+        Js::HeapArgumentsObject* argsObj = this->CreateHeapArguments(frameObject, formalCount);
+
+        argsObj->SetNumberOfArguments(numOfArguments);
+        for(uint32 i = 0; i < formalCount; ++i)
+        {
+            if(deletedArray[i])
+            {
+                argsObj->DeleteItemAt(i);
+            }
+        }
+
+        return argsObj;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateES5HeapArguments_TTD(uint32 numOfArguments, uint32 formalCount, ActivationObject* frameObject, byte* deletedArray)
+    {
+        Js::HeapArgumentsObject* argsObj = this->CreateHeapArguments(frameObject, formalCount);
+
+        argsObj->SetNumberOfArguments(numOfArguments);
+        for(uint32 i = 0; i < formalCount; ++i)
+        {
+            if(deletedArray[i])
+            {
+                argsObj->DeleteItemAt(i);
+            }
+        }
+
+        return argsObj->ConvertToES5HeapArgumentsObject_TTD();
+    }
+
+    Js::JavascriptPromiseCapability* JavascriptLibrary::CreatePromiseCapability_TTD(Var promise, Var resolve, Var reject)
+    {
+        return JavascriptPromiseCapability::New(promise, resolve, reject, this->scriptContext);
+    }
+
+    Js::JavascriptPromiseReaction* JavascriptLibrary::CreatePromiseReaction_TTD(RecyclableObject* handler, JavascriptPromiseCapability* capabilities)
+    {
+        return JavascriptPromiseReaction::New(capabilities, handler, this->scriptContext);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePromise_TTD(uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions)
+    {
+        return JavascriptPromise::InitializePromise_TTD(this->scriptContext, status, result, resolveReactions, rejectReactions);
+    }
+
+    JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* JavascriptLibrary::CreateAlreadyDefinedWrapper_TTD(bool alreadyDefined)
+    {
+        JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedRecord = RecyclerNewStructZ(scriptContext->GetRecycler(), JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper);
+        alreadyResolvedRecord->alreadyResolved = alreadyDefined;
+
+        return alreadyResolvedRecord;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePromiseResolveOrRejectFunction_TTD(RecyclableObject* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolved)
+    {
+        AssertMsg(JavascriptPromise::Is(promise), "Not a promise!");
+
+        return this->CreatePromiseResolveOrRejectFunction(JavascriptPromise::EntryResolveOrRejectFunction, static_cast<JavascriptPromise*>(promise), isReject, alreadyResolved);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePromiseReactionTaskFunction_TTD(JavascriptPromiseReaction* reaction, Var argument)
+    {
+        return this->CreatePromiseReactionTaskFunction(JavascriptPromise::EntryReactionTaskFunction, reaction, argument);
+    }
+#endif
 
     void JavascriptLibrary::SetCrossSiteForSharedFunctionType(JavascriptFunction * function)
     {
@@ -6823,19 +7111,19 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(trim, JavascriptString::EntryTrim);
         REG_OBJECTS_LIB_FUNC(valueOf, JavascriptString::EntryValueOf);
 
-        REG_OBJECTS_LIB_FUNC(anchor, JavascriptString::EntryAnchor);
-        REG_OBJECTS_LIB_FUNC(big, JavascriptString::EntryBig);
-        REG_OBJECTS_LIB_FUNC(blink, JavascriptString::EntryBlink);
-        REG_OBJECTS_LIB_FUNC(bold, JavascriptString::EntryBold);
-        REG_OBJECTS_LIB_FUNC(fixed, JavascriptString::EntryFixed);
-        REG_OBJECTS_LIB_FUNC(fontcolor, JavascriptString::EntryFontColor);
-        REG_OBJECTS_LIB_FUNC(fontsize, JavascriptString::EntryFontSize);
-        REG_OBJECTS_LIB_FUNC(italics, JavascriptString::EntryItalics);
-        REG_OBJECTS_LIB_FUNC(link, JavascriptString::EntryLink);
-        REG_OBJECTS_DYNAMIC_LIB_FUNC(_u("small"), 5, JavascriptString::EntrySmall);
-        REG_OBJECTS_LIB_FUNC(strike, JavascriptString::EntryStrike);
-        REG_OBJECTS_LIB_FUNC(sub, JavascriptString::EntrySub);
-        REG_OBJECTS_LIB_FUNC(sup, JavascriptString::EntrySup);
+            REG_OBJECTS_LIB_FUNC(anchor, JavascriptString::EntryAnchor);
+            REG_OBJECTS_LIB_FUNC(big, JavascriptString::EntryBig);
+            REG_OBJECTS_LIB_FUNC(blink, JavascriptString::EntryBlink);
+            REG_OBJECTS_LIB_FUNC(bold, JavascriptString::EntryBold);
+            REG_OBJECTS_LIB_FUNC(fixed, JavascriptString::EntryFixed);
+            REG_OBJECTS_LIB_FUNC(fontcolor, JavascriptString::EntryFontColor);
+            REG_OBJECTS_LIB_FUNC(fontsize, JavascriptString::EntryFontSize);
+            REG_OBJECTS_LIB_FUNC(italics, JavascriptString::EntryItalics);
+            REG_OBJECTS_LIB_FUNC(link, JavascriptString::EntryLink);
+            REG_OBJECTS_DYNAMIC_LIB_FUNC(_u("small"), 5, JavascriptString::EntrySmall);
+            REG_OBJECTS_LIB_FUNC(strike, JavascriptString::EntryStrike);
+            REG_OBJECTS_LIB_FUNC(sub, JavascriptString::EntrySub);
+            REG_OBJECTS_LIB_FUNC(sup, JavascriptString::EntrySup);
 
         if (config.IsES6StringExtensionsEnabled())
         {

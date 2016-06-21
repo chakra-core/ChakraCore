@@ -190,6 +190,18 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     isAllJITCodeInPreReservedRegion(true),
     tridentLoadAddress(nullptr),
     debugManager(nullptr)
+#if ENABLE_TTD
+    , IsTTRequested(false)
+    , IsTTRecordRequested(false)
+    , IsTTDebugRequested(false)
+    , TTDUri(nullptr)
+    , TTSnapInterval(2000)
+    , TTSnapHistoryLength(UINT32_MAX)
+    , TTDLog(nullptr)
+    , TTDInitializeTTDUriFunction(nullptr)
+    , TTDWriteInitializeFunction(nullptr)
+    , TTDStreamFunctions({ 0 })
+#endif
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
     , directCallTelemetry(this)
 #endif
@@ -331,6 +343,20 @@ ThreadContext::~ThreadContext()
         AutoCriticalSection autocs(ThreadContext::GetCriticalSection());
         ThreadContext::Unlink(this, &ThreadContext::globalListFirst, &ThreadContext::globalListLast);
     }
+
+#if ENABLE_TTD
+    if(this->TTDUri != nullptr)
+    {
+        HeapDeleteArray(wcslen(this->TTDUri) + 1, this->TTDUri);
+        this->TTDUri = nullptr;
+    }
+
+    if(this->TTDLog != nullptr)
+    {
+        HeapDelete(this->TTDLog);
+        this->TTDLog = nullptr;
+    }
+#endif
 
 #ifdef LEAK_REPORT
     if (Js::Configuration::Global.flags.IsEnabled(Js::LeakReportFlag))
@@ -879,6 +905,26 @@ ThreadContext::CreatePropertyRecordWeakRef(const Js::PropertyRecord * propertyRe
 Js::PropertyRecord const *
 ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& propertyName, bool bind, bool isSymbol)
 {
+#if ENABLE_TTD
+    if(this->TTDLog != nullptr && this->TTDLog->ShouldPerformDebugAction_SymbolCreation())
+    {
+        //We reload all properties that occour in the trace so they only way we get here in TTD mode is:
+        //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or 
+        //(2) if it is forcing arguments in debug parse mode (instead of regular which we recorded in)
+        if(isSymbol)
+        {
+            Js::PropertyId propertyId = Js::Constants::NoProperty;
+            this->TTDLog->ReplaySymbolCreationEvent(&propertyId);
+
+            //Don't recreate the symbol below, instead return the known symbol by looking up on the pid
+            const Js::PropertyRecord* res = this->GetPropertyName(propertyId);
+            AssertMsg(res != nullptr, "This should never happen!!!");
+
+            return res;
+        }
+    }
+#endif
+
     this->propertyMap->EnsureCapacity();
 
     // Automatically bind direct (single-character) property names, so that they can be
@@ -926,6 +972,14 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     }
 
     Js::PropertyId propertyId = this->GetNextPropertyId();
+
+#if ENABLE_TTD
+    if(isSymbol & (this->TTDLog != nullptr && this->TTDLog->ShouldPerformRecordAction_SymbolCreation()))
+    {
+        this->TTDLog->RecordSymbolCreationEvent(propertyId);
+    }
+#endif
+
     propertyRecord->pid = propertyId;
 
     AddPropertyRecordInternal(propertyRecord);
@@ -951,6 +1005,13 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     if (!propertyRecord->IsSymbol())
     {
         Assert(FindPropertyRecord(propertyName, propertyNameLength) == nullptr);
+    }
+#endif
+
+#if ENABLE_TTD
+    if(this->TTDLog != nullptr)
+    {
+        this->TTDLog->AddPropertyRecord(propertyRecord);
     }
 #endif
 
@@ -1772,6 +1833,52 @@ ThreadContext::IsInAsyncHostOperation() const
         }
     }
     return false;
+}
+#endif
+
+#if ENABLE_TTD
+
+bool ThreadContext::IsTTDInitialized() const
+{
+    return (this->TTDLog != nullptr);
+}
+
+void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay, uint32 snapInterval, uint32 snapHistoryLength)
+{
+    AssertMsg(this->TTDLog == nullptr, "We should only init once.");
+    AssertMsg((doRecord & !doReplay) || (!doRecord && doReplay), "Should be exactly 1 of record or replay.");
+
+    this->TTDLog = HeapNew(TTD::EventLog, this, ttdDirectory, snapInterval, snapHistoryLength);
+
+    if(doRecord)
+    {
+        this->TTDLog->InitForTTDRecord();
+    }
+
+    if(doReplay)
+    {
+        this->TTDLog->InitForTTDReplay();
+    }
+}
+
+void ThreadContext::BeginCtxTimeTravel(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor)
+{
+    AssertMsg(!ctx->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
+
+    this->TTDLog->StartTimeTravelOnScript(ctx, callbackFunctor);
+}
+
+void ThreadContext::EndCtxTimeTravel(Js::ScriptContext* ctx)
+{
+    AssertMsg(!ctx->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
+
+    this->TTDLog->SetGlobalMode(TTD::TTDMode::Detached);
+    this->TTDLog->StopTimeTravelOnScript(ctx);
+}
+
+void ThreadContext::EmitTTDLogIfNeeded()
+{
+    this->TTDLog->EmitLogIfNeeded();
 }
 #endif
 

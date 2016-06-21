@@ -88,8 +88,23 @@ namespace Js
 
             // ES5 15.9.2.1: Date() should returns a string exactly the same as (new Date().toString()).
             JavascriptDate* pDate = NewInstanceAsConstructor(args, scriptContext, /* forceCurrentDate */ true);
+            JavascriptString* res = JavascriptDate::ToString(pDate);
 
-            return JavascriptDate::ToString(pDate);
+#if ENABLE_TTD
+            if(scriptContext->ShouldPerformDebugAction())
+            {
+                scriptContext->GetThreadContext()->TTDLog->ReplayDateStringEvent(scriptContext, &res);
+            }
+            else if(scriptContext->ShouldPerformRecordAction())
+            {
+                scriptContext->GetThreadContext()->TTDLog->RecordDateStringEvent(res);
+            }
+            else
+            {
+                ;
+            }
+#endif
+            return res;
         }
         else
         {
@@ -119,7 +134,24 @@ namespace Js
         //
         if (forceCurrentDate || args.Info.Count == 1)
         {
-            pDate->m_date.SetTvUtc(DateImplementation::NowFromHiResTimer(scriptContext));
+            double resTime = DateImplementation::NowFromHiResTimer(scriptContext);
+
+#if ENABLE_TTD
+            if(scriptContext->ShouldPerformDebugAction())
+            {
+                scriptContext->GetThreadContext()->TTDLog->ReplayDateTimeEvent(&resTime);
+            }
+            else if(scriptContext->ShouldPerformRecordAction())
+            {
+                scriptContext->GetThreadContext()->TTDLog->RecordDateTimeEvent(resTime);
+            }
+            else
+            {
+                ;
+            }
+#endif
+
+            pDate->m_date.SetTvUtc(resTime);
             return pDate;
         }
 
@@ -772,6 +804,22 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
 
         double dblRetVal = DateImplementation::NowInMilliSeconds(scriptContext);
+
+#if ENABLE_TTD
+        if(scriptContext->ShouldPerformDebugAction())
+        {
+            scriptContext->GetThreadContext()->TTDLog->ReplayDateTimeEvent(&dblRetVal);
+        }
+        else if(scriptContext->ShouldPerformRecordAction())
+        {
+            scriptContext->GetThreadContext()->TTDLog->RecordDateTimeEvent(dblRetVal);
+        }
+        else
+        {
+            ;
+        }
+#endif
+
         return JavascriptNumber::ToVarNoCheck(dblRetVal,scriptContext);
     }
 
@@ -1565,6 +1613,23 @@ namespace Js
         }
         return FALSE;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptDate::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapDateObject;
+    }
+
+    void JavascriptDate::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(this->GetTypeId() == TypeIds_Date, "We don't handle WinRT or other types of dates yet!");
+
+        double* millis = alloc.SlabAllocateStruct<double>();
+        *millis = m_date.GetMilliSeconds();
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<double*, TTD::NSSnapObjects::SnapObjectType::SnapDateObject>(objData, millis);
+    }
+#endif
 
     BOOL JavascriptDate::ToPrimitive(JavascriptHint hint, Var* result, ScriptContext * requestContext)
     {
