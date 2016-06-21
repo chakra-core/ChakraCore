@@ -445,24 +445,26 @@ char *MiscGetenv(const char *name)
     InternalEnterCriticalSection(pthrCurrent, &gcsEnvironment);
 
     length = strlen(name);
-    for(i = 0; palEnvironment[i] != NULL; i++)
+    if (palEnvironment)
     {
-        if (memcmp(palEnvironment[i], name, length) == 0)
+        for(i = 0; palEnvironment[i] != NULL; i++)
         {
-            equals = palEnvironment[i] + length;
-            if (*equals == '\0')
+            if (memcmp(palEnvironment[i], name, length) == 0)
             {
-                pRet = (char *) "";
-                goto done;
-            } 
-            else if (*equals == '=') 
-            {
-                pRet = equals + 1;
-                goto done;
+                equals = palEnvironment[i] + length;
+                if (*equals == '\0')
+                {
+                    pRet = (char *) "";
+                    goto done;
+                }
+                else if (*equals == '=')
+                {
+                    pRet = equals + 1;
+                    goto done;
+                }
             }
         }
     }
-
 done:
     InternalLeaveCriticalSection(pthrCurrent, &gcsEnvironment);
     return pRet;
