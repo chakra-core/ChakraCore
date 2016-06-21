@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
-
 function(clr_unknown_arch)
     if (WIN32)
         message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
