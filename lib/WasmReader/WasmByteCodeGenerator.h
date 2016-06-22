@@ -67,6 +67,18 @@ namespace Wasm
         };
     };
 
+    struct BlockYieldInfo
+    {
+        Js::RegSlot yieldLocs[WasmTypes::Limit];
+        WasmTypes::WasmType type = WasmTypes::Void;
+    };
+
+    struct BlockInfo
+    {
+        BlockYieldInfo* yieldInfo = nullptr;
+        Js::ByteCodeLabel label;
+    };
+
     typedef JsUtil::BaseDictionary<uint, LPCUTF8, ArenaAllocator> WasmExportDictionary;
 
     class WasmBytecodeGenerator
@@ -126,7 +138,11 @@ namespace Wasm
         void EnregisterLocals();
         void ReleaseLocation(EmitInfo * info);
 
-        Js::ByteCodeLabel GetLabel(uint index);
+        EmitInfo PopLabel(Js::ByteCodeLabel labelValidation);
+        void PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo = true);
+        void YieldToBlock(uint relativeDepth, EmitInfo expr);
+        BlockInfo GetBlockInfo(uint relativeDepth);
+        Js::ByteCodeLabel GetLabel(uint relativeDepth);
 
         template <typename T>
         Js::RegSlot GetConstReg(T constVal);
@@ -163,8 +179,7 @@ namespace Wasm
         WasmRegisterSpace * m_f32RegSlots;
         WasmRegisterSpace * m_f64RegSlots;
 
-        SListCounted<Js::ByteCodeLabel> * m_labels;
-
+        JsUtil::Stack<BlockInfo> m_blockInfos;
         JsUtil::Stack<EmitInfo> m_evalStack;
     };
 }
