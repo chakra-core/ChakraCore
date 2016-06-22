@@ -2942,6 +2942,11 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
     for (pnodeScope = pnodeScopeList; pnodeScope;)
     {
+        if (breakOnBodyScope && pnodeScope == pnodeParent->sxFnc.pnodeBodyScope)
+        {
+            break;
+        }
+
         switch (pnodeScope->nop)
         {
         case knopFncDecl:
@@ -3161,11 +3166,6 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
         default:
             AssertMsg(false, "Unexpected opcode in tree of scopes");
             return;
-        }
-
-        if (breakOnBodyScope && pnodeScope == pnodeParent->sxFnc.pnodeBodyScope)
-        {
-            break;
         }
     }
 }
