@@ -8,6 +8,7 @@
 #include "RuntimeDebugPch.h"
 #include "ThreadContextTlsEntry.h"
 #include "JsrtDebugUtils.h"
+#include "Codex/Utf8Helper.h"
 
 #define VALIDATE_IS_DEBUGGING(jsrtDebugManager) \
     if (jsrtDebugManager == nullptr || !jsrtDebugManager->IsDebugEventCallbackSet()) \
@@ -625,7 +626,6 @@ CHAKRA_API JsDiagGetObjectFromHandle(
     });
 }
 
-#ifdef _WIN32
 CHAKRA_API JsDiagEvaluate(
     _In_ const wchar_t *expression,
     _In_ unsigned int stackFrameIndex,
@@ -671,4 +671,18 @@ CHAKRA_API JsDiagEvaluate(
 
     }, false /*allowInObjectBeforeCollectCallback*/, true /*scriptExceptionAllowed*/);
 }
-#endif
+
+CHAKRA_API JsDiagEvaluateUtf8(
+    _In_ const char *expression,
+    _In_ unsigned int stackFrameIndex,
+    _Out_ JsValueRef *evalResult)
+{
+    PARAM_NOT_NULL(expression);
+    utf8::NarrowToWide wstr(expression, strlen(expression));
+    if (!wstr)
+    {
+        return JsErrorOutOfMemory;
+    }
+
+    return JsDiagEvaluate(wstr, stackFrameIndex, evalResult);
+}

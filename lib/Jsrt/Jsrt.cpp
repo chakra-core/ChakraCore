@@ -905,7 +905,7 @@ CHAKRA_API JsStringToPointer(_In_ JsValueRef stringValue, _Outptr_result_buffer_
     });
 }
 
-CHAKRA_API JsStringToPointerUtf8(_In_ JsValueRef stringValue, _Outptr_result_buffer_(*stringLength) const char **stringPtr, _Out_ size_t *stringLength)
+CHAKRA_API JsStringToPointerUtf8Copy(_In_ JsValueRef stringValue, _Outptr_result_buffer_(*stringLength) char **stringPtr, _Out_ size_t *stringLength)
 {
     const wchar_t* wstr;
     size_t wstrLen;
@@ -917,7 +917,6 @@ CHAKRA_API JsStringToPointerUtf8(_In_ JsValueRef stringValue, _Outptr_result_buf
         *stringPtr = nullptr;
         *stringLength = 0;
 
-        // xplat-todo: fix lifetime. caller allocate space, or caller free?
         // xplat-todo: fix encoding. The result is cesu8.
         utf8::WideToNarrow str(wstr, wstrLen);
         if (str)
@@ -2359,6 +2358,29 @@ CHAKRA_API JsGetPropertyNameFromId(_In_ JsPropertyIdRef propertyId, _Outptr_resu
     });
 }
 
+CHAKRA_API JsGetPropertyNameFromIdUtf8Copy(_In_ JsPropertyIdRef propertyId, _Outptr_result_z_ char **name)
+{
+    const wchar_t *wname = nullptr;
+ 
+    JsErrorCode err = JsGetPropertyNameFromId(propertyId, &wname);
+
+    if (err == JsNoError)
+    {
+        // xplat-todo: fix encoding. The result is cesu8.
+        utf8::WideToNarrow str(wname, wcslen(wname));
+        if (str)
+        {
+            *name = str.Detach();
+        }
+        else
+        {
+            err = JsErrorOutOfMemory;
+        }
+    }
+
+    return err;
+}
+
 CHAKRA_API JsGetPropertyIdType(_In_ JsPropertyIdRef propertyId, _Out_ JsPropertyIdType* propertyIdType)
 {
     return GlobalAPIWrapper([&]() -> JsErrorCode {
@@ -2549,6 +2571,7 @@ JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, 
     return RunScriptCore(reinterpret_cast<const byte*>(script), wcslen(script) * sizeof(wchar_t), LoadScriptFlag_None, sourceContext, sourceUrl, parseOnly, parseAttributes, isSourceModule, result);
 }
 
+#ifdef _WIN32
 CHAKRA_API JsParseScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
     return RunScriptCore(script, sourceContext, sourceUrl, true, JsParseScriptAttributeNone, false, result);
@@ -2573,6 +2596,7 @@ CHAKRA_API JsExperimentalApiRunModule(_In_z_ const wchar_t * script, _In_ JsSour
 {
     return RunScriptCore(script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, true, result);
 }
+#endif
 
 JsErrorCode JsSerializeScriptCore(const byte *script, size_t cb, LoadScriptFlag loadScriptFlag, BYTE *functionTable, int functionTableSize, unsigned char *buffer, unsigned int *bufferSize)
 {
@@ -2839,6 +2863,16 @@ CHAKRA_API JsParseScriptUtf8(
             JsParseScriptAttributeNone, /*isSourceModule*/false, result);
 }
 
+CHAKRA_API JsParseScriptWithAttributesUtf8(
+    _In_z_ const char *script,
+    _In_ JsSourceContext sourceContext,
+    _In_z_ const char *sourceUrl,
+    _In_ JsParseScriptAttributes parseAttributes,
+    _Out_ JsValueRef *result)
+{
+    return RunScriptCore(script, sourceContext, sourceUrl, true, parseAttributes, false, result);
+}
+
 CHAKRA_API JsRunScriptUtf8(
     _In_z_ const char *script,
     _In_ JsSourceContext sourceContext,
@@ -2883,4 +2917,17 @@ CHAKRA_API JsExperimentalApiRunModuleUtf8(
     _Out_ JsValueRef *result)
 {
     return RunScriptCore(script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, true, result);
+}
+
+CHAKRA_API JsStringFree(_In_ char* stringValue)
+{
+    if (stringValue == nullptr)
+    {
+        return JsErrorNullArgument;
+    }
+
+    // Utf8Helper uses malloc_allocator
+    free(stringValue);
+
+    return JsNoError;
 }
