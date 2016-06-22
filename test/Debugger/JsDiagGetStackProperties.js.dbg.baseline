@@ -3,6 +3,7 @@
     "this": "Object {...}",
     "{exception}": "number 1",
     "locals": {
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "undefined undefined"
@@ -12,6 +13,7 @@
     "this": "Object {...}",
     "{exception}": "Error Caught Error",
     "locals": {
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "undefined undefined"
@@ -20,6 +22,7 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"
@@ -46,6 +49,7 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"
@@ -54,6 +58,7 @@
   {
     "this": {
       "telemetryLog": "function <large string>",
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"
@@ -101,6 +106,7 @@
     "globals": {
       "WScript": "Object {...}",
       "print": "function print",
+      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"

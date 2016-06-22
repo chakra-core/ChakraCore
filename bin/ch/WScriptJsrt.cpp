@@ -322,7 +322,7 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
     JsValueRef errorObject = JS_INVALID_REFERENCE;
 
     // ParseModuleSource is sync, while additional fetch & evaluation are async.
-    errorCode = ChakraRTInterface::JsParseModuleSource(requestModule, dwSourceCookie, (LPBYTE)fileContent, 
+    errorCode = ChakraRTInterface::JsParseModuleSource(requestModule, dwSourceCookie, (LPBYTE)fileContent,
         (unsigned int)strlen(fileContent), JsParseModuleSourceFlags_DataIsUTF8, &errorObject);
     if ((errorCode != JsNoError) && errorObject != JS_INVALID_REFERENCE)
     {
@@ -721,11 +721,20 @@ bool WScriptJsrt::Initialize()
 
     JsPropertyIdRef wscriptName;
     IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("WScript", &wscriptName), false);
+
     JsValueRef global;
     IfJsrtErrorFail(ChakraRTInterface::JsGetGlobalObject(&global), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(global, wscriptName, wscript, true), false);
 
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "print", EchoCallback));
+
+    JsValueRef console;
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&console), false);
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(console, "log", EchoCallback));
+
+    JsPropertyIdRef consoleName;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromNameUtf8("console", &consoleName), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(global, consoleName, console, true), false);
 
 Error:
     return hr == S_OK;
@@ -993,7 +1002,7 @@ JsErrorCode WScriptJsrt::FetchImportedModule(_In_ JsModuleRecord referencingModu
     return errorCode;
 }
 
-// Callback from chakraCore when the module resolution is finished, either successfuly or unsuccessfully. 
+// Callback from chakraCore when the module resolution is finished, either successfuly or unsuccessfully.
 JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar)
 {
     if (exceptionVar != nullptr)
