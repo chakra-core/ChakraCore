@@ -8,19 +8,23 @@
 namespace Js
 {
 #if FLOATVAR
-    __inline JavascriptNumber::JavascriptNumber(double value, StaticType*)
+    __inline JavascriptNumber::JavascriptNumber(double value, StaticType*
+#if DBG
+        , bool oopJIT /*= false*/
+#endif
+    )
     {
         AssertMsg(!IsNan(value) || ToSpecial(value) == k_Nan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
         SetSpecial(ToSpecial(value) ^ FloatTag_Value);
     }
 #else
-    __inline JavascriptNumber::JavascriptNumber(double value, StaticType * type) : RecyclableObject(type), m_value(value)
+    __inline JavascriptNumber::JavascriptNumber(double value, StaticType * type
+#if DBG
+        , bool oopJIT /*= false*/
+#endif
+    ) : RecyclableObject(type), m_value(value)
     {
-        Assert(type->GetTypeId() == TypeIds_Number);
-    }
-
-    __inline JavascriptNumber::JavascriptNumber(double value, StaticType * type, bool oopJIT) : RecyclableObject(type), m_value(value)
-    {
+        Assert(oopJIT || type->GetTypeId() == TypeIds_Number);
     }
 #endif
 

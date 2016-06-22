@@ -344,7 +344,7 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(HANDLE hProcess
     if (tail->pageAddress == 0)
     {
         tail = new (tail) XProcNumberPageSegmentImpl();
-        tail->pageAddress = (int)pages;
+        tail->pageAddress = (intptr_t)pages;
         tail->allocStartAddress = this->pageAddress;
         tail->allocEndAddress = this->pageAddress;
         tail->nextSegment = nullptr;
@@ -362,7 +362,7 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(HANDLE hProcess
 XProcNumberPageSegmentImpl::XProcNumberPageSegmentImpl()
 {
     this->pageCount = Memory::IdleDecommitPageAllocator::DefaultMaxAllocPageCount;
-    this->sizeCat = HeapInfo::GetAlignedSizeNoCheck(sizeof(Js::JavascriptNumber));
+    this->sizeCat = (unsigned int)HeapInfo::GetAlignedSizeNoCheck(sizeof(Js::JavascriptNumber));
     this->blockSize = SmallAllocationBlockAttributes::PageCount*AutoSystemInfo::PageSize;
     this->blockIntegratedSize = 0;
     this->pageSegment = 0;
@@ -475,7 +475,7 @@ void XProcNumberPageSegmentManager::Integrate()
         if (!temp->GetChunkAllocator()->pendingIntegrationChunkBlock.Empty())
         {
             Assert(sizeof(CodeGenNumberChunk) == sizeof(Js::JavascriptNumber));
-            size_t minIntegrateSize = temp->blockSize*CodeGenNumberChunk::MaxNumberCount;
+            unsigned int minIntegrateSize = temp->blockSize*CodeGenNumberChunk::MaxNumberCount;
             for (; temp->pageAddress + temp->blockIntegratedSize + minIntegrateSize < (unsigned int)temp->allocEndAddress;
                 temp->blockIntegratedSize += minIntegrateSize)
             {

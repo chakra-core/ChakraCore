@@ -18,8 +18,11 @@ namespace Js
         DEFINE_VTABLE_CTOR(JavascriptNumber, RecyclableObject);
 #endif
     public:
-        JavascriptNumber(double value, StaticType*);
-        JavascriptNumber(double value, StaticType*, bool oopJIT);
+        JavascriptNumber(double value, StaticType*
+#if DBG
+            , bool oopJIT = false
+#endif
+        );
         static uint32 GetValueOffset()
         {
             return offsetof(JavascriptNumber, m_value);
