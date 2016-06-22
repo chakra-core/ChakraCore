@@ -4707,10 +4707,13 @@ namespace Js
         else
         {
 #if ENABLE_TTD
-            //
-            //TODO: need to implement support for this path
-            //
-            AssertMsg(false, "Path not implemented in TTD!!!");
+            if(this->scriptContext->ShouldPerformRecordAction() | this->scriptContext->ShouldPerformDebugAction())
+            {
+                //
+                //TODO: need to implement support for this path
+                //
+                AssertMsg(false, "Path not implemented in TTD!!!");
+            }
 #endif
 
             HRESULT hr = scriptContext->GetHostScriptContext()->EnqueuePromiseTask(taskVar);
