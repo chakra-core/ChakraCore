@@ -64,7 +64,8 @@ FileCleanupRoutine(
     bool fCleanupSharedState
     );
 
-CObjectType CorUnix::otFile PAL_GLOBAL (
+static CObjectType *GetOtFile() {
+  static CObjectType *otFile = new CObjectType(
                 otiFile,
                 FileCleanupRoutine,
                 NULL,   // No initialization routine
@@ -81,6 +82,8 @@ CObjectType CorUnix::otFile PAL_GLOBAL (
                 CObjectType::ThreadReleaseNotApplicable,
                 CObjectType::OwnershipNotApplicable
                 );
+  return otFile;
+}
 
 CAllowedObjectTypes CorUnix::aotFile PAL_GLOBAL (otiFile);
 static CSharedMemoryFileLockMgr _FileLockManager PAL_GLOBAL;
@@ -762,7 +765,7 @@ CorUnix::InternalCreateFile(
 
     palError = g_pObjectManager->AllocateObject(
         pThread,
-        &otFile,
+        GetOtFile(),
         &oaFile,
         &pFileObject
         );
@@ -4282,7 +4285,7 @@ CorUnix::InternalCreatePipe(
 
     palError = g_pObjectManager->AllocateObject(
         pThread,
-        &otFile,
+        GetOtFile(),
         &oaFile,
         &pReadFileObject
         );
@@ -4325,7 +4328,7 @@ CorUnix::InternalCreatePipe(
 
     palError = g_pObjectManager->AllocateObject(
         pThread,
-        &otFile,
+        GetOtFile(),
         &oaFile,
         &pWriteFileObject
         );
@@ -4778,7 +4781,7 @@ static HANDLE init_std_handle(HANDLE * pStd, FILE *stream)
 
     palError = g_pObjectManager->AllocateObject(
         pThread,
-        &otFile,
+        GetOtFile(),
         &oa,
         &pFileObject
         );

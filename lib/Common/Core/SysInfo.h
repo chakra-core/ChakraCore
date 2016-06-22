@@ -6,11 +6,17 @@
 // Automatic system info getter at startup
 //----------------------------------------------------------------------------
 
+static struct AutoSystemInfoInitializer {
+  AutoSystemInfoInitializer();
+  ~AutoSystemInfoInitializer();
+} autoSystemInfoInitializer;
+
 class AutoSystemInfo : public SYSTEM_INFO
 {
     friend void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo *);  // The hosting DLL provides the implementation of this function.
+    friend AutoSystemInfoInitializer;
 public:
-    static AutoSystemInfo Data;
+    static AutoSystemInfo &Data;
     uint GetAllocationGranularityPageCount() const;
     uint GetAllocationGranularityPageSize() const;
 

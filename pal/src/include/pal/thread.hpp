@@ -782,8 +782,6 @@ namespace CorUnix
     public:
         CPalThread *pThread;
     };
-
-    extern CObjectType otThread;
 }
 
 BOOL

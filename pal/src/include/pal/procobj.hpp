@@ -25,8 +25,6 @@ Abstract:
 
 namespace CorUnix
 {
-    extern CObjectType otProcess;
-
     typedef enum
     {
         PS_IDLE,

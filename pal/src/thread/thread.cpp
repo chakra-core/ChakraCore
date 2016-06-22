@@ -118,7 +118,8 @@ DecrementEndingThreadCount(
     void
     );
 
-CObjectType CorUnix::otThread PAL_GLOBAL (
+static CObjectType *GetOtThread() {
+  static CObjectType *otThread = new CObjectType(
                 otiThread,
                 ThreadCleanupRoutine,
                 ThreadInitializationRoutine,
@@ -135,6 +136,8 @@ CObjectType CorUnix::otThread PAL_GLOBAL (
                 CObjectType::ThreadReleaseHasNoSideEffects,
                 CObjectType::NoOwner
                 );
+  return otThread;
+}
 
 CAllowedObjectTypes aotThread PAL_GLOBAL (otiThread);
 
@@ -1845,7 +1848,7 @@ CorUnix::CreateThreadObject(
 
     palError = g_pObjectManager->AllocateObject(
         pThread,
-        &otThread,
+        GetOtThread(),
         &oa,
         &pobjThread
         );
@@ -1983,7 +1986,7 @@ CorUnix::InternalCreateDummyThread(
 
     palError = g_pObjectManager->AllocateObject(
         pThread,
-        &otThread,
+        GetOtThread(),
         &oa,
         &pobjThread
         );

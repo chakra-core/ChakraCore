@@ -8,6 +8,7 @@
 #endif
 #include <wincrypt.h>
 #include <VersionHelpers.h>
+#include <type_traits>
 
 // Initialization order
 //  AB AutoSystemInfo
@@ -28,7 +29,21 @@
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #endif
 
-AutoSystemInfo AutoSystemInfo::Data INIT_PRIORITY(300);
+static int AutoSystemInfoInitializer_counter;
+static typename std::aligned_storage<sizeof(AutoSystemInfo), alignof(AutoSystemInfo)>::type AutoSystemInfoInitializer_buffer;
+AutoSystemInfo &AutoSystemInfo::Data = reinterpret_cast<AutoSystemInfo&>(AutoSystemInfoInitializer_buffer);
+
+AutoSystemInfoInitializer::AutoSystemInfoInitializer() {
+  if (AutoSystemInfoInitializer_counter++ == 0) {
+    new (&AutoSystemInfo::Data) AutoSystemInfo();
+  }
+}
+
+AutoSystemInfoInitializer::~AutoSystemInfoInitializer() {
+  if (--AutoSystemInfoInitializer_counter == 0) {
+    (&AutoSystemInfo::Data)->~AutoSystemInfo();
+  }
+}
 
 #if DBG
 bool

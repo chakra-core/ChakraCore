@@ -561,8 +561,6 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 #ifndef _WIN32
 int main(int argc, char** argv)
 {
-    PAL_InitializeChakraCore(argc, argv);
-
     // Ignoring mem-alloc failures here as this is
     // simply a test tool. We can add more error checking
     // here later if desired.

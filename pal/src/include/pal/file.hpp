@@ -32,7 +32,6 @@ Revision History:
 
 namespace CorUnix
 {
-    extern CObjectType otFile;
     extern CAllowedObjectTypes aotFile;
 
     class CFileProcessLocalData

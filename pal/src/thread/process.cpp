@@ -72,7 +72,8 @@ ProcessInitializationRoutine(
     void *pProcessLocalData
     );
 
-CObjectType CorUnix::otProcess PAL_GLOBAL (
+static CObjectType *GetOtProcess() {
+  static CObjectType *otProcess = new CObjectType(
                 otiProcess,
                 ProcessCleanupRoutine,
                 ProcessInitializationRoutine,
@@ -89,6 +90,8 @@ CObjectType CorUnix::otProcess PAL_GLOBAL (
                 CObjectType::ThreadReleaseHasNoSideEffects,
                 CObjectType::NoOwner
                 );
+  return otProcess;
+}
 
 //
 // Helper memory page used by the FlushProcessWriteBuffers
@@ -758,7 +761,7 @@ CorUnix::InternalCreateProcess(
 
     palError = g_pObjectManager->AllocateObject(
         pThread,
-        &otProcess,
+        GetOtProcess(),
         &oa, 
         &pobjProcess
         );
@@ -1682,7 +1685,7 @@ OpenProcess(
 
     palError = g_pObjectManager->AllocateObject(
         pThread,
-        &otProcess,
+        GetOtProcess(),
         &oa,
         &pobjProcess
         );
@@ -2418,7 +2421,7 @@ CorUnix::CreateInitialProcessAndThreadObjects(
     
     palError = g_pObjectManager->AllocateObject(
         pThread,
-        &otProcess,
+        GetOtProcess(),
         &oa,
         &pobjProcess
         );
