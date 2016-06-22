@@ -417,8 +417,8 @@ typedef struct FunctionJITTimeDataIDL
     unsigned int ldFldInlineeCount;
     [size_is(ldFldInlineeCount)] struct FunctionJITTimeDataIDL ** ldFldInlinees;
 
-    // ldFldInlineeCount == inlineCacheCount
-    [size_is(ldFldInlineeCount)] ObjTypeSpecFldIDL ** objTypeSpecFldInfoArray;
+    unsigned int objTypeSpecFldInfoCount;
+    [size_is(objTypeSpecFldInfoCount)] ObjTypeSpecFldIDL ** objTypeSpecFldInfoArray;
 
     struct FunctionJITTimeDataIDL * next;
 } FunctionJITTimeDataIDL;

@@ -84,6 +84,7 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
             Js::ObjTypeSpecFldInfo ** objTypeSpecInfo = codeGenData->GetObjTypeSpecFldInfoArray() ? codeGenData->GetObjTypeSpecFldInfoArray()->GetInfoArray() : nullptr;
             if(objTypeSpecInfo)
             {
+                jitData->objTypeSpecFldInfoCount = jitData->bodyData->inlineCacheCount;
                 jitData->objTypeSpecFldInfoArray = AnewArrayZ(alloc, ObjTypeSpecFldIDL*, jitData->bodyData->inlineCacheCount);
             }
             for (Js::InlineCacheIndex i = 0; i < jitData->bodyData->inlineCacheCount; ++i)
@@ -317,6 +318,7 @@ JITObjTypeSpecFldInfo *
 FunctionJITTimeInfo::GetObjTypeSpecFldInfo(uint index) const
 {
     Assert(index < GetBody()->GetInlineCacheCount());
+    Assert(index < m_data.objTypeSpecFldInfoCount);
     return reinterpret_cast<JITObjTypeSpecFldInfo **>(m_data.objTypeSpecFldInfoArray)[index];
 }
 

@@ -13283,7 +13283,7 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
         {
             vtableOpnd = IR::RegOpnd::New(TyMachPtr, func);
             InsertMove(vtableOpnd, IR::MemRefOpnd::New(
-                           func->GetScriptContext()->optimizationOverrides.GetAddressOfIntArraySetElementFastPathVtable(),
+                           func->GetScriptContextInfo()->GetIntArraySetElementFastPathVtableAddr(),
                            TyMachPtr, func), insertBeforeInstr);
         }
         else
