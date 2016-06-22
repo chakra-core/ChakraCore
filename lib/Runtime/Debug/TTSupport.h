@@ -9,6 +9,61 @@
 
 #if ENABLE_TTD
 
+class HostScriptContextCallbackFunctor;
+
+namespace TTD
+{
+    class ScriptContextTTD;
+    class RuntimeContextInfo;
+
+    //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion  
+    //if this bit layout is for the "live" state or potentially only for the snapshot state or the representations change later
+    typedef Js::Var TTDVar;
+
+    namespace NSSnapType
+    {
+        struct SnapPropertyRecord;
+        struct SnapHandlerPropertyEntry;
+        struct SnapHandler;
+        struct SnapType;
+    }
+
+    namespace NSSnapValues
+    {
+        struct SnapPrimitiveValue;
+        struct SlotArrayInfo;
+        struct ScriptFunctionScopeInfo;
+
+        struct TopLevelScriptLoadFunctionBodyResolveInfo;
+        struct TopLevelNewFunctionBodyResolveInfo;
+        struct TopLevelEvalFunctionBodyResolveInfo;
+
+        struct FunctionBodyResolveInfo;
+        struct SnapContext;
+    }
+
+    namespace NSSnapObjects
+    {
+        struct SnapObject;
+    }
+
+    class SnapShot;
+    class SnapshotExtractor;
+
+    class TTDExceptionFramePopper;
+    struct SingleCallCounter;
+
+    namespace NSLogEvents
+    {
+        struct EventLogEntry;
+    }
+
+    class EventLog;
+
+    class TTDebuggerAbortException;
+    class TTDebuggerSourceLocation;
+}
+
 ////////
 //Memory allocators used by the TT code
 #define TT_HEAP_ALLOC(T) HeapNew(T)
