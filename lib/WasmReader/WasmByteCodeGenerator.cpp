@@ -1149,11 +1149,13 @@ WasmBytecodeGenerator::EmitBr()
         }
     }
 
+    EmitInfo info;
     if (hasSubExpr)
     {
         // TODO: Handle value that Break is supposed to "throw".
-        EmitInfo info = PopEvalStack();
+        info = PopEvalStack();
     }
+    YieldToBlock(depth, info);
 
     Js::ByteCodeLabel target = GetLabel(depth);
     if (wasmOp == WasmOp::wnBR)
@@ -1166,6 +1168,8 @@ WasmBytecodeGenerator::EmitBr()
         m_writer.AsmBrReg1(Js::OpCodeAsmJs::BrTrue_Int, target, conditionInfo.location);
         m_i32RegSlots->ReleaseLocation(&conditionInfo);
     }
+
+    ReleaseLocation(&info);
     return EmitInfo();
 }
 
@@ -1338,15 +1342,24 @@ WasmBytecodeGenerator::YieldToBlock(uint relativeDepth, EmitInfo expr)
 {
     BlockInfo info = GetBlockInfo(relativeDepth);
     BlockYieldInfo* yieldInfo = info.yieldInfo;
-    if (!yieldInfo) 
+    if (!yieldInfo)
     {
-        throw WasmCompilationException(_u("Cannot yield value to this block"));
-    }
-    if (expr.type == WasmTypes::Void) 
-    {
+        // Cannot yield value to this block
         return;
     }
-    if (yieldInfo->type != WasmTypes::Void && yieldInfo->type != expr.type) 
+    
+    // If we already tried to yield no value to this block, ignore the others
+    if (
+        yieldInfo->type == WasmTypes::Void ||
+        expr.type == WasmTypes::Void
+    )
+    {
+        yieldInfo->type = WasmTypes::Void;
+        return;
+    }
+
+
+    if (yieldInfo->type != WasmTypes::Limit && yieldInfo->type != expr.type)
     {
         throw WasmCompilationException(_u("Invalid yield type for block"));
     }
