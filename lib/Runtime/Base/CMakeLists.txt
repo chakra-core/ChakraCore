@@ -5,7 +5,7 @@ add_library (Chakra.Runtime.Base STATIC
     CrossSite.cpp
     Debug.cpp
     # DelayLoadLibrary.cpp
-    # Entropy.cpp
+    Entropy.cpp
     EtwTrace.cpp
     Exception.cpp
     ExpirableObject.cpp

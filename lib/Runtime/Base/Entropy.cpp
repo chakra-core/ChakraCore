@@ -4,6 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
 
+#ifdef __LINUX__
+#include <linux/random.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#endif
+
 const uint32 Entropy::kInitIterationCount = 3;
 
 void Entropy::BeginAdd()
@@ -54,6 +60,7 @@ void Entropy::Add(const char *buffer, size_t size)
 
 void Entropy::AddIoCounters()
 {
+#ifdef _WIN32
     IO_COUNTERS ioc = {0};
     if (GetProcessIoCounters(GetCurrentProcess(), &ioc))
     {
@@ -64,6 +71,21 @@ void Entropy::AddIoCounters()
         Add((char *)&ioc.WriteTransferCount,  sizeof(ioc.WriteTransferCount));
         Add((char *)&ioc.OtherTransferCount,  sizeof(ioc.OtherTransferCount));
     }
+#elif defined(__LINUX__)
+    // It's difficult to implement GetProcessIoCounters on Linux in a
+    // satisfactory way. We'll just use /dev/random to generate an
+    // equivalent amount of random bytes (6 times 64 bytes).
+#define ENTROPY_BYTES 64 * 6
+    int ret;
+    char buffer[ENTROPY_BYTES];
+    size_t size = sizeof(buffer);
+
+    ret = syscall(SYS_getrandom, buffer, size, 0);
+    if (ret == size)
+    {
+        Add(buffer, size);
+    }
+#endif // __LINUX__
 
     AddCurrentTime();
 }

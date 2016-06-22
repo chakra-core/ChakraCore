@@ -124,9 +124,9 @@
 // xplat-todo: change DISABLE_SEH to ENABLE_SEH and move here
 #define ENABLE_SIMDJS
 #endif
+#endif
 
 #define ENABLE_CUSTOM_ENTROPY
-#endif
 
 // GC features
 
