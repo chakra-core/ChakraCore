@@ -10,6 +10,15 @@
 
 namespace Wasm
 {
+    namespace WasmTypes
+    {
+        bool IsLocalType(WasmTypes::WasmType type) 
+        {
+            // Check if type in range ]Void,Limit[
+            return (uint)(type - 1) < (WasmTypes::Limit - 1);
+        }
+    }
+
 namespace Binary
 {
 
@@ -495,9 +504,9 @@ WasmBinaryReader::BrTableNode()
     m_currentNode.brTable.arity = LEB128(len);
     m_funcState.count += len;
 
-    if (m_currentNode.brTable.arity != 0)
+    if (m_currentNode.brTable.arity > 1)
     {
-        ThrowDecodingError(_u("NYI: br_table yielding value"));
+        ThrowDecodingError(_u("NYI: br_table yielding more than 1 value"));
     }
 
     m_currentNode.brTable.numTargets = LEB128(len);

@@ -15,8 +15,10 @@ namespace Wasm
             Void,
 #define WASM_LOCALTYPE(token, name) token,
 #include "WasmKeywords.h"
-            Limit
+            Limit,
+            Unreachable
         };
+        bool IsLocalType(WasmTypes::WasmType type);
     }
 
     enum WasmOp
