@@ -103,18 +103,6 @@
 </dir>
 <dir>
   <default>
-    <files>TTExecuteBasic</files>
-    <tags>sequential</tags>
-  </default>
-</dir>
-<dir>
-  <default>
-    <files>TTBasic</files>
-    <tags>sequential</tags>
-  </default>
-</dir>
-<dir>
-  <default>
     <files>Optimizer</files>
     <tags>require_backend</tags>
   </default>
@@ -387,6 +375,18 @@
   <default>
     <files>Debugger</files>
     <tags>exclude_serialized,exclude_jshost,exclude_snap</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>TTExecuteBasic</files>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>TTBasic</files>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
   </default>
 </dir>
 </regress-exe>
