@@ -477,16 +477,15 @@ WasmBinaryReader::BrNode()
     m_currentNode.br.arity = ReadConst<uint8>();
     m_funcState.count++;
 
-    if (m_currentNode.br.arity != 0)
+    if (m_currentNode.br.arity > 1)
     {
-        ThrowDecodingError(_u("NYI: br yielding value"));
+        ThrowDecodingError(_u("NYI: br yielding more than 1 value"));
     }
 
     m_currentNode.br.depth = LEB128(len);
     m_funcState.count += len;
 
-    // TODO: binary encoding doesn't yet support br yielding value
-    m_currentNode.br.hasSubExpr = false;
+    m_currentNode.br.hasSubExpr = m_currentNode.br.arity == 1;
 }
 
 void

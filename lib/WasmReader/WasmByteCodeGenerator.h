@@ -70,7 +70,7 @@ namespace Wasm
     struct BlockYieldInfo
     {
         Js::RegSlot yieldLocs[WasmTypes::Limit];
-        WasmTypes::WasmType type = WasmTypes::Void;
+        WasmTypes::WasmType type = WasmTypes::Limit;
     };
 
     struct BlockInfo
