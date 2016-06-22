@@ -643,11 +643,20 @@ bool WScriptJsrt::Initialize()
 
     JsPropertyIdRef wscriptName;
     IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(_u("WScript"), &wscriptName), false);
+
     JsValueRef global;
     IfJsrtErrorFail(ChakraRTInterface::JsGetGlobalObject(&global), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(global, wscriptName, wscript, true), false);
 
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, _u("print"), EchoCallback));
+
+    JsValueRef console;
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&console), false);
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(console, _u("log"), EchoCallback));
+
+    JsPropertyIdRef consoleName;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(_u("console"), &consoleName), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(global, consoleName, console, true), false);
 
 Error:
     return hr == S_OK;
