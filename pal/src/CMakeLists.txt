@@ -159,14 +159,14 @@ set(SOURCES
   thread/tls.cpp
 )
 
-add_library(Chakra.Pal
-  STATIC
-  ${SOURCES}
-  ${PLATFORM_SOURCES}
-  ${ARCH_SOURCES}
-)
-
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  add_library(Chakra.Pal
+    SHARED
+    ${SOURCES}
+    ${PLATFORM_SOURCES}
+    ${ARCH_SOURCES}
+  )
+
   target_link_libraries(Chakra.Pal
     pthread
     dl
@@ -176,6 +176,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  add_library(Chakra.Pal
+    STATIC
+    ${SOURCES}
+    ${PLATFORM_SOURCES}
+    ${ARCH_SOURCES}
+  )
+
   if(PAL_CMAKE_PLATFORM_ARCH_AMD64)
     target_link_libraries(Chakra.Pal
       unwind-x86_64

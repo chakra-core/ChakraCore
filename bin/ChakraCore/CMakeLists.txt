@@ -103,6 +103,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
       stdc++
       dl
       icucore
+      -Wl,-all_load
     #   -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
     )
     #
