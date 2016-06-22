@@ -9,7 +9,7 @@
 class ThreadContextInfo
 {
 public:
-    ThreadContextInfo(ThreadContextData * data);
+    ThreadContextInfo(ThreadContextDataIDL * data);
 
     intptr_t GetNullFrameDisplayAddr() const;
     intptr_t GetStrictNullFrameDisplayAddr() const;
@@ -78,15 +78,16 @@ private:
     AllocationPolicyManager m_policyManager;
     CodeGenAllocators m_codeGenAlloc;
 
-    ThreadContextData m_threadContextData;
+    ThreadContextDataIDL m_threadContextData;
 
     intptr_t m_jitChakraBaseAddress;
     intptr_t m_jitCRTBaseAddress;
     bool m_isAllJITCodeInPreReservedRegion;
 };
 
+// TODO: OOP JIT, is there any issue when crossing over 2^31/2^63?
 #define SHIFT_ADDR(context, address) \
-    (intptr_t)address - context->GetChakraBaseAddressDifference()
+    (intptr_t)address + context->GetChakraBaseAddressDifference()
 
 #define SHIFT_CRT_ADDR(context, address) \
-    (intptr_t)address - context->GetCRTBaseAddressDifference()
+    (intptr_t)address + context->GetCRTBaseAddressDifference()

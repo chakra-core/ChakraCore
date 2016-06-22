@@ -6,7 +6,7 @@
 
 #if ENABLE_NATIVE_CODEGEN
 // forward ref
-struct FunctionBodyJITData;
+struct FunctionBodyDataIDL;
 
 namespace Js
 {
@@ -16,7 +16,7 @@ namespace Js
     class FunctionCodeGenJitTimeData
     {
     private:
-        FunctionBodyJITData * bodyData;
+        FunctionBodyDataIDL * bodyData;
         FunctionInfo *const functionInfo;
 
         // Point's to an entry point if the work item needs the entry point alive- null for cases where the entry point isn't used
@@ -64,8 +64,8 @@ namespace Js
 
         FunctionInfo *GetFunctionInfo() const;
         FunctionBody *GetFunctionBody() const;
-        FunctionBodyJITData *GetJITBody() const;
-        FunctionCodeGenJitTimeData *GetNext() const { return next; };
+        FunctionBodyDataIDL *GetJITBody() const;
+        FunctionCodeGenJitTimeData *GetNext() const { return next; }
 
         const ObjTypeSpecFldInfoArray* GetObjTypeSpecFldInfoArray() const { return &this->objTypeSpecFldInfoArray; }
         ObjTypeSpecFldInfoArray* GetObjTypeSpecFldInfoArray() { return &this->objTypeSpecFldInfoArray; }
@@ -101,6 +101,9 @@ namespace Js
         // This function walks all the chained jittimedata and returns the one which match the functionInfo.
         // This can return null, if the functionInfo doesn't match.
         const FunctionCodeGenJitTimeData *GetJitTimeDataFromFunctionInfo(FunctionInfo *polyFunctionInfo) const;
+
+        uint GetGlobalObjTypeSpecFldInfoCount() const { return this->globalObjTypeSpecFldInfoCount; }
+        ObjTypeSpecFldInfo** GetGlobalObjTypeSpecFldInfoArray() const {return this->globalObjTypeSpecFldInfoArray; }
 
         ObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const
         {

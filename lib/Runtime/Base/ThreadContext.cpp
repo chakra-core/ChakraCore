@@ -1818,7 +1818,7 @@ ThreadContext::SetJITConnectionInfo(DWORD processId, UUID connectionId)
     // TODO: OOP JIT, check hresults
     m_codeGenManager.ConnectRpcServer(m_jitProcessId, m_jitConnectionId);
     // TODO: OOP JIT, do we need to do this initialization in a different place?
-    ThreadContextData contextData;
+    ThreadContextDataIDL contextData;
     HANDLE targetHandle;
     HANDLE jitProcHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, m_jitProcessId);
     BOOL succeeded = DuplicateHandle(

@@ -8246,11 +8246,11 @@ namespace Js
                 bool isNeeded = TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
                 bool isValid = isNeeded ? sharedPropertyGuard->IsValid() : false;
                 int entryCacheIndex = 0;
-                while (entry->caches[entryCacheIndex] != nullptr)
+                while (entry->caches[entryCacheIndex] != 0)
                 {
                     if (isNeeded)
                     {
-                        Js::ConstructorCache* cache = entry->caches[entryCacheIndex];
+                        Js::ConstructorCache* cache = (Js::ConstructorCache*)(entry->caches[entryCacheIndex]);
                         // We use the shared cache here to make sure the conditions we assumed didn't change while we were JIT-ing.
                         // If they did, we proactively invalidate the cache here, so that we bail out if we try to call this code.
                         if (isValid)

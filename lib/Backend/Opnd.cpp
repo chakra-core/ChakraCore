@@ -727,7 +727,7 @@ PropertySymOpnd::New(PropertySym *propertySym, IRType type, Func *func)
 }
 
 void
-PropertySymOpnd::Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil)
+PropertySymOpnd::Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, JITObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil)
 {
     this->m_inlineCacheIndex = inlineCacheIndex;
     this->m_runtimeInlineCache = runtimeInlineCache;
@@ -823,7 +823,7 @@ PropertySymOpnd::CopyInternalSub(Func *func)
 bool
 PropertySymOpnd::IsObjectHeaderInlined() const
 {
-    Js::Type *type = nullptr;
+    JITType *type = nullptr;
     if (this->IsMono())
     {
         type = this->GetType();
@@ -835,8 +835,7 @@ PropertySymOpnd::IsObjectHeaderInlined() const
 
     if (type && Js::DynamicType::Is(type->GetTypeId()))
     {
-        Js::DynamicType *dynamicType = static_cast<Js::DynamicType*>(type);
-        return dynamicType->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
+        return type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
     }
 
     return false;
@@ -845,29 +844,26 @@ PropertySymOpnd::IsObjectHeaderInlined() const
 bool
 PropertySymOpnd::ChangesObjectLayout() const
 {
-    Js::Type *finalType = this->GetFinalType();
+    JITType *finalType = this->GetFinalType();
     if (finalType == nullptr || !Js::DynamicType::Is(finalType->GetTypeId()))
     {
         return false;
     }
 
-    Js::Type *cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
+    JITType *cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
     Assert(cachedType && Js::DynamicType::Is(cachedType->GetTypeId()));
 
-    Js::DynamicTypeHandler * cachedTypeHandler = (static_cast<Js::DynamicType*>(cachedType))->GetTypeHandler();
-    Js::DynamicTypeHandler * finalTypeHandler = (static_cast<Js::DynamicType*>(finalType))->GetTypeHandler();
-
-    return cachedTypeHandler->GetInlineSlotCapacity() != finalTypeHandler->GetInlineSlotCapacity() ||
-        cachedTypeHandler->GetOffsetOfInlineSlots() != finalTypeHandler->GetOffsetOfInlineSlots();
+    return cachedType->GetTypeHandler()->GetInlineSlotCapacity() != finalType->GetTypeHandler()->GetInlineSlotCapacity() ||
+        cachedType->GetTypeHandler()->GetOffsetOfInlineSlots() != finalType->GetTypeHandler()->GetOffsetOfInlineSlots();
 }
 
 void
 PropertySymOpnd::UpdateSlotForFinalType()
 {
-    Js::Type *finalType = this->GetFinalType();
+    JITType *finalType = this->GetFinalType();
 
     Assert(this->IsMono() || this->checkedTypeSetIndex != (uint16)-1);
-    Js::Type *cachedType =
+    JITType *cachedType =
         this->IsMono() ? this->GetType() : this->GetEquivalentTypeSet()->GetType(checkedTypeSetIndex);
 
     Assert(finalType && Js::DynamicType::Is(finalType->GetTypeId()));
@@ -878,13 +874,11 @@ PropertySymOpnd::UpdateSlotForFinalType()
         return;
     }
 
-    Js::DynamicTypeHandler * cachedTypeHandler = (static_cast<Js::DynamicType*>(cachedType))->GetTypeHandler();
-    Js::DynamicTypeHandler * finalTypeHandler = (static_cast<Js::DynamicType*>(finalType))->GetTypeHandler();
+    // TODO: OOP JIT, add this assert back: need type handler address
+    // Assert(cachedType->GetTypeHandler() != finalType->GetTypeHandler());
 
-    Assert(cachedTypeHandler != finalTypeHandler);
-
-    if (cachedTypeHandler->GetInlineSlotCapacity() == finalTypeHandler->GetInlineSlotCapacity() &&
-        cachedTypeHandler->GetOffsetOfInlineSlots() == finalTypeHandler->GetOffsetOfInlineSlots())
+    if (cachedType->GetTypeHandler()->GetInlineSlotCapacity() == finalType->GetTypeHandler()->GetInlineSlotCapacity() &&
+        cachedType->GetTypeHandler()->GetOffsetOfInlineSlots() == finalType->GetTypeHandler()->GetOffsetOfInlineSlots())
     {
         // Nothing can change, since the variables aren't changing.
         return;
@@ -894,23 +888,23 @@ PropertySymOpnd::UpdateSlotForFinalType()
     uint16 index = this->GetSlotIndex();
     if (this->UsesAuxSlot())
     {
-        index += cachedTypeHandler->GetInlineSlotCapacity();
+        index += cachedType->GetTypeHandler()->GetInlineSlotCapacity();
     }
     else
     {
-        index -= cachedTypeHandler->GetOffsetOfInlineSlots() / sizeof(Js::Var);
+        index -= cachedType->GetTypeHandler()->GetOffsetOfInlineSlots() / sizeof(Js::Var);
     }
 
     // Figure out the slot index and aux-ness from the property index
-    if (index >= finalTypeHandler->GetInlineSlotCapacity())
+    if (index >= finalType->GetTypeHandler()->GetInlineSlotCapacity())
     {
         this->SetUsesAuxSlot(true);
-        index -= finalTypeHandler->GetInlineSlotCapacity();
+        index -= finalType->GetTypeHandler()->GetInlineSlotCapacity();
     }
     else
     {
         this->SetUsesAuxSlot(false);
-        index += finalTypeHandler->GetOffsetOfInlineSlots() / sizeof(Js::Var);
+        index += finalType->GetTypeHandler()->GetOffsetOfInlineSlots() / sizeof(Js::Var);
     }
     this->SetSlotIndex(index);
 }
@@ -1895,6 +1889,7 @@ AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontE
     addrOpnd->m_type = addrOpnd->IsVar()? TyVar : TyMachPtr;
     addrOpnd->m_dontEncode = dontEncode;
     addrOpnd->m_isFunction = false;
+    addrOpnd->m_metadata = nullptr;
 
     if(address && addrOpnd->IsVar())
     {
@@ -2040,6 +2035,7 @@ AddrOpnd::CopyInternal(Func *func)
     newOpnd->m_address = m_address;
     newOpnd->m_valueType = m_valueType;
     newOpnd->m_isFunction = m_isFunction;
+    newOpnd->m_metadata = m_metadata;
     newOpnd->SetType(m_type);
     if (IsValueTypeFixed())
     {
@@ -2823,6 +2819,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
             if (propertySymOpnd->GetGuardedPropOps() != nullptr)
             {
                 Output::Print(L",{");
+#if 0 // TODO: OOP JIT, fix this
                 if (func != nullptr)
                 {
                     int i = 0;
@@ -2833,7 +2830,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                         {
                             Output::Print(L",");
                         }
-                        const Js::ObjTypeSpecFldInfo* propertyOpInfo = func->GetTopFunc()->GetGlobalObjTypeSpecFldInfo(propertyOpId);
+                        const JITObjTypeSpecFldInfo* propertyOpInfo = func->GetTopFunc()->GetGlobalObjTypeSpecFldInfo(propertyOpId);
                         Output::Print(L"%s(%u)", func->GetScriptContext()->GetPropertyNameLocked(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
                         if (propertyOpInfo->IsLoadedFromProto())
                         {
@@ -2854,6 +2851,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                 {
                     Output::Print(L"(no func)");
                 }
+#endif
                 Output::Print(L"}");
             }
             if (propertySymOpnd->GetWriteGuards() != nullptr)
@@ -3356,7 +3354,8 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
 
         case IR::AddrOpndKindDynamicFunctionBodyWeakRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, L"FunctionBodyWeakRef");
+            // TODO: OOP JIT
+            //DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, L"FunctionBodyWeakRef");
             break;
 
         case IR::AddrOpndKindDynamicFunctionEnvironmentRef:
@@ -3384,6 +3383,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
         case IR::AddrOpndKindDynamicObjectTypeRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             {
+#if 0 // TODO: OOP JIT, fix this
                 Js::RecyclableObject * dynamicObject = (Js::RecyclableObject *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType());
                 if (Js::JavascriptFunction::Is(dynamicObject))
                 {
@@ -3391,6 +3391,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
                         printToConsole, L"FunctionObjectTypeRef");
                 }
                 else
+#endif
                 {
                     WriteToBuffer(&buffer, &n, L" (ObjectTypeRef)");
                 }
@@ -3399,6 +3400,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
 
         case IR::AddrOpndKindDynamicType:
             DumpAddress(address, printToConsole, skipMaskedAddress);
+#if 0 // TODO: OOP JIT, fix this
             {
                 Js::TypeId typeId = ((Js::Type*)address)->GetTypeId();
                 switch (typeId)
@@ -3429,6 +3431,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
                     break;
                 }
             }
+#endif
             break;
 
         case AddrOpndKindDynamicFrameDisplay:

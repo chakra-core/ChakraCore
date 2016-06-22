@@ -882,7 +882,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 auto funcEPInfo = (Js::FunctionEntryPointInfo*)epInfo;
                 workItem->GetJITData()->jitData->callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
             }
-            JITOutputData jitWriteData = {0};
+            JITOutputIDL jitWriteData = {0};
 
             threadContext->GetXProcNumberPageSegmentManager()->GetFreeSegment(workItem->GetJITData()->xProcNumberPageSegment);
 
@@ -893,6 +893,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 &jitWriteData);
             if (hr != S_OK)
             {
+                __debugbreak();
                 __fastfail((uint)-1);
             }
 
@@ -2201,7 +2202,7 @@ NativeCodeGenerator::GatherCodeGenData(
 
                                 if (!PHASE_OFF(Js::InlineApplyTargetPhase, functionBody) && (cacheType & Js::FldInfo_InlineCandidate))
                                 {
-                                    if (IsInlinee || objTypeSpecFldInfo->isBuiltIn)
+                                    if (IsInlinee || objTypeSpecFldInfo->IsBuiltin())
                                     {
                                         inlineApplyTarget = true;
                                     }

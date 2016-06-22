@@ -13,14 +13,14 @@ public:
     void DisconnectRpcServer();
 
     HRESULT InitializeThreadContext(
-        __in ThreadContextData * data,
+        __in ThreadContextDataIDL * data,
         __out intptr_t *threadContextInfoAddress);
 
     HRESULT CleanupThreadContext(
         __in intptr_t threadContextInfoAddress);
 
     HRESULT InitializeScriptContext(
-        __in ScriptContextData * data,
+        __in ScriptContextDataIDL * data,
         __out intptr_t *scriptContextInfoAddress);
 
     HRESULT CleanupScriptContext(
@@ -31,10 +31,10 @@ public:
         __in intptr_t address);
 
     HRESULT RemoteCodeGenCall(
-        __in CodeGenWorkItemJITData *workItemData,
+        __in CodeGenWorkItemIDL *workItemData,
         __in intptr_t threadContextInfoAddress,
         __in intptr_t scriptContextInfoAddress,
-        __out JITOutputData *jitData);
+        __out JITOutputIDL *jitData);
 
 private:
 

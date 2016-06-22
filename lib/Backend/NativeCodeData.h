@@ -162,12 +162,12 @@ public:
             chunk->fixupFunc = &Fixup;
 #if DBG
             chunk->dataType = typeid(T).name();
-#endif
             if (PHASE_TRACE1(Js::NativeCodeDataPhase))
             {
                 Output::Print(L"NativeCodeData Alloc: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n",
                     chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
             }
+#endif
 
             return dataBlock;
         }

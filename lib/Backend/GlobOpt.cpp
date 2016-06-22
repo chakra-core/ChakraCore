@@ -2777,7 +2777,7 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     IR::Instr * ldInstr = this->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
     Assert(ldInstr);
 
-    Js::Type *propertyType = nullptr;
+    JITType *propertyType = nullptr;
 
     // Create instr to put in landing pad for compensation
     Assert(IsPREInstrCandidateLoad(ldInstr->m_opcode));
@@ -3359,9 +3359,9 @@ JsTypeValueInfo* GlobOpt::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, Js
         return nullptr;
     }
 
-    const Js::Type* toType = toValueInfo->GetJsType();
-    const Js::Type* fromType = fromValueInfo->GetJsType();
-    const Js::Type* mergedType = toType == fromType ? toType : nullptr;
+    const JITType* toType = toValueInfo->GetJsType();
+    const JITType* fromType = fromValueInfo->GetJsType();
+    const JITType* mergedType = toType == fromType ? toType : nullptr;
 
     Js::EquivalentTypeSet* toTypeSet = toValueInfo->GetJsTypeSet();
     Js::EquivalentTypeSet* fromTypeSet = fromValueInfo->GetJsTypeSet();
@@ -6719,7 +6719,7 @@ GlobOpt::HoistConstantLoadAndPropagateValueBackward(Js::Var varConst, IR::Instr 
     // Insert a load of the constant at the top of the function
     StackSym *    dstSym = StackSym::New(this->func);
     IR::RegOpnd * constRegOpnd = IR::RegOpnd::New(dstSym, TyVar, this->func);
-    IR::Instr *   loadInstr = IR::Instr::NewConstantLoad(constRegOpnd, (intptr_t)varConst, Js::TypeId::TypeIds_Limit, this->func);
+    IR::Instr *   loadInstr = IR::Instr::NewConstantLoad(constRegOpnd, (intptr_t)varConst, ValueType::GetInt(true), this->func);
     this->func->m_fg->blockList->GetFirstInstr()->InsertAfter(loadInstr);
 
     // Type-spec the load (Support for floats needs to be added when we start hoisting float constants).
@@ -8770,11 +8770,6 @@ GlobOpt::GetConstantVar(IR::Opnd *opnd, Value *val)
 bool
 GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Value **pDstVal)
 {
-    if (true)
-    {
-        // TODO: michhol OOP JIT
-        return false;
-    }
     if (!src1Val)
     {
         return false;
@@ -8795,8 +8790,9 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
     }
 
     // Make sure GetConstantVar only returns primitives.
-    Assert(!src1Var || !Js::JavascriptOperators::IsObject(src1Var));
-    Assert(!src2Var || !Js::JavascriptOperators::IsObject(src2Var));
+    // TODO: OOP JIT, enabled these asserts
+    //Assert(!src1Var || !Js::JavascriptOperators::IsObject(src1Var));
+    //Assert(!src2Var || !Js::JavascriptOperators::IsObject(src2Var));
 
     BOOL result;
     int32 constVal;
@@ -19969,7 +19965,7 @@ void ValueInfo::Dump()
     }
     else if(IsJsType())
     {
-        const Js::Type* type = AsJsType()->GetJsType();
+        const JITType* type = AsJsType()->GetJsType();
         type != nullptr ? Output::Print(L"type: 0x%p, ", type) : Output::Print(L"type: null, ");
         Output::Print(L"type Set: ");
         Js::EquivalentTypeSet* typeSet = AsJsType()->GetJsTypeSet();

@@ -35,7 +35,7 @@ private:
     void Optimize(Func *func, __in_ecount_opt(actuals) IR::Instr *argOuts[] = NULL, Js::ArgSlot actuals = (Js::ArgSlot) - 1, uint recursiveInlineDepth = 0);
     bool TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined, bool& safeThis,
                                             bool dontOptimizeJustCheck = false, uint i = 0 /*i-th inlinee at a polymorphic call site*/);
-    Js::Var TryOptimizeInstrWithFixedDataProperty(IR::Instr *&instr);
+    intptr_t TryOptimizeInstrWithFixedDataProperty(IR::Instr *&instr);
     IR::Instr * InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symThis, const Js::ProfileId profileId, bool* pIsInlined, uint recursiveInlineDepth);
 #ifdef ENABLE_DOM_FAST_PATH
     IR::Instr * InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const FunctionJITTimeInfo *const inlineeData, const FunctionJITTimeInfo *const inlinerData);

@@ -5,10 +5,10 @@
 
 #include "Backend.h"
 
-JITTimeFunctionBody::JITTimeFunctionBody(FunctionBodyJITData * bodyData) :
+JITTimeFunctionBody::JITTimeFunctionBody(FunctionBodyDataIDL * bodyData) :
     m_bodyData(*bodyData)
 {
-    CompileAssert(sizeof(JITTimeFunctionBody) == sizeof(FunctionBodyJITData));
+    CompileAssert(sizeof(JITTimeFunctionBody) == sizeof(FunctionBodyDataIDL));
 }
 
 /* static */
@@ -16,7 +16,7 @@ void
 JITTimeFunctionBody::InitializeJITFunctionData(
     __in Recycler * recycler,
     __in Js::FunctionBody *functionBody,
-    __out FunctionBodyJITData * jitBody)
+    __out FunctionBodyDataIDL * jitBody)
 {
     Assert(functionBody != nullptr);
 
@@ -111,7 +111,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     {
         jitBody->loopHeaderArrayAddr = (intptr_t)functionBody->GetLoopHeaderArrayPtr();
         jitBody->loopHeaderArrayLength = functionBody->GetLoopCount();
-        jitBody->loopHeaders = RecyclerNewArray(recycler, JITLoopHeader, functionBody->GetLoopCount());
+        jitBody->loopHeaders = RecyclerNewArray(recycler, JITLoopHeaderIDL, functionBody->GetLoopCount());
         for (uint i = 0; i < functionBody->GetLoopCount(); ++i)
         {
             jitBody->loopHeaders[i].startOffset = functionBody->GetLoopHeader(i)->startOffset;
@@ -149,6 +149,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->isStrictMode = functionBody->GetIsStrictMode();
     jitBody->isEval = functionBody->IsEval();
     jitBody->isGlobalFunc = functionBody->GetIsGlobalFunc();
+    jitBody->isInlineApplyDisabled = functionBody->IsInlineApplyDisabled();
     jitBody->doJITLoopBody = functionBody->DoJITLoopBody();
     jitBody->hasScopeObject = functionBody->HasScopeObject();
     jitBody->hasImplicitArgIns = functionBody->GetHasImplicitArgIns();
@@ -171,10 +172,11 @@ JITTimeFunctionBody::InitializeJITFunctionData(
 
     jitBody->nameLength = functionBody->GetDisplayNameLength();
     jitBody->displayName = (wchar_t *)functionBody->GetDisplayName();
+    jitBody->auxArrayBufferAddr = (intptr_t)(functionBody->GetAuxiliaryData() ? functionBody->GetAuxiliaryData()->GetBuffer() : nullptr);
 
     if (functionBody->GetIsAsmJsFunction())
     {
-        jitBody->asmJsData = RecyclerNew(recycler, AsmJsJITData);
+        jitBody->asmJsData = RecyclerNew(recycler, AsmJsDataIDL);
         Js::AsmJsFunctionInfo * asmFuncInfo = functionBody->GetAsmJsFunctionInfo();
         jitBody->asmJsData->intConstCount = asmFuncInfo->GetIntConstCount();
         jitBody->asmJsData->doubleConstCount = asmFuncInfo->GetDoubleConstCount();
@@ -551,6 +553,12 @@ JITTimeFunctionBody::IsGlobalFunc() const
 }
 
 bool
+JITTimeFunctionBody::IsInlineApplyDisabled() const
+{
+    return m_bodyData.isInlineApplyDisabled != FALSE;
+}
+
+bool
 JITTimeFunctionBody::IsNonTempLocalVar(uint32 varIndex) const
 {
     return GetFirstNonTempLocalIndex() <= varIndex && varIndex < GetEndNonTempLocalIndex();
@@ -722,7 +730,7 @@ JITTimeFunctionBody::GetLoopHeaderAddr(uint loopNum) const
     return baseAddr + (loopNum * sizeof(Js::LoopHeader));
 }
 
-const JITLoopHeader *
+const JITLoopHeaderIDL *
 JITTimeFunctionBody::GetLoopHeaderData(uint loopNum) const
 {
     Assert(loopNum < GetLoopCount());
@@ -749,7 +757,7 @@ JITTimeFunctionBody::HasProfileInfo() const
 
 /* static */
 bool
-JITTimeFunctionBody::LoopContains(const JITLoopHeader * loop1, const JITLoopHeader * loop2)
+JITTimeFunctionBody::LoopContains(const JITLoopHeaderIDL * loop1, const JITLoopHeaderIDL * loop2)
 {
     return (loop1->startOffset <= loop2->startOffset && loop2->endOffset <= loop1->endOffset);
 }
@@ -783,6 +791,16 @@ JITTimeFunctionBody::GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlin
     const FunctionJITRuntimeInfo * data = reinterpret_cast<const FunctionJITRuntimeInfo*>(m_bodyData.profiledRuntimeData);
     return data != nullptr ? &data[inlineCacheIndex] : nullptr;
 }
+
+intptr_t
+JITTimeFunctionBody::ReadAuxArray(uint offset) const
+{
+    intptr_t auxArray = m_bodyData.auxArrayBufferAddr + offset;
+    // TODO: OOP JIT, add this assert back
+    //Assert(offset + auxArray->GetDataSize() <= functionBody->GetAuxiliaryData()->GetLength());
+    return auxArray;
+}
+
 
 void
 JITTimeFunctionBody::InitializeStatementMap(__out Js::SmallSpanSequence * statementMap) const

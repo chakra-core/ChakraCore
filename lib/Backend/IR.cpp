@@ -92,7 +92,7 @@ Instr::ChangeEquivalentToMonoTypeCheckBailOut()
     this->SetBailOutKind(IR::EquivalentToMonoTypeCheckBailOutKind(this->GetBailOutKind()));
 }
 
-Js::Var
+intptr_t
 Instr::TryOptimizeInstrWithFixedDataProperty(IR::Instr **pInstr, GlobOpt * globopt)
 {
     IR::Instr *&instr = *pInstr;
@@ -103,7 +103,7 @@ Instr::TryOptimizeInstrWithFixedDataProperty(IR::Instr **pInstr, GlobOpt * globo
     IR::PropertySymOpnd * propSymOpnd = src1->AsSymOpnd()->AsPropertySymOpnd();
     if (propSymOpnd->HasFixedValue() && !propSymOpnd->IsPoly())
     {
-        Js::Var fixedValue = propSymOpnd->GetFieldValueAsFixedData();
+        intptr_t fixedValue = propSymOpnd->GetFieldValueAsFixedData();
         Assert(instr->IsProfiledInstr());
         ValueType valType = instr->AsProfiledInstr()->u.FldInfo().valueType;
         if (fixedValue && ((Js::TaggedInt::Is(fixedValue) && (valType.IsUninitialized() || valType.IsLikelyInt())) || PHASE_ON1(Js::FixDataVarPropsPhase)))
@@ -120,7 +120,7 @@ Instr::TryOptimizeInstrWithFixedDataProperty(IR::Instr **pInstr, GlobOpt * globo
                 instr = instr->ConvertToBailOutInstr(instr, !propSymOpnd->HasEquivalentTypeSet() ? IR::BailOutFailedFixedFieldTypeCheck : IR::BailOutFailedEquivalentFixedFieldTypeCheck);
             }
 
-            IR::Instr* loadInstr = IR::Instr::NewConstantLoad(dataValueDstOpnd, fixedValue, instr->m_func);
+            IR::Instr* loadInstr = IR::Instr::NewConstantLoad(dataValueDstOpnd, (intptr_t)fixedValue, valType, instr->m_func);
 
             OUTPUT_VERBOSE_TRACE(Js::UseFixedDataPropsPhase,
                 L"FixedFields: Replacing the source (fixed Data prop) with property id %s with 0x%x .\n",
@@ -131,7 +131,7 @@ Instr::TryOptimizeInstrWithFixedDataProperty(IR::Instr **pInstr, GlobOpt * globo
             return fixedValue;
         }
     }
-    return nullptr;
+    return 0;
 }
 
 ///----------------------------------------------------------------------------
@@ -3369,14 +3369,7 @@ bool Instr::CallsGetter(IR::PropertySymOpnd* methodOpnd)
         ((this->AsProfiledInstr()->u.FldInfo().flags & Js::FldInfo_FromAccessor) != 0);
 }
 
-IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, Js::Var varConst, Func* func)
-{
-    // TODO: (michhol OOP) remove this function
-    Assert(UNREACHED);
-    return nullptr;
-}
-
-IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, Js::TypeId type, Func* func)
+IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, ValueType type, Func* func)
 {
     IR::Opnd *srcOpnd = nullptr;
     IR::Instr *instr;
@@ -3416,12 +3409,9 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
         }
         else
         {
-            Assert(type < Js::TypeId::TypeIds_Limit);
 
             ValueType valueType;
-            switch (type)
-            {
-            case Js::TypeIds_String:
+            if(type.IsString())
             {
                 srcOpnd = IR::AddrOpnd::New(varConst, IR::AddrOpndKindDynamicVar, func, true);
                 instr = IR::Instr::New(Js::OpCode::LdStr, dstOpnd, srcOpnd, func);
@@ -3433,9 +3423,8 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
                 }
                 dstOpnd->SetValueType(ValueType::String);
                 srcOpnd->SetValueType(ValueType::String);
-                break;
             }
-            case Js::TypeIds_Number:
+            else if(type.IsNumber())
             {
                 // TODO (michhol): OOP JIT. we may need to unbox before sending over const table                
 
@@ -3467,20 +3456,17 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
                     
 #endif
                 }
-                break;
             }
-            case Js::TypeIds_Undefined:
-                valueType = ValueType::Undefined;
-                goto dynamicVar;
-            case Js::TypeIds_Null:
-                valueType = ValueType::Null;
-                goto dynamicVar;
-            case Js::TypeIds_Boolean:
-                valueType = ValueType::Boolean;
-                goto dynamicVar;
-            default:
-                valueType = ValueType::GetObject(ObjectType::Object);
-            dynamicVar:
+            else
+            {
+                if (type.IsUndefined() || type.IsNull() || type.IsBoolean())
+                {
+                    valueType = type;
+                }
+                else
+                {
+                    valueType = ValueType::GetObject(ObjectType::Object);
+                }
                 srcOpnd = IR::AddrOpnd::New(varConst, IR::AddrOpndKindDynamicVar, func, true);
                 instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, func);
                 if (dstOpnd->m_sym->IsSingleDef())
@@ -3489,7 +3475,6 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
                 }
                 dstOpnd->SetValueType(valueType);
                 srcOpnd->SetValueType(valueType);
-                break;
             }
         }
     }

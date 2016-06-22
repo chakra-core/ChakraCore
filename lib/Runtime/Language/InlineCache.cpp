@@ -909,7 +909,7 @@ namespace Js
     }
 #endif
 
-    bool EquivalentTypeSet::Contains(const Js::Type * type, uint16* pIndex) const
+    bool EquivalentTypeSet::Contains(const JITType * type, uint16* pIndex) const
     {
         for (uint16 ti = 0; ti < this->count; ti++)
         {
@@ -1010,7 +1010,7 @@ namespace Js
             uint16 j = i;
             while (j > 0 && (this->types[j - 1] > this->types[j]))
             {
-                Type* tmp = this->types[j];
+                JITType * tmp = this->types[j];
                 this->types[j] = this->types[j - 1];
                 this->types[j - 1] = tmp;
             }

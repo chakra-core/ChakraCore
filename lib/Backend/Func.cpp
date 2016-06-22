@@ -9,7 +9,7 @@
 Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ThreadContextInfo * threadContextInfo,
     ScriptContextInfo * scriptContextInfo,
-    JITOutputData * outputData,
+    JITOutputIDL * outputData,
     const FunctionJITRuntimeInfo *const runtimeInfo,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
     CodeGenNumberAllocator * numberAllocator,
@@ -197,7 +197,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     }
 
     this->constructorCacheCount = 0;
-    this->constructorCaches = AnewArrayZ(this->m_alloc, Js::JitTimeConstructorCache*, GetJITFunctionBody()->GetProfiledCallSiteCount());
+    this->constructorCaches = AnewArrayZ(this->m_alloc, JITTimeConstructorCache*, GetJITFunctionBody()->GetProfiledCallSiteCount());
 
 #if DBG_DUMP
     m_codeSize = -1;
@@ -456,7 +456,7 @@ Func::Codegen()
         ////
         
 
-        JITOutputData* jitOutputData = m_output.GetOutputData();
+        JITOutputIDL* jitOutputData = m_output.GetOutputData();
 
         jitOutputData->nativeDataFixupTable = (NativeDataFixupTable*)midl_user_allocate(offsetof(NativeDataFixupTable, fixupRecords) + sizeof(NativeDataFixupRecord)* (dataAllocator->allocCount));
         jitOutputData->nativeDataFixupTable->count = dataAllocator->allocCount;
@@ -1157,7 +1157,7 @@ Func::GetPolyCacheUtil(const uint index) const
     return this->m_polymorphicInlineCacheInfo->GetUtilArray()->GetUtil(this->m_jnFunction, index);
 }
 
-Js::ObjTypeSpecFldInfo*
+JITObjTypeSpecFldInfo*
 Func::GetObjTypeSpecFldInfo(const uint index) const
 {
     if (GetJITFunctionBody()->GetInlineCacheCount() == 0)
@@ -1168,25 +1168,10 @@ Func::GetObjTypeSpecFldInfo(const uint index) const
     return GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(index);
 }
 
-Js::ObjTypeSpecFldInfo*
+JITObjTypeSpecFldInfo*
 Func::GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const
 {
-    Assert(UNREACHED); // TODO: OOP JIT
-#if 0
-    Assert(this->m_jitTimeData != nullptr);
-    return this->m_jitTimeData->GetGlobalObjTypeSpecFldInfo(propertyInfoId);
-#endif
-    return nullptr;
-}
-
-void
-Func::SetGlobalObjTypeSpecFldInfo(uint propertyInfoId, Js::ObjTypeSpecFldInfo* info)
-{
-    Assert(UNREACHED); // TODO: OOP JIT
-#if 0
-    Assert(this->m_jitTimeData != nullptr);
-    this->m_jitTimeData->SetGlobalObjTypeSpecFldInfo(propertyInfoId, info);
-#endif
+    return GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfo(propertyInfoId);
 }
 
 void
@@ -1215,20 +1200,20 @@ Func::EnsureSingleTypeGuards()
 }
 
 Js::JitTypePropertyGuard*
-Func::GetOrCreateSingleTypeGuard(Js::Type* type)
+Func::GetOrCreateSingleTypeGuard(intptr_t typeAddr)
 {
     EnsureSingleTypeGuards();
 
     Js::JitTypePropertyGuard* guard;
-    if (!this->singleTypeGuards->TryGetValue(type, &guard))
+    if (!this->singleTypeGuards->TryGetValue(typeAddr, &guard))
     {
         // Property guards are allocated by NativeCodeData::Allocator so that their lifetime extends as long as the EntryPointInfo is alive.
-        guard = NativeCodeDataNew(GetNativeCodeDataAllocator(), Js::JitTypePropertyGuard, type, this->indexedPropertyGuardCount++);
-        this->singleTypeGuards->Add(type, guard);
+        guard = NativeCodeDataNew(GetNativeCodeDataAllocator(), Js::JitTypePropertyGuard, typeAddr, this->indexedPropertyGuardCount++);
+        this->singleTypeGuards->Add(typeAddr, guard);
     }
     else
     {
-        Assert(guard->GetType() == type);
+        Assert(guard->GetTypeAddr() == typeAddr);
     }
 
     return guard;
@@ -1244,11 +1229,11 @@ Func::EnsureEquivalentTypeGuards()
 }
 
 Js::JitEquivalentTypeGuard*
-Func::CreateEquivalentTypeGuard(Js::Type* type, uint32 objTypeSpecFldId)
+Func::CreateEquivalentTypeGuard(JITType* type, uint32 objTypeSpecFldId)
 {
     EnsureEquivalentTypeGuards();
 
-    Js::JitEquivalentTypeGuard* guard = NativeCodeDataNew(GetNativeCodeDataAllocator(), Js::JitEquivalentTypeGuard, type, this->indexedPropertyGuardCount++, objTypeSpecFldId);
+    Js::JitEquivalentTypeGuard* guard = NativeCodeDataNew(GetNativeCodeDataAllocator(), Js::JitEquivalentTypeGuard, type->GetAddr(), this->indexedPropertyGuardCount++, objTypeSpecFldId);
 
     // If we want to hard code the address of the cache, we will need to go back to allocating it from the native code data allocator.
     // We would then need to maintain consistency (double write) to both the recycler allocated cache and the one on the heap.
@@ -1299,7 +1284,7 @@ Func::LinkGuardToPropertyId(Js::PropertyId propertyId, Js::JitIndexedPropertyGua
 }
 
 void
-Func::LinkCtorCacheToPropertyId(Js::PropertyId propertyId, Js::JitTimeConstructorCache* cache)
+Func::LinkCtorCacheToPropertyId(Js::PropertyId propertyId, JITTimeConstructorCache* cache)
 {
     Assert(cache != nullptr);
     Assert(this->ctorCachesByPropertyId != nullptr);
@@ -1311,17 +1296,17 @@ Func::LinkCtorCacheToPropertyId(Js::PropertyId propertyId, Js::JitTimeConstructo
         this->ctorCachesByPropertyId->Add(propertyId, set);
     }
 
-    set->Item(cache->runtimeCache);
+    set->Item(cache->GetRuntimeCacheAddr());
 }
 
-Js::JitTimeConstructorCache* Func::GetConstructorCache(const Js::ProfileId profiledCallSiteId)
+JITTimeConstructorCache* Func::GetConstructorCache(const Js::ProfileId profiledCallSiteId)
 {
     Assert(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
     Assert(this->constructorCaches != nullptr);
     return this->constructorCaches[profiledCallSiteId];
 }
 
-void Func::SetConstructorCache(const Js::ProfileId profiledCallSiteId, Js::JitTimeConstructorCache* constructorCache)
+void Func::SetConstructorCache(const Js::ProfileId profiledCallSiteId, JITTimeConstructorCache* constructorCache)
 {
     Assert(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
     Assert(constructorCache != nullptr);

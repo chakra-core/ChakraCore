@@ -407,7 +407,7 @@ namespace Js
 
         void InitializeRemoteScriptContext()
         {
-            ScriptContextData contextData;
+            ScriptContextDataIDL contextData;
             contextData.nullAddr = (intptr_t)GetLibrary()->GetNull();
             contextData.undefinedAddr = (intptr_t)GetLibrary()->GetUndefined();
             contextData.trueAddr = (intptr_t)GetLibrary()->GetTrue();

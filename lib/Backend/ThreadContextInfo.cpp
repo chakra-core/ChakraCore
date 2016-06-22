@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-ThreadContextInfo::ThreadContextInfo(ThreadContextData * data) :
+ThreadContextInfo::ThreadContextInfo(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
     m_policyManager(true),
     m_pageAlloc(&m_policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
@@ -275,13 +275,13 @@ ThreadContextInfo::GetDebugScriptIdWhenSetAddr() const
 ptrdiff_t
 ThreadContextInfo::GetChakraBaseAddressDifference() const
 {
-    return m_jitChakraBaseAddress - GetRuntimeChakraBaseAddress();
+    return GetRuntimeChakraBaseAddress() - m_jitChakraBaseAddress;
 }
 
 ptrdiff_t
 ThreadContextInfo::GetCRTBaseAddressDifference() const
 {
-    return m_jitCRTBaseAddress - GetRuntimeCRTBaseAddress();
+    return GetRuntimeCRTBaseAddress() - m_jitCRTBaseAddress;
 }
 
 bool

@@ -4,6 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
+#include "JITType.h"
+#include "JITTimeConstructorCache.h"
+
 #if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
@@ -58,7 +61,7 @@ namespace Js
         bool usesAuxSlot = false;
         DynamicObject* prototypeObject = nullptr;
         PropertyGuard* propertyGuard = nullptr;
-        JitTimeConstructorCache* ctorCache = nullptr;
+        JITTimeConstructorCache* ctorCache = nullptr;
         Var fieldValue = nullptr;
         bool keepFieldValue = false;
         bool isFieldValueFixed = false;
@@ -232,7 +235,7 @@ namespace Js
 
                         // We must keep the runtime cache alive as long as this entry point exists and may try to dereference it.
                         entryPoint->RegisterConstructorCache(runtimeConstructorCache, recycler);
-                        ctorCache = RecyclerNew(recycler, JitTimeConstructorCache, functionObject, runtimeConstructorCache);
+                        ctorCache = RecyclerNew(recycler, JITTimeConstructorCache, functionObject, runtimeConstructorCache);
 
                         if (PHASE_TRACE(Js::FixedNewObjPhase, functionBody))
                         {
@@ -323,8 +326,9 @@ namespace Js
         if (forcePoly)
         {
             uint16 typeCount = 1;
-            Js::Type** types = RecyclerNewArray(recycler, Js::Type*, typeCount);
-            types[0] = type;
+            JITType** types = RecyclerNewArray(recycler, JITType*, typeCount);
+            types[0] = RecyclerNew(recycler, JITType);
+            JITType::BuildFromJsType(type, types[0]);
             EquivalentTypeSet* typeSet = RecyclerNew(recycler, EquivalentTypeSet, types, typeCount);
 
             info = RecyclerNew(recycler, ObjTypeSpecFldInfo,
@@ -638,6 +642,7 @@ namespace Js
         Assert(jitTransferData != nullptr);
         if (areEquivalent || areStressEquivalent)
         {
+            JITType** types = RecyclerNewArray(recycler, JITType*, typeCount);
             for (uint16 i = 0; i < typeCount; i++)
             {
                 jitTransferData->AddJitTimeTypeRef(localTypes[i], recycler);
@@ -655,10 +660,10 @@ namespace Js
                         }
                     }
                 }
+                // TODO: OOP JIT, consider putting these inline
+                types[i] = RecyclerNew(recycler, JITType);
+                JITType::BuildFromJsType(localTypes[i], types[i]);
             }
-
-            Js::Type** types = RecyclerNewArray(recycler, Js::Type*, typeCount);
-            memcpy(types, localTypes, typeCount * sizeof(Js::Type*));
             typeSet = RecyclerNew(recycler, EquivalentTypeSet, types, typeCount);
         }
 

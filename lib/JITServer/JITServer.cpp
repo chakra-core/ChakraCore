@@ -85,7 +85,7 @@ ServerShutdown(/* [in] */ handle_t binding)
 HRESULT
 ServerInitializeThreadContext(
     /* [in] */ handle_t binding,
-    /* [in] */ __RPC__in ThreadContextData * threadContextData,
+    /* [in] */ __RPC__in ThreadContextDataIDL * threadContextData,
     /* [out] */ __RPC__out __int3264 *threadContextRoot)
 {
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
@@ -116,7 +116,7 @@ ServerCleanupThreadContext(
 HRESULT
 ServerInitializeScriptContext(
     /* [in] */ handle_t binding,
-    /* [in] */ __RPC__in ScriptContextData * scriptContextData,
+    /* [in] */ __RPC__in ScriptContextDataIDL * scriptContextData,
     /* [out] */ __RPC__out __int3264 * scriptContextInfoAddress)
 {
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
@@ -153,8 +153,8 @@ ServerRemoteCodeGen(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 threadContextInfoAddress,
     /* [in] */ __int3264 scriptContextInfoAddress,
-    /* [in] */ CodeGenWorkItemJITData *workItemData,
-    /* [out] */ JITOutputData *jitData)
+    /* [in] */ CodeGenWorkItemIDL *workItemData,
+    /* [out] */ JITOutputIDL *jitData)
 {
     UNREFERENCED_PARAMETER(binding);
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));

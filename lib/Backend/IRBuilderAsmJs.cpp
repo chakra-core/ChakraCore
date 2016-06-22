@@ -2964,6 +2964,7 @@ IRBuilderAsmJs::EnsureLoopBodyAsmJsLoadSlot(SymID symId, IRType type)
     StackSym * symDst = StackSym::FindOrCreate(symId, (Js::RegSlot)symId, m_func, fieldSymOpnd->GetType());
     IR::RegOpnd * dstOpnd = IR::RegOpnd::New(symDst, symDst->GetType(), m_func);
     IR::Instr * ldSlotInstr;
+#if 0 // TODO: OOP JIT, symIdToValueTypeMap do we actually need this for asm.js?
     JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
     ValueType symValueType;
     if (loopBodyCodeGen->symIdToValueTypeMap && loopBodyCodeGen->symIdToValueTypeMap->TryGetValue(symId, &symValueType))
@@ -2972,6 +2973,7 @@ IRBuilderAsmJs::EnsureLoopBodyAsmJsLoadSlot(SymID symId, IRType type)
         ldSlotInstr->AsProfiledInstr()->u.FldInfo().valueType = symValueType;
     }
     else
+#endif
     {
         ldSlotInstr = IR::Instr::New(Js::OpCode::LdSlot, dstOpnd, fieldSymOpnd, m_func);
     }

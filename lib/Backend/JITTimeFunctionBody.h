@@ -13,12 +13,12 @@ class FunctionJITRuntimeInfo;
 class JITTimeFunctionBody
 {
 public:
-    JITTimeFunctionBody(FunctionBodyJITData * bodyData);
+    JITTimeFunctionBody(FunctionBodyDataIDL * bodyData);
 
     static void InitializeJITFunctionData(
         __in Recycler * recycler,
         __in Js::FunctionBody * functionBody,
-        __out FunctionBodyJITData * jitBody);
+        __out FunctionBodyDataIDL * jitBody);
 
     intptr_t GetAddr() const;
 
@@ -76,6 +76,7 @@ public:
     bool HasInlineCachesOnFunctionObject() const;
     bool DoInterruptProbe() const;
     bool IsGlobalFunc() const;
+    bool IsInlineApplyDisabled() const;
     bool IsNonTempLocalVar(uint32 varIndex) const;
     bool DoJITLoopBody() const;
     bool IsInlineSpreadDisabled() const;
@@ -96,7 +97,7 @@ public:
 
     intptr_t GetRootObject() const;
     intptr_t GetLoopHeaderAddr(uint loopNum) const;
-    const JITLoopHeader * GetLoopHeaderData(uint loopNum) const;
+    const JITLoopHeaderIDL * GetLoopHeaderData(uint loopNum) const;
 
     intptr_t GetScriptIdAddr() const;
     intptr_t GetProbeCountAddr() const;
@@ -109,10 +110,11 @@ public:
     const JITTimeProfileInfo * GetProfileInfo() const;
     bool HasProfileInfo() const;
 
-    static bool LoopContains(const JITLoopHeader * loop1, const JITLoopHeader * loop2);
+    static bool LoopContains(const JITLoopHeaderIDL * loop1, const JITLoopHeaderIDL * loop2);
 
     wchar_t* GetDisplayName() const;
 
+    intptr_t ReadAuxArray(uint offset) const;
     const FunctionJITRuntimeInfo *GetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId) const;
     const FunctionJITRuntimeInfo *GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlineCacheIndex) const;
 
@@ -121,5 +123,5 @@ private:
     Js::FunctionInfo::Attributes GetAttributes() const;
     Js::FunctionBody::FunctionBodyFlags GetFlags() const;
 
-    FunctionBodyJITData m_bodyData;
+    FunctionBodyDataIDL m_bodyData;
 };

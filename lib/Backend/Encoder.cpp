@@ -363,8 +363,8 @@ Encoder::Encode()
                 this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer), pinnedTypeRefCount);
             Output::Flush();
         }
-
-        entryPointInfo->GetJitTransferData()->SetRuntimeTypeRefs(compactPinnedTypeRefs, pinnedTypeRefCount);
+        // TODO: OOP JIT, JIT Transfer data
+        //entryPointInfo->GetJitTransferData()->SetRuntimeTypeRefs(compactPinnedTypeRefs, pinnedTypeRefCount);
     }
 
     // Save all equivalent type guards in a fixed size array on the JIT transfer data
@@ -379,7 +379,7 @@ Encoder::Encode()
         {
             *dstGuard++ = srcGuard;
         });
-        entryPointInfo->GetJitTransferData()->SetEquivalentTypeGuards(guards, count);
+        //entryPointInfo->GetJitTransferData()->SetEquivalentTypeGuards(guards, count);
     }
 
     if (this->m_func->lazyBailoutProperties.Count() > 0)
@@ -452,7 +452,7 @@ Encoder::Encode()
 
         //TODO: OOP JIT need a way to pass back the jitTransferData and in main process it need to amend the reference to typeGuardTransferRecord
         // or just have a allocation offset to locate the typeGuardTransferRecord
-        entryPointInfo->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
+        //entryPointInfo->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
     }
 
     // Save all constructor caches on the JIT transfer data in a map keyed by property ID. We will use this map when installing the entry
@@ -496,12 +496,12 @@ Encoder::Encode()
 
             int cacheIndex = 0;
 
-            srcCacheSet->Map([dstEntry, &cacheIndex](Js::ConstructorCache* cache) -> void
+            srcCacheSet->Map([dstEntry, &cacheIndex](intptr_t cache) -> void
             {
                 dstEntry->caches[cacheIndex++] = cache;
             });
 
-            dstEntry->caches[cacheIndex++] = nullptr;
+            dstEntry->caches[cacheIndex++] = 0;
             dstEntry = reinterpret_cast<Js::CtorCacheGuardTransferEntry*>(&dstEntry->caches[cacheIndex]);
         });
         dstEntry->propertyId = Js::Constants::NoProperty;

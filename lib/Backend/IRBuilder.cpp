@@ -1420,7 +1420,7 @@ IRBuilder::BuildConstantLoads()
         Assert(this->RegIsConstant(reg));
         dstOpnd->m_sym->SetIsFromByteCodeConstantTable();
 
-        IR::Instr *instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, type, m_func);
+        IR::Instr *instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, ValueType::FromTypeId(type, false), m_func);
         this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
     }
 
@@ -2653,7 +2653,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             // See we are ending an outer loop and load the return IP to the ProfiledLoopEnd opcode
             // instead of following the normal branch
 
-            const JITLoopHeader * loopHeader = m_func->GetJITFunctionBody()->GetLoopHeaderData(num);
+            const JITLoopHeaderIDL * loopHeader = m_func->GetJITFunctionBody()->GetLoopHeaderData(num);
             if (m_func->GetJITFunctionBody()->GetLoopHeaderAddr(num) != m_func->m_workItem->GetLoopHeaderAddr() &&
                 JITTimeFunctionBody::LoopContains(loopHeader, m_func->m_workItem->GetLoopHeader()))
             {
@@ -3828,6 +3828,7 @@ IRBuilder::EnsureLoopBodyLoadSlot(SymID symId, bool isCatchObjectSym)
     IR::RegOpnd * dstOpnd = IR::RegOpnd::New(symDst, TyVar, m_func);
     IR::Instr * ldSlotInstr;
 
+#if 0 // OOP JIT, pass over symIdToValueTypeMap
     JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
 
     ValueType symValueType;
@@ -3837,6 +3838,7 @@ IRBuilder::EnsureLoopBodyLoadSlot(SymID symId, bool isCatchObjectSym)
         ldSlotInstr->AsProfiledInstr()->u.FldInfo().valueType = symValueType;
     }
     else
+#endif
     {
         ldSlotInstr = IR::Instr::New(Js::OpCode::LdSlot, dstOpnd, fieldSymOpnd, m_func);
     }
@@ -7186,19 +7188,14 @@ IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 offset, uint32 a
     switch (auxArrayType)
     {
     case AuxArrayValue::AuxPropertyIdArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadPropertyIdArray(auxArrayOffset, m_func->GetJnFunction(), extraSlots), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxIntArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<int32>(auxArrayOffset, m_func->GetJnFunction()), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxFloatArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<double>(auxArrayOffset, m_func->GetJnFunction()), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxVarsArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<Js::Var>(auxArrayOffset, m_func->GetJnFunction()), IR::AddrOpndKindDynamicMisc, m_func);
-    case AuxArrayValue::AuxVarArrayVarCount:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadVarArrayVarCount(auxArrayOffset, m_func->GetJnFunction()), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxFuncInfoArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<Js::FuncInfoEntry>(auxArrayOffset, m_func->GetJnFunction()), IR::AddrOpndKindDynamicMisc, m_func);
+    case AuxArrayValue::AuxVarArrayVarCount:
+        return IR::AddrOpnd::New(m_func->GetJITFunctionBody()->ReadAuxArray(auxArrayOffset), IR::AddrOpndKindDynamicMisc, m_func);
     default:
-        Assert(false);
+        Assert(UNREACHED);
         return nullptr;
     }
 }

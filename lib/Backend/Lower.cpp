@@ -3559,15 +3559,16 @@ Lowerer::LowerNewScArray(IR::Instr *arrInstr)
 
         Js::ProfileId profileId = static_cast<Js::ProfileId>(arrInstr->AsProfiledInstr()->u.profileId);
         Js::ArrayCallSiteInfo *arrayInfo = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
+        intptr_t arrayInfoAddr = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
 
 
         Assert(arrInstr->GetSrc1()->IsConstOpnd());
-        GenerateProfiledNewScArrayFastPath(arrInstr, arrayInfo, weakFuncRef, arrInstr->GetSrc1()->AsIntConstOpnd()->AsUint32());
+        GenerateProfiledNewScArrayFastPath(arrInstr, arrayInfo, arrayInfoAddr, weakFuncRef, arrInstr->GetSrc1()->AsIntConstOpnd()->AsUint32());
 
         if (arrInstr->GetDst() && arrInstr->GetDst()->GetValueType().IsLikelyNativeArray())
         {
             m_lowererMD.LoadHelperArgument(arrInstr, IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func));
-            m_lowererMD.LoadHelperArgument(arrInstr, IR::AddrOpnd::New(arrayInfo, IR::AddrOpndKindDynamicArrayCallSiteInfo, m_func));
+            m_lowererMD.LoadHelperArgument(arrInstr, IR::AddrOpnd::New(arrayInfoAddr, IR::AddrOpndKindDynamicArrayCallSiteInfo, m_func));
             helperMethod = IR::HelperScrArr_ProfiledNewScArray;
         }
     }
@@ -3592,7 +3593,7 @@ BOOL Lowerer::IsSmallObject(uint32 length)
 }
 
 void
-Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef, uint32 length)
+Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length)
 {
     if (PHASE_OFF(Js::ArrayCtorFastPathPhase, m_func) || CONFIG_FLAG(ForceES5Array))
     {
@@ -3613,7 +3614,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         {
             return;
         }
-        GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, helperLabel);
+        GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeIntArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex());
         headOpnd = GenerateArrayAlloc<Js::JavascriptNativeIntArray>(instr, &size, arrayInfo, &isZeroed);
         const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
@@ -3631,7 +3632,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         {
             return;
         }
-        GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, helperLabel);
+        GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeFloatArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex());
         headOpnd = GenerateArrayAlloc<Js::JavascriptNativeFloatArray>(instr, &size, arrayInfo, &isZeroed);
         const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
@@ -3676,18 +3677,18 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
 }
 
 void
-Lowerer::GenerateArrayInfoIsNativeIntArrayTest(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, IR::LabelInstr * helperLabel)
+Lowerer::GenerateArrayInfoIsNativeIntArrayTest(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, IR::LabelInstr * helperLabel)
 {
     Func * func = this->m_func;
-    InsertTestBranch(IR::MemRefOpnd::New(((char *)arrayInfo) + Js::ArrayCallSiteInfo::GetOffsetOfBits(), TyUint8, func),
+    InsertTestBranch(IR::MemRefOpnd::New(((char *)arrayInfoAddr) + Js::ArrayCallSiteInfo::GetOffsetOfBits(), TyUint8, func),
         IR::IntConstOpnd::New(Js::ArrayCallSiteInfo::NotNativeIntBit, TyUint8, func), Js::OpCode::BrNeq_A, helperLabel, instr);
 }
 
 void
-Lowerer::GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, IR::LabelInstr * helperLabel)
+Lowerer::GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, IR::LabelInstr * helperLabel)
 {
     Func * func = this->m_func;
-    InsertCompareBranch(IR::MemRefOpnd::New(((char *)arrayInfo) + Js::ArrayCallSiteInfo::GetOffsetOfBits(), TyUint8, func),
+    InsertCompareBranch(IR::MemRefOpnd::New(((char *)arrayInfoAddr) + Js::ArrayCallSiteInfo::GetOffsetOfBits(), TyUint8, func),
         IR::IntConstOpnd::New(Js::ArrayCallSiteInfo::NotNativeIntBit, TyUint8, func), Js::OpCode::BrNeq_A, helperLabel, instr);
 }
 
@@ -3812,7 +3813,7 @@ Lowerer::GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteI
 }
 
 void
-Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef, uint32 length)
+Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length)
 {
     if (PHASE_OFF(Js::ArrayCtorFastPathPhase, m_func))
     {
@@ -3828,7 +3829,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
 
     if (arrayInfo && arrayInfo->IsNativeIntArray())
     {
-        GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, helperLabel);
+        GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeIntArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex());
         headOpnd = GenerateArrayAlloc<Js::JavascriptNativeIntArray>(instr, &size, arrayInfo, &isZeroed);
 
@@ -3842,7 +3843,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     }
     else if (arrayInfo && arrayInfo->IsNativeFloatArray())
     {
-        GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, helperLabel);
+        GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeFloatArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex());
         headOpnd = GenerateArrayAlloc<Js::JavascriptNativeFloatArray>(instr, &size, arrayInfo, &isZeroed);
 
@@ -3881,7 +3882,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
 }
 
 void
-Lowerer::GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef)
+Lowerer::GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef)
 {
     // Helper will deal with ForceES5ARray
     if (PHASE_OFF(Js::ArrayLiteralFastPathPhase, m_func) || CONFIG_FLAG(ForceES5Array))
@@ -3897,7 +3898,7 @@ Lowerer::GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     Func * func = this->m_func;
     IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, func, true);
 
-    GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, helperLabel);
+    GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
 
     IR::AddrOpnd * elementsOpnd = instr->GetSrc1()->AsAddrOpnd();
     Js::AuxArray<int32> * ints = (Js::AuxArray<int32> *)elementsOpnd->m_address;
@@ -3947,7 +3948,7 @@ Lowerer::GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
 }
 
 void
-Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t weakFuncRef)
+Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef)
 {
     if (PHASE_OFF(Js::ArrayLiteralFastPathPhase, m_func) || CONFIG_FLAG(ForceES5Array))
     {
@@ -3964,7 +3965,7 @@ Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCall
 
     // If the array info hasn't mark as not int array yet, go to the helper and mark it.
     // It really is just for assert purpose in JavascriptNativeFloatArray::ToVarArray
-    GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, helperLabel);
+    GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
 
     IR::AddrOpnd * elementsOpnd = instr->GetSrc1()->AsAddrOpnd();
     Js::AuxArray<double> * doubles = (Js::AuxArray<double> *)elementsOpnd->m_address;
@@ -4019,18 +4020,18 @@ Lowerer::LowerNewScIntArray(IR::Instr *arrInstr)
                 arrInstr->IsJitProfilingInstr()
                     ? arrInstr->AsJitProfilingInstr()->profileId
                     : static_cast<Js::ProfileId>(arrInstr->AsProfiledInstr()->u.profileId);
-            Js::ArrayCallSiteInfo *arrayInfo =
-                arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
+            Js::ArrayCallSiteInfo *arrayInfo = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
+            intptr_t arrayInfoAddr = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
 
             // Only do fast-path if it isn't a JitProfiling instr and not copy-on-access array
             if (arrInstr->IsProfiledInstr()
                 && (PHASE_OFF1(Js::Phase::CopyOnAccessArrayPhase) || arrayInfo->isNotCopyOnAccessArray) && !PHASE_FORCE1(Js::Phase::CopyOnAccessArrayPhase))
             {
-                GenerateProfiledNewScIntArrayFastPath(arrInstr, arrayInfo, weakFuncRef);
+                GenerateProfiledNewScIntArrayFastPath(arrInstr, arrayInfo, arrayInfoAddr, weakFuncRef);
             }
 
             m_lowererMD.LoadHelperArgument(arrInstr, IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func));
-            m_lowererMD.LoadHelperArgument(arrInstr, IR::AddrOpnd::New(arrayInfo, IR::AddrOpndKindDynamicArrayCallSiteInfo, m_func));
+            m_lowererMD.LoadHelperArgument(arrInstr, IR::AddrOpnd::New(arrayInfoAddr, IR::AddrOpndKindDynamicArrayCallSiteInfo, m_func));
             helperMethod = IR::HelperScrArr_ProfiledNewScIntArray;
         }
     }
@@ -4060,16 +4061,16 @@ Lowerer::LowerNewScFltArray(IR::Instr *arrInstr)
                     ? arrInstr->AsJitProfilingInstr()->profileId
                     : static_cast<Js::ProfileId>(arrInstr->AsProfiledInstr()->u.profileId);
 
-            Js::ArrayCallSiteInfo *arrayInfo =
-                arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
+            Js::ArrayCallSiteInfo *arrayInfo = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
+            intptr_t arrayInfoAddr = arrInstr->m_func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
 
             // Only do fast-path if it isn't a JitProfiling instr
             if (arrInstr->IsProfiledInstr()) {
-                GenerateProfiledNewScFloatArrayFastPath(arrInstr, arrayInfo, weakFuncRef);
+                GenerateProfiledNewScFloatArrayFastPath(arrInstr, arrayInfo, arrayInfoAddr, weakFuncRef);
             }
 
             m_lowererMD.LoadHelperArgument(arrInstr, IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func));
-            m_lowererMD.LoadHelperArgument(arrInstr, IR::AddrOpnd::New(arrayInfo, IR::AddrOpndKindDynamicArrayCallSiteInfo, m_func));
+            m_lowererMD.LoadHelperArgument(arrInstr, IR::AddrOpnd::New(arrayInfoAddr, IR::AddrOpndKindDynamicArrayCallSiteInfo, m_func));
             helperMethod = IR::HelperScrArr_ProfiledNewScFltArray;
         }
     }
@@ -4491,7 +4492,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
         return false;
     }
 
-    Js::JitTimeConstructorCache* ctorCache;
+    JITTimeConstructorCache * ctorCache;
 
     if (newObjInstr->HasBailOutInfo())
     {
@@ -4503,8 +4504,8 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
 
         ctorCache = newObjInstr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId));
         Assert(ctorCache != nullptr);
-        Assert(!ctorCache->skipNewScObject);
-        Assert(!ctorCache->typeIsFinal || ctorCache->ctorHasNoExplicitReturnValue);
+        Assert(!ctorCache->SkipNewScObject());
+        Assert(!ctorCache->IsTypeFinal() || ctorCache->CtorHasNoExplicitReturnValue());
 
         LinkCtorCacheToGuardedProperties(ctorCache);
     }
@@ -4536,12 +4537,14 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
     Assert(ctorCache != nullptr);
 
     // We should only have cloned if the script contexts match.
-    Assert(newObjInstr->m_func->GetScriptContext() == ctorCache->scriptContext);
+    // TODO: oop jit, add ctorCache->scriptContext for tracing assert
+    // Assert(newObjInstr->m_func->GetScriptContextInfo()->GetAddr() == ctorCache->scriptContext);
 
     // Built-in constructors don't need a default new object.  Since we know which constructor we're calling, we can skip creating a default
     // object and call a specialized helper (or even constructor, directly) avoiding the checks in generic NewScObjectCommon.
-    if (ctorCache->skipNewScObject)
+    if (ctorCache->SkipNewScObject())
     {
+#if 0 // TODO: oop jit, add constructor info for tracing
         if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
         {
             const Js::JavascriptFunction* ctor = ctorCache->constructor;
@@ -4557,6 +4560,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
                 ctorName, ctorBody ? ctorBody->GetDebugNumberSet(debugStringBuffer) : L"(null)");
             Output::Flush();
         }
+#endif
 
         // All built-in constructors share a special singleton cache that is never checked and never invalidated.  It cannot be used
         // as a guard to protect any property operations downstream from the constructor.  If this ever becomes a performance issue,
@@ -4569,8 +4573,9 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
         return true;
     }
 
-    AssertMsg(ctorCache->type != nullptr, "Why did we hard-code a mismatched, invalidated or polymorphic constructor cache?");
+    AssertMsg(ctorCache->GetType() != nullptr, "Why did we hard-code a mismatched, invalidated or polymorphic constructor cache?");
 
+#if 0 // TODO: oop jit, add constructor info for tracing
     if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
     {
         const Js::JavascriptFunction* constructor = ctorCache->constructor;
@@ -4597,13 +4602,14 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
         }
         Output::Flush();
     }
+#endif
 
     // If the constructor has no return statements, we can safely return the object that was created here.
     // No need to check what the constructor returned - it must be undefined.
-    returnNewScObj = ctorCache->ctorHasNoExplicitReturnValue;
+    returnNewScObj = ctorCache->CtorHasNoExplicitReturnValue();
 
     Assert(Js::ConstructorCache::GetSizeOfGuardValue() == static_cast<size_t>(TySize[TyMachPtr]));
-    IR::MemRefOpnd* guardOpnd = IR::MemRefOpnd::New(const_cast<void*>(ctorCache->runtimeCache->GetAddressOfGuardValue()), TyMachReg, this->m_func,
+    IR::MemRefOpnd* guardOpnd = IR::MemRefOpnd::New(ctorCache->GetRuntimeCacheGuardAddr(), TyMachReg, this->m_func,
         IR::AddrOpndKindDynamicGuardValueRef);
     IR::AddrOpnd* zeroOpnd = IR::AddrOpnd::NewNull(this->m_func);
     InsertCompareBranch(guardOpnd, zeroOpnd, Js::OpCode::BrEq_A, helperOrBailoutLabel, newObjInstr);
@@ -4621,16 +4627,16 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
     }
     else
     {
-        const Js::DynamicType* newObjectType = ctorCache->type;
-        Assert(newObjectType->GetIsShared());
+        const JITType* newObjectType = ctorCache->GetType();
+        Assert(newObjectType->IsShared());
 
         IR::AddrOpnd* typeSrc = IR::AddrOpnd::New(const_cast<void *>(reinterpret_cast<const void *>(newObjectType)), IR::AddrOpndKindDynamicType, m_func);
 
         // For the next call:
         //     inlineSlotSize == Number of slots to allocate beyond the DynamicObject header
         //     slotSize - inlineSlotSize == Number of aux slots to allocate
-        int inlineSlotSize = ctorCache->inlineSlotCount;
-        int slotSize = ctorCache->slotCount;
+        int inlineSlotSize = ctorCache->GetInlineSlotCount();
+        int slotSize = ctorCache->GetSlotCount();
         if (newObjectType->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
         {
             Assert(inlineSlotSize >= Js::DynamicTypeHandler::GetObjectHeaderInlinableSlotCapacity());
@@ -4899,6 +4905,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
 
     intptr_t weakFuncRef = 0;
     Js::ArrayCallSiteInfo *arrayInfo = nullptr;
+    intptr_t arrayInfoAddr = 0;
     Assert(newObjInstr->IsProfiledInstr());
 
     IR::RegOpnd *resultObjOpnd = newObjInstr->GetDst()->AsRegOpnd();
@@ -4910,6 +4917,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
     if (profileId != Js::Constants::NoProfileId)
     {
         arrayInfo = func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
+        arrayInfoAddr = func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
         Assert(arrayInfo);
         weakFuncRef = func->GetWeakFuncRef();
         Assert(weakFuncRef);
@@ -4921,11 +4929,11 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
         intptr_t length = opndSrc1->GetImmediateValue(m_func);
         if (length >= 0 && length <= 8)
         {
-            GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, weakFuncRef, (uint32)length);
+            GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, (uint32)length);
         }
     }
 
-    IR::Opnd *profileOpnd = IR::AddrOpnd::New(arrayInfo, IR::AddrOpndKindDynamicArrayCallSiteInfo, func);
+    IR::Opnd *profileOpnd = IR::AddrOpnd::New(func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId), IR::AddrOpndKindDynamicArrayCallSiteInfo, func);
     this->m_lowererMD.LoadNewScObjFirstArg(newObjInstr, profileOpnd);
 
     IR::JnHelperMethod helperMethod = IR::HelperScrArr_ProfiledNewInstance;
@@ -5007,20 +5015,22 @@ Lowerer::LowerNewScObjArrayNoArg(IR::Instr *newObjInstr)
     Assert(newObjInstr->IsProfiledInstr());
 
     intptr_t weakFuncRef = 0;
+    intptr_t arrayInfoAddr = 0;
     Js::ArrayCallSiteInfo *arrayInfo = nullptr;
     Js::ProfileId profileId = static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId);
     if (profileId != Js::Constants::NoProfileId)
     {
         arrayInfo = func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
+        arrayInfoAddr = func->GetProfileInfo()->GetArrayCallSiteInfoAddr(profileId);
         Assert(arrayInfo);
         weakFuncRef = func->GetWeakFuncRef();
         Assert(weakFuncRef);
     }
 
-    GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, weakFuncRef, 0);
+    GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, 0);
 
     m_lowererMD.LoadHelperArgument(newObjInstr, IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, func));
-    m_lowererMD.LoadHelperArgument(newObjInstr, IR::AddrOpnd::New(arrayInfo, IR::AddrOpndKindDynamicArrayCallSiteInfo, func));
+    m_lowererMD.LoadHelperArgument(newObjInstr, IR::AddrOpnd::New(arrayInfoAddr, IR::AddrOpndKindDynamicArrayCallSiteInfo, func));
 
     LoadScriptContext(newObjInstr);
 
@@ -5869,7 +5879,7 @@ Lowerer::LowerAdjustObjType(IR::Instr * instrAdjustObjType)
     IR::RegOpnd  *baseOpnd = instrAdjustObjType->UnlinkSrc1()->AsRegOpnd();
 
     this->GenerateAdjustBaseSlots(
-        instrAdjustObjType, baseOpnd, (Js::Type*)initialTypeOpnd->m_address, (Js::Type*)finalTypeOpnd->m_address);
+        instrAdjustObjType, baseOpnd, (JITType*)initialTypeOpnd->m_metadata, (JITType*)finalTypeOpnd->m_metadata);
 
     this->m_func->PinTypeRef(finalTypeOpnd->m_address);
 
@@ -6749,7 +6759,7 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
         (propertySymOpnd->IsPoly() || instrChk->HasTypeCheckBailOut());
     Assert(doEquivTypeCheck || !instrChk->HasEquivalentTypeCheckBailOut());
 
-    Js::Type* type = doEquivTypeCheck ? propertySymOpnd->GetFirstEquivalentType() : propertySymOpnd->GetType();
+    JITType* type = doEquivTypeCheck ? propertySymOpnd->GetFirstEquivalentType() : propertySymOpnd->GetType();
 
     Js::PropertyGuard* typeCheckGuard = doEquivTypeCheck ?
         (Js::PropertyGuard*)CreateEquivalentTypeGuardAndLinkToGuardedProperties(type, propertySymOpnd) :
@@ -6850,7 +6860,7 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
 }
 
 void
-Lowerer::PinTypeRef(Js::Type* type, void* typeRef, IR::Instr* instr, Js::PropertyId propertyId)
+Lowerer::PinTypeRef(JITType* type, void* typeRef, IR::Instr* instr, Js::PropertyId propertyId)
 {
     this->m_func->PinTypeRef(typeRef);
 
@@ -6860,7 +6870,7 @@ Lowerer::PinTypeRef(Js::Type* type, void* typeRef, IR::Instr* instr, Js::Propert
         Output::Print(L"PinnedTypes: function %s(%s) instr %s property %s(#%u) pinned %s reference 0x%p to type 0x%p.\n",
             this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
             Js::OpCodeUtil::GetOpCodeName(instr->m_opcode), GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId,
-            typeRef == type ? L"strong" : L"weak", typeRef, type);
+            (intptr_t)typeRef == type->GetAddr() ? L"strong" : L"weak", typeRef, type->GetAddr());
         Output::Flush();
     }
 }
@@ -6871,7 +6881,7 @@ Lowerer::GenerateCachedTypeWithoutPropertyCheck(IR::Instr *instrInsert, IR::Prop
     Assert(propertySymOpnd->IsMonoObjTypeSpecCandidate());
     Assert(propertySymOpnd->HasInitialType());
 
-    Js::Type* typeWithoutProperty = propertySymOpnd->GetInitialType();
+    JITType* typeWithoutProperty = propertySymOpnd->GetInitialType();
 
     // We should never add properties to objects of static types.
     Assert(Js::DynamicType::Is(typeWithoutProperty->GetTypeId()));
@@ -6907,7 +6917,7 @@ Lowerer::GenerateCachedTypeWithoutPropertyCheck(IR::Instr *instrInsert, IR::Prop
     }
     else
     {
-        expectedTypeOpnd = IR::AddrOpnd::New(typeWithoutProperty, IR::AddrOpndKindDynamicType, m_func, true);
+        expectedTypeOpnd = IR::AddrOpnd::New(typeWithoutProperty->GetAddr(), IR::AddrOpndKindDynamicType, m_func, true);
     }
 
     InsertCompareBranch(typeOpnd, expectedTypeOpnd, Js::OpCode::BrNeq_A, labelTypeCheckFailed, instrInsert);
@@ -6924,23 +6934,21 @@ Lowerer::GenerateFixedFieldGuardCheck(IR::Instr *insertPointInstr, IR::PropertyS
 }
 
 Js::JitTypePropertyGuard*
-Lowerer::CreateTypePropertyGuardForGuardedProperties(Js::Type* type, IR::PropertySymOpnd* propertySymOpnd)
+Lowerer::CreateTypePropertyGuardForGuardedProperties(JITType* type, IR::PropertySymOpnd* propertySymOpnd)
 {
     // We should always have a list of guarded properties.
     Assert(propertySymOpnd->GetGuardedPropOps() != nullptr);
 
     Js::JitTypePropertyGuard* guard = nullptr;
 
-    Js::EntryPointInfo* entryPointInfo = this->m_func->m_workItem->GetEntryPoint();
-
-    if (entryPointInfo->HasSharedPropertyGuards())
+    if (m_func->GetWorkItem()->GetJITTimeInfo()->HasSharedPropertyGuards())
     {
         // Consider (ObjTypeSpec): Because we allocate these guards from the JIT thread we can't share guards for the same type across multiple functions.
         // This leads to proliferation of property guards on the thread context.  The alternative would be to pre-allocate shared (by value) guards
         // from the thread context during work item creation.  We would create too many of them (because some types aren't actually used as guards),
         // but we could share a guard for a given type between functions.  This may ultimately be better.
 
-        LinkGuardToGuardedProperties(entryPointInfo, propertySymOpnd->GetGuardedPropOps(), [this, type, &guard](Js::PropertyId propertyId)
+        LinkGuardToGuardedProperties(propertySymOpnd->GetGuardedPropOps(), [this, type, &guard](Js::PropertyId propertyId)
         {
             if (DoLazyFixedTypeBailout(this->m_func))
             {
@@ -6950,7 +6958,7 @@ Lowerer::CreateTypePropertyGuardForGuardedProperties(Js::Type* type, IR::Propert
             {
                 if (guard == nullptr)
                 {
-                    guard = this->m_func->GetOrCreateSingleTypeGuard(type);
+                    guard = this->m_func->GetOrCreateSingleTypeGuard(type->GetAddr());
                 }
 
                 if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
@@ -6972,18 +6980,16 @@ Lowerer::CreateTypePropertyGuardForGuardedProperties(Js::Type* type, IR::Propert
 }
 
 Js::JitEquivalentTypeGuard*
-Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR::PropertySymOpnd* propertySymOpnd)
+Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITType* type, IR::PropertySymOpnd* propertySymOpnd)
 {
     // We should always have a list of guarded properties.
     Assert(propertySymOpnd->HasObjTypeSpecFldInfo() && propertySymOpnd->HasEquivalentTypeSet() && propertySymOpnd->GetGuardedPropOps());
 
     Js::JitEquivalentTypeGuard* guard = this->m_func->CreateEquivalentTypeGuard(type, propertySymOpnd->GetObjTypeSpecFldId());
 
-    Js::EntryPointInfo* entryPointInfo = this->m_func->m_workItem->GetEntryPoint();
-
-    if (entryPointInfo->HasSharedPropertyGuards())
+    if (m_func->GetWorkItem()->GetJITTimeInfo()->HasSharedPropertyGuards())
     {
-        LinkGuardToGuardedProperties(entryPointInfo, propertySymOpnd->GetGuardedPropOps(), [=](Js::PropertyId propertyId)
+        LinkGuardToGuardedProperties(propertySymOpnd->GetGuardedPropOps(), [=](Js::PropertyId propertyId)
         {
             if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
             {
@@ -7012,7 +7018,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR:
     uint16 cachedTypeCount = typeSet->GetCount() < EQUIVALENT_TYPE_CACHE_SIZE ? typeSet->GetCount() : EQUIVALENT_TYPE_CACHE_SIZE;
     for (uint16 ti = 0; ti < cachedTypeCount; ti++)
     {
-        cache->types[ti] = typeSet->GetType(ti);
+        cache->types[ti] = (Js::Type*)typeSet->GetType(ti)->GetAddr();
     }
 
     // Populate property ID and slot index arrays on the guard's cache. We iterate over the
@@ -7030,7 +7036,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR:
 
     FOREACH_BITSET_IN_SPARSEBV(propOpId, propOps)
     {
-        Js::ObjTypeSpecFldInfo* propOpInfo = this->m_func->GetGlobalObjTypeSpecFldInfo(propOpId);
+        JITObjTypeSpecFldInfo* propOpInfo = this->m_func->GetGlobalObjTypeSpecFldInfo(propOpId);
         Js::PropertyId propertyId = propOpInfo->GetPropertyId();
         Js::PropertyIndex propOpIndex = Js::Constants::NoSlot;
         bool hasFixedValue = propOpInfo->HasFixedValue();
@@ -7105,7 +7111,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR:
 }
 
 bool
-Lowerer::LinkCtorCacheToGuardedProperties(Js::JitTimeConstructorCache* ctorCache)
+Lowerer::LinkCtorCacheToGuardedProperties(JITTimeConstructorCache* ctorCache)
 {
     // We do not always have guarded properties. If the constructor is empty and the subsequent code doesn't load or store any of
     // the constructed object's properties, or if all inline caches are empty then this ctor cache doesn't guard any properties.
@@ -7115,18 +7121,17 @@ Lowerer::LinkCtorCacheToGuardedProperties(Js::JitTimeConstructorCache* ctorCache
     }
 
     bool linked = false;
-    Js::EntryPointInfo* entryPointInfo = this->m_func->m_workItem->GetEntryPoint();
 
-    if (entryPointInfo->HasSharedPropertyGuards())
+    if (this->m_func->GetWorkItem()->GetJITTimeInfo()->HasSharedPropertyGuards())
     {
-        linked = LinkGuardToGuardedProperties(entryPointInfo, ctorCache->GetGuardedPropOps(), [=](Js::PropertyId propertyId)
+        linked = LinkGuardToGuardedProperties(ctorCache->GetGuardedPropOps(), [=](Js::PropertyId propertyId)
         {
             if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"ObjTypeSpec: function %s(%s) registered ctor cache 0x%p with value 0x%p for property %s (%u).\n",
                     this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
-                    ctorCache->runtimeCache, ctorCache->type, GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
+                    ctorCache->GetRuntimeCacheAddr(), ctorCache->GetType()->GetAddr(), GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                 Output::Flush();
             }
 
@@ -7139,17 +7144,16 @@ Lowerer::LinkCtorCacheToGuardedProperties(Js::JitTimeConstructorCache* ctorCache
 
 template<typename LinkFunc>
 bool
-Lowerer::LinkGuardToGuardedProperties(Js::EntryPointInfo* entryPointInfo, const BVSparse<JitArenaAllocator>* guardedPropOps, LinkFunc link)
+Lowerer::LinkGuardToGuardedProperties(const BVSparse<JitArenaAllocator>* guardedPropOps, LinkFunc link)
 {
-    Assert(entryPointInfo != nullptr);
-    Assert(entryPointInfo->HasSharedPropertyGuards());
+    Assert(this->m_func->GetWorkItem()->GetJITTimeInfo()->HasSharedPropertyGuards());
     Assert(guardedPropOps != nullptr);
     bool linked = false;
 
     // For every entry in the bit vector, register the guard for the corresponding property ID.
     FOREACH_BITSET_IN_SPARSEBV(propertyOpId, guardedPropOps)
     {
-        Js::ObjTypeSpecFldInfo* propertyOpInfo = this->m_func->GetGlobalObjTypeSpecFldInfo(propertyOpId);
+        JITObjTypeSpecFldInfo* propertyOpInfo = this->m_func->GetGlobalObjTypeSpecFldInfo(propertyOpId);
         Js::PropertyId propertyId = propertyOpInfo->GetPropertyId();
 
         // It's okay for an equivalent type check to be registered as a guard against a property becoming read-only. This transpires if, there is
@@ -7166,28 +7170,14 @@ Lowerer::LinkGuardToGuardedProperties(Js::EntryPointInfo* entryPointInfo, const 
             // See JavascriptOperators::CheckIfTypeIsEquivalent.
             Assert(!propertyOpInfo->IsPoly() || (!propertyOpInfo->HasFixedValue() || propertyOpInfo->IsLoadedFromProto() || propertyOpInfo->UsesAccessor()));
 
-            if (entryPointInfo->HasSharedPropertyGuard(propertyId))
+            if (this->m_func->GetWorkItem()->GetJITTimeInfo()->HasSharedPropertyGuard(propertyId))
             {
                 link(propertyId);
                 linked = true;
             }
             else
             {
-#if TRUE
                 AssertMsg(false, "Did we fail to create a shared property guard for a guarded property?");
-#else
-                if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
-                {
-                    if (!this->m_func->m_workItem->GetEntryPoint()->HasSharedPropertyGuard(propertyId))
-                    {
-                        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                        Output::Print(L"ObjTypeStore: function %s(%s): no shared property guard for property % (%u).\n",
-                            this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer),
-                            GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
-                        Output::Flush();
-                    }
-                }
-#endif
             }
         }
     }
@@ -7199,14 +7189,14 @@ Lowerer::LinkGuardToGuardedProperties(Js::EntryPointInfo* entryPointInfo, const 
 void
 Lowerer::GeneratePropertyGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut)
 {
-    Js::PropertyGuard* guard = propertySymOpnd->GetPropertyGuard();
-    Assert(guard != nullptr);
+    intptr_t guard = propertySymOpnd->GetPropertyGuardValueAddr();
+    Assert(guard != 0);
 
     if (!DoLazyFixedDataBailout(this->m_func))
     {
         Assert(Js::PropertyGuard::GetSizeOfValue() == static_cast<size_t>(TySize[TyMachPtr]));
         IR::AddrOpnd* zeroOpnd = IR::AddrOpnd::NewNull(this->m_func);
-        IR::MemRefOpnd* guardOpnd = IR::MemRefOpnd::New((void*)guard->GetAddressOfValue(), TyMachPtr, this->m_func, IR::AddrOpndKindDynamicGuardValueRef);
+        IR::MemRefOpnd* guardOpnd = IR::MemRefOpnd::New(guard, TyMachPtr, this->m_func, IR::AddrOpndKindDynamicGuardValueRef);
         InsertCompareBranch(guardOpnd, zeroOpnd, Js::OpCode::BrEq_A, labelBailOut, insertPointInstr);
     }
     else
@@ -7259,14 +7249,14 @@ Lowerer::GenerateNonWritablePropertyCheck(IR::Instr *instrInsert, IR::PropertySy
     // Inline the check on the bit in the prototype object's type. If that check fails, call the helper.
     // If the helper finds a non-writable property, bail out, as we're counting on being able to add the property.
 
-    Js::Type *typeWithoutProperty = propertySymOpnd->GetInitialType();
+    JITType *typeWithoutProperty = propertySymOpnd->GetInitialType();
     Assert(typeWithoutProperty);
-    Js::RecyclableObject *protoObject = typeWithoutProperty->GetPrototype();
-    Assert(protoObject);
+    intptr_t protoAddr = typeWithoutProperty->GetPrototypeAddr();
+    Assert(protoAddr != 0);
 
     // s1 = MOV [proto->type].ptr
     IR::RegOpnd *typeOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-    opnd = IR::MemRefOpnd::New((char*)protoObject + Js::RecyclableObject::GetOffsetOfType(), TyMachReg,
+    opnd = IR::MemRefOpnd::New((char*)protoAddr + Js::RecyclableObject::GetOffsetOfType(), TyMachReg,
         this->m_func, IR::AddrOpndKindDynamicObjectTypeRef);
     m_lowererMD.CreateAssign(typeOpnd, opnd, instrInsert);
 
@@ -7281,7 +7271,7 @@ Lowerer::GenerateNonWritablePropertyCheck(IR::Instr *instrInsert, IR::PropertySy
     instrInsert->InsertBefore(labelHelper);
 
     //     s2 = CALL DoProtoCheck, prototype
-    opnd = IR::AddrOpnd::New(protoObject, IR::AddrOpndKindDynamicVar, this->m_func, true);
+    opnd = IR::AddrOpnd::New(protoAddr, IR::AddrOpndKindDynamicVar, this->m_func, true);
     m_lowererMD.LoadHelperArgument(instrInsert, opnd);
 
     opnd = IR::HelperCallOpnd::New(IR::HelperCheckProtoHasNonWritable, this->m_func);
@@ -7297,7 +7287,7 @@ Lowerer::GenerateNonWritablePropertyCheck(IR::Instr *instrInsert, IR::PropertySy
 }
 
 void
-Lowerer::GenerateAdjustSlots(IR::Instr *instrInsert, IR::PropertySymOpnd *propertySymOpnd, Js::Type* initialType, Js::Type* finalType)
+Lowerer::GenerateAdjustSlots(IR::Instr *instrInsert, IR::PropertySymOpnd *propertySymOpnd, JITType* initialType, JITType* finalType)
 {
     IR::RegOpnd *baseOpnd = propertySymOpnd->CreatePropertyOwnerOpnd(m_func);
     bool adjusted = this->GenerateAdjustBaseSlots(instrInsert, baseOpnd, initialType, finalType);
@@ -7308,20 +7298,15 @@ Lowerer::GenerateAdjustSlots(IR::Instr *instrInsert, IR::PropertySymOpnd *proper
 }
 
 bool
-Lowerer::GenerateAdjustBaseSlots(IR::Instr *instrInsert, IR::RegOpnd *baseOpnd, Js::Type* initialType, Js::Type* finalType)
+Lowerer::GenerateAdjustBaseSlots(IR::Instr *instrInsert, IR::RegOpnd *baseOpnd, JITType* initialType, JITType* finalType)
 {
     // Possibly allocate new slot capacity to accommodate a type transition.
-    Js::DynamicType *oldType = static_cast<Js::DynamicType*>(initialType);
-    Assert(oldType);
-    Js::DynamicType *newType = static_cast<Js::DynamicType*>(finalType);
-    Assert(newType);
-
-    AssertMsg(Js::DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(oldType->GetTypeHandler(), newType->GetTypeHandler()),
+    AssertMsg(JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(initialType->GetTypeHandler(), finalType->GetTypeHandler()),
         "Incompatible typeHandler transition?");
-    int oldCount = oldType->GetTypeHandler()->GetSlotCapacity();
-    int newCount = newType->GetTypeHandler()->GetSlotCapacity();
-    Js::PropertyIndex inlineSlotCapacity = oldType->GetTypeHandler()->GetInlineSlotCapacity();
-    Js::PropertyIndex newInlineSlotCapacity = newType->GetTypeHandler()->GetInlineSlotCapacity();
+    int oldCount = initialType->GetTypeHandler()->GetSlotCapacity();
+    int newCount = finalType->GetTypeHandler()->GetSlotCapacity();
+    Js::PropertyIndex inlineSlotCapacity = initialType->GetTypeHandler()->GetInlineSlotCapacity();
+    Js::PropertyIndex newInlineSlotCapacity = finalType->GetTypeHandler()->GetInlineSlotCapacity();
 
     if (oldCount >= newCount || newCount <= inlineSlotCapacity)
     {
@@ -7356,7 +7341,7 @@ Lowerer::GenerateAdjustBaseSlots(IR::Instr *instrInsert, IR::RegOpnd *baseOpnd, 
 }
 
 void
-Lowerer::GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, Js::Type* initialType, Js::Type* finalType)
+Lowerer::GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, JITType* initialType, JITType* finalType)
 {
     // Adjust instance slots, if necessary.
     this->GenerateAdjustSlots(instrStFld, propertySymOpnd, initialType, finalType);
@@ -10886,7 +10871,7 @@ Lowerer::LowerBailOnNotBuiltIn(IR::Instr       *instr,
     Assert(instr->GetSrc2()->IsIntConstOpnd());
     IR::Instr *prevInstr = instr->m_prev;
 
-    Js::JavascriptFunction ** builtInFuncs = this->m_func->GetScriptContext()->GetLibrary()->GetBuiltinFunctions();
+    intptr_t builtInFuncs = m_func->GetScriptContextInfo()->GetBuiltinFunctionsBaseAddr();
     Js::BuiltinFunction builtInIndex = instr->UnlinkSrc2()->AsIntConstOpnd()->AsInt32();
 
     IR::Opnd *builtIn = IR::MemRefOpnd::New((void*)(builtInFuncs + builtInIndex), TyMachReg, instr->m_func);
@@ -12168,10 +12153,18 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         collectRuntimeStatsLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
         instr->InsertBefore(collectRuntimeStatsLabel);
 
-        IR::MemRefOpnd *pIndexOpndForBailOutKind =
-            IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + BailOutRecord::GetOffsetOfBailOutKind(), TyUint32, this->m_func, IR::AddrOpndKindDynamicBailOutKindRef);
+        int offset = ((NativeCodeData::DataChunk*)((char*)bailOutInfo->bailOutRecord - sizeof(NativeCodeData::DataChunk)))->offset;
+        auto addressRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+
+        Lowerer::InsertMove(
+            addressRegOpnd,
+            IR::MemRefOpnd::New((void*)m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, m_func, IR::AddrOpndKindDynamicMisc),
+            instr);
+
+        IR::IndirOpnd * indexOpndForBailOutKind = IR::IndirOpnd::New(addressRegOpnd, (int)(offset + BailOutRecord::GetOffsetOfBailOutKind()), TyUint32, m_func);
+
         m_lowererMD.CreateAssign(
-            pIndexOpndForBailOutKind, IR::IntConstOpnd::New(instr->GetBailOutKind(), pIndexOpndForBailOutKind->GetType(), this->m_func), instr);
+            indexOpndForBailOutKind, IR::IntConstOpnd::New(instr->GetBailOutKind(), indexOpndForBailOutKind->GetType(), this->m_func), instr);
 
         // No point in doing this for BailOutFailedEquivalentTypeCheck or BailOutFailedEquivalentFixedFieldTypeCheck,
         // because the respective inline cache is already polymorphic, anyway.
@@ -12182,10 +12175,10 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
             Assert(bailOutInfo->polymorphicCacheIndex != (uint)-1);
             Assert(bailOutInfo->bailOutRecord);
 
-            IR::MemRefOpnd *pIndexOpnd =
-                IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + BailOutRecord::GetOffsetOfPolymorphicCacheIndex(), TyUint32, this->m_func);
+            IR::IndirOpnd * indexOpnd = IR::IndirOpnd::New(addressRegOpnd, (int)(offset + BailOutRecord::GetOffsetOfPolymorphicCacheIndex()), TyUint32, m_func);
+
             m_lowererMD.CreateAssign(
-                pIndexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr);
+                indexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr);
         }
 
         // GenerateBailOut should have replaced this as a label as we should have already lowered
@@ -21960,8 +21953,8 @@ IR::Opnd *
 Lowerer::LoadSlotArrayWithCachedProtoType(IR::Instr * instrInsert, IR::PropertySymOpnd *propertySymOpnd)
 {
     // Get the prototype object from the cache
-    Js::RecyclableObject *prototypeObject = propertySymOpnd->GetProtoObject();
-    Assert(prototypeObject != nullptr);
+    intptr_t prototypeObject = propertySymOpnd->GetProtoObject();
+    Assert(prototypeObject != 0);
 
     if (propertySymOpnd->UsesAuxSlot())
     {

@@ -9,13 +9,13 @@
 class JITTimeWorkItem
 {
 public:
-    JITTimeWorkItem(CodeGenWorkItemJITData * workItemData);
+    JITTimeWorkItem(CodeGenWorkItemIDL * workItemData);
 
     CodeGenWorkItemType Type() const;
     ExecutionMode GetJitMode() const;
     uint GetLoopNumber() const;
 
-    const JITLoopHeader * GetLoopHeader() const;
+    const JITLoopHeaderIDL * GetLoopHeader() const;
     intptr_t GetLoopHeaderAddr() const;
 
     bool IsLoopBody() const;
@@ -29,13 +29,13 @@ public:
 
     JITTimeFunctionBody * GetJITFunctionBody();
 
-    CodeGenWorkItemJITData* GetWorkItemData();
+    CodeGenWorkItemIDL* GetWorkItemData();
 
-    void SetJITTimeData(FunctionJITTimeData * jitData);
+    void SetJITTimeData(FunctionJITTimeDataIDL * jitData);
     const FunctionJITTimeInfo * GetJITTimeInfo() const;
 
 private:
-    CodeGenWorkItemJITData * m_workItemData;
+    CodeGenWorkItemIDL * m_workItemData;
     JITTimeFunctionBody m_jitBody;
     Js::SmallSpanSequence m_statementMap;
 

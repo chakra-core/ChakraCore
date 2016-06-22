@@ -5,10 +5,10 @@
 
 #include "Backend.h"
 
-AsmJsJITInfo::AsmJsJITInfo(AsmJsJITData * data) :
+AsmJsJITInfo::AsmJsJITInfo(AsmJsDataIDL * data) :
     m_data(*data)
 {
-    CompileAssert(sizeof(AsmJsJITInfo) == sizeof(AsmJsJITData));
+    CompileAssert(sizeof(AsmJsJITInfo) == sizeof(AsmJsDataIDL));
 }
 
 int

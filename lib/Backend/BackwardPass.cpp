@@ -3299,7 +3299,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
 
             Assert(instr->GetDst()->AsRegOpnd()->GetStackSym()->HasObjectTypeSym());
 
-            Js::JitTimeConstructorCache* ctorCache = instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
+            JITTimeConstructorCache* ctorCache = instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
 
             if (block->stackSymToFinalType != nullptr)
             {
@@ -3310,7 +3310,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
                     pBucket->GetInitialType() != nullptr &&
                     pBucket->GetFinalType() != pBucket->GetInitialType())
                 {
-                    Assert(pBucket->GetInitialType() == ctorCache->type);
+                    Assert(pBucket->GetInitialType() == ctorCache->GetType());
                     if (!this->IsPrePass())
                     {
                         this->InsertTypeTransition(instr->m_next, objSym, pBucket);
@@ -3946,7 +3946,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
 #if DBG
         FOREACH_BITSET_IN_SPARSEBV(propOpId, guardedPropertyOps)
         {
-            Js::ObjTypeSpecFldInfo* existingFldInfo = this->func->GetGlobalObjTypeSpecFldInfo(propOpId);
+            JITObjTypeSpecFldInfo* existingFldInfo = this->func->GetGlobalObjTypeSpecFldInfo(propOpId);
             Assert(existingFldInfo != nullptr);
 
             if (existingFldInfo->GetPropertyId() != opnd->GetPropertyId())
@@ -4128,8 +4128,8 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     Assert(this->tag == Js::DeadStorePhase);
     Assert(opnd->IsMono() || opnd->HasEquivalentTypeSet());
 
-    Js::Type *typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
-    Js::Type *typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : nullptr;
+    JITType *typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
+    JITType *typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : nullptr;
 
     if (typeWithoutProperty == nullptr ||
         typeWithProperty == typeWithoutProperty ||
@@ -4149,7 +4149,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
         return;
     }
 
-#if DBG
+#if 0 // TODO: OOP JIT, add these assert back (ReadProcessMemory?)
     Assert(typeWithProperty != nullptr);
     Js::DynamicTypeHandler * typeWithoutPropertyTypeHandler = static_cast<Js::DynamicType *>(typeWithoutProperty)->GetTypeHandler();
     Js::DynamicTypeHandler * typeWithPropertyTypeHandler = static_cast<Js::DynamicType *>(typeWithProperty)->GetTypeHandler();
@@ -4171,9 +4171,9 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     AddPropertyCacheBucket *pBucket =
         block->stackSymToFinalType->FindOrInsertNew(propertySym->m_stackSym->m_id);
 
-    Js::Type* finalType = nullptr;
+    JITType * finalType = nullptr;
 #if DBG
-    Js::Type * deadStoreUnavailableFinalType = nullptr;
+    JITType * deadStoreUnavailableFinalType = nullptr;
 #endif
     if (pBucket->GetInitialType() == nullptr || opnd->GetType() != pBucket->GetInitialType())
     {
@@ -4201,7 +4201,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
 
     if (!PHASE_OFF(Js::ObjTypeSpecStorePhase, this->func))
     {
-#if DBG
+#if 0 //TODO: OOP JIT, reenable assert
 
         // We may regress in this case:
         // if (b)
@@ -4222,7 +4222,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
         if (!opnd->IsTypeDead())
         {
             // This is the type that would have been propagated if we didn't kill it because the type isn't available
-            Js::Type * checkFinalType = deadStoreUnavailableFinalType ? deadStoreUnavailableFinalType : finalType;
+            JITType * checkFinalType = deadStoreUnavailableFinalType ? deadStoreUnavailableFinalType : finalType;
             if (opnd->HasFinalType() && opnd->GetFinalType() != checkFinalType)
             {
                 // Final type discovery must be progressively better (unless we kill it in the deadstore pass
@@ -4301,9 +4301,12 @@ BackwardPass::InsertTypeTransition(IR::Instr *instrInsertBefore, StackSym *objSy
     baseOpnd->SetIsJITOptimizedReg(true);
 
     IR::AddrOpnd *initialTypeOpnd =
-        IR::AddrOpnd::New(data->GetInitialType(), IR::AddrOpndKindDynamicType, this->func);
+        IR::AddrOpnd::New(data->GetInitialType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
+    initialTypeOpnd->m_metadata = data->GetInitialType();
+
     IR::AddrOpnd *finalTypeOpnd =
-        IR::AddrOpnd::New(data->GetFinalType(), IR::AddrOpndKindDynamicType, this->func);
+        IR::AddrOpnd::New(data->GetFinalType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
+    finalTypeOpnd->m_metadata = data->GetFinalType();
 
     IR::Instr *adjustTypeInstr =
         IR::Instr::New(Js::OpCode::AdjustObjType, finalTypeOpnd, baseOpnd, initialTypeOpnd, this->func);
@@ -4467,13 +4470,13 @@ BackwardPass::ForEachAddPropertyCacheBucket(Fn fn)
 bool
 BackwardPass::TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data) const
 {
-    Js::Type *type = data->GetInitialType();
+    JITType *type = data->GetInitialType();
     if (type == nullptr || !Js::DynamicType::Is(type->GetTypeId()))
     {
         return false;
     }
-    Js::DynamicType *dynamicType = static_cast<Js::DynamicType*>(type);
-    if (!dynamicType->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
+
+    if (!type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
     {
         return false;
     }
@@ -4483,8 +4486,7 @@ BackwardPass::TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data)
     {
         return false;
     }
-    dynamicType = static_cast<Js::DynamicType*>(type);
-    return !dynamicType->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
+    return !type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
 }
 
 void

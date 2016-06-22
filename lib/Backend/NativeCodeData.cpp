@@ -65,11 +65,13 @@ NativeCodeData::AddFixupEntry(void* targetAddr, void* targetStartAddr, void* add
     entry->next = chunk->fixupList;
     chunk->fixupList = entry;
 
+#if DBG
     if (PHASE_TRACE1(Js::NativeCodeDataPhase))
     {
         Output::Print(L"NativeCodeData Add Fixup: %p(%p+%d, chunk:%p)  -->  %p(chunk:%p)  %S\n", 
             addrToFixup, startAddress, entry->addrOffset, (void*)chunk, targetAddr, (void*)targetChunk, chunk->dataType);
     }
+#endif
 }
 
 void
@@ -106,11 +108,13 @@ NativeCodeData::AddFixupEntryForPointerArray(void* startAddress, DataChunk * chu
         entry->next = chunk->fixupList;
         chunk->fixupList = entry;
 
+#if DBG
         if (PHASE_TRACE1(Js::NativeCodeDataPhase))
         {
             Output::Print(L"NativeCodeData Add Fixup: %p[%d](+%d, chunk:%p)  -->  %p(chunk:%p)  %S\n",
                 startAddress, i, entry->addrOffset, (void*)chunk, targetAddr, (void*)targetChunk, chunk->dataType);
         }
+#endif
     }
 }
 

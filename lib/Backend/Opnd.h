@@ -505,7 +505,7 @@ public:
 
 private:
     static PropertySymOpnd * New(PropertySym *propertySym, IRType type, Func *func);
-    void Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil);
+    void Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, JITObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil);
 #if DBG
     virtual bool      DbgIsPropertySymOpnd() const override { return true; }
 #endif
@@ -514,9 +514,9 @@ public:
     intptr_t m_runtimeInlineCache;
     Js::PolymorphicInlineCache* m_runtimePolymorphicInlineCache;
 private:
-    Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo;
+    JITObjTypeSpecFldInfo* objTypeSpecFldInfo;
 public:
-    Js::Type* finalType;
+    JITType* finalType;
     BVSparse<JitArenaAllocator>* guardedPropOps;
     BVSparse<JitArenaAllocator>* writeGuards;
     byte m_polyCacheUtil;
@@ -574,7 +574,7 @@ public:
         return this->objTypeSpecFldInfo != nullptr;
     }
 
-    void SetObjTypeSpecFldInfo(Js::ObjTypeSpecFldInfo *const objTypeSpecFldInfo)
+    void SetObjTypeSpecFldInfo(JITObjTypeSpecFldInfo *const objTypeSpecFldInfo)
     {
         this->objTypeSpecFldInfo = objTypeSpecFldInfo;
 
@@ -609,7 +609,7 @@ public:
         return false;
     }
 
-    Js::ObjTypeSpecFldInfo* GetObjTypeSpecInfo() const
+    JITObjTypeSpecFldInfo* GetObjTypeSpecInfo() const
     {
         return this->objTypeSpecFldInfo;
     }
@@ -710,12 +710,6 @@ public:
         return HasObjTypeSpecFldInfo() && this->objTypeSpecFldInfo->IsBeingAdded();
     }
 
-    void SetIsBeingAdded(bool value)
-    {
-        Assert(HasObjTypeSpecFldInfo());
-        this->objTypeSpecFldInfo->SetIsBeingAdded(value);
-    }
-
     bool IsRootObjectNonConfigurableField() const
     {
         return HasObjTypeSpecFldInfo() && this->objTypeSpecFldInfo->IsRootObjectNonConfigurableField();
@@ -756,7 +750,7 @@ public:
         return this->objTypeSpecFldInfo->GetPropertyId();
     }
 
-    Js::DynamicObject* GetProtoObject() const
+    intptr_t GetProtoObject() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetProtoObject();
@@ -774,13 +768,13 @@ public:
         return this->objTypeSpecFldInfo->GetFieldValueAsFixedFunctionIfAvailable(i);
     }
 
-    Js::Var GetFieldValueAsFixedData() const
+    intptr_t GetFieldValueAsFixedData() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFieldValueAsFixedDataIfAvailable();
     }
 
-    Js::Var GetFieldValue(uint i)
+    intptr_t GetFieldValue(uint i) const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFieldValue(i);
@@ -798,16 +792,16 @@ public:
         return this->objTypeSpecFldInfo->GetFixedFieldCount();
     }
 
-    Js::JitTimeConstructorCache* GetCtorCache() const
+    JITTimeConstructorCache * GetCtorCache() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetCtorCache();
     }
 
-    Js::PropertyGuard* GetPropertyGuard() const
+    intptr_t GetPropertyGuardValueAddr() const
     {
         Assert(HasObjTypeSpecFldInfo());
-        return this->objTypeSpecFldInfo->GetPropertyGuard();
+        return this->objTypeSpecFldInfo->GetPropertyGuardValueAddr();
     }
 
     bool IsTypeCheckSeqCandidate() const
@@ -1042,12 +1036,12 @@ public:
         return this->finalType != nullptr;
     }
 
-    Js::Type * GetFinalType() const
+    JITType * GetFinalType() const
     {
         return this->finalType;
     }
 
-    void SetFinalType(Js::Type* type)
+    void SetFinalType(JITType* type)
     {
         Assert(type != nullptr);
         this->finalType = type;
@@ -1108,7 +1102,7 @@ public:
 
     bool IsObjTypeSpecCandidate() const
     {
-        return HasObjTypeSpecFldInfo() && this->objTypeSpecFldInfo->IsObjTypeSpecCandidate();
+        return HasObjTypeSpecFldInfo();
     }
 
     bool IsMonoObjTypeSpecCandidate() const
@@ -1133,13 +1127,13 @@ public:
         return this->objTypeSpecFldInfo->GetTypeId(i);
     }
 
-    Js::Type * GetType() const
+    JITType * GetType() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetType();
     }
 
-    Js::Type * GetType(uint i) const
+    JITType * GetType(uint i) const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetType(i);
@@ -1151,7 +1145,7 @@ public:
         return this->objTypeSpecFldInfo->HasInitialType();
     }
 
-    Js::Type * GetInitialType() const
+    JITType * GetInitialType() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetInitialType();
@@ -1163,7 +1157,7 @@ public:
         return this->objTypeSpecFldInfo->GetEquivalentTypeSet();
     }
 
-    Js::Type * GetFirstEquivalentType() const
+    JITType * GetFirstEquivalentType() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFirstEquivalentType();
@@ -1368,6 +1362,7 @@ public:
     AddrOpndKind            GetAddrOpndKind() const { return addrOpndKind; }
     void                    SetAddress(Js::Var address, AddrOpndKind addrOpndKind);
 public:
+    void *                  m_metadata;
     Js::Var                 m_address;
     bool                    m_dontEncode: 1;
     bool                    m_isFunction: 1;

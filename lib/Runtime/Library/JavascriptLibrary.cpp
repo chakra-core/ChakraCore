@@ -3704,6 +3704,9 @@ namespace Js
         case JavascriptBuiltInFunction::JavascriptRegExp_Exec:
             return BuiltinFunction::RegExp_Exec;
 
+        case JavascriptBuiltInFunction::GlobalObject_ParseInt:
+            return BuiltinFunction::GlobalObject_ParseInt;
+
         default:
             return BuiltinFunction::None;
         }

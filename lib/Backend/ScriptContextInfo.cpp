@@ -5,7 +5,7 @@
 
 #include "Backend.h"
 
-ScriptContextInfo::ScriptContextInfo(ScriptContextData * contextData) :
+ScriptContextInfo::ScriptContextInfo(ScriptContextDataIDL * contextData) :
     m_contextData(*contextData),
     m_isPRNGSeeded(false),
     m_activeJITCount(0)
@@ -162,6 +162,12 @@ intptr_t
 ScriptContextInfo::GetRecyclerAddr() const
 {
     return m_contextData.recyclerAddr;
+}
+
+intptr_t
+ScriptContextInfo::GetBuiltinFunctionsBaseAddr() const
+{
+    return m_contextData.builtinFunctionsBaseAddr;
 }
 
 intptr_t

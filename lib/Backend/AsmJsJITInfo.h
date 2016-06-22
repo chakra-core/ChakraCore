@@ -8,7 +8,7 @@
 class AsmJsJITInfo
 {
 public:
-    AsmJsJITInfo(AsmJsJITData * data);
+    AsmJsJITInfo(AsmJsDataIDL * data);
 
     int GetIntConstCount() const;
     int GetDoubleConstCount() const;
@@ -38,5 +38,5 @@ public:
     bool UsesHeapBuffer() const;
 
 private:
-    AsmJsJITData m_data;
+    AsmJsDataIDL m_data;
 };

@@ -5,10 +5,10 @@
 
 #include "BackEnd.h"
 
-JITTimeProfileInfo::JITTimeProfileInfo(ProfileData * profileData) :
+JITTimeProfileInfo::JITTimeProfileInfo(ProfileDataIDL * profileData) :
     m_profileData(*profileData)
 {
-    CompileAssert(sizeof(JITTimeProfileInfo) == sizeof(ProfileData));
+    CompileAssert(sizeof(JITTimeProfileInfo) == sizeof(ProfileDataIDL));
 }
 
 /* static */
@@ -16,38 +16,39 @@ void
 JITTimeProfileInfo::InitializeJITProfileData(
     __in Js::DynamicProfileInfo * profileInfo,
     __in Js::FunctionBody *functionBody,
-    __out ProfileData * data)
+    __out ProfileDataIDL * data)
 {
     if (profileInfo == nullptr)
     {
         return;
     }
-    CompileAssert(sizeof(LdElemData) == sizeof(Js::LdElemInfo));
+    CompileAssert(sizeof(LdElemIDL) == sizeof(Js::LdElemInfo));
 
     data->profiledLdElemCount = functionBody->GetProfiledLdElemCount();
-    data->ldElemData = (LdElemData*)profileInfo->GetLdElemInfo();
+    data->ldElemData = (LdElemIDL*)profileInfo->GetLdElemInfo();
 
-    CompileAssert(sizeof(StElemData) == sizeof(Js::StElemInfo));
+    CompileAssert(sizeof(StElemIDL) == sizeof(Js::StElemInfo));
     data->profiledStElemCount = functionBody->GetProfiledStElemCount();
-    data->stElemData = (StElemData*)profileInfo->GetStElemInfo();
+    data->stElemData = (StElemIDL*)profileInfo->GetStElemInfo();
 
-    CompileAssert(sizeof(ArrayCallSiteData) == sizeof(Js::ArrayCallSiteInfo));
+    CompileAssert(sizeof(ArrayCallSiteIDL) == sizeof(Js::ArrayCallSiteInfo));
     data->profiledArrayCallSiteCount = functionBody->GetProfiledArrayCallSiteCount();
-    data->arrayCallSiteData = (ArrayCallSiteData*)profileInfo->GetArrayCallSiteInfo();
+    data->arrayCallSiteData = (ArrayCallSiteIDL*)profileInfo->GetArrayCallSiteInfo();
+    data->arrayCallSiteDataAddr = (intptr_t)profileInfo->GetArrayCallSiteInfo();
 
-    CompileAssert(sizeof(FldData) == sizeof(Js::FldInfo));
+    CompileAssert(sizeof(FldIDL) == sizeof(Js::FldInfo));
     data->inlineCacheCount = functionBody->GetProfiledFldCount();
-    data->fldData = (FldData*)profileInfo->GetFldInfo();
+    data->fldData = (FldIDL*)profileInfo->GetFldInfo();
 
-    CompileAssert(sizeof(ThisData) == sizeof(Js::ThisInfo));
-    data->thisData = *reinterpret_cast<ThisData*>(&profileInfo->GetThisInfo());
+    CompileAssert(sizeof(ThisIDL) == sizeof(Js::ThisInfo));
+    data->thisData = *reinterpret_cast<ThisIDL*>(&profileInfo->GetThisInfo());
 
-    CompileAssert(sizeof(CallSiteData) == sizeof(Js::CallSiteInfo));
+    CompileAssert(sizeof(CallSiteIDL) == sizeof(Js::CallSiteInfo));
     data->profiledCallSiteCount = functionBody->GetProfiledCallSiteCount();
-    data->callSiteData = reinterpret_cast<CallSiteData*>(profileInfo->GetCallSiteInfo());
+    data->callSiteData = reinterpret_cast<CallSiteIDL*>(profileInfo->GetCallSiteInfo());
 
-    CompileAssert(sizeof(BVUnitData) == sizeof(BVUnit));
-    data->loopFlags = (BVFixedData*)profileInfo->GetLoopFlags();
+    CompileAssert(sizeof(BVUnitIDL) == sizeof(BVUnit));
+    data->loopFlags = (BVFixedIDL*)profileInfo->GetLoopFlags();
 
     CompileAssert(sizeof(ValueType) == sizeof(uint16));
 
@@ -122,6 +123,13 @@ JITTimeProfileInfo::GetArrayCallSiteInfo(Js::ProfileId index) const
 {
     Assert(index < GetProfiledArrayCallSiteCount());
     return &(reinterpret_cast<Js::ArrayCallSiteInfo*>(m_profileData.arrayCallSiteData)[index]);
+}
+
+intptr_t
+JITTimeProfileInfo::GetArrayCallSiteInfoAddr(Js::ProfileId index) const
+{
+    Assert(index < GetProfiledArrayCallSiteCount());
+    return m_profileData.arrayCallSiteDataAddr + index * sizeof(ArrayCallSiteIDL);
 }
 
 Js::FldInfo *

@@ -5,8 +5,7 @@
 
 #include "Backend.h"
 
-
-JITTimeWorkItem::JITTimeWorkItem(CodeGenWorkItemJITData * workItemData) :
+JITTimeWorkItem::JITTimeWorkItem(CodeGenWorkItemIDL * workItemData) :
     m_workItemData(workItemData), m_jitBody(workItemData->jitData->bodyData)
 {
 }
@@ -53,7 +52,7 @@ JITTimeWorkItem::GetCallsCountAddress() const
     return m_workItemData->jitData->callsCountAddress;
 }
 
-const JITLoopHeader *
+const JITLoopHeaderIDL *
 JITTimeWorkItem::GetLoopHeader() const
 {
     return m_jitBody.GetLoopHeaderData(GetLoopNumber());
@@ -86,14 +85,14 @@ JITTimeWorkItem::GetJITFunctionBody()
     return &m_jitBody;
 }
 
-CodeGenWorkItemJITData *
+CodeGenWorkItemIDL *
 JITTimeWorkItem::GetWorkItemData()
 {
     return m_workItemData;
 }
 
 void
-JITTimeWorkItem::SetJITTimeData(FunctionJITTimeData * jitData)
+JITTimeWorkItem::SetJITTimeData(FunctionJITTimeDataIDL * jitData)
 {
     m_workItemData->jitData = jitData;
 }

@@ -118,10 +118,10 @@ namespace Js
     class JitTypePropertyGuard : public Js::JitIndexedPropertyGuard
     {
     public:
-        JitTypePropertyGuard(Js::Type* type, int index):
-            JitIndexedPropertyGuard(reinterpret_cast<intptr_t>(type), index) {}
+        JitTypePropertyGuard(intptr_t typeAddr, int index):
+            JitIndexedPropertyGuard(typeAddr, index) {}
 
-        Js::Type* GetType() const { return reinterpret_cast<Js::Type*>(this->GetValue()); }
+        intptr_t GetTypeAddr() const { return this->GetValue(); }
 
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
@@ -184,7 +184,7 @@ namespace Js
     struct CtorCacheGuardTransferEntry
     {
         PropertyId propertyId;
-        ConstructorCache* caches[0];
+        intptr_t caches[0];
 
         CtorCacheGuardTransferEntry(): propertyId(Js::Constants::NoProperty) {}
     };
@@ -223,14 +223,14 @@ namespace Js
         uint32 objTypeSpecFldId;
 
     public:
-        JitEquivalentTypeGuard(Type* type, int index, uint32 objTypeSpecFldId):
-            JitIndexedPropertyGuard(reinterpret_cast<intptr_t>(type), index), cache(nullptr), objTypeSpecFldId(objTypeSpecFldId) {}
+        JitEquivalentTypeGuard(intptr_t typeAddr, int index, uint32 objTypeSpecFldId):
+            JitIndexedPropertyGuard(typeAddr, index), cache(nullptr), objTypeSpecFldId(objTypeSpecFldId) {}
 
-        Js::Type* GetType() const { return reinterpret_cast<Js::Type*>(this->GetValue()); }
+        intptr_t GetTypeAddr() const { return this->GetValue(); }
 
-        void SetType(const Js::Type* type)
+        void SetTypeAddr(const intptr_t typeAddr)
         {
-            this->SetValue(reinterpret_cast<intptr_t>(type));
+            this->SetValue(typeAddr);
         }
 
         uint32 GetObjTypeSpecFldId() const
@@ -906,6 +906,7 @@ namespace Js
         Js::PropertyGuard* RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext);
         bool HasSharedPropertyGuards() { return this->sharedPropertyGuards != nullptr; }
         bool HasSharedPropertyGuard(Js::PropertyId propertyId);
+        const SharedPropertyGuardDictionary * GetSharedPropertyGuards() const { return sharedPropertyGuards; }
         bool TryGetSharedPropertyGuard(Js::PropertyId propertyId, Js::PropertyGuard*& guard);
         void RecordTypeGuards(int propertyGuardCount, TypeGuardTransferEntry* typeGuardTransferRecord, size_t typeGuardTransferPlusSize);
         void RecordCtorCacheGuards(CtorCacheGuardTransferEntry* ctorCacheTransferRecord, size_t ctorCacheTransferPlusSize);

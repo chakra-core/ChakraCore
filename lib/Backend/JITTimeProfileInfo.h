@@ -8,17 +8,18 @@
 class JITTimeProfileInfo
 {
 public:
-    JITTimeProfileInfo(ProfileData * profileData);
+    JITTimeProfileInfo(ProfileDataIDL * profileData);
 
     static void InitializeJITProfileData(
         __in Js::DynamicProfileInfo * profileInfo,
         __in Js::FunctionBody *functionBody,
-        __out ProfileData * data);
+        __out ProfileDataIDL * data);
 
     const Js::LdElemInfo * GetLdElemInfo(Js::ProfileId ldElemId) const;
     const Js::StElemInfo * GetStElemInfo(Js::ProfileId stElemId) const;
 
     Js::ArrayCallSiteInfo * GetArrayCallSiteInfo(Js::ProfileId index) const;
+    intptr_t GetArrayCallSiteInfoAddr(Js::ProfileId index) const;
     Js::FldInfo * GetFldInfo(uint fieldAccessId) const;
     Js::ThisInfo GetThisInfo() const;
     ValueType GetSlotLoad(Js::ProfileId slotLoadId) const;
@@ -110,5 +111,5 @@ private:
 
     Js::CallSiteInfo * GetCallSiteInfo() const;
 
-    ProfileData m_profileData;
+    ProfileDataIDL m_profileData;
 };

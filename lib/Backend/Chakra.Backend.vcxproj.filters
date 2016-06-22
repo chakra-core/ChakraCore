@@ -116,6 +116,10 @@
     <ClCompile Include="AsmJsJITInfo.cpp" />
     <ClCompile Include="FunctionJITTimeInfo.cpp" />
     <ClCompile Include="FunctionJITRuntimeInfo.cpp" />
+    <ClCompile Include="JITObjTypeSpecFldInfo.cpp" />
+    <ClCompile Include="JITTimeConstructorCache.cpp" />
+    <ClCompile Include="JITType.cpp" />
+    <ClCompile Include="JITTypeHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -317,6 +321,10 @@
     <ClInclude Include="AsmJsJITInfo.h" />
     <ClInclude Include="FunctionJITTimeInfo.h" />
     <ClInclude Include="FunctionJITRuntimeInfo.h" />
+    <ClInclude Include="JITObjTypeSpecFldInfo.h" />
+    <ClInclude Include="JITTimeConstructorCache.h" />
+    <ClInclude Include="JITType.h" />
+    <ClInclude Include="JITTypeHandler.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

@@ -10,7 +10,7 @@ typedef JsUtil::BaseDictionary<intptr_t, IR::JnHelperMethod, HeapAllocator, Powe
 class ScriptContextInfo
 {
 public:
-    ScriptContextInfo(ScriptContextData * contextData);
+    ScriptContextInfo(ScriptContextDataIDL * contextData);
     intptr_t GetNullAddr() const;
     intptr_t GetUndefinedAddr() const;
     intptr_t GetTrueAddr() const;
@@ -36,6 +36,7 @@ public:
     intptr_t GetLibraryAddr() const;
     intptr_t GetNumberAllocatorAddr() const;
     intptr_t GetRecyclerAddr() const;
+    intptr_t GetBuiltinFunctionsBaseAddr() const;
 
     intptr_t GetAddr() const;
 
@@ -51,7 +52,7 @@ public:
     void EndJIT();
     bool IsJITActive();
 private:
-    ScriptContextData m_contextData;
+    ScriptContextDataIDL m_contextData;
     // TODO: OOP JIT, set this when we initialize PRNG
     bool m_isPRNGSeeded;
 

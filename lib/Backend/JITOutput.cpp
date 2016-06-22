@@ -5,7 +5,7 @@
 
 #include "Backend.h"
 
-JITOutput::JITOutput(JITOutputData * outputData) :
+JITOutput::JITOutput(JITOutputIDL * outputData) :
     m_outputData(outputData)
 {
     m_outputData->writeableEPData.hasJittedStackClosure = false;
@@ -142,7 +142,7 @@ JITOutput::FinalizeNativeCode(Func *func, EmitBufferAllocation * alloc)
     func->GetEmitBufferManager()->CompletePreviousAllocation(alloc);
 }
 
-JITOutputData *
+JITOutputIDL *
 JITOutput::GetOutputData()
 {
     return m_outputData;

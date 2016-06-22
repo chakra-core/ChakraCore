@@ -5,9 +5,9 @@
 
 #include "Backend.h"
 
-FunctionJITRuntimeInfo::FunctionJITRuntimeInfo(FunctionJITRuntimeData * data) : m_data(*data)
+FunctionJITRuntimeInfo::FunctionJITRuntimeInfo(FunctionJITRuntimeIDL * data) : m_data(*data)
 {
-    CompileAssert(sizeof(FunctionJITRuntimeInfo) == sizeof(FunctionJITRuntimeData));
+    CompileAssert(sizeof(FunctionJITRuntimeInfo) == sizeof(FunctionJITRuntimeIDL));
 }
 
 intptr_t

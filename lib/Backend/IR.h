@@ -157,8 +157,7 @@ public:
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Func *func);
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Opnd *src1Opnd, Func *func);
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Opnd *src1Opnd, Opnd *src2Opnd, Func *func);
-    static Instr*   NewConstantLoad(IR::RegOpnd* dstOpnd, Js::Var varConst, Func *func);
-    static Instr*   NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, Js::TypeId type, Func *func);
+    static Instr*   NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, ValueType type, Func *func);
 
 public:
     bool            IsPlainInstr() const;
@@ -316,7 +315,7 @@ public:
     void            ResetAuxBailOut();
     void            UnlinkStartCallFromBailOutInfo(IR::Instr *endInstr) const;
     void            ChangeEquivalentToMonoTypeCheckBailOut();
-    Js::Var         TryOptimizeInstrWithFixedDataProperty(IR::Instr ** pInstr, GlobOpt* globopt);
+    intptr_t        TryOptimizeInstrWithFixedDataProperty(IR::Instr ** pInstr, GlobOpt* globopt);
     Opnd *          FindCallArgumentOpnd(const Js::ArgSlot argSlot, IR::Instr * *const ownerInstrRef = nullptr);
     void            CopyNumber(IR::Instr *instr) { this->SetNumber(instr->GetNumber()); }
 

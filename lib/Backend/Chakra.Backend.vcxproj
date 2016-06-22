@@ -369,10 +369,14 @@
     <ClInclude Include="IRViewer.h" />
     <ClInclude Include="IRType.h" />
     <ClInclude Include="IRTypeList.h" />
+    <ClInclude Include="JITObjTypeSpecFldInfo.h" />
     <ClInclude Include="JITOutput.h" />
+    <ClInclude Include="JITTimeConstructorCache.h" />
     <ClInclude Include="JITTimeFunctionBody.h" />
     <ClInclude Include="JITTimeProfileInfo.h" />
     <ClInclude Include="JITTimeScriptContext.h" />
+    <ClInclude Include="JITType.h" />
+    <ClInclude Include="JITTypeHandler.h" />
     <ClInclude Include="ScriptContextInfo.h" />
     <ClInclude Include="ThreadContextInfo.h" />
     <ClInclude Include="JITTimeWorkItem.h" />
@@ -437,6 +441,10 @@
     <ClCompile Include="AsmJsJITInfo.cpp" />
     <ClCompile Include="FunctionJITRuntimeInfo.cpp" />
     <ClCompile Include="FunctionJITTimeInfo.cpp" />
+    <ClCompile Include="JITObjTypeSpecFldInfo.cpp" />
+    <ClCompile Include="JITTimeConstructorCache.cpp" />
+    <ClCompile Include="JITType.cpp" />
+    <ClCompile Include="JITTypeHandler.cpp" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

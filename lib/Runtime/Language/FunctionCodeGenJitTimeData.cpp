@@ -20,7 +20,7 @@ namespace Js
         if (GetFunctionInfo()->HasBody())
         {
             Recycler * recycler = functionInfo->GetFunctionProxy()->GetScriptContext()->GetRecycler();
-            this->bodyData = RecyclerNewStructZ(recycler, FunctionBodyJITData);
+            this->bodyData = RecyclerNewStructZ(recycler, FunctionBodyDataIDL);
             JITTimeFunctionBody::InitializeJITFunctionData(recycler, GetFunctionBody(), this->bodyData);
         }
     }
@@ -30,7 +30,7 @@ namespace Js
         return this->functionInfo;
     }
 
-    FunctionBodyJITData *FunctionCodeGenJitTimeData::GetJITBody() const
+    FunctionBodyDataIDL *FunctionCodeGenJitTimeData::GetJITBody() const
     {
         return this->bodyData;
     }

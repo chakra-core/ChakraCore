@@ -8,102 +8,162 @@ import "wtypes.idl";
 // TODO: OOP JIT, how do we make this better?
 const int VTABLE_COUNT = 40;
 
-typedef struct ObjTypeSpecFldData
+typedef struct TypeHandlerIDL
+{
+    boolean isObjectHeaderInlinedTypeHandler;
+    boolean isLocked;
+
+    unsigned short inlineSlotCapacity;
+    unsigned short offsetOfInlineSlots;
+
+    int slotCapacity;
+} TypeHandlerIDL;
+
+typedef struct TypeIDL
+{
+    unsigned char flags;
+    boolean isShared;
+
+    int typeId;
+
+    __int3264 libAddr;
+    __int3264 protoAddr;
+    __int3264 entrypointAddr;
+    __int3264 propertyCacheAddr;
+    __int3264 addr;
+
+    TypeHandlerIDL handler;
+} TypeIDL;
+
+typedef struct EquivalentTypeSetIDL
+{
+    boolean sortedAndDuplicatesRemoved;
+    unsigned short count;
+    [size_is(count)] TypeIDL ** types;
+} EquivalentTypeSetIDL;
+
+typedef struct FixedFieldIDL
+{
+    boolean nextHasSameFixedField;
+    TypeIDL type;
+    __int3264 fieldValue;
+} FixedFieldIDL;
+
+typedef struct JITTimeConstructorCacheIDL
+{
+    boolean skipNewScObject;
+    boolean ctorHasNoExplicitReturnValue;
+    boolean typeIsFinal;
+    boolean isUsed;
+
+    short inlineSlotCount;
+
+    int slotCount;
+
+    TypeIDL type;
+
+    __int3264 runtimeCacheAddr;
+    __int3264 runtimeCacheGuardAddr;
+} JITTimeConstructorCacheIDL;
+
+typedef struct ObjTypeSpecFldIDL
 {
     // TODO: OOP JIT we may want to copy some of the data in these pointers
-    __int3264 protoObject;
-    __int3264 propertyGuard;
-    __int3264 typeSet;
-    __int3264 initialType;
-    __int3264 ctorCache;
-    __int3264 fixedFieldInfoArray;
-
-    int propertyId;
-    int typeId;
-    unsigned int id;
-
     unsigned short flags;
     unsigned short slotIndex;
     unsigned short fixedFieldCount;
-} ObjTypeSpecFldData;
+    int propertyId;
+    int typeId;
+    unsigned int id;
+    __int3264 protoObjectAddr;
+    __int3264 propertyGuardValueAddr;
+    EquivalentTypeSetIDL * typeSet;
+    TypeIDL * initialType;
+    JITTimeConstructorCacheIDL * ctorCache;
+    [size_is(fixedFieldCount)] FixedFieldIDL * fixedFieldInfoArray;
+} ObjTypeSpecFldIDL;
 
-typedef struct BVUnitData
+typedef struct BVUnitIDL
 {
     unsigned __int3264 word;
-} BVUnitData;
+} BVUnitIDL;
 
-typedef struct BVFixedData
+typedef struct BVFixedIDL
 {
     unsigned int len;
-    [size_is(len)] BVUnitData data[*];
-} BVFixedData;
+    [size_is(len)] BVUnitIDL data[*];
+} BVFixedIDL;
 
-typedef struct CallSiteData
+typedef struct CallSiteIDL
 {
     unsigned short bitFields;
     unsigned short returnType;
     unsigned int ldFldInlineCacheId;
     unsigned int sourceId;
     unsigned int functionId;
-} CallSiteData;
+} CallSiteIDL;
 
-typedef struct ThisData
+typedef struct ThisIDL
 {
     unsigned short valueType;
     byte thisType;
-} ThisData;
+} ThisIDL;
 
-typedef struct FldData
+typedef struct FldIDL
 {
     unsigned short valueType;
     byte flags;
     byte polymorphicInlineCacheUtilization;
-} FldData;
+} FldIDL;
 
-typedef struct ArrayCallSiteData
+typedef struct ArrayCallSiteIDL
 {
     byte bits;
     unsigned int functionNumber;
     unsigned short callSiteNumber;
-} ArrayCallSiteData;
+} ArrayCallSiteIDL;
 
-typedef struct LdElemData
+typedef struct LdElemIDL
 {
     unsigned short arrayType;
     unsigned short elemType;
     byte bits;
-} LdElemData;
+} LdElemIDL;
 
-typedef struct StElemData
+typedef struct StElemIDL
 {
     unsigned short arrayType;
     byte bits;
-} StElemData;
+} StElemIDL;
 
-typedef struct ProfileData
+typedef struct ProfileDataIDL
 {
+    byte implicitCallFlags;
+
     int flags;
 
-    BVFixedData * loopFlags;
+    ThisIDL thisData;
+
+    BVFixedIDL * loopFlags;
 
     unsigned short profiledLdElemCount;
-    [size_is(profiledLdElemCount)] LdElemData * ldElemData;
+    [size_is(profiledLdElemCount)] LdElemIDL * ldElemData;
 
     unsigned short profiledStElemCount;
-    [size_is(profiledStElemCount)] StElemData * stElemData;
+    [size_is(profiledStElemCount)] StElemIDL * stElemData;
 
     unsigned short profiledArrayCallSiteCount;
-    [size_is(profiledArrayCallSiteCount)] ArrayCallSiteData * arrayCallSiteData;
+    [size_is(profiledArrayCallSiteCount)] ArrayCallSiteIDL * arrayCallSiteData;
 
     // TODO: michhol OOP JIT, share counts with body
     unsigned int inlineCacheCount;
-    [size_is(inlineCacheCount)] FldData * fldData;
+    [size_is(inlineCacheCount)] FldIDL * fldData;
 
     unsigned short profiledSlotCount;
     [size_is(profiledSlotCount)] unsigned short * slotData;
 
     unsigned short profiledCallSiteCount;
-    [size_is(profiledCallSiteCount)] CallSiteData * callSiteData;
+    [size_is(profiledCallSiteCount)] CallSiteIDL * callSiteData;
 
     unsigned short profiledReturnTypeCount;
     [size_is(profiledReturnTypeCount)] unsigned short * returnTypeData;
@@ -120,13 +180,10 @@ typedef struct ProfileData
     unsigned int loopCount;
     [size_is(loopCount)] byte * loopImplicitCallFlags;
 
-    ThisData thisData;
+    __int3264 arrayCallSiteDataAddr;
+} ProfileDataIDL;
 
-    byte implicitCallFlags;
-
-} ProfileData;
-
-typedef struct ThreadContextData
+typedef struct ThreadContextDataIDL
 {
     boolean isThreadBound;
     __int3264 processHandle;
@@ -141,9 +198,9 @@ typedef struct ThreadContextData
     __int3264 debugStepTypeAddr;
     __int3264 debugFrameAddressAddr;
     __int3264 debugScriptIdWhenSetAddr;
-} ThreadContextData;
+} ThreadContextDataIDL;
 
-typedef struct ScriptContextData
+typedef struct ScriptContextDataIDL
 {
     boolean isRecyclerVerifyEnabled;
     unsigned int recyclerVerifyPad;
@@ -174,27 +231,28 @@ typedef struct ScriptContextData
     __int3264 floatArraySetElementFastPathVtableAddr;
     __int3264 numberAllocatorAddr;
     __int3264 recyclerAddr;
-} ScriptContextData;
+    __int3264 builtinFunctionsBaseAddr;
+} ScriptContextDataIDL;
 
-typedef struct SmallSpanSequenceData
+typedef struct SmallSpanSequenceIDL
 {
     int baseValue;
     unsigned int statementLength;
     [size_is(statementLength)] unsigned int * statementBuffer;
     unsigned int actualOffsetLength; // REVIEW: are lengths the same?
     [size_is(actualOffsetLength)] unsigned int * actualOffsetList;
-} SmallSpanSequenceData;
+} SmallSpanSequenceIDL;
 
-typedef struct JITLoopHeader
+typedef struct JITLoopHeaderIDL
 {
     boolean isNested;
     boolean isInTry;
     unsigned int interpretCount;
     unsigned int startOffset;
     unsigned int endOffset;
-} JITLoopHeader;
+} JITLoopHeaderIDL;
 
-typedef struct AsmJsJITData
+typedef struct AsmJsDataIDL
 {
     boolean isHeapBufferConst;
     boolean usesHeapBuffer;
@@ -219,16 +277,16 @@ typedef struct AsmJsJITData
     int floatByteOffset;
     int simdByteOffset;
     int totalSizeInBytes;
-} AsmJsJITData;
+} AsmJsDataIDL;
 
-typedef struct FunctionJITRuntimeData
+typedef struct FunctionJITRuntimeIDL
 {
     unsigned int clonedCacheCount;
     [size_is(clonedCacheCount)] __int3264 * clonedInlineCaches;
-} FunctionJITRuntimeData;
+} FunctionJITRuntimeIDL;
 
 // FunctionBody fields, read only in JIT, gathered in foreground
-typedef struct FunctionBodyJITData
+typedef struct FunctionBodyDataIDL
 {
     byte flags;
 
@@ -244,6 +302,7 @@ typedef struct FunctionBodyJITData
     boolean inlineCachesOnFunctionObject;
     boolean doInterruptProbe;
     boolean isGlobalFunc;
+    boolean isInlineApplyDisabled;
     boolean doJITLoopBody;
     boolean disableInlineSpread;
     boolean hasNestedLoop;
@@ -276,7 +335,7 @@ typedef struct FunctionBodyJITData
     unsigned int recursiveCallSiteCount;
     unsigned int isInstInlineCacheCount; // TODO: only used in Assert
 
-    SmallSpanSequenceData statementMap;
+    SmallSpanSequenceIDL statementMap;
 
     unsigned int byteCodeLength;
     [size_is(byteCodeLength)] byte * byteCodeBuffer;
@@ -291,7 +350,7 @@ typedef struct FunctionBodyJITData
     [size_is(inlineCacheCount)] __int3264 * inlineCaches;
 
     unsigned int loopHeaderArrayLength;
-    [size_is(loopHeaderArrayLength)] JITLoopHeader * loopHeaders;
+    [size_is(loopHeaderArrayLength)] JITLoopHeaderIDL * loopHeaders;
 
     unsigned int referencedPropertyIdCount;
     [size_is(referencedPropertyIdCount)] int * referencedPropertyIdMap;
@@ -300,11 +359,11 @@ typedef struct FunctionBodyJITData
     [size_is(nameLength)] wchar_t * displayName;
 
     unsigned int runtimeDataCount; // only needed for topfunc?
-    [size_is(runtimeDataCount)] FunctionJITRuntimeData * profiledRuntimeData;
+    [size_is(runtimeDataCount)] FunctionJITRuntimeIDL * profiledRuntimeData;
 
-    ProfileData * profileData;
+    ProfileDataIDL * profileData;
 
-    AsmJsJITData * asmJsData;
+    AsmJsDataIDL * asmJsData;
 
     __int3264 loopHeaderArrayAddr;
     __int3264 functionBodyAddr;
@@ -315,25 +374,26 @@ typedef struct FunctionBodyJITData
     __int3264 regAllocLoadCountAddr;
     __int3264 callCountStatsAddr;
     __int3264 nestedFuncArrayAddr;
-} FunctionBodyJITData;
+    __int3264 auxArrayBufferAddr;
+} FunctionBodyDataIDL;
 
 // EntryPointInfo fields, read/write in JIT
-typedef struct EntryPointInfoJITWriteData
+typedef struct EntryPointInfoOutputIDL
 {
     boolean hasJittedStackClosure;
     int localVarSlotsOffset; // FunctionEntryPointInfo only
     int localVarChangedOffset; // FunctionEntryPointInfo only
     unsigned int frameHeight;
-} EntryPointInfoJITWriteData;
+} EntryPointInfoOutputIDL;
 
 // FunctionBody fields, written to from JIT
-typedef struct FunctionBodyJITWriteData
+typedef struct FunctionBodyOutputIDL
 {
     boolean hasBailoutInstr;
     unsigned short argUsedForBranch;
-} FunctionBodyJITWriteData;
+} FunctionBodyOutputIDL;
 
-typedef struct FunctionJITTimeData
+typedef struct FunctionJITTimeDataIDL
 {
     boolean isAggressiveInliningEnabled;
     boolean isInlined;
@@ -341,18 +401,27 @@ typedef struct FunctionJITTimeData
     __int3264 functionInfoAddr;
     __int3264 callsCountAddress;
     __int3264 weakFuncRef;
-    FunctionBodyJITData * bodyData; // TODO: oop jit, can these repeat, should we share?
+    FunctionBodyDataIDL * bodyData; // TODO: oop jit, can these repeat, should we share?
 
-    BVFixedData * inlineesBv;
+    BVFixedIDL * inlineesBv;
+
+    unsigned int sharedPropGuardCount;
+    [size_is(sharedPropGuardCount)] int * sharedPropertyGuards;
+
+
+    unsigned int globalObjTypeSpecFldInfoCount;
+    [size_is(globalObjTypeSpecFldInfoCount)] ObjTypeSpecFldIDL ** globalObjTypeSpecFldInfoArray;
 
     unsigned int inlineeCount;
-    [size_is(inlineeCount)] struct FunctionJITTimeData ** inlinees;
+    [size_is(inlineeCount)] struct FunctionJITTimeDataIDL ** inlinees;
     unsigned int ldFldInlineeCount;
-    [size_is(ldFldInlineeCount)] struct FunctionJITTimeData ** ldFldInlinees;
+    [size_is(ldFldInlineeCount)] struct FunctionJITTimeDataIDL ** ldFldInlinees;
+
     // ldFldInlineeCount == inlineCacheCount
-    [size_is(ldFldInlineeCount)] ObjTypeSpecFldData ** objTypeSpecFldInfoArray;
-    struct FunctionJITTimeData * next;
-} FunctionJITTimeData;
+    [size_is(ldFldInlineeCount)] ObjTypeSpecFldIDL ** objTypeSpecFldInfoArray;
+
+    struct FunctionJITTimeDataIDL * next;
+} FunctionJITTimeDataIDL;
 
 typedef struct XProcNumberPageSegment
 {
@@ -370,8 +439,9 @@ typedef struct XProcNumberPageSegment
 } XProcNumberPageSegment;
 
 // CodeGenWorkItem fields, read only in JIT
-typedef struct CodeGenWorkItemJITData
+typedef struct CodeGenWorkItemIDL
 {
+    boolean hasSharedPropGuards;
     boolean isJitInDebugMode;  // Whether JIT is in debug mode for this work item.
     byte type;
     char jitMode;
@@ -379,9 +449,9 @@ typedef struct CodeGenWorkItemJITData
     unsigned int loopNumber;
     XProcNumberPageSegment xProcNumberPageSegment;
 
-    FunctionJITTimeData * jitData;
+    FunctionJITTimeDataIDL * jitData;
     __int3264 nativeDataAddr;
-} CodeGenWorkItemJITData;
+} CodeGenWorkItemIDL;
 
 typedef struct NativeDataFixupEntry
 {
@@ -413,15 +483,15 @@ typedef struct NativeDataBuffer
 } NativeDataBuffer;
 
 // Fields that JIT modifies
-typedef struct JITOutputData
+typedef struct JITOutputIDL
 {
     boolean isInPrereservedRegion;
 
     unsigned short pdataCount;
     unsigned short xdataSize;
 
-    EntryPointInfoJITWriteData writeableEPData;
-    FunctionBodyJITWriteData writeableBodyData;
+    EntryPointInfoOutputIDL writeableEPData;
+    FunctionBodyOutputIDL writeableBodyData;
 
     unsigned int codeSize;
 
@@ -435,7 +505,7 @@ typedef struct JITOutputData
     
     unsigned int inlineeFrameOffsetArrayOffset;
     unsigned int inlineeFrameOffsetArrayCount;
-} JITOutputData;
+} JITOutputIDL;
 
 [
     uuid(ead694ed-2243-44cb-a9dc-85d3ba934dab),
@@ -447,7 +517,7 @@ interface IChakraJIT
 
     HRESULT InitializeThreadContext(
         [in] handle_t binding,
-        [in] ThreadContextData * threadData,
+        [in] ThreadContextDataIDL * threadData,
         [out] __int3264 * threadContextInfoAddress);
 
     HRESULT CleanupThreadContext(
@@ -456,7 +526,7 @@ interface IChakraJIT
 
     HRESULT InitializeScriptContext(
         [in] handle_t binding,
-        [in] ScriptContextData * scriptContextData,
+        [in] ScriptContextDataIDL * scriptContextData,
         [out] __int3264 * scriptContextInfoAddress);
 
     HRESULT CleanupScriptContext(
@@ -472,7 +542,7 @@ interface IChakraJIT
         [in] handle_t binding,
         [in] __int3264 threadContextInfoAddress,
         [in] __int3264 scriptContextInfoAddress,
-        [in] CodeGenWorkItemJITData * workItemData,
-        [out] JITOutputData * jitData);
+        [in] CodeGenWorkItemIDL * workItemData,
+        [out] JITOutputIDL * jitData);
 
 }

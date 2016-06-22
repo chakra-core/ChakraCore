@@ -13,8 +13,8 @@ class Func;
 class AddPropertyCacheBucket
 {
 private:
-    Js::Type* initialType;
-    Js::Type* finalType;
+    JITType* initialType;
+    JITType* finalType;
 public:
     AddPropertyCacheBucket() : initialType(nullptr), finalType(nullptr)
 #if DBG
@@ -52,18 +52,18 @@ public:
 #endif
     }
 
-    Js::Type *GetInitialType() const { return this->initialType; }
-    Js::Type *GetFinalType() const { return this->finalType; }
-    void SetInitialType(Js::Type *type) { this->initialType = type; }
-    void SetFinalType(Js::Type *type)  { this->finalType = type; }
+    JITType *GetInitialType() const { return this->initialType; }
+    JITType *GetFinalType() const { return this->finalType; }
+    void SetInitialType(JITType *type) { this->initialType = type; }
+    void SetFinalType(JITType *type)  { this->finalType = type; }
 
 #if DBG_DUMP
     void Dump() const;
 #endif
 
 #ifdef DBG
-    Js::Type * deadStoreUnavailableInitialType;
-    Js::Type * deadStoreUnavailableFinalType;
+    JITType * deadStoreUnavailableInitialType;
+    JITType * deadStoreUnavailableFinalType;
 #endif
 };
 

@@ -7911,7 +7911,7 @@ CommonNumber:
             return false;
         }
 
-        if (guard->GetType()->GetScriptContext() != type->GetScriptContext())
+        if (((Js::Type*)guard->GetTypeAddr())->GetScriptContext() != type->GetScriptContext())
         {
             // Can't cache cross-context objects
             return false;
@@ -7929,7 +7929,7 @@ CommonNumber:
         if (type == equivTypes[0] || type == equivTypes[1] || type == equivTypes[2] || type == equivTypes[3] ||
             type == equivTypes[4] || type == equivTypes[5] || type == equivTypes[6] || type == equivTypes[7])
         {
-            guard->SetType(type);
+            guard->SetTypeAddr((intptr_t)type);
             return true;
         }
 
@@ -8053,7 +8053,7 @@ CommonNumber:
             }
         }
 
-        guard->SetType(type);
+        guard->SetTypeAddr((intptr_t)type);
         return true;
     }
 

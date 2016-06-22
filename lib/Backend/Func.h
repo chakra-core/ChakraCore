@@ -70,7 +70,7 @@ public:
     Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         ThreadContextInfo * threadContextInfo,
         ScriptContextInfo * scriptContextInfo,
-        JITOutputData * outputData,
+        JITOutputIDL * outputData,
         const FunctionJITRuntimeInfo *const runtimeInfo,
         Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator,
@@ -333,19 +333,19 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     void PinTypeRef(void* typeRef);
 
     void EnsureSingleTypeGuards();
-    Js::JitTypePropertyGuard* GetOrCreateSingleTypeGuard(Js::Type* type);
+    Js::JitTypePropertyGuard* GetOrCreateSingleTypeGuard(intptr_t typeAddr);
 
     void  EnsureEquivalentTypeGuards();
-    Js::JitEquivalentTypeGuard * CreateEquivalentTypeGuard(Js::Type* type, uint32 objTypeSpecFldId);
+    Js::JitEquivalentTypeGuard * CreateEquivalentTypeGuard(JITType* type, uint32 objTypeSpecFldId);
 
     void EnsurePropertyGuardsByPropertyId();
     void EnsureCtorCachesByPropertyId();
 
     void LinkGuardToPropertyId(Js::PropertyId propertyId, Js::JitIndexedPropertyGuard* guard);
-    void LinkCtorCacheToPropertyId(Js::PropertyId propertyId, Js::JitTimeConstructorCache* cache);
+    void LinkCtorCacheToPropertyId(Js::PropertyId propertyId, JITTimeConstructorCache* cache);
 
-    Js::JitTimeConstructorCache* GetConstructorCache(const Js::ProfileId profiledCallSiteId);
-    void SetConstructorCache(const Js::ProfileId profiledCallSiteId, Js::JitTimeConstructorCache* constructorCache);
+    JITTimeConstructorCache * GetConstructorCache(const Js::ProfileId profiledCallSiteId);
+    void SetConstructorCache(const Js::ProfileId profiledCallSiteId, JITTimeConstructorCache* constructorCache);
 
     void EnsurePropertiesWrittenTo();
 
@@ -443,9 +443,8 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
     Js::JavascriptNumber* AllocateOOPNumber(double value);
 
-    Js::ObjTypeSpecFldInfo* GetObjTypeSpecFldInfo(const uint index) const;
-    Js::ObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const;
-    void SetGlobalObjTypeSpecFldInfo(uint propertyInfoId, Js::ObjTypeSpecFldInfo* info);
+    JITObjTypeSpecFldInfo* GetObjTypeSpecFldInfo(const uint index) const;
+    JITObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const;
 
     // Gets an inline cache pointer to use in jitted code. Cached data may not be stable while jitting. Does not return null.
     intptr_t GetRuntimeInlineCache(const uint index) const;
@@ -487,12 +486,12 @@ public:
     uint constructorCacheCount;
 
     // This array maps callsite ids to constructor caches. The size corresponds to the number of callsites in the function.
-    Js::JitTimeConstructorCache** constructorCaches;
+    JITTimeConstructorCache** constructorCaches;
 
     typedef JsUtil::BaseHashSet<void*, JitArenaAllocator, PowerOf2SizePolicy> TypeRefSet;
     TypeRefSet* pinnedTypeRefs;
 
-    typedef JsUtil::BaseDictionary<Js::Type*, Js::JitTypePropertyGuard*, JitArenaAllocator, PowerOf2SizePolicy> TypePropertyGuardDictionary;
+    typedef JsUtil::BaseDictionary<intptr_t, Js::JitTypePropertyGuard*, JitArenaAllocator, PowerOf2SizePolicy> TypePropertyGuardDictionary;
     TypePropertyGuardDictionary* singleTypeGuards;
 
     typedef SListCounted<Js::JitEquivalentTypeGuard*> EquivalentTypeGuardList;
@@ -502,7 +501,7 @@ public:
     typedef JsUtil::BaseDictionary<Js::PropertyId, IndexedPropertyGuardSet*, JitArenaAllocator, PowerOf2SizePolicy> PropertyGuardByPropertyIdMap;
     PropertyGuardByPropertyIdMap* propertyGuardsByPropertyId;
 
-    typedef JsUtil::BaseHashSet<Js::ConstructorCache*, JitArenaAllocator, PowerOf2SizePolicy> CtorCacheSet;
+    typedef JsUtil::BaseHashSet<intptr_t, JitArenaAllocator, PowerOf2SizePolicy> CtorCacheSet;
     typedef JsUtil::BaseDictionary<Js::PropertyId, CtorCacheSet*, JitArenaAllocator, PowerOf2SizePolicy> CtorCachesByPropertyIdMap;
     CtorCachesByPropertyIdMap* ctorCachesByPropertyId;
 

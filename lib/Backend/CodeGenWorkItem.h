@@ -17,7 +17,7 @@ protected:
         CodeGenWorkItemType type);
     ~CodeGenWorkItem();
 
-    CodeGenWorkItemJITData jitData;
+    CodeGenWorkItemIDL jitData;
 
     Js::FunctionBody *const functionBody;
     size_t codeAddress;
@@ -50,7 +50,7 @@ public:
         return static_cast<ExecutionMode>(this->jitData.jitMode);
     }
 
-    CodeGenWorkItemJITData * GetJITData()
+    CodeGenWorkItemIDL * GetJITData()
     {
         return &this->jitData;
     }

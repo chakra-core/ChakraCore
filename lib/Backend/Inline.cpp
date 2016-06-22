@@ -1164,7 +1164,7 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
     Assert(callInstr->IsProfiledInstr());
     Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callInstr->AsProfiledInstr()->u.profileId);
 
-    CodeGenWorkItemJITData * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemJITData);
+    CodeGenWorkItemIDL * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemIDL);
 
     workItemData->isJitInDebugMode = this->topFunc->IsJitInDebugMode();
     workItemData->type = JsFunctionType;
@@ -1172,7 +1172,7 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
     workItemData->nativeDataAddr = this->topFunc->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
     workItemData->loopNumber = Js::LoopHeader::NoLoop;
 
-    workItemData->jitData = (FunctionJITTimeData*)(inlineeData);
+    workItemData->jitData = (FunctionJITTimeDataIDL*)(inlineeData);
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItemData);
 
     //Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
@@ -1463,15 +1463,16 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
             Js::PropertyRecord const * const methodPropertyRecord = callerFunctionBody->GetScriptContext()->GetPropertyNameLocked(methodPropertyId);
             bool isProto = methodPropertyOpnd->IsLoadedFromProto();
             bool isAccessor = methodPropertyOpnd->UsesAccessor();
-            Js::DynamicObject* protoObject = isProto ? methodPropertyOpnd->GetProtoObject() : nullptr;
             Js::FunctionBody* fixedFunctionBody   = functionObject->GetFunctionInfo()->GetFunctionBody();
             const wchar_t* fixedFunctionNumbers   = fixedFunctionBody ? fixedFunctionBody->GetDebugNumberSet(debugStringBuffer2) : L"(null)";
             JITTimeFunctionBody* profileFunctionBody = inlineeInfo->GetBody();
             const wchar_t* profileFunctionName    = profileFunctionBody != nullptr ? profileFunctionBody->GetDisplayName() : L"<unknown>";
             const wchar_t* profileFunctionNumbers = profileFunctionBody ? inlineeInfo->GetDebugNumberSet(debugStringBuffer3) : L"(null)";
 
+#if 0 // TODO: OOP JIT, protoObject->GetType() ReadProcessMemory?
             if (PHASE_TRACE(Js::FixedMethodsPhase, callInstr->m_func))
             {
+                intptr_t protoObject = isProto ? methodPropertyOpnd->GetProtoObject() : 0;
                 Output::Print(L"FixedFields: function %s (#%s): function body mismatch for inlinee: %s (%s) 0x%p->0x%p != %s (%s) 0x%p (cache id: %d, layout: %s, type: 0x%p, proto: 0x%p, proto type: 0x%p).\n",
                     callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer),
                     methodPropertyRecord->GetBuffer(), fixedFunctionNumbers, functionObject, functionObject->GetFunctionInfo(),
@@ -1479,6 +1480,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
                     methodPropertyOpnd->m_inlineCacheIndex, isProto ? L"proto" : isAccessor ? L"accessor" : L"local",
                     methodPropertyOpnd->GetType(), protoObject, protoObject != nullptr ? protoObject->GetType() : nullptr);
             }
+#endif
             if (PHASE_TESTTRACE(Js::FixedMethodsPhase, callInstr->m_func))
             {
                 Output::Print(L"FixedFields: function %s (%s): function body mismatch for inlinee: %s (%s) != %s (%s) (cache id: %d, layout: %s).\n",
@@ -1549,7 +1551,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
 
     if (isCtor)
     {
-        Js::JitTimeConstructorCache* constructorCache = methodPropertyOpnd->GetCtorCache();
+        JITTimeConstructorCache* constructorCache = methodPropertyOpnd->GetCtorCache();
         if (constructorCache != nullptr && callInstr->IsProfiledInstr())
         {
 
@@ -1568,7 +1570,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
                     callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer), Js::OpCodeUtil::GetOpCodeName(callInstr->m_opcode),
                     inlineeInfo != nullptr ? L"inlined" : L"called",
                     methodPropertyRecord->GetBuffer(), fixedFunctionName, fixedFunctionNumbers,
-                    constructorCache->skipNewScObject ? L" skip default object" : L"");
+                    constructorCache->SkipNewScObject() ? L" skip default object" : L"");
                 Output::Flush();
             }
 #endif
@@ -1578,15 +1580,15 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
             {
                 // Because we are storing flow sensitive info in the cache (guarded property operations),
                 // we must make sure the same cache cannot be used multiple times in the flow.
-                if (constructorCache->isUsed)
+                if (constructorCache->IsUsed())
                 {
                     // It's okay to allocate a JitTimeConstructorCache from the func's allocator (rather than recycler),
                     // because we only use these during JIT. We use the underlying runtime cache as a guard that must
                     // live after JIT, and these are added to the EntryPointInfo during work item creation and thus kept alive.
                     constructorCache = constructorCache->Clone(this->topFunc->m_alloc);
                 }
-                Assert(!constructorCache->isUsed);
-                constructorCache->isUsed = true;
+                Assert(!constructorCache->IsUsed());
+                constructorCache->SetUsed(true);
                 callInstr->m_func->SetConstructorCache(static_cast<Js::ProfileId>(callInstr->AsProfiledInstr()->u.profileId), constructorCache);
             }
         }
@@ -1652,22 +1654,22 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
     return true;
 }
 
-Js::Var
+intptr_t
 Inline::TryOptimizeInstrWithFixedDataProperty(IR::Instr *&instr)
 {
     if (PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func) ||
         PHASE_OFF(Js::UseFixedDataPropsInInlinerPhase, instr->m_func))
     {
-        return nullptr;
+        return 0;
     }
     if (!instr->IsProfiledInstr() ||
         !instr->GetSrc1()->IsSymOpnd() || !instr->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd())
     {
-        return nullptr;
+        return 0;
     }
     if (!OpCodeAttr::CanLoadFixedFields(instr->m_opcode))
     {
-        return nullptr;
+        return 0;
     }
     return instr->TryOptimizeInstrWithFixedDataProperty(&instr, nullptr);
 }
@@ -1817,7 +1819,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
         return callInstr->m_next;
     }
 
-    if (inlineCallOpCode == Js::OpCode::InlineFunctionApply && (!callInstr->m_func->GetHasStackArgs() || this->topFunc->GetJnFunction()->IsInlineApplyDisabled()))
+    if (inlineCallOpCode == Js::OpCode::InlineFunctionApply && (!callInstr->m_func->GetHasStackArgs() || this->topFunc->GetJITFunctionBody()->IsInlineApplyDisabled()))
     {
         INLINE_TESTTRACE(L"INLINING: Skip Inline: stack args of inlining is off\tInlinee: %s (#%d)\tCaller: %s (%s)\n",
             Js::JavascriptLibrary::GetNameForBuiltIn(builtInId), (int)builtInId,
@@ -2611,7 +2613,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
     Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callInstr->AsProfiledInstr()->u.profileId);
 
     // inlinee
-    CodeGenWorkItemJITData * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemJITData);
+    CodeGenWorkItemIDL * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemIDL);
 
     workItemData->isJitInDebugMode = this->topFunc->IsJitInDebugMode();
     workItemData->type = JsFunctionType;
@@ -2619,7 +2621,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
     workItemData->nativeDataAddr = this->topFunc->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
     workItemData->loopNumber = Js::LoopHeader::NoLoop;
 
-    workItemData->jitData = (FunctionJITTimeData*)(inlineeData);
+    workItemData->jitData = (FunctionJITTimeDataIDL*)(inlineeData);
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItemData);
 
     //Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
@@ -3352,7 +3354,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
     }
 
     // inlinee
-    CodeGenWorkItemJITData * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemJITData);
+    CodeGenWorkItemIDL * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemIDL);
 
     workItemData->isJitInDebugMode = this->topFunc->IsJitInDebugMode();
     workItemData->type = JsFunctionType;
@@ -3360,7 +3362,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
     workItemData->nativeDataAddr = this->topFunc->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
     workItemData->loopNumber = Js::LoopHeader::NoLoop;
 
-    workItemData->jitData = (FunctionJITTimeData*)(inlineeData);
+    workItemData->jitData = (FunctionJITTimeDataIDL*)(inlineeData);
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItemData);
 
     //Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
@@ -3660,7 +3662,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
         returnRegSlot = Js::Constants::NoRegister;
     }
 
-    CodeGenWorkItemJITData * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemJITData);
+    CodeGenWorkItemIDL * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemIDL);
 
     workItemData->isJitInDebugMode = this->topFunc->IsJitInDebugMode();
     workItemData->type = JsFunctionType;
@@ -3668,7 +3670,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
     workItemData->nativeDataAddr = this->topFunc->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
     workItemData->loopNumber = Js::LoopHeader::NoLoop;
 
-    workItemData->jitData = (FunctionJITTimeData*)(inlineeData);
+    workItemData->jitData = (FunctionJITTimeDataIDL*)(inlineeData);
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItemData);
 
     //Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
@@ -3742,7 +3744,7 @@ Inline::SplitConstructorCallCommon(
     // object allocation (bytecode instruction has the form [Profiled]NewScObject R6 = R6).
     IR::RegOpnd* createObjDst = nullptr;
     IR::Instr* createObjInstr = nullptr;
-    const Js::JitTimeConstructorCache* constructorCache;
+    const JITTimeConstructorCache* constructorCache;
     bool returnCreatedObject = false;
     bool skipNewScObj = false;
 
@@ -3750,8 +3752,8 @@ Inline::SplitConstructorCallCommon(
     {
         Js::ProfileId profiledCallSiteId = static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId);
         constructorCache = newObjInstr->m_func->GetConstructorCache(profiledCallSiteId);
-        returnCreatedObject = constructorCache != nullptr && constructorCache->ctorHasNoExplicitReturnValue;
-        skipNewScObj = constructorCache != nullptr && constructorCache->skipNewScObject;
+        returnCreatedObject = constructorCache != nullptr && constructorCache->CtorHasNoExplicitReturnValue();
+        skipNewScObj = constructorCache != nullptr && constructorCache->SkipNewScObject();
         if (!skipNewScObj)
         {
             createObjDst = IR::RegOpnd::New(TyVar, callerFunc);
@@ -4097,7 +4099,7 @@ bool Inline::InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_op
         else if (src1->AsSymOpnd()->IsPropertySymOpnd())
         {
             // See if we have a LdFld of a fixed field.
-            Js::Var var = TryOptimizeInstrWithFixedDataProperty(instr);
+            intptr_t var = TryOptimizeInstrWithFixedDataProperty(instr);
             if (!Js::TaggedInt::Is(var))
             {
                 return false;

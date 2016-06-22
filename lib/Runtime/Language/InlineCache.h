@@ -17,6 +17,10 @@
 #define PolymorphicInlineCacheShift 6 // On 64 bit architectures, the least 6 significant bits of a DynamicTypePointer is 0
 #endif
 
+// TODO: OOP JIT, move equiv set to backend?
+// forward decl
+class JITType;
+
 namespace Js
 {
     enum CacheType : byte
@@ -524,12 +528,12 @@ namespace Js
     class EquivalentTypeSet
     {
     private:
-        Type** types;
-        uint16 count;
         bool sortedAndDuplicatesRemoved;
+        uint16 count;
+        JITType ** types;
 
     public:
-        EquivalentTypeSet(Type** types, uint16 count)
+        EquivalentTypeSet(JITType ** types, uint16 count)
             : types(types), count(count), sortedAndDuplicatesRemoved(false) {}
 
         uint16 GetCount() const
@@ -537,22 +541,26 @@ namespace Js
             return this->count;
         }
 
-        Type* GetFirstType() const
+        JITType * GetFirstType() const
         {
             return GetType(0);
         }
 
-        Type* GetType(uint16 index) const
+        JITType * GetType(uint16 index) const
         {
             Assert(this->types != nullptr && this->count > 0 && index < this->count);
             return this->types[index];
+        }
+        JITType ** GetTypes() const
+        {
+            return this->types;
         }
 
         bool GetSortedAndDuplicatesRemoved() const
         {
             return this->sortedAndDuplicatesRemoved;
         }
-        bool Contains(const Js::Type * type, uint16 * pIndex = nullptr) const;
+        bool Contains(const JITType * type, uint16 * pIndex = nullptr) const;
 
         static bool AreIdentical(EquivalentTypeSet * left, EquivalentTypeSet * right);
         static bool IsSubsetOf(EquivalentTypeSet * left, EquivalentTypeSet * right);

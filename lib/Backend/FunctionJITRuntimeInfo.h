@@ -8,11 +8,11 @@
 class FunctionJITRuntimeInfo
 {
 public:
-    FunctionJITRuntimeInfo(FunctionJITRuntimeData * data);
+    FunctionJITRuntimeInfo(FunctionJITRuntimeIDL * data);
 
     intptr_t GetClonedInlineCache(uint index) const;
     bool HasClonedInlineCaches() const;
 
 private:
-    FunctionJITRuntimeData m_data;
+    FunctionJITRuntimeIDL m_data;
 };

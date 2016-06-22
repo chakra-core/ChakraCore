@@ -8,7 +8,7 @@
 class JITOutput
 {
 public:
-    JITOutput(JITOutputData * outputData);
+    JITOutput(JITOutputIDL * outputData);
 
     void SetHasJITStackClosure();
 
@@ -31,7 +31,7 @@ public:
 
     void FinalizeNativeCode(Func *func, EmitBufferAllocation * alloc);
 
-    JITOutputData * GetOutputData();
+    JITOutputIDL * GetOutputData();
 private:
-    JITOutputData * m_outputData;
+    JITOutputIDL * m_outputData;
 };

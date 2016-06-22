@@ -6,92 +6,12 @@
 #pragma once
 
 #if ENABLE_NATIVE_CODEGEN
+
+// forward declaration
+class JITTimeConstructorCache;
+
 namespace Js
 {
-    struct JitTimeConstructorCache
-    {
-        // TODO (FixedNewObj): Consider making these private and provide getters to ensure the values are not changed.
-        const JavascriptFunction* constructor;
-        ConstructorCache* runtimeCache;
-
-        const ScriptContext* scriptContext;
-        const DynamicType* type;
-        BVSparse<JitArenaAllocator>* guardedPropOps;
-        int slotCount;
-        int16 inlineSlotCount;
-
-        bool skipNewScObject;
-        bool ctorHasNoExplicitReturnValue;
-        bool typeIsFinal;
-        bool isUsed;
-
-    public:
-        JitTimeConstructorCache(const JavascriptFunction* constructor, ConstructorCache* runtimeCache)
-        {
-            Assert(constructor != nullptr);
-            Assert(runtimeCache != nullptr);
-            this->constructor = constructor;
-            this->runtimeCache = runtimeCache;
-            this->type = runtimeCache->content.type;
-            this->guardedPropOps = nullptr;
-            this->scriptContext = runtimeCache->content.scriptContext;
-            this->slotCount = runtimeCache->content.slotCount;
-            this->inlineSlotCount = runtimeCache->content.inlineSlotCount;
-            this->skipNewScObject = runtimeCache->content.skipDefaultNewObject;
-            this->ctorHasNoExplicitReturnValue = runtimeCache->content.ctorHasNoExplicitReturnValue;
-            this->typeIsFinal = runtimeCache->content.typeIsFinal;
-            this->isUsed = false;
-        }
-
-        JitTimeConstructorCache(const JitTimeConstructorCache* other)
-        {
-            Assert(other != nullptr);
-            Assert(other->constructor != nullptr);
-            Assert(other->runtimeCache != nullptr);
-            this->constructor = other->constructor;
-            this->runtimeCache = other->runtimeCache;
-            this->type = other->type;
-            this->guardedPropOps = nullptr;
-            this->scriptContext = other->scriptContext;
-            this->slotCount = other->slotCount;
-            this->inlineSlotCount = other->inlineSlotCount;
-            this->skipNewScObject = other->skipNewScObject;
-            this->ctorHasNoExplicitReturnValue = other->ctorHasNoExplicitReturnValue;
-            this->typeIsFinal = other->typeIsFinal;
-            this->isUsed = false;
-        }
-
-        JitTimeConstructorCache* Clone(JitArenaAllocator* allocator)
-        {
-            JitTimeConstructorCache* clone = Anew(allocator, JitTimeConstructorCache, this);
-            return clone;
-        }
-
-        const BVSparse<JitArenaAllocator>* GetGuardedPropOps() const
-        {
-            return this->guardedPropOps;
-        }
-
-        void EnsureGuardedPropOps(JitArenaAllocator* allocator)
-        {
-            if (this->guardedPropOps == nullptr)
-            {
-                this->guardedPropOps = Anew(allocator, BVSparse<JitArenaAllocator>, allocator);
-            }
-        }
-
-        void SetGuardedPropOp(uint propOpId)
-        {
-            Assert(this->guardedPropOps != nullptr);
-            this->guardedPropOps->Set(propOpId);
-        }
-
-        void AddGuardedPropOps(const BVSparse<JitArenaAllocator>* propOps)
-        {
-            Assert(this->guardedPropOps != nullptr);
-            this->guardedPropOps->Or(propOps);
-        }
-    };
 
 #define InitialObjTypeSpecFldInfoFlagValue 0x01
 
@@ -102,6 +22,33 @@ namespace Js
         bool nextHasSameFixedField; // set to true if the next entry in the FixedFieldInfo array on ObjTypeSpecFldInfo has the same type
     };
 
+    // Union with uint16 flags for fast default initialization
+    union ObjTypeSpecFldInfoFlags
+    {
+        struct
+        {
+            bool falseReferencePreventionBit : 1;
+            bool isPolymorphic : 1;
+            bool isRootObjectNonConfigurableField : 1;
+            bool isRootObjectNonConfigurableFieldLoad : 1;
+            bool usesAuxSlot : 1;
+            bool isLocal : 1;
+            bool isLoadedFromProto : 1;
+            bool usesAccessor : 1;
+            bool hasFixedValue : 1;
+            bool keepFieldValue : 1;
+            bool isBeingStored : 1;
+            bool isBeingAdded : 1;
+            bool doesntHaveEquivalence : 1;
+            bool isBuiltIn : 1;
+        };
+        struct
+        {
+            uint16 flags;
+        };
+        ObjTypeSpecFldInfoFlags(uint16 flags) : flags(flags) { }
+    };
+
     class ObjTypeSpecFldInfo
     {
     private:
@@ -109,39 +56,14 @@ namespace Js
         PropertyGuard* propertyGuard;
         EquivalentTypeSet* typeSet;
         Type* initialType;
-        JitTimeConstructorCache* ctorCache;
+        JITTimeConstructorCache* ctorCache;
         FixedFieldInfo* fixedFieldInfoArray;
 
         PropertyId propertyId;
         Js::TypeId typeId;
         uint id;
 
-        // Union with uint16 flags for fast default initialization
-        union
-        {
-            struct
-            {
-                bool falseReferencePreventionBit : 1;
-                bool isPolymorphic : 1;
-                bool isRootObjectNonConfigurableField : 1;
-                bool isRootObjectNonConfigurableFieldLoad : 1;
-                bool usesAuxSlot : 1;
-                bool isLocal : 1;
-                bool isLoadedFromProto : 1;
-                bool usesAccessor : 1;
-                bool hasFixedValue : 1;
-                bool keepFieldValue : 1;
-                bool isBeingStored : 1;
-                bool isBeingAdded : 1;
-                bool doesntHaveEquivalence : 1;
-                bool isBuiltIn : 1;
-            };
-            struct
-            {
-                uint16 flags;
-            };
-        };
-
+        ObjTypeSpecFldInfoFlags flags;
         uint16 slotIndex;
 
         uint16 fixedFieldCount; // currently used only for fields that are functions
@@ -155,42 +77,42 @@ namespace Js
         ObjTypeSpecFldInfo(uint id, TypeId typeId, Type* initialType,
             bool usesAuxSlot, bool isLoadedFromProto, bool usesAccessor, bool isFieldValueFixed, bool keepFieldValue, bool isBuiltIn,
             uint16 slotIndex, PropertyId propertyId, DynamicObject* protoObject, PropertyGuard* propertyGuard,
-            JitTimeConstructorCache* ctorCache, FixedFieldInfo* fixedFieldInfoArray) :
+            JITTimeConstructorCache* ctorCache, FixedFieldInfo* fixedFieldInfoArray) :
             id(id), typeId(typeId), typeSet(nullptr), initialType(initialType), flags(InitialObjTypeSpecFldInfoFlagValue),
             slotIndex(slotIndex), propertyId(propertyId), protoObject(protoObject), propertyGuard(propertyGuard),
             ctorCache(ctorCache), fixedFieldInfoArray(fixedFieldInfoArray)
         {
-            this->isPolymorphic = false;
-            this->usesAuxSlot = usesAuxSlot;
-            this->isLocal = !isLoadedFromProto && !usesAccessor;
-            this->isLoadedFromProto = isLoadedFromProto;
-            this->usesAccessor = usesAccessor;
-            this->hasFixedValue = isFieldValueFixed;
-            this->keepFieldValue = keepFieldValue;
-            this->isBeingAdded = initialType != nullptr;
-            this->doesntHaveEquivalence = true; // doesn't mean anything for data from a monomorphic cache
-            this->isBuiltIn = isBuiltIn;
+            this->flags.isPolymorphic = false;
+            this->flags.usesAuxSlot = usesAuxSlot;
+            this->flags.isLocal = !isLoadedFromProto && !usesAccessor;
+            this->flags.isLoadedFromProto = isLoadedFromProto;
+            this->flags.usesAccessor = usesAccessor;
+            this->flags.hasFixedValue = isFieldValueFixed;
+            this->flags.keepFieldValue = keepFieldValue;
+            this->flags.isBeingAdded = initialType != nullptr;
+            this->flags.doesntHaveEquivalence = true; // doesn't mean anything for data from a monomorphic cache
+            this->flags.isBuiltIn = isBuiltIn;
             this->fixedFieldCount = 1;
         }
 
         ObjTypeSpecFldInfo(uint id, TypeId typeId, Type* initialType, EquivalentTypeSet* typeSet,
             bool usesAuxSlot, bool isLoadedFromProto, bool usesAccessor, bool isFieldValueFixed, bool keepFieldValue, bool doesntHaveEquivalence, bool isPolymorphic,
             uint16 slotIndex, PropertyId propertyId, DynamicObject* protoObject, PropertyGuard* propertyGuard,
-            JitTimeConstructorCache* ctorCache, FixedFieldInfo* fixedFieldInfoArray, uint16 fixedFieldCount) :
+            JITTimeConstructorCache* ctorCache, FixedFieldInfo* fixedFieldInfoArray, uint16 fixedFieldCount) :
             id(id), typeId(typeId), typeSet(typeSet), initialType(initialType), flags(InitialObjTypeSpecFldInfoFlagValue),
             slotIndex(slotIndex), propertyId(propertyId), protoObject(protoObject), propertyGuard(propertyGuard),
             ctorCache(ctorCache), fixedFieldInfoArray(fixedFieldInfoArray)
         {
-            this->isPolymorphic = isPolymorphic;
-            this->usesAuxSlot = usesAuxSlot;
-            this->isLocal = !isLoadedFromProto && !usesAccessor;
-            this->isLoadedFromProto = isLoadedFromProto;
-            this->usesAccessor = usesAccessor;
-            this->hasFixedValue = isFieldValueFixed;
-            this->keepFieldValue = keepFieldValue;
-            this->isBeingAdded = initialType != nullptr;
-            this->doesntHaveEquivalence = doesntHaveEquivalence;
-            this->isBuiltIn = false;
+            this->flags.isPolymorphic = isPolymorphic;
+            this->flags.usesAuxSlot = usesAuxSlot;
+            this->flags.isLocal = !isLoadedFromProto && !usesAccessor;
+            this->flags.isLoadedFromProto = isLoadedFromProto;
+            this->flags.usesAccessor = usesAccessor;
+            this->flags.hasFixedValue = isFieldValueFixed;
+            this->flags.keepFieldValue = keepFieldValue;
+            this->flags.isBeingAdded = initialType != nullptr;
+            this->flags.doesntHaveEquivalence = doesntHaveEquivalence;
+            this->flags.isBuiltIn = false;
             this->fixedFieldCount = fixedFieldCount;
         }
 
@@ -207,88 +129,88 @@ namespace Js
 
         bool IsMono() const
         {
-            return !this->isPolymorphic;
+            return !this->flags.isPolymorphic;
         }
 
         bool IsPoly() const
         {
-            return this->isPolymorphic;
+            return this->flags.isPolymorphic;
         }
 
         bool UsesAuxSlot() const
         {
-            return this->usesAuxSlot;
+            return this->flags.usesAuxSlot;
+        }
+
+        bool IsBuiltin() const
+        {
+            return this->flags.isBuiltIn;
         }
 
         void SetUsesAuxSlot(bool value)
         {
-            this->usesAuxSlot = value;
+            this->flags.usesAuxSlot = value;
         }
 
         bool IsLoadedFromProto() const
         {
-            return this->isLoadedFromProto;
+            return this->flags.isLoadedFromProto;
         }
 
         bool IsLocal() const
         {
-            return this->isLocal;
+            return this->flags.isLocal;
         }
 
         bool UsesAccessor() const
         {
-            return this->usesAccessor;
+            return this->flags.usesAccessor;
         }
 
         bool HasFixedValue() const
         {
-            return this->hasFixedValue;
+            return this->flags.hasFixedValue;
         }
 
         void SetHasFixedValue(bool value)
         {
-            this->hasFixedValue = value;
+            this->flags.hasFixedValue = value;
         }
 
         bool IsBeingStored() const
         {
-            return this->isBeingStored;
+            return this->flags.isBeingStored;
         }
 
         void SetIsBeingStored(bool value)
         {
-            this->isBeingStored = value;
+            this->flags.isBeingStored = value;
         }
 
         bool IsBeingAdded() const
         {
-            return this->isBeingAdded;
-        }
-
-        void SetIsBeingAdded(bool value)
-        {
-            this->isBeingAdded = value;
+            return this->flags.isBeingAdded;
         }
 
         bool IsRootObjectNonConfigurableField() const
         {
-            return this->isRootObjectNonConfigurableField;
+            return this->flags.isRootObjectNonConfigurableField;
         }
 
         bool IsRootObjectNonConfigurableFieldLoad() const
         {
-            return this->isRootObjectNonConfigurableField && this->isRootObjectNonConfigurableFieldLoad;
+            return this->flags.isRootObjectNonConfigurableField && this->flags.isRootObjectNonConfigurableFieldLoad;
         }
 
         void SetRootObjectNonConfigurableField(bool isLoad)
         {
-            this->isRootObjectNonConfigurableField = true;
-            this->isRootObjectNonConfigurableFieldLoad = isLoad;
+            this->flags.isRootObjectNonConfigurableField = true;
+            this->flags.isRootObjectNonConfigurableFieldLoad = isLoad;
         }
 
         bool DoesntHaveEquivalence() const
         {
-            return this->doesntHaveEquivalence;
+            return this->flags.doesntHaveEquivalence;
         }
 
         void ClearFlags()
@@ -299,6 +221,11 @@ namespace Js
         void SetFlags(uint16 flags)
         {
             this->flags = flags | 0x01;
+        }
+
+        uint16 GetFlags() const
+        {
+            return this->flags.flags;
         }
 
         uint16 GetSlotIndex() const
@@ -354,10 +281,10 @@ namespace Js
 
         bool GetKeepFieldValue() const
         {
-            return this->keepFieldValue;
+            return this->flags.keepFieldValue;
         }
 
-        Js::JitTimeConstructorCache* GetCtorCache() const
+        JITTimeConstructorCache* GetCtorCache() const
         {
             return this->ctorCache;
         }
@@ -417,19 +344,13 @@ namespace Js
             return this->initialType;
         }
 
-        bool HasEquivalentTypeSet() const
-        {
-            Assert(IsObjTypeSpecCandidate());
-            return this->typeSet != nullptr;
-        }
-
         Js::EquivalentTypeSet * GetEquivalentTypeSet() const
         {
             Assert(IsObjTypeSpecCandidate());
             return this->typeSet;
         }
 
-        Js::Type * GetFirstEquivalentType() const
+        JITType * GetFirstEquivalentType() const
         {
             Assert(IsObjTypeSpecCandidate() && this->typeSet);
             return this->typeSet->GetFirstType();
