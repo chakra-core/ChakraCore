@@ -93,10 +93,6 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
 
     // Attention: shared library is handled under (see ChakraCore/ChakraCoreDllFunc.cpp)
     // todo: consolidate similar parts from shared and static library initialization
-#ifndef _WIN32
-        PAL_InitializeChakraCore(0, NULL);
-#endif
-
         HMODULE mod = GetModuleHandleW(NULL);
 
         if (!ThreadContextTLSEntry::InitializeProcess() || !JsrtContext::Initialize())
