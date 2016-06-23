@@ -88,7 +88,8 @@ LAYOUT_TYPE_WMS     ( Float1Int1       ) // 2 double register
 LAYOUT_TYPE_WMS     ( Double3          ) // 3 double register
 LAYOUT_TYPE_WMS     ( BrInt1           ) // Conditional branching with 1 int
 LAYOUT_TYPE_WMS     ( BrInt2           ) // Conditional branching with 2 int
-LAYOUT_TYPE_WMS     ( AsmUnsigned1     ) // Conditional branching with 2 int
+LAYOUT_TYPE_WMS     ( BrInt1Const1     ) // Conditional branching with 1 int and 1 const
+LAYOUT_TYPE_WMS     ( AsmUnsigned1     ) // 1 unsigned int register
 
 // Float32x4
 LAYOUT_TYPE_WMS     ( Float32x4_2                       )

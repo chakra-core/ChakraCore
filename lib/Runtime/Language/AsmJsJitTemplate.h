@@ -51,7 +51,7 @@ namespace Js
         CreateTemplate( FunctionExit );
         CreateTemplate( Br, BYTE** relocAddr, bool isBackEdge);
         CreateTemplate( BrTrue, int offset, BYTE** relocAddr, bool isBackEdge);
-        CreateTemplate( BrEq, int leftOffset, int rightOffset, BYTE** relocAddr, bool isBackEdge);
+        CreateTemplate( BrEq, int leftOffset, int rightOffset, BYTE** relocAddr, bool isBackEdge, bool isSrc2Const = false);
         CreateTemplate( Label );
         CreateTemplate( LdUndef, int targetOffset );
         CreateTemplate( LdSlot, int targetOffset, int arrOffset, int slotIndex );

@@ -373,6 +373,21 @@ namespace Js
     }
 
     template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteAsmBrReg1Const1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1)
+    {
+        OpLayoutT_BrInt1Const1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.I1, R1) && SizePolicy::Assign(layout.C1, C1))
+        {
+            size_t const offsetOfRelativeJumpOffsetFromEnd = sizeof(OpLayoutT_BrInt1Const1<SizePolicy>) - offsetof(OpLayoutT_BrInt1Const1<SizePolicy>, RelativeJumpOffset);
+            layout.RelativeJumpOffset = offsetOfRelativeJumpOffsetFromEnd;
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            AddJumpOffset(op, labelID, offsetOfRelativeJumpOffsetFromEnd);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteAsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType)
     {
         OpLayoutT_AsmCall<SizePolicy> layout;
@@ -543,6 +558,14 @@ namespace Js
         CheckLabel(labelID);
 
         MULTISIZE_LAYOUT_WRITE(AsmBrReg2, op, labelID, R1, R2);
+    }
+
+    void AsmJsByteCodeWriter::AsmBrReg1Const1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1)
+    {
+        CheckOpen();
+        CheckLabel(labelID);
+
+        MULTISIZE_LAYOUT_WRITE(AsmBrReg1Const1, op, labelID, R1, C1);
     }
 
     void AsmJsByteCodeWriter::AsmStartCall(OpCodeAsmJs op, ArgSlot ArgCount, bool isPatching)

@@ -908,11 +908,8 @@ WasmBytecodeGenerator::EmitBrTable()
     for (uint i = 0; i < numTargets; i++)
     {
         uint target = targetTable[i];
-        Js::RegSlot caseLoc = m_i32RegSlots->AcquireTmpRegister();
-        m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, caseLoc, i);
         Js::ByteCodeLabel targetLabel = GetLabel(target);
-        m_writer.AsmBrReg2(Js::OpCodeAsmJs::Case_Int, targetLabel, scrutineeInfo.location, caseLoc);
-        m_i32RegSlots->ReleaseTmpRegister(caseLoc);
+        m_writer.AsmBrReg1Const1(Js::OpCodeAsmJs::Case_IntConst, targetLabel, scrutineeInfo.location, i);
     }
     m_i32RegSlots->ReleaseTmpRegister(scrutineeInfo.location);
 

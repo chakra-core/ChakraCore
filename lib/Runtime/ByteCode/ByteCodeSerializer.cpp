@@ -860,6 +860,7 @@ public:
                 DEFAULT_LAYOUT(AsmBr);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrInt1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrInt2);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(BrInt1Const1);
                 //Float32x4
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_3);

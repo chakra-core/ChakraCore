@@ -3112,6 +3112,15 @@ IRBuilderAsmJs::BuildBrInt2(Js::OpCodeAsmJs newOpcode, uint32 offset)
     BuildBrInt2(newOpcode, offset, layout->RelativeJumpOffset, layout->I1, layout->I2);
 }
 
+template <typename SizePolicy>
+void
+IRBuilderAsmJs::BuildBrInt1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset)
+{
+    Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrInt1Const1<SizePolicy>>();
+    BuildBrInt1Const1(newOpcode, offset, layout->RelativeJumpOffset, layout->I1, layout->C1);
+}
+
 void
 IRBuilderAsmJs::BuildBrInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, Js::RegSlot src1, Js::RegSlot src2)
 {
@@ -3124,9 +3133,29 @@ IRBuilderAsmJs::BuildBrInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 rela
     IR::RegOpnd * src2Opnd = BuildSrcOpnd(src2RegSlot, TyInt32);
     src2Opnd->SetValueType(ValueType::GetInt(false));
 
+    BuildBrCmp(newOpcode, offset, relativeOffset, src1Opnd, src2Opnd);
+}
+
+void
+IRBuilderAsmJs::BuildBrInt1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, Js::RegSlot src1, int32 src2)
+{
+    Js::RegSlot src1RegSlot = GetRegSlotFromIntReg(src1);
+
+    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TyInt32);
+    src1Opnd->SetValueType(ValueType::GetInt(false));
+
+    IR::Opnd * src2Opnd = IR::IntConstOpnd::New(src2, TyInt32, this->m_func);
+    src2Opnd->SetValueType(ValueType::GetInt(false));
+
+    BuildBrCmp(newOpcode, offset, relativeOffset, src1Opnd, src2Opnd);
+}
+
+void
+IRBuilderAsmJs::BuildBrCmp(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, IR::RegOpnd* src1Opnd, IR::Opnd* src2Opnd)
+{
     uint targetOffset = m_jnReader.GetCurrentOffset() + relativeOffset;
 
-    if (newOpcode == Js::OpCodeAsmJs::Case_Int)
+    if (newOpcode == Js::OpCodeAsmJs::Case_Int || newOpcode == Js::OpCodeAsmJs::Case_IntConst)
     {
         // branches for cases are generated entirely by the switch builder
         m_switchBuilder.OnCase(
