@@ -115,6 +115,8 @@ LinearScanMD::LegalizeConstantUse(IR::Instr * instr, IR::Opnd * opnd)
         // we should hoist it and generate xor reg, reg and MOV dst, reg
         BitVector regsBv;
         regsBv.Copy(this->linearScan->activeRegs);
+        regsBv.Or(this->linearScan->callSetupRegs);
+
         regsBv.ComplimentAll();
         regsBv.And(this->linearScan->int32Regs);
         regsBv.Minus(this->linearScan->tempRegs);       // Avoid tempRegs
