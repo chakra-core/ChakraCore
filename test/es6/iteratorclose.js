@@ -398,6 +398,100 @@ var tests = [
 		}
 	},    
     {
+		name : "Destructuring - yield in the pattern and inner return throws",
+		body : function () {
+            function *innerGen () { yield undefined; }
+
+            innerGen.prototype.return = function () {
+                throw new Error('Exception from return function');
+            };
+            
+            var x;
+
+            var iter = (function * () {
+                ([x = yield] = innerGen());
+                assert.fail('Unreachable code');
+            }());
+
+            iter.next();
+            assert.throws(function () {
+                iter.return();
+            }, Error, "calling return on the outer generator will call return on inner generator", 'Exception from return function');
+		}
+	},
+    {
+		name : "Destructuring - yield in the pattern and both caller and inner return throws",
+		body : function () {
+            function *innerGen () { yield undefined;}
+
+            var returnCalled = 0;
+            innerGen.prototype.return = function () {
+                returnCalled++;
+                throw new Error('Exception from return function');
+            };
+            
+            var x;
+
+            var iter = (function * () {
+                ([x = yield] = innerGen());
+                assert.fail('Unreachable code');
+            }());
+
+            iter.next();
+            assert.throws(function () {
+                iter.throw(new Error('Exception from outer throw'));
+            }, Error, "calling throw on the outer generator will call return on inner generator but outer exxception wins", 'Exception from outer throw');
+
+            assert.areEqual(returnCalled, 1, "ensuring that return function is called");
+		}
+	},
+    {
+		name : "Destructuring - .return will be called even before .next function is called if yield as return",
+		body : function () {
+            function *innerGen () { assert.fail('innerGen body is not executed');}
+
+            var returnCalled = 0;
+            innerGen.prototype.return = function () {
+                returnCalled++;
+                return {};
+            };
+            
+            var x;
+
+            var iter = (function * () {
+                ([{}[yield]] = innerGen());
+                assert.fail('Unreachable code');
+            }());
+
+            iter.next();
+            iter.return();
+            assert.areEqual(returnCalled, 1, "ensuring that return function is called");
+		}
+	},
+    {
+		name : "Destructuring - with rest - .return will be called even before .next function is called if yield as return",
+		body : function () {
+            function *innerGen () { assert.fail('innerGen body is not executed');}
+
+            var returnCalled = 0;
+            innerGen.prototype.return = function () {
+                returnCalled++;
+                return {};
+            };
+            
+            var x;
+
+            var iter = (function * () {
+                ([...{}[yield]] = innerGen());
+                assert.fail('Unreachable code');
+            }());
+
+            iter.next();
+            iter.return();
+            assert.areEqual(returnCalled, 1, "ensuring that return function is called");
+		}
+	},
+    {
 		name : "For..of - validation of calling .return function on abrupt loop break",
 		body : function () {
             returnCount = 0;

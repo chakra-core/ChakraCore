@@ -128,6 +128,8 @@ var tests = [
       assert.throws(function () { eval("const [...a, b] = [];"); },       SyntaxError, "Destructured const array declaration with rest parameter in non-last position throws", "Destructuring rest variables must be in the last position of the expression");
       assert.throws(function () { eval("var a, b; [...a, b] = [];"); },   SyntaxError, "Destructured var array assignment with rest parameter in non-last position throws",    "Destructuring rest variables must be in the last position of the expression");
       assert.throws(function () { eval("let a, b; [...a, b] = [];"); },   SyntaxError, "Destructured let array assignment with rest parameter in non-last position throws",    "Destructuring rest variables must be in the last position of the expression");
+      assert.throws(function () { eval("let [...a,] = [];"); },           SyntaxError, "Destructured array declaration has comma after rest parameter throws",                 "Destructuring rest variables must be in the last position of the expression");
+      assert.throws(function () { eval("let a; [...a,] = [];"); },        SyntaxError, "Destructured array assignment has comma after rest parameter throws",                  "Destructuring rest variables must be in the last position of the expression");
 
       // Default values
       assert.doesNotThrow(function () { eval("var [a = 1] = [];"); },    "Destructured var array declaration with all default values does not throw");
