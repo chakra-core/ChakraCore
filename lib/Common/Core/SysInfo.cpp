@@ -29,6 +29,7 @@
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #endif
 
+#ifdef CHAKRA_STATIC_LIBRARY
 static int AutoSystemInfoInitializer_counter;
 static typename std::aligned_storage<sizeof(AutoSystemInfo), alignof(AutoSystemInfo)>::type AutoSystemInfoInitializer_buffer;
 AutoSystemInfo &AutoSystemInfo::Data = reinterpret_cast<AutoSystemInfo&>(AutoSystemInfoInitializer_buffer);
@@ -44,6 +45,9 @@ AutoSystemInfoInitializer::~AutoSystemInfoInitializer() {
     (&AutoSystemInfo::Data)->~AutoSystemInfo();
   }
 }
+#else
+AutoSystemInfo AutoSystemInfo::Data INIT_PRIORITY(300);
+#endif
 
 #if DBG
 bool
