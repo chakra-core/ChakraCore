@@ -143,6 +143,18 @@ namespace Js
             return u.proto.isProto;
         }
 
+        DynamicObject * GetPrototypeObject() const
+        {
+            Assert(IsProto());
+            return u.proto.prototypeObject;
+        }
+
+        DynamicObject * GetAccessorObject() const
+        {
+            Assert(IsAccessor());
+            return u.accessor.object;
+        }
+
         bool IsAccessor() const
         {
             return u.accessor.isAccessor;

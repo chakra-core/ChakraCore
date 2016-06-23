@@ -2827,16 +2827,16 @@ void ThreadContext::NotifyInlineCacheBatchUnregistered(uint count)
 void
 ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
 {
-    if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
-    {
-        Output::Print(_u("InlineCacheInvalidation: invalidating proto caches for property %s(%u)\n"),
-            GetPropertyName(propertyId)->GetBuffer(), propertyId);
-        Output::Flush();
-    }
-
     InlineCacheList* inlineCacheList;
     if (protoInlineCacheByPropId.TryGetValueAndRemove(propertyId, &inlineCacheList))
     {
+        if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
+        {
+            Output::Print(_u("InlineCacheInvalidation: invalidating proto caches for property %s(%u)\n"),
+                          GetPropertyName(propertyId)->GetBuffer(), propertyId);
+            Output::Flush();
+        }
+
         InvalidateAndDeleteInlineCacheList(inlineCacheList);
     }
 }
@@ -2844,16 +2844,16 @@ ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
 void
 ThreadContext::InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId)
 {
-    if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
-    {
-        Output::Print(_u("InlineCacheInvalidation: invalidating store field caches for property %s(%u)\n"),
-            GetPropertyName(propertyId)->GetBuffer(), propertyId);
-        Output::Flush();
-    }
-
     InlineCacheList* inlineCacheList;
     if (storeFieldInlineCacheByPropId.TryGetValueAndRemove(propertyId, &inlineCacheList))
     {
+        if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
+        {
+            Output::Print(_u("InlineCacheInvalidation: invalidating store field caches for property %s(%u)\n"),
+                          GetPropertyName(propertyId)->GetBuffer(), propertyId);
+            Output::Flush();
+        }
+
         InvalidateAndDeleteInlineCacheList(inlineCacheList);
     }
 }
@@ -3225,6 +3225,61 @@ ThreadContext::InvalidateAllProtoInlineCaches()
     });
     protoInlineCacheByPropId.ResetNoDelete();
 }
+
+#if DBG
+
+// Verifies if object is registered in any proto InlineCache
+bool
+ThreadContext::IsObjectRegisteredInProtoInlineCaches(Js::DynamicObject * object)
+{
+    return protoInlineCacheByPropId.MapUntil([object](Js::PropertyId propertyId, InlineCacheList* inlineCacheList)
+    {
+        FOREACH_SLISTBASE_ENTRY(Js::InlineCache*, inlineCache, inlineCacheList)
+        {
+            if (inlineCache != nullptr && !inlineCache->IsEmpty())
+            {
+                // Verify this object is not present in prototype chain of inlineCache's type
+                bool isObjectPresentOnPrototypeChain =
+                    Js::JavascriptOperators::MapObjectAndPrototypesUntil<true>(inlineCache->GetType()->GetPrototype(), [=](Js::RecyclableObject* prototype)
+                {
+                    return prototype == object;
+                });
+                if (isObjectPresentOnPrototypeChain) {
+                    return true;
+                }
+            }
+        }
+        NEXT_SLISTBASE_ENTRY;
+        return false;
+    });
+}
+
+// Verifies if object is registered in any storeField InlineCache
+bool
+ThreadContext::IsObjectRegisteredInStoreFieldInlineCaches(Js::DynamicObject * object)
+{
+    return storeFieldInlineCacheByPropId.MapUntil([object](Js::PropertyId propertyId, InlineCacheList* inlineCacheList)
+    {
+        FOREACH_SLISTBASE_ENTRY(Js::InlineCache*, inlineCache, inlineCacheList)
+        {
+            if (inlineCache != nullptr && !inlineCache->IsEmpty())
+            {
+                // Verify this object is not present in prototype chain of inlineCache's type
+                bool isObjectPresentOnPrototypeChain =
+                    Js::JavascriptOperators::MapObjectAndPrototypesUntil<true>(inlineCache->GetType()->GetPrototype(), [=](Js::RecyclableObject* prototype)
+                {
+                    return prototype == object;
+                });
+                if (isObjectPresentOnPrototypeChain) {
+                    return true;
+                }
+            }
+        }
+        NEXT_SLISTBASE_ENTRY;
+        return false;
+    });
+}
+#endif
 
 bool
 ThreadContext::AreAllProtoInlineCachesInvalidated()

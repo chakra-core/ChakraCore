@@ -1298,6 +1298,10 @@ public:
     void InvalidateProtoInlineCaches(Js::PropertyId propertyId);
     void InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId);
     void InvalidateAllProtoInlineCaches();
+#if DBG
+    bool IsObjectRegisteredInProtoInlineCaches(Js::DynamicObject * object);
+    bool IsObjectRegisteredInStoreFieldInlineCaches(Js::DynamicObject * object);
+#endif
     bool AreAllProtoInlineCachesInvalidated();
     void InvalidateAllStoreFieldInlineCaches();
     bool AreAllStoreFieldInlineCachesInvalidated();
