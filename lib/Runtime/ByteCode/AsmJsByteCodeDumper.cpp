@@ -201,6 +201,7 @@ namespace Js
         ByteCodeReader reader;
         reader.Create(body);
         body->DumpFullFunctionName();
+        Output::Print(_u("\n"));
         while (true)
         {
             int byteOffset = reader.GetCurrentOffset();

@@ -1846,12 +1846,15 @@ if (!sourceList)
                 continue;
             }
             // Do MTJRC/MAIC:0 check
+            if (
+                CONFIG_FLAG(ForceNative)
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            if (CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
+                || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0
+#endif
+            )
             {
                 GenerateFunction(ctx->GetNativeCodeGenerator(), funcObj->GetFunctionBody(), funcObj);
             }
-#endif
         }
     }
 
