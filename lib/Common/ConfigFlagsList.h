@@ -400,13 +400,15 @@ PHASE(All)
 #define DEFAULT_CONFIG_LoopInlineThreshold  (25)            //Inlinee threshold for function with loops
 #define DEFAULT_CONFIG_PolymorphicInlineThreshold  (35)     //Polymorphic inline threshold
 #define DEFAULT_CONFIG_InlineCountMax       (1200)          //Max sum of bytecodes of inlinees inlined into a function (excluding built-ins)
+#define DEFAULT_CONFIG_InlineCountMaxInLoopBodies (500)     // Max sum of bytecodes of inlinees that can be inlined into a jitted loop body (excluding built-ins)
 #define DEFAULT_CONFIG_AggressiveInlineCountMax       (8000)          //Max sum of bytecodes of inlinees inlined into a function (excluding built-ins) when inlined aggressively
 #define DEFAULT_CONFIG_MaxFuncInlineDepth   (2)             //Maximum number of times a function can be inlined within a top function
 #define DEFAULT_CONFIG_MaxNumberOfInlineesWithLoop   (40) //Inlinee with a loop is controlled by LoopInlineThreshold, though we don't want to inline lot of inlinees with loop, this ensures a limit.
 #define DEFAULT_CONFIG_ConstantArgumentInlineThreshold   (157)      // Bytecode threshold for functions with constant arguments which are used for branching
 #define DEFAULT_CONFIG_RecursiveInlineThreshold     (2000)      // Bytecode threshold recursive call at a call site
 #define DEFAULT_CONFIG_RecursiveInlineDepthMax      (8)      // Maximum inline depth for recursive calls
-#define DEFAULT_CONFIG_RecursiveInlineDepthMin      (2)      // Minimum inline depth for recursive calls
+#define DEFAULT_CONFIG_RecursiveInlineDepthMin      (2)      // Minimum inline depth for recursive call
+#define DEFAULT_CONFIG_InlineInLoopBodyScaleDownFactor    (4)
 
 #define DEFAULT_CONFIG_CloneInlinedPolymorphicCaches (true)
 #define DEFAULT_CONFIG_HighPrecisionDate    (false)
@@ -985,6 +987,8 @@ FLAGNR(Number, GoptCleanupThreshold, "Number of instructions seen before we clea
 FLAGNR(Number, AsmGoptCleanupThreshold, "Number of instructions seen before we cleanup the value table", DEFAULT_CONFIG_AsmGoptCleanupThreshold)
 FLAGNR(Boolean, HighPrecisionDate, "Enable sub-millisecond resolution in Javascript Date for benchmark timing", DEFAULT_CONFIG_HighPrecisionDate)
 FLAGNR(Number,  InlineCountMax        , "Maximum count in bytecodes to inline in a given function", DEFAULT_CONFIG_InlineCountMax)
+FLAGNRA(Number, InlineCountMaxInLoopBodies, icminlb, "Maximum count in bytecodes to inline in a given function", DEFAULT_CONFIG_InlineCountMaxInLoopBodies)
+FLAGNRA(Number, InlineInLoopBodyScaleDownFactor, iilbsdf, "Maximum depth of a recursive inline call", DEFAULT_CONFIG_InlineInLoopBodyScaleDownFactor)
 FLAGNR(Number,  InlineThreshold       , "Maximum size in bytecodes of an inline candidate", DEFAULT_CONFIG_InlineThreshold)
 FLAGNR(Number,  AggressiveInlineCountMax, "Maximum count in bytecodes to inline in a given function", DEFAULT_CONFIG_AggressiveInlineCountMax)
 FLAGNR(Number,  AggressiveInlineThreshold, "Maximum size in bytecodes of an inline candidate for aggressive inlining", DEFAULT_CONFIG_AggressiveInlineThreshold)

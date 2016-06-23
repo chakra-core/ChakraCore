@@ -208,7 +208,8 @@ enum FunctionFlags
     ffIsNamedFunctionExpression        = 0x20000,
     ffIsAsmJsMode                      = 0x40000,
     ffIsAsmJsFunction                  = 0x80000,
-    ffIsAnonymous                      = 0x100000
+    ffIsAnonymous                      = 0x100000,
+    ffUsesArgumentsObject              = 0x200000
 };
 
 // Kinds of constant
@@ -2138,6 +2139,7 @@ public:
             | (function->m_isFuncRegistered ? ffIsFuncRegistered : 0)
             | (function->m_isStrictMode ? ffIsStrictMode : 0)
             | (function->m_doBackendArgumentsOptimization ? ffDoBackendArgumentsOptimization : 0)
+            | (function->m_usesArgumentsObject ? ffUsesArgumentsObject : 0)
             | (function->m_isEval ? ffIsEval : 0)
             | (function->m_isDynamicFunction ? ffIsDynamicFunction : 0)
             | (function->m_hasAllNonLocalReferenced ? ffhasAllNonLocalReferenced : 0)
@@ -3662,6 +3664,7 @@ public:
         (*function)->m_dontInline = (bitflags & ffDontInline) ? true : false;
         (*function)->m_isStrictMode = (bitflags & ffIsStrictMode) ? true : false;
         (*function)->m_doBackendArgumentsOptimization = (bitflags & ffDoBackendArgumentsOptimization) ? true : false;
+        (*function)->m_usesArgumentsObject = (bitflags & ffUsesArgumentsObject) ? true : false;
         (*function)->m_isEval = (bitflags & ffIsEval) ? true : false;
         (*function)->m_isDynamicFunction = (bitflags & ffIsDynamicFunction) ? true : false;
 

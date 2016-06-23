@@ -76,7 +76,6 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     hasInlinee(false),
     thisOrParentInlinerHasArguments(false),
     hasStackArgs(false),
-    hasArgumentObject(false),
     hasUnoptimizedArgumentsAcccess(false),
     hasApplyTargetInlining(false),
     hasImplicitCalls(false),
@@ -148,7 +147,8 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
             // as determined by the bytecode generator.
             SetHasStackArgs(true);
         }
-        if (doStackNestedFunc && m_jnFunction->GetNestedCount() != 0)
+        if (doStackNestedFunc && m_jnFunction->GetNestedCount() != 0 &&
+            this->GetTopFunc()->m_workItem->Type() != JsLoopBodyWorkItemType)
         {
             Assert(!(this->IsJitInDebugMode() && !m_jnFunction->GetUtf8SourceInfo()->GetIsLibraryCode()));
             stackNestedFunc = true;
@@ -376,7 +376,7 @@ Func::Codegen()
 
         BEGIN_CODEGEN_PHASE(this, Js::InlinePhase);
 
-        InliningHeuristics heuristics(this->GetJnFunction());
+        InliningHeuristics heuristics(this->GetJnFunction(), this->IsLoopBody());
         Inline inliner(this, heuristics);
         inliner.Optimize();
 

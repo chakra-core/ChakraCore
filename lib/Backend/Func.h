@@ -516,7 +516,6 @@ public:
     bool                hasBailout: 1;
     bool                hasBailoutInEHRegion : 1;
     bool                hasStackArgs: 1;
-    bool                hasArgumentObject : 1;
     bool                hasUnoptimizedArgumentsAcccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
     bool                m_canDoInlineArgsOpt : 1;
     bool                hasApplyTargetInlining:1;
@@ -579,9 +578,6 @@ public:
 
     bool                GetHasStackArgs() const { return this->hasStackArgs;}
     void                SetHasStackArgs(bool has) { this->hasStackArgs = has;}
-
-    bool                GetHasArgumentObject() const { return this->hasArgumentObject;}
-    void                SetHasArgumentObject() { this->hasArgumentObject = true;}
 
     bool                GetHasUnoptimizedArgumentsAcccess() const { return this->hasUnoptimizedArgumentsAcccess; }
     void                SetHasUnoptimizedArgumentsAccess(bool args)
