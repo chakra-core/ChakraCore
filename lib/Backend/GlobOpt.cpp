@@ -1610,7 +1610,6 @@ GlobOpt::ReuseBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
 
     toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
 
-    // toData->capturedValues = fromData->capturedValues;
     toData->capturedArgs = fromData->capturedArgs;
     toData->changedSyms = fromData->changedSyms;
     toData->capturedArgs->ClearAll();
