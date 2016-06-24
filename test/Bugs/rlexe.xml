@@ -210,7 +210,7 @@
       <files>SIMDExtendArgCSE.js</files>
       <baseline>SIMDExtendArgCSE.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
-      <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError -maic:0</compile-flags>
+      <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError</compile-flags>
     </default>
   </test>
   <test>
@@ -289,9 +289,9 @@
       <files>b208_asmjs.js</files>
       <baseline>b208_asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
-      <compile-flags>-simdjs -AsmJsStopOnError -maic:0</compile-flags>
+      <compile-flags>-simdjs -AsmJsStopOnError</compile-flags>
     </default>
-  </test> 
+  </test>
   <test>
     <default>
       <files>b208_asmjs.js</files>
@@ -313,7 +313,7 @@
       <files>b95.js</files>
       <baseline>b95.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
-      <compile-flags>-simdjs -testtrace:asmjs  -asmjs -maic:0</compile-flags>
+      <compile-flags>-simdjs -testtrace:asmjs  -asmjs</compile-flags>
     </default>
   </test>
   <test>

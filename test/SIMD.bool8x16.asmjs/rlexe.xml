@@ -28,7 +28,7 @@
       <files>testConstructor.js</files>
       <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -off:simplejit -maic:0 -mic:0 -AsmJsStopOnError</compile-flags>
+      <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -off:simplejit -mic:0 -AsmJsStopOnError</compile-flags>
     </default>
   </test>
   <test>
@@ -45,7 +45,7 @@
       <files>testBitwise.js</files>
       <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
+      <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError</compile-flags>
     </default>
   </test>
   <test>
@@ -84,7 +84,7 @@
       <files>testTrue.js</files>
       <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
+      <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError</compile-flags>
     </default>
   </test>
   <test>
@@ -123,7 +123,7 @@
       <files>bug824.js</files>
       <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0 -mic:0</compile-flags>
+      <compile-flags>-bgjit- -asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -mic:0</compile-flags>
     </default>
   </test>
     <test>
