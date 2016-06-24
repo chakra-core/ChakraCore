@@ -1,35 +1,24 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
 <test>
-    <default>
-      <files>rot.js</files>
-      <baseline>rot.baseline</baseline>
-    </default>
+  <default>
+    <files>rot.js</files>
+    <baseline>rot.baseline</baseline>
+    <compile-flags>-on:wasm</compile-flags>
+  </default>
 </test>
 <test>
-    <default>
-        <files>rot.js</files>
-        <baseline>rot.baseline</baseline>
-        <compile-flags>-maic:0</compile-flags>
-    </default>
-</test>    
-<test>
-     <default>
-       <files>misc.js</files>
-       <baseline>misc.baseline</baseline>
-     </default>
-</test> 
-<test>
-    <default>
-       <files>controlflow.js</files>
-       <baseline>controlflow.baseline</baseline>
-    </default>
+  <default>
+    <files>misc.js</files>
+    <baseline>misc.baseline</baseline>
+    <compile-flags>-on:wasm -on:wasmlazytrap</compile-flags>
+  </default>
 </test>
 <test>
-    <default>
-       <files>controlflow.js</files>
-       <baseline>controlflow.baseline</baseline>
-       <compile-flags>-maic:0</compile-flags>
-    </default>
+  <default>
+    <files>controlflow.js</files>
+    <baseline>controlflow.baseline</baseline>
+    <compile-flags>-on:wasm</compile-flags>
+  </default>
 </test>
 </regress-exe>

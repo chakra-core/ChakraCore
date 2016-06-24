@@ -29,7 +29,7 @@
       <files>testBitwise.js</files>
       <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
+      <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError</compile-flags>
     </default>
   </test>
   <test>
@@ -68,7 +68,7 @@
       <files>testTrue.js</files>
       <baseline>asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
+      <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError</compile-flags>
     </default>
   </test>
   <test>

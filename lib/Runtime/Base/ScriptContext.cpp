@@ -1847,7 +1847,7 @@ if (!sourceList)
             }
             // Do MTJRC/MAIC:0 check
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            if (CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
+            if (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
             {
                 GenerateFunction(ctx->GetNativeCodeGenerator(), funcObj->GetFunctionBody(), funcObj);
             }

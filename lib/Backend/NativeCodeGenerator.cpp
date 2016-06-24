@@ -550,7 +550,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
 
         if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
             Output::Print(_u("New Entrypoint is CheckAsmJsCodeGenThunk for function: %s\n"), fn->GetDisplayName());
-        doPreJit |= CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0;
+        doPreJit |= CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0 || CONFIG_ISENABLED(Js::ForceNativeFlag);
     }
     else
 #endif
