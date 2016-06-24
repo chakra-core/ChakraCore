@@ -497,11 +497,26 @@ unsigned int WINAPI StaticThreadProc(void *lpParam)
     return ExecuteTestWithMemoryCheck(argInfo->filename);
 }
 
+#ifndef _WIN32
+static char16** argv = nullptr;
+int main(int argc, char** c_argv)
+{
+    PAL_InitializeChakraCore(argc, c_argv);
+    argv = new char16*[argc];
+    for (int i = 0; i < argc; i++)
+    {
+        NarrowStringToWideDynamic(c_argv[i], &argv[i]);
+    }
+#else
+#define PAL_Shutdown()
 int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 {
+#endif
+
     if (argc < 2)
     {
         PrintUsage();
+        PAL_Shutdown();
         return EXIT_FAILURE;
     }
 
@@ -555,36 +570,6 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         ChakraRTInterface::UnloadChakraDll(chakraLibrary);
     }
 
+    PAL_Shutdown();
     return 0;
 }
-
-#ifndef _WIN32
-int main(int argc, char** argv)
-{
-    PAL_InitializeChakraCore(argc, argv);
-
-    // Ignoring mem-alloc failures here as this is
-    // simply a test tool. We can add more error checking
-    // here later if desired.
-    char16** args = new char16*[argc];
-    for (int i = 0; i < argc; i++)
-    {
-        NarrowStringToWideDynamic(argv[i], &args[i]);
-    }
-
-    // Call wmain with a copy of args, as HostConfigFlags may change argv
-    char16** argsCopy = new char16*[argc];
-    memcpy(argsCopy, args, sizeof(args[0]) * argc);
-    int ret = wmain(argc, argsCopy);
-    delete[] argsCopy;
-
-    for (int i = 0; i < argc; i++)
-    {
-        free(args[i]);
-    }
-    delete[] args;
-
-    PAL_Shutdown();
-    return ret;
-}
-#endif // !_WIN32
