@@ -1366,21 +1366,17 @@ WasmBytecodeGenerator::YieldToBlock(uint relativeDepth, EmitInfo expr)
         return;
     }
     
-    // If we already tried to yield no value to this block, ignore the others
+    // If the type differs on any path, do not yield.
+    // This will introduce some dead code on the first paths that tried to Yield a valid type
     if (
         yieldInfo->type == WasmTypes::Void ||
-        expr.type == WasmTypes::Void
+        yieldInfo->type != WasmTypes::Limit && yieldInfo->type != expr.type
     )
     {
         yieldInfo->type = WasmTypes::Void;
         return;
     }
 
-
-    if (yieldInfo->type != WasmTypes::Limit && yieldInfo->type != expr.type)
-    {
-        throw WasmCompilationException(_u("Invalid yield type for block"));
-    }
     yieldInfo->type = expr.type;
     m_writer.AsmReg2(GetLoadOp(expr.type), yieldInfo->yieldLocs[expr.type], expr.location);
 }
