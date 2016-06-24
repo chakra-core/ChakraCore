@@ -47,21 +47,6 @@ void VisitIndirect(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, TCont
     ParseNodeVisitor<TContext> postfixHelper(context, postfix);
 
     Visit(pnode, byteCodeGenerator, prefixHelper, postfixHelper, nullptr);
-
-    /*
-    Visit(pnode, byteCodeGenerator,
-        [context, prefix](ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator)
-        {
-            prefix(pnode, byteCodeGenerator, context);
-        },
-        [context, postfix](ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator)
-        {
-            if (postfix)
-            {
-                postfix(pnode, byteCodeGenerator, context);
-            }
-        }, nullptr);
-        */
 }
 
 template <class PrefixFn, class PostfixFn>
