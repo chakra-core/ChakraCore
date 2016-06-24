@@ -24,15 +24,14 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, 
     m_f64RegSlots(nullptr),
     m_i32RegSlots(nullptr),
     m_currentFunc(nullptr),
-    m_evalStack(&m_alloc)
+    m_evalStack(&m_alloc),
+    m_blockInfos(&m_alloc)
 {
     m_writer.Create();
 
     // TODO (michhol): try to make this more accurate?
     const long astSize = 0;
     m_writer.InitData(&m_alloc, astSize);
-
-    m_labels = Anew(&m_alloc, SListCounted<Js::ByteCodeLabel>, &m_alloc);
 
     // Initialize maps needed by binary reader
     Binary::WasmBinaryReader::Init(scriptContext);
@@ -209,7 +208,7 @@ WasmBytecodeGenerator::GenerateFunction()
             Wasm::WasmTypes::WasmType returnType = m_funcInfo->GetSignature()->GetResultType();
 
             // If the last expression yielded a value, return it
-            if (exprInfo.location != Js::Constants::NoRegister)
+            if (exprInfo.type != WasmTypes::Unreachable)
             {
                 if (exprInfo.type != returnType && returnType != Wasm::WasmTypes::Void)
                 {
@@ -221,11 +220,6 @@ WasmBytecodeGenerator::GenerateFunction()
                     arity = 1;
                 }
                 m_reader.m_currentNode.ret.arity = arity;
-                EmitReturnExpr();
-            }
-            else if (returnType == Wasm::WasmTypes::Void) 
-            {
-                m_reader.m_currentNode.ret.arity = 0;
                 EmitReturnExpr();
             }
             ExitEvalStackScope();
@@ -572,42 +566,38 @@ WasmBytecodeGenerator::EmitConst()
 }
 
 EmitInfo
-WasmBytecodeGenerator::EmitBlock(uint* loopId /*= nullptr*/)
+WasmBytecodeGenerator::EmitBlockCommon()
 {
     WasmOp op;
-    Js::ByteCodeLabel blockLabel = m_writer.DefineLabel();
-
-    // TODO: this needs more work. must get temp that brs can store to as a target, and do type checking
-    m_labels->Push(blockLabel);
-    if (loopId)
-    {
-        *loopId = m_writer.EnterLoop(blockLabel);
-    }
     EmitInfo blockInfo;
+    bool isEndUnreachable = false;
     EnterEvalStackScope();
     while ((op = m_reader.ReadFromBlock()) != wnEND && op != wnELSE)
     {
         blockInfo = EmitExpr(op);
+        // If any expr is unreachable, all the following are too
+        isEndUnreachable |= blockInfo.type == WasmTypes::Unreachable;
     }
     DebugPrintOp(op);
     ExitEvalStackScope();
-
-    // After we've release all the tmps used by this block, get a new one and make sure the yielded value is there
-    if (blockInfo.type != WasmTypes::Void)
+    if (isEndUnreachable) 
     {
-        Js::RegSlot loc = GetRegisterSpace(blockInfo.type)->AcquireTmpRegister();
-        if (loc != blockInfo.location) 
-        {
-            m_writer.AsmReg2(GetLoadOp(blockInfo.type), loc, blockInfo.location);
-            blockInfo.location = loc;
-        }
+        // In case there were other expr after the unreachable one
+        blockInfo.type = WasmTypes::Unreachable;
     }
+    return blockInfo;
+}
 
-    if (!loopId)
-    {
-        m_writer.MarkAsmJsLabel(blockLabel);
-    }
-    m_labels->Pop();
+EmitInfo
+WasmBytecodeGenerator::EmitBlock()
+{
+    Js::ByteCodeLabel blockLabel = m_writer.DefineLabel();
+
+    PushLabel(blockLabel);
+    EmitInfo blockInfo = EmitBlockCommon();
+    YieldToBlock(0, blockInfo);
+    m_writer.MarkAsmJsLabel(blockLabel);
+    blockInfo = PopLabel(blockLabel);
 
     // block yields last value
     return blockInfo;
@@ -617,11 +607,24 @@ EmitInfo
 WasmBytecodeGenerator::EmitLoop()
 {
     Js::ByteCodeLabel loopTailLabel = m_writer.DefineLabel();
-    m_labels->Push(loopTailLabel);
-    uint loopId;
-    EmitInfo loopInfo = EmitBlock(&loopId);
+    Js::ByteCodeLabel loopHeadLabel = m_writer.DefineLabel();
+    Js::ByteCodeLabel loopLandingPadLabel = m_writer.DefineLabel();
+
+    uint loopId = m_writer.EnterLoop(loopHeadLabel);
+    PushLabel(loopTailLabel);
+    // We don't want nested block to jump directly to the loop header
+    // instead, jump to the landing pad and let it jump back to the loop header
+    PushLabel(loopLandingPadLabel, false);
+    EmitInfo loopInfo = EmitBlockCommon();
+    YieldToBlock(1, loopInfo);
+
+    // By default we don't loop, jump over the landing pad
+    m_writer.AsmBr(loopTailLabel);
+    m_writer.MarkAsmJsLabel(loopLandingPadLabel);
+    m_writer.AsmBr(loopHeadLabel);
     m_writer.MarkAsmJsLabel(loopTailLabel);
-    m_labels->Pop();
+    PopLabel(loopLandingPadLabel);
+    loopInfo = PopLabel(loopTailLabel);
     m_writer.ExitLoop(loopId);
 
     return loopInfo;
@@ -860,7 +863,7 @@ WasmBytecodeGenerator::EmitIfElseExpr()
         op = m_reader.GetLastOp();
     }
 
-    if (trueExpr.type == WasmTypes::Void || falseExpr.type != trueExpr.type)
+    if (!WasmTypes::IsLocalType(trueExpr.type) || falseExpr.type != trueExpr.type)
     {
         // if types are void or mismatched if/else doesn't yield a value
         ReleaseLocation(&trueExpr);
@@ -892,6 +895,7 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 EmitInfo
 WasmBytecodeGenerator::EmitBrTable()
 {
+    const uint arity = m_reader.m_currentNode.brTable.arity;
     const uint numTargets = m_reader.m_currentNode.brTable.numTargets;
     const UINT* targetTable = m_reader.m_currentNode.brTable.targetTable;
     const UINT defaultEntry = m_reader.m_currentNode.brTable.defaultTarget;
@@ -904,18 +908,26 @@ WasmBytecodeGenerator::EmitBrTable()
     }
 
     m_writer.AsmReg2(Js::OpCodeAsmJs::BeginSwitch_Int, scrutineeInfo.location, scrutineeInfo.location);
+    EmitInfo yieldInfo;
+    if (arity == 1) 
+    {
+        yieldInfo = PopEvalStack();
+    }
     // Compile cases
     for (uint i = 0; i < numTargets; i++)
     {
         uint target = targetTable[i];
+        YieldToBlock(target, yieldInfo);
         Js::ByteCodeLabel targetLabel = GetLabel(target);
         m_writer.AsmBrReg1Const1(Js::OpCodeAsmJs::Case_IntConst, targetLabel, scrutineeInfo.location, i);
     }
-    m_i32RegSlots->ReleaseTmpRegister(scrutineeInfo.location);
 
+    YieldToBlock(defaultEntry, yieldInfo);
     m_writer.AsmBr(GetLabel(defaultEntry), Js::OpCodeAsmJs::EndSwitch_Int);
+    ReleaseLocation(&scrutineeInfo);
+    ReleaseLocation(&yieldInfo);
 
-    return EmitInfo();
+    return EmitInfo(WasmTypes::Unreachable);
 }
 
 template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType lhsType, WasmTypes::WasmType rhsType>
@@ -1094,7 +1106,7 @@ WasmBytecodeGenerator::EmitReturnExpr()
     }
     m_writer.AsmBr(m_funcInfo->GetExitLabel());
 
-    return EmitInfo();
+    return EmitInfo(WasmTypes::Unreachable);
 }
 
 EmitInfo
@@ -1149,11 +1161,13 @@ WasmBytecodeGenerator::EmitBr()
         }
     }
 
+    EmitInfo info;
     if (hasSubExpr)
     {
         // TODO: Handle value that Break is supposed to "throw".
-        EmitInfo info = PopEvalStack();
+        info = PopEvalStack();
     }
+    YieldToBlock(depth, info);
 
     Js::ByteCodeLabel target = GetLabel(depth);
     if (wasmOp == WasmOp::wnBR)
@@ -1166,7 +1180,9 @@ WasmBytecodeGenerator::EmitBr()
         m_writer.AsmBrReg1(Js::OpCodeAsmJs::BrTrue_Int, target, conditionInfo.location);
         m_i32RegSlots->ReleaseLocation(&conditionInfo);
     }
-    return EmitInfo();
+
+    ReleaseLocation(&info);
+    return EmitInfo(WasmTypes::Unreachable);
 }
 
 /* static */
@@ -1270,23 +1286,115 @@ WasmBytecodeGenerator::GetViewType(WasmOp op)
 void
 WasmBytecodeGenerator::ReleaseLocation(EmitInfo * info)
 {
-    if (info->type != WasmTypes::Void)
+    if (WasmTypes::IsLocalType(info->type))
     {
-        Assert(info->type < WasmTypes::Limit);
         GetRegisterSpace(info->type)->ReleaseLocation(info);
     }
 }
 
-Js::ByteCodeLabel
-WasmBytecodeGenerator::GetLabel(uint index)
+EmitInfo
+WasmBytecodeGenerator::PopLabel(Js::ByteCodeLabel labelValidation)
 {
-    Assert(index < m_labels->Count());
-    SListCounted<Js::ByteCodeLabel>::Iterator itr(m_labels);
-    for (UINT i = 0; i <= index; ++i)
+    Assert(m_blockInfos.Count() > 0);
+    BlockInfo info = m_blockInfos.Pop();
+    UNREFERENCED_PARAMETER(labelValidation);
+    Assert(info.label == labelValidation);
+
+    EmitInfo yieldEmitInfo;
+    if (info.yieldInfo)
     {
-        itr.Next();
+        BlockYieldInfo* yieldInfo = info.yieldInfo;
+        for (int type = WasmTypes::Void + 1; type < WasmTypes::Limit; ++type)
+        {
+            if (
+                yieldInfo->yieldLocs[type] != Js::Constants::NoRegister &&
+                type != yieldInfo->type // Do not release the location used
+            )
+            {
+                GetRegisterSpace((WasmTypes::WasmType)type)->ReleaseTmpRegister(yieldInfo->yieldLocs[type]);
+            }
+        }
+        if (WasmTypes::IsLocalType(yieldInfo->type))
+        {
+            Assert(yieldInfo->type < WasmTypes::Limit);
+            yieldEmitInfo.location = yieldInfo->yieldLocs[yieldInfo->type];
+            yieldEmitInfo.type = yieldInfo->type;
+        }
+        else 
+        {
+            yieldEmitInfo.type = yieldInfo->type == WasmTypes::Limit ? WasmTypes::Unreachable : WasmTypes::Void;
+            yieldEmitInfo.location = Js::Constants::NoRegister;
+        }
     }
-    return itr.Data();
+    return yieldEmitInfo;
+}
+
+void
+WasmBytecodeGenerator::PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo /*= true*/)
+{
+    BlockInfo info;
+    info.label = label;
+    if (addBlockYieldInfo)
+    {
+        info.yieldInfo = Anew(&m_alloc, BlockYieldInfo);
+        for (int type = WasmTypes::Void + 1; type < WasmTypes::Limit; ++type)
+        {
+            try 
+            {
+                info.yieldInfo->yieldLocs[type] = GetRegisterSpace((WasmTypes::WasmType)type)->AcquireTmpRegister();
+            } 
+            catch (WasmCompilationException) 
+            {
+                // This might be a NYI type
+                info.yieldInfo->yieldLocs[type] = Js::Constants::NoRegister;
+            }
+        }
+    }
+    m_blockInfos.Push(info);
+}
+
+void
+WasmBytecodeGenerator::YieldToBlock(uint relativeDepth, EmitInfo expr)
+{
+    BlockInfo info = GetBlockInfo(relativeDepth);
+    BlockYieldInfo* yieldInfo = info.yieldInfo;
+    if (
+        !yieldInfo || // Cannot yield value to this block
+        expr.type == WasmTypes::Unreachable // Do not modify this blocks type for unreachable
+    )
+    {
+        return;
+    }
+    
+    // If the type differs on any path, do not yield.
+    // This will introduce some dead code on the first paths that tried to Yield a valid type
+    if (
+        yieldInfo->type == WasmTypes::Void ||
+        yieldInfo->type != WasmTypes::Limit && yieldInfo->type != expr.type
+    )
+    {
+        yieldInfo->type = WasmTypes::Void;
+        return;
+    }
+
+    yieldInfo->type = expr.type;
+    m_writer.AsmReg2(GetLoadOp(expr.type), yieldInfo->yieldLocs[expr.type], expr.location);
+}
+
+Wasm::BlockInfo
+WasmBytecodeGenerator::GetBlockInfo(uint relativeDepth)
+{
+    if (relativeDepth >= (uint)m_blockInfos.Count())
+    {
+        throw WasmCompilationException(_u("Invalid branch target"));
+    }
+    return m_blockInfos.Peek(relativeDepth);
+}
+
+Js::ByteCodeLabel
+WasmBytecodeGenerator::GetLabel(uint relativeDepth)
+{
+    return GetBlockInfo(relativeDepth).label;
 }
 
 WasmRegisterSpace *

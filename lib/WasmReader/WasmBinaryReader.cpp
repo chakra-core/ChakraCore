@@ -10,6 +10,15 @@
 
 namespace Wasm
 {
+    namespace WasmTypes
+    {
+        bool IsLocalType(WasmTypes::WasmType type) 
+        {
+            // Check if type in range ]Void,Limit[
+            return (uint)(type - 1) < (WasmTypes::Limit - 1);
+        }
+    }
+
 namespace Binary
 {
 
@@ -477,16 +486,15 @@ WasmBinaryReader::BrNode()
     m_currentNode.br.arity = ReadConst<uint8>();
     m_funcState.count++;
 
-    if (m_currentNode.br.arity != 0)
+    if (m_currentNode.br.arity > 1)
     {
-        ThrowDecodingError(_u("NYI: br yielding value"));
+        ThrowDecodingError(_u("NYI: br yielding more than 1 value"));
     }
 
     m_currentNode.br.depth = LEB128(len);
     m_funcState.count += len;
 
-    // TODO: binary encoding doesn't yet support br yielding value
-    m_currentNode.br.hasSubExpr = false;
+    m_currentNode.br.hasSubExpr = m_currentNode.br.arity == 1;
 }
 
 void
@@ -496,9 +504,9 @@ WasmBinaryReader::BrTableNode()
     m_currentNode.brTable.arity = LEB128(len);
     m_funcState.count += len;
 
-    if (m_currentNode.brTable.arity != 0)
+    if (m_currentNode.brTable.arity > 1)
     {
-        ThrowDecodingError(_u("NYI: br_table yielding value"));
+        ThrowDecodingError(_u("NYI: br_table yielding more than 1 value"));
     }
 
     m_currentNode.brTable.numTargets = LEB128(len);
