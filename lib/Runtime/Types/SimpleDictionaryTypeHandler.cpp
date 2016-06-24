@@ -1302,6 +1302,8 @@ namespace Js
         Assert(propertyId != Constants::NoProperty);
         PropertyRecord const* propertyRecord = instance->GetScriptContext()->GetPropertyName(propertyId);
 
+        JavascriptLibrary::CheckAndInvalidateIsConcatSpreadableCache(propertyId, instance->GetScriptContext());
+
         // It can be the case that propertyRecord is a symbol property and it has the same string description as
         // another property which is in the propertyMap. If we are in a string-keyed type handler, the propertyMap
         // will find that normal property when we call TryGetReference with the symbol propertyRecord. However,

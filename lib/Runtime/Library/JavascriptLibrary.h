@@ -1037,6 +1037,8 @@ namespace Js
         RecyclableObject* TryGetStringTemplateCallsiteObject(ParseNodePtr pnode);
         RecyclableObject* TryGetStringTemplateCallsiteObject(RecyclableObject* callsite);
 
+        static void CheckAndInvalidateIsConcatSpreadableCache(PropertyId propertyId, ScriptContext *scriptContext);
+
 #if DBG_DUMP
         static const char16* GetStringTemplateCallsiteObjectKey(Var callsite);
 #endif

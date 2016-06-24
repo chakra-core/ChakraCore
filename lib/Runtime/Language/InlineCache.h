@@ -964,6 +964,70 @@ namespace Js
         void Unregister(ScriptContext * scriptContext);
     };
 
+    class IsConcatSpreadableCache
+    {
+        Type *type0, *type1;
+        int lastAccess;
+        BOOL result0, result1;
+
+    public:
+        IsConcatSpreadableCache()
+        {
+            type0 = nullptr;
+            type1 = nullptr;
+            result0 = FALSE;
+            result1 = FALSE;
+            lastAccess = 0;
+        }
+
+        BOOL TryGetIsConcatSpreadable(Type *type, _Out_ BOOL *result)
+        {
+            Assert(type != nullptr);
+            Assert(result != nullptr);
+
+            *result = FALSE;
+            if (type0 == type)
+            {
+                *result = result0;
+                lastAccess = 0;
+                return TRUE;
+            }
+
+            if (type1 == type)
+            {
+                *result = result1;
+                lastAccess = 1;
+                return TRUE;
+            }
+
+            return FALSE;
+        }
+
+        void CacheIsConcatSpreadable(Type *type, BOOL result)
+        {
+            Assert(type != nullptr);
+
+            if (lastAccess == 0)
+            {
+                type1 = type;
+                result1 = result;
+                lastAccess = 1;
+            }
+            else
+            {
+                type0 = type;
+                result0 = result;
+                lastAccess = 0;
+            }
+        }
+
+        void Invalidate()
+        {
+            type0 = nullptr;
+            type1 = nullptr;
+        }
+    };
+
 #if defined(_M_IX86_OR_ARM32)
     CompileAssert(sizeof(IsInstInlineCache) == 0x10);
 #else

@@ -252,6 +252,8 @@ namespace Js
         Assert(value != nullptr || IsInternalPropertyId(propertyId));
         PropertyIndex index = PathTypeHandlerBase::GetPropertyIndex(propertyId);
 
+        JavascriptLibrary::CheckAndInvalidateIsConcatSpreadableCache(propertyId, instance->GetScriptContext());
+
         if (index != Constants::NoSlot)
         {
             // If type is shared then the handler must be shared as well.  This is a weaker invariant than in AddPropertyInternal,
