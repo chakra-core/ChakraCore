@@ -372,14 +372,43 @@ Encoder::Encode()
     {
         AssertMsg(!PHASE_OFF(Js::EquivObjTypeSpecPhase, this->m_func), "Why do we have equivalent type guards if we don't do equivalent object type spec?");
 
-        int count = this->m_func->equivalentTypeGuards->Count();
-        Js::JitEquivalentTypeGuard** guards = HeapNewArrayZ(Js::JitEquivalentTypeGuard*, count);
-        Js::JitEquivalentTypeGuard** dstGuard = guards;
-        this->m_func->equivalentTypeGuards->Map([&dstGuard](Js::JitEquivalentTypeGuard* srcGuard) -> void
+        int equivalentTypeGuardsCount = this->m_func->equivalentTypeGuards->Count();
+
+        if (this->m_func->IsOOPJIT())
         {
-            *dstGuard++ = srcGuard;
-        });
-        //entryPointInfo->GetJitTransferData()->SetEquivalentTypeGuards(guards, count);
+            auto& equivalentTypeGuardOffsets = this->m_func->GetJITOutput()->GetOutputData()->equivalentTypeGuardOffsets;
+            equivalentTypeGuardOffsets = (EquivalentTypeGuardOffsets*)midl_user_allocate(offsetof(EquivalentTypeGuardOffsets, offsets) + equivalentTypeGuardsCount * sizeof(unsigned int));
+            equivalentTypeGuardOffsets->count = equivalentTypeGuardsCount;
+
+            int i = 0;
+            this->m_func->equivalentTypeGuards->Map([&equivalentTypeGuardOffsets, &i](Js::JitEquivalentTypeGuard* srcGuard) -> void
+            {
+                equivalentTypeGuardOffsets->offsets[i++] = NativeCodeData::GetDataTotalOffset(srcGuard);
+
+                auto cache = srcGuard->GetCache();
+                equivalentTypeGuardOffsets->cache.guardOffset = NativeCodeData::GetDataTotalOffset(cache->guard);
+                equivalentTypeGuardOffsets->cache.hasFixedValue = cache->hasFixedValue;
+                equivalentTypeGuardOffsets->cache.isLoadedFromProto = cache->isLoadedFromProto;
+                equivalentTypeGuardOffsets->cache.nextEvictionVictim = cache->nextEvictionVictim;
+                equivalentTypeGuardOffsets->cache.record.propertyCount = cache->record.propertyCount;
+                equivalentTypeGuardOffsets->cache.record.propertyOffset = NativeCodeData::GetDataTotalOffset(cache->record.properties);
+                for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE_IDL; j++)
+                {
+                    equivalentTypeGuardOffsets->cache.types[j] = (intptr_t)cache->types[j];
+                }
+            });
+            Assert(equivalentTypeGuardsCount == i);
+        }
+        else
+        {
+            Js::JitEquivalentTypeGuard** guards = HeapNewArrayZ(Js::JitEquivalentTypeGuard*, equivalentTypeGuardsCount);
+            Js::JitEquivalentTypeGuard** dstGuard = guards;
+            this->m_func->equivalentTypeGuards->Map([&dstGuard](Js::JitEquivalentTypeGuard* srcGuard) -> void
+            {
+                *dstGuard++ = srcGuard;
+            });
+            entryPointInfo->GetJitTransferData()->SetEquivalentTypeGuards(guards, equivalentTypeGuardsCount);
+        }
     }
 
     if (this->m_func->lazyBailoutProperties.Count() > 0)

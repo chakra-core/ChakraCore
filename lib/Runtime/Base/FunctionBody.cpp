@@ -922,7 +922,7 @@ namespace Js
         entryPoint->SetCodeGenRecorded(baseAddress, size, data, transferData, numberChunks);
     }
 #endif
-    
+
     int
     FunctionBody::GetNextDebuggerScopeIndex()
     {
@@ -1134,7 +1134,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             validationCookie = (void*)scriptContext->GetNativeCodeGenerator();
 #endif
-             
+
             this->m_defaultEntryPointInfo = RecyclerNewFinalized(scriptContext->GetRecycler(),
                 FunctionEntryPointInfo, this, entryPoint, scriptContext->GetThreadContext(), validationCookie);
         }
@@ -3402,7 +3402,7 @@ namespace Js
         newFunctionBody->SetReferencedPropertyIdMap(this->GetReferencedPropertyIdMap());
         newFunctionBody->SetPropertyIdsForScopeSlotArray(this->GetPropertyIdsForScopeSlotArray(), this->scopeSlotArraySize);
         newFunctionBody->SetPropertyIdOnRegSlotsContainer(this->GetPropertyIdOnRegSlotsContainer());
-        
+
 
         if (this->byteCodeBlock == nullptr)
         {
@@ -3612,7 +3612,7 @@ namespace Js
         this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionBody));
     }
 
-    FunctionBody * FunctionBody::GetStackNestedFuncParentStrongRef() 
+    FunctionBody * FunctionBody::GetStackNestedFuncParentStrongRef()
     {
         Assert(this->GetStackNestedFuncParent() != nullptr);
         return this->GetStackNestedFuncParent()->Get();
@@ -4071,7 +4071,7 @@ namespace Js
         }
     }
 #endif
-    
+
     void FunctionBody::DumpStatementMaps()
     {
         // Source Map to ByteCode
@@ -8000,36 +8000,104 @@ namespace Js
     void EntryPointInfo::ProcessJitTransferData()
     {
         Assert(!IsCleanedUp());
-        if (GetJitTransferData() != nullptr && GetJitTransferData()->GetIsReady())
+
+        auto jitTransferData = GetJitTransferData();
+        if (jitTransferData == nullptr)
         {
-            class AutoCleanup
+            return;
+        }
+
+        class AutoCleanup
+        {
+            EntryPointInfo *entryPointInfo;
+        public:
+            AutoCleanup(EntryPointInfo *entryPointInfo) : entryPointInfo(entryPointInfo)
             {
-                EntryPointInfo *entryPointInfo;
-            public:
-                AutoCleanup(EntryPointInfo *entryPointInfo) : entryPointInfo(entryPointInfo)
-                {
-                }
+            }
 
-                void Done()
+            void Done()
+            {
+                entryPointInfo = nullptr;
+            }
+            ~AutoCleanup()
+            {
+                if (entryPointInfo)
                 {
-                    entryPointInfo = nullptr;
+                    entryPointInfo->OnNativeCodeInstallFailure();
                 }
-                ~AutoCleanup()
-                {
-                    if (entryPointInfo)
-                    {
-                        entryPointInfo->OnNativeCodeInstallFailure();
-                    }
-                }
-            } autoCleanup(this);
+            }
+        } autoCleanup(this);
 
-            ScriptContext* scriptContext = GetScriptContext();
+
+        ScriptContext* scriptContext = GetScriptContext();
+
+        if (jitTransferData->equivalentTypeGuardOffsets)
+        {
+            // OOP JIT
+
+            //PinTypeRefs
+
+            Recycler* recycler = scriptContext->GetRecycler();
+            if (this->jitTransferData->GetRuntimeTypeRefs() != nullptr)
+            {
+                // Copy pinned types from a heap allocated array created on the background thread
+                // to a recycler allocated array which will live as long as this EntryPointInfo.
+                // The original heap allocated array will be freed at the end of NativeCodeGenerator::CheckCodeGenDone
+                void** jitPinnedTypeRefs = this->jitTransferData->GetRuntimeTypeRefs();
+                size_t jitPinnedTypeRefCount = this->jitTransferData->GetRuntimeTypeRefCount();
+                this->runtimeTypeRefs = RecyclerNewArray(recycler, void*, jitPinnedTypeRefCount + 1);
+                js_memcpy_s(this->runtimeTypeRefs, jitPinnedTypeRefCount * sizeof(void*), jitPinnedTypeRefs, jitPinnedTypeRefCount * sizeof(void*));
+                this->runtimeTypeRefs[jitPinnedTypeRefCount] = nullptr;
+            }
+
+
+            // InstallGuards
+            int guardCount = jitTransferData->equivalentTypeGuardOffsets->count;
+
+            // Create an array of equivalent type caches on the entry point info to ensure they are kept
+            // alive for the lifetime of the entry point.
+            this->equivalentTypeCacheCount = guardCount;
+
+            // No need to zero-initialize, since we will populate all data slots.
+            // We used to let the recycler scan the types in the cache, but we no longer do. See
+            // ThreadContext::ClearEquivalentTypeCaches for an explanation.
+            this->equivalentTypeCaches = RecyclerNewArrayLeafZ(recycler, EquivalentTypeCache, guardCount);
+
+            this->RegisterEquivalentTypeCaches();
+            EquivalentTypeCache* cache = this->equivalentTypeCaches;
+            auto& cacheIDL = jitTransferData->equivalentTypeGuardOffsets->cache;
+
+            for (int i = 0; i < guardCount; i++)
+            {
+                auto guardOffset = jitTransferData->equivalentTypeGuardOffsets->offsets[i];
+                JitEquivalentTypeGuard* guard = (JitEquivalentTypeGuard*)(this->GetNativeDataBuffer() + guardOffset);                
+                cache[i].guard = guard;
+                cache[i].hasFixedValue = cacheIDL.hasFixedValue != 0;
+                cache[i].isLoadedFromProto = cacheIDL.isLoadedFromProto != 0;
+                cache[i].nextEvictionVictim = cacheIDL.nextEvictionVictim;
+                cache[i].record.propertyCount = cacheIDL.record.propertyCount;
+                cache[i].record.properties = (EquivalentPropertyEntry*)(this->GetNativeDataBuffer() + cacheIDL.record.propertyOffset);
+                for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE; j++)
+                {
+                    cache[i].types[j] = (Js::Type*)cacheIDL.types[j];
+                }
+                guard->SetCache(&cache[i]);
+            }
+
+            midl_user_free(jitTransferData->equivalentTypeGuardOffsets);
+
+            FreeJitTransferData();
+        }
+
+
+        if (jitTransferData->GetIsReady())
+        {
             PinTypeRefs(scriptContext);
             InstallGuards(scriptContext);
             FreeJitTransferData();
-
-            autoCleanup.Done();
         }
+
+        autoCleanup.Done();
     }
 
     EntryPointInfo::JitTransferData* EntryPointInfo::EnsureJitTransferData(Recycler* recycler)
@@ -8087,6 +8155,21 @@ namespace Js
 
     void EntryPointInfo::InstallGuards(ScriptContext* scriptContext)
     {
+
+
+        //if (jitWriteData.equivalentTypeGuardOffsets)
+        //{
+        //    auto equivalentTypeGuardCount = jitWriteData.equivalentTypeGuardOffsets->count;
+        //    Assert(epInfo->GetNativeDataBuffer() != nullptr);
+        //    Js::JitEquivalentTypeGuard** guards = HeapNewArrayZ(Js::JitEquivalentTypeGuard*, equivalentTypeGuardCount);
+        //    for (unsigned int i = 0; i < equivalentTypeGuardCount; i++)
+        //    {
+        //        guards[i] = (Js::JitEquivalentTypeGuard*)epInfo->GetNativeDataBuffer() + jitWriteData.equivalentTypeGuardOffsets->offsets[i];
+        //    }
+        //    epInfo->GetJitTransferData()->SetEquivalentTypeGuards(guards, equivalentTypeGuardCount);
+        //}
+
+
         Assert(this->jitTransferData != nullptr && this->jitTransferData->GetIsReady());
         Assert(this->equivalentTypeCacheCount == 0 && this->equivalentTypeCaches == nullptr);
         Assert(this->propertyGuardCount == 0 && this->propertyGuardWeakRefs == nullptr);

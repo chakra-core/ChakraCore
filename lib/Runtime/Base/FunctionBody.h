@@ -190,7 +190,7 @@ namespace Js
     };
 
 
-#define EQUIVALENT_TYPE_CACHE_SIZE (8)
+#define EQUIVALENT_TYPE_CACHE_SIZE (EQUIVALENT_TYPE_CACHE_SIZE_IDL)
 
     struct EquivalentTypeCache
     {
@@ -250,7 +250,7 @@ namespace Js
 
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
-            Assert(false); // not implemented yet
+            // cache will be recycler allocated pointer
         }
     };
 
@@ -431,6 +431,7 @@ namespace Js
             JitEquivalentTypeGuard** equivalentTypeGuards;
             Js::PropertyId* lazyBailoutProperties;
             NativeCodeData* data;
+            EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
 
             bool falseReferencePreventionBit;
             bool isReady;
@@ -460,7 +461,10 @@ namespace Js
                 this->lazyBailoutProperties = properties;
                 this->lazyBailoutPropertyCount = count;
             }
-
+            void SetEquivalentTypeGuardOffsets(EquivalentTypeGuardOffsets* offsets)
+            {
+                equivalentTypeGuardOffsets = offsets;
+            }
             bool GetIsReady() { return this->isReady; }
             void SetIsReady() { this->isReady = true; }
 
@@ -528,6 +532,7 @@ namespace Js
         uint frameHeight;
 
         char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
+        char* GetNativeDataBuffer() { return nativeDataBuffer; }
 
         void SetNumberChunks(CodeGenNumberChunk * chunks) { numberChunks = chunks; }
 

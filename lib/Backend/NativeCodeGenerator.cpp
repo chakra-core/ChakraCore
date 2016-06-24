@@ -947,10 +947,12 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 jitWriteData.nativeDataFixupTable = nullptr;
 
                 // change the address with the fixup information
-                *workItem->GetEntryPoint()->GetNativeDataBufferRef() = (char*)jitWriteData.buffer->data;
+                *epInfo->GetNativeDataBufferRef() = (char*)jitWriteData.buffer->data;
             }
 
             epInfo->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
+                        
+            epInfo->GetJitTransferData()->SetEquivalentTypeGuardOffsets(jitWriteData.equivalentTypeGuardOffsets);
 
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)

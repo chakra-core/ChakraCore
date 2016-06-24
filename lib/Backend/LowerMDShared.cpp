@@ -7009,7 +7009,7 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
 
         Lowerer::InsertMove(
             addressRegOpnd,
-            IR::MemRefOpnd::New((void*)instrInsert->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, isFloat64 ? TyMachDouble : TyFloat32, instrInsert->m_func, IR::AddrOpndKindDynamicMisc),
+            IR::MemRefOpnd::New((void*)instrInsert->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, isFloat64 ? TyMachDouble : TyFloat32, instrInsert->m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
             instrInsert);
 
         opnd = IR::IndirOpnd::New(addressRegOpnd, offset, isFloat64 ? TyMachDouble : TyFloat32, instrInsert->m_func);

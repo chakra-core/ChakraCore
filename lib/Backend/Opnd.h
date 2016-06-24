@@ -88,6 +88,7 @@ enum AddrOpndKind : BYTE {
     AddrOpndKindSz,
     AddrOpndKindDynamicFloatRef,
     AddrOpndKindDynamicDoubleRef,
+    AddrOpndKindDynamicNativeCodeDataRef,
 };
 
 ///---------------------------------------------------------------------------

@@ -1237,7 +1237,15 @@ Func::CreateEquivalentTypeGuard(JITType* type, uint32 objTypeSpecFldId)
 
     // If we want to hard code the address of the cache, we will need to go back to allocating it from the native code data allocator.
     // We would then need to maintain consistency (double write) to both the recycler allocated cache and the one on the heap.
-    Js::EquivalentTypeCache* cache = NativeCodeDataNewZ(GetTransferDataAllocator(), Js::EquivalentTypeCache);
+    Js::EquivalentTypeCache* cache = nullptr;
+    if (this->IsOOPJIT())
+    {
+        cache = JitAnewZ(this->m_alloc, Js::EquivalentTypeCache);
+    }
+    else
+    {
+        cache = NativeCodeDataNewZ(GetTransferDataAllocator(), Js::EquivalentTypeCache);
+    }
     guard->SetCache(cache);
 
     // Give the cache a back-pointer to the guard so that the guard can be cleared at runtime if necessary.

@@ -6768,12 +6768,27 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
     if (typeCheckGuard == nullptr)
     {
         Assert(type != nullptr);
-        expectedTypeOpnd = IR::AddrOpnd::New(type, IR::AddrOpndKindDynamicType, func, true);
+        expectedTypeOpnd = IR::AddrOpnd::New(type->GetAddr(), IR::AddrOpndKindDynamicType, func, true);
     }
     else
     {
         Assert(Js::PropertyGuard::GetSizeOfValue() == static_cast<size_t>(TySize[TyMachPtr]));
-        expectedTypeOpnd = IR::MemRefOpnd::New((void*)(typeCheckGuard->GetAddressOfValue()), TyMachPtr, func, IR::AddrOpndKindDynamicGuardValueRef);
+
+        if (this->m_func->IsOOPJIT())
+        {
+            auto regNativeCodeData = IR::RegOpnd::New(TyMachPtr, func);
+            Lowerer::InsertMove(
+                regNativeCodeData,
+                IR::MemRefOpnd::New((void*)func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, func, IR::AddrOpndKindDynamicNativeCodeDataRef),
+                instrChk);
+
+            int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typeCheckGuard);
+            expectedTypeOpnd = IR::IndirOpnd::New(regNativeCodeData, typeCheckGuardOffset, TyMachPtr, func);
+        }
+        else
+        {
+            expectedTypeOpnd = IR::MemRefOpnd::New((void*)(typeCheckGuard->GetAddressOfValue()), TyMachPtr, func, IR::AddrOpndKindDynamicGuardValueRef);
+        }
         emitDirectCheck = false;
     }
 
@@ -6909,7 +6924,23 @@ Lowerer::GenerateCachedTypeWithoutPropertyCheck(IR::Instr *instrInsert, IR::Prop
 
         Assert(typePropertyGuard != nullptr);
         Assert(Js::PropertyGuard::GetSizeOfValue() == static_cast<size_t>(TySize[TyMachPtr]));
-        expectedTypeOpnd = IR::MemRefOpnd::New((void*)(typePropertyGuard->GetAddressOfValue()), TyMachPtr, this->m_func, IR::AddrOpndKindDynamicGuardValueRef);
+
+        if (this->m_func->IsOOPJIT())
+        {
+            auto regNativeCodeData = IR::RegOpnd::New(TyMachPtr, this->m_func);
+            Lowerer::InsertMove(
+                regNativeCodeData,
+                IR::MemRefOpnd::New((void*)this->m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, this->m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
+                instrInsert);
+
+            int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typePropertyGuard);
+            expectedTypeOpnd = IR::IndirOpnd::New(regNativeCodeData, typeCheckGuardOffset, TyMachPtr, this->m_func);
+        }
+        else
+        {
+            expectedTypeOpnd = IR::MemRefOpnd::New((void*)(typePropertyGuard->GetAddressOfValue()), TyMachPtr, this->m_func, IR::AddrOpndKindDynamicGuardValueRef);
+        }
+
         emitDirectCheck = false;
 
         OUTPUT_VERBOSE_TRACE_FUNC(Js::ObjTypeSpecPhase, this->m_func, L"Emitted %s type check for type 0x%p.\n",
@@ -12153,15 +12184,27 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         collectRuntimeStatsLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
         instr->InsertBefore(collectRuntimeStatsLabel);
 
-        int offset = ((NativeCodeData::DataChunk*)((char*)bailOutInfo->bailOutRecord - sizeof(NativeCodeData::DataChunk)))->offset;
-        auto addressRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+        IR::Opnd * indexOpndForBailOutKind = nullptr;
 
-        Lowerer::InsertMove(
-            addressRegOpnd,
-            IR::MemRefOpnd::New((void*)m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, m_func, IR::AddrOpndKindDynamicMisc),
-            instr);
+        int bailOutRecordOffset = 0;
+        IR::RegOpnd* addressRegOpnd = nullptr;
+        if (this->m_func->IsOOPJIT())
+        {
+            bailOutRecordOffset = ((NativeCodeData::DataChunk*)((char*)bailOutInfo->bailOutRecord - sizeof(NativeCodeData::DataChunk)))->offset;
+            addressRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
 
-        IR::IndirOpnd * indexOpndForBailOutKind = IR::IndirOpnd::New(addressRegOpnd, (int)(offset + BailOutRecord::GetOffsetOfBailOutKind()), TyUint32, m_func);
+            Lowerer::InsertMove(
+                addressRegOpnd,
+                IR::MemRefOpnd::New((void*)m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
+                instr);
+
+            indexOpndForBailOutKind = IR::IndirOpnd::New(addressRegOpnd, (int)(bailOutRecordOffset + BailOutRecord::GetOffsetOfBailOutKind()), TyUint32, m_func);
+        }
+        else
+        {
+            indexOpndForBailOutKind =
+                IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + BailOutRecord::GetOffsetOfBailOutKind(), TyUint32, this->m_func, IR::AddrOpndKindDynamicBailOutKindRef);
+        }
 
         m_lowererMD.CreateAssign(
             indexOpndForBailOutKind, IR::IntConstOpnd::New(instr->GetBailOutKind(), indexOpndForBailOutKind->GetType(), this->m_func), instr);
@@ -12175,7 +12218,16 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
             Assert(bailOutInfo->polymorphicCacheIndex != (uint)-1);
             Assert(bailOutInfo->bailOutRecord);
 
-            IR::IndirOpnd * indexOpnd = IR::IndirOpnd::New(addressRegOpnd, (int)(offset + BailOutRecord::GetOffsetOfPolymorphicCacheIndex()), TyUint32, m_func);
+            IR::Opnd * indexOpnd = nullptr;
+
+            if (this->m_func->IsOOPJIT())
+            {
+                indexOpnd = IR::IndirOpnd::New(addressRegOpnd, (int)(bailOutRecordOffset + BailOutRecord::GetOffsetOfPolymorphicCacheIndex()), TyUint32, m_func);
+            }
+            else
+            {
+                indexOpnd = IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + BailOutRecord::GetOffsetOfPolymorphicCacheIndex(), TyUint32, this->m_func);
+            }             
 
             m_lowererMD.CreateAssign(
                 indexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr);

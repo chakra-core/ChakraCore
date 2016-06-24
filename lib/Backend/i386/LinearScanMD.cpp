@@ -131,7 +131,7 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
             // mov rcx, dataAddr
             Lowerer::InsertMove(
                 IR::RegOpnd::New(nullptr, RegEAX, TyMachPtr, func),
-                IR::AddrOpnd::New(func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, IR::AddrOpndKindDynamicMisc, func, true),
+                IR::AddrOpnd::New(func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, IR::AddrOpndKindDynamicNativeCodeDataRef, func, true),
                 instr);
 
             // mov rcx, [rcx]

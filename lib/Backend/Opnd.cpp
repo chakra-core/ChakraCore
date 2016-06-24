@@ -3452,6 +3452,10 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, L" (&(double)%f)", *(double *)address);
             break;
+        case AddrOpndKindDynamicNativeCodeDataRef:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, L" (&NativeCodeData)");
+            break;
         default:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             if ((intptr_t)address == func->GetThreadContextInfo()->GetNullFrameDisplayAddr())

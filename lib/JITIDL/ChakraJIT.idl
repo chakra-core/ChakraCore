@@ -7,6 +7,7 @@ import "wtypes.idl";
 
 // TODO: OOP JIT, how do we make this better?
 const int VTABLE_COUNT = 40;
+const int EQUIVALENT_TYPE_CACHE_SIZE_IDL = 8;
 
 typedef struct TypeHandlerIDL
 {
@@ -474,6 +475,31 @@ typedef struct NativeDataFixupTable
     [size_is(count)] NativeDataFixupRecord fixupRecords[*];
 } NativeDataFixupTable;
 
+
+typedef struct TypeEquivalenceRecordIDL
+{
+    unsigned int propertyCount;
+    unsigned int propertyOffset;
+} TypeEquivalenceRecord;
+
+typedef struct EquivlentTypeCacheIDL
+{
+    __int3264 types[EQUIVALENT_TYPE_CACHE_SIZE_IDL];
+    __int3264 guardOffset;
+    struct TypeEquivalenceRecordIDL record;
+    unsigned int nextEvictionVictim;
+    boolean isLoadedFromProto;
+    boolean hasFixedValue;
+} EquivlentTypeCacheIDL;
+
+typedef struct EquivalentTypeGuardOffsets
+{
+    EquivlentTypeCacheIDL cache;
+    unsigned int count;
+    [size_is(count)] unsigned int offsets[*];
+
+} EquivalentTypeGuardOffsets;
+
 typedef struct NativeDataBuffer
 {
     unsigned int len;
@@ -497,6 +523,7 @@ typedef struct JITOutputIDL
 
     NativeDataFixupTable* nativeDataFixupTable;
     NativeDataBuffer* buffer;
+    EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
 
     __int64 codeAddress;
     __int64 xdataAddr;

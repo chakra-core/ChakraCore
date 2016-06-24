@@ -317,6 +317,11 @@ FunctionJITTimeInfo::GetJitTimeDataFromFunctionInfoAddr(intptr_t polyFuncInfo) c
 JITObjTypeSpecFldInfo *
 FunctionJITTimeInfo::GetObjTypeSpecFldInfo(uint index) const
 {
+    if (m_data.objTypeSpecFldInfoArray == nullptr) 
+    {
+        return nullptr;
+    }
+
     Assert(index < GetBody()->GetInlineCacheCount());
     Assert(index < m_data.objTypeSpecFldInfoCount);
     return reinterpret_cast<JITObjTypeSpecFldInfo **>(m_data.objTypeSpecFldInfoArray)[index];
