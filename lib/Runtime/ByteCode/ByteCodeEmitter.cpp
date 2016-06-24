@@ -2790,7 +2790,7 @@ void ByteCodeGenerator::EmitInitCapturedNewTarget(FuncInfo* funcInfo, Scope* sco
 }
 
 void EmitDestructuredObject(ParseNode *lhs, Js::RegSlot rhsLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
-void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode, Js::RegSlot rhsLocation, ParseNodePtr initializer, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
+void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode, Js::RegSlot rhsLocation, ParseNodePtr initializer, bool isNonPatternAssignmentTarget, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 
 void ByteCodeGenerator::PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNode *pnode)
 {
@@ -2838,7 +2838,12 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
             {
                 Assert(pnode1->nop == knopAsg);
                 Assert(pnode1->sxBin.pnode1->IsPattern());
-                EmitDestructuredValueOrInitializer(pnode1->sxBin.pnode1, pnodeArg->sxParamPattern.location, pnode1->sxBin.pnode2, this, funcInfo);
+                EmitDestructuredValueOrInitializer(pnode1->sxBin.pnode1,
+                    pnodeArg->sxParamPattern.location,
+                    pnode1->sxBin.pnode2,
+                    false /*isNonPatternAssignmentTarget*/,
+                    this,
+                    funcInfo);
             }
             this->EndStatement(pnodeArg);
             return;
@@ -6073,9 +6078,25 @@ void EmitDestructuredElement(ParseNode *elem, Js::RegSlot sourceLocation, ByteCo
     funcInfo->ReleaseReference(elem);
 }
 
-void EmitDestructuredRestArray(ParseNode *elem, Js::RegSlot iteratorLocation, Js::RegSlot shouldCallReturnFunctionLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
+void EmitDestructuredRestArray(ParseNode *elem,
+    Js::RegSlot iteratorLocation,
+    Js::RegSlot shouldCallReturnFunctionLocation,
+    Js::RegSlot shouldCallReturnFunctionLocationFinally,
+    ByteCodeGenerator *byteCodeGenerator,
+    FuncInfo *funcInfo)
 {
     Js::RegSlot restArrayLocation = funcInfo->AcquireTmpRegister();
+    bool isAssignmentTarget = !(elem->sxUni.pnode1->IsPattern() || elem->sxUni.pnode1->IsVarLetOrConst());
+
+    if (isAssignmentTarget)
+    {
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocation);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocationFinally);
+        EmitReference(elem->sxUni.pnode1, byteCodeGenerator, funcInfo);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocation);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocationFinally);
+    }
+
     byteCodeGenerator->Writer()->Reg1Unsigned1(
         Js::OpCode::NewScArray,
         restArrayLocation,
@@ -6108,6 +6129,7 @@ void EmitDestructuredRestArray(ParseNode *elem, Js::RegSlot iteratorLocation, Js
     EmitIteratorValue(valueLocation, itemLocation, byteCodeGenerator, funcInfo);
 
     byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocation);
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocationFinally);
 
     byteCodeGenerator->Writer()->Element(
         ByteCodeGenerator::GetStElemIOpCode(funcInfo),
@@ -6119,6 +6141,7 @@ void EmitDestructuredRestArray(ParseNode *elem, Js::RegSlot iteratorLocation, Js
     byteCodeGenerator->Writer()->Reg2(Js::OpCode::Incr_A, counterLocation, counterLocation);
 
     byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocation);
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocationFinally);
 
     byteCodeGenerator->Writer()->Br(loopTop);
 
@@ -6126,7 +6149,15 @@ void EmitDestructuredRestArray(ParseNode *elem, Js::RegSlot iteratorLocation, Js
     byteCodeGenerator->Writer()->MarkLabel(iteratorDone);
 
     ParseNode *restElem = elem->sxUni.pnode1;
-    EmitDestructuredElement(restElem, restArrayLocation, byteCodeGenerator, funcInfo);
+    if (isAssignmentTarget)
+    {
+        EmitAssignment(nullptr, restElem, restArrayLocation, byteCodeGenerator, funcInfo);
+        funcInfo->ReleaseReference(restElem);
+    }
+    else
+    {
+        EmitDestructuredElement(restElem, restArrayLocation, byteCodeGenerator, funcInfo);
+    }
 
     funcInfo->ReleaseTmpRegister(restArrayLocation);
 }
@@ -6176,6 +6207,7 @@ void EmitDestructuredArrayCore(
     ParseNode *list,
     Js::RegSlot iteratorLocation,
     Js::RegSlot shouldCallReturnFunctionLocation,
+    Js::RegSlot shouldCallReturnFunctionLocationFinally,
     ByteCodeGenerator *byteCodeGenerator,
     FuncInfo *funcInfo
     )
@@ -6221,7 +6253,17 @@ void EmitDestructuredArrayCore(
 
         byteCodeGenerator->StartStatement(elem);
 
+        bool isAssignmentTarget = !(elem->IsPattern() || elem->IsVarLetOrConst());
+
+        if (isAssignmentTarget)
+        {
+            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocation);
+            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocationFinally);
+            EmitReference(elem, byteCodeGenerator, funcInfo);
+        }
+
         byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocation);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocationFinally);
 
         Js::RegSlot itemLocation = funcInfo->AcquireTmpRegister();
         EmitIteratorNext(itemLocation, iteratorLocation, Js::Constants::NoRegister, byteCodeGenerator, funcInfo);
@@ -6258,6 +6300,7 @@ void EmitDestructuredArrayCore(
         Js::ByteCodeLabel beforeDefaultAssign = byteCodeGenerator->Writer()->DefineLabel();
 
         byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocation);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocationFinally);
         byteCodeGenerator->Writer()->Br(beforeDefaultAssign);
 
         // iteratorAlreadyDone:
@@ -6343,10 +6386,11 @@ void EmitDestructuredArrayCore(
         }
         else
         {
-            EmitDestructuredValueOrInitializer(elem, valueLocation, init, byteCodeGenerator, funcInfo);
+            EmitDestructuredValueOrInitializer(elem, valueLocation, init, isAssignmentTarget, byteCodeGenerator, funcInfo);
         }
 
         byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocation);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocationFinally);
 
         if (list->nop != knopList)
         {
@@ -6356,6 +6400,11 @@ void EmitDestructuredArrayCore(
         funcInfo->ReleaseTmpRegister(valueLocation);
         funcInfo->ReleaseTmpRegister(doneLocation);
         funcInfo->ReleaseTmpRegister(itemLocation);
+
+        if (isAssignmentTarget)
+        {
+            funcInfo->ReleaseReference(elem);
+        }
 
         byteCodeGenerator->EndStatement(elem);
 
@@ -6372,7 +6421,12 @@ void EmitDestructuredArrayCore(
     // If we saw a rest element, emit the rest array.
     if (elem != nullptr && elem->nop == knopEllipsis)
     {
-        EmitDestructuredRestArray(elem, iteratorLocation, shouldCallReturnFunctionLocation, byteCodeGenerator, funcInfo);
+        EmitDestructuredRestArray(elem,
+            iteratorLocation,
+            shouldCallReturnFunctionLocation,
+            shouldCallReturnFunctionLocationFinally,
+            byteCodeGenerator,
+            funcInfo);
     }
 }
 
@@ -6420,20 +6474,70 @@ struct ByteCodeGenerator::TryScopeRecord : public JsUtil::DoublyLinkedListElemen
 };
 
 // Generating
-// finally {
-//    if (hasReturnFunction)
-//        EmitTryCatchAroundClose
+// catch(e) {
+//      if (shouldCallReturn)
+//          CallReturnWhichWrappedByTryCatch
+//      throw e;
 // }
-
-void EmitFinallyForClose(
+void EmitTopLevelCatch(Js::ByteCodeLabel catchLabel,
     Js::RegSlot iteratorLocation,
-    Js::RegSlot returnLocation,
-    Js::RegSlot yieldExceptionLocation,
-    Js::RegSlot yieldOffsetLocation,
-    Js::ByteCodeLabel finallyLabel,
+    Js::RegSlot shouldCallReturnLocation,
+    Js::RegSlot shouldCallReturnLocationFinally,
     ByteCodeGenerator *byteCodeGenerator,
     FuncInfo *funcInfo)
 {
+    Js::ByteCodeLabel afterCatchBlockLabel = byteCodeGenerator->Writer()->DefineLabel();
+    byteCodeGenerator->Writer()->Empty(Js::OpCode::Leave);
+    byteCodeGenerator->Writer()->Br(afterCatchBlockLabel);
+    byteCodeGenerator->Writer()->MarkLabel(catchLabel);
+
+    Js::RegSlot catchParamLocation = funcInfo->AcquireTmpRegister();
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::Catch, catchParamLocation);
+
+    ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
+    if (funcInfo->byteCodeFunction->IsGenerator())
+    {
+        byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForCatch);
+    }
+
+    Js::ByteCodeLabel skipCallCloseLabel = byteCodeGenerator->Writer()->DefineLabel();
+
+    byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, skipCallCloseLabel, shouldCallReturnLocation);
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnLocationFinally);
+    EmitTryCatchAroundClose(iteratorLocation, skipCallCloseLabel, byteCodeGenerator, funcInfo);
+
+    byteCodeGenerator->Writer()->MarkLabel(skipCallCloseLabel);
+
+    // Rethrow the exception.
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::Throw, catchParamLocation);
+
+    funcInfo->ReleaseTmpRegister(catchParamLocation);
+
+    if (funcInfo->byteCodeFunction->IsGenerator())
+    {
+        byteCodeGenerator->tryScopeRecordsList.UnlinkFromEnd();
+    }
+
+    byteCodeGenerator->Writer()->Empty(Js::OpCode::Leave);
+    byteCodeGenerator->Writer()->MarkLabel(afterCatchBlockLabel);
+}
+
+// Generating
+// finally {
+//      if (shouldCallReturn)
+//          CallReturn
+// }
+
+void EmitTopLevelFinally(Js::ByteCodeLabel finallyLabel,
+    Js::RegSlot iteratorLocation,
+    Js::RegSlot shouldCallReturnLocation,
+    Js::RegSlot yieldExceptionLocation,
+    Js::RegSlot yieldOffsetLocation,
+    ByteCodeGenerator *byteCodeGenerator,
+    FuncInfo *funcInfo)
+{
+    bool isGenerator = funcInfo->byteCodeFunction->IsGenerator();
+
     Js::ByteCodeLabel afterFinallyBlockLabel = byteCodeGenerator->Writer()->DefineLabel();
     byteCodeGenerator->Writer()->Empty(Js::OpCode::Leave);
 
@@ -6443,19 +6547,18 @@ void EmitFinallyForClose(
     byteCodeGenerator->Writer()->Br(afterFinallyBlockLabel);
     byteCodeGenerator->Writer()->MarkLabel(finallyLabel);
 
-    bool isGenerator = funcInfo->byteCodeFunction->IsGenerator();
     ByteCodeGenerator::TryScopeRecord tryRecForFinally(Js::OpCode::ResumeFinally, finallyLabel, yieldExceptionLocation, yieldOffsetLocation);
     if (isGenerator)
     {
         byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForFinally);
     }
 
-    Js::ByteCodeLabel skipCallTryCatchLabel = byteCodeGenerator->Writer()->DefineLabel();
+    Js::ByteCodeLabel skipCallCloseLabel = byteCodeGenerator->Writer()->DefineLabel();
 
-    byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, skipCallTryCatchLabel, returnLocation);
-    EmitTryCatchAroundClose(iteratorLocation, skipCallTryCatchLabel, byteCodeGenerator, funcInfo);
+    byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, skipCallCloseLabel, shouldCallReturnLocation);
+    EmitIteratorClose(iteratorLocation, byteCodeGenerator, funcInfo);
 
-    byteCodeGenerator->Writer()->MarkLabel(skipCallTryCatchLabel);
+    byteCodeGenerator->Writer()->MarkLabel(skipCallCloseLabel);
 
     if (isGenerator)
     {
@@ -6467,6 +6570,47 @@ void EmitFinallyForClose(
     byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(false);
     byteCodeGenerator->Writer()->Empty(Js::OpCode::LeaveNull);
     byteCodeGenerator->Writer()->MarkLabel(afterFinallyBlockLabel);
+}
+
+void EmitCatchAndFinallyBlocks(Js::ByteCodeLabel catchLabel,
+    Js::ByteCodeLabel finallyLabel,
+    Js::RegSlot iteratorLocation,
+    Js::RegSlot shouldCallReturnFunctionLocation,
+    Js::RegSlot shouldCallReturnFunctionLocationFinally,
+    Js::RegSlot yieldExceptionLocation,
+    Js::RegSlot yieldOffsetLocation,
+    ByteCodeGenerator *byteCodeGenerator,
+    FuncInfo *funcInfo
+    )
+{
+    bool isGenerator = funcInfo->byteCodeFunction->IsGenerator();
+    if (isGenerator)
+    {
+        byteCodeGenerator->tryScopeRecordsList.UnlinkFromEnd();
+    }
+
+    EmitTopLevelCatch(catchLabel,
+        iteratorLocation,
+        shouldCallReturnFunctionLocation,
+        shouldCallReturnFunctionLocationFinally,
+        byteCodeGenerator,
+        funcInfo);
+
+    if (isGenerator)
+    {
+        byteCodeGenerator->tryScopeRecordsList.UnlinkFromEnd();
+    }
+
+    EmitTopLevelFinally(finallyLabel,
+        iteratorLocation,
+        shouldCallReturnFunctionLocationFinally,
+        yieldExceptionLocation,
+        yieldOffsetLocation,
+        byteCodeGenerator,
+        funcInfo);
+
+    funcInfo->ReleaseTmpRegister(shouldCallReturnFunctionLocationFinally);
+    funcInfo->ReleaseTmpRegister(shouldCallReturnFunctionLocation);
 }
 
 // Emit a wrapper try..finaly block around the destructuring elements
@@ -6497,7 +6641,9 @@ void EmitDestructuredArray(
     // This variable facilitates on when to call the return function (which is Iterator close). When we are emitting bytecode for destructuring element
     // this variable will be set to true.
     Js::RegSlot shouldCallReturnFunctionLocation = funcInfo->AcquireTmpRegister();
+    Js::RegSlot shouldCallReturnFunctionLocationFinally = funcInfo->AcquireTmpRegister();
     byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocation);
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocationFinally);
 
     byteCodeGenerator->SetHasFinally(true);
     byteCodeGenerator->SetHasTry(true);
@@ -6515,9 +6661,9 @@ void EmitDestructuredArray(
 
     // Insert try node here 
     Js::ByteCodeLabel finallyLabel = byteCodeGenerator->Writer()->DefineLabel();
+    Js::ByteCodeLabel catchLabel = byteCodeGenerator->Writer()->DefineLabel();
     byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(true);
 
-    //byteCodeGenerator->Writer()->Br(Js::OpCode::TryFinally, finallyLabel);
     ByteCodeGenerator::TryScopeRecord tryRecForTryFinally(Js::OpCode::TryFinallyWithYield, finallyLabel);
 
     if (isGenerator)
@@ -6532,22 +6678,31 @@ void EmitDestructuredArray(
         byteCodeGenerator->Writer()->Br(Js::OpCode::TryFinally, finallyLabel);
     }
 
-    EmitDestructuredArrayCore(list, iteratorLocation, shouldCallReturnFunctionLocation, byteCodeGenerator, funcInfo);
+    byteCodeGenerator->Writer()->Br(Js::OpCode::TryCatch, catchLabel);
 
+    ByteCodeGenerator::TryScopeRecord tryRecForTry(Js::OpCode::TryCatch, catchLabel);
     if (isGenerator)
     {
-        byteCodeGenerator->tryScopeRecordsList.UnlinkFromEnd();
+        byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForTry);
     }
 
-    EmitFinallyForClose(iteratorLocation,
+    EmitDestructuredArrayCore(list,
+        iteratorLocation,
         shouldCallReturnFunctionLocation,
-        regException,
-        regOffset,
-        finallyLabel,
+        shouldCallReturnFunctionLocationFinally,
         byteCodeGenerator,
         funcInfo);
 
-    funcInfo->ReleaseTmpRegister(shouldCallReturnFunctionLocation);
+    EmitCatchAndFinallyBlocks(catchLabel,
+        finallyLabel,
+        iteratorLocation,
+        shouldCallReturnFunctionLocation,
+        shouldCallReturnFunctionLocationFinally,
+        regException,
+        regOffset,
+        byteCodeGenerator,
+        funcInfo);
+
     funcInfo->ReleaseTmpRegister(iteratorLocation);
 
     byteCodeGenerator->EndStatement(lhs);
@@ -6582,6 +6737,7 @@ void EmitNameInvoke(Js::RegSlot lhsLocation,
 void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode,
     Js::RegSlot rhsLocation,
     ParseNodePtr initializer,
+    bool isNonPatternAssignmentTarget,
     ByteCodeGenerator *byteCodeGenerator,
     FuncInfo *funcInfo)
 {
@@ -6619,6 +6775,10 @@ void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode,
     {
         EmitDestructuredObject(lhsElementNode, rhsLocationTmp, byteCodeGenerator, funcInfo);
     }
+    else if (isNonPatternAssignmentTarget)
+    {
+        EmitAssignment(nullptr, lhsElementNode, rhsLocationTmp, byteCodeGenerator, funcInfo);
+    }
     else
     {
         EmitDestructuredElement(lhsElementNode, rhsLocationTmp, byteCodeGenerator, funcInfo);
@@ -6655,7 +6815,7 @@ void EmitDestructuredObjectMember(ParseNodePtr memberNode,
         lhsElementNode = lhsElementNode->sxBin.pnode1;
     }
 
-    EmitDestructuredValueOrInitializer(lhsElementNode, nameLocation, init, byteCodeGenerator, funcInfo);
+    EmitDestructuredValueOrInitializer(lhsElementNode, nameLocation, init, false /*isNonPatternAssignmentTarget*/, byteCodeGenerator, funcInfo);
 
     funcInfo->ReleaseTmpRegister(nameLocation);
 }
@@ -8812,105 +8972,6 @@ void EmitIteratorValue(Js::RegSlot valueLocation, Js::RegSlot iteratorResultLoca
     byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdFld, valueLocation, iteratorResultLocation, cacheId);
 }
 
-// Generating
-// catch(e) {
-//      if (shouldCallReturn)
-//          CallReturnWhichWrappedByTryCatch
-//      throw e;
-// }
-void EmitTopLevelCatchForOf(Js::ByteCodeLabel catchLabel,
-    Js::RegSlot iteratorLocation,
-    Js::RegSlot shouldCallReturnLocation,
-    Js::RegSlot shouldCallReturnLocationFinally,
-    ByteCodeGenerator *byteCodeGenerator,
-    FuncInfo *funcInfo)
-{
-    Js::ByteCodeLabel afterCatchBlockLabel = byteCodeGenerator->Writer()->DefineLabel();
-    byteCodeGenerator->Writer()->Empty(Js::OpCode::Leave);
-    byteCodeGenerator->Writer()->Br(afterCatchBlockLabel);
-    byteCodeGenerator->Writer()->MarkLabel(catchLabel);
-
-    Js::RegSlot catchParamLocation = funcInfo->AcquireTmpRegister();
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::Catch, catchParamLocation);
-
-    ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
-    if (funcInfo->byteCodeFunction->IsGenerator())
-    {
-        byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForCatch);
-    }
-
-    Js::ByteCodeLabel skipCallCloseLabel = byteCodeGenerator->Writer()->DefineLabel();
-
-    byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, skipCallCloseLabel, shouldCallReturnLocation);
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnLocationFinally);
-    EmitTryCatchAroundClose(iteratorLocation, skipCallCloseLabel, byteCodeGenerator, funcInfo);
-
-    byteCodeGenerator->Writer()->MarkLabel(skipCallCloseLabel);
-
-    // Rethrow the exception.
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::Throw, catchParamLocation);
-
-    funcInfo->ReleaseTmpRegister(catchParamLocation);
-
-    if (funcInfo->byteCodeFunction->IsGenerator())
-    {
-        byteCodeGenerator->tryScopeRecordsList.UnlinkFromEnd();
-    }
-
-    byteCodeGenerator->Writer()->Empty(Js::OpCode::Leave);
-    byteCodeGenerator->Writer()->MarkLabel(afterCatchBlockLabel);
-}
-
-// Generating
-// finally {
-//      if (shouldCallReturn)
-//          CallReturn
-// }
-
-void EmitTopLevelFinallyForOf(Js::ByteCodeLabel finallyLabel,
-    Js::RegSlot iteratorLocation,
-    Js::RegSlot shouldCallReturnLocation,
-    Js::RegSlot yieldExceptionLocation,
-    Js::RegSlot yieldOffsetLocation,
-    ByteCodeGenerator *byteCodeGenerator,
-    FuncInfo *funcInfo)
-{
-    bool isGenerator = funcInfo->byteCodeFunction->IsGenerator();
-
-    Js::ByteCodeLabel afterFinallyBlockLabel = byteCodeGenerator->Writer()->DefineLabel();
-    byteCodeGenerator->Writer()->Empty(Js::OpCode::Leave);
-
-    byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(false);
-    byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(true);
-
-    byteCodeGenerator->Writer()->Br(afterFinallyBlockLabel);
-    byteCodeGenerator->Writer()->MarkLabel(finallyLabel);
-
-    ByteCodeGenerator::TryScopeRecord tryRecForFinally(Js::OpCode::ResumeFinally, finallyLabel, yieldExceptionLocation, yieldOffsetLocation);
-    if (isGenerator)
-    {
-        byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForFinally);
-    }
-
-    Js::ByteCodeLabel skipCallCloseLabel = byteCodeGenerator->Writer()->DefineLabel();
-
-    byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, skipCallCloseLabel, shouldCallReturnLocation);
-    EmitIteratorClose(iteratorLocation, byteCodeGenerator, funcInfo);
-
-    byteCodeGenerator->Writer()->MarkLabel(skipCallCloseLabel);
-
-    if (isGenerator)
-    {
-        byteCodeGenerator->tryScopeRecordsList.UnlinkFromEnd();
-        funcInfo->ReleaseTmpRegister(yieldOffsetLocation);
-        funcInfo->ReleaseTmpRegister(yieldExceptionLocation);
-    }
-
-    byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(false);
-    byteCodeGenerator->Writer()->Empty(Js::OpCode::LeaveNull);
-    byteCodeGenerator->Writer()->MarkLabel(afterFinallyBlockLabel);
-}
-
 void EmitForInOfLoopBody(ParseNode *loopNode,
     Js::ByteCodeLabel loopEntrance,
     Js::ByteCodeLabel continuePastLoop,
@@ -9165,33 +9226,15 @@ void EmitForInOrForOf(ParseNode *loopNode, ByteCodeGenerator *byteCodeGenerator,
 
     byteCodeGenerator->Writer()->ExitLoop(loopId);
 
-    if (isGenerator)
-    {
-        byteCodeGenerator->tryScopeRecordsList.UnlinkFromEnd();
-    }
-
-    EmitTopLevelCatchForOf(catchLabel,
+    EmitCatchAndFinallyBlocks(catchLabel,
+        finallyLabel,
         loopNode->location,
         shouldCallReturnFunctionLocation,
-        shouldCallReturnFunctionLocationFinally,
-        byteCodeGenerator,
-        funcInfo);
-
-    if (isGenerator)
-    {
-        byteCodeGenerator->tryScopeRecordsList.UnlinkFromEnd();
-    }
-
-    EmitTopLevelFinallyForOf(finallyLabel,
-        loopNode->location,
         shouldCallReturnFunctionLocationFinally,
         regException,
         regOffset,
         byteCodeGenerator,
         funcInfo);
-
-    funcInfo->ReleaseTmpRegister(shouldCallReturnFunctionLocationFinally);
-    funcInfo->ReleaseTmpRegister(shouldCallReturnFunctionLocation);
 
     byteCodeGenerator->Writer()->MarkLabel(skipPastLoop);
 
