@@ -2123,6 +2123,8 @@ namespace Js
             scriptContext->GetLibrary()->SetArrayObjectHasUserDefinedSpecies(true);
         }
 
+        JavascriptLibrary::CheckAndInvalidateIsConcatSpreadableCache(propId, scriptContext);
+
         if (obj->IsWritableDataOnlyDetectionBitSet())
         {
             if (obj->GetType() == oldType)

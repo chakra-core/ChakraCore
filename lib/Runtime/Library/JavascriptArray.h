@@ -759,10 +759,10 @@ namespace Js
         static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest, BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength);
         template<typename T>
         static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u, BOOL FirstPromotedItemIsSpreadable = false, BigIndex FirstPromotedItemLength = 0u);
-        static void ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
+        static JavascriptArray* ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
         static bool PromoteToBigIndex(BigIndex lhs, BigIndex rhs);
         static bool PromoteToBigIndex(BigIndex lhs, uint32 rhs);
-        static void ConcatFloatArgs(JavascriptNativeFloatArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
+        static JavascriptArray* ConcatFloatArgs(JavascriptNativeFloatArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
     private:
         template<typename T=uint32>
         static RecyclableObject* ArraySpeciesCreate(Var pThisArray, T length, ScriptContext* scriptContext, bool* pIsIntArray = nullptr, bool* pIsFloatArray = nullptr);
