@@ -689,6 +689,7 @@ GlobOpt::PreparePrepassFieldHoisting(Loop * loop)
 
                 // Set object type live on prepass so we can track if it got killed in the loop. (see FinishOptHoistedPropOps)
                 JsTypeValueInfo* typeValueInfo = JsTypeValueInfo::New(this->alloc, nullptr, nullptr);
+                typeValueInfo->SetIsShared();
                 this->SetSymStoreDirect(typeValueInfo, typeSym);
 
                 ValueNumber typeValueNumber = this->NewValueNumber();

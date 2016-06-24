@@ -106,13 +106,12 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
             Sym * sym = hasConstValue ? iterConst.Data().Key() : nullptr;
             Value * val = nullptr;
             HashBucket<Sym *, Value *> * symIdBucket = nullptr;
-            bool symIdHandled = false;
 
             // copy unchanged sym to new capturedValues
             while (sym && sym->m_id < symId)
             {
                 Assert(sym->IsStackSym());
-                if (!sym->AsStackSym()->HasArgSlotNum() || block->globOptData.capturedArgs->Test(sym->m_id))
+                if (!sym->AsStackSym()->HasArgSlotNum())
                 {
                     bailOutConstValuesIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), iterConst.Data().Value());
                 }
@@ -149,24 +148,21 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
                     {
                         constValue.InitIntConstValue(intConstValue);
                         bailOutConstValuesIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), constValue);
-                        symIdHandled = true;
+
+                        continue;
                     }
                     else if(valueInfo->IsVarConstant())
                     {
                         constValue.InitVarConstValue(valueInfo->AsVarConstant()->VarValue());
                         bailOutConstValuesIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), constValue);
-                        symIdHandled = true;
+
+                        continue;
                     }
                 }
                 else if (!valueInfo->HasIntConstantValue())
                 {
                     continue;
                 }
-            }
-
-            if (symIdHandled)
-            {
-                continue;
             }
 
             sym = hasCopyPropSym ? iterCopyPropSym.Data().Key() : nullptr;
@@ -178,11 +174,11 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
                 bool mergeSymId = false;
 
                 // copy unchanged copy prop sym
-                if (sym && !tempBv->Test(copyPropSym->m_id) && sym->m_id < symId)
+                if (sym && sym->m_id < symId && !tempBv->Test(copyPropSym->m_id))
                 {
                     Assert(sym->IsStackSym());
 
-                    if (!sym->AsStackSym()->HasArgSlotNum() || block->globOptData.capturedArgs->Test(sym->m_id))
+                    if (!sym->AsStackSym()->HasArgSlotNum())
                     {
                         bailOutCopySymsIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), copyPropSym);
                     }
