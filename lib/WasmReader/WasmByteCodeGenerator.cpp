@@ -570,21 +570,13 @@ WasmBytecodeGenerator::EmitBlockCommon()
 {
     WasmOp op;
     EmitInfo blockInfo;
-    bool isEndUnreachable = false;
     EnterEvalStackScope();
     while ((op = m_reader.ReadFromBlock()) != wnEND && op != wnELSE)
     {
         blockInfo = EmitExpr(op);
-        // If any expr is unreachable, all the following are too
-        isEndUnreachable |= blockInfo.type == WasmTypes::Unreachable;
     }
     DebugPrintOp(op);
     ExitEvalStackScope();
-    if (isEndUnreachable) 
-    {
-        // In case there were other expr after the unreachable one
-        blockInfo.type = WasmTypes::Unreachable;
-    }
     return blockInfo;
 }
 
