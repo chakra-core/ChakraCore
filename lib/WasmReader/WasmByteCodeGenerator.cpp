@@ -1385,7 +1385,8 @@ WasmBytecodeGenerator::YieldToBlock(uint relativeDepth, EmitInfo expr)
     // This will introduce some dead code on the first paths that tried to Yield a valid type
     if (
         yieldInfo->type == WasmTypes::Void ||
-        yieldInfo->type != WasmTypes::Limit && yieldInfo->type != expr.type
+        expr.type == WasmTypes::Void ||
+        (yieldInfo->type != WasmTypes::Limit && yieldInfo->type != expr.type)
     )
     {
         yieldInfo->type = WasmTypes::Void;
