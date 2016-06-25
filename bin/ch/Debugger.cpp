@@ -171,14 +171,15 @@ JsValueRef Debugger::Evaluate(JsValueRef callee, bool isConstructCall, JsValueRe
     int stackFrameIndex;
     JsValueRef result = JS_INVALID_REFERENCE;
 
-    if (argumentCount > 2) {
+    if (argumentCount > 2)
+    {
         IfJsErrorFailLogAndRet(ChakraRTInterface::JsNumberToInt(arguments[1], &stackFrameIndex));
 
         LPCWSTR str = nullptr;
         size_t length;
         IfJsErrorFailLogAndRet(ChakraRTInterface::JsValueToWchar(arguments[2], &str, &length));
 
-        IfJsErrorFailLogAndRet(ChakraRTInterface::JsDiagEvaluate(str, stackFrameIndex, &result));
+        ChakraRTInterface::JsDiagEvaluate(str, stackFrameIndex, &result);
     }
 
     return result;

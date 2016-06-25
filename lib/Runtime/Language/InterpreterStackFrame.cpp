@@ -1915,6 +1915,17 @@ namespace Js
         // - Mark that the function is current executing and may not be modified.
         //
 
+#if ENABLE_TTD_STACK_STMTS
+        TTD::TTDExceptionFramePopper exceptionFramePopper;
+        if(functionScriptContext->ShouldPerformDebugAction() | functionScriptContext->ShouldPerformRecordAction())
+        {
+            bool isInFinally = ((newInstance->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock) == Js::InterpreterStackFrameFlags_WithinFinallyBlock);
+
+            threadContext->TTDLog->PushCallEvent(function, args.Info.Count, args.Values, isInFinally);
+            exceptionFramePopper.PushInfo(threadContext->TTDLog, function);
+        }
+#endif
+
         executeFunction->BeginExecution();
 
         Var aReturn = nullptr;
@@ -1941,6 +1952,14 @@ namespace Js
         }
 
         executeFunction->EndExecution();
+
+#if ENABLE_TTD_STACK_STMTS
+        if(functionScriptContext->ShouldPerformDebugAction() | functionScriptContext->ShouldPerformRecordAction())
+        {
+            exceptionFramePopper.PopInfo();
+            threadContext->TTDLog->PopCallEvent(function, aReturn);
+        }
+#endif
 
         if (fReleaseAlloc)
         {
@@ -2281,7 +2300,16 @@ namespace Js
         //
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
+
+#if ENABLE_TTD_STACK_STMTS
+        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
+        {
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
+        }
+#endif
+
         OpCode op = ByteCodeReader::ReadByteOp(ip);
+
 #if DBG_DUMP
 
         this->scriptContext->byteCodeHistogram[(int)op]++;
@@ -2309,7 +2337,16 @@ namespace Js
         //
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
+
+#if ENABLE_TTD_STACK_STMTS
+        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
+        {
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
+        }
+#endif
+
         OpCodeAsmJs op = (OpCodeAsmJs)ByteCodeReader::ReadByteOp(ip);
+
 #if DBG_DUMP
         if (PHASE_TRACE(Js::AsmjsInterpreterPhase, this->m_functionBody))
         {
@@ -5636,6 +5673,16 @@ namespace Js
             this->DoInterruptProbe();
         }
 
+#if ENABLE_TTD_STACK_STMTS
+        //
+        //TODO: Verify that his is definitely called for all loops (e.g., I recall a previous issue with while(true) {...})
+        //
+        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
+        {
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
+        }
+#endif
+
         if (!JITLoopBody || this->IsInCatchOrFinallyBlock())
         {
             // For functions having try-catch-finally, jit loop bodies for loops that are contained only in a try block,
@@ -5697,6 +5744,16 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             this->DoInterruptProbe();
         }
+
+#if ENABLE_TTD_STACK_STMTS
+        //
+        //TODO: Verify that his is definitely called for all loops (e.g., I recall a previous issue with while(true) {...})
+        //
+        if(this->scriptContext->ShouldPerformDebugAction() | this->scriptContext->ShouldPerformRecordAction())
+        {
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
+        }
+#endif
 
         if (!JITLoopBody || this->IsInCatchOrFinallyBlock())
         {
@@ -6462,6 +6519,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     void InterpreterStackFrame::ProcessCatch()
     {
+#if ENABLE_TTD_DEBUGGING
+        //Clear any previous Exception Info
+        if(this->scriptContext->ShouldPerformDebugAction())
+        {
+            this->scriptContext->GetThreadContext()->TTDLog->ClearExceptionFrame();
+        }
+#endif
+
         if (this->IsInDebugMode())
         {
             this->DebugProcess();
@@ -7392,6 +7457,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(localRegisterID == 0 || localRegisterID >= m_functionBody->GetConstantCount());
         ValidateRegValue(value);
         m_localSlots[localRegisterID] = value;
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        if(value != nullptr && DynamicType::Is(Js::JavascriptOperators::GetTypeId(value)))
+        {
+            static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
+        }
+#endif
     }
 
     template <typename T>
@@ -7480,6 +7552,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(localRegisterID == 0 || localRegisterID >= m_functionBody->GetConstantCount());
         ValidateRegValue(value, true);
         m_localSlots[localRegisterID] = value;
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        if(value != nullptr && DynamicType::Is(Js::JavascriptOperators::GetTypeId(value)))
+        {
+            static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
+        }
+#endif
     }
 
     template <typename RegSlotType>
@@ -7496,6 +7575,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(localRegisterID == 0 || localRegisterID >= m_functionBody->GetConstantCount());
         ValidateRegValue(value, true, false);
         m_localSlots[localRegisterID] = value;
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        if(value != nullptr && DynamicType::Is(Js::JavascriptOperators::GetTypeId(value)))
+        {
+            static_cast<DynamicObject*>(value)->SetDiagOriginInfoAsNeeded();
+        }
+#endif
     }
 
     template <>

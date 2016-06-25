@@ -1912,6 +1912,9 @@ namespace Js
 
         if (fParsed == TRUE)
         {
+            // Restore if the function has nameIdentifier reference, as that name on the left side will not be parsed again while deferparse.
+            funcBody->SetIsNameIdentifierRef(this->GetIsNameIdentifierRef());
+
             this->UpdateFunctionBodyImpl(funcBody);
             this->m_hasBeenParsed = true;
         }
@@ -4313,7 +4316,6 @@ namespace Js
         return startOffset;
     }
 
-
 #ifdef IR_VIEWER
 /* BEGIN potentially reusable code */
 
@@ -4415,6 +4417,13 @@ namespace Js
 
 /* END potentially reusable code */
 #endif /* IR_VIEWER */
+
+#if ENABLE_TTD
+    void FunctionBody::GetSourceLineFromStartOffset_TTD(const uint startOffset, ULONG* line, LONG* col)
+    {
+        GetLineCharOffsetFromStartChar(startOffset, line, col);
+    }
+#endif
 
 #ifdef IR_VIEWER
     Js::DynamicObject * FunctionBody::GetIRDumpBaseObject()

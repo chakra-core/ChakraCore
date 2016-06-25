@@ -96,6 +96,19 @@ namespace Js
         return JavascriptFunction::NewInstanceHelper(function->GetScriptContext(), function, callInfo, args, FunctionKind::Generator);
     }
 
+    Var JavascriptGeneratorFunction::NewInstanceRestrictedMode(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        scriptContext->CheckEvalRestriction();
+
+        PROBE_STACK(scriptContext, Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+
+        return JavascriptFunction::NewInstanceHelper(scriptContext, function, callInfo, args, FunctionKind::Generator);
+    }
+
     JavascriptString* JavascriptGeneratorFunction::GetDisplayNameImpl() const
     {
         return scriptFunction->GetDisplayNameImpl();
@@ -359,4 +372,28 @@ namespace Js
 
         return JavascriptFunction::IsEnumerable(propertyId);
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptGeneratorFunction::GetSnapTag_TTD() const
+    {
+        //we override this with invalid to make sure it isn't unexpectedly handled by the parent class
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptGeneratorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(false, "Invalid -- JavascriptGeneratorFunction");
+    }
+
+    TTD::NSSnapObjects::SnapObjectType GeneratorVirtualScriptFunction::GetSnapTag_TTD() const
+    {
+        //we override this with invalid to make sure it isn't unexpectedly handled by the parent class
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void GeneratorVirtualScriptFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(false, "Invalid -- GeneratorVirtualScriptFunction");
+    }
+#endif
 }

@@ -3005,4 +3005,5 @@ typedef unsigned char* ChakraBytePtr;
         JsSetPromiseContinuationCallback(
             _In_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
+
 #endif // _CHAKRACOMMON_H_

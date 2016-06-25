@@ -2633,6 +2633,101 @@ namespace Js
     }
 #endif
 
+#if ENABLE_TTD
+    template <typename T>
+    void DictionaryTypeHandlerBase<T>::MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const
+    {
+        for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            DictionaryPropertyDescriptor<T> descriptor = iter.CurrentValue();
+
+            //
+            //TODO: not sure about relationship with PropertyLetConstGlobal here need to -- check how GetProperty works
+            //      maybe we need to template this with allowLetGlobalConst as well
+            //
+
+            Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
+            if(!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) | (!descriptor.IsInitialized) | (descriptor.Attributes & PropertyDeleted))
+            {
+                continue;
+            }
+
+            uint32 dIndex = descriptor.template GetDataPropertyIndex<false>();
+            if(dIndex != NoSlots)
+            {
+                Js::Var dValue = obj->GetSlot(dIndex);
+                extractor->MarkVisitVar(dValue);
+            }
+            else
+            {
+                uint32 gIndex = descriptor.GetGetterPropertyIndex();
+                if(gIndex != NoSlots)
+                {
+                    Js::Var gValue = obj->GetSlot(gIndex);
+                    extractor->MarkVisitVar(gValue);
+                }
+
+                uint32 sIndex = descriptor.GetSetterPropertyIndex();
+                if(sIndex != NoSlots)
+                {
+                    Js::Var sValue = obj->GetSlot(sIndex);
+                    extractor->MarkVisitVar(sValue);
+                }
+            }
+        }
+    }
+
+    template <typename T>
+    uint32 DictionaryTypeHandlerBase<T>::ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
+    {
+        uint32 maxSlot = 0;
+
+        for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            DictionaryPropertyDescriptor<T> descriptor = iter.CurrentValue();
+            Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
+
+            uint32 dIndex = descriptor.template GetDataPropertyIndex<false>();
+            if(dIndex != NoSlots)
+            {
+                maxSlot = max(maxSlot, dIndex);
+
+                TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + dIndex, pid, descriptor.Attributes, tag);
+            }
+            else
+            {
+                uint32 gIndex = descriptor.GetGetterPropertyIndex();
+                if(gIndex != NoSlots)
+                {
+                    maxSlot = max(maxSlot, gIndex);
+
+                    TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Getter : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                    TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + gIndex, pid, descriptor.Attributes, tag);
+                }
+
+                uint32 sIndex = descriptor.GetSetterPropertyIndex();
+                if(sIndex != NoSlots)
+                {
+                    maxSlot = max(maxSlot, sIndex);
+
+                    TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Setter : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                    TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + sIndex, pid, descriptor.Attributes, tag);
+                }
+            }
+        }
+
+        if(this->propertyMap->Count() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return maxSlot + 1;
+        }
+    }
+#endif
+
     template class DictionaryTypeHandlerBase<PropertyIndex>;
     template class DictionaryTypeHandlerBase<BigPropertyIndex>;
 

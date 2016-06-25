@@ -485,11 +485,11 @@ var tests = [
         body: function() {
             var fromFnc = Uint8Array.__proto__.from;
 
-            var b = fromFnc.call(Array, "string");
-            assert.areEqual('object', typeof b, "%TypedArray%.from.call(Array, 'string') returns an array");
-            assert.areEqual(['s','t','r','i','n','g'], b, "%TypedArray%.from.call(Array, 'string') == ['s','t','r','i','n','g']");
-            assert.areEqual(6, b.length, "%TypedArray%.from.call(Array, 'string').length === 6");
-            assert.isFalse(ArrayBuffer.isView(b), "%TypedArray%.from.call(Array, 'string') is not a TypedArray");
+            var b = fromFnc.call(Float64Array, [1,2,3,4,5,6]);
+            assert.areEqual('object', typeof b, "%TypedArray%.from.call(Float64Array, 'string') returns a Float64Array");
+            assert.areEqual([1,2,3,4,5,6], b, "%TypedArray%.from.call(Float64Array, 'string') == [1,2,3,4,5,6]");
+            assert.areEqual(6, b.length, "%TypedArray%.from.call(Float64Array, 'string').length === 6");
+            assert.isTrue(ArrayBuffer.isView(b) && b instanceof Float64Array, "%TypedArray%.from.call(Float64Array, 'string') is a Float64Array");
 
             var a = { 0: 0, 1: 1, 2: 2, length: 5 };
             var b = fromFnc.call(Uint8Array, a);
@@ -499,18 +499,18 @@ var tests = [
             assert.areEqual([0,1,2,0,0], b, "Uint8Array.from(objectWithLengthProperty) has missing values set to 0");
 
             var a = { 0: 0, 1: 1, 2: 2, length: 5 };
-            var b = fromFnc.call(Array, a);
-            assert.areEqual('object', typeof b, "%TypedArray%.from.call(Array, objectWithLengthProperty) returns an object");
-            assert.areEqual(5, b.length, "%TypedArray%.from.call(Array, objectWithLengthProperty) returns a new array with length = a.length");
-            assert.isFalse(ArrayBuffer.isView(b), "%TypedArray%.from.call(Array, objectWithLengthProperty) is not a TypedArray (ArrayBuffer.isView)");
-            assert.areEqual([0,1,2,undefined,undefined], b, "%TypedArray%.from.call(Array, objectWithLengthProperty) has missing values set to undefined");
+            var b = fromFnc.call(Float64Array, a);
+            assert.areEqual('object', typeof b, "%TypedArray%.from.call(Float64Array, objectWithLengthProperty) returns an object");
+            assert.areEqual(5, b.length, "%TypedArray%.from.call(Float64Array, objectWithLengthProperty) returns a new typed array with length = a.length");
+            assert.isTrue(ArrayBuffer.isView(b) && b instanceof Float64Array, "%TypedArray%.from.call(Float64Array, objectWithLengthProperty) is a TypedArray (ArrayBuffer.isView)");
+            assert.areEqual([0,1,2,NaN,NaN], b, "%TypedArray%.from.call(Float64Array, objectWithLengthProperty) has missing values set to undefined");
 
             var a = { 0: 0, 1: 1 };
-            var b = fromFnc.call(Array, a);
-            assert.areEqual('object', typeof b, "%TypedArray%.from.call(Array, objectWithLengthNoProperty) returns an object");
-            assert.areEqual(0, b.length, "%TypedArray%.from.call(Array, objectWithLengthNoProperty) returns a new array with length = 0");
-            assert.isFalse(ArrayBuffer.isView(b), "%TypedArray%.from.call(Array, objectWithLengthNoProperty) is not a TypedArray (ArrayBuffer.isView)");
-            assert.areEqual([], b, "%TypedArray%.from.call(Array, objectWithLengthNoProperty) is an empty array");
+            var b = fromFnc.call(Float64Array, a);
+            assert.areEqual('object', typeof b, "%TypedArray%.from.call(Float64Array, objectWithLengthNoProperty) returns an object");
+            assert.areEqual(0, b.length, "%TypedArray%.from.call(Float64Array, objectWithLengthNoProperty) returns a new Float64Array with length = 0");
+            assert.isTrue(ArrayBuffer.isView(b) && b instanceof Float64Array, "%TypedArray%.from.call(Float64Array, objectWithLengthNoProperty) is a TypedArray (ArrayBuffer.isView)");
+            assert.areEqual([], b, "%TypedArray%.from.call(Float64Array, objectWithLengthNoProperty) is an empty array");
 
             assert.throws(function () { fromFnc.call(); }, TypeError, "Calling %TypedArray%.from with no this throws TypeError", "[TypedArray].from: 'this' is not a Function object");
             assert.throws(function () { fromFnc.call(undefined); }, TypeError, "Calling %TypedArray%.from with undefined this throws TypeError", "[TypedArray].from: 'this' is not a Function object");
@@ -523,7 +523,7 @@ var tests = [
             assert.throws(function () { Uint8Array.from({}, null); }, TypeError, "Calling %TypedArray%.from with non-object mapFn argument throws TypeError", "[TypedArray].from: argument is not a Function object");
             assert.throws(function () { Uint8Array.from({}, 'string'); }, TypeError, "Calling %TypedArray%.from with non-object mapFn argument throws TypeError", "[TypedArray].from: argument is not a Function object");
             assert.throws(function () { Uint8Array.from({}, {}); }, TypeError, "Calling %TypedArray%.from with non-function mapFn argument throws TypeError", "[TypedArray].from: argument is not a Function object");
-            assert.throws(function () { fromFnc.call(String, [0,1,2,3]); }, TypeError, "Calling %TypedArray%.from with no this throws TypeError", "Cannot create property for a non-extensible object");
+            assert.throws(function () { fromFnc.call(String, [0,1,2,3]); }, TypeError, "Calling %TypedArray%.from with no this throws TypeError", "'this' is not a typed array object");
         }
     },
     {
@@ -573,21 +573,19 @@ var tests = [
                             CollectGarbage();
                             return {
                                 done: this.i == 10,
-                                value: {
-                                    myi: this.i++
-                                }
+                                value: this.i++
                             };
                         }
                     };
                 }
             };
 
-            var b = fromFnc.call(Array, objectWithIterator);
-            assert.areEqual(10, b.length, "%TypedArray%.from.call(Array, objectWithIterator) returns a new Array with length = objectWithIterator.length");
+            var b = fromFnc.call(Float64Array, objectWithIterator);
+            assert.areEqual(10, b.length, "%TypedArray%.from.call(Float64Array, objectWithIterator) returns a new Float64Array with length = objectWithIterator.length");
             for (var i = 0; i < b.length; i++) {
                 assert.isTrue(b[i] !== undefined, "Object at index " + i + " is not undefined");
-                assert.areEqual('object', typeof b[i], "Object at index " + i + " is an object");
-                assert.areEqual(i, b[i].myi, "Object at index " + i + " has correct value");
+                assert.areEqual('number', typeof b[i], "Object at index " + i + " is a number");
+                assert.areEqual(i, b[i], "Object at index " + i + " has correct value");
             }
         }
     },
@@ -837,25 +835,6 @@ var tests = [
             assert.areEqual(5, u.byteLength, "Uint8ClampedArray.of(0, -1, 2, 300, 4) returns a TypedArray (with correct byteLength)");
             assert.areEqual([0,0,2,255,4], u, "Uint8ClampedArray.of(0, -1, 2, 300, 4) has the correct values");
 
-            var b = ofFnc.call(Array, 'string', 'other string', 5, { 0: 'string val',length:10 });
-            assert.areEqual('object', typeof b, "%TypedArray%.of.call(Array, ...someStringsAndObjects) returns an array");
-            assert.areEqual(['string','other string',5,{ 0: 'string val',length:10 }], b, "%TypedArray%.of.call(Array, ...someStringsAndObjects) == ['string','other string',5,{ 0: 'string val',length:10 }]");
-            assert.areEqual(4, b.length, "%TypedArray%.of.call(Array, ...someStringsAndObjects).length === 4");
-            assert.isFalse(ArrayBuffer.isView(b), "%TypedArray%.of.call(Array, ...someStringsAndObjects) is not a TypedArray");
-
-            var b = ofFnc.call(String, 0, 1, 2, 3);
-            assert.areEqual('object', typeof b, "%TypedArray%.of.call(String, 0, 1, 2, 3) returns a string object");
-            assert.areEqual(1, b.length, "%TypedArray%.of.call(String, 0, 1, 2, 3) returns a string object with length 1");
-            assert.areEqual('4', b.toString(), "%TypedArray%.of.call(String, 0, 1, 2, 3) returns a string object with value == '4'");
-            assert.areEqual('4', b[0], "%TypedArray%.of.call(String, 0, 1, 2, 3) returns a string object s. s[0] == '4'");
-            assert.areEqual(1, b[1], "%TypedArray%.of.call(String, 0, 1, 2, 3) returns a string object s. s[1] == 1");
-            assert.areEqual(2, b[2], "%TypedArray%.of.call(String, 0, 1, 2, 3) returns a string object s. s[2] == 2");
-            assert.areEqual(3, b[3], "%TypedArray%.of.call(String, 0, 1, 2, 3) returns a string object s. s[3] == 3");
-
-            assert.areEqual([], ofFnc.call(Array), "%TypedArray%.of.call(Array) returns empty array");
-            assert.areEqual(new String(0), ofFnc.call(String), "%TypedArray%.of.call(String) returns empty string");
-            assert.areEqual("0", ofFnc.call(String).toString(), "%TypedArray%.of.call(String) returns empty string");
-
             var b = Uint8Array.of();
             assert.areEqual(0, b.length, "Uint8Array.of() returns empty Uint8Array");
             assert.areEqual(0, b.byteLength, "Uint8Array.of() returns empty Uint8Array");
@@ -1020,10 +999,13 @@ var tests = [
             // If we set the constructor property of some TypedArray to Array built-in constructor, we should get an array object out.
             var u = getTypedArray();
             u.constructor = Array;
+            assert.throws(()=>u.map(mappingFn, thisArg), TypeError, 'u.map', "'this' is not a typed array object");
+
+            u.constructor = Int16Array;
             var r = u.map(mappingFn, thisArg);
 
             assert.areEqual([0,-1,-2,-3,-4,-5,-6,-7,-8,-9], r, "%TypedArrayPrototype%.map called on a TypedArray with 'constructor' property set to Array produces the correct values");
-            assert.isFalse(ArrayBuffer.isView(r), "%TypedArrayPrototype%.map called on a TypedArray with 'constructor' property set to Array produces a normal array");
+            assert.isTrue(ArrayBuffer.isView(r) && r instanceof Int16Array, "%TypedArrayPrototype%.map called on a TypedArray with 'constructor' property set to a different TypedArray produces a typed array");
 
             // %TypedArray%.prototype.map loads the constructor property from the this parameter and uses that to construct the return value.
             // If we set the constructor property of some TypedArray to a non-constructor, it should throw.
@@ -1675,12 +1657,12 @@ var tests = [
             assert.areEqual(10, counter, "%TypedArrayPrototype%.filter calls the callback function the correct number of times");
 
             var u = getTypedArray(10);
-            u.constructor = Array;
+            u.constructor = Int16Array;
             counter = 0;
             var res = filter.call(u, selectOddNumbers, thisArg);
             assert.areEqual([1,3,5,7,9], res, "%TypedArrayPrototype%.filter returns a new array with the right values");
-            assert.isFalse(ArrayBuffer.isView(res), "%TypedArrayPrototype%.filter returns a normal array if the TypedArray constructor property is changed");
-            assert.areEqual(undefined, res[Symbol.toStringTag], "%TypedArrayPrototype%.filter return value doesn't have @@toStringTag value");
+            assert.isTrue(ArrayBuffer.isView(res) && res instanceof Int16Array, "%TypedArrayPrototype%.filter returns a typed array if the TypedArray constructor property is changed to a different typed array");
+            assert.areEqual("Int16Array", res[Symbol.toStringTag], "%TypedArrayPrototype%.filter return value doesn't have @@toStringTag value");
             assert.areEqual(10, counter, "%TypedArrayPrototype%.filter calls the callback function the correct number of times");
 
             u.constructor = Math.sin;
@@ -2484,20 +2466,6 @@ var tests = [
             }
 
             assert.areEqual([0,1,2,3,4,5,6,7,8,9], arr.subarray(), "Subarray with no begin or end offsets uses 0 and length as respective default values");
-        }
-    },
-    {
-        name: "%TypedArray%.prototype.subarray uses the constructor property of the this parameter to construct the return object",
-        body: function() {
-            var arr = new Uint8Array(10);
-            arr.constructor = Array;
-
-            var o = arr.subarray(5, 7);
-
-            assert.isTrue(Array.isArray(o), "%TypedArray%.prototype.subarray constructs return object using constructor property - returns an array instance from Array");
-            assert.areEqual(arr.buffer, o[0], "%TypedArray%.prototype.subarray calls constructor with the first argument set to the ArrayBuffer of the this parameter");
-            assert.areEqual(5, o[1], "%TypedArray%.prototype.subarray calls constructor with the second argument set to the byte offset of the begin argument");
-            assert.areEqual(2, o[2], "%TypedArray%.prototype.subarray calls constructor with the third argument set to the length of the subarray");
         }
     },
     {

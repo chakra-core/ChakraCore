@@ -78,6 +78,45 @@ namespace Js
         return propertyRecord;
     }
 
+#if ENABLE_TTD
+    template<typename TMapKey>
+    TMapKey TMapKey_ConvertKey_TTD(ThreadContext* threadContext, const PropertyRecord* key)
+    {
+        return key;
+    }
+
+    template<>
+    JavascriptString* TMapKey_ConvertKey_TTD(ThreadContext* threadContext, const PropertyRecord* key)
+    {
+        AssertMsg(false, "I never want to do this.");
+
+        return nullptr;
+    }
+
+    template<typename TMapKey>
+    TMapKey TMapKey_ConvertKey_TTD(ThreadContext* threadContext, JavascriptString* key)
+    {
+        AssertMsg(false, "I never want to do this.");
+
+        return nullptr;
+    }
+
+    template<>
+    const PropertyRecord* TMapKey_ConvertKey_TTD(ThreadContext* threadContext, JavascriptString* key)
+    {
+        PropertyRecord const * propertyRecord;
+        if(VirtualTableInfo<Js::PropertyString>::HasVirtualTable(key))
+        {
+            propertyRecord = ((PropertyString*)key)->GetPropertyRecord();
+        }
+        else
+        {
+            threadContext->GetOrAddPropertyId(key->GetString(), key->GetLength(), &propertyRecord);
+        }
+        return propertyRecord;
+    }
+#endif
+
     bool TPropertyKey_IsInternalPropertyId(JavascriptString* key)
     {
         // WARNING: This will return false for PropertyStrings that are actually InternalPropertyIds
@@ -3108,6 +3147,66 @@ namespace Js
                 ? ConvertToSimpleDictionaryUnorderedTypeHandler<BigPropertyIndex, TMapKey, false>(instance)
                 : ConvertToTypeHandler<BigSimpleDictionaryTypeHandler, TMapKey>(instance);
     }
+
+#if ENABLE_TTD
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    void SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const
+    {
+        ThreadContext* threadContext = obj->GetScriptContext()->GetThreadContext();
+
+        for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor = iter.CurrentValue();
+            AssertMsg(descriptor.propertyIndex != NoSlots, "Huh");
+
+            TMapKey key = iter.CurrentKey();
+            const PropertyRecord* pRecord = TMapKey_ConvertKey_TTD<const Js::PropertyRecord*>(threadContext, key);
+            Js::PropertyId pid = pRecord->GetPropertyId();
+
+            //
+            //TODO: not sure about relationship with PropertyLetConstGlobal here need to -- check how GetProperty works
+            //      maybe we need to template this with allowLetGlobalConst as well
+            //
+
+            if(DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) & descriptor.isInitialized & !(descriptor.Attributes & PropertyDeleted))
+            {
+                Js::Var value = obj->GetSlot(descriptor.propertyIndex);
+
+                extractor->MarkVisitVar(value);
+            }
+        }
+    }
+
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    uint32 SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
+    {
+        uint32 maxSlot = 0;
+
+        for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor = iter.CurrentValue();
+            AssertMsg(descriptor.propertyIndex != NoSlots, "Huh");
+
+            uint32 index = descriptor.propertyIndex;
+            maxSlot = max(maxSlot, index);
+
+            TMapKey key = iter.CurrentKey();
+            const PropertyRecord* pRecord = TMapKey_ConvertKey_TTD<const Js::PropertyRecord*>(threadContext, key);
+            TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.isInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+
+            TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + index, pRecord->GetPropertyId(), descriptor.Attributes, tag);
+        }
+
+        if(this->propertyMap->Count() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return maxSlot + 1;
+        }
+    }
+#endif
 
     template <>
     BigSimpleDictionaryTypeHandler* SimpleDictionaryTypeHandlerBase<BigPropertyIndex, const PropertyRecord*, false>::ConvertToBigSimpleDictionaryTypeHandler(DynamicObject* instance)

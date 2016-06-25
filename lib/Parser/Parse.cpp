@@ -5054,9 +5054,27 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             {
                 OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("The param and body scope of the function %s cannot be merged\n"), pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : _u("Anonymous function"));
                 // Add a new symbol reference for each formal in the param scope to the body scope.
-                paramScope->ForEachSymbol([this](Symbol* param) {
+                // While inserting symbols into the symbol list we always insert at the front, so while traversing the list we will be visiting the last added
+                // formals first. Normal insertion of those into the body will reverse the order of symbols, which will eventually result in different order
+                // for scope slots allocation for the corresponding symbol in both param and body scope. Inserting them in the opposite order will help us
+                // have the same sequence for scope slots allocation in both scopes. This makes it easy to read the bytecode and may help in some optimization
+                // later.
+                paramScope->ForEachSymbol([this, pnodeFnc](Symbol* param) {
                     OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("Creating a duplicate symbol for the parameter %s in the body scope\n"), param->GetPid()->Psz());
-                    ParseNodePtr paramNode = this->CreateVarDeclNode(param->GetPid(), STVariable, false, nullptr, false);
+
+                    ParseNodePtr paramNode = nullptr;
+                    if (this->m_ppnodeVar != &pnodeFnc->sxFnc.pnodeVars)
+                    {
+                        ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
+                        m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+                        paramNode = this->CreateVarDeclNode(param->GetPid(), STVariable, false, nullptr, false);
+                        m_ppnodeVar = ppnodeVarSave;
+                    }
+                    else
+                    {
+                        paramNode = this->CreateVarDeclNode(param->GetPid(), STVariable, false, nullptr, false);
+                    }
+
                     Assert(paramNode && paramNode->sxVar.sym->GetScope()->GetScopeType() == ScopeType_FunctionBody);
                     paramNode->sxVar.sym->SetHasInit(true);
                 });
@@ -6156,10 +6174,17 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
             Error(ERRnoRparen);
         }
 
-        if ((this->GetCurrentFunctionNode()->sxFnc.CallsEval() || this->GetCurrentFunctionNode()->sxFnc.ChildCallsEval())
-            && !m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
+        if (this->GetCurrentFunctionNode()->sxFnc.CallsEval() || this->GetCurrentFunctionNode()->sxFnc.ChildCallsEval())
         {
-            Error(ERREvalNotSupportedInParamScope);
+            if (!m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
+            {
+                Error(ERREvalNotSupportedInParamScope);
+            }
+            else
+            {
+                Assert(pnodeFnc->sxFnc.HasNonSimpleParameterList());
+                pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope->SetCannotMergeWithBodyScope();
+            }
         }
     }
     Assert(m_token.tk == tkRParen);
@@ -8876,6 +8901,31 @@ ParseNodePtr Parser::ParseCatch()
 
         pnodeCatchScope = StartParseBlock<buildAST>(PnodeBlockType::Regular, isPattern ? ScopeType_CatchParamPattern : ScopeType_Catch);
 
+        if (buildAST)
+        {
+            // Add this catch to the current scope list.
+
+            if (m_ppnodeExprScope)
+            {
+                Assert(*m_ppnodeExprScope == nullptr);
+                *m_ppnodeExprScope = pnode;
+                m_ppnodeExprScope = &pnode->sxCatch.pnodeNext;
+            }
+            else
+            {
+                Assert(m_ppnodeScope);
+                Assert(*m_ppnodeScope == nullptr);
+                *m_ppnodeScope = pnode;
+                m_ppnodeScope = &pnode->sxCatch.pnodeNext;
+            }
+
+            // Keep a list of function expressions (not declarations) at this scope.
+
+            ppnodeExprScopeSave = m_ppnodeExprScope;
+            m_ppnodeExprScope = &pnode->sxCatch.pnodeScopes;
+            pnode->sxCatch.pnodeScopes = nullptr;
+        }
+
         if (isPattern)
         {
             ParseNodePtr pnodePattern = ParseDestructuredLiteral<buildAST>(tkLET, true /*isDecl*/, true /*topLevel*/, DIC_ForceErrorOnInitializer);
@@ -8928,31 +8978,6 @@ ParseNodePtr Parser::ParseCatch()
             }
 
             m_pscan->Scan();
-        }
-
-        if (buildAST)
-        {
-            // Add this catch to the current scope list.
-
-            if (m_ppnodeExprScope)
-            {
-                Assert(*m_ppnodeExprScope == nullptr);
-                *m_ppnodeExprScope = pnode;
-                m_ppnodeExprScope = &pnode->sxCatch.pnodeNext;
-            }
-            else
-            {
-                Assert(m_ppnodeScope);
-                Assert(*m_ppnodeScope == nullptr);
-                *m_ppnodeScope = pnode;
-                m_ppnodeScope = &pnode->sxCatch.pnodeNext;
-            }
-
-            // Keep a list of function expressions (not declarations) at this scope.
-
-            ppnodeExprScopeSave = m_ppnodeExprScope;
-            m_ppnodeExprScope = &pnode->sxCatch.pnodeScopes;
-            pnode->sxCatch.pnodeScopes = nullptr;
         }
 
         charcount_t ichLim;
@@ -12056,6 +12081,13 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     {
         // Go recursively
         pnodeElem = ParseDestructuredLiteral<buildAST>(declarationType, isDecl, false /*topLevel*/, seenRest ? DIC_ShouldNotParseInitializer : DIC_None);
+        if (!isDecl)
+        {
+            BOOL fCanAssign;
+            IdentToken token;
+            // Look for postfix operator
+            pnodeElem = ParsePostfixOperators<buildAST>(pnodeElem, TRUE, FALSE, &fCanAssign, &token);
+        }
     }
     else if (m_token.tk == tkSUPER || m_token.tk == tkID)
     {
@@ -12186,35 +12218,45 @@ ParseNodePtr Parser::ParseDestructuredArrayLiteral(tokens declarationType, bool 
     bool hasMissingValues = false;
     bool seenRest = false;
 
-    while (true)
+    if (m_token.tk != tkRBrack)
     {
-        if (seenRest) // Rest must be in the last position.
+        while (true)
         {
-            Error(ERRDestructRestLast);
-        }
-
-        ParseNodePtr pnodeElem = ParseDestructuredVarDecl<buildAST>(declarationType, isDecl, &seenRest, topLevel);
-        if (buildAST)
-        {
-            if (pnodeElem == nullptr && buildAST)
+            ParseNodePtr pnodeElem = ParseDestructuredVarDecl<buildAST>(declarationType, isDecl, &seenRest, topLevel);
+            if (buildAST)
             {
-                pnodeElem = CreateNodeWithScanner<knopEmpty>();
-                hasMissingValues = true;
+                if (pnodeElem == nullptr && buildAST)
+                {
+                    pnodeElem = CreateNodeWithScanner<knopEmpty>();
+                    hasMissingValues = true;
+                }
+                AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeElem);
             }
-            AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeElem);
-        }
-        count++;
+            count++;
 
-        if (m_token.tk == tkRBrack)
-        {
-            break;
-        }
+            if (m_token.tk == tkRBrack)
+            {
+                break;
+            }
 
-        if (m_token.tk != tkComma)
-        {
-            Error(ERRDestructNoOper);
+            if (m_token.tk != tkComma)
+            {
+                Error(ERRDestructNoOper);
+            }
+
+            if (seenRest) // Rest must be in the last position.
+            {
+                Error(ERRDestructRestLast);
+            }
+
+            m_pscan->Scan();
+
+            // break if we have the trailing comma as well, eg. [a,]
+            if (m_token.tk == tkRBrack)
+            {
+                break;
+            }
         }
-        m_pscan->Scan();
     }
 
     if (buildAST)

@@ -130,6 +130,28 @@ private:
     Js::ScriptContext* scriptContext;
 };
 
+#if ENABLE_TTD
+//A class that we use to pass in a functor from the host when we need to inform it about something we are doing
+class HostScriptContextCallbackFunctor
+{
+public:
+    void* HostData;
+    void(*pfOnScriptLoadCallback)(void* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+
+    HostScriptContextCallbackFunctor()
+        : HostData(nullptr), pfOnScriptLoadCallback(nullptr)
+    {
+        ;
+    }
+
+    HostScriptContextCallbackFunctor(void* callbackData, void(*pfcallbackOnScriptLoad)(void* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException))
+        : HostData(callbackData), pfOnScriptLoadCallback(pfcallbackOnScriptLoad)
+    {
+        ;
+    }
+};
+#endif
+
 namespace Js
 {
 
@@ -365,6 +387,7 @@ namespace Js
         friend class RemoteScriptContext;
         friend class GlobalObject; // InitializeCache
         friend class SourceTextModuleRecord; // for module bytecode gen.
+
     public:
         static DWORD GetThreadContextOffset() { return offsetof(ScriptContext, threadContext); }
         static DWORD GetOptimizationOverridesOffset() { return offsetof(ScriptContext, optimizationOverrides); }
@@ -1047,6 +1070,89 @@ private:
         {
             return (this->cache ? this->cache->dynamicSourceContextInfoMap : nullptr);
         }
+
+#if ENABLE_TTD
+        //The host callback functor info
+        HostScriptContextCallbackFunctor TTDHostCallbackFunctor;
+
+        //The TTDMode for this script context (the same as the Mode for the thread context but we put it here for fast lookup when identity tagging)
+        TTD::TTDMode TTDMode;
+
+        //The LogTag for this script context (the same as the tag for the global object but we put it here for fast lookup)
+        TTD_LOG_PTR_ID ScriptContextLogTag;
+
+        //Keep track of the number of re-entrant calls currently pending (i.e., if we make an external call it may call back into Chakra)
+        int32 TTDRootNestingCount;
+
+        //Info about the core image for the context
+        TTD::RuntimeContextInfo* TTDWellKnownInfo;
+
+        //Additional runtime context that we only care about if TTD is running (or will be running)
+        TTD::ScriptContextTTD* TTDContextInfo;
+
+        ////
+
+        //Use this to check specifically if we are in record AND this code is being run on behalf of the user application
+        bool ShouldPerformRecordAction() const
+        {
+            //return true if RecordEnabled and ~ExcludedExecution
+            return (this->TTDMode & TTD::TTDMode::TTDShouldRecordActionMask) == TTD::TTDMode::RecordEnabled;
+        }
+
+        //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
+        bool ShouldPerformDebugAction() const
+        {
+#if ENABLE_TTD_DEBUGGING
+            //return true if DebuggingEnabled and ~ExcludedExecution
+            return (this->TTDMode & TTD::TTDMode::TTDShouldDebugActionMask) == TTD::TTDMode::DebuggingEnabled;
+
+#else
+            return false;
+#endif
+        }
+
+        //Use this to check if the TTD has been set into record/replay mode (although we still need to check if we should do any record ro replay)
+        bool IsTTDActive() const
+        {
+            return (this->TTDMode & TTD::TTDMode::TTDActive) != TTD::TTDMode::Invalid;
+        }
+
+        //Use this to check if the TTD has been detached (e.g., has traced a context execution and has now been detached)
+        bool IsTTDDetached() const
+        {
+            return (this->TTDMode & TTD::TTDMode::Detached) != TTD::TTDMode::Invalid;
+        }
+
+        //A special record check because we want to record code load even if we aren't actively logging (but are planning to do so in the future)
+        bool ShouldPerformRecordTopLevelFunction() const
+        {
+            bool modeIsPending = (this->TTDMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
+            bool modeIsRecord = (this->TTDMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
+            bool inDebugableCode = (this->TTDMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
+
+            return ((modeIsPending | modeIsRecord) & inDebugableCode);
+        }
+
+        //A special record check because we want to record root add/remove ref even if we aren't actively logging (but are planning to do so in the future)
+        bool ShouldPerformRootAddOrRemoveRefAction() const
+        {
+            bool modeIsPending = (this->TTDMode & TTD::TTDMode::Pending) == TTD::TTDMode::Pending;
+            bool modeIsRecord = (this->TTDMode & TTD::TTDMode::RecordEnabled) == TTD::TTDMode::RecordEnabled;
+            bool inDebugableCode = (this->TTDMode & TTD::TTDMode::ExcludedExecution) == TTD::TTDMode::Invalid;
+
+            return ((modeIsPending | modeIsRecord) & inDebugableCode);
+        }
+
+        //
+        //TODO: this is currently called explicitly -- we need to fix up the core image computation and this will be eliminated then
+        //
+        //Initialize the core object image for TTD
+        void InitializeCoreImage_TTD();
+
+        //Initialize debug script generation and no-native as needed for replay/debug at script context initialization
+        void InitializeRecordingActionsAsNeeded_TTD();
+        void InitializeDebuggingActionsAsNeeded_TTD();
+#endif
 
         void SetFirstInterpreterFrameReturnAddress(void * returnAddress) { firstInterpreterFrameReturnAddress = returnAddress;}
         void *GetFirstInterpreterFrameReturnAddress() { return firstInterpreterFrameReturnAddress;}

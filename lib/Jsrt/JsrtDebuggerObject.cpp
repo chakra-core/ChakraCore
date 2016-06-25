@@ -452,14 +452,16 @@ Js::DynamicObject * JsrtDebuggerStackFrame::GetLocalsObject(Js::ScriptContext* s
     return propertiesObject;
 }
 
-Js::DynamicObject* JsrtDebuggerStackFrame::Evaluate(Js::ScriptContext* scriptContext, const char16 *source, int sourceLength, bool isLibraryCode)
+bool JsrtDebuggerStackFrame::Evaluate(Js::ScriptContext* scriptContext, const char16 *source, int sourceLength, bool isLibraryCode, Js::DynamicObject** evalResult)
 {
-    Js::DynamicObject* evalResult = nullptr;
+    *evalResult = nullptr;
+    bool success = false;
     if (this->stackFrame != nullptr)
     {
         Js::ResolvedObject resolvedObject;
         HRESULT hr = S_OK;
         Js::ScriptContext* frameScriptContext = this->stackFrame->GetScriptContext();
+
         Js::JavascriptExceptionObject *exceptionObject = nullptr;
         {
             BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(frameScriptContext, false)
@@ -469,6 +471,7 @@ Js::DynamicObject* JsrtDebuggerStackFrame::Evaluate(Js::ScriptContext* scriptCon
             }
             END_JS_RUNTIME_CALL_AND_TRANSLATE_AND_GET_EXCEPTION_AND_ERROROBJECT_TO_HRESULT(hr, frameScriptContext, exceptionObject);
         }
+
         if (resolvedObject.obj == nullptr)
         {
             resolvedObject.name = _u("{exception}");
@@ -484,26 +487,36 @@ Js::DynamicObject* JsrtDebuggerStackFrame::Evaluate(Js::ScriptContext* scriptCon
                 resolvedObject.obj = scriptContext->GetLibrary()->GetUndefined();
             }
         }
+        else
+        {
+          success = true;
+        }
+
         if (resolvedObject.obj != nullptr)
         {
             resolvedObject.scriptContext = scriptContext;
 
             charcount_t len = Js::JavascriptString::GetBufferLength(source);
             resolvedObject.name = AnewNoThrowArray(this->debuggerObjectsManager->GetDebugObjectArena(), WCHAR, len + 1);
-            if (resolvedObject.name == nullptr)
+
+            if (resolvedObject.name != nullptr)
             {
-                return nullptr;
+                wcscpy_s((WCHAR*)resolvedObject.name, len + 1, source);
             }
-            wcscpy_s((WCHAR*)resolvedObject.name, len + 1, source);
+            else
+            {
+                // len can be big, if we failed just have empty string
+                resolvedObject.name = _u("");
+            }
 
             resolvedObject.typeId = Js::JavascriptOperators::GetTypeId(resolvedObject.obj);
             JsrtDebuggerObjectBase::CreateDebuggerObject<JsrtDebuggerObjectProperty>(this->debuggerObjectsManager, resolvedObject, scriptContext, [&](Js::Var marshaledObj)
             {
-                evalResult = (Js::DynamicObject*)marshaledObj;
+                *evalResult = (Js::DynamicObject*)marshaledObj;
             });
         }
     }
-    return evalResult;
+    return success;
 }
 
 JsrtDebuggerObjectProperty::JsrtDebuggerObjectProperty(JsrtDebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay) :
@@ -797,7 +810,12 @@ Js::JavascriptArray * JsrtDebugStackFrames::StackFrames(Js::ScriptContext * scri
 
     uint frameCount = 0;
 
-    for (Js::ScriptContext *tempScriptContext = scriptContext->GetThreadContext()->GetScriptContextList();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+
+    DWORD_PTR dispatchHaltFrameAddress = threadContext->GetDebugManager()->GetDispatchHaltFrameAddress();
+    AssertMsg(dispatchHaltFrameAddress, "Didn't set the dispatchHaltFrameAddress at time of break?");
+
+    for (Js::ScriptContext *tempScriptContext = threadContext->GetScriptContextList();
     tempScriptContext != nullptr && tempScriptContext->IsScriptContextInDebugMode();
         tempScriptContext = tempScriptContext->next)
     {
@@ -811,12 +829,19 @@ Js::JavascriptArray * JsrtDebugStackFrames::StackFrames(Js::ScriptContext * scri
                 for (int frameIndex = 0; frameIndex < count; ++frameIndex)
                 {
                     Js::DiagStackFrame* stackFrame = stackFrames->Peek(frameIndex);
-                    Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, frameCount);
 
-                    Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
-                    Js::JavascriptOperators::OP_SetElementI((Js::Var)stackTraceArray, Js::JavascriptNumber::ToVar(frameCount++, scriptContext), marshaledObj, scriptContext);
+                    DWORD_PTR stackAddress = stackFrame->GetStackAddress();
+                    // Only give frames which were preset when break was triggered as we might have other user (non-library) scripts executed after break
+                    if (stackAddress >= dispatchHaltFrameAddress)
+                    {
+                        Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, frameCount);
+
+                        Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
+                        Js::JavascriptOperators::OP_SetElementI((Js::Var)stackTraceArray, Js::JavascriptNumber::ToVar(frameCount++, scriptContext), marshaledObj, scriptContext);
+                    }
                 }
             }
+
             framePointers->ReleaseStrongReference();
             HeapDelete(framePointers);
         }
