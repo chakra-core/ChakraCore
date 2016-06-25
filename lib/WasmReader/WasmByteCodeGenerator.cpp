@@ -150,8 +150,31 @@ WasmBytecodeGenerator::GenerateFunction()
     m_i32RegSlots = &i32Space;
 
     m_currentFunc = Anew(&m_alloc, WasmFunction);
-    char16* functionName = RecyclerNewArrayZ(m_scriptContext->GetRecycler(), char16, 32);
-    int nameLength = swprintf_s(functionName, 32, _u("wasm-function[%u]"), wasmInfo->GetNumber());
+
+    char16* functionName = nullptr;
+    int nameLength = 0;
+    for (uint32 iExport = 0; iExport < m_module->info->GetExportCount(); ++iExport)
+    {
+        Wasm::WasmExport* funcExport = m_module->info->GetFunctionExport(iExport);
+        if (funcExport && funcExport->nameLength > 0)
+        {
+            const uint32 funcIndex = funcExport->funcIndex;
+            if (funcIndex == wasmInfo->GetNumber())
+            {
+                nameLength = funcExport->nameLength + 16;
+                functionName = RecyclerNewArrayZ(m_scriptContext->GetRecycler(), char16, nameLength);
+                nameLength = swprintf_s(functionName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
+                break;
+            }
+        }
+    }
+
+    if (!functionName)
+    {
+        functionName = RecyclerNewArrayZ(m_scriptContext->GetRecycler(), char16, 32);
+        nameLength = swprintf_s(functionName, 32, _u("wasm-function[%u]"), wasmInfo->GetNumber());
+    }
+
     m_currentFunc->body = Js::FunctionBody::NewFromRecycler(
         m_scriptContext,
         functionName,
@@ -178,7 +201,7 @@ WasmBytecodeGenerator::GenerateFunction()
     m_currentFunc->wasmInfo = m_funcInfo;
     m_nestedIfLevel = 0;
     m_maxArgOutDepth = 0;
-    
+
     Assert(m_evalStack.Empty());
     // The stack should always be empty when starting a new function, make sure by clearing it in case we missed something
     m_evalStack.Clear();
