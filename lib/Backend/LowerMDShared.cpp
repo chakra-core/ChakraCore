@@ -8820,6 +8820,7 @@ void LowererMD::HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod
 }
 void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMethod helperMethod)
 {
+    bool propagateNaN = false; 
     switch (instr->m_opcode)
     {
     case Js::OpCode::InlineMathSqrt:
@@ -9239,8 +9240,11 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 instr->Remove();
             }
             break;
-        }
+        }  
 
+    case Js::OpCode::MinNaN:
+    case Js::OpCode::MaxNaN:
+        propagateNaN = true;
     case Js::OpCode::InlineMathMin:
     case Js::OpCode::InlineMathMax:
         {
@@ -9252,7 +9256,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             IR::LabelInstr* labelNegZeroAndNaNCheckHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
             IR::Instr* branchInstr;
 
-            bool min = instr->m_opcode == Js::OpCode::InlineMathMin ? true : false;
+            bool min = (instr->m_opcode == Js::OpCode::InlineMathMin) || (instr->m_opcode == Js::OpCode::MinNaN) ? true : false;
 
             // CMP src1, src2
             if(dst->IsInt32())
@@ -9308,6 +9312,33 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 Assert(!dst->IsEqual(src1));
                 this->m_lowerer->InsertMove(dst, src1, instr);
 
+                IR::Opnd * opndNaN = nullptr;
+
+                bool isF32 = dst->IsFloat32();
+
+                if (isF32)
+                {
+                    opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan32), IRType::TyFloat32, this->m_func);
+                }
+                else
+                {
+                    opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan), IRType::TyFloat64, this->m_func);
+                }
+
+
+                if (propagateNaN)
+                {
+                    IR::Opnd* isSrc1NaN = IsOpndNaN(src1, instr);
+                    IR::Opnd* isSrc2NaN = IsOpndNaN(src2, instr);
+                    IR::Instr* hasNaNSrc = IR::Instr::New(Js::OpCode::OR, isSrc2NaN, isSrc1NaN,
+                        isSrc2NaN,
+                        m_func);
+
+                    instr->InsertBefore(hasNaNSrc);
+                    Legalize(hasNaNSrc);
+                    this->m_lowerer->InsertCompareBranch(hasNaNSrc->GetDst(), IR::IntConstOpnd::New(0x00000001, IRType::TyInt32, this->m_func), Js::OpCode::BrEq_A, labelNaNHelper, instr);
+                }
+
                 if(min)
                 {
                     this->m_lowerer->InsertCompareBranch(src1, src2, Js::OpCode::BrLt_A, doneLabel, instr); // Lowering of BrLt_A for floats is done to JA with operands swapped
@@ -9336,19 +9367,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     isNegZero =  IsOpndNegZero(src1, instr);
                 }
 
-                bool isF32 = dst->IsFloat32();
                 this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrEq_A, doneLabel, instr);
-
-                IR::Opnd * opndNaN = nullptr;
-
-                if (isF32)
-                {
-                    opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan32), IRType::TyFloat32, this->m_func);
-                }
-                else
-                {
-                    opndNaN = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Nan), IRType::TyFloat64, this->m_func);
-                }
 
                 this->m_lowerer->InsertMove(dst, src2, instr);
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, doneLabel, instr->m_func));
@@ -9379,6 +9398,18 @@ IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
     this->ChangeToHelperCall(helperCallInstr, IR::HelperIsNegZero);
 
     return isNegZero;
+}
+
+IR::Opnd* LowererMD::IsOpndNaN(IR::Opnd* opnd, IR::Instr* instr)
+{
+    IR::Opnd * isNaN = IR::RegOpnd::New(TyInt32, this->m_func);
+
+    LoadDoubleHelperArgument(instr, opnd);
+    IR::Instr * helperCallInstr = IR::Instr::New(Js::OpCode::CALL, isNaN, this->m_func);
+    instr->InsertBefore(helperCallInstr);
+    this->ChangeToHelperCall(helperCallInstr, IR::HelperIsNaN);
+    
+    return isNaN;
 }
 
 void LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr* inlineInstr)

@@ -756,6 +756,8 @@ MACRO_EXTEND(           BeginBodyScope,     Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     Copysign_A,         Empty,          OpTempNumberSources | OpCanCSE | OpProducesNumber)
 MACRO_BACKEND_ONLY(     Trunc_A,            Empty,          OpTempNumberSources | OpCanCSE | OpProducesNumber)
 MACRO_BACKEND_ONLY(     Nearest_A,          Empty,          OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(MinNaN, Empty, OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(MaxNaN, Empty, OpTempNumberSources | OpCanCSE | OpProducesNumber)
 
 // All SIMD ops are backend only for non-asmjs.
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)

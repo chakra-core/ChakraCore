@@ -32,4 +32,17 @@
        <compile-flags>-maic:0</compile-flags>
     </default>
 </test>
+<test>
+    <default>
+       <files>f32.js</files>
+       <baseline>f32.baseline</baseline>
+    </default>
+</test>
+<test>
+    <default>
+       <files>f32.js</files>
+       <baseline>f32.baseline</baseline>
+       <compile-flags>-On:Wasm</compile-flags>
+    </default>
+</test> 
 </regress-exe>

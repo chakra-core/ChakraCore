@@ -504,6 +504,7 @@ HELPERCALL(BoxStackNumber, Js::JavascriptNumber::BoxStackNumber, 0)
 
 HELPERCALL(GetNonzeroInt32Value_NoTaggedIntCheck, Js::JavascriptNumber::GetNonzeroInt32Value_NoTaggedIntCheck, 0)
 HELPERCALL(IsNegZero, Js::JavascriptNumber::IsNegZero, 0)
+HELPERCALL(IsNaN, Js::JavascriptNumber::IsNan, 0)
 
 HELPERCALL(DirectMath_PowIntInt, (double(*)(double, int32))Js::JavascriptNumber::DirectPowIntInt, 0)
 HELPERCALL(DirectMath_PowDoubleInt, (double(*)(double, int32))Js::JavascriptNumber::DirectPowDoubleInt, 0)
