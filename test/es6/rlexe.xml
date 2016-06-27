@@ -1255,13 +1255,13 @@
 </test>
 <test>
   <default>
-    <files>iteratorClose.js</files>
+    <files>iteratorclose.js</files>
     <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
   </default>
 </test>
 <test>
   <default>
-    <files>iteratorClose.js</files>
+    <files>iteratorclose.js</files>
     <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
   </default>
 </test>

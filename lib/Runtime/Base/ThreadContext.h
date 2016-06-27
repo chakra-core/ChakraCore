@@ -979,7 +979,7 @@ public:
     bool IsTTRequested;
     bool IsTTRecordRequested;
     bool IsTTDebugRequested;
-    LPCWSTR TTDUri;
+    char16* TTDUri;
     uint32 TTSnapInterval;
     uint32 TTSnapHistoryLength;
 

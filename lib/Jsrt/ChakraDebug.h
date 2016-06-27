@@ -741,7 +741,8 @@
     CHAKRA_API
         JsTTDCreateRecordRuntime(
             _In_ JsRuntimeAttributes attributes,
-            _In_z_ wchar_t* infoUri,
+            _In_z_ char* infoUri,
+            _In_ charcount_t infoUriCount,
             _In_ UINT32 snapInterval,
             _In_ UINT32 snapHistoryLength,
             _In_opt_ JsThreadServiceCallback threadService,
@@ -764,7 +765,8 @@
     CHAKRA_API
         JsTTDCreateDebugRuntime(
             _In_ JsRuntimeAttributes attributes,
-            _In_z_ wchar_t* infoUri,
+            _In_z_ char* infoUri,
+            _In_ charcount_t infoUriCount,
             _In_opt_ JsThreadServiceCallback threadService,
             _Out_ JsRuntimeHandle *runtime);
 
@@ -802,9 +804,9 @@
     CHAKRA_API
         JsTTDRunScript(
             _In_ INT64 hostCallbackId,
-            _In_z_ const wchar_t *script,
+            _In_z_ const char *script,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const char *sourceUrl,
             _Out_ JsValueRef *result);
 
     /// <summary>

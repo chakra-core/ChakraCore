@@ -315,7 +315,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fi
         else
         {
 #if ENABLE_TTD
-            errorCode = ChakraRTInterface::JsTTDRunScript(-1, fileContent, GetNextSourceContext(), fullPath, &returnValue);
+            errorCode = ChakraRTInterface::JsTTDRunScript(-1, fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
 #else
             errorCode = ChakraRTInterface::JsRunScriptUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
 #endif
@@ -347,7 +347,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fi
         else
         {
 #if ENABLE_TTD
-            errorCode = ChakraRTInterface::JsTTDRunScript(-1, fileContent, GetNextSourceContext(), fullPath, &returnValue);
+            errorCode = ChakraRTInterface::JsTTDRunScript(-1, fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
 #else
             errorCode = ChakraRTInterface::JsRunScriptUtf8(fileContent, GetNextSourceContext(), fullPathNarrow, &returnValue);
 #endif
@@ -841,7 +841,7 @@ HRESULT WScriptJsrt::CallbackMessage::CallFunction(LPCSTR fileName)
 
         // Run the code
 #if ENABLE_TTD
-        errorCode = ChakraRTInterface::JsTTDRunScript(this->GetId(), script, JS_SOURCE_CONTEXT_NONE, _u("") /*sourceUrl*/, nullptr /*no result needed*/);
+        errorCode = ChakraRTInterface::JsTTDRunScript(this->GetId(), *script, JS_SOURCE_CONTEXT_NONE, "" /*sourceUrl*/, nullptr /*no result needed*/);
 #else
         errorCode = ChakraRTInterface::JsRunScriptUtf8(*script, JS_SOURCE_CONTEXT_NONE, "" /*sourceUrl*/, nullptr /*no result needed*/);
 #endif

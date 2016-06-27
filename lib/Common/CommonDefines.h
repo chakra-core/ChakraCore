@@ -325,7 +325,7 @@
 
 ////////
 //Time Travel flags
-#define ENABLE_TTD 0
+#define ENABLE_TTD 1
 
 #if ENABLE_TTD
 //Enable debugging specific aspects of TTD

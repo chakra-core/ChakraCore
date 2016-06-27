@@ -380,13 +380,13 @@
 <dir>
   <default>
     <files>TTExecuteBasic</files>
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,exclude_xplat</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>TTBasic</files>
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,exclude_xplat</tags>
   </default>
 </dir>
 </regress-exe>

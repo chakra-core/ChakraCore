@@ -86,7 +86,7 @@ namespace utf8
     {
     public:
         static void* allocate(size_t size) { return ::malloc(size); }
-        static void free(void* ptr) { ::free(ptr); }
+        static void free(void* ptr, size_t count) { ::free(ptr); }
     };
 
     inline HRESULT WideStringToNarrowDynamic(LPCWSTR sourceString, LPSTR* destStringPtr)
@@ -103,6 +103,11 @@ namespace utf8
             sourceString, strlen(sourceString), destStringPtr, &unused);
     }
 
+    inline HRESULT NarrowStringToWideDynamicGetLength(LPCSTR sourceString, LPWSTR* destStringPtr, size_t* destLength)
+    {
+        return NarrowStringToWide<malloc_allocator>(
+            sourceString, strlen(sourceString), destStringPtr, destLength);
+    }
 
     template <class Allocator, class SrcType, class DstType>
     class NarrowWideStringConverter
@@ -177,7 +182,7 @@ namespace utf8
         {
             if (dst)
             {
-                Allocator::free(dst);
+                Allocator::free(dst, dstCount);
             }
         }
 

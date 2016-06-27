@@ -35,6 +35,23 @@
 #define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) 
 #endif
 
+struct CodexHeapAllocatorInterface
+{
+public:
+    static void* allocate(size_t size) 
+    {
+        return HeapNewArray(char, size);
+    }
+
+    static void free(void* ptr, size_t count)
+    {
+        HeapDeleteArray(count, (char*) ptr);
+    }
+};
+
+typedef utf8::NarrowWideConverter<CodexHeapAllocatorInterface, LPCSTR, LPWSTR> NarrowToWideChakraHeap;
+typedef utf8::NarrowWideConverter<CodexHeapAllocatorInterface, LPCWSTR, LPSTR> WideToNarrowChakraHeap;
+
 JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, bool allowInObjectBeforeCollectCallback)
 {
     if (currentContext == nullptr)
@@ -84,7 +101,7 @@ JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, b
 /////////////////////
 
 //A create runtime function that we can funnel to for regular and record or debug aware creation
-JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wchar_t* optRecordUri, _In_opt_ wchar_t* optDebugUri, _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
+JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ char* optRecordUri, charcount_t optRecordUriCount, _In_opt_ char* optDebugUri, charcount_t optDebugUriCount, _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
     VALIDATE_ENTER_CURRENT_THREAD();
 
@@ -168,12 +185,11 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wcha
             threadContext->IsTTRecordRequested = (optRecordUri != nullptr);
             threadContext->IsTTDebugRequested = (optDebugUri != nullptr);
 
-            wchar_t* uriOrig = (optRecordUri != nullptr) ? optRecordUri : optDebugUri;
-            size_t uriOrigLength = wcslen(uriOrig) + 1;
-            size_t uriOrigLengthBytes = uriOrigLength * sizeof(wchar_t);
-            wchar_t* uriCopy = HeapNewArrayZ(wchar_t, uriOrigLength);
-            js_memcpy_s(uriCopy, uriOrigLengthBytes, uriOrig, uriOrigLengthBytes);
+            char* uriOrig = (optRecordUri != nullptr) ? optRecordUri : optDebugUri;
+            size_t uriOrigCount= (optRecordUri != nullptr) ? optRecordUriCount : optDebugUriCount;
 
+            // This class will null-terminate the string, so the original count is not including the null terminator
+            char16* uriCopy = NarrowToWideChakraHeap(uriOrig, uriOrigCount).Detach();
             threadContext->TTDUri = uriCopy;
             threadContext->TTSnapInterval = snapInterval;
             threadContext->TTSnapHistoryLength = snapHistoryLength;
@@ -391,7 +407,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
 
 CHAKRA_API JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
-    return CreateRuntimeCore(attributes, nullptr /*optRecordUri*/, nullptr /*optRecordUri*/, UINT_MAX /*optSnapInterval*/, UINT_MAX /*optLogLength*/, threadService, runtimeHandle);
+    return CreateRuntimeCore(attributes, nullptr /*optRecordUri*/, 0 /*optRecordUriCount */, nullptr /*optRecordUri*/, 0 /* optDebugUriCount */, UINT_MAX /*optSnapInterval*/, UINT_MAX /*optLogLength*/, threadService, runtimeHandle);
 }
 
 template <CollectionFlags flags>
@@ -2870,6 +2886,8 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const byte *script, size_t cb, L
     uint64 bodyCtrId = 0;
 #endif
 
+    AutoArrayPtr<WCHAR> ttdWideSourceString(nullptr, 0);
+
     JsErrorCode errorCode = ContextAPINoScriptWrapper(
         [&](Js::ScriptContext * scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(script);
@@ -2919,7 +2937,19 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const byte *script, size_t cb, L
         {
             //Make sure we have the body and text information available
             Js::FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
-            const TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = scriptContext->GetThreadContext()->TTDLog->AddScriptLoad(globalBody, kmodGlobal, globalBody->GetUtf8SourceInfo()->GetSourceInfoId(), script, (uint32)wcslen(script), loadScriptFlag);
+
+            // TODO: TTT should use the utf8 source code natively, instead of having to convert to utf16
+            NarrowToWideChakraHeap wideSource((LPCSTR)script);
+            size_t length = wideSource.Length();
+
+            if (length == (size_t) -1)
+            {
+                return JsErrorOutOfMemory;
+            }
+
+            Assert(length + 1 < INT_MAX);
+            ttdWideSourceString.Set(wideSource.Detach(), (int) (length + 1) /* include null terminator */);
+            const TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = scriptContext->GetThreadContext()->TTDLog->AddScriptLoad(globalBody, kmodGlobal, globalBody->GetUtf8SourceInfo()->GetSourceInfoId(), ttdWideSourceString, (uint32) length, loadScriptFlag);
             bodyCtrId = tbfi->TopLevelBase.TopLevelBodyCtr;
 
             //walk global body to (1) add functions to pin set (2) build parent map
@@ -2959,7 +2989,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const byte *script, size_t cb, L
             //
             AssertMsg(!isSourceModule, "Modules not implemented in TTD yet!!!");
 
-            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, bodyCtrId, loadScriptFlag, scriptFunction, script, sourceUrl, scriptFunction);
+            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, bodyCtrId, loadScriptFlag, scriptFunction, ttdWideSourceString, sourceUrl, scriptFunction);
         }
 #endif
         if (parseOnly)
@@ -3414,24 +3444,24 @@ CHAKRA_API JsStringFree(_In_ char* stringValue)
 
 /////////////////////
 
-CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ wchar_t* infoUri, 
+CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ char* infoUri, _In_ charcount_t infoUriCount,
     _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, 
     _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
 #if !ENABLE_TTD
     return JsErrorCategoryUsage;
 #else
-    return CreateRuntimeCore(attributes, infoUri, nullptr, snapInterval, snapHistoryLength, threadService, runtime);
+    return CreateRuntimeCore(attributes, infoUri, infoUriCount, nullptr, 0, snapInterval, snapHistoryLength, threadService, runtime);
 #endif
 }
 
-CHAKRA_API JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ wchar_t* infoUri, 
+CHAKRA_API JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ char* infoUri, _In_ charcount_t infoUriCount,
     _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
 #if !ENABLE_TTD
     return JsErrorCategoryUsage;
 #else
-    return CreateRuntimeCore(attributes, nullptr, infoUri, UINT_MAX, UINT_MAX, threadService, runtime);
+    return CreateRuntimeCore(attributes, nullptr, 0, infoUri, infoUriCount, UINT_MAX, UINT_MAX, threadService, runtime);
 #endif
 }
 
@@ -3444,8 +3474,8 @@ CHAKRA_API JsTTDCreateContext(_In_ JsRuntimeHandle runtime, _Out_ JsContextRef *
 #endif
 }
 
-CHAKRA_API JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const wchar_t *script, _In_ JsSourceContext sourceContext, 
-    _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef *result)
+CHAKRA_API JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const char *script, _In_ JsSourceContext sourceContext, 
+    _In_z_ const char *sourceUrl, _Out_ JsValueRef *result)
 {
 #if !ENABLE_TTD
     return JsErrorCategoryUsage;
