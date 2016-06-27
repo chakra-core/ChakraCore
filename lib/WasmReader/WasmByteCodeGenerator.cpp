@@ -335,23 +335,29 @@ WasmBytecodeGenerator::GenerateFunction()
         info->SetFloatConstCount(ReservedRegisterCount);
         info->SetDoubleConstCount(ReservedRegisterCount);
 
-        int nbConst =
-            ((info->GetDoubleConstCount() + 1) * sizeof(double)) // space required
-            + (int)((info->GetFloatConstCount() + 1) * sizeof(float) + 0.5 /*ceil*/)
-            + (int)((info->GetIntConstCount() + 1) * sizeof(int) + 0.5/*ceil*/) //
+        const uint32 nbConst = 
+            ((info->GetDoubleConstCount() + 1) * WAsmJs::DOUBLE_SLOTS_SPACE)
+            + (uint32)((info->GetFloatConstCount() + 1) * WAsmJs::FLOAT_SLOTS_SPACE + 0.5 /*ceil*/)
+            + (uint32)((info->GetIntConstCount() + 1) * WAsmJs::INT_SLOTS_SPACE + 0.5/*ceil*/)
             + Js::AsmJsFunctionMemory::RequiredVarConstants;
 
+        // This is constant, 29 for 32bits and 17 for 64bits systems
+        Assert(nbConst == 29 || nbConst == 17);
         m_currentFunc->body->CheckAndSetConstantCount(nbConst);
 
         info->SetReturnType(GetAsmJsReturnType(m_funcInfo->GetResultType()));
 
-        // REVIEW: overflow checks?
-        info->SetIntByteOffset(ReservedRegisterCount * sizeof(Js::Var));
-        info->SetFloatByteOffset(info->GetIntByteOffset() + m_i32RegSlots->GetRegisterCount() * sizeof(int32));
-        info->SetDoubleByteOffset(Math::Align<int>(info->GetFloatByteOffset() + m_f32RegSlots->GetRegisterCount() * sizeof(float), sizeof(double)));
+        const int32 intByteOffset = ReservedRegisterCount * sizeof(Js::Var);
+        CompileAssert(intByteOffset >= 0);
+        info->SetIntByteOffset(intByteOffset);
+        info->SetFloatByteOffset(UInt32Math::Add(info->GetIntByteOffset(), UInt32Math::Mul(m_i32RegSlots->GetRegisterCount(), sizeof(int32))));
+        info->SetDoubleByteOffset(Math::AlignOverflowCheck<int>(UInt32Math::Add(info->GetFloatByteOffset(), UInt32Math::Mul(m_f32RegSlots->GetRegisterCount(), sizeof(float))), sizeof(double)));
 
         m_currentFunc->body->SetOutParamMaxDepth(m_maxArgOutDepth);
-        m_currentFunc->body->SetVarCount(m_f32RegSlots->GetRegisterCount() + m_f64RegSlots->GetRegisterCount() + m_i32RegSlots->GetRegisterCount());
+        m_currentFunc->body->SetVarCount(UInt32Math::Add(
+            UInt32Math::Add(m_f32RegSlots->GetRegisterCount(), m_f64RegSlots->GetRegisterCount()),
+            m_i32RegSlots->GetRegisterCount()
+        ));
     }
     catch (WasmCompilationException& ex)
     {
