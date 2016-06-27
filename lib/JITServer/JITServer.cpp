@@ -149,6 +149,18 @@ ServerFreeAllocation(
 }
 
 HRESULT
+ServerIsNativeAddr(
+    /* [in] */ handle_t binding,
+    /* [in] */ __int3264 threadContextInfo,
+    /* [in] */ __int3264 address,
+    /* [out] */ boolean * result)
+{
+    ThreadContextInfo * context = reinterpret_cast<ThreadContextInfo*>(threadContextInfo);
+    *result = context->GetCodeGenAllocators()->emitBufferManager.IsInRange((void*)address);
+    return S_OK;
+}
+
+HRESULT
 ServerRemoteCodeGen(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 threadContextInfoAddress,

@@ -92,7 +92,8 @@ typedef struct BVUnitIDL
 typedef struct BVFixedIDL
 {
     unsigned int len;
-    [size_is(len)] BVUnitIDL data[*];
+    // TODO: OOP JIT, should be 6 on x64, 5 on x86 (BVUnit::ShiftValue)
+    [size_is(((len-1) >> 6) + 1)] BVUnitIDL data[*];
 } BVFixedIDL;
 
 typedef struct CallSiteIDL
@@ -376,6 +377,7 @@ typedef struct FunctionBodyDataIDL
     __int3264 callCountStatsAddr;
     __int3264 nestedFuncArrayAddr;
     __int3264 auxArrayBufferAddr;
+    __int3264 objectLiteralTypesAddr;
 } FunctionBodyDataIDL;
 
 // EntryPointInfo fields, read/write in JIT
@@ -564,6 +566,12 @@ interface IChakraJIT
         [in] handle_t binding,
         [in] __int3264 threadContextInfoAddress,
         [in] __int3264 address);
+
+    HRESULT IsNativeAddr(
+        [in] handle_t binding,
+        [in] __int3264 threadContextInfoAddress,
+        [in] __int3264 address,
+        [out] boolean * result);
 
     HRESULT RemoteCodeGen(
         [in] handle_t binding,

@@ -173,6 +173,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->nameLength = functionBody->GetDisplayNameLength();
     jitBody->displayName = (wchar_t *)functionBody->GetDisplayName();
     jitBody->auxArrayBufferAddr = (intptr_t)(functionBody->GetAuxiliaryData() ? functionBody->GetAuxiliaryData()->GetBuffer() : nullptr);
+    jitBody->objectLiteralTypesAddr = (intptr_t)functionBody->GetObjectLiteralTypes();
 
     if (functionBody->GetIsAsmJsFunction())
     {
@@ -652,6 +653,13 @@ intptr_t
 JITTimeFunctionBody::GetCallCountStatsAddr() const
 {
     return m_bodyData.callCountStatsAddr;
+}
+
+intptr_t
+JITTimeFunctionBody::GetObjectLiteralTypeRef(uint index) const
+{
+    Assert(m_bodyData.objectLiteralTypesAddr != 0);
+    return m_bodyData.objectLiteralTypesAddr + index * MachPtr;
 }
 
 intptr_t

@@ -3004,9 +3004,21 @@ bool NativeCodeGenerator::TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem)
 bool
 NativeCodeGenerator::IsNativeFunctionAddr(void * address)
 {
+#if TRUE // TODO: OOP JIT, enable for in proc
+    ThreadContext * context = this->scriptContext->GetThreadContext();
+    boolean result;
+    if (context->m_codeGenManager.IsNativeAddr(context->GetRemoteThreadContextAddr(), (intptr_t)address, &result) != S_OK)
+    {
+        // TODO: OOP JIT, how to handle failed call?
+        return false;
+    }
+    return result != FALSE;
+
+#else
     return
         (this->backgroundAllocators && this->backgroundAllocators->emitBufferManager.IsInRange(address)) ||
         (this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.IsInRange(address));
+#endif
 }
 
 void
@@ -3036,7 +3048,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
 
     // The foreground allocators may have been used
     ThreadContext * context = this->scriptContext->GetThreadContext();
-    if(this->foregroundAllocators && context->m_codeGenManager.FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address))
+    if(this->foregroundAllocators && context->m_codeGenManager.FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address) != S_OK)
     {
         // TODO: OOP JIT, add following condition back in case we are in-proc
         //if(this->foregroundAllocators->emitBufferManager.FreeAllocation(address)

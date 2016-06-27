@@ -7203,7 +7203,7 @@ IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 offset, uint32 a
 IR::Opnd *
 IRBuilder::BuildAuxObjectLiteralTypeRefOpnd(int objectId, uint32 offset)
 {
-    return IR::AddrOpnd::New(m_func->GetJnFunction()->GetObjectLiteralTypeRef(objectId), IR::AddrOpndKindDynamicMisc, this->m_func);
+    return IR::AddrOpnd::New(m_func->GetJITFunctionBody()->GetObjectLiteralTypeRef(objectId), IR::AddrOpndKindDynamicMisc, this->m_func);
 }
 
 void

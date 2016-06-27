@@ -3276,7 +3276,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             WriteToBuffer(&buffer, &n, L" (ScriptContext)");
             break;
         case IR::AddrOpndKindDynamicCharStringCache:
-            Assert(func == nullptr || address == &func->GetScriptContext()->GetLibrary()->GetCharStringCache());
+            Assert(func == nullptr || (intptr_t)address == func->GetScriptContextInfo()->GetCharStringCacheAddr());
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, L" (CharStringCache)");
             break;
@@ -3513,8 +3513,8 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             {
                 WriteToBuffer(&buffer, &n, L" (PreReservedCodeSegmentEnd)");
             }
-            else
 #endif
+            else
             {
                 WriteToBuffer(&buffer, &n, L" (Unknown)");
             }

@@ -217,6 +217,66 @@ JITObjTypeSpecFldInfo::SetIsBeingStored(bool value)
     ((Js::ObjTypeSpecFldInfoFlags*)&m_data.flags)->isBeingStored = true;
 }
 
+/* static */
+void
+JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(
+    __in ArenaAllocator * alloc,
+    __in Js::ObjTypeSpecFldInfo ** objTypeSpecInfo,
+    __in uint arrayLength,
+    __out ObjTypeSpecFldIDL ** jitData)
+{
+    for (uint i = 0; i < arrayLength; ++i)
+    {
+        if (objTypeSpecInfo[i] == nullptr)
+        {
+            continue;
+        }
+        jitData[i] = AnewStructZ(alloc, ObjTypeSpecFldIDL);
+        if (objTypeSpecInfo[i]->IsLoadedFromProto())
+        {
+            jitData[i]->protoObjectAddr = (intptr_t)objTypeSpecInfo[i]->GetProtoObject();
+        }
+        jitData[i]->propertyGuardValueAddr = (intptr_t)objTypeSpecInfo[i]->GetPropertyGuard()->GetAddressOfValue();
+        jitData[i]->propertyId = objTypeSpecInfo[i]->GetPropertyId();
+        jitData[i]->typeId = objTypeSpecInfo[i]->GetTypeId();
+        jitData[i]->id = objTypeSpecInfo[i]->GetObjTypeSpecFldId();
+        jitData[i]->flags = objTypeSpecInfo[i]->GetFlags();
+        jitData[i]->slotIndex = objTypeSpecInfo[i]->GetSlotIndex();
+        jitData[i]->fixedFieldCount = objTypeSpecInfo[i]->GetFixedFieldCount();
+
+        if (objTypeSpecInfo[i]->HasInitialType())
+        {
+            jitData[i]->initialType = AnewStructZ(alloc, TypeIDL);
+            JITType::BuildFromJsType(objTypeSpecInfo[i]->GetInitialType(), (JITType*)jitData[i]->initialType);
+        }
+
+        if (objTypeSpecInfo[i]->GetCtorCache() != nullptr)
+        {
+            jitData[i]->ctorCache = objTypeSpecInfo[i]->GetCtorCache()->GetData();
+        }
+
+        CompileAssert(sizeof(Js::EquivalentTypeSet) == sizeof(EquivalentTypeSetIDL));
+        Js::EquivalentTypeSet * equivTypeSet = objTypeSpecInfo[i]->GetEquivalentTypeSet();
+        if (equivTypeSet != nullptr)
+        {
+            jitData[i]->typeSet = (EquivalentTypeSetIDL*)equivTypeSet;
+        }
+
+        jitData[i]->fixedFieldInfoArray = AnewArrayZ(alloc, FixedFieldIDL, objTypeSpecInfo[i]->GetFixedFieldCount());
+        Js::FixedFieldInfo * ffInfo = objTypeSpecInfo[i]->GetFixedFieldInfoArray();
+        for (uint16 j = 0; j< objTypeSpecInfo[i]->GetFixedFieldCount(); ++j)
+        {
+            jitData[i]->fixedFieldInfoArray[j].fieldValue = (intptr_t)ffInfo[j].fieldValue;
+            jitData[i]->fixedFieldInfoArray[j].nextHasSameFixedField = ffInfo[j].nextHasSameFixedField;
+            if (ffInfo[j].type != nullptr)
+            {
+                // TODO: OOP JIT, maybe type should be out of line? might not save anything on x64 though
+                JITType::BuildFromJsType(ffInfo[j].type, (JITType*)&jitData[i]->fixedFieldInfoArray[j].type);
+            }
+        }
+    }
+}
+
 Js::ObjTypeSpecFldInfoFlags
 JITObjTypeSpecFldInfo::GetFlags() const
 {

@@ -105,7 +105,7 @@ public:
     intptr_t GetRegAllocLoadCountAddr() const;
     intptr_t GetRegAllocStoreCountAddr() const;
     intptr_t GetCallCountStatsAddr() const;
-
+    intptr_t GetObjectLiteralTypeRef(uint index) const;
     const AsmJsJITInfo * GetAsmJsInfo() const;
     const JITTimeProfileInfo * GetProfileInfo() const;
     bool HasProfileInfo() const;

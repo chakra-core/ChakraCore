@@ -361,7 +361,7 @@ namespace Js
             return this->fixedFieldInfoArray;
         }
 
-        uint16 GetFixedFieldCount()
+        uint16 GetFixedFieldCount() const
         {
             return this->fixedFieldCount;
         }

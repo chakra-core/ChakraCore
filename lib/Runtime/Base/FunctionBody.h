@@ -71,7 +71,7 @@ namespace Js
     {
         friend class PropertyGuardValidator;
     private:
-        intptr_t value;
+        intptr_t value; // value is address of Js::Type
     public:
         static PropertyGuard* New(Recycler* recycler) { return RecyclerNewLeaf(recycler, Js::PropertyGuard); }
         PropertyGuard() : value(1) {}
@@ -87,8 +87,6 @@ namespace Js
         void Invalidate() { this->value = 0; }
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
-            // TODO: is value a pointer?
-            Assert(false); // not implemented yet
         }
     };
 
@@ -2787,10 +2785,10 @@ namespace Js
         AsmJsModuleInfo* AllocateAsmJsModuleInfo();
 #endif
         void SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern);
+        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
     private:
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();
-        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
         void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->SetAuxPtr(AuxPointerType::ObjLiteralTypes, objLiteralTypes); };
     public:
 

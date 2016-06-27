@@ -7382,7 +7382,7 @@ Lowerer::GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySy
 
     // Let's pin the final type to be sure its alive when we try to do the type transition.
     PinTypeRef(finalType, finalType, instrStFld, propertySymOpnd->m_sym->AsPropertySym()->m_propertyId);
-    IR::Opnd *finalTypeOpnd = IR::AddrOpnd::New(finalType, IR::AddrOpndKindDynamicType, instrStFld->m_func, true);
+    IR::Opnd *finalTypeOpnd = IR::AddrOpnd::New(finalType->GetAddr(), IR::AddrOpndKindDynamicType, instrStFld->m_func, true);
 
     // Set the new type.
     IR::RegOpnd *baseOpnd = propertySymOpnd->CreatePropertyOwnerOpnd(instrStFld->m_func);

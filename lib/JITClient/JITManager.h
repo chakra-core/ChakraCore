@@ -30,6 +30,11 @@ public:
         __in intptr_t threadContextInfoAddress,
         __in intptr_t address);
 
+    HRESULT IsNativeAddr(
+        __in intptr_t threadContextInfoAddress,
+        __in intptr_t address,
+        __out boolean * result);
+
     HRESULT RemoteCodeGenCall(
         __in CodeGenWorkItemIDL *workItemData,
         __in intptr_t threadContextInfoAddress,

@@ -81,11 +81,12 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
             jitData->ldFldInlineeCount = jitData->bodyData->inlineCacheCount;
             jitData->ldFldInlinees = AnewArrayZ(alloc, FunctionJITTimeDataIDL*, jitData->bodyData->inlineCacheCount);
 
-            Js::ObjTypeSpecFldInfo ** objTypeSpecInfo = codeGenData->GetObjTypeSpecFldInfoArray() ? codeGenData->GetObjTypeSpecFldInfoArray()->GetInfoArray() : nullptr;
+            Js::ObjTypeSpecFldInfo ** objTypeSpecInfo = codeGenData->GetObjTypeSpecFldInfoArray()->GetInfoArray();
             if(objTypeSpecInfo)
             {
                 jitData->objTypeSpecFldInfoCount = jitData->bodyData->inlineCacheCount;
                 jitData->objTypeSpecFldInfoArray = AnewArrayZ(alloc, ObjTypeSpecFldIDL*, jitData->bodyData->inlineCacheCount);
+                JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(alloc, objTypeSpecInfo, jitData->objTypeSpecFldInfoCount, jitData->objTypeSpecFldInfoArray);
             }
             for (Js::InlineCacheIndex i = 0; i < jitData->bodyData->inlineCacheCount; ++i)
             {
@@ -94,118 +95,16 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
                 {
                     jitData->ldFldInlinees[i] = BuildJITTimeData(alloc, inlinee);
                 }
-                if (objTypeSpecInfo != nullptr && objTypeSpecInfo[i] != nullptr)
-                {
-                    jitData->objTypeSpecFldInfoArray[i] = AnewStructZ(alloc, ObjTypeSpecFldIDL);
-                    if (objTypeSpecInfo[i]->IsLoadedFromProto())
-                    {
-                        jitData->objTypeSpecFldInfoArray[i]->protoObjectAddr = (intptr_t)objTypeSpecInfo[i]->GetProtoObject();
-                    }
-                    jitData->objTypeSpecFldInfoArray[i]->propertyGuardValueAddr = (intptr_t)objTypeSpecInfo[i]->GetPropertyGuard()->GetAddressOfValue();
-                    jitData->objTypeSpecFldInfoArray[i]->propertyId = objTypeSpecInfo[i]->GetPropertyId();
-                    jitData->objTypeSpecFldInfoArray[i]->typeId = objTypeSpecInfo[i]->GetTypeId();
-                    jitData->objTypeSpecFldInfoArray[i]->id = objTypeSpecInfo[i]->GetObjTypeSpecFldId();
-                    jitData->objTypeSpecFldInfoArray[i]->flags = objTypeSpecInfo[i]->GetFlags();
-                    jitData->objTypeSpecFldInfoArray[i]->slotIndex = objTypeSpecInfo[i]->GetSlotIndex();
-                    jitData->objTypeSpecFldInfoArray[i]->fixedFieldCount = objTypeSpecInfo[i]->GetFixedFieldCount();
-
-                    if (objTypeSpecInfo[i]->HasInitialType())
-                    {
-                        jitData->objTypeSpecFldInfoArray[i]->initialType = AnewStructZ(alloc, TypeIDL);
-                        JITType::BuildFromJsType(objTypeSpecInfo[i]->GetInitialType(), (JITType*)jitData->objTypeSpecFldInfoArray[i]->initialType);
-                    }
-
-                    if (objTypeSpecInfo[i]->GetCtorCache() != nullptr)
-                    {
-                        jitData->objTypeSpecFldInfoArray[i]->ctorCache = objTypeSpecInfo[i]->GetCtorCache()->GetData();
-                    }
-
-                    Js::EquivalentTypeSet * equivTypeSet = objTypeSpecInfo[i]->GetEquivalentTypeSet();
-                    if (equivTypeSet != nullptr)
-                    {
-                        jitData->objTypeSpecFldInfoArray[i]->typeSet = AnewStruct(alloc, EquivalentTypeSetIDL);
-                        jitData->objTypeSpecFldInfoArray[i]->typeSet->sortedAndDuplicatesRemoved = equivTypeSet->GetSortedAndDuplicatesRemoved();
-                        // REVIEW: OOP JIT, is this stable?
-                        jitData->objTypeSpecFldInfoArray[i]->typeSet->count = equivTypeSet->GetCount();
-                        jitData->objTypeSpecFldInfoArray[i]->typeSet->types = (TypeIDL**)equivTypeSet->GetTypes();
-                    }
-
-                    jitData->objTypeSpecFldInfoArray[i]->fixedFieldInfoArray = AnewArrayZ(alloc, FixedFieldIDL, objTypeSpecInfo[i]->GetFixedFieldCount());
-                    Js::FixedFieldInfo * ffInfo = objTypeSpecInfo[i]->GetFixedFieldInfoArray();
-                    for (uint16 j = 0; j < objTypeSpecInfo[i]->GetFixedFieldCount(); ++j)
-                    {
-                        jitData->objTypeSpecFldInfoArray[i]->fixedFieldInfoArray[j].fieldValue = (intptr_t)ffInfo[j].fieldValue;
-                        jitData->objTypeSpecFldInfoArray[i]->fixedFieldInfoArray[j].nextHasSameFixedField = ffInfo[j].nextHasSameFixedField;
-                        if(ffInfo[j].type != nullptr)
-                        {
-                            JITType::BuildFromJsType(ffInfo[j].type, (JITType*)&jitData->objTypeSpecFldInfoArray[i]->fixedFieldInfoArray[j].type);
-                        }
-                    }
-                }
             }
         }
         if (codeGenData->GetGlobalObjTypeSpecFldInfoCount() > 0)
         {
-            jitData->globalObjTypeSpecFldInfoCount = codeGenData->GetGlobalObjTypeSpecFldInfoCount();
-
             Js::ObjTypeSpecFldInfo ** globObjTypeSpecInfo = codeGenData->GetGlobalObjTypeSpecFldInfoArray();
             Assert(globObjTypeSpecInfo != nullptr);
+
+            jitData->globalObjTypeSpecFldInfoCount = codeGenData->GetGlobalObjTypeSpecFldInfoCount();
             jitData->globalObjTypeSpecFldInfoArray = AnewArrayZ(alloc, ObjTypeSpecFldIDL*, jitData->globalObjTypeSpecFldInfoCount);
-            for (uint i = 0; i < codeGenData->GetGlobalObjTypeSpecFldInfoCount(); ++i)
-            {
-                if (globObjTypeSpecInfo[i] == nullptr)
-                {
-                    continue;
-                }
-                jitData->globalObjTypeSpecFldInfoArray[i] = AnewStructZ(alloc, ObjTypeSpecFldIDL);
-                if (globObjTypeSpecInfo[i]->IsLoadedFromProto())
-                {
-                    jitData->globalObjTypeSpecFldInfoArray[i]->protoObjectAddr = (intptr_t)globObjTypeSpecInfo[i]->GetProtoObject();
-                }
-                jitData->globalObjTypeSpecFldInfoArray[i]->propertyGuardValueAddr = (intptr_t)globObjTypeSpecInfo[i]->GetPropertyGuard()->GetAddressOfValue();
-                jitData->globalObjTypeSpecFldInfoArray[i]->propertyId = globObjTypeSpecInfo[i]->GetPropertyId();
-                jitData->globalObjTypeSpecFldInfoArray[i]->typeId = globObjTypeSpecInfo[i]->GetTypeId();
-                jitData->globalObjTypeSpecFldInfoArray[i]->id = globObjTypeSpecInfo[i]->GetObjTypeSpecFldId();
-                jitData->globalObjTypeSpecFldInfoArray[i]->flags = globObjTypeSpecInfo[i]->GetFlags();
-                jitData->globalObjTypeSpecFldInfoArray[i]->slotIndex = globObjTypeSpecInfo[i]->GetSlotIndex();
-                jitData->globalObjTypeSpecFldInfoArray[i]->fixedFieldCount = globObjTypeSpecInfo[i]->GetFixedFieldCount();
-
-                if (globObjTypeSpecInfo[i]->HasInitialType())
-                {
-                    jitData->globalObjTypeSpecFldInfoArray[i]->initialType = AnewStructZ(alloc, TypeIDL);
-                    JITType::BuildFromJsType(globObjTypeSpecInfo[i]->GetInitialType(), (JITType*)jitData->globalObjTypeSpecFldInfoArray[i]->initialType);
-                }
-
-                if (globObjTypeSpecInfo[i]->GetCtorCache() != nullptr)
-                {
-                    jitData->globalObjTypeSpecFldInfoArray[i]->ctorCache = globObjTypeSpecInfo[i]->GetCtorCache()->GetData();
-                }
-
-                Js::EquivalentTypeSet * equivTypeSet = globObjTypeSpecInfo[i]->GetEquivalentTypeSet();
-                if (equivTypeSet != nullptr)
-                {
-                    jitData->globalObjTypeSpecFldInfoArray[i]->typeSet = AnewStruct(alloc, EquivalentTypeSetIDL);
-                    jitData->globalObjTypeSpecFldInfoArray[i]->typeSet->sortedAndDuplicatesRemoved = equivTypeSet->GetSortedAndDuplicatesRemoved();
-                    // REVIEW: OOP JIT, is this stable?
-                    jitData->globalObjTypeSpecFldInfoArray[i]->typeSet->count = equivTypeSet->GetCount();
-                    jitData->globalObjTypeSpecFldInfoArray[i]->typeSet->types = (TypeIDL**)equivTypeSet->GetTypes();
-                }
-
-                jitData->globalObjTypeSpecFldInfoArray[i]->fixedFieldInfoArray = AnewArrayZ(alloc, FixedFieldIDL, globObjTypeSpecInfo[i]->GetFixedFieldCount());
-                Js::FixedFieldInfo * ffInfo = globObjTypeSpecInfo[i]->GetFixedFieldInfoArray();
-                for (uint16 j = 0; j< globObjTypeSpecInfo[i]->GetFixedFieldCount(); ++j)
-                {
-                    jitData->globalObjTypeSpecFldInfoArray[i]->fixedFieldInfoArray[j].fieldValue = (intptr_t)ffInfo[j].fieldValue;
-                    jitData->globalObjTypeSpecFldInfoArray[i]->fixedFieldInfoArray[j].nextHasSameFixedField = ffInfo[j].nextHasSameFixedField;
-                    if (ffInfo[j].type != nullptr)
-                    {
-                        // TODO: OOP JIT, maybe type should be out of line? might not save anything on x64 though
-                        JITType::BuildFromJsType(ffInfo[j].type, (JITType*)&jitData->globalObjTypeSpecFldInfoArray[i]->fixedFieldInfoArray[j].type);
-                    }
-                }
-            }
-
-
+            JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(alloc, globObjTypeSpecInfo, jitData->globalObjTypeSpecFldInfoCount, jitData->globalObjTypeSpecFldInfoArray);
         }
 
         auto codegenRuntimeData = functionBody->GetCodeGenRuntimeData();
@@ -323,7 +222,10 @@ FunctionJITTimeInfo::GetObjTypeSpecFldInfo(uint index) const
     }
 
     Assert(index < GetBody()->GetInlineCacheCount());
-    Assert(index < m_data.objTypeSpecFldInfoCount);
+    if (m_data.objTypeSpecFldInfoArray == nullptr)
+    {
+        return nullptr;
+    }
     return reinterpret_cast<JITObjTypeSpecFldInfo **>(m_data.objTypeSpecFldInfoArray)[index];
 }
 

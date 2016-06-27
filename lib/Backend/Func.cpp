@@ -819,7 +819,6 @@ void Func::InitLocalClosureSyms()
 
 bool Func::CanAllocInPreReservedHeapPageSegment ()
 {
-#if 0 // TODO: michhol enable CFG
 #ifdef _CONTROL_FLOW_GUARD
     return PHASE_FORCE1(Js::PreReservedHeapAllocPhase) || (!PHASE_OFF1(Js::PreReservedHeapAllocPhase) &&
         !IsJitInDebugMode() && !GetScriptContext()->IsInDebugMode() && GetScriptContext()->GetThreadContext()->IsCFGEnabled()
@@ -833,9 +832,6 @@ bool Func::CanAllocInPreReservedHeapPageSegment ()
 #else
     return false;
 #endif//_CONTROL_FLOW_GUARD
-#else
-    return false;
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1528,7 +1524,7 @@ Func::DumpHeader()
 {
     Output::Print(L"-----------------------------------------------------------------------------\n");
 
-    Output::Print(L"Function %s", this->GetJITFunctionBody()->GetDisplayName());
+    DumpFullFunctionName();
 
     Output::SkipToColumn(50);
     Output::Print(L"Instr Count:%d", GetInstrCount());

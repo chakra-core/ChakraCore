@@ -286,6 +286,26 @@ JITManager::FreeAllocation(
 }
 
 HRESULT
+JITManager::IsNativeAddr(
+    __in intptr_t threadContextInfoAddress,
+    __in intptr_t address,
+    __out boolean * result)
+{
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientIsNativeAddr(m_rpcBindingHandle, threadContextInfoAddress, address, result);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
+HRESULT
 JITManager::RemoteCodeGenCall(
     __in CodeGenWorkItemIDL *workItemData,
     __in intptr_t threadContextInfoAddress,

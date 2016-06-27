@@ -8,7 +8,7 @@
 class JITObjTypeSpecFldInfo
 {
 public:
-    JITObjTypeSpecFldInfo::JITObjTypeSpecFldInfo(ObjTypeSpecFldIDL * data);
+    JITObjTypeSpecFldInfo(ObjTypeSpecFldIDL * data);
     bool UsesAuxSlot() const;
     bool UsesAccessor() const;
     bool IsRootObjectNonConfigurableFieldLoad() const;
@@ -50,11 +50,18 @@ public:
 
     void SetIsBeingStored(bool value); // REVIEW: this doesn't flow out of JIT, should it?
 
+    static void BuildObjTypeSpecFldInfoArray(
+        __in ArenaAllocator * alloc,
+        __in Js::ObjTypeSpecFldInfo ** objTypeSpecInfo,
+        __in uint arrayLength,
+        __out ObjTypeSpecFldIDL ** jitData);
+
     // TODO: OOP JIT, implement this
     Js::JavascriptFunction * GetFieldValueAsFixedFunctionIfAvailable() { __debugbreak(); return nullptr; }
     Js::JavascriptFunction * GetFieldValueAsFixedFunctionIfAvailable(uint i) { __debugbreak(); return nullptr; }
     wchar_t* GetCacheLayoutString() { __debugbreak(); return nullptr; }
     Js::FixedFieldInfo * GetFixedFieldInfoArray() { __debugbreak(); return nullptr; }
+
 private:
     Js::ObjTypeSpecFldInfoFlags GetFlags() const;
 
