@@ -802,9 +802,9 @@
     CHAKRA_API
         JsTTDRunScript(
             _In_ INT64 hostCallbackId,
-            _In_z_ const wchar_t *script,
+            _In_z_ const char *script,
             _In_ JsSourceContext sourceContext,
-            _In_z_ const wchar_t *sourceUrl,
+            _In_z_ const char *sourceUrl,
             _Out_ JsValueRef *result);
 
     /// <summary>

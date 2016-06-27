@@ -103,6 +103,11 @@ namespace utf8
             sourceString, strlen(sourceString), destStringPtr, &unused);
     }
 
+    inline HRESULT NarrowStringToWideDynamicGetLength(LPCSTR sourceString, LPWSTR* destStringPtr, size_t* destLength)
+    {
+        return NarrowStringToWide<malloc_allocator>(
+            sourceString, strlen(sourceString), destStringPtr, destLength);
+    }
 
     template <class Allocator, class SrcType, class DstType>
     class NarrowWideStringConverter

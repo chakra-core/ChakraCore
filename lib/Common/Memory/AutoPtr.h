@@ -33,6 +33,35 @@ private:
 };
 
 template <typename T>
+class AutoMallocPtr : public BasePtr<T>
+{
+public:
+    AutoMallocPtr(T * ptr) : BasePtr<T>(ptr) {}
+
+    ~AutoMallocPtr()
+    {
+        Clear();
+    }
+
+    AutoMallocPtr& operator=(T * ptr)
+    {
+        Clear();
+        this->ptr = ptr;
+        return *this;
+    }
+
+private:
+    void Clear()
+    {
+        if (this->ptr != nullptr)
+        {
+            ::free(this->ptr);
+            this->ptr = nullptr;
+        }
+    }
+};
+
+template <typename T>
 class AutoArrayPtr : public BasePtr<T>
 {
 protected:

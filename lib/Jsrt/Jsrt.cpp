@@ -2870,6 +2870,9 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const byte *script, size_t cb, L
     uint64 bodyCtrId = 0;
 #endif
 
+    LPWSTR ttdWideSourceString = nullptr;
+    AutoMallocPtr<WCHAR> ttdSourceStringGuard(nullptr);
+
     JsErrorCode errorCode = ContextAPINoScriptWrapper(
         [&](Js::ScriptContext * scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(script);
@@ -2919,7 +2922,17 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const byte *script, size_t cb, L
         {
             //Make sure we have the body and text information available
             Js::FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
-            const TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = scriptContext->GetThreadContext()->TTDLog->AddScriptLoad(globalBody, kmodGlobal, globalBody->GetUtf8SourceInfo()->GetSourceInfoId(), script, (uint32)wcslen(script), loadScriptFlag);
+
+            // TODO: TTT should use the utf8 source code natively, instead of having to convert to utf16
+            size_t length = 0;
+            if (FAILED(utf8::NarrowStringToWideDynamicGetLength((LPCSTR)script, &ttdWideSourceString, &length)))
+            {
+                return JsErrorOutOfMemory;
+            }
+
+            ttdSourceStringGuard = ttdWideSourceString;
+            Assert(length < UINT32_MAX);
+            const TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = scriptContext->GetThreadContext()->TTDLog->AddScriptLoad(globalBody, kmodGlobal, globalBody->GetUtf8SourceInfo()->GetSourceInfoId(), ttdWideSourceString, (uint32) length, loadScriptFlag);
             bodyCtrId = tbfi->TopLevelBase.TopLevelBodyCtr;
 
             //walk global body to (1) add functions to pin set (2) build parent map
@@ -2959,7 +2972,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const byte *script, size_t cb, L
             //
             AssertMsg(!isSourceModule, "Modules not implemented in TTD yet!!!");
 
-            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, bodyCtrId, loadScriptFlag, scriptFunction, script, sourceUrl, scriptFunction);
+            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, bodyCtrId, loadScriptFlag, scriptFunction, ttdWideSourceString, sourceUrl, scriptFunction);
         }
 #endif
         if (parseOnly)
@@ -3444,8 +3457,8 @@ CHAKRA_API JsTTDCreateContext(_In_ JsRuntimeHandle runtime, _Out_ JsContextRef *
 #endif
 }
 
-CHAKRA_API JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const wchar_t *script, _In_ JsSourceContext sourceContext, 
-    _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef *result)
+CHAKRA_API JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const char *script, _In_ JsSourceContext sourceContext, 
+    _In_z_ const char *sourceUrl, _Out_ JsValueRef *result)
 {
 #if !ENABLE_TTD
     return JsErrorCategoryUsage;
