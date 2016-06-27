@@ -5,6 +5,21 @@
 #include "Backend.h"
 
 void
+GlobOpt::CaptureCopyPropValue(BasicBlock * block, Sym * sym, Value * val, SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter)
+{
+    if (!sym->IsStackSym())
+    {
+        return;
+    }
+
+    StackSym * copyPropSym = this->GetCopyPropSym(block, sym, val);
+    if (copyPropSym != nullptr)
+    {
+        bailOutCopySymsIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), copyPropSym);
+    }
+}
+
+void
 GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
 {
     if (!this->func->DoGlobOptsForGeneratorFunc())
@@ -78,11 +93,7 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
             }
             else
             {
-                StackSym* copyPropSym = this->GetCopyPropSym(block, stackSym, value);
-                if (copyPropSym)
-                {
-                    bailOutCopySymsIter.InsertNodeBefore(this->func->m_alloc, stackSym, copyPropSym);
-                }
+                CaptureCopyPropValue(block, stackSym, value, bailOutCopySymsIter);
             }
         }
         NEXT_BITSET_IN_SPARSEBV
@@ -167,79 +178,51 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
 
             sym = hasCopyPropSym ? iterCopyPropSym.Data().Key() : nullptr;
 
-            while (true)
+            // process unchanged sym, but copy sym might have changed
+            while (sym && sym->m_id < symId)
             {
-                StackSym * copyPropSym = (sym != nullptr) ? iterCopyPropSym.Data().Value() : nullptr;
-                Sym * mergeSym = nullptr;
-                bool mergeSymId = false;
+                StackSym * copyPropSym = iterCopyPropSym.Data().Value();
 
-                // copy unchanged copy prop sym
-                if (sym && sym->m_id < symId && !tempBv->Test(copyPropSym->m_id))
+                Assert(sym->IsStackSym());
+
+                if (!tempBv->Test(copyPropSym->m_id))
                 {
-                    Assert(sym->IsStackSym());
-
                     if (!sym->AsStackSym()->HasArgSlotNum())
                     {
                         bailOutCopySymsIter.InsertNodeBefore(this->func->m_alloc, sym->AsStackSym(), copyPropSym);
                     }
                 }
-                else if (!sym && symId == Js::Constants::InvalidSymID)
-                {
-                    break;
-                }
                 else
                 {
-                    // recapture changed copy prop sym
-
-                    if (!sym || sym->m_id > symId)
+                    if (!sym->AsStackSym()->HasArgSlotNum())
                     {
-                        if (!symIdBucket)
+                        val = FindValue(sym);
+                        if (val != nullptr)
                         {
-                            symIdBucket = block->globOptData.symToValueMap->GetBucket(symId);
-                            if (symIdBucket == nullptr)
-                            {
-                                break;
-                            }
-                        }
-                        mergeSym = symIdBucket->value;
-                        mergeSymId = true;
-                    }
-                    else
-                    {
-                        if (sym->m_id == symId)
-                        {
-                            mergeSymId = true;
-                        }
-                        mergeSym = sym;
-                    }
-
-                    Assert(mergeSym && mergeSym->IsStackSym());
-
-                    symIdBucket = block->globOptData.symToValueMap->GetBucket(mergeSym->m_id);
-
-                    if (symIdBucket)
-                    {
-                        val = block->globOptData.capturedArgs->Test(mergeSym->m_id) ? FindValue(mergeSym) : symIdBucket->element;
-                        ValueInfo* valueInfo = val->GetValueInfo();
-                        Assert(valueInfo->GetSymStore() != nullptr || valueInfo->HasIntConstantValue());
-
-                        copyPropSym = this->GetCopyPropSym(block, mergeSym, val);
-                        if (copyPropSym)
-                        {
-                            bailOutCopySymsIter.InsertNodeBefore(this->func->m_alloc, mergeSym->AsStackSym(), copyPropSym);
+                            CaptureCopyPropValue(block, sym, val, bailOutCopySymsIter);
                         }
                     }
                 }
 
-                if (hasCopyPropSym && sym->m_id <= symId)
+                hasCopyPropSym = iterCopyPropSym.Next();
+                sym = hasCopyPropSym ? iterCopyPropSym.Data().Key() : nullptr;
+            }
+            if (sym && sym->m_id == symId)
+            {
+                hasCopyPropSym = iterCopyPropSym.Next();
+            }
+            if (symId != Js::Constants::InvalidSymID)
+            {
+                // recapture changed copy prop sym
+                symIdBucket = block->globOptData.symToValueMap->GetBucket(symId);
+                if (symIdBucket != nullptr)
                 {
-                    hasCopyPropSym = iterCopyPropSym.Next();
-                    sym = hasCopyPropSym ? iterCopyPropSym.Data().Key() : nullptr;
-                }
-
-                if (mergeSymId)
-                {
-                    break;
+                    sym = symIdBucket->value;
+                    val = FindValue(sym);
+                    if (val != nullptr)
+                    {
+                        CaptureCopyPropValue(block, sym, val, bailOutCopySymsIter);
+                    }
                 }
             }
         }
