@@ -28,7 +28,7 @@
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #endif
 
-AutoSystemInfo AutoSystemInfo::Data INIT_PRIORITY(300);
+AutoSystemInfo AutoSystemInfo::Data;
 
 #if DBG
 bool
@@ -41,22 +41,38 @@ AutoSystemInfo::IsInitialized()
 bool
 AutoSystemInfo::ShouldQCMoreFrequently()
 {
-    return Data.shouldQCMoreFrequently;
+    InitializeOnDemand();
+
+    return AutoSystemInfo::Data.shouldQCMoreFrequently;
 }
 
 bool
 AutoSystemInfo::SupportsOnlyMultiThreadedCOM()
 {
-    return Data.supportsOnlyMultiThreadedCOM;
+    InitializeOnDemand();
+
+    return AutoSystemInfo::Data.supportsOnlyMultiThreadedCOM;
 }
 
 bool
 AutoSystemInfo::IsLowMemoryDevice()
 {
-    return Data.isLowMemoryDevice;
+    InitializeOnDemand();
+
+    return AutoSystemInfo::Data.isLowMemoryDevice;
 }
 
-void
+_NOINLINE void AutoSystemInfo::InitializeOnDemand()
+{
+    static bool initialized = AutoSystemInfo::Data.Initialize();
+
+    if(!initialized)
+    {
+        abort();
+    }
+}
+
+bool
 AutoSystemInfo::Initialize()
 {
     Assert(!initialized);
@@ -113,6 +129,8 @@ AutoSystemInfo::Initialize()
     this->availableCommit = 0;
 
     ChakraBinaryAutoSystemInfoInit(this);
+
+    return true;
 }
 
 
@@ -182,21 +200,25 @@ AutoSystemInfo::InitPhysicalProcessorCount()
 bool
 AutoSystemInfo::IsJscriptModulePointer(void * ptr)
 {
-    return ((UINT_PTR)ptr >= Data.dllLoadAddress && (UINT_PTR)ptr < Data.dllHighAddress);
+    InitializeOnDemand();
+
+    return ((UINT_PTR)ptr >= AutoSystemInfo::Data.dllLoadAddress && (UINT_PTR)ptr < AutoSystemInfo::Data.dllHighAddress);
 }
 #endif
 
 uint
 AutoSystemInfo::GetAllocationGranularityPageCount() const
 {
-    Assert(initialized);
+    InitializeOnDemand();
+
     return this->allocationGranularityPageCount;
 }
 
 uint
 AutoSystemInfo::GetAllocationGranularityPageSize() const
 {
-    Assert(initialized);
+    InitializeOnDemand();
+
     return this->allocationGranularityPageCount * PageSize;
 }
 
@@ -204,6 +226,8 @@ AutoSystemInfo::GetAllocationGranularityPageSize() const
 bool
 AutoSystemInfo::VirtualSseAvailable(const int sseLevel) const
 {
+    InitializeOnDemand();
+
     #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         return CONFIG_FLAG(Sse) < 0 || CONFIG_FLAG(Sse) >= sseLevel;
     #else
@@ -215,7 +239,7 @@ AutoSystemInfo::VirtualSseAvailable(const int sseLevel) const
 BOOL
 AutoSystemInfo::SSE2Available() const
 {
-    Assert(initialized);
+    InitializeOnDemand();
 
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
     return true;
@@ -230,28 +254,32 @@ AutoSystemInfo::SSE2Available() const
 BOOL
 AutoSystemInfo::SSE3Available() const
 {
-    Assert(initialized);
+    InitializeOnDemand();
+
     return VirtualSseAvailable(3) && (CPUInfo[2] & 0x1);
 }
 
 BOOL
 AutoSystemInfo::SSE4_1Available() const
 {
-    Assert(initialized);
+    InitializeOnDemand();
+
     return VirtualSseAvailable(4) && (CPUInfo[2] & (0x1 << 19));
 }
 
 BOOL
 AutoSystemInfo::PopCntAvailable() const
 {
-    Assert(initialized);
+    InitializeOnDemand();
+
     return VirtualSseAvailable(4) && (CPUInfo[2] & (1 << 23));
 }
 
 BOOL
 AutoSystemInfo::LZCntAvailable() const
 {
-    Assert(initialized);
+    InitializeOnDemand();
+
     int CPUInfo[4];
     get_cpuid(CPUInfo, 0x80000001);
 
@@ -261,6 +289,8 @@ AutoSystemInfo::LZCntAvailable() const
 bool
 AutoSystemInfo::IsAtomPlatform() const
 {
+    InitializeOnDemand();
+
     return isAtom;
 }
 
@@ -308,6 +338,8 @@ AutoSystemInfo::CheckForAtom() const
 bool
 AutoSystemInfo::IsCFGEnabled()
 {
+    InitializeOnDemand();
+
 #if defined(_CONTROL_FLOW_GUARD)
     return true
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -329,22 +361,30 @@ AutoSystemInfo::IsWin8OrLater()
 bool
 AutoSystemInfo::IsWinThresholdOrLater()
 {
+    InitializeOnDemand();
+
     return IsWindowsThresholdOrGreater();
 }
 #endif
 
 DWORD AutoSystemInfo::SaveModuleFileName(HANDLE hMod)
 {
-    return ::GetModuleFileNameW((HMODULE)hMod, Data.binaryName, MAX_PATH);
+    InitializeOnDemand();
+
+    return ::GetModuleFileNameW((HMODULE)hMod, AutoSystemInfo::Data.binaryName, MAX_PATH);
 }
 
 LPCWSTR AutoSystemInfo::GetJscriptDllFileName()
 {
-    return (LPCWSTR)Data.binaryName;
+    InitializeOnDemand();
+
+    return (LPCWSTR)AutoSystemInfo::Data.binaryName;
 }
 
 bool AutoSystemInfo::IsLowMemoryProcess()
 {
+    InitializeOnDemand();
+
     ULONG64 commit = ULONG64(-1);
     this->GetAvailableCommit(&commit);
     return commit <= CONFIG_FLAG(LowMemoryCap);
@@ -352,7 +392,7 @@ bool AutoSystemInfo::IsLowMemoryProcess()
 
 BOOL AutoSystemInfo::GetAvailableCommit(ULONG64 *pCommit)
 {
-    Assert(initialized);
+    InitializeOnDemand();
 
     // Non-zero value indicates we've been here before.
     if (this->availableCommit == 0)
@@ -366,6 +406,8 @@ BOOL AutoSystemInfo::GetAvailableCommit(ULONG64 *pCommit)
 
 void AutoSystemInfo::SetAvailableCommit(ULONG64 commit)
 {
+    InitializeOnDemand();
+
     ::InterlockedCompareExchange64((volatile LONG64 *)&this->availableCommit, commit, 0);
 }
 
@@ -375,6 +417,8 @@ void AutoSystemInfo::SetAvailableCommit(ULONG64 commit)
 //
 HRESULT AutoSystemInfo::GetJscriptFileVersion(DWORD* majorVersion, DWORD* minorVersion, DWORD *buildDateHash, DWORD *buildTimeHash)
 {
+    InitializeOnDemand();
+
     HRESULT hr = E_FAIL;
     if(AutoSystemInfo::Data.majorVersion == 0 && AutoSystemInfo::Data.minorVersion == 0)
     {
