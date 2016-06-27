@@ -19,6 +19,7 @@
   },
   {
     "this": {
+      "telemetryLog": "function <large string>",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"
@@ -52,6 +53,7 @@
   },
   {
     "this": {
+      "telemetryLog": "function <large string>",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"

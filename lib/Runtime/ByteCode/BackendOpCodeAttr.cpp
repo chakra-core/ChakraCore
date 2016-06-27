@@ -31,10 +31,10 @@ enum OpCodeAttrEnum
     OpTempObjectCanStoreTemp    = 0x00000100 | OpTempObjectProducing,  // OpCode can produce a temp value, and once marked, it will always produce a temp value so we can store other temp value in the object
 
     OpInlineCallInstr           = 0x00000200,
-    OpCallsValueOf              = 0x00000400, // Could have valueOf/ToString side-effect
+    OpOpndHasImplicitCall       = 0x00000400, // Evaluation/read/write of opnd may cause implicit call
     OpCallInstr                 = 0x00000800,
     OpDoNotTransfer             = 0x00001000,
-    OpHasImplicitCall           = 0x00002000, // Evaluating the src may call JS user code implicitly (getters/setters/valueof/tostring/DOM callbacks/etc)
+    OpHasImplicitCall           = 0x00002000, // Operation may cause implicit call not related to opnd evaluation
     OpFastFldInstr              = 0x00004000,
     OpBailOutRec                = 0x00008000,
 
@@ -150,9 +150,9 @@ bool InlineCallInstr(Js::OpCode opcode)
 {
     return ((GetOpCodeAttributes(opcode) & OpInlineCallInstr) != 0);
 }
-bool CallsValueOf(Js::OpCode opcode)
+bool OpndHasImplicitCall(Js::OpCode opcode)
 {
-    return ((GetOpCodeAttributes(opcode) & OpCallsValueOf) != 0);
+    return ((GetOpCodeAttributes(opcode) & OpOpndHasImplicitCall) != 0);
 }
 bool FastFldInstr(Js::OpCode opcode)
 {

@@ -3215,7 +3215,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
             bool isPreOpBailOutNeeded = false;
             if (argNum == 0)
             {
-                newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_Str);
+                newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
                 newInstr->SetSrc2(IR::AddrOpnd::New((Js::Var)_u("String.prototype.match"), IR::AddrOpndKindSz, newInstr->m_func));
@@ -3223,7 +3223,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
             }
             else if (argNum == 1)
             {
-                newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_Regex);
+                newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Regex);
                 isPreOpBailOutNeeded = true;
             }
             if (isPreOpBailOutNeeded)
@@ -3242,7 +3242,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
             bool isPreOpBailOutNeeded = false;
             if (argNum == 0)
             {
-                newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_Str);
+                newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
                 newInstr->SetSrc2(IR::AddrOpnd::New((Js::Var)_u("String.prototype.replace"), IR::AddrOpndKindSz, newInstr->m_func));
@@ -3250,7 +3250,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
             }
             if (argNum == 1)
             {
-                newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_StrOrRegex);
+                newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_StrOrRegex);
                 isPreOpBailOutNeeded = true;
             }
             if (isPreOpBailOutNeeded)
@@ -3268,7 +3268,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
             bool isPreOpBailOutNeeded = false;
             if (argNum == 0)
             {
-                newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_Regex);
+                newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Regex);
                 isPreOpBailOutNeeded = true;
             }
             else if (argNum == 1)

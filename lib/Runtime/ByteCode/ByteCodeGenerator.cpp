@@ -2942,6 +2942,11 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
     for (pnodeScope = pnodeScopeList; pnodeScope;)
     {
+        if (breakOnBodyScope && pnodeScope == pnodeParent->sxFnc.pnodeBodyScope)
+        {
+            break;
+        }
+
         switch (pnodeScope->nop)
         {
         case knopFncDecl:
@@ -3117,14 +3122,24 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
         {
             PreVisitCatch(pnodeScope, byteCodeGenerator);
 
-            Visit(pnodeScope->sxCatch.pnodeParam, byteCodeGenerator, prefix, postfix);
             if (pnodeScope->sxCatch.pnodeParam->nop == knopParamPattern)
             {
+                Parser::MapBindIdentifier(pnodeScope->sxCatch.pnodeParam->sxParamPattern.pnode1, [byteCodeGenerator](ParseNodePtr pnode)
+                {
+                    Assert(pnode->nop == knopLetDecl);
+                    pnode->sxVar.sym->SetLocation(byteCodeGenerator->NextVarRegister());
+                });
+
                 if (pnodeScope->sxCatch.pnodeParam->sxParamPattern.location == Js::Constants::NoRegister)
                 {
                     pnodeScope->sxCatch.pnodeParam->sxParamPattern.location = byteCodeGenerator->NextVarRegister();
                 }
             }
+            else
+            {
+                Visit(pnodeScope->sxCatch.pnodeParam, byteCodeGenerator, prefix, postfix);
+            }
+
             bool isMergedScope;
             pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxCatch.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxCatch.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
@@ -3151,11 +3166,6 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
         default:
             AssertMsg(false, "Unexpected opcode in tree of scopes");
             return;
-        }
-
-        if (breakOnBodyScope && pnodeScope == pnodeParent->sxFnc.pnodeBodyScope)
-        {
-            break;
         }
     }
 }

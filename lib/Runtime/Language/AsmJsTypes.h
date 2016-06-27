@@ -304,7 +304,8 @@ namespace Js
             TypedArrayBuiltinFunction,
             /*SIMDVariable,*/
             SIMDBuiltinFunction,
-            ModuleArgument
+            ModuleArgument,
+            ClosureFunction
         };
     private:
         // name of the symbol, all symbols must have unique names

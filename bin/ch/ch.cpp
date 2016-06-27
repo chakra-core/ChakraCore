@@ -45,6 +45,17 @@ LPCWSTR hostName = _u("ch.exe");
 LPCWSTR hostName = _u("ch");
 #endif
 
+JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
+
+BOOL doTTRecord = false;
+BOOL doTTDebug = false;
+char16* ttUri = nullptr;
+UINT32 snapInterval = MAXUINT32;
+UINT32 snapHistoryLength = MAXUINT32;
+
+const char16* dbgIPAddr = nullptr;
+unsigned short dbgPort = 0;
+
 extern "C"
 HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
 {
@@ -227,6 +238,11 @@ static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callback
     MessageQueue * messageQueue = (MessageQueue *)callbackState;
 
     WScriptJsrt::CallbackMessage *msg = new WScriptJsrt::CallbackMessage(0, task);
+
+#if ENABLE_TTD
+    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(true /*isCreate*/, false /*isCancel*/, false /*isRepeating*/, task, msg->GetId());
+#endif
+
     messageQueue->InsertSorted(msg);
 }
 
@@ -253,37 +269,109 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
 
     IfJsErrorFailLog(ChakraRTInterface::JsSetPromiseContinuationCallback(PromiseContinuationCallback, (void*)messageQueue));
 
-    Assert(fileContents != nullptr || bcBuffer != nullptr);
-
-    JsErrorCode runScript;
-    if (bcBuffer != nullptr)
+    if(strlen(fileName) >= 14 && strcmp(fileName + strlen(fileName) - 14, "ttdSentinal.js") == 0)
     {
-        runScript = ChakraRTInterface::JsRunSerializedScriptUtf8(
-            DummyJsSerializedScriptLoadUtf8Source, DummyJsSerializedScriptUnload,
-            bcBuffer,
-            reinterpret_cast<JsSourceContext>(fileContents),
-                // Use source ptr as sourceContext
-            fullPath, nullptr /*result*/);
-    }
-    else
-    {
-        runScript = ChakraRTInterface::JsRunScriptUtf8(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
-    }
-
-    if (runScript != JsNoError)
-    {
-        WScriptJsrt::PrintException(fileName, runScript);
-    }
-    else
-    {
-        // Repeatedly flush the message queue until it's empty. It is necessary to loop on this
-        // because setTimeout can add scripts to execute.
-        do
+#if !ENABLE_TTD
+        wprintf(_u("Sential js file is only ok when in TTDebug mode!!!\n"));
+        return E_FAIL;
+#else
+        if(!doTTDebug)
         {
-            IfFailGo(messageQueue->ProcessAll(fileName));
-        } while (!messageQueue->IsEmpty());
+            wprintf(_u("Sential js file is only ok when in TTDebug mode!!!\n"));
+            return E_FAIL;
+        }
+
+        ChakraRTInterface::JsTTDStartTimeTravelDebugging();
+
+        try
+        {
+            INT64 snapEventTime = -1;
+            INT64 nextEventTime = -2;
+
+            while(true)
+            {
+                IfJsErrorFailLog(ChakraRTInterface::JsTTDPrepContextsForTopLevelEventMove(chRuntime, nextEventTime, &snapEventTime));
+
+                ChakraRTInterface::JsTTDMoveToTopLevelEvent(snapEventTime, nextEventTime);
+
+                JsErrorCode res = ChakraRTInterface::JsTTDReplayExecution(&nextEventTime);
+
+                //handle any uncaught exception by immediately time-traveling to the throwing line
+                if(res == JsErrorCategoryScript)
+                {
+                    wprintf(_u("An unhandled script exception occoured!!!\n"));
+
+                    ExitProcess(0);
+                }
+
+                if(nextEventTime == -1)
+                {
+                    wprintf(_u("\nReached end of Execution -- Exiting.\n"));
+                    break;
+                }
+            }
+        }
+        catch(...)
+        {
+            wprintf(_u("Terminal exception in Replay -- exiting."));
+            ExitProcess(0);
+        }
+#endif
     }
+    else
+    {
+        Assert(fileContents != nullptr || bcBuffer != nullptr);
+
+        JsErrorCode runScript;
+        if(bcBuffer != nullptr)
+        {
+            runScript = ChakraRTInterface::JsRunSerializedScriptUtf8(
+                DummyJsSerializedScriptLoadUtf8Source, DummyJsSerializedScriptUnload,
+                bcBuffer,
+                reinterpret_cast<JsSourceContext>(fileContents),
+                // Use source ptr as sourceContext
+                fullPath, nullptr /*result*/);
+        }
+        else
+        {
+#if ENABLE_TTD
+            if(doTTRecord)
+            {
+                ChakraRTInterface::JsTTDStartTimeTravelRecording();
+            }
+
+            runScript = ChakraRTInterface::JsTTDRunScript(-1, fileContents, WScriptJsrt::GetNextSourceContext(), fullPathWide, nullptr /*result*/);
+#else
+            runScript = ChakraRTInterface::JsRunScriptUtf8(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+#endif
+        }
+
+        //Do a yield after the main script body executes
+        ChakraRTInterface::JsTTDNotifyYield();
+
+        if(runScript != JsNoError)
+        {
+            WScriptJsrt::PrintException(fileName, runScript);
+        }
+        else
+        {
+            // Repeatedly flush the message queue until it's empty. It is necessary to loop on this
+            // because setTimeout can add scripts to execute.
+            do
+            {
+                IfFailGo(messageQueue->ProcessAll(fileName));
+            } while(!messageQueue->IsEmpty());
+        }
+    }
+
 Error:
+#if ENABLE_TTD
+    if(doTTRecord)
+    {
+        ChakraRTInterface::JsTTDStopTimeTravelRecording();
+    }
+#endif
+
     if (messageQueue != nullptr)
     {
         messageQueue->RemoveAll();
@@ -326,6 +414,7 @@ HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, 
     // Bytecode buffer is created in one runtime and will be executed on different runtime.
 
     IfFailGo(CreateRuntime(&runtime));
+    chRuntime = runtime;
 
     IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
     IfJsErrorFailLog(ChakraRTInterface::JsGetCurrentContext(&current));
@@ -364,76 +453,142 @@ HRESULT ExecuteTest(const char* fileName)
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
     UINT lengthBytes = 0;
 
-    JsContextRef context = JS_INVALID_REFERENCE;
-
-    char fullPath[_MAX_PATH];
-    size_t len = 0;
-
-    hr = Helpers::LoadScriptFromFile(fileName, fileContents, &lengthBytes);
-
-    IfFailGo(hr);
-    if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
+    if(strlen(fileName) >= 14 && strcmp(fileName + strlen(fileName) - 14, "ttdSentinal.js") == 0)
     {
-        jsrtAttributes = (JsRuntimeAttributes)(jsrtAttributes | JsRuntimeAttributeSerializeLibraryByteCode);
-    }
-    IfFailGo(CreateRuntime(&runtime));
+#if !ENABLE_TTD
+        wprintf(_u("Sentinel js file is only ok when in TTDebug mode!!!\n"));
+        return E_FAIL;
+#else
+        if(!doTTDebug)
+        {
+            wprintf(_u("Sentinel js file is only ok when in TTDebug mode!!!\n"));
+            return E_FAIL;
+        }
 
-    if (HostConfigFlags::flags.DebugLaunch)
-    {
-        Debugger* debugger = Debugger::GetDebugger(runtime);
-        debugger->StartDebugging(runtime);
-    }
+        jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
 
-    IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
-    IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
+        chRuntime = runtime;
 
-#ifdef DEBUG
-    ChakraRTInterface::SetCheckOpHelpersFlag(true);
+        ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::GetTTDDirectory, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTGetLogStreamCallback, &Helpers::TTGetSnapshotStreamCallback, &Helpers::TTGetSrcCodeStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
+
+        JsContextRef context = JS_INVALID_REFERENCE;
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
+        IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+
+        IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr));
 #endif
-
-    if (!WScriptJsrt::Initialize())
-    {
-        IfFailGo(E_FAIL);
-    }
-
-    if (_fullpath(fullPath, fileName, _MAX_PATH) == nullptr)
-    {
-        IfFailGo(E_FAIL);
-    }
-
-    // canonicalize that path name to lower case for the profile storage
-    // REVIEW: Assuming no utf8 characters here
-    len = strlen(fullPath);
-    for (size_t i = 0; i < len; i++)
-    {
-        fullPath[i] = (char) tolower(fullPath[i]);
-    }
-
-    if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
-    {
-        if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
-        {
-            CHAR libraryName[_MAX_PATH];
-            CHAR ext[_MAX_EXT];
-            _splitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
-
-            IfFailGo(CreateLibraryByteCodeHeader(fileContents, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
-        }
-        else
-        {
-            fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
-            IfFailGo(E_FAIL);
-        }
-    }
-    else if (HostConfigFlags::flags.SerializedIsEnabled)
-    {
-        CreateAndRunSerializedScript(fileName, fileContents, fullPath);
     }
     else
     {
-        IfFailGo(RunScript(fileName, fileContents, nullptr, fullPath));
-    }
+        LPCOLESTR contentsRaw = nullptr;
 
+        char fullPath[_MAX_PATH];
+        size_t len = 0;
+
+        hr = Helpers::LoadScriptFromFile(fileName, fileContents, &lengthBytes);
+        contentsRaw; lengthBytes; // Unused for now.
+
+        IfFailGo(hr);
+        if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
+        {
+            jsrtAttributes = (JsRuntimeAttributes)(jsrtAttributes | JsRuntimeAttributeSerializeLibraryByteCode);
+        }
+
+#if ENABLE_TTD
+        if (doTTRecord)
+        {
+            //Ensure we run with experimental features (as that is what Node does right now).
+            jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
+
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, snapInterval, snapHistoryLength, nullptr, &runtime));
+            chRuntime = runtime;
+
+            ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::GetTTDDirectory, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTGetLogStreamCallback, &Helpers::TTGetSnapshotStreamCallback, &Helpers::TTGetSrcCodeStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
+
+            JsContextRef context = JS_INVALID_REFERENCE;
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
+            IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+        }
+        else
+        {
+            AssertMsg(!doTTDebug, "Should be handled in the else case above!!!");
+
+            IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
+            chRuntime = runtime;
+
+            if (HostConfigFlags::flags.DebugLaunch)
+            {
+                Debugger* debugger = Debugger::GetDebugger(runtime);
+                debugger->StartDebugging(runtime);
+            }
+
+            JsContextRef context = JS_INVALID_REFERENCE;
+            IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
+            IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+        }
+#else
+        IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
+        chRuntime = runtime;
+
+        if (HostConfigFlags::flags.DebugLaunch)
+        {
+            Debugger* debugger = Debugger::GetDebugger(runtime);
+            debugger->StartDebugging(runtime);
+        }
+
+        JsContextRef context = JS_INVALID_REFERENCE;
+        IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
+        IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+#endif
+
+#ifdef DEBUG
+        ChakraRTInterface::SetCheckOpHelpersFlag(true);
+#endif
+
+        if (!WScriptJsrt::Initialize())
+        {
+            IfFailGo(E_FAIL);
+        }
+
+        if (_fullpath(fullPath, fileName, _MAX_PATH) == nullptr)
+        {
+            IfFailGo(E_FAIL);
+        }
+
+        // canonicalize that path name to lower case for the profile storage
+        // REVIEW: Assuming no utf8 characters here
+        len = strlen(fullPath);
+        for (size_t i = 0; i < len; i++)
+        {
+            fullPath[i] = (char)tolower(fullPath[i]);
+        }
+
+        if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
+        {
+            if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
+            {
+                CHAR libraryName[_MAX_PATH];
+                CHAR ext[_MAX_EXT];
+                _splitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
+
+                IfFailGo(CreateLibraryByteCodeHeader(fileContents, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
+            }
+            else
+            {
+                fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
+                IfFailGo(E_FAIL);
+            }
+        }
+        else if (HostConfigFlags::flags.SerializedIsEnabled)
+        {
+            CreateAndRunSerializedScript(fileName, fileContents, fullPath);
+        }
+        else
+        {
+            IfFailGo(RunScript(fileName, fileContents, nullptr, fullPath));
+        }
+    }
 Error:
     if (Debugger::debugger != nullptr)
     {
@@ -518,6 +673,50 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         PrintUsage();
         PAL_Shutdown();
         return EXIT_FAILURE;
+    }
+
+    int cpos = 0;
+    for(int i = 0; i < argc; ++i)
+    {
+        if(wcsstr(argv[i], _u("-TTRecord:")) == argv[i])
+        {
+            doTTRecord = true;
+            ttUri = argv[i] + wcslen(_u("-TTRecord:"));
+        }
+        else if(wcsstr(argv[i], _u("-TTDebug:")) == argv[i])
+        {
+            doTTDebug = true;
+            ttUri = argv[i] + wcslen(_u("-TTDebug:"));
+        }
+        else if(wcsstr(argv[i], _u("-TTSnapInterval:")) == argv[i])
+        {
+            LPCWSTR intervalStr = argv[i] + wcslen(_u("-TTSnapInterval:"));
+            snapInterval = (UINT32)_wtoi(intervalStr);
+        }
+        else if(wcsstr(argv[i], _u("-TTHistoryLength:")) == argv[i])
+        {
+            LPCWSTR historyStr = argv[i] + wcslen(_u("-TTHistoryLength:"));
+            snapHistoryLength = (UINT32)_wtoi(historyStr);
+        }
+        else if(wcsstr(argv[i], _u("--debug-brk=")) == argv[i])
+        {
+            dbgIPAddr = _u("127.0.0.1");
+
+            LPCWSTR portStr = argv[i] + wcslen(_u("--debug-brk="));
+            dbgPort = (unsigned short)_wtoi(portStr);
+        }
+        else
+        {
+            argv[cpos] = argv[i];
+            cpos++;
+        }
+    }
+    argc = cpos;
+
+    if(doTTRecord & doTTDebug)
+    {
+        fwprintf(stderr, _u("Cannot run in record and debug at same time!!!"));
+        ExitProcess(0);
     }
 
     HostConfigFlags::pfnPrintUsage = PrintUsageFormat;

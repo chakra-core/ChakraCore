@@ -201,6 +201,12 @@ namespace Js
         virtual PropertyId const * GetSpecialPropertyIds() const override;
 
         static Js::JavascriptRegExp * BoxStackInstance(Js::JavascriptRegExp * instance);
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
 } // namespace Js

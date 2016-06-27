@@ -5139,9 +5139,9 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
             case Js::OpCode::ShrU_I4:
 
             case Js::OpCode::Conv_Str:
-            case Js::OpCode::Coerse_Str:
-            case Js::OpCode::Coerse_Regex:
-            case Js::OpCode::Coerse_StrOrRegex:
+            case Js::OpCode::Coerce_Str:
+            case Js::OpCode::Coerce_Regex:
+            case Js::OpCode::Coerce_StrOrRegex:
             case Js::OpCode::Conv_PrimStr:
 
             case Js::OpCode::Add_Ptr:

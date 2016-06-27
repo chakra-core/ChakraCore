@@ -1094,6 +1094,18 @@ StringCommon:
                 OUTPUT_TRACE(Js::PRNGPhase, _u("[PRNG:%x] INIT %I64x %I64x\n"), scriptContext, seed0, seed1);
 #endif
                 scriptContext->GetLibrary()->SetIsPRNGSeeded(true);
+
+#if ENABLE_TTD
+                if(scriptContext->ShouldPerformDebugAction())
+                {
+                    scriptContext->GetThreadContext()->TTDLog->ReplayExternalEntropyRandomEvent(&seed0, &seed1);
+                }
+
+                if(scriptContext->ShouldPerformRecordAction())
+                {
+                    scriptContext->GetThreadContext()->TTDLog->RecordExternalEntropyRandomEvent(seed0, seed1);
+                }
+#endif
             }
             else
             {

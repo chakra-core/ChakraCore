@@ -2638,5 +2638,4 @@ typedef unsigned char* ChakraBytePtr;
 #ifdef _WIN32
 #include "ChakraCommonWindows.h"
 #endif // _WIN32
-
 #endif // _CHAKRACOMMON_H_

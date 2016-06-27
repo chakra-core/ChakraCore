@@ -815,7 +815,7 @@ IRBuilder::Build()
                 else
                 {
                     IR::BailOutKind bailOutKind = c_debuggerBaseBailOutKindForHelper;
-                    if (OpCodeAttr::HasImplicitCall(newOpcode) || OpCodeAttr::CallsValueOf(newOpcode))
+                    if (OpCodeAttr::HasImplicitCall(newOpcode) || OpCodeAttr::OpndHasImplicitCall(newOpcode))
                     {
                         // When we get out of e.g. valueOf called by a helper (e.g. Add_A) during stepping,
                         // we need to bail out to continue debugging calling function in interpreter,

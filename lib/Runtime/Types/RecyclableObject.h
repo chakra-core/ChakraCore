@@ -382,6 +382,27 @@ namespace Js {
         static bool DumpObjectFunction(type_info const * typeinfo, bool isArray, void * objectAddress);
 #endif
 
+#if ENABLE_TTD
+    public:
+        //Do any additional marking that is needed for a TT snapshotable object
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+        {
+            ;
+        }
+
+        //Do the path processing for our "core path" computation to find wellknown objects in a brute force manner.
+        virtual void ProcessCorePaths()
+        {
+            ;
+        }
+
+        //Get the SnapObjectType tag that this object maps to
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const;
+
+        //Do the extraction of the SnapObject for each of the kinds of objects in the heap
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc);
+#endif
+
     private:
 
 #if DBG_EXTRAFIELD

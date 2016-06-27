@@ -104,7 +104,8 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
 
     # commit message
     $command = "$gitExe log -1 --name-status -p $commitHash"
-    $CommitMessage = iex $command
+    $CommitMessageLines = iex $command
+    $CommitMessage = $CommitMessageLines -join "`r`n"
 
     $changeTextFile = Join-Path -Path $outputDir -ChildPath "change.txt"
 
