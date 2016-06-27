@@ -19,7 +19,6 @@ JsrtDebugManager::JsrtDebugManager(ThreadContext* threadContext) :
     resumeAction(BREAKRESUMEACTION_CONTINUE),
     debugObjectArena(nullptr),
     debuggerObjectsManager(nullptr),
-    callBackDepth(0),
     debugDocumentManager(nullptr),
     stackFrames(nullptr),
     breakOnExceptionAttributes(JsDiagBreakOnExceptionAttributeUncaught)
@@ -335,26 +334,20 @@ void JsrtDebugManager::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::D
         AutoClear(JsrtDebugManager* jsrtDebug, void* dispatchHaltFrameAddress)
         {
             this->jsrtDebugManager = jsrtDebug;
-            jsrtDebugManager->callBackDepth++;
             this->jsrtDebugManager->GetThreadContext()->GetDebugManager()->SetDispatchHaltFrameAddress(dispatchHaltFrameAddress);
         }
 
         ~AutoClear()
         {
-            jsrtDebugManager->callBackDepth--;
-
-            if (jsrtDebugManager->callBackDepth == 0)
+            if (jsrtDebugManager->debuggerObjectsManager != nullptr)
             {
-                if (jsrtDebugManager->debuggerObjectsManager != nullptr)
-                {
-                    jsrtDebugManager->GetDebuggerObjectsManager()->ClearAll();
-                }
+                jsrtDebugManager->GetDebuggerObjectsManager()->ClearAll();
+            }
 
-                if (jsrtDebugManager->stackFrames != nullptr)
-                {
-                    Adelete(jsrtDebugManager->GetDebugObjectArena(), jsrtDebugManager->stackFrames);
-                    jsrtDebugManager->stackFrames = nullptr;
-                }
+            if (jsrtDebugManager->stackFrames != nullptr)
+            {
+                Adelete(jsrtDebugManager->GetDebugObjectArena(), jsrtDebugManager->stackFrames);
+                jsrtDebugManager->stackFrames = nullptr;
             }
             this->jsrtDebugManager->GetThreadContext()->GetDebugManager()->SetDispatchHaltFrameAddress(nullptr);
             this->jsrtDebugManager = nullptr;

@@ -795,56 +795,85 @@ JsrtDebugStackFrames::~JsrtDebugStackFrames()
     }
 }
 
+static int __cdecl DiagStackFrameSorter(void * dispatchHaltFrameAddress, const void * diagStackFrame1, const void * diagStackFrame2)
+{
+    const DWORD_PTR *p1 = reinterpret_cast<const DWORD_PTR*>(diagStackFrame1);
+    const DWORD_PTR *p2 = reinterpret_cast<const DWORD_PTR*>(diagStackFrame2);
+
+    Js::DiagStackFrame * pStackFrame1 = (Js::DiagStackFrame *)(*p1);
+    Js::DiagStackFrame * pStackFrame2 = (Js::DiagStackFrame *)(*p2);
+
+    DWORD_PTR stackAddress1 = pStackFrame1->GetStackAddress();
+    DWORD_PTR stackAddress2 = pStackFrame2->GetStackAddress();
+
+    return stackAddress1 > stackAddress2 ? 1 : -1;
+}
+
 Js::JavascriptArray * JsrtDebugStackFrames::StackFrames(Js::ScriptContext * scriptContext)
 {
-    Js::JavascriptArray* stackTraceArray = scriptContext->GetLibrary()->CreateArray();
-
-    if (this->framesDictionary == nullptr)
-    {
-        this->framesDictionary = Anew(this->jsrtDebugManager->GetDebugObjectArena(), FramesDictionary, this->jsrtDebugManager->GetDebugObjectArena(), 10);
-    }
-    else
-    {
-        this->framesDictionary->Clear();
-    }
-
-    uint frameCount = 0;
+    Js::JavascriptArray* stackTraceArray = nullptr;
 
     ThreadContext* threadContext = scriptContext->GetThreadContext();
 
     DWORD_PTR dispatchHaltFrameAddress = threadContext->GetDebugManager()->GetDispatchHaltFrameAddress();
-    AssertMsg(dispatchHaltFrameAddress, "Didn't set the dispatchHaltFrameAddress at time of break?");
+    AssertMsg(dispatchHaltFrameAddress > 0, "Didn't set the dispatchHaltFrameAddress at time of break?");
 
-    for (Js::ScriptContext *tempScriptContext = threadContext->GetScriptContextList();
-    tempScriptContext != nullptr && tempScriptContext->IsScriptContextInDebugMode();
-        tempScriptContext = tempScriptContext->next)
+    if (dispatchHaltFrameAddress != 0)
     {
-        Js::WeakDiagStack * framePointers = tempScriptContext->GetDebugContext()->GetProbeContainer()->GetFramePointers();
-        if (framePointers != nullptr)
+        if (this->framesDictionary == nullptr)
         {
-            Js::DiagStack* stackFrames = framePointers->GetStrongReference();
-            if (stackFrames != nullptr)
+            this->framesDictionary = Anew(this->jsrtDebugManager->GetDebugObjectArena(), FramesDictionary, this->jsrtDebugManager->GetDebugObjectArena(), 10);
+        }
+        else
+        {
+            this->framesDictionary->Clear();
+        }
+
+        typedef JsUtil::List<Js::DiagStackFrame*, ArenaAllocator> DiagStackFrameList;
+        DiagStackFrameList* stackList = Anew(this->jsrtDebugManager->GetDebugObjectArena(), DiagStackFrameList, this->jsrtDebugManager->GetDebugObjectArena(), 10);
+
+        // Walk all the script contexts and collect the frames which are below the address when break was reported.
+        for (Js::ScriptContext *tempScriptContext = threadContext->GetScriptContextList();
+        tempScriptContext != nullptr && tempScriptContext->IsScriptContextInDebugMode();
+            tempScriptContext = tempScriptContext->next)
+        {
+            Js::WeakDiagStack * framePointers = tempScriptContext->GetDebugContext()->GetProbeContainer()->GetFramePointers(dispatchHaltFrameAddress);
+            if (framePointers != nullptr)
             {
-                int count = stackFrames->Count();
-                for (int frameIndex = 0; frameIndex < count; ++frameIndex)
+                Js::DiagStack* stackFrames = framePointers->GetStrongReference();
+                if (stackFrames != nullptr)
                 {
-                    Js::DiagStackFrame* stackFrame = stackFrames->Peek(frameIndex);
-
-                    DWORD_PTR stackAddress = stackFrame->GetStackAddress();
-                    // Only give frames which were preset when break was triggered as we might have other user (non-library) scripts executed after break
-                    if (stackAddress >= dispatchHaltFrameAddress)
+                    int count = stackFrames->Count();
+                    for (int frameIndex = 0; frameIndex < count; ++frameIndex)
                     {
-                        Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, frameCount);
-
-                        Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
-                        Js::JavascriptOperators::OP_SetElementI((Js::Var)stackTraceArray, Js::JavascriptNumber::ToVar(frameCount++, scriptContext), marshaledObj, scriptContext);
+                        Js::DiagStackFrame* stackFrame = stackFrames->Peek(frameIndex);
+                        stackList->Add(stackFrame);
                     }
                 }
-            }
 
-            framePointers->ReleaseStrongReference();
-            HeapDelete(framePointers);
+                framePointers->ReleaseStrongReference();
+                HeapDelete(framePointers);
+            }
         }
+
+        // Frames can be from multiple contexts, sort them based on stack address
+        stackList->Sort(DiagStackFrameSorter, (void*)dispatchHaltFrameAddress);
+
+        stackTraceArray = scriptContext->GetLibrary()->CreateArray(stackList->Count(), stackList->Count());
+
+        stackList->Map([&](int index, Js::DiagStackFrame* stackFrame)
+        {
+            Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, index);
+            Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
+            stackTraceArray->DirectSetItemAt(index, marshaledObj);
+        });
+
+        Adelete(this->jsrtDebugManager->GetDebugObjectArena(), stackList);
+    }
+    else
+    {
+        // Empty array
+        stackTraceArray = scriptContext->GetLibrary()->CreateArray(0, 0);
     }
 
     return stackTraceArray;
