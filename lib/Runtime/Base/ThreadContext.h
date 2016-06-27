@@ -322,6 +322,7 @@ public:
         if (enableExperimentalFeatures)
         {
             EnableExperimentalFeatures();
+            ResetExperimentalFeaturesFromConfig();
         }
     }
 
@@ -352,7 +353,16 @@ private:
 
     void EnableExperimentalFeatures()
     {
-#define FLAG_REGOVR_EXP(type, name, ...) m_##name## = true;
+        // If a ES6 flag is disabled using compile flag don't enable it
+#define FLAG_REGOVR_EXP(type, name, ...) m_##name## = COMPILE_DISABLE_##name## ? false : true;
+#include "ConfigFlagsList.h"
+#undef FLAG_REGOVR_EXP
+    }
+
+    void ResetExperimentalFeaturesFromConfig()
+    {
+        // If a flag was overridden using config/command line it should take precedence
+#define FLAG_REGOVR_EXP(type, name, ...) if(CONFIG_ISENABLED(Js::Flag::##name##Flag)) { m_##name## = CONFIG_FLAG_RELEASE(##name##); }
 #include "ConfigFlagsList.h"
 #undef FLAG_REGOVR_EXP
     }
