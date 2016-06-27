@@ -136,25 +136,8 @@ namespace Js
 
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
-            NativeCodeData::DataChunk* chunk = NativeCodeData::GetDataChunk(this);
-            unsigned int pointerCount = chunk->len / sizeof(void*);
-            void** pointers = (void**)chunk;
-            bool isPropertyId = true;
-            for (unsigned int i = 0; i < pointerCount; i++)
-            {
-                if (isPropertyId) 
-                {
-                    continue;
-                }
-
-                if (pointers[i] == nullptr) // end of one entry
-                {
-                    isPropertyId = true;
-                    continue;
-                }
-
-                NativeCodeData::AddFixupEntry(pointers[i], &pointers[i], pointers, chunkList);
-            }
+            // OOP JIT does not use this data structure to transfer the Guards
+            Assert(false);
         }
     };
 

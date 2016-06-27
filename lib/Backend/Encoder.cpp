@@ -427,61 +427,64 @@ Encoder::Encode()
     // point to register each guard for invalidation.
     if (this->m_func->propertyGuardsByPropertyId != nullptr)
     {
-        Assert(!isSimpleJit);
+        if (!this->m_func->IsOOPJIT())
+        {
+            Assert(!isSimpleJit);
 
-        AssertMsg(!(PHASE_OFF(Js::ObjTypeSpecPhase, this->m_func) && PHASE_OFF(Js::FixedMethodsPhase, this->m_func)),
-            "Why do we have type guards if we don't do object type spec or fixed methods?");
+            AssertMsg(!(PHASE_OFF(Js::ObjTypeSpecPhase, this->m_func) && PHASE_OFF(Js::FixedMethodsPhase, this->m_func)),
+                "Why do we have type guards if we don't do object type spec or fixed methods?");
 
-        int propertyCount = this->m_func->propertyGuardsByPropertyId->Count();
-        Assert(propertyCount > 0);
+            int propertyCount = this->m_func->propertyGuardsByPropertyId->Count();
+            Assert(propertyCount > 0);
 
 #if DBG
-        int totalGuardCount = (this->m_func->singleTypeGuards != nullptr ? this->m_func->singleTypeGuards->Count() : 0)
-            + (this->m_func->equivalentTypeGuards != nullptr ? this->m_func->equivalentTypeGuards->Count() : 0);
-        Assert(totalGuardCount > 0);
-        Assert(totalGuardCount == this->m_func->indexedPropertyGuardCount);
+            int totalGuardCount = (this->m_func->singleTypeGuards != nullptr ? this->m_func->singleTypeGuards->Count() : 0)
+                + (this->m_func->equivalentTypeGuards != nullptr ? this->m_func->equivalentTypeGuards->Count() : 0);
+            Assert(totalGuardCount > 0);
+            Assert(totalGuardCount == this->m_func->indexedPropertyGuardCount);
 #endif
 
-        int guardSlotCount = 0;
-        this->m_func->propertyGuardsByPropertyId->Map([&guardSlotCount](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* set) -> void
-        {
-            guardSlotCount += set->Count();
-        });
-
-        size_t typeGuardTransferSize =                              // Reserve enough room for:
-            propertyCount * sizeof(Js::TypeGuardTransferEntry) +    //   each propertyId,
-            propertyCount * sizeof(Js::JitIndexedPropertyGuard*) +  //   terminating nullptr guard for each propertyId,
-            guardSlotCount * sizeof(Js::JitIndexedPropertyGuard*);  //   a pointer for each guard we counted above.
-
-        // The extra room for sizeof(Js::TypePropertyGuardEntry) allocated by HeapNewPlus will be used for the terminating invalid propertyId.
-        // Review (jedmiad): Skip zeroing?  This is heap allocated so there shouldn't be any false recycler references.
-        Js::TypeGuardTransferEntry* typeGuardTransferRecord = NativeCodeDataNewPlusZ(typeGuardTransferSize, m_func->GetNativeCodeDataAllocator(), Js::TypeGuardTransferEntry);
-
-        Func* func = this->m_func;
-
-        Js::TypeGuardTransferEntry* dstEntry = typeGuardTransferRecord;
-        this->m_func->propertyGuardsByPropertyId->Map([func, &dstEntry](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* srcSet) -> void
-        {
-            dstEntry->propertyId = propertyId;
-
-            int guardIndex = 0;
-
-            srcSet->Map([dstEntry, &guardIndex](Js::JitIndexedPropertyGuard* guard) -> void
+            int guardSlotCount = 0;
+            this->m_func->propertyGuardsByPropertyId->Map([&guardSlotCount](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* set) -> void
             {
-                dstEntry->guards[guardIndex++] = guard;
+                guardSlotCount += set->Count();
             });
 
-            dstEntry->guards[guardIndex++] = nullptr;
-            dstEntry = reinterpret_cast<Js::TypeGuardTransferEntry*>(&dstEntry->guards[guardIndex]);
-        });
-        dstEntry->propertyId = Js::Constants::NoProperty;
-        dstEntry++;
+            size_t typeGuardTransferSize =                              // Reserve enough room for:
+                propertyCount * sizeof(Js::TypeGuardTransferEntry) +    //   each propertyId,
+                propertyCount * sizeof(Js::JitIndexedPropertyGuard*) +  //   terminating nullptr guard for each propertyId,
+                guardSlotCount * sizeof(Js::JitIndexedPropertyGuard*);  //   a pointer for each guard we counted above.
 
-        Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(typeGuardTransferRecord) + typeGuardTransferSize + sizeof(Js::TypeGuardTransferEntry));
+            // The extra room for sizeof(Js::TypePropertyGuardEntry) allocated by HeapNewPlus will be used for the terminating invalid propertyId.
+            // Review (jedmiad): Skip zeroing?  This is heap allocated so there shouldn't be any false recycler references.
+            Js::TypeGuardTransferEntry* typeGuardTransferRecord = NativeCodeDataNewPlusZ(typeGuardTransferSize, m_func->GetNativeCodeDataAllocator(), Js::TypeGuardTransferEntry);
 
-        //TODO: OOP JIT need a way to pass back the jitTransferData and in main process it need to amend the reference to typeGuardTransferRecord
-        // or just have a allocation offset to locate the typeGuardTransferRecord
-        //entryPointInfo->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
+            Func* func = this->m_func;
+
+            Js::TypeGuardTransferEntry* dstEntry = typeGuardTransferRecord;
+            this->m_func->propertyGuardsByPropertyId->Map([func, &dstEntry](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* srcSet) -> void
+            {
+                dstEntry->propertyId = propertyId;
+
+                int guardIndex = 0;
+
+                srcSet->Map([dstEntry, &guardIndex](Js::JitIndexedPropertyGuard* guard) -> void
+                {
+                    dstEntry->guards[guardIndex++] = guard;
+                });
+
+                dstEntry->guards[guardIndex++] = nullptr;
+                dstEntry = reinterpret_cast<Js::TypeGuardTransferEntry*>(&dstEntry->guards[guardIndex]);
+            });
+            dstEntry->propertyId = Js::Constants::NoProperty;
+            dstEntry++;
+
+            Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(typeGuardTransferRecord) + typeGuardTransferSize + sizeof(Js::TypeGuardTransferEntry));
+
+            //TODO: OOP JIT need a way to pass back the jitTransferData and in main process it need to amend the reference to typeGuardTransferRecord
+            // or just have a allocation offset to locate the typeGuardTransferRecord
+            entryPointInfo->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
+        }
     }
 
     // Save all constructor caches on the JIT transfer data in a map keyed by property ID. We will use this map when installing the entry
