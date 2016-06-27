@@ -62,6 +62,8 @@ AutoSystemInfo::Initialize()
     Assert(!initialized);
 #ifndef _WIN32
     PAL_InitializeDLL();
+    majorVersion = CHAKRA_CORE_MAJOR_VERSION;
+    minorVersion = CHAKRA_CORE_MINOR_VERSION;
 #endif
 
     processHandle = GetCurrentProcess();
@@ -87,7 +89,7 @@ AutoSystemInfo::Initialize()
     dllHighAddress = (UINT_PTR)&__ImageBase +
         ((PIMAGE_NT_HEADERS)(((char *)&__ImageBase) + __ImageBase.e_lfanew))->OptionalHeader.SizeOfImage;
 #endif
-    
+
     InitPhysicalProcessorCount();
 #if DBG
     initialized = true;
@@ -102,7 +104,7 @@ AutoSystemInfo::Initialize()
     {
         disableDebugScopeCapture = false;
     }
-    
+
     this->shouldQCMoreFrequently = false;
     this->supportsOnlyMultiThreadedCOM = false;
     this->isLowMemoryDevice = false;

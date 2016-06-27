@@ -123,14 +123,14 @@
   </test>
   <test>
     <default>
-      <files>lastIndexOf.js</files>
-      <baseline>lastIndexOf.baseline</baseline>
+      <files>lastindexof.js</files>
+      <baseline>lastindexof.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
-      <files>indexOf.js</files>
-      <baseline>indexOf.baseline</baseline>
+      <files>indexof.js</files>
+      <baseline>indexof.baseline</baseline>
     </default>
   </test>
   <test>

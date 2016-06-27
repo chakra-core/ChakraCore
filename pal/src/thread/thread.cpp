@@ -354,6 +354,54 @@ THREADGetThreadProcessId(
 
 /*++
 Function:
+  GetThreadId
+
+See MSDN doc.
+--*/
+DWORD
+PALAPI
+GetThreadId(
+    HANDLE hThread
+    // UNIXTODO Should take pThread parameter here (modify callers)
+    )
+{
+    DWORD dwThreadId = 0;
+    CPalThread *pThread;
+    PAL_ERROR palError = NO_ERROR;
+    IPalObject *pobjThread = 0;
+
+    // TODO: not sure if this could be done in a more efficient way.
+    PERF_ENTRY(GetThreadId);
+    ENTRY("GetThreadId()\n");
+
+    pThread = InternalGetCurrentThread();
+
+    palError = InternalGetThreadDataFromHandle(
+        pThread,
+        hThread,
+        0,
+        0,
+        &pobjThread
+        );
+
+    if (NO_ERROR != palError)
+    {
+        dwThreadId = (DWORD)pThread->GetThreadId();
+    }
+
+    if (NULL != pobjThread)
+    {
+        pobjThread->ReleaseReference(pThread);
+    }
+
+    LOGEXIT("GetThreadId returns DWORD %#x\n", dwThreadId);
+    PERF_EXIT(GetThreadId);
+
+    return dwThreadId;
+}
+
+/*++
+Function:
   GetCurrentThreadId
 
 See MSDN doc.
@@ -2819,4 +2867,38 @@ void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
     *lowLimit = (ULONG_PTR) stackend;
     *highLimit = (ULONG_PTR) stackbase;
 #endif
+}
+
+#ifndef __APPLE__
+#define THREAD_LOCAL thread_local
+#else
+#define THREAD_LOCAL _Thread_local
+#endif
+static THREAD_LOCAL ULONG_PTR s_cachedThreadStackHighLimit = 0;
+
+bool IsAddressOnStack(ULONG_PTR address)
+{
+    // Assumption: Stack always grows, never shrinks and the high limit is stable
+    // Assumption: pthread_getattr_np is slow, so we need to cache the current stack
+    // bounds to speed up checking if a given address is on the stack
+    // The semantics of IsAddressOnStack is that we care if a given address is
+    // in the range of the current stack pointer
+    if (s_cachedThreadStackHighLimit == 0)
+    {
+        ULONG_PTR lowLimit, highLimit;
+        GetCurrentThreadStackLimits(&lowLimit, &highLimit);
+
+        s_cachedThreadStackHighLimit = highLimit;
+    }
+
+    ULONG_PTR currentStackPtr = 0;
+
+    asm("mov %%rsp, %0;":"=r"(currentStackPtr));
+
+    if (currentStackPtr <= address && address < s_cachedThreadStackHighLimit)
+    {
+        return true;
+    }
+
+    return false;
 }

@@ -200,28 +200,28 @@ namespace Js
         switch (argCount) {
         case 0:
             Assert(false);
-            ret = entryPoint(funcPtr, callInfo);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo);
             break;
         case 1:
-            ret = entryPoint(funcPtr, callInfo, instance);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance);
             break;
         case 2:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0]);
             break;
         case 3:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0], stackPtr[1]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1]);
             break;
         case 4:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2]);
             break;
         case 5:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3]);
             break;
         case 6:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4]);
             break;
         case 7:
-            ret = entryPoint(funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4], stackPtr[5]);
+            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4], stackPtr[5]);
             break;
         default: {
             // Don't need stack probe here- we just did so above

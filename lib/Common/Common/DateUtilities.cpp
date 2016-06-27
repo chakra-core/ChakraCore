@@ -6,7 +6,6 @@
 #define ENABLE_INTSAFE_SIGNED_FUNCTIONS 1
 #include <intsafe.h>
 
-#include "Common/DaylightTimeHelper.h"
 #include "Common/DateUtilities.h"
 #include "Common/Int64Math.h"
 
@@ -307,7 +306,7 @@ namespace Js
     /// We then use DayFromYear to adjust if necessary.
     ///------------------------------------------------------------------------------
     void
-    DateUtilities::GetYmdFromTv(double tv, Js::YMD *pymd)
+    DateUtilities::GetYmdFromTv(double tv, DateTime::YMD *pymd)
     {
 //      AssertMem(pymd);
 

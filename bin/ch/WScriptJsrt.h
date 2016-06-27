@@ -58,14 +58,14 @@ public:
     }
 
     static bool PrintException(LPCSTR fileName, JsErrorCode jsErrorCode);
-    static JsValueRef LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule);
+    static JsValueRef LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fileContent, LPCSTR scriptInjectType, bool isSourceModule);
     static DWORD_PTR GetNextSourceContext();
     static JsValueRef LoadScriptFileHelper(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, bool isSourceModule);
     static JsValueRef LoadScriptHelper(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState, bool isSourceModule);
-    static bool InstallObjectsOnObject(JsValueRef object, const char16* name, JsNativeFunction nativeFunction);
+    static bool InstallObjectsOnObject(JsValueRef object, const char* name, JsNativeFunction nativeFunction);
 private:
     static bool CreateArgumentsObject(JsValueRef *argsObject);
-    static bool CreateNamedFunction(const char16*, JsNativeFunction callback, JsValueRef* functionVar);
+    static bool CreateNamedFunction(const char*, JsNativeFunction callback, JsValueRef* functionVar);
     static JsValueRef __stdcall EchoCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall QuitCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall LoadModuleFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);

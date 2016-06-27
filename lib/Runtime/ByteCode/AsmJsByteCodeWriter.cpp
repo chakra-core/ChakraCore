@@ -315,7 +315,7 @@ namespace Js
     {
         OpLayoutT_AsmCall<SizePolicy> layout;
         if (SizePolicy::Assign(layout.Return, returnValueRegister) && SizePolicy::Assign(layout.Function, functionRegister)
-            && SizePolicy::Assign(layout.ArgCount, givenArgCount) && SizePolicy::Assign<int8>(layout.ReturnType, (int8)retType.which()))
+            && SizePolicy::Assign(layout.ArgCount, givenArgCount) && SizePolicy::template Assign<int8>(layout.ReturnType, (int8)retType.which()))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
             return true;
@@ -340,7 +340,7 @@ namespace Js
     bool AsmJsByteCodeWriter::TryWriteAsmTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType)
     {
         OpLayoutT_AsmTypedArr<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::Assign<int8>(layout.ViewType, (int8)viewType)
+        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<int8>(layout.ViewType, (int8)viewType)
             && SizePolicy::Assign(layout.SlotIndex, slotIndex))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
@@ -353,8 +353,8 @@ namespace Js
     bool AsmJsByteCodeWriter::TryWriteAsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType)
     {
         OpLayoutT_AsmSimdTypedArr<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::Assign<int8>(layout.ViewType, (int8)viewType)
-            && SizePolicy::Assign(layout.SlotIndex, slotIndex) && SizePolicy::Assign<int8>(layout.DataWidth, dataWidth))
+        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<int8>(layout.ViewType, (int8)viewType)
+            && SizePolicy::Assign(layout.SlotIndex, slotIndex) && SizePolicy::template Assign<int8>(layout.DataWidth, dataWidth))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
             return true;

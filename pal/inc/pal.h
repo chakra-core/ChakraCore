@@ -68,7 +68,6 @@ extern "C" {
 
 #endif
 
-#include <pal_char16.h>
 #include <pal_error.h>
 #include <pal_mstypes.h>
 
@@ -1738,6 +1737,12 @@ DWORD
 PALAPI
 GetCurrentThreadId(
            VOID);
+
+PALIMPORT
+DWORD
+PALAPI
+GetThreadId(
+    HANDLE hThread);
 
 // To work around multiply-defined symbols in the Carbon framework.
 #define GetCurrentThread PAL_GetCurrentThread
@@ -6113,6 +6118,7 @@ CoCreateGuid(OUT GUID * pguid);
 #define wcscat        PAL_wcscat
 #define wcscpy        PAL_wcscpy
 #define wcslen        PAL_wcslen
+#define wmemcmp       PAL_wmemcmp
 #define wcsncmp       PAL_wcsncmp
 #define wcschr        PAL_wcschr
 #define wcsrchr       PAL_wcsrchr
@@ -6143,8 +6149,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define vfprintf      PAL_vfprintf
 #define vfwprintf     PAL_vfwprintf
 #define ctime         PAL_ctime
-#define localtime     PAL_localtime
-#define mktime        PAL_mktime
 #define rand          PAL_rand
 #define getenv        PAL_getenv
 #define fgets         PAL_fgets
@@ -6178,7 +6182,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define labs          PAL_labs
 #define log           PAL_log
 #define log10         PAL_log10
-#define pow           PAL_pow
 #define malloc        PAL_malloc
 #define free          PAL_free
 #define mkstemp       PAL_mkstemp
@@ -6288,6 +6291,7 @@ PALIMPORT WCHAR * __cdecl _ltow(long, WCHAR *, int);
 
 PALIMPORT size_t __cdecl PAL_wcslen(const WCHAR *);
 PALIMPORT int __cdecl PAL_wcscmp(const WCHAR*, const WCHAR*);
+PALIMPORT int __cdecl PAL_wmemcmp(const WCHAR *, const WCHAR *, size_t);
 PALIMPORT int __cdecl PAL_wcsncmp(const WCHAR *, const WCHAR *, size_t);
 PALIMPORT WCHAR * __cdecl PAL_wcscat(WCHAR *, const WCHAR *);
 PALIMPORT WCHAR * __cdecl PAL_wcsncat(WCHAR *, const WCHAR *, size_t);
@@ -6389,7 +6393,6 @@ PALIMPORT double __cdecl sqrt(double);
 PALIMPORT double __cdecl log(double);
 PALIMPORT double __cdecl log10(double);
 PALIMPORT double __cdecl exp(double);
-PALIMPORT double __cdecl pow(double, double);
 PALIMPORT double __cdecl acos(double);
 PALIMPORT double __cdecl asin(double);
 PALIMPORT double __cdecl atan(double);
@@ -6486,8 +6489,6 @@ struct tm {
         int tm_isdst;   /* daylight savings time flag */
         };
 
-PALIMPORT struct tm * __cdecl localtime(const time_t *);
-PALIMPORT time_t __cdecl mktime(struct tm *);
 PALIMPORT char * __cdecl ctime(const time_t *);
 #endif // !PAL_STDCPP_COMPAT
 

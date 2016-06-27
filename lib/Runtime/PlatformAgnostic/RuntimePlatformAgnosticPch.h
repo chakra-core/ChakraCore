@@ -41,7 +41,7 @@ namespace Js
 class Throw
 {
 public:
-    static bool ReportAssert(char* fileName, unsigned int lineNumber, char* error, char* message);
+    static bool ReportAssert(const char* fileName, unsigned int lineNumber, const char* error, const char* message);
     static void LogAssert();
 };
 }

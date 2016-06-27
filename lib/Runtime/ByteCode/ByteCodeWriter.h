@@ -74,7 +74,7 @@ namespace Js
             bool fixedGrowthPolicy;
 
             inline uint Write(__in_bcount(byteSize) const void* data, __in uint byteSize);
-            __declspec(noinline) void SlowWrite(__in_bcount(byteSize) const void* data, __in uint byteSize);
+            _NOINLINE void SlowWrite(__in_bcount(byteSize) const void* data, __in uint byteSize);
             void AddChunk(uint byteSize);
 
         public:
@@ -106,7 +106,7 @@ namespace Js
             // asm.js encoding
             uint Encode(OpCodeAsmJs op, ByteCodeWriter* writer){ return EncodeT<Js::SmallLayout>(op, writer, /*isPatching*/false); }
             uint Encode(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false){ return EncodeT<Js::SmallLayout>(op, rawData, byteSize, writer, isPatching); }
-            template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching = false);
+            template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
             template <> uint EncodeT<SmallLayout>(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching);
             template <LayoutSize layoutSize> uint EncodeT(OpCodeAsmJs op, const void * rawData, int byteSize, ByteCodeWriter* writer, bool isPatching = false);
 

@@ -1142,7 +1142,7 @@ namespace Js
 
     double Math::Log2(double x, ScriptContext* scriptContext)
     {
-#ifdef WHEN_UCRT_IS_LINKED_IN_BUILD
+#if defined(WHEN_UCRT_IS_LINKED_IN_BUILD) || !defined(_WIN32)
         return ::log2( x );
 #else
         // TODO: THE FALLBACK IS NOT ACCURATE; Universal CRT is available on Threshold so we should never fallback but ideally we would link at build time to these APIs instead of loading them at runtime
@@ -1173,7 +1173,7 @@ namespace Js
         {
             double x = JavascriptConversion::ToNumber(args[1], scriptContext);
 
-#ifdef WHEN_UCRT_IS_LINKED_IN_BUILD
+#if defined(WHEN_UCRT_IS_LINKED_IN_BUILD) || !defined(_WIN32)
             double result = ::log1p(x);
 #else
             // TODO: THE FALLBACK IS NOT ACCURATE; Universal CRT is available on Threshold so we should never fallback but ideally we would link at build time to these APIs instead of loading them at runtime
@@ -1210,7 +1210,7 @@ namespace Js
         {
             double x = JavascriptConversion::ToNumber(args[1], scriptContext);
 
-#ifdef WHEN_UCRT_IS_LINKED_IN_BUILD
+#if defined(WHEN_UCRT_IS_LINKED_IN_BUILD) || !defined(_WIN32)
             double result = ::expm1(x);
 #else
             // TODO: THE FALLBACK IS NOT ACCURATE; Universal CRT is available on Threshold so we should never fallback but ideally we would link at build time to these APIs instead of loading them at runtime
@@ -1334,7 +1334,7 @@ namespace Js
         {
             double x = JavascriptConversion::ToNumber(args[1], scriptContext);
 
-#ifdef WHEN_UCRT_IS_LINKED_IN_BUILD
+#if defined(WHEN_UCRT_IS_LINKED_IN_BUILD) || !defined(_WIN32)
             double result = ::acosh(x);
 
             return JavascriptNumber::ToVarNoCheck(result, scriptContext);
@@ -1385,7 +1385,7 @@ namespace Js
         {
             double x = JavascriptConversion::ToNumber(args[1], scriptContext);
 
-#ifdef WHEN_UCRT_IS_LINKED_IN_BUILD
+#if defined(WHEN_UCRT_IS_LINKED_IN_BUILD) || !defined(_WIN32)
             double result = ::asinh(x);
 
             return JavascriptNumber::ToVarNoCheck(result, scriptContext);
@@ -1432,7 +1432,7 @@ namespace Js
         {
             double x = JavascriptConversion::ToNumber(args[1], scriptContext);
 
-#ifdef WHEN_UCRT_IS_LINKED_IN_BUILD
+#if defined(WHEN_UCRT_IS_LINKED_IN_BUILD) || !defined(_WIN32)
             double result = ::atanh(x);
 
             return JavascriptNumber::ToVarNoCheck(result, scriptContext);
@@ -1605,7 +1605,7 @@ namespace Js
         {
             double x = JavascriptConversion::ToNumber(args[1], scriptContext);
 
-#ifdef WHEN_UCRT_IS_LINKED_IN_BUILD
+#if defined(WHEN_UCRT_IS_LINKED_IN_BUILD) || !defined(_WIN32)
             double result = ::trunc(x);
 #else
             // TODO: THE FALLBACK IS NOT ACCURATE; Universal CRT is available on Threshold so we should never fallback but ideally we would link at build time to these APIs instead of loading them at runtime
@@ -1680,7 +1680,7 @@ namespace Js
         {
             double x = JavascriptConversion::ToNumber(args[1], scriptContext);
 
-#ifdef WHEN_UCRT_IS_LINKED_IN_BUILD
+#if defined(WHEN_UCRT_IS_LINKED_IN_BUILD) || !defined(_WIN32)
             double result = ::cbrt(x);
 #else
             // TODO: THE FALLBACK IS NOT ACCURATE; Universal CRT is available on Threshold so we should never fallback but ideally we would link at build time to these APIs instead of loading them at runtime

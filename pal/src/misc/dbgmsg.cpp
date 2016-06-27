@@ -801,7 +801,7 @@ Function:
 
     Wires up stack alignment checks (debug builds only)
 --*/
-static const char * PAL_CHECK_ALIGNMENT_MODE PAL_GLOBAL = "PAL_CheckAlignmentMode";
+#define PAL_CHECK_ALIGNMENT_MODE "PAL_CheckAlignmentMode"
 enum CheckAlignmentMode
 {
     // special value to indicate we've not initialized yet

@@ -109,7 +109,7 @@ namespace Js
 
 #if _M_X64
     // for amd64 jit frame, RtlCaptureStackBackTrace stops walking after hitting jit frame on amd64
-    __declspec(noinline)
+    _NOINLINE
         WORD StackTrace64(_In_ DWORD FramesToSkip,
         _In_ DWORD FramesToCapture,
         _Out_writes_to_(FramesToCapture, return) PVOID * BackTrace,
@@ -349,7 +349,7 @@ namespace Js
     const auto& globalFlags = Js::Configuration::Global.flags;
     PVOID FaultInjection::vectoredExceptionHandler = nullptr;
     DWORD FaultInjection::exceptionFilterRemovalLastError = 0;
-    int(*Js::FaultInjection::pfnHandleAV)(int, PEXCEPTION_POINTERS) = nullptr;
+    __declspec(thread) int(*Js::FaultInjection::pfnHandleAV)(int, PEXCEPTION_POINTERS) = nullptr;
     static SymbolInfoPackage sip;
     static ModuleInfo mi;
 
@@ -936,7 +936,7 @@ namespace Js
     // !list -t jscript9test!Js::FaultInjection::InjectionRecord.next -e -x "dps @$extret @$extret+0x128" poi(@@c++(&jscript9test!Js::FaultInjection::Global.InjectionFirstRecord))
     // to rebuild the stack (locals are available)
     // .cxr @@C++(&jscript9test!Js::FaultInjection::Global.InjectionFirstRecord->Context)
-    __declspec(noinline) void FaultInjection::dumpCurrentStackData(LPCWSTR name /*= nullptr*/, size_t size /*= 0*/)
+    _NOINLINE void FaultInjection::dumpCurrentStackData(LPCWSTR name /*= nullptr*/, size_t size /*= 0*/)
     {
 
 #if !defined(_M_ARM32_OR_ARM64)

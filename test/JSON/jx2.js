@@ -187,7 +187,6 @@ function repf(key, value) {
 
 var objectArray = [
 { obj: "SampleTest", desc: "String simple" },
-{ obj: "/test ze\0ro\vString\n_u4:\u0061_u2:\xbc_u1:\x0e_u2clean:\x8f", desc: "String complex" },
 { obj: 1,           desc: "Number(1)" },
 { obj: num,         desc: "Number(1234)" },
 { obj: 3.14,        desc: "Number(3.14)" },
@@ -257,6 +256,38 @@ for (var i = 0; i < objectArray.length; i++) {
     }
 }
 
+function checkStrEqual(str1, str2)
+{
+    if (str1 === str2)
+    {
+        write("PASS");
+    }
+    else
+    {
+        write("FAIL");
+        write(str1);
+        write(str2);
+    }
+}
+
+var complexStr = "/test ze\0ro\vString\n_u4:\u0061_u2:\xbc_u1:\x0e_u2clean:\x8f";
+var expectedString = "\"/test ze\\u0000ro\\u000bString\\n_u4:a_u2:¼_u1:\\u000e_u2clean:\\"";
+
+write("");
+write("------ JSON test stringify: complex string  ------");
+stringifiedObj = JSON.stringify(complexStr);
+checkStrEqual(stringifiedObj, expectedString);
+
+parsedObj = JSON.parse(stringifiedObj);
+reStringified = JSON.stringify(parsedObj);
+write("=== Parsed and restringified :")
+checkStrEqual(reStringified, expectedString);
+
+parsedObj = JSON.parse(stringifiedObj, rev2);
+reStringified = JSON.stringify(parsedObj);
+write("=== Parsed with reviver and restringified :")
+checkStrEqual(reStringified, expectedString);
+
 for (var k = 0; k < replacerArray.length; k++) {
     for (var j = 0; j < spaceArray.length; j++) {
         write("");
@@ -282,6 +313,20 @@ for (var k = 0; k < replacerArray.length; k++) {
                 write("!!Exception: " + e);
             }
         }
+
+        write("");
+        write("------ JSON test stringify: complex string 2  ------");
+        stringifiedObj = JSON.stringify(complexStr, replacerArray[k].obj, spaceArray[j].obj);
+        checkStrEqual(stringifiedObj, expectedString);
+        parsedObj = JSON.parse(stringifiedObj);
+        reStringified = JSON.stringify(parsedObj);
+        write("=== Parsed with no reviver and restringified :")
+        
+        checkStrEqual(reStringified, expectedString);
+        parsedObj = JSON.parse(stringifiedObj, rev2);
+        reStringified = JSON.stringify(parsedObj);
+        write("=== Parsed with reviver2 and restringified :")
+        checkStrEqual(reStringified, expectedString);
     }
 }
 

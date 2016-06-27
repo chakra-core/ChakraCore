@@ -28,11 +28,19 @@
 #endif
 #endif
 
-// #include "static_assert.h"
-
-#ifndef NO_PAL_TYPE_TRAITS
-#include "inc/pal_type_traits"
+// CC uses both char16_t and wchar_t internally
+#if defined(__cplusplus)
+#undef wchar_t
+#define wchar_t void*
 #endif
+
+#include <type_traits>
+
+#if defined(__cplusplus)
+#undef wchar_t
+#define wchar_t __wchar_16_cpp__
+typedef char16_t wchar_t;
+#endif // __cplusplus
 
 //==================================================================
 // Semantics: if val can be represented as the exact same value

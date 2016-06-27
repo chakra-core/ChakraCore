@@ -2660,7 +2660,7 @@ GlobOpt::OptNewScObject(IR::Instr** instrPtr, Value* srcVal)
 
     if (!instr->IsNewScObjectInstr())
     {
-        return false;
+        return nullptr;
     }
 
     bool isCtorInlined = instr->m_opcode == Js::OpCode::NewScObjectNoCtor;

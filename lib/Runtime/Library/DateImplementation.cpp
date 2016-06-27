@@ -111,13 +111,6 @@ namespace Js {
     };
     const int32 kcszs = sizeof(g_rgszs) / sizeof(SZS);
 
-    // Moved DaylightTimeHelper to common.lib to share with hybrid debugging, but this function depends on runtime.
-    bool DaylightTimeHelper::ForceOldDateAPIFlag()
-    {
-        // The following flag was added to support Date unit test on win7.
-        return CONFIG_ISENABLED(Js::ForceOldDateAPIFlag);
-    }
-
     ///----------------------------------------------------------------------------
     ///----------------------------------------------------------------------------
     ///
@@ -151,44 +144,31 @@ namespace Js {
     double
     DateImplementation::NowFromHiResTimer(ScriptContext* scriptContext)
     {
-        // xplat-todo: Implement Hi-Res timer on Linux
-#ifdef _WIN32
         // Use current time.
         return scriptContext->GetThreadContext()->GetHiResTimer()->Now();
-#else
-        Js::Throw::NotImplemented();
-#endif
     }
 
     double
     DateImplementation::NowInMilliSeconds(ScriptContext * scriptContext)
     {
-        // xplat-todo: Implement Hi-Res timer on Linux
-#ifdef _WIN32
         return DoubleToTvUtc(DateImplementation::NowFromHiResTimer(scriptContext));
-#else
-        Js::Throw::NotImplemented();
-#endif
     }
 
     JavascriptString*
     DateImplementation::GetString(DateStringFormat dsf, DateTimeFlag noDateTime)
     {
-        // xplat-todo: Implement this for
-        // GetDateDefaultString/GetDateLocaleString on Linux
         if (JavascriptNumber::IsNan(m_tvUtc))
         {
             return m_scriptContext->GetLibrary()->GetInvalidDateString();
         }
-        // xplat-todo: Implement this for
-        // GetDateDefaultString/GetDateLocaleString on Linux
-#ifdef _WIN32
+
         switch (dsf)
          {
             default:
                 EnsureYmdLcl();
                 return GetDateDefaultString(&m_ymdLcl, &m_tzd, noDateTime, m_scriptContext);
 
+#ifdef ENABLE_GLOBALIZATION
             case DateStringFormat::Locale:
                 EnsureYmdLcl();
 
@@ -211,14 +191,12 @@ namespace Js {
                 {
                     return GetDateDefaultString(&m_ymdLcl, &m_tzd, noDateTime, m_scriptContext);
                 }
+#endif
 
             case DateStringFormat::GMT:
                 EnsureYmdUtc();
                 return GetDateGmtString(&m_ymdUtc, m_scriptContext);
         }
-#else
-        Js::Throw::NotImplemented();
-#endif
     }
 
     JavascriptString*
@@ -371,7 +349,7 @@ namespace Js {
     DateImplementation::ConvertVariantDateToString(double dbl, ScriptContext* scriptContext)
     {
         Js::DateImplementation::TZD tzd;
-        Js::YMD ymd;
+        DateTime::YMD ymd;
         double tv = Js::DateImplementation::GetTvUtc(Js::DateImplementation::JsLocalTimeFromVarDate(dbl), scriptContext);
 
         tv = Js::DateImplementation::GetTvLcl(tv, scriptContext, &tzd);
@@ -382,17 +360,11 @@ namespace Js {
 
         Js::DateImplementation::GetYmdFromTv(tv, &ymd);
 
-        // xplat-todo: Implement GetDeteDefaultString functions on Linux
-#ifdef _WIN32
         return DateImplementation::GetDateDefaultString(&ymd, &tzd, 0, scriptContext);
-#else
-        Js::Throw::NotImplemented();
-#endif
     }
 
-#ifdef ENABLE_GLOBALIZATION
     JavascriptString*
-    DateImplementation::GetDateDefaultString(Js::YMD *pymd, TZD *ptzd,DateTimeFlag noDateTime,ScriptContext* scriptContext)
+    DateImplementation::GetDateDefaultString(DateTime::YMD *pymd, TZD *ptzd,DateTimeFlag noDateTime,ScriptContext* scriptContext)
     {
         return GetDateDefaultString<CompoundString>(pymd, ptzd, noDateTime, scriptContext,
             [=](CharCount capacity) -> CompoundString*
@@ -400,10 +372,9 @@ namespace Js {
             return CompoundString::NewWithCharCapacity(capacity, scriptContext->GetLibrary());
         });
     }
-#endif // ENABLE_GLOBALIZATION
 
     JavascriptString*
-    DateImplementation::GetDateGmtString(Js::YMD *pymd,ScriptContext* scriptContext)
+    DateImplementation::GetDateGmtString(DateTime::YMD *pymd,ScriptContext* scriptContext)
     {
         // toUTCString() or toGMTString() will return for example:
         //  "Thu, 02 Feb 2012 09:02:03 GMT" for versions IE11 or above
@@ -459,7 +430,7 @@ namespace Js {
 
 #ifdef ENABLE_GLOBALIZATION
     JavascriptString*
-    DateImplementation::GetDateLocaleString(Js::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime,ScriptContext* scriptContext)
+    DateImplementation::GetDateLocaleString(DateTime::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime,ScriptContext* scriptContext)
     {
         SYSTEMTIME st;
         int cch;
@@ -594,7 +565,7 @@ Error:
     double
     DateImplementation::GetDateData(DateData dd, bool fUtc, ScriptContext* scriptContext)
     {
-        Js::YMD *pymd;
+        DateTime::YMD *pymd;
         double value = 0;
 
         if (JavascriptNumber::IsNan(m_tvUtc))
@@ -1669,8 +1640,8 @@ LError:
         double rgdbl[5];
 
         double tv = 0;
-        Js::YMD *pymd = NULL;
-        Js::YMD emptyYMD = {0};
+        DateTime::YMD *pymd = NULL;
+        DateTime::YMD emptyYMD = {0};
         uint count = 0;
 
         uint cvarMax;

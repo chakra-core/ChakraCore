@@ -129,13 +129,6 @@ J*************************** JSON test stringify - simple, no space, not replace
 === Parsed with reviver and restringified :
 "SampleTest"
 
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-
 ------ JSON test stringify: Number(1)  ------
 1
 === Parsed and restringified :
@@ -251,6 +244,13 @@ true
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{"intMember":3,"strMember":"string_member_in_object"},null,null,null,["NestedArray_1stParamString",3.14,{"a":"nested object in array","c":true},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 === Parsed with reviver and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{"intMember":3,"strMember":"string_member_in_object"},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array","c":99},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
+
+------ JSON test stringify: complex string  ------
+PASS
+=== Parsed and restringified :
+PASS
+=== Parsed with reviver and restringified :
+PASS
 
 
 
@@ -263,13 +263,6 @@ true
 === Parsed with reviver2 and restringified :
 "SampleTest"
 
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-
 ------ JSON test stringify: Number(1)  ------
 1
 === Parsed with no reviver and restringified :
@@ -386,6 +379,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{"intMember":3,"strMember":"string_member_in_object"},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array","c":99},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: null space: number 4 *********************** 
@@ -396,13 +396,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -579,6 +572,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{"intMember":3,"strMember":"string_member_in_object"},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array","c":99},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: null space: number 24 *********************** 
@@ -589,13 +589,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -772,6 +765,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{"intMember":3,"strMember":"string_member_in_object"},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array","c":99},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: null space: string : ........................ *********************** 
@@ -782,13 +782,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -953,6 +946,13 @@ true
 ]
 !!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: array replacer: [] space: null *********************** 
@@ -963,13 +963,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -1087,6 +1080,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",null,{},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: array replacer: [] space: number 4 *********************** 
@@ -1097,13 +1097,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -1243,6 +1236,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",null,{},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: array replacer: [] space: number 24 *********************** 
@@ -1253,13 +1253,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -1399,6 +1392,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",null,{},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: array replacer: [] space: string : ........................ *********************** 
@@ -1409,13 +1409,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -1549,6 +1542,13 @@ true
 ]
 !!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: array replacer: ["a","b"] space: null *********************** 
@@ -1559,13 +1559,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -1682,6 +1675,13 @@ true
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",3.14,{"a":"nested object in array"},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array"},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
+
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
 
 
 
@@ -1694,13 +1694,6 @@ true
 === Parsed with reviver2 and restringified :
 "SampleTest"
 
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-
 ------ JSON test stringify: Number(1)  ------
 1
 === Parsed with no reviver and restringified :
@@ -1848,6 +1841,13 @@ true
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",3.14,{"a":"nested object in array"},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array"},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
+
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
 
 
 
@@ -1860,13 +1860,6 @@ true
 === Parsed with reviver2 and restringified :
 "SampleTest"
 
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-
 ------ JSON test stringify: Number(1)  ------
 1
 === Parsed with no reviver and restringified :
@@ -2015,6 +2008,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array"},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: array replacer: ["a","b"] space: string : ........................ *********************** 
@@ -2025,13 +2025,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -2172,6 +2165,13 @@ true
 ]
 !!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: array replacer: ["a","b","a","a"] space: null *********************** 
@@ -2182,13 +2182,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -2306,6 +2299,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array"},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: array replacer: ["a","b","a","a"] space: number 4 *********************** 
@@ -2316,13 +2316,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -2472,6 +2465,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array"},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: array replacer: ["a","b","a","a"] space: number 24 *********************** 
@@ -2482,13 +2482,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -2638,6 +2631,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array"},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: array replacer: ["a","b","a","a"] space: string : ........................ *********************** 
@@ -2648,13 +2648,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -2795,6 +2788,13 @@ true
 ]
 !!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: replacer function, if the key is 'a' and the holder has a prop 'b', replace the value of the prop 'a' with the value of prop b  space: null *********************** 
@@ -2805,13 +2805,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -2929,6 +2922,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{"intMember":3,"strMember":"string_member_in_object"},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array","c":99},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: replacer function, if the key is 'a' and the holder has a prop 'b', replace the value of the prop 'a' with the value of prop b  space: number 4 *********************** 
@@ -2939,13 +2939,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -3126,6 +3119,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{"intMember":3,"strMember":"string_member_in_object"},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array","c":99},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: replacer function, if the key is 'a' and the holder has a prop 'b', replace the value of the prop 'a' with the value of prop b  space: number 24 *********************** 
@@ -3136,13 +3136,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -3323,6 +3316,13 @@ true
 === Parsed with reviver2 and restringified :
 ["document.location","foolish",12.3,"2008-10-09T07:00:00.000Z",{},null,{"intMember":3,"strMember":"string_member_in_object"},null,null,null,["NestedArray_1stParamString",null,{"a":"nested object in array","c":99},null,[]],"[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"]
 
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS
+
 
 
 *************************** JSON test stringify:  replacer: replacer function, if the key is 'a' and the holder has a prop 'b', replace the value of the prop 'a' with the value of prop b  space: string : ........................ *********************** 
@@ -3333,13 +3333,6 @@ true
 "SampleTest"
 === Parsed with reviver2 and restringified :
 "SampleTest"
-
------- JSON test stringify: String complex  ------
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with no reviver and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
-=== Parsed with reviver2 and restringified :
-"/test ze\u0000ro\u000bString\n_u4:a_u2:º_u1:\u000e_u2clean:è"
 
 ------ JSON test stringify: Number(1)  ------
 1
@@ -3507,3 +3500,10 @@ true
 .........."[0]-document.location, [1]-string, [2]-number, [3]-date, [4]-empty obj, [5]-missing, [6]-obj, [7]-null, [8]-undef, [9]-function, [10]-nestedArray, [11]-this"
 ]
 !!Exception: SyntaxError: JSON.parse Error: Invalid character at position:3
+
+------ JSON test stringify: complex string 2  ------
+PASS
+=== Parsed with no reviver and restringified :
+PASS
+=== Parsed with reviver2 and restringified :
+PASS

@@ -8,7 +8,11 @@
 LPCSTR chakraDllName = "chakracore.dll";
 #else
 #include <dlfcn.h>
+#ifdef __APPLE__
+LPCSTR chakraDllName = "libChakraCore.dylib";
+#else
 LPCSTR chakraDllName = "libChakraCore.so";
+#endif
 #endif
 
 bool ChakraRTInterface::m_testHooksSetup = false;
@@ -39,9 +43,11 @@ void* GetChakraCoreSymbol(HINSTANCE module, const char* symbol)
 }
 
 /*static*/
-HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
+bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
 {
     m_argInfo = argInfo;
+#ifndef CHAKRA_STATIC_LIBRARY
+    HINSTANCE library = nullptr;
 
     char filename[_MAX_PATH];
     char drive[_MAX_DRIVE];
@@ -53,30 +59,32 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
     _makepath_s(filename, drive, dir, chakraDllName, nullptr);
     LPCSTR dllName = filename;
 
-    HINSTANCE library = LoadChakraCore(dllName);
+    library = LoadChakraCore(dllName);
+    *outLibrary = library;
     if (library == nullptr)
     {
         int ret = GetLastError();
         fwprintf(stderr, _u("FATAL ERROR: Unable to load %S GetLastError=0x%x\n"), dllName, ret);
-        return nullptr;
+        return false;
     }
 
     if (m_usageStringPrinted)
     {
         UnloadChakraDll(library);
-        return nullptr;
+        return false;
     }
 
     m_jsApiHooks.pfJsrtCreateRuntime = (JsAPIHooks::JsrtCreateRuntimePtr)GetChakraCoreSymbol(library, "JsCreateRuntime");
     m_jsApiHooks.pfJsrtCreateContext = (JsAPIHooks::JsrtCreateContextPtr)GetChakraCoreSymbol(library, "JsCreateContext");
+    m_jsApiHooks.pfJsrtSetRuntimeMemoryLimit = (JsAPIHooks::JsrtSetRuntimeMemoryLimitPtr)GetChakraCoreSymbol(library, "JsSetRuntimeMemoryLimit");
     m_jsApiHooks.pfJsrtSetCurrentContext = (JsAPIHooks::JsrtSetCurrentContextPtr)GetChakraCoreSymbol(library, "JsSetCurrentContext");
     m_jsApiHooks.pfJsrtGetCurrentContext = (JsAPIHooks::JsrtGetCurrentContextPtr)GetChakraCoreSymbol(library, "JsGetCurrentContext");
     m_jsApiHooks.pfJsrtDisposeRuntime = (JsAPIHooks::JsrtDisposeRuntimePtr)GetChakraCoreSymbol(library, "JsDisposeRuntime");
     m_jsApiHooks.pfJsrtCreateObject = (JsAPIHooks::JsrtCreateObjectPtr)GetChakraCoreSymbol(library, "JsCreateObject");
     m_jsApiHooks.pfJsrtCreateExternalObject = (JsAPIHooks::JsrtCreateExternalObjectPtr)GetChakraCoreSymbol(library, "JsCreateExternalObject");
     m_jsApiHooks.pfJsrtCreateFunction = (JsAPIHooks::JsrtCreateFunctionPtr)GetChakraCoreSymbol(library, "JsCreateFunction");
-    m_jsApiHooks.pfJsrtCreateNameFunction = (JsAPIHooks::JsCreateNamedFunctionPtr)GetChakraCoreSymbol(library, "JsCreateNamedFunction");
-    m_jsApiHooks.pfJsrtPointerToString = (JsAPIHooks::JsrtPointerToStringPtr)GetChakraCoreSymbol(library, "JsPointerToString");
+    m_jsApiHooks.pfJsrtCreateNamedFunction = (JsAPIHooks::JsCreateNamedFunctionPtr)GetChakraCoreSymbol(library, "JsCreateNamedFunction");
+    m_jsApiHooks.pfJsrtPointerToStringUtf8 = (JsAPIHooks::JsrtPointerToStringUtf8Ptr)GetChakraCoreSymbol(library, "JsPointerToStringUtf8");
     m_jsApiHooks.pfJsrtSetProperty = (JsAPIHooks::JsrtSetPropertyPtr)GetChakraCoreSymbol(library, "JsSetProperty");
     m_jsApiHooks.pfJsrtGetGlobalObject = (JsAPIHooks::JsrtGetGlobalObjectPtr)GetChakraCoreSymbol(library, "JsGetGlobalObject");
     m_jsApiHooks.pfJsrtGetUndefinedValue = (JsAPIHooks::JsrtGetUndefinedValuePtr)GetChakraCoreSymbol(library, "JsGetUndefinedValue");
@@ -85,16 +93,13 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
     m_jsApiHooks.pfJsrtConvertValueToString = (JsAPIHooks::JsrtConvertValueToStringPtr)GetChakraCoreSymbol(library, "JsConvertValueToString");
     m_jsApiHooks.pfJsrtConvertValueToNumber = (JsAPIHooks::JsrtConvertValueToNumberPtr)GetChakraCoreSymbol(library, "JsConvertValueToNumber");
     m_jsApiHooks.pfJsrtConvertValueToBoolean = (JsAPIHooks::JsrtConvertValueToBooleanPtr)GetChakraCoreSymbol(library, "JsConvertValueToBoolean");
-    m_jsApiHooks.pfJsrtStringToPointer = (JsAPIHooks::JsrtStringToPointerPtr)GetChakraCoreSymbol(library, "JsStringToPointer");
+    m_jsApiHooks.pfJsrtStringToPointerUtf8Copy = (JsAPIHooks::JsrtStringToPointerUtf8CopyPtr)GetChakraCoreSymbol(library, "JsStringToPointerUtf8Copy");
     m_jsApiHooks.pfJsrtBooleanToBool = (JsAPIHooks::JsrtBooleanToBoolPtr)GetChakraCoreSymbol(library, "JsBooleanToBool");
-    m_jsApiHooks.pfJsrtGetPropertyIdFromName = (JsAPIHooks::JsrtGetPropertyIdFromNamePtr)GetChakraCoreSymbol(library, "JsGetPropertyIdFromName");
     m_jsApiHooks.pfJsrtGetProperty = (JsAPIHooks::JsrtGetPropertyPtr)GetChakraCoreSymbol(library, "JsGetProperty");
     m_jsApiHooks.pfJsrtHasProperty = (JsAPIHooks::JsrtHasPropertyPtr)GetChakraCoreSymbol(library, "JsHasProperty");
-    m_jsApiHooks.pfJsrtRunScript = (JsAPIHooks::JsrtRunScriptPtr)GetChakraCoreSymbol(library, "JsRunScript");
-    m_jsApiHooks.pfJsrtRunModule = (JsAPIHooks::JsrtRunModulePtr)GetChakraCoreSymbol(library, "JsExperimentalApiRunModule");
     m_jsApiHooks.pfJsrtCallFunction = (JsAPIHooks::JsrtCallFunctionPtr)GetChakraCoreSymbol(library, "JsCallFunction");
-    m_jsApiHooks.pfJsrtNumbertoDouble = (JsAPIHooks::JsrtNumberToDoublePtr)GetChakraCoreSymbol(library, "JsNumberToDouble");
-    m_jsApiHooks.pfJsrtNumbertoInt = (JsAPIHooks::JsrtNumberToIntPtr)GetChakraCoreSymbol(library, "JsNumberToInt");
+    m_jsApiHooks.pfJsrtNumberToDouble = (JsAPIHooks::JsrtNumberToDoublePtr)GetChakraCoreSymbol(library, "JsNumberToDouble");
+    m_jsApiHooks.pfJsrtNumberToInt = (JsAPIHooks::JsrtNumberToIntPtr)GetChakraCoreSymbol(library, "JsNumberToInt");
     m_jsApiHooks.pfJsrtDoubleToNumber = (JsAPIHooks::JsrtDoubleToNumberPtr)GetChakraCoreSymbol(library, "JsDoubleToNumber");
     m_jsApiHooks.pfJsrtGetExternalData = (JsAPIHooks::JsrtGetExternalDataPtr)GetChakraCoreSymbol(library, "JsGetExternalData");
     m_jsApiHooks.pfJsrtCreateArray = (JsAPIHooks::JsrtCreateArrayPtr)GetChakraCoreSymbol(library, "JsCreateArray");
@@ -107,11 +112,9 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
     m_jsApiHooks.pfJsrtAddRef = (JsAPIHooks::JsrtAddRefPtr)GetChakraCoreSymbol(library, "JsAddRef");
     m_jsApiHooks.pfJsrtGetValueType = (JsAPIHooks::JsrtGetValueType)GetChakraCoreSymbol(library, "JsGetValueType");
     m_jsApiHooks.pfJsrtSetIndexedProperty = (JsAPIHooks::JsrtSetIndexedPropertyPtr)GetChakraCoreSymbol(library, "JsSetIndexedProperty");
-    m_jsApiHooks.pfJsrtSerializeScript = (JsAPIHooks::JsrtSerializeScriptPtr)GetChakraCoreSymbol(library, "JsSerializeScript");
-    m_jsApiHooks.pfJsrtRunSerializedScript = (JsAPIHooks::JsrtRunSerializedScriptPtr)GetChakraCoreSymbol(library, "JsRunSerializedScript");
     m_jsApiHooks.pfJsrtSetPromiseContinuationCallback = (JsAPIHooks::JsrtSetPromiseContinuationCallbackPtr)GetChakraCoreSymbol(library, "JsSetPromiseContinuationCallback");
     m_jsApiHooks.pfJsrtGetContextOfObject = (JsAPIHooks::JsrtGetContextOfObject)GetChakraCoreSymbol(library, "JsGetContextOfObject");
-    m_jsApiHooks.pfJsrtParseScriptWithAttributes = (JsAPIHooks::JsrtParseScriptWithAttributes)GetChakraCoreSymbol(library, "JsParseScriptWithAttributes");
+    m_jsApiHooks.pfJsrtParseScriptWithAttributesUtf8 = (JsAPIHooks::JsrtParseScriptWithAttributesUtf8)GetChakraCoreSymbol(library, "JsParseScriptWithAttributesUtf8");
     m_jsApiHooks.pfJsrtDiagStartDebugging = (JsAPIHooks::JsrtDiagStartDebugging)GetChakraCoreSymbol(library, "JsDiagStartDebugging");
     m_jsApiHooks.pfJsrtDiagStopDebugging = (JsAPIHooks::JsrtDiagStopDebugging)GetChakraCoreSymbol(library, "JsDiagStopDebugging");
     m_jsApiHooks.pfJsrtDiagGetSource = (JsAPIHooks::JsrtDiagGetSource)GetChakraCoreSymbol(library, "JsDiagGetSource");
@@ -128,7 +131,13 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
     m_jsApiHooks.pfJsrtDiagGetStackProperties = (JsAPIHooks::JsrtDiagGetStackProperties)GetChakraCoreSymbol(library, "JsDiagGetStackProperties");
     m_jsApiHooks.pfJsrtDiagGetProperties = (JsAPIHooks::JsrtDiagGetProperties)GetChakraCoreSymbol(library, "JsDiagGetProperties");
     m_jsApiHooks.pfJsrtDiagGetObjectFromHandle = (JsAPIHooks::JsrtDiagGetObjectFromHandle)GetChakraCoreSymbol(library, "JsDiagGetObjectFromHandle");
-    m_jsApiHooks.pfJsrtDiagEvaluate = (JsAPIHooks::JsrtDiagEvaluate)GetChakraCoreSymbol(library, "JsDiagEvaluate");
+    m_jsApiHooks.pfJsrtDiagEvaluateUtf8 = (JsAPIHooks::JsrtDiagEvaluateUtf8)GetChakraCoreSymbol(library, "JsDiagEvaluateUtf8");
+    m_jsApiHooks.pfJsrtRunScriptUtf8 = (JsAPIHooks::JsrtRunScriptUtf8)GetChakraCoreSymbol(library, "JsRunScriptUtf8");
+    m_jsApiHooks.pfJsrtSerializeScriptUtf8 = (JsAPIHooks::JsrtSerializeScriptUtf8)GetChakraCoreSymbol(library, "JsSerializeScriptUtf8");
+    m_jsApiHooks.pfJsrtRunSerializedScriptUtf8 = (JsAPIHooks::JsrtRunSerializedScriptUtf8)GetChakraCoreSymbol(library, "JsRunSerializedScriptUtf8");
+    m_jsApiHooks.pfJsrtExperimentalApiRunModuleUtf8 = (JsAPIHooks::JsrtRunModuleUtf8Ptr)GetChakraCoreSymbol(library, "JsExperimentalApiRunModuleUtf8");
+    m_jsApiHooks.pfJsrtGetPropertyIdFromNameUtf8 = (JsAPIHooks::JsrtGetPropertyIdFromNameUtf8Ptr)GetChakraCoreSymbol(library, "JsGetPropertyIdFromNameUtf8");
+    m_jsApiHooks.pfJsrtStringFree = (JsAPIHooks::JsrtStringFreePtr)GetChakraCoreSymbol(library, "JsStringFree");
 
     m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = (JsAPIHooks::JsrtTTDCreateRecordRuntimePtr)GetChakraCoreSymbol(library, "JsTTDCreateRecordRuntime");
     m_jsApiHooks.pfJsrtTTDCreateDebugRuntime = (JsAPIHooks::JsrtTTDCreateDebugRuntimePtr)GetChakraCoreSymbol(library, "JsTTDCreateDebugRuntime");
@@ -152,13 +161,15 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo)
     m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove = (JsAPIHooks::JsrtTTDPrepContextsForTopLevelEventMovePtr)GetChakraCoreSymbol(library, "JsTTDPrepContextsForTopLevelEventMove");
     m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = (JsAPIHooks::JsrtTTDMoveToTopLevelEventPtr)GetChakraCoreSymbol(library, "JsTTDMoveToTopLevelEvent");
     m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetChakraCoreSymbol(library, "JsTTDReplayExecution");
+#endif
 
-    return library;
+    return true;
 }
 
 /*static*/
 void ChakraRTInterface::UnloadChakraDll(HINSTANCE library)
 {
+#ifndef CHAKRA_STATIC_LIBRARY
     Assert(library != nullptr);
     FARPROC pDllCanUnloadNow = (FARPROC) GetChakraCoreSymbol(library, "DllCanUnloadNow");
     if (pDllCanUnloadNow != nullptr)
@@ -166,6 +177,7 @@ void ChakraRTInterface::UnloadChakraDll(HINSTANCE library)
         pDllCanUnloadNow();
     }
     UnloadChakraCore(library);
+#endif
 }
 
 /*static*/
@@ -204,7 +216,7 @@ HRESULT ChakraRTInterface::ParseConfigFlags()
         }
         else
         {
-            hr = Helpers::WideStringToNarrowDynamic(fileNameWide, &m_argInfo->filename);
+            hr = WideStringToNarrowDynamic(fileNameWide, &m_argInfo->filename);
             if (FAILED(hr))
             {
                 Assert(hr == E_OUTOFMEMORY);

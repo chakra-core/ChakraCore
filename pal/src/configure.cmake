@@ -664,52 +664,6 @@ check_cxx_source_runs("
 #include <stdlib.h>
 
 int main(void) {
-  double infinity = 1.0 / 0.0;
-  if (!isnan(pow(1.0, infinity))) {
-    exit(1);
-  }
-  if (pow(0.0, -1) != infinity) {
-    exit(1);
-  }
-  exit(0);
-}" HAVE_COMPATIBLE_POW)
-set(CMAKE_REQUIRED_LIBRARIES)
-set(CMAKE_REQUIRED_LIBRARIES m)
-check_cxx_source_runs("
-#include <math.h>
-#include <stdlib.h>
-
-int main(int argc, char **argv) {
-  double result;
-
-  result = pow(-3.2e-10, -5e14 + 1);
-  if (result != -1.0 / 0.0) {
-    exit(1);
-  }
-  exit(0);
-}" HAVE_VALID_NEGATIVE_INF_POW)
-set(CMAKE_REQUIRED_LIBRARIES)
-set(CMAKE_REQUIRED_LIBRARIES m)
-check_cxx_source_runs("
-#include <math.h>
-#include <stdlib.h>
-
-int main(int argc, char **argv) {
-    double result;
-
-    result = pow(-3.5, 3e100);
-    if (result != 1.0 / 0.0) {
-        exit(1);
-    }
-    exit(0);
-}" HAVE_VALID_POSITIVE_INF_POW)
-set(CMAKE_REQUIRED_LIBRARIES)
-set(CMAKE_REQUIRED_LIBRARIES m)
-check_cxx_source_runs("
-#include <math.h>
-#include <stdlib.h>
-
-int main(void) {
   double pi = 3.14159265358979323846;
   double result;
 
@@ -989,4 +943,3 @@ else() # Anything else is Linux
 endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-

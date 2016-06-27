@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -54,17 +54,17 @@ Function:
 
   --*/
 static
-wchar_16
-wtolower(wchar_16 c)
+char16_t
+wtolower(char16_t c)
 {
     /* Note: Surrogate pairs unicode character are not supported */
 
 #if HAVE_TOWLOWER
 
-    wchar_t w;
-    w = (wchar_t) c;
+    char16_t w;
+    w = (char16_t) c;
     w = towlower(w);
-    return (wchar_16) w;
+    return (char16_t) w;
 
 #else
 
@@ -165,14 +165,14 @@ Function:
 16-bit wide character version of the ANSI tolower() function.
 
   --*/
-wchar_16 *
+char16_t *
 __cdecl
 _itow(
     int value,
-    wchar_16 *string,
+    char16_t *string,
     int radix)
 {
-    wchar_16 *ret;
+    char16_t *ret;
 
     PERF_ENTRY(_itow);
     ENTRY("_itow (value=%d, string=%p, radix=%d)\n",
@@ -180,7 +180,7 @@ _itow(
 
     ret = Internal_i64tow(value, string, radix, FALSE);
 
-    LOGEXIT("_itow returns wchar_t* %p\n", ret);
+    LOGEXIT("_itow returns char16_t* %p\n", ret);
     PERF_EXIT(_itow);
 
     return ret;
@@ -193,14 +193,14 @@ Function:
 16-bit wide character version of the ANSI ltow() function.
 
   --*/
-wchar_16 *
+char16_t *
 __cdecl
 _ltow(
     long value,
-    wchar_16 *string,
+    char16_t *string,
     int radix)
 {
-    wchar_16 *ret;
+    char16_t *ret;
 
     PERF_ENTRY(_ltow);
     ENTRY("_ltow (value=%d, string=%p, radix=%d)\n",
@@ -208,7 +208,7 @@ _ltow(
 
     ret = Internal_i64tow(value, string, radix, FALSE);
 
-    LOGEXIT("_ltow returns wchar_t* %p\n", ret);
+    LOGEXIT("_ltow returns char16_t* %p\n", ret);
     PERF_EXIT(_ltow);
 
     return ret;
@@ -220,14 +220,14 @@ Function:
 
 See MSDN doc
 --*/
-wchar_16 *
- __cdecl 
+char16_t *
+ __cdecl
 _i64tow(
-    __int64 value, 
-    wchar_16 *string, 
+    __int64 value,
+    char16_t *string,
     int radix)
 {
-    wchar_16 *ret;
+    char16_t *ret;
 
     PERF_ENTRY(_i64tow);
     ENTRY("_i64tow (value=%ld, string=%p, radix=%d)\n",
@@ -235,7 +235,7 @@ _i64tow(
 
     ret = Internal_i64tow(value, string, radix, TRUE);
 
-    LOGEXIT("_i64tow returns wchar_t* %p\n", ret);
+    LOGEXIT("_i64tow returns char16_t* %p\n", ret);
     PERF_EXIT(_i64tow);
 
     return ret;
@@ -251,7 +251,7 @@ See MSDN doc
 int
 __cdecl
 _wtoi(
-    const wchar_16 *string)
+    const char16_t *string)
 {
     int len;
     int ret;
@@ -299,7 +299,7 @@ See MSDN doc
 --*/
 int
 __cdecl
-PAL_iswspace(wchar_16 c)
+PAL_iswspace(char16_t c)
 {
     int ret;
 
@@ -351,16 +351,16 @@ is lesser.
 int
 __cdecl
 _wcsnicmp(
-          const wchar_16 *string1,
-          const wchar_16 *string2, 
+          const char16_t *string1,
+          const char16_t *string2,
           size_t count)
 {
     size_t i;
     int diff = 0;
 
     PERF_ENTRY(_wcsnicmp);
-    ENTRY("_wcsnicmp (string1=%p (%S), string2=%p (%S), count=%lu)\n", 
-          string1?string1:W16_NULLSTRING, 
+    ENTRY("_wcsnicmp (string1=%p (%S), string2=%p (%S), count=%lu)\n",
+          string1?string1:W16_NULLSTRING,
           string1?string1:W16_NULLSTRING, string2?string2:W16_NULLSTRING, string2?string2:W16_NULLSTRING,
          (unsigned long) count);
 
@@ -403,14 +403,14 @@ string1, string2        Null-terminated strings to compare
 int
 __cdecl
 _wcsicmp(
-          const wchar_16 *string1,
-          const wchar_16 *string2)
+          const char16_t *string1,
+          const char16_t *string2)
 {
     int ret;
 
     PERF_ENTRY(_wcsicmp);
-    ENTRY("_wcsicmp (string1=%p (%S), string2=%p (%S))\n", 
-          string1?string1:W16_NULLSTRING, 
+    ENTRY("_wcsicmp (string1=%p (%S), string2=%p (%S))\n",
+          string1?string1:W16_NULLSTRING,
           string1?string1:W16_NULLSTRING, string2?string2:W16_NULLSTRING, string2?string2:W16_NULLSTRING);
 
     ret = _wcsnicmp(string1, string2, 0x7fffffff);
@@ -441,10 +441,10 @@ string   Null-terminated string to convert to lowercase
 Remarks
 
 --*/
-wchar_16 * 
+char16_t *
 __cdecl
 _wcslwr(
-        wchar_16 *string)
+        char16_t *string)
 {
     int i;
 
@@ -455,8 +455,8 @@ _wcslwr(
     {
         string[i] = wtolower(string[i]);
     }
-  
-    LOGEXIT("_wcslwr returning wchar_t %p (%S)\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING);
+
+    LOGEXIT("_wcslwr returning char16_t %p (%S)\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING);
     PERF_EXIT(_wcslwr);
     return string;
 }
@@ -477,7 +477,7 @@ performed. errno is set to ERANGE if overflow or underflow occurs.
 
 Parameters
 
-nptr    Null-terminated string to convert 
+nptr    Null-terminated string to convert
 endptr  Pointer to character that stops scan
 base    Number base to use
 
@@ -493,24 +493,24 @@ Notes :
     tests indicate that other whitespace characters (newline, carriage return,
     etc) are also accepted. This matches the behavior on Unix systems.
 
-    For wcstol and wcstoul, we need to check if the value to be returned 
-    is outside the 32 bit range. If so, the returned value needs to be set  
+    For wcstol and wcstoul, we need to check if the value to be returned
+    is outside the 32 bit range. If so, the returned value needs to be set
     as appropriate, according to the MSDN pages for wcstol and wcstoul,
     and in all instances errno must be set to ERANGE (The one exception
     is converting a string representing a negative value to unsigned long).
     Note that on 64 bit Windows, long's are still 32 bit. Thus, to match
-    Windows behavior, we must return long's in the 32 bit range.  
+    Windows behavior, we must return long's in the 32 bit range.
 --*/
 
-/* The use of LONG is by design, to ensure that a 32 bit value is always 
-returned from this function. If "long" is used instead of LONG, then a 64 bit 
-value could be returned on 64 bit platforms like HP-UX, thus breaking 
+/* The use of LONG is by design, to ensure that a 32 bit value is always
+returned from this function. If "long" is used instead of LONG, then a 64 bit
+value could be returned on 64 bit platforms like HP-UX, thus breaking
 Windows behavior. */
 LONG
 __cdecl
 PAL_wcstol(
-        const wchar_16 *nptr,
-        wchar_16 **endptr,
+        const char16_t *nptr,
+        char16_t **endptr,
         int base)
 {
     char *s_nptr = 0;
@@ -571,7 +571,7 @@ PAL_wcstol(
     if( endptr )
     {
         size = s_endptr - s_nptr;
-        *endptr = (wchar_16 *)&nptr[size];
+        *endptr = (char16_t *)&nptr[size];
     }
 
 PAL_wcstolExit:
@@ -598,7 +598,7 @@ set to ERANGE if overflow or underflow occurs.
 
 Parameters
 
-nptr    Null-terminated string to convert 
+nptr    Null-terminated string to convert
 endptr  Pointer to character that stops scan
 base    Number base to use
 
@@ -620,7 +620,7 @@ Notes :
     tests indicate that other whitespace characters (newline, carriage return,
     etc) are also accepted. This matches the behavior on Unix systems.
 
-    For wcstol and wcstoul, we need to check if the value to be returned 
+    For wcstol and wcstoul, we need to check if the value to be returned
     is outside the 32 bit range. If so, the returned value needs to be set
     as appropriate, according to the MSDN pages for wcstol and wcstoul,
     and in all instances errno must be set to ERANGE (The one exception
@@ -629,15 +629,15 @@ Notes :
     Windows behavior, we must return long's in the 32 bit range.
 --*/
 
-/* The use of ULONG is by design, to ensure that a 32 bit value is always 
+/* The use of ULONG is by design, to ensure that a 32 bit value is always
 returned from this function. If "unsigned long" is used instead of ULONG,
 then a 64 bit value could be returned on 64 bit platforms like HP-UX, thus
 breaking Windows behavior .*/
 ULONG
 __cdecl
 PAL_wcstoul(
-        const wchar_16 *nptr,
-        wchar_16 **endptr,
+        const char16_t *nptr,
+        char16_t **endptr,
         int base)
 {
     char *s_nptr = 0;
@@ -682,12 +682,12 @@ PAL_wcstoul(
 #ifdef BIT64
     if (res > _UI32_MAX)
     {
-        wchar_16 wc = *nptr;
+        char16_t wc = *nptr;
         while (PAL_iswspace(wc))
         {
             wc = *nptr++;
         }
-        /* If the string represents a positive number that is greater than 
+        /* If the string represents a positive number that is greater than
            _UI32_MAX, set errno to ERANGE. Otherwise, don't set errno
            to match Windows behavior. */
         if (wc != '-')
@@ -704,7 +704,7 @@ PAL_wcstoul(
     if( endptr )
     {
         size = s_endptr - s_nptr;
-        *endptr = (wchar_16 *)&nptr[size];
+        *endptr = (char16_t *)&nptr[size];
     }
 
 PAL_wcstoulExit:
@@ -712,7 +712,7 @@ PAL_wcstoulExit:
     LOGEXIT("wcstoul returning unsigned long %lu\n", res);
     PERF_EXIT(wcstoul);
 
-    /* When returning unsigned long res from this function, it will be 
+    /* When returning unsigned long res from this function, it will be
     implicitly cast to ULONG. This handles situations where a string that
     represents a negative number is passed in to wcstoul. The Windows
     behavior is analogous to taking the binary equivalent of the negative
@@ -726,8 +726,8 @@ PAL_wcstoulExit:
 ULONGLONG
 __cdecl
 PAL__wcstoui64(
-        const wchar_16 *nptr,
-        wchar_16 **endptr,
+        const char16_t *nptr,
+        char16_t **endptr,
         int base)
 {
     char *s_nptr = 0;
@@ -775,7 +775,7 @@ PAL__wcstoui64(
     if( endptr )
     {
         size = s_endptr - s_nptr;
-        *endptr = (wchar_16 *)&nptr[size];
+        *endptr = (char16_t *)&nptr[size];
     }
 
 PAL__wcstoui64Exit:
@@ -793,9 +793,9 @@ Function:
 See MSDN
 
 --*/
-wchar_16
+char16_t
 __cdecl
-PAL_towlower( wchar_16 c )
+PAL_towlower( char16_t c )
 {
 #if HAVE_COREFOUNDATION
     PERF_ENTRY(towlower);
@@ -817,10 +817,10 @@ PAL_towlower( wchar_16 c )
     return c;
 #else   /* HAVE_COREFOUNDATION */
     UnicodeDataRec dataRec;
-    
+
     PERF_ENTRY(towlower);
     ENTRY("towlower (c=%d)\n", c);
-    
+
     if (!GetUnicodeData(c, &dataRec))
     {
         TRACE( "Unable to retrieve unicode data for the character %c.\n", c );
@@ -852,9 +852,9 @@ Function:
 See MSDN
 
 --*/
-wchar_16
+char16_t
 __cdecl
-PAL_towupper( wchar_16 c )
+PAL_towupper( char16_t c )
 {
 #if HAVE_COREFOUNDATION
     PERF_ENTRY(towupper);
@@ -887,7 +887,7 @@ PAL_towupper( wchar_16 c )
         PERF_EXIT(towupper);
         return c;
     }
-    
+
     if ( (dataRec.C1_TYPE_FLAGS & C1_UPPER) || (dataRec.nOpposingCase ==  0 ))
     {
         LOGEXIT("towupper returns int %d\n", c );
@@ -912,12 +912,12 @@ See MSDN
 --*/
 int
 __cdecl
-PAL_iswupper( wchar_16 c )
+PAL_iswupper( char16_t c )
 {
     BOOL bRetVal = FALSE;
 #if HAVE_COREFOUNDATION
     static CFCharacterSetRef sUppercaseSet;
-    
+
     if (sUppercaseSet == NULL)
     {
         sUppercaseSet = CFCharacterSetGetPredefined(
@@ -937,7 +937,7 @@ PAL_iswupper( wchar_16 c )
         TRACE( "Unable to retrieve unicode data for the character %c.\n", c );
         goto exit;
     }
-    
+
     if (dataRec.C1_TYPE_FLAGS & C1_UPPER)
     {
         bRetVal = TRUE;
@@ -958,12 +958,12 @@ See MSDN
 --*/
 int
 __cdecl
-PAL_iswlower( wchar_16 c )
+PAL_iswlower( char16_t c )
 {
     BOOL bRetVal = FALSE;
 #if HAVE_COREFOUNDATION
     static CFCharacterSetRef sLowercaseSet;
-    
+
     if (sLowercaseSet == NULL)
     {
         sLowercaseSet = CFCharacterSetGetPredefined(
@@ -977,13 +977,13 @@ PAL_iswlower( wchar_16 c )
 
     PERF_ENTRY(iswlower);
     ENTRY("PAL_iswlower (c=%d)\n", c);
-    
+
     if (!GetUnicodeData(c, &dataRec))
     {
         TRACE( "Unable to retrieve unicode data for the character %c.\n", c );
         goto exit;
     }
-    
+
     if (dataRec.C1_TYPE_FLAGS & C1_LOWER)
     {
         bRetVal = TRUE;
@@ -1004,11 +1004,11 @@ See MSDN
 --*/
 int
 __cdecl
-PAL_iswalpha( wchar_16 c )
+PAL_iswalpha( char16_t c )
 {
     PERF_ENTRY(iswalpha);
     ENTRY( "PAL_iswalpha (c=%d)\n", c);
-    
+
     if ( PAL_iswupper( c ) || PAL_iswlower( c ) )
     {
         LOGEXIT( "PAL_iswalpha returns 1.\n" );
@@ -1029,21 +1029,21 @@ Function:
 See MSDN or the man page for mcscat.
 
 --*/
-wchar_16 * 
+char16_t *
 __cdecl
 PAL_wcscat(
-        wchar_16 *strDestination, 
-        const wchar_16 *strSource)
+        char16_t *strDestination,
+        const char16_t *strSource)
 {
-    wchar_16 *ret;
+    char16_t *ret;
     PERF_ENTRY(wcscat);
-    ENTRY("wcscat (strDestination=%p (%S), strSource=%p (%S))\n", 
-          strDestination?strDestination:W16_NULLSTRING, 
+    ENTRY("wcscat (strDestination=%p (%S), strSource=%p (%S))\n",
+          strDestination?strDestination:W16_NULLSTRING,
           strDestination?strDestination:W16_NULLSTRING, strSource?strSource:W16_NULLSTRING, strSource?strSource:W16_NULLSTRING);
 
     ret = PAL_wcsncat( strDestination, strSource, PAL_wcslen( strSource ) );
-    
-    LOGEXIT("wcscat returnng wchar_t %p (%S)\n", ret, ret);
+
+    LOGEXIT("wcscat returnng char16_t %p (%S)\n", ret, ret);
     PERF_EXIT(wcscat);
     return ret;
 }
@@ -1056,22 +1056,22 @@ Function:
 See MSDN or the man page for mcscpy.
 
 --*/
-wchar_16 * 
+char16_t *
 __cdecl
 PAL_wcscpy(
-        wchar_16 *strDestination, 
-        const wchar_16 *strSource)
+        char16_t *strDestination,
+        const char16_t *strSource)
 {
-    wchar_16 *start = strDestination;
+    char16_t *start = strDestination;
 
     PERF_ENTRY(wcscpy);
-    ENTRY("wcscpy (strDestination=%p, strSource=%p (%S))\n", 
+    ENTRY("wcscpy (strDestination=%p, strSource=%p (%S))\n",
           strDestination, strSource ? strSource:W16_NULLSTRING, strSource ? strSource:W16_NULLSTRING);
 
     if (strDestination == NULL)
     {
         ERROR("invalid strDestination argument\n");
-        LOGEXIT("wcscpy returning wchar_t NULL\n");
+        LOGEXIT("wcscpy returning char16_t NULL\n");
         PERF_EXIT(wcscpy);
         return NULL;
     }
@@ -1079,7 +1079,7 @@ PAL_wcscpy(
     if (strSource == NULL)
     {
         ERROR("invalid strSource argument\n");
-        LOGEXIT("wcscpy returning wchar_t NULL\n");
+        LOGEXIT("wcscpy returning char16_t NULL\n");
         PERF_EXIT(wcscpy);
         return NULL;
     }
@@ -1093,7 +1093,7 @@ PAL_wcscpy(
     /* add terminating null */
     *strDestination = '\0';
 
-    LOGEXIT("wcscpy returning wchar_t %p (%S)\n", start, start);
+    LOGEXIT("wcscpy returning char16_t %p (%S)\n", start, start);
     PERF_EXIT(wcscpy);
     return start;
 }
@@ -1106,16 +1106,16 @@ Function:
 See MSDN or the man page for wcslen.
 
 --*/
-size_t 
+size_t
 __cdecl
 PAL_wcslen(
-        const wchar_16 *string)
+        const char16_t *string)
 {
     size_t nChar = 0;
 
     PERF_ENTRY(wcslen);
     ENTRY("wcslen (string=%p (%S))\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING);
-    
+
     if ( !string )
     {
         LOGEXIT("wcslen returning size_t %u\n", 0);
@@ -1132,6 +1132,40 @@ PAL_wcslen(
     return nChar;
 }
 
+/*++
+Function:
+  PAL_wmemcmp
+
+See MSDN or the man page for wmemcmp.
+--*/
+int
+__cdecl
+PAL_wmemcmp(
+        const char16_t *string1,
+        const char16_t *string2,
+        size_t count)
+{
+    size_t i;
+    int diff = 0;
+
+    PERF_ENTRY(wmemcmp);
+    ENTRY("wmemcmp (string1=%p (%S), string2=%p (%S) count=%lu)\n",
+          string1?string1:W16_NULLSTRING,
+          string1?string1:W16_NULLSTRING, string2?string2:W16_NULLSTRING, string2?string2:W16_NULLSTRING,
+          (unsigned long) count);
+
+    for (i = 0; i < count; i++)
+    {
+        diff = string1[i] - string2[i];
+        if (diff != 0)
+        {
+            break;
+        }
+    }
+    LOGEXIT("wmemcmp returning int %d\n", diff);
+    PERF_EXIT(wmemcmp);
+    return diff;
+}
 
 /*++
 Function:
@@ -1139,20 +1173,20 @@ Function:
 
 See MSDN or the man page for wcsncmp.
 --*/
-int 
+int
 __cdecl
 PAL_wcsncmp(
-        const wchar_16 *string1,
-        const wchar_16 *string2,
+        const char16_t *string1,
+        const char16_t *string2,
         size_t count)
 {
     size_t i;
     int diff = 0;
 
     PERF_ENTRY(wcsncmp);
-    ENTRY("wcsncmp (string1=%p (%S), string2=%p (%S) count=%lu)\n", 
-          string1?string1:W16_NULLSTRING, 
-          string1?string1:W16_NULLSTRING, string2?string2:W16_NULLSTRING, string2?string2:W16_NULLSTRING, 
+    ENTRY("wcsncmp (string1=%p (%S), string2=%p (%S) count=%lu)\n",
+          string1?string1:W16_NULLSTRING,
+          string1?string1:W16_NULLSTRING, string2?string2:W16_NULLSTRING, string2?string2:W16_NULLSTRING,
           (unsigned long) count);
 
     for (i = 0; i < count; i++)
@@ -1183,8 +1217,8 @@ See MSDN or the man page for wcscmp.
 int
 __cdecl
 PAL_wcscmp(
-        const wchar_16 *string1,
-        const wchar_16 *string2)
+        const char16_t *string1,
+        const char16_t *string2)
 {
     int ret;
 
@@ -1207,31 +1241,31 @@ Function:
 See MSDN or man page for wcschr.
 
 --*/
-wchar_16 _WConst_return * 
+char16_t _WConst_return *
 __cdecl
 PAL_wcschr(
-        const wchar_16 * string, 
-        wchar_16 c)
+        const char16_t * string,
+        char16_t c)
 {
     PERF_ENTRY(wcschr);
     ENTRY("wcschr (string=%p (%S), c=%C)\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING, c);
-    
+
     while (*string)
     {
         if (*string == c)
         {
-            LOGEXIT("wcschr returning wchar_t %p (%S)\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING);
+            LOGEXIT("wcschr returning char16_t %p (%S)\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING);
             PERF_EXIT(wcschr);
-            return (wchar_16 *) string;
+            return (char16_t *) string;
         }
         string++;
     }
 
     // Check if the comparand was \000
     if (*string == c)
-        return (wchar_16 *) string;
-    
-    LOGEXIT("wcschr returning wchar_t NULL\n");
+        return (char16_t *) string;
+
+    LOGEXIT("wcschr returning char16_t NULL\n");
     PERF_EXIT(wcschr);
     return NULL;
 }
@@ -1244,13 +1278,13 @@ Function:
 See MSDN or man page for wcsrchr.
 
 --*/
-wchar_16 _WConst_return * 
+char16_t _WConst_return *
 __cdecl
 PAL_wcsrchr(
-        const wchar_16 * string, 
-        wchar_16 c)
+        const char16_t * string,
+        char16_t c)
 {
-    wchar_16 *last = NULL;
+    char16_t *last = NULL;
 
     PERF_ENTRY(wcsrchr);
     ENTRY("wcsrchr (string=%p (%S), c=%C)\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING, c);
@@ -1259,14 +1293,14 @@ PAL_wcsrchr(
     {
         if (*string == c)
         {
-            last = (wchar_16 *) string;
+            last = (char16_t *) string;
         }
         string++;
     }
-    
-    LOGEXIT("wcsrchr returning wchar_t %p (%S)\n", last?last:W16_NULLSTRING, last?last:W16_NULLSTRING);
+
+    LOGEXIT("wcsrchr returning char16_t %p (%S)\n", last?last:W16_NULLSTRING, last?last:W16_NULLSTRING);
     PERF_EXIT(wcsrchr);
-    return (wchar_16 *)last;
+    return (char16_t *)last;
 }
 
 
@@ -1278,7 +1312,7 @@ See MSDN or man page for wcspbrk.
 --*/
 size_t
 __cdecl
-PAL_wcsspn (const wchar_16 *string, const wchar_16 *stringCharSet)
+PAL_wcsspn (const char16_t *string, const char16_t *stringCharSet)
 {
     ASSERT(0);
     return 0;
@@ -1291,11 +1325,11 @@ Function:
 
 See MSDN or man page for wcspbrk.
 --*/
-const wchar_16 * 
+const char16_t *
 __cdecl
 PAL_wcspbrk(
-        const wchar_16 *string, 
-        const wchar_16 *strCharSet)
+        const char16_t *string,
+        const char16_t *strCharSet)
 {
     PERF_ENTRY(wcspbrk);
     ENTRY("wcspbrk (string=%p (%S), strCharSet=%p (%S))\n",
@@ -1306,15 +1340,15 @@ PAL_wcspbrk(
     {
         if (PAL_wcschr(strCharSet, *string) != NULL)
         {
-            LOGEXIT("wcspbrk returning wchar_t %p (%S)\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING);
+            LOGEXIT("wcspbrk returning char16_t %p (%S)\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING);
             PERF_EXIT(wcspbrk);
-            return (wchar_16 *) string;
+            return (char16_t *) string;
         }
 
         string++;
     }
 
-    LOGEXIT("wcspbrk returning wchar_t NULL\n");
+    LOGEXIT("wcspbrk returning char16_t NULL\n");
     PERF_EXIT(wcspbrk);
     return NULL;
 }
@@ -1326,38 +1360,38 @@ Function:
 
 See MSDN or man page for wcsstr.
 --*/
-const wchar_16 *
+const char16_t *
 __cdecl
 PAL_wcsstr(
-        const wchar_16 *string, 
-        const wchar_16 *strCharSet)
+        const char16_t *string,
+        const char16_t *strCharSet)
 {
-    wchar_16 *ret = NULL;
+    char16_t *ret = NULL;
     int i;
 
     PERF_ENTRY(wcsstr);
-    ENTRY("wcsstr (string=%p (%S), strCharSet=%p (%S))\n", 
-      string?string:W16_NULLSTRING, 
+    ENTRY("wcsstr (string=%p (%S), strCharSet=%p (%S))\n",
+      string?string:W16_NULLSTRING,
       string?string:W16_NULLSTRING, strCharSet?strCharSet:W16_NULLSTRING, strCharSet?strCharSet:W16_NULLSTRING);
-  
+
     if (string == NULL)
     {
         ret = NULL;
         goto leave;
     }
-  
+
     if (strCharSet == NULL)
     {
         ret = NULL;
         goto leave;
     }
-  
+
     if (*strCharSet == 0)
     {
-        ret = (wchar_16 *)string;
+        ret = (char16_t *)string;
         goto leave;
-    } 
-  
+    }
+
     while (*string != 0)
     {
         i = 0;
@@ -1365,7 +1399,7 @@ PAL_wcsstr(
         {
             if (*(string + i) == 0 || *(strCharSet + i) == 0)
             {
-                ret = (wchar_16 *) string;
+                ret = (char16_t *) string;
                 goto leave;
             }
             if (*(string + i) != *(strCharSet + i))
@@ -1376,56 +1410,56 @@ PAL_wcsstr(
         }
         string++;
     }
-  
- leave:    
-    LOGEXIT("wcsstr returning wchar_t %p (%S)\n", ret?ret:W16_NULLSTRING, ret?ret:W16_NULLSTRING);
+
+ leave:
+    LOGEXIT("wcsstr returning char16_t %p (%S)\n", ret?ret:W16_NULLSTRING, ret?ret:W16_NULLSTRING);
     PERF_EXIT(wcsstr);
     return ret;
 }
 
 /*++
-Function : 
-    
-    PAL_wcsncpy            
-    
+Function :
+
+    PAL_wcsncpy
+
 see msdn doc.
 --*/
-wchar_16 * 
+char16_t *
 __cdecl
-PAL_wcsncpy( wchar_16 * strDest, const wchar_16 *strSource, size_t count )
+PAL_wcsncpy( char16_t * strDest, const char16_t *strSource, size_t count )
 {
-    UINT length = sizeof( wchar_16 ) * count;    
+    UINT length = sizeof( char16_t ) * count;
     PERF_ENTRY(wcsncpy);
-    ENTRY("wcsncpy( strDest:%p, strSource:%p (%S), count:%lu)\n", 
+    ENTRY("wcsncpy( strDest:%p, strSource:%p (%S), count:%lu)\n",
           strDest, strSource, strSource, (unsigned long) count);
-    
+
     memset( strDest, 0, length );
-    length = min( count, PAL_wcslen( strSource ) ) * sizeof( wchar_16 );
+    length = min( count, PAL_wcslen( strSource ) ) * sizeof( char16_t );
     memcpy( strDest, strSource, length );
-    
-    LOGEXIT("wcsncpy returning (wchar_16*): %p\n", strDest);
+
+    LOGEXIT("wcsncpy returning (char16_t*): %p\n", strDest);
     PERF_EXIT(wcsncpy);
     return strDest;
 }
 
 /*++
-Function : 
-    
-    wcsncat            
-    
+Function :
+
+    wcsncat
+
 see msdn doc.
 --*/
-wchar_16 * 
+char16_t *
 __cdecl
-PAL_wcsncat( wchar_16 * strDest, const wchar_16 *strSource, size_t count )
+PAL_wcsncat( char16_t * strDest, const char16_t *strSource, size_t count )
 {
-    wchar_16 *start = strDest;
+    char16_t *start = strDest;
     UINT LoopCount = 0;
     UINT StrSourceLength = 0;
 
     PERF_ENTRY(wcsncat);
-    ENTRY( "wcsncat (strDestination=%p (%S), strSource=%p (%S), count=%lu )\n", 
-            strDest ? strDest : W16_NULLSTRING, 
+    ENTRY( "wcsncat (strDestination=%p (%S), strSource=%p (%S), count=%lu )\n",
+            strDest ? strDest : W16_NULLSTRING,
             strDest ? strDest : W16_NULLSTRING,
             strSource ? strSource : W16_NULLSTRING,
             strSource ? strSource : W16_NULLSTRING, (unsigned long) count);
@@ -1433,7 +1467,7 @@ PAL_wcsncat( wchar_16 * strDest, const wchar_16 *strSource, size_t count )
     if ( strDest == NULL )
     {
         ERROR("invalid strDest argument\n");
-        LOGEXIT("wcsncat returning wchar_t NULL\n");
+        LOGEXIT("wcsncat returning char16_t NULL\n");
         PERF_EXIT(wcsncat);
         return NULL;
     }
@@ -1441,7 +1475,7 @@ PAL_wcsncat( wchar_16 * strDest, const wchar_16 *strSource, size_t count )
     if ( strSource == NULL )
     {
         ERROR("invalid strSource argument\n");
-        LOGEXIT("wcsncat returning wchar_t NULL\n");
+        LOGEXIT("wcsncat returning char16_t NULL\n");
         PERF_EXIT(wcsncat);
         return NULL;
     }
@@ -1452,12 +1486,12 @@ PAL_wcsncat( wchar_16 * strDest, const wchar_16 *strSource, size_t count )
         strDest++;
     }
 
-    StrSourceLength = PAL_wcslen( strSource ); 
+    StrSourceLength = PAL_wcslen( strSource );
     if ( StrSourceLength < count )
     {
         count = StrSourceLength;
     }
-    
+
     /* concatenate new string */
     while( *strSource && LoopCount < count )
     {
@@ -1468,24 +1502,24 @@ PAL_wcsncat( wchar_16 * strDest, const wchar_16 *strSource, size_t count )
     /* add terminating null */
     *strDest = '\0';
 
-    LOGEXIT("wcsncat returning wchar_t %p (%S)\n", start, start);
+    LOGEXIT("wcsncat returning char16_t %p (%S)\n", start, start);
     PERF_EXIT(wcsncat);
     return start;
 }
 
 static BOOL MISC_CRT_WCSTOD_IsValidCharacter( WCHAR c )
 {
-    if ( c == '+' || c == '-' || c == '.' || ( c >= '0' && c <= '9' ) || 
+    if ( c == '+' || c == '-' || c == '.' || ( c >= '0' && c <= '9' ) ||
          c == 'e' || c == 'E' || c == 'd' || c == 'D' )
     {
         return TRUE;
     }
     return FALSE;
-}                                                               
+}
 
 /*++
-Function : 
-    
+Function :
+
     wcstod
 
     There is a slight difference between the Windows version of wcstod
@@ -1498,7 +1532,7 @@ see msdn doc.
 --*/
 double
 __cdecl
-PAL_wcstod( const wchar_16 * nptr, wchar_16 **endptr )
+PAL_wcstod( const char16_t * nptr, char16_t **endptr )
 {
     double RetVal = 0.0;
     LPSTR  lpStringRep = NULL;
@@ -1593,9 +1627,9 @@ Function :
 
 See MSDN for more details.
 --*/
-wchar_16 *
+char16_t *
 __cdecl
-_ui64tow( unsigned __int64 value , wchar_16 * string , int radix )
+_ui64tow( unsigned __int64 value , char16_t * string , int radix )
 {
     UINT ReversedIndex = 0;
     WCHAR ReversedString[ 65 ];
@@ -1603,7 +1637,7 @@ _ui64tow( unsigned __int64 value , wchar_16 * string , int radix )
     UINT Index = 0;
 
     PERF_ENTRY(_ui64tow);
-    ENTRY( "_ui64tow( value=%I64d, string=%p (%S), radix=%d )\n", 
+    ENTRY( "_ui64tow( value=%I64d, string=%p (%S), radix=%d )\n",
            value, string, string, radix );
 
     if ( !string )
@@ -1630,7 +1664,7 @@ _ui64tow( unsigned __int64 value , wchar_16 * string , int radix )
     {
         int temp = value % radix;
         value /= radix;
-        
+
         if ( temp < 10 )
         {
             ReversedString[ Index ] = temp + '0';
@@ -1642,7 +1676,7 @@ _ui64tow( unsigned __int64 value , wchar_16 * string , int radix )
             Index++;
         }
     }
-    
+
     /* Reverse the string. */
     ReversedIndex = Index;
     for ( Index = 0; ReversedIndex > 0; ReversedIndex--, Index++ )
@@ -1661,17 +1695,17 @@ _ui64tow( unsigned __int64 value , wchar_16 * string , int radix )
 Function:
 
     iswdigit
-    
+
 See MSDN for more details.
 --*/
 int
 __cdecl
-PAL_iswdigit( wchar_16 c )
+PAL_iswdigit( char16_t c )
 {
     UINT nRetVal = 0;
 #if HAVE_COREFOUNDATION
     static CFCharacterSetRef sDigitSet;
-    
+
     if (sDigitSet == NULL)
     {
         sDigitSet = CFCharacterSetGetPredefined(
@@ -1685,12 +1719,12 @@ PAL_iswdigit( wchar_16 c )
 
     PERF_ENTRY(iswdigit);
     ENTRY("PAL_iswdigit (c=%d)\n", c);
-    
+
     if (GetUnicodeData(c, &dataRec))
     {
         if (dataRec.C1_TYPE_FLAGS & C1_DIGIT)
         {
-            nRetVal = 1; 
+            nRetVal = 1;
         }
         else
         {
@@ -1711,24 +1745,24 @@ PAL_iswdigit( wchar_16 c )
 Function:
 
     iswxdigit
-    
+
 See MSDN for more details.
 
 Notes :
-the information in UnicodeData doesn't help us, it doesn't have enough 
+the information in UnicodeData doesn't help us, it doesn't have enough
 granularity. Results in windows show that only ASCII and "Fullwidth" (>0xFF10)
-numbers and letters are considered as "hex"; other "numbers" 
+numbers and letters are considered as "hex"; other "numbers"
 (nGeneralCategory==8) aren't.
 --*/
 int
 __cdecl
-PAL_iswxdigit( wchar_16 c )
+PAL_iswxdigit( char16_t c )
 {
     UINT nRetVal = 0;
 
     PERF_ENTRY(iswxdigit);
     ENTRY("PAL_iswxdigit( c=%d )\n", c);
-    
+
     /* ASCII characters */
     if((c>= 'A' && c<='F') ||        /* uppercase hex letters */
        (c>= 'a' && c<='f') ||        /* lowercase hex letters */
@@ -1747,7 +1781,7 @@ PAL_iswxdigit( wchar_16 c )
     else
     {
         nRetVal = 0;
-    }               
+    }
     LOGEXIT("PAL_iswxdigit returning %d\n", nRetVal);
     PERF_EXIT(iswxdigit);
     return nRetVal;
@@ -1758,18 +1792,18 @@ PAL_iswxdigit( wchar_16 c )
 Function:
 
     iswprint
-     
+
 See MSDN for more details.
 --*/
 int
 __cdecl
-PAL_iswprint( wchar_16 c ) 
+PAL_iswprint( char16_t c )
 {
     int ret;
-    
+
 
     PERF_ENTRY(iswprint);
-    ENTRY("PAL_iswprint (%#X)\n", c);   
+    ENTRY("PAL_iswprint (%#X)\n", c);
 
     ret = iswprint(c);
 
@@ -1798,13 +1832,13 @@ strCharSet      Set of delimiter characters
 --*/
 size_t
 __cdecl
-PAL_wcscspn(const wchar_16 *string, const wchar_16 *strCharSet)
+PAL_wcscspn(const char16_t *string, const char16_t *strCharSet)
 {
-    const wchar_16 *temp;
+    const char16_t *temp;
     size_t count = 0;
 
     PERF_ENTRY(wcscspn);
-    
+
     while(*string != 0)
     {
         for(temp = strCharSet; *temp != 0; temp++)
@@ -1829,13 +1863,13 @@ Function:
 
 Returns TRUE if c is a Win32 "blank" character.
 --*/
-int 
-__cdecl 
-PAL_iswblank(wchar_16 c)
+int
+__cdecl
+PAL_iswblank(char16_t c)
 {
     int ret;
     static CFCharacterSetRef sSpaceAndNewlineSet;
-    
+
     if (sSpaceAndNewlineSet == NULL)
     {
         sSpaceAndNewlineSet = CFCharacterSetGetPredefined(
@@ -1870,13 +1904,13 @@ Function:
 
 Returns TRUE if c is a control character.
 --*/
-int 
-__cdecl 
-PAL_iswcntrl(wchar_16 c)
+int
+__cdecl
+PAL_iswcntrl(char16_t c)
 {
     int ret;
     static CFCharacterSetRef sControlSet;
-    
+
     if (sControlSet == NULL)
     {
         sControlSet = CFCharacterSetGetPredefined(kCFCharacterSetControl);
@@ -1891,9 +1925,9 @@ Function:
 
 Returns TRUE if c is a punctuation character.
 --*/
-int 
-__cdecl 
-PAL_iswpunct(wchar_16 c)
+int
+__cdecl
+PAL_iswpunct(char16_t c)
 {
     int ret;
     static CFCharacterSetRef sPunctuationSet = NULL;

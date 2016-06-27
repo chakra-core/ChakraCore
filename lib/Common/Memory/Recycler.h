@@ -569,10 +569,10 @@ public:
 
 private:
     // Static entry point for thread creation
-    static unsigned int StaticThreadProc(LPVOID lpParameter);
+    static unsigned int CALLBACK StaticThreadProc(LPVOID lpParameter);
 
     // Static entry point for thread service usage
-    static void StaticBackgroundWorkCallback(void * callbackData);
+    static void CALLBACK StaticBackgroundWorkCallback(void * callbackData);
 
 private:
     WorkFunc workFunc;
@@ -1700,12 +1700,12 @@ private:
     bool AbortConcurrent(bool restoreState);
     void FinalizeConcurrent(bool restoreState);
 
-    static unsigned int  StaticThreadProc(LPVOID lpParameter);
+    static unsigned int CALLBACK StaticThreadProc(LPVOID lpParameter);
     static int ExceptFilter(LPEXCEPTION_POINTERS pEP);
     DWORD ThreadProc();
 
     void DoBackgroundWork(bool forceForeground = false);
-    static void StaticBackgroundWorkCallback(void * callbackData);
+    static void CALLBACK StaticBackgroundWorkCallback(void * callbackData);
 
     BOOL CollectOnConcurrentThread();
     bool StartConcurrent(CollectionState const state);
@@ -2315,7 +2315,13 @@ template <bool isLeaf>
 class ListTypeAllocatorFunc<Recycler, isLeaf>
 {
 public:
+    typedef char * (Recycler::*AllocFuncType)(size_t);
     typedef bool (Recycler::*FreeFuncType)(void*, size_t);
+
+    static AllocFuncType GetAllocFunc()
+    {
+        return isLeaf ? &Recycler::AllocLeaf : &Recycler::Alloc;
+    }
 
     static FreeFuncType GetFreeFunc()
     {
