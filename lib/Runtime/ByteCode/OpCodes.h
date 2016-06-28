@@ -472,7 +472,6 @@ MACRO_BACKEND_ONLY(     StLoopBodyCount,    Reg1,           OpSideEffect)   // f
 
 MACRO_WMS(              LdHeapArguments,    Reg1,           OpSideEffect)   // Load the heap-based "arguments" object
 MACRO_WMS(              LdLetHeapArguments, Reg1,           OpSideEffect)   // Load the heap-based "arguments" object (formals are let-like instead of var-like)
-MACRO_BACKEND_ONLY(     LdArgumentsFromStack,Reg1,          None)           // Load the heap-based "arguments" object even if it is null (Loads from meta arguments location for inlinee as well).
 MACRO_WMS(              LdHeapArgsCached,   Reg1,           OpSideEffect)   // Load the heap-based "arguments" object in a cached scope
 MACRO_EXTEND_WMS(       LdLetHeapArgsCached,Reg1,           OpSideEffect)   // Load the heap-based "arguments" object in a cached scope (formals are let-like instead of var-like)
 MACRO_EXTEND_WMS(       LdStackArgPtr,      Reg1,           OpSideEffect)   // Load the address of the base of the input parameter area
