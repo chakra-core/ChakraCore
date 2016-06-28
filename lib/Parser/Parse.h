@@ -709,6 +709,7 @@ private:
     template<const bool backgroundPidRefs>
     void BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId = (uint)-1);
     void BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint maxBlockId = (uint)-1);
+    void SetSymHasNonLocalReference(Symbol *sym);
     void PushScope(Scope *scope);
     void PopScope(Scope *scope);
 
@@ -739,8 +740,9 @@ private:
     template<bool buildAST> ParseNodePtr ParseFncDecl(ushort flags, LPCOLESTR pNameHint = NULL, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
     template<bool buildAST> bool ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef);
     template<bool buildAST> void ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags);
-    template<bool buildAST> bool ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly);
+    template<bool buildAST> bool ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly);
     template<bool buildAST> void ParseExpressionLambdaBody(ParseNodePtr pnodeFnc);
+    template<bool buildAST> void UpdateCurrentNodeFunc(ParseNodePtr pnodeFnc, bool fLambda);
     bool FncDeclAllowedWithoutContext(ushort flags);
     void FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef);
     void ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint);
@@ -933,7 +935,7 @@ private:
     void DeferOrEmitPotentialSpreadError(ParseNodePtr pnodeT);
     template<bool buildAST> void TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken);
     PidRefStack* PushPidRef(IdentPtr pid);
-    PidRefStack* FindOrAddPidRef(IdentPtr pid, int blockId);
+    PidRefStack* FindOrAddPidRef(IdentPtr pid, int blockId, Js::LocalFunctionId funcId);
     void RemovePrevPidRef(IdentPtr pid, PidRefStack *lastRef);
     void SetPidRefsInScopeDynamic(IdentPtr pid, int blockId);
 

@@ -14,28 +14,6 @@ bool Scope::IsBlockScope(FuncInfo *funcInfo)
     return this != funcInfo->GetBodyScope() && this != funcInfo->GetParamScope();
 }
 
-void Scope::SetHasLocalInClosure(bool has)
-{
-    SetHasOwnLocalInClosure(has);
-
-    // (Note: if any catch var is closure-captured, we won't merge the catch scope with the function scope.
-    // So don't mark the function scope "has local in closure".)
-    bool notCatch = this->scopeType != ScopeType_Catch && this->scopeType != ScopeType_CatchParamPattern;
-    if ((has && (this == func->GetBodyScope() || this == func->GetParamScope())) ||
-        (GetCanMerge() && notCatch))
-    {
-        func->SetHasLocalInClosure(true);
-    }
-    else
-    {
-        if (hasCrossScopeFuncAssignment)
-        {
-            func->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("InstantiateScopeWithCrossScopeAssignment")));
-        }
-        SetMustInstantiate(true);
-    }
-}
-
 int Scope::AddScopeSlot()
 {
     int slot = scopeSlotCount++;
@@ -52,7 +30,8 @@ void Scope::ForceAllSymbolNonLocalReference(ByteCodeGenerator *byteCodeGenerator
     {
         if (!sym->GetIsArguments())
         {
-            sym->SetHasNonLocalReference(true, byteCodeGenerator);
+            sym->SetHasNonLocalReference();
+            byteCodeGenerator->ProcessCapturedSym(sym);
             this->GetFunc()->SetHasLocalInClosure(true);
         }
     });
@@ -98,7 +77,7 @@ void Scope::SetIsObject()
     }
 }
 
-void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *byteCodeGenerator)
+void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope)
 {
     Assert(pnodeScope->sxFnc.funcInfo);
     Scope *paramScope = pnodeScope->sxFnc.pnodeScopes->sxBlock.scope;
@@ -106,12 +85,6 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *by
 
     if (paramScope->Count() == 0)
     {
-        // Once the scopes are merged, there's no reason to instantiate the param scope.
-        paramScope->SetMustInstantiate(false);
-
-        // Scopes are already merged or we don't have an arguments object. Go ahead and
-        // remove the param scope from the scope chain.
-        bodyScope->SetEnclosingScope(paramScope->GetEnclosingScope());
         return;
     }
 
@@ -129,6 +102,17 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *by
     {
         bodyScope->SetMustInstantiate(true);
     }
+    if (paramScope->GetHasOwnLocalInClosure())
+    {
+        bodyScope->SetHasOwnLocalInClosure(true);
+    }
+}
+
+void Scope::RemoveParamScope(ParseNode *pnodeScope)
+{
+    Assert(pnodeScope->sxFnc.funcInfo);
+    Scope *paramScope = pnodeScope->sxFnc.pnodeScopes->sxBlock.scope;
+    Scope *bodyScope = pnodeScope->sxFnc.pnodeBodyScope->sxBlock.scope;
 
     // Once the scopes are merged, there's no reason to instantiate the param scope.
     paramScope->SetMustInstantiate(false);
@@ -136,7 +120,7 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *by
     paramScope->m_count = 0;
     paramScope->scopeSlotCount = 0;
     paramScope->m_symList = nullptr;
-
     // Remove the parameter scope from the scope chain.
+
     bodyScope->SetEnclosingScope(paramScope->GetEnclosingScope());
 }

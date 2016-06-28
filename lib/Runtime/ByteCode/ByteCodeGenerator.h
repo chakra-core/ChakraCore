@@ -175,6 +175,8 @@ public:
     void AssignParamSlotsRegister();
     void AssignFrameDisplayRegister();
 
+    void ProcessCapturedSym(Symbol *sym);
+    void ProcessScopeWithCapturedSym(Scope *scope);
     void InitScopeSlotArray(FuncInfo * funcInfo);
     void FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
     void SetClosureRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);

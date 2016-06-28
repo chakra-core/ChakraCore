@@ -541,6 +541,13 @@ IRBuilder::Build()
         }
 
         Js::RegSlot funcExprScopeReg = funcBody->GetFuncExprScopeRegister();
+        if (funcExprScopeReg != Js::Constants::NoRegister)
+        {
+            IR::RegOpnd *funcExprScopeOpnd = BuildDstOpnd(funcExprScopeReg);
+            instr = IR::Instr::New(Js::OpCode::NewPseudoScope, funcExprScopeOpnd, m_func);
+            this->AddInstr(instr, (uint)-1);
+        }
+
         Js::RegSlot closureReg = funcBody->GetLocalClosureRegister();
         IR::RegOpnd *closureOpnd = nullptr;
         if (closureReg != Js::Constants::NoRegister)
@@ -556,13 +563,6 @@ IRBuilder::Build()
             }
             if (funcBody->HasScopeObject())
             {
-                if (funcExprScopeReg != Js::Constants::NoRegister)
-                {
-                    IR::RegOpnd *funcExprScopeOpnd = BuildDstOpnd(funcExprScopeReg);
-                    instr = IR::Instr::New(Js::OpCode::NewPseudoScope, funcExprScopeOpnd, m_func);
-                    this->AddInstr(instr, (uint)-1);
-                }
-
                 if (funcBody->HasCachedScopePropIds())
                 {
                     this->BuildInitCachedScope(0, offset);
@@ -607,7 +607,7 @@ IRBuilder::Build()
         }
 
         Js::RegSlot frameDisplayReg = funcBody->GetLocalFrameDisplayRegister();
-        if (frameDisplayReg != Js::Constants::NoRegister && closureReg != Js::Constants::NoRegister)
+        if (frameDisplayReg != Js::Constants::NoRegister)
         {
             Assert(!this->RegIsConstant(frameDisplayReg));
 
@@ -617,7 +617,7 @@ IRBuilder::Build()
             {
                 // Insert the function expression scope ahead of any enclosing scopes.
                 IR::RegOpnd * funcExprScopeOpnd = BuildSrcOpnd(funcExprScopeReg);
-                frameDisplayOpnd = IR::RegOpnd::New(TyVar, m_func);
+                frameDisplayOpnd = closureReg != Js::Constants::NoRegister ? IR::RegOpnd::New(TyVar, m_func) : BuildDstOpnd(frameDisplayReg);
                 instr = IR::Instr::New(Js::OpCode::LdFrameDisplay, frameDisplayOpnd, funcExprScopeOpnd, m_func);
                 if (envReg != Js::Constants::NoRegister)
                 {
@@ -626,46 +626,49 @@ IRBuilder::Build()
                 this->AddInstr(instr, (uint)-1);
             }
 
-            IR::RegOpnd *dstOpnd;
-            if (m_func->DoStackScopeSlots() && m_func->IsTopFunc())
+            if (closureReg != Js::Constants::NoRegister)
             {
-                dstOpnd = IR::RegOpnd::New(TyVar, m_func);
-            }
-            else
-            {
-                dstOpnd = this->BuildDstOpnd(frameDisplayReg);
-            }
-            instr = IR::Instr::New(op, dstOpnd, closureOpnd, m_func);
-            if (frameDisplayOpnd != nullptr)
-            {
-                // We're building on an intermediate LdFrameDisplay result.
-                instr->SetSrc2(frameDisplayOpnd);
-            }
-            else if (envReg != Js::Constants::NoRegister)
-            {
-                // We're building on the environment created by the enclosing function.
-                instr->SetSrc2(this->BuildSrcOpnd(envReg));
-            }
-            this->AddInstr(instr, offset);
-            if (dstOpnd->m_sym->m_isSingleDef)
-            {
-                dstOpnd->m_sym->m_isNotInt = true;
-            }
+                IR::RegOpnd *dstOpnd;
+                if (m_func->DoStackScopeSlots() && m_func->IsTopFunc())
+                {
+                    dstOpnd = IR::RegOpnd::New(TyVar, m_func);
+                }
+                else
+                {
+                    dstOpnd = this->BuildDstOpnd(frameDisplayReg);
+                }
+                instr = IR::Instr::New(op, dstOpnd, closureOpnd, m_func);
+                if (frameDisplayOpnd != nullptr)
+                {
+                    // We're building on an intermediate LdFrameDisplay result.
+                    instr->SetSrc2(frameDisplayOpnd);
+                }
+                else if (envReg != Js::Constants::NoRegister)
+                {
+                    // We're building on the environment created by the enclosing function.
+                    instr->SetSrc2(this->BuildSrcOpnd(envReg));
+                }
+                this->AddInstr(instr, offset);
+                if (dstOpnd->m_sym->m_isSingleDef)
+                {
+                    dstOpnd->m_sym->m_isNotInt = true;
+                }
 
-            if (m_func->DoStackFrameDisplay())
-            {
-                // Use the stack closure sym to save the frame display pointer.
-                this->AddInstr(
-                    IR::Instr::New(
-                        Js::OpCode::InitLocalClosure, this->BuildDstOpnd(m_func->GetLocalFrameDisplaySym()->m_id), m_func),
-                    (uint32)-1);
+                if (m_func->DoStackFrameDisplay())
+                {
+                    // Use the stack closure sym to save the frame display pointer.
+                    this->AddInstr(
+                        IR::Instr::New(
+                            Js::OpCode::InitLocalClosure, this->BuildDstOpnd(m_func->GetLocalFrameDisplaySym()->m_id), m_func),
+                        (uint32)-1);
 
-                this->AddInstr(
-                    IR::Instr::New(
-                        Js::OpCode::StSlot,
-                        this->BuildFieldOpnd(Js::OpCode::StSlot, m_func->GetLocalFrameDisplaySym()->m_id, 0, (Js::PropertyIdIndexType)-1, PropertyKindSlots),
-                        dstOpnd, m_func),
-                    (uint32)-1);
+                    this->AddInstr(
+                        IR::Instr::New(
+                            Js::OpCode::StSlot,
+                            this->BuildFieldOpnd(Js::OpCode::StSlot, m_func->GetLocalFrameDisplaySym()->m_id, 0, (Js::PropertyIdIndexType)-1, PropertyKindSlots),
+                            dstOpnd, m_func),
+                        (uint32)-1);
+                }
             }
         }
     }
