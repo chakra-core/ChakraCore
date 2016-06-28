@@ -427,6 +427,7 @@ namespace Js
             contextData.nativeFloatArrayTypeAddr = (intptr_t)GetLibrary()->GetNativeFloatArrayType();
             contextData.charStringCacheAddr = (intptr_t)&GetLibrary()->GetCharStringCache();
             contextData.libraryAddr = (intptr_t)GetLibrary();
+            contextData.builtinFunctionsBaseAddr = (intptr_t)GetLibrary()->GetBuiltinFunctions();
             contextData.sideEffectsAddr = (intptr_t)optimizationOverrides.GetAddressOfSideEffects();
             contextData.arraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfArraySetElementFastPathVtable();
             contextData.intArraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfIntArraySetElementFastPathVtable();

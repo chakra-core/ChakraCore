@@ -234,7 +234,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                             break;
                         }
 
-                        isBuiltIn = InliningDecider::GetBuiltInInfo(inlineeData->GetLocalFunctionId(), &builtInInlineCandidateOpCode, &builtInReturnType, func->GetScriptContext());
+                        isBuiltIn = InliningDecider::GetBuiltInInfo(inlineeData, &builtInInlineCandidateOpCode, &builtInReturnType);
 
                         if(!builtInReturnType.IsUninitialized() && instr->GetDst())
                         {
@@ -3191,6 +3191,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
+                Assert(UNREACHED); // TODO: OOP JIT, move string to other proc
                 newInstr->SetSrc2(IR::AddrOpnd::New(L"String.prototype.match", IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }
@@ -3218,6 +3219,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
+                Assert(UNREACHED); // TODO: OOP JIT, move string to other proc
                 newInstr->SetSrc2(IR::AddrOpnd::New(L"String.prototype.replace", IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }

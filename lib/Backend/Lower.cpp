@@ -10905,7 +10905,7 @@ Lowerer::LowerBailOnNotBuiltIn(IR::Instr       *instr,
     intptr_t builtInFuncs = m_func->GetScriptContextInfo()->GetBuiltinFunctionsBaseAddr();
     Js::BuiltinFunction builtInIndex = instr->UnlinkSrc2()->AsIntConstOpnd()->AsInt32();
 
-    IR::Opnd *builtIn = IR::MemRefOpnd::New((void*)(builtInFuncs + builtInIndex), TyMachReg, instr->m_func);
+    IR::Opnd *builtIn = IR::MemRefOpnd::New((void*)(builtInFuncs + builtInIndex * MachPtr), TyMachReg, instr->m_func);
 
 #if TESTBUILTINFORNULL
     IR::LabelInstr * continueAfterTestLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func);

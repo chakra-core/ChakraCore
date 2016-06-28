@@ -59,16 +59,14 @@ public:
 
 
     static bool GetBuiltInInfo(
-        Js::FunctionInfo *const funcInfo,
+        const FunctionJITTimeInfo *const funcInfo,
         Js::OpCode *const inlineCandidateOpCode,
-        ValueType *const returnType,
-        Js::ScriptContext *const scriptContext = nullptr);
+        ValueType *const returnType);
 
     static bool GetBuiltInInfo(
-        uint localFuncId,
+        Js::FunctionInfo *const funcInfo,
         Js::OpCode *const inlineCandidateOpCode,
-        ValueType *const returnType,
-        Js::ScriptContext *const scriptContext = nullptr);
+        ValueType *const returnType);
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     static void TraceInlining(Js::FunctionBody *const inliner, const wchar_t* inlineeName, const wchar_t* inlineeFunctionIdandNumberString, uint inlineeByteCodeCount,
@@ -76,6 +74,11 @@ public:
 #endif
 
 private:
+    static bool GetBuiltInInfoCommon(
+        uint localFuncId,
+        Js::OpCode *const inlineCandidateOpCode,
+        ValueType *const returnType);
+
     static bool IsInlineeLeaf(Js::FunctionBody * const inlinee)
     {
         return inlinee->HasDynamicProfileInfo()

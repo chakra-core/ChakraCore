@@ -277,7 +277,7 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
 
     Js::OpCode builtInInlineCandidateOpCode;
     ValueType builtInReturnType;
-    GetBuiltInInfo(functionInfo, &builtInInlineCandidateOpCode, &builtInReturnType, inliner->GetScriptContext());
+    GetBuiltInInfo(functionInfo, &builtInInlineCandidateOpCode, &builtInReturnType);
 
     if(builtInInlineCandidateOpCode == 0 && builtInReturnType.IsUninitialized())
     {
@@ -299,11 +299,13 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
     return functionInfo;
 }
 
+
+// TODO OOP JIT: add FunctionInfo interface so we can combine these?
+/* static */
 bool InliningDecider::GetBuiltInInfo(
-    Js::FunctionInfo *const funcInfo,
+    const FunctionJITTimeInfo *const funcInfo,
     Js::OpCode *const inlineCandidateOpCode,
-    ValueType *const returnType,
-    Js::ScriptContext *const scriptContext /* = nullptr*/
+    ValueType *const returnType
 )
 {
     Assert(funcInfo);
@@ -317,26 +319,42 @@ bool InliningDecider::GetBuiltInInfo(
     {
         return false;
     }
-    return InliningDecider::GetBuiltInInfo(
+    return InliningDecider::GetBuiltInInfoCommon(
         funcInfo->GetLocalFunctionId(),
         inlineCandidateOpCode,
-        returnType,
-        scriptContext);
+        returnType);
 }
 
+/* static */
 bool InliningDecider::GetBuiltInInfo(
-    uint localFuncId,
+    Js::FunctionInfo *const funcInfo,
     Js::OpCode *const inlineCandidateOpCode,
-    ValueType *const returnType,
-    Js::ScriptContext *const scriptContext /* = nullptr*/
-    )
+    ValueType *const returnType
+)
 {
+    Assert(funcInfo);
     Assert(inlineCandidateOpCode);
     Assert(returnType);
 
     *inlineCandidateOpCode = (Js::OpCode)0;
     *returnType = ValueType::Uninitialized;
 
+    if (funcInfo->HasBody())
+    {
+        return false;
+    }
+    return InliningDecider::GetBuiltInInfoCommon(
+        funcInfo->GetLocalFunctionId(),
+        inlineCandidateOpCode,
+        returnType);
+}
+
+bool InliningDecider::GetBuiltInInfoCommon(
+    uint localFuncId,
+    Js::OpCode *const inlineCandidateOpCode,
+    ValueType *const returnType
+    )
+{
     // TODO: consider adding another column to JavascriptBuiltInFunctionList.h/LibraryFunction.h
     // and getting helper method from there instead of multiple switch labels. And for return value types too.
     switch (localFuncId)

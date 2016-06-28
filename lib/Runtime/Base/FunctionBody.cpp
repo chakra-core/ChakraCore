@@ -8485,15 +8485,15 @@ namespace Js
 
             for (unsigned int i = 0; i < this->inlineeFrameOffsetArrayCount - 1; i++)
             {
-                if (offsets[i].offset <= offset && offset < offsets[i + 1].offset)
+                if (offsets[i].offset < offset && offsets[i + 1].offset >= offset)
                 {
-                    if (offsets[i].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
+                    if (offsets[i+1].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
                     {
                         return nullptr;
                     }
                     else
                     {
-                        return (InlineeFrameRecord*)(this->nativeDataBuffer + offsets[i].recordOffset);
+                        return (InlineeFrameRecord*)(this->nativeDataBuffer + offsets[i+1].recordOffset);
                     }
                 }
             }
