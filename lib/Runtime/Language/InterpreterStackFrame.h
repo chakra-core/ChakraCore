@@ -322,6 +322,31 @@ namespace Js
         Var ProcessProfiled();
         Var ProcessUnprofiled();
 
+        const byte* ProcessProfiledExtendedOpCodePrefix(const byte* ip);
+        const byte* ProcessUnprofiledExtendedOpCodePrefix(const byte* ip);
+        const byte* ProcessWithDebuggingExtendedOpCodePrefix(const byte* ip);
+        const byte* ProcessAsmJsExtendedOpCodePrefix(const byte* ip);
+
+        const byte* ProcessProfiledMediumLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessUnprofiledMediumLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessWithDebuggingMediumLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessAsmJsMediumLayoutPrefix(const byte* ip, Var&);
+
+        const byte* ProcessProfiledExtendedMediumLayoutPrefix(const byte* ip);
+        const byte* ProcessUnprofiledExtendedMediumLayoutPrefix(const byte* ip);
+        const byte* ProcessWithDebuggingExtendedMediumLayoutPrefix(const byte* ip);
+        const byte* ProcessAsmJsExtendedMediumLayoutPrefix(const byte* ip);
+
+        const byte* ProcessProfiledLargeLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessUnprofiledLargeLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessWithDebuggingLargeLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessAsmJsLargeLayoutPrefix(const byte* ip, Var&);
+
+        const byte* ProcessProfiledExtendedLargeLayoutPrefix(const byte* ip);
+        const byte* ProcessUnprofiledExtendedLargeLayoutPrefix(const byte* ip);
+        const byte* ProcessWithDebuggingExtendedLargeLayoutPrefix(const byte* ip);
+        const byte* ProcessAsmJsExtendedLargeLayoutPrefix(const byte* ip);
+
         Var ProcessWithDebugging();
         Var DebugProcess();
 

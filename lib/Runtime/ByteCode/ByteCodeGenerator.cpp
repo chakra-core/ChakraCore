@@ -17,24 +17,36 @@ bool IsCallOfConstants(ParseNode *pnode)
 template <class PrefixFn, class PostfixFn>
 void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn prefix, PostfixFn postfix, ParseNode * pnodeParent = nullptr);
 
+//the only point of this type (as opposed to using a lambda) is to provide a named type in code coverage
+template <typename TContext> class ParseNodeVisitor
+{
+    TContext* m_context;
+    void(*m_fn)(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, TContext* context);
+public:
+
+    ParseNodeVisitor(TContext* ctx, void(*prefixParam)(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, TContext* context)) :
+        m_context(ctx), m_fn(prefixParam)
+    {
+    }
+
+    void operator () (ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator)
+    {
+        if (m_fn)
+        {
+            m_fn(pnode, byteCodeGenerator, m_context);
+        }
+    }
+};
+
 template<class TContext>
 void VisitIndirect(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, TContext* context,
     void (*prefix)(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, TContext* context),
-    void (*postfix)(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, TContext* context),
-    ParseNode *pnodeParent = nullptr)
+    void (*postfix)(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, TContext* context))
 {
-    Visit(pnode, byteCodeGenerator,
-        [context, prefix](ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator)
-        {
-            prefix(pnode, byteCodeGenerator, context);
-        },
-        [context, postfix](ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator)
-        {
-            if (postfix)
-            {
-                postfix(pnode, byteCodeGenerator, context);
-            }
-        }, pnodeParent);
+    ParseNodeVisitor<TContext> prefixHelper(context, prefix);
+    ParseNodeVisitor<TContext> postfixHelper(context, postfix);
+
+    Visit(pnode, byteCodeGenerator, prefixHelper, postfixHelper, nullptr);
 }
 
 template <class PrefixFn, class PostfixFn>
