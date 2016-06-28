@@ -948,6 +948,13 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
                 // change the address with the fixup information
                 *epInfo->GetNativeDataBufferRef() = (char*)jitWriteData.buffer->data;
+
+#if DBG
+                if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                {
+                    Output::Print(L"NativeCodeData Client Buffer: %p, len: %x\n", jitWriteData.buffer->data, jitWriteData.buffer->len);
+                }
+#endif
             }
 
             epInfo->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);

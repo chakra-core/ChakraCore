@@ -464,7 +464,6 @@ Func::Codegen()
         jitOutputData->buffer = (NativeDataBuffer*)midl_user_allocate(offsetof(NativeDataBuffer, data) + dataAllocator->totalSize);
         jitOutputData->buffer->len = dataAllocator->totalSize;
 
-
         unsigned int len = 0;
         unsigned int count = 0;
         next1 = chunk;
@@ -481,6 +480,13 @@ Func::Codegen()
             count++;
             next1 = next1->next;
         }
+
+#if DBG
+        if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+        {
+            Output::Print(L"NativeCodeData Server Buffer: %p, len: %x, chunk head: %p\n", jitOutputData->buffer->data, jitOutputData->buffer->len, chunk);
+        }
+#endif
     }
 
 }

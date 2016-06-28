@@ -142,7 +142,11 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
 
             // add rcx, bailoutRecord_offset
             auto eax = IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func);
-            Lowerer::InsertAdd(false, eax, eax, IR::IntConstOpnd::New(bailoutRecordOffset, TyUint32, this->func, true), instr);
+            Lowerer::InsertAdd(false, eax, eax, IR::IntConstOpnd::New(bailoutRecordOffset, TyUint32, 
+#if DBG
+                NativeCodeData::GetDataDescription(bailOutInfo->bailOutRecord, func->m_alloc),
+#endif
+                this->func, true), instr);
 
             IR::Instr *const newInstr = IR::Instr::New(Js::OpCode::PUSH, func);
             newInstr->SetSrc1(IR::RegOpnd::New(nullptr, RegEAX, TyUint32, func));

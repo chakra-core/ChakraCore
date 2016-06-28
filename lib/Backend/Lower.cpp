@@ -6783,7 +6783,11 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
                 instrChk);
 
             int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typeCheckGuard);
-            expectedTypeOpnd = IR::IndirOpnd::New(regNativeCodeData, typeCheckGuardOffset, TyMachPtr, func);
+            expectedTypeOpnd = IR::IndirOpnd::New(regNativeCodeData, typeCheckGuardOffset, TyMachPtr,
+#if DBG
+                NativeCodeData::GetDataDescription(typeCheckGuard, func->m_alloc),
+#endif
+                func);
         }
         else
         {
@@ -6839,7 +6843,28 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
 
         instrChk->InsertBefore(labelCheckEquivalentType);
 
-        this->m_lowererMD.LoadHelperArgument(instrChk, IR::AddrOpnd::New((Js::Var)typeCheckGuard, IR::AddrOpndKindDynamicTypeCheckGuard, func, true));
+        IR::Opnd* typeCheckGuardOpnd = nullptr;
+        if (this->m_func->IsOOPJIT())
+        {
+            typeCheckGuardOpnd = IR::RegOpnd::New(TyMachPtr, func);
+            Lowerer::InsertMove(
+                typeCheckGuardOpnd,
+                IR::MemRefOpnd::New((void*)func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, func, IR::AddrOpndKindDynamicNativeCodeDataRef),
+                instrChk);
+
+            int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typeCheckGuard);
+            Lowerer::InsertAdd(false, typeCheckGuardOpnd, typeCheckGuardOpnd, IR::IntConstOpnd::New(typeCheckGuardOffset, TyInt32,
+#if DBG
+                NativeCodeData::GetDataDescription(typeCheckGuard, func->m_alloc),
+#endif
+                func), instrChk);
+        }
+        else
+        {
+            typeCheckGuardOpnd = IR::AddrOpnd::New((Js::Var)typeCheckGuard, IR::AddrOpndKindDynamicTypeCheckGuard, func, true);
+        }
+
+        this->m_lowererMD.LoadHelperArgument(instrChk, typeCheckGuardOpnd);
         this->m_lowererMD.LoadHelperArgument(instrChk, typeOpnd);
 
         IR::RegOpnd* equivalentTypeCheckResultOpnd = IR::RegOpnd::New(TyUint8, func);
@@ -6934,7 +6959,11 @@ Lowerer::GenerateCachedTypeWithoutPropertyCheck(IR::Instr *instrInsert, IR::Prop
                 instrInsert);
 
             int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typePropertyGuard);
-            expectedTypeOpnd = IR::IndirOpnd::New(regNativeCodeData, typeCheckGuardOffset, TyMachPtr, this->m_func);
+            expectedTypeOpnd = IR::IndirOpnd::New(regNativeCodeData, typeCheckGuardOffset, TyMachPtr,
+#if DBG
+                NativeCodeData::GetDataDescription(typePropertyGuard, this->m_func->m_alloc),
+#endif
+                this->m_func);
         }
         else
         {
@@ -12190,7 +12219,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         IR::RegOpnd* addressRegOpnd = nullptr;
         if (this->m_func->IsOOPJIT())
         {
-            bailOutRecordOffset = ((NativeCodeData::DataChunk*)((char*)bailOutInfo->bailOutRecord - sizeof(NativeCodeData::DataChunk)))->offset;
+            bailOutRecordOffset = NativeCodeData::GetDataTotalOffset(bailOutInfo->bailOutRecord);
             addressRegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
 
             Lowerer::InsertMove(
@@ -12198,7 +12227,11 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
                 IR::MemRefOpnd::New((void*)m_func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, TyMachPtr, m_func, IR::AddrOpndKindDynamicNativeCodeDataRef),
                 instr);
 
-            indexOpndForBailOutKind = IR::IndirOpnd::New(addressRegOpnd, (int)(bailOutRecordOffset + BailOutRecord::GetOffsetOfBailOutKind()), TyUint32, m_func);
+            indexOpndForBailOutKind = IR::IndirOpnd::New(addressRegOpnd, (int)(bailOutRecordOffset + BailOutRecord::GetOffsetOfBailOutKind()), TyUint32,
+#if DBG
+                NativeCodeData::GetDataDescription(bailOutInfo->bailOutRecord, this->m_func->m_alloc),
+#endif
+                m_func);
         }
         else
         {
