@@ -123,10 +123,12 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
             def jobName = Utilities.getFullJobName(project, config, isPR)
 
             def testableConfig = buildType in ['debug', 'test']
+            def staticBuildConfig = buildType in ['debug']
 
             def infoScript = 'bash jenkins/get_system_info.sh'
             def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
             def buildScript = "bash ./build.sh -j=`nproc` ${buildFlag} --cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
+            def staticBuildScript = "bash ./build.sh --static -j=`nproc` ${buildFlag} --cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
             def testScript = "bash test/runtests.sh"
 
             def newJob = job(jobName) {
@@ -135,6 +137,12 @@ def CreateLinuxBuildTasks = { machine, configTag, linuxBranch, nonDefaultTaskSet
                     shell(buildScript)
                     if (testableConfig) {
                         shell(testScript)
+                    }
+                    if (staticBuildConfig) {
+                        shell(staticBuildScript)
+                        if (testableConfig) {
+                            shell(testScript)
+                        }
                     }
                 }
             }
