@@ -721,6 +721,8 @@ private:
     typedef JsUtil::BaseDictionary<Js::Var, Js::IsInstInlineCache*, ArenaAllocator> IsInstInlineCacheListMapByFunction;
     IsInstInlineCacheListMapByFunction isInstInlineCacheByFunction;
 
+    Js::IsConcatSpreadableCache isConcatSpreadableCache;
+
     ArenaAllocator prototypeChainEnsuredToHaveOnlyWritableDataPropertiesAllocator;
     DListBase<Js::ScriptContext *> prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
 
@@ -840,6 +842,8 @@ public:
     CriticalSection* GetEtwRundownCriticalSection() { return &csEtwRundown; }
 
     UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
+
+    Js::IsConcatSpreadableCache* GetIsConcatSpreadableCache() { return &isConcatSpreadableCache; }
 
 #ifdef ENABLE_GLOBALIZATION
     Js::DelayLoadWinRtString *GetWinRTStringLibrary();

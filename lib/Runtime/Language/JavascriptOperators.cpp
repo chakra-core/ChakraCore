@@ -1357,17 +1357,45 @@ CommonNumber:
 
         RecyclableObject* instance = RecyclableObject::FromVar(instanceVar);
         ScriptContext* scriptContext = instance->GetScriptContext();
+
+        if (!PHASE_OFF1(IsConcatSpreadableCachePhase))
+        {
+            BOOL retVal = FALSE;
+            Type *instanceType = instance->GetType();
+            IsConcatSpreadableCache *isConcatSpreadableCache = scriptContext->GetThreadContext()->GetIsConcatSpreadableCache();
+
+            if (isConcatSpreadableCache->TryGetIsConcatSpreadable(instanceType, &retVal))
+            {
+                OUTPUT_TRACE(Phase::IsConcatSpreadableCachePhase, _u("IsConcatSpreadableCache hit: %p\n"), instanceType);
+                return retVal;
+            }
+
+            Var spreadable = nullptr;
+            BOOL hasUserDefinedSpreadable = JavascriptOperators::GetProperty(instance, instance, PropertyIds::_symbolIsConcatSpreadable, &spreadable, scriptContext);
+
+            if (hasUserDefinedSpreadable && spreadable != scriptContext->GetLibrary()->GetUndefined())
+            {
+                return JavascriptConversion::ToBoolean(spreadable, scriptContext);
+            }
+
+            retVal = JavascriptOperators::IsArray(instance);
+
+            if (!hasUserDefinedSpreadable)
+            {
+                OUTPUT_TRACE(Phase::IsConcatSpreadableCachePhase, _u("IsConcatSpreadableCache saved: %p\n"), instanceType);
+                isConcatSpreadableCache->CacheIsConcatSpreadable(instanceType, retVal);
+            }
+
+            return retVal;
+        }
+
         Var spreadable = JavascriptOperators::GetProperty(instance, PropertyIds::_symbolIsConcatSpreadable, scriptContext);
         if (spreadable != scriptContext->GetLibrary()->GetUndefined())
         {
             return JavascriptConversion::ToBoolean(spreadable, scriptContext);
         }
-        if (JavascriptOperators::IsArray(instance))
-        {
-            return true;
-        }
-        return false;
 
+        return JavascriptOperators::IsArray(instance);
     }
 
     Var JavascriptOperators::OP_LdCustomSpreadIteratorList(Var aRight, ScriptContext* scriptContext)

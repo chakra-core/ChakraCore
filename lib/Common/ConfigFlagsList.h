@@ -283,6 +283,7 @@ PHASE(All)
         PHASE(InlineCandidate)
         PHASE(InlineHostCandidate)
         PHASE(ScriptFunctionWithInlineCache)
+        PHASE(IsConcatSpreadableCache)
         PHASE(Arena)
         PHASE(ApplyUsage)
         PHASE(ObjectHeaderInlining)
@@ -499,7 +500,12 @@ PHASE(All)
     #define DEFAULT_CONFIG_ES6FunctionNameFull     (false)
 #endif
 #define DEFAULT_CONFIG_ES6Generators           (true)
-#define DEFAULT_CONFIG_ES6IsConcatSpreadable   (false)
+#ifdef COMPILE_DISABLE_ES6IsConcatSpreadable
+    // If ES6IsConcatSpreadable needs to be disabled by compile flag, COMPILE_DISABLE_ES6IsConcatSpreadable should be false
+    #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (false)
+#else
+    #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (false)
+#endif
 #define DEFAULT_CONFIG_ES6Math                 (true)
 #ifdef COMPILE_DISABLE_ES6Module
     // If ES6Module needs to be disabled by compile flag, DEFAULT_CONFIG_ES6Module should be false
@@ -952,7 +958,10 @@ FLAGPR           (Boolean, ES6, ES7ExponentiationOperator, "Enable ES7 exponenti
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES7Builtins            , "Enable ES7 built-ins"                                     , DEFAULT_CONFIG_ES7Builtins)
 FLAGPR           (Boolean, ES6, ES7ValuesEntries       , "Enable ES7 Object.values and Object.entries"              , DEFAULT_CONFIG_ES7ValuesEntries)
 FLAGPR           (Boolean, ES6, ES7TrailingComma       , "Enable ES7 trailing comma in function"                    , DEFAULT_CONFIG_ES7TrailingComma)
-FLAGPR           (Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
+#ifndef COMPILE_DISABLE_ES6IsConcatSpreadable
+    #define COMPILE_DISABLE_ES6IsConcatSpreadable 0
+#endif
+FLAGPR_REGOVR_EXP(Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
 FLAGPR           (Boolean, ES6, ES6Math                , "Enable ES6 Math extensions"                               , DEFAULT_CONFIG_ES6Math)
 
 #ifndef COMPILE_DISABLE_ES6Module
