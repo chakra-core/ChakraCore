@@ -322,6 +322,31 @@ namespace Js
         Var ProcessProfiled();
         Var ProcessUnprofiled();
 
+        const byte* ProcessProfiledExtendedOpCodePrefix(const byte* ip);
+        const byte* ProcessUnprofiledExtendedOpCodePrefix(const byte* ip);
+        const byte* ProcessWithDebuggingExtendedOpCodePrefix(const byte* ip);
+        const byte* ProcessAsmJsExtendedOpCodePrefix(const byte* ip);
+
+        const byte* ProcessProfiledMediumLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessUnprofiledMediumLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessWithDebuggingMediumLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessAsmJsMediumLayoutPrefix(const byte* ip, Var&);
+
+        const byte* ProcessProfiledExtendedMediumLayoutPrefix(const byte* ip);
+        const byte* ProcessUnprofiledExtendedMediumLayoutPrefix(const byte* ip);
+        const byte* ProcessWithDebuggingExtendedMediumLayoutPrefix(const byte* ip);
+        const byte* ProcessAsmJsExtendedMediumLayoutPrefix(const byte* ip);
+
+        const byte* ProcessProfiledLargeLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessUnprofiledLargeLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessWithDebuggingLargeLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessAsmJsLargeLayoutPrefix(const byte* ip, Var&);
+
+        const byte* ProcessProfiledExtendedLargeLayoutPrefix(const byte* ip);
+        const byte* ProcessUnprofiledExtendedLargeLayoutPrefix(const byte* ip);
+        const byte* ProcessWithDebuggingExtendedLargeLayoutPrefix(const byte* ip);
+        const byte* ProcessAsmJsExtendedLargeLayoutPrefix(const byte* ip);
+
         Var ProcessWithDebugging();
         Var DebugProcess();
 
@@ -584,8 +609,8 @@ namespace Js
         inline void OP_StModuleSlot(Var instance, int32 slotIndex1, int32 slotIndex2);
         inline void* OP_LdArgCnt();
         template <bool letArgs> Var LdHeapArgumentsImpl(Var argsArray, ScriptContext* scriptContext);
-        inline Var OP_LdHeapArguments(Var argsArray, ScriptContext* scriptContext);
-        inline Var OP_LdLetHeapArguments(Var argsArray, ScriptContext* scriptContext);
+        inline Var OP_LdHeapArguments(ScriptContext* scriptContext);
+        inline Var OP_LdLetHeapArguments(ScriptContext* scriptContext);
         inline Var OP_LdHeapArgsCached(ScriptContext* scriptContext);
         inline Var OP_LdLetHeapArgsCached(ScriptContext* scriptContext);
         inline Var OP_LdStackArgPtr();
@@ -619,8 +644,8 @@ namespace Js
         void OP_NewScObject_A(const unaligned OpLayoutAuxiliary * playout) { return OP_NewScObject_A_Impl(playout); }
         void OP_InitCachedFuncs(const unaligned OpLayoutAuxNoReg * playout);
         Var OP_GetCachedFunc(Var instance, int32 index);
-        void OP_CommitScope(const unaligned OpLayoutAuxNoReg * playout);
-        void OP_CommitScopeHelper(const unaligned OpLayoutAuxNoReg *playout, const PropertyIdArray *propIds);
+        void OP_CommitScope();
+        void OP_CommitScopeHelper(const PropertyIdArray *propIds);
         void OP_TryCatch(const unaligned OpLayoutBr* playout);
         void ProcessCatch();
         int ProcessFinally();
@@ -646,6 +671,8 @@ namespace Js
         template <typename T> void OP_ApplyArgs(const unaligned OpLayoutT_Reg5<T> * playout);
         template <class T> void OP_EmitTmpRegCount(const unaligned OpLayoutT_Unsigned1<T> * ip);
 
+        HeapArgumentsObject * CreateEmptyHeapArgumentsObject(ScriptContext* scriptContext);
+        void TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext, bool hasNonSimpleParam);
         Var InnerScopeFromIndex(uint32 index) const;
         void SetInnerScopeFromIndex(uint32 index, Var scope);
         void OP_NewInnerScopeSlots(uint index, uint count, int scopeIndex, ScriptContext *scriptContext, FunctionBody *functionBody);

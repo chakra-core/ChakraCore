@@ -48,4 +48,10 @@
       <files>JsrtDebugUtilsAddPropertyType.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <compile-flags>-debuglaunch -dbgbaseline:MultipleContextStack.js.dbg.baseline</compile-flags>
+      <files>MultipleContextStack.js</files>
+    </default>
+  </test>
 </regress-exe>

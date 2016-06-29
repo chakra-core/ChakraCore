@@ -33,7 +33,7 @@ private:
     BYTE isGlobal : 1;
     BYTE isEval : 1;
     BYTE hasNonLocalReference : 1;  // if true, then this symbol needs to be heap-allocated
-    BYTE funcExpr : 1;              // if true, then this symbol is allocated on it's on activation object
+    BYTE isFuncExpr : 1;              // if true, then this symbol is allocated on it's on activation object
     BYTE isCatch : 1;               // if true then this a catch identifier
     BYTE hasInit : 1;
     BYTE isUsed : 1;
@@ -62,7 +62,7 @@ public:
         isBlockVar(false),
         isGlobal(false),
         hasNonLocalReference(false),
-        funcExpr(false),
+        isFuncExpr(false),
         isCatch(false),
         hasInit(false),
         isUsed(false),
@@ -126,16 +126,16 @@ public:
         isGlobal = b;
     }
 
-    void SetHasNonLocalReference(bool b, ByteCodeGenerator *byteCodeGenerator);
+    void SetHasNonLocalReference();
 
     bool GetHasNonLocalReference() const
     {
         return hasNonLocalReference;
     }
 
-    void SetFuncExpr(bool b)
+    void SetIsFuncExpr(bool b)
     {
-        funcExpr = b;
+        isFuncExpr = b;
     }
 
     void SetIsBlockVar(bool is)
@@ -235,9 +235,9 @@ public:
         return needDeclaration;
     }
 
-    bool GetFuncExpr() const
+    bool GetIsFuncExpr() const
     {
-        return funcExpr;
+        return isFuncExpr;
     }
 
     bool GetIsGlobal() const

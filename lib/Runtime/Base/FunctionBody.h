@@ -1206,6 +1206,7 @@ namespace Js
             LiteralRegexes = 18,
             ObjLiteralTypes = 19,
             ScopeInfo = 20,
+            FormalsPropIdArray = 21,
 
             Max,
             Invalid = 0xff
@@ -2089,6 +2090,9 @@ namespace Js
         ByteBlock* GetAuxiliaryContextData()const { return static_cast<ByteBlock*>(this->GetAuxPtr(AuxPointerType::AuxContextBlock)); }
         ByteBlock* GetAuxiliaryContextDataWithLock()const { return static_cast<ByteBlock*>(this->GetAuxPtrWithLock(AuxPointerType::AuxContextBlock)); }
         void SetAuxiliaryContextData(ByteBlock* auxContextBlock) { this->SetAuxPtr(AuxPointerType::AuxContextBlock, auxContextBlock); }
+        void SetFormalsPropIdArray(PropertyIdArray * propIdArray);
+        PropertyIdArray* GetFormalsPropIdArray(bool checkForNull = true);
+        Var GetFormalsPropIdArrayOrNullObj();
         ByteBlock* GetByteCode();
         ByteBlock* GetOriginalByteCode(); // Returns original bytecode without probes (such as BPs).
         Js::ByteCodeCache * GetByteCodeCache() const { return this->byteCodeCache; }
@@ -2500,7 +2504,6 @@ namespace Js
         bool GetHasNestedLoop() const { return hasNestedLoop; };
         void SetHasNestedLoop(bool nest) { hasNestedLoop = nest; };
 
-
         bool IsInlineApplyDisabled();
         void InitDisableInlineApply();
         void SetDisableInlineApply(bool set);
@@ -2689,6 +2692,22 @@ namespace Js
 
         bool GetHasRestParameter() const { return (flags & Flags_HasRestParameter) != 0; }
         void SetHasRestParameter() { SetFlags(true, Flags_HasRestParameter); }
+
+        bool NeedScopeObjectForArguments(bool hasNonSimpleParams)
+        {
+            Assert(HasReferenceableBuiltInArguments());
+            // We can avoid creating a scope object with arguments present if:
+            bool dontNeedScopeObject =
+                // Either we are in strict mode, or have strict mode formal semantics from a non-simple parameter list, and
+                (GetIsStrictMode() || hasNonSimpleParams)
+                // Neither of the scopes are objects
+                && !HasScopeObject();
+            
+            return 
+                // Regardless of the conditions above, we won't need a scope object if there aren't any formals.
+                (GetInParamsCount() > 1 || GetHasRestParameter())
+                && !dontNeedScopeObject;
+        }
 
         uint GetNumberOfRecursiveCallSites();
         bool CanInlineRecursively(uint depth, bool tryAggressive = true);
@@ -2949,6 +2968,7 @@ namespace Js
         void InsertSymbolToRegSlotList(JsUtil::CharacterBuffer<WCHAR> const& propName, RegSlot reg, RegSlot totalRegsCount);
         void InsertSymbolToRegSlotList(RegSlot reg, PropertyId propertyId, RegSlot totalRegsCount);
         void SetPropertyIdsOfFormals(PropertyIdArray * formalArgs);
+        PropertyIdArray * AllocatePropertyIdArrayForFormals(uint32 size, uint32 count);
 
         bool DontRethunkAfterBailout() const { return dontRethunkAfterBailout; }
         void SetDontRethunkAfterBailout() { dontRethunkAfterBailout = true; }

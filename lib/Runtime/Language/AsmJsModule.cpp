@@ -132,12 +132,15 @@ namespace Js
 
         if (funcInfo->byteCodeFunction->GetIsNamedFunctionExpression())
         {
-            Assert(GetModuleFunctionNode()->sxFnc.pnodeName && GetModuleFunctionNode()->sxFnc.pnodeName->sxVar.sym->IsInSlot(funcInfo));
-            ParseNodePtr nameNode = GetModuleFunctionNode()->sxFnc.pnodeName;
-            GetByteCodeGenerator()->AssignPropertyId(nameNode->name());
-            // if module is a named function expression, we may need to restore this for debugger
-            AsmJsFunctionDeclaration* closure = Anew(&mAllocator, AsmJsFunctionDeclaration, nameNode->sxVar.pid, AsmJsSymbol::ClosureFunction, &mAllocator);
-            DefineIdentifier(nameNode->sxVar.pid, closure);
+            Assert(GetModuleFunctionNode()->sxFnc.pnodeName);
+            if (GetModuleFunctionNode()->sxFnc.pnodeName->sxVar.sym->IsInSlot(funcInfo))
+            {
+                ParseNodePtr nameNode = GetModuleFunctionNode()->sxFnc.pnodeName;
+                GetByteCodeGenerator()->AssignPropertyId(nameNode->name());
+                // if module is a named function expression, we may need to restore this for debugger
+                AsmJsFunctionDeclaration* closure = Anew(&mAllocator, AsmJsFunctionDeclaration, nameNode->sxVar.pid, AsmJsSymbol::ClosureFunction, &mAllocator);
+                DefineIdentifier(nameNode->sxVar.pid, closure);
+            }
         }
 
         int argCount = 0;
@@ -2603,7 +2606,7 @@ namespace Js
         scopeSlots.SetScopeMetadata(moduleBody);
 
         auto asmSlotMap = asmModuleInfo->GetAsmJsSlotMap();
-        Assert((uint)asmModuleInfo->GetSlotsCount() == moduleBody->scopeSlotArraySize);
+        Assert((uint)asmModuleInfo->GetSlotsCount() >= moduleBody->scopeSlotArraySize);
 
         Js::ActivationObject* activeScopeObject = nullptr;
         if (moduleBody->GetObjectRegister() != 0)
@@ -2612,7 +2615,8 @@ namespace Js
         }
 
         PropertyId* propertyIdArray = moduleBody->GetPropertyIdsForScopeSlotArray();
-        for (int i = 0; i < asmModuleInfo->GetSlotsCount(); ++i)
+        uint slotsCount = moduleBody->scopeSlotArraySize;
+        for (uint i = 0; i < slotsCount; ++i)
         {
             AsmJsSlot * asmSlot;
             bool found = asmSlotMap->TryGetValue(propertyIdArray[i], &asmSlot);

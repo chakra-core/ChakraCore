@@ -201,7 +201,6 @@ namespace Js
         }
 
         Var GetPermanentArguments() const;
-        void SetPermanentArguments(Var args);
 
         void *GetCurrentCodeAddr() const;
 

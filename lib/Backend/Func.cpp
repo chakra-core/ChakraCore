@@ -5,6 +5,9 @@
 #include "Backend.h"
 #include "Base/EtwTrace.h"
 #include "Base/ScriptContextProfiler.h"
+#ifdef VTUNE_PROFILING
+#include "Base/VTuneChakraProfile.h"
+#endif
 
 Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::FunctionCodeGenRuntimeData *const runtimeData,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
@@ -76,6 +79,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     hasInlinee(false),
     thisOrParentInlinerHasArguments(false),
     hasStackArgs(false),
+    hasNonSimpleParams(false),
     hasArgumentObject(false),
     hasUnoptimizedArgumentsAcccess(false),
     hasApplyTargetInlining(false),
@@ -122,6 +126,8 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     , m_totalJumpTableSizeInBytesForSwitchStatements(0)
     , slotArrayCheckTable(nullptr)
     , frameDisplayCheckTable(nullptr)
+    , stackArgWithFormalsTracker(nullptr)
+    , argInsCount(0)
 {
     Assert(this->IsInlined() == !!runtimeData);
 
@@ -1553,6 +1559,127 @@ Func::EnsureFuncEndLabel()
 }
 
 void
+Func::EnsureStackArgWithFormalsTracker()
+{
+    if (stackArgWithFormalsTracker == nullptr)
+    {
+        stackArgWithFormalsTracker = JitAnew(m_alloc, StackArgWithFormalsTracker, m_alloc);
+    }
+}
+
+BOOL
+Func::IsFormalsArraySym(SymID symId)
+{
+    if (stackArgWithFormalsTracker == nullptr || stackArgWithFormalsTracker->GetFormalsArraySyms() == nullptr)
+    {
+        return false;
+    }
+    return stackArgWithFormalsTracker->GetFormalsArraySyms()->Test(symId);
+}
+
+void 
+Func::TrackFormalsArraySym(SymID symId)
+{
+    EnsureStackArgWithFormalsTracker();
+    stackArgWithFormalsTracker->SetFormalsArraySyms(symId);
+}
+
+void 
+Func::TrackStackSymForFormalIndex(Js::ArgSlot formalsIndex, StackSym * sym)
+{
+    EnsureStackArgWithFormalsTracker();
+    Js::ArgSlot formalsCount = GetJnFunction()->GetInParamsCount() - 1;
+    stackArgWithFormalsTracker->SetStackSymInFormalsIndexMap(sym, formalsIndex, formalsCount);
+}
+
+StackSym * 
+Func::GetStackSymForFormal(Js::ArgSlot formalsIndex)
+{
+    if (stackArgWithFormalsTracker == nullptr || stackArgWithFormalsTracker->GetFormalsIndexToStackSymMap() == nullptr)
+    {
+        return nullptr;
+    }
+
+    Js::ArgSlot formalsCount = GetJnFunction()->GetInParamsCount() - 1;
+    StackSym ** formalsIndexToStackSymMap = stackArgWithFormalsTracker->GetFormalsIndexToStackSymMap();
+    AssertMsg(formalsIndex < formalsCount, "OutOfRange ? ");
+    return formalsIndexToStackSymMap[formalsIndex];
+}
+
+bool
+Func::HasStackSymForFormal(Js::ArgSlot formalsIndex)
+{
+    if (stackArgWithFormalsTracker == nullptr || stackArgWithFormalsTracker->GetFormalsIndexToStackSymMap() == nullptr)
+    {
+        return false;
+    }
+    return GetStackSymForFormal(formalsIndex) != nullptr;
+}
+
+void
+Func::SetScopeObjSym(StackSym * sym)
+{
+    EnsureStackArgWithFormalsTracker();
+    stackArgWithFormalsTracker->SetScopeObjSym(sym);
+}
+
+StackSym* 
+Func::GetScopeObjSym()
+{
+    if (stackArgWithFormalsTracker == nullptr)
+    {
+        return nullptr;
+    }
+    return stackArgWithFormalsTracker->GetScopeObjSym();
+}
+
+BVSparse<JitArenaAllocator> * 
+StackArgWithFormalsTracker::GetFormalsArraySyms()
+{
+    return formalsArraySyms;
+}
+
+void
+StackArgWithFormalsTracker::SetFormalsArraySyms(SymID symId)
+{
+    if (formalsArraySyms == nullptr)
+    {
+        formalsArraySyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+    }
+    formalsArraySyms->Set(symId);
+}
+
+StackSym ** 
+StackArgWithFormalsTracker::GetFormalsIndexToStackSymMap()
+{
+    return formalsIndexToStackSymMap;
+}
+
+void 
+StackArgWithFormalsTracker::SetStackSymInFormalsIndexMap(StackSym * sym, Js::ArgSlot formalsIndex, Js::ArgSlot formalsCount)
+{
+    if(formalsIndexToStackSymMap == nullptr)
+    {
+        formalsIndexToStackSymMap = JitAnewArrayZ(alloc, StackSym*, formalsCount);
+    }
+    AssertMsg(formalsIndex < formalsCount, "Out of range ?");
+    formalsIndexToStackSymMap[formalsIndex] = sym;
+}
+
+void 
+StackArgWithFormalsTracker::SetScopeObjSym(StackSym * sym)
+{
+    m_scopeObjSym = sym;
+}
+
+StackSym * 
+StackArgWithFormalsTracker::GetScopeObjSym()
+{
+    return m_scopeObjSym;
+}
+
+
+void
 Cloner::AddInstr(IR::Instr * instrOrig, IR::Instr * instrClone)
 {
     if (!this->instrFirst)
@@ -1768,7 +1895,7 @@ Func::GetVtableName(INT_PTR address)
 bool Func::DoRecordNativeMap() const
 {
 #if defined(VTUNE_PROFILING)
-    if (EtwTrace::isJitProfilingActive)
+    if (VTuneChakraProfile::isJitProfilingActive)
     {
         return true;
     }

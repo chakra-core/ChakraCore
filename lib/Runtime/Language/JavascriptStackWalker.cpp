@@ -165,22 +165,6 @@ namespace Js
         return args;
     }
 
-    void JavascriptStackWalker::SetPermanentArguments(Var heapArgs)
-    {
-        AssertMsg(this->GetCurrentFunction()->IsScriptFunction(), "SetPermanentArguments should not be called for non-script function as there is no slot allocated for it.");
-
-        // Set the heap-allocated args on this frame.
-        Var args = this->GetCurrentArgumentsObject();
-        if (args && ArgumentsObject::Is(args))
-        {
-            ((ArgumentsObject*)args)->SetHeapArguments((HeapArgumentsObject*)heapArgs);
-        }
-        else
-        {
-            this->SetCurrentArgumentsObject(heapArgs);
-        }
-    }
-
     BOOL JavascriptStackWalker::WalkToArgumentsFrame(ArgumentsObject *args)
     {
         // Move the walker up the stack until we find the given arguments object on the frame.

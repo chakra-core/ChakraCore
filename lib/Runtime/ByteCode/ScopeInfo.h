@@ -27,6 +27,7 @@ namespace Js {
             SymbolType symbolType;
             bool hasFuncAssignment;
             bool isBlockVariable;
+            bool isFuncExpr;
         };
 
     private:
@@ -92,6 +93,13 @@ namespace Js {
             symbols[i].isBlockVariable = is;
         }
 
+        void SetIsFuncExpr(int i, bool is)
+        {
+            Assert(!areNamesCached);
+            Assert(i >= 0 && i < symbolCount);
+            symbols[i].isFuncExpr = is;
+        }
+
         void SetPropertyName(int i, PropertyRecord const* name)
         {
             Assert(!areNamesCached);
@@ -122,6 +130,12 @@ namespace Js {
         {
             Assert(i >= 0 && i < symbolCount);
             return symbols[i].isBlockVariable;
+        }
+
+        bool GetIsFuncExpr(int i)
+        {
+            Assert(i >= 0 && i < symbolCount);
+            return symbols[i].isFuncExpr;
         }
 
         PropertyRecord const* GetPropertyName(int i)

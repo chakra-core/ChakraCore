@@ -61,6 +61,8 @@ namespace Js
     const int magicEndOfAsmJsFuncInfo = *(int*)"]asmfuncinfo";
     const int magicStartOfAsmJsModuleInfo = *(int*)"asmmodinfo[";
     const int magicEndOfAsmJsModuleInfo = *(int*)"]asmmodinfo";
+    const int magicStartOfPropIdsOfFormals = *(int*)"propIdOfFormals["; 
+    const int magicEndOfPropIdsOfFormals = *(int*)"]propIdOfFormals";
 #endif
 
     // Serialized files are architecture specific
@@ -1092,12 +1094,6 @@ public:
             }
         };
 
-        if (function->HasCachedScopePropIds())
-        {
-            AuxRecord record = { sakPropertyIdArrayForCachedScope, 0 };
-            auxRecords.Prepend(record);
-        }
-
         while(!cantGenerate)
         {
             opStart = reader.GetIP();
@@ -1201,14 +1197,6 @@ public:
                             auto layout = reader.AuxNoReg();
                             AuxRecord record = { sakFuncInfoArray, layout->Offset };
                             auxRecords.Prepend(record);
-                            saveBlock();
-                            break;
-                        }
-                        case OpCode::CommitScope:
-                        {
-                            // The propertyId array should be saved by the InitCacheScope
-                            auto layout = reader.AuxNoReg();
-                            Assert(layout);
                             saveBlock();
                             break;
                         }
@@ -1549,10 +1537,6 @@ public:
 
             case sakPropertyIdArray:
                 writeAuxPropertyIdArray(auxRecord.offset, 0);
-                break;
-
-            case sakPropertyIdArrayForCachedScope:
-                writeAuxPropertyIdArray(auxRecord.offset, ActivationObjectEx::ExtraSlotCount());
                 break;
 
             case sakFuncInfoArray:
@@ -1952,6 +1936,52 @@ public:
         return sizeof(serialization_alignment TStructType);
     }
 
+    uint32 AddPropertyIdOfFormals(BufferBuilderList & builder, FunctionBody * function)
+    {
+        uint32 size = 0;
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        size += PrependInt32(builder, _u("Start propertyids of formals"), magicStartOfPropIdsOfFormals);
+#endif
+
+        PropertyIdArray * propIds = function->GetFormalsPropIdArray(false);
+        if (propIds == nullptr)
+        {
+            size += PrependBool(builder, _u("ExportsIdArrayLength"), false);
+        }
+        else
+        {
+            size += PrependBool(builder, _u("ExportsIdArrayLength"), true);
+
+            int32 extraSlotCount = 0;
+            if (function->HasCachedScopePropIds())
+            {
+                extraSlotCount = ActivationObjectEx::ExtraSlotCount();
+            }
+
+            size += PrependInt32(builder, _u("ExportsIdArrayLength"), propIds->count);
+            size += PrependInt32(builder, _u("ExtraSlotsCount"), extraSlotCount);
+            size += PrependByte(builder, _u("ExportsIdArrayDups"), propIds->hadDuplicates);
+            size += PrependByte(builder, _u("ExportsIdArray__proto__"), propIds->has__proto__);
+            size += PrependByte(builder, _u("ExportsIdArrayHasNonSimpleParams"), propIds->hasNonSimpleParams);
+
+            for (uint i = 0; i < propIds->count; i++)
+            {
+                PropertyId propertyId = encodePossiblyBuiltInPropertyId(propIds->elements[i]);
+                size += PrependInt32(builder, _u("ExportsIdArrayElem"), propertyId);
+            }
+
+            auto slots = propIds->elements + propIds->count;
+            for (int i = 0; i < extraSlotCount; i++)
+            {
+                size += PrependInt32(builder, _u("Extra Slot"), slots[i]);
+            }
+        }
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        size += PrependInt32(builder, _u("End of prop ids for formals array"), magicEndOfPropIdsOfFormals);
+#endif
+        return size;
+    }
+
 #ifndef TEMP_DISABLE_ASMJS
     uint32 AddAsmJsFunctionInfo(BufferBuilderList & builder, FunctionBody * function)
     {
@@ -2265,6 +2295,7 @@ public:
                 }
             }
 
+            AddPropertyIdOfFormals(builder, function);
 
             AddCacheIdToPropertyIdMap(builder, function);
             AddReferencedPropertyIdMap(builder, function);
@@ -3298,6 +3329,66 @@ public:
         return current;
     }
 
+    const byte * ReadPropertyIdOfFormals(const byte * current, FunctionBody * function)
+    {
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        int constant = 0;
+        current = ReadInt32(current, &constant);
+        Assert(constant == magicStartOfPropIdsOfFormals);
+#endif
+
+        bool isPropertyIdArrayAvailable = false;
+        current = ReadBool(current, &isPropertyIdArrayAvailable);
+
+        if (!isPropertyIdArrayAvailable)
+        {
+            return current;
+        }
+
+        uint32 count = 0;
+        current = ReadUInt32(current, &count);
+
+        int32 extraSlotCount = 0;
+        current = ReadInt32(current, &extraSlotCount);
+
+        PropertyIdArray * propIds = function->AllocatePropertyIdArrayForFormals((extraSlotCount + count) * sizeof(PropertyId),count);
+        propIds->count = count;
+        
+
+        bool hadDuplicates = false;
+        current = ReadBool(current, &hadDuplicates);
+        propIds->hadDuplicates = hadDuplicates;
+
+        bool has__proto__ = false;
+        current = ReadBool(current, &has__proto__);
+        propIds->has__proto__ = has__proto__;
+
+        bool hasNonSimpleParams = false;
+        current = ReadBool(current, &hasNonSimpleParams);
+        propIds->hasNonSimpleParams = hasNonSimpleParams;
+
+        int id = 0;
+        for (uint i = 0; i < propIds->count; ++i)
+        {
+            current = ReadInt32(current, &id);
+            PropertyId propertyId = function->GetByteCodeCache()->LookupPropertyId(id);
+            propIds->elements[i] = propertyId;
+        }
+
+        for (int i = 0; i < extraSlotCount; ++i)
+        {
+            current = ReadInt32(current, &id);
+            propIds->elements[propIds->count + i] = id;
+        }
+
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        current = ReadInt32(current, &constant);
+        Assert(constant == magicEndOfPropIdsOfFormals);
+#endif
+
+        return current;
+    }
+
 #ifndef TEMP_DISABLE_ASMJS
     const byte * ReadAsmJsFunctionInfo(const byte * current, FunctionBody * function)
     {
@@ -3790,6 +3881,7 @@ public:
             // Auxiliary
             current = ReadAuxiliary(current, *functionBody);
 
+            current = ReadPropertyIdOfFormals(current, *functionBody);
 
             // Inline cache
             current = ReadCacheIdToPropertyIdMap(current, *functionBody);

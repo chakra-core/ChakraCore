@@ -87,6 +87,7 @@ BAIL_OUT_KIND_VALUE(BailOutConvertedNativeArray, 1 << (BAIL_OUT_KIND_ARRAY_BIT_S
 BAIL_OUT_KIND_VALUE(BailOutOnArrayAccessHelperCall, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 3))
 BAIL_OUT_KIND_VALUE(BailOutOnInvalidatedArrayHeadSegment, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 4))
 BAIL_OUT_KIND_VALUE(BailOutOnInvalidatedArrayLength, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 5))
+BAIL_OUT_KIND_VALUE(BailOnStackArgsOutOfActualsRange, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 6))
 BAIL_OUT_KIND_VALUE(
     BailOutForArrayBits,
     (
@@ -95,12 +96,13 @@ BAIL_OUT_KIND_VALUE(
         BailOutConvertedNativeArray |
         BailOutOnArrayAccessHelperCall |
         BailOutOnInvalidatedArrayHeadSegment |
-        BailOutOnInvalidatedArrayLength
+        BailOutOnInvalidatedArrayLength |
+        BailOnStackArgsOutOfActualsRange
     ))
 // ================
 // Debug bits
 // ================
-#define BAIL_OUT_KIND_DEBUG_BIT_START BAIL_OUT_KIND_ARRAY_BIT_START + 6
+#define BAIL_OUT_KIND_DEBUG_BIT_START BAIL_OUT_KIND_ARRAY_BIT_START + 7
 // Forced bailout by ThreadContext::m_forceInterpreter, e.g. for async break when we enter a function.
 BAIL_OUT_KIND_VALUE(BailOutForceByFlag, 1 << (BAIL_OUT_KIND_DEBUG_BIT_START + 0))
 

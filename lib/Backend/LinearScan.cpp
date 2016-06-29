@@ -1312,6 +1312,8 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
         globalBailOutRecordDataTable = globalBailOutRecordTables[inlineeID] = NativeCodeDataNew(allocator, GlobalBailOutRecordDataTable);
         globalBailOutRecordDataTable->length = globalBailOutRecordDataTable->size = 0;
         globalBailOutRecordDataTable->isInlinedFunction = !isTopFunc;
+        globalBailOutRecordDataTable->hasNonSimpleParams = func->GetHasNonSimpleParams();
+        globalBailOutRecordDataTable->hasStackArgOpt = func->IsStackArgsEnabled();
         globalBailOutRecordDataTable->isInlinedConstructor = func->IsInlinedConstructor();
         globalBailOutRecordDataTable->isLoopBody = topFunc->IsLoopBody();
         globalBailOutRecordDataTable->returnValueRegSlot = func->returnValueRegSlot;

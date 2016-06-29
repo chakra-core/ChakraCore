@@ -927,6 +927,14 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             {
                 body->SetDisableInlineSpread(true);
             }
+            else if (ex.Reason() == RejitReason::DisableStackArgOpt)
+            {
+                profileInfo.DisableStackArgOpt();
+                if (body->HasDynamicProfileInfo())
+                {
+                    body->GetAnyDynamicProfileInfo()->DisableStackArgOpt();
+                }
+            }
             else if(ex.Reason() == RejitReason::DisableSwitchOptExpectingInteger ||
                 ex.Reason() == RejitReason::DisableSwitchOptExpectingString)
             {

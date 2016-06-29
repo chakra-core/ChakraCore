@@ -317,7 +317,7 @@ MACRO_EXTEND_WMS(       InitClassMemberSetComputedName,ElementI,    OpSideEffect
 MACRO_EXTEND_WMS(       InitClassMemberGetComputedName,ElementI,    OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Class member in get syntax with computed property name
 MACRO_EXTEND_WMS(       BrOnClassConstructor,       BrReg1,         None)               // Branch if argument is a class constructor
 
-MACRO_BACKEND_ONLY(     ArgIn_A,                    Empty,          OpSideEffect)       // Copy from "in slot" to "local slot", unchecked
+MACRO_BACKEND_ONLY(     ArgIn_A,                    Empty,          None)       // Copy from "in slot" to "local slot", unchecked
 MACRO_WMS(              ArgIn0,                     Reg1,           OpByteCodeOnly)     // Copy from "in slot" to "local slot", unchecked
 MACRO_BACKEND_ONLY(     ArgIn_Rest,                 Empty,          OpSideEffect)
 MACRO_WMS_PROFILED(     ArgOut_A,                   Arg,            OpSideEffect)       // Copy from "local slot" to "out slot"
@@ -470,8 +470,8 @@ MACRO_BACKEND_ONLY(     InitLoopBodyCount,  Reg1,           None)           // f
 MACRO_BACKEND_ONLY(     IncrLoopBodyCount,  Reg2,           None)           // fake instruction for loop body counter increment
 MACRO_BACKEND_ONLY(     StLoopBodyCount,    Reg1,           OpSideEffect)   // fake instruction for loop body counter store to loopheader profiledLoopCounter
 
-MACRO_WMS(              LdHeapArguments,    Reg2,           OpSideEffect)   // Load the heap-based "arguments" object
-MACRO_WMS(              LdLetHeapArguments, Reg2,           OpSideEffect)   // Load the heap-based "arguments" object (formals are let-like instead of var-like)
+MACRO_WMS(              LdHeapArguments,    Reg1,           OpSideEffect)   // Load the heap-based "arguments" object
+MACRO_WMS(              LdLetHeapArguments, Reg1,           OpSideEffect)   // Load the heap-based "arguments" object (formals are let-like instead of var-like)
 MACRO_BACKEND_ONLY(     LdArgumentsFromStack,Reg1,          None)           // Load the heap-based "arguments" object even if it is null (Loads from meta arguments location for inlinee as well).
 MACRO_WMS(              LdHeapArgsCached,   Reg1,           OpSideEffect)   // Load the heap-based "arguments" object in a cached scope
 MACRO_EXTEND_WMS(       LdLetHeapArgsCached,Reg1,           OpSideEffect)   // Load the heap-based "arguments" object in a cached scope (formals are let-like instead of var-like)
@@ -529,11 +529,11 @@ MACRO_EXTEND_WMS(       NewInnerScFunc,     ElementSlot,    OpSideEffect)   // C
 MACRO_EXTEND_WMS(       NewInnerScGenFunc,  ElementSlot,    OpSideEffect)   // Create new JavascriptGeneratorFunction instance
 MACRO_EXTEND_WMS(       NewInnerStackScFunc,ElementSlot,    OpSideEffect|OpByteCodeOnly)  // Create new ScriptFunction instance
 MACRO_BACKEND_ONLY(     NewScopeObject,     Reg1,           None)                       // Create new NewScopeObject
-MACRO_BACKEND_ONLY(     InitCachedScope,    Reg2Aux,        OpSideEffect)                   // Retrieve cached scope; create if not cached
+MACRO_BACKEND_ONLY(     InitCachedScope,    Reg2Aux,        None)                   // Retrieve cached scope; create if not cached
 MACRO_BACKEND_ONLY(     InitLetCachedScope, Reg2Aux,        OpSideEffect)                   // Retrieve cached scope; create if not cached (formals are let-like instead of var-like)
 MACRO(                  InitCachedFuncs,    AuxNoReg,       OpSideEffect)
 MACRO_WMS(              GetCachedFunc,      Reg1Unsigned1,  None)
-MACRO(                  CommitScope,        AuxNoReg,       OpSideEffect)   // Mark the cached scope object as committed on exit from the function
+MACRO(                  CommitScope,        Empty,       OpSideEffect)   // Mark the cached scope object as committed on exit from the function
 MACRO_WMS(              InvalCachedScope,   Unsigned1,      OpSideEffect)
 MACRO_WMS(              NewPseudoScope,     Unsigned1,      None)           // Create new scope that can't take normal var inits
 MACRO_WMS(              NewBlockScope,      Unsigned1,      None)           // Create new scope that takes only block-scoped inits

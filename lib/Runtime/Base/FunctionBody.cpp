@@ -12,6 +12,9 @@
 
 #include "ByteCode/ScopeInfo.h"
 #include "Base/EtwTrace.h"
+#ifdef VTUNE_PROFILING
+#include "Base/VTuneChakraProfile.h"
+#endif
 
 #ifdef DYNAMIC_PROFILE_MUTATOR
 #include "Language/DynamicProfileMutator.h"
@@ -570,6 +573,34 @@ namespace Js
         this->m_defaultEntryPointInfo = (ProxyEntryPointInfo*) entryPointInfo;
         this->defaultFunctionEntryPointInfo = entryPointInfo;
         SetOriginalEntryPoint(originalEntryPoint);
+    }
+
+    Var
+    FunctionBody::GetFormalsPropIdArrayOrNullObj()
+    {
+        Var formalsPropIdArray = this->GetAuxPtr(AuxPointerType::FormalsPropIdArray);
+        if (formalsPropIdArray == nullptr)
+        {
+            return GetScriptContext()->GetLibrary()->GetNull();
+        }
+        return formalsPropIdArray;
+    }
+
+    PropertyIdArray*
+    FunctionBody::GetFormalsPropIdArray(bool checkForNull)
+    {
+        if (checkForNull)
+        {
+            Assert(this->GetAuxPtr(AuxPointerType::FormalsPropIdArray));
+        }
+        return static_cast<PropertyIdArray*>(this->GetAuxPtr(AuxPointerType::FormalsPropIdArray));
+    }
+
+    void 
+    FunctionBody::SetFormalsPropIdArray(PropertyIdArray * propIdArray)
+    {
+        AssertMsg(propIdArray == nullptr || this->GetAuxPtr(AuxPointerType::FormalsPropIdArray) == nullptr, "Already set?");
+        this->SetAuxPtr(AuxPointerType::FormalsPropIdArray, propIdArray);
     }
 
     ByteBlock*
@@ -3209,6 +3240,9 @@ namespace Js
         TraceExecutionMode();
 
         JS_ETW(EtwTrace::LogMethodNativeLoadEvent(this, entryPointInfo));
+#ifdef VTUNE_PROFILING
+        VTuneChakraProfile::LogMethodNativeLoadEvent(this, entryPointInfo);
+#endif
 
 #ifdef _M_ARM
         // For ARM we need to make sure that pipeline is synchronized with memory/cache for newly jitted code.
@@ -3267,6 +3301,9 @@ namespace Js
             loopHeader->interpretCount = entryPointInfo->GetFunctionBody()->GetLoopInterpretCount(loopHeader) - 1;
         }
         JS_ETW(EtwTrace::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*) entryPointInfo), ((uint16)this->GetLoopNumberWithLock(loopHeader))));
+#ifdef VTUNE_PROFILING
+        VTuneChakraProfile::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*)entryPointInfo), ((uint16)this->GetLoopNumberWithLock(loopHeader)));
+#endif
     }
 #endif
 
@@ -3447,6 +3484,7 @@ namespace Js
 
         newFunctionBody->cacheIdToPropertyIdMap = this->cacheIdToPropertyIdMap;
         newFunctionBody->SetReferencedPropertyIdMap(this->GetReferencedPropertyIdMap());
+        newFunctionBody->SetFormalsPropIdArray(this->GetFormalsPropIdArray());
         newFunctionBody->SetPropertyIdsForScopeSlotArray(this->GetPropertyIdsForScopeSlotArray(), this->scopeSlotArraySize);
         newFunctionBody->SetPropertyIdOnRegSlotsContainer(this->GetPropertyIdOnRegSlotsContainer());
 
@@ -4402,16 +4440,7 @@ namespace Js
 #endif /* IR_VIEWER */
 
 #ifdef VTUNE_PROFILING
-#ifdef CDECL
-#define ORIGINAL_CDECL CDECL
-#undef CDECL
-#endif
-    // Not enabled in ChakraCore
-#include "jitProfiling.h"
-#ifdef ORIGINAL_CDECL
-#undef CDECL
-#endif
-#define CDECL ORIGINAL_CDECL
+#include "jitprofiling.h"
 
     int EntryPointInfo::GetNativeOffsetMapCount() const
     {
@@ -4739,6 +4768,7 @@ namespace Js
         this->SetScopeInfo(nullptr);
         this->SetCodeGenRuntimeData(nullptr);
         this->cacheIdToPropertyIdMap = nullptr;
+        this->SetFormalsPropIdArray(nullptr);
         this->SetReferencedPropertyIdMap(nullptr);
         this->SetLiteralRegexs(nullptr);
         this->SetPropertyIdsForScopeSlotArray(nullptr, 0);
@@ -6021,6 +6051,14 @@ namespace Js
         return this->GetAsmJsModuleInfo();
     }
 #endif
+
+    PropertyIdArray * FunctionBody::AllocatePropertyIdArrayForFormals(uint32 size, uint32 count)
+    {
+        //TODO: saravind: Should the allocation be a Leaf Allocation?
+        PropertyIdArray * formalsPropIdArray = RecyclerNewPlus(GetScriptContext()->GetRecycler(), size, Js::PropertyIdArray, count);
+        SetFormalsPropIdArray(formalsPropIdArray);
+        return formalsPropIdArray;
+    }
 
     UnifiedRegex::RegexPattern *FunctionBody::GetLiteralRegex(const uint index)
     {
@@ -7686,6 +7724,7 @@ namespace Js
         this->polymorphicInlineCaches.Reset();
         this->SetPolymorphicInlineCachesHead(nullptr);
         this->cacheIdToPropertyIdMap = nullptr;
+        this->SetFormalsPropIdArray(nullptr);
         this->SetReferencedPropertyIdMap(nullptr);
         this->SetLiteralRegexs(nullptr);
         this->SetPropertyIdsForScopeSlotArray(nullptr, 0);

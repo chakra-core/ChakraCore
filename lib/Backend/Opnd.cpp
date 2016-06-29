@@ -394,6 +394,19 @@ void Opnd::SetValueType(const ValueType valueType)
     m_valueType = valueType;
 }
 
+bool Opnd::IsScopeObjOpnd(Func * func)
+{
+    if (IsRegOpnd())
+    {
+        return this->GetStackSym() == func->GetScopeObjSym();
+    }
+    else if(IsSymOpnd() && AsSymOpnd()->m_sym->IsPropertySym())
+    {
+        return this->AsSymOpnd()->m_sym->AsPropertySym()->m_stackSym == func->GetScopeObjSym();
+    }
+    return false;
+}
+
 ValueType Opnd::FindProfiledValueType()
 {
     if (!this->GetValueType().IsUninitialized())

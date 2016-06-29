@@ -324,6 +324,7 @@ public:
         if (enableExperimentalFeatures)
         {
             EnableExperimentalFeatures();
+            ResetExperimentalFeaturesFromConfig();
         }
     }
 
@@ -354,7 +355,16 @@ private:
 
     void EnableExperimentalFeatures()
     {
-#define FLAG_REGOVR_EXP(type, name, ...) m_##name## = true;
+        // If a ES6 flag is disabled using compile flag don't enable it
+#define FLAG_REGOVR_EXP(type, name, ...) m_##name## = COMPILE_DISABLE_##name## ? false : true;
+#include "ConfigFlagsList.h"
+#undef FLAG_REGOVR_EXP
+    }
+
+    void ResetExperimentalFeaturesFromConfig()
+    {
+        // If a flag was overridden using config/command line it should take precedence
+#define FLAG_REGOVR_EXP(type, name, ...) if(CONFIG_ISENABLED(Js::Flag::##name##Flag)) { m_##name## = CONFIG_FLAG_RELEASE(##name##); }
 #include "ConfigFlagsList.h"
 #undef FLAG_REGOVR_EXP
     }
@@ -712,6 +722,8 @@ private:
     typedef JsUtil::BaseDictionary<Js::Var, Js::IsInstInlineCache*, ArenaAllocator> IsInstInlineCacheListMapByFunction;
     IsInstInlineCacheListMapByFunction isInstInlineCacheByFunction;
 
+    Js::IsConcatSpreadableCache isConcatSpreadableCache;
+
     ArenaAllocator prototypeChainEnsuredToHaveOnlyWritableDataPropertiesAllocator;
     DListBase<Js::ScriptContext *> prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
 
@@ -831,6 +843,8 @@ public:
     CriticalSection* GetEtwRundownCriticalSection() { return &csEtwRundown; }
 
     UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
+
+    Js::IsConcatSpreadableCache* GetIsConcatSpreadableCache() { return &isConcatSpreadableCache; }
 
 #ifdef ENABLE_GLOBALIZATION
     Js::DelayLoadWinRtString *GetWinRTStringLibrary();
@@ -1285,6 +1299,10 @@ public:
     void InvalidateProtoInlineCaches(Js::PropertyId propertyId);
     void InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId);
     void InvalidateAllProtoInlineCaches();
+#if DBG
+    bool IsObjectRegisteredInProtoInlineCaches(Js::DynamicObject * object);
+    bool IsObjectRegisteredInStoreFieldInlineCaches(Js::DynamicObject * object);
+#endif
     bool AreAllProtoInlineCachesInvalidated();
     void InvalidateAllStoreFieldInlineCaches();
     bool AreAllStoreFieldInlineCachesInvalidated();

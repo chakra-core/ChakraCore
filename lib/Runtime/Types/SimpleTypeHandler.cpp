@@ -447,6 +447,9 @@ namespace Js
     {
         ScriptContext* scriptContext = instance->GetScriptContext();
         int index;
+
+        JavascriptLibrary::CheckAndInvalidateIsConcatSpreadableCache(propertyId, scriptContext);
+
         if (GetDescriptor(propertyId, &index))
         {
             if (descriptors[index].Attributes & PropertyDeleted)

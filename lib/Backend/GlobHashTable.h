@@ -210,6 +210,25 @@ public:
         return NULL;
     }
 
+    HashBucket * GetBucket(uint key)
+    {
+        uint hash = this->Hash(key);
+        // Assumes sorted lists
+        FOREACH_SLISTBASE_ENTRY(HashBucket, bucket, &this->table[hash])
+        {
+            if (Key::Get(bucket.value) <= key)
+            {
+                if (Key::Get(bucket.value) == key)
+                {
+                    return &bucket;
+                }
+                break;
+            }
+        } NEXT_SLISTBASE_ENTRY;
+
+        return nullptr;
+    }
+
     TElement GetAndClear(TData * value)
     {
         uint key = Key::Get(value);

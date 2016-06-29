@@ -361,6 +361,32 @@
   </test>
   <test>
     <default>
+      <files>StackArgsWithFormals.js</files>
+      <compile-flags>-mic:1 -off:simpleJit</compile-flags>
+    </default>
+  </test>
+   <test>
+    <default>
+      <files>StackArgsWithFormals.js</files>
+      <compile-flags>-mic:1 -off:simpleJit -forceserialized</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>StackArgsWithFormals.js</files>
+      <compile-flags>-mic:1 -off:simpleJit -forcedeferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>StackArgsWithFormals.js</files>
+      <compile-flags>-mic:1 -off:simpleJit -trace:stackargformalsopt</compile-flags>
+      <tags>exclude_dynapogo,exclude_ship, exclude_fre</tags>
+      <baseline>StackArgsWithFormals.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>StackArgs_MaxInterpret.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
       <tags>exclude_dynapogo,exclude_ship</tags>

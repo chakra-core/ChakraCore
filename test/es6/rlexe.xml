@@ -67,7 +67,7 @@
   <test>
     <default>
       <files>es6IsConcatSpreadable.js</files>
-      <compile-flags>-es6isconcatspreadable -args summary -endargs</compile-flags>
+      <compile-flags>-es6tolength -es6isconcatspreadable -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

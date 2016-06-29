@@ -1559,6 +1559,7 @@ namespace Js
                 _u(" disableEquivalentObjTypeSpec : %s\n")
                 _u(" disableObjTypeSpec_jitLoopBody : %s\n"),
                 _u(" disablePowIntTypeSpec : %s\n"),
+                _u(" disableStackArgOpt : %s\n"),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec_jitLoopBody),
                 IsTrueOrFalse(this->bits.disableAggressiveMulIntTypeSpec),
@@ -1592,7 +1593,8 @@ namespace Js
                 IsTrueOrFalse(this->bits.disableSwitchOpt),
                 IsTrueOrFalse(this->bits.disableEquivalentObjTypeSpec),
                 IsTrueOrFalse(this->bits.disableObjTypeSpec_jitLoopBody),
-                IsTrueOrFalse(this->bits.disablePowIntIntTypeSpec));
+                IsTrueOrFalse(this->bits.disablePowIntIntTypeSpec),
+                IsTrueOrFalse(this->bits.disableStackArgOpt));
         }
     }
 
@@ -2340,6 +2342,12 @@ const char* GetBailOutKindName(IR::BailOutKind kind)
     if (kind & BailOutOnInvalidatedArrayLength)
     {
         kind ^= BailOutOnInvalidatedArrayLength;
+        position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
+    }
+    ++offset;
+    if (kind & BailOnStackArgsOutOfActualsRange)
+    {
+        kind ^= BailOnStackArgsOutOfActualsRange;
         position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
     }
     ++offset;
