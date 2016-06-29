@@ -39,5 +39,11 @@ namespace Js
         BOOL IsProtoImmutable() const { return true; }
 
         void PostDefineOwnProperty__proto__(RecyclableObject* obj);
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 }

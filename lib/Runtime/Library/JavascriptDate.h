@@ -149,6 +149,12 @@ namespace Js
         static JavascriptDate* NewInstanceAsConstructor(Arguments args, ScriptContext* scriptContext, bool forceCurrentDate = false);
 
         static BOOL TryInvokeRemotely(JavascriptMethod entryPoint, ScriptContext * scriptContext, Arguments & args, Var * result);
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
 } // namespace Js

@@ -270,6 +270,88 @@ namespace Js
         return this->deletedArgs != NULL && this->deletedArgs->Test(index);
     }
 
+#if ENABLE_TTD
+    void HeapArgumentsObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        if(this->frameObject != nullptr)
+        {
+            extractor->MarkVisitVar(this->frameObject);
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType HeapArgumentsObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject;
+    }
+
+    void HeapArgumentsObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        this->ExtractSnapObjectDataInto_Helper<TTD::NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject>(objData, alloc);
+    }
+
+    template <TTD::NSSnapObjects::SnapObjectType argsKind>
+    void HeapArgumentsObject::ExtractSnapObjectDataInto_Helper(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapHeapArgumentsInfo* argsInfo = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapHeapArgumentsInfo>();
+
+        AssertMsg(this->callerDeleted == 0, "This never seems to be set but I want to assert just to be safe.");
+        argsInfo->NumOfArguments = this->numOfArguments;
+        argsInfo->FormalCount = this->formalCount;
+
+        uint32 depOnCount = 0;
+        TTD_PTR_ID* depOnArray = nullptr;
+
+        argsInfo->IsFrameNullPtr = false;
+        argsInfo->IsFrameJsNull = false;
+        argsInfo->FrameObject = TTD_INVALID_PTR_ID;
+        if(this->frameObject == nullptr)
+        {
+            argsInfo->IsFrameNullPtr = true;
+        }
+        else if(Js::JavascriptOperators::GetTypeId(this->frameObject) == TypeIds_Null)
+        {
+            argsInfo->IsFrameJsNull = true;
+        }
+        else
+        {
+            argsInfo->FrameObject = TTD_CONVERT_VAR_TO_PTR_ID(this->frameObject);
+
+            depOnCount = 1;
+            depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
+            depOnArray[0] = argsInfo->FrameObject;
+        }
+
+        argsInfo->DeletedArgFlags = (this->formalCount != 0) ? alloc.SlabAllocateArrayZ<byte>(argsInfo->FormalCount) : nullptr;
+        if(this->deletedArgs != nullptr)
+        {
+            for(uint32 i = 0; i < this->formalCount; ++i)
+            {
+                if(this->deletedArgs->Test(i))
+                {
+                    argsInfo->DeletedArgFlags[i] = true;
+                }
+            }
+        }
+
+        if(depOnCount == 0)
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapHeapArgumentsInfo*, argsKind>(objData, argsInfo);
+        }
+        else
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapHeapArgumentsInfo*, argsKind>(objData, argsInfo, alloc, depOnCount, depOnArray);
+        }
+    }
+
+    ES5HeapArgumentsObject* HeapArgumentsObject::ConvertToES5HeapArgumentsObject_TTD()
+    {
+        Assert(VirtualTableInfo<HeapArgumentsObject>::HasVirtualTable(this));
+        VirtualTableInfo<ES5HeapArgumentsObject>::SetVirtualTable(this);
+
+        return static_cast<ES5HeapArgumentsObject*>(this);
+    }
+#endif
+
     ES5HeapArgumentsObject* HeapArgumentsObject::ConvertToUnmappedArgumentsObject(bool overwriteArgsUsingFrameObject)
     {
         ES5HeapArgumentsObject* es5ArgsObj = ConvertToES5HeapArgumentsObject(overwriteArgsUsingFrameObject);
@@ -831,4 +913,16 @@ namespace Js
            m_args->DeleteObjectArrayItem(m_index, PropertyOperation_None);
         }
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ES5HeapArgumentsObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapES5HeapArgumentsObject;
+    }
+
+    void ES5HeapArgumentsObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        this->ExtractSnapObjectDataInto_Helper<TTD::NSSnapObjects::SnapObjectType::SnapES5HeapArgumentsObject>(objData, alloc);
+    }
+#endif
 }

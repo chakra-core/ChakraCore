@@ -82,6 +82,7 @@ namespace Js
         static Var EntrySymbolHasInstance(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var NewAsyncFunctionInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewAsyncFunctionInstanceRestrictedMode(RecyclableObject* function, CallInfo callInfo, ...);
 
         static bool Is(Var aValue);
         static JavascriptFunction* FromVar(Var aValue);

@@ -232,6 +232,18 @@ namespace Js
     }
 #endif
 
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType RecyclableObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void RecyclableObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(false, "Missing subtype implementation.");
+    }
+#endif
+
     BOOL RecyclableObject::SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)
     {
         // TODO: It appears as though this is never called. Some types (such as JavascriptNumber) don't override this, but they

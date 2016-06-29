@@ -1039,8 +1039,8 @@ ObjectTemp::IsTempUseOpCodeSym(IR::Instr * instr, Js::OpCode opcode, Sym * sym)
     }
 
     // TODO: Currently, when we disable implicit call, we still don't allow valueOf/toString that has no side effects
-    // So we shouldn't mark them if we have use of the sym on opcode that does CallsValueOf yet.
-    if (OpCodeAttr::CallsValueOf(opcode))
+    // So we shouldn't mark them if we have use of the sym on opcode that does OpndHasImplicitCall yet.
+    if (OpCodeAttr::OpndHasImplicitCall(opcode))
     {
         return false;
     }

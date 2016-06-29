@@ -134,6 +134,14 @@ namespace Js
         , isCloningGlobal(false)
         , bindRef(MiscAllocator())
 #endif
+#if ENABLE_TTD
+        , TTDHostCallbackFunctor()
+        , TTDMode(TTD::TTDMode::Invalid)
+        , ScriptContextLogTag(TTD_INVALID_LOG_PTR_ID)
+        , TTDRootNestingCount(0)
+        , TTDWellKnownInfo(nullptr)
+        , TTDContextInfo(nullptr)
+#endif
 #ifdef REJIT_STATS
         , rejitStatsMap(nullptr)
 #endif
@@ -541,6 +549,20 @@ namespace Js
 #endif
 #ifdef ENABLE_JS_ETW
         EventWriteJSCRIPT_HOST_SCRIPT_CONTEXT_CLOSE(this);
+#endif
+
+#if ENABLE_TTD
+        if(this->TTDWellKnownInfo != nullptr)
+        {
+            HeapDelete(this->TTDWellKnownInfo);
+            this->TTDWellKnownInfo = nullptr;
+        }
+
+        if(this->TTDContextInfo != nullptr)
+        {
+            HeapDelete(this->TTDContextInfo);
+            this->TTDContextInfo = nullptr;
+        }
 #endif
 
 #if ENABLE_PROFILE_INFO
@@ -1613,7 +1635,7 @@ if (!sourceList)
             cbNeeded = utf8::EncodeIntoAndNullTerminate(utf8Script, (const char16*)script, static_cast<charcount_t>(length));
 
 #if DBG_DUMP
-            if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
+            if(Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
             {
                 Output::Print(_u("Loading script.\n")
                     _u("  Unicode (in bytes)    %u\n")
@@ -1629,7 +1651,7 @@ if (!sourceList)
         else
         {
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
-            if (*ppSourceInfo == nullptr)
+            if(*ppSourceInfo == nullptr)
             {
                 // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
                 // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
@@ -1647,29 +1669,29 @@ if (!sourceList)
         // the script.
         // TODO: yongqu handle non-global code.
         ULONG grfscr = fscrGlobalCode | ((loadScriptFlag & LoadScriptFlag_Expression) == LoadScriptFlag_Expression ? fscrReturnExpression : 0);
-        if (((loadScriptFlag & LoadScriptFlag_disableDeferredParse) != LoadScriptFlag_disableDeferredParse) &&
+        if(((loadScriptFlag & LoadScriptFlag_disableDeferredParse) != LoadScriptFlag_disableDeferredParse) &&
             (length > Parser::GetDeferralThreshold(sourceContextInfo->IsSourceProfileLoaded())))
         {
             grfscr |= fscrDeferFncParse;
         }
 
-        if ((loadScriptFlag & LoadScriptFlag_disableAsmJs) == LoadScriptFlag_disableAsmJs)
+        if((loadScriptFlag & LoadScriptFlag_disableAsmJs) == LoadScriptFlag_disableAsmJs)
         {
             grfscr |= fscrNoAsmJs;
         }
 
-        if (PHASE_FORCE1(Js::EvalCompilePhase))
+        if(PHASE_FORCE1(Js::EvalCompilePhase))
         {
             // pretend it is eval
             grfscr |= (fscrEval | fscrEvalCode);
         }
 
-        if ((loadScriptFlag & LoadScriptFlag_isByteCodeBufferForLibrary) == LoadScriptFlag_isByteCodeBufferForLibrary)
+        if((loadScriptFlag & LoadScriptFlag_isByteCodeBufferForLibrary) == LoadScriptFlag_isByteCodeBufferForLibrary)
         {
             grfscr |= (fscrNoAsmJs | fscrNoPreJit);
         }
 
-        if (((loadScriptFlag & LoadScriptFlag_Module) == LoadScriptFlag_Module) &&
+        if(((loadScriptFlag & LoadScriptFlag_Module) == LoadScriptFlag_Module) &&
             GetConfig()->IsES6ModuleEnabled())
         {
             grfscr |= fscrIsModuleCode;
@@ -1681,23 +1703,23 @@ if (!sourceList)
         }
 
         ParseNodePtr parseTree;
-        if ((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source)
+        if((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source)
         {
-            hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
-                sourceContextInfo);
+            hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
         }
         else
         {
-            hr = parser->ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
-                sourceContextInfo);
+            hr = parser->ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr, pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
         }
 
-        if (FAILED(hr) || parseTree == nullptr)
+        if(FAILED(hr) || parseTree == nullptr)
         {
             return nullptr;
         }
 
         (*ppSourceInfo)->SetParseFlags(grfscr);
+
+        //Make sure we have the body and text information available
         if ((loadScriptFlag & LoadScriptFlag_Utf8Source) != LoadScriptFlag_Utf8Source)
         {
             *sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, static_cast<charcount_t>((*ppSourceInfo)->GetCchLength()), /*isCesu8*/ true);
@@ -1776,7 +1798,7 @@ if (!sourceList)
         hr = GenerateByteCode(parseTree, grfscr, this, &body, sourceIndex, false, parser, pse);
 
         this->GetSource(sourceIndex)->SetByteCodeGenerationFlags(grfscr);
-        if (FAILED(hr))
+        if(FAILED(hr))
         {
             return nullptr;
         }
@@ -1785,7 +1807,6 @@ if (!sourceList)
         body->SetIsTopLevel(true);
 
         JavascriptFunction* rootFunction = javascriptLibrary->CreateScriptFunction(body);
-
         return rootFunction;
     }
 
@@ -2297,6 +2318,45 @@ if (!sourceList)
             }
             return si;
     }
+
+#if ENABLE_TTD
+    void ScriptContext::InitializeCoreImage_TTD()
+    {
+        AssertMsg(this->TTDWellKnownInfo == nullptr, "This should only happen once!!!");
+
+        this->TTDWellKnownInfo = HeapNew(TTD::RuntimeContextInfo);
+
+        bool hasCaller = this->GetHostScriptContext() ? !!this->GetHostScriptContext()->HasCaller() : false;
+        BEGIN_JS_RUNTIME_CALLROOT_EX(this, hasCaller)
+        {
+            this->TTDWellKnownInfo->GatherKnownObjectToPathMap(this);
+        }
+        END_JS_RUNTIME_CALL(this);
+    }
+
+    void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
+    {
+        this->TTDContextInfo = HeapNew(TTD::ScriptContextTTD, this);
+
+        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject()), this->GetLibrary()->GetGlobalObject());
+        this->ScriptContextLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject());
+
+        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetUndefined()), this->GetLibrary()->GetUndefined());
+        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetNull()), this->GetLibrary()->GetNull());
+        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetTrue()), this->GetLibrary()->GetTrue());
+        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetFalse()), this->GetLibrary()->GetFalse());
+
+#if ENABLE_TTD_STACK_STMTS
+        this->ForceNoNative();
+#endif
+    }
+
+    void ScriptContext::InitializeDebuggingActionsAsNeeded_TTD()
+    {
+        this->ForceNoNative();
+    }
+
+#endif
 
 #ifdef PROFILE_EXEC
     void
