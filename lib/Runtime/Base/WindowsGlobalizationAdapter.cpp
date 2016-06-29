@@ -385,7 +385,6 @@ namespace Js
 
         // Construct HSTRING of timeZoneId passed
         IfFailThrowHr(GetWindowsGlobalizationLibrary(scriptContext)->WindowsCreateStringReference(timeZoneId, static_cast<UINT32>(wcslen(timeZoneId)), &timeZoneHeader, &timeZone));
-        Assert(timeZone);
 
         // The warning is timeZone could be '0'. This is valid scenario and in that case, ChangeTimeZone() would
         // return error HR in which case we will throw.
