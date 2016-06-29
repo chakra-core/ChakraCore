@@ -1061,6 +1061,9 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
         this->KillAllObjectTypes();
     }
 
+    this->blockData.capturedArgs = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+    this->blockData.changedSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+
     this->CopyBlockData(&block->globOptData, &this->blockData);
 
     if (this->IsLoopPrePass())
@@ -1509,6 +1512,10 @@ GlobOpt::NulloutBlockData(GlobOptBlockData *data)
 
     data->stackLiteralInitFldDataMap = nullptr;
 
+    data->capturedValues = nullptr;
+    data->capturedArgs = nullptr;
+    data->changedSyms = nullptr;
+
     data->OnDataUnreferenced();
 }
 
@@ -1603,6 +1610,11 @@ GlobOpt::ReuseBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
 
     toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
 
+    toData->capturedArgs = fromData->capturedArgs;
+    toData->changedSyms = fromData->changedSyms;
+    toData->capturedArgs->ClearAll();
+    toData->changedSyms->ClearAll();
+
     toData->OnDataReused(fromData);
 }
 
@@ -1639,8 +1651,12 @@ GlobOpt::CopyBlockData(GlobOptBlockData *toData, GlobOptBlockData *fromData)
     toData->inlinedArgOutCount = fromData->inlinedArgOutCount;
     toData->hasCSECandidates = fromData->hasCSECandidates;
 
-    toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
+    toData->capturedArgs = fromData->capturedArgs;
+    toData->changedSyms = fromData->changedSyms;
+    toData->capturedArgs->ClearAll();
+    toData->changedSyms->ClearAll();
 
+    toData->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
     toData->OnDataReused(fromData);
 }
 
@@ -3188,7 +3204,7 @@ GlobOpt::MergeValues(
     // Set symStore if same on both paths.
     if (toDataValue->GetValueInfo()->GetSymStore() == fromDataValue->GetValueInfo()->GetSymStore())
     {
-        newValueInfo->SetSymStore(toDataValue->GetValueInfo()->GetSymStore());
+        this->SetSymStoreDirect(newValueInfo, toDataValue->GetValueInfo()->GetSymStore());
     }
 
     return newValue;
@@ -5059,6 +5075,14 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         }
     }
 
+    if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
+    {
+        this->currentBlock->globOptData.capturedArgs->ClearAll();
+        this->currentBlock->globOptData.changedSyms->ClearAll();
+        this->currentBlock->globOptData.capturedValues = 
+            this->currentBlock->globOptData.capturedValuesCandidate;
+    }
+
     return instrNext;
 }
 
@@ -5356,7 +5380,7 @@ GlobOpt::OptDst(
                         }
                     }
 
-                    dstVal->GetValueInfo()->SetSymStore(dstVarSym);
+                    this->SetSymStoreDirect(dstVal->GetValueInfo(), dstVarSym);
                 } while(false);
             }
         }
@@ -6365,7 +6389,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
 
     if (PHASE_OFF(Js::CopyPropPhase, this->func))
     {
-        valueInfo->SetSymStore(opndSym);
+        this->SetSymStoreDirect(valueInfo, opndSym);
         return opnd;
     }
 
@@ -6389,7 +6413,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
             //   fieldHoistSym = Ld_A t1    <- we're looking at t1 now, but want to copy-prop fieldHoistSym forward
             return opnd;
         }
-        valueInfo->SetSymStore(opndSym);
+        this->SetSymStoreDirect(valueInfo, opndSym);
     }
     return opnd;
 }
@@ -7057,10 +7081,23 @@ GlobOpt::SetSymStore(ValueInfo *valueInfo, Sym *sym)
     }
     if (valueInfo->GetSymStore() == nullptr || valueInfo->GetSymStore()->IsPropertySym())
     {
-        valueInfo->SetSymStore(sym);
+        SetSymStoreDirect(valueInfo, sym);
     }
 
     return sym;
+}
+
+void
+GlobOpt::SetSymStoreDirect(ValueInfo * valueInfo, Sym * sym)
+{
+    Sym * prevSymStore = valueInfo->GetSymStore();
+    if (prevSymStore && prevSymStore->IsStackSym() &&
+        prevSymStore->AsStackSym()->HasByteCodeRegSlot() &&
+        this->blockData.changedSyms)
+    {
+        this->blockData.changedSyms->Set(prevSymStore->m_id);
+    }
+    valueInfo->SetSymStore(sym);
 }
 
 void
@@ -7069,8 +7106,9 @@ GlobOpt::SetValue(GlobOptBlockData *blockData, Value *val, Sym * sym)
     ValueInfo *valueInfo = val->GetValueInfo();
 
     sym = this->SetSymStore(valueInfo, sym);
+    bool isStackSym = sym->IsStackSym();
 
-    if (sym->IsStackSym() && sym->AsStackSym()->IsFromByteCodeConstantTable())
+    if (isStackSym && sym->AsStackSym()->IsFromByteCodeConstantTable())
     {
         // Put the constants in a global array. This will minimize the per-block info.
         this->byteCodeConstantValueArray->Set(sym->m_id, val);
@@ -7079,6 +7117,10 @@ GlobOpt::SetValue(GlobOptBlockData *blockData, Value *val, Sym * sym)
     else
     {
         SetValueToHashTable(blockData->symToValueMap, val, sym);
+        if (blockData->changedSyms && isStackSym && sym->AsStackSym()->HasByteCodeRegSlot())
+        {
+            blockData->changedSyms->Set(sym->m_id);
+        }
     }
 }
 
@@ -7344,13 +7386,13 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             // Update symStore for field hoisting
             if (loop != nullptr && (dstValueInfo != nullptr))
             {
-                dstValueInfo->SetSymStore(fieldHoistSym);
+                this->SetSymStoreDirect(dstValueInfo, fieldHoistSym);
             }
             // Update symStore if it isn't a stackSym
             if (dstVal && (!dstValueInfo->GetSymStore() || !dstValueInfo->GetSymStore()->IsStackSym()))
             {
                 Assert(dst->IsRegOpnd());
-                dstValueInfo->SetSymStore(dst->AsRegOpnd()->m_sym);
+                this->SetSymStoreDirect(dstValueInfo, dst->AsRegOpnd()->m_sym);
             }
             if (src1Val != dstVal)
             {
@@ -14318,7 +14360,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                 if(!varSym || !IsFloat64TypeSpecialized(varSym, block))
                 {
                     // Clear the symstore to ensure it's set below to this new symbol
-                    val->GetValueInfo()->SetSymStore(nullptr);
+                    this->SetSymStoreDirect(val->GetValueInfo(), nullptr);
                     varSym = StackSym::New(TyVar, instr->m_func);
                     newFloatSym = true;
                 }
@@ -16253,7 +16295,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
 
             // SetValue above would have set the sym store to newLengthSym. This sym won't be used for copy-prop though, so
             // remove it as the sym store.
-            lengthValue->GetValueInfo()->SetSymStore(nullptr);
+            this->SetSymStoreDirect(lengthValue->GetValueInfo(), nullptr);
 
             // length = [array + offsetOf(length)]
             IR::Instr *const loadLength =
@@ -16308,7 +16350,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     Assert(!FindValue(block->globOptData.symToValueMap, newLengthSym));
                     Value *const lengthValueCopy = CopyValue(lengthValue, lengthValue->GetValueNumber());
                     SetValue(&block->globOptData, lengthValueCopy, newLengthSym);
-                    lengthValueCopy->GetValueInfo()->SetSymStore(nullptr);
+                    this->SetSymStoreDirect(lengthValueCopy->GetValueInfo(), nullptr);
                 }
             }
             else
@@ -16422,7 +16464,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
 
             // SetValue above would have set the sym store to newHeadSegmentLengthSym. This sym won't be used for copy-prop
             // though, so remove it as the sym store.
-            headSegmentLengthValue->GetValueInfo()->SetSymStore(nullptr);
+            this->SetSymStoreDirect(headSegmentLengthValue->GetValueInfo(), nullptr);
 
             StackSym *const headSegmentSym =
                 isLikelyJsArray
@@ -16480,7 +16522,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     Value *const headSegmentLengthValueCopy =
                         CopyValue(headSegmentLengthValue, headSegmentLengthValue->GetValueNumber());
                     SetValue(&block->globOptData, headSegmentLengthValueCopy, newHeadSegmentLengthSym);
-                    headSegmentLengthValueCopy->GetValueInfo()->SetSymStore(nullptr);
+                    this->SetSymStoreDirect(headSegmentLengthValueCopy->GetValueInfo(), nullptr);
                 }
             }
             else
@@ -18869,7 +18911,7 @@ GlobOpt::OptHoistInvariant(
                 // instance, if we're inside a conditioned block, because we don't make the copy sym live and set its value in
                 // all preceding blocks, this sym would not be live after exiting this block, causing this value to not
                 // participate in copy-prop after this block.
-                dstValueInfo->SetSymStore(copyVarSym);
+                this->SetSymStoreDirect(dstValueInfo, copyVarSym);
             }
 
             this->InsertNewValue(&block->globOptData, dstVal, copyReg);
@@ -18897,7 +18939,12 @@ GlobOpt::OptHoistInvariant(
         EnsureBailTarget(loop);
 
         // Copy bailout info of loop top.
-        instr->ReplaceBailOutInfo(loop->bailOutInfo);
+        if (instr->ReplaceBailOutInfo(loop->bailOutInfo))
+        {
+            // if the old bailout is deleted, reset capturedvalues cached in block
+            block->globOptData.capturedValues = nullptr;
+            block->globOptData.capturedValuesCandidate = nullptr;
+        }
     }
 
     if (instr->GetSrc1())
@@ -19335,7 +19382,7 @@ GlobOpt::HoistInvariantValueInfo(
     else
     {
         newValueInfo = invariantValueInfoToHoist->Copy(alloc);
-        newValueInfo->SetSymStore(symStore);
+        this->SetSymStoreDirect(newValueInfo, symStore);
     }
     ChangeValueInfo(targetBlock, valueToUpdate, newValueInfo);
 }

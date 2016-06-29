@@ -689,8 +689,8 @@ GlobOpt::PreparePrepassFieldHoisting(Loop * loop)
 
                 // Set object type live on prepass so we can track if it got killed in the loop. (see FinishOptHoistedPropOps)
                 JsTypeValueInfo* typeValueInfo = JsTypeValueInfo::New(this->alloc, nullptr, nullptr);
-                typeValueInfo->SetSymStore(typeSym);
                 typeValueInfo->SetIsShared();
+                this->SetSymStoreDirect(typeValueInfo, typeSym);
 
                 ValueNumber typeValueNumber = this->NewValueNumber();
                 Value* landingPadTypeValue = NewValue(typeValueNumber, typeValueInfo);
@@ -1198,7 +1198,7 @@ GlobOpt::HoistFieldLoadValue(Loop * loop, Value * newValue, SymID symId, Js::OpC
     else
     {
         this->SetValue(&this->blockData, newValue, newStackSym);
-        newValue->GetValueInfo()->SetSymStore(newStackSym);
+        this->SetSymStoreDirect(newValue->GetValueInfo(), newStackSym);
     }
 
 
@@ -1853,7 +1853,7 @@ GlobOpt::CopyStoreFieldHoistStackSym(IR::Instr * storeFldInstr, PropertySym * sy
 
     Value * dstVal = this->CopyValue(src1Val);
     TrackCopiedValueForKills(dstVal);
-    dstVal->GetValueInfo()->SetSymStore(copySym);
+    this->SetSymStoreDirect(dstVal->GetValueInfo(), copySym);
     this->SetValue(&this->blockData, dstVal, copySym);
 
     // Copy the type specialized sym as well, in case we have a use for them
@@ -2933,7 +2933,7 @@ GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, const Js::Type *type, Js::E
     else
     {
         JsTypeValueInfo* valueInfo = JsTypeValueInfo::New(this->alloc, type, typeSet);
-        valueInfo->SetSymStore(typeSym);
+        this->SetSymStoreDirect(valueInfo, typeSym);
         Value* value = NewValue(valueInfo);
         SetValue(blockData, value, typeSym);
     }
