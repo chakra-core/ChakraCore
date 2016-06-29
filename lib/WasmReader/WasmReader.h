@@ -9,7 +9,7 @@
 
 #include "Runtime.h"
 #ifdef ENABLE_WASM
-#if DBG
+#if ENABLE_DEBUG_CONFIG_OPTIONS
 #define TRACE_WASM(condition, ...) \
     if (condition)\
     {\

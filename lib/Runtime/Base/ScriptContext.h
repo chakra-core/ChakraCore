@@ -1761,7 +1761,39 @@ private:
 
         return functionBody;
     }
+
+    class AutoProfilingPhase
+    {
+    public:
+        AutoProfilingPhase(ScriptContext* scriptcontext, Js::Phase phase) : scriptcontext(scriptcontext), phase(phase), isPhaseComplete(false)
+        {
+    #ifdef PROFILE_EXEC
+            scriptcontext->ProfileBegin(phase);
+    #endif
+        }
+
+        ~AutoProfilingPhase()
+        {
+            if(!this->isPhaseComplete)
+            {
+                EndProfile();
+            }
+        }
+
+        void EndProfile()
+        {
+            this->isPhaseComplete = true;
+#ifdef PROFILE_EXEC
+            scriptcontext->ProfileEnd(phase);
+#endif
+        }
+    private:
+        ScriptContext* scriptcontext;
+        Js::Phase phase;
+        bool isPhaseComplete;
+    };
 }
+
 
 #define BEGIN_TEMP_ALLOCATOR(allocator, scriptContext, name) \
     Js::TempArenaAllocatorObject *temp##allocator = scriptContext->GetTemporaryAllocator(name); \

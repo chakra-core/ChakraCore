@@ -42,6 +42,9 @@ typedef void(*AfterSectionCallback)(WasmBytecodeGenerator*);
 WasmModule *
 WasmBytecodeGenerator::GenerateModule()
 {
+    Js::AutoProfilingPhase parserProfiler(m_scriptContext, Js::WasmParserPhase);
+    Unused(parserProfiler);
+
     // TODO: can this be in a better place?
     m_sourceInfo->EnsureInitialized(0);
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
@@ -138,6 +141,9 @@ WasmBytecodeGenerator::GenerateModule()
 WasmFunction *
 WasmBytecodeGenerator::GenerateFunction()
 {
+    Js::AutoProfilingPhase bytecodeProfiler(m_scriptContext, Js::WasmBytecodePhase);
+    Unused(bytecodeProfiler);
+
     WasmFunctionInfo* wasmInfo = m_reader.m_currentNode.func.info;
     TRACE_WASM_DECODER(_u("GenerateFunction %u \n"), wasmInfo->GetNumber());
 
@@ -218,6 +224,9 @@ WasmBytecodeGenerator::GenerateFunction()
             }
             m_funcInfo->SetExitLabel(m_writer.DefineLabel());
             EnregisterLocals();
+
+            Js::AutoProfilingPhase functionProfiler(m_scriptContext, Js::WasmFunctionBodyPhase);
+            Unused(functionProfiler);
 
             WasmOp op = wnLIMIT;
             EmitInfo exprInfo;
@@ -1352,18 +1361,13 @@ WasmBytecodeGenerator::PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo
     if (addBlockYieldInfo)
     {
         info.yieldInfo = Anew(&m_alloc, BlockYieldInfo);
-        for (int type = WasmTypes::Void + 1; type < WasmTypes::Limit; ++type)
-        {
-            try 
-            {
-                info.yieldInfo->yieldLocs[type] = GetRegisterSpace((WasmTypes::WasmType)type)->AcquireTmpRegister();
-            } 
-            catch (WasmCompilationException) 
-            {
-                // This might be a NYI type
-                info.yieldInfo->yieldLocs[type] = Js::Constants::NoRegister;
-            }
-        }
+        info.yieldInfo->yieldLocs[WasmTypes::I32] = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
+        info.yieldInfo->yieldLocs[WasmTypes::I64] = Js::Constants::NoRegister; // NYI
+        info.yieldInfo->yieldLocs[WasmTypes::F32] = GetRegisterSpace(WasmTypes::F32)->AcquireTmpRegister();
+        info.yieldInfo->yieldLocs[WasmTypes::F64] = GetRegisterSpace(WasmTypes::F64)->AcquireTmpRegister();
+
+        // Make sure we don't forget to add new types here
+        CompileAssert(WasmTypes::Limit == 5);
     }
     m_blockInfos.Push(info);
 }

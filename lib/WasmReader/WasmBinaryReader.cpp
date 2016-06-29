@@ -202,7 +202,7 @@ WasmBinaryReader::ReadSectionHeader()
         }
     }
 
-#if DBG
+#if ENABLE_DEBUG_CONFIG_OPTIONS
     Assert(idSize < 64);
     char16 buf[64];
     size_t convertedChars = 0;
@@ -278,6 +278,7 @@ WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callba
 
         UINT32 entryCount = LEB128(len);
         m_funcState.count += len;
+        TRACE_WASM_DECODER(_u("Function body header: index = %u, size = %u"), i, m_funcState.size);
 
         // locals
         for (UINT32 j = 0; j < entryCount; j++)
@@ -285,13 +286,17 @@ WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callba
             UINT32 count = LEB128(len);
             m_funcState.count += len;
             Wasm::WasmTypes::WasmType type = ReadWasmType(len);
-            if (type == Wasm::WasmTypes::Void)
+            if (!Wasm::WasmTypes::IsLocalType(type))
             {
                 ThrowDecodingError(_u("Invalid local type"));
             }
             m_funcState.count += len;
             m_funcInfo->AddLocal(type, count);
-            TRACE_WASM_DECODER(_u("Function body header: type = %u, count = %u"), type, count);
+            switch (type) 
+            {
+#define WASM_LOCALTYPE(token, name) case Wasm::WasmTypes::token: TRACE_WASM_DECODER(_u("Local: type = " #name## ", count = %u"), type, count); break;
+#include "WasmKeywords.h"
+            }
         }
         bool errorOccurred = !callback(i, callbackdata) || m_funcState.count != m_funcState.size;
         if (errorOccurred)
@@ -706,10 +711,7 @@ void WasmBinaryReader::ReadIndirectFunctionTable()
         {
             ThrowDecodingError(_u("Indirect function index %u is out of bound (max %u)"), functionIndex, m_moduleInfo->GetFunctionCount());
         }
-        if (PHASE_TRACE1(Js::WasmReaderPhase))
-        {
-            Output::Print(_u("%u, "), functionIndex);
-        }
+        TRACE_WASM_DECODER(_u("%u, "), functionIndex);
         m_moduleInfo->SetIndirectFunction(functionIndex, i);
     }
     TRACE_WASM_DECODER(_u("]"), entries);
