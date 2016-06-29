@@ -5265,10 +5265,11 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             m_currentNodeNonLambdaDeferredFunc = pnodeFncSaveNonLambda;
         }
         m_currentNodeDeferredFunc = pnodeFncSave;
-        if (m_currentNodeFunc && pnodeFnc->sxFnc.HasWithStmt())
-        {
-            GetCurrentFunctionNode()->sxFnc.SetHasWithStmt(true);
-        }
+    }
+
+    if (m_currentNodeFunc && pnodeFnc->sxFnc.HasWithStmt())
+    {
+        GetCurrentFunctionNode()->sxFnc.SetHasWithStmt(true);
     }
 
     return true;

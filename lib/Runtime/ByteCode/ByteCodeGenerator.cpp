@@ -2785,18 +2785,29 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             Assert(CONFIG_FLAG(DeferNested));
             parentFunc->SetHasDeferredChild();
+        }
 
-            // If a deferred child has with, parent scopes may contain symbols called inside the with.
+        if (top->ChildHasWith() || pnode->sxFnc.HasWithStmt())
+        {
+            // Parent scopes may contain symbols called inside the with.
             // Current implementation needs the symScope isObject.
-            if (top->ChildHasWith() || pnode->sxFnc.HasWithStmt())
-            {
-                parentFunc->SetChildHasWith();
-                parentFunc->GetBodyScope()->SetIsObject();
-                parentFunc->GetParamScope()->SetIsObject();
 
+            parentFunc->SetChildHasWith();
+
+            if (parentFunc->GetBodyScope()->GetHasOwnLocalInClosure())
+            {
+                parentFunc->GetBodyScope()->SetIsObject();
                 // Record this for future use in the no-refresh debugging.
                 parentFunctionBody->SetHasSetIsObject(true);
             }
+
+            if (parentFunc->GetParamScope()->GetHasOwnLocalInClosure() &&
+                !parentFunc->GetParamScope()->GetCanMergeWithBodyScope())
+            {
+                parentFunc->GetParamScope()->SetIsObject();
+                // Record this for future use in the no-refresh debugging.
+                parentFunctionBody->SetHasSetIsObject(true);
+            }       
         }
 
         // Propagate HasMaybeEscapedNestedFunc
