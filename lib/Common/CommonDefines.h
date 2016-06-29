@@ -301,12 +301,13 @@
 
 #ifdef ENABLE_JS_ETW
 #define TEST_ETW_EVENTS
+#endif
 
 // VTUNE profiling requires ETW trace
 #if defined(_M_IX86) || defined(_M_X64)
 #define VTUNE_PROFILING
 #endif
-#endif
+
 
 #ifdef NTBUILD
 #define PERF_COUNTERS

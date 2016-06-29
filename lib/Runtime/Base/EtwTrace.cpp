@@ -8,28 +8,12 @@
 #include "Core/EtwTraceCore.h"
 #include "Base/EtwTrace.h"
 
-#ifdef VTUNE_PROFILING
-#ifdef CDECL
-#define ORIGINAL_CDECL CDECL
-#undef CDECL
-#endif
-// Not enabled in ChakraCore
-#include "jitProfiling.h"
-#ifdef ORIGINAL_CDECL
-#undef CDECL
-#endif
-#define CDECL ORIGINAL_CDECL
-#endif
-
 using namespace Js;
 
 //
 // This C style callback is invoked by ETW when a trace session is started/stopped
 // by an ETW controller for the Jscript and MSHTML providers.
 //
-
-static const char LoopStr[] = "Loop";
-static const char16 LoopWStr[] = _u("Loop");
 
 void EtwCallbackApi::OnSessionChange(ULONG controlCode, PVOID callbackContext)
 {
@@ -64,11 +48,6 @@ void EtwCallbackApi::OnSessionChange(ULONG controlCode, PVOID callbackContext)
     }
 }
 
-#ifdef VTUNE_PROFILING
-const utf8char_t EtwTrace::DynamicCode[] = "Dynamic code";
-bool EtwTrace::isJitProfilingActive = false;
-#endif
-
 //
 // Registers the ETW provider - this is usually done on Jscript DLL load
 // After registration, we will receive callbacks when ETW tracing is enabled/disabled.
@@ -79,10 +58,6 @@ void EtwTrace::Register()
 
 #ifdef TEST_ETW_EVENTS
     TestEtwEventSink::Load();
-#endif
-
-#ifdef VTUNE_PROFILING
-    isJitProfilingActive = (iJIT_IsProfilingActive() == iJIT_SAMPLING_ON);
 #endif
 }
 
@@ -95,13 +70,6 @@ void EtwTrace::UnRegister()
 
 #ifdef TEST_ETW_EVENTS
     TestEtwEventSink::Unload();
-#endif
-
-#ifdef VTUNE_PROFILING
-    if(isJitProfilingActive)
-    {
-        iJIT_NotifyEvent(iJVM_EVENT_TYPE_SHUTDOWN, NULL);
-    }
 #endif
 }
 
@@ -296,119 +264,12 @@ void EtwTrace::LogMethodInterpreterThunkLoadEvent(FunctionBody* body)
 void EtwTrace::LogMethodNativeLoadEvent(FunctionBody* body, FunctionEntryPointInfo* entryPoint)
 {
     LogMethodNativeEvent(EventWriteMethodLoad, body, entryPoint);
-
-#ifdef VTUNE_PROFILING
-    if(isJitProfilingActive)
-    {
-        iJIT_Method_Load methodInfo;
-        memset(&methodInfo, 0, sizeof(iJIT_Method_Load));
-        const char16* methodName = body->GetExternalDisplayName();
-        // Append function line number info to method name so that VTune can distinguish between polymorphic methods
-        char16 methodNameBuffer[_MAX_PATH];
-        ULONG lineNumber = body->GetLineNumber();
-        char16 numberBuffer[20];
-        _ltow_s(lineNumber, numberBuffer, 10);
-        wcscpy_s(methodNameBuffer, methodName);
-        if(entryPoint->GetJitMode() == ExecutionMode::SimpleJit)
-        {
-            wcscat_s(methodNameBuffer, _u(" Simple"));
-        }
-        wcscat_s(methodNameBuffer, _u(" {line:"));
-        wcscat_s(methodNameBuffer, numberBuffer);
-        wcscat_s(methodNameBuffer, _u("}"));
-
-        size_t methodLength = wcslen(methodNameBuffer);
-        Assert(methodLength < _MAX_PATH);
-        size_t length = methodLength * 3 + 1;
-        utf8char_t* utf8MethodName = HeapNewNoThrowArray(utf8char_t, length);
-        if(utf8MethodName)
-        {
-            methodInfo.method_id = iJIT_GetNewMethodID();
-            utf8::EncodeIntoAndNullTerminate(utf8MethodName, methodNameBuffer, (charcount_t)methodLength);
-            methodInfo.method_name = (char*)utf8MethodName;
-            methodInfo.method_load_address = (void*)entryPoint->GetNativeAddress();
-            methodInfo.method_size = (uint)entryPoint->GetCodeSize();        // Size in memory - Must be exact
-
-            LineNumberInfo numberInfo[1];
-
-            uint lineCount = (entryPoint->GetNativeOffsetMapCount()) * 2 + 1; // may need to record both .begin and .end for all elements
-            LineNumberInfo* pLineInfo = HeapNewNoThrowArray(LineNumberInfo, lineCount);
-
-            if (pLineInfo == NULL || Js::Configuration::Global.flags.DisableVTuneSourceLineInfo)
-            {
-                // resort to original implementation, attribute all samples to first line
-                numberInfo[0].LineNumber = lineNumber;
-                numberInfo[0].Offset = 0;
-                methodInfo.line_number_size = 1;
-                methodInfo.line_number_table = numberInfo;
-            }
-            else
-            {
-                int size = entryPoint->PopulateLineInfo(pLineInfo, body);
-                methodInfo.line_number_size = size;
-                methodInfo.line_number_table = pLineInfo;
-            }
-
-            size_t urlLength  = 0;
-            utf8char_t* utf8Url = GetUrl(body, &urlLength);
-            methodInfo.source_file_name = (char*)utf8Url;
-            methodInfo.env = iJDE_JittingAPI;
-            OUTPUT_TRACE(Js::ProfilerPhase, _u("Method load event: %s\n"), methodNameBuffer);
-            iJIT_NotifyEvent(iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED, &methodInfo);
-
-            HeapDeleteArray(lineCount, pLineInfo);
-
-            if(urlLength > 0)
-            {
-                HeapDeleteArray(urlLength, utf8Url);
-            }
-
-            HeapDeleteArray(length, utf8MethodName);
-        }
-    }
-#endif
 }
 
 void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint, uint16 loopNumber)
 {
     Assert(loopNumber == body->GetLoopNumberWithLock(loopHeader));
     LogLoopBodyEventBG(EventWriteMethodLoad, body, loopHeader, entryPoint, loopNumber);
-
-#ifdef VTUNE_PROFILING
-    if(isJitProfilingActive)
-    {
-        iJIT_Method_Load methodInfo;
-        memset(&methodInfo, 0, sizeof(iJIT_Method_Load));
-        const char16* methodName = body->GetExternalDisplayName();
-        size_t methodLength = wcslen(methodName);
-        methodLength = min(methodLength, (size_t)UINT_MAX); // Just truncate if it is too big
-        size_t length = methodLength * 3 + /* spaces */ 2 + _countof(LoopStr) + /*size of loop number*/ 10 + /*NULL*/ 1;
-        utf8char_t* utf8MethodName = HeapNewNoThrowArray(utf8char_t, length);
-        if(utf8MethodName)
-        {
-            methodInfo.method_id = iJIT_GetNewMethodID();
-            size_t len = utf8::EncodeInto(utf8MethodName, methodName, (charcount_t)methodLength);
-            sprintf_s((char*)(utf8MethodName + len), length - len," %s %d", LoopStr, loopNumber + 1);
-            methodInfo.method_name = (char*)utf8MethodName;
-            methodInfo.method_load_address = (void*)entryPoint->GetNativeAddress();
-            methodInfo.method_size = (uint)entryPoint->GetCodeSize();        // Size in memory - Must be exact
-
-            size_t urlLength  = 0;
-            utf8char_t* utf8Url = GetUrl(body, &urlLength);
-            methodInfo.source_file_name = (char*)utf8Url;
-            methodInfo.env = iJDE_JittingAPI;
-
-            iJIT_NotifyEvent(iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED, &methodInfo);
-            OUTPUT_TRACE(Js::ProfilerPhase, _u("Loop body load event: %s Loop %d\n"), methodName, loopNumber + 1);
-
-            if(urlLength > 0)
-            {
-                HeapDeleteArray(urlLength, utf8Url);
-            }
-            HeapDeleteArray(length, utf8MethodName);
-        }
-    }
-#endif
 }
 
 void EtwTrace::LogMethodInterpreterThunkUnloadEvent(FunctionBody* body)
@@ -489,33 +350,5 @@ size_t EtwTrace::GetSimpleJitFunctionName(
     wcscpy_s(&name[functionNameCharLength], nameCharCapacity - functionNameCharLength, suffix);
     return 0;
 }
-
-#ifdef VTUNE_PROFILING
-utf8char_t* EtwTrace::GetUrl( FunctionBody* body, size_t* urlBufferLength )
-{
-    utf8char_t* utf8Url = NULL;
-    if(!body->GetSourceContextInfo()->IsDynamic())
-    {
-        const wchar* url = body->GetSourceContextInfo()->url;
-        if(url)
-        {
-            size_t urlCharLength = wcslen(url);
-            urlCharLength = min(urlCharLength, (size_t)UINT_MAX);       // Just truncate if it is too big
-
-            *urlBufferLength = urlCharLength * 3 + 1;
-            utf8Url = HeapNewNoThrowArray(utf8char_t, *urlBufferLength);
-            if (utf8Url)
-            {
-                utf8::EncodeIntoAndNullTerminate(utf8Url, url, (charcount_t)urlCharLength);
-            }
-        }
-    }
-    else
-    {
-        utf8Url = (utf8char_t*)EtwTrace::DynamicCode;
-    }
-    return utf8Url;
-}
-#endif
 
 #endif

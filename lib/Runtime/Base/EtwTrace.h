@@ -291,16 +291,6 @@ public:
     static size_t GetSimpleJitFunctionName(Js::FunctionBody *const body, _Out_writes_opt_z_(nameCharCapacity) char16 *const name, const size_t nameCharCapacity);
     static DWORD_PTR GetSourceId(Js::FunctionBody* body);
     static uint GetFunctionId(Js::FunctionProxy* body);
-
-#ifdef VTUNE_PROFILING
-    static const utf8char_t DynamicCode[];
-    static bool isJitProfilingActive;
-#endif
-
-private:
-#ifdef VTUNE_PROFILING
-    static utf8char_t* GetUrl(Js::FunctionBody* body, size_t* urlLength);
-#endif
 };
 
 #endif
