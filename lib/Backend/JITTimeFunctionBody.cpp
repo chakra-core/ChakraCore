@@ -158,7 +158,17 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->doInterruptProbe = functionBody->GetScriptContext()->GetThreadContext()->DoInterruptProbe(functionBody);
     jitBody->disableInlineSpread = functionBody->IsInlineSpreadDisabled();
     jitBody->hasNestedLoop = functionBody->GetHasNestedLoop();
-    jitBody->hasNonBuiltInCallee = functionBody->HasNonBuiltInCallee();
+    if (Js::DynamicProfileInfo::HasCallSiteInfo(functionBody))
+    {
+        jitBody->hasNonBuiltInCallee = functionBody->HasNonBuiltInCallee();
+    }
+
+    if (functionBody->GetAuxiliaryData() != nullptr)
+    {
+        jitBody->auxDataCount = functionBody->GetAuxiliaryData()->GetLength();
+        jitBody->auxData = functionBody->GetAuxiliaryData()->GetBuffer();
+        jitBody->auxDataBufferAddr = (intptr_t)functionBody->GetAuxiliaryData()->GetBuffer();
+    }
 
     jitBody->scriptIdAddr = (intptr_t)functionBody->GetAddressOfScriptId();
     jitBody->flagsAddr = (intptr_t)functionBody->GetAddressOfFlags();
@@ -172,8 +182,10 @@ JITTimeFunctionBody::InitializeJITFunctionData(
 
     jitBody->nameLength = functionBody->GetDisplayNameLength();
     jitBody->displayName = (wchar_t *)functionBody->GetDisplayName();
-    jitBody->auxArrayBufferAddr = (intptr_t)(functionBody->GetAuxiliaryData() ? functionBody->GetAuxiliaryData()->GetBuffer() : nullptr);
     jitBody->objectLiteralTypesAddr = (intptr_t)functionBody->GetObjectLiteralTypes();
+
+    jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
+    jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexes();
 
     if (functionBody->GetIsAsmJsFunction())
     {
@@ -709,6 +721,14 @@ JITTimeFunctionBody::GetConstantType(Js::RegSlot location) const
     return static_cast<Js::TypeId>(m_bodyData.constTypeTable[location - Js::FunctionBody::FirstRegSlot]);
 }
 
+intptr_t
+JITTimeFunctionBody::GetLiteralRegexAddr(uint index) const
+{
+    Assert(index < m_bodyData.literalRegexCount);
+
+    return m_bodyData.literalRegexes[index];
+}
+
 void *
 JITTimeFunctionBody::GetConstTable() const
 {
@@ -803,12 +823,18 @@ JITTimeFunctionBody::GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlin
 intptr_t
 JITTimeFunctionBody::ReadAuxArray(uint offset) const
 {
-    intptr_t auxArray = m_bodyData.auxArrayBufferAddr + offset;
+    intptr_t auxArray = m_bodyData.auxDataBufferAddr + offset;
     // TODO: OOP JIT, add this assert back
     //Assert(offset + auxArray->GetDataSize() <= functionBody->GetAuxiliaryData()->GetLength());
     return auxArray;
 }
 
+Js::PropertyIdArray *
+JITTimeFunctionBody::ReadAuxPropIds(uint offset) const
+{
+    Assert(offset < m_bodyData.auxDataCount);
+    return  (Js::PropertyIdArray *)(m_bodyData.auxData[offset]);
+}
 
 void
 JITTimeFunctionBody::InitializeStatementMap(__out Js::SmallSpanSequence * statementMap) const

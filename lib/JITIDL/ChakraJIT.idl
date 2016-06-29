@@ -200,6 +200,8 @@ typedef struct ThreadContextDataIDL
     __int3264 debugStepTypeAddr;
     __int3264 debugFrameAddressAddr;
     __int3264 debugScriptIdWhenSetAddr;
+    __int3264 stringReplaceNameAddr;
+    __int3264 stringMatchNameAddr;
 } ThreadContextDataIDL;
 
 typedef struct ScriptContextDataIDL
@@ -363,6 +365,12 @@ typedef struct FunctionBodyDataIDL
     unsigned int runtimeDataCount; // only needed for topfunc?
     [size_is(runtimeDataCount)] FunctionJITRuntimeIDL * profiledRuntimeData;
 
+    unsigned int literalRegexCount;
+    [size_is(literalRegexCount)] __int3264 * literalRegexes;
+
+    unsigned int auxDataCount;
+    [size_is(auxDataCount)] byte * auxData;
+
     ProfileDataIDL * profileData;
 
     AsmJsDataIDL * asmJsData;
@@ -376,7 +384,7 @@ typedef struct FunctionBodyDataIDL
     __int3264 regAllocLoadCountAddr;
     __int3264 callCountStatsAddr;
     __int3264 nestedFuncArrayAddr;
-    __int3264 auxArrayBufferAddr;
+    __int3264 auxDataBufferAddr;
     __int3264 objectLiteralTypesAddr;
 } FunctionBodyDataIDL;
 

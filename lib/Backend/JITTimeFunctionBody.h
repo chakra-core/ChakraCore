@@ -106,6 +106,7 @@ public:
     intptr_t GetRegAllocStoreCountAddr() const;
     intptr_t GetCallCountStatsAddr() const;
     intptr_t GetObjectLiteralTypeRef(uint index) const;
+    intptr_t GetLiteralRegexAddr(uint index) const;
     const AsmJsJITInfo * GetAsmJsInfo() const;
     const JITTimeProfileInfo * GetProfileInfo() const;
     bool HasProfileInfo() const;
@@ -115,6 +116,7 @@ public:
     wchar_t* GetDisplayName() const;
 
     intptr_t ReadAuxArray(uint offset) const;
+    Js::PropertyIdArray * ReadAuxPropIds(uint offset) const;
     const FunctionJITRuntimeInfo *GetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId) const;
     const FunctionJITRuntimeInfo *GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlineCacheIndex) const;
 

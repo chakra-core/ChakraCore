@@ -63,6 +63,7 @@ JITType::GetData()
 intptr_t
 JITType::GetAddr() const
 {
+    Assert(m_data.addr > 99999);
     return m_data.addr;
 }
 

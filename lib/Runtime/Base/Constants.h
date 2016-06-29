@@ -150,6 +150,8 @@ namespace Js
         static const  wchar_t EvalCode[];
         static const  wchar_t GlobalFunction[];
         static const  wchar_t UnknownScriptCode[];
+        static const wchar_t StringReplace[];
+        static const wchar_t StringMatch[];
 
         static const size_t AnonymousFunctionLength = _countof(L"Anonymous function") - 1;
         static const size_t AnonymousLength         = _countof(L"anonymous") - 1;

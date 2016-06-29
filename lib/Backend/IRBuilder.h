@@ -204,8 +204,8 @@ private:
     SymID               BuildSrcStackSymID(Js::RegSlot regSlot);
     IR::RegOpnd *       BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type = TyVar, bool isCatchObjectSym = false);
     IR::RegOpnd *       BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type = TyVar);
-    IR::AddrOpnd *      BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 offset, uint32 auxArrayOffset, uint extraSlots = 0);
-    IR::Opnd *          BuildAuxObjectLiteralTypeRefOpnd(int objectId, uint32 offset);
+    IR::AddrOpnd *      BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 auxArrayOffset, uint extraSlots = 0);
+    IR::Opnd *          BuildAuxObjectLiteralTypeRefOpnd(int objectId);
 
 private:
     uint                AddStatementBoundary(uint statementIndex, uint offset);

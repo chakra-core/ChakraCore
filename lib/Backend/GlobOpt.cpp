@@ -3917,14 +3917,14 @@ GlobOpt::OptArguments(IR::Instr *instr)
                     Assert(builtinOpnd->AsAddrOpnd()->m_isFunction);
 
                     Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((Js::JavascriptFunction*)builtinOpnd->AsAddrOpnd()->m_address)->GetFunctionInfo(), func->GetScriptContext());
-                    if (builtinFunction == Js::BuiltinFunction::Function_Apply)
+                    if (builtinFunction == Js::BuiltinFunction::JavascriptFunction_Apply)
                     {
                         ClearArgumentsSym(src1->AsRegOpnd());
                     }
                 }
                 else if (builtinOpnd->IsRegOpnd())
                 {
-                    if (builtinOpnd->AsRegOpnd()->m_sym->m_builtInIndex == Js::BuiltinFunction::Function_Apply)
+                    if (builtinOpnd->AsRegOpnd()->m_sym->m_builtInIndex == Js::BuiltinFunction::JavascriptFunction_Apply)
                     {
                         ClearArgumentsSym(src1->AsRegOpnd());
                     }

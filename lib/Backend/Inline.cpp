@@ -3019,143 +3019,143 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
 {
     switch(builtInId)
     {
-    case Js::BuiltinFunction::Array_Concat:
+    case Js::BuiltinFunction::JavascriptArray_Concat:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_Concat, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::Array_IndexOf:
+    case Js::BuiltinFunction::JavascriptArray_IndexOf:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_IndexOf, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::Array_Includes:
+    case Js::BuiltinFunction::JavascriptArray_Includes:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_Includes, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::Array_Join:
+    case Js::BuiltinFunction::JavascriptArray_Join:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_Join, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::Array_LastIndexOf:
+    case Js::BuiltinFunction::JavascriptArray_LastIndexOf:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_LastIndexOf, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::Array_Reverse:
+    case Js::BuiltinFunction::JavascriptArray_Reverse:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_Reverse, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::Array_Shift:
+    case Js::BuiltinFunction::JavascriptArray_Shift:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_Shift, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::Array_Slice:
+    case Js::BuiltinFunction::JavascriptArray_Slice:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_Slice, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::Array_Splice:
+    case Js::BuiltinFunction::JavascriptArray_Splice:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_Splice, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::Array_Unshift:
+    case Js::BuiltinFunction::JavascriptArray_Unshift:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_Unshift, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_Concat:
+    case Js::BuiltinFunction::JavascriptString_Concat:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Concat, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_CharCodeAt:
+    case Js::BuiltinFunction::JavascriptString_CharCodeAt:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_CharCodeAt, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_CharAt:
+    case Js::BuiltinFunction::JavascriptString_CharAt:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_CharAt, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_FromCharCode:
+    case Js::BuiltinFunction::JavascriptString_FromCharCode:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_FromCharCode, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_FromCodePoint:
+    case Js::BuiltinFunction::JavascriptString_FromCodePoint:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_FromCodePoint, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_IndexOf:
+    case Js::BuiltinFunction::JavascriptString_IndexOf:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_IndexOf, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_LastIndexOf:
+    case Js::BuiltinFunction::JavascriptString_LastIndexOf:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_LastIndexOf, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_Link:
+    case Js::BuiltinFunction::JavascriptString_Link:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Link, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_LocaleCompare:
+    case Js::BuiltinFunction::JavascriptString_LocaleCompare:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_LocaleCompare, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_Match:
+    case Js::BuiltinFunction::JavascriptString_Match:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Match, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_Replace:
+    case Js::BuiltinFunction::JavascriptString_Replace:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Replace, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_Search:
+    case Js::BuiltinFunction::JavascriptString_Search:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Search, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_Slice:
+    case Js::BuiltinFunction::JavascriptString_Slice:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Slice, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_Split:
+    case Js::BuiltinFunction::JavascriptString_Split:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Split, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_Substr:
+    case Js::BuiltinFunction::JavascriptString_Substr:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Substr, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_Substring:
+    case Js::BuiltinFunction::JavascriptString_Substring:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Substring, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_ToLocaleLowerCase:
+    case Js::BuiltinFunction::JavascriptString_ToLocaleLowerCase:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_ToLocaleLowerCase, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_ToLocaleUpperCase:
+    case Js::BuiltinFunction::JavascriptString_ToLocaleUpperCase:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_ToLocaleUpperCase, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_ToLowerCase:
+    case Js::BuiltinFunction::JavascriptString_ToLowerCase:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_ToLowerCase, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_ToUpperCase:
+    case Js::BuiltinFunction::JavascriptString_ToUpperCase:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_ToUpperCase, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_Trim:
+    case Js::BuiltinFunction::JavascriptString_Trim:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Trim, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_TrimLeft:
+    case Js::BuiltinFunction::JavascriptString_TrimLeft:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_TrimLeft, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_TrimRight:
+    case Js::BuiltinFunction::JavascriptString_TrimRight:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_TrimRight, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_PadStart:
+    case Js::BuiltinFunction::JavascriptString_PadStart:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_PadStart, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::String_PadEnd:
+    case Js::BuiltinFunction::JavascriptString_PadEnd:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_PadEnd, callInstr->m_func));
         break;
 
@@ -3163,11 +3163,11 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperGlobalObject_ParseInt, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::RegExp_Exec:
+    case Js::BuiltinFunction::JavascriptRegExp_Exec:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperRegExp_Exec, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::RegExp_SymbolSearch:
+    case Js::BuiltinFunction::JavascriptRegExp_SymbolSearch:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperRegExp_SymbolSearch, callInstr->m_func));
         break;
 
@@ -3181,7 +3181,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
 {
     switch (builtInId)
     {
-    case Js::BuiltinFunction::String_Match:
+    case Js::BuiltinFunction::JavascriptString_Match:
         callInstr->ForEachCallDirectArgOutInstrBackward([&](IR::Instr *argOutInstr, uint argNum)
         {
             IR::Instr * newInstr = nullptr;
@@ -3191,8 +3191,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
-                Assert(UNREACHED); // TODO: OOP JIT, move string to other proc
-                newInstr->SetSrc2(IR::AddrOpnd::New(L"String.prototype.match", IR::AddrOpndKindSz, newInstr->m_func));
+                newInstr->SetSrc2(IR::AddrOpnd::New(newInstr->m_func->GetThreadContextInfo()->GetStringMatchNameAddr(), IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }
             else if (argNum == 1)
@@ -3209,7 +3208,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
         }, 2);
         break;
 
-    case Js::BuiltinFunction::String_Replace:
+    case Js::BuiltinFunction::JavascriptString_Replace:
         callInstr->ForEachCallDirectArgOutInstrBackward([&](IR::Instr *argOutInstr, uint argNum)
         {
             IR::Instr * newInstr = nullptr;
@@ -3219,8 +3218,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerse_Str);
                 isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
-                Assert(UNREACHED); // TODO: OOP JIT, move string to other proc
-                newInstr->SetSrc2(IR::AddrOpnd::New(L"String.prototype.replace", IR::AddrOpndKindSz, newInstr->m_func));
+                newInstr->SetSrc2(IR::AddrOpnd::New(newInstr->m_func->GetThreadContextInfo()->GetStringReplaceNameAddr(), IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }
             if (argNum == 1)
@@ -3236,7 +3234,7 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
             return false;
         }, 3);
         break;
-    case Js::BuiltinFunction::RegExp_Exec:
+    case Js::BuiltinFunction::JavascriptRegExp_Exec:
         callInstr->ForEachCallDirectArgOutInstrBackward([&](IR::Instr *argOutInstr, uint argNum)
         {
             IR::Instr * newInstr = nullptr;
@@ -5076,14 +5074,14 @@ Inline::GetInlineeHasArgumentObject(Func * inlinee)
                         {
                             Assert(builtInOpnd->AsAddrOpnd()->m_isFunction);
                             Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((Js::JavascriptFunction*)builtInOpnd->AsAddrOpnd()->m_address)->GetFunctionInfo(), inlinee->GetScriptContext());
-                            if (builtinFunction == Js::BuiltinFunction::Function_Apply)
+                            if (builtinFunction == Js::BuiltinFunction::JavascriptFunction_Apply)
                             {
                                 this->SetIsInInlinedApplyCall(true);
                             }
                         }
                         else if (builtInOpnd->IsRegOpnd())
                         {
-                            if (builtInOpnd->AsRegOpnd()->m_sym->m_builtInIndex == Js::BuiltinFunction::Function_Apply)
+                            if (builtInOpnd->AsRegOpnd()->m_sym->m_builtInIndex == Js::BuiltinFunction::JavascriptFunction_Apply)
                             {
                                 this->SetIsInInlinedApplyCall(true);
                             }
@@ -5258,39 +5256,39 @@ Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * call
     callInstr->dataWidth = 0;
     switch (builtInId)
     {
-        case Js::BuiltinFunction::SIMD_Float32x4_Store:
-        case Js::BuiltinFunction::SIMD_Int32x4_Store:
+        case Js::BuiltinFunction::SIMDFloat32x4Lib_Store:
+        case Js::BuiltinFunction::SIMDInt32x4Lib_Store:
             isStore = true;
             // fall through
-        case Js::BuiltinFunction::SIMD_Float32x4_Load:
-        case Js::BuiltinFunction::SIMD_Int32x4_Load:
+        case Js::BuiltinFunction::SIMDFloat32x4Lib_Load:
+        case Js::BuiltinFunction::SIMDInt32x4Lib_Load:
             callInstr->dataWidth = 16;
             break;
 
-        case Js::BuiltinFunction::SIMD_Float32x4_Store3:
-        case Js::BuiltinFunction::SIMD_Int32x4_Store3:
+        case Js::BuiltinFunction::SIMDFloat32x4Lib_Store3:
+        case Js::BuiltinFunction::SIMDInt32x4Lib_Store3:
             isStore = true;
             // fall through
-        case Js::BuiltinFunction::SIMD_Float32x4_Load3:
-        case Js::BuiltinFunction::SIMD_Int32x4_Load3:
+        case Js::BuiltinFunction::SIMDFloat32x4Lib_Load3:
+        case Js::BuiltinFunction::SIMDInt32x4Lib_Load3:
             callInstr->dataWidth = 12;
             break;
 
-        case Js::BuiltinFunction::SIMD_Float32x4_Store2:
-        case Js::BuiltinFunction::SIMD_Int32x4_Store2:
+        case Js::BuiltinFunction::SIMDFloat32x4Lib_Store2:
+        case Js::BuiltinFunction::SIMDInt32x4Lib_Store2:
             isStore = true;
             // fall through
-        case Js::BuiltinFunction::SIMD_Float32x4_Load2:
-        case Js::BuiltinFunction::SIMD_Int32x4_Load2:
+        case Js::BuiltinFunction::SIMDFloat32x4Lib_Load2:
+        case Js::BuiltinFunction::SIMDInt32x4Lib_Load2:
             callInstr->dataWidth = 8;
             break;
 
-        case Js::BuiltinFunction::SIMD_Float32x4_Store1:
-        case Js::BuiltinFunction::SIMD_Int32x4_Store1:
+        case Js::BuiltinFunction::SIMDFloat32x4Lib_Store1:
+        case Js::BuiltinFunction::SIMDInt32x4Lib_Store1:
             isStore = true;
             // fall through
-        case Js::BuiltinFunction::SIMD_Float32x4_Load1:
-        case Js::BuiltinFunction::SIMD_Int32x4_Load1:
+        case Js::BuiltinFunction::SIMDFloat32x4Lib_Load1:
+        case Js::BuiltinFunction::SIMDInt32x4Lib_Load1:
             callInstr->dataWidth = 4;
             break;
         default:

@@ -384,7 +384,7 @@ namespace Js
 
         void RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo * calleeFunctionInfo, JavascriptFunction* calleeFunction, ArgSlot actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId = Js::Constants::NoInlineCacheIndex);
         void RecordConstParameterAtCallSite(ProfileId callSiteId, int argNum);
-        bool HasCallSiteInfo(FunctionBody* functionBody);
+        static bool HasCallSiteInfo(FunctionBody* functionBody);
         bool HasCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId); // Does a particular callsite have ProfileInfo?
         FunctionInfo * GetCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, bool *isConstructorCall, bool *isPolymorphicCall);
         CallSiteInfo * GetCallSiteInfo() const { return callSiteInfo; }

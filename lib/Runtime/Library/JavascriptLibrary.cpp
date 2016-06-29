@@ -1578,7 +1578,7 @@ namespace Js
         {
             library->AddMember(arrayConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Array), PropertyConfigurable);
         }
-        builtinFuncs[BuiltinFunction::Array_IsArray] = library->AddFunctionToLibraryObject(arrayConstructor, PropertyIds::isArray, &JavascriptArray::EntryInfo::IsArray, 1);
+        builtinFuncs[BuiltinFunction::JavascriptArray_IsArray] = library->AddFunctionToLibraryObject(arrayConstructor, PropertyIds::isArray, &JavascriptArray::EntryInfo::IsArray, 1);
 
         // Array.from and Array.of are implemented as part of the ES6 TypedArray feature
         if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled())
@@ -1614,15 +1614,15 @@ namespace Js
 
         JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
 
-        builtinFuncs[BuiltinFunction::Array_Push]               = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::push,            &JavascriptArray::EntryInfo::Push,              1);
-        builtinFuncs[BuiltinFunction::Array_Concat]             = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::concat,          &JavascriptArray::EntryInfo::Concat,            1);
-        builtinFuncs[BuiltinFunction::Array_Join]               = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::join,            &JavascriptArray::EntryInfo::Join,              1);
-        builtinFuncs[BuiltinFunction::Array_Pop]                = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::pop,             &JavascriptArray::EntryInfo::Pop,               0);
-        builtinFuncs[BuiltinFunction::Array_Reverse]            = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reverse,         &JavascriptArray::EntryInfo::Reverse,           0);
-        builtinFuncs[BuiltinFunction::Array_Shift]              = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::shift,           &JavascriptArray::EntryInfo::Shift,             0);
-        builtinFuncs[BuiltinFunction::Array_Slice]              = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::slice,           &JavascriptArray::EntryInfo::Slice,             2);
+        builtinFuncs[BuiltinFunction::JavascriptArray_Push]               = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::push,            &JavascriptArray::EntryInfo::Push,              1);
+        builtinFuncs[BuiltinFunction::JavascriptArray_Concat]             = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::concat,          &JavascriptArray::EntryInfo::Concat,            1);
+        builtinFuncs[BuiltinFunction::JavascriptArray_Join]               = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::join,            &JavascriptArray::EntryInfo::Join,              1);
+        builtinFuncs[BuiltinFunction::JavascriptArray_Pop]                = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::pop,             &JavascriptArray::EntryInfo::Pop,               0);
+        builtinFuncs[BuiltinFunction::JavascriptArray_Reverse]            = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reverse,         &JavascriptArray::EntryInfo::Reverse,           0);
+        builtinFuncs[BuiltinFunction::JavascriptArray_Shift]              = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::shift,           &JavascriptArray::EntryInfo::Shift,             0);
+        builtinFuncs[BuiltinFunction::JavascriptArray_Slice]              = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::slice,           &JavascriptArray::EntryInfo::Slice,             2);
         /* No inlining                Array_Sort               */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::sort,            &JavascriptArray::EntryInfo::Sort,              1);
-        builtinFuncs[BuiltinFunction::Array_Splice]             = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::splice,          &JavascriptArray::EntryInfo::Splice,            2);
+        builtinFuncs[BuiltinFunction::JavascriptArray_Splice]             = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::splice,          &JavascriptArray::EntryInfo::Splice,            2);
 
         // The toString and toLocaleString properties are shared between Array.prototype and %TypedArray%.prototype.
         // Whichever prototype is initialized first will create the functions, the other should just load the existing function objects.
@@ -1641,14 +1641,14 @@ namespace Js
             library->AddMember(arrayPrototype, PropertyIds::toString, library->arrayPrototypeToStringFunction);
         }
 
-        builtinFuncs[BuiltinFunction::Array_Unshift]            = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::unshift,         &JavascriptArray::EntryInfo::Unshift,           1);
+        builtinFuncs[BuiltinFunction::JavascriptArray_Unshift]            = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::unshift,         &JavascriptArray::EntryInfo::Unshift,           1);
 
 
-        builtinFuncs[BuiltinFunction::Array_IndexOf]        = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::indexOf,         &JavascriptArray::EntryInfo::IndexOf,           1);
+        builtinFuncs[BuiltinFunction::JavascriptArray_IndexOf]        = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::indexOf,         &JavascriptArray::EntryInfo::IndexOf,           1);
         /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every,           &JavascriptArray::EntryInfo::Every,             1);
         /* No inlining                Array_Filter         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::filter,          &JavascriptArray::EntryInfo::Filter,            1);
         /* No inlining                Array_ForEach        */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::forEach,         &JavascriptArray::EntryInfo::ForEach,           1);
-        builtinFuncs[BuiltinFunction::Array_LastIndexOf]    = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::lastIndexOf,     &JavascriptArray::EntryInfo::LastIndexOf,       1);
+        builtinFuncs[BuiltinFunction::JavascriptArray_LastIndexOf]    = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::lastIndexOf,     &JavascriptArray::EntryInfo::LastIndexOf,       1);
         /* No inlining                Array_Map            */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::map,             &JavascriptArray::EntryInfo::Map,               1);
         /* No inlining                Array_Reduce         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reduce,          &JavascriptArray::EntryInfo::Reduce,            1);
         /* No inlining                Array_ReduceRight    */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reduceRight,     &JavascriptArray::EntryInfo::ReduceRight,       1);
@@ -1689,7 +1689,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
         {
-            builtinFuncs[BuiltinFunction::Array_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
+            builtinFuncs[BuiltinFunction::JavascriptArray_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
@@ -2502,11 +2502,11 @@ namespace Js
         }
 
         JavascriptFunction *func = library->AddFunctionToLibraryObject(functionPrototype, PropertyIds::apply, &JavascriptFunction::EntryInfo::Apply, 2);
-        builtinFuncs[BuiltinFunction::Function_Apply] = func;
+        builtinFuncs[BuiltinFunction::JavascriptFunction_Apply] = func;
 
         library->AddFunctionToLibraryObject(functionPrototype, PropertyIds::bind, &JavascriptFunction::EntryInfo::Bind, 1);
         func = library->AddFunctionToLibraryObject(functionPrototype, PropertyIds::call, &JavascriptFunction::EntryInfo::Call, 1);
-        builtinFuncs[BuiltinFunction::Function_Call] = func;
+        builtinFuncs[BuiltinFunction::JavascriptFunction_Call] = func;
         library->AddFunctionToLibraryObject(functionPrototype, PropertyIds::toString, &JavascriptFunction::EntryInfo::ToString, 0);
 
         if (scriptContext->GetConfig()->IsES6HasInstanceEnabled())
@@ -2635,47 +2635,47 @@ namespace Js
 
         /*** Float32x4 ***/
         JavascriptFunction* float32x4Function = library->AddFunctionToLibraryObject(simdObject, PropertyIds::Float32x4, &SIMDFloat32x4Lib::EntryInfo::Float32x4, 5, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Float32x4] = float32x4Function;        
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Check] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::check, &SIMDFloat32x4Lib::EntryInfo::Check, 2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Float32x4] = float32x4Function;        
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Check] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::check, &SIMDFloat32x4Lib::EntryInfo::Check, 2, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::zero, &SIMDFloat32x4Lib::EntryInfo::Zero, 1, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Splat] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::splat, &SIMDFloat32x4Lib::EntryInfo::Splat, 2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Splat] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::splat, &SIMDFloat32x4Lib::EntryInfo::Splat, 2, PropertyNone);
 
         // Lane Access
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_ExtractLane] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::extractLane, &SIMDFloat32x4Lib::EntryInfo::ExtractLane, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_ReplaceLane] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::replaceLane, &SIMDFloat32x4Lib::EntryInfo::ReplaceLane, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_ExtractLane] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::extractLane, &SIMDFloat32x4Lib::EntryInfo::ExtractLane, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_ReplaceLane] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::replaceLane, &SIMDFloat32x4Lib::EntryInfo::ReplaceLane, 4, PropertyNone);
 
 
         // type conversions
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromFloat64x2,     &SIMDFloat32x4Lib::EntryInfo::FromFloat64x2,     2, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromFloat64x2Bits, &SIMDFloat32x4Lib::EntryInfo::FromFloat64x2Bits, 2, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_FromInt32x4] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt32x4,       &SIMDFloat32x4Lib::EntryInfo::FromInt32x4,       2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_FromInt32x4] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt32x4,       &SIMDFloat32x4Lib::EntryInfo::FromInt32x4,       2, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint32x4,      &SIMDFloat32x4Lib::EntryInfo::FromUint32x4,      2, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt16x8Bits,   &SIMDFloat32x4Lib::EntryInfo::FromInt16x8Bits,   2, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt8x16Bits,   &SIMDFloat32x4Lib::EntryInfo::FromInt8x16Bits,   2, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_FromInt32x4Bits] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt32x4Bits, &SIMDFloat32x4Lib::EntryInfo::FromInt32x4Bits, 2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_FromInt32x4Bits] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt32x4Bits, &SIMDFloat32x4Lib::EntryInfo::FromInt32x4Bits, 2, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint32x4Bits, &SIMDFloat32x4Lib::EntryInfo::FromUint32x4Bits, 2, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint16x8Bits, &SIMDFloat32x4Lib::EntryInfo::FromUint16x8Bits, 2, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint8x16Bits, &SIMDFloat32x4Lib::EntryInfo::FromUint8x16Bits, 2, PropertyNone);
         // binary ops
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Add] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::add, &SIMDFloat32x4Lib::EntryInfo::Add, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Sub] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::sub,    &SIMDFloat32x4Lib::EntryInfo::Sub,   3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Mul] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::mul,    &SIMDFloat32x4Lib::EntryInfo::Mul,   3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Div] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::div,    &SIMDFloat32x4Lib::EntryInfo::Div,   3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Add] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::add, &SIMDFloat32x4Lib::EntryInfo::Add, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Sub] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::sub,    &SIMDFloat32x4Lib::EntryInfo::Sub,   3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Mul] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::mul,    &SIMDFloat32x4Lib::EntryInfo::Mul,   3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Div] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::div,    &SIMDFloat32x4Lib::EntryInfo::Div,   3, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::and,    &SIMDFloat32x4Lib::EntryInfo::And,   3, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::or,     &SIMDFloat32x4Lib::EntryInfo::Or,    3, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::xor,    &SIMDFloat32x4Lib::EntryInfo::Xor,   3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Min] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::min,    &SIMDFloat32x4Lib::EntryInfo::Min,   3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Max] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::max,    &SIMDFloat32x4Lib::EntryInfo::Max,   3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Min] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::min,    &SIMDFloat32x4Lib::EntryInfo::Min,   3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Max] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::max,    &SIMDFloat32x4Lib::EntryInfo::Max,   3, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::minNum, &SIMDFloat32x4Lib::EntryInfo::MinNum, 3, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::maxNum, &SIMDFloat32x4Lib::EntryInfo::MaxNum, 3, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::scale,  &SIMDFloat32x4Lib::EntryInfo::Scale, 3, PropertyNone);
         // unary ops
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Abs] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::abs,            &SIMDFloat32x4Lib::EntryInfo::Abs,            2, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Neg] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::neg,            &SIMDFloat32x4Lib::EntryInfo::Neg,            2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Abs] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::abs,            &SIMDFloat32x4Lib::EntryInfo::Abs,            2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Neg] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::neg,            &SIMDFloat32x4Lib::EntryInfo::Neg,            2, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::not,            &SIMDFloat32x4Lib::EntryInfo::Not,            2, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Sqrt] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::sqrt,           &SIMDFloat32x4Lib::EntryInfo::Sqrt,           2, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Reciprocal] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::reciprocalApproximation,     &SIMDFloat32x4Lib::EntryInfo::Reciprocal,     2, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_ReciprocalSqrt] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::reciprocalSqrtApproximation, &SIMDFloat32x4Lib::EntryInfo::ReciprocalSqrt, 2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Sqrt] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::sqrt,           &SIMDFloat32x4Lib::EntryInfo::Sqrt,           2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Reciprocal] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::reciprocalApproximation,     &SIMDFloat32x4Lib::EntryInfo::Reciprocal,     2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_ReciprocalSqrt] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::reciprocalSqrtApproximation, &SIMDFloat32x4Lib::EntryInfo::ReciprocalSqrt, 2, PropertyNone);
         // compare ops
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::lessThan,           &SIMDFloat32x4Lib::EntryInfo::LessThan,          3, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::lessThanOrEqual,    &SIMDFloat32x4Lib::EntryInfo::LessThanOrEqual,   3, PropertyNone);
@@ -2684,18 +2684,18 @@ namespace Js
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::greaterThan,        &SIMDFloat32x4Lib::EntryInfo::GreaterThan,       3, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::greaterThanOrEqual, &SIMDFloat32x4Lib::EntryInfo::GreaterThanOrEqual,3, PropertyNone);
         // others
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Swizzle] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::swizzle,            &SIMDFloat32x4Lib::EntryInfo::Swizzle, 6, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Shuffle] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::shuffle,            &SIMDFloat32x4Lib::EntryInfo::Shuffle, 7, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Swizzle] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::swizzle,            &SIMDFloat32x4Lib::EntryInfo::Swizzle, 6, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Shuffle] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::shuffle,            &SIMDFloat32x4Lib::EntryInfo::Shuffle, 7, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::clamp,              &SIMDFloat32x4Lib::EntryInfo::Clamp,   4, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::select,             &SIMDFloat32x4Lib::EntryInfo::Select,  4, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load,  &SIMDFloat32x4Lib::EntryInfo::Load,  3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load1] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load1, &SIMDFloat32x4Lib::EntryInfo::Load1, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load2] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load2, &SIMDFloat32x4Lib::EntryInfo::Load2, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load3] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load3, &SIMDFloat32x4Lib::EntryInfo::Load3, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Store] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store, &SIMDFloat32x4Lib::EntryInfo::Store, 4, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Store1] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store1, &SIMDFloat32x4Lib::EntryInfo::Store1, 4, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Store2] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store2, &SIMDFloat32x4Lib::EntryInfo::Store2, 4, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Store3] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store3, &SIMDFloat32x4Lib::EntryInfo::Store3, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Load] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load,  &SIMDFloat32x4Lib::EntryInfo::Load,  3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Load1] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load1, &SIMDFloat32x4Lib::EntryInfo::Load1, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Load2] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load2, &SIMDFloat32x4Lib::EntryInfo::Load2, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Load3] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load3, &SIMDFloat32x4Lib::EntryInfo::Load3, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Store] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store, &SIMDFloat32x4Lib::EntryInfo::Store, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Store1] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store1, &SIMDFloat32x4Lib::EntryInfo::Store1, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Store2] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store2, &SIMDFloat32x4Lib::EntryInfo::Store2, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDFloat32x4Lib_Store3] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store3, &SIMDFloat32x4Lib::EntryInfo::Store3, 4, PropertyNone);
         /*** End Float32x4 ***/
 
         /*** Float64x2 ***/
@@ -2742,22 +2742,22 @@ namespace Js
 
         /*** Int32x4 ***/
         JavascriptFunction* int32x4Function = library->AddFunctionToLibraryObject(simdObject, PropertyIds::Int32x4, &SIMDInt32x4Lib::EntryInfo::Int32x4, 5, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Int32x4] = int32x4Function;
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Check] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::check,        &SIMDInt32x4Lib::EntryInfo::Check,      2, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Splat] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::splat,        &SIMDInt32x4Lib::EntryInfo::Splat,      2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Int32x4] = int32x4Function;
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Check] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::check,        &SIMDInt32x4Lib::EntryInfo::Check,      2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Splat] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::splat,        &SIMDInt32x4Lib::EntryInfo::Splat,      2, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::bool_,        &SIMDInt32x4Lib::EntryInfo::Bool,       5, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::withFlagX,    &SIMDInt32x4Lib::EntryInfo::WithFlagX,  3, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::withFlagY,    &SIMDInt32x4Lib::EntryInfo::WithFlagY,  3, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::withFlagZ,    &SIMDInt32x4Lib::EntryInfo::WithFlagZ,  3, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::withFlagW,    &SIMDInt32x4Lib::EntryInfo::WithFlagW,  3, PropertyNone);
         // Lane Access
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_ExtractLane] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::extractLane, &SIMDInt32x4Lib::EntryInfo::ExtractLane, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_ReplaceLane] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::replaceLane, &SIMDInt32x4Lib::EntryInfo::ReplaceLane, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_ExtractLane] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::extractLane, &SIMDInt32x4Lib::EntryInfo::ExtractLane, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_ReplaceLane] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::replaceLane, &SIMDInt32x4Lib::EntryInfo::ReplaceLane, 4, PropertyNone);
         // type conversions
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::fromFloat64x2, &SIMDInt32x4Lib::EntryInfo::FromFloat64x2,         2, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::fromFloat64x2Bits, &SIMDInt32x4Lib::EntryInfo::FromFloat64x2Bits, 2, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_FromFloat32x4] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::fromFloat32x4, &SIMDInt32x4Lib::EntryInfo::FromFloat32x4,         2, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_FromFloat32x4Bits] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::fromFloat32x4Bits, &SIMDInt32x4Lib::EntryInfo::FromFloat32x4Bits, 2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_FromFloat32x4] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::fromFloat32x4, &SIMDInt32x4Lib::EntryInfo::FromFloat32x4,         2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_FromFloat32x4Bits] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::fromFloat32x4Bits, &SIMDInt32x4Lib::EntryInfo::FromFloat32x4Bits, 2, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::fromUint32x4Bits, &SIMDInt32x4Lib::EntryInfo::FromUint32x4Bits,   2, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::fromUint8x16Bits, &SIMDInt32x4Lib::EntryInfo::FromUint8x16Bits,   2, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::fromUint16x8Bits, &SIMDInt32x4Lib::EntryInfo::FromUint16x8Bits,   2, PropertyNone);
@@ -2765,16 +2765,16 @@ namespace Js
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::fromInt16x8Bits, &SIMDInt32x4Lib::EntryInfo::FromInt16x8Bits,     2, PropertyNone);
 
         // binary ops
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Add] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::add, &SIMDInt32x4Lib::EntryInfo::Add, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Sub] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::sub, &SIMDInt32x4Lib::EntryInfo::Sub, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Mul] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::mul, &SIMDInt32x4Lib::EntryInfo::Mul, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_And] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::and, &SIMDInt32x4Lib::EntryInfo::And, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Or] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::or,  &SIMDInt32x4Lib::EntryInfo::Or,  3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Xor] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::xor, &SIMDInt32x4Lib::EntryInfo::Xor, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Add] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::add, &SIMDInt32x4Lib::EntryInfo::Add, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Sub] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::sub, &SIMDInt32x4Lib::EntryInfo::Sub, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Mul] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::mul, &SIMDInt32x4Lib::EntryInfo::Mul, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_And] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::and, &SIMDInt32x4Lib::EntryInfo::And, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Or] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::or,  &SIMDInt32x4Lib::EntryInfo::Or,  3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Xor] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::xor, &SIMDInt32x4Lib::EntryInfo::Xor, 3, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::min, &SIMDInt32x4Lib::EntryInfo::Min, 3, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::max, &SIMDInt32x4Lib::EntryInfo::Max, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Neg] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::neg, &SIMDInt32x4Lib::EntryInfo::Neg, 2, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Not] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::not, &SIMDInt32x4Lib::EntryInfo::Not, 2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Neg] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::neg, &SIMDInt32x4Lib::EntryInfo::Neg, 2, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Not] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::not, &SIMDInt32x4Lib::EntryInfo::Not, 2, PropertyNone);
         // compare ops
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::lessThan,           &SIMDInt32x4Lib::EntryInfo::LessThan,           3, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::lessThanOrEqual,    &SIMDInt32x4Lib::EntryInfo::LessThanOrEqual,    3, PropertyNone);
@@ -2783,23 +2783,23 @@ namespace Js
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::greaterThan,        &SIMDInt32x4Lib::EntryInfo::GreaterThan,        3, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::greaterThanOrEqual, &SIMDInt32x4Lib::EntryInfo::GreaterThanOrEqual, 3, PropertyNone);
         // shuffle
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Swizzle] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::swizzle,      &SIMDInt32x4Lib::EntryInfo::Swizzle,     6, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Shuffle] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::shuffle,      &SIMDInt32x4Lib::EntryInfo::Shuffle,     7, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Swizzle] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::swizzle,      &SIMDInt32x4Lib::EntryInfo::Swizzle,     6, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Shuffle] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::shuffle,      &SIMDInt32x4Lib::EntryInfo::Shuffle,     7, PropertyNone);
         // shift
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::shiftLeftByScalar, &SIMDInt32x4Lib::EntryInfo::ShiftLeftByScalar, 3, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::shiftRightByScalar, &SIMDInt32x4Lib::EntryInfo::ShiftRightByScalar, 3, PropertyNone);
         // select
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::select, &SIMDInt32x4Lib::EntryInfo::Select, 4, PropertyNone);
  
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Load] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load, &SIMDInt32x4Lib::EntryInfo::Load, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Load1] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load1, &SIMDInt32x4Lib::EntryInfo::Load1, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Load2] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load2, &SIMDInt32x4Lib::EntryInfo::Load2, 3, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Load3] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load3, &SIMDInt32x4Lib::EntryInfo::Load3, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Load] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load, &SIMDInt32x4Lib::EntryInfo::Load, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Load1] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load1, &SIMDInt32x4Lib::EntryInfo::Load1, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Load2] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load2, &SIMDInt32x4Lib::EntryInfo::Load2, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Load3] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load3, &SIMDInt32x4Lib::EntryInfo::Load3, 3, PropertyNone);
 
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Store] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store, &SIMDInt32x4Lib::EntryInfo::Store, 4, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Store1] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store1, &SIMDInt32x4Lib::EntryInfo::Store1, 4, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Store2] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store2, &SIMDInt32x4Lib::EntryInfo::Store2, 4, PropertyNone);
-        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Store3] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store3, &SIMDInt32x4Lib::EntryInfo::Store3, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Store] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store, &SIMDInt32x4Lib::EntryInfo::Store, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Store1] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store1, &SIMDInt32x4Lib::EntryInfo::Store1, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Store2] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store2, &SIMDInt32x4Lib::EntryInfo::Store2, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMDInt32x4Lib_Store3] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store3, &SIMDInt32x4Lib::EntryInfo::Store3, 4, PropertyNone);
        /*** End Int32x4 ***/
 
         /*** Int16x8 ***/
@@ -3416,115 +3416,115 @@ namespace Js
             return BuiltinFunction::Math_Fround;
 
         case PropertyIds::codePointAt:
-            return BuiltinFunction::String_CodePointAt;
+            return BuiltinFunction::JavascriptString_CodePointAt;
 
         case PropertyIds::push:
-            return BuiltinFunction::Array_Push;
+            return BuiltinFunction::JavascriptArray_Push;
 
         case PropertyIds::concat:
-            return BuiltinFunction::Array_Concat;
+            return BuiltinFunction::JavascriptArray_Concat;
 
         case PropertyIds::indexOf:
-            return BuiltinFunction::Array_IndexOf;
+            return BuiltinFunction::JavascriptArray_IndexOf;
 
         case PropertyIds::includes:
-            return BuiltinFunction::Array_Includes;
+            return BuiltinFunction::JavascriptArray_Includes;
 
         case PropertyIds::isArray:
-            return BuiltinFunction::Array_IsArray;
+            return BuiltinFunction::JavascriptArray_IsArray;
 
         case PropertyIds::join:
-            return BuiltinFunction::Array_Join;
+            return BuiltinFunction::JavascriptArray_Join;
 
         case PropertyIds::lastIndexOf:
-            return BuiltinFunction::Array_LastIndexOf;
+            return BuiltinFunction::JavascriptArray_LastIndexOf;
 
         case PropertyIds::reverse:
-            return BuiltinFunction::Array_Reverse;
+            return BuiltinFunction::JavascriptArray_Reverse;
 
         case PropertyIds::shift:
-            return BuiltinFunction::Array_Shift;
+            return BuiltinFunction::JavascriptArray_Shift;
 
         case PropertyIds::slice:
-            return BuiltinFunction::Array_Slice;
+            return BuiltinFunction::JavascriptArray_Slice;
 
         case PropertyIds::splice:
-            return BuiltinFunction::Array_Splice;
+            return BuiltinFunction::JavascriptArray_Splice;
 
         case PropertyIds::unshift:
-            return BuiltinFunction::Array_Unshift;
+            return BuiltinFunction::JavascriptArray_Unshift;
 
         case PropertyIds::apply:
-            return BuiltinFunction::Function_Apply;
+            return BuiltinFunction::JavascriptFunction_Apply;
 
         case PropertyIds::charAt:
-            return BuiltinFunction::String_CharAt;
+            return BuiltinFunction::JavascriptString_CharAt;
 
         case PropertyIds::charCodeAt:
-            return BuiltinFunction::String_CharCodeAt;
+            return BuiltinFunction::JavascriptString_CharCodeAt;
 
         case PropertyIds::fromCharCode:
-            return BuiltinFunction::String_FromCharCode;
+            return BuiltinFunction::JavascriptString_FromCharCode;
 
         case PropertyIds::fromCodePoint:
-                return BuiltinFunction::String_FromCodePoint;
+                return BuiltinFunction::JavascriptString_FromCodePoint;
 
         case PropertyIds::link:
-            return BuiltinFunction::String_Link;
+            return BuiltinFunction::JavascriptString_Link;
 
         case PropertyIds::localeCompare:
-            return BuiltinFunction::String_LocaleCompare;
+            return BuiltinFunction::JavascriptString_LocaleCompare;
 
         case PropertyIds::match:
-            return BuiltinFunction::String_Match;
+            return BuiltinFunction::JavascriptString_Match;
 
         case PropertyIds::replace:
-            return BuiltinFunction::String_Replace;
+            return BuiltinFunction::JavascriptString_Replace;
 
         case PropertyIds::search:
-            return BuiltinFunction::String_Search;
+            return BuiltinFunction::JavascriptString_Search;
 
         case PropertyIds::_symbolSearch:
-            return BuiltinFunction::RegExp_SymbolSearch;
+            return BuiltinFunction::JavascriptRegExp_SymbolSearch;
 
         case PropertyIds::split:
-            return BuiltinFunction::String_Split;
+            return BuiltinFunction::JavascriptString_Split;
 
         case PropertyIds::substr:
-            return BuiltinFunction::String_Substr;
+            return BuiltinFunction::JavascriptString_Substr;
 
         case PropertyIds::substring:
-            return BuiltinFunction::String_Substring;
+            return BuiltinFunction::JavascriptString_Substring;
 
         case PropertyIds::toLocaleLowerCase:
-            return BuiltinFunction::String_ToLocaleLowerCase;
+            return BuiltinFunction::JavascriptString_ToLocaleLowerCase;
 
         case PropertyIds::toLocaleUpperCase:
-            return BuiltinFunction::String_ToLocaleUpperCase;
+            return BuiltinFunction::JavascriptString_ToLocaleUpperCase;
 
         case PropertyIds::toLowerCase:
-            return BuiltinFunction::String_ToLowerCase;
+            return BuiltinFunction::JavascriptString_ToLowerCase;
 
         case PropertyIds::toUpperCase:
-            return BuiltinFunction::String_ToUpperCase;
+            return BuiltinFunction::JavascriptString_ToUpperCase;
 
         case PropertyIds::trim:
-            return BuiltinFunction::String_Trim;
+            return BuiltinFunction::JavascriptString_Trim;
 
         case PropertyIds::trimLeft:
-            return BuiltinFunction::String_TrimLeft;
+            return BuiltinFunction::JavascriptString_TrimLeft;
 
         case PropertyIds::trimRight:
-            return BuiltinFunction::String_TrimRight;
+            return BuiltinFunction::JavascriptString_TrimRight;
 
         case PropertyIds::padStart:
-            return BuiltinFunction::String_PadStart;
+            return BuiltinFunction::JavascriptString_PadStart;
 
         case PropertyIds::padEnd:
-            return BuiltinFunction::String_PadEnd;
+            return BuiltinFunction::JavascriptString_PadEnd;
 
         case PropertyIds::exec:
-            return BuiltinFunction::RegExp_Exec;
+            return BuiltinFunction::JavascriptRegExp_Exec;
 
         default:
             return BuiltinFunction::None;
@@ -3536,177 +3536,11 @@ namespace Js
     {
         switch (localFuncId)
         {
-        case JavascriptBuiltInFunction::Math_Abs:
-            return BuiltinFunction::Math_Abs;
-
-        case JavascriptBuiltInFunction::Math_Acos:
-            return BuiltinFunction::Math_Acos;
-
-        case JavascriptBuiltInFunction::Math_Asin:
-            return BuiltinFunction::Math_Asin;
-
-        case JavascriptBuiltInFunction::Math_Atan:
-            return BuiltinFunction::Math_Atan;
-
-        case JavascriptBuiltInFunction::Math_Cos:
-            return BuiltinFunction::Math_Cos;
-
-        case JavascriptBuiltInFunction::Math_Exp:
-            return BuiltinFunction::Math_Exp;
-
-        case JavascriptBuiltInFunction::Math_Log:
-            return BuiltinFunction::Math_Log;
-
-        case JavascriptBuiltInFunction::Math_Pow:
-            return BuiltinFunction::Math_Pow;
-
-        case JavascriptBuiltInFunction::Math_Random:
-            return BuiltinFunction::Math_Random;
-
-        case JavascriptBuiltInFunction::Math_Sin:
-            return BuiltinFunction::Math_Sin;
-
-        case JavascriptBuiltInFunction::Math_Sqrt:
-            return BuiltinFunction::Math_Sqrt;
-
-        case JavascriptBuiltInFunction::Math_Tan:
-            return BuiltinFunction::Math_Tan;
-
-        case JavascriptBuiltInFunction::Math_Floor:
-            return BuiltinFunction::Math_Floor;
-
-        case JavascriptBuiltInFunction::Math_Ceil:
-            return BuiltinFunction::Math_Ceil;
-
-        case JavascriptBuiltInFunction::Math_Round:
-            return BuiltinFunction::Math_Round;
-
-        case JavascriptBuiltInFunction::Math_Max:
-            return BuiltinFunction::Math_Max;
-
-        case JavascriptBuiltInFunction::Math_Min:
-            return BuiltinFunction::Math_Min;
-
-        case JavascriptBuiltInFunction::Math_Imul:
-            return BuiltinFunction::Math_Imul;
-
-        case JavascriptBuiltInFunction::Math_Fround:
-            return BuiltinFunction::Math_Fround;
-
-        case JavascriptBuiltInFunction::JavascriptString_CodePointAt:
-            return BuiltinFunction::String_CodePointAt;
-
-        case JavascriptBuiltInFunction::JavascriptArray_Push:
-            return BuiltinFunction::Array_Push;
-
-        case JavascriptBuiltInFunction::JavascriptArray_Concat:
-            return BuiltinFunction::Array_Concat;
-
-        case JavascriptBuiltInFunction::JavascriptArray_IndexOf:
-            return BuiltinFunction::Array_IndexOf;
-
-        case JavascriptBuiltInFunction::JavascriptArray_Includes:
-            return BuiltinFunction::Array_Includes;
-
-        case JavascriptBuiltInFunction::JavascriptArray_IsArray:
-            return BuiltinFunction::Array_IsArray;
-
-        case JavascriptBuiltInFunction::JavascriptArray_Join:
-            return BuiltinFunction::Array_Join;
-
-        case JavascriptBuiltInFunction::JavascriptArray_LastIndexOf:
-            return BuiltinFunction::Array_LastIndexOf;
-
-        case JavascriptBuiltInFunction::JavascriptArray_Reverse:
-            return BuiltinFunction::Array_Reverse;
-
-        case JavascriptBuiltInFunction::JavascriptArray_Shift:
-            return BuiltinFunction::Array_Shift;
-
-        case JavascriptBuiltInFunction::JavascriptArray_Slice:
-            return BuiltinFunction::Array_Slice;
-
-        case JavascriptBuiltInFunction::JavascriptArray_Splice:
-            return BuiltinFunction::Array_Splice;
-
-        case JavascriptBuiltInFunction::JavascriptArray_Unshift:
-            return BuiltinFunction::Array_Unshift;
-
-        case JavascriptBuiltInFunction::JavascriptFunction_Apply:
-            return BuiltinFunction::Function_Apply;
-
-        case JavascriptBuiltInFunction::JavascriptString_CharAt:
-            return BuiltinFunction::String_CharAt;
-
-        case JavascriptBuiltInFunction::JavascriptString_CharCodeAt:
-            return BuiltinFunction::String_CharCodeAt;
-
-        case JavascriptBuiltInFunction::JavascriptString_FromCharCode:
-            return BuiltinFunction::String_FromCharCode;
-
-        case JavascriptBuiltInFunction::JavascriptString_FromCodePoint:
-            return BuiltinFunction::String_FromCodePoint;
-
-        case JavascriptBuiltInFunction::JavascriptString_Link:
-            return BuiltinFunction::String_Link;
-
-        case JavascriptBuiltInFunction::JavascriptString_LocaleCompare:
-            return BuiltinFunction::String_LocaleCompare;
-
-        case JavascriptBuiltInFunction::JavascriptString_Match:
-            return BuiltinFunction::String_Match;
-
-        case JavascriptBuiltInFunction::JavascriptString_Replace:
-            return BuiltinFunction::String_Replace;
-
-        case JavascriptBuiltInFunction::JavascriptString_Search:
-            return BuiltinFunction::String_Search;
-
-        case JavascriptBuiltInFunction::JavascriptRegExp_SymbolSearch:
-            return BuiltinFunction::RegExp_SymbolSearch;
-
-        case JavascriptBuiltInFunction::JavascriptString_Split:
-            return BuiltinFunction::String_Split;
-
-        case JavascriptBuiltInFunction::JavascriptString_Substr:
-            return BuiltinFunction::String_Substr;
-
-        case JavascriptBuiltInFunction::JavascriptString_Substring:
-            return BuiltinFunction::String_Substring;
-
-        case JavascriptBuiltInFunction::JavascriptString_ToLocaleLowerCase:
-            return BuiltinFunction::String_ToLocaleLowerCase;
-
-        case JavascriptBuiltInFunction::JavascriptString_ToLocaleUpperCase:
-            return BuiltinFunction::String_ToLocaleUpperCase;
-
-        case JavascriptBuiltInFunction::JavascriptString_ToLowerCase:
-            return BuiltinFunction::String_ToLowerCase;
-
-        case JavascriptBuiltInFunction::JavascriptString_ToUpperCase:
-            return BuiltinFunction::String_ToUpperCase;
-
-        case JavascriptBuiltInFunction::JavascriptString_Trim:
-            return BuiltinFunction::String_Trim;
-
-        case JavascriptBuiltInFunction::JavascriptString_TrimLeft:
-            return BuiltinFunction::String_TrimLeft;
-
-        case JavascriptBuiltInFunction::JavascriptString_TrimRight:
-            return BuiltinFunction::String_TrimRight;
-
-        case JavascriptBuiltInFunction::JavascriptString_PadStart:
-            return BuiltinFunction::String_PadStart;
-
-        case JavascriptBuiltInFunction::JavascriptString_PadEnd:
-            return BuiltinFunction::String_PadEnd;
-
-        case JavascriptBuiltInFunction::JavascriptRegExp_Exec:
-            return BuiltinFunction::RegExp_Exec;
-
-        case JavascriptBuiltInFunction::GlobalObject_ParseInt:
-            return BuiltinFunction::GlobalObject_ParseInt;
-
+#define LIBRARY_FUNCTION(target, name, argc, flags, EntryInfo) \
+        case JavascriptBuiltInFunction::##target##_##name: \
+            return BuiltinFunction::##target##_##name;
+#include "LibraryFunction.h"
+#undef LIBRARY_FUNCTION
         default:
             return BuiltinFunction::None;
         }
@@ -4058,7 +3892,7 @@ namespace Js
 
         library->AddMember(regexPrototype, PropertyIds::constructor, library->regexConstructor);
         func = library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::exec, &JavascriptRegExp::EntryInfo::Exec, 1);
-        builtinFuncs[BuiltinFunction::RegExp_Exec] = func;
+        builtinFuncs[BuiltinFunction::JavascriptRegExp_Exec] = func;
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::test, &JavascriptRegExp::EntryInfo::Test, 1);
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::toString, &JavascriptRegExp::EntryInfo::ToString, 0);
         // This is deprecated. Should be guarded with appropriate version flag.
@@ -4095,7 +3929,7 @@ namespace Js
                 PropertyIds::_RuntimeFunctionNameId_match,
                 &JavascriptRegExp::EntryInfo::SymbolMatch,
                 1);
-            builtinFuncs[BuiltinFunction::RegExp_SymbolSearch] = library->AddFunctionToLibraryObjectWithName(
+            builtinFuncs[BuiltinFunction::JavascriptRegExp_SymbolSearch] = library->AddFunctionToLibraryObjectWithName(
                 regexPrototype,
                 PropertyIds::_symbolSearch,
                 PropertyIds::_RuntimeFunctionNameId_search,
@@ -4126,10 +3960,10 @@ namespace Js
         }
 
 
-        builtinFuncs[BuiltinFunction::String_FromCharCode]  = library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::fromCharCode,  &JavascriptString::EntryInfo::FromCharCode,  1);
+        builtinFuncs[BuiltinFunction::JavascriptString_FromCharCode]  = library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::fromCharCode,  &JavascriptString::EntryInfo::FromCharCode,  1);
         if(scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled())
         {
-            builtinFuncs[BuiltinFunction::String_FromCodePoint] = library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::fromCodePoint, &JavascriptString::EntryInfo::FromCodePoint, 1);
+            builtinFuncs[BuiltinFunction::JavascriptString_FromCodePoint] = library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::fromCodePoint, &JavascriptString::EntryInfo::FromCodePoint, 1);
         }
 
         /* No inlining                String_Raw           */ library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::raw,           &JavascriptString::EntryInfo::Raw,           1);
@@ -4149,33 +3983,33 @@ namespace Js
         JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
         library->AddMember(stringPrototype, PropertyIds::constructor, library->stringConstructor);
 
-        builtinFuncs[BuiltinFunction::String_IndexOf]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::indexOf,            &JavascriptString::EntryInfo::IndexOf,              1);
-        builtinFuncs[BuiltinFunction::String_LastIndexOf]   = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::lastIndexOf,        &JavascriptString::EntryInfo::LastIndexOf,          1);
-        builtinFuncs[BuiltinFunction::String_Replace]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::replace,            &JavascriptString::EntryInfo::Replace,              2);
-        builtinFuncs[BuiltinFunction::String_Search]        = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::search,             &JavascriptString::EntryInfo::Search,               1);
-        builtinFuncs[BuiltinFunction::String_Slice]         = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::slice,              &JavascriptString::EntryInfo::Slice,                2);
+        builtinFuncs[BuiltinFunction::JavascriptString_IndexOf]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::indexOf,            &JavascriptString::EntryInfo::IndexOf,              1);
+        builtinFuncs[BuiltinFunction::JavascriptString_LastIndexOf]   = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::lastIndexOf,        &JavascriptString::EntryInfo::LastIndexOf,          1);
+        builtinFuncs[BuiltinFunction::JavascriptString_Replace]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::replace,            &JavascriptString::EntryInfo::Replace,              2);
+        builtinFuncs[BuiltinFunction::JavascriptString_Search]        = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::search,             &JavascriptString::EntryInfo::Search,               1);
+        builtinFuncs[BuiltinFunction::JavascriptString_Slice]         = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::slice,              &JavascriptString::EntryInfo::Slice,                2);
 
         if (CONFIG_FLAG(ES6Unicode))
         {
-            builtinFuncs[BuiltinFunction::String_CodePointAt]   = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::codePointAt,        &JavascriptString::EntryInfo::CodePointAt,          1);
+            builtinFuncs[BuiltinFunction::JavascriptString_CodePointAt]   = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::codePointAt,        &JavascriptString::EntryInfo::CodePointAt,          1);
             /* builtinFuncs[BuiltinFunction::String_Normalize] =*/library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::normalize,          &JavascriptString::EntryInfo::Normalize,            0);
         }
 
-        builtinFuncs[BuiltinFunction::String_CharAt]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::charAt,             &JavascriptString::EntryInfo::CharAt,               1);
-        builtinFuncs[BuiltinFunction::String_CharCodeAt]        = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::charCodeAt,         &JavascriptString::EntryInfo::CharCodeAt,           1);
-        builtinFuncs[BuiltinFunction::String_Concat]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::concat,             &JavascriptString::EntryInfo::Concat,               1);
-        builtinFuncs[BuiltinFunction::String_LocaleCompare]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::localeCompare,      &JavascriptString::EntryInfo::LocaleCompare,        1);
-        builtinFuncs[BuiltinFunction::String_Match]             = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::match,              &JavascriptString::EntryInfo::Match,                1);
-        builtinFuncs[BuiltinFunction::String_Split]             = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::split,              &JavascriptString::EntryInfo::Split,                2);
-        builtinFuncs[BuiltinFunction::String_Substring]         = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::substring,          &JavascriptString::EntryInfo::Substring,            2);
-        builtinFuncs[BuiltinFunction::String_Substr]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::substr,             &JavascriptString::EntryInfo::Substr,               2);
-        builtinFuncs[BuiltinFunction::String_ToLocaleLowerCase] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::toLocaleLowerCase,  &JavascriptString::EntryInfo::ToLocaleLowerCase,    0);
-        builtinFuncs[BuiltinFunction::String_ToLocaleUpperCase] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::toLocaleUpperCase,  &JavascriptString::EntryInfo::ToLocaleUpperCase,    0);
-        builtinFuncs[BuiltinFunction::String_ToLowerCase]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::toLowerCase,        &JavascriptString::EntryInfo::ToLowerCase,          0);
+        builtinFuncs[BuiltinFunction::JavascriptString_CharAt]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::charAt,             &JavascriptString::EntryInfo::CharAt,               1);
+        builtinFuncs[BuiltinFunction::JavascriptString_CharCodeAt]        = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::charCodeAt,         &JavascriptString::EntryInfo::CharCodeAt,           1);
+        builtinFuncs[BuiltinFunction::JavascriptString_Concat]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::concat,             &JavascriptString::EntryInfo::Concat,               1);
+        builtinFuncs[BuiltinFunction::JavascriptString_LocaleCompare]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::localeCompare,      &JavascriptString::EntryInfo::LocaleCompare,        1);
+        builtinFuncs[BuiltinFunction::JavascriptString_Match]             = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::match,              &JavascriptString::EntryInfo::Match,                1);
+        builtinFuncs[BuiltinFunction::JavascriptString_Split]             = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::split,              &JavascriptString::EntryInfo::Split,                2);
+        builtinFuncs[BuiltinFunction::JavascriptString_Substring]         = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::substring,          &JavascriptString::EntryInfo::Substring,            2);
+        builtinFuncs[BuiltinFunction::JavascriptString_Substr]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::substr,             &JavascriptString::EntryInfo::Substr,               2);
+        builtinFuncs[BuiltinFunction::JavascriptString_ToLocaleLowerCase] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::toLocaleLowerCase,  &JavascriptString::EntryInfo::ToLocaleLowerCase,    0);
+        builtinFuncs[BuiltinFunction::JavascriptString_ToLocaleUpperCase] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::toLocaleUpperCase,  &JavascriptString::EntryInfo::ToLocaleUpperCase,    0);
+        builtinFuncs[BuiltinFunction::JavascriptString_ToLowerCase]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::toLowerCase,        &JavascriptString::EntryInfo::ToLowerCase,          0);
         scriptContext->SetBuiltInLibraryFunction(JavascriptString::EntryInfo::ToString.GetOriginalEntryPoint(),
                                                                   library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::toString,           &JavascriptString::EntryInfo::ToString,             0));
-        builtinFuncs[BuiltinFunction::String_ToUpperCase]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::toUpperCase,        &JavascriptString::EntryInfo::ToUpperCase,          0);
-        builtinFuncs[BuiltinFunction::String_Trim]              = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trim,               &JavascriptString::EntryInfo::Trim,                 0);
+        builtinFuncs[BuiltinFunction::JavascriptString_ToUpperCase]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::toUpperCase,        &JavascriptString::EntryInfo::ToUpperCase,          0);
+        builtinFuncs[BuiltinFunction::JavascriptString_Trim]              = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trim,               &JavascriptString::EntryInfo::Trim,                 0);
 
         scriptContext->SetBuiltInLibraryFunction(JavascriptString::EntryInfo::ValueOf.GetOriginalEntryPoint(),
                                                                   library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::valueOf,            &JavascriptString::EntryInfo::ValueOf,              0));
@@ -4190,7 +4024,7 @@ namespace Js
             /* No inlining                String_FontColor     */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fontcolor,          &JavascriptString::EntryInfo::FontColor,            1);
             /* No inlining                String_FontSize      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fontsize,           &JavascriptString::EntryInfo::FontSize,             1);
             /* No inlining                String_Italics       */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::italics,            &JavascriptString::EntryInfo::Italics,              0);
-            builtinFuncs[BuiltinFunction::String_Link]          = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::link,               &JavascriptString::EntryInfo::Link,                 1);
+            builtinFuncs[BuiltinFunction::JavascriptString_Link]          = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::link,               &JavascriptString::EntryInfo::Link,                 1);
             /* No inlining                String_Small         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::Small,              &JavascriptString::EntryInfo::Small,                0);
             /* No inlining                String_Strike        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::strike,             &JavascriptString::EntryInfo::Strike,               0);
             /* No inlining                String_Sub           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::sub,                &JavascriptString::EntryInfo::Sub,                  0);
@@ -4203,16 +4037,16 @@ namespace Js
             /* No inlining                String_StartsWith    */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::startsWith,         &JavascriptString::EntryInfo::StartsWith,           1);
             /* No inlining                String_EndsWith      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::endsWith,           &JavascriptString::EntryInfo::EndsWith,             1);
             /* No inlining                String_Includes      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::includes,           &JavascriptString::EntryInfo::Includes,             1);
-            builtinFuncs[BuiltinFunction::String_TrimLeft]      = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimLeft,           &JavascriptString::EntryInfo::TrimLeft,             0);
-            builtinFuncs[BuiltinFunction::String_TrimRight]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimRight,          &JavascriptString::EntryInfo::TrimRight,            0);
+            builtinFuncs[BuiltinFunction::JavascriptString_TrimLeft]      = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimLeft,           &JavascriptString::EntryInfo::TrimLeft,             0);
+            builtinFuncs[BuiltinFunction::JavascriptString_TrimRight]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimRight,          &JavascriptString::EntryInfo::TrimRight,            0);
         }
 
         library->AddFunctionToLibraryObjectWithName(stringPrototype, PropertyIds::_symbolIterator, PropertyIds::_RuntimeFunctionNameId_iterator, &JavascriptString::EntryInfo::SymbolIterator, 0);
 
         if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
         {
-            builtinFuncs[BuiltinFunction::String_PadStart] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::padStart, &JavascriptString::EntryInfo::PadStart, 1);
-            builtinFuncs[BuiltinFunction::String_PadEnd] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::padEnd, &JavascriptString::EntryInfo::PadEnd, 1);
+            builtinFuncs[BuiltinFunction::JavascriptString_PadStart] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::padStart, &JavascriptString::EntryInfo::PadStart, 1);
+            builtinFuncs[BuiltinFunction::JavascriptString_PadEnd] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::padEnd, &JavascriptString::EntryInfo::PadEnd, 1);
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
@@ -6320,28 +6154,28 @@ namespace Js
             return BuiltinFunction::Math_Fround;
 
         case OpCode::InlineStringCharAt:
-            return BuiltinFunction::String_CharAt;
+            return BuiltinFunction::JavascriptString_CharAt;
 
         case OpCode::InlineStringCharCodeAt:
-            return BuiltinFunction::String_CharCodeAt;
+            return BuiltinFunction::JavascriptString_CharCodeAt;
 
         case OpCode::InlineStringCodePointAt:
-            return BuiltinFunction::String_CodePointAt;
+            return BuiltinFunction::JavascriptString_CodePointAt;
 
         case OpCode::InlineArrayPop:
-            return BuiltinFunction::Array_Pop;
+            return BuiltinFunction::JavascriptArray_Pop;
 
         case OpCode::InlineArrayPush:
-            return BuiltinFunction::Array_Push;
+            return BuiltinFunction::JavascriptArray_Push;
 
         case OpCode::InlineFunctionApply:
-            return BuiltinFunction::Function_Apply;
+            return BuiltinFunction::JavascriptFunction_Apply;
 
         case OpCode::InlineFunctionCall:
-            return BuiltinFunction::Function_Call;
+            return BuiltinFunction::JavascriptFunction_Call;
 
         case OpCode::InlineRegExpExec:
-            return BuiltinFunction::RegExp_Exec;
+            return BuiltinFunction::JavascriptRegExp_Exec;
 
         }
 

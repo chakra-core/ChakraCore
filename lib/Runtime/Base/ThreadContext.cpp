@@ -1843,6 +1843,7 @@ ThreadContext::SetJITConnectionInfo(DWORD processId, UUID connectionId)
     contextData.bailOutRegisterSaveSpace = (intptr_t)bailOutRegisterSaveSpace;
     contextData.disableImplicitFlagsAddr = (intptr_t)GetAddressOfDisableImplicitFlags();
     contextData.implicitCallFlagsAddr = (intptr_t)GetAddressOfImplicitCallFlags();
+    contextData.stringReplaceNameAddr = (intptr_t)Js::Constants::StringReplace;
     contextData.debuggingFlagsAddr = (intptr_t)this->debugManager->GetDebuggingFlags();
     contextData.debugStepTypeAddr = (intptr_t)this->debugManager->stepController.GetAddressOfStepType();
     contextData.debugFrameAddressAddr = (intptr_t)this->debugManager->stepController.GetAddressOfFrameAddress();

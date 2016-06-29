@@ -14,6 +14,8 @@ const wchar_t Constants::GlobalCode[] = L"Global code";
 const wchar_t Constants::EvalCode[] = L"eval code";
 const wchar_t Constants::GlobalFunction[] = L"glo";
 const wchar_t Constants::UnknownScriptCode[] = L"Unknown script code";
+const wchar_t Constants::StringReplace[] = L"String.prototype.replace";
+const wchar_t Constants::StringMatch[] = L"String.prototype.match";
 
 #ifdef _M_AMD64
 const PBYTE Constants::StackLimitForScriptInterrupt = (PBYTE)0x7fffffffffffffff;

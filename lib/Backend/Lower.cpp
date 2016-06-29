@@ -690,10 +690,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     GenerateFastInlineStringFromCodePoint(instr);
                     break;
                 case IR::JnHelperMethod::HelperString_CharAt:
-                    GenerateFastInlineStringCharCodeAt(instr, Js::BuiltinFunction::String_CharAt);
+                    GenerateFastInlineStringCharCodeAt(instr, Js::BuiltinFunction::JavascriptString_CharAt);
                     break;
                 case IR::JnHelperMethod::HelperString_CharCodeAt:
-                    GenerateFastInlineStringCharCodeAt(instr, Js::BuiltinFunction::String_CharCodeAt);
+                    GenerateFastInlineStringCharCodeAt(instr, Js::BuiltinFunction::JavascriptString_CharCodeAt);
                     break;
                 case IR::JnHelperMethod::HelperString_Replace:
                     GenerateFastInlineStringReplace(instr);
@@ -9991,8 +9991,8 @@ Lowerer::InlineBuiltInLibraryCall(IR::Instr *callInstr)
     // Generating fastpath here misses fixed functions and globopt optimizations.
     switch(index)
     {
-        case Js::BuiltinFunction::String_CharAt:
-        case Js::BuiltinFunction::String_CharCodeAt:
+        case Js::BuiltinFunction::JavascriptString_CharAt:
+        case Js::BuiltinFunction::JavascriptString_CharCodeAt:
             if (argCount != 1)
             {
                 return false;
@@ -10021,7 +10021,7 @@ Lowerer::InlineBuiltInLibraryCall(IR::Instr *callInstr)
             }
             break;
 
-        case Js::BuiltinFunction::Array_Push:
+        case Js::BuiltinFunction::JavascriptArray_Push:
         {
             if (argCount != 1)
             {
@@ -10057,7 +10057,7 @@ Lowerer::InlineBuiltInLibraryCall(IR::Instr *callInstr)
             break;
         }
 
-        case Js::BuiltinFunction::String_Replace:
+        case Js::BuiltinFunction::JavascriptString_Replace:
         {
             if(argCount != 2)
             {
@@ -10130,17 +10130,17 @@ Lowerer::InlineBuiltInLibraryCall(IR::Instr *callInstr)
             this->m_lowererMD.GenerateFastAbs(callInstr->GetDst(), argsOpnd[1], callInstr, labelHelper, labelHelper, doneLabel);
             break;
 
-        case Js::BuiltinFunction::String_CharCodeAt:
-        case Js::BuiltinFunction::String_CharAt:
+        case Js::BuiltinFunction::JavascriptString_CharCodeAt:
+        case Js::BuiltinFunction::JavascriptString_CharAt:
             success = this->m_lowererMD.GenerateFastCharAt(index, callInstr->GetDst(), argsOpnd[0], argsOpnd[1],
                 callInstr, labelHelper, labelHelper, doneLabel);
             break;
 
-        case Js::BuiltinFunction::Array_Push:
+        case Js::BuiltinFunction::JavascriptArray_Push:
             success = GenerateFastPush(argsOpnd[0], argsOpnd[1], callInstr, labelHelper, labelHelper, nullptr, doneLabel);
             break;
 
-        case Js::BuiltinFunction::String_Replace:
+        case Js::BuiltinFunction::JavascriptString_Replace:
             success = GenerateFastReplace(argsOpnd[0], argsOpnd[1], argsOpnd[2], callInstr, labelHelper, labelHelper, doneLabel);
             break;
 
@@ -20361,12 +20361,14 @@ Lowerer::LowerSetConcatStrMultiItem(IR::Instr * instr)
     IR::IndirOpnd * dstLength = IR::IndirOpnd::New(concatStrOpnd, Js::ConcatStringMulti::GetOffsetOfcharLength(), TyUint32, func);
     IR::Opnd * srcLength;
 
+#if 0 // TODO: OOP JIT, string constants
     if (srcOpnd->m_sym->m_isStrConst)
     {
         srcLength = IR::IntConstOpnd::New(Js::JavascriptString::FromVar(srcOpnd->m_sym->GetConstAddress())->GetLength(),
             TyUint32, func);
     }
     else
+#endif
     {
         srcLength = IR::RegOpnd::New(TyUint32, func);
         InsertMove(srcLength, IR::IndirOpnd::New(srcOpnd, Js::ConcatStringMulti::GetOffsetOfcharLength(), TyUint32, func), instr);

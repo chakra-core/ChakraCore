@@ -5692,15 +5692,15 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
     IR::RegOpnd *charReg = IR::RegOpnd::New(TyMachReg, this->m_func);
     instr = IR::Instr::New(Js::OpCode::MOVZXW, charReg, indirOpnd, this->m_func);
     insertInstr->InsertBefore(instr);
-    if (index == Js::BuiltinFunction::String_CharAt)
+    if (index == Js::BuiltinFunction::JavascriptString_CharAt)
     {
         this->m_lowerer->GenerateGetSingleCharString(charReg, dst, labelHelper, doneLabel, insertInstr, false);
     }
     else
     {
-        Assert(index == Js::BuiltinFunction::String_CharCodeAt || index == Js::BuiltinFunction::String_CodePointAt);
+        Assert(index == Js::BuiltinFunction::JavascriptString_CharCodeAt || index == Js::BuiltinFunction::JavascriptString_CodePointAt);
 
-        if (index == Js::BuiltinFunction::String_CodePointAt)
+        if (index == Js::BuiltinFunction::JavascriptString_CodePointAt)
         {
             this->m_lowerer->GenerateFastInlineStringCodePointAt(insertInstr, this->m_func, strLength, srcIndex, charReg, r1);
         }

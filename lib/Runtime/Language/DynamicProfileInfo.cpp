@@ -647,6 +647,7 @@ namespace Js
         ResetPolymorphicCallSiteInfo(callSiteId, CallSiteCrossContext);
     }
 
+    /* static */
     bool DynamicProfileInfo::HasCallSiteInfo(FunctionBody* functionBody)
     {
         SourceContextInfo *sourceContextInfo = functionBody->GetSourceContextInfo();

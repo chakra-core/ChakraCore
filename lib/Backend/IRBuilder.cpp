@@ -4978,9 +4978,10 @@ void IRBuilder::BuildInitCachedScope(int auxOffset, int offset)
     IR::Opnd*       src3Opnd;
     IR::Opnd*       formalsAreLetDeclOpnd;
 
-    src2Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxPropertyIdArray, offset, auxOffset, Js::ActivationObjectEx::ExtraSlotCount());
-    Js::PropertyIdArray * propIds = (Js::PropertyIdArray *)src2Opnd->AsAddrOpnd()->m_address;
-    src3Opnd = this->BuildAuxObjectLiteralTypeRefOpnd(Js::ActivationObjectEx::GetLiteralObjectRef(propIds), offset);
+    src2Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxPropertyIdArray, auxOffset, Js::ActivationObjectEx::ExtraSlotCount());
+    
+    Js::PropertyIdArray * propIds = m_func->GetJITFunctionBody()->ReadAuxPropIds(auxOffset);
+    src3Opnd = this->BuildAuxObjectLiteralTypeRefOpnd(Js::ActivationObjectEx::GetLiteralObjectRef(propIds));
     dstOpnd = this->BuildDstOpnd(m_func->GetJITFunctionBody()->GetLocalClosureReg());
 
     formalsAreLetDeclOpnd = IR::IntConstOpnd::New(propIds->hasNonSimpleParams, TyUint8, m_func);
@@ -5046,8 +5047,8 @@ IRBuilder::BuildReg2Aux(Js::OpCode newOpcode, uint32 offset)
             Assert(this->m_func->GetFuncObjSym() == nullptr);
             this->m_func->SetFuncObjSym(src1Opnd->m_sym);
 
-            src2Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxPropertyIdArray, offset, auxInsn->Offset, 3);
-            src3Opnd = this->BuildAuxObjectLiteralTypeRefOpnd(literalObjectId, offset);
+            src2Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxPropertyIdArray, auxInsn->Offset, 3);
+            src3Opnd = this->BuildAuxObjectLiteralTypeRefOpnd(literalObjectId);
             dstOpnd = this->BuildDstOpnd(dstRegSlot);
 
             formalsAreLetDeclOpnd = IR::IntConstOpnd::New((IntConstType) (newOpcode == Js::OpCode::InitLetCachedScope), TyUint8, m_func);
@@ -6983,7 +6984,7 @@ IRBuilder::BuildRegexFromPattern(Js::RegSlot dstRegSlot, uint32 patternIndex, ui
     IR::RegOpnd* dstOpnd = this->BuildDstOpnd(dstRegSlot);
     dstOpnd->SetValueType(ValueType::GetObject(ObjectType::RegExp));
 
-    IR::Opnd * regexOpnd = IR::AddrOpnd::New(this->m_func->GetJnFunction()->GetLiteralRegex(patternIndex), IR::AddrOpndKindDynamicMisc, this->m_func);
+    IR::Opnd * regexOpnd = IR::AddrOpnd::New(m_func->GetJITFunctionBody()->GetLiteralRegexAddr(patternIndex), IR::AddrOpndKindDynamicMisc, this->m_func);
 
     instr = IR::Instr::New(Js::OpCode::NewRegEx, dstOpnd, regexOpnd, this->m_func);
     this->AddInstr(instr, offset);
@@ -7183,7 +7184,7 @@ IRBuilder::InsertInitLoopBodyLoopCounter(uint loopNum)
 }
 
 IR::AddrOpnd *
-IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 offset, uint32 auxArrayOffset, uint extraSlots)
+IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 auxArrayOffset, uint extraSlots)
 {
     switch (auxArrayType)
     {
@@ -7201,7 +7202,7 @@ IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 offset, uint32 a
 }
 
 IR::Opnd *
-IRBuilder::BuildAuxObjectLiteralTypeRefOpnd(int objectId, uint32 offset)
+IRBuilder::BuildAuxObjectLiteralTypeRefOpnd(int objectId)
 {
     return IR::AddrOpnd::New(m_func->GetJITFunctionBody()->GetObjectLiteralTypeRef(objectId), IR::AddrOpndKindDynamicMisc, this->m_func);
 }

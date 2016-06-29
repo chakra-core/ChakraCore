@@ -732,12 +732,12 @@ public:
         Js::BuiltinFunction index = Func::GetBuiltInIndex(opnd);
         switch (index)
         {
-        case Js::BuiltinFunction::String_CharAt:
-        case Js::BuiltinFunction::String_CharCodeAt:
-        case Js::BuiltinFunction::String_CodePointAt:
+        case Js::BuiltinFunction::JavascriptString_CharAt:
+        case Js::BuiltinFunction::JavascriptString_CharCodeAt:
+        case Js::BuiltinFunction::JavascriptString_CodePointAt:
         case Js::BuiltinFunction::Math_Abs:
-        case Js::BuiltinFunction::Array_Push:
-        case Js::BuiltinFunction::String_Replace:
+        case Js::BuiltinFunction::JavascriptArray_Push:
+        case Js::BuiltinFunction::JavascriptString_Replace:
             return true;
 
         default:

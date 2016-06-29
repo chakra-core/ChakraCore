@@ -249,6 +249,19 @@ ThreadContextInfo::GetBailOutRegisterSaveSpace() const
 }
 
 intptr_t
+ThreadContextInfo::GetStringReplaceNameAddr() const
+{
+    return static_cast<intptr_t>(m_threadContextData.stringReplaceNameAddr);
+}
+
+intptr_t
+ThreadContextInfo::GetStringMatchNameAddr() const
+{
+    return static_cast<intptr_t>(m_threadContextData.stringMatchNameAddr);
+}
+
+
+intptr_t
 ThreadContextInfo::GetDebuggingFlagsAddr() const
 {
     return static_cast<intptr_t>(m_threadContextData.debuggingFlagsAddr);

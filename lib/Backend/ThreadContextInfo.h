@@ -42,6 +42,8 @@ public:
     intptr_t GetDisableImplicitFlagsAddr() const;
     intptr_t GetImplicitCallFlagsAddr() const;
     intptr_t GetBailOutRegisterSaveSpace() const;
+    intptr_t GetStringReplaceNameAddr() const;
+    intptr_t GetStringMatchNameAddr() const;
 
     intptr_t GetDebuggingFlagsAddr() const;
     intptr_t GetDebugStepTypeAddr() const;
