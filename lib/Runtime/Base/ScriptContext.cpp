@@ -2020,6 +2020,9 @@ if (!sourceList)
             pSrcInfo = this->cache->noContextGlobalSourceInfo;
         }
 
+        AutoProfilingPhase wasmPhase(this, Js::WasmPhase);
+        Unused(wasmPhase);
+
         Assert(!this->threadContext->IsScriptActive());
         Assert(pse != nullptr);
         Wasm::WasmBytecodeGenerator *bytecodeGen = nullptr;
