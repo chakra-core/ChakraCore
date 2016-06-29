@@ -164,6 +164,12 @@ ScriptContextInfo::GetRecyclerAddr() const
     return m_contextData.recyclerAddr;
 }
 
+bool
+ScriptContextInfo::GetRecyclerAllowNativeCodeBumpAllocation() const
+{
+    return m_contextData.recyclerAllowNativeCodeBumpAllocation != 0;
+}
+
 intptr_t
 ScriptContextInfo::GetBuiltinFunctionsBaseAddr() const
 {

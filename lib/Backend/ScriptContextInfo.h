@@ -36,6 +36,7 @@ public:
     intptr_t GetLibraryAddr() const;
     intptr_t GetNumberAllocatorAddr() const;
     intptr_t GetRecyclerAddr() const;
+    bool GetRecyclerAllowNativeCodeBumpAllocation() const;
     intptr_t GetBuiltinFunctionsBaseAddr() const;
 
     intptr_t GetAddr() const;

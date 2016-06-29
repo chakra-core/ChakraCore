@@ -5904,14 +5904,16 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     IR::Opnd * endAddressOpnd;
     IR::Opnd * freeListOpnd;
 
-    Js::ScriptContext* scriptContext = this->m_func->GetScriptContext();
-    Recycler* recycler = scriptContext->GetRecycler();
+    ScriptContextInfo* scriptContext = this->m_func->GetScriptContextInfo();
     void* allocatorAddress;
     uint32 endAddressOffset;
     uint32 freeListOffset;
     size_t alignedSize = HeapInfo::GetAlignedSizeNoCheck(allocSize);
 
-    recycler->GetNormalHeapBlockAllocatorInfoForNativeAllocation(alignedSize, allocatorAddress, endAddressOffset, freeListOffset);
+    bool allowNativeCodeBumpAllocation = scriptContext->GetRecyclerAllowNativeCodeBumpAllocation();
+    Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation((void*)scriptContext->GetRecyclerAddr(), alignedSize, 
+        allocatorAddress, endAddressOffset, freeListOffset, 
+        allowNativeCodeBumpAllocation, this->m_func->IsOOPJIT());
 
     endAddressOpnd = IR::MemRefOpnd::New((char*)allocatorAddress + endAddressOffset, TyMachPtr, this->m_func, IR::AddrOpndKindDynamicRecyclerAllocatorEndAddressRef);
     freeListOpnd = IR::MemRefOpnd::New((char*)allocatorAddress + freeListOffset, TyMachPtr, this->m_func, IR::AddrOpndKindDynamicRecyclerAllocatorFreeListRef);

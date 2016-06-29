@@ -433,6 +433,7 @@ namespace Js
             contextData.intArraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfIntArraySetElementFastPathVtable();
             contextData.floatArraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfFloatArraySetElementFastPathVtable();
             contextData.recyclerAddr = (intptr_t)GetRecycler();
+            contextData.recyclerAllowNativeCodeBumpAllocation = GetRecycler()->AllowNativeCodeBumpAllocation();
             contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
 #ifdef RECYCLER_MEMORY_VERIFY
             contextData.isRecyclerVerifyEnabled = (boolean)recycler->VerifyEnabled();

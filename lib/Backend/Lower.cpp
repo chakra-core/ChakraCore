@@ -3105,11 +3105,9 @@ Lowerer::LoadOptimizationOverridesValueOpnd(IR::Instr *instr, OptimizationOverri
 
 IR::Opnd *
 Lowerer::LoadNumberAllocatorValueOpnd(IR::Instr *instr, NumberAllocatorValue valueType)
-{
-    
+{    
     ScriptContextInfo *scriptContext = instr->m_func->GetScriptContextInfo();
-    // TODO: pass in allowNativeCodeBumpAllocation
-    bool allowNativeCodeBumpAllocation = false;//scriptContext->GetNumberAllocator()->AllowNativeCodeBumpAllocation();
+    bool allowNativeCodeBumpAllocation = scriptContext->GetRecyclerAllowNativeCodeBumpAllocation();
 
     switch (valueType)
     {

@@ -833,7 +833,7 @@ Js::PropertyIdArray *
 JITTimeFunctionBody::ReadAuxPropIds(uint offset) const
 {
     Assert(offset < m_bodyData.auxDataCount);
-    return  (Js::PropertyIdArray *)(m_bodyData.auxData[offset]);
+    return  (Js::PropertyIdArray *)&(m_bodyData.auxData[offset]);
 }
 
 void

@@ -6482,12 +6482,16 @@ LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInse
 void
 LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, IR::LabelInstr* allocHelperLabel, IR::LabelInstr* allocDoneLabel)
 {
-    Js::ScriptContext* scriptContext = this->m_func->GetScriptContext();
-    Recycler* recycler = scriptContext->GetRecycler();
+    ScriptContextInfo* scriptContext = this->m_func->GetScriptContextInfo();
     void* allocatorAddress;
     uint32 endAddressOffset;
     uint32 freeListOffset;
-    recycler->GetNormalHeapBlockAllocatorInfoForNativeAllocation(allocSize, allocatorAddress, endAddressOffset, freeListOffset);
+    size_t alignedSize = HeapInfo::GetAlignedSizeNoCheck(allocSize);
+
+    bool allowNativeCodeBumpAllocation = false; // TODO: pass through RPC
+    Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation((void*)scriptContext->GetRecyclerAddr(), alignedSize,
+        allocatorAddress, endAddressOffset, freeListOffset,
+        allowNativeCodeBumpAllocation, this->m_func->IsOOPJIT());
 
     IR::RegOpnd * allocatorAddressRegOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
 

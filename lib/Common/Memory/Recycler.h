@@ -1352,7 +1352,8 @@ public:
         return this->autoHeap.GetBucket<attributes>(sizeCat).GetAllocator()->GetFreeObjectListOffset();
     }
 
-    void GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t sizeCat, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset);
+    void GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t sizeCat, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset, bool allowBumpAllocation, bool isOOPJIT);
+    static void GetNormalHeapBlockAllocatorInfoForNativeAllocation(void* recyclerAddr, size_t sizeCat, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset, bool allowBumpAllocation, bool isOOPJIT);
     bool AllowNativeCodeBumpAllocation();
     static void TrackNativeAllocatedMemoryBlock(Recycler * recycler, void * memBlock, size_t sizeCat);
 

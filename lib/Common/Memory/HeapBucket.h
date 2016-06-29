@@ -148,6 +148,8 @@ public:
 
     TBlockAllocatorType * GetAllocator() { return &allocatorHead;}
 
+    static unsigned int GetAllocatorHeadOffset() { return offsetof(HeapBucketT<TBlockType>, allocatorHead); }
+
 protected:
     static bool const IsLeafBucket = TBlockType::RequiredAttributes == LeafBit;
     static bool const IsFinalizableBucket = TBlockType::RequiredAttributes == FinalizeBit;

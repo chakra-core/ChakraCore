@@ -4106,7 +4106,7 @@ bool Inline::InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_op
             }
             else
             {
-                *pValue = Js::TaggedInt::ToInt32(var);
+                *pValue = Js::TaggedInt::ToInt32((Js::Var)var);
                 return true;
             }
         }
