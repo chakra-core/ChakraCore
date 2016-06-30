@@ -206,4 +206,11 @@ if [[ $? == 0 ]]; then
     fi
 fi
 
+$MAKE $MULTICORE_BUILD 2>&1 | tee build.log
+_RET=${PIPESTATUS[0]}
+if [[ $_RET != 0 ]]; then
+    echo Error: $MAKE return $_RET
+fi
+
 popd > /dev/null
+exit $_RET

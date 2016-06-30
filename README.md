@@ -89,6 +89,10 @@ Contributions to ChakraCore are welcome.  Here is how you can contribute to Chak
 
 Please refer to [Contribution guidelines](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) for more details.
 
+### License
+
+Code licensed under the [MIT License](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt).
+
 ## Roadmap
 For details on our planned features and future direction please refer to our [roadmap](https://github.com/Microsoft/ChakraCore/wiki/Roadmap).
 
