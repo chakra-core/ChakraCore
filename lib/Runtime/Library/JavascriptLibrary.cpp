@@ -530,6 +530,11 @@ namespace Js
         // Initialize Array/Argument types
         heapArgumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
             SimpleDictionaryTypeHandler::New(scriptContext, HeapArgumentsPropertyDescriptors, _countof(HeapArgumentsPropertyDescriptors), 0, 0, true, true), true, true);
+
+        DictionaryTypeHandler * dictTypeHandlerForArgumentsInStrictMode = DictionaryTypeHandler::CreateTypeHandlerForArgumentsInStrictMode(recycler, scriptContext);
+        heapArgumentsTypeStrictMode = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
+            dictTypeHandlerForArgumentsInStrictMode, false, false);
+
         activationObjectType = DynamicType::New(scriptContext, TypeIds_ActivationObject, nullValue, nullptr,
             SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         arrayType = DynamicType::New(scriptContext, TypeIds_Array, arrayPrototype, nullptr,
@@ -5589,15 +5594,26 @@ namespace Js
                     ) / InlineSlotCountIncrement];
     }
 
-    HeapArgumentsObject* JavascriptLibrary::CreateHeapArguments(Var frameObj, uint32 formalCount)
+    HeapArgumentsObject* JavascriptLibrary::CreateHeapArguments(Var frameObj, uint32 formalCount, bool isStrictMode)
     {
-        AssertMsg(heapArgumentsType, "Where's heapArgumentsType?");
+        AssertMsg(heapArgumentsType && heapArgumentsTypeStrictMode, "Where's heapArgumentsType?");
 
         Recycler *recycler = this->GetRecycler();
 
         EnsureArrayPrototypeValuesFunction(); //InitializeArrayPrototype can be delay loaded, which could prevent us from access to array.prototype.values
+        
+        DynamicType * argumentsType = nullptr;
 
-        return RecyclerNew(recycler, HeapArgumentsObject, recycler, (ActivationObject*)frameObj, formalCount, heapArgumentsType);
+        if (isStrictMode)
+        {
+            argumentsType = heapArgumentsTypeStrictMode;
+        }
+        else
+        {
+            argumentsType = heapArgumentsType;
+        }
+
+        return RecyclerNew(recycler, HeapArgumentsObject, recycler, (ActivationObject*)frameObj, formalCount, argumentsType);
     }
 
     JavascriptArray* JavascriptLibrary::CreateArray()
