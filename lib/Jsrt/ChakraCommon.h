@@ -50,6 +50,7 @@ typedef BYTE* ChakraBytePtr;
 #define _Outptr_result_bytebuffer_(byteLength)
 #define _Outptr_result_z_
 #define _Ret_maybenull_
+#define _Out_writes_(size)
 #define _Out_writes_to_opt_(byteLength, byteLength2)
 
 // Header macros
@@ -60,11 +61,13 @@ typedef BYTE* ChakraBytePtr;
 #endif // __i386__
 
 #ifdef __cplusplus
-#define CHAKRA_API extern "C" JsErrorCode 
+#define CHAKRA_API extern "C" JsErrorCode
 #else
 #define CHAKRA_API JsErrorCode
 #endif
 
+#include <stddef.h>  // for size_t
+#include <stdint.h>  // for uintptr_t
 typedef uintptr_t ChakraCookie;
 typedef unsigned char* ChakraBytePtr;
 #endif //  defined(_WIN32) && defined(_MSC_VER)
@@ -72,7 +75,7 @@ typedef unsigned char* ChakraBytePtr;
     /// <summary>
     ///     An error code returned from a Chakra hosting API.
     /// </summary>
-    typedef _Return_type_success_(return == 0) enum _JsErrorCode 
+    typedef _Return_type_success_(return == 0) enum _JsErrorCode
     {
         /// <summary>
         ///     Success error code.
@@ -476,7 +479,7 @@ typedef unsigned char* ChakraBytePtr;
         /// </summary>
         JsPropertyIdTypeSymbol
     } JsPropertyIdType;
- 
+
     /// <summary>
     ///     The JavaScript type of a JsValueRef.
     /// </summary>
@@ -535,7 +538,7 @@ typedef unsigned char* ChakraBytePtr;
         /// </summary>
         JsDataView = 12,
     } JsValueType;
- 
+
     /// <summary>
     ///     User implemented callback routine for memory allocation events
     /// </summary>
@@ -1285,8 +1288,8 @@ typedef unsigned char* ChakraBytePtr;
         JsStringToPointerUtf8Copy(
             _In_ JsValueRef value,
             _Outptr_result_buffer_(*stringLength) char **stringValue,
-            _Out_ size_t *stringLength); 
-    
+            _Out_ size_t *stringLength);
+
     /// <summary>
     ///     Gets the symbol associated with the property ID.
     /// </summary>
@@ -2634,7 +2637,7 @@ typedef unsigned char* ChakraBytePtr;
     CHAKRA_API
         JsStringFree(
             _In_ char* stringValue);
-            
+
 #ifdef _WIN32
 #include "ChakraCommonWindows.h"
 #endif // _WIN32

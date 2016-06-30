@@ -111,6 +111,7 @@
     JsGetPropertyIdFromNameUtf8
     JsStringFree
     JsDiagEvaluateUtf8
+    JsParseScriptUtf8
     JsParseScriptWithAttributesUtf8
     JsStringToPointerUtf8Copy
     JsPointerToStringUtf8

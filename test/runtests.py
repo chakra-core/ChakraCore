@@ -121,6 +121,11 @@ tags = lower_set(tags)
 not_tags = lower_set(not_tags)
 not_compile_flags = lower_set(not_compile_flags)
 
+# split tags text into tags set
+_empty_set = set()
+def split_tags(text):
+    return set(x.strip() for x in text.lower().split(',')) if text \
+            else _empty_set
 
 class LogFile(object):
     def __init__(self, log_file_path = None):
@@ -228,8 +233,6 @@ class TestResult(PassFailCount):
 #   interpreted: -maxInterpretCount:1 -maxSimpleJitRunCount:1 -bgjit-
 #   dynapogo: -forceNative -off:simpleJit -bgJitDelay:0
 class TestVariant(object):
-    _empty_set = set()
-
     def __init__(self, name, compile_flags=[]):
         self.name = name
         self.compile_flags = \
@@ -246,8 +249,7 @@ class TestVariant(object):
 
     # check if this test variant should run a given test
     def _should_test(self, test):
-        tags = test.get('tags')
-        tags = set(tags.lower().split(',')) if tags else self._empty_set
+        tags = split_tags(test.get('tags'))
         if not tags.isdisjoint(self.not_tags):
             return False
         if self.tags and not self.tags.issubset(tags):
@@ -458,8 +460,6 @@ def run_one(data):
 
 # record folder/tags info from test_root/rlexedirs.xml
 class FolderTags(object):
-    _empty_set = set()
-
     def __init__(self):
         xmlpath = os.path.join(test_root, 'rlexedirs.xml')
         try:
@@ -474,8 +474,7 @@ class FolderTags(object):
             key = d.find('files').text.lower() # avoid case mismatch
             tags = d.find('tags')
             self._folder_tags[key] = \
-                set(tags.text.lower().split(',')) if tags != None \
-                    else self._empty_set
+                split_tags(tags.text) if tags != None else _empty_set
 
     # check if should test a given folder
     def should_test(self, folder):
