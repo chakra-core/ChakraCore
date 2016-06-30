@@ -19,7 +19,9 @@ bool VTuneChakraProfile::isJitProfilingActive = false;
 //
 void VTuneChakraProfile::Register()
 {
+#if ENABLE_NATIVE_CODEGEN
     isJitProfilingActive = (iJIT_IsProfilingActive() == iJIT_SAMPLING_ON);
+#endif
 }
 
 //
@@ -27,10 +29,12 @@ void VTuneChakraProfile::Register()
 //
 void VTuneChakraProfile::UnRegister()
 {
+#if ENABLE_NATIVE_CODEGEN
     if(isJitProfilingActive)
     {
         iJIT_NotifyEvent(iJVM_EVENT_TYPE_SHUTDOWN, NULL);
     }
+#endif
 }
 
 //
@@ -38,6 +42,7 @@ void VTuneChakraProfile::UnRegister()
 //
 void VTuneChakraProfile::LogMethodNativeLoadEvent(Js::FunctionBody* body, Js::FunctionEntryPointInfo* entryPoint)
 {
+#if ENABLE_NATIVE_CODEGEN
     if (isJitProfilingActive)
     {
         iJIT_Method_Load methodInfo;
@@ -105,6 +110,7 @@ void VTuneChakraProfile::LogMethodNativeLoadEvent(Js::FunctionBody* body, Js::Fu
             HeapDeleteArray(length, utf8MethodName);
         }
     }
+#endif
 }
 
 //
@@ -112,6 +118,7 @@ void VTuneChakraProfile::LogMethodNativeLoadEvent(Js::FunctionBody* body, Js::Fu
 //
 void VTuneChakraProfile::LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopHeader* loopHeader, Js::LoopEntryPointInfo* entryPoint, uint16 loopNumber)
 {
+#if ENABLE_NATIVE_CODEGEN
     if (isJitProfilingActive)
     {
         iJIT_Method_Load methodInfo;
@@ -144,6 +151,7 @@ void VTuneChakraProfile::LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopHe
             HeapDeleteArray(length, utf8MethodName);
         }
     }
+#endif
 }
 
 //

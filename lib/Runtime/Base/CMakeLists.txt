@@ -29,6 +29,7 @@ add_library (Chakra.Runtime.Base STATIC
     ThreadContextTlsEntry.cpp
     ThreadServiceWrapperBase.cpp
     Utf8SourceInfo.cpp
+    VTuneChakraProfile.cpp
     # WindowsFoundationAdapter.cpp
     # WindowsGlobalizationAdapter.cpp
     )
