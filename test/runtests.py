@@ -563,7 +563,8 @@ def main():
     failed = any(variant.test_result.fail_count > 0 for variant in variants)
     print('[{}] {}'.format(
         str(elapsed_time), 'Success!' if not failed else 'Failed!'))
-    return 0
+
+    return 1 if failed else 0
 
 if __name__ == '__main__':
     sys.exit(main())
