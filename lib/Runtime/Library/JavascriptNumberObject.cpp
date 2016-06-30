@@ -66,7 +66,24 @@ namespace Js
 
     BOOL JavascriptNumberObject::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Number, (Object)");
+        stringBuilder->AppendCppLiteral(_u("Number, (Object)"));
         return TRUE;
     }
+
+#if ENABLE_TTD
+    void JavascriptNumberObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        extractor->MarkVisitVar(this->value);
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptNumberObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapBoxedValueObject;
+    }
+
+    void JavascriptNumberObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::TTDVar, TTD::NSSnapObjects::SnapObjectType::SnapBoxedValueObject>(objData, this->value);
+    }
+#endif
 }

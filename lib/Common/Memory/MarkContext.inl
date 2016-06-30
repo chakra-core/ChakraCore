@@ -2,19 +2,20 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-__inline
+
+inline
 bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
 {
     Assert(objectAddress != nullptr);
     Assert(objectSize > 0);
     Assert(objectSize % sizeof(void *) == 0);
 
-    FAULTINJECT_MEMORY_MARK_NOTHROW(L"AddMarkedObject", objectSize);
+    FAULTINJECT_MEMORY_MARK_NOTHROW(_u("AddMarkedObject"), objectSize);
 
 #if DBG_DUMP
     if (recycler->forceTraceMark || recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MarkPhase))
     {
-        Output::Print(L" %p", objectAddress);
+        Output::Print(_u(" %p"), objectAddress);
     }
 #endif
 
@@ -27,7 +28,7 @@ bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
 }
 
 #if ENABLE_CONCURRENT_GC
-__inline
+inline
 bool MarkContext::AddTrackedObject(FinalizableObject * obj)
 {
     Assert(obj != nullptr);
@@ -38,14 +39,14 @@ bool MarkContext::AddTrackedObject(FinalizableObject * obj)
     Assert(!recycler->inPartialCollectMode);
 #endif
 
-    FAULTINJECT_MEMORY_MARK_NOTHROW(L"AddTrackedObject", 0);
+    FAULTINJECT_MEMORY_MARK_NOTHROW(_u("AddTrackedObject"), 0);
 
     return trackStack.Push(obj);
 }
 #endif
 
 template <bool parallel, bool interior>
-__inline
+inline
 void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 {
     Assert(byteCount != 0);
@@ -57,7 +58,7 @@ void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 #if DBG_DUMP
     if (recycler->forceTraceMark || recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MarkPhase))
     {
-        Output::Print(L"Scanning %p(%8d): ", obj, byteCount);
+        Output::Print(_u("Scanning %p(%8d): "), obj, byteCount);
     }
 #endif
 
@@ -80,7 +81,7 @@ void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 #if DBG_DUMP
     if (recycler->forceTraceMark || recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MarkPhase))
     {
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
         Output::Flush();
     }
 #endif
@@ -88,7 +89,7 @@ void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 
 
 template <bool parallel, bool interior>
-__inline
+inline
 void MarkContext::ScanObject(void ** obj, size_t byteCount)
 {
     BEGIN_DUMP_OBJECT(recycler, obj);
@@ -100,7 +101,7 @@ void MarkContext::ScanObject(void ** obj, size_t byteCount)
 
 
 template <bool parallel, bool interior>
-__inline
+inline
 void MarkContext::Mark(void * candidate, void * parentReference)
 {
     // We should never reach here while we are processing Rescan.
@@ -138,7 +139,7 @@ void MarkContext::Mark(void * candidate, void * parentReference)
 #endif
 }
 
-__inline
+inline
 void MarkContext::MarkTrackedObject(FinalizableObject * trackedObject)
 {
 #if ENABLE_CONCURRENT_GC
@@ -159,7 +160,7 @@ void MarkContext::MarkTrackedObject(FinalizableObject * trackedObject)
 }
 
 template <bool parallel, bool interior>
-__inline
+inline
 void MarkContext::ProcessMark()
 {
 #ifdef RECYCLER_STRESS

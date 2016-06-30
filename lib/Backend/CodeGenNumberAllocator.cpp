@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 
 CodeGenNumberThreadAllocator::CodeGenNumberThreadAllocator(Recycler * recycler)
@@ -106,7 +106,7 @@ CodeGenNumberThreadAllocator::AllocNewNumberBlock()
     {
         Assert(cs.IsLocked());
         // Reserve the segment, but not committing it
-        currentNumberSegment = PageAllocator::AllocPageSegment(pendingIntegrationNumberSegment, this->recycler->GetRecyclerLeafPageAllocator(), true);
+        currentNumberSegment = PageAllocator::AllocPageSegment(pendingIntegrationNumberSegment, this->recycler->GetRecyclerLeafPageAllocator(), false, true);
         if (currentNumberSegment == nullptr)
         {
             currentNumberBlockEnd = nullptr;
@@ -153,7 +153,7 @@ CodeGenNumberThreadAllocator::AllocNewChunkBlock()
     {
         Assert(cs.IsLocked());
         // Reserve the segment, but not committing it
-        currentChunkSegment = PageAllocator::AllocPageSegment(pendingIntegrationChunkSegment, this->recycler->GetRecyclerPageAllocator(), true);
+        currentChunkSegment = PageAllocator::AllocPageSegment(pendingIntegrationChunkSegment, this->recycler->GetRecyclerPageAllocator(), false, true);
         if (currentChunkSegment == nullptr)
         {
             currentChunkBlockEnd = nullptr;
@@ -412,7 +412,7 @@ CodeGenNumberChunk* ::XProcNumberPageSegmentManager::RegisterSegments(XProcNumbe
     }
     else
     {
-        auto temp = segmentsList;
+        temp = segmentsList;
         while (temp->nextSegment)
         {
             temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;

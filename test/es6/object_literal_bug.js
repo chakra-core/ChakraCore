@@ -37,7 +37,20 @@ var tests = [
             }
         }
     }
-  }
+  },
+  {
+    name: "Getter/setter methods defined in object literal should not have 'prototype' property",
+    body: function () {
+        var o = {
+            get m() {},
+            set m(v) {}
+        };
+        var g = Object.getOwnPropertyDescriptor(o, 'm').get;
+        var s = Object.getOwnPropertyDescriptor(o, 'm').set;
+        assert.areEqual(false, g.hasOwnProperty('prototype'), "Getter method defined in object literal should not have 'prototype' property");
+        assert.areEqual(false, s.hasOwnProperty('prototype'), "Setter method defined in object literal should not have 'prototype' property");
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

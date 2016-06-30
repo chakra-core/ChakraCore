@@ -21,7 +21,7 @@ public:
     static ThreadContextTLSEntry * CreateEntryForCurrentThread();
     static ThreadContextId GetThreadContextId(ThreadContext * threadContext);
 
-    static ulong s_tlsSlot;
+    static uint32 s_tlsSlot;
 
     ThreadContext * GetThreadContext();
 

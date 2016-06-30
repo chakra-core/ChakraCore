@@ -15,8 +15,8 @@ SmallNormalHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallNormalHeapBlockT<T
     ushort objectSize = (ushort)bucket->sizeCat;
     ushort objectCount = (ushort)(TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / objectSize;
 
-    HeapBlockType blockType = (TBlockAttributes::IsSmallBlock ? SmallNormalBlockType : MediumNormalBlockType);
-    return NoMemProtectHeapNewNoThrowPlusPrefixZ(GetAllocPlusSize(objectCount), SmallNormalHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount, blockType);
+    HeapBlockType blockType = (TBlockAttributes::IsSmallBlock ? HeapBlock::SmallNormalBlockType : HeapBlock::MediumNormalBlockType);
+    return NoMemProtectHeapNewNoThrowPlusPrefixZ(Base::GetAllocPlusSize(objectCount), SmallNormalHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount, blockType);
 }
 
 #ifdef RECYCLER_WRITE_BARRIER
@@ -31,8 +31,8 @@ SmallNormalWithBarrierHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallNormalW
     ushort objectSize = (ushort)bucket->sizeCat;
     ushort objectCount = (ushort)(TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / objectSize;
 
-    HeapBlockType blockType = (TBlockAttributes::IsSmallBlock ? SmallNormalBlockWithBarrierType : MediumNormalBlockWithBarrierType);
-    return NoMemProtectHeapNewNoThrowPlusPrefixZ(GetAllocPlusSize(objectCount), SmallNormalWithBarrierHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount, blockType);
+    HeapBlockType blockType = (TBlockAttributes::IsSmallBlock ? HeapBlock::SmallNormalBlockWithBarrierType : HeapBlock::MediumNormalBlockWithBarrierType);
+    return NoMemProtectHeapNewNoThrowPlusPrefixZ(Base::GetAllocPlusSize(objectCount), SmallNormalWithBarrierHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount, blockType);
 }
 #endif
 
@@ -41,7 +41,7 @@ void
 SmallNormalHeapBlockT<TBlockAttributes>::Delete(SmallNormalHeapBlockT<TBlockAttributes> * heapBlock)
 {
     Assert(heapBlock->IsNormalBlock());
-    NoMemProtectHeapDeletePlusPrefix(GetAllocPlusSize(heapBlock->objectCount), heapBlock);
+    NoMemProtectHeapDeletePlusPrefix(Base::GetAllocPlusSize(heapBlock->objectCount), heapBlock);
 }
 
 #ifdef RECYCLER_WRITE_BARRIER
@@ -50,25 +50,25 @@ void
 SmallNormalWithBarrierHeapBlockT<TBlockAttributes>::Delete(SmallNormalWithBarrierHeapBlockT<TBlockAttributes> * heapBlock)
 {
     Assert(heapBlock->IsNormalWriteBarrierBlock());
-    NoMemProtectHeapDeletePlusPrefix(GetAllocPlusSize(heapBlock->objectCount), heapBlock);
+    NoMemProtectHeapDeletePlusPrefix(Base::GetAllocPlusSize(heapBlock->objectCount), heapBlock);
 }
 #endif
 
 template <class TBlockAttributes>
 SmallNormalHeapBlockT<TBlockAttributes>::SmallNormalHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType)
-    : SmallHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, heapBlockType)
+    : Base(bucket, objectSize, objectCount, heapBlockType)
 {
 }
 
 template <>
 SmallNormalHeapBlockT<SmallAllocationBlockAttributes>::SmallNormalHeapBlockT(HeapBucketT<SmallNormalHeapBlockT<SmallAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
-: SmallHeapBlockT<SmallAllocationBlockAttributes>(bucket, objectSize, objectCount, SmallNormalBlockType)
+    : Base(bucket, objectSize, objectCount, SmallNormalBlockType)
 {
 }
 
 template <>
 SmallNormalHeapBlockT<MediumAllocationBlockAttributes>::SmallNormalHeapBlockT(HeapBucketT<SmallNormalHeapBlockT<MediumAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
-: SmallHeapBlockT<MediumAllocationBlockAttributes>(bucket, objectSize, objectCount, MediumNormalBlockType)
+    : Base(bucket, objectSize, objectCount, MediumNormalBlockType)
 {
 }
 
@@ -76,7 +76,7 @@ template <class TBlockAttributes>
 void
 SmallNormalHeapBlockT<TBlockAttributes>::ScanInitialImplicitRoots(Recycler * recycler)
 {
-    Assert(IsAnyNormalBlock());
+    Assert(this->IsAnyNormalBlock());
 
     uint const localObjectCount = this->objectCount;
     uint const localObjectSize = this->GetObjectSize();
@@ -111,7 +111,7 @@ template <class TBlockAttributes>
 void
 SmallNormalHeapBlockT<TBlockAttributes>::ScanNewImplicitRoots(Recycler * recycler)
 {
-    Assert(IsAnyNormalBlock());
+    Assert(this->IsAnyNormalBlock());
     __super::ScanNewImplicitRootsBase([recycler](void * objectAddress, size_t objectSize)
     {
         // TODO: only interior?
@@ -161,7 +161,7 @@ SmallNormalHeapBlockT<TBlockAttributes>::CalculateMarkCountForPage(SmallHeapBloc
     temp.Minus(invalid);
 
     Assert(pageStartBitIndex % HeapBlockMap32::PageMarkBitCount == 0);
-    uint rescanMarkCount = temp.GetRange<HeapBlockMap32::PageMarkBitCount>(pageStartBitIndex)->Count();
+    uint rescanMarkCount = temp.template GetRange<HeapBlockMap32::PageMarkBitCount>(pageStartBitIndex)->Count();
 
     // If the first object on the page is not at the start of the page, then the object containing
     // the first few bytes of the page is not included in this mark count
@@ -187,13 +187,16 @@ template <class TBlockAttributes>
 bool
 SmallNormalHeapBlockT<TBlockAttributes>::GetFreeObjectListOnAllocator(FreeObject ** freeObjectList)
 {
-    return GetFreeObjectListOnAllocatorImpl<SmallNormalHeapBlockT<TBlockAttributes>>(freeObjectList);
+    return this->template GetFreeObjectListOnAllocatorImpl<SmallNormalHeapBlockT<TBlockAttributes>>(freeObjectList);
 }
 #endif
 
-template class SmallNormalHeapBlockT<SmallAllocationBlockAttributes>;
-template class SmallNormalHeapBlockT<MediumAllocationBlockAttributes>;
+namespace Memory
+{
+    template class SmallNormalHeapBlockT<SmallAllocationBlockAttributes>;
+    template class SmallNormalHeapBlockT<MediumAllocationBlockAttributes>;
 #ifdef RECYCLER_WRITE_BARRIER
-template class SmallNormalWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;
-template class SmallNormalWithBarrierHeapBlockT<MediumAllocationBlockAttributes>;
+    template class SmallNormalWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;
+    template class SmallNormalWithBarrierHeapBlockT<MediumAllocationBlockAttributes>;
 #endif
+}

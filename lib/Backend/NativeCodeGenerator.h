@@ -99,7 +99,6 @@ public:
     void UpdateQueueForDebugMode();
     bool IsBackgroundJIT() const;
     void EnterScriptStart();
-    bool IsNativeFunctionAddr(void * address);
     void FreeNativeCodeGenAllocation(void* address);
     bool TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem);
 
@@ -128,7 +127,7 @@ private:
 
     CodeGenAllocators *CreateAllocators(PageAllocator *const pageAllocator)
     {
-        return HeapNew(CodeGenAllocators, pageAllocator->GetAllocationPolicyManager(), scriptContext, nullptr);
+        return HeapNew(CodeGenAllocators, pageAllocator->GetAllocationPolicyManager(), scriptContext, scriptContext->GetThreadContext()->GetCodePageAllocators(), nullptr);
     }
 
     CodeGenAllocators *EnsureForegroundAllocators(PageAllocator * pageAllocator)
@@ -176,7 +175,6 @@ private:
         AllocateBackgroundAllocators(pageAllocator);
     }
 
-    bool IsInDebugMode() const;
     static ExecutionMode PrejitJitMode(Js::FunctionBody *const functionBody);
 
     bool TryAggressiveInlining(Js::FunctionBody *const topFunctionBody, Js::FunctionBody *const functionBody, InliningDecider &inliningDecider, uint32& inlineeCount, uint recursiveInlineDepth);
@@ -215,6 +213,8 @@ private:
             : JsUtil::WaitableJobManager(processor)
             , autoClose(true)
             , isClosed(false)
+            , stackJobProcessed(false)
+            , waitingForStackJob(false)
         {
             Processor()->AddManager(this);
         }
@@ -242,7 +242,15 @@ private:
 
         FreeLoopBodyJob* GetJob(FreeLoopBodyJob* job)
         {
-            return job;
+            if (this->waitingForStackJob)
+            {
+                Assert(job->heapAllocated == false);
+                return this->stackJobProcessed ? nullptr : job;
+            }
+            else
+            {
+                return job;
+            }
         }
 
         bool WasAddedToJobProcessor(JsUtil::Job *const job) const
@@ -276,6 +284,11 @@ private:
             {
                 HeapDelete(freeLoopBodyJob);
             }
+            else
+            {
+                Assert(this->waitingForStackJob);
+                this->stackJobProcessed = true;
+            }
         }
 
         void QueueFreeLoopBodyJob(void* codeAddress);
@@ -284,6 +297,8 @@ private:
         NativeCodeGenerator* nativeCodeGen;
         bool autoClose;
         bool isClosed;
+        bool stackJobProcessed;
+        bool waitingForStackJob;
     };
 
     FreeLoopBodyJobManager freeLoopBodyManager;

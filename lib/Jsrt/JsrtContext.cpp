@@ -4,24 +4,24 @@
 //-------------------------------------------------------------------------------------------------------
 #include "JsrtPch.h"
 #include "JsrtRuntime.h"
-#include "Base\ThreadContextTLSEntry.h"
+#include "Base/ThreadContextTlsEntry.h"
 
 DWORD JsrtContext::s_tlsSlot = TLS_OUT_OF_INDEXES;
 
 JsrtContext::JsrtContext(JsrtRuntime * runtime) :
-    runtime(runtime), scriptContext(nullptr)
+    runtime(runtime), javascriptLibrary(nullptr)
 {
 }
 
-void JsrtContext::SetScriptContext(Js::ScriptContext * scriptContext)
+void JsrtContext::SetJavascriptLibrary(Js::JavascriptLibrary * library)
 {
-    this->scriptContext = scriptContext;
+    this->javascriptLibrary = library;
 }
 
 void JsrtContext::PinCurrentJsrtContext()
 {
-    Assert(this->scriptContext);
-    this->scriptContext->GetLibrary()->PinJsrtContextObject(this);
+    Assert(this->javascriptLibrary);
+    this->javascriptLibrary->PinJsrtContextObject(this);
 }
 
 void JsrtContext::Link()

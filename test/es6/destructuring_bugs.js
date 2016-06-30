@@ -62,6 +62,256 @@ var tests = [
       assert.throws(function () { eval("for (var a in {b: foo().bar()} = {}) { }"); }, SyntaxError, "for.in loop has destructuring pattern which has linked call expression instead of a reference node", "Invalid destructuring assignment target");
       assert.doesNotThrow(function () { eval("for (var a in {b: foo().bar} = {}) { }"); }, "for.in loop has destructuring pattern which has a reference node is valid syntax", );
     }
+  },
+  {
+    name: "Destructuring bug fix - object coercible",
+    body: function () {
+      assert.throws(function () { eval("var {} = undefined"); }, TypeError, "Object declaration - RHS cannot be be undefined", "Cannot convert null or undefined to object");
+      assert.throws(function () { eval("var {} = null"); }, TypeError, "Object declaration - RHS cannot be be null", "Cannot convert null or undefined to object");
+      assert.throws(function () { eval("({} = undefined);"); }, TypeError, "Object assignment pattern - RHS cannot be be undefined", "Cannot convert null or undefined to object");
+      assert.throws(function () { eval("([{}] = []);"); }, TypeError, "Object assignment pattern nested with array pattern has evaluated to have undefined as RHS", "Cannot convert null or undefined to object");
+      assert.throws(function () { eval("function f({}){}; f();"); }, TypeError, "Object pattern on function - evaluated to have undefined from assignment expression", "Cannot convert null or undefined to object");
+      assert.throws(function () { eval("function f({}){}; f(null);"); }, TypeError, "Object pattern on function - evaluated to have null from assignment expression", "Cannot convert null or undefined to object");
+    }
+  },
+  {
+    name: "Destructuring bug fix - a variable in body has the same name as param should not throw in the defer parse mode",
+    body: function () {
+      assert.doesNotThrow(function () { eval("function foo() { function bar([a]) { var a = 1; } }"); }, "variable 'a' is not a re-declaration" );
+      assert.doesNotThrow(function () { eval("function foo() { function bar([a], {b, b1}, [c]) { var b1 = 1; } }"); }, "variable 'b1' is not a re-declaration" );
+      assert.doesNotThrow(function () { eval("function foo() { ({c}) => { var c = 1; } }"); }, "variable 'c' is not a re-declaration" );
+    }
+  },
+  {
+    name: "Destructuring bug fix - assign to const",
+    body: function () {
+      assert.throws(function () { const c = 10; ({c} = {c:11}); }, TypeError, "Cannot assign to const", "Assignment to const");
+      assert.throws(function () { eval("const c = 10; ({c} = {c:11});"); }, TypeError, "Cannot assign to const in eval", "Assignment to const");
+      assert.throws(function () { const c = 10; eval("({c} = {c:11});"); }, TypeError, "Cannot assign to const in eval, where const is defined outsdie of eval", "Assignment to const");
+    }
+  },
+  {
+    name: "Destructuring bug fix - pattern with rest parameter",
+    body: function () {
+      assert.doesNotThrow(function () { eval("function foo({a}, ...b) { if (b) { } }; foo({});"); } );
+      assert.doesNotThrow(function () { eval("function foo([], ...b) { if (b) { } }; foo([]);"); });
+    }
+  },
+  {
+    name: "Object Destructuring with empty identifier/reference",
+    body: function () {
+      assert.throws(function () { eval("var {x :  } = {};"); }, SyntaxError);
+      assert.throws(function () { eval("var {x :  , } = {};"); }, SyntaxError);
+      assert.throws(function () { eval("var {x :  , y} = {};"); }, SyntaxError);
+      assert.throws(function () { eval("({x : , y} = {});"); }, SyntaxError);
+    }
+  },
+  {
+    name: "Destructuring pattern at param has arguments as declaration",
+    body: function () {
+      assert.doesNotThrow(function () { eval("function foo([arguments]) { arguments; }; foo([1]);"); });
+      assert.doesNotThrow(function () { eval("function foo({arguments}) { arguments; }; foo({arguments:1});"); });
+      assert.doesNotThrow(function () { eval("function foo({x:{arguments}}) { arguments; }; foo({x:{arguments:1}});"); });
+    }
+  },
+  {
+    name: "Destructuring pattern at param has function as default value",
+    body: function () {
+      assert.doesNotThrow(function () { eval("function foo(x = ({y = function (p) {}} = 'bar')) {}; foo();"); });
+      assert.doesNotThrow(function () { eval("var foo = (x = ({y = function (p) {}} = 'bar')) => {}; foo();"); });
+    }
+  },
+  {
+    name: "Destructuring empty patterns at param with arguments/eval at function body",
+    body: function () {
+        (function ({}, {}, {}, {}, {}, a) {
+            eval("");
+            assert.areEqual(arguments[1].x, 1);
+            assert.areEqual(a, 2);
+        })({}, {x:1}, {}, {}, {}, 2);
+        (function ({}, {}, {}, {}, {}, a) {
+            (function () {
+                eval("");
+            })();
+            assert.areEqual(arguments[1].x, 1);
+            assert.areEqual(a, 2);
+        })({}, {x:1}, {}, {}, {}, 2);
+        (function ({}, {}, {}, {}, {}, a) {
+            (function () {
+                a;
+            })();
+            eval("");
+            assert.areEqual(arguments[1].x, 1);
+            assert.areEqual(a, 2);
+        })({}, {x:1}, {}, {}, {}, 2);
+    }
+  },
+  {
+    name: "Destructuring patterns (multiple identifiers in the pattern) at param with arguments/eval at function body",
+    body: function () {
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            eval("");
+            assert.areEqual(arguments[2], [4, 5]);
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            var k = x1 + x2 + x3 + x4 + x5 + x6;
+            eval("");
+            assert.areEqual(arguments[2], [4, 5]);
+            assert.areEqual(k, 21);
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (function() {
+              eval("");  
+            });
+            assert.areEqual(arguments[3], 6);
+            var k = x1 + x2 + x3 + x4 + x5 + x6;
+            assert.areEqual(k, 21);
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (function() {
+                x3; x5; x6;
+            })();
+            var k = x1 + x2 + x3 + x4 + x5 + x6;
+            assert.areEqual(k, 21);
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (function() {
+                x3; x5; x6;
+            })();
+            var k = x1 + x2 + x3 + x4 + x5 + x6;
+            assert.areEqual(arguments[3], 6);
+            assert.areEqual(k, 21);
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+        
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (function() {
+                assert.areEqual(x1 + x2 + x3 + x4 + x5 + x6, 21);
+            })();
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+    }
+  },
+  {
+    name: "Destructuring patterns (multiple identifiers in the pattern) at param with lambdas, arguments and eval at function body",
+    body: function () {
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (() => {
+                assert.areEqual(arguments[2], [4, 5]);
+            })();
+            eval("");
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+
+        (function (x1, {x2, x3}, [x4, x5], x6) {
+            (() => {
+                var k = x1 + x2 + x3 + x4 + x5 + x6;
+                eval("");
+                assert.areEqual(arguments[2], [4, 5]);
+                assert.areEqual(k, 21);
+            })();
+        })(1, {x2:2, x3:3}, [4, 5], 6);
+    }
+  },
+  {
+    name: "Destructuring patterns with rest at param with arguments/eval at function body",
+    body: function () {
+        (function (a, {b},  ...rest) {
+            eval("");
+            assert.areEqual(b, 2);
+            assert.areEqual(arguments[2], 3);
+        })(1, {b:2}, 3);
+
+        (function (a, {b},  ...rest) {
+            (function () {
+                eval("");
+            })();
+            assert.areEqual(rest, [3]);
+            assert.areEqual(arguments[2], 3);
+        })(1, {b:2}, 3);
+
+        (function (a, {b}, ...rest) {
+            (function () {
+                assert.areEqual(b, 2);
+                assert.areEqual(rest, [3]);
+            })();
+            assert.areEqual(rest, [3]);
+            assert.areEqual(arguments[2], 3);
+        })(1, {b:2}, 3);
+    }
+  },
+  {
+    name: "Rest as pattern at param with arguments/eval at function body",
+    body: function () {
+        (function ([a, b], c, ...{rest1, rest2}) {
+            eval("");
+            assert.areEqual(rest1, 4);
+            assert.areEqual(rest2, 5);
+            assert.areEqual(c, 3);
+            assert.areEqual(arguments[1], 3);
+        })([1, 2], 3, {rest1:4, rest2:5});
+
+        (function ([a, b], c, ...{rest1, rest2}) {
+            (function () {
+                assert.areEqual(rest1, 4);
+                assert.areEqual(rest2, 5);
+                assert.areEqual(a+b, 3);
+            })();
+            eval("");
+            assert.areEqual(arguments[0], [1, 2]);
+        })([1, 2], 3, {rest1:4, rest2:5});
+    }
+  },
+  {
+    name: "Accessing arguments at the params",
+    body: function () {
+        (function (x1, {x2, x3}, [x4, x5], x6 = arguments[0]) {
+            eval("");
+            assert.areEqual(arguments[2], [4, 5]);
+            assert.areEqual(x6, 1);
+        })(1, {x2:2, x3:3}, [4, 5], undefined);
+
+        (function (x1, {x2, x3}, [x4, x5], x6 = arguments[0] = 11) {
+            eval("");
+            assert.areEqual(arguments[0], 11);
+            assert.areEqual(x6, 11);
+        })(1, {x2:2, x3:3}, [4, 5], undefined);
+    }
+  },
+  {
+    name: "Object destructuring - changing the RHS when emitting",
+    body: function () {
+        var a = {}, b;
+        ({x:a, y:b = 1} = a);
+        assert.areEqual(a, undefined);
+        assert.areEqual(b, 1);
+    }
+  },
+  {
+    name: "Destructuring - Empty object pattern inside call node is a valid syntax",
+    body: function () {
+        function f() {
+            ({} = []).Symbol.interator();
+            eval("");
+        };
+    }
+  },
+  {
+    name: "Destructuring - Place holder slots for pattern are accounted when undeferred.",
+    body: function () {
+        function foo({a}) {
+            function x() {}
+            eval('');
+        }
+        foo({});
+        function foo1(...[b]) {
+            function x() {}
+            eval('');
+        }
+        foo1([]);
+    }
   }
 ];
 

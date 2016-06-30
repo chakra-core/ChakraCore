@@ -4,17 +4,11 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
-template void SmallLeafHeapBucketT<SmallAllocationBlockAttributes>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallLeafHeapBucketT<SmallAllocationBlockAttributes>::Sweep<false>(RecyclerSweep& recyclerSweep);
-template void SmallLeafHeapBucketT<MediumAllocationBlockAttributes>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallLeafHeapBucketT<MediumAllocationBlockAttributes>::Sweep<false>(RecyclerSweep& recyclerSweep);
-
 template <typename TBlockAttributes>
-template<bool pageheap>
 void
 SmallLeafHeapBucketT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep)
 {
-    BaseT::SweepBucket<pageheap>(recyclerSweep, [](RecyclerSweep& recyclerSweep){});
+    BaseT::SweepBucket(recyclerSweep, [](RecyclerSweep& recyclerSweep){});
 }
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
@@ -23,7 +17,7 @@ template <typename TBlockAttributes>
 size_t
 SmallLeafHeapBucketT<TBlockAttributes>::GetNonEmptyHeapBlockCount(bool checkCount) const
 {
-    return __super::GetNonEmptyHeapBlockCount(checkCount);
+    return BaseT::GetNonEmptyHeapBlockCount(checkCount);
 }
 #endif
 
@@ -32,7 +26,7 @@ template <typename TBlockAttributes>
 size_t
 SmallLeafHeapBucketT<TBlockAttributes>::Check()
 {
-    return __super::Check(true);
+    return BaseT::Check(true);
 }
 #endif
 
@@ -54,5 +48,8 @@ SmallLeafHeapBucketT<TBlockAttributes>::VerifyMark()
 }
 #endif
 
-template class SmallLeafHeapBucketT<SmallAllocationBlockAttributes>;
-template class SmallLeafHeapBucketT<MediumAllocationBlockAttributes>;
+namespace Memory
+{
+    template class SmallLeafHeapBucketT<SmallAllocationBlockAttributes>;
+    template class SmallLeafHeapBucketT<MediumAllocationBlockAttributes>;
+}

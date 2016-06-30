@@ -104,6 +104,9 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->flags |= profileInfo->IsMemOpDisabled() ? Flags_disableMemOp : 0;
     data->flags |= profileInfo->IsCheckThisDisabled() ? Flags_disableCheckThis : 0;
     data->flags |= profileInfo->HasLdFldCallSiteInfo() ? Flags_hasLdFldCallSiteInfo : 0;
+    data->flags |= profileInfo->IsStackArgOptDisabled() ? Flags_disableStackArgOpt : 0;
+    data->flags |= profileInfo->IsLoopImplicitCallInfoDisabled() ? Flags_disableLoopImplicitCallInfo : 0;
+    data->flags |= profileInfo->IsPowIntIntTypeSpecDisabled() ? Flags_disablePowIntIntTypeSpec : 0;
 }
 
 const Js::LdElemInfo *
@@ -406,6 +409,24 @@ JITTimeProfileInfo::IsLoopCountBasedBoundCheckHoistDisabled(const bool isJitLoop
     {
         return TestFlag(Flags_disableLoopCountBasedBoundCheckHoist);
     }
+}
+
+bool
+JITTimeProfileInfo::IsStackArgOptDisabled() const
+{
+    return TestFlag(Flags_disableStackArgOpt);
+}
+
+bool
+JITTimeProfileInfo::IsLoopImplicitCallInfoDisabled() const
+{
+    return TestFlag(Flags_disableLoopImplicitCallInfo);
+}
+
+bool
+JITTimeProfileInfo::IsPowIntIntTypeSpecDisabled() const
+{
+    return TestFlag(Flags_disablePowIntIntTypeSpec);
 }
 
 bool

@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
 
-#include "Library\ForInObjectEnumerator.h"
+#include "Library/ForInObjectEnumerator.h"
 
 namespace Js
 {
@@ -77,6 +77,45 @@ namespace Js
         }
         return propertyRecord;
     }
+
+#if ENABLE_TTD
+    template<typename TMapKey>
+    TMapKey TMapKey_ConvertKey_TTD(ThreadContext* threadContext, const PropertyRecord* key)
+    {
+        return key;
+    }
+
+    template<>
+    JavascriptString* TMapKey_ConvertKey_TTD(ThreadContext* threadContext, const PropertyRecord* key)
+    {
+        AssertMsg(false, "I never want to do this.");
+
+        return nullptr;
+    }
+
+    template<typename TMapKey>
+    TMapKey TMapKey_ConvertKey_TTD(ThreadContext* threadContext, JavascriptString* key)
+    {
+        AssertMsg(false, "I never want to do this.");
+
+        return nullptr;
+    }
+
+    template<>
+    const PropertyRecord* TMapKey_ConvertKey_TTD(ThreadContext* threadContext, JavascriptString* key)
+    {
+        PropertyRecord const * propertyRecord;
+        if(VirtualTableInfo<Js::PropertyString>::HasVirtualTable(key))
+        {
+            propertyRecord = ((PropertyString*)key)->GetPropertyRecord();
+        }
+        else
+        {
+            threadContext->GetOrAddPropertyId(key->GetString(), key->GetLength(), &propertyRecord);
+        }
+        return propertyRecord;
+    }
+#endif
 
     bool TPropertyKey_IsInternalPropertyId(JavascriptString* key)
     {
@@ -195,12 +234,12 @@ namespace Js
 #endif
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    const wchar_t* TMapKey_GetBuffer(const PropertyRecord* key)
+    const char16* TMapKey_GetBuffer(const PropertyRecord* key)
     {
         return key->GetBuffer();
     }
 
-    const wchar_t* TMapKey_GetBuffer(JavascriptString* key)
+    const char16* TMapKey_GetBuffer(JavascriptString* key)
     {
         return key->GetSz();
     }
@@ -401,7 +440,7 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         DynamicType* oldType = instance->GetDynamicType();
         RecyclerWeakReference<DynamicObject>* oldSingletonInstance = GetSingletonInstance();
-        TraceFixedFieldsBeforeTypeHandlerChange(L"SimpleDictionaryTypeHandler", L"[Simple]DictionaryTypeHandler", instance, this, oldType, oldSingletonInstance);
+        TraceFixedFieldsBeforeTypeHandlerChange(_u("SimpleDictionaryTypeHandler"), _u("[Simple]DictionaryTypeHandler"), instance, this, oldType, oldSingletonInstance);
 #endif
 
         bool const canBeSingletonInstance = DynamicTypeHandler::CanBeSingletonInstance(instance);
@@ -445,9 +484,9 @@ namespace Js
             propertyKey = propertyMap->GetKeyAt(i);
 
             // newTH->nextPropertyIndex will be less than desc.propertyIndex, when we have function with same name parameters
-            if (newTypeHandler->nextPropertyIndex < (U::PropertyIndexType)descriptor.propertyIndex)
+            if (newTypeHandler->nextPropertyIndex < static_cast<typename U::PropertyIndexType>(descriptor.propertyIndex))
             {
-                newTypeHandler->nextPropertyIndex = (U::PropertyIndexType)descriptor.propertyIndex;
+                newTypeHandler->nextPropertyIndex = static_cast<typename U::PropertyIndexType>(descriptor.propertyIndex);
             }
 
             Assert(newTypeHandler->nextPropertyIndex == descriptor.propertyIndex);
@@ -455,7 +494,7 @@ namespace Js
             newTypeHandler->Add(TMapKey_ConvertKey<UMapKey>(scriptContext, propertyKey), descriptor.Attributes, descriptor.isInitialized, descriptor.isFixed, transferUsedAsFixed && descriptor.usedAsFixed, scriptContext);
         }
 
-        newTypeHandler->nextPropertyIndex = (U::PropertyIndexType)nextPropertyIndex;
+        newTypeHandler->nextPropertyIndex = static_cast<typename U::PropertyIndexType>(nextPropertyIndex);
         newTypeHandler->SetNumDeletedProperties(numDeletedProperties);
 
         ClearSingletonInstance();
@@ -727,7 +766,7 @@ namespace Js
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
-    __inline BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::FindNextProperty_BigPropertyIndex(ScriptContext* scriptContext, TPropertyIndex& index,
+    inline BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::FindNextProperty_BigPropertyIndex(ScriptContext* scriptContext, TPropertyIndex& index,
         JavascriptString** propertyStringName, PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
     {
         Assert(propertyStringName);
@@ -850,7 +889,7 @@ namespace Js
     }
 
     template <typename TPropertyIndex>
-    __inline PropertyIndex DisallowBigPropertyIndex(TPropertyIndex index)
+    inline PropertyIndex DisallowBigPropertyIndex(TPropertyIndex index)
     {
         if (index <= Constants::PropertyIndexMax)
         {
@@ -861,7 +900,7 @@ namespace Js
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     template <bool allowLetConstGlobal>
-    __inline PropertyIndex SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetPropertyIndex_Internal(const PropertyRecord* propertyRecord)
+    inline PropertyIndex SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetPropertyIndex_Internal(const PropertyRecord* propertyRecord)
     {
         SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor;
         if (propertyMap->TryGetReference(propertyRecord, &descriptor) && !(descriptor->Attributes & (PropertyDeleted | (!allowLetConstGlobal ? PropertyLetConstGlobal : 0))))
@@ -1060,18 +1099,18 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl)
     {
-        return HasProperty_Internal<false>(instance, propertyId, noRedecl, nullptr);
+        return HasProperty_Internal<false>(instance, propertyId, noRedecl, nullptr, nullptr);
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
-    BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::HasRootProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty)
+    BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::HasRootProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty, bool *pNonconfigurableProperty)
     {
-        return HasProperty_Internal<true>(instance, propertyId, noRedecl, pDeclaredProperty);
+        return HasProperty_Internal<true>(instance, propertyId, noRedecl, pDeclaredProperty, pNonconfigurableProperty);
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     template <bool allowLetConstGlobal>
-    BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::HasProperty_Internal(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty)
+    BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::HasProperty_Internal(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty, bool *pNonconfigurableProperty)
     {
         // HasProperty is called with NoProperty in JavascriptDispatch.cpp to for undeferral of the
         // deferred type system that DOM objects use.  Allow NoProperty for this reason, but only
@@ -1097,6 +1136,10 @@ namespace Js
             if (pDeclaredProperty && descriptor->Attributes & (PropertyNoRedecl | PropertyDeclaredGlobal))
             {
                 *pDeclaredProperty = true;
+            }
+            if (pNonconfigurableProperty && !(descriptor->Attributes & PropertyConfigurable))
+            {
+                *pNonconfigurableProperty = true;
             }
             return true;
         }
@@ -1162,6 +1205,7 @@ namespace Js
             return SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetItem(instance, originalInstance, propertyRecord->GetNumericValue(), value, requestContext);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -1178,6 +1222,7 @@ namespace Js
             return GetPropertyFromDescriptor<false>(instance, descriptor, value, info);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -1256,6 +1301,8 @@ namespace Js
 
         Assert(propertyId != Constants::NoProperty);
         PropertyRecord const* propertyRecord = instance->GetScriptContext()->GetPropertyName(propertyId);
+
+        JavascriptLibrary::CheckAndInvalidateIsConcatSpreadableCache(propertyId, instance->GetScriptContext());
 
         // It can be the case that propertyRecord is a symbol property and it has the same string description as
         // another property which is in the propertyMap. If we are in a string-keyed type handler, the propertyMap
@@ -1592,7 +1639,7 @@ namespace Js
 
                             if (fConvertToStringKeyedHandler)
                             {
-                                PHASE_PRINT_TESTTRACE1(Js::TypeHandlerTransitionPhase, L"Transitioning to string keyed SimpleDictionaryUnorderedTypeHandler\n");
+                                PHASE_PRINT_TESTTRACE1(Js::TypeHandlerTransitionPhase, _u("Transitioning to string keyed SimpleDictionaryUnorderedTypeHandler\n"));
                                 // if TMapKey is already JavascriptString* we will not get here because we'd
                                 // already be unordered and SupportsSwitchingToUnordered would have returned false
                                 return ConvertToSimpleDictionaryUnorderedTypeHandler<TPropertyIndex, JavascriptString*, IsNotExtensibleSupported>(instance)
@@ -1600,7 +1647,7 @@ namespace Js
                             }
                             else
                             {
-                                PHASE_PRINT_TESTTRACE1(Js::TypeHandlerTransitionPhase, L"Transitioning to PropertyRecord keyed SimpleDictionaryUnorderedTypeHandler\n");
+                                PHASE_PRINT_TESTTRACE1(Js::TypeHandlerTransitionPhase, _u("Transitioning to PropertyRecord keyed SimpleDictionaryUnorderedTypeHandler\n"));
                                 return ConvertToSimpleDictionaryUnorderedTypeHandler<TPropertyIndex, TMapKey, IsNotExtensibleSupported>(instance)
                                     ->DeleteProperty(instance, propertyId, propertyOperationFlags);
                             }
@@ -1634,12 +1681,13 @@ namespace Js
             // Check for a numeric propertyRecord only if objectArray available
             if (instance->HasObjectArray() && propertyRecord->IsNumeric())
             {
-                return SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::DeleteItem(instance, propertyRecord->IsNumeric(), propertyOperationFlags);
+                return SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::DeleteItem(instance, propertyRecord->GetNumericValue(), propertyOperationFlags);
             }
         }
         else
         {
-            return ConvertToNonSharedSimpleDictionaryType(instance)->DeleteProperty_Internal<allowLetConstGlobal>(instance, propertyId, propertyOperationFlags);
+            SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported> *simpleBase = ConvertToNonSharedSimpleDictionaryType(instance);
+            return simpleBase->DeleteProperty_Internal<allowLetConstGlobal>(instance, propertyId, propertyOperationFlags);
         }
         return true;
     }
@@ -2518,7 +2566,7 @@ namespace Js
         if (TMapKey_IsJavascriptString<TMapKey>() &&
             (TPropertyKey_IsInternalPropertyId(propertyKey) || TMapKey_IsSymbol(propertyKey, scriptContext)))
         {
-            PHASE_PRINT_TESTTRACE1(Js::TypeHandlerTransitionPhase, L"Transitioning from string keyed to PropertyRecord keyed SimpleDictionaryUnorderedTypeHandler\n");
+            PHASE_PRINT_TESTTRACE1(Js::TypeHandlerTransitionPhase, _u("Transitioning from string keyed to PropertyRecord keyed SimpleDictionaryUnorderedTypeHandler\n"));
             // String keyed type handler cannot store InternalPropertyRecords since they have no string representation
             return ConvertToSimpleDictionaryUnorderedTypeHandler<TPropertyIndex, const PropertyRecord*, IsNotExtensibleSupported>(instance)
                 ->AddProperty(instance, propertyKey, value, attributes, info, flags, possibleSideEffects);
@@ -2799,7 +2847,7 @@ namespace Js
     bool SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::TryUseFixedProperty(PropertyRecord const * propertyRecord, Var * pProperty, FixedPropertyKind propertyType, ScriptContext * requestContext)
     {
         bool result = TryGetFixedProperty<false, true>(propertyRecord, pProperty, propertyType, requestContext);
-        TraceUseFixedProperty(propertyRecord, pProperty, result, L"SimpleDictionaryTypeHandler", requestContext);
+        TraceUseFixedProperty(propertyRecord, pProperty, result, _u("SimpleDictionaryTypeHandler"), requestContext);
         return result;
     }
 
@@ -2809,10 +2857,10 @@ namespace Js
         if (PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase) ||
             PHASE_VERBOSE_TRACE1(Js::UseFixedDataPropsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::UseFixedDataPropsPhase))
         {
-            Output::Print(L"FixedFields: attempt to use fixed accessor %s from SimpleDictionaryTypeHandler returned false.\n", propertyRecord->GetBuffer());
+            Output::Print(_u("FixedFields: attempt to use fixed accessor %s from SimpleDictionaryTypeHandler returned false.\n"), propertyRecord->GetBuffer());
             if (this->HasSingletonInstance() && this->GetSingletonInstance()->Get()->GetScriptContext() != requestContext)
             {
-                Output::Print(L"FixedFields: Cross Site Script Context is used for property %s. \n", propertyRecord->GetBuffer());
+                Output::Print(_u("FixedFields: Cross Site Script Context is used for property %s. \n"), propertyRecord->GetBuffer());
             }
             Output::Flush();
         }
@@ -2976,33 +3024,33 @@ namespace Js
             SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor = propertyMap->GetValueAt(i);
             TMapKey propertyKey = propertyMap->GetKeyAt(i);
 
-            Output::Print(L" %s %d%d%d,", TMapKey_GetBuffer(propertyKey),
+            Output::Print(_u(" %s %d%d%d,"), TMapKey_GetBuffer(propertyKey),
                 descriptor.isInitialized ? 1 : 0, descriptor.isFixed ? 1 : 0, descriptor.usedAsFixed ? 1 : 0);
         }
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     void SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::TraceFixedFieldsBeforeTypeHandlerChange(
-        const wchar_t* oldTypeHandlerName, const wchar_t* newTypeHandlerName,
+        const char16* oldTypeHandlerName, const char16* newTypeHandlerName,
         DynamicObject* instance, DynamicTypeHandler* oldTypeHandler,
         DynamicType* oldType, RecyclerWeakReference<DynamicObject>* oldSingletonInstanceBefore)
     {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"FixedFields: converting 0x%p from %s to %s:\n", instance, oldTypeHandlerName, newTypeHandlerName);
-            Output::Print(L"   before: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p)\n",
+            Output::Print(_u("FixedFields: converting 0x%p from %s to %s:\n"), instance, oldTypeHandlerName, newTypeHandlerName);
+            Output::Print(_u("   before: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p)\n"),
                 oldType, oldTypeHandler, oldSingletonInstanceBefore, oldSingletonInstanceBefore != nullptr ? oldSingletonInstanceBefore->Get() : nullptr);
-            Output::Print(L"   fixed fields:");
+            Output::Print(_u("   fixed fields:"));
             oldTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
         if (PHASE_VERBOSE_TESTTRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"FixedFields: converting instance from %s to %s:\n", oldTypeHandlerName, newTypeHandlerName);
-            Output::Print(L"   old singleton before %s null \n", oldSingletonInstanceBefore == nullptr ? L"==" : L"!=");
-            Output::Print(L"   fixed fields before:");
+            Output::Print(_u("FixedFields: converting instance from %s to %s:\n"), oldTypeHandlerName, newTypeHandlerName);
+            Output::Print(_u("   old singleton before %s null \n"), oldSingletonInstanceBefore == nullptr ? _u("==") : _u("!="));
+            Output::Print(_u("   fixed fields before:"));
             oldTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
@@ -3015,25 +3063,25 @@ namespace Js
         {
             RecyclerWeakReference<DynamicObject>* oldSingletonInstanceAfter = oldTypeHandler->GetSingletonInstance();
             RecyclerWeakReference<DynamicObject>* newSingletonInstanceAfter = newTypeHandler->GetSingletonInstance();
-            Output::Print(L"   after: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p), new singleton = 0x%p(0x%p)\n",
+            Output::Print(_u("   after: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p), new singleton = 0x%p(0x%p)\n"),
                 instance->GetType(), newTypeHandler, oldSingletonInstanceAfter, oldSingletonInstanceAfter != nullptr ? oldSingletonInstanceAfter->Get() : nullptr,
                 newSingletonInstanceAfter, newSingletonInstanceAfter != nullptr ? newSingletonInstanceAfter->Get() : nullptr);
-            Output::Print(L"   fixed fields:");
+            Output::Print(_u("   fixed fields:"));
             newTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
         if (PHASE_VERBOSE_TESTTRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"   type %s, typeHandler %s, old singleton after %s null (%s), new singleton after %s null\n",
-                oldTypeHandler != newTypeHandler ? L"changed" : L"unchanged",
-                oldType != instance->GetType() ? L"changed" : L"unchanged",
-                oldTypeHandler->GetSingletonInstance() == nullptr ? L"==" : L"!=",
-                oldSingletonInstanceBefore != oldTypeHandler->GetSingletonInstance() ? L"changed" : L"unchanged",
-                newTypeHandler->GetSingletonInstance() == nullptr ? L"==" : L"!=");
-            Output::Print(L"   fixed fields after:");
+            Output::Print(_u("   type %s, typeHandler %s, old singleton after %s null (%s), new singleton after %s null\n"),
+                oldTypeHandler != newTypeHandler ? _u("changed") : _u("unchanged"),
+                oldType != instance->GetType() ? _u("changed") : _u("unchanged"),
+                oldTypeHandler->GetSingletonInstance() == nullptr ? _u("==") : _u("!="),
+                oldSingletonInstanceBefore != oldTypeHandler->GetSingletonInstance() ? _u("changed") : _u("unchanged"),
+                newTypeHandler->GetSingletonInstance() == nullptr ? _u("==") : _u("!="));
+            Output::Print(_u("   fixed fields after:"));
             newTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
     }
@@ -3044,20 +3092,20 @@ namespace Js
     {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"FixedFields: PathTypeHandler::SetIsPrototype(0x%p):\n", instance);
-            Output::Print(L"   before: type = 0x%p, old singleton: 0x%p(0x%p)\n",
+            Output::Print(_u("FixedFields: PathTypeHandler::SetIsPrototype(0x%p):\n"), instance);
+            Output::Print(_u("   before: type = 0x%p, old singleton: 0x%p(0x%p)\n"),
                 oldType, oldSingletonInstanceBefore, oldSingletonInstanceBefore != nullptr ? oldSingletonInstanceBefore->Get() : nullptr);
-            Output::Print(L"   fixed fields:");
+            Output::Print(_u("   fixed fields:"));
             oldTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
         if (PHASE_VERBOSE_TESTTRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"FixedFields: PathTypeHandler::SetIsPrototype():\n");
-            Output::Print(L"   old singleton before %s null \n", oldSingletonInstanceBefore == nullptr ? L"==" : L"!=");
-            Output::Print(L"   fixed fields before:");
+            Output::Print(_u("FixedFields: PathTypeHandler::SetIsPrototype():\n"));
+            Output::Print(_u("   old singleton before %s null \n"), oldSingletonInstanceBefore == nullptr ? _u("==") : _u("!="));
+            Output::Print(_u("   fixed fields before:"));
             oldTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
@@ -3070,24 +3118,24 @@ namespace Js
         {
             RecyclerWeakReference<DynamicObject>* oldSingletonInstanceAfter = oldTypeHandler->GetSingletonInstance();
             RecyclerWeakReference<DynamicObject>* newSingletonInstanceAfter = newTypeHandler->GetSingletonInstance();
-            Output::Print(L"   after: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p), new singleton = 0x%p(0x%p)\n",
+            Output::Print(_u("   after: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p), new singleton = 0x%p(0x%p)\n"),
                 instance->GetType(), newTypeHandler,
                 oldSingletonInstanceAfter, oldSingletonInstanceAfter != nullptr ? oldSingletonInstanceAfter->Get() : nullptr,
                 newSingletonInstanceAfter, newSingletonInstanceAfter != nullptr ? newSingletonInstanceAfter->Get() : nullptr);
-            Output::Print(L"   fixed fields:");
+            Output::Print(_u("   fixed fields:"));
             newTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
         if (PHASE_VERBOSE_TESTTRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"   type %s, old singleton after %s null (%s)\n",
-                oldType != instance->GetType() ? L"changed" : L"unchanged",
-                oldSingletonInstanceBefore == nullptr ? L"==" : L"!=",
-                oldSingletonInstanceBefore != oldTypeHandler->GetSingletonInstance() ? L"changed" : L"unchanged");
-            Output::Print(L"   fixed fields after:");
+            Output::Print(_u("   type %s, old singleton after %s null (%s)\n"),
+                oldType != instance->GetType() ? _u("changed") : _u("unchanged"),
+                oldSingletonInstanceBefore == nullptr ? _u("==") : _u("!="),
+                oldSingletonInstanceBefore != oldTypeHandler->GetSingletonInstance() ? _u("changed") : _u("unchanged"));
+            Output::Print(_u("   fixed fields after:"));
             newTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
     }
@@ -3101,6 +3149,66 @@ namespace Js
                 ? ConvertToSimpleDictionaryUnorderedTypeHandler<BigPropertyIndex, TMapKey, false>(instance)
                 : ConvertToTypeHandler<BigSimpleDictionaryTypeHandler, TMapKey>(instance);
     }
+
+#if ENABLE_TTD
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    void SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const
+    {
+        ThreadContext* threadContext = obj->GetScriptContext()->GetThreadContext();
+
+        for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor = iter.CurrentValue();
+            AssertMsg(descriptor.propertyIndex != NoSlots, "Huh");
+
+            TMapKey key = iter.CurrentKey();
+            const PropertyRecord* pRecord = TMapKey_ConvertKey_TTD<const Js::PropertyRecord*>(threadContext, key);
+            Js::PropertyId pid = pRecord->GetPropertyId();
+
+            //
+            //TODO: not sure about relationship with PropertyLetConstGlobal here need to -- check how GetProperty works
+            //      maybe we need to template this with allowLetGlobalConst as well
+            //
+
+            if(DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) & descriptor.isInitialized & !(descriptor.Attributes & PropertyDeleted))
+            {
+                Js::Var value = obj->GetSlot(descriptor.propertyIndex);
+
+                extractor->MarkVisitVar(value);
+            }
+        }
+    }
+
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    uint32 SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
+    {
+        uint32 maxSlot = 0;
+
+        for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor = iter.CurrentValue();
+            AssertMsg(descriptor.propertyIndex != NoSlots, "Huh");
+
+            uint32 index = descriptor.propertyIndex;
+            maxSlot = max(maxSlot, index);
+
+            TMapKey key = iter.CurrentKey();
+            const PropertyRecord* pRecord = TMapKey_ConvertKey_TTD<const Js::PropertyRecord*>(threadContext, key);
+            TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.isInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+
+            TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + index, pRecord->GetPropertyId(), descriptor.Attributes, tag);
+        }
+
+        if(this->propertyMap->Count() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return maxSlot + 1;
+        }
+    }
+#endif
 
     template <>
     BigSimpleDictionaryTypeHandler* SimpleDictionaryTypeHandlerBase<BigPropertyIndex, const PropertyRecord*, false>::ConvertToBigSimpleDictionaryTypeHandler(DynamicObject* instance)
@@ -3149,4 +3257,11 @@ namespace Js
     template class SimpleDictionaryTypeHandlerBase<PropertyIndex, JavascriptString*, true>;
     template class SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, false>;
     template class SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, true>;
+
+    template void Js::SimpleDictionaryTypeHandlerBase<unsigned short, Js::PropertyRecord const*, false>::Add<Js::PropertyRecord const*>(Js::PropertyRecord const*, unsigned char, bool, bool, bool, Js::ScriptContext* const);
+    template void Js::SimpleDictionaryTypeHandlerBase<unsigned short, Js::PropertyRecord const*, true>::Add<Js::PropertyRecord const*>(Js::PropertyRecord const*, unsigned char, bool, bool, bool, Js::ScriptContext* const);
+
+    // Instantiated here since this method is defined in this file
+    template void Js::PropertyIndexRangesBase<Js::PropertyIndexRanges<int> >::VerifySlotCapacity(int);
+    template void Js::PropertyIndexRangesBase<Js::PropertyIndexRanges<unsigned short> >::VerifySlotCapacity(int);
 }

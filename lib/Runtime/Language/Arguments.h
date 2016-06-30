@@ -4,6 +4,42 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef _WIN32
+#define VA_LIST_TO_VARARRAY(vl, va, callInfo) Js::Var* va = (Js::Var*) vl;
+#else
+#if _M_X64
+// We use a custom calling convention to invoke JavascriptMethod based on
+// System V AMD64 ABI. At entry of JavascriptMethod the stack layout is:
+//      [Return Address] [function] [callInfo] [arg0] [arg1] ...
+//
+#define VA_LIST_TO_VARARRAY(vl, va, callInfo)                              \
+    Js::Var* va = reinterpret_cast<Js::Var*>(_AddressOfReturnAddress()) + 3; \
+    Assert(*reinterpret_cast<Js::CallInfo*>(va - 1) == callInfo);
+#else
+#error Not yet implemented
+#endif
+#endif
+
+
+#ifdef _WIN32
+#define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
+    entryPoint(function, callInfo, ##__VA_ARGS__)
+#elif _M_X64
+// Call an entryPoint (JavascriptMethod) with custom calling convention.
+//  RDI == function, RSI == callInfo, (RDX/RCX/R8/R9==null/unused),
+//  all parameters on stack.
+#define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
+    entryPoint(function, callInfo, nullptr, nullptr, nullptr, nullptr, \
+               function, callInfo, ##__VA_ARGS__)
+#else
+#error CALL_ENTRYPOINT not yet implemented
+#endif
+
+#define CALL_FUNCTION(function, callInfo, ...) \
+    CALL_ENTRYPOINT(function->GetEntryPoint(), \
+                    function, callInfo, ##__VA_ARGS__)
+
+
 /*
  * RUNTIME_ARGUMENTS is a simple wrapper around the variadic calling convention
  * used by JavaScript functions. It is a low level macro that does not try to
@@ -13,20 +49,28 @@
 #define RUNTIME_ARGUMENTS(n, s)                                           \
     va_list argptr;                                                       \
     va_start(argptr, s);                                                  \
-    Js::Arguments n(s, (Js::Var *)argptr);
+    VA_LIST_TO_VARARRAY(argptr, _argsVarArray, s)                         \
+    Js::Arguments n(s, _argsVarArray);
 
 #define ARGUMENTS(n, s)                                                   \
     va_list argptr;                                                       \
     va_start(argptr, s);                                                  \
-    Js::ArgumentReader n(&s, (Js::Var *)argptr);
+    VA_LIST_TO_VARARRAY(argptr, _argsVarArray, s)                         \
+    Js::ArgumentReader n(&s, _argsVarArray);
 
 namespace Js
 {
     struct Arguments
     {
     public:
-        Arguments(CallInfo callInfo, Var *values) : Info(callInfo), Values(values) {}
+        Arguments(CallInfo callInfo, Var* values) :
+            Info(callInfo), Values(values) {}
+
+        Arguments(ushort count, Var* values) :
+            Info(count), Values(values) {}
+
         Arguments(VirtualTableInfoCtorEnum v) : Info(v) {}
+
         Var operator [](int idxArg) { return const_cast<Var>(static_cast<const Arguments&>(*this)[idxArg]); }
         const Var operator [](int idxArg) const
         {
@@ -42,8 +86,14 @@ namespace Js
 
     struct ArgumentReader : public Arguments
     {
-        ArgumentReader(CallInfo *callInfo, Var *values)
+        ArgumentReader(CallInfo *callInfo, Var* values)
             : Arguments(*callInfo, values)
+        {
+            AdjustArguments(callInfo);
+        }
+
+    private:
+        void AdjustArguments(CallInfo *callInfo)
         {
             AssertMsg(!(Info.Flags & Js::CallFlags_NewTarget) || (Info.Flags & Js::CallFlags_ExtraArg), "NewTarget flag must be used together with ExtraArg.");
             if (Info.Flags & Js::CallFlags_ExtraArg)

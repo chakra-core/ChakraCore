@@ -6,7 +6,7 @@ namespace Memory
 {
 class Recycler;
 
-typedef JsUtil::SynchronizedDictionary<void *, void *, NoCheckHeapAllocator, PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, Js::DefaultListLockPolicy, CriticalSection> MarkMap;
+typedef JsUtil::SynchronizedDictionary<void *, void *, NoCheckHeapAllocator, PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, Js::DefaultContainerLockPolicy, CriticalSection> MarkMap;
 
 class MarkContext
 {

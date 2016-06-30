@@ -18,6 +18,24 @@
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>testSplat.js</files>
+      <compile-flags>-Simdjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>testSplat.js</files>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>testSplat.js</files>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
+    </default>
+  </test>
 
 
   <test>
@@ -212,21 +230,18 @@
   <test>
     <default>
       <files>testShift.js</files>
-      <baseline>testShift.baseline</baseline>
       <compile-flags>-Simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testShift.js</files>
-      <baseline>testShift.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testShift.js</files>
-      <baseline>testShift.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
@@ -254,49 +269,7 @@
     </default>
   </test>
 -->
-  <test>
-    <default>
-      <files>testSignMask.js</files>
-      <baseline>testSignMask.baseline</baseline>
-      <compile-flags>-Simdjs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>testSignMask.js</files>
-      <baseline>testSignMask.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>testSignMask.js</files>
-      <baseline>testSignMask.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
-    </default>
-  </test>
 
-  <test>
-    <default>
-      <files>testWithFlag.js</files>
-      <baseline>testWithFlag.baseline</baseline>
-      <compile-flags>-Simdjs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>testWithFlag.js</files>
-      <baseline>testWithFlag.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>testWithFlag.js</files>
-      <baseline>testWithFlag.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
-    </default>
-  </test>
 
   <test>
     <default>
@@ -319,28 +292,7 @@
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
-
-  <test>
-    <default>
-      <files>testZeroSplatBool.js</files>
-      <baseline>testZeroSplatBool.baseline</baseline>
-      <compile-flags>-Simdjs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>testZeroSplatBool.js</files>
-      <baseline>testZeroSplatBool.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>testZeroSplatBool.js</files>
-      <baseline>testZeroSplatBool.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
-    </default>
-  </test>
+  
   <test>
     <default>
       <files>testStore.js</files>

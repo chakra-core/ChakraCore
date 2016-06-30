@@ -16,19 +16,16 @@
  *  of the hash function so things don't go out of sync.
  */
 
-// scaffolding - define ULONG
-typedef unsigned long ULONG;
-
-ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, long cch)
+ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, int32 cch)
 {
     ULONG luHash = 0;
 
     while (cch-- > 0)
-        luHash = 17 * luHash + *(wchar_t *)prgch++;
+        luHash = 17 * luHash + *(char16 *)prgch++;
     return luHash;
 }
 
-ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, long cch)
+ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, int32 cch)
 {
     utf8::DecodeOptions options = utf8::doAllowThreeByteSurrogates;
     ULONG luHash = 0;
@@ -38,7 +35,7 @@ ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, long cch)
     return luHash;
 }
 
-ULONG CaseSensitiveComputeHashCch(char const * prgch, long cch)
+ULONG CaseSensitiveComputeHashCch(char const * prgch, int32 cch)
 {
     ULONG luHash = 0;
 
@@ -53,8 +50,8 @@ ULONG CaseSensitiveComputeHashCch(char const * prgch, long cch)
 ULONG CaseInsensitiveComputeHash(LPCOLESTR posz)
 {
     ULONG luHash = 0;
-    wchar_t ch;
-    while (0 != (ch = *(wchar_t *)posz++))
+    char16 ch;
+    while (0 != (ch = *(char16 *)posz++))
     {
         if (ch <= 'Z' && ch >= 'A')
             ch += 'a' - 'A';

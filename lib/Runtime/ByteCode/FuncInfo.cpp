@@ -5,7 +5,7 @@
 #include "RuntimeByteCodePch.h"
 
 FuncInfo::FuncInfo(
-    const wchar_t *name,
+    const char16 *name,
     ArenaAllocator *alloc,
     Scope *paramScope,
     Scope *bodyScope,
@@ -36,6 +36,7 @@ FuncInfo::FuncInfo(
     envRegister(Js::Constants::NoRegister),
     frameObjRegister(Js::Constants::NoRegister),
     frameSlotsRegister(Js::Constants::NoRegister),
+    paramSlotsRegister(Js::Constants::NoRegister),
     frameDisplayRegister(Js::Constants::NoRegister),
     funcObjRegister(Js::Constants::NoRegister),
     localClosureReg(Js::Constants::NoRegister),
@@ -52,7 +53,7 @@ FuncInfo::FuncInfo(
     childCallsEval(false),
     hasArguments(false),
     hasHeapArguments(false),
-    isEventHandler(false),
+    isTopLevelEventHandler(false),
     hasLocalInClosure(false),
     hasClosureReference(false),
     hasGlobalReference(false),
@@ -69,8 +70,7 @@ FuncInfo::FuncInfo(
     staticFuncId(-1),
     inlineCacheMap(nullptr),
     slotProfileIdMap(alloc),
-    localPropIdOffset(-1),
-    sameNameArgsPlaceHolderSlotCount(0),
+    argsPlaceHolderSlotCount(0),
     thisScopeSlot(Js::Constants::NoProperty),
     superScopeSlot(Js::Constants::NoProperty),
     superCtorScopeSlot(Js::Constants::NoProperty),
@@ -141,36 +141,36 @@ BOOL FuncInfo::IsBaseClassConstructor() const
     return root->sxFnc.IsBaseClassConstructor();
 }
 
-void FuncInfo::EnsureThisScopeSlot()
+void FuncInfo::EnsureThisScopeSlot(Scope* scope)
 {
     if (this->thisScopeSlot == Js::Constants::NoRegister)
     {
-        Scope* scope = this->bodyScope->IsGlobalEvalBlockScope() ? this->GetGlobalEvalBlockScope() : this->bodyScope;
-        this->thisScopeSlot = scope->AddScopeSlot();
+        Scope* currentScope = scope->IsGlobalEvalBlockScope() ? this->GetGlobalEvalBlockScope() : scope;
+        this->thisScopeSlot = currentScope->AddScopeSlot();
     }
 }
 
-void FuncInfo::EnsureSuperScopeSlot()
+void FuncInfo::EnsureSuperScopeSlot(Scope* scope)
 {
     if (this->superScopeSlot == Js::Constants::NoRegister)
     {
-        this->superScopeSlot = this->bodyScope->AddScopeSlot();
+        this->superScopeSlot = scope->AddScopeSlot();
     }
 }
 
-void FuncInfo::EnsureSuperCtorScopeSlot()
+void FuncInfo::EnsureSuperCtorScopeSlot(Scope* scope)
 {
     if (this->superCtorScopeSlot == Js::Constants::NoRegister)
     {
-        this->superCtorScopeSlot = this->bodyScope->AddScopeSlot();
+        this->superCtorScopeSlot = scope->AddScopeSlot();
     }
 }
 
-void FuncInfo::EnsureNewTargetScopeSlot()
+void FuncInfo::EnsureNewTargetScopeSlot(Scope* scope)
 {
     if (this->newTargetScopeSlot == Js::Constants::NoRegister)
     {
-        this->newTargetScopeSlot = this->bodyScope->AddScopeSlot();
+        this->newTargetScopeSlot = scope->AddScopeSlot();
     }
 }
 
@@ -225,7 +225,7 @@ uint FuncInfo::FindOrAddRootObjectInlineCacheId(Js::PropertyId propertyId, bool 
 #if DBG_DUMP
 void FuncInfo::Dump()
 {
-    Output::Print(L"FuncInfo: CallsEval:%s ChildCallsEval:%s HasArguments:%s HasHeapArguments:%s\n",
+    Output::Print(_u("FuncInfo: CallsEval:%s ChildCallsEval:%s HasArguments:%s HasHeapArguments:%s\n"),
         IsTrueOrFalse(this->GetCallsEval()),
         IsTrueOrFalse(this->GetChildCallsEval()),
         IsTrueOrFalse(this->GetHasArguments()),
@@ -389,7 +389,7 @@ Js::RegSlot FuncInfo::FirstInnerScopeReg() const
 {
     // FunctionBody stores this as a mapped reg. Callers of this function want the pre-mapped value.
 
-    Js::RegSlot reg = this->GetParsedFunctionBody()->FirstInnerScopeReg();
+    Js::RegSlot reg = this->GetParsedFunctionBody()->GetFirstInnerScopeRegister();
     Assert(reg != Js::Constants::NoRegister);
 
     return reg - this->constRegsCount;
@@ -398,7 +398,7 @@ Js::RegSlot FuncInfo::FirstInnerScopeReg() const
 void FuncInfo::SetFirstInnerScopeReg(Js::RegSlot reg)
 {
     // Just forward to the FunctionBody.
-    this->GetParsedFunctionBody()->SetFirstInnerScopeReg(reg);
+    this->GetParsedFunctionBody()->MapAndSetFirstInnerScopeRegister(reg);
 }
 
 void FuncInfo::AddCapturedSym(Symbol *sym)
@@ -416,7 +416,6 @@ void FuncInfo::OnStartVisitFunction(ParseNode *pnodeFnc)
     Assert(this->GetCurrentChildFunction() == nullptr);
 
     this->SetCurrentChildFunction(pnodeFnc->sxFnc.funcInfo);
-    pnodeFnc->sxFnc.funcInfo->SetCurrentChildScope(pnodeFnc->sxFnc.funcInfo->bodyScope);
 }
 
 void FuncInfo::OnEndVisitFunction(ParseNode *pnodeFnc)
@@ -428,27 +427,41 @@ void FuncInfo::OnEndVisitFunction(ParseNode *pnodeFnc)
     this->SetCurrentChildFunction(nullptr);
 }
 
-void FuncInfo::OnStartVisitScope(Scope *scope)
+void FuncInfo::OnStartVisitScope(Scope *scope, bool *pisMergedScope)
 {
+    *pisMergedScope = false;
+
     if (scope == nullptr)
     {
         return;
     }
 
-    if (scope->GetScopeType() == ScopeType_Parameter)
+    Scope* childScope = this->GetCurrentChildScope();
+    if (childScope)
     {
-        // If the scopes are unmerged and we are visiting the parameter scope, the child scope will be the function body scope.
-        Assert(!scope->GetCanMergeWithBodyScope() || this->GetCurrentChildScope()->GetEnclosingScope() == scope || this->GetCurrentChildScope() == nullptr);
-    }
-    else
-    {
-        Assert(this->GetCurrentChildScope() == scope->GetEnclosingScope() || this->GetCurrentChildScope() == nullptr);
+        if (scope->GetScopeType() == ScopeType_Parameter)
+        {
+            Assert(childScope->GetEnclosingScope() == scope);
+        }
+        else if (childScope->GetScopeType() == ScopeType_Parameter
+                 && childScope->GetCanMergeWithBodyScope()
+                 && scope->GetScopeType() == ScopeType_Block)
+        {
+            // If param and body are merged then the class declaration in param scope will have body as the parent
+            *pisMergedScope = true;
+            Assert(childScope == scope->GetEnclosingScope()->GetEnclosingScope());
+        }
+        else
+        {
+            Assert(childScope == scope->GetEnclosingScope());
+        }
     }
 
     this->SetCurrentChildScope(scope);
+    return;
 }
 
-void FuncInfo::OnEndVisitScope(Scope *scope)
+void FuncInfo::OnEndVisitScope(Scope *scope, bool isMergedScope)
 {
     if (scope == nullptr)
     {
@@ -456,7 +469,7 @@ void FuncInfo::OnEndVisitScope(Scope *scope)
     }
     Assert(this->GetCurrentChildScope() == scope || (scope->GetScopeType() == ScopeType_Parameter && this->GetParamScope() == scope));
 
-    this->SetCurrentChildScope(scope->GetEnclosingScope());
+    this->SetCurrentChildScope(isMergedScope ? scope->GetEnclosingScope()->GetEnclosingScope() : scope->GetEnclosingScope());
 }
 
 CapturedSymMap *FuncInfo::EnsureCapturedSymMap()
@@ -468,15 +481,15 @@ CapturedSymMap *FuncInfo::EnsureCapturedSymMap()
     return this->capturedSymMap;
 }
 
-void FuncInfo::SetHasMaybeEscapedNestedFunc(DebugOnly(wchar_t const * reason))
+void FuncInfo::SetHasMaybeEscapedNestedFunc(DebugOnly(char16 const * reason))
 {
     if (PHASE_TESTTRACE(Js::StackFuncPhase, this->byteCodeFunction) && !hasEscapedUseNestedFunc)
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        wchar_t const * r = L"";
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 const * r = _u("");
 
         DebugOnly(r = reason);
-        Output::Print(L"HasMaybeEscapedNestedFunc (%s): %s (function %s)\n",
+        Output::Print(_u("HasMaybeEscapedNestedFunc (%s): %s (function %s)\n"),
             r,
             this->byteCodeFunction->GetDisplayName(),
             this->byteCodeFunction->GetDebugNumberSet(debugStringBuffer));

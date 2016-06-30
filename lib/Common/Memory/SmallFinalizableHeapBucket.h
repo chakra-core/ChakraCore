@@ -30,7 +30,6 @@ protected:
     friend class HeapBucketGroup;
 
     void ResetMarks(ResetMarkFlags flags);
-    template<bool pageheap>
     void Sweep(RecyclerSweep& recyclerSweep);
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     size_t GetNonEmptyHeapBlockCount(bool checkCount) const;
@@ -45,7 +44,7 @@ protected:
     void VerifyMark();
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
     template <typename TBlockType>
     friend class HeapBucketT;
@@ -59,9 +58,7 @@ protected:
 };
 
 #define DeclareFinalizableHeapBucket(type) \
-    template <class TBlockAttributes> class Small##type##HeapBucketT : public SmallFinalizableHeapBucketBaseT<Small##type##HeapBlockT<TBlockAttributes> >{}; \
-    extern template class SmallFinalizableHeapBucketBaseT<Small##type##HeapBlockT<SmallAllocationBlockAttributes>>; \
-    extern template class SmallFinalizableHeapBucketBaseT<Small##type##HeapBlockT<MediumAllocationBlockAttributes>>;
+    template <class TBlockAttributes> class Small##type##HeapBucketT : public SmallFinalizableHeapBucketBaseT<Small##type##HeapBlockT<TBlockAttributes> >{};
 
 DeclareFinalizableHeapBucket(Finalizable);
 #ifdef RECYCLER_WRITE_BARRIER
@@ -206,7 +203,6 @@ public:
     void ScanInitialImplicitRoots(Recycler * recycler);
     void ScanNewImplicitRoots(Recycler * recycler);
 
-    template<bool pageheap>
     void Sweep(RecyclerSweep& recyclerSweep);
     uint Rescan(Recycler * recycler, RescanFlags flags);
 #if ENABLE_CONCURRENT_GC
@@ -221,7 +217,6 @@ public:
     void SetupBackgroundSweep(RecyclerSweep& recyclerSweep);
     void TransferPendingEmptyHeapBlocks(RecyclerSweep& recyclerSweep);
 #endif
-    template<bool pageheap>
     void SweepFinalizableObjects(RecyclerSweep& recyclerSweep);
     void DisposeObjects();
     void TransferDisposedObjects();

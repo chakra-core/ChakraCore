@@ -12,7 +12,7 @@ namespace Js
     {
     }
 
-    LiteralString::LiteralString(StaticType * type, const wchar_t* content, charcount_t charLength) :
+    LiteralString::LiteralString(StaticType * type, const char16* content, charcount_t charLength) :
         JavascriptString(type, charLength, content)
     {
 #if defined(DBG) && defined(_M_IX86)
@@ -20,27 +20,29 @@ namespace Js
         AssertMsg(!ThreadContext::IsOnStack((void*)content),
             "LiteralString object created using stack buffer...");
 #endif
+#if SYSINFO_IMAGE_BASE_AVAILABLE
        AssertMsg(AutoSystemInfo::IsJscriptModulePointer((void *)content)
            || type->GetScriptContext()->GetRecycler()->IsValidObject((void *)content),
            "LiteralString can only be used with static or GC strings");
+#endif
 
 #ifdef PROFILE_STRINGS
         StringProfiler::RecordNewString( type->GetScriptContext(), content, charLength );
 #endif
     }
 
-    LiteralString* LiteralString::New(StaticType* type, const wchar_t* content, charcount_t charLength, Recycler* recycler)
+    LiteralString* LiteralString::New(StaticType* type, const char16* content, charcount_t charLength, Recycler* recycler)
     {
         return RecyclerNew(recycler, LiteralString, type, content, charLength);
     }
 
     LiteralString* LiteralString::CreateEmptyString(StaticType* type)
     {
-        return RecyclerNew(type->GetScriptContext()->GetRecycler(), LiteralString, type, L"", 0);
+        return RecyclerNew(type->GetScriptContext()->GetRecycler(), LiteralString, type, _u(""), 0);
     }
 
 
-    ArenaLiteralString::ArenaLiteralString(StaticType * type, const wchar_t* content, charcount_t charLength) :
+    ArenaLiteralString::ArenaLiteralString(StaticType * type, const char16* content, charcount_t charLength) :
       JavascriptString(type, charLength, content)
     {
 #if defined(DBG) && defined(_M_IX86)
@@ -57,12 +59,12 @@ namespace Js
 #endif
     }
 
-    ArenaLiteralString* ArenaLiteralString::New(StaticType* type, const wchar_t* content, charcount_t charLength, Recycler* recycler)
+    ArenaLiteralString* ArenaLiteralString::New(StaticType* type, const char16* content, charcount_t charLength, Recycler* recycler)
     {
         return RecyclerNew(recycler, ArenaLiteralString, type, content, charLength);
     }
 
-    ArenaLiteralString* ArenaLiteralString::New(StaticType* type, const wchar_t* content, charcount_t charLength, ArenaAllocator* arena)
+    ArenaLiteralString* ArenaLiteralString::New(StaticType* type, const char16* content, charcount_t charLength, ArenaAllocator* arena)
     {
         return Anew(arena, ArenaLiteralString, type, content, charLength);
     }

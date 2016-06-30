@@ -38,11 +38,24 @@ namespace Js
 
     private:
         template <typename T>
-        T* ConvertToTypeHandler(DynamicObject* instance, int initSlotCapacity);
+        T* ConvertToTypeHandler(DynamicObject* instance, int initSlotCapacity, BOOL isProto = FALSE);
 
-        DictionaryTypeHandler * ConvertToDictionaryType(DynamicObject* instance, int initSlotCapacity);
-        SimpleDictionaryTypeHandler * ConvertToSimpleDictionaryType(DynamicObject* instance, int initSlotCapacity);
+        DictionaryTypeHandler * ConvertToDictionaryType(DynamicObject* instance, int initSlotCapacity, BOOL isProto);
+        SimpleDictionaryTypeHandler * ConvertToSimpleDictionaryType(DynamicObject* instance, int initSlotCapacity, BOOL isProto);
         ES5ArrayTypeHandler * ConvertToES5ArrayType(DynamicObject* instance, int initSlotCapacity);
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override
+        {
+            ;
+        }
+
+        virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override
+        {
+            return 0;
+        }
+#endif
     };
 
     class DefaultDeferredTypeFilter
@@ -258,10 +271,12 @@ namespace Js
     {
         if (DeferredTypeFilter::HasFilter() && !DeferredTypeFilter::HasProperty(propertyId))
         {
+            *value = requestContext->GetMissingPropertyResult();
             return false;
         }
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
+            *value = requestContext->GetMissingPropertyResult();
             return FALSE;
         }
         return GetCurrentTypeHandler(instance)->GetProperty(instance, originalInstance, propertyId, value, info, requestContext);
@@ -273,6 +288,7 @@ namespace Js
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
+            *value = requestContext->GetMissingPropertyResult();
             return FALSE;
         }
         return GetCurrentTypeHandler(instance)->GetProperty(instance, originalInstance, propertyNameString, value, info, requestContext);
@@ -393,6 +409,7 @@ namespace Js
     {
         if (!EnsureObjectReady(instance, DeferredInitializeMode_Default))
         {
+            *value = requestContext->GetMissingItemResult();
             return FALSE;
         }
         return GetCurrentTypeHandler(instance)->GetItem(instance, originalInstance, index, value, requestContext);

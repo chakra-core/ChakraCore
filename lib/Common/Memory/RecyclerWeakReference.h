@@ -37,10 +37,13 @@ protected:
 
     char* strongRef;
     HeapBlock * strongRefHeapBlock;
-    SmallHeapBlock * weakRefHeapBlock;
+    HeapBlock * weakRefHeapBlock;
     RecyclerWeakReferenceBase* next;
 #if DBG
+#if ENABLE_RECYCLER_TYPE_TRACKING
     type_info const * typeInfo;
+#endif
+    
 #if defined TRACK_ALLOC && defined(PERF_COUNTERS)
     PerfCounter::Counter * counter;
 #endif
@@ -55,18 +58,18 @@ class RecyclerWeakReference: public RecyclerWeakReferenceBase
 public:
     // Fast get of the strong reference- this might return a wrong result if the recycler is in sweep so callers
     // should never call this during sweep
-    __inline T* FastGet() const
+    inline T* FastGet() const
     {
         return ((T*) strongRef);
     }
 
-    __inline T* Get() const
+    inline T* Get() const
     {
         char * ref = this->strongRef;
         return (T*)ref;
     }
 
-    __inline T** GetAddressOfStrongRef()
+    inline T** GetAddressOfStrongRef()
     {
         return (T**)&strongRef;
     }
@@ -160,20 +163,20 @@ public:
 #ifdef RECYCLER_TRACE_WEAKREF
     void DumpNode(RecyclerWeakReferenceBase* node)
     {
-        Output::Print(L"[ 0x%08x { 0x%08x, 0x%08x }]", node, node->strongRef, mode->next);
+        Output::Print(_u("[ 0x%08x { 0x%08x, 0x%08x }]"), node, node->strongRef, mode->next);
     }
 
     void Dump()
     {
         RecyclerWeakReferenceBase *current;
-        Output::Print(L"HashTable with %d buckets and %d nodes\n", this->size, this->count);
+        Output::Print(_u("HashTable with %d buckets and %d nodes\n"), this->size, this->count);
 
         for (uint i=0;i<size;i++) {
-            Output::Print(L"Bucket %d (0x%08x) ==> ", i, &buckets[i]);
+            Output::Print(_u("Bucket %d (0x%08x) ==> "), i, &buckets[i]);
             for (current = buckets[i] ; current != nullptr; current = current->next) {
                 DumpNode(current);
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 #endif
@@ -206,7 +209,7 @@ public:
                 count--;
 
 #ifdef RECYCLER_TRACE_WEAKREF
-                Output::Print(L"Remove 0x%08x to bucket %d, count is %d\n", current, val, count);
+                Output::Print(_u("Remove 0x%08x to bucket %d, count is %d\n"), current, val, count);
 #endif
                 break;
             }
@@ -333,7 +336,7 @@ private:
         if (IsDenserThan<MaxAverageChainLength>())
         {
 #ifdef RECYCLER_TRACE_WEAKREF
-            Output::Print(L"Count is %d\n", this->count);
+            Output::Print(_u("Count is %d\n"), this->count);
 #endif
             Resize(SizePolicy::GetSize(size*2));
             // After resize - we will need to recalculate the bucket
@@ -347,16 +350,18 @@ private:
         Assert(entry->strongRefHeapBlock != nullptr);
 
         HeapBlock * weakRefHeapBlock = recycler->FindHeapBlock(entry);
-        Assert(!weakRefHeapBlock->IsLargeHeapBlock());
-        entry->weakRefHeapBlock = (SmallHeapBlock *)weakRefHeapBlock;
+        Assert(!weakRefHeapBlock->IsLargeHeapBlock() || ((LargeHeapBlock*)weakRefHeapBlock)->InPageHeapMode());
+        entry->weakRefHeapBlock = weakRefHeapBlock;
 
 #ifdef RECYCLER_TRACE_WEAKREF
-        Output::Print(L"Add 0x%08x to bucket %d\n", entry, targetBucket);
+        Output::Print(_u("Add 0x%08x to bucket %d\n"), entry, targetBucket);
 #endif
         AddEntry(entry, &buckets[targetBucket]);
         count++;
 #if DBG
+#if ENABLE_RECYCLER_TYPE_TRACKING
         entry->typeInfo = nullptr;
+#endif
 #if defined(TRACK_ALLOC) && defined(PERF_COUNTERS)
         entry->counter = nullptr;
 #endif

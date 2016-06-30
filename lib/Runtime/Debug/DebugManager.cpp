@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
-#include "Language\JavascriptStackWalker.h"
+#include "Language/JavascriptStackWalker.h"
 namespace Js
 {
     DebugManager::DebugManager(ThreadContext* _pThreadContext, AllocationPolicyManager * allocationPolicyManager) :
@@ -19,14 +19,16 @@ namespace Js
         evalCodeRegistrationCount(0),
         anonymousCodeRegistrationCount(0),
         jscriptBlockRegistrationCount(0),
-        isDebuggerAttaching(false)
+        isDebuggerAttaching(false),
+        nextBreakPointId(0),
+        localsDisplayFlags(LocalsDisplayFlags_None),
+        dispatchHaltFrameAddress(nullptr)
     {
         Assert(_pThreadContext != nullptr);
 #if DBG
-        dispatchHaltFrameAddress = nullptr;
         // diagnosticPageAllocator may be used in multiple thread, but it's usage is synchronized.
         diagnosticPageAllocator.SetDisableThreadAccessCheck();
-        diagnosticPageAllocator.debugName = L"Diagnostic";
+        diagnosticPageAllocator.debugName = _u("Diagnostic");
 #endif
     }
 
@@ -76,7 +78,7 @@ namespace Js
 
         pCurrentInterpreterLocation = pHaltState;
 
-        AutoAllocatorObjectPtr<ArenaAllocator, HeapAllocator> pDiagArena(HeapNew(ArenaAllocator, L"DiagHaltState", this->pThreadContext->GetPageAllocator(), Js::Throw::OutOfMemory), &HeapAllocator::Instance);
+        AutoAllocatorObjectPtr<ArenaAllocator, HeapAllocator> pDiagArena(HeapNew(ArenaAllocator, _u("DiagHaltState"), this->pThreadContext->GetPageAllocator(), Js::Throw::OutOfMemory), &HeapAllocator::Instance);
         AutoAllocatorObjectPtr<ReferencedArenaAdapter, HeapAllocator> referencedDiagnosticArena(HeapNew(ReferencedArenaAdapter, pDiagArena), &HeapAllocator::Instance);
         pCurrentInterpreterLocation->referencedDiagnosticArena = referencedDiagnosticArena;
 
@@ -125,7 +127,7 @@ namespace Js
         return (DynamicObject*)CrossSite::MarshalVar(scriptContext, (Var)this->pConsoleScope);
     }
 
-    FrameDisplay *DebugManager::GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne, bool addGlobalThisAtScopeTwo)
+    FrameDisplay *DebugManager::GetFrameDisplay(ScriptContext* scriptContext, DynamicObject* scopeAtZero, DynamicObject* scopeAtOne)
     {
         // The scope chain for console eval looks like:
         //  - dummy empty object - new vars, let, consts, functions get added here
@@ -136,10 +138,7 @@ namespace Js
 
         FrameDisplay* environment = JavascriptOperators::OP_LdFrameDisplay(this->GetConsoleScope(scriptContext), const_cast<FrameDisplay *>(&NullFrameDisplay), scriptContext);
 
-        if (addGlobalThisAtScopeTwo)
-        {
-            environment = JavascriptOperators::OP_LdFrameDisplay(scriptContext->GetGlobalObject()->ToThis(), environment, scriptContext);
-        }
+        environment = JavascriptOperators::OP_LdFrameDisplay(scriptContext->GetGlobalObject()->ToThis(), environment, scriptContext);
 
         if (scopeAtOne != nullptr)
         {
@@ -156,8 +155,8 @@ namespace Js
         DynamicObject* consoleScope = this->GetConsoleScope(scriptContext);
         Js::RecyclableObject* recyclableObject = Js::RecyclableObject::FromVar(copyFromScope);
 
-        ulong newPropCount = recyclableObject->GetPropertyCount();
-        for (ulong i = 0; i < newPropCount; i++)
+        uint32 newPropCount = recyclableObject->GetPropertyCount();
+        for (uint32 i = 0; i < newPropCount; i++)
         {
             Js::PropertyId propertyId = recyclableObject->GetPropertyId((Js::PropertyIndex)i);
             // For deleted properties we won't have a property id
@@ -168,14 +167,14 @@ namespace Js
                 BOOL gotPropertyValue = recyclableObject->GetProperty(recyclableObject, propertyId, &propertyValue, &propertyValueInfo, scriptContext);
                 AssertMsg(gotPropertyValue, "DebugManager::UpdateConsoleScope Should have got valid value?");
 
-                OUTPUT_TRACE(Js::ConsoleScopePhase, L"Adding property '%s'\n", scriptContext->GetPropertyName(propertyId)->GetBuffer());
+                OUTPUT_TRACE(Js::ConsoleScopePhase, _u("Adding property '%s'\n"), scriptContext->GetPropertyName(propertyId)->GetBuffer());
 
                 BOOL updateSuccess = consoleScope->SetPropertyWithAttributes(propertyId, propertyValue, propertyValueInfo.GetAttributes(), &propertyValueInfo);
                 AssertMsg(updateSuccess, "DebugManager::UpdateConsoleScope Unable to update property value. Am I missing a scenario?");
             }
         }
 
-        OUTPUT_TRACE(Js::ConsoleScopePhase, L"Number of properties on console scope object after update are %d\n", consoleScope->GetPropertyCount());
+        OUTPUT_TRACE(Js::ConsoleScopePhase, _u("Number of properties on console scope object after update are %d\n"), consoleScope->GetPropertyCount());
     }
 
 #if DBG
@@ -198,4 +197,26 @@ namespace Js
         }
     }
 #endif
+}
+
+AutoSetDispatchHaltFlag::AutoSetDispatchHaltFlag(Js::ScriptContext *scriptContext, ThreadContext *threadContext) :
+    m_scriptContext(scriptContext),
+    m_threadContext(threadContext)
+{
+    Assert(m_scriptContext != nullptr);
+    Assert(m_threadContext != nullptr);
+
+    Assert(!m_threadContext->GetDebugManager()->IsAtDispatchHalt());
+    m_threadContext->GetDebugManager()->SetDispatchHalt(true);
+
+    Assert(!m_scriptContext->GetDebugContext()->GetProbeContainer()->IsPrimaryBrokenToDebuggerContext());
+    m_scriptContext->GetDebugContext()->GetProbeContainer()->SetIsPrimaryBrokenToDebuggerContext(true);
+}
+AutoSetDispatchHaltFlag::~AutoSetDispatchHaltFlag()
+{
+    Assert(m_threadContext->GetDebugManager()->IsAtDispatchHalt());
+    m_threadContext->GetDebugManager()->SetDispatchHalt(false);
+
+    Assert(m_scriptContext->GetDebugContext()->GetProbeContainer()->IsPrimaryBrokenToDebuggerContext());
+    m_scriptContext->GetDebugContext()->GetProbeContainer()->SetIsPrimaryBrokenToDebuggerContext(false);
 }

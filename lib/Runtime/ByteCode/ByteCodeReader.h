@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 namespace Js
@@ -43,6 +44,7 @@ namespace Js
         OpCode ReadPrefixedOp(const byte *&ip, LayoutSize& layoutSize, OpCode prefix) const;
     public:
         OpCode ReadOp(LayoutSize& layoutSize);
+        OpCodeAsmJs ReadAsmJsOp(LayoutSize& layoutSize);
         OpCode ReadPrefixedOp(LayoutSize& layoutSize, OpCode prefix);
         OpCode PeekOp(LayoutSize& layoutSize) const;
         OpCode PeekOp() const { LayoutSize layoutSize; return PeekOp(layoutSize); }
@@ -67,8 +69,12 @@ namespace Js
 
         template <typename T>
         static AuxArray<T> const * ReadAuxArray(uint offset, FunctionBody * functionBody);
+        template <typename T>
+        static AuxArray<T> const * ReadAuxArrayWithLock(uint offset, FunctionBody * functionBody);
         static PropertyIdArray const * ReadPropertyIdArray(uint offset, FunctionBody * functionBody, uint extraSlots = 0);
+        static PropertyIdArray const * ReadPropertyIdArrayWithLock(uint offset, FunctionBody * functionBody, uint extraSlots = 0);
         static VarArrayVarCount const * ReadVarArrayVarCount(uint offset, FunctionBody * functionBody);
+        static VarArrayVarCount const * ReadVarArrayVarCountWithLock(uint offset, FunctionBody * functionBody);
 
         const byte* GetIP();
         void SetIP(const byte *const ip);

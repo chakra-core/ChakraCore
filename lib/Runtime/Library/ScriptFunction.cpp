@@ -95,9 +95,9 @@ namespace Js
 
             if (PHASE_TRACE1(Js::ScriptFunctionWithInlineCachePhase))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-                Output::Print(L"Function object with inline cache: function number: (%s)\tfunction name: %s\n",
+                Output::Print(_u("Function object with inline cache: function number: (%s)\tfunction name: %s\n"),
                     functionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName());
                 Output::Flush();
             }
@@ -236,7 +236,7 @@ namespace Js
         // instead update the address in the function entrypoint info
         else
         {
-            entryPointInfo->address = entryPoint;
+            entryPointInfo->jsMethod = entryPoint;
         }
 
         if (!isAsmJS)
@@ -289,7 +289,12 @@ namespace Js
 
         // The type has change from the default, it is not share, just use that one.
         JavascriptMethod directEntryPoint = newFunctionInfo->GetDirectEntryPoint(newFunctionInfo->GetDefaultEntryPointInfo());
-        Assert(directEntryPoint != DefaultDeferredParsingThunk && directEntryPoint != ProfileDeferredParsingThunk);
+#ifdef ENABLE_SCRIPT_PROFILING
+        Assert(directEntryPoint != DefaultDeferredParsingThunk
+            && directEntryPoint != ProfileDeferredParsingThunk);
+#else
+        Assert(directEntryPoint != DefaultDeferredParsingThunk);
+#endif
 
         Js::FunctionEntryPointInfo* defaultEntryPointInfo = newFunctionInfo->GetDefaultFunctionEntryPointInfo();
         JavascriptMethod thunkEntryPoint = this->UpdateThunkEntryPoint(defaultEntryPointInfo,
@@ -334,8 +339,8 @@ namespace Js
     {
         FunctionProxy* proxy = this->GetFunctionProxy();
         ParseableFunctionInfo * pFuncBody = proxy->EnsureDeserialized();
-        const wchar_t * inputStr = inputString->GetString();
-        const wchar_t * paramStr = wcschr(inputStr, L'(');
+        const char16 * inputStr = inputString->GetString();
+        const char16 * paramStr = wcschr(inputStr, _u('('));
 
         if (paramStr == nullptr || wcscmp(pFuncBody->GetDisplayName(), Js::Constants::EvalCode) == 0)
         {
@@ -349,7 +354,7 @@ namespace Js
 
         JavascriptString* prefixString = nullptr;
         uint prefixStringLength = 0;
-        const wchar_t* name = L"";
+        const char16* name = _u("");
         charcount_t nameLength = 0;
         Var returnStr = nullptr;
 
@@ -388,8 +393,8 @@ namespace Js
 
             if (this->GetFunctionInfo()->IsClassConstructor())
             {
-                name = L"constructor";
-                nameLength = _countof(L"constructor") -1; //subtract off \0
+                name = _u("constructor");
+                nameLength = _countof(_u("constructor")) -1; //subtract off \0
             }
             else
             {
@@ -418,8 +423,8 @@ namespace Js
             JavascriptExceptionOperators::ThrowOutOfMemory(this->GetScriptContext());
         }
 
-        wchar_t * funcBodyStr = RecyclerNewArrayLeaf(this->GetScriptContext()->GetRecycler(), wchar_t, totalLength);
-        wchar_t * funcBodyStrStart = funcBodyStr;
+        char16 * funcBodyStr = RecyclerNewArrayLeaf(this->GetScriptContext()->GetRecycler(), char16, totalLength);
+        char16 * funcBodyStrStart = funcBodyStr;
         if (prefixString != nullptr)
         {
             js_wmemcpy_s(funcBodyStr, prefixStringLength, prefixString->GetString(), prefixStringLength);
@@ -472,7 +477,7 @@ namespace Js
             BufferStringBuilder builder(pFuncBody->LengthInChars(), scriptContext);
             // TODO: What about surrogate pairs?
             utf8::DecodeOptions options = pFuncBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-            utf8::DecodeInto(builder.DangerousGetWritableBuffer(), pFuncBody->GetSource(L"ScriptFunction::EnsureSourceString"), pFuncBody->LengthInChars(), options);
+            utf8::DecodeInto(builder.DangerousGetWritableBuffer(), pFuncBody->GetSource(_u("ScriptFunction::EnsureSourceString")), pFuncBody->LengthInChars(), options);
             if (pFuncBody->IsLambda() || isActiveScript || this->GetFunctionInfo()->IsClassConstructor()
 #ifdef ENABLE_PROJECTION
                 || scriptContext->GetConfig()->IsWinRTEnabled()
@@ -494,6 +499,127 @@ namespace Js
         pFuncBody->SetCachedSourceString(cachedSourceString);
         return cachedSourceString;
     }
+
+#if ENABLE_TTD
+    void ScriptFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(this->GetParseableFunctionInfo());
+        extractor->MarkFunctionBody(fb);
+
+        Js::FrameDisplay* environment = this->GetEnvironment();
+        if(environment->GetLength() != 0)
+        {
+            extractor->MarkScriptFunctionScopeInfo(environment);
+        }
+
+        if(this->homeObj != nullptr)
+        {
+            extractor->MarkVisitVar(this->homeObj);
+        }
+
+        if(this->computedNameVar != nullptr)
+        {
+            extractor->MarkVisitVar(this->computedNameVar);
+        }
+    }
+
+    void ScriptFunction::ProcessCorePaths()
+    {
+        TTD::RuntimeContextInfo* rctxInfo = this->GetScriptContext()->TTDWellKnownInfo;
+
+        //do the body path mark
+        Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(this->GetParseableFunctionInfo());
+        rctxInfo->EnqueueNewFunctionBodyObject(this, fb, _u("!fbody"));
+
+        Js::FrameDisplay* environment = this->GetEnvironment();
+        uint32 scopeCount = environment->GetLength();
+
+        for(uint32 i = 0; i < scopeCount; ++i)
+        {
+            TTD::UtilSupport::TTAutoString scopePathString;
+            rctxInfo->BuildEnvironmentIndexBuffer(i, scopePathString);
+
+            void* scope = environment->GetItem(i);
+            switch(environment->GetScopeType(scope))
+            {
+            case Js::ScopeType::ScopeType_ActivationObject:
+            case Js::ScopeType::ScopeType_WithScope:
+            {    
+                rctxInfo->EnqueueNewPathVarAsNeeded(this, (Js::Var)scope, scopePathString.GetStrValue());
+                break;
+            }
+            case Js::ScopeType::ScopeType_SlotArray:
+            {
+                Js::ScopeSlots slotArray = (Js::Var*)scope;
+                uint slotArrayCount = slotArray.GetCount();
+
+                //get the function body associated with the scope
+                if(slotArray.IsFunctionScopeSlotArray())
+                {
+                    rctxInfo->EnqueueNewFunctionBodyObject(this, slotArray.GetFunctionBody(), scopePathString.GetStrValue());
+                }
+
+                for(uint j = 0; j < slotArrayCount; j++)
+                {
+                    Js::Var sval = slotArray.Get(j);
+
+                    TTD::UtilSupport::TTAutoString slotPathString;
+                    rctxInfo->BuildEnvironmentIndexAndSlotBuffer(i, j, slotPathString);
+
+                    rctxInfo->EnqueueNewPathVarAsNeeded(this, sval, slotPathString.GetStrValue());
+                }
+
+                break;
+            }
+            default:
+                AssertMsg(false, "Unknown scope kind");
+            }
+        }
+
+        if(this->homeObj != nullptr)
+        {
+            this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->homeObj, _u("_homeObj"));
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType ScriptFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapScriptFunctionObject;
+    }
+
+    void ScriptFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(this->GetFunctionInfo() != nullptr, "We are only doing this for functions with ParseableFunctionInfo.");
+
+        TTD::NSSnapObjects::SnapScriptFunctionInfo* ssfi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapScriptFunctionInfo>();
+        Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(this->GetParseableFunctionInfo());
+
+        alloc.CopyNullTermStringInto(fb->GetDisplayName(), ssfi->DebugFunctionName);
+
+        ssfi->BodyRefId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
+
+        Js::FrameDisplay* environment = this->GetEnvironment();
+        ssfi->ScopeId = TTD_INVALID_PTR_ID;
+        if(environment->GetLength() != 0)
+        {
+            ssfi->ScopeId = TTD_CONVERT_SCOPE_TO_PTR_ID(environment);
+        }
+
+        ssfi->HomeObjId = TTD_INVALID_PTR_ID;
+        if(this->homeObj != nullptr)
+        {
+            ssfi->HomeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->homeObj);
+        }
+
+        ssfi->ComputedNameInfo = this->computedNameVar;
+
+        ssfi->HasInlineCaches = this->hasInlineCaches;
+        ssfi->HasSuperReference = this->hasSuperReference;
+        ssfi->IsActiveScript = this->isActiveScript;
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapScriptFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapScriptFunctionObject>(objData, ssfi);
+    }
+#endif
 
     AsmJsScriptFunction::AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType), m_moduleMemory(nullptr)
@@ -692,7 +818,7 @@ namespace Js
         }
     }
 
-    bool ScriptFunction::GetSymbolName(const wchar_t** symbolName, charcount_t* length) const
+    bool ScriptFunction::GetSymbolName(const char16** symbolName, charcount_t* length) const
     {
         if (nullptr != this->computedNameVar && JavascriptSymbol::Is(this->computedNameVar))
         {
@@ -710,14 +836,14 @@ namespace Js
     {
         Assert(this->GetFunctionProxy() != nullptr); // The caller should guarantee a proxy exists
         ParseableFunctionInfo * func = this->GetFunctionProxy()->EnsureDeserialized();
-        const wchar_t* name = nullptr;
+        const char16* name = nullptr;
         charcount_t length = 0;
         JavascriptString* returnStr = nullptr;
         ENTER_PINNED_SCOPE(JavascriptString, computedName);
 
         if (computedNameVar != nullptr)
         {
-            const wchar_t* symbolName = nullptr;
+            const char16* symbolName = nullptr;
             charcount_t symbolNameLength = 0;
             if (this->GetSymbolName(&symbolName, &symbolNameLength))
             {

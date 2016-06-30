@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -11,45 +11,44 @@ class JavascriptSIMDFloat64x2;
 
 namespace Js
 {
-    class JavascriptSIMDInt16x8 sealed : public RecyclableObject
+    class JavascriptSIMDInt16x8 sealed : public JavascriptSIMDType
     {
     private:
-        SIMDValue value;
-
-        DEFINE_VTABLE_CTOR(JavascriptSIMDInt16x8, RecyclableObject);
-
-
+        DEFINE_VTABLE_CTOR(JavascriptSIMDInt16x8, JavascriptSIMDType);
+        static const char16 TypeName[];
     public:
         class EntryInfo
         {
         public:
             static FunctionInfo ToString;
+            static FunctionInfo ToLocaleString;
+            static FunctionInfo ValueOf;
+            static FunctionInfo SymbolToPrimitive;
             static FunctionInfo Bool;
         };
 
+        JavascriptSIMDInt16x8(StaticType *type);
         JavascriptSIMDInt16x8(SIMDValue *val, StaticType *type);
         static JavascriptSIMDInt16x8* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDInt16x8* FromVar(Var aValue);
+        static Var CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue, const Var* args, uint numArgs, CallInfo callInfo);
 
-        __inline SIMDValue GetValue() { return value; }
-
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
-        // Entry Points
-        static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
-        // End Entry Points
+        static const char16* GetTypeName();
+        inline SIMDValue GetValue() { return value; }
 
-        Var  Copy(ScriptContext* requestContext);
-        Var  CopyAndSetLane(uint index, int value, ScriptContext* requestContext);
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
+        {
+            swprintf_s(stringBuffer, countBuffer, _u("SIMD.Int16x8(%d, %d, %d, %d, %d, %d, %d, %d)"), value.i16[0], value.i16[1], value.i16[2], value.i16[3],
+                value.i16[4], value.i16[5], value.i16[6], value.i16[7]);
+        }
+
+        Var Copy(ScriptContext* requestContext);
+        Var CopyAndSetLane(uint index, int value, ScriptContext* requestContext);
 
     private:
-        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext);
-        Var  GetLaneAsNumber(uint index, ScriptContext* requestContext);
-        Var  GetLaneAsFlag(uint index, ScriptContext* requestContext);
+        Var GetLaneAsNumber(uint index, ScriptContext* requestContext);
     };
 }
-

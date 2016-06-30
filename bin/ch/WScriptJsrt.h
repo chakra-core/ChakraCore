@@ -19,44 +19,53 @@ public:
         CallbackMessage(unsigned int time, JsValueRef function);
         ~CallbackMessage();
 
-        HRESULT Call(LPCWSTR fileName);
+        HRESULT Call(LPCSTR fileName);
+        HRESULT CallFunction(LPCSTR fileName);
+        template <class Func>
+        static CallbackMessage* Create(JsValueRef function, const Func& func, unsigned int time = 0)
+        {
+            return new CustomMessage<Func, CallbackMessage>(time, function, func);
+        }
     };
 
     static void AddMessageQueue(MessageQueue *messageQueue);
+    static void PushMessage(MessageBase *message) { messageQueue->InsertSorted(message); }
 
     static LPCWSTR ConvertErrorCodeToMessage(JsErrorCode errorCode)
     {
         switch (errorCode)
         {
         case (JsErrorCode::JsErrorInvalidArgument) :
-            return L"TypeError: InvalidArgument";
+            return _u("TypeError: InvalidArgument");
         case (JsErrorCode::JsErrorNullArgument) :
-            return L"TypeError: NullArgument";
+            return _u("TypeError: NullArgument");
         case (JsErrorCode::JsErrorArgumentNotObject) :
-            return L"TypeError: ArgumentNotAnObject";
+            return _u("TypeError: ArgumentNotAnObject");
         case (JsErrorCode::JsErrorOutOfMemory) :
-            return L"OutOfMemory";
+            return _u("OutOfMemory");
         case (JsErrorCode::JsErrorScriptException) :
-            return L"ScriptError";
+            return _u("ScriptError");
         case (JsErrorCode::JsErrorScriptCompile) :
-            return L"SyntaxError";
+            return _u("SyntaxError");
         case (JsErrorCode::JsErrorFatal) :
-            return L"FatalError";
+            return _u("FatalError");
+        case (JsErrorCode::JsErrorInExceptionState) :
+            return _u("ErrorInExceptionState");
         default:
             AssertMsg(false, "Unexpected JsErrorCode");
             return nullptr;
         }
     }
 
-    static bool PrintException(LPCWSTR fileName, JsErrorCode jsErrorCode);
-    static JsValueRef LoadScript(JsValueRef callee, LPCWSTR fileName, size_t fileNameLength, LPCWSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule);
+    static bool PrintException(LPCSTR fileName, JsErrorCode jsErrorCode);
+    static JsValueRef LoadScript(JsValueRef callee, LPCSTR fileName, LPCWSTR fileContent, LPCWSTR scriptInjectType, bool isSourceModule);
     static DWORD_PTR GetNextSourceContext();
     static JsValueRef LoadScriptFileHelper(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, bool isSourceModule);
     static JsValueRef LoadScriptHelper(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState, bool isSourceModule);
-
+    static bool InstallObjectsOnObject(JsValueRef object, const char16* name, JsNativeFunction nativeFunction);
 private:
     static bool CreateArgumentsObject(JsValueRef *argsObject);
-    static bool CreateNamedFunction(const wchar_t*, JsNativeFunction callback, JsValueRef* functionVar);
+    static bool CreateNamedFunction(const char16*, JsNativeFunction callback, JsValueRef* functionVar);
     static JsValueRef __stdcall EchoCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall QuitCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall LoadModuleFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
@@ -65,6 +74,13 @@ private:
     static JsValueRef __stdcall LoadModuleCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall SetTimeoutCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall ClearTimeoutCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef __stdcall AttachCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef __stdcall DetachCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef __stdcall DumpFunctionPositionCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef __stdcall RequestAsyncBreakCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+
+    static JsValueRef __stdcall EmptyCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+
     static MessageQueue *messageQueue;
     static DWORD_PTR sourceContext;
 };

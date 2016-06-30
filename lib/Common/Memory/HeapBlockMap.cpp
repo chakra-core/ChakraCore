@@ -4,6 +4,14 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
+// The VS2013 linker treats this as a redefinition of an already
+// defined constant and complains. So skip the declaration if we're compiling
+// with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const uint Memory::HeapBlockMap32::L1Count;
+const uint Memory::HeapBlockMap32::L2Count;
+#endif
+
 #if defined(_M_X64_OR_ARM64)
 HeapBlockMap32::HeapBlockMap32(__in char * startAddress) :
     startAddress(startAddress),
@@ -106,7 +114,7 @@ HeapBlockMap32::SetHeapBlockNoCheck(void * address, uint pageCount, HeapBlock * 
 
         id2 = 0;
         id1++;
-        currentPageCount = min(pageCount, L2Count);
+        currentPageCount = min(pageCount, Memory::HeapBlockMap32::L2Count);
     }
 }
 
@@ -679,7 +687,7 @@ HeapBlockMap32::RescanHeapBlock(void * dirtyPage, HeapBlock::HeapBlockType block
     Assert(chunk != nullptr);
     char* heapBlockPageAddress = TBlockType::GetBlockStartAddress((char*) dirtyPage);
 
-    typedef TBlockType::HeapBlockAttributes TBlockAttributes;
+    typedef typename TBlockType::HeapBlockAttributes TBlockAttributes;
 
     // We need to check the entire mark bit vector here. It's not sufficient to just check the page's
     // mark bit vector because the object that's dirty on the page could have started on an earlier page
@@ -901,7 +909,7 @@ HeapBlockMap32::Rescan(Recycler * recycler, bool resetWriteWatch)
                 // We never have previously, but it still seems like we should.
 
                 BYTE writeBarrierByte = RecyclerWriteBarrierManager::GetWriteBarrier(pageAddress);
-                SwbVerboseTrace(recycler->GetRecyclerFlagsTable(), L"Address: 0x%p, Write Barrier value: %u\n", pageAddress, writeBarrierByte);
+                SwbVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Address: 0x%p, Write Barrier value: %u\n"), pageAddress, writeBarrierByte);
                 bool isDirty = (writeBarrierByte == 1);
 
                 if (isDirty)
@@ -1067,12 +1075,13 @@ HeapBlockMap32::RescanHeapBlockOnOOM(TBlockType* heapBlock, char* pageAddress, H
     // The following assert makes sure that this method is called only once per heap block
     Assert(blockStartAddress == pageAddress);
 
-    for (int i = 0; i < TBlockType::HeapBlockAttributes::PageCount; i++)
+    int inUsePageCount = heapBlock->GetPageCount() - heapBlock->GetUnusablePageCount();
+    for (int i = 0; i < inUsePageCount; i++)
     {
         char* pageAddressToScan = blockStartAddress + (i * AutoSystemInfo::PageSize);
 
         if (!SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(heapBlock,
-            pageAddressToScan, blockStartAddress, markBits, HeapInfo::GetObjectSizeForBucketIndex<TBlockType::HeapBlockAttributes>(bucketIndex), bucketIndex, nullptr, recycler))
+            pageAddressToScan, blockStartAddress, markBits, HeapInfo::template GetObjectSizeForBucketIndex<typename TBlockType::HeapBlockAttributes>(bucketIndex), bucketIndex, nullptr, recycler))
         {
             // Failed due to OOM
             ((TBlockType*)heapBlock)->SetNeedOOMRescan(recycler);

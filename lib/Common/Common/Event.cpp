@@ -3,8 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "Common\Event.h"
+#include "Common/Event.h"
 
+#ifdef _WIN32
 Event::Event(const bool autoReset, const bool signaled) : handle(CreateEvent(0, !autoReset, signaled, 0))
 {
     if(!handle)
@@ -18,3 +19,4 @@ bool Event::Wait(const unsigned int milliseconds) const
         Js::Throw::FatalInternalError();
     return result == WAIT_OBJECT_0;
 }
+#endif

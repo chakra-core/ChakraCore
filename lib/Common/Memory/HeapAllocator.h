@@ -130,6 +130,14 @@ struct HeapAllocator
     static HeapAllocator Instance;
     static HeapAllocator * GetNoMemProtectInstance();
 
+private:
+    HANDLE m_privateHeap;
+
+    void InitPrivateHeap();
+    void DestroyPrivateHeap();
+    HANDLE GetPrivateHeap();
+
+public:
 
 #ifdef TRACK_ALLOC
     // Doesn't support tracking information, dummy implementation
@@ -137,10 +145,6 @@ struct HeapAllocator
     void ClearTrackAllocInfo(TrackAllocData* data = NULL);
 
 #ifdef HEAP_TRACK_ALLOC
-#ifndef INTERNAL_MEM_PROTECT_HEAP_ALLOC
-    ~HeapAllocator();
-#endif
-
     static void InitializeThread()
     {
         memset(&nextAllocData, 0, sizeof(nextAllocData));
@@ -151,13 +155,13 @@ struct HeapAllocator
     __declspec(thread) static TrackAllocData nextAllocData;
     HeapAllocatorData data;
     static CriticalSection cs;
-#endif
-#endif
+#endif // HEAP_TRACK_ALLOC
+#endif // TRACK_ALLOC
 
-#ifdef INTERNAL_MEM_PROTECT_HEAP_ALLOC
-    HeapAllocator(bool allowMemProtect = true);
+    HeapAllocator(bool useAllocMemProtect = true);
     ~HeapAllocator();
 
+#ifdef INTERNAL_MEM_PROTECT_HEAP_ALLOC
     void FinishMemProtectHeapCollect();
 
 private:
@@ -167,8 +171,8 @@ private:
     bool isUsed;
     bool allocMemProtect;
     void * memProtectHeapHandle;
-#endif
-#endif
+#endif // DBG
+#endif // INTERNAL_MEM_PROTECT_HEAP_ALLOC
 }; // HeapAllocator.
 
 class NoThrowHeapAllocator
@@ -262,7 +266,7 @@ class MemoryLeakCheck
 public:
     MemoryLeakCheck() : head(NULL), tail(NULL), leakedBytes(0), leakedCount(0), enableOutput(true) {}
     ~MemoryLeakCheck();
-    static void AddLeakDump(wchar_t const * dump, size_t bytes, size_t count);
+    static void AddLeakDump(char16 const * dump, size_t bytes, size_t count);
     static void SetEnableOutput(bool flag) { leakCheck.enableOutput = flag; }
     static bool IsEnableOutput() { return leakCheck.enableOutput; }
 private:
@@ -270,7 +274,7 @@ private:
 
     struct LeakRecord
     {
-        wchar_t const * dump;
+        char16 const * dump;
         LeakRecord * next;
     };
 
@@ -290,21 +294,21 @@ private:
 // NoThrowNoMemProtectHeapAllocator overrides
 //----------------------------------------
 template <>
-_Ret_maybenull_ __inline void * __cdecl
+_Ret_maybenull_ inline void * __cdecl
 operator new(size_t byteSize, NoThrowNoMemProtectHeapAllocator * alloc, char * (NoThrowNoMemProtectHeapAllocator::*AllocFunc)(size_t))
 {
     return ::operator new(byteSize, alloc, true, AllocFunc);
 }
 
 template <>
-_Ret_maybenull_ __inline void * __cdecl
+_Ret_maybenull_ inline void * __cdecl
 operator new[](size_t byteSize, NoThrowNoMemProtectHeapAllocator * alloc, char * (NoThrowNoMemProtectHeapAllocator::*AllocFunc)(size_t))
 {
     return ::operator new[](byteSize, alloc, true, AllocFunc);
 }
 
 template <>
-_Ret_maybenull_ __inline void * __cdecl
+_Ret_maybenull_ inline void * __cdecl
 operator new(size_t byteSize, NoThrowNoMemProtectHeapAllocator * alloc, char * (NoThrowNoMemProtectHeapAllocator::*AllocFunc)(size_t), size_t plusSize)
 {
     return ::operator new(byteSize, alloc, true, AllocFunc, plusSize);
@@ -331,8 +335,6 @@ typedef NoThrowHeapAllocator NoThrowNoMemProtectHeapAllocator;
 #if !defined(USED_IN_STATIC_LIB)
 _Ret_maybenull_ void * __cdecl operator new(size_t byteSize);
 _Ret_maybenull_ void * __cdecl operator new[](size_t byteSize);
-void __cdecl operator delete(void * obj);
-void __cdecl operator delete[](void * obj);
 #endif
 
 //----------------------------------------
@@ -354,21 +356,21 @@ operator delete(void * obj, HeapAllocator * alloc, char * (HeapAllocator::*Alloc
 // NoThrowHeapAllocator overrides
 //----------------------------------------
 template <>
-_Ret_maybenull_ __inline void * __cdecl
+_Ret_maybenull_ inline void * __cdecl
 operator new(size_t byteSize, NoThrowHeapAllocator * alloc, char * (NoThrowHeapAllocator::*AllocFunc)(size_t))
 {
     return ::operator new(byteSize, alloc, true, AllocFunc);
 }
 
 template <>
-_Ret_maybenull_ __inline void * __cdecl
+_Ret_maybenull_ inline void * __cdecl
 operator new[](size_t byteSize, NoThrowHeapAllocator * alloc, char * (NoThrowHeapAllocator::*AllocFunc)(size_t))
 {
     return ::operator new[](byteSize, alloc, true, AllocFunc);
 }
 
 template <>
-_Ret_maybenull_ __inline void * __cdecl
+_Ret_maybenull_ inline void * __cdecl
 operator new(size_t byteSize, NoThrowHeapAllocator * alloc, char * (NoThrowHeapAllocator::*AllocFunc)(size_t), size_t plusSize)
 {
     return ::operator new(byteSize, alloc, true, AllocFunc, plusSize);
@@ -388,7 +390,7 @@ operator delete(void * obj, NoThrowHeapAllocator * alloc, char * (NoThrowHeapAll
 
 
 template <>
-_Ret_notnull_ __inline void * __cdecl
+_Ret_notnull_ inline void * __cdecl
 operator new(size_t byteSize, NoCheckHeapAllocator * alloc, char * (NoCheckHeapAllocator::*AllocFunc)(size_t))
 {
     Assert(byteSize != 0);
@@ -398,7 +400,7 @@ operator new(size_t byteSize, NoCheckHeapAllocator * alloc, char * (NoCheckHeapA
 
 
 template <>
-_Ret_notnull_ __inline void * __cdecl
+_Ret_notnull_ inline void * __cdecl
 operator new(size_t byteSize, NoCheckHeapAllocator * alloc, char * (NoCheckHeapAllocator::*AllocFunc)(size_t), size_t plusSize)
 {
     Assert(byteSize != 0);
@@ -408,7 +410,7 @@ operator new(size_t byteSize, NoCheckHeapAllocator * alloc, char * (NoCheckHeapA
 }
 
 
-_Ret_notnull_ __inline void * __cdecl
+_Ret_notnull_ inline void * __cdecl
 operator new[](size_t byteSize, NoCheckHeapAllocator * alloc, char * (NoCheckHeapAllocator::*AllocFunc)(size_t))
 {
     void * buffer = (alloc->*AllocFunc)(byteSize);

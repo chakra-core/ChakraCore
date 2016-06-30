@@ -309,7 +309,7 @@ public:
     Value *     Copy(JitArenaAllocator * allocator, ValueNumber newValueNumber) { return Value::New(allocator, newValueNumber, this->ShareValueInfo()); }
 
 #if DBG_DUMP
-    __declspec(noinline) void Dump() const { Output::Print(L"0x%X  ValueNumber: %3d,  -> ", this, this->valueNumber);  this->valueInfo->Dump(); }
+    __declspec(noinline) void Dump() const { Output::Print(_u("0x%X  ValueNumber: %3d,  -> "), this, this->valueNumber);  this->valueInfo->Dump(); }
 #endif
 };
 
@@ -1186,7 +1186,7 @@ private:
     SparseArray<Value>       *  byteCodeConstantValueArray;
     // Global bitvectors
     BVSparse<JitArenaAllocator> * byteCodeConstantValueNumbersBv;
-
+   
     // Global bitvectors
     IntConstantToStackSymMap *  intConstantToStackSymMap;
     IntConstantToValueMap*      intConstantToValueMap;
@@ -1206,6 +1206,7 @@ private:
 
     BVSparse<JitArenaAllocator> *  lengthEquivBv;
     BVSparse<JitArenaAllocator> *  argumentsEquivBv;
+    BVSparse<JitArenaAllocator> *  callerEquivBv;
 
     GlobOptBlockData            blockData;
 
@@ -1249,6 +1250,7 @@ private:
     bool                    doBoundCheckHoist : 1;
     bool                    doLoopCountBasedBoundCheckHoist : 1;
 
+    bool                    doPowIntIntTypeSpec : 1;
     bool                    isAsmJSFunc : 1;
     OpndList *              noImplicitCallUsesToInsert;
 
@@ -1300,7 +1302,7 @@ private:
     void                    CloneBlockData(BasicBlock *const toBlock, BasicBlock *const fromBlock);
     void                    CloneBlockData(BasicBlock *const toBlock, GlobOptBlockData *const toData, BasicBlock *const fromBlock);
     void                    CloneValues(BasicBlock *const toBlock, GlobOptBlockData *toData, GlobOptBlockData *fromData);
-    void                    MergeBlockData(GlobOptBlockData *toData, BasicBlock *toBlock, BasicBlock *fromBlock, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge);
+    void                    MergeBlockData(GlobOptBlockData *toData, BasicBlock *toBlock, BasicBlock *fromBlock, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge, bool forceTypeSpecOnLoopHeader);
     void                    DeleteBlockData(GlobOptBlockData *data);
     IR::Instr *             OptInstr(IR::Instr *&instr, bool* isInstrCleared);
     Value*                  OptDst(IR::Instr **pInstr, Value *dstVal, Value *src1Val, Value *src2Val, Value *dstIndirIndexVal, Value *src1IndirIndexVal);
@@ -1314,6 +1316,7 @@ private:
     void                    FinishOptHoistedPropOps(Loop * loop);
     IR::Instr *             SetTypeCheckBailOut(IR::Opnd *opnd, IR::Instr *instr, BailOutInfo *bailOutInfo);
     void                    OptArguments(IR::Instr *Instr);
+    void                    TrackInstrsForScopeObjectRemoval(IR::Instr * instr);
     BOOLEAN                 IsArgumentsOpnd(IR::Opnd* opnd);
     bool                    AreFromSameBytecodeFunc(IR::RegOpnd* src1, IR::RegOpnd* dst);
     void                    TrackArgumentsSym(IR::RegOpnd* opnd);
@@ -1429,6 +1432,7 @@ private:
     bool                    ShouldExpectConventionalArrayIndexValue(IR::IndirOpnd *const indirOpnd);
     ValueType               GetDivValueType(IR::Instr* instr, Value* src1Val, Value* src2Val, bool specialize);
 
+    bool                    IsInstrInvalidForMemOp(IR::Instr *, Loop *, Value *, Value *);
     bool                    CollectMemOpInfo(IR::Instr *, Value *, Value *);
     bool                    CollectMemOpStElementI(IR::Instr *, Loop *);
     bool                    CollectMemsetStElementI(IR::Instr *, Loop *);
@@ -1453,7 +1457,7 @@ private:
     IR::Instr*              FindArraySegmentLoadInstr(IR::Instr* instr);
     void                    RemoveMemOpSrcInstr(IR::Instr* memopInstr, IR::Instr* srcInstr, BasicBlock* block);
     void                    GetMemOpSrcInfo(Loop* loop, IR::Instr* instr, IR::RegOpnd*& base, IR::RegOpnd*& index, IRType& arrayType);
-    bool                    DoMemOp(Loop * loop);
+    bool                    HasMemOp(Loop * loop);
 
 private:
     void                    ChangeValueType(BasicBlock *const block, Value *const value, const ValueType newValueType, const bool preserveSubclassInfo, const bool allowIncompatibleType = false) const;
@@ -1575,8 +1579,9 @@ private:
     bool                    OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, bool isNotTypeSpecConv, bool allowNonPrimitives, Value **loopHeadValRef = nullptr);
     bool                    OptDstIsInvariant(IR::RegOpnd *dst);
     bool                    OptIsInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv, const bool forceInvariantHoisting = false);
-    void                    OptHoistInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *dstVal, Value *const src1Val, bool isNotTypeSpecConv, bool lossy = false);
-    bool                    TryHoistInvariant(IR::Instr *instr, BasicBlock *block, Value *dstVal, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv, const bool lossy = false, const bool forceInvariantHoisting = false);
+    void                    OptHoistInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *dstVal, Value *const src1Val, bool isNotTypeSpecConv, bool lossy = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
+    bool                    TryHoistInvariant(IR::Instr *instr, BasicBlock *block, Value *dstVal, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv,
+                                                const bool lossy = false, const bool forceInvariantHoisting = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     void                    HoistInvariantValueInfo(ValueInfo *const invariantValueInfoToHoist, Value *const valueToUpdate, BasicBlock *const targetBlock);
 public:
     static bool             IsTypeSpecPhaseOff(Func* func);
@@ -1623,6 +1628,7 @@ private:
     bool                    DoBoundCheckElimination() const;
     bool                    DoBoundCheckHoist() const;
     bool                    DoLoopCountBasedBoundCheckHoist() const;
+    bool                    DoPowIntIntTypeSpec() const;
 
 private:
     // GlobOptBailout.cpp
@@ -1648,7 +1654,7 @@ private:
     bool                    IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value *src1Val, Value *src2Val, BasicBlock * block, bool hasLiveFields, bool mayNeedImplicitCallBailOut, bool isForwardPass);
     static bool             IsTypeCheckProtected(const IR::Instr * instr);
     static bool             MayNeedBailOnImplicitCall(const IR::Instr * instr, Value *src1Val, Value *src2Val);
-    static bool             MayNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val, bool callsToPrimitive);
+    static bool             MaySrcNeedBailOnImplicitCall(IR::Opnd * opnd, Value *val);
 
     void                    GenerateBailAfterOperation(IR::Instr * *const pInstr, IR::BailOutKind kind);
 public:
@@ -1801,7 +1807,6 @@ private:
     IR::Instr *             TrackMarkTempObject(IR::Instr * instrStart, IR::Instr * instrEnd);
     void                    TrackTempObjectSyms(IR::Instr * instr, IR::RegOpnd * opnd);
     IR::Instr *             GenerateBailOutMarkTempObjectIfNeeded(IR::Instr * instr, IR::Opnd * opnd, bool isDst);
-    bool                    IsDefinedInCurrentLoopIteration(Loop *loop, Value *val) const;
 
     void                    KillStateForGeneratorYield();
 

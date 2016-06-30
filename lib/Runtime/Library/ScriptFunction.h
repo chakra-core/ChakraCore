@@ -69,6 +69,7 @@ namespace Js
         static uint32 GetOffsetOfEnvironment() { return offsetof(ScriptFunction, environment); }
         static uint32 GetOffsetOfCachedScopeObj() { return offsetof(ScriptFunction, cachedScopeObj); };
         static uint32 GetOffsetOfHasInlineCaches() { return offsetof(ScriptFunction, hasInlineCaches); };
+        static uint32 GetOffsetOfHomeObj() { return  offsetof(ScriptFunction, homeObj); }
 
         void ChangeEntryPoint(ProxyEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
         JavascriptMethod UpdateThunkEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
@@ -90,13 +91,23 @@ namespace Js
         virtual Var GetHomeObj() const override { return homeObj; }
         virtual void SetHomeObj(Var homeObj) override { this->homeObj = homeObj; }
         virtual void SetComputedNameVar(Var computedNameVar) override { this->computedNameVar = computedNameVar; }
-        bool GetSymbolName(const wchar_t** symbolName, charcount_t *length) const;
+        bool GetSymbolName(const char16** symbolName, charcount_t *length) const;
         virtual Var GetComputedNameVar() const override { return this->computedNameVar; }
         virtual JavascriptString* GetDisplayNameImpl() const;
         JavascriptString* GetComputedName() const;
         virtual bool IsAnonymousFunction() const override;
 
         virtual JavascriptFunction* GetRealFunctionObject() { return this; }
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual void ProcessCorePaths() override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class AsmJsScriptFunction : public ScriptFunction

@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #if defined(_M_ARM32_OR_ARM64) || defined(_M_X64)
-const long AstBytecodeRatioEstimate = 4;
+const int32 AstBytecodeRatioEstimate = 4;
 #else
-const long AstBytecodeRatioEstimate = 5;
+const int32 AstBytecodeRatioEstimate = 5;
 #endif
 
 class ByteCodeGenerator
@@ -13,7 +13,7 @@ class ByteCodeGenerator
 private:
     Js::ScriptContext* scriptContext;
     ArenaAllocator *alloc;
-    ulong flags;
+    uint32 flags;
     Js::PropertyRecordList* propertyRecords;
     SList<FuncInfo*> *funcInfoStack;
     ParseNode *currentBlock;
@@ -26,7 +26,7 @@ private:
     // pointer to the root function wrapper that will be invoked by the caller
     Js::ParseableFunctionInfo * pRootFunc;
 
-    long maxAstSize;
+    int32 maxAstSize;
     uint16 envDepth;
     uint sourceIndex;
     uint dynamicScopeCount;
@@ -93,12 +93,12 @@ public:
         return m_utf8SourceInfo->GetSrcInfo()->moduleID;
     }
 
-    void SetFlags(ulong grfscr)
+    void SetFlags(uint32 grfscr)
     {
         flags = grfscr;
     }
 
-    ulong GetFlags(void)
+    uint32 GetFlags(void)
     {
         return flags;
     }
@@ -172,10 +172,15 @@ public:
     void SetNeedEnvRegister();
     void AssignFrameObjRegister();
     void AssignFrameSlotsRegister();
+    void AssignParamSlotsRegister();
     void AssignFrameDisplayRegister();
 
+    void ProcessCapturedSym(Symbol *sym);
+    void ProcessScopeWithCapturedSym(Scope *scope);
     void InitScopeSlotArray(FuncInfo * funcInfo);
     void FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
+    void SetClosureRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
+    void EnsureSpecialScopeSlots(FuncInfo* funcInfo, Scope* scope);
     void SetHasTry(bool has);
     void SetHasFinally(bool has);
     void SetNumberOfInArgs(Js::ArgSlot argCount);
@@ -207,7 +212,7 @@ public:
     void AssignPropertyIds(Js::ParseableFunctionInfo* functionInfo);
     void MapCacheIdsToPropertyIds(FuncInfo *funcInfo);
     void MapReferencedPropertyIds(FuncInfo *funcInfo);
-    FuncInfo *StartBindFunction(const wchar_t *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNode *pnode);
+    FuncInfo *StartBindFunction(const char16 *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNode *pnode);
     void EndBindFunction(bool funcExprWithName);
     void StartBindCatch(ParseNode *pnode);
 
@@ -229,19 +234,22 @@ public:
     void EndEmitWith(ParseNode *pnodeWith);
     void EnsureFncScopeSlots(ParseNode *pnode, FuncInfo *funcInfo);
     void EnsureLetConstScopeSlots(ParseNode *pnodeBlock, FuncInfo *funcInfo);
-    void EnsureImportBindingScopeSlots(ParseNode* pnode, FuncInfo* funcInfo);
+    bool EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo);
+    void EmitAssignmentToDefaultModuleExport(ParseNode* pnode, FuncInfo* funcInfo);
+    void EmitModuleExportAccess(Symbol* sym, Js::OpCode opcode, Js::RegSlot location, FuncInfo* funcInfo);
+
     void PushScope(Scope *innerScope);
     void PopScope();
     void PushBlock(ParseNode *pnode);
     void PopBlock();
 
-    void PushFuncInfo(wchar_t const * location, FuncInfo* funcInfo);
-    void PopFuncInfo(wchar_t const * location);
+    void PushFuncInfo(char16 const * location, FuncInfo* funcInfo);
+    void PopFuncInfo(char16 const * location);
 
     Js::RegSlot PrependLocalScopes(Js::RegSlot evalEnv, Js::RegSlot tempLoc, FuncInfo *funcInfo);
     Symbol *FindSymbol(Symbol **symRef, IdentPtr pid, bool forReference = false);
-    Symbol *AddSymbolToScope(Scope *scope, const wchar_t *key, int keyLength, ParseNode *varDecl, SymbolType symbolType);
-    Symbol *AddSymbolToFunctionScope(const wchar_t *key, int keyLength, ParseNode *varDecl, SymbolType symbolType);
+    Symbol *AddSymbolToScope(Scope *scope, const char16 *key, int keyLength, ParseNode *varDecl, SymbolType symbolType);
+    Symbol *AddSymbolToFunctionScope(const char16 *key, int keyLength, ParseNode *varDecl, SymbolType symbolType);
     void FuncEscapes(Scope *scope);
     void EmitTopLevelStatement(ParseNode *stmt, FuncInfo *funcInfo, BOOL fReturnValue);
     void EmitInvertedLoop(ParseNode* outerLoop,ParseNode* invertedLoop,FuncInfo* funcInfo);
@@ -278,7 +286,7 @@ public:
 
     void DefineLabels(FuncInfo *funcInfo);
     void EmitProgram(ParseNode *pnodeProg);
-    void EmitScopeList(ParseNode *pnode);
+    void EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodyScopeNode = nullptr);
     void EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode);
     void EmitOneFunction(ParseNode *pnode);
     void EmitGlobalFncDeclInit(Js::RegSlot rhsLocation, Js::PropertyId propertyId, FuncInfo * funcInfo);
@@ -330,10 +338,10 @@ public:
 
     bool DoJitLoopBodies(FuncInfo *funcInfo) const;
 
-    static void Generate(__in ParseNode *pnode, ulong grfscr, __in ByteCodeGenerator* byteCodeGenerator, __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction ** functionRef);
+    static void Generate(__in ParseNode *pnode, uint32 grfscr, __in ByteCodeGenerator* byteCodeGenerator, __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction ** functionRef);
     void Begin(
         __in ArenaAllocator *alloc,
-        __in ulong grfscr,
+        __in uint32 grfscr,
         __in Js::ParseableFunctionInfo* pRootFunc);
 
     void SetCurrentSourceIndex(uint sourceIndex) { this->sourceIndex = sourceIndex; }
@@ -346,7 +354,6 @@ public:
     void StartSubexpression(ParseNode* node);
     void EndSubexpression(ParseNode* node);
 
-    bool UseParserBindings() const;
     bool IsES6DestructuringEnabled() const;
     bool IsES6ForLoopSemanticsEnabled() const;
 
@@ -360,6 +367,7 @@ public:
     void TrackFunctionDeclarationPropertyForDebugger(Symbol *functionDeclarationSymbol, FuncInfo *funcInfoParent);
     void UpdateDebuggerPropertyInitializationOffset(Js::RegSlot location, Js::PropertyId propertyId, bool shouldConsumeRegister = true);
 
+    void PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNode *pnode);
     FuncInfo *FindEnclosingNonLambda();
 
     bool CanStackNestedFunc(FuncInfo * funcInfo, bool trace = false);

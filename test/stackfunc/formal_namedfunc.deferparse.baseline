@@ -2,6 +2,6 @@ HasFuncDecl: test
 HasFuncDecl: test
 HasFuncAssignment: func
 HasMaybeEscapedNestedFunc (FormalAssignment): test (function  (#1.1), #2)
-RestoreHasFuncAssignment: func
+HasFuncDecl: func
 test1
 test2

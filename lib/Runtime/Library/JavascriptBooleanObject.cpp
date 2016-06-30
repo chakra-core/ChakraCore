@@ -57,7 +57,27 @@ namespace Js
 
     BOOL JavascriptBooleanObject::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Boolean, (Object)");
+        stringBuilder->AppendCppLiteral(_u("Boolean, (Object)"));
         return TRUE;
     }
+
+#if ENABLE_TTD
+    void JavascriptBooleanObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        if(this->value != nullptr)
+        {
+            extractor->MarkVisitVar(this->value);
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptBooleanObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapBoxedValueObject;
+    }
+
+    void JavascriptBooleanObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::TTDVar, TTD::NSSnapObjects::SnapObjectType::SnapBoxedValueObject>(objData, this->value);
+    }
+#endif
 } // namespace Js

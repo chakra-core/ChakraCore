@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-#include "core\ConfigParser.h"
+#include "Core/ConfigParser.h"
 
 // Include this file got get the default behavior for JsUtil::ExternalApi functions.
 void JsUtil::ExternalApi::RecoverUnusedMemory()
@@ -22,7 +22,7 @@ bool JsUtil::ExternalApi::RaiseOnIntOverflow()
 
 LPWSTR JsUtil::ExternalApi::GetFeatureKeyName()
 {
-    return L"";
+    return _u("");
 }
 
 bool JsUtil::ExternalApi::RaiseStackOverflowIfScriptActive(Js::ScriptContext * scriptContext, PVOID returnAddress)

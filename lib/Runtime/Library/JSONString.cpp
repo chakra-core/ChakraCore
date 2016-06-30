@@ -32,18 +32,18 @@ namespace Js
     createEscapeMap(true);
     */
     const WCHAR JSONString::escapeMap[] = {
-        L'u', L'u', L'u', L'u', L'u', L'u', L'u', L'u', L'b', L't', L'n', L'u', L'f',
-        L'r', L'u', L'u', L'u', L'u', L'u', L'u', L'u', L'u', L'u', L'u', L'u', L'u',
-        L'u', L'u', L'u', L'u', L'u', L'u', L'\0', L'\0', L'"', L'\0', L'\0', L'\0',
-        L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0',
-        L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0',
-        L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0',
-        L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0',
-        L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\\',
-        L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0',
-        L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0',
-        L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0', L'\0',
-        L'\0', L'\0' };
+        _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('b'), _u('t'), _u('n'), _u('u'), _u('f'),
+        _u('r'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'),
+        _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('\0'), _u('\0'), _u('"'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\\'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0') };
 
     const BYTE JSONString::escapeMapCount[] =
     { 5, 5, 5, 5, 5, 5, 5, 5, 1, 1, 1, 5, 1, 1, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 1, 0, 0, 0, 0, 0
@@ -74,7 +74,7 @@ namespace Js
         Assert(m_originalString->GetLength() < length);
     }
 
-    const wchar_t* JSONString::GetSz()
+    const char16* JSONString::GetSz()
     {
         Assert(!this->IsFinalized());
         charcount_t length = this->GetLength() + /*terminating null*/1;
@@ -90,20 +90,20 @@ namespace Js
         return buffer;
     }
 
-    void WritableStringBuffer::Append(const wchar_t * str, charcount_t countNeeded)
+    void WritableStringBuffer::Append(const char16 * str, charcount_t countNeeded)
     {
         JavascriptString::CopyHelper(m_pszCurrentPtr, str, countNeeded);
         this->m_pszCurrentPtr += countNeeded;
         Assert(this->GetCount() <= m_length);
     }
 
-    void WritableStringBuffer::Append(wchar_t c)
+    void WritableStringBuffer::Append(char16 c)
     {
         *m_pszCurrentPtr = c;
         this->m_pszCurrentPtr++;
         Assert(this->GetCount() <= m_length);
     }
-    void WritableStringBuffer::AppendLarge(const wchar_t * str, charcount_t countNeeded)
+    void WritableStringBuffer::AppendLarge(const char16 * str, charcount_t countNeeded)
     {
         js_memcpy_s(m_pszCurrentPtr, sizeof(WCHAR) * countNeeded, str, sizeof(WCHAR) * countNeeded);
         this->m_pszCurrentPtr += countNeeded;

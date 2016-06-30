@@ -35,6 +35,11 @@ namespace Js
         RecyclableObject* proto = JavascriptOperators::GetPrototype(targetFunction);
         if (proto != type->GetPrototype())
         {
+            if (type->GetIsShared())
+            {
+                this->ChangeType();
+                type = this->GetDynamicType();
+            }
             type->SetPrototype(proto);
         }
         // If targetFunction is proxy, need to make sure that traps are called in right order as per 19.2.3.2 in RC#4 dated April 3rd 2015.
@@ -145,6 +150,7 @@ namespace Js
 
         if (boundFunction->count > 0)
         {
+            BOOL isCrossSiteObject = boundFunction->IsCrossSiteObject();
             // OACR thinks that this can change between here and the check in the for loop below
             const unsigned int argCount = args.Info.Count;
 
@@ -171,9 +177,20 @@ namespace Js
             }
 
             // Copy the bound args
-            for (uint i=0; i<boundFunction->count; i++)
+            if (!isCrossSiteObject)
             {
-                newValues[index++] = boundFunction->boundArgs[i];
+                for (uint i = 0; i < boundFunction->count; i++)
+                {
+                    newValues[index++] = boundFunction->boundArgs[i];
+                }
+            }
+            else
+            {
+                // it is possible that the bound arguments are not marshalled yet.
+                for (uint i = 0; i < boundFunction->count; i++)
+                {
+                    newValues[index++] = CrossSite::MarshalVar(scriptContext, boundFunction->boundArgs[i]);
+                }
             }
 
             // Copy the extra args
@@ -208,6 +225,20 @@ namespace Js
         return aReturnValue;
     }
 
+    void BoundFunction::MarshalToScriptContext(Js::ScriptContext * scriptContext)
+    {
+        Assert(this->GetScriptContext() != scriptContext);
+        AssertMsg(VirtualTableInfo<BoundFunction>::HasVirtualTable(this), "Derived class need to define marshal to script context");
+        VirtualTableInfo<Js::CrossSiteObject<BoundFunction>>::SetVirtualTable(this);
+        this->targetFunction = (RecyclableObject*)CrossSite::MarshalVar(scriptContext, this->targetFunction);
+        this->boundThis = (RecyclableObject*)CrossSite::MarshalVar(this->GetScriptContext(), this->boundThis);
+        for (uint i = 0; i < count; i++)
+        {
+            this->boundArgs[i] = CrossSite::MarshalVar(this->GetScriptContext(), this->boundArgs[i]);
+        }
+    }
+
+
     JavascriptFunction * BoundFunction::GetTargetFunction() const
     {
         if (targetFunction != nullptr)
@@ -240,7 +271,7 @@ namespace Js
                 displayName = JavascriptString::FromVar(value);
             }
         }
-        return LiteralString::Concat(LiteralString::NewCopySz(L"bound ", this->GetScriptContext()), displayName);
+        return LiteralString::Concat(LiteralString::NewCopySz(_u("bound "), this->GetScriptContext()), displayName);
     }
 
     RecyclableObject* BoundFunction::GetBoundThis()
@@ -428,4 +459,84 @@ namespace Js
     {
         return this->targetFunction->HasInstance(instance, scriptContext, inlineCache);
     }
+
+#if ENABLE_TTD
+    void BoundFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        extractor->MarkVisitVar(this->targetFunction);
+
+        if(this->boundThis != nullptr)
+        {
+            extractor->MarkVisitVar(this->boundThis);
+        }
+
+        for(uint32 i = 0; i < this->count; ++i)
+        {
+            extractor->MarkVisitVar(this->boundArgs[i]);
+        }
+    }
+
+    void BoundFunction::ProcessCorePaths()
+    {
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->targetFunction, _u("!targetFunction"));
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->boundThis, _u("!boundThis"));
+
+        AssertMsg(this->count == 0, "Should only have empty args in core image");
+    }
+
+    TTD::NSSnapObjects::SnapObjectType BoundFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapBoundFunctionObject;
+    }
+
+    void BoundFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapBoundFunctionInfo* bfi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapBoundFunctionInfo>();
+
+        bfi->TargetFunction = TTD_CONVERT_VAR_TO_PTR_ID(this->targetFunction);
+        bfi->BoundThis = (this->boundThis != nullptr) ? TTD_CONVERT_VAR_TO_PTR_ID(this->boundThis) : TTD_INVALID_PTR_ID;
+
+        bfi->ArgCount = this->count;
+        bfi->ArgArray = nullptr;
+
+        if(bfi->ArgCount > 0)
+        {
+            bfi->ArgArray = alloc.SlabAllocateArray<TTD::TTDVar>(bfi->ArgCount);
+        }
+
+        uint32 depCount = 2;
+        TTD_PTR_ID* depArray = alloc.SlabReserveArraySpace<TTD_PTR_ID>(depCount + bfi->ArgCount);
+        depArray[0] = bfi->TargetFunction;
+        depArray[1] = bfi->BoundThis;
+
+        if(bfi->ArgCount > 0)
+        {
+            for(uint32 i = 0; i < bfi->ArgCount; ++i)
+            {
+                bfi->ArgArray[i] = this->boundArgs[i];
+                if(TTD::JsSupport::IsVarPtrValued(this->boundArgs[i]))
+                {
+                    depArray[depCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->boundArgs[i]);
+                    depCount++;
+                }
+            }
+        }
+        alloc.SlabCommitArraySpace<TTD_PTR_ID>(depCount, depCount + bfi->ArgCount);
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapBoundFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapBoundFunctionObject>(objData, bfi, alloc, depCount, depArray);
+    }
+
+    BoundFunction* BoundFunction::InflateBoundFunction(ScriptContext* ctx, RecyclableObject* function, Var bThis, uint32 ct, Var* args)
+    {
+        BoundFunction* res = RecyclerNew(ctx->GetRecycler(), BoundFunction, ctx->GetLibrary()->GetBoundFunctionType());
+
+        res->boundThis = bThis;
+        res->count = ct;
+        res->boundArgs = args;
+
+        res->targetFunction = function;
+
+        return res;
+    }
+#endif
 } // namespace Js

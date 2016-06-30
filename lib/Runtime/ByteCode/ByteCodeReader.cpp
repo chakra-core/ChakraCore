@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeByteCodePch.h"
 
 namespace Js
@@ -143,6 +144,13 @@ namespace Js
         return op;
     }
 
+    OpCodeAsmJs ByteCodeReader::ReadAsmJsOp(LayoutSize& layoutSize)
+    {
+        OpCode op = ReadOp(m_currentLocation, layoutSize);
+
+        return (OpCodeAsmJs)op;
+    }
+
     OpCode ByteCodeReader::ReadPrefixedOp(LayoutSize& layoutSize, OpCode prefix)
     {
         Assert(OpCodeUtil::IsPrefixOpcode(prefix));
@@ -238,17 +246,40 @@ namespace Js
         return auxArray;
     }
 
+    template <typename T>
+    AuxArray<T> const * ByteCodeReader::ReadAuxArrayWithLock(uint offset, FunctionBody * functionBody)
+    {
+        Js::AuxArray<T> const * auxArray = (Js::AuxArray<T> const *)(functionBody->GetAuxiliaryDataWithLock()->GetBuffer() + offset);
+        Assert(offset + auxArray->GetDataSize() <= functionBody->GetAuxiliaryDataWithLock()->GetLength());
+        return auxArray;
+    }
+
     // explicit instantiations
     template AuxArray<Var> const * ByteCodeReader::ReadAuxArray<Var>(uint offset, FunctionBody * functionBody);
     template AuxArray<int32> const * ByteCodeReader::ReadAuxArray<int32>(uint offset, FunctionBody * functionBody);
     template AuxArray<uint32> const * ByteCodeReader::ReadAuxArray<uint32>(uint offset, FunctionBody * functionBody);
     template AuxArray<double> const * ByteCodeReader::ReadAuxArray<double>(uint offset, FunctionBody * functionBody);
     template AuxArray<FuncInfoEntry> const * ByteCodeReader::ReadAuxArray<FuncInfoEntry>(uint offset, FunctionBody * functionBody);
+    template AuxArray<Var> const * ByteCodeReader::ReadAuxArrayWithLock<Var>(uint offset, FunctionBody * functionBody);
+    template AuxArray<int32> const * ByteCodeReader::ReadAuxArrayWithLock<int32>(uint offset, FunctionBody * functionBody);
+    template AuxArray<uint32> const * ByteCodeReader::ReadAuxArrayWithLock<uint32>(uint offset, FunctionBody * functionBody);
+    template AuxArray<double> const * ByteCodeReader::ReadAuxArrayWithLock<double>(uint offset, FunctionBody * functionBody);
+    template AuxArray<FuncInfoEntry> const * ByteCodeReader::ReadAuxArrayWithLock<FuncInfoEntry>(uint offset, FunctionBody * functionBody);
+    template const unaligned Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)0> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)0> > >(const byte*&);
+    template const unaligned Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)1> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)1> > >(const byte*&);
+    template const unaligned Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)2> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)2> > >(const byte*&);
 
     const Js::PropertyIdArray * ByteCodeReader::ReadPropertyIdArray(uint offset, FunctionBody * functionBody, uint extraSlots)
     {
         Js::PropertyIdArray const * propIds = (Js::PropertyIdArray const *)(functionBody->GetAuxiliaryData()->GetBuffer() + offset);
         Assert(offset + propIds->GetDataSize(extraSlots) <= functionBody->GetAuxiliaryData()->GetLength());
+        return propIds;
+    }
+
+    const Js::PropertyIdArray * ByteCodeReader::ReadPropertyIdArrayWithLock(uint offset, FunctionBody * functionBody, uint extraSlots)
+    {
+        Js::PropertyIdArray const * propIds = (Js::PropertyIdArray const *)(functionBody->GetAuxiliaryDataWithLock()->GetBuffer() + offset);
+        Assert(offset + propIds->GetDataSize(extraSlots) <= functionBody->GetAuxiliaryDataWithLock()->GetLength());
         return propIds;
     }
 
@@ -264,8 +295,17 @@ namespace Js
 
     const Js::VarArrayVarCount * ByteCodeReader::ReadVarArrayVarCount(uint offset, FunctionBody * functionBody)
     {
-        Js::VarArrayVarCount const * varArray = (Js::VarArrayVarCount const *)(functionBody->GetAuxiliaryContextData()->GetBuffer() + offset);
-        Assert(offset + varArray->GetDataSize() <= functionBody->GetAuxiliaryContextData()->GetLength());
+        Js::ByteBlock* auxiliaryContextData = functionBody->GetAuxiliaryContextData();
+        Js::VarArrayVarCount const * varArray = (Js::VarArrayVarCount const *)(auxiliaryContextData->GetBuffer() + offset);
+        Assert(offset + varArray->GetDataSize() <= auxiliaryContextData->GetLength());
+        return varArray;
+    }
+
+    const Js::VarArrayVarCount * ByteCodeReader::ReadVarArrayVarCountWithLock(uint offset, FunctionBody * functionBody)
+    {
+        Js::ByteBlock* auxiliaryContextData = functionBody->GetAuxiliaryContextDataWithLock();
+        Js::VarArrayVarCount const * varArray = (Js::VarArrayVarCount const *)(auxiliaryContextData->GetBuffer() + offset);
+        Assert(offset + varArray->GetDataSize() <= auxiliaryContextData->GetLength());
         return varArray;
     }
 

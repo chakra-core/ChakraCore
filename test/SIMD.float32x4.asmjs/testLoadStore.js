@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 
 function asmModule(stdlib, imports, buffer) {
@@ -10,8 +11,7 @@ function asmModule(stdlib, imports, buffer) {
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
     var i4splat = i4.splat;
-    var i4fromFloat64x2 = i4.fromFloat64x2;
-    var i4fromFloat64x2Bits = i4.fromFloat64x2Bits;
+    
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
     //var i4abs = i4.abs;
@@ -46,8 +46,7 @@ function asmModule(stdlib, imports, buffer) {
     var f4 = stdlib.SIMD.Float32x4; 
     var f4check = f4.check;    
     var f4splat = f4.splat;
-    var f4fromFloat64x2 = f4.fromFloat64x2;
-    var f4fromFloat64x2Bits = f4.fromFloat64x2Bits;
+    
     var f4fromInt32x4 = f4.fromInt32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     var f4abs = f4.abs;
@@ -56,7 +55,7 @@ function asmModule(stdlib, imports, buffer) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    var f4clamp = f4.clamp;
+    
     var f4min = f4.min;
     var f4max = f4.max;
     
@@ -71,10 +70,6 @@ function asmModule(stdlib, imports, buffer) {
     var f4greaterThanOrEqual = f4.greaterThanOrEqual;
 
     var f4select = f4.select;
-    var f4and = f4.and;
-    var f4or = f4.or;
-    var f4xor = f4.xor;
-    var f4not = f4.not;
     
     var f4load = f4.load;
     var f4load1 = f4.load1;
@@ -86,50 +81,14 @@ function asmModule(stdlib, imports, buffer) {
     var f4store2 = f4.store2;
     var f4store3 = f4.store3;
     
-    
-    var d2 = stdlib.SIMD.Float64x2;  
-    var d2check = d2.check;
-    var d2splat = d2.splat;
-    var d2fromFloat32x4 = d2.fromFloat32x4;
-    var d2fromFloat32x4Bits = d2.fromFloat32x4Bits;
-    var d2fromInt32x4 = d2.fromInt32x4;
-    var d2fromInt32x4Bits = d2.fromInt32x4Bits;
-    var d2abs = d2.abs;
-    var d2neg = d2.neg;
-    var d2add = d2.add;
-    var d2sub = d2.sub;
-    var d2mul = d2.mul;
-    var d2div = d2.div;
-    var d2clamp = d2.clamp;
-    var d2min = d2.min;
-    var d2max = d2.max;
-    
-    var d2sqrt = d2.sqrt;
-    var d2swizzle = d2.swizzle;
-    var d2shuffle = d2.shuffle;
-    var d2lessThan = d2.lessThan;
-    var d2lessThanOrEqual = d2.lessThanOrEqual;
-    var d2equal = d2.equal;
-    var d2notEqual = d2.notEqual;
-    var d2greaterThan = d2.greaterThan;
-    var d2greaterThanOrEqual = d2.greaterThanOrEqual;
-    var d2select = d2.select;
-    
-    var d2load  = d2.load;
-    var d2load1 = d2.load1;
-    
-    var d2store  = d2.store
-    var d2store1 = d2.store1;
-    
-    
     var fround = stdlib.Math.fround;
 
     var globImportF4 = f4check(imports.g1);       // global var import
     var globImportI4 = i4check(imports.g2);       // global var import
-    var globImportD2 = d2check(imports.g3);       // global var import
+    
     var g1 = f4(-5033.2,-3401.0,665.34,32234.1);          // global var initialized
     var g2 = i4(1065353216, -1073741824, -1077936128, 1082130432);          // global var initialized
-    var g3 = d2(0.12344,-1.6578);          // global var initialized
+    
     var gval = 1234;
     var gval2 = 1234.0;
 
@@ -146,11 +105,60 @@ function asmModule(stdlib, imports, buffer) {
     var Uint32Heap = new stdlib.Uint32Array(buffer);
     var Float32Heap = new stdlib.Float32Array(buffer);
 
+    function func0()
+    {
+        var x = f4(1.0, 2.0, 3.0, 4.0);
+        var y = f4(0.0, 0.0, 0.0, 0.0);
+        var st = f4(0.0, 0.0, 0.0, 0.0);
+        var ld = f4(0.0, 0.0, 0.0, 0.0);
+        
+        var t0 = f4(0.0, 0.0, 0.0, 0.0);
+        var t1 = f4(0.0, 0.0, 0.0, 0.0);
+        var t2 = f4(0.0, 0.0, 0.0, 0.0);
+        var t3 = f4(0.0, 0.0, 0.0, 0.0);
+        
+        var index = 100;
+        var size = 10;
+        var loopIndex = 0;
+        
+        for (loopIndex = 0; (loopIndex | 0) < (size | 0) ; loopIndex = (loopIndex + 1) | 0)
+        {
+            st = f4store(Int8Heap, index >> 0, x);
+            ld = f4load(Int8Heap, index >> 0);
+            y = f4add(st, ld);  // (0,0,0,0)
+            t0 = f4add(f4store(Int8Heap, index >> 0, x), f4load(Int8Heap, index   >> 0));
+            t0 = f4add(t0, y);
+
+            st = f4store1(Int8Heap, index >> 0, x);
+            ld = f4load(Int8Heap, index >> 0);
+            y = f4add(st, ld);  // (0,0,0,0)
+            t1 = f4add(f4store1(Int8Heap, index >> 0, x), f4load(Int8Heap, index   >> 0));
+            t1 = f4add(t1, y);
+
+            st = f4store2(Int8Heap, index >> 0, x);
+            ld = f4load(Int8Heap, index >> 0);
+            y = f4add(st, ld);  // (0,0,0,0)
+            t2 = f4add(f4store2(Int8Heap, index >> 0, x), f4load(Int8Heap, index   >> 0));
+            t2 = f4add(t2, y);
+
+            st = f4store3(Int8Heap, index >> 0, x);
+            ld = f4load(Int8Heap, index >> 0);
+            y = f4add(st, ld);  // (0,0,0,0)
+            t3 = f4add(f4store3(Int8Heap, index >> 0, x), f4load(Int8Heap, index   >> 0));
+            t3 = f4add(t3, y);
+
+            t0 = f4add(t0, f4add(t1, f4add(t2, t3)));
+            index = (index + 16 ) | 0;
+        }
+        return f4check(t0);
+    }
+
     function func1()
     {
         var x = f4(1.0, 2.0, 3.0, 4.0);
         var t = f4(0.0, 0.0, 0.0, 0.0);
         var y = f4(0.0, 0.0, 0.0, 0.0);
+        var z = f4(0.0, 0.0, 0.0 ,0.0);
         var index = 100;
         var size = 10;
         var loopIndex = 0;
@@ -633,6 +641,7 @@ function asmModule(stdlib, imports, buffer) {
     }
     
     return {
+        func0:func0,
         func1:func1, 
         func1OOB_1:func1OOB_1, 
         func1OOB_2:func1OOB_2, 
@@ -659,42 +668,39 @@ function asmModule(stdlib, imports, buffer) {
         };
 }
 var buffer = new ArrayBuffer(0x10000);
-var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)}, buffer);
+var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)}, buffer);
 
 var ret;
 
+ret = m.func0();
+equalSimd([16, 32, 48, 64], ret, SIMD.Float32x4, "LoadStore")
+
 ret = m.func1();
-print("func1");
 equalSimd([10, 20, 30, 40], ret, SIMD.Float32x4, "LoadStore")
 
-
 ret = m.func2();
-print("func3");
-equalSimd([10, 20, 30, 0], ret, SIMD.Float32x4, "LoadStore")
+equalSimd([10, 20, 30, 0], ret, SIMD.Float32x4, "LoadStore2")
 
 ret = m.func3();
-print("func3");
-equalSimd([10, 20, 0, 0], ret, SIMD.Float32x4, "LoadStore")
+equalSimd([10, 20, 0, 0], ret, SIMD.Float32x4, "LoadStore3")
 
 
 ret = m.func4();
-print("func4");
-equalSimd([10, 0, 0, 0], ret, SIMD.Float32x4, "LoadStore")
+equalSimd([10, 0, 0, 0], ret, SIMD.Float32x4, "LoadStore4")
 
 
 ret = m.func5();
-print("func5");
-equalSimd([10, 20, 0, 0], ret, SIMD.Float32x4, "LoadStore")
+
+equalSimd([10, 20, 0, 0], ret, SIMD.Float32x4, "LoadStore5")
 
 ret = m.func6();
-print("func6");
-equalSimd([10, 0, 0, 0], ret, SIMD.Float32x4, "LoadStore")
+equalSimd([10, 0, 0, 0], ret, SIMD.Float32x4, "LoadStore6")
 
 //
 
 var funcOOB1 = [m.func1OOB_1, m.func2OOB_1 ,m.func3OOB_1, m.func4OOB_1, m.func5OOB_1, m.func6OOB_1];
 var RESULT = 
-[SIMD.Float32x4(10, 20, 30, 40),	
+[SIMD.Float32x4(10, 20, 30, 40),
 SIMD.Float32x4(20, 30, 40, 0),
 SIMD.Float32x4(30, 40, 0, 0),
 SIMD.Float32x4(40, 0, 0, 0),
@@ -707,7 +713,7 @@ for (var i = 0; i < funcOOB1.length; i ++)
     {
         
         ret = funcOOB1[i]();
-        print("func" + (i+1) + "OOB_1");
+        
         equalSimd(RESULT[i], ret, SIMD.Float32x4, "Load Store Out of bounds test");
     } catch(e)
     {
@@ -721,7 +727,7 @@ var funcOOB2 = [m.func1OOB_2, m.func2OOB_2 ,m.func3OOB_2, m.func4OOB_2, m.func5O
 
 for (var i = 0; i < funcOOB2.length; i ++)
 {
-    print("func" + (i+1) + "OOB_2");
+    
     try
     {
         ret = funcOOB2[i]();
@@ -730,9 +736,11 @@ for (var i = 0; i < funcOOB2.length; i ++)
     } catch(e)
     {
         if (e instanceof RangeError)
-            print("Correct");
+        {
+        }
         else
             print("Wrong");
         
     }
 }
+print ("PASS");

@@ -40,7 +40,7 @@ namespace Js
         RecyclableObject* object;
         if (args.Info.Count < 1 || !JavascriptConversion::ToObject(arg0, scriptContext, &object))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, L"Object.prototype.__proto__");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Object.prototype.__proto__"));
         }
 
         // 3. Return O.[[GetPrototypeOf]]().
@@ -73,7 +73,7 @@ namespace Js
         // 4. If Type(O) is not Object, return undefined.
         if (args.Info.Count < 1 || !JavascriptConversion::CheckObjectCoercible(arg0, scriptContext))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, L"Object.prototype.__proto__");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Object.prototype.__proto__"));
         }
         else if (args.Info.Count < 2 || !JavascriptOperators::IsObjectOrNull(args[1]) || !JavascriptOperators::IsObject(arg0))
         {
@@ -118,4 +118,16 @@ namespace Js
                 && setter == scriptContext->GetLibrary()->Get__proto__setterFunction();
         }
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ObjectPrototypeObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapWellKnownObject;
+    }
+
+    void ObjectPrototypeObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapWellKnownObject>(objData, nullptr);
+    }
+#endif
 }

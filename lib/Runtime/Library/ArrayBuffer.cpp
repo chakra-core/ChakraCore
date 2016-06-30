@@ -174,12 +174,12 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
 
         if (!(callInfo.Flags & CallFlags_New) || (newTarget && JavascriptOperators::IsUndefinedObject(newTarget)))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew, L"ArrayBuffer");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew, _u("ArrayBuffer"));
         }
 
         uint32 byteLength = 0;
@@ -274,7 +274,7 @@ namespace Js
 
         if (arrayBuffer->IsDetached())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"ArrayBuffer.transfer");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.transfer"));
         }
 
         uint32 newBufferLength = arrayBuffer->bufferLength;
@@ -314,7 +314,7 @@ namespace Js
 
         if (arrayBuffer->IsDetached()) // 24.1.4.3: 5. If IsDetachedBuffer(O) is true, then throw a TypeError exception.
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"ArrayBuffer.prototype.slice");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.prototype.slice"));
         }
 
         int64 len = arrayBuffer->bufferLength;
@@ -371,7 +371,7 @@ namespace Js
 
             if (newBuffer->IsDetached()) // 24.1.4.3: 21. If IsDetachedBuffer(new) is true, then throw a TypeError exception.
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"ArrayBuffer.prototype.slice");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.prototype.slice"));
             }
 
             if (newBuffer == arrayBuffer) // 24.1.4.3: 22. If SameValue(new, O) is true, then throw a TypeError exception.
@@ -381,7 +381,7 @@ namespace Js
 
             if (newBuffer->bufferLength < byteLength) // 24.1.4.3: 23.If the value of new's [[ArrayBufferByteLength]] internal slot < newLen, then throw a TypeError exception.
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_ArgumentOutOfRange, L"ArrayBuffer.prototype.slice");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_ArgumentOutOfRange, _u("ArrayBuffer.prototype.slice"));
             }
         }
         else
@@ -394,7 +394,7 @@ namespace Js
 
         if (arrayBuffer->IsDetached()) // 24.1.4.3: 24. NOTE: Side-effects of the above steps may have detached O. 25. If IsDetachedBuffer(O) is true, then throw a TypeError exception.
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"ArrayBuffer.prototype.slice");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.prototype.slice"));
         }
 
         // Don't bother doing memcpy if we aren't copying any elements
@@ -475,13 +475,14 @@ namespace Js
         }
     }
 
-
     inline BOOL ArrayBuffer::IsBuiltinProperty(PropertyId propertyId)
     {
         // byteLength is only an instance property in pre-ES6
         if (propertyId == PropertyIds::byteLength
             && !GetScriptContext()->GetConfig()->IsES6TypedArrayExtensionsEnabled())
+        {
             return TRUE;
+        }
 
         return FALSE;
     }
@@ -502,8 +503,8 @@ namespace Js
         {
             return false;
         }
-        return DynamicObject::DeleteProperty(propertyId, flags);
 
+        return DynamicObject::DeleteProperty(propertyId, flags);
     }
 
     BOOL ArrayBuffer::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
@@ -514,6 +515,7 @@ namespace Js
             *propertyName = requestContext->GetPropertyString(specialPropertyIds[index]);
             return true;
         }
+
         return false;
     }
 
@@ -734,16 +736,27 @@ namespace Js
 
     BOOL ArrayBuffer::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Object, (ArrayBuffer)");
+        stringBuilder->AppendCppLiteral(_u("Object, (ArrayBuffer)"));
         return TRUE;
     }
 
     BOOL ArrayBuffer::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"[object ArrayBuffer]");
+        stringBuilder->AppendCppLiteral(_u("[object ArrayBuffer]"));
         return TRUE;
     }
 
+#if ENABLE_TTD
+    void ArrayBufferParent::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        extractor->MarkVisitVar(this->arrayBuffer);
+    }
+
+    void ArrayBufferParent::ProcessCorePaths()
+    {
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->arrayBuffer, _u("!buffer"));
+    }
+#endif
 
     JavascriptArrayBuffer::JavascriptArrayBuffer(uint32 length, DynamicType * type) :
         ArrayBuffer(length, type, (IsValidVirtualBufferLength(length)) ? AllocWrapper : malloc)
@@ -975,6 +988,31 @@ namespace Js
         return newArrayBuffer;
     }
 
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptArrayBuffer::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject;
+    }
+
+    void JavascriptArrayBuffer::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapArrayBufferInfo* sabi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapArrayBufferInfo>();
+
+        sabi->Length = this->GetByteLength();
+        if(sabi->Length == 0)
+        {
+            sabi->Buff = nullptr;
+        }
+        else
+        {
+            sabi->Buff = alloc.SlabAllocateArray<byte>(sabi->Length);
+            memcpy(sabi->Buff, this->GetBuffer(), sabi->Length);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayBufferInfo*, TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject>(objData, sabi);
+    }
+#endif
+
     ProjectionArrayBuffer::ProjectionArrayBuffer(uint32 length, DynamicType * type) :
         ArrayBuffer(length, type, CoTaskMemAlloc)
     {
@@ -1033,4 +1071,30 @@ namespace Js
         : ArrayBuffer(buffer, length, type)
     {
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ExternalArrayBuffer::GetSnapTag_TTD() const
+    {
+        //We re-map ExternalArrayBuffers to regular buffers since the 'real' host will be gone when we replay
+        return TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject;
+    }
+
+    void ExternalArrayBuffer::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapArrayBufferInfo* sabi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapArrayBufferInfo>();
+
+        sabi->Length = this->GetByteLength();
+        if(sabi->Length == 0)
+        {
+            sabi->Buff = nullptr;
+        }
+        else
+        {
+            sabi->Buff = alloc.SlabAllocateArray<byte>(sabi->Length);
+            memcpy(sabi->Buff, this->GetBuffer(), sabi->Length);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayBufferInfo*, TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject>(objData, sabi);
+    }
+#endif
 }

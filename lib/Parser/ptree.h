@@ -97,7 +97,7 @@ struct PnUniSlot : PnUni
 
 struct PnInt
 {
-    long lw;
+    int32 lw;
 };
 
 struct PnFlt
@@ -202,6 +202,8 @@ enum FncFlags
     kFunctionHasNewTargetReference              = 1 << 27, // function has a reference to new.target
     kFunctionIsAsync                            = 1 << 28, // function is async
     kFunctionHasDirectSuper                     = 1 << 29, // super()
+    kFunctionIsDefaultModuleExport              = 1 << 30, // function is the default export of a module
+    kFunctionHasAnyWriteToFormals               = 1 << 31  // To Track if there are any writes to formals.
 };
 
 struct RestorePoint;
@@ -213,8 +215,8 @@ struct PnFnc
     ParseNodePtr pnodeName;
     IdentPtr pid;
     LPCOLESTR hint;
-    ulong hintLength;
-    ulong hintOffset;
+    uint32 hintLength;
+    uint32 hintOffset;
     bool  isNameIdentifierRef;
     ParseNodePtr pnodeScopes;
     ParseNodePtr pnodeBodyScope;
@@ -232,7 +234,7 @@ struct PnFnc
     uint16 firstDefaultArg; // Position of the first default argument, if any
 
     unsigned int fncFlags;
-    long astSize;
+    int32 astSize;
     size_t cbMin; // Min an Lim UTF8 offsets.
     size_t cbLim;
     ULONG lineNumber;   // Line number relative to the current source buffer of the function declaration.
@@ -244,7 +246,7 @@ struct PnFnc
     RestorePoint *pRestorePoint;
     DeferredFunctionStub *deferredStub;
 
-    static const long MaxStackClosureAST = 800000;
+    static const int32 MaxStackClosureAST = 800000;
 
 private:
     void SetFlags(uint flags, bool set)
@@ -277,6 +279,7 @@ public:
     void SetDoesNotEscape(bool set = true) { SetFlags(kFunctionDoesNotEscape, set); }
     void SetHasDefaultArguments(bool set = true) { SetFlags(kFunctionHasDefaultArguments, set); }
     void SetHasHeapArguments(bool set = true) { SetFlags(kFunctionHasHeapArguments, set); }
+    void SetHasAnyWriteToFormals(bool set = true) { SetFlags((uint)kFunctionHasAnyWriteToFormals, set); }
     void SetHasNonSimpleParameterList(bool set = true) { SetFlags(kFunctionHasNonSimpleParameterList, set); }
     void SetHasNonThisStmt(bool set = true) { SetFlags(kFunctionHasNonThisStmt, set); }
     void SetHasReferenceableBuiltInArguments(bool set = true) { SetFlags(kFunctionHasReferenceableBuiltInArguments, set); }
@@ -300,6 +303,7 @@ public:
     void SetStrictMode(bool set = true) { SetFlags(kFunctionStrictMode, set); }
     void SetSubsumed(bool set = true) { SetFlags(kFunctionSubsumed, set); }
     void SetUsesArguments(bool set = true) { SetFlags(kFunctionUsesArguments, set); }
+    void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
@@ -309,6 +313,7 @@ public:
     bool GetStrictMode() const { return HasFlags(kFunctionStrictMode); }
     bool HasDefaultArguments() const { return HasFlags(kFunctionHasDefaultArguments); }
     bool HasHeapArguments() const { return true; /* HasFlags(kFunctionHasHeapArguments); Disabling stack arguments. Always return HeapArguments as True */ }
+    bool HasAnyWriteToFormals() const { return HasFlags((uint)kFunctionHasAnyWriteToFormals); }
     bool HasOnlyThisStmts() const { return !HasFlags(kFunctionHasNonThisStmt); }
     bool HasReferenceableBuiltInArguments() const { return HasFlags(kFunctionHasReferenceableBuiltInArguments); }
     bool HasSuperReference() const { return HasFlags(kFunctionHasSuperReference); }
@@ -332,6 +337,7 @@ public:
     bool IsSubsumed() const { return HasFlags(kFunctionSubsumed); }
     bool NameIsHidden() const { return HasFlags(kFunctionNameIsHidden); }
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
+    bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
 
     size_t LengthInBytes()
     {
@@ -369,6 +375,16 @@ struct PnClass
     ParseNodePtr pnodeMembers;
     ParseNodePtr pnodeStaticMembers;
     ParseNodePtr pnodeExtends;
+
+    bool isDefaultModuleExport;
+
+    void SetIsDefaultModuleExport(bool set) { isDefaultModuleExport = set; }
+    bool IsDefaultModuleExport() const { return isDefaultModuleExport; }
+};
+
+struct PnExportDefault
+{
+    ParseNodePtr pnodeExpr;
 };
 
 struct PnStrTemplate
@@ -388,10 +404,10 @@ struct PnProg : PnFnc
 
 struct PnModule : PnProg
 {
-    ModuleExportEntryList* localExportEntries;
-    ModuleExportEntryList* indirectExportEntries;
-    ModuleExportEntryList* starExportEntries;
-    ModuleImportEntryList* importEntries;
+    ModuleImportOrExportEntryList* localExportEntries;
+    ModuleImportOrExportEntryList* indirectExportEntries;
+    ModuleImportOrExportEntryList* starExportEntries;
+    ModuleImportOrExportEntryList* importEntries;
     IdentPtrList* requestedModules;
 };
 
@@ -590,6 +606,7 @@ struct ParseNode
         PnCatch         sxCatch;        // { catch(e : expr) {body} }
         PnClass         sxClass;        // class declaration
         PnFinally       sxFinally;      // finally
+        PnExportDefault sxExportDefault;// export default expr;
         PnFlt           sxFlt;          // double constant
         PnFnc           sxFnc;          // function declaration
         PnFor           sxFor;          // for loop
@@ -685,6 +702,7 @@ struct ParseNode
 
     bool IsCallApplyTargetLoad() { return isCallApplyTargetLoad; }
     void SetIsCallApplyTargetLoad() { isCallApplyTargetLoad = true; }
+
     bool IsVarLetOrConst() const
     {
         return this->nop == knopVarDecl || this->nop == knopLetDecl || this->nop == knopConstDecl;
@@ -724,6 +742,7 @@ const int kcbPnCall         = kcbPnNone + sizeof(PnCall);
 const int kcbPnCase         = kcbPnNone + sizeof(PnCase);
 const int kcbPnCatch        = kcbPnNone + sizeof(PnCatch);
 const int kcbPnClass        = kcbPnNone + sizeof(PnClass);
+const int kcbPnExportDefault= kcbPnNone + sizeof(PnExportDefault);
 const int kcbPnFinally      = kcbPnNone + sizeof(PnFinally);
 const int kcbPnFlt          = kcbPnNone + sizeof(PnFlt);
 const int kcbPnFnc          = kcbPnNone + sizeof(PnFnc);

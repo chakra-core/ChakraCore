@@ -43,10 +43,10 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Set");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Set"));
 
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(SetCount);
 
@@ -58,7 +58,7 @@ namespace Js
         }
         else
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set"), _u("Set"));
         }
         Assert(setObject != nullptr);
 
@@ -80,7 +80,7 @@ namespace Js
 
         if (setObject->set != nullptr)
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, L"Set", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Set"), _u("Set"));
         }
 
 
@@ -88,12 +88,9 @@ namespace Js
 
         if (iter != nullptr)
         {
-            Var nextItem;
-
-            while (JavascriptOperators::IteratorStepAndValue(iter, scriptContext, &nextItem))
-            {
-                adder->GetEntryPoint()(adder, CallInfo(CallFlags_Value, 2), setObject, nextItem);
-            }
+            JavascriptOperators::DoIteratorStepAndValue(iter, scriptContext, [&](Var nextItem) {
+                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 2), setObject, nextItem);
+            });
         }
 
         return isCtorSuperCall ?
@@ -110,7 +107,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.add", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.add"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -137,7 +134,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.clear", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.clear"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -156,7 +153,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.delete", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.delete"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -174,11 +171,11 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Set.prototype.forEach");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Set.prototype.forEach"));
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.forEach", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.forEach"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -186,7 +183,7 @@ namespace Js
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Set.prototype.forEach");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Set.prototype.forEach"));
         }
         RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
 
@@ -198,7 +195,7 @@ namespace Js
         {
             Var value = iterator.Current();
 
-            callBackFn->GetEntryPoint()(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, value, args[0]);
+            CALL_FUNCTION(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, value, args[0]);
         }
 
         return scriptContext->GetLibrary()->GetUndefined();
@@ -213,7 +210,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.has", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.has"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -235,7 +232,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.size", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.size"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -254,7 +251,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.entries", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.entries"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -271,7 +268,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.values", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.values"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -328,7 +325,55 @@ namespace Js
 
     BOOL JavascriptSet::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Set");
+        stringBuilder->AppendCppLiteral(_u("Set"));
         return TRUE;
     }
+
+#if ENABLE_TTD
+    void JavascriptSet::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        auto iterator = this->GetIterator();
+        while(iterator.Next())
+        {
+            extractor->MarkVisitVar(iterator.Current());
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptSet::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapSetObject;
+    }
+
+    void JavascriptSet::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapSetInfo* ssi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapSetInfo>();
+        ssi->SetSize = 0;
+
+        if(this->Size() == 0)
+        {
+            ssi->SetValueArray = nullptr;
+        }
+        else
+        {
+            ssi->SetValueArray = alloc.SlabAllocateArray<TTD::TTDVar>(this->Size());
+
+            auto iter = this->GetIterator();
+            while(iter.Next())
+            {
+                ssi->SetValueArray[ssi->SetSize] = iter.Current();
+                ssi->SetSize++;
+            }
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapSetInfo*, TTD::NSSnapObjects::SnapObjectType::SnapSetObject>(objData, ssi);
+    }
+
+    JavascriptSet* JavascriptSet::CreateForSnapshotRestore(ScriptContext* ctx)
+    {
+        JavascriptSet* res = ctx->GetLibrary()->CreateSet();
+        res->set = RecyclerNew(ctx->GetRecycler(), SetDataSet, ctx->GetRecycler());
+
+        return res;
+    }
+#endif
 }

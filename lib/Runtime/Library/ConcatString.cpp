@@ -19,7 +19,7 @@ namespace Js
     }
 
     // Copy the content of items into specified buffer.
-    void ConcatStringBase::CopyImpl(_Out_writes_(m_charLength) wchar_t *const buffer,
+    void ConcatStringBase::CopyImpl(_Out_writes_(m_charLength) char16 *const buffer,
             int itemCount, _In_reads_(itemCount) JavascriptString * const * items,
             StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth)
     {
@@ -119,6 +119,14 @@ namespace Js
 
     /////////////////////// ConcatStringBuilder //////////////////////////
 
+    // MAX number of slots in one chunk. Until we fit into this, we realloc, otherwise create new chunk.
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    const int ConcatStringBuilder::c_maxChunkSlotCount;
+#endif
+
     ConcatStringBuilder::ConcatStringBuilder(ScriptContext* scriptContext, int initialSlotCount) :
         ConcatStringBase(scriptContext->GetLibrary()->GetStringTypeStatic()),
         m_count(0), m_prevChunk(NULL)
@@ -148,9 +156,9 @@ namespace Js
         return RecyclerNew(scriptContext->GetRecycler(), ConcatStringBuilder, scriptContext, initialSlotCount);
     }
 
-    const wchar_t * ConcatStringBuilder::GetSz()
+    const char16 * ConcatStringBuilder::GetSz()
     {
-        const wchar_t * sz = GetSzImpl<ConcatStringBuilder>();
+        const char16 * sz = GetSzImpl<ConcatStringBuilder>();
 
         // Allow a/b to be garbage collected if no more refs.
         ConcatStringBuilder* current = this;
@@ -253,7 +261,7 @@ namespace Js
     }
 
     void ConcatStringBuilder::CopyVirtual(
-        _Out_writes_(m_charLength) wchar_t *const buffer,
+        _Out_writes_(m_charLength) char16 *const buffer,
         StringCopyInfoStack &nestedStringTreeCopyInfos,
         const byte recursionDepth)
     {
@@ -330,11 +338,11 @@ namespace Js
         return static_cast<ConcatStringMulti *>(var);
     }
 
-    const wchar_t *
+    const char16 *
     ConcatStringMulti::GetSz()
     {
         Assert(IsFilled());
-        const wchar_t * sz = GetSzImpl<ConcatStringMulti>();
+        const char16 * sz = GetSzImpl<ConcatStringMulti>();
 
         // Allow slots to be garbage collected if no more refs.
         memset(m_slots, 0, slotCount * sizeof(JavascriptString*));

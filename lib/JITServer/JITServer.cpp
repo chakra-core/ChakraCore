@@ -156,7 +156,9 @@ ServerIsNativeAddr(
     /* [out] */ boolean * result)
 {
     ThreadContextInfo * context = reinterpret_cast<ThreadContextInfo*>(threadContextInfo);
-    *result = context->GetCodeGenAllocators()->emitBufferManager.IsInRange((void*)address);
+    // TODO: OOP JIT, prereserved segment
+    CustomHeap::CodePageAllocators::AutoLock autoLock(context->GetCodePageAllocators());
+    *result = context->GetCodePageAllocators()->IsInNonPreReservedPageAllocator((void*)address);
     return S_OK;
 }
 

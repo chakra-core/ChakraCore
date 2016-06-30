@@ -3,8 +3,10 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Language\JavascriptMathOperators.h"
-#include "Math\CrtSSE2Math.h"
+#include "Language/JavascriptMathOperators.h"
+#include "Math/CrtSSE2Math.h"
+
+#include <math.h>
 
 #if defined(_M_IX86) || defined(_M_X64)
 #pragma intrinsic(_mm_round_sd)
@@ -296,149 +298,23 @@ namespace Js
 
     double Math::Atan2( double x, double y )
     {
-        double result = 0;
-        enum
+        double result;
+#ifdef _M_IX86
+        if (AutoSystemInfo::Data.SSE2Available())
         {
-            kntP0,
-            kntP1,
-            kntPInf,
-            kntN0,
-            kntN1,
-            kntNInf,
-            kntLim
-        };
-
-        int nt1, nt2;
-
-        if( NumberUtilities::IsFinite( x ) )
-        {
-            nt1 = ( 0 == x ) ? kntP0 : kntP1;
-        }
-        else if( JavascriptNumber::IsNan( x ) )
-        {
-            result = x;
-            goto LDone;
-        }
-        else
-        {
-            nt1 = kntPInf;
-        }
-
-        // TODO (abchatra): Remove old macros LuHiDbl and LuLoDbl.
-        if( NumberUtilities::LuHiDbl( x ) & 0x80000000 )
-        {
-            nt1 += kntN0;
-        }
-
-        if( NumberUtilities::IsFinite( y ) )
-        {
-            nt2 = ( 0 == y ) ? kntP0 : kntP1;
-        }
-        else if( JavascriptNumber::IsNan( y ) )
-        {
-            result = y;
-            goto LDone;
-        }
-        else
-        {
-            nt2 = kntPInf;
-        }
-
-        if( NumberUtilities::LuHiDbl( y ) & 0x80000000 )
-        {
-            nt2 += kntN0;
-        }
-
-        // There are a bunch of cases that the CRT atan2 doesn't do correctly.
-#define NTP(a, b) ((a) * kntLim + (b))
-        switch( NTP( nt1, nt2 ) )
-        {
-        default:
-#if 0
-            // This Atan2 gives slightly different results.  Disable as it doesn't appear to
-            // be an important perf scenario.
-            if( AutoSystemInfo::Data.SSE2Available() )
+            _asm
             {
-                _asm {
-                    movsd xmm0, x
-                        movsd xmm1, y
-                        call dword ptr[__libm_sse2_atan2]
-                        movsd result, xmm0
-                }
+                movsd xmm0, x
+                movsd xmm1, y
+                call dword ptr[__libm_sse2_atan2]
+                movsd result, xmm0
             }
-            else
+        }
+        else
 #endif
-            {
-                result = ::atan2( x, y );
-            }
-            break;
-
-        case NTP( kntPInf, kntPInf ):
-            // +PI / 4 (+0.7853981633974483) : some compilers have problems with
-            // long decimal constants!
-            NumberUtilities::LuHiDbl( result ) = 0x3FE921FB;
-            NumberUtilities::LuLoDbl( result ) = 0x54442D18;
-            break;
-        case NTP( kntPInf, kntNInf ):
-            // +3 * PI / 4 (+2.356194490192345)
-            NumberUtilities::LuHiDbl( result ) = 0x4002D97C;
-            NumberUtilities::LuLoDbl( result ) = 0x7F3321D2;
-            break;
-        case NTP( kntNInf, kntPInf ):
-            // -PI / 4 (-0.7853981633974483)
-            NumberUtilities::LuHiDbl( result ) = 0xBFE921FB;
-            NumberUtilities::LuLoDbl( result ) = 0x54442D18;
-            break;
-        case NTP( kntNInf, kntNInf ):
-            // -3 * PI / 4 (-2.356194490192345)
-            NumberUtilities::LuHiDbl( result ) = 0xC002D97C;
-            NumberUtilities::LuLoDbl( result ) = 0x7F3321D2;
-            break;
-
-        case NTP( kntP0, kntP0 ):
-            // +0
-            result = 0;
-            break;
-        case NTP( kntP0, kntN0 ):
-            // +PI (+3.141592653589793)
-            NumberUtilities::LuHiDbl( result ) = 0x400921FB;
-            NumberUtilities::LuLoDbl( result ) = 0x54442D18;
-            break;
-        case NTP( kntN1, kntPInf ):
-        case NTP( kntN0, kntPInf ):
-        case NTP( kntN0, kntP1 ):
-        case NTP( kntN0, kntP0 ):
-            // -0
-            NumberUtilities::LuHiDbl( result ) = 0x80000000;
-            NumberUtilities::LuLoDbl( result ) = 0;
-            break;
-        case NTP( kntN0, kntN0 ):
-            // -PI (-3.141592653589793)
-            NumberUtilities::LuHiDbl( result ) = 0xC00921FB;
-            NumberUtilities::LuLoDbl( result ) = 0x54442D18;
-            break;
-
-        case NTP( kntPInf, kntN1 ):
-        case NTP( kntPInf, kntN0 ):
-            // +PI / 2 (+1.5707963267948966)
-            NumberUtilities::LuHiDbl( result ) = 0x3FF921FB;
-            NumberUtilities::LuLoDbl( result ) = 0x54442D18;
-            break;
-        case NTP( kntNInf, kntP1 ):
-        case NTP( kntNInf, kntP0 ):
-            // -PI / 2 (-1.5707963267948966)
-            NumberUtilities::LuHiDbl( result ) = 0xBFF921FB;
-            NumberUtilities::LuLoDbl( result ) = 0x54442D18;
-            break;
-        case NTP( kntN1, kntNInf ):
-        case NTP( kntN0, kntNInf ):
-        case NTP( kntN0, kntN1 ):
-            // -PI (-3.141592653589793)
-            NumberUtilities::LuHiDbl( result ) = 0xC00921FB;
-            NumberUtilities::LuLoDbl( result ) = 0x54442D18;
-            break;
+        {
+            result = ::atan2(x, y);
         }
-LDone:
         return result;
     }
 
@@ -462,14 +338,14 @@ LDone:
 
         if (args.Info.Count >= 2)
         {
-            Var input = args[1];
+            Var inputArg = args[1];
 
-            if (TaggedInt::Is(input))
+            if (TaggedInt::Is(inputArg))
             {
-                return input;
+                return inputArg;
             }
 
-            double x = JavascriptConversion::ToNumber(args[1], scriptContext);
+            double x = JavascriptConversion::ToNumber(inputArg, scriptContext);
 #if defined(_M_ARM32_OR_ARM64)
             if (Js::JavascriptNumber::IsNan(x))
             {
@@ -477,6 +353,8 @@ LDone:
             }
 #endif
 
+            // xplat-todo: use intrinsics here on linux
+#ifdef _MSC_VER
 #if defined(_M_IX86) || defined(_M_X64)
             if (AutoSystemInfo::Data.SSE4_1Available())
             {
@@ -506,6 +384,7 @@ LDone:
                 }
             }
             else
+#endif
 #endif
             {
                 double result = ::ceil(x);
@@ -672,8 +551,10 @@ LDone:
 
 #pragma warning(push)
 #pragma warning(disable:4700)  // // uninitialized local variable 'output' used, for call to _mm_floor_sd
-    Var __inline Math::FloorDouble(double d, ScriptContext *scriptContext)
+    Var inline Math::FloorDouble(double d, ScriptContext *scriptContext)
     {
+            // xplat-todo: use intrinsics here on linux
+#ifdef _MSC_VER
 #if defined(_M_IX86) || defined(_M_X64)
         if (AutoSystemInfo::Data.SSE4_1Available())
         {
@@ -713,6 +594,7 @@ LDone:
             }
         }
         else
+#endif
 #endif
         {
             intptr_t intResult;

@@ -3,7 +3,7 @@
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props"/>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)\Utf8Codex.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Utf8Codex.cpp" />
     <ClInclude Include="Utf8Codex.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

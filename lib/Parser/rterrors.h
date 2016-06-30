@@ -164,7 +164,7 @@ RT_ERROR_MSG(JSERR_Property_CannotDelete_NullOrUndefined, 5049, "Unable to delet
 RT_ERROR_MSG(JSERR_Property_VarDate, 5050, "Unable to access property '%s': type 'VarDate' does not support user-defined properties", "Object expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_Property_NeedFunction, 5051, "The value of the property '%s' is not a Function object", "Function expected", kjstTypeError, JSERR_NeedFunction)
 RT_ERROR_MSG(JSERR_Property_NeedFunction_NullOrUndefined, 5052, "The value of the property '%s' is null or undefined, not a Function object", "Function expected", kjstTypeError, JSERR_NeedObject)
-RT_ERROR_MSG(JSERR_Property_CannotHaveAccessorsAndValue, 5053, "", "Property cannot have both accessors and a value", kjstTypeError, VBSERR_ActionNotSupported)
+RT_ERROR_MSG(JSERR_Property_CannotHaveAccessorsAndValue, 5053, "", "Invalid property descriptor: cannot both specify accessors and a 'value' attribute", kjstTypeError, VBSERR_ActionNotSupported)
 
 RT_ERROR_MSG(JSERR_This_NullOrUndefined, 5054, "%s: 'this' is null or undefined", "'this' is null or undefined", kjstTypeError, JSERR_NeedObject) // {Locked="\'this\'"}
 RT_ERROR_MSG(JSERR_This_NeedObject, 5055, "%s: 'this' is not an Object", "Object expected", kjstTypeError, JSERR_NeedObject) // {Locked="\'this\'"}
@@ -250,7 +250,7 @@ RT_ERROR_MSG(JSERR_WeakMapSetKeyNotAnObject, 5117, "%s: 'key' is not an object",
 
 RT_ERROR_MSG(JSERR_OptionValueOutOfRange, 5118, "Option value '%s' for '%s' is outside of valid range. Expected: %s", "Option value is outside of valid range", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_NeedObjectOrString, 5119, "%s is not an object or a string", "Object or string expected", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_NotAConstructor, 5120, "Function '%s' is not a constructor", "This can't be used in a new statement", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_NotAConstructor, 5120, "Function '%s' is not a constructor", "Function is not a constructor", kjstTypeError, 0)
 
 //Intl Specific
 RT_ERROR_MSG(JSERR_LocaleNotWellFormed, 5121, "Locale '%s' is not well-formed", "Locale is not well-formed", kjstRangeError, 0)
@@ -275,14 +275,12 @@ RT_ERROR_MSG(JSERR_DeletePropertyWithSuper, 5146, "Unable to delete property '%s
 RT_ERROR_MSG(JSERR_DetachedTypedArray, 5147, "%s: The ArrayBuffer is detached.", "The ArrayBuffer is detached.", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_AsmJsCompileError, 5148, "%s: Compiling asm.js failed.", "Compiling asm.js failed.", kjstError, 0)
 
+RT_ERROR_MSG(JSERR_ImmutablePrototypeSlot, 5149, "%s: Can't set the prototype of this object.", "Can't set the prototype of this object.", kjstTypeError, 0)
+
 /* Error messages for misbehaved Async Operations for use in Promise.js */
 RT_ERROR_MSG(ASYNCERR_NoErrorInErrorState, 5200, "", "Status is 'error', but getResults did not return an error", kjstError, 0)
 RT_ERROR_MSG(ASYNCERR_InvalidStatusArg, 5201, "", "Missing or invalid status parameter passed to completed handler", kjstError, 0)
 RT_ERROR_MSG(ASYNCERR_InvalidSenderArg, 5202, "", "Missing or invalid sender parameter passed to completed handler", kjstError, 0)
-
-// Error messages for hybrid debugging
-RT_ERROR_MSG(DIAGERR_FunctionCallNotSupported, 5400, "", "Function evaluation is disabled while debugging native code", kjstError, 0)
-RT_ERROR_MSG(DIAGERR_EvaluateNotSupported, 5401, "", "Evaluation of the JavaScript expression is not supported while debugging native code", kjstError, 0)
 
 RT_ERROR_MSG(JSERR_InvalidCodePoint, 5600, "Invalid code point %s", "Invalid code point", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_InvalidNormalizationForm, 5601, "Normalization form '%s' is invalid. Expected one of: ['NFC', 'NFD', 'NFKC', 'NFKD'].", "Invalid normalization form. Expected one of: ['NFC', 'NFD', 'NFKC', 'NFKD']", kjstRangeError, 0)
@@ -334,3 +332,24 @@ RT_ERROR_MSG(JSERR_SimdUint8x16TypeMismatch, 5639, "SIMD.Uint8x16.%s: Invalid SI
 
 RT_ERROR_MSG(JSERR_FunctionArgument_FirstCannotBeRegExp, 5640, "%s: first argument cannot be a RegExp", "First argument cannot be a RegExp", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_RegExpExecInvalidReturnType, 5641, "%s: Return value of RegExp 'exec' is not an Object and is not null", "Return value of RegExp 'exec' is not an Object and is not null", kjstTypeError, 0)
+
+RT_ERROR_MSG(JSERR_ProxyTrapReturnedFalse, 5642, "Proxy trap `%s` returned false", "Proxy trap returned false", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_ModuleResolveExport, 5643, "Module export %s cannot be resolved", "Module export cannot be resolved", kjstSyntaxError, 0)
+RT_ERROR_MSG(JSERR_ModuleResolveImport, 5644, "Module import %s cannot be resolved", "Module import cannot be resolved", kjstSyntaxError, 0)
+RT_ERROR_MSG(JSERR_TooManyImportExports, 5645, "Module has too many import/export definitions", "Module has too many import/export definitions", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_CannotResolveModule, 5646, "HostResolveImportedModule failed to resolve module with specifier %s", "HostResolveImportedModule failed to resolve module", kjstReferenceError, 0)
+RT_ERROR_MSG(JSERR_ResolveExportFailed, 5647, "Resolve export %s failed due to circular reference or resolved exports", "Resolve export failed due to circular reference or resolved exports", kjstSyntaxError, 0)
+
+RT_ERROR_MSG(JSERR_ObjectCoercible, 5648, "", "Cannot convert null or undefined to object", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_SIMDConversion, 5649, "%s: cannot be converted to a number", "Cannot be converted to a number", kjstTypeError, 0)
+
+
+// JSON.parse errors. When this happens we want to make it explicitly clear the issue is in JSON.parse and not in the code
+RT_ERROR_MSG(JSERR_JsonSyntax, 5650, "JSON.parse Error: Unexpected input at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonNoColon, 5651,"JSON.parse Error: Expected ':' at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonNoRbrack, 5652, "JSON.parse Error: Expected ']' at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonNoRcurly, 5653, "JSON.parse Error: Expected '}' at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonBadNumber, 5654, "JSON.parse Error: Invalid number at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonIllegalChar, 5655, "JSON.parse Error: Invalid character at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonBadHexDigit, 5656, "JSON.parse Error: Expected hexadecimal digit at position:%s", "JSON.parse syntax error", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_JsonNoStrEnd, 5657, "JSON.parse Error: Unterminated string constant at position:%s", "JSON.parse syntax error", kjstTypeError, 0)

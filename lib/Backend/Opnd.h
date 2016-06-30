@@ -1,13 +1,13 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 class Value;
 
 namespace IR {
-
 
 class IntConstOpnd;
 class FloatConstOpnd;
@@ -190,9 +190,17 @@ public:
     bool                IsFloat64() const { return this->m_type == TyFloat64; }
     bool                IsFloat() const { return this->IsFloat32() || this->IsFloat64(); }
     bool                IsSimd128() const { return IRType_IsSimd128(this->m_type);  }
-    bool                IsSimd128F4() const { return this->m_type == TySimd128F4; }
-    bool                IsSimd128I4() const { return this->m_type == TySimd128I4; }
-    bool                IsSimd128D2() const { return this->m_type == TySimd128D2; }
+    bool                IsSimd128F4()  const { return this->m_type == TySimd128F4;  }
+    bool                IsSimd128I4()  const { return this->m_type == TySimd128I4;  }
+    bool                IsSimd128I8()  const { return this->m_type == TySimd128I8;  }
+    bool                IsSimd128I16() const { return this->m_type == TySimd128I16; }
+    bool                IsSimd128U4()  const { return this->m_type == TySimd128U4;  }
+    bool                IsSimd128U8()  const { return this->m_type == TySimd128U8;  }
+    bool                IsSimd128U16() const { return this->m_type == TySimd128U16; }
+    bool                IsSimd128B4()  const { return this->m_type == TySimd128B4;  }
+    bool                IsSimd128B8()  const { return this->m_type == TySimd128B8;  }
+    bool                IsSimd128B16() const { return this->m_type == TySimd128B16; }
+    bool                IsSimd128D2()  const { return this->m_type == TySimd128D2;  }
     bool                IsVar() const { return this->m_type == TyVar; }
     bool                IsTaggedInt() const;
     bool                IsTaggedValue() const;
@@ -210,6 +218,7 @@ public:
     ValueType           GetValueType() const { return m_valueType; }
     void                SetValueType(const ValueType valueType);
     ValueType           FindProfiledValueType();
+    bool                IsScopeObjOpnd(Func * func);
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     virtual void        DummyFunction() {} // Note needed for the VS debugger to disambiguate the different classes.
     void                DumpValueType();
@@ -228,14 +237,14 @@ public:
 public:
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     static void         DumpAddress(void *address, bool printToConsole, bool skipMaskedAddress);
-    static void         DumpFunctionInfo(_Outptr_result_buffer_(*count) wchar_t ** buffer, size_t * count, Js::FunctionInfo * info, bool printToConsole, _In_opt_z_ wchar_t const * type = nullptr);
+    static void         DumpFunctionInfo(_Outptr_result_buffer_(*count) char16 ** buffer, size_t * count, Js::FunctionInfo * info, bool printToConsole, _In_opt_z_ char16 const * type = nullptr);
     void                Dump(IRDumpFlags flags, Func *func);
     void                DumpOpndKindAddr(bool AsmDumpMode, Func *func);
     void                DumpOpndKindMemRef(bool AsmDumpMode, Func *func);
-    static void         WriteToBuffer(_Outptr_result_buffer_(*count) wchar_t **buffer, size_t *count, const wchar_t *fmt, ...);
-    void                GetAddrDescription(__out_ecount(count) wchar_t *const description, const size_t count, bool AsmDumpMode,
+    static void         WriteToBuffer(_Outptr_result_buffer_(*count) char16 **buffer, size_t *count, const char16 *fmt, ...);
+    void                GetAddrDescription(__out_ecount(count) char16 *const description, const size_t count, bool AsmDumpMode,
                             bool printToConsole, Func *func);
-    static void         GetAddrDescription(__out_ecount(count) wchar_t *const description, const size_t count,
+    static void         GetAddrDescription(__out_ecount(count) char16 *const description, const size_t count,
                             void * address, IR::AddrOpndKind addressKind, bool AsmDumpMode, bool printToConsole, Func *func, bool skipMaskedAddress = false);
     void                Dump();
 #endif
@@ -285,7 +294,7 @@ class IntConstOpnd sealed : public Opnd
 public:
     static IntConstOpnd *   New(IntConstType value, IRType type, Func *func, bool dontEncode = false);
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    static IntConstOpnd *   New(IntConstType value, IRType type, const wchar_t * name, Func *func, bool dontEncode = false);
+    static IntConstOpnd *   New(IntConstType value, IRType type, const char16 * name, Func *func, bool dontEncode = false);
 #endif
 
 public:
@@ -318,7 +327,7 @@ public:
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     IntConstType            decodedValue;  // FIXME (t-doilij) set ENABLE_IR_VIEWER blocks where this is set
-    wchar_t const *         name;  // FIXME (t-doilij) set ENABLE_IR_VIEWER blocks where this is set
+    char16 const *         name;  // FIXME (t-doilij) set ENABLE_IR_VIEWER blocks where this is set
 #endif
 
 private:
@@ -518,6 +527,7 @@ private:
     JITObjTypeSpecFldInfo* objTypeSpecFldInfo;
 public:
     JITType* finalType;
+    JITType* monoGuardType;
     BVSparse<JitArenaAllocator>* guardedPropOps;
     BVSparse<JitArenaAllocator>* writeGuards;
     byte m_polyCacheUtil;
@@ -546,7 +556,6 @@ public:
                     bool typeDead: 1;
                     bool typeChecked: 1;
                     bool initialTypeChecked: 1;
-                    bool mustDoMonoCheck: 1;
                     bool typeMismatch: 1;
                     bool writeGuardChecked: 1;
                 };
@@ -679,14 +688,17 @@ public:
 
     bool MustDoMonoCheck() const
     {
-        // Question: does this property access need to do a monomorphic check because of some other access
-        // that this check protects?
-        return this->mustDoMonoCheck;
+        return this->monoGuardType != nullptr;
     }
 
-    void SetMustDoMonoCheck(bool value)
+    JITType * GetMonoGuardType() const
     {
-        this->mustDoMonoCheck = value;
+        return this->monoGuardType;
+    }
+
+    void SetMonoGuardType(JITType *type)
+    {
+        this->monoGuardType = type;
     }
 
     bool NeedsMonoCheck() const
@@ -1169,9 +1181,9 @@ public:
     bool ChangesObjectLayout() const;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    const wchar_t* GetCacheLayoutString() const
+    const char16* GetCacheLayoutString() const
     {
-        return HasObjTypeSpecFldInfo() ? this->objTypeSpecFldInfo->GetCacheLayoutString() : L"empty";
+        return HasObjTypeSpecFldInfo() ? this->objTypeSpecFldInfo->GetCacheLayoutString() : _u("empty");
     }
 #endif
 
@@ -1391,7 +1403,7 @@ public:
     static IndirOpnd *      New(RegOpnd * baseOpnd, RegOpnd * indexOpnd, byte scale, IRType type, Func *func);
     static IndirOpnd *      New(RegOpnd * baseOpnd, int32 offset, IRType type, Func *func, bool dontEncode = false);
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    static IndirOpnd *      New(RegOpnd * baseOpnd, int32 offset, IRType type, const wchar_t *desc, Func *func, bool dontEncode = false);
+    static IndirOpnd *      New(RegOpnd * baseOpnd, int32 offset, IRType type, const char16 *desc, Func *func, bool dontEncode = false);
 #endif
 
 public:
@@ -1428,7 +1440,7 @@ public:
     void                    SetScale(byte scale);
     bool                    TryGetIntConstIndexValue(bool trySym, IntConstType *pValue, bool *pIsNotInt);
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    const wchar_t *         GetDescription();
+    const char16 *         GetDescription();
     IR::AddrOpndKind        GetAddrKind() const;
     bool                    HasAddrKind() const;
     void *                  GetOriginalAddress() const;
@@ -1446,7 +1458,7 @@ private:
     Func *                  m_func;  // We need the allocator to copy the base and index...
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    const wchar_t *         m_desc;
+    const char16 *         m_desc;
 #endif
 #if DBG_DUMP
     IR::AddrOpndKind        m_addrKind;  // if m_addrKind != -1, than this used to be MemRefOpnd which has the address hoisted;

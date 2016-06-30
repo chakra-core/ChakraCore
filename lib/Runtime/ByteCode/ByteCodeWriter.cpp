@@ -20,7 +20,7 @@ namespace Js
         DebugOnly(isInUse = false);
     }
 
-    void ByteCodeWriter::InitData(ArenaAllocator* alloc, long initCodeBufferSize)
+    void ByteCodeWriter::InitData(ArenaAllocator* alloc, int32 initCodeBufferSize)
     {
         Assert(!isInUse);
         Assert(!isInitialized);
@@ -121,7 +121,7 @@ namespace Js
     ///
     ///----------------------------------------------------------------------------
 #ifdef LOG_BYTECODE_AST_RATIO
-    void ByteCodeWriter::End(long currentAstSize, long maxAstSize)
+    void ByteCodeWriter::End(int32 currentAstSize, int32 maxAstSize)
 #else
     void ByteCodeWriter::End()
 #endif
@@ -225,7 +225,7 @@ namespace Js
         if (currentAstSize == maxAstSize)
         {
             float astBytecodeRatio = (float)currentAstSize / (float)byteCount;
-            Output::Print(L"\tAST Bytecode ratio: %f\n", astBytecodeRatio);
+            Output::Print(_u("\tAST Bytecode ratio: %f\n"), astBytecodeRatio);
         }
 #endif
 
@@ -1626,14 +1626,15 @@ StoreCommon:
         switch (op)
         {
             case OpCode::LdLocalSlot:
+            case OpCode::LdParamSlot:
             case OpCode::LdLocalObjSlot:
+            case OpCode::LdParamObjSlot:
                 if ((DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) || DoDynamicProfileOpcode(FloatTypeSpecPhase)) &&
                     profileId != Constants::NoProfileId)
                 {
                     OpCodeUtil::ConvertNonCallOpToProfiled(op);
                 }
                 break;
-
             default:
             {
                 AssertMsg(false, "The specified OpCode is not intended for slot access");
@@ -1681,6 +1682,8 @@ StoreCommon:
             case OpCode::StEnvSlotChkUndecl:
             case OpCode::StEnvObjSlot:
             case OpCode::StEnvObjSlotChkUndecl:
+            case OpCode::StModuleSlot:
+            case OpCode::LdModuleSlot:
             {
                 break;
             }
@@ -1710,6 +1713,7 @@ StoreCommon:
             case OpCode::LdInnerObjSlot:
             case OpCode::LdEnvSlot:
             case OpCode::LdEnvObjSlot:
+            case OpCode::LdModuleSlot:
                 if ((DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) || DoDynamicProfileOpcode(FloatTypeSpecPhase)) &&
                     profileId != Constants::NoProfileId)
                 {
@@ -2350,7 +2354,7 @@ StoreCommon:
         //
         // Write the buffer's contents
         //
-
+        
         Assert(byteOffset < m_auxiliaryData.GetCurrentOffset());
 
         OpLayoutAuxNoReg data;
@@ -2911,7 +2915,7 @@ StoreCommon:
 
         debuggerScope->SetParentScope(m_currentDebuggerScope);
         m_currentDebuggerScope = debuggerScope;
-        OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, L"PushDebuggerScope() - Pushed scope 0x%p of type %d.\n", m_currentDebuggerScope, m_currentDebuggerScope->scopeType);
+        OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("PushDebuggerScope() - Pushed scope 0x%p of type %d.\n"), m_currentDebuggerScope, m_currentDebuggerScope->scopeType);
     }
 
     // Pops the current debugger scope from the stack.
@@ -2919,7 +2923,7 @@ StoreCommon:
     {
         Assert(m_currentDebuggerScope);
 
-        OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, L"PopDebuggerScope() - Popped scope 0x%p of type %d.\n", m_currentDebuggerScope, m_currentDebuggerScope->scopeType);
+        OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("PopDebuggerScope() - Popped scope 0x%p of type %d.\n"), m_currentDebuggerScope, m_currentDebuggerScope->scopeType);
         if (m_currentDebuggerScope != nullptr)
         {
             m_currentDebuggerScope = m_currentDebuggerScope->GetParentScope();
@@ -3195,7 +3199,7 @@ StoreCommon:
     }
 
     template <>
-    __inline uint ByteCodeWriter::Data::EncodeT<SmallLayout>(OpCode op, ByteCodeWriter* writer)
+    inline uint ByteCodeWriter::Data::EncodeT<SmallLayout>(OpCode op, ByteCodeWriter* writer)
     {
 #ifdef BYTECODE_BRANCH_ISLAND
         if (writer->useBranchIsland)
@@ -3228,7 +3232,7 @@ StoreCommon:
     }
 
     template <LayoutSize layoutSize>
-    __inline uint ByteCodeWriter::Data::EncodeT(OpCode op, ByteCodeWriter* writer)
+    inline uint ByteCodeWriter::Data::EncodeT(OpCode op, ByteCodeWriter* writer)
     {
 #ifdef BYTECODE_BRANCH_ISLAND
         if (writer->useBranchIsland)
@@ -3257,7 +3261,7 @@ StoreCommon:
     }
 
     template <LayoutSize layoutSize>
-    __inline uint ByteCodeWriter::Data::EncodeT(OpCode op, const void* rawData, int byteSize, ByteCodeWriter* writer)
+    inline uint ByteCodeWriter::Data::EncodeT(OpCode op, const void* rawData, int byteSize, ByteCodeWriter* writer)
     {
         AssertMsg((rawData != nullptr) && (byteSize < 100), "Ensure valid data for opcode");
 
@@ -3266,13 +3270,13 @@ StoreCommon:
         return offset;
     }
 
-    __inline uint ByteCodeWriter::Data::Encode(const void* rawData, int byteSize)
+    inline uint ByteCodeWriter::Data::Encode(const void* rawData, int byteSize)
     {
         AssertMsg(rawData != nullptr, "Ensure valid data for opcode");
         return Write(rawData, byteSize);
     }
 
-    __inline uint ByteCodeWriter::Data::Write(__in_bcount(byteSize) const void* data, __in uint byteSize)
+    inline uint ByteCodeWriter::Data::Write(__in_bcount(byteSize) const void* data, __in uint byteSize)
     {
         // Simple case where the current chunk has enough space.
         uint bytesFree = current->RemainingBytes();

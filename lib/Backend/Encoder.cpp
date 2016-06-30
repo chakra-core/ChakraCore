@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 ///----------------------------------------------------------------------------
 ///
@@ -15,7 +15,7 @@
 void
 Encoder::Encode()
 {
-    NoRecoverMemoryArenaAllocator localAlloc(L"BE-Encoder", m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+    NoRecoverMemoryArenaAllocator localAlloc(_u("BE-Encoder"), m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
     m_tempAlloc = &localAlloc;
 
     uint32 instrCount = m_func->GetInstrCount();
@@ -162,6 +162,12 @@ Encoder::Encode()
 
                 if (instr->m_opcode == Js::OpCode::InlineeStart)
                 {
+                    Assert(!instr->isInlineeEntryInstr);
+                    if (pragmaInstr)
+                    {
+                        m_pragmaInstrToRecordMap->Add(pragmaInstr);
+                        pragmaInstr = nullptr;
+                    }
                     Func* inlinee = instr->m_func;
                     if (inlinee->frameInfo && inlinee->frameInfo->record)
                     {
@@ -185,9 +191,9 @@ Encoder::Encode()
                 Output::SkipToColumn(80);
                 for (BYTE * current = m_pc; current < m_pc + count; current++)
                 {
-                    Output::Print(L"%02X ", *current);
+                    Output::Print(_u("%02X "), *current);
                 }
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
                 Output::Flush();
             }
 #endif
@@ -267,9 +273,9 @@ Encoder::Encode()
     xdataSize = 0;
     pdataCount = 0;
 #endif
-    OUTPUT_VERBOSE_TRACE(Js::EmitterPhase, L"PDATA count:%u\n", pdataCount);
-    OUTPUT_VERBOSE_TRACE(Js::EmitterPhase, L"Size of XDATA:%u\n", xdataSize);
-    OUTPUT_VERBOSE_TRACE(Js::EmitterPhase, L"Size of code:%u\n", codeSize);
+    OUTPUT_VERBOSE_TRACE(Js::EmitterPhase, _u("PDATA count:%u\n"), pdataCount);
+    OUTPUT_VERBOSE_TRACE(Js::EmitterPhase, _u("Size of XDATA:%u\n"), xdataSize);
+    OUTPUT_VERBOSE_TRACE(Js::EmitterPhase, _u("Size of code:%u\n"), codeSize);
 
     TryCopyAndAddRelocRecordsForSwitchJumpTableEntries(m_encodeBuffer, codeSize, jumpTableListForSwitchStatement, totalJmpTableSizeInBytes);
 
@@ -358,8 +364,8 @@ Encoder::Encode()
 
         if (PHASE_TRACE(Js::TracePinnedTypesPhase, this->m_func))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"PinnedTypes: function %s(%s) pinned %d types.\n",
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            Output::Print(_u("PinnedTypes: function %s(%s) pinned %d types.\n"),
                 this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer), pinnedTypeRefCount);
             Output::Flush();
         }
@@ -563,9 +569,9 @@ Encoder::Encode()
             __analysis_assume(m_instrNumber < instrCount);
             instr->DumpGlobOptInstrString();
 #ifdef _WIN64
-            Output::Print(L"%12IX  ", m_offsetBuffer[m_instrNumber++] + (BYTE *)m_func->GetJITOutput()->GetCodeAddress());
+            Output::Print(_u("%12IX  "), m_offsetBuffer[m_instrNumber++] + (BYTE *)m_func->GetJITOutput()->GetCodeAddress());
 #else
-            Output::Print(L"%8IX  ", m_offsetBuffer[m_instrNumber++] + (BYTE *)m_func->GetJITOutput()->GetCodeAddress());
+            Output::Print(_u("%8IX  "), m_offsetBuffer[m_instrNumber++] + (BYTE *)m_func->GetJITOutput()->GetCodeAddress());
 #endif
             instr->Dump();
         } NEXT_INSTR_IN_FUNC;
@@ -828,7 +834,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
 
     if (PHASE_TRACE(Js::BrShortenPhase, this->m_func))
     {
-        OUTPUT_VERBOSE_TRACE(Js::BrShortenPhase, L"func: %s, bytes saved: %d, bytes saved %%:%.2f, total bytes saved: %d, total bytes saved%%: %.2f, BR shortened: %d\n",
+        OUTPUT_VERBOSE_TRACE(Js::BrShortenPhase, _u("func: %s, bytes saved: %d, bytes saved %%:%.2f, total bytes saved: %d, total bytes saved%%: %.2f, BR shortened: %d\n"),
             this->m_func->GetJITFunctionBody()->GetDisplayName(), (*codeSize - newCodeSize), ((float)*codeSize - newCodeSize) / *codeSize * 100,
             globalTotalBytesSaved, ((float)globalTotalBytesSaved) / globalTotalBytesWithoutShortening * 100 , brShortenedCount);
         Output::Flush();
@@ -925,7 +931,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
             {
                 globalTotalBytesInserted += nop_count;
 
-                OUTPUT_VERBOSE_TRACE(Js::LoopAlignPhase, L"func: %s, bytes inserted: %d, bytes inserted %%:%.4f, total bytes inserted:%d, total bytes inserted %%:%.4f\n",
+                OUTPUT_VERBOSE_TRACE(Js::LoopAlignPhase, _u("func: %s, bytes inserted: %d, bytes inserted %%:%.4f, total bytes inserted:%d, total bytes inserted %%:%.4f\n"),
                     this->m_func->GetJITFunctionBody()->GetDisplayName(), nop_count, (float)nop_count / newCodeSize * 100, globalTotalBytesInserted, (float)globalTotalBytesInserted / (globalTotalBytesWithoutShortening - globalTotalBytesSaved) * 100);
                 Output::Flush();
             }
@@ -1104,9 +1110,9 @@ void Encoder::RecordBailout(IR::Instr* instr, uint32 currentOffset)
 #if DBG_DUMP
     if (PHASE_DUMP(Js::LazyBailoutPhase, m_func))
     {
-        Output::Print(L"Offset: %u Instr: ", currentOffset);
+        Output::Print(_u("Offset: %u Instr: "), currentOffset);
         instr->Dump();
-        Output::Print(L"Bailout label: ");
+        Output::Print(_u("Bailout label: "));
         bailoutInfo->bailOutInstr->Dump();
     }
 #endif
@@ -1118,10 +1124,10 @@ void Encoder::RecordBailout(IR::Instr* instr, uint32 currentOffset)
 #if DBG_DUMP
 void Encoder::DumpInlineeFrameMap(size_t baseAddress)
 {
-    Output::Print(L"Inlinee frame info mapping\n");
-    Output::Print(L"---------------------------------------\n");
+    Output::Print(_u("Inlinee frame info mapping\n"));
+    Output::Print(_u("---------------------------------------\n"));
     m_inlineeFrameMap->Map([=](uint index, NativeOffsetInlineeFramePair& pair) {
-        Output::Print(L"%Ix", baseAddress + pair.offset);
+        Output::Print(_u("%Ix"), baseAddress + pair.offset);
         Output::SkipToColumn(20);
         if (pair.record)
         {
@@ -1129,9 +1135,9 @@ void Encoder::DumpInlineeFrameMap(size_t baseAddress)
         }
         else
         {
-            Output::Print(L"<NULL>");
+            Output::Print(_u("<NULL>"));
         }
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     });
 }
 #endif

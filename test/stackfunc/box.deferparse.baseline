@@ -25,7 +25,6 @@ RestoreHasFuncAssignment: blah
 HasFuncDecl: escape
 RestoreHasFuncAssignment: escape
 HasFuncDecl: nested2
-RestoreHasFuncAssignment: nested2
 test1test1test1test1test1test1test1test1test1test1undefined123456789
 test2test2test2test2test2test2test2test2test2test2undefined123456789
 HasFuncDecl: nested1

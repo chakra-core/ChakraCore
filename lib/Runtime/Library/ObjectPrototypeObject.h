@@ -36,7 +36,14 @@ namespace Js
         // Indicates if __proto__ is enabled currently (note that it can be disabled and re-enabled),
         // only useful for diagnostics to decide displaying __proto__ or [prototype].
         bool is__proto__Enabled() const { return __proto__Enabled; }
+        BOOL IsProtoImmutable() const { return true; }
 
         void PostDefineOwnProperty__proto__(RecyclableObject* obj);
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 }

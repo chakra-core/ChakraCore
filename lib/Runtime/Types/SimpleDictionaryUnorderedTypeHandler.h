@@ -37,7 +37,9 @@ namespace Js
         SimpleDictionaryUnorderedTypeHandler(Recycler * recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
         SimpleDictionaryUnorderedTypeHandler(ScriptContext * scriptContext, SimplePropertyDescriptor* propertyDescriptors, int propertyCount, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
         SimpleDictionaryUnorderedTypeHandler(Recycler* recycler, int slotCapacity, int propertyCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
-        DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleDictionaryUnorderedTypeHandler, SimpleDictionaryTypeHandlerBase);
+
+        typedef SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported> Base;
+        DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleDictionaryUnorderedTypeHandler, Base);
 
     private:
         template<class OtherTPropertyIndex, class OtherTMapKey, bool OtherIsNotExtensibleSupported>

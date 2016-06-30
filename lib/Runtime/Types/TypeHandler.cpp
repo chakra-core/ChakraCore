@@ -316,10 +316,10 @@ namespace Js
         if (PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase) ||
             PHASE_VERBOSE_TRACE1(Js::UseFixedDataPropsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::UseFixedDataPropsPhase))
         {
-            Output::Print(L"FixedFields: attempt to use fixed property %s from DynamicTypeHandler returned false.\n", propertyRecord->GetBuffer());
+            Output::Print(_u("FixedFields: attempt to use fixed property %s from DynamicTypeHandler returned false.\n"), propertyRecord->GetBuffer());
             if (this->HasSingletonInstance() && this->GetSingletonInstance()->Get()->GetScriptContext() != requestContext)
             {
-                Output::Print(L"FixedFields: Cross Site Script Context is used for property %s. \n", propertyRecord->GetBuffer());
+                Output::Print(_u("FixedFields: Cross Site Script Context is used for property %s. \n"), propertyRecord->GetBuffer());
             }
             Output::Flush();
         }
@@ -331,10 +331,10 @@ namespace Js
         if (PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase) ||
             PHASE_VERBOSE_TRACE1(Js::UseFixedDataPropsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::UseFixedDataPropsPhase))
         {
-            Output::Print(L"FixedFields: attempt to use fixed accessor %s from DynamicTypeHandler returned false.\n", propertyRecord->GetBuffer());
+            Output::Print(_u("FixedFields: attempt to use fixed accessor %s from DynamicTypeHandler returned false.\n"), propertyRecord->GetBuffer());
             if (this->HasSingletonInstance() && this->GetSingletonInstance()->Get()->GetScriptContext() != requestContext)
             {
-                Output::Print(L"FixedFields: Cross Site Script Context is used for property %s. \n", propertyRecord->GetBuffer());
+                Output::Print(_u("FixedFields: Cross Site Script Context is used for property %s. \n"), propertyRecord->GetBuffer());
             }
             Output::Flush();
         }
@@ -421,31 +421,31 @@ namespace Js
         {
             if(*pProperty == nullptr)
             {
-                fixedPropertyResultType = L"null";
+                fixedPropertyResultType = _u("null");
             }
             else if (Js::JavascriptFunction::Is(*pProperty))
             {
-                fixedPropertyResultType = L"function";
+                fixedPropertyResultType = _u("function");
             }
             else if (TaggedInt::Is(*pProperty))
             {
-                fixedPropertyResultType = L"int constant";
+                fixedPropertyResultType = _u("int constant");
             }
             else
             {
-                fixedPropertyResultType = L"Var";
+                fixedPropertyResultType = _u("Var");
             }
             log = true;
         }
 
         if(log)
         {
-            Output::Print(L"FixedFields: attempt to use fixed property %s, which is a %s, from %s returned %s.\n",
+            Output::Print(_u("FixedFields: attempt to use fixed property %s, which is a %s, from %s returned %s.\n"),
                 propertyRecord->GetBuffer(), fixedPropertyResultType, typeHandlerName, IsTrueOrFalse(result));
 
             if (this->HasSingletonInstance() && this->GetSingletonInstance()->Get()->GetScriptContext() != requestContext)
             {
-                Output::Print(L"FixedFields: Cross Site Script Context is used for property %s. \n", propertyRecord->GetBuffer());
+                Output::Print(_u("FixedFields: Cross Site Script Context is used for property %s. \n"), propertyRecord->GetBuffer());
             }
 
             Output::Flush();
@@ -662,7 +662,7 @@ namespace Js
         // Move the last few inline slots into the aux slots
         if(PHASE_TRACE1(Js::ObjectHeaderInliningPhase))
         {
-            Output::Print(L"ObjectHeaderInlining: Moving inlined properties to aux slots.\n");
+            Output::Print(_u("ObjectHeaderInlining: Moving inlined properties to aux slots.\n"));
             Output::Flush();
         }
         Var *const oldInlineSlots =
@@ -678,7 +678,7 @@ namespace Js
             // overlap, with the new inline slot array starting beyond the start of the old inline slot array.
             if(PHASE_TRACE1(Js::ObjectHeaderInliningPhase))
             {
-                Output::Print(L"ObjectHeaderInlining: Moving inlined properties out of the object header.\n");
+                Output::Print(_u("ObjectHeaderInlining: Moving inlined properties out of the object header.\n"));
                 Output::Flush();
             }
             Var *const newInlineSlots = reinterpret_cast<Var *>(object + 1);
@@ -698,4 +698,51 @@ namespace Js
     {
         return !ThreadContext::IsOnStack(instance);
     }
+
+#if ENABLE_TTD
+    void DynamicTypeHandler::ExtractSnapHandler(TTD::NSSnapType::SnapHandler* handler, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
+    {
+        handler->HandlerId = TTD_CONVERT_TYPEINFO_TO_PTR_ID(this);
+
+        handler->InlineSlotCapacity = this->inlineSlotCapacity;
+        handler->TotalSlotCapacity = this->slotCapacity;
+
+        handler->MaxPropertyIndex = 0;
+        handler->PropertyInfoArray = nullptr;
+
+        if(handler->TotalSlotCapacity != 0)
+        {
+            handler->PropertyInfoArray = alloc.SlabReserveArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->TotalSlotCapacity);
+            memset(handler->PropertyInfoArray, 0, handler->TotalSlotCapacity * sizeof(TTD::NSSnapType::SnapHandlerPropertyEntry));
+
+            handler->MaxPropertyIndex = this->ExtractSlotInfo_TTD(handler->PropertyInfoArray, threadContext, alloc);
+            AssertMsg(handler->MaxPropertyIndex <= handler->TotalSlotCapacity, "Huh we have more property entries than slots to put them in.");
+
+            if(handler->MaxPropertyIndex != 0)
+            {
+                alloc.SlabCommitArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->MaxPropertyIndex, handler->TotalSlotCapacity);
+            }
+            else
+            {
+                alloc.SlabAbortArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->TotalSlotCapacity);
+                handler->PropertyInfoArray = nullptr;
+            }
+        }
+
+        //The kind of type this snaptype record is associated with and the extensible flag
+        handler->IsExtensibleFlag = this->GetFlags() & IsExtensibleFlag;
+    }
+
+    void DynamicTypeHandler::SetExtensibleFlag_TTD(byte extensibleFlag)
+    {
+        if(extensibleFlag == IsExtensibleFlag)
+        {
+            this->flags |= extensibleFlag;
+        }
+        else
+        {
+            this->flags = (this->flags & ~IsExtensibleFlag);
+        }
+    }
+#endif
 }

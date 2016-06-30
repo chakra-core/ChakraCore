@@ -38,8 +38,8 @@ void WritePerfHint(PerfHints hint, Js::FunctionBody * functionBody, uint byteCod
         TCHAR shortName[255];
         Js::FunctionBody::GetShortNameFromUrl(functionBody->GetSourceName(), shortName, 255);
 
-        OUTPUT_TRACE(Js::PerfHintPhase, L"%s : %s {\n      Function : %s [%s @ %u, %u]\n  Consequences : %s\n    Suggestion : %s\n}\n",
-            item.isNotOptimized ? L"Not optimized" : L"Optimized",
+        OUTPUT_TRACE(Js::PerfHintPhase, _u("%s : %s {\n      Function : %s [%s @ %u, %u]\n  Consequences : %s\n    Suggestion : %s\n}\n"),
+            item.isNotOptimized ? _u("Not optimized") : _u("Optimized"),
             item.description,
             functionBody->GetExternalDisplayName(),
             shortName,

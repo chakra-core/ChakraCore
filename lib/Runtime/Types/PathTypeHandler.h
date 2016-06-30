@@ -6,6 +6,8 @@
 
 namespace Js
 {
+    class SimplePathTypeHandler;
+
     class PathTypeHandlerBase : public DynamicTypeHandler
     {
         friend class DynamicObject;
@@ -21,7 +23,7 @@ namespace Js
     protected:
         PathTypeHandlerBase(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
 
-        DEFINE_VTABLE_CTOR_NO_REGISTER(PathTypeHandlerBase, DynamicTypeHandler, typePath(0));
+        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandlerBase, DynamicTypeHandler, typePath(0));
 
     public:
         virtual BOOL IsLockable() const override { return true; }
@@ -100,7 +102,7 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         virtual void DumpFixedFields() const override;
         static void TraceFixedFieldsBeforeTypeHandlerChange(
-            const wchar_t* conversionName, const wchar_t* oldTypeHandlerName, const wchar_t* newTypeHandlerName,
+            const char16* conversionName, const char16* oldTypeHandlerName, const char16* newTypeHandlerName,
             DynamicObject* instance, DynamicTypeHandler* oldTypeHandler, DynamicType* oldType, RecyclerWeakReference<DynamicObject>* oldSingletonInstanceBefore);
         static void TraceFixedFieldsAfterTypeHandlerChange(
             DynamicObject* instance, DynamicTypeHandler* oldTypeHandler, DynamicTypeHandler* newTypeHandler,
@@ -200,6 +202,13 @@ namespace Js
     public:
         virtual void ShrinkSlotAndInlineSlotCapacity(uint16 newInlineSlotCapacity) = 0;
         virtual bool GetMaxPathLength(uint16 * maxPathLength) = 0;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override;
+
+        virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override;
+#endif
     };
 
     typedef SimpleDictionaryTypeHandlerBase<PropertyIndex, const PropertyRecord*, true> SimpleDictionaryTypeHandlerWithNontExtensibleSupport;
@@ -216,7 +225,7 @@ namespace Js
     private:
         SimplePathTypeHandler(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
 
-        DEFINE_VTABLE_CTOR_NO_REGISTER(SimplePathTypeHandler, PathTypeHandlerBase, successorPropertyRecord(nullptr), successorTypeWeakRef(nullptr));
+        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(SimplePathTypeHandler, PathTypeHandlerBase, successorPropertyRecord(nullptr), successorTypeWeakRef(nullptr));
 
     protected:
         virtual bool GetSuccessor(const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> ** typeWeakRef) override;
@@ -248,7 +257,7 @@ namespace Js
     private:
         PathTypeHandler(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
 
-        DEFINE_VTABLE_CTOR_NO_REGISTER(PathTypeHandler, PathTypeHandlerBase, propertySuccessors(nullptr));
+        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandler, PathTypeHandlerBase, propertySuccessors(nullptr));
 
     protected:
         virtual bool GetSuccessor(const PropertyRecord* propertyRecord, RecyclerWeakReference<DynamicType> ** typeWeakRef) override;

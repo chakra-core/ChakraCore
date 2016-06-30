@@ -5,7 +5,7 @@
 #include "RuntimeLanguagePch.h"
 
 #if DBG
-#include "Types\PathTypeHandler.h"
+#include "Types/PathTypeHandler.h"
 #endif
 
 namespace Js
@@ -340,27 +340,27 @@ namespace Js
     }
 
 #if DBG_DUMP
-    void CacheOperators::TraceCache(InlineCache * inlineCache, const wchar_t * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object)
+    void CacheOperators::TraceCache(InlineCache * inlineCache, const char16 * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object)
     {
         TraceCacheCommon(methodName, propertyId, requestContext, object);
         if(inlineCache)
         {
-            Output::Print(L"Inline Cache: \n  ");
+            Output::Print(_u("Inline Cache: \n  "));
             inlineCache->Dump();
         }
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
         Output::Flush();
     }
 
-    void CacheOperators::TraceCache(PolymorphicInlineCache * polymorphicInlineCache, const wchar_t * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object)
+    void CacheOperators::TraceCache(PolymorphicInlineCache * polymorphicInlineCache, const char16 * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object)
     {
         TraceCacheCommon(methodName, propertyId, requestContext, object);
-        Output::Print(L"Polymorphic Inline Cache, size = %d :\n", polymorphicInlineCache->GetSize());
+        Output::Print(_u("Polymorphic Inline Cache, size = %d :\n"), polymorphicInlineCache->GetSize());
         polymorphicInlineCache->Dump();
         Output::Flush();
     }
 
-    void CacheOperators::TraceCacheCommon(const wchar_t * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object)
+    void CacheOperators::TraceCacheCommon(const char16 * methodName, PropertyId propertyId, ScriptContext * requestContext, RecyclableObject * object)
     {
         if(object)
         {
@@ -375,7 +375,7 @@ namespace Js
                 lineNumber = functionBody->GetLineNumber();
                 columnNumber = functionBody->GetColumnNumber();
             }
-            Output::Print(L"%s, %s, %s(%d:%d), InType: 0x%X ",
+            Output::Print(_u("%s, %s, %s(%d:%d), InType: 0x%X "),
                 methodName,
                 requestContext->GetPropertyName(propertyId)->GetBuffer(),
                 callerName,

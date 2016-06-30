@@ -33,7 +33,7 @@ public:
     template <typename TBlockType>
     TBlockType *& GetPendingSweepBlockList(HeapBucketT<TBlockType> const * heapBucket);
     bool HasPendingEmptyBlocks() const;
-    template <typename TBlockType, bool pageheap> void QueueEmptyHeapBlock(HeapBucketT<TBlockType> const *heapBucket, TBlockType * heapBlock);
+    template <typename TBlockType> void QueueEmptyHeapBlock(HeapBucketT<TBlockType> const *heapBucket, TBlockType * heapBlock);
     template <typename TBlockType> void TransferPendingEmptyHeapBlocks(HeapBucketT<TBlockType> * heapBucket);
 
     void BackgroundSweep();
@@ -192,13 +192,13 @@ RecyclerSweep::GetPendingSweepBlockList(HeapBucketT<TBlockType> const * heapBuck
 
 #if ENABLE_CONCURRENT_GC
 
-template <typename TBlockType, bool pageheap>
+template <typename TBlockType>
 void
 RecyclerSweep::QueueEmptyHeapBlock(HeapBucketT<TBlockType> const *heapBucket, TBlockType * heapBlock)
 {
     auto& bucketData = this->GetBucketData(heapBucket);
     Assert(heapBlock->heapBucket == heapBucket);
-    heapBlock->BackgroundReleasePagesSweep<pageheap>(recycler);
+    heapBlock->BackgroundReleasePagesSweep(recycler);
     TBlockType * list = bucketData.pendingEmptyBlockList;
     if (list == nullptr)
     {

@@ -5,7 +5,7 @@
 #pragma once
 
 #include "JsrtExceptionBase.h"
-#include "Exceptions\EvalDisabledException.h"
+#include "Exceptions/EvalDisabledException.h"
 
 #define PARAM_NOT_NULL(p) \
     if (p == nullptr) \
@@ -131,7 +131,7 @@ JsErrorCode ContextAPIWrapper(Fn fn)
     Js::ScriptContext *scriptContext = currentContext->GetScriptContext();
     try
     {
-        AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)ExceptionType_JavascriptException);
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
 
         // Enter script
         BEGIN_ENTER_SCRIPT(scriptContext, true, true, true)
@@ -149,6 +149,10 @@ JsErrorCode ContextAPIWrapper(Fn fn)
             errCode != JsErrorOutOfMemory &&
             errCode != JsErrorScriptException &&
             errCode != JsErrorScriptTerminated);
+    }
+    catch (Js::OutOfMemoryException)
+    {
+      return JsErrorOutOfMemory;
     }
     catch (Js::JavascriptExceptionObject *  exceptionObject)
     {
@@ -173,7 +177,7 @@ JsErrorCode ContextAPIWrapper(Fn fn)
 
 // allowInObjectBeforeCollectCallback only when current API is guaranteed not to do recycler allocation.
 template <class Fn>
-JsErrorCode ContextAPINoScriptWrapper(Fn fn, bool allowInObjectBeforeCollectCallback = false)
+JsErrorCode ContextAPINoScriptWrapper(Fn fn, bool allowInObjectBeforeCollectCallback = false, bool scriptExceptionAllowed = false)
 {
     JsrtContext *currentContext = JsrtContext::GetCurrent();
     JsErrorCode errCode = CheckContext(currentContext, /*verifyRuntimeState*/true, allowInObjectBeforeCollectCallback);
@@ -200,7 +204,7 @@ JsErrorCode ContextAPINoScriptWrapper(Fn fn, bool allowInObjectBeforeCollectCall
             errCode != JsErrorInExceptionState &&
             errCode != JsErrorInDisabledState &&
             errCode != JsErrorOutOfMemory &&
-            errCode != JsErrorScriptException &&
+            (scriptExceptionAllowed || errCode != JsErrorScriptException) &&
             errCode != JsErrorScriptTerminated);
     }
     CATCH_STATIC_JAVASCRIPT_EXCEPTION_OBJECT
@@ -225,7 +229,6 @@ JsErrorCode ContextAPINoScriptWrapper(Fn fn, bool allowInObjectBeforeCollectCall
 }
 
 void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptException * se);
-
 
 #if DBG
 #define _PREPARE_RETURN_NO_EXCEPTION __debugCheckNoException.hasException = false;

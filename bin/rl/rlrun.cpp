@@ -1282,7 +1282,7 @@ int
     if (strTimeout) {
         char *end;
         _set_errno(0);
-        unsigned long secTimeout = strtoul(strTimeout, &end, 10);
+        uint32 secTimeout = strtoul(strTimeout, &end, 10);
         millisecTimeout = 1000 * secTimeout;
         // Validation has already occurred so this string should
         // parse fine and the value shouldn't overflow the DWORD.

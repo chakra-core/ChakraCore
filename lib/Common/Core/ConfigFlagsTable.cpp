@@ -3,11 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
-#include "Memory\PageHeapBlockTypeFilter.h"
+#include "Memory/PageHeapBlockTypeFilter.h"
 
 #include <initguid.h>
-// {17DC713D-8B3E-4434-9DC8-90C275C75194}
-DEFINE_GUID(HybridDebuggingGuid, 0x17dc713d, 0x8b3e, 0x4434, 0x9d, 0xc8, 0x90, 0xc2, 0x75, 0xc7, 0x51, 0x94);
 
 #undef DebugBreak
 
@@ -65,7 +63,7 @@ namespace Js
         this->pszValue = NULL;
     }
 
-    String::String(__in_opt LPWSTR psz)
+    String::String(__in_opt const char16* psz)
     {
         this->pszValue = NULL;
         Set(psz);
@@ -89,7 +87,7 @@ namespace Js
     ///----------------------------------------------------------------------------
 
     void
-    String::Set(__in_opt LPWSTR pszValue)
+    String::Set(__in_opt const char16* pszValue)
     {
         if(NULL != this->pszValue)
         {
@@ -99,7 +97,7 @@ namespace Js
         if(NULL != pszValue)
         {
             size_t size    = 1 + wcslen(pszValue);
-            this->pszValue  = NoCheckHeapNewArray(wchar_t, size);
+            this->pszValue  = NoCheckHeapNewArray(char16, size);
             wcscpy_s(this->pszValue, size, pszValue);
         }
         else
@@ -117,22 +115,22 @@ namespace Js
             (n.sourceContextId <= unit.j.sourceContextId)
             )
         {
-            if ((n.sourceContextId == unit.j.sourceContextId) && (-2 == unit.j.functionId) ||  //#.#-#.* case
-                (n.sourceContextId == unit.i.sourceContextId) && (-2 == unit.i.functionId)     //#.*-#.# case
+            if ((n.sourceContextId == unit.j.sourceContextId && -2 == unit.j.functionId) ||  //#.#-#.* case
+                (n.sourceContextId == unit.i.sourceContextId && -2 == unit.i.functionId)     //#.*-#.# case
                 )
             {
                 return true;
             }
 
-            if ((n.sourceContextId == unit.j.sourceContextId) && (-1 == unit.j.functionId) || //#.#-#.+ case
-                (n.sourceContextId == unit.i.sourceContextId) && (-1 == unit.i.functionId)     //#.+-#.# case
+            if ((n.sourceContextId == unit.j.sourceContextId && -1 == unit.j.functionId) || //#.#-#.+ case
+                (n.sourceContextId == unit.i.sourceContextId && -1 == unit.i.functionId)     //#.+-#.# case
                 )
             {
                 return n.functionId != 0;
             }
 
-            if (((n.sourceContextId == unit.i.sourceContextId) && (n.functionId < unit.i.functionId)) || //excludes all values less than functionId LHS
-                ((n.sourceContextId == unit.j.sourceContextId) && (n.functionId > unit.j.functionId))) ////excludes all values greater than functionId RHS
+            if ((n.sourceContextId == unit.i.sourceContextId && n.functionId < unit.i.functionId) || //excludes all values less than functionId LHS
+                (n.sourceContextId == unit.j.sourceContextId && n.functionId > unit.j.functionId)) ////excludes all values greater than functionId RHS
             {
                 return false;
             }
@@ -202,9 +200,9 @@ namespace Js
     // List of names of all the flags
     //
 
-    const wchar_t* const FlagNames[FlagCount + 1] =
+    const char16* const FlagNames[FlagCount + 1] =
     {
-    #define FLAG(type, name, ...) L## #name ,
+    #define FLAG(type, name, ...) _u(#name),
     #include "ConfigFlagsList.h"
         NULL
     #undef FLAG
@@ -215,9 +213,9 @@ namespace Js
     // List of names of all the Phases
     //
 
-    const wchar_t* const PhaseNames[PhaseCount + 1] =
+    const char16* const PhaseNames[PhaseCount + 1] =
     {
-    #define PHASE(name) L## #name,
+    #define PHASE(name) _u(#name),
     #include "ConfigFlagsList.h"
         NULL
     #undef PHASE
@@ -227,9 +225,9 @@ namespace Js
     //
     // Description of flags
     //
-    const wchar_t* const FlagDescriptions[FlagCount + 1] =
+    const char16* const FlagDescriptions[FlagCount + 1] =
     {
-    #define FLAG(type, name, description, ...) L##description,
+    #define FLAG(type, name, description, ...) _u(description),
     #include "ConfigFlagsList.h"
         NULL
     #undef FLAG
@@ -449,6 +447,7 @@ namespace Js
         VerifyExecutionModeLimits();
 
     #if ENABLE_DEBUG_CONFIG_OPTIONS
+    #if !DISABLE_JIT
         if(ForceDynamicProfile)
         {
             Force.Enable(DynamicProfilePhase);
@@ -457,11 +456,14 @@ namespace Js
         {
             Force.Enable(JITLoopBodyPhase);
         }
+    #endif
         if(NoDeferParse)
         {
             Off.Enable(DeferParsePhase);
         }
+    #endif
 
+    #if ENABLE_DEBUG_CONFIG_OPTIONS && !DISABLE_JIT
         bool dontEnforceLimitsForSimpleJitAfterOrFullJitAfter = false;
         if((IsEnabled(MinInterpretCountFlag) || IsEnabled(MaxInterpretCountFlag)) &&
             !(IsEnabled(SimpleJitAfterFlag) || IsEnabled(FullJitAfterFlag)))
@@ -491,7 +493,7 @@ namespace Js
                     SimpleJitAfter = MinInterpretCount;
                     dontEnforceLimitsForSimpleJitAfterOrFullJitAfter = true;
                 }
-                if(IsEnabled(MinInterpretCountFlag) && IsEnabled(MinSimpleJitRunCountFlag) ||
+                if((IsEnabled(MinInterpretCountFlag) && IsEnabled(MinSimpleJitRunCountFlag)) ||
                     IsEnabled(MaxSimpleJitRunCountFlag))
                 {
                     Enable(FullJitAfterFlag);
@@ -531,7 +533,7 @@ namespace Js
                 const int scannedCount =
                     swscanf_s(
                         static_cast<LPCWSTR>(ExecutionModeLimits),
-                        L"%u.%u.%u.%u.%u",
+                        _u("%u.%u.%u.%u.%u"),
                         &autoProfilingInterpreter0Limit,
                         &profilingInterpreter0Limit,
                         &autoProfilingInterpreter1Limit,
@@ -569,18 +571,20 @@ namespace Js
                 VerifyExecutionModeLimits();
             }
 
-            if(IsEnabled(SimpleJitAfterFlag))
+            if (IsEnabled(SimpleJitAfterFlag))
             {
                 Enable(AutoProfilingInterpreter0LimitFlag);
                 Enable(ProfilingInterpreter0LimitFlag);
                 Enable(AutoProfilingInterpreter1LimitFlag);
                 Enable(EnforceExecutionModeLimitsFlag);
 
-                Js::Number iterationsNeeded = SimpleJitAfter;
-                ProfilingInterpreter0Limit = min(ProfilingInterpreter0Limit, iterationsNeeded);
-                iterationsNeeded -= ProfilingInterpreter0Limit;
-                AutoProfilingInterpreter0Limit = iterationsNeeded;
-                AutoProfilingInterpreter1Limit = 0;
+                {
+                    Js::Number iterationsNeeded = SimpleJitAfter;
+                    ProfilingInterpreter0Limit = min(ProfilingInterpreter0Limit, iterationsNeeded);
+                    iterationsNeeded -= ProfilingInterpreter0Limit;
+                    AutoProfilingInterpreter0Limit = iterationsNeeded;
+                    AutoProfilingInterpreter1Limit = 0;
+                }
 
                 if(IsEnabled(FullJitAfterFlag))
                 {
@@ -895,27 +899,30 @@ namespace Js
 #define FLAG(type, name, ...) \
         if (IsEnabled(name##Flag)) \
         { \
-            Output::Print(L"-%s", L#name); \
+            Output::Print(_u("-%s"), _u(#name)); \
             switch (Flag##type) \
             { \
             case FlagBoolean: \
                 if (!*GetAsBoolean(name##Flag)) \
                 { \
-                    Output::Print(L"-"); \
+                    Output::Print(_u("-")); \
                 } \
                 break; \
             case FlagString: \
                 if (GetAsString(name##Flag) != nullptr) \
                 { \
-                    Output::Print(L":%s", *GetAsString(name##Flag)); \
+                    Output::Print(_u(":%s"), (LPCWSTR)*GetAsString(name##Flag)); \
                 } \
                 break; \
             case FlagNumber: \
-                Output::Print(L":%d", *GetAsNumber(name##Flag)); \
+                Output::Print(_u(":%d"), *GetAsNumber(name##Flag)); \
+                break; \
+            default: \
                 break; \
             }; \
-            Output::Print(L"\n"); \
+            Output::Print(_u("\n")); \
         }
+
 #include "ConfigFlagsList.h"
 #undef FLAG
     }
@@ -1001,7 +1008,7 @@ namespace Js
         Boolean* settingAsBoolean = this->GetAsBoolean(flag);
         Assert(settingAsBoolean != nullptr);
 
-        Output::VerboseNote(L"FLAG %s = %d\n", FlagNames[(int) flag], value);
+        Output::VerboseNote(_u("FLAG %s = %d\n"), FlagNames[(int) flag], value);
         *settingAsBoolean = value;
 
         // check if parent flag
@@ -1017,7 +1024,7 @@ namespace Js
                 // if the parent flag is FALSE, the children flag values are FALSE (always - as disabled)
                 Boolean childValue = value == TRUE ? childDefaultValue : FALSE;
 
-                Output::VerboseNote(L"FLAG %s = %d - setting child flag %s = %d\n", FlagNames[(int) flag], value, FlagNames[(int) childFlag], childValue);
+                Output::VerboseNote(_u("FLAG %s = %d - setting child flag %s = %d\n"), FlagNames[(int) flag], value, FlagNames[(int) childFlag], childValue);
                 this->SetAsBoolean(childFlag, childValue);
 
                 // get next child flag
@@ -1128,7 +1135,7 @@ namespace Js
             {
                 Boolean childValue = value;
 
-                Output::VerboseNote(L"FLAG %s = %d - setting child flag %s = %d\n", FlagNames[(int) parentFlag], value, FlagNames[(int) childFlag], childValue);
+                Output::VerboseNote(_u("FLAG %s = %d - setting child flag %s = %d\n"), FlagNames[(int) parentFlag], value, FlagNames[(int) childFlag], childValue);
                 this->SetAsBoolean(childFlag, childValue);
             }
 
@@ -1161,27 +1168,14 @@ namespace Js
     // Configuration options
     //
 
-    Configuration::Configuration() : isHybridDebugging(false)
+    Configuration::Configuration()
     {
-        if(IsDebuggerPresent())
-        {
-            if(IsEqualGUID(hybridDebuggingGuid, HybridDebuggingGuid))
-            {
-                isHybridDebugging = true;
-            }
-        }
     }
 
     bool Configuration::EnableJitInDebugMode()
     {
-        return (!IsHybridDebugging() || CONFIG_FLAG(EnableJitInHybridDebugging)) && CONFIG_FLAG(EnableJitInDiagMode);
+        return CONFIG_FLAG(EnableJitInDiagMode);
     }
-
-    bool Configuration::IsHybridDebugging()
-    {
-        return isHybridDebugging;
-    }
-
 
     Configuration        Configuration::Global;
 

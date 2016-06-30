@@ -727,6 +727,21 @@ var tests = [
             assert.throws(function () { Array()(func3(...new Set([func3, func3]))) }, TypeError, "Should throw TypeError");
         }
     },
+
+    {
+        name: "Values that are int versus double should compare and hash equal (github #390)",
+        body: function() {
+            var set = new Set();
+
+            set.add(1);
+            assert.isTrue(set.has(1), "sanity check, set has value 1");
+
+            var value = 1.1;
+            value -= 0.1; // value is now 1.0, a double, rather than an int
+
+            assert.isTrue(set.has(value), "1.0 should be equal to the value 1 and set has it");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

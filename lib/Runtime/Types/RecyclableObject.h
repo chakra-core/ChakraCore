@@ -74,22 +74,22 @@ namespace Js {
         static void SetCacheInfo(PropertyValueInfo* info, FunctionBody *const functionBody, PolymorphicInlineCache *const polymorphicInlineCache, const InlineCacheIndex inlineCacheIndex, const bool allowResizingPolymorphicInlineCache);
         static void ClearCacheInfo(PropertyValueInfo* info);
 
-        __inline InlineCache * GetInlineCache() const
+        inline InlineCache * GetInlineCache() const
         {
             return this->inlineCache;
         }
 
-        __inline PolymorphicInlineCache * GetPolymorphicInlineCache() const
+        inline PolymorphicInlineCache * GetPolymorphicInlineCache() const
         {
             return this->polymorphicInlineCache;
         }
 
-        __inline FunctionBody * GetFunctionBody() const
+        inline FunctionBody * GetFunctionBody() const
         {
             return this->functionBody;
         }
 
-        __inline uint GetInlineCacheIndex() const
+        inline uint GetInlineCacheIndex() const
         {
             return this->inlineCacheIndex;
         }
@@ -214,7 +214,6 @@ namespace Js {
         static bool Is(Var aValue);
         static RecyclableObject* FromVar(Var varValue);
         RecyclableObject(Type * type);
-        static DWORD GetTypeOffset() { return offsetof(RecyclableObject, type); }
 #if DBG_EXTRAFIELD
         // This dtor should only be call when OOM occurs and RecyclableObject ctor has completed
         // as the base class, or we have a stack instance
@@ -235,7 +234,7 @@ namespace Js {
         void ClearWritableDataOnlyDetectionBit();
         bool IsWritableDataOnlyDetectionBitSet();
 
-        __inline Type * GetType() const { return type; }
+        inline Type * GetType() const { return type; }
 
         // In order to avoid a branch, every object has an entry point if it gets called like a
         // function - however, if it can't be called like a function, it's set to DefaultEntryPoint
@@ -286,6 +285,7 @@ namespace Js {
         virtual BOOL IsConfigurable(PropertyId propertyId) { return false; }
         virtual BOOL IsEnumerable(PropertyId propertyId) { return false; }
         virtual BOOL IsExtensible() { return false; }
+        virtual BOOL IsProtoImmutable() const { return false; }
         virtual BOOL PreventExtensions() { return false; };     // Sets [[Extensible]] flag of instance to false
         virtual void ThrowIfCannotDefineProperty(PropertyId propId, PropertyDescriptor descriptor);
         virtual void ThrowIfCannotGetOwnPropertyDescriptor(PropertyId propId) {}
@@ -366,7 +366,7 @@ namespace Js {
         }
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
-        static uint32 GetOffsetOfType();
+        static uint32 GetOffsetOfType() { return offsetof(RecyclableObject, type); }
 
         virtual void InvalidateCachedScope() { return; }
         virtual BOOL HasDeferredTypeHandler() const { return false; }
@@ -380,6 +380,27 @@ namespace Js {
 #if defined(PROFILE_RECYCLER_ALLOC) && defined(RECYCLER_DUMP_OBJECT_GRAPH)
     public:
         static bool DumpObjectFunction(type_info const * typeinfo, bool isArray, void * objectAddress);
+#endif
+
+#if ENABLE_TTD
+    public:
+        //Do any additional marking that is needed for a TT snapshotable object
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+        {
+            ;
+        }
+
+        //Do the path processing for our "core path" computation to find wellknown objects in a brute force manner.
+        virtual void ProcessCorePaths()
+        {
+            ;
+        }
+
+        //Get the SnapObjectType tag that this object maps to
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const;
+
+        //Do the extraction of the SnapObject for each of the kinds of objects in the heap
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc);
 #endif
 
     private:

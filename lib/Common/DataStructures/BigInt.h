@@ -15,13 +15,13 @@ namespace Js
         // Make this big enough that we rarely have to call malloc.
         enum { kcluMaxInit = 30 };
 
-        long m_cluMax;
-        long m_clu;
-        ulong *m_prglu;
-        ulong m_rgluInit[kcluMaxInit];
+        int32 m_cluMax;
+        int32 m_clu;
+        uint32 *m_prglu;
+        uint32 m_rgluInit[kcluMaxInit];
 
         inline BigInt & operator= (BigInt &bi);
-        bool FResize(long clu);
+        bool FResize(int32 clu);
 
 #if DBG
         #define AssertBi(pbi) Assert(pbi); (pbi)->AssertValid(true);
@@ -36,22 +36,22 @@ namespace Js
         BigInt(void);
         ~BigInt(void);
 
-        bool FInitFromRglu(ulong *prglu, long clu);
+        bool FInitFromRglu(uint32 *prglu, int32 clu);
         bool FInitFromBigint(BigInt *pbiSrc);
         template <typename EncodedChar>
-        bool FInitFromDigits(const EncodedChar *prgch, long cch, long *pcchDec);
-        bool FMulAdd(ulong luMul, ulong luAdd);
-        bool FMulPow5(long c5);
-        bool FShiftLeft(long cbit);
-        void ShiftLusRight(long clu);
-        void ShiftRight(long cbit);
+        bool FInitFromDigits(const EncodedChar *prgch, int32 cch, int32 *pcchDec);
+        bool FMulAdd(uint32 luMul, uint32 luAdd);
+        bool FMulPow5(int32 c5);
+        bool FShiftLeft(int32 cbit);
+        void ShiftLusRight(int32 clu);
+        void ShiftRight(int32 cbit);
         int Compare(BigInt *pbi);
         bool FAdd(BigInt *pbi);
         void Subtract(BigInt *pbi);
         int DivRem(BigInt *pbi);
 
-        long Clu(void);
-        ulong Lu(long ilu);
+        int32 Clu(void);
+        uint32 Lu(int32 ilu);
         double GetDbl(void);
     };
 }

@@ -6,7 +6,6 @@
 
 namespace Js
 {
-    enum TypeId;
     class DetachedStateBase
     {
     protected:
@@ -17,6 +16,10 @@ namespace Js
         DetachedStateBase(TypeId typeId)
             : typeId(typeId),
             hasBeenClaimed(false)
+        {
+        }
+
+        virtual ~DetachedStateBase()
         {
         }
 

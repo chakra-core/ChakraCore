@@ -18,7 +18,7 @@
 
 #define FixupNativeDataPointer(field, chunkList) NativeCodeData::AddFixupEntry(this->field, &this->field, this, chunkList)
 
-struct CodeGenAllocators;
+class CodeGenAllocators;
 
 class NativeCodeData
 {

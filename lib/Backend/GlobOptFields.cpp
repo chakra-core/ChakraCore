@@ -262,17 +262,17 @@ GlobOpt::DoFieldPRE(Loop *loop) const
     return DoFieldOpts(loop);
 }
 
-bool GlobOpt::DoMemOp(Loop *loop)
+bool GlobOpt::HasMemOp(Loop *loop)
 {
 #pragma prefast(suppress: 6285, "logical-or of constants is by design")
     return (
         loop &&
+        loop->doMemOp &&
         (
             !PHASE_OFF(Js::MemSetPhase, this->func) ||
             !PHASE_OFF(Js::MemCopyPhase, this->func)
         ) &&
         loop->memOpInfo &&
-        loop->memOpInfo->doMemOp &&
         loop->memOpInfo->candidates &&
         !loop->memOpInfo->candidates->Empty()
     );
@@ -310,7 +310,10 @@ GlobOpt::KillLiveFields(StackSym * stackSym, BVSparse<JitArenaAllocator> * bv)
         bv->Clear(propertySym->m_id);
         if (this->IsLoopPrePass())
         {
-            this->rootLoopPrePass->fieldKilled->Set(propertySym->m_id);
+            for (Loop * loop = this->rootLoopPrePass; loop != nullptr; loop = loop->parent)
+            {
+                loop->fieldKilled->Set(propertySym->m_id);
+            }
         }
         else if (bv->IsEmpty())
         {
@@ -339,7 +342,10 @@ void GlobOpt::KillLiveFields(BVSparse<JitArenaAllocator> *const propertyEquivSet
 
         if (this->IsLoopPrePass())
         {
-            this->rootLoopPrePass->fieldKilled->Or(propertyEquivSet);
+            for (Loop * loop = this->rootLoopPrePass; loop != nullptr; loop = loop->parent)
+            {
+                loop->fieldKilled->Or(propertyEquivSet);
+            }
         }
     }
 }
@@ -382,7 +388,10 @@ GlobOpt::KillAllFields(BVSparse<JitArenaAllocator> * bv)
     bv->ClearAll();
     if (this->IsLoopPrePass())
     {
-        this->rootLoopPrePass->allFieldsKilled = true;
+        for (Loop * loop = this->rootLoopPrePass; loop != nullptr; loop = loop->parent)
+        {
+            loop->allFieldsKilled = true;
+        }
     }
 }
 
@@ -412,7 +421,6 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         return;
     }
 
-    Sym *sym;
     IR::Opnd * dstOpnd = instr->GetDst();
     if (dstOpnd)
     {
@@ -434,7 +442,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
             else
             {
                 Assert(sym->IsPropertySym());
-                if (instr->m_opcode == Js::OpCode::InitLetFld || instr->m_opcode == Js::OpCode::InitConstFld)
+                if (instr->m_opcode == Js::OpCode::InitLetFld || instr->m_opcode == Js::OpCode::InitConstFld || instr->m_opcode == Js::OpCode::InitFld)
                 {
                     // These can grow the aux slot of the activation object.
                     // We need to kill the slot array sym as well.
@@ -454,6 +462,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         return;
     }
 
+    Sym *sym;
     IR::JnHelperMethod fnHelper;
     switch(instr->m_opcode)
     {
@@ -530,9 +539,10 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::InlineeEnd:
         Assert(!instr->UsesAllFields());
 
-        // Kill all live 'arguments' fields, as 'inlineeFunction.arguments' cannot be copy-propped across different instances of
-        // the same inlined function.
+        // Kill all live 'arguments' and 'caller' fields, as 'inlineeFunction.arguments' and 'inlineeFunction.caller' 
+        // cannot be copy-propped across different instances of the same inlined function.
         KillLiveFields(argumentsEquivBv, bv);
+        KillLiveFields(callerEquivBv, bv);
         break;
 
     case Js::OpCode::CallDirect:
@@ -591,17 +601,17 @@ GlobOpt::PreparePrepassFieldHoisting(Loop * loop)
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        Output::Print(L"\nFieldHoist: Start Loop: ");
+        Output::Print(_u("\nFieldHoist: Start Loop: "));
         loop->GetHeadBlock()->DumpHeader();
-        Output::Print(L"FieldHoist: Backward candidates          : ");
+        Output::Print(_u("FieldHoist: Backward candidates          : "));
         fieldHoistCandidates->Dump();
     }
 #endif
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"FieldHoist: START LOOP function %s (%s)\n", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer));
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        Output::Print(_u("FieldHoist: START LOOP function %s (%s)\n"), this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer));
     }
 #endif
 
@@ -724,9 +734,9 @@ GlobOpt::PreparePrepassFieldHoisting(Loop * loop)
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        Output::Print(L"FieldHoist: Prepass candidates (not live): ");
+        Output::Print(_u("FieldHoist: Prepass candidates (not live): "));
         fieldHoistCandidates->Dump();
-        Output::Print(L"FieldHoist: Prepass candidates (live)    : ");
+        Output::Print(_u("FieldHoist: Prepass candidates (live)    : "));
         liveInFieldHoistCandidates->Dump();
     }
 #endif
@@ -913,9 +923,9 @@ GlobOpt::PrepareFieldHoisting(Loop * loop)
 
         if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
         {
-            Output::Print(L"FieldHoist: All candidates: ");
+            Output::Print(_u("FieldHoist: All candidates: "));
             loop->hoistedFields->Dump();
-            Output::Print(L"FieldHoist: Live in candidates: ");
+            Output::Print(_u("FieldHoist: Live in candidates: "));
             liveInFieldHoistCandidates->Dump();
         }
     }
@@ -961,9 +971,9 @@ GlobOpt::CheckFieldHoistCandidate(IR::Instr * instr, PropertySym * sym)
 #if DBG_DUMP
         if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
         {
-            Output::Print(L"FieldHoist: Prepass marked hoist load");
+            Output::Print(_u("FieldHoist: Prepass marked hoist load"));
             Output::SkipToColumn(30);
-            Output::Print(L" : ");
+            Output::Print(_u(" : "));
             instr->Dump();
         }
 #endif
@@ -1212,10 +1222,10 @@ GlobOpt::HoistFieldLoadValue(Loop * loop, Value * newValue, SymID symId, Js::OpC
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        Output::Print(L"FieldHoist: Live value load ");
+        Output::Print(_u("FieldHoist: Live value load "));
         this->func->m_symTable->Find(symId)->Dump();
         Output::SkipToColumn(30);
-        Output::Print(L" : ");
+        Output::Print(_u(" : "));
         newInstr->Dump();
     }
 #endif
@@ -1545,17 +1555,17 @@ GlobOpt::GenerateHoistFieldLoad(PropertySym * sym, Loop * loop, IR::Instr * inst
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        Output::Print(L"FieldHoist: Hoisted Load ");
+        Output::Print(_u("FieldHoist: Hoisted Load "));
         Output::SkipToColumn(30);
-        Output::Print(L" : ");
+        Output::Print(_u(" : "));
         newInstr->Dump();
     }
 #endif
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"    FieldHoist: function %s (%s) ", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer));
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        Output::Print(_u("    FieldHoist: function %s (%s) "), this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer));
         newInstr->DumpTestTrace();
     }
 #endif
@@ -1711,10 +1721,10 @@ GlobOpt::CopyPropHoistedFields(PropertySym * sym, IR::Opnd ** ppOpnd, IR::Instr 
 #if DBG
         if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
         {
-            Output::Print(L"FieldHoist: Copy prop ");
+            Output::Print(_u("FieldHoist: Copy prop "));
             sym->Dump();
             Output::SkipToColumn(30);
-            Output::Print(L" : ");
+            Output::Print(_u(" : "));
             instr->Dump();
         }
 #endif
@@ -1793,9 +1803,9 @@ GlobOpt::ReloadFieldHoistStackSym(IR::Instr * instr, PropertySym * propertySym)
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        Output::Print(L"FieldHoist: Reload field sym ");
+        Output::Print(_u("FieldHoist: Reload field sym "));
         Output::SkipToColumn(30);
-        Output::Print(L" : ");
+        Output::Print(_u(" : "));
         instr->Dump();
     }
 #endif
@@ -1919,9 +1929,9 @@ GlobOpt::CopyStoreFieldHoistStackSym(IR::Instr * storeFldInstr, PropertySym * sy
     {
         if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
         {
-            Output::Print(L"FieldHoist: Copy field store ");
+            Output::Print(_u("FieldHoist: Copy field store "));
             Output::SkipToColumn(30);
-            Output::Print(L" : ");
+            Output::Print(_u(" : "));
             storeFldInstr->Dump();
         }
     }
@@ -2493,7 +2503,12 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
                 opnd->SetCheckedTypeSetIndex(checkedTypeSetIndex);
             }
         }
-        else if (opnd->IsMono() || (valueInfo->GetJsTypeSet() && IsSubsetOf(opndTypeSet, valueInfo->GetJsTypeSet())))
+        else if (valueInfo->GetJsTypeSet() &&
+                 (opnd->IsMono() ? 
+                      valueInfo->GetJsTypeSet()->Contains(opnd->GetFirstEquivalentType()) : 
+                      IsSubsetOf(opndTypeSet, valueInfo->GetJsTypeSet())
+                 )
+            )
         {
             // We have an equivalent type check upstream, but we require a tighter type check at this point.
             // We can't treat the operand as "checked", but check for equivalence with the tighter set and update the
@@ -2993,12 +3008,12 @@ GlobOpt::CopyPropPropertySymObj(IR::SymOpnd *symOpnd, IR::Instr *instr)
 #if DBG_DUMP
                 if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::GlobOptPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
                 {
-                    Output::Print(L"TRACE: ");
+                    Output::Print(_u("TRACE: "));
                     symOpnd->Dump();
-                    Output::Print(L" : ");
-                    Output::Print(L"Copy prop obj ptr s%d, new property: ", copySym->m_id);
+                    Output::Print(_u(" : "));
+                    Output::Print(_u("Copy prop obj ptr s%d, new property: "), copySym->m_id);
                     newProp->Dump();
-                    Output::Print(L"\n");
+                    Output::Print(_u("\n"));
                 }
 #endif
 

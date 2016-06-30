@@ -54,6 +54,13 @@ class ByteCodeGenerator;
 interface IActiveScriptDataCache;
 class ActiveScriptProfilerHeapEnum;
 
+////////
+
+#include "Debug/TTSupport.h"
+#include "Debug/TTSerialize.h"
+
+////////
+
 namespace Js
 {
     //
@@ -144,6 +151,7 @@ namespace Js
     class NullEnumerator;
 //SIMD_JS
     // SIMD
+    class JavascriptSIMDObject;
     class SIMDFloat32x4Lib;
     class JavascriptSIMDFloat32x4;
     class SIMDFloat64x2Lib;
@@ -158,6 +166,14 @@ namespace Js
     class JavascriptSIMDUint16x8;
     class SIMDUint8x16Lib;
     class JavascriptSIMDUint8x16;
+    class SIMDUint32x4Lib;
+    class JavascriptSIMDUint32x4;
+    class SIMDBool32x4Lib;
+    class JavascriptSIMDBool32x4;
+    class SIMDBool8x16Lib;
+    class JavascriptSIMDBool8x16;
+    class SIMDBool16x8Lib;
+    class JavascriptSIMDBool16x8;
 
     class RecyclableObject;
     class JavascriptRegExp;
@@ -239,13 +255,13 @@ namespace Js
     // asm.js
     namespace ArrayBufferView
     {
-        enum ViewType;
+        enum ViewType: int;
     }
     struct EmitExpressionInfo;
     struct AsmJsModuleMemory;
     namespace AsmJsLookupSource
     {
-        enum Source;
+        enum Source: int;
     }
     struct AsmJsByteCodeWriter;
     class AsmJsArrayView;
@@ -267,6 +283,7 @@ namespace Js
     class AsmJsMathFunction;
     class AsmJsMathConst;
 #ifdef ASMJS_PLAT
+    Var AsmJsExternalEntryPoint(Js::RecyclableObject* entryObject, Js::CallInfo callInfo, ...);
     class AsmJsCodeGenerator;
     class AsmJsEncoder;
 #endif
@@ -275,7 +292,7 @@ namespace Js
     class AsmJsModuleCompiler;
     class AsmJSCompiler;
     class AsmJSByteCodeGenerator;
-    enum AsmJSMathBuiltinFunction;
+    enum AsmJSMathBuiltinFunction: int;
     //////////////////////////////////////////////////////////////////////////
     typedef JsUtil::WeakReferenceDictionary<PropertyId, PropertyString, PowerOf2SizePolicy> PropertyStringCacheMap;
 
@@ -302,20 +319,33 @@ namespace Js
     };
 }
 
-#include "DataStructures\EvalMapString.h"
+namespace TTD
+{
+    //typedef for a pin set (ensure that objects are kept live).
+    typedef JsUtil::BaseHashSet<Js::PropertyRecord*, Recycler> PropertyRecordPinSet;
+    typedef JsUtil::BaseHashSet<Js::FunctionBody*, Recycler> FunctionBodyPinSet;
+    typedef JsUtil::BaseHashSet<Js::RecyclableObject*, Recycler> ObjectPinSet;
+    typedef JsUtil::BaseHashSet<Js::FrameDisplay*, Recycler> EnvironmentPinSet;
+    typedef JsUtil::BaseHashSet<Js::Var, Recycler> SlotArrayPinSet;
+}
+
+#include "PlatformAgnostic/ChakraPlatform.h"
+#include "DataStructures/EvalMapString.h"
 
 bool IsMathLibraryId(Js::PropertyId propertyId);
-#include "ByteCode\PropertyIdArray.h"
-#include "ByteCode\AuxArray.h"
-#include "ByteCode\VarArrayVarCount.h"
+#include "ByteCode/PropertyIdArray.h"
+#include "ByteCode/AuxArray.h"
+#include "ByteCode/VarArrayVarCount.h"
 
 // module id
 const Js::ModuleID kmodGlobal = 0;
 
 class SourceContextInfo;
 
-
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "activdbg100.h"
+#endif
+
 #ifndef NTDDI_WIN10
 // These are only defined for the Win10 SDK and above
 // Consider: Refactor to avoid needing these?
@@ -329,95 +359,110 @@ enum tagDEBUG_EVENT_INFO_TYPE
 } DEBUG_EVENT_INFO_TYPE;
 
 #define SDO_ENABLE_LIBRARY_STACK_FRAME ((SCRIPT_DEBUGGER_OPTIONS)0x8)
+#define DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE 0x8000000
+#define DBGPROP_ATTRIB_VALUE_PENDING_MUTATION 0x10000000
 #endif
 
 #include "JITClient.h"
 
-#include "Base\SourceHolder.h"
-#include "Base\Utf8SourceInfo.h"
-#include "Base\PropertyRecord.h"
-#include "Base\DelayLoadLibrary.h"
-#include "Base\CallInfo.h"
-#include "Language\ExecutionMode.h"
-#include "BackEndAPI.h"
+#include "Base/SourceHolder.h"
+#include "Base/Utf8SourceInfo.h"
+#include "Base/PropertyRecord.h"
+#ifdef ENABLE_GLOBALIZATION
+#include "Base/DelayLoadLibrary.h"
+#endif
+#include "Base/CallInfo.h"
+#include "Language/ExecutionMode.h"
+#include "Types/TypeId.h"
+#include "BackendApi.h"
 #include "DetachedStateBase.h"
 
-#include "Base\Constants.h"
-#include "ByteCode\OpLayoutsCommon.h"
-#include "ByteCode\OpLayouts.h"
-#include "ByteCode\OpLayoutsAsmJs.h"
-#include "ByteCode\OpCodeUtil.h"
-#include "Language\Arguments.h"
+#include "Base/Constants.h"
+#include "ByteCode/OpLayoutsCommon.h"
+#include "ByteCode/OpLayouts.h"
+#include "ByteCode/OpLayoutsAsmJs.h"
+#include "ByteCode/OpCodeUtil.h"
+#include "Language/Arguments.h"
 
-#include "Types\TypeId.h"
-#include "Types\RecyclableObject.h"
-#include "Base\ExpirableObject.h"
-#include "Types\Type.h"
-#include "Types\StaticType.h"
-#include "Base\CrossSite.h"
-#include "Base\CrossSiteObject.h"
-#include "Base\CrossSiteEnumerator.h"
-#include "Types\JavascriptEnumerator.h"
-#include "Types\DynamicObject.h"
-#include "Types\ArrayObject.h"
+#include "Types/RecyclableObject.h"
+#include "Base/ExpirableObject.h"
+#include "Types/Type.h"
+#include "Types/StaticType.h"
+#include "Base/CrossSite.h"
+#include "Base/CrossSiteObject.h"
+#include "Base/CrossSiteEnumerator.h"
+#include "Types/JavascriptEnumerator.h"
+#include "Types/DynamicObject.h"
+#include "Types/ArrayObject.h"
 
-#include "Types\TypePath.h"
-#include "Types\TypeHandler.h"
-#include "Types\SimplePropertyDescriptor.h"
+#include "Types/TypePath.h"
+#include "Types/TypeHandler.h"
+#include "Types/SimplePropertyDescriptor.h"
 
-#include "Types\DynamicType.h"
+#include "Types/DynamicType.h"
 
-#include "Language\StackTraceArguments.h"
-#include "Types\PropertyDescriptor.h"
-#include "Types\ActivationObject.h"
-#include "Base\TempArenaAllocatorObject.h"
-#include "Language\ValueType.h"
-#include "Language\DynamicProfileInfo.h"
-#include "Debug\SourceContextInfo.h"
-#include "Language\InlineCache.h"
-#include "Language\InlineCachePointerArray.h"
-#include "Base\FunctionInfo.h"
-#include "Base\FunctionBody.h"
-#include "Language\JavascriptExceptionContext.h"
-#include "Language\JavascriptExceptionObject.h"
-#include "Base\PerfHint.h"
+#include "Language/StackTraceArguments.h"
+#include "Types/PropertyDescriptor.h"
+#include "Types/ActivationObject.h"
+#include "Base/TempArenaAllocatorObject.h"
+#include "Language/ValueType.h"
+#include "Language/DynamicProfileInfo.h"
+#include "Debug/SourceContextInfo.h"
+#include "Language/InlineCache.h"
+#include "Language/InlineCachePointerArray.h"
+#include "Base/FunctionInfo.h"
+#include "Base/FunctionBody.h"
+#include "Language/JavascriptExceptionContext.h"
+#include "Language/JavascriptExceptionObject.h"
+#include "Base/PerfHint.h"
 
-#include "ByteCode\ByteBlock.h"
+#include "ByteCode/ByteBlock.h"
 
-#include "Library\JavascriptBuiltInFunctions.h"
-#include "Library\JavascriptString.h"
-#include "Library\StringCopyInfo.h"
-
-
-#include "Library\JavascriptNumber.h"
-#include "Library\JavascriptFunction.h"
-#include "Library\RuntimeFunction.h"
-#include "Library\JavascriptExternalFunction.h"
-
-#include "Base\CharStringCache.h"
-
-#include "Library\JavascriptObject.h"
-#include "Library\BuiltInFlags.h"
-#include "Library\ExternalLibraryBase.h"
-#include "Library\JavascriptLibraryBase.h"
-#include "Library\JavascriptLibrary.h"
-
-#include "Language\JavascriptExceptionOperators.h"
-#include "Language\JavascriptOperators.h"
-
-#include "Library\MathLibrary.h"
+#include "Library/JavascriptBuiltInFunctions.h"
+#include "Library/JavascriptString.h"
+#include "Library/StringCopyInfo.h"
 
 
-#include "Base\HiResTimer.h"
-#include "Base\WindowsGlobalizationAdapter.h"
-#include "Base\WindowsFoundationAdapter.h"
-#include "Base\Debug.h"
+#include "Library/JavascriptNumber.h"
+#include "Library/JavascriptFunction.h"
+#include "Library/RuntimeFunction.h"
+#include "Library/JavascriptExternalFunction.h"
+
+#include "Base/CharStringCache.h"
+
+#include "Types/DynamicObjectEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
+#include "Library/JavascriptObject.h"
+#include "Library/BuiltInFlags.h"
+#include "Library/ForInObjectEnumerator.h"
+#include "Library/ExternalLibraryBase.h"
+#include "Library/JavascriptLibraryBase.h"
+#include "Library/JavascriptLibrary.h"
+
+#include "Language/JavascriptExceptionOperators.h"
+#include "Language/JavascriptOperators.h"
+
+#include "Library/MathLibrary.h"
+
+
+#include "Base/HiResTimer.h"
+
+// xplat-todo: We should get rid of this altogether and move the functionality it 
+// encapsulates to the Platform Agnostic Interface
+#ifdef _WIN32
+#if defined(ENABLE_GLOBALIZATION) || ENABLE_UNICODE_API
+#include "Base/WindowsGlobalizationAdapter.h"
+#include "Base/WindowsFoundationAdapter.h"
+#endif
+#endif
+#include "Base/Debug.h"
 
 #ifdef _M_X64
-#include "Language\amd64\stackframe.h"
+#include "Language/amd64/StackFrame.h"
 #endif
 
-#include "Base\Entropy.h"
+#include "Base/Entropy.h"
 #ifdef ENABLE_BASIC_TELEMETRY
 #include "DirectCall.h"
 #include "LanguageTelemetry.h"
@@ -425,64 +470,81 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #define CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(builtin)
 #define CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(feature, m_scriptContext)
 #endif
-#include "Base\ThreadContext.h"
+#include "Base/ThreadContext.h"
 
-#include "Base\StackProber.h"
+#include "Base/StackProber.h"
 
-#include "Language\EvalMapRecord.h"
-#include "Base\RegexPatternMruMap.h"
-#include "Language\JavascriptConversion.h"
+#include "Language/EvalMapRecord.h"
+#include "Base/RegexPatternMruMap.h"
+#include "Language/JavascriptConversion.h"
 
-#include "Base\ScriptContextOptimizationOverrideInfo.h"
-#include "Base\scriptContextbase.h"
-#include "Base\ScriptContext.h"
-#include "Base\LeaveScriptObject.h"
-#include "Base\PropertyRecord.h"
+#include "Base/ScriptContextOptimizationOverrideInfo.h"
+#include "Base/ScriptContextBase.h"
+#include "Base/ScriptContext.h"
+#include "Base/LeaveScriptObject.h"
+#include "Base/PropertyRecord.h"
 
-#include "ByteCode\ByteCodeReader.h"
-#include "Language\TaggedInt.h"
+#include "ByteCode/ByteCodeReader.h"
+#include "Language/TaggedInt.h"
 
-#include "Library\RootObjectBase.h"
-#include "Library\GlobalObject.h"
+#include "Library/RootObjectBase.h"
+#include "Library/GlobalObject.h"
 
-#include "Library\LiteralString.h"
-#include "Library\ConcatString.h"
-#include "Library\CompoundString.h"
-#include "Library\PropertyString.h"
+#include "Library/LiteralString.h"
+#include "Library/ConcatString.h"
+#include "Library/CompoundString.h"
+#include "Library/PropertyString.h"
 
-#include "Library\JavascriptTypedNumber.h"
-#include "Library\SparseArraySegment.h"
-#include "Library\JavascriptError.h"
-#include "Library\JavascriptArray.h"
+#include "Library/JavascriptTypedNumber.h"
+#include "Library/SparseArraySegment.h"
+#include "Library/JavascriptError.h"
+#include "Library/JavascriptArray.h"
 
-#include "Library\ArrayBuffer.h"
-#include "Library\TypedArray.h"
-#include "Library\JavascriptBoolean.h"
+#include "Library/ArrayBuffer.h"
+#include "Library/TypedArray.h"
+#include "Library/JavascriptBoolean.h"
 
-#include "Language\ModuleNamespace.h"
-#include "Language\ModuleRecordBase.h"
-#include "Language\SourceTextModuleRecord.h"
-#include "Types\ScriptFunctionType.h"
-#include "Library\ScriptFunction.h"
+#include "Language/ModuleRecordBase.h"
+#include "Language/SourceTextModuleRecord.h"
+#include "Language/ModuleNamespace.h"
+#include "Types/ScriptFunctionType.h"
+#include "Library/ScriptFunction.h"
+
+#include "Library/JavascriptProxy.h"
+
+#if ENABLE_TTD
+#include "screrror.h"
+
+#include "Debug/TTRuntimeInfoTracker.h"
+#include "Debug/TTInflateMap.h"
+#include "Debug/TTSnapTypes.h"
+#include "Debug/TTSnapValues.h"
+#include "Debug/TTSnapObjects.h"
+#include "Debug/TTSnapshot.h"
+#include "Debug/TTSnapshotExtractor.h"
+#include "Debug/TTEvents.h"
+#include "Debug/TTActionEvents.h"
+#include "Debug/TTEventLog.h"
+#endif
 
 //
 // .inl files
 //
 
-#include "commoninl.h"
+#include "CommonInl.h"
 
-#include "Language\JavascriptConversion.inl"
-#include "Types\RecyclableObject.inl"
-#include "Types\DynamicObject.inl"
-#include "Library\JavascriptBoolean.inl"
-#include "Library\JavascriptArray.inl"
-#include "Library\SparseArraySegment.inl"
-#include "Library\JavascriptNumber.inl"
-#include "Library\JavascriptLibrary.inl"
-#include "Language\InlineCache.inl"
-#include "Language\InlineCachePointerArray.inl"
-#include "Language\JavascriptOperators.inl"
-#include "Language\TaggedInt.inl"
+#include "Language/JavascriptConversion.inl"
+#include "Types/RecyclableObject.inl"
+#include "Types/DynamicObject.inl"
+#include "Library/JavascriptBoolean.inl"
+#include "Library/JavascriptArray.inl"
+#include "Library/SparseArraySegment.inl"
+#include "Library/JavascriptNumber.inl"
+#include "Library/JavascriptLibrary.inl"
+#include "Language/InlineCache.inl"
+#include "Language/InlineCachePointerArray.inl"
+#include "Language/JavascriptOperators.inl"
+#include "Language/TaggedInt.inl"
 
 
 #ifndef USED_IN_STATIC_LIB

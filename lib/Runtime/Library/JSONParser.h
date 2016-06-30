@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-#include <wchar.h>
 #include "JSONScanner.h"
+
 namespace JSON
 {
     class JSONDeferredParserRootNode;
@@ -70,7 +70,7 @@ namespace JSON
         void CheckCurrentToken(int tk, int wErr)
         {
             if (m_token.tk != tk)
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, wErr);
+                m_scanner.ThrowSyntaxError(wErr);
             Scan();
         }
 

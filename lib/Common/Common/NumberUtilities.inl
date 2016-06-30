@@ -7,27 +7,60 @@
 #define NUMBER_UTIL_INLINE
 #endif
 
+#if !defined(__BIG_ENDIAN__) && !defined(__LITTLE_ENDIAN__)
+#if defined(_MSC_VER) // WINDOWS
+
+#ifdef BIG_ENDIAN
+#define __BIG_ENDIAN__
+#else
+#define __LITTLE_ENDIAN__
+#endif
+
+#else // NOT WINDOWS
+
+#ifdef __BYTE_ORDER
+#define X_BYTE_ORDER __BYTE_ORDER
+#define X_LITTLE_ENDIAN __LITTLE_ENDIAN
+#elif defined(BYTE_ORDER)
+#define X_BYTE_ORDER BYTE_ORDER
+#define X_LITTLE_ENDIAN LITTLE_ENDIAN
+#else // BYTE_ORDER not defined
+#error "Endiannes of this platform is undefined"
+#endif // __BYTE_ORDER
+
+#if X_BYTE_ORDER == X_LITTLE_ENDIAN
+#define __LITTLE_ENDIAN__
+#else // X_BYTE_ORDER != X_LITTLE_ENDIAN
+#define __BIG_ENDIAN__
+#endif
+
+#undef X_BYTE_ORDER
+#undef X_LITTLE_ENDIAN
+
+#endif // defined(_MSC_VER)
+#endif // !defined(__BIG_ENDIAN__) && !defined(__LITTLE_ENDIAN__)
+
 namespace Js
 {
-    NUMBER_UTIL_INLINE ulong &NumberUtilities::LuHiDbl(double &dbl)
+    NUMBER_UTIL_INLINE uint32 &NumberUtilities::LuHiDbl(double &dbl)
     {
-#ifdef BIG_ENDIAN
-        return ((ulong *)&dbl)[0];
+#if defined(__BIG_ENDIAN__)
+        return ((uint32 *)&dbl)[0];
 #else //!BIG_ENDIAN
-        return ((ulong *)&dbl)[1];
+        return ((uint32 *)&dbl)[1];
 #endif //!BIG_ENDIAN
     }
 
-    NUMBER_UTIL_INLINE ulong &NumberUtilities::LuLoDbl(double &dbl)
+    NUMBER_UTIL_INLINE uint32 &NumberUtilities::LuLoDbl(double &dbl)
     {
-#ifdef BIG_ENDIAN
-        return ((ulong *)&dbl)[1];
+#if defined(__BIG_ENDIAN__)
+        return ((uint32 *)&dbl)[1];
 #else //!BIG_ENDIAN
-        return ((ulong *)&dbl)[0];
+        return ((uint32 *)&dbl)[0];
 #endif //!BIG_ENDIAN
     }
 
-#if defined(_M_X64)
+#if defined(_M_X64) && defined(_MSC_VER)
     NUMBER_UTIL_INLINE INT64 NumberUtilities::TryToInt64(double T1)
     {
         // _mm_cvttsd_si64x will result in 0x8000000000000000 if the value is NaN Inf or Zero, or overflows int64

@@ -33,6 +33,14 @@ namespace Js
         JavascriptPromise* promise;
         bool isReject;
         JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedWrapper;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class JavascriptPromiseAsyncSpawnExecutorFunction : public RuntimeFunction
@@ -53,6 +61,14 @@ namespace Js
     private:
         JavascriptGenerator* generatorFunction;
         Var target; // this
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction : public RuntimeFunction
@@ -79,6 +95,14 @@ namespace Js
         JavascriptFunction* resolve;
         bool isReject;
         Var argument;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class JavascriptPromiseCapabilitiesExecutorFunction : public RuntimeFunction
@@ -97,6 +121,14 @@ namespace Js
 
     private:
         JavascriptPromiseCapability* capability;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class JavascriptPromiseResolveThenableTaskFunction : public RuntimeFunction
@@ -139,6 +171,14 @@ namespace Js
         JavascriptPromise* promise;
         RecyclableObject* thenable;
         RecyclableObject* thenFunction;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class JavascriptPromiseReactionTaskFunction : public RuntimeFunction
@@ -178,6 +218,14 @@ namespace Js
     private:
         JavascriptPromiseReaction* reaction;
         Var argument;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper
@@ -213,25 +261,33 @@ namespace Js
         JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper;
         JavascriptArray* values;
         bool alreadyCalled;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class JavascriptPromiseCapability : FinalizableObject
     {
     private:
-        JavascriptPromiseCapability(Var promise, RecyclableObject* resolve, RecyclableObject* reject)
+        JavascriptPromiseCapability(Var promise, Var resolve, Var reject)
             : promise(promise), resolve(resolve), reject(reject)
         { }
 
     public:
-        static JavascriptPromiseCapability* New(Var promise, RecyclableObject* resolve, RecyclableObject* reject, ScriptContext* scriptContext);
+        static JavascriptPromiseCapability* New(Var promise, Var resolve, Var reject, ScriptContext* scriptContext);
 
-        RecyclableObject* GetResolve();
-        RecyclableObject* GetReject();
+        Var GetResolve();
+        Var GetReject();
         Var GetPromise();
         void SetPromise(Var);
 
-        void SetResolve(RecyclableObject* resolve);
-        void SetReject(RecyclableObject* reject);
+        void SetResolve(Var resolve);
+        void SetReject(Var reject);
 
     public:
         // Finalizable support
@@ -250,8 +306,17 @@ namespace Js
 
     private:
         Var promise;
-        RecyclableObject* resolve;
-        RecyclableObject* reject;
+        Var resolve;
+        Var reject;
+
+#if ENABLE_TTD
+    public:
+        //Do any additional marking that is needed for a TT snapshotable object
+        void MarkVisitPtrs(TTD::SnapshotExtractor* extractor);
+
+        //Do the extraction 
+        void ExtractSnapPromiseCapabilityInto(TTD::NSSnapValues::SnapPromiseCapabilityInfo* snapPromiseCapability, JsUtil::List<TTD_PTR_ID, HeapAllocator>& depOnList, TTD::SlabAllocator& alloc);
+#endif
     };
 
     typedef JsUtil::List<Js::JavascriptPromiseCapability*> JavascriptPromiseCapabilityList;
@@ -287,6 +352,15 @@ namespace Js
     private:
         JavascriptPromiseCapability* capabilities;
         RecyclableObject* handler;
+
+#if ENABLE_TTD
+    public:
+        //Do any additional marking that is needed for a TT snapshotable object
+        void MarkVisitPtrs(TTD::SnapshotExtractor* extractor);
+
+        //Do the extraction 
+        void ExtractSnapPromiseReactionInto(TTD::NSSnapValues::SnapPromiseReactionInfo* snapPromiseReaction, JsUtil::List<TTD_PTR_ID, HeapAllocator>& depOnList, TTD::SlabAllocator& alloc);
+#endif
     };
 
     typedef JsUtil::List<Js::JavascriptPromiseReaction*> JavascriptPromiseReactionList;
@@ -314,6 +388,7 @@ namespace Js
             static FunctionInfo Thrower;
 
             static FunctionInfo ResolveOrRejectFunction;
+            static FunctionInfo CapabilitiesExecutorFunction;
             static FunctionInfo AllResolveElementFunction;
 
             static FunctionInfo GetterSymbolSpecies;
@@ -354,14 +429,14 @@ namespace Js
         JavascriptPromiseReactionList* GetRejectReactions();
 
         static JavascriptPromiseCapability* NewPromiseCapability(Var constructor, ScriptContext* scriptContext);
-        static JavascriptPromiseCapability* CreatePromiseCapabilityRecord(Var promise, RecyclableObject* constructor, ScriptContext* scriptContext);
-        static bool UpdatePromiseFromPotentialThenable(Var resolution, JavascriptPromiseCapability* promiseCapability, ScriptContext* scriptContext);
+        static JavascriptPromiseCapability* CreatePromiseCapabilityRecord(RecyclableObject* constructor, ScriptContext* scriptContext);
         static Var TriggerPromiseReactions(JavascriptPromiseReactionList* reactions, Var resolution, ScriptContext* scriptContext);
         static void EnqueuePromiseReactionTask(JavascriptPromiseReaction* reaction, Var resolution, ScriptContext* scriptContext);
 
         static void InitializePromise(JavascriptPromise* promise, JavascriptPromiseResolveOrRejectFunction** resolve, JavascriptPromiseResolveOrRejectFunction** reject, ScriptContext* scriptContext);
+        static Var TryCallResolveOrRejectHandler(Var handler, Var value, ScriptContext* scriptContext);
+        static Var TryRejectWithExceptionObject(JavascriptExceptionObject* exceptionObject, Var handler, ScriptContext* scriptContext);
 
-    protected:
         enum PromiseStatus
         {
             PromiseStatusCode_Undefined,
@@ -370,6 +445,10 @@ namespace Js
             PromiseStatusCode_HasRejection
         };
 
+        PromiseStatus GetStatus() const { return status; }
+        Var GetResult() const { return result; }
+
+    protected:
         PromiseStatus status;
         Var result;
         JavascriptPromiseReactionList* resolveReactions;
@@ -378,5 +457,14 @@ namespace Js
     private :
         static void AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, JavascriptFunction* resolve, JavascriptFunction* reject);
 
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+
+        static JavascriptPromise* InitializePromise_TTD(ScriptContext* scriptContext, uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions);
+#endif
     };
 }

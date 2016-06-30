@@ -1,14 +1,15 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+
+#include "Backend.h"
 
 #include "X64Encode.h"
 
 static const BYTE OpcodeByte2[]={
 #define MACRO(name, jnLayout, attrib, byte2, ...) byte2,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 
@@ -18,7 +19,7 @@ struct FormTemplate{ BYTE form[6]; };
 static const struct FormTemplate OpcodeFormTemplate[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, ...) form ,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 #undef f
@@ -28,14 +29,14 @@ struct OpbyteTemplate { byte opbyte[6]; };
 static const struct OpbyteTemplate Opbyte[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, opbyte, ...) opbyte,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 
 static const uint32 Opdope[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, opbyte, dope, ...) dope,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 
@@ -49,14 +50,14 @@ static const BYTE OpEncoding[] =
 static const uint32 OpcodeLeadIn[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, opByte, dope, leadIn, ...) leadIn,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 
 static const enum Forms OpcodeForms[] =
 {
 #define MACRO(name, jnLayout, attrib, byte2, form, ...) form,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef MACRO
 };
 
@@ -814,7 +815,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
             if (opr2->IsImmediateOpnd())
             {
-                Assert(instr->m_opcode == Js::OpCode::MOV);
+                Assert(EncoderMD::IsMOVEncoding(instr));
                 if (instrSize == 8 && !instr->isInlineeEntryInstr && Math::FitsInDWord(opr2->GetImmediateValue(instr->m_func)))
                 {
                     // Better off using the C7 encoding as it will sign extend
@@ -1131,6 +1132,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
             case Js::OpCode::MOVMSKPD:
             case Js::OpCode::MOVMSKPS:
+            case Js::OpCode::PMOVMSKB:
                 /* Instruction form is "MOVMSKP[S/D] r32, xmm" */
                 Assert(opr1->IsRegOpnd() && opr2->IsRegOpnd() && REGNUM_ISXMMXREG(opr2->AsRegOpnd()->GetReg()));
                 goto modrm;
@@ -1192,12 +1194,51 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
                 }
                 break;
 
+            case Js::OpCode::PSLLW:
+            case Js::OpCode::PSLLD:
+            case Js::OpCode::PSRLW:
+            case Js::OpCode::PSRLD:
+            case Js::OpCode::PSRAW:
+            case Js::OpCode::PSRAD:
             case Js::OpCode::PSLLDQ:
             case Js::OpCode::PSRLDQ:
-                // SSE shift
                 Assert(opr1->IsRegOpnd());
-                rexByte |= this->EmitModRM(instr, opr1, this->GetOpcodeByte2(instr) >> 3);
-                break;
+                if (src2 &&src2->IsIntConstOpnd())
+                {
+                    // SSE shift with IMM
+                    rexByte |= this->EmitModRM(instr, opr1, this->GetOpcodeByte2(instr) >> 3);
+                    break;
+                }
+                else
+                {
+                    // Variable shift amount
+
+                    // fix opcode byte
+                    switch (instr->m_opcode)
+                    {
+                    case Js::OpCode::PSLLW:
+                        opcodeByte = 0xF1;
+                        break;
+                    case Js::OpCode::PSLLD:
+                        opcodeByte = 0xF2;
+                        break;
+                    case Js::OpCode::PSRLW:
+                        opcodeByte = 0xD1;
+                        break;
+                    case Js::OpCode::PSRLD:
+                        opcodeByte = 0xD2;
+                        break;
+                    case Js::OpCode::PSRAW:
+                        opcodeByte = 0xE1;
+                        break;
+                    case Js::OpCode::PSRAD:
+                        opcodeByte = 0xE2;
+                        break;
+                    default:
+                        Assert(UNREACHED);
+                    }
+                    goto modrm;
+                }
 
             default:
                 AssertMsg(UNREACHED, "Unhandled opcode in SPECIAL form");
@@ -1231,12 +1272,14 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
         {
             // extra imm8 byte for SSE instructions.
             uint valueImm = 0;
+            bool writeImm = true;
             if (src2 &&src2->IsIntConstOpnd())
             {
                 valueImm = (uint)src2->AsIntConstOpnd()->GetImmediateValue(instr->m_func);
             }
             else
             {
+                // Variable src2, we are either encoding a CMP op, or don't need an Imm.
                 // src2(comparison byte) is missing in CMP instructions and is part of the opcode instead.
                 switch (instr->m_opcode)
                 {
@@ -1256,11 +1299,19 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
                 case Js::OpCode::CMPNEQPD:
                     valueImm = CMP_IMM8::NEQ;
                     break;
+                case Js::OpCode::CMPUNORDPS:
+                    valueImm = CMP_IMM8::UNORD;
+                    break;
                 default:
-                    Assert(UNREACHED);
+                    // none comparison op, should have non-constant src2 already encoded as MODRM reg.
+                    Assert(src2 && !src2->IsIntConstOpnd());
+                    writeImm = false;
                 }
             }
-            *(m_pc++) = (valueImm & 0xff);
+            if (writeImm)
+            {
+                *(m_pc++) = (valueImm & 0xff);
+            }
         }
 
 #if DEBUG
@@ -1621,7 +1672,7 @@ bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
 
     bool isNotLargeConstant = Math::FitsInDWord(regOpnd->m_sym->GetLiteralConstValue_PostGlobOpt());
 
-    if (!isNotLargeConstant && (instr->m_opcode != Js::OpCode::MOV || !instr->GetDst()->IsRegOpnd()))
+    if (!isNotLargeConstant && (!EncoderMD::IsMOVEncoding(instr) || !instr->GetDst()->IsRegOpnd()))
     {
         return false;
     }
@@ -1720,6 +1771,12 @@ bool EncoderMD::TryFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
 {
     IR::Opnd *src1 = instr->GetSrc1();
     IR::Opnd *src2 = instr->GetSrc2();
+
+    if (IRType_IsSimd128(regOpnd->GetType()))
+    {
+        // No folding for SIMD values. Alignment is not guaranteed.
+        return false;
+    }
 
     switch (GetInstrForm(instr))
     {
@@ -1824,6 +1881,11 @@ bool EncoderMD::UsesConditionCode(IR::Instr *instr)
 bool EncoderMD::IsOPEQ(IR::Instr *instr)
 {
     return instr->IsLowered() && (EncoderMD::GetOpdope(instr) & DOPEQ);
+}
+
+bool EncoderMD::IsMOVEncoding(IR::Instr *instr)
+{
+    return instr->IsLowered() && (EncoderMD::GetOpdope(instr) & DMOV);
 }
 
 void EncoderMD::UpdateRelocListWithNewBuffer(RelocList * relocList, BYTE * newBuffer, BYTE * oldBufferStart, BYTE * oldBufferEnd)

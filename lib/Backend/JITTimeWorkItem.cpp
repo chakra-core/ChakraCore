@@ -52,6 +52,15 @@ JITTimeWorkItem::GetCallsCountAddress() const
     return m_workItemData->jitData->callsCountAddress;
 }
 
+intptr_t
+JITTimeWorkItem::GetJittedLoopIterationsSinceLastBailoutAddr() const
+{
+    Assert(IsLoopBody());
+    Assert(m_workItemData->jittedLoopIterationsSinceLastBailoutAddr != 0);
+
+    return m_workItemData->jittedLoopIterationsSinceLastBailoutAddr;
+}
+
 const JITLoopHeaderIDL *
 JITTimeWorkItem::GetLoopHeader() const
 {

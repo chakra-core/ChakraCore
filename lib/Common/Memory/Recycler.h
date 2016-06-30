@@ -9,7 +9,7 @@
 namespace Js
 {
     class Profiler;
-    enum Phase;
+    enum Phase: unsigned short;
 };
 
 namespace JsUtil
@@ -17,7 +17,9 @@ namespace JsUtil
     class ThreadService;
 };
 
+#ifdef STACK_BACK_TRACE
 class StackBackTraceNode;
+#endif
 class ScriptEngineBase;
 class JavascriptThreadService;
 
@@ -634,7 +636,7 @@ public:
     static const int s_numFramesToSkipForPageHeapAlloc = 0;
     static const int s_numFramesToSkipForPageHeapFree = 0;
 
-    static const int s_numFramesToCaptureForPageHeap = 20;
+    static const int s_numFramesToCaptureForPageHeap = 32;
 #endif
 
     uint Cookie;
@@ -700,15 +702,24 @@ private:
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
     struct PinRecord
     {
+#ifdef STACK_BACK_TRACE
         PinRecord() : refCount(0), stackBackTraces(nullptr) {}
+#else
+        PinRecord() : refCount(0) {}
+#endif
         PinRecord& operator=(uint newRefCount)
         {
-            Assert(stackBackTraces == nullptr); Assert(newRefCount == 0); refCount = 0; return *this;
+#ifdef STACK_BACK_TRACE
+            Assert(stackBackTraces == nullptr);
+#endif
+            Assert(newRefCount == 0); refCount = 0; return *this;
         }
         PinRecord& operator++() { ++refCount; return *this; }
         PinRecord& operator--() { --refCount; return *this; }
         operator uint() const { return refCount; }
+#ifdef STACK_BACK_TRACE
         StackBackTraceNode * stackBackTraces;
+#endif
     private:
         uint refCount;
     };
@@ -723,13 +734,15 @@ private:
     uint weakReferenceCleanupId;
 
     void * transientPinnedObject;
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
     StackBackTrace * transientPinnedObjectStackBackTrace;
+#endif
 #endif
 
     struct GuestArenaAllocator : public ArenaAllocator
     {
-        GuestArenaAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)())
+        GuestArenaAllocator(__in char16 const*  name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)())
             : ArenaAllocator(name, pageAllocator, outOfMemoryFunc), pendingDelete(false)
         {
         }
@@ -737,16 +750,18 @@ private:
     };
     DListBase<GuestArenaAllocator> guestArenaList;
     DListBase<ArenaData*> externalGuestArenaList;    // guest arenas are scanned for roots
-    HeapInfo autoHeap;
 #ifdef RECYCLER_PAGE_HEAP
-    __inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
-    __inline bool ShouldCapturePageHeapAllocStack() const { return capturePageHeapAllocStack; }
+
+    inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
+    template<ObjectInfoBits attributes>
+    bool IsPageHeapEnabled(size_t size);
+    inline bool ShouldCapturePageHeapAllocStack() const { return capturePageHeapAllocStack; }
     bool isPageHeapEnabled;
     bool capturePageHeapAllocStack;
     bool capturePageHeapFreeStack;
 #else
-    __inline const bool IsPageHeapEnabled() const { return false; }
-    __inline bool ShouldCapturePageHeapAllocStack() const { return false; }
+    inline const bool IsPageHeapEnabled() const { return false; }
+    inline bool ShouldCapturePageHeapAllocStack() const { return false; }
 #endif
 
 
@@ -978,6 +993,10 @@ private:
     PageAllocator backgroundProfilerPageAllocator;
     DListBase<ArenaAllocator> backgroundProfilerArena;
 #endif
+
+    // destruct autoHeap after backgroundProfilerPageAllocator;
+    HeapInfo autoHeap;
+
 #ifdef PROFILE_MEM
     RecyclerMemoryData * memoryData;
 #endif
@@ -998,8 +1017,8 @@ private:
 
 #ifdef RECYCLER_STATS
     RecyclerCollectionStats collectionStats;
-    void PrintHeapBlockStats(wchar_t const * name, HeapBlock::HeapBlockType type);
-    void PrintHeapBlockMemoryStats(wchar_t const * name, HeapBlock::HeapBlockType type);
+    void PrintHeapBlockStats(char16 const * name, HeapBlock::HeapBlockType type);
+    void PrintHeapBlockMemoryStats(char16 const * name, HeapBlock::HeapBlockType type);
     void PrintCollectStats();
     void PrintHeuristicCollectionStats();
     void PrintMarkCollectionStats();
@@ -1100,9 +1119,9 @@ public:
     }
 
 #ifdef RECYCLER_PAGE_HEAP
-    __inline bool ShouldCapturePageHeapFreeStack() const { return capturePageHeapFreeStack; }
+    inline bool ShouldCapturePageHeapFreeStack() const { return capturePageHeapFreeStack; }
 #else
-    __inline bool ShouldCapturePageHeapFreeStack() const { return false; }
+    inline bool ShouldCapturePageHeapFreeStack() const { return false; }
 #endif
 
     void SetIsThreadBound();
@@ -1190,7 +1209,7 @@ public:
     HeapInfo* CreateHeap();
     void DestroyHeap(HeapInfo* heapInfo);
 
-    ArenaAllocator * CreateGuestArena(wchar_t const * name, void (*outOfMemoryFunc)());
+    ArenaAllocator * CreateGuestArena(char16 const * name, void (*outOfMemoryFunc)());
     void DeleteGuestArena(ArenaAllocator * arenaAllocator);
 
     ArenaData ** RegisterExternalGuestArena(ArenaData* guestArena)
@@ -1249,7 +1268,7 @@ public:
 
 #ifdef TRACE_OBJECT_LIFETIME
 #define DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributesFunc, attributes) \
-    __inline char* AllocFunc##Trace(size_t size) \
+    inline char* AllocFunc##Trace(size_t size) \
     { \
         return AllocWithAttributesFunc<(ObjectInfoBits)(attributes | TraceBit), /* nothrow = */ false>(size); \
     }
@@ -1257,7 +1276,7 @@ public:
 #define DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributeFunc, attributes)
 #endif
 #define DEFINE_RECYCLER_ALLOC_BASE(AllocFunc, AllocWithAttributesFunc, attributes) \
-    __inline char * AllocFunc(size_t size) \
+    inline char * AllocFunc(size_t size) \
     { \
         return AllocWithAttributesFunc<attributes, /* nothrow = */ false>(size); \
     } \
@@ -1268,11 +1287,11 @@ public:
     DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributesFunc, attributes);
 
 #define DEFINE_RECYCLER_NOTHROW_ALLOC_BASE(AllocFunc, AllocWithAttributesFunc, attributes) \
-    __inline char * NoThrow##AllocFunc(size_t size) \
+    inline char * NoThrow##AllocFunc(size_t size) \
     { \
         return AllocWithAttributesFunc<attributes, /* nothrow = */ true>(size); \
     } \
-    __inline char * NoThrow##AllocFunc##Inlined(size_t size) \
+    inline char * NoThrow##AllocFunc##Inlined(size_t size) \
     { \
         return AllocWithAttributesFunc##Inlined<attributes, /* nothrow = */ true>(size);  \
     } \
@@ -1388,10 +1407,10 @@ public:
     void RootRelease(void* obj, uint *count = nullptr);
 
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char* RealAlloc(HeapInfo* heap, size_t size);
+    inline char* RealAlloc(HeapInfo* heap, size_t size);
 
     template <ObjectInfoBits attributes, bool isSmallAlloc, bool nothrow>
-    __inline char* RealAllocFromBucket(HeapInfo* heap, size_t size);
+    inline char* RealAllocFromBucket(HeapInfo* heap, size_t size);
 
     void EnterIdleDecommit();
     void LeaveIdleDecommit();
@@ -1421,7 +1440,7 @@ public:
     uint GetVerifyPad() const { return verifyPad; }
     void Verify(Js::Phase phase);
 
-    static void VerifyCheck(BOOL cond, wchar_t const * msg, void * address, void * corruptedAddress);
+    static void VerifyCheck(BOOL cond, char16 const * msg, void * address, void * corruptedAddress);
     static void VerifyCheckFill(void * address, size_t size);
     void FillCheckPad(void * address, size_t size, size_t alignedAllocSize, bool objectAlreadyInitialized);
     void FillCheckPad(void * address, size_t size, size_t alignedAllocSize)
@@ -1445,8 +1464,8 @@ public:
     void ReportLeaksOnProcessDetach();
 #endif
 #ifdef CHECK_MEMORY_LEAK
-    void CheckLeaks(wchar_t const * header);
-    void CheckLeaksOnProcessDetach(wchar_t const * header);
+    void CheckLeaks(char16 const * header);
+    void CheckLeaksOnProcessDetach(char16 const * header);
 #endif
 #ifdef RECYCLER_TRACE
     void SetDomCollect(bool isDomCollect)
@@ -1504,11 +1523,11 @@ private:
     template <typename SmallHeapBlockAllocatorType>
     void RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t sizeCat);
     template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
-    char * SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat);
+    char * SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat, size_t size);
 
     // Allocation
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char * AllocWithAttributesInlined(size_t size);
+    inline char * AllocWithAttributesInlined(size_t size);
     template <ObjectInfoBits attributes, bool nothrow>
     char * AllocWithAttributes(size_t size)
     {
@@ -1516,7 +1535,7 @@ private:
     }
 
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char* AllocZeroWithAttributesInlined(size_t size);
+    inline char* AllocZeroWithAttributesInlined(size_t size);
 
     template <ObjectInfoBits attributes, bool nothrow>
     char* AllocZeroWithAttributes(size_t size)
@@ -1528,6 +1547,10 @@ private:
     {
         return AllocWithAttributes<WeakReferenceEntryBits, /* nothrow = */ false>(size);
     }
+#if DBG
+    template <ObjectInfoBits attributes>
+    void VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size);
+#endif
 
     bool NeedDisposeTimed()
     {
@@ -1602,9 +1625,9 @@ private:
         void* candidate;
     } blockCache;
 
-    __inline void ScanObjectInline(void ** obj, size_t byteCount);
-    __inline void ScanObjectInlineInterior(void ** obj, size_t byteCount);
-    __inline void ScanMemoryInline(void ** obj, size_t byteCount);
+    inline void ScanObjectInline(void ** obj, size_t byteCount);
+    inline void ScanObjectInlineInterior(void ** obj, size_t byteCount);
+    inline void ScanMemoryInline(void ** obj, size_t byteCount);
     void ScanMemory(void ** obj, size_t byteCount) { if (byteCount != 0) { ScanMemoryInline(obj, byteCount); } }
     bool AddMark(void * candidate, size_t byteCount);
 
@@ -1722,7 +1745,7 @@ private:
 
     bool ForceSweepObject();
     void NotifyFree(__in char * address, size_t size);
-    template <bool pageheap, typename T>
+    template <typename T>
     void NotifyFree(T * heapBlock);
 
     void CleanupPendingUnroot();
@@ -1755,7 +1778,7 @@ private:
     friend class HeapBucketT;
     template <typename TBlockType>
     friend class SmallNormalHeapBucketBase;
-    template <typename T, ObjectInfoBits attributes = LeafBit>
+    template <typename T, ObjectInfoBits attributes>
     friend class RecyclerFastAllocator;
 
 #ifdef RECYCLER_TRACE
@@ -1960,7 +1983,13 @@ private:
 
 public:
     typedef void (CALLBACK *ObjectBeforeCollectCallback)(void* object, void* callbackState); // same as jsrt JsObjectBeforeCollectCallback
-    void SetObjectBeforeCollectCallback(void* object, ObjectBeforeCollectCallback callback, void* callbackState);
+    // same as jsrt JsObjectBeforeCollectCallbackWrapper
+    typedef void (CALLBACK *ObjectBeforeCollectCallbackWrapper)(ObjectBeforeCollectCallback callback, void* object, void* callbackState, void* threadContext);
+    void SetObjectBeforeCollectCallback(void* object,
+        ObjectBeforeCollectCallback callback,
+        void* callbackState,
+        ObjectBeforeCollectCallbackWrapper callbackWrapper,
+        void* threadContext);
     void ClearObjectBeforeCollectCallbacks();
     bool IsInObjectBeforeCollectCallback() const { return objectBeforeCollectCallbackState != ObjectBeforeCollectCallback_None; }
 private:
@@ -1968,9 +1997,12 @@ private:
     {
         ObjectBeforeCollectCallback callback;
         void* callbackState;
+        void* threadContext;
+        ObjectBeforeCollectCallbackWrapper callbackWrapper;
 
         ObjectBeforeCollectCallbackData() {}
-        ObjectBeforeCollectCallbackData(ObjectBeforeCollectCallback callback, void* callbackState) : callback(callback), callbackState(callbackState) {}
+        ObjectBeforeCollectCallbackData(ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) :
+            callbackWrapper(callbackWrapper), callback(callback), callbackState(callbackState), threadContext(threadContext) {}
     };
     typedef JsUtil::BaseDictionary<void*, ObjectBeforeCollectCallbackData, HeapAllocator,
         PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::NoResizeLock> ObjectBeforeCollectCallbackMap;
@@ -2011,6 +2043,13 @@ public:
         m_address(address), m_recycler(recycler), m_heapBlock(heapBlock), m_attributes(attributes) { }
 
     void* GetObjectAddress() const { return m_address; }
+
+#ifdef RECYCLER_PAGE_HEAP
+    bool IsPageHeapAlloc() 
+    {
+        return isUsingLargeHeapBlock && ((LargeHeapBlock*)m_heapBlock)->InPageHeapMode();
+    }
+#endif
 
     bool IsLeaf() const
     {
@@ -2078,11 +2117,20 @@ public:
 
 #ifdef RECYCLER_PAGE_HEAP
         Recycler* recycler = this->m_recycler;
-        if (recycler->ShouldCapturePageHeapFreeStack())
+        if (recycler->IsPageHeapEnabled() && recycler->ShouldCapturePageHeapFreeStack())
         {
             Assert(recycler->IsPageHeapEnabled());
 
-            this->m_heapBlock->CapturePageHeapFreeStack();
+#ifdef STACK_BACK_TRACE
+            if (this->isUsingLargeHeapBlock)
+            {
+                LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)this->m_heapBlock;
+                if (largeHeapBlock->InPageHeapMode())
+                {
+                    largeHeapBlock->CapturePageHeapFreeStack();
+                }
+            }
+#endif
         }
 #endif
 
@@ -2161,10 +2209,10 @@ public:
     static CollectedRecyclerWeakRefHeapBlock Instance;
 private:
 
-    CollectedRecyclerWeakRefHeapBlock() : HeapBlock(BlockTypeCount) 
-    { 
+    CollectedRecyclerWeakRefHeapBlock() : HeapBlock(BlockTypeCount)
+    {
 #if ENABLE_CONCURRENT_GC
-        isPendingConcurrentSweep = false; 
+        isPendingConcurrentSweep = false;
 #endif
     }
 };
@@ -2194,9 +2242,9 @@ Recycler::RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t s
 
 template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
 char *
-Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat)
+Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat, size_t size)
 {
-    return autoHeap.SmallAllocatorAlloc<attributes>(this, allocator, sizeCat);
+    return autoHeap.SmallAllocatorAlloc<attributes>(this, allocator, sizeCat, size);
 }
 
 // Dummy recycler allocator policy classes to choose the allocation function
@@ -2347,7 +2395,10 @@ struct ForceLeafAllocator<RecyclerNonLeafAllocator>
     typedef RecyclerLeafAllocator AllocatorType;
 };
 
-#ifdef PROFILE_EXEC
+// TODO: enable -profile for GC phases.
+// access the same profiler object from multiple GC threads which shares one recyler object,
+// but profiler object is not thread safe
+#if defined(PROFILE_EXEC) && 0
 #define RECYCLER_PROFILE_EXEC_BEGIN(recycler, phase) if (recycler->profiler != nullptr) { recycler->profiler->Begin(phase); }
 #define RECYCLER_PROFILE_EXEC_END(recycler, phase) if (recycler->profiler != nullptr) { recycler->profiler->End(phase); }
 

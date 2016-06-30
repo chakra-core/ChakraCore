@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 //
@@ -36,9 +37,10 @@
 #define DDST    0x800    /* get the first operand from the DST list */
 #define DCOMMOP 0x1000   /* opcode is commutative */
 #define D66EX   0x2000   // Optional 0x66 for WNI/MNI 128-bit extended MMX opcodes
-#define DSSE    0x4000  /* Instruction operates on XMM registers but not AVX */
-#define D66     0x100000 // 0x66 0x0F style WNI form (usually 128-bit DP FP)
+#define DSSE    0x4000   /* Instruction operates on XMM registers but not AVX */
 #define DF3     0x8000   /* the 0xF3 0x0F style KNI opcodes */
+#define DMOV    0x10000  /* Instruction is a MOV or a synonym for MOV (e.g., MOV_TRUNC) */
+#define D66     0x100000 // 0x66 0x0F style WNI form (usually 128-bit DP FP)
 #define DF2     0x200000 /* 0xF2 0x0F style WNI form (usually 64-bit DP FP) */
 
 // 2nd 3 bits is options
@@ -258,20 +260,56 @@ enum Forms : BYTE
 #define OPBYTE_NOT      {0xf6}                   // modrm, byte2=2
 
 #define OPBYTE_ORPS     {0x56}                  // modrm
+#define OPBYTE_PADDB    {0xfc}                  // modrm
 #define OPBYTE_PADDD    {0xfe}                  // modrm
+#define OPBYTE_PADDW    {0xfd}                  // modrm
+#define OPBYTE_PADDSB   {0xec}                  // modrm
+#define OPBYTE_PADDSW   {0xed}                  // modrm
+#define OPBYTE_PADDUSB  {0xdc}                  // modrm
+#define OPBYTE_PADDUSW  {0xdd}                  // modrm
 #define OPBYTE_PAND     {0xdb}                  // modrm
+#define OPBYTE_PANDN    {0xdf}                  // modrm
+#define OPBYTE_PCMPEQB  {0x74}                  // modrm
 #define OPBYTE_PCMPEQD  {0x76}                  // modrm
+#define OPBYTE_PCMPEQW  {0x75}                  // modrm
+#define OPBYTE_PCMPGTB  {0x64}                  // modrm
 #define OPBYTE_PCMPGTD  {0x66}                  // modrm
+#define OPBYTE_PCMPGTW  {0x65}                  // modrm
+#define OPBYTE_PMAXSW   {0xee}                  // modrm
+#define OPBYTE_PMAXUB   {0xde}                  // modrm
+#define OPBYTE_PMINSW   {0xea}                  // modrm
+#define OPBYTE_PMINUB   {0xda}                  // modrm
+#define OPBYTE_PMOVMSKB {0xd7}                  // modrm
+#define OPBYTE_PMULLW   {0xd5}                  // modrm
 #define OPBYTE_PMULUDQ  {0xf4}                  // modrm
+#define OPBYTE_PMULLW   {0xd5}                  // modrm
 
 #define OPBYTE_POP      {0x58, 0, 0x8f}          // pshpop, byte2=0 immed not legal
 
 #define OPBYTE_POR      {0xeb}                  // modrm
 #define OPBYTE_PSHUFD   {0x70}                  // special
+#define OPBYTE_PEXTRW   {0xc5}                  // special 
+#define OPBYTE_PINSRW   {0xc4}                  // special 
 #define OPBYTE_PSLLDQ   {0x73}                  // mmxshift
 #define OPBYTE_PSRLDQ   {0x73}                  // mmxshift
+
+#define OPBYTE_PSLLW    {0x71}                  // mmx lane shift
+#define OPBYTE_PSLLD    {0x72}                  // mmx lane shift
+#define OPBYTE_PSRAW    {0x71}                  // mmx lane shift
+#define OPBYTE_PSRAD    {0x72}                  // mmx lane shift
+#define OPBYTE_PSRLW    {0x71}                  // mmx lane shift
+#define OPBYTE_PSRLD    {0x72}                  // mmx lane shift
+
+#define OPBYTE_PSUBB    {0xf8}                  // modrm
 #define OPBYTE_PSUBD    {0xfa}                  // modrm
+#define OPBYTE_PSUBW    {0xf9}                  // modrm
+#define OPBYTE_PSUBSB   {0xe8}                  // modrm
+#define OPBYTE_PSUBSW   {0xe9}                  // modrm
+#define OPBYTE_PSUBUSB  {0xd8}                  // modrm
+#define OPBYTE_PSUBUSW  {0xd9}                  // modrm
+#define OPBYTE_PUNPCKLBW {0x60}                 // modrm
 #define OPBYTE_PUNPCKLDQ {0x62}                 // modrm
+#define OPBYTE_PUNPCKLWD {0x61}                 // modrm
 
 #define OPBYTE_PUSH     {0x50, 0x68, 0xff}       // pshpop, byte2=6
 

@@ -45,7 +45,7 @@ namespace UnifiedRegex
     static const uint MaxCharMapLinearChars = 4;
 
     template <typename V>
-    class CharMap<wchar_t, V, CharMapScheme_Linear> : private Chars<wchar_t>
+    class CharMap<char16, V, CharMapScheme_Linear> : private Chars<char16>
     {
         template <typename C>
         friend class TextbookBoyerMooreWithLinearMap;
@@ -109,7 +109,7 @@ namespace UnifiedRegex
 
 
     template <typename V, CharMapScheme scheme>
-    class CharMap<wchar_t, V, scheme> : private Chars<wchar_t>
+    class CharMap<char16, V, scheme> : private Chars<char16>
     {
     private:
         static const int directBits = Chars<char>::CharWidth;
@@ -177,7 +177,7 @@ namespace UnifiedRegex
                 {
                     if (v == defv)
                         return;
-                    children[i] = For(allocator, level, defv);
+                    children[i] = Node::For(allocator, level, defv);
                 }
                 children[i]->Set(allocator, defv, level, k, v);
             }
@@ -296,7 +296,7 @@ namespace UnifiedRegex
             __analysis_assume(c < directSize);
             return directMap[c];
         }
-        __inline V Get(Char kc) const
+        inline V Get(Char kc) const
         {
             if (CTU(kc) < GetDirectMapSize())
             {

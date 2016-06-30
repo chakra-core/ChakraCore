@@ -82,7 +82,12 @@ protected:
 
 #ifdef RECYCLER_PAGE_HEAP
     bool isPageHeapEnabled;
-    __inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
+public:
+    inline bool IsPageHeapEnabled(ObjectInfoBits attributes) const
+    {
+        // LargeHeapBlock does not support TrackBit today
+        return isPageHeapEnabled && ((attributes & ClientTrackableObjectBits) == 0);
+    }
 #endif
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     Recycler * GetRecycler() const;
@@ -110,7 +115,7 @@ protected:
 template <typename TBlockType>
 class HeapBucketT : public HeapBucket
 {
-    typedef typename SmallHeapBlockAllocator<TBlockType> TBlockAllocatorType;
+    typedef SmallHeapBlockAllocator<TBlockType> TBlockAllocatorType;
 
 public:
     HeapBucketT();
@@ -119,16 +124,15 @@ public:
     bool IntegrateBlock(char * blockAddress, PageSegment * segment, Recycler * recycler);
 
     template <ObjectInfoBits attributes, bool nothrow>
-    __inline char * RealAlloc(Recycler * recycler, size_t sizeCat);
+    inline char * RealAlloc(Recycler * recycler, size_t sizeCat, size_t size);
 
 #ifdef RECYCLER_PAGE_HEAP
-    char * PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow);
-    void PageHeapCheckSweepLists(RecyclerSweep& recyclerSweep);
+    char * PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow);
 #endif
 
     void ExplicitFree(void* object, size_t sizeCat);
 
-    char * SnailAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes, bool nothrow);
+    char * SnailAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow);
 
     void ResetMarks(ResetMarkFlags flags);
     void ScanNewImplicitRoots(Recycler * recycler);
@@ -143,7 +147,7 @@ public:
     void SetupBackgroundSweep(RecyclerSweep& recyclerSweep);
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
 
     TBlockAllocatorType * GetAllocator() { return &allocatorHead;}
@@ -172,18 +176,16 @@ protected:
     template <class Fn> void ForEachAllocator(Fn fn);
 
     // Allocations
-    char * TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes);
+    char * TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, size_t size, ObjectInfoBits attributes);
     char * TryAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes);
-    template<bool pageheap>
     TBlockType * CreateHeapBlock(Recycler * recycler);
     TBlockType * GetUnusedHeapBlock();
 
     void FreeHeapBlock(TBlockType * heapBlock);
 
     // GC
-    template<bool pageheap>
     void SweepBucket(RecyclerSweep& recyclerSweep);
-    template <bool pageheap, typename Fn>
+    template <typename Fn>
     void SweepBucket(RecyclerSweep& recyclerSweep, Fn sweepFn);
 
     void StopAllocationBeforeSweep();
@@ -191,7 +193,6 @@ protected:
 #if DBG
     bool IsAllocationStopped() const;
 #endif
-    template<bool pageheap>
     void SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlockType * heapBlockList, bool allocable);
 #if ENABLE_PARTIAL_GC
     bool DoQueuePendingSweep(Recycler * recycler);
@@ -244,7 +245,7 @@ protected:
     friend class HeapBucketGroup;
 
     friend class HeapInfo;
-    friend typename TBlockType;
+    friend TBlockType;
 
     template <class TBucketAttributes>
     friend class SmallHeapBlockT;
@@ -263,11 +264,11 @@ HeapBucket::EnumerateObjects(TBlockType * heapBlockList, ObjectInfoBits infoBits
 
 
 template <typename TBlockType>
-template <bool pageheap, typename Fn>
+template <typename Fn>
 void
 HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep, Fn sweepFn)
 {
-    this->SweepBucket<pageheap>(recyclerSweep);
+    this->SweepBucket(recyclerSweep);
 
     // Continue to sweep other list from derived class
     sweepFn(recyclerSweep);

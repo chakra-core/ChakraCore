@@ -2,11 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 IR::Instr *Lowerer::PreLowerPeepInstr(IR::Instr *instr, IR::Instr **pInstrPrev)
 {
-    if (!PHASE_ON(Js::PreLowererPeepsPhase, this->m_func))
+    if (PHASE_OFF(Js::PreLowererPeepsPhase, this->m_func))
     {
         return instr;
     }

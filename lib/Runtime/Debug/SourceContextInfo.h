@@ -30,8 +30,8 @@ public:
     {
         struct
         {
-            wchar_t const * url;            // The url of the file
-            wchar_t const * sourceMapUrl;   // The url of the source map, such as actual non-minified source of JS on the server.
+            char16 const * url;            // The url of the file
+            char16 const * sourceMapUrl;   // The url of the source map, such as actual non-minified source of JS on the server.
         };
         uint      hash;                 // hash for dynamic scripts
     };

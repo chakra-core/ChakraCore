@@ -27,6 +27,7 @@ namespace Js {
             SymbolType symbolType;
             bool hasFuncAssignment;
             bool isBlockVariable;
+            bool isFuncExpr;
         };
 
     private:
@@ -41,6 +42,7 @@ namespace Js {
         BYTE isGlobalEval : 1;
         BYTE areNamesCached : 1;
         BYTE canMergeWithBodyScope : 1;
+        BYTE hasLocalInClosure : 1;
 
         Scope *scope;
         int scopeId;
@@ -49,7 +51,7 @@ namespace Js {
 
     private:
         ScopeInfo(FunctionBody * parent, int symbolCount)
-            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true)
+            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false)
         {
         }
 
@@ -91,6 +93,13 @@ namespace Js {
             symbols[i].isBlockVariable = is;
         }
 
+        void SetIsFuncExpr(int i, bool is)
+        {
+            Assert(!areNamesCached);
+            Assert(i >= 0 && i < symbolCount);
+            symbols[i].isFuncExpr = is;
+        }
+
         void SetPropertyName(int i, PropertyRecord const* name)
         {
             Assert(!areNamesCached);
@@ -121,6 +130,12 @@ namespace Js {
         {
             Assert(i >= 0 && i < symbolCount);
             return symbols[i].isBlockVariable;
+        }
+
+        bool GetIsFuncExpr(int i)
+        {
+            Assert(i >= 0 && i < symbolCount);
+            return symbols[i].isFuncExpr;
         }
 
         PropertyRecord const* GetPropertyName(int i)
@@ -191,6 +206,16 @@ namespace Js {
         bool GetCanMergeWithBodyScope() const
         {
             return canMergeWithBodyScope;
+        }
+
+        void SetHasLocalInClosure(bool has)
+        {
+            hasLocalInClosure = has;
+        }
+
+        bool GetHasOwnLocalInClosure() const
+        {
+            return hasLocalInClosure;
         }
 
         static void SaveScopeInfoForDeferParse(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func);

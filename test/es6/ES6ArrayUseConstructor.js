@@ -338,6 +338,21 @@ var tests = [
             assert.areEqual(3, out.length, "Array.prototype.splice sets the length property of returned object when constructor is %Array% of a different script context");
         }
     },
+    {
+        name: "ArraySpeciesCreate test through Array.prototype.filter - ES5 arrays",
+        body: function () {
+           
+
+            var arr = ['a','b','c'];
+            Object.defineProperty(arr, "3", { get : function () { return 0xff;}, set: function() { }}); //Create an ES5 array 
+            Object.defineProperty(Array, Symbol.species, {enumerable: false, configurable: true, writable: true, value: Object});
+            
+            var out  = Array.prototype.filter.call(arr, function() { return true; });
+            assert.isFalse(Array.isArray(out), "Return from Array.prototype.filter should be an object when constructor has [@@species] == Object on an ES5 array");
+            assert.areEqual('a', out[0], "Array.prototype.filter output Object should have correct first index value when constructor has [@@species] == Object on an ES5 array");
+            assert.areEqual(255, out[3], "Array.prototype.fitler output Object should have correct last index value when constructor has [@@species] == Object on an ES5 array");            
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

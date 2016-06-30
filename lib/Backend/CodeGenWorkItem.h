@@ -254,13 +254,13 @@ public:
     void GetEntryPointAddress(void** entrypoint, ptrdiff_t *size) override
     {
          Assert(entrypoint);
-         *entrypoint = this->GetEntryPoint()->address;
+         *entrypoint = this->GetEntryPoint()->jsMethod;
          *size = this->GetEntryPoint()->GetCodeSize();
     }
 
     uint GetInterpretedCount() const override
     {
-        return this->functionBody->interpretedCount;
+        return this->functionBody->GetInterpretedCount();
     }
 
     void Delete() override
@@ -314,7 +314,7 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
 
     uint GetLoopNumber() const override
     {
-        return functionBody->GetLoopNumber(loopHeader);
+        return functionBody->GetLoopNumberWithLock(loopHeader);
     }
 
     uint GetByteCodeCount() const override
@@ -331,7 +331,7 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
     {
         Assert(entrypoint);
         Js::EntryPointInfo * entryPoint = this->GetEntryPoint();
-        *entrypoint = entryPoint->address;
+        *entrypoint = reinterpret_cast<void*>(entryPoint->jsMethod);
         *size = entryPoint->GetCodeSize();
     }
 

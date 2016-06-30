@@ -173,7 +173,7 @@ private:
 #if !FLOATVAR
     IR::Instr *     LowerStSlotBoxTemp(IR::Instr *instr);
 #endif
-    IR::Instr *     LowerLdSlot(IR::Instr *instr);
+    void            LowerLdSlot(IR::Instr *instr);
     IR::Instr *     LowerChkUndecl(IR::Instr *instr);
     void            GenUndeclChk(IR::Instr *insertInsert, IR::Opnd *opnd);
     IR::Instr *     LowerStLen(IR::Instr *instr);
@@ -198,6 +198,7 @@ private:
         IR::JnHelperMethod helperMethodWithTemp, IR::JnHelperMethod helperMethodLeftDead);
     IR::Instr *     LowerAddLeftDeadForString(IR::Instr *instr);
     IR::Instr *     LowerBinaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod);
+    IR::Instr *     LowerInitCachedScope(IR::Instr * instr);
     IR::Instr *     LowerBrBReturn(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool isHelper);
     IR::Instr *     LowerBrBMem(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerBrOnObject(IR::Instr *instr, IR::JnHelperMethod helperMethod);
@@ -408,7 +409,7 @@ private:
     void            PreserveSourcesForBailOnResultCondition(IR::Instr *const instr, IR::LabelInstr *const skipBailOutLabel) const;
     void            LowerInstrWithBailOnResultCondition(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) const;
     void            GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBase, IR::RegOpnd *opndType, IR::LabelInstr *labelHelper);
-    IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr);
+    IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr, IR::LabelInstr * collectRuntimeStatsLabel = nullptr);
     void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter);
 
     void            LowerDivI4(IR::Instr * const instr);
@@ -434,9 +435,9 @@ private:
     IR::IndirOpnd*  GetArgsIndirOpndForInlinee(IR::Instr* ldElem, IR::Opnd* valueOpnd);
     IR::IndirOpnd*  GetArgsIndirOpndForTopFunction(IR::Instr* ldElem, IR::Opnd* valueOpnd);
     void            GenerateCheckForArgumentsLength(IR::Instr* ldElem, IR::LabelInstr* labelCreateHeapArgs, IR::Opnd* actualParamOpnd, IR::Opnd* valueOpnd, Js::OpCode opcode);
-    bool            GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr * labelHelper, IR::LabelInstr *labelFallThru);
+    bool            GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr *labelFallThru);
     bool            GenerateFastRealStackArgumentsLdLen(IR::Instr *ldLen);
-    bool            GenerateFastArgumentsLdLen(IR::Instr *ldLen, IR::LabelInstr* labelHelper, IR::LabelInstr* labelFallThru);
+    bool            GenerateFastArgumentsLdLen(IR::Instr *ldLen, IR::LabelInstr* labelFallThru);
     static const uint16  GetFormalParamOffset() { /*formal start after frame pointer, return address, function object, callInfo*/ return 4;};
 
     IR::RegOpnd*    GenerateFunctionTypeFromFixedFunctionObject(IR::Instr *callInstr, IR::Opnd* functionObjOpnd);
@@ -457,6 +458,12 @@ private:
     void            GenerateFastCmTypeOf(IR::Instr *compare, IR::RegOpnd *object, IR::IntConstOpnd *typeIdOpnd, IR::Instr *typeOf, bool *pfNoLower);
     void            GenerateFalsyObjectTest(IR::Instr *insertInstr, IR::RegOpnd *TypeOpnd, Js::TypeId typeIdToCheck, IR::LabelInstr* target, IR::LabelInstr* done, bool isNeqOp);
 
+    void            GenerateJavascriptOperatorsIsConstructorGotoElse(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelTrue, IR::LabelInstr *labelFalse);
+    void            GenerateRecyclableObjectGetPrototypeNullptrGoto(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelReturnNullptr);
+    void            GenerateRecyclableObjectIsElse(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelFalse);
+    void            GenerateLdSuper(IR::Instr* instrInsert);
+    void            GenerateLdSuperCtor(IR::Instr* instrInsert);
+    void            GenerateSetHomeObj(IR::Instr* instrInsert);
     void            GenerateLoadNewTarget(IR::Instr* instrInsert);
     void            GenerateCheckForCallFlagNew(IR::Instr* instrInsert);
     void            GenerateGetCurrentFunctionObject(IR::Instr * instr);

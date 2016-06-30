@@ -2,23 +2,26 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+#include "RuntimeMathPch.h"
+
 namespace Js
 {
 #ifdef SSE2MATH
     namespace SSE2
     {
 #endif
-        __inline Var JavascriptMath::Increment(Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Increment(Var aRight, ScriptContext* scriptContext)
         {
             return Increment_Full(aRight, scriptContext);
         }
 
-        __inline Var JavascriptMath::Decrement(Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Decrement(Var aRight, ScriptContext* scriptContext)
         {
             return Decrement_Full(aRight, scriptContext);
         }
 
-        __inline Var JavascriptMath::Negate(Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Negate(Var aRight, ScriptContext* scriptContext)
         {
             return
                 (TaggedInt::Is(aRight) && aRight != TaggedInt::ToVarUnchecked(0) && aRight != TaggedInt::MinVal()) ?
@@ -26,7 +29,7 @@ namespace Js
                     Negate_Full(aRight,scriptContext);
         }
 
-        __inline Var JavascriptMath::Not(Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Not(Var aRight, ScriptContext* scriptContext)
         {
             return
                 TaggedInt::Is(aRight) ?
@@ -35,7 +38,7 @@ namespace Js
         }
 
 
-        __inline Var JavascriptMath::Or(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Or(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             return
                 TaggedInt::IsPair(aLeft,aRight) ?
@@ -43,7 +46,7 @@ namespace Js
                 Or_Full(aLeft,aRight,scriptContext);
         }
 
-        __inline Var JavascriptMath::And(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::And(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
 #if FLOATVAR
             return
@@ -61,7 +64,7 @@ namespace Js
 #endif
         }
 
-        __inline Var JavascriptMath::ShiftLeft(Var aLeft,Var aRight,ScriptContext* scriptContext)
+        inline Var JavascriptMath::ShiftLeft(Var aLeft,Var aRight,ScriptContext* scriptContext)
         {
             return
                 TaggedInt::IsPair(aLeft, aRight) ?
@@ -69,7 +72,7 @@ namespace Js
                 ShiftLeft_Full(aLeft, aRight,scriptContext);
         }
 
-        __inline Var JavascriptMath::ShiftRight(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::ShiftRight(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             return
                 TaggedInt::IsPair(aLeft, aRight) ?
@@ -77,7 +80,7 @@ namespace Js
                 ShiftRight_Full(aLeft, aRight,scriptContext);
         }
 
-        __inline Var JavascriptMath::ShiftRightU(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::ShiftRightU(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             return
                 TaggedInt::IsPair(aLeft, aRight) ?
@@ -85,7 +88,7 @@ namespace Js
                 ShiftRightU_Full(aLeft, aRight,scriptContext);
         }
 
-        __inline Var JavascriptMath::Xor(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Xor(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             return
                 TaggedInt::IsPair(aLeft, aRight) ?
@@ -93,7 +96,7 @@ namespace Js
                 Xor_Full(aLeft, aRight,scriptContext);
         }
 
-        __inline double JavascriptMath::Decrement_Helper(Var aRight, ScriptContext* scriptContext)
+        inline double JavascriptMath::Decrement_Helper(Var aRight, ScriptContext* scriptContext)
         {
     #if defined(DBG)
             if (TaggedInt::Is(aRight))
@@ -107,7 +110,7 @@ namespace Js
             return --value;
         }
 
-        __inline double JavascriptMath::Increment_Helper(Var aRight, ScriptContext* scriptContext)
+        inline double JavascriptMath::Increment_Helper(Var aRight, ScriptContext* scriptContext)
         {
     #if defined(DBG)
             if (TaggedInt::Is(aRight))
@@ -121,7 +124,7 @@ namespace Js
             return ++value;
         }
 
-        __inline double JavascriptMath::Negate_Helper(Var aRight,ScriptContext* scriptContext)
+        inline double JavascriptMath::Negate_Helper(Var aRight,ScriptContext* scriptContext)
         {
             Assert(aRight != nullptr);
             Assert(scriptContext != nullptr);
@@ -130,7 +133,7 @@ namespace Js
             return -value;
         }
 
-        __inline int32 JavascriptMath::And_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline int32 JavascriptMath::And_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             Assert(aLeft != nullptr);
             Assert(aRight != nullptr);
@@ -144,7 +147,7 @@ namespace Js
             return nLeft & nRight;
         }
 
-        __inline int32 JavascriptMath::Or_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline int32 JavascriptMath::Or_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             Assert(aLeft != nullptr);
             Assert(aRight != nullptr);
@@ -158,7 +161,7 @@ namespace Js
         }
 
 
-        __inline double JavascriptMath::Add_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline double JavascriptMath::Add_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             AssertMsg( !JavascriptString::Is(aLeft), "Strings should have been handled already" );
             AssertMsg( !JavascriptString::Is(aRight), "Strings should have been handled already" );
@@ -168,7 +171,7 @@ namespace Js
             return dblLeft + dblRight;
         }
 
-        __inline Var JavascriptMath::Add(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Add(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             return
                 TaggedInt::IsPair(aLeft,aRight) ?
@@ -176,7 +179,7 @@ namespace Js
                 Add_Full(aLeft, aRight, scriptContext);
         }
 
-        __inline Var JavascriptMath::Subtract(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Subtract(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             return
                 TaggedInt::IsPair(aLeft,aRight) ?
@@ -184,7 +187,7 @@ namespace Js
                 Subtract_Full(aLeft, aRight, scriptContext);
         }
 
-        __inline double JavascriptMath::Subtract_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline double JavascriptMath::Subtract_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             Assert(aLeft != nullptr);
             Assert(aRight != nullptr);
@@ -196,21 +199,34 @@ namespace Js
             return dblLeft - dblRight;
         }
 
-        __inline Var JavascriptMath::Multiply(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Multiply(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-            return
-                TaggedInt::IsPair(aLeft,aRight) ?
-                TaggedInt::Multiply(aLeft, aRight, scriptContext) :
-                Multiply_Full(aLeft, aRight, scriptContext);
+            if (TaggedInt::IsPair(aLeft, aRight))
+            {
+                return TaggedInt::Multiply(aLeft, aRight, scriptContext);
+            }
+            else
+            {
+#if defined(_M_IX86) && !defined(SSE2MATH)
+                if (AutoSystemInfo::Data.SSE2Available())
+                {
+                    return SSE2::JavascriptMath::Multiply_Full(aLeft, aRight, scriptContext);
+                }
+                else
+#endif
+                {
+                    return Multiply_Full(aLeft, aRight, scriptContext);
+                }
+            }
         }
 
-        __inline Var JavascriptMath::Exponentiation(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Exponentiation(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             return Exponentiation_Full(aLeft, aRight, scriptContext);
         }
 
 
-        __inline double JavascriptMath::Multiply_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline double JavascriptMath::Multiply_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             Assert(aLeft != nullptr);
             Assert(aRight != nullptr);
@@ -220,13 +236,22 @@ namespace Js
             return JavascriptConversion::ToNumber(aLeft, scriptContext) * JavascriptConversion::ToNumber(aRight, scriptContext);
         }
 
-        __inline Var JavascriptMath::Divide(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Divide(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-            // The TaggedInt,TaggedInt case is handled within Divide_Full
-            return Divide_Full(aLeft, aRight,scriptContext);
+#if defined(_M_IX86) && !defined(SSE2MATH)
+            if (AutoSystemInfo::Data.SSE2Available())
+            {
+                return SSE2::JavascriptMath::Divide_Full(aLeft, aRight, scriptContext);
+            }
+            else
+#endif
+            {
+                // The TaggedInt,TaggedInt case is handled within Divide_Full
+                return Divide_Full(aLeft, aRight, scriptContext);
+            }
         }
 
-        __inline double JavascriptMath::Divide_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline double JavascriptMath::Divide_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             Assert(aLeft != nullptr);
             Assert(aRight != nullptr);
@@ -240,12 +265,12 @@ namespace Js
             return JavascriptConversion::ToNumber(aLeft, scriptContext) / JavascriptConversion::ToNumber(aRight, scriptContext);
         }
 
-        __inline Var JavascriptMath::Modulus(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline Var JavascriptMath::Modulus(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             return Modulus_Full(aLeft, aRight, scriptContext);
         }
 
-        __inline double JavascriptMath::Modulus_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
+        inline double JavascriptMath::Modulus_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             double dblLeft = JavascriptConversion::ToNumber(aLeft, scriptContext);
             double dblRight = JavascriptConversion::ToNumber(aRight, scriptContext);
@@ -253,7 +278,7 @@ namespace Js
         }
 
 #if defined(_M_ARM32_OR_ARM64)
-        __inline int32 JavascriptMath::ToInt32Core(double T1)
+        inline int32 JavascriptMath::ToInt32Core(double T1)
         {
             // Try the int32 conversion first and only do the more expensive (& closer to spec)
             // i64 conversion if it fails.
@@ -270,7 +295,7 @@ namespace Js
             return static_cast<int32>(T4_64);
         }
 #else
-        __inline int32 JavascriptMath::ToInt32Core(double T1)
+        inline int32 JavascriptMath::ToInt32Core(double T1)
         {
             // ES5 Spec for ToUInt32
             //
@@ -298,7 +323,7 @@ namespace Js
 #endif
 
         // Implements platform-agnostic part of handling overflow when converting Number to int32, ES5 version.
-        __inline __int64 JavascriptMath::ToInt32ES5OverflowHelper(double d)
+        inline __int64 JavascriptMath::ToInt32ES5OverflowHelper(double d)
         {
             if (IsNanInfZero(d)) // ShortCut NaN Inf Zero
             {
@@ -317,17 +342,17 @@ namespace Js
             return result;
         }
 
-        __inline BOOL JavascriptMath::IsNanInfZero(double v)
+        inline BOOL JavascriptMath::IsNanInfZero(double v)
         {
             return JavascriptNumber::IsNan(v) || JavascriptNumber::IsZero(v) || JavascriptNumber::IsPosInf(v) || JavascriptNumber::IsNegInf(v);
         }
 
-        __inline int64 JavascriptMath::TryToInt64(double T1)
+        inline int64 JavascriptMath::TryToInt64(double T1)
         {
             return Js::NumberUtilities::TryToInt64(T1);
         }
 
-        __inline int32 JavascriptMath::ToInt32_NoObjects(Var aValue, ScriptContext* scriptContext, bool& isObject)
+        inline int32 JavascriptMath::ToInt32_NoObjects(Var aValue, ScriptContext* scriptContext, bool& isObject)
         {
             if (JavascriptOperators::IsObject(aValue))
             {
@@ -339,7 +364,7 @@ namespace Js
             return ToInt32(aValue, scriptContext);
         }
 
-        __inline int32 JavascriptMath::ToInt32(Var aValue, ScriptContext* scriptContext)
+        inline int32 JavascriptMath::ToInt32(Var aValue, ScriptContext* scriptContext)
         {
             return
                 TaggedInt::Is(aValue) ?

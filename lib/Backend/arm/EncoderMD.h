@@ -99,7 +99,7 @@ public:
     static bool     CanEncodeModConst12(DWORD constant);
     static bool     CanEncodeLoadStoreOffset(int32 offset) { return IS_CONST_UINT12(offset); }
     static void     BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *pOffset, Func * func);
-    static bool     EncodeImmediate16(long constant, DWORD * result);
+    static bool     EncodeImmediate16(int32 constant, DWORD * result);
     static ENCODE_32  BranchOffset_T2_24(int x);
     void            EncodeInlineeCallInfo(IR::Instr *instr, uint32 offset);
 private:
@@ -127,7 +127,7 @@ private:
     bool            IsWideMemInstr(IR::Opnd * memOpnd, IR::RegOpnd * regOpnd);
     bool            IsWideAddSub(IR::Instr * instr);
 
-    static ENCODE_32 EncodeT2Immediate12(ENCODE_32 encode, long constant);
+    static ENCODE_32 EncodeT2Immediate12(ENCODE_32 encode, int32 constant);
     static bool     EncodeModConst12(DWORD constant, DWORD * result);
     static ENCODE_32 EncodeT2Offset(ENCODE_32 encode, IR::Instr *instr, int offset, int bitOffset);
 

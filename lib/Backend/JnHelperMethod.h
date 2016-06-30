@@ -44,7 +44,7 @@ intptr_t GetMethodOriginalAddress(ThreadContextInfo * context, JnHelperMethod he
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 
-wchar_t const* GetMethodName(JnHelperMethod helperMethod);
+char16 const* GetMethodName(JnHelperMethod helperMethod);
 
 #endif
 

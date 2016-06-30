@@ -4,8 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include <intsafe.h>
-
 // Parser Includes
 #include "Parser.h"
 #include "keywords.h"
@@ -21,8 +19,8 @@
 #include "RegexPattern.h"
 
 // Runtime includes
-#include "runtime.h"
-#include "ByteCode\Symbol.h"
-#include "ByteCode\Scope.h"
-#include "ByteCode\FuncInfo.h"
-#include "ByteCode\ScopeInfo.h"
+#include "Runtime.h"
+#include "ByteCode/Symbol.h"
+#include "ByteCode/Scope.h"
+#include "ByteCode/FuncInfo.h"
+#include "ByteCode/ScopeInfo.h"

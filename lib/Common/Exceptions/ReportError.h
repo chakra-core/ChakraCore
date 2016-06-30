@@ -18,7 +18,11 @@ enum ErrorReason
     Fatal_Version_Inconsistency = 10,
     MarkStack_OUTOFMEMORY = 11,
     EnterScript_FromDOM_NoScriptScope = 12,
-    Fatal_FailedToBox_OUTOFMEMORY = 13
+    Fatal_FailedToBox_OUTOFMEMORY = 13,
+    Fatal_Recycler_MemoryCorruption = 14,
+    Fatal_Debugger_AttachDetach_Failure = 15,
+    Fatal_EntryExitRecordCorruption = 16,
+    Fatal_UnexpectedExceptionHandling = 17
 };
 
 extern "C" void ReportFatalException(
@@ -51,6 +55,8 @@ void MarkStack_OOM_fatal_error();
 
 void Binary_Inconsistency_fatal_error();
 void Version_Inconsistency_fatal_error();
+void EntryExitRecord_Corrupted_fatal_error();
+void UnexpectedExceptionHandling_fatal_error(EXCEPTION_POINTERS * originalException);
 
 #ifdef LARGEHEAPBLOCK_ENCODING
 void LargeHeapBlock_Metadata_Corrupted(
@@ -58,10 +64,12 @@ void LargeHeapBlock_Metadata_Corrupted(
 #endif
 
 void FromDOM_NoScriptScope_fatal_error();
+void Debugger_AttachDetach_fatal_error();
 
+#ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.
 // Use UnhandleExceptionFilter to let the default handler handles it.
-__inline LONG FatalExceptionFilter(
+inline LONG FatalExceptionFilter(
     __in LPEXCEPTION_POINTERS lpep)
 {
     LONG rc = UnhandledExceptionFilter(lpep);
@@ -76,12 +84,18 @@ __inline LONG FatalExceptionFilter(
     }
     else
     {
-        Assert(IsDebuggerPresent());
+        // However, if debugger was not attached for some reason, terminate the process.
+        if (!IsDebuggerPresent())
+        {
+            TerminateProcess(GetCurrentProcess(), (UINT)DBG_TERMINATE_PROCESS);
+        }
         DebugBreak();
     }
 
     return EXCEPTION_CONTINUE_SEARCH;
 }
+#endif // DISABLE_SEH
+
 
 template<class Fn>
 static STDMETHODIMP DebugApiWrapper(Fn fn)

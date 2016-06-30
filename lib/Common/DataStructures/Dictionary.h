@@ -367,7 +367,7 @@ namespace JsUtil
         }
 
         template <typename TLookup>
-        __inline hash_t GetHashCode(const TLookup* key)
+        inline hash_t GetHashCode(const TLookup* key)
         {
             return TAGHASH(KeyComparer::GetHashCode(key));
         }

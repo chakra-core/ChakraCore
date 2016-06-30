@@ -158,7 +158,7 @@ public:
     static const bool FakeZeroLengthArray = true;
     static const size_t MaxSmallObjectSize = 1024;
 
-    ArenaAllocatorBase(__in LPCWSTR name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)(), void (*recoverMemoryFunc)() = JsUtil::ExternalApi::RecoverUnusedMemory);
+    ArenaAllocatorBase(__in char16 const* name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)(), void (*recoverMemoryFunc)() = JsUtil::ExternalApi::RecoverUnusedMemory);
     ~ArenaAllocatorBase();
 
     void Reset()
@@ -804,7 +804,7 @@ public:
 
 class RefCounted
 {
-    volatile long refCount;
+    volatile LONG refCount;
 
 protected:
     virtual ~RefCounted()
@@ -817,14 +817,14 @@ public:
     {
     }
 
-    ulong AddRef(void)
+    uint32 AddRef(void)
     {
-        return (ulong)InterlockedIncrement(&refCount);
+        return (uint32)InterlockedIncrement(&refCount);
     }
 
-    ulong Release(void)
+    uint32 Release(void)
     {
-        ulong refs = (ulong)InterlockedDecrement(&refCount);
+        uint32 refs = (uint32)InterlockedDecrement(&refCount);
 
         if (0 == refs)
         {
@@ -882,7 +882,7 @@ public:
 class ReferencedArenaAdapter : public RefCounted
 {
     CRITICAL_SECTION adapterLock;
-    ulong strongRefCount;
+    uint32 strongRefCount;
     ArenaAllocator* arena;
     bool deleteFlag;
 

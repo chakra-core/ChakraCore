@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // ChakraDiag does not link with Runtime.lib and does not include .cpp files, so this file will be included as a header
-#pragma once
+// For these reasons, we need the functions marked as inline in this file to remain inline
 #include "RuntimeLibraryPch.h"
-#include "DataStructures\LargeStack.h"
+#include "DataStructures/LargeStack.h"
 
 namespace Js
 {
@@ -21,9 +21,12 @@ namespace Js
     #endif
     }
 
-    inline StringCopyInfo::StringCopyInfo(
+    // In the ChakraDiag case, this file is #included so the method needs to be marked as inline
+    // In the ChakraCore case, it's compiled standalone and then linked with, and the StringCopyInfo
+    // constructor is referenced by other translation units so it needs to not be inline
+    JS_DIAG_INLINE StringCopyInfo::StringCopyInfo(
         JavascriptString *const sourceString,
-        _Inout_count_(sourceString->m_charLength) wchar_t *const destinationBuffer)
+        _Inout_count_(sourceString->m_charLength) char16 *const destinationBuffer)
         : sourceString(sourceString), destinationBuffer(destinationBuffer)
     {
         Assert(sourceString);
@@ -34,14 +37,14 @@ namespace Js
     #endif
     }
 
-    inline JavascriptString *StringCopyInfo::SourceString() const
+    JS_DIAG_INLINE JavascriptString *StringCopyInfo::SourceString() const
     {
         Assert(isInitialized);
 
         return sourceString;
     }
 
-    inline wchar_t *StringCopyInfo::DestinationBuffer() const
+    JS_DIAG_INLINE char16 *StringCopyInfo::DestinationBuffer() const
     {
         Assert(isInitialized);
         return destinationBuffer;
@@ -59,7 +62,7 @@ namespace Js
 
         StringCopyInfo copyInfo;
         JavascriptString *const string = nullptr;
-        wchar_t *const buffer = nullptr;
+        char16 *const buffer = nullptr;
 
         (StringCopyInfo());
         (StringCopyInfo(string, buffer));
@@ -119,7 +122,7 @@ namespace Js
         Assert(!allocator);
         Assert(!stack);
 
-        allocator = scriptContext->GetTemporaryAllocator(L"StringCopyInfoStack");
+        allocator = scriptContext->GetTemporaryAllocator(_u("StringCopyInfoStack"));
         Assert(allocator);
         stack = LargeStack<StringCopyInfo>::New(allocator->GetAllocator());
         Assert(stack);

@@ -15,7 +15,7 @@ private:
     AllocatorType* m_allocator;
 
 public:
-    AutoAllocatorObjectPtr(T* ptr, AllocatorType* allocator) : BasePtr(ptr), m_allocator(allocator)
+    AutoAllocatorObjectPtr(T* ptr, AllocatorType* allocator) : BasePtr<T>(ptr), m_allocator(allocator)
     {
         Assert(allocator);
     }
@@ -28,10 +28,10 @@ public:
 private:
     void Clear()
     {
-        if (ptr != nullptr)
+        if (this->ptr != nullptr)
         {
-            DeleteObject<TAllocator>(m_allocator, ptr);
-            ptr = nullptr;
+            DeleteObject<TAllocator>(m_allocator, this->ptr);
+            this->ptr = nullptr;
         }
     }
 };
@@ -77,11 +77,13 @@ private:
 //      TAllocator      The allocator type used to allocate/free the objects.
 //      ArrayAllocator  The allocator type used to allocate/free the array.
 //
-template <typename T, typename TAllocator, typename ArrayAllocator = ForceNonLeafAllocator<TAllocator>::AllocatorType>
+template <typename T, typename TAllocator, typename ArrayAllocator = typename ForceNonLeafAllocator<TAllocator>::AllocatorType>
 class AutoAllocatorObjectArrayPtr : public AutoAllocatorArrayPtr<T*, ArrayAllocator>
 {
+    typedef AutoAllocatorArrayPtr<T*, ArrayAllocator> Base;
+    
 public:
-    AutoAllocatorObjectArrayPtr(T** ptr, size_t elementCount, AllocatorType* allocator) :
+    AutoAllocatorObjectArrayPtr(T** ptr, size_t elementCount, typename Base::AllocatorType* allocator) :
         AutoAllocatorArrayPtr(ptr, elementCount, allocator)
     {
     }

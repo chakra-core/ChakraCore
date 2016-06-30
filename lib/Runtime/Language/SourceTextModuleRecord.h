@@ -6,64 +6,39 @@
 
 namespace Js
 {
-    class ModuleImportRecord
-    {
-    public:
-        ModuleImportRecord();
-        LiteralString* GetImportName() const { return importName; }
-        LiteralString* GetLocalName() const { return localName; }
-        LiteralString* GetModuleRequest() const { return moduleRequest; }
-
-    private:
-        LiteralString* moduleRequest;
-        LiteralString* importName;
-        LiteralString* localName;
-    };
-
-    class ModuleExportRecord
-    {
-    public:
-        ModuleExportRecord() :
-            moduleRequest(nullptr), importName(nullptr),
-            exportName(nullptr), localName(nullptr) {};
-        ModuleExportRecord(LiteralString* moduleRequest, LiteralString* importName, LiteralString* exportName, LiteralString* localName) :
-            moduleRequest(moduleRequest), importName(importName), exportName(exportName), localName(localName) {}
-        LiteralString* GetModuleRequest() const { return moduleRequest; }
-        LiteralString* GetImportName() const { return importName; }
-        LiteralString* GetExportName() const { return exportName; }
-        LiteralString* GetLocalname() const { return localName; }
-    private:
-        LiteralString* localName, *exportName, *importName, *moduleRequest;
-    };
-
     class SourceTextModuleRecord;
-    typedef SList<LiteralString*> ModuleNameList;
-    typedef SList<ModuleImportRecord*> ModuleImportRecordList;
-    typedef SList<ModuleExportRecord*> ModuleExportRecordList;
-    typedef SList<SourceTextModuleRecord*> ModuleRecordList;
-    typedef  JsUtil::BaseDictionary<LiteralString*, SourceTextModuleRecord*, ArenaAllocator, PowerOf2SizePolicy> ChildModuleRecordSet;
-    typedef  JsUtil::BaseDictionary<SourceTextModuleRecord*, SourceTextModuleRecord*, ArenaAllocator, PowerOf2SizePolicy> ParentModuleRecordSet;
+    typedef JsUtil::BaseDictionary<LPCOLESTR, SourceTextModuleRecord*, ArenaAllocator, PowerOf2SizePolicy> ChildModuleRecordSet;
+    typedef JsUtil::BaseDictionary<SourceTextModuleRecord*, SourceTextModuleRecord*, ArenaAllocator, PowerOf2SizePolicy> ParentModuleRecordSet;
+    typedef JsUtil::BaseDictionary<PropertyId, uint, ArenaAllocator, PowerOf2SizePolicy> LocalExportMap;
+    typedef JsUtil::BaseDictionary<PropertyId, ModuleNameRecord, ArenaAllocator, PowerOf2SizePolicy> ResolvedExportMap;
+    typedef JsUtil::List<PropertyId, ArenaAllocator> LocalExportIndexList;
 
     class SourceTextModuleRecord : public ModuleRecordBase
     {
     public:
+        friend class ModuleNamespace;
+
         SourceTextModuleRecord(ScriptContext* scriptContext);
-        ModuleNameList* GetRequestModuleList() const { return requestModuleList; }
-        ModuleImportRecordList* GetImportRecordList() const { return importRecordList; }
-        ModuleExportRecordList* GetLocalExportRecordList() const { return localExportRecordList; }
-        ModuleExportRecordList* GetIndirectExportRecordList() const { return indirectExportRecordList; }
-        ModuleExportRecordList* GetStarExportRecordList() const { return starExportRecordList; }
-        ExportedNames* GetExportedNames(ResolveSet* exportStarSet) override { Assert(false); return nullptr; }
-        // return false when "ambiguous". otherwise exportRecord.
-        bool ResolveExport(PropertyId exportName, ResolutionDictionary* resolveSet, ResolveSet* exportStarSet, ModuleNameRecord* exportRecord) override;
+        IdentPtrList* GetRequestedModuleList() const { return requestedModuleList; }
+        ModuleImportOrExportEntryList* GetImportEntryList() const { return importRecordList; }
+        ModuleImportOrExportEntryList* GetLocalExportEntryList() const { return localExportRecordList; }
+        ModuleImportOrExportEntryList* GetIndirectExportEntryList() const { return indirectExportRecordList; }
+        ModuleImportOrExportEntryList* GetStarExportRecordList() const { return starExportRecordList; }
+        virtual ExportedNames* GetExportedNames(ExportModuleRecordList* exportStarSet) override;
+        virtual bool IsSourceTextModuleRecord() override { return true; } // we don't really have other kind of modulerecord at this time.
+
+        // return false when "ambiguous". 
+        // otherwise nullptr means "null" where we have circular reference/cannot resolve.
+        bool ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ExportModuleRecordList* exportStarSet, ModuleNameRecord** exportRecord) override;
+        bool ResolveImport(PropertyId localName, ModuleNameRecord** importRecord);
         void ModuleDeclarationInstantiation() override;
         Var ModuleEvaluation() override;
 
-        void Finalize(bool isShutdown) override { return; }
+        void Finalize(bool isShutdown) override;
         void Dispose(bool isShutdown) override { return; }
         void Mark(Recycler * recycler) override { return; }
 
-        void ResolveExternalModuleDependencies();
+        HRESULT ResolveExternalModuleDependencies();
 
         void* GetHostDefined() const { return hostDefined; }
         void SetHostDefined(void* hostObj) { hostDefined = hostObj; }
@@ -74,14 +49,14 @@ namespace Js
         void SetWasDeclarationInitialized() { wasDeclarationInitialized = true; }
         void SetIsRootModule() { isRootModule = true; }
 
-        void SetImportRecordList(ModuleImportRecordList* importList) { importRecordList = importList; }
-        void SetLocalExportRecordList(ModuleExportRecordList* localExports) { localExportRecordList = localExports; }
-        void SetIndirectExportRecordList(ModuleExportRecordList* indirectExports) { indirectExportRecordList = indirectExports; }
-        void SetStarExportRecordList(ModuleExportRecordList* starExports) { starExportRecordList = starExports; }
-        void SetRequestModuleList(ModuleNameList* requestModules) { requestModuleList = requestModules; }
+        void SetImportRecordList(ModuleImportOrExportEntryList* importList) { importRecordList = importList; }
+        void SetLocalExportRecordList(ModuleImportOrExportEntryList* localExports) { localExportRecordList = localExports; }
+        void SetIndirectExportRecordList(ModuleImportOrExportEntryList* indirectExports) { indirectExportRecordList = indirectExports; }
+        void SetStarExportRecordList(ModuleImportOrExportEntryList* starExports) { starExportRecordList = starExports; }
+        void SetrequestedModuleList(IdentPtrList* requestModules) { requestedModuleList = requestModules; }
 
         ScriptContext* GetScriptContext() const { return scriptContext; }
-        HRESULT ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, Var* exceptionVar, bool isUtf8);
+        HRESULT ParseSource(__in_bcount(sourceLength) byte* sourceText, uint32 sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8);
         HRESULT OnHostException(void* errorVar);
 
         static SourceTextModuleRecord* FromHost(void* hostModuleRecord)
@@ -91,39 +66,68 @@ namespace Js
             return moduleRecord;
         }
         static SourceTextModuleRecord* Create(ScriptContext* scriptContext);
+
+        uint GetLocalExportSlotIndexByExportName(PropertyId exportNameId);
+        uint GetLocalExportSlotIndexByLocalName(PropertyId localNameId);
+        Var* GetLocalExportSlots() const { return localExportSlots; }
+        uint GetLocalExportCount() const { return localSlotCount; }
+        uint GetModuleId() const { return moduleId; }
+
+        SourceTextModuleRecord* GetChildModuleRecord(LPCOLESTR specifier) const;
 #if DBG
-        void AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, unsigned long specifierLength);
+        void AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, uint32 specifierLength);
 #endif
 
+        Utf8SourceInfo* GetSourceInfo() { return this->pSourceInfo; }
+
     private:
+        const static uint InvalidModuleIndex = 0xffffffff;
+        const static uint InvalidSlotCount = 0xffffffff;
+        const static uint InvalidSlotIndex = 0xffffffff;
+        // TODO: move non-GC fields out to avoid false reference?
         // This is the parsed tree resulted from compilation. 
         bool wasParsed;
         bool wasDeclarationInitialized;
         bool isRootModule;
         ParseNodePtr parseTree;
-//         SRCINFO scrInfo; // debugger support.
         Utf8SourceInfo* pSourceInfo;
         uint sourceIndex;
         Parser* parser;  // we'll need to keep the parser around till we are done with bytecode gen.
-        Js::JavascriptFunction* rootFunction;
         ScriptContext* scriptContext;
-        ModuleNameList* requestModuleList;
-        ModuleImportRecordList* importRecordList;
-        ModuleExportRecordList* localExportRecordList;
-        ModuleExportRecordList* indirectExportRecordList;
-        ModuleExportRecordList* starExportRecordList;
-        void* hostDefined;
+        IdentPtrList* requestedModuleList;
+        ModuleImportOrExportEntryList* importRecordList;
+        ModuleImportOrExportEntryList* localExportRecordList;
+        ModuleImportOrExportEntryList* indirectExportRecordList;
+        ModuleImportOrExportEntryList* starExportRecordList;
         ChildModuleRecordSet* childrenModuleSet;
         ModuleRecordList* parentModuleList;
-        Var errorObject;
-
+        LocalExportMap* localExportMapByExportName;  // from propertyId to index map: for bytecode gen.
+        LocalExportMap* localExportMapByLocalName;  // from propertyId to index map: for bytecode gen.
+        LocalExportIndexList* localExportIndexList; // from index to propertyId: for typehandler.
         uint numUnParsedChildrenModule;
-        TempArenaAllocatorObject* tempAllocatorObject;
+        ExportedNames* exportedNames;
+        ResolvedExportMap* resolvedExportMap;
 
-        TempArenaAllocatorObject* EnsureTempAllocator();
+        Js::JavascriptFunction* rootFunction;
+        void* hostDefined;
+        Var errorObject;
+        Var* localExportSlots;
+
+        uint localSlotCount;
+        uint moduleId;
+
         HRESULT PostParseProcess();
+        HRESULT PrepareForModuleDeclarationInitialization();
         void ImportModuleListsFromParser();
         HRESULT OnChildModuleReady(SourceTextModuleRecord* childModule, Var errorObj);
+        void NotifyParentsAsNeeded();
         void CleanupBeforeExecution();
+        void InitializeLocalImports();
+        void InitializeLocalExports();
+        void InitializeIndirectExports();
+        PropertyId EnsurePropertyIdForIdentifier(IdentPtr pid);
+        LocalExportMap* GetLocalExportMap() const { return localExportMapByExportName; }
+        LocalExportIndexList* GetLocalExportIndexList() const { return localExportIndexList; }
+        ResolvedExportMap* GetExportedNamesMap() const { return resolvedExportMap; }
     };
 }

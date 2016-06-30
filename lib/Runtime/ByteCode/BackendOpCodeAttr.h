@@ -30,8 +30,8 @@ namespace OpCodeAttr
     bool CallInstr(Js::OpCode opcode);
     // True for call instructions which may get inlined
     bool InlineCallInstr(Js::OpCode opcode);
-    // True if the opcode may have the side-effect of calling valueof().
-    bool CallsValueOf(Js::OpCode opcode);
+    // True if evaluation/read/write of operand may cause implicit call
+    bool OpndHasImplicitCall(Js::OpCode opcode);
     // True if the opcode can do optimizations on property syms.
     bool FastFldInstr(Js::OpCode opcode);
     // True if the opcode requires a bailout record.

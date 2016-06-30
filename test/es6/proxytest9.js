@@ -45,7 +45,7 @@ function test2() {
         print('Expected to throw TypeError');
     } catch (e) {
         if (e instanceof TypeError) {
-            if (e.message !== 'Property cannot have both accessors and a value') {
+            if (e.message !== "Invalid property descriptor: cannot both specify accessors and a 'value' attribute") {
                 print('FAIL');
             }
         } else {
@@ -386,10 +386,16 @@ function test22(){
     print('writable : ' + x.writable);
     print('enumerable : ' + x.enumerable);
     
-    //2. Revoked proxy passed as target/handler
     var revocable = Proxy.revocable({}, {});
+    var revokeFunction = revocable.revoke;
+	
+    //2. Revoke function's properties
+    print(Object.prototype.hasOwnProperty.call(revokeFunction, "prototype"));
+    print(Object.prototype.hasOwnProperty.call(revokeFunction, "name"));
+	
+     //3. Revoked proxy passed as target/handler
     revocable.revoke();
-    try{
+    try {
         var x = new Proxy({}, revocable.proxy);
     } catch(e) {
         print('expected :' + e.message);
@@ -401,11 +407,13 @@ function test22(){
         print('expected :' + e.message);
     }
 
-    //3. Proxy doesn't have prototype
+    //4. Proxy doesn't have prototype
     print('Proxy.prototype = ' + Object.hasOwnProperty.call(Proxy, 'prototype'));
 
-    //4. Reflect.defineProperty should not throw if target already has a property
+    //5. Reflect.defineProperty should not throw if target already has a property
     Reflect.defineProperty(Object.defineProperty({},"x", {value:1}), "x", {value : 2});
+	
+	
     
     print('done test22');
 }
@@ -524,6 +532,36 @@ function test29() {
     }  
 }
 
+function test30() {
+    var o = Proxy.revocable([], {});
+    o.revoke();
+    try {
+        Array.prototype.concat.call(o.proxy);
+    } catch(e) {
+        print('expected :' + e.message);
+    }
+    
+    try {
+        Array.prototype.join.call(o.proxy, o.proxy);
+    } catch(e) {
+        print('expected :' + e.message);
+    }
+
+    try {
+        Object.prototype.toString.call(o.proxy);
+    } catch(e) {
+        print('expected :' + e.message);
+    }
+
+    try {
+        function foo() {return this;}
+        var p = Proxy.revocable(foo, {});
+        p.revoke();
+        var pp = new p.proxy();
+    } catch(e) {
+        print('expected :' + e.message);
+    }
+}
 test0();
 test1();
 test2();
@@ -554,3 +592,4 @@ test26();
 test27();
 test28();
 test29();
+test30();

@@ -47,17 +47,27 @@ namespace Js
     {
         friend class CrossSite;
         friend class DynamicTypeHandler;
+        friend class ModuleNamespace;
         template <typename T> friend class DynamicObjectEnumeratorBase;
         template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics> friend class DynamicObjectEnumerator;
         friend class RecyclableObject;
         friend struct InlineCache;
         friend class ForInObjectEnumerator; // for cache enumerator
 
+        friend class JavascriptArray; // for xplat offsetof field access
+        friend class JavascriptNativeArray; // for xplat offsetof field access
         friend class JavascriptOperators; // for ReplaceType
         friend class PathTypeHandlerBase; // for ReplaceType
         friend class JavascriptLibrary;  // for ReplaceType
         friend class ScriptFunction; // for ReplaceType;
         friend class JSON::JSONParser; //for ReplaceType
+        friend class ModuleNamespace; // for slot setting.
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+    public:
+        //Field for tracking object allocation 
+        TTD::DiagnosticOrigin TTDDiagOriginInfo;
+#endif
 
     private:
         Var* auxSlots;
@@ -306,6 +316,20 @@ namespace Js
         virtual void Finalize(bool isShutdown) override;
         virtual void Dispose(bool isShutdown) override;
         virtual void Mark(Recycler *recycler) override;
+#endif
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+
+        Js::Var* GetInlineSlots_TTD() const;
+        Js::Var* GetAuxSlots_TTD() const;
+
+#if ENABLE_OBJECT_SOURCE_TRACKING
+        void SetDiagOriginInfoAsNeeded();
+#endif
+
 #endif
     };
 } // namespace Js

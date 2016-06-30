@@ -63,7 +63,7 @@ protected:
 
 
     template<class Fn>
-    __inline void for_each(const BVFixed *bv2, const Fn callback)
+    inline void for_each(const BVFixed *bv2, const Fn callback)
     {
         AssertMsg(this->len == bv2->len, "Fatal: The 2 bitvectors should have had the same length.");
 
@@ -337,7 +337,7 @@ private:
     BVUnit * EndUnit() { return &this->data[wordCount]; }
 
     template<class Fn>
-    __inline void for_each(const BVStatic *bv2, const Fn callback)
+    inline void for_each(const BVStatic *bv2, const Fn callback)
     {
         BVUnit *        i;
         const BVUnit *  j;
@@ -411,19 +411,19 @@ public:
     BOOLEAN TestAndSet(BVIndex i)
     {
         AssertRange(i);
-        return _bittestandset((long *)this->data, (long) i);
+        return _bittestandset((LONG *)this->data, (LONG) i);
     }
 
     BOOLEAN TestIntrinsic(BVIndex i) const
     {
         AssertRange(i);
-        return _bittest((long *)this->data, (long) i);
+        return _bittest((LONG *)this->data, (LONG) i);
     }
 
     BOOLEAN TestAndSetInterlocked(BVIndex i)
     {
         AssertRange(i);
-        return _interlockedbittestandset((long *)this->data, (long) i);
+        return _interlockedbittestandset((LONG *)this->data, (LONG) i);
     }
 
     BOOLEAN TestAndClear(BVIndex i)
@@ -655,12 +655,12 @@ public:
     void Dump() const
     {
         bool hasBits = false;
-        Output::Print(L"[  ");
+        Output::Print(_u("[  "));
         for (BVIndex i = 0; i < wordCount; i++)
         {
             hasBits = this->data[i].Dump(i * BVUnit::BitsPerWord, hasBits);
         }
-        Output::Print(L"]\n");
+        Output::Print(_u("]\n"));
     }
 #endif
 };

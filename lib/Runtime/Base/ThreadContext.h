@@ -49,12 +49,14 @@ public:
 
 class ThreadContext;
 
-class InterruptPoller abstract
+class InterruptPoller _ABSTRACT
 {
     // Interface with a polling object located in the hosting layer.
 
 public:
     InterruptPoller(ThreadContext *tc);
+
+    virtual ~InterruptPoller() { }
 
     void CheckInterruptPoll();
     void GetStatementCount(ULONG *pluHi, ULONG *pluLo);
@@ -253,6 +255,8 @@ public:
     ~AutoTagNativeLibraryEntry();
 };
 
+#ifdef ENABLE_BASIC_TELEMETRY
+#if ENABLE_NATIVE_CODEGEN
 struct JITStats
 {
     uint lessThan5ms;
@@ -263,6 +267,7 @@ struct JITStats
     uint within100And300ms;
     uint greaterThan300ms;
 };
+#endif
 
 struct ParserStats
 {
@@ -289,7 +294,7 @@ public:
     void LogTime(double ms);
 };
 
-
+#if ENABLE_NATIVE_CODEGEN
 class JITTimer
 {
 private:
@@ -302,6 +307,8 @@ public:
     double Now();
     void LogTime(double ms);
 };
+#endif
+#endif
 
 #define AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, name) \
     AutoTagNativeLibraryEntry __tag(function, callInfo, name, _AddressOfReturnAddress())
@@ -315,6 +322,7 @@ public:
         if (enableExperimentalFeatures)
         {
             EnableExperimentalFeatures();
+            ResetExperimentalFeaturesFromConfig();
         }
     }
 
@@ -345,7 +353,16 @@ private:
 
     void EnableExperimentalFeatures()
     {
-#define FLAG_REGOVR_EXP(type, name, ...) m_##name## = true;
+        // If a ES6 flag is disabled using compile flag don't enable it
+#define FLAG_REGOVR_EXP(type, name, ...) m_##name## = COMPILE_DISABLE_##name## ? false : true;
+#include "ConfigFlagsList.h"
+#undef FLAG_REGOVR_EXP
+    }
+
+    void ResetExperimentalFeaturesFromConfig()
+    {
+        // If a flag was overridden using config/command line it should take precedence
+#define FLAG_REGOVR_EXP(type, name, ...) if(CONFIG_ISENABLED(Js::Flag::##name##Flag)) { m_##name## = CONFIG_FLAG_RELEASE(##name##); }
 #include "ConfigFlagsList.h"
 #undef FLAG_REGOVR_EXP
     }
@@ -372,9 +389,6 @@ public:
         WorkerThread(HANDLE handle = nullptr) :threadHandle(handle){};
     };
 
-    void ReleasePreReservedSegment();
-    void IncrementThreadContextsWithPreReservedSegment();
-
     void SetCurrentThreadId(DWORD threadId) { this->currentThreadId = threadId; }
     DWORD GetCurrentThreadId() const { return this->currentThreadId; }
     void SetIsThreadBound()
@@ -385,10 +399,30 @@ public:
         }
         this->isThreadBound = true;
     }
+    bool IsJSRT() const { return !this->isThreadBound; }
     bool GetIsThreadBound() const { return this->isThreadBound; }
     void SetStackProber(StackProber * stackProber);
     PBYTE GetScriptStackLimit() const;
     static DWORD GetStackLimitForCurrentThreadOffset() { return offsetof(ThreadContext, stackLimitForCurrentThread); }
+
+    template <class Fn>
+    Js::ImplicitCallFlags TryWithDisabledImplicitCall(Fn fn)
+    {
+        DisableImplicitFlags prevDisableImplicitFlags = this->GetDisableImplicitFlags();
+        Js::ImplicitCallFlags savedImplicitCallFlags = this->GetImplicitCallFlags();
+
+        this->DisableImplicitCall();
+        this->SetImplicitCallFlags(Js::ImplicitCallFlags::ImplicitCall_None);
+        fn();
+
+        Js::ImplicitCallFlags curImplicitCallFlags = this->GetImplicitCallFlags();
+
+        this->SetDisableImplicitFlags(prevDisableImplicitFlags);
+        this->SetImplicitCallFlags(savedImplicitCallFlags);
+
+        return curImplicitCallFlags;
+    }
+
     void * GetAddressOfStackLimitForCurrentThread()
     {
         FAULTINJECT_SCRIPT_TERMINATION
@@ -416,8 +450,6 @@ public:
     }
 #endif
 
-    bool CanPreReserveSegmentForCustomHeap();
-
 #if ENABLE_NATIVE_CODEGEN
     // used by inliner. Maps Simd FuncInfo (library func) to equivalent opcode.
     typedef JsUtil::BaseDictionary<Js::FunctionInfo *, Js::OpCode, ArenaAllocator> FuncInfoToOpcodeMap;
@@ -437,6 +469,13 @@ public:
     void AddSimdFuncInfo(Js::OpCode op, Js::FunctionInfo *funcInfo);
     Js::OpCode GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo);
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
+
+#if _M_IX86 || _M_AMD64
+    // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
+    _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
+    _x86_SIMDValue * GetSimdTempArea() { return X86_TEMP_SIMD; }
+#endif
+
 #endif
 
 private:
@@ -451,10 +490,6 @@ private:
     StackProber * GetStackProber() const { return this->stackProber; }
     PBYTE GetStackLimitForCurrentThread() const;
     void SetStackLimitForCurrentThread(PBYTE limit);
-
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
-    static uint numOfThreadContextsWithPreReserveSegment;
-#endif
 
     // The current heap enumeration object being used during enumeration.
     IActiveScriptProfilerHeapEnum* heapEnum;
@@ -471,9 +506,9 @@ private:
         typedef JsUtil::WeaklyReferencedKeyDictionary<Js::EntryPointInfo, BYTE> EntryPointDictionary;
         // The sharedGuard is strongly referenced and will be kept alive by ThreadContext::propertyGuards until it's invalidated or
         // the property record itself is collected.  If the code using the guard needs access to it after it's been invalidated, it
-        // (the code) is responsible for keeping it alive.  Each unique guard, is weakly referenced, such that it can be reclaimed
-        // if not referenced elsewhere even without being invalidated.  It's up to the owner of that guard to keep it alive as long
-        // as necessary.
+        // (the code) is responsible for keeping it alive.
+        // Each unique guard, is weakly referenced, such that it can be reclaimed if not referenced elsewhere even without being
+        // invalidated.  The entry of a unique guard is removed from the table once the corresponding cache is invalidated.
         Js::PropertyGuard* sharedGuard;
         PropertyGuardHashSet uniqueGuards;
         EntryPointDictionary* entryPoints;
@@ -507,7 +542,7 @@ public:
     }
 private:
     typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, Recycler, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
-    typedef JsUtil::BaseDictionary<const wchar_t*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy> SymbolRegistrationMap;
+    typedef JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy> SymbolRegistrationMap;
 
     class SourceDynamicProfileManagerCache
     {
@@ -585,6 +620,8 @@ private:
         // Just holding the reference to the returnedValueList of the stepController. This way that list will not get recycled prematurely.
         Js::ReturnedValueList *returnedValueList;
 
+        uint constructorCacheInvalidationCount;
+
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         // use for autoProxy called from Debug.setAutoProxyName. we need to keep the buffer from GetSz() alive.
         LPCWSTR autoProxyName;
@@ -609,8 +646,10 @@ private:
 
     uint callRootLevel;
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
     // The thread page allocator is used by the recycler and need the background page queue
     PageAllocator::BackgroundPageQueue backgroundPageQueue;
+#endif
     IdleDecommitPageAllocator pageAllocator;
     Recycler* recycler;
 
@@ -656,6 +695,10 @@ private:
     Js::Var * bailOutRegisterSaveSpace;
     CodeGenNumberThreadAllocator * codeGenNumberThreadAllocator;
     XProcNumberPageSegmentManager * xProcNumberPageSegmentManager;
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    CustomHeap::CodePageAllocators thunkPageAllocators;
+#endif
+    CustomHeap::CodePageAllocators codePageAllocators;
 #endif
 
     RecyclerRootPtr<RecyclableData> recyclableData;
@@ -681,8 +724,6 @@ private:
     ArenaAllocator inlineCacheThreadInfoAllocator;
     ArenaAllocator isInstInlineCacheThreadInfoAllocator;
     ArenaAllocator equivalentTypeCacheInfoAllocator;
-    DListBase<Js::ScriptContext *> inlineCacheScriptContexts;
-    DListBase<Js::ScriptContext *> isInstInlineCacheScriptContexts;
     DListBase<Js::EntryPointInfo *> equivalentTypeCacheEntryPoints;
 
     typedef SList<Js::InlineCache*> InlineCacheList;
@@ -695,6 +736,8 @@ private:
 
     typedef JsUtil::BaseDictionary<Js::Var, Js::IsInstInlineCache*, ArenaAllocator> IsInstInlineCacheListMapByFunction;
     IsInstInlineCacheListMapByFunction isInstInlineCacheByFunction;
+
+    Js::IsConcatSpreadableCache isConcatSpreadableCache;
 
     ArenaAllocator prototypeChainEnsuredToHaveOnlyWritableDataPropertiesAllocator;
     DListBase<Js::ScriptContext *> prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
@@ -718,6 +761,7 @@ private:
     // If all try/catch blocks in the current stack marked as non-user code then this member will remain false.
     bool hasCatchHandlerToUserCode;
 
+#ifdef ENABLE_GLOBALIZATION
     Js::DelayLoadWinRtString delayLoadWinRtString;
 #ifdef ENABLE_PROJECTION
     Js::DelayLoadWinRtError delayLoadWinRtError;
@@ -736,11 +780,12 @@ private:
     Js::DelayLoadWinCoreMemory delayLoadWinCoreMemoryLibrary;
 #endif
     Js::DelayLoadWinCoreProcessThreads delayLoadWinCoreProcessThreads;
+#endif
 
     // Number of script context attached with probe manager.
     // This counter will be used as addref when the script context is created, this way we maintain the life of diagnostic object.
     // Once no script context available , diagnostic will go away.
-    long crefSContextForDiag;
+    LONG crefSContextForDiag;
 
     Entropy entropy;
 
@@ -750,7 +795,7 @@ private:
     // Regex globals
     //
     UnifiedRegex::StandardChars<uint8>* standardUTF8Chars;
-    UnifiedRegex::StandardChars<wchar_t>* standardUnicodeChars;
+    UnifiedRegex::StandardChars<char16>* standardUnicodeChars;
 
     Js::ImplicitCallFlags implicitCallFlags;
 
@@ -798,7 +843,14 @@ public:
     PageAllocator * GetPageAllocator() { return &pageAllocator; }
 
     AllocationPolicyManager * GetAllocationPolicyManager() { return allocationPolicyManager; }
+
+#if ENABLE_NATIVE_CODEGEN
     PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() { return &preReservedVirtualAllocator; }
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    CustomHeap::CodePageAllocators * GetThunkPageAllocators() { return &thunkPageAllocators; }
+#endif
+    CustomHeap::CodePageAllocators * GetCodePageAllocators() { return &codePageAllocators; }
+#endif // ENABLE_NATIVE_CODEGEN
 
     void ResetIsAllJITCodeInPreReservedRegion() { isAllJITCodeInPreReservedRegion = false; }
     bool IsAllJITCodeInPreReservedRegion() { return isAllJITCodeInPreReservedRegion; }
@@ -807,6 +859,9 @@ public:
 
     UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
 
+    Js::IsConcatSpreadableCache* GetIsConcatSpreadableCache() { return &isConcatSpreadableCache; }
+
+#ifdef ENABLE_GLOBALIZATION
     Js::DelayLoadWinRtString *GetWinRTStringLibrary();
 #ifdef ENABLE_PROJECTION
     Js::DelayLoadWinRtError *GetWinRTErrorLibrary();
@@ -825,10 +880,15 @@ public:
     Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
 #endif
     Js::DelayLoadWinCoreProcessThreads * GetWinCoreProcessThreads();
+#endif
 
+#ifdef ENABLE_BASIC_TELEMETRY
+#if ENABLE_NATIVE_CODEGEN
     JITTimer JITTelemetry;
+#endif
     ParserTimer ParserTelemetry;
     GUID activityId;
+#endif
     void *tridentLoadAddress;
 
     void* GetTridentLoadAddress() const { return tridentLoadAddress;  }
@@ -838,6 +898,8 @@ public:
     DirectCallTelemetry directCallTelemetry;
 #endif
 
+#ifdef ENABLE_BASIC_TELEMETRY
+#if ENABLE_NATIVE_CODEGEN
     JITStats GetJITStats()
     {
         return JITTelemetry.GetStats();
@@ -847,7 +909,8 @@ public:
     {
         JITTelemetry.Reset();
     }
-
+#endif
+    
     ParserStats GetParserStats()
     {
         return ParserTelemetry.GetStats();
@@ -857,7 +920,7 @@ public:
     {
         ParserTelemetry.Reset();
     }
-
+#endif
 
     double maxGlobalFunctionExecTime;
     double GetAndResetMaxGlobalFunctionExecTime()
@@ -939,6 +1002,36 @@ public:
 #endif
 #if DBG
     bool IsInAsyncHostOperation() const;
+#endif
+
+#if ENABLE_TTD
+    bool IsTTRequested;
+    bool IsTTRecordRequested;
+    bool IsTTDebugRequested;
+    LPCWSTR TTDUri;
+    uint32 TTSnapInterval;
+    uint32 TTSnapHistoryLength;
+
+    //The event log for time-travel (or null if TTD is not turned on)
+    TTD::EventLog* TTDLog;
+
+    //return true if thread context is initialized for TTD
+    bool IsTTDInitialized() const;
+
+    //Initialize the context for time-travel
+    void InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay, uint32 snapInterval, uint32 snapHistoryLength);
+    void BeginCtxTimeTravel(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor);
+    void EndCtxTimeTravel(Js::ScriptContext* ctx);
+
+    //Emit the TT Log
+    void EmitTTDLogIfNeeded();
+
+    //
+    //Callback functions provided by the host for writing info to some type of storage location
+    //
+    TTD::TTDInitializeTTDUriCallback TTDInitializeTTDUriFunction;
+    TTD::TTDInitializeForWriteLogStreamCallback TTDWriteInitializeFunction;
+    TTD::IOStreamFunctions TTDStreamFunctions;
 #endif
 
     BOOL ReserveStaticTypeIds(__in int first, __in int last);
@@ -1026,7 +1119,7 @@ private:
 public:
     void FindPropertyRecord(Js::JavascriptString *pstName, Js::PropertyRecord const ** propertyRecord);
     void FindPropertyRecord(__in LPCWSTR propertyName, __in int propertyNameLength, Js::PropertyRecord const ** propertyRecord);
-    const Js::PropertyRecord * FindPropertyRecord(const wchar_t * propertyName, int propertyNameLength);
+    const Js::PropertyRecord * FindPropertyRecord(const char16 * propertyName, int propertyNameLength);
 
     JsUtil::List<const RecyclerWeakReference<Js::PropertyRecord const>*>* FindPropertyIdNoCase(Js::ScriptContext * scriptContext, LPCWSTR propertyName, int propertyNameLength);
     JsUtil::List<const RecyclerWeakReference<Js::PropertyRecord const>*>* FindPropertyIdNoCase(Js::ScriptContext * scriptContext, JsUtil::CharacterBuffer<WCHAR> const& propertyName);
@@ -1034,11 +1127,11 @@ public:
     void CleanNoCasePropertyMap();
     void ForceCleanPropertyMap();
 
-    const Js::PropertyRecord * GetOrAddPropertyRecord(JsUtil::CharacterBuffer<wchar_t> propertyName)
+    const Js::PropertyRecord * GetOrAddPropertyRecord(JsUtil::CharacterBuffer<char16> propertyName)
     {
         return GetOrAddPropertyRecordImpl(propertyName, false);
     }
-    const Js::PropertyRecord * GetOrAddPropertyRecordBind(JsUtil::CharacterBuffer<wchar_t> propertyName)
+    const Js::PropertyRecord * GetOrAddPropertyRecordBind(JsUtil::CharacterBuffer<char16> propertyName)
     {
         return GetOrAddPropertyRecordImpl(propertyName, true);
     }
@@ -1054,10 +1147,10 @@ public:
 #endif
 
 private:
-    const Js::PropertyRecord * GetOrAddPropertyRecordImpl(JsUtil::CharacterBuffer<wchar_t> propertyName, bool bind);
+    const Js::PropertyRecord * GetOrAddPropertyRecordImpl(JsUtil::CharacterBuffer<char16> propertyName, bool bind);
     void AddPropertyRecordInternal(const Js::PropertyRecord * propertyRecord);
     void BindPropertyRecord(const Js::PropertyRecord * propertyRecord);
-    bool IsDirectPropertyName(const wchar_t * propertyName, int propertyNameLength);
+    bool IsDirectPropertyName(const char16 * propertyName, int propertyNameLength);
 
     RecyclerWeakReference<const Js::PropertyRecord> * CreatePropertyRecordWeakRef(const Js::PropertyRecord * propertyRecord);
     void AddCaseInvariantPropertyRecord(const Js::PropertyRecord * propertyRecord);
@@ -1118,9 +1211,8 @@ public:
     void RegisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
     void UnregisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
 #if ENABLE_NATIVE_CODEGEN
-    BOOL IsNativeAddress(void *pCodeAddr);
+    BOOL IsNativeAddress(void * pCodeAddr);
     JsUtil::JobProcessor *GetJobProcessor();
-    static void CloseSharedJobProcessor(const bool waitForThread);
     Js::Var * GetBailOutRegisterSaveSpace() const { return bailOutRegisterSaveSpace; }
     CodeGenNumberThreadAllocator * GetCodeGenNumberThreadAllocator() const
     {
@@ -1166,11 +1258,7 @@ public:
     void SetNoScriptScope(bool noScriptScope) { this->noScriptScope = noScriptScope; }
     bool IsNoScriptScope() { return this->noScriptScope; }
 
-    Js::ScriptContext ** RegisterInlineCacheScriptContext(Js::ScriptContext * scriptContext);
-    Js::ScriptContext ** RegisterIsInstInlineCacheScriptContext(Js::ScriptContext * scriptContext);
     Js::EntryPointInfo ** RegisterEquivalentTypeCacheEntryPoint(Js::EntryPointInfo * entryPoint);
-    void UnregisterInlineCacheScriptContext(Js::ScriptContext ** scriptContext);
-    void UnregisterIsInstInlineCacheScriptContext(Js::ScriptContext ** scriptContext);
     void UnregisterEquivalentTypeCacheEntryPoint(Js::EntryPointInfo ** entryPoint);
     void RegisterProtoInlineCache(Js::InlineCache * inlineCache, Js::PropertyId propertyId);
     void RegisterStoreFieldInlineCache(Js::InlineCache * inlineCache, Js::PropertyId propertyId);
@@ -1192,7 +1280,7 @@ public:
 private:
     void RegisterInlineCache(InlineCacheListMapByPropertyId& inlineCacheMap, Js::InlineCache* inlineCache, Js::PropertyId propertyId);
     static bool IsInlineCacheRegistered(InlineCacheListMapByPropertyId& inlineCacheMap, const Js::InlineCache* inlineCache, Js::PropertyId propertyId);
-    void InvalidateInlineCacheList(InlineCacheList *inlineCacheList);
+    void InvalidateAndDeleteInlineCacheList(InlineCacheList *inlineCacheList);
     void CompactInlineCacheList(InlineCacheList *inlineCacheList);
     void CompactInlineCacheInvalidationLists();
     void CompactProtoInlineCaches();
@@ -1205,7 +1293,7 @@ private:
 #if ENABLE_NATIVE_CODEGEN
     void InvalidateFixedFieldGuard(Js::PropertyGuard* guard);
     PropertyGuardEntry* EnsurePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, bool& foundExistingEntry);
-    void InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry);
+    void InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation);
 #endif
 
 public:
@@ -1256,6 +1344,7 @@ public:
 #ifdef PERSISTENT_INLINE_CACHES
     void ClearInlineCachesWithDeadWeakRefs();
 #endif
+    void ClearInvalidatedUniqueGuards();
     void ClearInlineCaches();
     void ClearIsInstInlineCaches();
     void ClearEquivalentTypeCaches();
@@ -1317,8 +1406,8 @@ public:
 #endif
 
     void EnsureSymbolRegistrationMap();
-    const Js::PropertyRecord* GetSymbolFromRegistrationMap(const wchar_t* stringKey);
-    const Js::PropertyRecord* AddSymbolToRegistrationMap(const wchar_t* stringKey, charcount_t stringLength);
+    const Js::PropertyRecord* GetSymbolFromRegistrationMap(const char16* stringKey);
+    const Js::PropertyRecord* AddSymbolToRegistrationMap(const char16* stringKey, charcount_t stringLength);
 
     inline void ClearPendingSOError()
     {
@@ -1369,11 +1458,13 @@ public:
         this->recyclableData->propagateException = propagateToDebugger;
     }
 
+#ifdef ENABLE_CUSTOM_ENTROPY
     Entropy& GetEntropy()
     {
         return entropy;
     }
-
+#endif
+    
     Js::ImplicitCallFlags * GetAddressOfImplicitCallFlags()
     {
         return &implicitCallFlags;
@@ -1407,7 +1498,7 @@ public:
     void CheckAndResetImplicitCallAccessorFlag();
 
     template <class Fn>
-    __inline Js::Var ExecuteImplicitCall(Js::RecyclableObject * function, Js::ImplicitCallFlags flags, Fn implicitCall)
+    inline Js::Var ExecuteImplicitCall(Js::RecyclableObject * function, Js::ImplicitCallFlags flags, Fn implicitCall)
     {
         // For now, we will not allow Function that is marked as HasNoSideEffect to be called, and we will just bailout.
         // These function may still throw exceptions, so we will need to add checks with RecordImplicitException
@@ -1527,7 +1618,7 @@ public:
     // Regex helpers
     //
     UnifiedRegex::StandardChars<uint8>* GetStandardChars(__inout_opt uint8* dummy);
-    UnifiedRegex::StandardChars<wchar_t>* GetStandardChars(__inout_opt wchar_t* dummy);
+    UnifiedRegex::StandardChars<char16>* GetStandardChars(__inout_opt char16* dummy);
 
     bool IsOptimizedForManyInstances() const { return isOptimizedForManyInstances; }
 
