@@ -25,4 +25,9 @@ if [[ $build_type != "-d" && $build_type != "-t" ]]; then
     fi
 fi
 
-"$test_path/runtests.py" $build_type
+"$test_path/runtests.py" $build_type --not-tag exclude_jenkins
+if [[ $? != 0 ]]; then
+    exit 1
+fi
+
+
