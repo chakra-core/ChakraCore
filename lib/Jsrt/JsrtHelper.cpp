@@ -89,9 +89,7 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
         pthread_key_create(&s_threadLocalDummy, DISPOSE_CHAKRA_CORE_THREAD);
 #endif
 
-// xplat-todo: Oguz: revert " || !defined(_WIN32)". This was supposed for
-// static lib only. Temporary workaround for shared lib.
-#if defined(CHAKRA_STATIC_LIBRARY) || !defined(_WIN32)
+#if defined(CHAKRA_STATIC_LIBRARY)
 
     // Attention: shared library is handled under (see ChakraCore/ChakraCoreDllFunc.cpp)
     // todo: consolidate similar parts from shared and static library initialization
