@@ -126,27 +126,26 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
         }
         else // oop jit
         {
-            unsigned int bailoutRecordOffset = NativeCodeData::GetDataTotalOffset(bailOutInfo->bailOutRecord);
-
-            // mov rcx, dataAddr
+            // mov eax, dataAddr
             Lowerer::InsertMove(
                 IR::RegOpnd::New(nullptr, RegEAX, TyMachPtr, func),
                 IR::AddrOpnd::New(func->GetWorkItem()->GetWorkItemData()->nativeDataAddr, IR::AddrOpndKindDynamicNativeCodeDataRef, func, true),
                 instr);
 
-            // mov rcx, [rcx]
+            // mov eax, [eax]
             Lowerer::InsertMove(
                 IR::RegOpnd::New(nullptr, RegEAX, TyMachPtr, func),
                 IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func), 0, TyMachPtr, func, true),
                 instr);
 
-            // add rcx, bailoutRecord_offset
-            auto eax = IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func);
-            Lowerer::InsertAdd(false, eax, eax, IR::IntConstOpnd::New(bailoutRecordOffset, TyUint32, 
+            // lea eax, [eax + bailoutRecord_offset]
+            unsigned int bailoutRecordOffset = NativeCodeData::GetDataTotalOffset(bailOutInfo->bailOutRecord);
+            Lowerer::InsertLea(IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func), 
+                IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegEAX, TyVar, this->func), bailoutRecordOffset, TyUint32,
 #if DBG
                 NativeCodeData::GetDataDescription(bailOutInfo->bailOutRecord, func->m_alloc),
 #endif
-                this->func, true), instr);
+                this->func), instr);
 
             IR::Instr *const newInstr = IR::Instr::New(Js::OpCode::PUSH, func);
             newInstr->SetSrc1(IR::RegOpnd::New(nullptr, RegEAX, TyUint32, func));

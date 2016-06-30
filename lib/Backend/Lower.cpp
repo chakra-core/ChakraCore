@@ -6851,11 +6851,14 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
                 instrChk);
 
             int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typeCheckGuard);
-            Lowerer::InsertAdd(false, typeCheckGuardOpnd, typeCheckGuardOpnd, IR::IntConstOpnd::New(typeCheckGuardOffset, TyInt32,
+            Lowerer::InsertLea(
+                typeCheckGuardOpnd->AsRegOpnd(),
+                IR::IndirOpnd::New(typeCheckGuardOpnd->AsRegOpnd(), typeCheckGuardOffset, TyMachPtr,
 #if DBG
-                NativeCodeData::GetDataDescription(typeCheckGuard, func->m_alloc),
+                    NativeCodeData::GetDataDescription(typeCheckGuard, func->m_alloc),
 #endif
-                func), instrChk);
+                    func, true),
+                instrChk);
         }
         else
         {
