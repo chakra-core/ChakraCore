@@ -292,10 +292,11 @@ typedef struct FunctionJITRuntimeIDL
 typedef struct PropertyIdArrayIDL
 {
     unsigned int count;
+    byte extraSlotCount;
     boolean hadDuplicates;
     boolean has__proto__;
     boolean hasNonSimpleParams;
-    [size_is(count)] int elements[*];
+    [size_is(count + extraSlotCount)] int elements[*];
 } PropertyIdArrayIDL;
 
 // FunctionBody fields, read only in JIT, gathered in foreground

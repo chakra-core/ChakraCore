@@ -6053,10 +6053,10 @@ namespace Js
     }
 #endif
 
-    PropertyIdArray * FunctionBody::AllocatePropertyIdArrayForFormals(uint32 size, uint32 count)
+    PropertyIdArray * FunctionBody::AllocatePropertyIdArrayForFormals(uint32 size, uint32 count, byte extraSlots)
     {
         //TODO: saravind: Should the allocation be a Leaf Allocation?
-        PropertyIdArray * formalsPropIdArray = RecyclerNewPlus(GetScriptContext()->GetRecycler(), size, Js::PropertyIdArray, count);
+        PropertyIdArray * formalsPropIdArray = RecyclerNewPlus(GetScriptContext()->GetRecycler(), size, Js::PropertyIdArray, count, extraSlots);
         SetFormalsPropIdArray(formalsPropIdArray);
         return formalsPropIdArray;
     }

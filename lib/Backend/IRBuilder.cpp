@@ -4647,7 +4647,7 @@ IRBuilder::BuildAuxNoReg(Js::OpCode newOpcode, uint32 offset)
         {
             IR::Opnd   *src1Opnd = this->BuildSrcOpnd(m_func->GetJITFunctionBody()->GetLocalClosureReg());
             IR::Opnd   *src2Opnd = this->BuildSrcOpnd(m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg());
-            IR::Opnd   *src3Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxFuncInfoArray, offset, auxInsn->Offset);
+            IR::Opnd   *src3Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxFuncInfoArray, auxInsn->Offset);
 
             instr = IR::Instr::New(Js::OpCode::ArgOut_A, IR::RegOpnd::New(TyVar, m_func), src3Opnd, m_func);
             this->AddInstr(instr, offset);
@@ -4731,7 +4731,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
 
             Js::RegSlot     dstRegSlot = auxInsn->R0;
 
-            srcOpnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxPropertyIdArray, offset, auxInsn->Offset);
+            srcOpnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxPropertyIdArray, auxInsn->Offset);
             dstOpnd = this->BuildDstOpnd(dstRegSlot);
             instr = IR::Instr::New(newOpcode, dstOpnd, srcOpnd, m_func);
 
@@ -4748,7 +4748,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
             IR::RegOpnd*   dstOpnd;
             IR::Opnd*      src1Opnd;
 
-            src1Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxIntArray, offset, auxInsn->Offset);
+            src1Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxIntArray, auxInsn->Offset);
             dstOpnd = this->BuildDstOpnd(auxInsn->R0);
 
             instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, m_func);
@@ -4766,7 +4766,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
             IR::RegOpnd*   dstOpnd;
             IR::Opnd*      src1Opnd;
 
-            src1Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxFloatArray, offset, auxInsn->Offset);
+            src1Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxFloatArray, auxInsn->Offset);
             dstOpnd = this->BuildDstOpnd(auxInsn->R0);
 
             instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, m_func);
@@ -4785,7 +4785,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
             IR::Opnd*      src2Opnd;
 
             src1Opnd = this->BuildSrcOpnd(auxInsn->R0);
-            src2Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxVarsArray, offset, auxInsn->Offset);
+            src2Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxVarsArray, auxInsn->Offset);
 
             instr = IR::Instr::New(newOpcode, m_func);
             instr->SetSrc1(src1Opnd);
@@ -4862,7 +4862,7 @@ IRBuilder::BuildProfiledAuxiliary(Js::OpCode newOpcode, uint32 offset)
             IR::RegOpnd*   dstOpnd;
             IR::Opnd*      src1Opnd;
 
-            src1Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxIntArray, offset, auxInsn->Offset);
+            src1Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxIntArray, auxInsn->Offset);
             dstOpnd = this->BuildDstOpnd(auxInsn->R0);
 
             Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
@@ -4927,7 +4927,7 @@ IRBuilder::BuildProfiledAuxiliary(Js::OpCode newOpcode, uint32 offset)
             IR::RegOpnd*   dstOpnd;
             IR::Opnd*      src1Opnd;
 
-            src1Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxFloatArray, offset, auxInsn->Offset);
+            src1Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxFloatArray, auxInsn->Offset);
             dstOpnd = this->BuildDstOpnd(auxInsn->R0);
 
             Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
@@ -5068,7 +5068,7 @@ IRBuilder::BuildReg2Aux(Js::OpCode newOpcode, uint32 offset)
 
             src1Opnd = this->BuildSrcOpnd(srcRegSlot);
 
-            src2Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxIntArray, offset, auxInsn->Offset);
+            src2Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxIntArray, auxInsn->Offset);
             dstOpnd = this->BuildDstOpnd(dstRegSlot);
 
             instr = IR::Instr::New(Js::OpCode::SpreadArrayLiteral, dstOpnd, src1Opnd, src2Opnd, m_func);
@@ -5693,7 +5693,7 @@ IRBuilder::BuildCallIFlags(Js::OpCode newOpcode, uint32 offset)
 void IRBuilder::BuildLdSpreadIndices(uint32 offset, uint32 spreadAuxOffset)
 {
     // Link up the LdSpreadIndices instr to be the first in the arg chain. This will allow us to find it in Lowerer easier.
-    IR::Opnd *auxArg = this->BuildAuxArrayOpnd(AuxArrayValue::AuxIntArray, offset, spreadAuxOffset);
+    IR::Opnd *auxArg = this->BuildAuxArrayOpnd(AuxArrayValue::AuxIntArray, spreadAuxOffset);
     IR::Instr *instr = IR::Instr::New(Js::OpCode::LdSpreadIndices, m_func);
     instr->SetSrc1(auxArg);
 
@@ -6532,7 +6532,7 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
     {
         IR::RegOpnd *   src1Opnd;
 
-        src1Opnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureRegister());
+        src1Opnd = this->BuildSrcOpnd(m_func->GetJITFunctionBody()->GetLocalClosureReg());
 
         IR::LabelInstr *labelNull = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
 
@@ -7246,7 +7246,7 @@ IRBuilder::InsertInitLoopBodyLoopCounter(uint loopNum)
 }
 
 IR::AddrOpnd *
-IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 auxArrayOffset, uint extraSlots)
+IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 auxArrayOffset)
 {
     switch (auxArrayType)
     {

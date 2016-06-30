@@ -191,7 +191,8 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->nameLength = functionBody->GetDisplayNameLength();
     jitBody->displayName = (wchar_t *)functionBody->GetDisplayName();
     jitBody->objectLiteralTypesAddr = (intptr_t)functionBody->GetObjectLiteralTypes();
-
+    auto test = functionBody->GetObjLiteralCount() >= 322 ? functionBody->GetObjectLiteralTypeRef(322) : nullptr;
+    Assert(test || !test);
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
     jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexes();
 

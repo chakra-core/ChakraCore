@@ -1459,8 +1459,8 @@ public:
             return block;
         };
 
-        auto writeAuxPropertyIdArray = [&](uint offset, uint32 extraSlots) -> BufferBuilder* {
-            const PropertyIdArray * propIds = reader.ReadPropertyIdArray(offset, functionBody, extraSlots);
+        auto writeAuxPropertyIdArray = [&](uint offset, byte extraSlots) -> BufferBuilder* {
+            const PropertyIdArray * propIds = reader.ReadPropertyIdArray(offset, functionBody);
 
             typedef serialization_alignment SerializedPropertyIdArray T;
             T header(offset, propIds->count, extraSlots, propIds->hadDuplicates, propIds->has__proto__);
@@ -1474,7 +1474,7 @@ public:
                 PrependConstantInt32(builder, _u("Encoded Property Id"), encoded);
             }
             auto slots = propIds->elements + propIds->count;
-            for(uint32 i=0; i<extraSlots; i++)
+            for(byte i=0; i<extraSlots; i++)
             {
                 PrependConstantInt32(builder, _u("Extra Slot"), slots[i]);
             }
@@ -1952,14 +1952,14 @@ public:
         {
             size += PrependBool(builder, _u("ExportsIdArrayLength"), true);
 
-            int32 extraSlotCount = 0;
+            byte extraSlotCount = 0;
             if (function->HasCachedScopePropIds())
             {
                 extraSlotCount = ActivationObjectEx::ExtraSlotCount();
             }
 
             size += PrependInt32(builder, _u("ExportsIdArrayLength"), propIds->count);
-            size += PrependInt32(builder, _u("ExtraSlotsCount"), extraSlotCount);
+            size += PrependByte(builder, _u("ExtraSlotsCount"), extraSlotCount);
             size += PrependByte(builder, _u("ExportsIdArrayDups"), propIds->hadDuplicates);
             size += PrependByte(builder, _u("ExportsIdArray__proto__"), propIds->has__proto__);
             size += PrependByte(builder, _u("ExportsIdArrayHasNonSimpleParams"), propIds->hasNonSimpleParams);
@@ -1971,7 +1971,7 @@ public:
             }
 
             auto slots = propIds->elements + propIds->count;
-            for (int i = 0; i < extraSlotCount; i++)
+            for (byte i = 0; i < extraSlotCount; i++)
             {
                 size += PrependInt32(builder, _u("Extra Slot"), slots[i]);
             }
@@ -3348,10 +3348,10 @@ public:
         uint32 count = 0;
         current = ReadUInt32(current, &count);
 
-        int32 extraSlotCount = 0;
-        current = ReadInt32(current, &extraSlotCount);
+        byte extraSlotCount = 0;
+        current = ReadByte(current, &extraSlotCount);
 
-        PropertyIdArray * propIds = function->AllocatePropertyIdArrayForFormals((extraSlotCount + count) * sizeof(PropertyId),count);
+        PropertyIdArray * propIds = function->AllocatePropertyIdArrayForFormals((extraSlotCount + count) * sizeof(PropertyId),count, extraSlotCount);
         propIds->count = count;
         
 
@@ -4040,7 +4040,8 @@ public:
         Assert(serialized->offset + sizeof(PropertyIdArray) < deserializeInto->GetLength());
         auto result = (PropertyIdArray *)(deserializeInto->GetBuffer() + serialized->offset);
         result->count = propertyCount;
-        Assert(serialized->offset + result->GetDataSize(extraSlotCount) <= deserializeInto->GetLength());
+        result->extraSlots = extraSlotCount;
+        Assert(serialized->offset + result->GetDataSize() <= deserializeInto->GetLength());
         result->hadDuplicates = serialized->hadDuplicates;
         result->has__proto__ = serialized->has__proto__;
 
@@ -4404,7 +4405,7 @@ SerializedFloatArray::SerializedFloatArray( uint offset, int floatCount ) :
 
 }
 
-SerializedPropertyIdArray::SerializedPropertyIdArray( uint offset, int propertyCount, int extraSlots, bool hadDuplicates, bool has__proto__) :
+SerializedPropertyIdArray::SerializedPropertyIdArray( uint offset, int propertyCount, byte extraSlots, bool hadDuplicates, bool has__proto__) :
     SerializedAuxiliary(offset, sakPropertyIdArray), propertyCount(propertyCount), extraSlots(extraSlots), hadDuplicates(hadDuplicates), has__proto__(has__proto__)
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
     , magic(magicStartOfAuxPropIdArray)

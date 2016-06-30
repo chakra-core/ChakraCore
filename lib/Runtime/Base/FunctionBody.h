@@ -3015,7 +3015,7 @@ namespace Js
         void InsertSymbolToRegSlotList(JsUtil::CharacterBuffer<WCHAR> const& propName, RegSlot reg, RegSlot totalRegsCount);
         void InsertSymbolToRegSlotList(RegSlot reg, PropertyId propertyId, RegSlot totalRegsCount);
         void SetPropertyIdsOfFormals(PropertyIdArray * formalArgs);
-        PropertyIdArray * AllocatePropertyIdArrayForFormals(uint32 size, uint32 count);
+        PropertyIdArray * AllocatePropertyIdArrayForFormals(uint32 size, uint32 count, byte extraSlots);
 
         bool DontRethunkAfterBailout() const { return dontRethunkAfterBailout; }
         void SetDontRethunkAfterBailout() { dontRethunkAfterBailout = true; }

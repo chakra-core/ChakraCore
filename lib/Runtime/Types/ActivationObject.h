@@ -201,7 +201,7 @@ namespace Js
             return ActivationObjectEx::GetCachedScopeInfo(propIds)[3];
         }
 
-        static uint32 ExtraSlotCount() { return 4; }
+        static byte ExtraSlotCount() { return 4; }
 
         static bool Is(void* instance)
         {
