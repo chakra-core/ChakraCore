@@ -52,9 +52,10 @@ namespace Js
     ///----------------------------------------------------------------------------
 
 
-    enum Flag
+    enum Flag: unsigned short
     {
 #define FLAG(type, name, ...) name##Flag,
+
 #include "ConfigFlagsList.h"
         FlagCount,
         InvalidFlag,
@@ -75,7 +76,7 @@ namespace Js
     ///----------------------------------------------------------------------------
 
 
-    enum Phase
+    enum Phase: unsigned short
     {
 #define PHASE(name) name##Phase,
 #include "ConfigFlagsList.h"
@@ -84,8 +85,8 @@ namespace Js
 #undef PHASE
     };
 
-    extern const wchar_t* const FlagNames[FlagCount + 1];
-    extern const wchar_t* const PhaseNames[PhaseCount + 1];
+    extern const char16* const FlagNames[FlagCount + 1];
+    extern const char16* const PhaseNames[PhaseCount + 1];
     extern const Flag           FlagParents[FlagCount + 1];
 
     typedef     int             Number;
@@ -101,9 +102,9 @@ namespace Js
     /// fiddling to make this class as interoperable with strings as possible :-
     ///
     ///     1.  Single argument constructor takes care of initialization
-    ///     2.  Assignment operator overloaded for wchar_t*
-    ///     3.  JavascriptConversion to const wchar_t * is defined. Making this constant ensures
-    ///         that a non constant wchar_t * does not point to our buffer which can
+    ///     2.  Assignment operator overloaded for char16*
+    ///     3.  JavascriptConversion to const char16 * is defined. Making this constant ensures
+    ///         that a non constant char16 * does not point to our buffer which can
     ///         potentially corrupt it.
     ///
     ///----------------------------------------------------------------------------
@@ -117,12 +118,12 @@ namespace Js
 
     // Data
     private:
-                LPWSTR           pszValue;
+        char16*           pszValue;
 
     // Construction
     public:
         inline String();
-        inline String(__in_opt LPWSTR psz);
+        inline String(__in_opt const char16* psz);
         inline ~String();
 
 
@@ -135,7 +136,7 @@ namespace Js
         ///
         ///----------------------------------------------------------------------------
 
-        String& operator=(__in_opt LPWSTR psz)
+        String& operator=(__in_opt const char16* psz)
         {
             Set(psz);
             return *this;
@@ -152,14 +153,14 @@ namespace Js
         ///
         ///----------------------------------------------------------------------------
 
-        operator LPCWSTR () const
+        operator const char16* () const
         {
             return this->pszValue;
         }
 
     // Implementation
     private:
-        void Set(__in_opt LPWSTR pszValue);
+        void Set(__in_opt const char16* pszValue);
     };
 
     class NumberSet
@@ -435,7 +436,7 @@ namespace Js
 
         #define FLAG(type, name, ...) \
             \
-            type name;\
+            type name;                      \
 
         #include "ConfigFlagsList.h"
 
@@ -458,8 +459,8 @@ namespace Js
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
                 // special callback logic
-                void        FlagSetCallback_ES6All(Boolean value);
-                void        FlagSetCallback_ES6Experimental(Boolean value);
+                void        FlagSetCallback_ES6All(Js::Boolean value);
+                void        FlagSetCallback_ES6Experimental(Js::Boolean value);
 #endif
 
     public:
@@ -501,16 +502,10 @@ namespace Js
         ConfigFlagsTable           flags;
         static Configuration        Global;
         bool EnableJitInDebugMode();
-        bool IsHybridDebugging();
 
         // Public in case the client wants to have
         // a separate config from the global one
         Configuration();
-
-    private:
-        GUID hybridDebuggingGuid; // Set to HybridDebuggingGuid when hybrid debugging - set by the out of process debugging component - jscript9diag.
-                                  // Otherwise, remains un-initialized
-        bool isHybridDebugging;
     };
 
 //Create macros for a useful subset of the config options that either get the value from the configuration (if the option is enabled) or

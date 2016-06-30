@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLibraryPch.h"
-#include "Types\PathTypeHandler.h"
-#include "Types\SpreadArgument.h"
+#include "Types/PathTypeHandler.h"
+#include "Types/SpreadArgument.h"
 
 namespace Js
 {
@@ -653,7 +653,7 @@ namespace Js
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::CopyOnAccessArrayPhase))
         {
-            Output::Print(L"Convert copy-on-access array: index(%d) length(%d)\n", this->GetHead(), seg->length);
+            Output::Print(_u("Convert copy-on-access array: index(%d) length(%d)\n"), this->GetHead(), seg->length);
             Output::Flush();
         }
 #endif
@@ -1000,7 +1000,7 @@ namespace Js
         // being created, except when call true a host dispatch.
         const CallInfo &callInfo = args.Info;
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert( isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
 
@@ -1487,7 +1487,7 @@ namespace Js
                 Assert(caller->GetFunctionBody());
                 if(PHASE_TRACE(Js::NativeArrayConversionPhase, caller->GetFunctionBody()))
                 {
-                    Output::Print(L"Conversion: Int array to Float array    ArrayCreationFunctionNumber:%2d    CallSiteNumber:%2d \n", arrayInfo->functionNumber, arrayInfo->callSiteNumber);
+                    Output::Print(_u("Conversion: Int array to Float array    ArrayCreationFunctionNumber:%2d    CallSiteNumber:%2d \n"), arrayInfo->functionNumber, arrayInfo->callSiteNumber);
                     Output::Flush();
                 }
             }
@@ -1495,14 +1495,14 @@ namespace Js
             {
                 if(PHASE_TRACE1(Js::NativeArrayConversionPhase))
                 {
-                    Output::Print(L"Conversion: Int array to Float array across ScriptContexts");
+                    Output::Print(_u("Conversion: Int array to Float array across ScriptContexts"));
                     Output::Flush();
                 }
             }
 #else
             if(PHASE_TRACE1(Js::NativeArrayConversionPhase))
             {
-                Output::Print(L"Conversion: Int array to Float array");
+                Output::Print(_u("Conversion: Int array to Float array"));
                 Output::Flush();
             }
 #endif
@@ -1919,7 +1919,7 @@ namespace Js
                 Assert(caller->GetFunctionBody());
                 if(PHASE_TRACE(Js::NativeArrayConversionPhase, caller->GetFunctionBody()))
                 {
-                    Output::Print(L"Conversion: Int array to Var array    ArrayCreationFunctionNumber:%2d    CallSiteNumber:%2d \n", arrayInfo->functionNumber, arrayInfo->callSiteNumber);
+                    Output::Print(_u("Conversion: Int array to Var array    ArrayCreationFunctionNumber:%2d    CallSiteNumber:%2d \n"), arrayInfo->functionNumber, arrayInfo->callSiteNumber);
                     Output::Flush();
                 }
             }
@@ -1927,14 +1927,14 @@ namespace Js
             {
                 if(PHASE_TRACE1(Js::NativeArrayConversionPhase))
                 {
-                    Output::Print(L"Conversion: Int array to Var array across ScriptContexts");
+                    Output::Print(_u("Conversion: Int array to Var array across ScriptContexts"));
                     Output::Flush();
                 }
             }
 #else
             if(PHASE_TRACE1(Js::NativeArrayConversionPhase))
             {
-                Output::Print(L"Conversion: Int array to Var array");
+                Output::Print(_u("Conversion: Int array to Var array"));
                 Output::Flush();
             }
 #endif
@@ -2116,7 +2116,7 @@ namespace Js
                 Assert(caller->GetFunctionBody());
                 if(PHASE_TRACE(Js::NativeArrayConversionPhase, caller->GetFunctionBody()))
                 {
-                    Output::Print(L"Conversion: Float array to Var array    ArrayCreationFunctionNumber:%2d    CallSiteNumber:%2d \n", arrayInfo->functionNumber, arrayInfo->callSiteNumber);
+                    Output::Print(_u("Conversion: Float array to Var array    ArrayCreationFunctionNumber:%2d    CallSiteNumber:%2d \n"), arrayInfo->functionNumber, arrayInfo->callSiteNumber);
                     Output::Flush();
                 }
             }
@@ -2124,19 +2124,19 @@ namespace Js
             {
                 if(PHASE_TRACE1(Js::NativeArrayConversionPhase))
                 {
-                    Output::Print(L"Conversion: Float array to Var array across ScriptContexts");
+                    Output::Print(_u("Conversion: Float array to Var array across ScriptContexts"));
                     Output::Flush();
                 }
             }
 #else
             if(PHASE_TRACE1(Js::NativeArrayConversionPhase))
             {
-                Output::Print(L"Conversion: Float array to Var array");
+                Output::Print(_u("Conversion: Float array to Var array"));
                 Output::Flush();
             }
 #endif
 
-            if(fArray->GetScriptContext()->IsInNonDebugMode())
+            if(fArray->GetScriptContext()->IsScriptContextInNonDebugMode())
             {
                 Assert(!arrayInfo->IsNativeIntArray());
             }
@@ -2795,7 +2795,7 @@ namespace Js
         }
 
         ScriptContext* requestContext = type->GetScriptContext();
-        return JavascriptOperators::GetItem(this, this->GetPrototype(), index, (Var*)outVal, requestContext);
+        return JavascriptOperators::GetItem(this, this->GetPrototype(), index, outVal, requestContext);
     }
 
     //
@@ -2972,6 +2972,11 @@ namespace Js
                         return;
                     }
 
+                    if (length + idxDest > FiftyThirdPowerOfTwoMinusOne) // 2^53-1: from ECMA 22.1.3.1 Array.prototype.concat(...arguments)
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_IllegalArraySizeAndLength);
+                    }
+
                     RecyclableObject* itemObject = RecyclableObject::FromVar(aItem);
                     Var subItem;
                     uint32 lengthToUin32Max = length.IsSmallIndex() ? length.GetSmallIndex() : MaxArrayLength;
@@ -2979,7 +2984,8 @@ namespace Js
                     {
                         if (JavascriptOperators::HasItem(itemObject, idxSubItem))
                         {
-                            JavascriptOperators::GetItem(itemObject, idxSubItem, &subItem, scriptContext);
+                            subItem = JavascriptOperators::GetItem(itemObject, idxSubItem, scriptContext);
+
                             if (pDestArray)
                             {
                                 pDestArray->DirectSetItemAt(idxDest, subItem);
@@ -3043,7 +3049,7 @@ namespace Js
         return true;
     }
 
-    void JavascriptArray::ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId *remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptArray::ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId *remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext)
     {
         uint idxDest = 0u;
         for (uint idxArg = 0; idxArg < args.Info.Count; idxArg++)
@@ -3057,7 +3063,7 @@ namespace Js
                 if (!JavascriptNativeIntArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
                 {
                     ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
-                    return;
+                    return pDestArray;
                 }
                 continue;
             }
@@ -3072,13 +3078,11 @@ namespace Js
                     // Copying the last array forced a conversion, so switch over to the var version
                     // to finish.
                     ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
-                    return;
+                    return pDestArray;
                 }
             }
-            else
+            else if (!JavascriptArray::IsAnyArray(aItem) && remoteTypeIds[idxArg] != TypeIds_Array)
             {
-                Assert(!JavascriptArray::IsAnyArray(aItem) && remoteTypeIds[idxArg] != TypeIds_Array);
-
                 if (TaggedInt::Is(aItem))
                 {
                     pDestArray->DirectSetItemAt(idxDest, TaggedInt::ToInt32(aItem));
@@ -3095,14 +3099,21 @@ namespace Js
                 }
                 ++idxDest;
             }
+            else
+            {
+                JavascriptArray *pVarDestArray = JavascriptNativeIntArray::ConvertToVarArray(pDestArray);
+                ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
+                return pVarDestArray;
+            }
         }
         if (pDestArray->GetLength() != idxDest)
         {
             pDestArray->SetLength(idxDest);
         }
+        return pDestArray;
     }
 
-    void JavascriptArray::ConcatFloatArgs(JavascriptNativeFloatArray* pDestArray, TypeId *remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext)
+    JavascriptArray* JavascriptArray::ConcatFloatArgs(JavascriptNativeFloatArray* pDestArray, TypeId *remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext)
     {
         uint idxDest = 0u;
         for (uint idxArg = 0; idxArg < args.Info.Count; idxArg++)
@@ -3118,7 +3129,7 @@ namespace Js
                 if (!JavascriptNativeFloatArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
                 {
                     ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
-                    return;
+                    return pDestArray;
                 }
                 continue;
             }
@@ -3132,18 +3143,25 @@ namespace Js
                     converted = CopyNativeIntArrayElementsToFloat(pDestArray, idxDest, pIntArray);
                     idxDest = idxDest + pIntArray->length;
                 }
-                else
+                else if (JavascriptNativeFloatArray::Is(aItem))
                 {
                     JavascriptNativeFloatArray* pItemArray = JavascriptNativeFloatArray::FromVar(aItem);
                     converted = CopyNativeFloatArrayElements(pDestArray, idxDest, pItemArray);
                     idxDest = idxDest + pItemArray->length;
                 }
+                else
+                {
+                    JavascriptArray *pVarDestArray = JavascriptNativeFloatArray::ConvertToVarArray(pDestArray);
+                    ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
+                    return pVarDestArray;
+                }
+
                 if (converted)
                 {
                     // Copying the last array forced a conversion, so switch over to the var version
                     // to finish.
                     ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
-                    return;
+                    return pDestArray;
                 }
             }
             else
@@ -3166,6 +3184,8 @@ namespace Js
         {
             pDestArray->SetLength(idxDest);
         }
+
+        return pDestArray;
     }
 
     bool JavascriptArray::BoxConcatItem(Var aItem, uint idxArg, ScriptContext *scriptContext)
@@ -3184,7 +3204,7 @@ namespace Js
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.concat");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.concat"));
         }
 
         //
@@ -3317,15 +3337,13 @@ namespace Js
             {
                 JavascriptNativeIntArray *pIntArray = isArray ? JavascriptNativeIntArray::FromVar(pDestObj) : scriptContext->GetLibrary()->CreateNativeIntArray(cDestLength);
                 pIntArray->EnsureHead<int32>();
-                ConcatIntArgs(pIntArray, remoteTypeIds, args, scriptContext);
-                pDestArray = pIntArray;
+                pDestArray = ConcatIntArgs(pIntArray, remoteTypeIds, args, scriptContext);
             }
             else if (isFloat)
             {
                 JavascriptNativeFloatArray *pFArray = isArray ? JavascriptNativeFloatArray::FromVar(pDestObj) : scriptContext->GetLibrary()->CreateNativeFloatArray(cDestLength);
                 pFArray->EnsureHead<double>();
-                ConcatFloatArgs(pFArray, remoteTypeIds, args, scriptContext);
-                pDestArray = pFArray;
+                pDestArray = ConcatFloatArgs(pFArray, remoteTypeIds, args, scriptContext);
             }
             else
             {
@@ -3374,7 +3392,7 @@ namespace Js
             RecyclableObject* pObj = nullptr;
             if (FALSE == JavascriptConversion::ToObject(aItem, scriptContext, &pObj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.concat");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.concat"));
             }
             if (pDestArray)
             {
@@ -3542,7 +3560,7 @@ namespace Js
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.indexOf");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.indexOf"));
             }
         }
 
@@ -3710,7 +3728,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint32 index, Var * element, ScriptContext * scriptContext)
     {
         // Note: Sometime cross site array go down this path to get the marshalling
         Assert(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(obj)
@@ -3724,7 +3742,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint64 index, Var * element, ScriptContext * scriptContext)
     {
         // Note: Sometime cross site array go down this path to get the marshalling
         Assert(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(obj)
@@ -3742,14 +3760,14 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
     {
         Assert(VirtualTableInfo<JavascriptArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptArray>>::HasVirtualTable(pArr));
         return pArr->JavascriptArray::DirectGetItemAtFull(index, element);
     }
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
     {
         // This should never get called.
         Assert(false);
@@ -3757,7 +3775,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
     {
         Assert(VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptNativeIntArray>>::HasVirtualTable(pArr));
@@ -3765,7 +3783,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
     {
         // This should never get called.
         Assert(false);
@@ -3773,7 +3791,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
     {
         Assert(VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptNativeFloatArray>>::HasVirtualTable(pArr));
@@ -3781,7 +3799,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
     {
         // This should never get called.
         Assert(false);
@@ -3789,7 +3807,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint32 index, Var * element, ScriptContext * scriptContext)
     {
         // We need to do explicit check for items since length value may not actually match the actual TypedArray length.
         // User could add a length property to a TypedArray instance which lies and returns a different value from the underlying length.
@@ -3805,7 +3823,7 @@ namespace Js
     }
 
     template <>
-    static BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint64 index, Var * element, ScriptContext * scriptContext)
     {
         // This should never get called.
         Assert(false);
@@ -4031,7 +4049,7 @@ namespace Js
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.join");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.join"));
         }
 
         JavascriptString* separator;
@@ -4109,7 +4127,7 @@ namespace Js
 
         JavascriptString* res = nullptr;
 
-        __try
+        TryFinally([&]()
         {
             if (isArray)
             {
@@ -4139,8 +4157,8 @@ namespace Js
             {
                 res = JoinOtherHelper(scriptContext->GetLibrary()->CreateNumberObject(thisArg), separator, scriptContext);
             }
-        }
-        __finally
+        },
+        [&](bool/*hasException*/)
         {
             Var top = scriptContext->PopObject();
             if (JavascriptProxy::Is(thisArg))
@@ -4151,7 +4169,7 @@ namespace Js
             {
                 AssertMsg(top == thisArg, "Unmatched operation stack");
             }
-        }
+        });
 
         if (res == nullptr)
         {
@@ -4272,7 +4290,6 @@ CaseDefault:
                     {
                         cs->Append(separator);
                     }
-                    Var value;
                     if (JavascriptOperators::GetItem(object, i, &value, scriptContext))
                     {
                         cs->Append(JavascriptArray::JoinToString(value, scriptContext));
@@ -4351,7 +4368,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.lastIndexOf");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.lastIndexOf"));
             }
             Var lenValue = JavascriptOperators::OP_GetLength(obj, scriptContext);
             length = JavascriptConversion::ToLength(lenValue, scriptContext);
@@ -4603,7 +4620,7 @@ Case0:
         RecyclableObject* dynamicObject = nullptr;
         if (FALSE == JavascriptConversion::ToObject(object, scriptContext, &dynamicObject))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.pop");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.pop"));
         }
         BigIndex length;
         if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
@@ -4616,7 +4633,7 @@ Case0:
         }
 
 
-        ThrowTypeErrorOnFailureHelper h(scriptContext, L"Array.prototype.pop");
+        ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.pop"));
         if (length == 0u)
         {
             // Set length = 0
@@ -4662,7 +4679,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.pop");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.pop"));
         }
 
         if (JavascriptArray::Is(args[0]))
@@ -4763,7 +4780,7 @@ Case0:
             RecyclableObject* obj = nullptr;
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.push");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.push"));
             }
 
             Var length = JavascriptOperators::OP_GetLength(obj, scriptContext);
@@ -4773,7 +4790,7 @@ Case0:
                 return length;
             }
 
-            ThrowTypeErrorOnFailureHelper h(scriptContext, L"Array.prototype.push");
+            ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.push"));
             BigIndex n;
             if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
             {
@@ -4865,7 +4882,7 @@ Case0:
     {
         JavascriptArray * arr = JavascriptArray::FromAnyArray(args[0]);
         uint n = arr->length;
-        ThrowTypeErrorOnFailureHelper h(scriptContext, L"Array.prototype.push");
+        ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.push"));
 
         // Fast Path for one push for small indexes
         if (argCount == 2 && n < JavascriptArray::MaxArrayLength)
@@ -4895,7 +4912,7 @@ Case0:
     {
         JavascriptArray * arr = JavascriptArray::FromAnyArray(args[0]);
         uint n = arr->length;
-        ThrowTypeErrorOnFailureHelper h(scriptContext, L"Array.prototype.push");
+        ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.push"));
 
         // First handle "small" indices.
         uint index;
@@ -4944,7 +4961,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.push");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.push"));
         }
 
         if (JavascriptArray::Is(args[0]))
@@ -4970,7 +4987,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.reverse");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.reverse"));
         }
 
         BigIndex length = 0u;
@@ -4989,7 +5006,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.reverse");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.reverse"));
             }
         }
 
@@ -5027,16 +5044,16 @@ Case0:
         T middle = length / 2;
         Var lowerValue = nullptr, upperValue = nullptr;
         T lowerExists, upperExists;
-        const wchar_t* methodName;
+        const char16* methodName;
         bool isTypedArrayEntryPoint = typedArrayBase != nullptr;
 
         if (isTypedArrayEntryPoint)
         {
-            methodName = L"[TypedArray].prototype.reverse";
+            methodName = _u("[TypedArray].prototype.reverse");
         }
         else
         {
-            methodName = L"Array.prototype.reverse";
+            methodName = _u("Array.prototype.reverse");
         }
 
         // If we came from Array.prototype.map and source object is not a JavascriptArray, source could be a TypedArray
@@ -5183,8 +5200,8 @@ Case0:
                     lowerExists = typedArrayBase->HasItem(lower);
                     upperExists = typedArrayBase->HasItem(upper);
 
-                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue, false));
-                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue, false));
+                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
+                    h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                 }
             }
             else
@@ -5203,21 +5220,21 @@ Case0:
                     {
                         if (upperExists)
                         {
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue, false));
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue, false));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                         }
                         else
                         {
                             // This will always fail for a TypedArray if lower < length
                             h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(lower, PropertyOperation_ThrowIfNotExtensible));
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue, false));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                         }
                     }
                     else
                     {
                         if (upperExists)
                         {
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue, false));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
                             // This will always fail for a TypedArray if upper < length
                             h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(upper, PropertyOperation_ThrowIfNotExtensible));
                         }
@@ -5231,18 +5248,11 @@ Case0:
             {
                 T upper = length - lower - 1;
 
-                lowerExists = JavascriptOperators::HasItem(obj, lower);
-                if (lowerExists)
-                {
-                    BOOL getResult = JavascriptOperators::GetItem(obj, lower, &lowerValue, scriptContext);
-                    Assert(getResult);
-                }
-                upperExists = JavascriptOperators::HasItem(obj, upper);
-                if (upperExists)
-                {
-                    BOOL getResult = JavascriptOperators::GetItem(obj, upper, &upperValue, scriptContext);
-                    Assert(getResult);
-                }
+                lowerExists = JavascriptOperators::HasItem(obj, lower) &&
+                              JavascriptOperators::GetItem(obj, lower, &lowerValue, scriptContext);
+
+                upperExists = JavascriptOperators::HasItem(obj, upper) &&
+                              JavascriptOperators::GetItem(obj, upper, &upperValue, scriptContext);
 
                 if (lowerExists)
                 {
@@ -5272,7 +5282,7 @@ Case0:
     }
 
     template<typename T>
-    static void JavascriptArray::ShiftHelper(JavascriptArray* pArr, ScriptContext * scriptContext)
+    void JavascriptArray::ShiftHelper(JavascriptArray* pArr, ScriptContext * scriptContext)
     {
         Recycler * recycler = scriptContext->GetRecycler();
 
@@ -5454,10 +5464,10 @@ Case0:
             RecyclableObject* dynamicObject = nullptr;
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &dynamicObject))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.shift");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.shift"));
             }
 
-            ThrowTypeErrorOnFailureHelper h(scriptContext, L"Array.prototype.shift");
+            ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.shift"));
 
             BigIndex length = 0u;
             if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
@@ -5483,11 +5493,9 @@ Case0:
             uint32 lengthToUin32Max = length.IsSmallIndex() ? length.GetSmallIndex() : MaxArrayLength;
             for (uint32 i = 0u; i < lengthToUin32Max; i++)
             {
-                Var element;
                 if (JavascriptOperators::HasItem(dynamicObject, i + 1))
                 {
-                    BOOL getResult = JavascriptOperators::GetItem(dynamicObject, i + 1, &element, scriptContext);
-                    Assert(getResult);
+                    Var element = JavascriptOperators::GetItem(dynamicObject, i + 1, scriptContext);
                     h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(dynamicObject, dynamicObject, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible, /*skipPrototypeCheck*/ true));
                 }
                 else
@@ -5498,11 +5506,9 @@ Case0:
 
             for (uint64 i = MaxArrayLength; length > i; i++)
             {
-                Var element;
                 if (JavascriptOperators::HasItem(dynamicObject, i + 1))
                 {
-                    BOOL getResult = JavascriptOperators::GetItem(dynamicObject, i + 1, &element, scriptContext);
-                    Assert(getResult);
+                    Var element = JavascriptOperators::GetItem(dynamicObject, i + 1, scriptContext);
                     h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(dynamicObject, dynamicObject, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible));
                 }
                 else
@@ -5556,7 +5562,7 @@ Case0:
    }
 
     template<typename T>
-    static void JavascriptArray::SliceHelper(JavascriptArray* pArr,  JavascriptArray* pnewArr, uint32 start, uint32 newLen)
+    void JavascriptArray::SliceHelper(JavascriptArray* pArr,  JavascriptArray* pnewArr, uint32 start, uint32 newLen)
     {
         SparseArraySegment<T>* headSeg = (SparseArraySegment<T>*)pArr->head;
         SparseArraySegment<T>* pnewHeadSeg = (SparseArraySegment<T>*)pnewArr->head;
@@ -5668,7 +5674,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.slice");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.slice"));
             }
         }
 
@@ -5748,7 +5754,7 @@ Case0:
 
         if (TypedArrayBase::IsDetachedTypedArray(obj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"Array.prototype.slice");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("Array.prototype.slice"));
         }
 
         // If we came from Array.prototype.slice and source object is not a JavascriptArray, source could be a TypedArray
@@ -5777,7 +5783,7 @@ Case0:
                 newArr = CreateNewArrayHelper(static_cast<uint32>(newLenT), isIntArray, isFloatArray, pArr, scriptContext);
                 newObj = newArr;
             }
-            else if (JavascriptOperators::IsConstructor(constructor) && JavascriptLibrary::IsTypedArrayConstructor(constructor, scriptContext))
+            else if (JavascriptOperators::IsConstructor(constructor))
             {
                 if (pArr)
                 {
@@ -5788,12 +5794,12 @@ Case0:
 
                 Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(newLenT, scriptContext) };
                 Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-                newObj = RecyclableObject::FromVar(JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext));
+                newObj = RecyclableObject::FromVar(TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), (uint32)newLenT, scriptContext));
             }
             else
             {
                 // We only need to throw a TypeError when the constructor property is not an actual constructor if %TypedArray%.prototype.slice was called
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor, L"[TypedArray].prototype.slice");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor, _u("[TypedArray].prototype.slice"));
             }
         }
 
@@ -5940,7 +5946,7 @@ Case0:
                 // The object we got back from the constructor might not be a TypedArray. In fact, it could be any object.
                 if (newTypedArray)
                 {
-                    newTypedArray->DirectSetItem(i, element, false);
+                    newTypedArray->DirectSetItem(i, element);
                 }
                 else if (newArr)
                 {
@@ -5954,23 +5960,19 @@ Case0:
         }
         else
         {
-            Var element;
-
             for (uint32 i = 0; i < newLen; i++)
             {
-                if (!JavascriptOperators::HasItem(obj, i+start))
+                if (JavascriptOperators::HasItem(obj, i + start))
                 {
-                    continue;
-                }
-                BOOL getResult = JavascriptOperators::GetItem(obj, i + start, &element, scriptContext);
-                Assert(getResult);
-                if (newArr != nullptr)
-                {
-                    newArr->DirectSetItemAt(i, element);
-                }
-                else
-                {
-                    JavascriptOperators::OP_SetElementI_UInt32(newObj, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible);
+                    Var element = JavascriptOperators::GetItem(obj, i + start, scriptContext);
+                    if (newArr != nullptr)
+                    {
+                        newArr->DirectSetItemAt(i, element);
+                    }
+                    else
+                    {
+                        JavascriptOperators::OP_SetElementI_UInt32(newObj, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible);
+                    }
                 }
             }
         }
@@ -6016,11 +6018,11 @@ Case0:
             {
                 Var leftVar = CrossSite::MarshalVar(scriptContext, *(Var*)aRef);
                 Var rightVar = CrossSite::MarshalVar(scriptContext, *(Var*)bRef);
-                retVal = compFn->GetEntryPoint()(compFn, CallInfo(flags, 3), undefined, leftVar, rightVar);
+                retVal = CALL_FUNCTION(compFn, CallInfo(flags, 3), undefined, leftVar, rightVar);
             }
             else
             {
-                retVal = compFn->GetEntryPoint()(compFn, CallInfo(flags, 3), undefined, *(Var*)aRef, *(Var*)bRef);
+                retVal = CALL_FUNCTION(compFn, CallInfo(flags, 3), undefined, *(Var*)aRef, *(Var*)bRef);
             }
 
             if (TaggedInt::Is(retVal))
@@ -6119,7 +6121,7 @@ Case0:
         this->InvalidateLastUsedSegment();
         length = 0;
 
-        __try
+        TryFinally([&]()
         {
             //The array is a continuous array if there is only one segment
             if (startSeg->next == nullptr) // Single segment fast path
@@ -6173,17 +6175,17 @@ Case0:
                 head = allElements;
                 head->next = nullptr;
             }
-        }
-        __finally
+        },
+        [&](bool hasException)
         {
             length = saveLength;
             ClearSegmentMap(); // Dump the segmentMap again in case user compare function rebuilds it
-            if (AbnormalTermination())
+            if (hasException)
             {
                 head = startSeg;
                 this->InvalidateLastUsedSegment();
             }
-        }
+        });
 
 #if DEBUG
         {
@@ -6295,7 +6297,7 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Array.prototype.sort");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.sort"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -6317,7 +6319,7 @@ Case0:
                 bool useDefaultComparer = typeId == TypeIds_Undefined;
                 if (!useDefaultComparer)
                 {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedInternalObject, L"Array.prototype.sort");
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedInternalObject, _u("Array.prototype.sort"));
                 }
             }
         }
@@ -6378,14 +6380,14 @@ Case0:
             RecyclableObject* pObj = nullptr;
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &pObj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.sort");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.sort"));
             }
             uint32 len = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(pObj, scriptContext), scriptContext);
             JavascriptArray* sortArray = scriptContext->GetLibrary()->CreateArray(len);
             sortArray->EnsureHead<Var>();
-            ThrowTypeErrorOnFailureHelper h(scriptContext, L"Array.prototype.sort");
+            ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.sort"));
 
-            BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"Runtime")
+            BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"))
             {
                 JsUtil::List<uint32, ArenaAllocator>* indexList = JsUtil::List<uint32, ArenaAllocator>::New(tempAlloc);
 
@@ -6463,7 +6465,7 @@ Case0:
         {
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &pObj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.splice");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.splice"));
             }
 
             if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
@@ -6911,7 +6913,7 @@ Case0:
                         if (startSeg->next)
                         {
                             // We know the new segment will have a next segment, so allocate it as non-leaf.
-                            newHeadSeg = SparseArraySegment<T>::AllocateSegmentImpl<false>(recycler, 0, headDeleteLen, headDeleteLen, nullptr);
+                            newHeadSeg = SparseArraySegment<T>::template AllocateSegmentImpl<false>(recycler, 0, headDeleteLen, headDeleteLen, nullptr);
                         }
                         else
                         {
@@ -6939,7 +6941,7 @@ Case0:
                         if (startSeg->next)
                         {
                             // We know the new segment will have a next segment, so allocate it as non-leaf.
-                            newHeadSeg = SparseArraySegment<T>::AllocateSegmentImpl<false>(recycler, 0, headDeleteLen, headDeleteLen, nullptr);
+                            newHeadSeg = SparseArraySegment<T>::template AllocateSegmentImpl<false>(recycler, 0, headDeleteLen, headDeleteLen, nullptr);
                         }
                         else
                         {
@@ -7112,11 +7114,9 @@ Case0:
         {
             for (uint32 i = 0; i < deleteLen; i++)
             {
-               Var element;
                if (JavascriptOperators::HasItem(pObj, start+i))
                {
-                   BOOL getResult = JavascriptOperators::GetItem(pObj, start + i, &element, scriptContext);
-                   Assert(getResult);
+                   Var element = JavascriptOperators::GetItem(pObj, start + i, scriptContext);
                    if (pnewArr)
                    {
                        pnewArr->DirectSetItemAt(i, element);
@@ -7129,7 +7129,7 @@ Case0:
             }
         }
 
-        ThrowTypeErrorOnFailureHelper h(scriptContext, L"Array.prototype.splice");
+        ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.splice"));
 
         // If the return object is not an array, we'll need to set the 'length' property
         if (pnewArr == nullptr)
@@ -7148,11 +7148,9 @@ Case0:
             uint32 j = 0;
             for (uint32 i = start + deleteLen; i < len; i++)
             {
-                Var element;
                 if (JavascriptOperators::HasItem(pObj, i))
                 {
-                    BOOL getResult = JavascriptOperators::GetItem(pObj, i, &element, scriptContext);
-                    Assert(getResult);
+                    Var element = JavascriptOperators::GetItem(pObj, i, scriptContext);
                     h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(pObj, pObj, start + insertLen + j, element, scriptContext, PropertyOperation_ThrowIfNotExtensible));
                 }
                 else
@@ -7202,7 +7200,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, L"Array.prototype.toLocaleString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Array.prototype.toLocaleString"));
         }
 
         if (JavascriptArray::IsDirectAccessArray(args[0]))
@@ -7215,7 +7213,7 @@ Case0:
             RecyclableObject* obj = nullptr;
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.toLocaleString");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.toLocaleString"));
             }
             return ToLocaleString(obj, scriptContext);
         }
@@ -7225,11 +7223,11 @@ Case0:
     // Unshift object elements [start, end) to toIndex, asserting toIndex > start.
     //
     template<typename T, typename P>
-    static void JavascriptArray::Unshift(RecyclableObject* obj, const T& toIndex, uint32 start, P end, ScriptContext* scriptContext)
+    void JavascriptArray::Unshift(RecyclableObject* obj, const T& toIndex, uint32 start, P end, ScriptContext* scriptContext)
     {
         typedef IndexTrace<T> index_trace;
 
-        ThrowTypeErrorOnFailureHelper h(scriptContext, L"Array.prototype.unshift");
+        ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.unshift"));
         if (start < end)
         {
             T newEnd = (end - start - 1);// newEnd - 1
@@ -7240,11 +7238,9 @@ Case0:
                 uint64 i64 = end;
                 for (; i64 > UINT32_MAX; i64--)
                 {
-                    Var element;
                     if (JavascriptOperators::HasItem(obj, i64 - 1))
                     {
-                        BOOL getResult = JavascriptOperators::GetItem(obj, i64 - 1, &element, scriptContext);
-                        Assert(getResult);
+                        Var element = JavascriptOperators::GetItem(obj, i64 - 1, scriptContext);
                         h.ThrowTypeErrorOnFailure(index_trace::SetItem(obj, dst, element, PropertyOperation_ThrowIfNotExtensible));
                     }
                     else
@@ -7262,11 +7258,9 @@ Case0:
             }
             for (; i > start; i--)
             {
-                Var element;
                 if (JavascriptOperators::HasItem(obj, i-1))
                 {
-                    BOOL getResult = JavascriptOperators::GetItem(obj, i - 1, &element, scriptContext);
-                    Assert(getResult);
+                    Var element = JavascriptOperators::GetItem(obj, i - 1, scriptContext);
                     h.ThrowTypeErrorOnFailure(index_trace::SetItem(obj, dst, element, PropertyOperation_ThrowIfNotExtensible));
                 }
                 else
@@ -7280,7 +7274,7 @@ Case0:
     }
 
     template<typename T>
-    static void JavascriptArray::GrowArrayHeadHelperForUnshift(JavascriptArray* pArr, uint32 unshiftElements, ScriptContext * scriptContext)
+    void JavascriptArray::GrowArrayHeadHelperForUnshift(JavascriptArray* pArr, uint32 unshiftElements, ScriptContext * scriptContext)
     {
         SparseArraySegmentBase* nextToHeadSeg = pArr->head->next;
         Recycler* recycler = scriptContext->GetRecycler();
@@ -7298,7 +7292,7 @@ Case0:
     }
 
     template<typename T>
-    static void JavascriptArray::UnshiftHelper(JavascriptArray* pArr, uint32 unshiftElements, Js::Var * elements)
+    void JavascriptArray::UnshiftHelper(JavascriptArray* pArr, uint32 unshiftElements, Js::Var * elements)
     {
         SparseArraySegment<T>* head = (SparseArraySegment<T>*)pArr->head;
         // Make enough room in the head segment to insert new elements at the front
@@ -7449,7 +7443,7 @@ Case0:
             RecyclableObject* dynamicObject = nullptr;
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &dynamicObject))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.unshift");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.unshift"));
             }
 
             BigIndex length;
@@ -7492,7 +7486,7 @@ Case0:
                 }
             }
 
-            ThrowTypeErrorOnFailureHelper h(scriptContext, L"Array.prototype.unshift");
+            ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.unshift"));
 
             //ES6 - update 'length' even if unshiftElements == 0;
             BigIndex newLen = length + unshiftElements;
@@ -7522,7 +7516,7 @@ Case0:
         RecyclableObject* obj = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &obj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.toString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.toString"));
         }
 
         // In ES5 we could be calling a user defined join, even on array. We must [[Get]] join at runtime.
@@ -7540,7 +7534,7 @@ Case0:
 
                 // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
                 CallFlags flags = CallFlags_Value;
-                return func->GetEntryPoint()(func, CallInfo(flags, 1), obj);
+                return CALL_FUNCTION(func, CallInfo(flags, 1), obj);
             });
 
             if(!result)
@@ -7555,17 +7549,17 @@ Case0:
         else
         {
             // call built-in Object.prototype.toString
-            return JavascriptObject::EntryToString(function, 1, obj);
+            return CALL_ENTRYPOINT(JavascriptObject::EntryToString, function, CallInfo(1), obj);
         }
     }
 
 #if DEBUG
-    BOOL JavascriptArray::GetIndex(const wchar_t* propName, ulong *pIndex)
+    BOOL JavascriptArray::GetIndex(const char16* propName, uint32 *pIndex)
     {
-        ulong lu, luDig;
+        uint32 lu, luDig;
 
-        long cch = (long)wcslen(propName);
-        wchar_t* pch = const_cast<wchar_t *>(propName);
+        int32 cch = (int32)wcslen(propName);
+        char16* pch = const_cast<char16 *>(propName);
 
         lu = *pch - '0';
         if (lu > 9)
@@ -7605,9 +7599,10 @@ Case0:
 
     JavascriptString* JavascriptArray::GetLocaleSeparator(ScriptContext* scriptContext)
     {
+#ifdef ENABLE_GLOBALIZATION
         LCID lcid = GetUserDefaultLCID();
         int count = 0;
-        wchar_t szSeparator[6];
+        char16 szSeparator[6];
 
         // According to the document for GetLocaleInfo this is a sufficient buffer size.
         count = GetLocaleInfoW(lcid, LOCALE_SLIST, szSeparator, 5);
@@ -7627,6 +7622,10 @@ Case0:
 
             return JavascriptString::NewCopyBuffer(szSeparator, count, scriptContext);
         }
+#else
+        // xplat-todo: Support locale-specific seperator
+        return scriptContext->GetLibrary()->GetCommaSpaceDisplayString();
+#endif
     }
 
     template <typename T>
@@ -7641,7 +7640,7 @@ Case0:
         JavascriptString* res = scriptContext->GetLibrary()->GetEmptyString();
         bool pushedObject = false;
 
-        __try
+        TryFinally([&]()
         {
             scriptContext->PushObject(arr);
             pushedObject = true;
@@ -7652,30 +7651,28 @@ Case0:
                 res = JavascriptArray::ToLocaleStringHelper(element, scriptContext);
             }
 
-            if (length == 1)
+            if (length > 1)
             {
-                __leave;
-            }
+                JavascriptString* separator = GetLocaleSeparator(scriptContext);
 
-            JavascriptString* separator = GetLocaleSeparator(scriptContext);
-
-            for (uint32 i = 1; i < length; i++)
-            {
-                res = JavascriptString::Concat(res, separator);
-                if (ItemTrace<T>::GetItem(arr, i, &element, scriptContext))
+                for (uint32 i = 1; i < length; i++)
                 {
-                    res = JavascriptString::Concat(res, JavascriptArray::ToLocaleStringHelper(element, scriptContext));
+                    res = JavascriptString::Concat(res, separator);
+                    if (ItemTrace<T>::GetItem(arr, i, &element, scriptContext))
+                    {
+                        res = JavascriptString::Concat(res, JavascriptArray::ToLocaleStringHelper(element, scriptContext));
+                    }
                 }
             }
-        }
-        __finally
+        },
+        [&](bool/*hasException*/)
         {
             if (pushedObject)
             {
                 Var top = scriptContext->PopObject();
                 AssertMsg(top == arr, "Unmatched operation stack");
             }
-        }
+        });
 
         if (res == nullptr)
         {
@@ -7727,7 +7724,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.find");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.find"));
         }
 
         int64 length;
@@ -7744,7 +7741,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.find");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.find"));
             }
             // In ES6-mode, we always load the length property from the object instead of using the internal slot.
             // Even for arrays, this is now observable via proxies.
@@ -7765,11 +7762,11 @@ Case0:
             // typedArrayBase is only non-null if and only if we came here via the TypedArray entrypoint
             if (typedArrayBase != nullptr)
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, findIndex ? L"[TypedArray].prototype.findIndex" : L"[TypedArray].prototype.find");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, findIndex ? _u("[TypedArray].prototype.findIndex") : _u("[TypedArray].prototype.find"));
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, findIndex ? L"Array.prototype.findIndex" : L"Array.prototype.find");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, findIndex ? _u("Array.prototype.findIndex") : _u("Array.prototype.find"));
             }
         }
 
@@ -7795,10 +7792,10 @@ Case0:
         CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
-        Var undefined = scriptContext->GetLibrary()->GetUndefined();
 
         if (pArr)
         {
+            Var undefined = scriptContext->GetLibrary()->GetUndefined();
             for (uint32 k = 0; k < length; k++)
             {
                 element = undefined;
@@ -7806,7 +7803,7 @@ Case0:
 
                 Var index = JavascriptNumber::ToVar(k, scriptContext);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     index,
                     pArr);
@@ -7825,7 +7822,7 @@ Case0:
 
                 Var index = JavascriptNumber::ToVar(k, scriptContext);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     index,
                     typedArrayBase);
@@ -7840,11 +7837,10 @@ Case0:
         {
             for (uint32 k = 0; k < length; k++)
             {
-                element = undefined;
-                JavascriptOperators::GetItem(obj, k, &element, scriptContext);
+                element = JavascriptOperators::GetItem(obj, k, scriptContext);
                 Var index = JavascriptNumber::ToVar(k, scriptContext);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     index,
                     obj);
@@ -7854,7 +7850,6 @@ Case0:
                     return findIndex ? index : element;
                 }
             }
-
         }
 
         return findIndex ? JavascriptNumber::ToVar(-1, scriptContext) : scriptContext->GetLibrary()->GetUndefined();
@@ -7876,7 +7871,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.findIndex");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.findIndex"));
         }
 
         int64 length;
@@ -7893,7 +7888,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.findIndex");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.findIndex"));
             }
             // In ES6-mode, we always load the length property from the object instead of using the internal slot.
             // Even for arrays, this is now observable via proxies.
@@ -7921,13 +7916,13 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.entries");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.entries"));
         }
 
         RecyclableObject* thisObj = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.entries");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.entries"));
         }
 
 #if ENABLE_COPYONACCESS_ARRAY
@@ -7951,13 +7946,13 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.keys");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.keys"));
         }
 
         RecyclableObject* thisObj = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.keys");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.keys"));
         }
 
 #if ENABLE_COPYONACCESS_ARRAY
@@ -7981,13 +7976,13 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.values");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.values"));
         }
 
         RecyclableObject* thisObj = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.values");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.values"));
         }
 
         return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::Value);
@@ -7999,7 +7994,7 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Array.prototype.every");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.every"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8007,7 +8002,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.every");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.every"));
         }
 
         BigIndex length;
@@ -8023,7 +8018,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.every");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.every"));
             }
         }
 
@@ -8062,11 +8057,11 @@ Case0:
             // typedArrayBase is only non-null if and only if we came here via the TypedArray entrypoint
             if (typedArrayBase != nullptr)
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"[TypedArray].prototype.every");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.every"));
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Array.prototype.every");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.every"));
             }
         }
 
@@ -8103,7 +8098,7 @@ Case0:
                     continue;
                 }
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     pArr);
@@ -8127,7 +8122,7 @@ Case0:
 
                 element = typedArrayBase->DirectGetItem(k);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     typedArrayBase);
@@ -8143,21 +8138,19 @@ Case0:
             for (T k = 0; k < length; k++)
             {
                 // According to es6 spec, we need to call Has first before calling Get
-                if (!JavascriptOperators::HasItem(obj, k))
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    continue;
-                }
-                BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
-                Assert(getResult);
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
-                    element,
-                    JavascriptNumber::ToVar(k, scriptContext),
-                    obj);
+                    testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
+                        element,
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
 
-                if (!JavascriptConversion::ToBoolean(testResult, scriptContext))
-                {
-                    return scriptContext->GetLibrary()->GetFalse();
+                    if (!JavascriptConversion::ToBoolean(testResult, scriptContext))
+                    {
+                        return scriptContext->GetLibrary()->GetFalse();
+                    }
                 }
             }
 
@@ -8172,7 +8165,7 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Array.prototype.some");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.some"));
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArraySomeCount);
 
@@ -8180,7 +8173,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.some");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.some"));
         }
 
         BigIndex length;
@@ -8196,7 +8189,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.some");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.some"));
             }
         }
 
@@ -8236,11 +8229,11 @@ Case0:
             // We are in the TypedArray version of this API if and only if typedArrayBase != nullptr
             if (typedArrayBase != nullptr)
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"[TypedArray].prototype.some");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.some"));
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Array.prototype.some");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.some"));
             }
         }
 
@@ -8276,7 +8269,7 @@ Case0:
                     continue;
                 }
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     pArr);
@@ -8303,7 +8296,7 @@ Case0:
 
                 element = typedArrayBase->DirectGetItem(k);
 
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     typedArrayBase);
@@ -8318,20 +8311,18 @@ Case0:
         {
             for (T k = 0; k < length; k++)
             {
-                if (!JavascriptOperators::HasItem(obj, k))
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    continue;
-                }
-                BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
-                Assert(getResult);
-                testResult = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
-                    element,
-                    JavascriptNumber::ToVar(k, scriptContext),
-                    obj);
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
+                    testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
+                        element,
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
 
-                if (JavascriptConversion::ToBoolean(testResult, scriptContext))
-                {
-                    return scriptContext->GetLibrary()->GetTrue();
+                    if (JavascriptConversion::ToBoolean(testResult, scriptContext))
+                    {
+                        return scriptContext->GetLibrary()->GetTrue();
+                    }
                 }
             }
         }
@@ -8345,7 +8336,7 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Array.prototype.forEach");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.forEach"));
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayForEachCount)
 
@@ -8353,7 +8344,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.forEach");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.forEach"));
         }
 
         BigIndex length;
@@ -8374,7 +8365,7 @@ Case0:
         {
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &dynamicObject))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.forEach");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.forEach"));
             }
 
             if (JavascriptArray::Is(dynamicObject) && scriptContext == JavascriptArray::FromVar(dynamicObject)->GetScriptContext())
@@ -8404,7 +8395,7 @@ Case0:
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Array.prototype.forEach");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.forEach"));
         }
         callBackFn = RecyclableObject::FromVar(args[1]);
 
@@ -8422,7 +8413,7 @@ Case0:
 
         auto fn32 = [dynamicObject, callBackFn, flags, thisArg, scriptContext](uint32 k, Var element)
         {
-            callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+            CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                 element,
                 JavascriptNumber::ToVar(k, scriptContext),
                 dynamicObject);
@@ -8430,7 +8421,7 @@ Case0:
 
         auto fn64 = [dynamicObject, callBackFn, flags, thisArg, scriptContext](uint64 k, Var element)
         {
-            callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
+            CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
                 element,
                 JavascriptNumber::ToVar(k, scriptContext),
                 dynamicObject);
@@ -8449,7 +8440,7 @@ Case0:
             }
             else
             {
-                TemplatedForEachItemInRange<true>(dynamicObject, 0uLL, length.GetBigIndex(), scriptContext, fn64);
+                TemplatedForEachItemInRange<true>(dynamicObject, 0ui64, length.GetBigIndex(), scriptContext, fn64);
             }
         }
         return scriptContext->GetLibrary()->GetUndefined();
@@ -8482,7 +8473,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.copyWithin");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.copyWithin"));
             }
 
             // In ES6-mode, we always load the length property from the object instead of using the internal slot.
@@ -8595,7 +8586,7 @@ Case0:
                     {
                         Var val = typedArrayBase->DirectGetItem(fromIndex);
 
-                        typedArrayBase->DirectSetItem(toIndex, val, false);
+                        typedArrayBase->DirectSetItem(toIndex, val);
                     }
                     else if (pArr)
                     {
@@ -8648,7 +8639,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.fill");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.fill"));
             }
 
             // In ES6-mode, we always load the length property from the object instead of using the internal slot.
@@ -8707,7 +8698,7 @@ Case0:
             {
                 if (typedArrayBase)
                 {
-                    typedArrayBase->DirectSetItem(u32k, fillValue, false);
+                    typedArrayBase->DirectSetItem(u32k, fillValue);
                 }
                 else if (pArr)
                 {
@@ -8764,7 +8755,7 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Array.prototype.map");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.map"));
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayMapCount);
 
@@ -8772,7 +8763,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.map");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.map"));
         }
 
         BigIndex length;
@@ -8788,7 +8779,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.map");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.map"));
             }
         }
 
@@ -8823,11 +8814,11 @@ Case0:
         {
             if (isTypedArrayEntryPoint)
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"[TypedArray].prototype.map");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.map"));
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Array.prototype.map");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.map"));
             }
         }
 
@@ -8860,12 +8851,12 @@ Case0:
             {
                 Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(length, scriptContext) };
                 Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-                newObj = RecyclableObject::FromVar(JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext));
+                newObj = RecyclableObject::FromVar(TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), (uint32)length, scriptContext));
             }
             else if (isTypedArrayEntryPoint)
             {
                 // We only need to throw a TypeError when the constructor property is not an actual constructor if %TypedArray%.prototype.map was called
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_NotAConstructor, L"[TypedArray].prototype.map");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NotAConstructor, _u("[TypedArray].prototype.map"));
             }
         }
         // skip the typed array and "pure" array case, we still need to handle special arrays like es5array, remote array, and proxy of array.
@@ -8913,7 +8904,7 @@ Case0:
                     continue;
                 }
 
-                mappedValue = callBackFn->GetEntryPoint()(callBackFn, callBackFnInfo, thisArg,
+                mappedValue = CALL_FUNCTION(callBackFn, callBackFnInfo, thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     pArr);
@@ -8953,7 +8944,7 @@ Case0:
                 }
 
                 element = typedArrayBase->DirectGetItem(k);
-                mappedValue = callBackFn->GetEntryPoint()(callBackFn, callBackFnInfo, thisArg,
+                mappedValue = CALL_FUNCTION(callBackFn, callBackFnInfo, thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     obj);
@@ -8962,7 +8953,7 @@ Case0:
                 // the normal Set path.
                 if (newTypedArray)
                 {
-                    newTypedArray->DirectSetItem(k, mappedValue, false);
+                    newTypedArray->DirectSetItem(k, mappedValue);
                 }
                 else if (newArr)
                 {
@@ -8976,24 +8967,25 @@ Case0:
         }
         else
         {
-            // Source was not an array or TypedArray, return object is definitely a JavascriptArray
-            Assert(newArr);
-
             for (uint32 k = 0; k < length; k++)
             {
-                if (!JavascriptOperators::HasItem(obj, k))
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    continue;
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
+                    mappedValue = CALL_FUNCTION(callBackFn, callBackFnInfo, thisArg,
+                        element,
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
+
+                    if (newArr)
+                    {
+                        newArr->DirectSetItemAt(k, mappedValue);
+                    }
+                    else
+                    {
+                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                    }
                 }
-
-                BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
-                Assert(getResult);
-                mappedValue = callBackFn->GetEntryPoint()(callBackFn, callBackFnInfo, thisArg,
-                    element,
-                    JavascriptNumber::ToVar(k, scriptContext),
-                    obj);
-
-                newArr->DirectSetItemAt(k, mappedValue);
             }
         }
 
@@ -9013,23 +9005,19 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Array.prototype.filter");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.filter"));
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayFilterCount);
 
         Assert(!(callInfo.Flags & CallFlags_New));
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.filter");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.filter"));
         }
 
-        RecyclableObject* newObj = nullptr;
-        JavascriptArray* newArr = nullptr;
         BigIndex length;
         JavascriptArray* pArr = nullptr;
         RecyclableObject* dynamicObject = nullptr;
-        RecyclableObject* callBackFn = nullptr;
-        Var thisArg = nullptr;
 
         if (JavascriptArray::Is(args[0]) && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject())
         {
@@ -9040,7 +9028,7 @@ Case0:
         {
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &dynamicObject))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.filter");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.filter"));
             }
         }
 
@@ -9063,11 +9051,23 @@ Case0:
             length = pArr->length;
         }
 
+        if (length.IsSmallIndex())
+        {
+            return JavascriptArray::FilterHelper(pArr, dynamicObject, length.GetSmallIndex(), args, scriptContext);
+        }
+        return JavascriptArray::FilterHelper(pArr, dynamicObject, length.GetBigIndex(), args, scriptContext);
+    }
+
+    template <typename T>
+    Var JavascriptArray::FilterHelper(JavascriptArray* pArr, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
+    {
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Array.prototype.filter");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.filter"));
         }
-        callBackFn = RecyclableObject::FromVar(args[1]);
+
+        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        Var thisArg = nullptr;
 
         if (args.Info.Count > 2)
         {
@@ -9079,7 +9079,8 @@ Case0:
         }
 
         // If the source object is an Array exotic object we should try to load the constructor property and use it to construct the return object.
-        newObj = ArraySpeciesCreate(dynamicObject, 0, scriptContext);
+        RecyclableObject* newObj = ArraySpeciesCreate(obj, 0, scriptContext);
+        JavascriptArray* newArr = nullptr;
 
         if (newObj == nullptr)
         {
@@ -9096,28 +9097,25 @@ Case0:
             }
         }
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var selected = nullptr;
-        BigIndex i = 0u;
 
         if (pArr)
         {
-            uint32 arrayLength = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
+            Assert(length <= MaxArrayLength);
+            uint32 i = 0;
 
-            // If source was an array object, the return object might be any random object
-            for (uint32 k = 0; k < arrayLength; k++)
+            for (uint32 k = 0; k < length; k++)
             {
                 if (!pArr->DirectGetItemAtFull(k, &element))
                 {
                     continue;
                 }
 
-                selected = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
-                                                                element,
-                                                                JavascriptNumber::ToVar(k, scriptContext),
-                                                                pArr);
+                selected = callBackFn->GetEntryPoint()(callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
+                    element,
+                    JavascriptNumber::ToVar(k, scriptContext),
+                    pArr);
 
                 if (JavascriptConversion::ToBoolean(selected, scriptContext))
                 {
@@ -9125,38 +9123,41 @@ Case0:
                     if (newArr)
                     {
                         newArr->DirectSetItemAt(i, element);
-                        ++i;
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), i, element);
-                        ++i;
+                        JavascriptArray::SetArrayLikeObjects(newObj, i, element);
                     }
+                    ++i;
                 }
             }
         }
         else
         {
-            // If source was not an array object, we will always return an array object
-            Assert(newArr);
+            BigIndex i = 0u;
 
-            for (BigIndex k = 0u; k < length; ++k)
+            for (T k = 0; k < length; k++)
             {
-                if (!JavascriptOperators::HasItem(dynamicObject, k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex()))
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    continue;
-                }
-                BOOL getResult = JavascriptOperators::GetItem(dynamicObject, k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex(), &element, scriptContext);
-                Assert(getResult);
-                selected = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 4), thisArg,
-                                                                element,
-                                                                JavascriptNumber::ToVar(k.IsSmallIndex() ? k.GetSmallIndex() : k.GetBigIndex(), scriptContext),
-                                                                dynamicObject);
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
+                    selected = callBackFn->GetEntryPoint()(callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
+                        element,
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
 
-                if (JavascriptConversion::ToBoolean(selected, scriptContext))
-                {
-                    newArr->DirectSetItemAt(i, element);
-                    ++i;
+                    if (JavascriptConversion::ToBoolean(selected, scriptContext))
+                    {
+                        if (newArr)
+                        {
+                            newArr->DirectSetItemAt(i, element);
+                        }
+                        else
+                        {
+                            JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                        }
+                        ++i;
+                    }
                 }
             }
         }
@@ -9177,7 +9178,7 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Array.prototype.reduce");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduce"));
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayReduceCount);
 
@@ -9185,7 +9186,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.reduce");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.reduce"));
         }
 
         BigIndex length;
@@ -9203,13 +9204,12 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.reduce");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.reduce"));
             }
 
             if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
             {
                 length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-
             }
             else
             {
@@ -9231,11 +9231,11 @@ Case0:
         {
             if (typedArrayBase != nullptr)
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"[TypedArray].prototype.reduce");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.reduce"));
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Array.prototype.reduce");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.reduce"));
             }
         }
 
@@ -9297,14 +9297,11 @@ Case0:
             {
                 for (; k < length && bPresent == false; k++)
                 {
-                    if (!JavascriptOperators::HasItem(obj, k))
+                    if (JavascriptOperators::HasItem(obj, k))
                     {
-                        continue;
+                        accumulator = JavascriptOperators::GetItem(obj, k, scriptContext);
+                        bPresent = true;
                     }
-
-                    BOOL getResult = JavascriptOperators::GetItem(obj, k, &accumulator, scriptContext);
-                    Assert(getResult);
-                    bPresent = true;
                 }
             }
 
@@ -9329,7 +9326,7 @@ Case0:
                     continue;
                 }
 
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
                     accumulator,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
@@ -9348,7 +9345,7 @@ Case0:
 
                 element = typedArrayBase->DirectGetItem((uint32)k);
 
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
                     accumulator,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
@@ -9359,18 +9356,16 @@ Case0:
         {
             for (; k < length; k++)
             {
-                if (!JavascriptOperators::HasItem(obj, k))
+                if (JavascriptOperators::HasItem(obj, k))
                 {
-                    continue;
-                }
-                BOOL getResult = JavascriptOperators::GetItem(obj, k, &element, scriptContext);
-                Assert(getResult);
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
 
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
-                    accumulator,
-                    element,
-                    JavascriptNumber::ToVar(k, scriptContext),
-                    obj);
+                    accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
+                        accumulator,
+                        element,
+                        JavascriptNumber::ToVar(k, scriptContext),
+                        obj);
+                }
             }
         }
 
@@ -9383,7 +9378,7 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Array.prototype.reduceRight");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduceRight"));
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayReduceRightCount);
 
@@ -9391,7 +9386,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.reduceRight");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.reduceRight"));
         }
 
         BigIndex length;
@@ -9407,7 +9402,7 @@ Case0:
         {
             if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.reduceRight");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.reduceRight"));
             }
         }
 
@@ -9444,11 +9439,11 @@ Case0:
         {
             if (typedArrayBase != nullptr)
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"[TypedArray].prototype.reduceRight");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.reduceRight"));
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Array.prototype.reduceRight");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.reduceRight"));
             }
         }
 
@@ -9509,13 +9504,11 @@ Case0:
                 for (; k < length && bPresent == false; k++)
                 {
                     index = length - k - 1;
-                    if (!JavascriptOperators::HasItem(obj, index))
+                    if (JavascriptOperators::HasItem(obj, index))
                     {
-                        continue;
+                        accumulator = JavascriptOperators::GetItem(obj, index, scriptContext);
+                        bPresent = true;
                     }
-                    BOOL getResult = JavascriptOperators::GetItem(obj, index, &accumulator, scriptContext);
-                    Assert(getResult);
-                    bPresent = true;
                 }
             }
             if (bPresent == false)
@@ -9539,7 +9532,7 @@ Case0:
                     continue;
                 }
 
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
                     accumulator,
                     element,
                     JavascriptNumber::ToVar(index, scriptContext),
@@ -9559,7 +9552,7 @@ Case0:
 
                 element = typedArrayBase->DirectGetItem((uint32)index);
 
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
                     accumulator,
                     element,
                     JavascriptNumber::ToVar(index, scriptContext),
@@ -9571,18 +9564,15 @@ Case0:
             for (; k < length; k++)
             {
                 index = length - k - 1;
-                if (!JavascriptOperators::HasItem(obj, index))
+                if (JavascriptOperators::HasItem(obj, index))
                 {
-                    continue;
+                    element = JavascriptOperators::GetItem(obj, index, scriptContext);
+                    accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
+                        accumulator,
+                        element,
+                        JavascriptNumber::ToVar(index, scriptContext),
+                        obj);
                 }
-
-                BOOL getResult = JavascriptOperators::GetItem(obj, index, &element, scriptContext);
-                Assert(getResult);
-                accumulator = callBackFn->GetEntryPoint()(callBackFn, CallInfo(flags, 5), undefinedValue,
-                    accumulator,
-                    element,
-                    JavascriptNumber::ToVar(index, scriptContext),
-                    obj);
             }
         }
 
@@ -9595,7 +9585,7 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Array.from");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.from"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -9611,7 +9601,7 @@ Case0:
 
         if (args.Info.Count < 2 || !JavascriptConversion::ToObject(args[1], scriptContext, &items))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Array.from");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Array.from"));
         }
 
         JavascriptArray* itemsArr = nullptr;
@@ -9632,7 +9622,7 @@ Case0:
         {
             if (!JavascriptFunction::Is(args[2]))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Array.from");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.from"));
             }
 
             mapFn = JavascriptFunction::FromVar(args[2]);
@@ -9652,7 +9642,9 @@ Case0:
         RecyclableObject* newObj = nullptr;
         JavascriptArray* newArr = nullptr;
 
-        if (JavascriptOperators::IsIterable(items, scriptContext))
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext, true /* optional */);
+
+        if (iterator != nullptr)
         {
             if (constructor)
             {
@@ -9672,12 +9664,9 @@ Case0:
                 newObj = newArr;
             }
 
-            RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext);
-            Var nextValue;
             uint32 k = 0;
 
-            while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextValue))
-            {
+            JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var nextValue) {
                 if (mapping)
                 {
                     Assert(mapFn != nullptr);
@@ -9698,7 +9687,7 @@ Case0:
                 }
 
                 k++;
-            }
+            });
 
             JavascriptOperators::SetProperty(newObj, newObj, Js::PropertyIds::length, JavascriptNumber::ToVar(k, scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible);
         }
@@ -9723,7 +9712,7 @@ Case0:
                 // Abstract operation ArrayCreate throws RangeError if length argument is > 2^32 -1
                 if (len > MaxArrayLength)
                 {
-                    JavascriptError::ThrowRangeError(scriptContext, JSERR_ArrayLengthAssignIncorrect, L"Array.from");
+                    JavascriptError::ThrowRangeError(scriptContext, JSERR_ArrayLengthAssignIncorrect, _u("Array.from"));
                 }
 
                 // Static cast len should be valid (len < 2^32) or we would throw above
@@ -9784,7 +9773,7 @@ Case0:
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.of");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.of"));
         }
 
         return JavascriptArray::OfHelper(false, args, scriptContext);
@@ -9816,7 +9805,9 @@ Case0:
 
             Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(len, scriptContext) };
             Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-            newObj = JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+            newObj = isTypedArrayEntryPoint ?
+                TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), len, scriptContext) :
+                JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
 
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
             if (JavascriptArray::Is(newObj))
@@ -9833,7 +9824,7 @@ Case0:
             // We only throw when the constructor property is not a constructor function in the TypedArray version
             if (isTypedArrayEntryPoint)
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, L"[TypedArray].of");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("[TypedArray].of"));
             }
 
             newArr = scriptContext->GetLibrary()->CreateArray(len);
@@ -9859,7 +9850,7 @@ Case0:
             {
                 Var kValue = args[k + 1];
 
-                newTypedArray->DirectSetItem(k, kValue, false);
+                newTypedArray->DirectSetItem(k, kValue);
             }
         }
         else
@@ -10145,7 +10136,7 @@ Case0:
     // Move to the next element if available.
     //
     template<typename T>
-    __inline bool JavascriptArray::ArrayElementEnumerator::MoveNext()
+    inline bool JavascriptArray::ArrayElementEnumerator::MoveNext()
     {
         while (seg)
         {
@@ -11307,7 +11298,7 @@ Case0:
         if (ThreadContext::IsOnStack(instance->head))
         {
             boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(),
-                inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(T::TElement),
+                inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
                 T, instance, true);
         }
         else if(inlineSlotsSize)
@@ -11328,6 +11319,70 @@ Case0:
     {
         return BoxStackInstance<JavascriptArray>(instance);
     }
+
+#if ENABLE_TTD
+    void JavascriptArray::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        AssertMsg(this->GetTypeId() == Js::TypeIds_Array || this->GetTypeId() == Js::TypeIds_ES5Array, "Should only be used on basic arrays (or called as super from ES5Array.");
+
+        ScriptContext* ctx = this->GetScriptContext();
+
+        uint32 index = Js::JavascriptArray::InvalidIndex;
+        while(true)
+        {
+            index = this->GetNextIndex(index);
+            if(index == Js::JavascriptArray::InvalidIndex) // End of array
+            {
+                break;
+            }
+
+            Js::Var aval = nullptr;
+            if(this->DirectGetVarItemAt(index, &aval, ctx))
+            {
+                extractor->MarkVisitVar(aval);
+            }
+        }
+    }
+
+    void JavascriptArray::ProcessCorePaths()
+    {
+        AssertMsg(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic arrays.");
+
+        ScriptContext* ctx = this->GetScriptContext();
+
+        uint32 index = Js::JavascriptArray::InvalidIndex;
+        while(true)
+        {
+            index = this->GetNextIndex(index);
+            if(index == Js::JavascriptArray::InvalidIndex) // End of array
+            {
+                break;
+            }
+
+            Js::Var aval = nullptr;
+            if(this->DirectGetVarItemAt(index, &aval, ctx))
+            {
+                TTD::UtilSupport::TTAutoString pathExt;
+                ctx->TTDWellKnownInfo->BuildArrayIndexBuffer(index, pathExt);
+
+                ctx->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, aval, pathExt.GetStrValue());
+            }
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptArray::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapArrayObject;
+    }
+
+    void JavascriptArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic Js arrays.");
+
+        TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>* sai = TTD::NSSnapObjects::ExtractArrayValues<TTD::TTDVar>(this, alloc);
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>*, TTD::NSSnapObjects::SnapObjectType::SnapArrayObject>(objData, sai);
+    }
+#endif
 
     JavascriptNativeArray::JavascriptNativeArray(JavascriptNativeArray * instance) :
         JavascriptArray(instance, false),
@@ -11356,6 +11411,25 @@ Case0:
         return JavascriptArray::BoxStackInstance<JavascriptNativeIntArray>(instance);
     }
 
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptNativeIntArray::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject;
+    }
+
+    void JavascriptNativeIntArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(this->GetTypeId() == Js::TypeIds_NativeIntArray, "Should only be used on native int arrays.");
+
+#if ENABLE_COPYONACCESS_ARRAY
+        AssertMsg(this->GetTypeId() != Js::TypeIds_CopyOnAccessNativeIntArray, "Need to handle this case seperately.");
+#endif
+
+        TTD::NSSnapObjects::SnapArrayInfo<int32>* sai = TTD::NSSnapObjects::ExtractArrayValues<int32>(this, alloc);
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<int32>*, TTD::NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>(objData, sai);
+    }
+#endif
+
     JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead) :
         JavascriptNativeArray(instance)
     {
@@ -11376,6 +11450,21 @@ Case0:
     {
         return JavascriptArray::BoxStackInstance<JavascriptNativeFloatArray>(instance);
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptNativeFloatArray::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject;
+    }
+
+    void JavascriptNativeFloatArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(this->GetTypeId() == Js::TypeIds_NativeFloatArray, "Should only be used on native float arrays.");
+
+        TTD::NSSnapObjects::SnapArrayInfo<double>* sai = TTD::NSSnapObjects::ExtractArrayValues<double>(this, alloc);
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<double>*, TTD::NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>(objData, sai);
+    }
+#endif
 
     template<typename T>
     RecyclableObject*
@@ -11450,7 +11539,7 @@ Case0:
 
         if (!JavascriptOperators::IsConstructor(constructor))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NotAConstructor, L"constructor[Symbol.species]");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NotAConstructor, _u("constructor[Symbol.species]"));
         }
 
         Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(length, scriptContext) };
@@ -11793,6 +11882,9 @@ Case0:
 
     BOOL JavascriptNativeIntArray::HasItem(uint32 index)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         int32 value;
         return this->DirectGetItemAt<int32>(index, &value);
     }
@@ -12070,32 +12162,44 @@ Case0:
 
     BOOL JavascriptArray::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->Append(L'[');
+        stringBuilder->Append(_u('['));
 
         if (this->length < 10)
         {
-            BEGIN_JS_RUNTIME_CALL(requestContext);
+            auto funcPtr = [&]()
             {
                 ENTER_PINNED_SCOPE(JavascriptString, valueStr);
                 valueStr = JavascriptArray::JoinHelper(this, GetLibrary()->GetCommaDisplayString(), requestContext);
                 stringBuilder->Append(valueStr->GetString(), valueStr->GetLength());
                 LEAVE_PINNED_SCOPE();
+            };
+
+            if (!requestContext->GetThreadContext()->IsScriptActive())
+            {
+                BEGIN_JS_RUNTIME_CALL(requestContext);
+                {
+                    funcPtr();
+                }
+                END_JS_RUNTIME_CALL(requestContext);
             }
-            END_JS_RUNTIME_CALL(requestContext);
+            else
+            {
+                funcPtr();
+            }
         }
         else
         {
-            stringBuilder->AppendCppLiteral(L"...");
+            stringBuilder->AppendCppLiteral(_u("..."));
         }
 
-        stringBuilder->Append(L']');
+        stringBuilder->Append(_u(']'));
 
         return TRUE;
     }
 
     BOOL JavascriptArray::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Object, (Array)");
+        stringBuilder->AppendCppLiteral(_u("Object, (Array)"));
         return TRUE;
     }
 
@@ -12190,4 +12294,10 @@ Case0:
 
         return static_cast<JavascriptNativeFloatArray *>(RecyclableObject::FromVar(aValue));
     }
+
+    template int   Js::JavascriptArray::GetParamForIndexOf<unsigned int>(unsigned int, Js::Arguments const&, void*&, unsigned int&, Js::ScriptContext*);
+    template bool  Js::JavascriptArray::ArrayElementEnumerator::MoveNext<void*>();
+    template void  Js::JavascriptArray::SetArrayLiteralItem<void*>(unsigned int, void*);
+    template void* Js::JavascriptArray::TemplatedIndexOfHelper<false, Js::TypedArrayBase, unsigned int>(Js::TypedArrayBase*, void*, unsigned int, unsigned int, Js::ScriptContext*);
+    template void* Js::JavascriptArray::TemplatedIndexOfHelper<true, Js::TypedArrayBase, unsigned int>(Js::TypedArrayBase*, void*, unsigned int, unsigned int, Js::ScriptContext*);
 } //namespace Js

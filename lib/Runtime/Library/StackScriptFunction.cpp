@@ -3,17 +3,17 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Language\JavascriptFunctionArgIndex.h"
-#include "Language\InterpreterStackFrame.h"
-#include "Library\StackScriptFunction.h"
+#include "Language/JavascriptFunctionArgIndex.h"
+#include "Language/InterpreterStackFrame.h"
+#include "Library/StackScriptFunction.h"
 
 namespace Js
 {
     JavascriptFunction *
-    StackScriptFunction::EnsureBoxed(BOX_PARAM(JavascriptFunction * function, void * returnAddress, wchar_t const * reason))
+    StackScriptFunction::EnsureBoxed(BOX_PARAM(JavascriptFunction * function, void * returnAddress, char16 const * reason))
     {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
         if (!ThreadContext::IsOnStack(function))
         {
@@ -32,9 +32,9 @@ namespace Js
         }
 
         PHASE_PRINT_TESTTRACE(Js::StackFuncPhase, function->GetFunctionProxy(),
-            L"StackScriptFunction (%s): box and disable stack function: %s (function %s)\n",
+            _u("StackScriptFunction (%s): box and disable stack function: %s (function %s)\n"),
             reason, function->GetFunctionProxy()->IsDeferredDeserializeFunction()?
-            L"<DeferDeserialize>" : function->GetParseableFunctionInfo()->GetDisplayName(),
+            _u("<DeferDeserialize>") : function->GetParseableFunctionInfo()->GetDisplayName(),
             function->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer));
 
         // During the box workflow we reset all the parents of all nested functions and up. If a fault occurs when the stack function
@@ -81,7 +81,7 @@ namespace Js
 
         ScriptContext * scriptContext = stackScriptFunction->GetScriptContext();
         ScriptFunction * boxedFunction;
-        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, L"BoxStackFunction");
+        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("BoxStackFunction"));
         {
             BoxState state(tempAllocator, functionParent, scriptContext, returnAddress);
             state.Box();
@@ -96,7 +96,7 @@ namespace Js
     void StackScriptFunction::Box(Js::FunctionBody * parent, ScriptFunction ** functionRef)
     {
         ScriptContext * scriptContext = parent->GetScriptContext();
-        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, L"BoxStackFunction");
+        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("BoxStackFunction"));
         {
             BoxState state(tempAllocator, parent, scriptContext);
             state.Box();
@@ -173,30 +173,30 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
                 if (this->NeedBoxFrame(callerFunctionBody) || (hasInlineeToBox && !walker.IsInlineFrame()))
                 {
-                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    wchar_t const * frameKind;
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 const * frameKind;
                     if (interpreterFrame)
                     {
                         Assert(!hasInlineeToBox);
-                        frameKind = walker.IsBailedOutFromInlinee()? L"Interpreted from Inlined Bailout (Pending)" :
-                            walker.IsBailedOutFromFunction()? L"Interpreted from Bailout" : L"Interpreted";
+                        frameKind = walker.IsBailedOutFromInlinee()? _u("Interpreted from Inlined Bailout (Pending)") :
+                            walker.IsBailedOutFromFunction()? _u("Interpreted from Bailout") : _u("Interpreted");
                     }
                     else if (walker.IsInlineFrame())
                     {
                         Assert(this->NeedBoxFrame(callerFunctionBody));
-                        frameKind = L"Native Inlined (Pending)";
+                        frameKind = _u("Native Inlined (Pending)");
                     }
                     else if (this->NeedBoxFrame(callerFunctionBody))
                     {
-                        frameKind = (hasInlineeToBox? L"Native and Inlinee" : L"Native");
+                        frameKind = (hasInlineeToBox? _u("Native and Inlinee") : _u("Native"));
                     }
                     else
                     {
-                        frameKind = L"Native for Inlinee";
+                        frameKind = _u("Native for Inlinee");
                     }
 
                     PHASE_PRINT_TESTTRACE(Js::StackFuncPhase, callerFunctionBody,
-                        L"Boxing Frame [%s]: %s %s\n", frameKind,
+                        _u("Boxing Frame [%s]: %s %s\n"), frameKind,
                         callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer));
                 }
 #endif
@@ -275,6 +275,26 @@ namespace Js
                     else
                     {
                         hasInlineeToBox = false;
+
+                        if (callerFunctionBody->DoStackFrameDisplay())
+                        {
+                            Js::FrameDisplay *stackFrameDisplay = 
+                                this->GetFrameDisplayFromNativeFrame(walker, callerFunctionBody);
+                            // Local frame display may be null if bailout didn't restore it, which means we don't need it.
+                            if (stackFrameDisplay)
+                            {
+                                this->BoxFrameDisplay(stackFrameDisplay);
+                            }
+                        }
+                        if (callerFunctionBody->DoStackScopeSlots())
+                        {
+                            Var* stackScopeSlots = this->GetScopeSlotsFromNativeFrame(walker, callerFunctionBody);
+                            if (stackScopeSlots)
+                            {
+                                // Scope slot pointer may be null if bailout didn't restore it, which means we don't need it.
+                                this->BoxScopeSlots(stackScopeSlots, ScopeSlots(stackScopeSlots).GetCount());
+                            }
+                        }
 
                         // walk native frame
                         this->BoxNativeFrame(walker, callerFunctionBody);
@@ -405,6 +425,62 @@ namespace Js
         }
     }
 
+    uintptr_t StackScriptFunction::BoxState::GetNativeFrameDisplayIndex(FunctionBody * functionBody)
+    {
+#if _M_IX86 || _M_AMD64
+        if (functionBody->GetInParamsCount() == 0)
+        {
+            return (uintptr_t)JavascriptFunctionArgIndex_StackFrameDisplayNoArg;
+        }
+        else
+#endif
+        {
+            return (uintptr_t)JavascriptFunctionArgIndex_StackFrameDisplay;
+        }
+    }
+
+    uintptr_t StackScriptFunction::BoxState::GetNativeScopeSlotsIndex(FunctionBody * functionBody)
+    {
+#if _M_IX86 || _M_AMD64
+        if (functionBody->GetInParamsCount() == 0)
+        {
+            return (uintptr_t)JavascriptFunctionArgIndex_StackScopeSlotsNoArg;
+        }
+        else
+#endif
+        {
+            return (uintptr_t)JavascriptFunctionArgIndex_StackScopeSlots;
+        }
+    }
+
+    FrameDisplay * StackScriptFunction::BoxState::GetFrameDisplayFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody)
+    {
+        uintptr_t frameDisplayIndex = GetNativeFrameDisplayIndex(callerFunctionBody);
+        void **argv = walker.GetCurrentArgv();
+        return (Js::FrameDisplay*)argv[frameDisplayIndex];
+    }
+
+    Var * StackScriptFunction::BoxState::GetScopeSlotsFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody)
+    {
+        uintptr_t scopeSlotsIndex = GetNativeScopeSlotsIndex(callerFunctionBody);
+        void **argv = walker.GetCurrentArgv();
+        return (Var*)argv[scopeSlotsIndex];
+    }
+
+    void StackScriptFunction::BoxState::SetFrameDisplayFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody, FrameDisplay * frameDisplay)
+    {
+        uintptr_t frameDisplayIndex = GetNativeFrameDisplayIndex(callerFunctionBody);
+        void **argv = walker.GetCurrentArgv();
+        ((FrameDisplay**)argv)[frameDisplayIndex] = frameDisplay;
+    }
+
+    void StackScriptFunction::BoxState::SetScopeSlotsFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody, Var * scopeSlots)
+    {
+        uintptr_t scopeSlotsIndex = GetNativeScopeSlotsIndex(callerFunctionBody);
+        void **argv = walker.GetCurrentArgv();
+        ((Var**)argv)[scopeSlotsIndex] = scopeSlots;
+    }
+
     void StackScriptFunction::BoxState::BoxNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody)
     {
         this->ForEachStackNestedFunctionNative(walker, callerFunctionBody, [&](ScriptFunction *curr)
@@ -422,41 +498,24 @@ namespace Js
         });
 
         // Write back the boxed stack closure pointers at the designated stack locations.
-        uintptr_t             frameDisplayIndex;
-        uintptr_t             scopeSlotsIndex;
-#if _M_IX86 || _M_AMD64
-        if (callerFunctionBody->GetInParamsCount() == 0)
-        {
-            frameDisplayIndex = (uintptr_t)JavascriptFunctionArgIndex_StackFrameDisplayNoArg;
-            scopeSlotsIndex = (uintptr_t)JavascriptFunctionArgIndex_StackScopeSlotsNoArg;
-        }
-        else
-#endif
-        {
-            frameDisplayIndex = (uintptr_t)JavascriptFunctionArgIndex_StackFrameDisplay;
-            scopeSlotsIndex = (uintptr_t)JavascriptFunctionArgIndex_StackScopeSlots;
-        }
-
-        void **argv = walker.GetCurrentArgv();
-        Js::FrameDisplay *stackFrameDisplay = (Js::FrameDisplay*)argv[frameDisplayIndex];
-
+        Js::FrameDisplay *stackFrameDisplay = this->GetFrameDisplayFromNativeFrame(walker, callerFunctionBody);
         if (ThreadContext::IsOnStack(stackFrameDisplay))
         {
             Js::FrameDisplay *boxedFrameDisplay;
             if (boxedValues.TryGetValue(stackFrameDisplay, (void**)&boxedFrameDisplay))
             {
-                argv[frameDisplayIndex] = boxedFrameDisplay;
+                this->SetFrameDisplayFromNativeFrame(walker, callerFunctionBody, boxedFrameDisplay);
                 callerFunctionBody->GetScriptContext()->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
             }
         }
 
-        Var              *stackScopeSlots = (Var*)argv[scopeSlotsIndex];
+        Var              *stackScopeSlots = this->GetScopeSlotsFromNativeFrame(walker, callerFunctionBody);
         if (ThreadContext::IsOnStack(stackScopeSlots))
         {
             Var              *boxedScopeSlots;
             if (boxedValues.TryGetValue(stackScopeSlots, (void**)&boxedScopeSlots))
             {
-                argv[scopeSlotsIndex] = boxedScopeSlots;
+                this->SetScopeSlotsFromNativeFrame(walker, callerFunctionBody, boxedScopeSlots);
                 callerFunctionBody->GetScriptContext()->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
             }
         }
@@ -468,6 +527,10 @@ namespace Js
         FunctionBody *callerFunctionBody,
         Fn fn)
     {
+        if (!callerFunctionBody->DoStackNestedFunc())
+        {
+            return;
+        }
         InterpreterStackFrame *interpreterFrame = walker.GetCurrentInterpreterFrame();
         if (interpreterFrame)
         {
@@ -611,10 +674,9 @@ namespace Js
         for (uint i = 0; i < count; i++)
         {
             Js::Var slotValue = scopeSlots.Get(i);
-            if (ThreadContext::IsOnStack(slotValue) && JavascriptFunction::Is(slotValue))
+            if (ScriptFunction::Is(slotValue))
             {
-                // A stack javascript function can only be script function
-                StackScriptFunction * stackFunction = StackScriptFunction::FromVar(slotValue);
+                ScriptFunction * stackFunction = ScriptFunction::FromVar(slotValue);
                 slotValue = BoxStackFunction(stackFunction);
             }
             boxedScopeSlots.Set(i, slotValue);
@@ -622,37 +684,39 @@ namespace Js
         return boxedSlotArray;
     }
 
-    ScriptFunction * StackScriptFunction::BoxState::BoxStackFunction(StackScriptFunction * stackFunction)
+    ScriptFunction * StackScriptFunction::BoxState::BoxStackFunction(ScriptFunction * scriptFunction)
     {
-        Assert(ThreadContext::IsOnStack(stackFunction));
-
         // Box the frame display first, which may in turn box the function
-        FrameDisplay * frameDisplay = stackFunction->GetEnvironment();
+        FrameDisplay * frameDisplay = scriptFunction->GetEnvironment();
         FrameDisplay * boxedFrameDisplay = BoxFrameDisplay(frameDisplay);
 
+        if (!ThreadContext::IsOnStack(scriptFunction))
+        {
+            return scriptFunction;
+        }
+
+        StackScriptFunction * stackFunction = StackScriptFunction::FromVar(scriptFunction);
         ScriptFunction * boxedFunction = stackFunction->boxedScriptFunction;
         if (boxedFunction != nullptr)
         {
             return boxedFunction;
         }
 
-        Assert(functionObjectToBox.Contains(stackFunction->GetFunctionProxy()->GetFunctionProxy()));
-
         if (PHASE_TESTTRACE(Js::StackFuncPhase, stackFunction->GetFunctionProxy()))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-            Output::Print(L"Boxing StackScriptFunction Object: %s (function Id: %s)",
+            Output::Print(_u("Boxing StackScriptFunction Object: %s (function Id: %s)"),
                 stackFunction->GetFunctionProxy()->IsDeferredDeserializeFunction()?
-                    L"<DeferDeserialize>" : stackFunction->GetParseableFunctionInfo()->GetDisplayName(),
+                    _u("<DeferDeserialize>") : stackFunction->GetParseableFunctionInfo()->GetDisplayName(),
                 stackFunction->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer));
             if (PHASE_VERBOSE_TESTTRACE(Js::StackFuncPhase, stackFunction->GetFunctionProxy()))
             {
-                Output::Print(L" %p\n", stackFunction);
+                Output::Print(_u(" %p\n"), stackFunction);
             }
             else
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
             Output::Flush();
         }
@@ -670,7 +734,7 @@ namespace Js
         if (stackFunction)
         {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
             FunctionProxy* functionProxy = (*proxyRef);
@@ -681,12 +745,25 @@ namespace Js
 
 
             PHASE_PRINT_VERBOSE_TRACE(Js::StackFuncPhase, functionProxy,
-                L"Stack alloc nested function: %s %s (address: %p)\n",
+                _u("Stack alloc nested function: %s %s (address: %p)\n"),
                     functionProxy->IsFunctionBody()?
-                        functionProxy->GetFunctionBody()->GetDisplayName() : L"<deferred>",
+                        functionProxy->GetFunctionBody()->GetDisplayName() : _u("<deferred>"),
                         functionProxy->GetDebugNumberSet(debugStringBuffer), stackFunction);
             return stackFunction;
         }
         return ScriptFunction::OP_NewScFunc(environment, proxyRef);
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType StackScriptFunction::GetSnapTag_TTD() const
+    {
+        //Make sure this isn't accidentally handled by parent class
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void StackScriptFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::Invalid>(objData, nullptr);
+    }
+#endif
  }

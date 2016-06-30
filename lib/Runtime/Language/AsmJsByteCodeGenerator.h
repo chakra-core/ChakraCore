@@ -72,7 +72,7 @@ namespace Js
         ArenaAllocator mAllocator;
         bool BlockHasOwnScope( ParseNode* pnodeBlock );
 
-        void PrintAsmJsCompilationError(__out_ecount(256) wchar_t* msg);
+        void PrintAsmJsCompilationError(__out_ecount(256) char16* msg);
         void DefineLabels();
 
         void EmitAsmJsFunctionBody();
@@ -137,6 +137,7 @@ namespace Js
         void LoadSimd(RegSlot dst, RegSlot src, AsmJsVarType type);
 
         bool IsFRound(AsmJsMathFunction* sym);
+        bool IsValidSimdFcnRetType(AsmJsSIMDFunction& simdFunction, const AsmJsRetType& expectedType, const AsmJsRetType& retType);
         /// TODO:: Finish removing references to old bytecode generator
         ByteCodeGenerator* GetOldByteCodeGenerator() const
         {

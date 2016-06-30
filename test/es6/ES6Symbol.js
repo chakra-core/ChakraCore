@@ -171,8 +171,10 @@ var tests = [
             verifySymbol("toStringTag");
             verifySymbol("unscopables");
             verifySymbol("species");
+            verifySymbol("replace");
             verifySymbol("search");
             verifySymbol("match");
+            verifySymbol("split");
         }
     },
     {
@@ -945,6 +947,14 @@ var tests = [
             assert.areEqual('[null]', JSON.stringify(array));
             assert.areEqual(undefined, JSON.stringify(Symbol()));
             assert.areEqual(undefined, JSON.stringify(sym));
+        }
+    },
+    {
+        name: '[OS: Bug 5950493] Symbol(undefined).toString() produces "Symbol(undefined)" instead of "Symbol()".',
+        body: function() {
+            assert.areEqual('Symbol()', Symbol().toString(), 'Symbol().toString() === "Symbol()"');
+            assert.areEqual('Symbol()', Symbol(undefined).toString(), 'Symbol(undefined).toString() === "Symbol()"');
+            assert.areEqual('Symbol()', Symbol("").toString(), 'Symbol("").toString() === "Symbol()"');
         }
     }
 ];

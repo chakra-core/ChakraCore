@@ -7,8 +7,8 @@
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
 
 #include "errstr.h"
-#include "Library\EngineInterfaceObject.h"
-#include "Types\DeferredTypeHandler.h"
+#include "Library/EngineInterfaceObject.h"
+#include "Types/DeferredTypeHandler.h"
 
 #define IfFailThrowHr(op) \
     if (FAILED(hr=(op))) \
@@ -165,6 +165,29 @@ namespace Js
             }
         }
     }
+
+#if ENABLE_TTD
+    void EngineInterfaceObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        extractor->MarkVisitVar(this->commonNativeInterfaces);
+    }
+
+    void EngineInterfaceObject::ProcessCorePaths()
+    {
+        this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->commonNativeInterfaces, L"!commonNativeInterfaces");
+    }
+
+    TTD::NSSnapObjects::SnapObjectType EngineInterfaceObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapWellKnownObject;
+    }
+
+    void EngineInterfaceObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapWellKnownObject>(objData, nullptr);
+    }
+#endif
+
     void EngineInterfaceObject::InitializeCommonNativeInterfaces(DynamicObject* commonNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(commonNativeInterfaces, mode, 38);
@@ -279,7 +302,7 @@ namespace Js
             {
                 JavascriptString* customFunctionName = JavascriptString::FromVar(args.Values[2]);
                 // tagPublicFunction("Intl.Collator", Collator); in Intl.js calls TagPublicLibraryCode the expected name is Collator so we need to calculate the offset
-                const wchar_t * shortName = wcsrchr(customFunctionName->GetString(), L'.');
+                const char16 * shortName = wcsrchr(customFunctionName->GetString(), _u('.'));
                 uint shortNameOffset = 0;
                 if (shortName != nullptr)
                 {

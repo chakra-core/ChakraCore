@@ -189,7 +189,7 @@ namespace JsUtil
             if(dictionary.Count() / 2 <= mruListCount)
             {
                 dictionary.MapAndRemoveIf(
-                    [](const TDictionary::EntryType &dictionaryEntry) -> bool
+                    [](const typename TDictionary::EntryType &dictionaryEntry) -> bool
                     {
                         return !dictionaryEntry.Value().Entry();
                     });

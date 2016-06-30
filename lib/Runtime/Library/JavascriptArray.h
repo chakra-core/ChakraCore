@@ -116,6 +116,7 @@ namespace Js
         static uint32 const MaxArrayLength = InvalidIndex;
         static uint32 const MaxInitialDenseLength=1<<18;
         static ushort const MergeSegmentsLengthHeuristics = 128; // If the length is less than MergeSegmentsLengthHeuristics then try to merge the segments
+        static uint64 const FiftyThirdPowerOfTwoMinusOne = 0x1FFFFFFFFFFFFF;  // 2^53-1
 
         static const Var MissingItem;
         template<typename T> static T GetMissingItem();
@@ -289,7 +290,7 @@ namespace Js
         static Var EntryPopNonJavascriptArray(ScriptContext * scriptContext, Var object);
 
 #if DEBUG
-        static BOOL GetIndex(const wchar_t* propName, ulong *pIndex);
+        static BOOL GetIndex(const char16* propName, uint32 *pIndex);
 #endif
 
         uint32 GetNextIndex(uint32 index) const;
@@ -467,6 +468,8 @@ namespace Js
         static Var FindHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var ReduceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        template <typename T>
+        static Var FilterHelper(JavascriptArray* pArr, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var ReduceRightHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         static Var OfHelper(bool isTypedArrayEntryPoint, Arguments& args, ScriptContext* scriptContext);
@@ -562,8 +565,6 @@ namespace Js
 
         // NativeArrays may change it's content type, but not others
         template <typename T> static bool MayChangeType() { return false; }
-        template <> static bool MayChangeType<JavascriptNativeIntArray>() { return true; }
-        template <> static bool MayChangeType<JavascriptNativeFloatArray>() { return true; }
 
         template <bool hasSideEffect, typename T, typename Fn>
         static void TemplatedForEachItemInRange(T * arr, uint32 startIndex, uint32 limitIndex, Var missingItem, ScriptContext * scriptContext, Fn fn)
@@ -576,7 +577,7 @@ namespace Js
                 if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                 {
                     // The function has changed, go to another ForEachItemInRange
-                    JavascriptArray::FromVar(arr)->ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
+                    JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
                     return;
                 }
             }
@@ -595,7 +596,7 @@ namespace Js
                     if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                     {
                         // The function has changed, go to another ForEachItemInRange
-                        JavascriptArray::FromVar(arr)->ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
+                        JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
                         return;
                     }
                 }
@@ -726,6 +727,7 @@ namespace Js
         BOOL DirectGetItemAt(const BigIndex& index, Var* outVal) { return index.GetItem(this, outVal); }
         void DirectSetItemAt(const BigIndex& index, Var newValue) { index.SetItem(this, newValue); }
         void DirectSetItemIfNotExist(const BigIndex& index, Var newValue) { index.SetItemIfNotExist(this, newValue); }
+        void DirectAppendItem(Var newValue) { BigIndex(this->GetLength()).SetItem(this, newValue); }
         void TruncateToProperties(const BigIndex& index, uint32 start);
 
         template<typename T>
@@ -758,18 +760,14 @@ namespace Js
         static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest, BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength);
         template<typename T>
         static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u, BOOL FirstPromotedItemIsSpreadable = false, BigIndex FirstPromotedItemLength = 0u);
-        static void ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
+        static JavascriptArray* ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
         static bool PromoteToBigIndex(BigIndex lhs, BigIndex rhs);
         static bool PromoteToBigIndex(BigIndex lhs, uint32 rhs);
-        static void ConcatFloatArgs(JavascriptNativeFloatArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
+        static JavascriptArray* ConcatFloatArgs(JavascriptNativeFloatArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
     private:
         template<typename T=uint32>
         static RecyclableObject* ArraySpeciesCreate(Var pThisArray, T length, ScriptContext* scriptContext, bool* pIsIntArray = nullptr, bool* pIsFloatArray = nullptr);
         template <typename T, typename R> static R ConvertToIndex(T idxDest, ScriptContext* scriptContext) { Throw::InternalError(); return 0; }
-        template <> static Var ConvertToIndex<uint32, Var>(uint32 idxDest, ScriptContext* scriptContext);
-        template <> static uint32 ConvertToIndex<uint32, uint32>(uint32 idxDest, ScriptContext* scriptContext) { return idxDest; }
-        template <> static Var ConvertToIndex<BigIndex, Var>(BigIndex idxDest, ScriptContext* scriptContext);
-        template <> static uint32 ConvertToIndex<BigIndex, uint32>(BigIndex idxDest, ScriptContext* scriptContext);
         static BOOL SetArrayLikeObjects(RecyclableObject* pDestObj, uint32 idxDest, Var aItem);
         static BOOL SetArrayLikeObjects(RecyclableObject* pDestObj, BigIndex idxDest, Var aItem);
         static void ConcatArgsCallingHelper(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, ::Math::RecordOverflowPolicy &destLengthOverflow);
@@ -806,6 +804,15 @@ namespace Js
         template<class T, uint InlinePropertySlots> static size_t DetermineAllocationSize(const uint inlineElementSlots, size_t *const allocationPlusSizeRef = nullptr, uint *const alignedInlineElementSlotsRef = nullptr);
         template<class T, uint InlinePropertySlots> static uint DetermineAvailableInlineElementSlots(const size_t allocationSize, bool *const isSufficientSpaceForInlinePropertySlotsRef);
         template<class T, uint ConstInlinePropertySlots, bool UseDynamicInlinePropertySlots> static SparseArraySegment<typename T::TElement> *DetermineInlineHeadSegmentPointer(T *const array);
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+        virtual void ProcessCorePaths() override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     // Ideally we would propagate the throw flag setting of true from the array operations down to the [[Delete]]/[[Put]]/... methods. But that is a big change
@@ -964,6 +971,22 @@ namespace Js
         static JavascriptNativeIntArray * BoxStackInstance(JavascriptNativeIntArray * instance);
     private:
         virtual int32 HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext) override;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override
+        {
+            return;
+        }
+
+        virtual void ProcessCorePaths() override
+        {
+            return;
+        }
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
 #if ENABLE_COPYONACCESS_ARRAY
@@ -1085,5 +1108,30 @@ namespace Js
         static double Pop(ScriptContext * scriptContext, Var nativeFloatArray);
     private:
         virtual int32 HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext) override;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override
+        {
+            return;
+        }
+
+        virtual void ProcessCorePaths() override
+        {
+            return;
+        }
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
+
+    template <>
+    inline bool JavascriptArray::MayChangeType<JavascriptNativeIntArray>() { return true; }
+    template <>
+    inline bool JavascriptArray::MayChangeType<JavascriptNativeFloatArray>() { return true; }
+
+    template <>
+    inline uint32 JavascriptArray::ConvertToIndex<uint32, uint32>(uint32 idxDest, ScriptContext* scriptContext) { return idxDest; }
+
 } // namespace Js

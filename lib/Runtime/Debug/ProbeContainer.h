@@ -11,6 +11,7 @@ namespace Js
 
     class DebugManager;
     struct Probe;
+    struct DebuggerPropertyDisplayInfo;
     typedef JsUtil::List<Probe*, ArenaAllocator> ProbeList;
     class DiagStackFrame;
     typedef JsUtil::Stack<DiagStackFrame*> DiagStack;
@@ -43,7 +44,7 @@ namespace Js
         Var jsExceptionObject;
 
         // Used for synchronizing with ProbeManager
-        ulong debugSessionNumber;
+        uint32 debugSessionNumber;
 
         uint32  tmpRegCount; // Mentions the temp register count for the current statement (this will be used to determine if SetNextStatement can be applied)
 
@@ -62,7 +63,7 @@ namespace Js
         JsUtil::List<DWORD_PTR, ArenaAllocator> *registeredFuncContextList;
         JsUtil::List<const Js::PropertyRecord*> *pinnedPropertyRecords;
 
-        void UpdateFramePointers(bool fMatchWithCurrentScriptContext);
+        void UpdateFramePointers(bool fMatchWithCurrentScriptContext, DWORD_PTR dispatchHaltFrameAddress = 0);
         bool InitializeLocation(InterpreterHaltState* pHaltState, bool fMatchWithCurrentScriptContext = true);
         void DestroyLocation();
 
@@ -90,7 +91,7 @@ namespace Js
         void Initialize(ScriptContext* pScriptContext);
         void Close();
 
-        WeakDiagStack* GetFramePointers();
+        WeakDiagStack* GetFramePointers(DWORD_PTR dispatchHaltFrameAddress = 0);
 
         // A break engine responsible for breaking at iniline statement and error statement.
         void InitializeInlineBreakEngine(HaltCallback* pProbe);
@@ -101,6 +102,18 @@ namespace Js
 
         void AddProbe(Probe* pProbe);
         void RemoveProbe(Probe* pProbe);
+
+        template<class TMapFunction>
+        void MapProbes(TMapFunction map)
+        {
+            this->diagProbeList->Map(map);
+        }
+
+        template<class TMapFunction>
+        void MapProbesUntil(TMapFunction map)
+        {
+            this->diagProbeList->MapUntil(map);
+        }
 
         void RemoveAllProbes();
 
@@ -137,6 +150,7 @@ namespace Js
 
         void AsyncActivate(HaltCallback* haltCallback);
         void AsyncDeactivate();
+        bool IsAsyncActivate() const;
 
         void PrepDiagForEnterScript();
 
@@ -150,6 +164,7 @@ namespace Js
 
         void SetThrowIsInternal(bool set) { isThrowInternal = set; }
 
+        bool IsExceptionReportingEnabled();
         bool IsFirstChanceExceptionEnabled();
         bool IsNonUserCodeSupportEnabled();
         bool IsLibraryStackFrameSupportEnabled();

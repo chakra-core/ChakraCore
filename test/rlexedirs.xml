@@ -307,7 +307,61 @@
 </dir>
 <dir>
   <default>
+    <files>SIMD.int16x8.asmjs</files>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>SIMD.int8x16.asmjs</files>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>SIMD.uint32x4.asmjs</files>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>SIMD.uint16x8.asmjs</files>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>SIMD.uint8x16.asmjs</files>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>SIMD.bool32x4.asmjs</files>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>SIMD.bool16x8.asmjs</files>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>SIMD.bool8x16.asmjs</files>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>SIMD.workloads.asmjs</files>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>SIMD.wrappers</files>
     <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
@@ -315,6 +369,24 @@
   <default>
     <files>SIMD.TypeSpec</files>
     <tags>exclude_serialized,exclude_arm,exclude_arm64</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>Debugger</files>
+    <tags>exclude_serialized,exclude_jshost,exclude_snap</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>TTExecuteBasic</files>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>TTBasic</files>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
   </default>
 </dir>
 </regress-exe>

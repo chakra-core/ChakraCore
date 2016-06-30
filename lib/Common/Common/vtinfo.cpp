@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "common\vtregistry.h"
-#include "Common\vtinfo.h"
+#include "Common/vtregistry.h"
+#include "Common/vtinfo.h"
 
 #if DBG
 VirtualTableRegistry::TableEntry VirtualTableRegistry::m_knownVtables[MAX_KNOWN_VTABLES];

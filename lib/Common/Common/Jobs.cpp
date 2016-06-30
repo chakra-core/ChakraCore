@@ -3,31 +3,29 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
+#ifdef _WIN32
 #include <process.h>
+#endif
 
+#include "Core/EtwTraceCore.h"
 
-#include "core\EtwTraceCore.h"
-
-#include "Exceptions\ExceptionBase.h"
-#include "Exceptions\OperationAbortedException.h"
-#include "Exceptions\OutOfMemoryException.h"
-#include "Exceptions\StackOverflowException.h"
+#include "Exceptions/ExceptionBase.h"
+#include "Exceptions/InScriptExceptionBase.h"
+#include "Exceptions/OperationAbortedException.h"
+#include "Exceptions/OutOfMemoryException.h"
+#include "Exceptions/StackOverflowException.h"
 
 #include "TemplateParameter.h"
-#include "DataStructures\DoublyLinkedListElement.h"
-#include "DataStructures\DoublyLinkedList.h"
-#include "DataStructures\DoublyLinkedListElement.inl"
-#include "DataStructures\DoublyLinkedList.inl"
+#include "DataStructures/DoublyLinkedListElement.h"
+#include "DataStructures/DoublyLinkedList.h"
+#include "DataStructures/DoublyLinkedListElement.inl"
+#include "DataStructures/DoublyLinkedList.inl"
 
-#include "Common\Event.h"
-#include "Common\ThreadService.h"
-#include "Common\Jobs.h"
-#include "Common\Jobs.inl"
-
-namespace Js
-{
-    class JavascriptExceptionObject;
-};
+#include "Common/Event.h"
+#include "Common/ThreadService.h"
+#include "Common/Jobs.h"
+#include "Common/Jobs.inl"
+#include "Core/CommonMinMax.h"
 
 namespace JsUtil
 {
@@ -126,9 +124,13 @@ namespace JsUtil
     WaitableJobManager::WaitableJobManager(JobProcessor *const processor)
         : JobManager(processor, true),
         jobBeingWaitedUpon(0),
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         jobBeingWaitedUponProcessed(false),
-        isWaitingForQueuedJobs(false),
-        queuedJobsProcessed(false)
+#endif
+        isWaitingForQueuedJobs(false)
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
+        , queuedJobsProcessed(false)
+#endif
     {
     }
 
@@ -219,7 +221,11 @@ namespace JsUtil
 
     CriticalSection *JobProcessor::GetCriticalSection()
     {
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         return processesInBackground ? static_cast<BackgroundJobProcessor *>(this)->GetCriticalSection() : 0;
+#else
+        return 0;
+#endif
     }
 
     void JobProcessor::AddManager(JobManager *const manager)
@@ -417,7 +423,7 @@ namespace JsUtil
         {
             return job->Manager()->Process(job, 0);
         }
-        catch (Js::JavascriptExceptionObject *)
+        catch (Js::InScriptExceptionBase *)
         {
             // Treat OOM or stack overflow to be a non-terminal failure. The foreground job processor processes jobs when the
             // jobs are prioritized, on the calling thread. The script would be active (at the time of this writing), so a
@@ -467,6 +473,9 @@ namespace JsUtil
         // Do nothing
     }
 
+// Xplat-todo: revive BackgroundJobProcessor- we need this for the JIT
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
+
     // -------------------------------------------------------------------------------------------------------------------------
     // BackgroundJobProcessor
     // -------------------------------------------------------------------------------------------------------------------------
@@ -486,6 +495,7 @@ namespace JsUtil
         {
             int processorCount = AutoSystemInfo::Data.GetNumberOfPhysicalProcessors();
             //There is 2 threads already in play, one UI (main) thread and a GC thread. So subtract 2 from processorCount to account for the same.
+
             this->maxThreadCount = max(1, min(processorCount - 2, CONFIG_FLAG(MaxJitThreadCount)));
         }
     }
@@ -563,7 +573,7 @@ namespace JsUtil
             }
             else
             {
-                this->parallelThreadData[i]->backgroundPageAllocator.debugName = L"BackgroundJobProcessor thread";
+                this->parallelThreadData[i]->backgroundPageAllocator.debugName = _u("BackgroundJobProcessor thread");
             }
 #endif
         }
@@ -586,7 +596,7 @@ namespace JsUtil
         this->parallelThreadData[0]->processor = this;
         this->parallelThreadData[0]->isWaitingForJobs = true;
 #if DBG_DUMP
-        this->parallelThreadData[0]->backgroundPageAllocator.debugName = L"BackgroundJobProcessor";
+        this->parallelThreadData[0]->backgroundPageAllocator.debugName = _u("BackgroundJobProcessor");
 #endif
         this->threadCount = 1;
 
@@ -823,8 +833,7 @@ namespace JsUtil
     {
         Assert(manager);
 
-        ParallelThreadData *threadDataProcessingCurrentJob = nullptr;
-        WaitableJobManager *waitableManager;
+        ParallelThreadData *threadDataProcessingCurrentJob = nullptr;        
         {
             AutoCriticalSection lock(&criticalSection);
             // Managers must remove themselves. Hence, Close does not remove managers. So, not asserting on !IsClosed().
@@ -918,7 +927,7 @@ namespace JsUtil
                 break;
             }
 
-            waitableManager = static_cast<WaitableJobManager *>(manager);
+            WaitableJobManager * const waitableManager = static_cast<WaitableJobManager *>(manager);
             Assert(!waitableManager->jobBeingWaitedUpon);
 
             waitableManager->jobBeingWaitedUpon = job;
@@ -1009,7 +1018,7 @@ namespace JsUtil
     {
         JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_START(this, 0));
 
-        ArenaAllocator threadArena(L"ThreadArena", threadData->GetPageAllocator(), Js::Throw::OutOfMemory);
+        ArenaAllocator threadArena(_u("ThreadArena"), threadData->GetPageAllocator(), Js::Throw::OutOfMemory);
         threadData->threadArena = &threadArena;
 
         {
@@ -1029,7 +1038,7 @@ namespace JsUtil
             } autoDecommit(this, threadData);
 
             criticalSection.Enter();
-            while (!IsClosed() || jobs.Head() && jobs.Head()->IsCritical())
+            while (!IsClosed() || (jobs.Head() && jobs.Head()->IsCritical()))
             {
                 Job *job = jobs.UnlinkFromBeginning();
 
@@ -1230,6 +1239,10 @@ namespace JsUtil
 #if DBG
         threadData->backgroundPageAllocator.SetConcurrentThreadId(GetCurrentThreadId());
 #endif
+
+#ifdef DISABLE_SEH
+        processor->Run(threadData);
+#else
         __try
         {
             processor->Run(threadData);
@@ -1238,6 +1251,7 @@ namespace JsUtil
         {
             Assert(false);
         }
+#endif
 
         // Indicate to Close that the thread is about to exit. This has to be done before CoUninitialize because CoUninitialize
         // may require the loader lock and if Close was called while holding the loader lock during DLL_THREAD_DETACH, it could
@@ -1255,9 +1269,10 @@ namespace JsUtil
         }
     }
 
+// xplat-todo: this entire function probably needs to be ifdefed out
     int BackgroundJobProcessor::ExceptFilter(LPEXCEPTION_POINTERS pEP)
     {
-#if DBG
+#if DBG && defined(_WIN32)
         // Assert exception code
         if (pEP->ExceptionRecord->ExceptionCode == STATUS_ASSERTION_FAILURE)
         {
@@ -1275,7 +1290,7 @@ namespace JsUtil
 #if DBG && _M_IX86
         int callerEBP = *((int*)pEP->ContextRecord->Ebp);
 
-        Output::Print(L"BackgroundJobProcessor: Uncaught exception: EIP: 0x%X  ExceptionCode: 0x%X  EBP: 0x%X  ReturnAddress: 0x%X  ReturnAddress2: 0x%X\n",
+        Output::Print(_u("BackgroundJobProcessor: Uncaught exception: EIP: 0x%X  ExceptionCode: 0x%X  EBP: 0x%X  ReturnAddress: 0x%X  ReturnAddress2: 0x%X\n"),
             pEP->ExceptionRecord->ExceptionAddress, pEP->ExceptionRecord->ExceptionCode, pEP->ContextRecord->Eip,
             pEP->ContextRecord->Ebp, *((int*)pEP->ContextRecord->Ebp + 1), *((int*) callerEBP + 1));
 #endif
@@ -1379,22 +1394,23 @@ namespace JsUtil
 
 #if DBG_DUMP
     //Just for debugging purpose
-    wchar_t const * const  BackgroundJobProcessor::DebugThreadNames[16] = {
-        L"BackgroundJobProcessor thread 1",
-        L"BackgroundJobProcessor thread 2",
-        L"BackgroundJobProcessor thread 3",
-        L"BackgroundJobProcessor thread 4",
-        L"BackgroundJobProcessor thread 5",
-        L"BackgroundJobProcessor thread 6",
-        L"BackgroundJobProcessor thread 7",
-        L"BackgroundJobProcessor thread 8"
-        L"BackgroundJobProcessor thread 9",
-        L"BackgroundJobProcessor thread 10",
-        L"BackgroundJobProcessor thread 11",
-        L"BackgroundJobProcessor thread 12",
-        L"BackgroundJobProcessor thread 13",
-        L"BackgroundJobProcessor thread 14",
-        L"BackgroundJobProcessor thread 15",
-        L"BackgroundJobProcessor thread 16" };
+    char16 const * const  BackgroundJobProcessor::DebugThreadNames[16] = {
+        _u("BackgroundJobProcessor thread 1"),
+        _u("BackgroundJobProcessor thread 2"),
+        _u("BackgroundJobProcessor thread 3"),
+        _u("BackgroundJobProcessor thread 4"),
+        _u("BackgroundJobProcessor thread 5"),
+        _u("BackgroundJobProcessor thread 6"),
+        _u("BackgroundJobProcessor thread 7"),
+        _u("BackgroundJobProcessor thread 8")
+        _u("BackgroundJobProcessor thread 9"),
+        _u("BackgroundJobProcessor thread 10"),
+        _u("BackgroundJobProcessor thread 11"),
+        _u("BackgroundJobProcessor thread 12"),
+        _u("BackgroundJobProcessor thread 13"),
+        _u("BackgroundJobProcessor thread 14"),
+        _u("BackgroundJobProcessor thread 15"),
+        _u("BackgroundJobProcessor thread 16") };
 #endif
+#endif // ENABLE_BACKGROUND_JOB_PROCESSOR
 }

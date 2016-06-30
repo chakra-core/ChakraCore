@@ -126,7 +126,7 @@ namespace Js
 
     /*static*/
     template<typename T, uint InlinePropertySlots>
-    __inline SparseArraySegment<typename T::TElement> *JavascriptArray::InitArrayAndHeadSegment(
+    inline SparseArraySegment<typename T::TElement> *JavascriptArray::InitArrayAndHeadSegment(
         T *const array,
         const uint32 length,
         const uint32 size,
@@ -153,7 +153,7 @@ namespace Js
     }
 
     template<typename unitType, typename className>
-    __inline className * JavascriptArray::New(Recycler * recycler, DynamicType * type)
+    inline className * JavascriptArray::New(Recycler * recycler, DynamicType * type)
     {
         size_t allocationPlusSize;
         uint alignedInlineElementSlots;
@@ -307,7 +307,7 @@ namespace Js
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::CopyOnAccessArrayPhase))
         {
-            Output::Print(L"Create copy-on-access array: func(#%2d) index(%d) length(%d)\n",
+            Output::Print(_u("Create copy-on-access array: func(#%2d) index(%d) length(%d)\n"),
                 functionBody->GetFunctionNumber(), lib->cacheForCopyOnAccessArraySegments->GetCount(), ints->count);
             Output::Flush();
         }
@@ -318,7 +318,7 @@ namespace Js
 #endif
 
     template<class T, uint InlinePropertySlots>
-    __inline T *JavascriptArray::New(
+    inline T *JavascriptArray::New(
         void *const stackAllocationPointer,
         const uint32 length,
         DynamicType *const arrayType)
@@ -355,7 +355,7 @@ namespace Js
     }
 
     template<class T, uint InlinePropertySlots>
-    __inline T *JavascriptArray::NewLiteral(
+    inline T *JavascriptArray::NewLiteral(
         void *const stackAllocationPointer,
         const uint32 length,
         DynamicType *const arrayType)
@@ -394,7 +394,7 @@ namespace Js
     }
 
     template<typename T>
-    __inline void JavascriptArray::DirectSetItemAt(uint32 itemIndex, T newValue)
+    inline void JavascriptArray::DirectSetItemAt(uint32 itemIndex, T newValue)
     {
         Assert(itemIndex < InvalidIndex); // Otherwise the code below could overflow and set length = 0
 
@@ -409,7 +409,7 @@ namespace Js
     }
 
     template<typename T>
-    __inline void JavascriptArray::DirectSetItemInLastUsedSegmentAt(const uint32 offset, const T newValue)
+    inline void JavascriptArray::DirectSetItemInLastUsedSegmentAt(const uint32 offset, const T newValue)
     {
         SparseArraySegment<T> *const seg = (SparseArraySegment<T>*)GetLastUsedSegment();
         Assert(seg);
@@ -445,7 +445,7 @@ namespace Js
 
 #if ENABLE_PROFILE_INFO
     template<typename T>
-    __inline void JavascriptArray::DirectProfiledSetItemInHeadSegmentAt(
+    inline void JavascriptArray::DirectProfiledSetItemInHeadSegmentAt(
         const uint32 offset,
         const T newValue,
         StElemInfo *const stElemInfo)
@@ -937,6 +937,12 @@ SECOND_PASS:
             return true;
         }
 
+        // Do not do a memcopy from an array that has missing values
+        if (fromArray == nullptr || fromArray == this || !fromArray->HasNoMissingValues())
+        {
+            return false;
+        }
+
         bool isBtree = false;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -947,53 +953,55 @@ SECOND_PASS:
             for (uint i = 0; i < length; i++)
             {
                 T val;
-                if (fromArray->DirectGetItemAt(fromStartIndex + i, &val))
+                if (!fromArray->DirectGetItemAt(fromStartIndex + i, &val))
                 {
-                    DirectSetItem_Full(toStartIndex + i, val);
+                    return false;
                 }
+                DirectSetItem_Full(toStartIndex + i, val);
             }
             return true;
         }
 
-        SparseArraySegment<T> *toSegment = PrepareSegmentForMemOp<T>(toStartIndex, length);
-        if (toSegment == nullptr)
+        const auto isSegmentValid = [length](Js::SparseArraySegment<T>* segment, uint32 startIndex) {
+            uint32 end, segmentEnd;
+            // Check the segment is int32 enough
+            return (
+                segment &&
+                !UInt32Math::Add(startIndex, length, &end) &&
+                !UInt32Math::Add(segment->left, segment->length, &segmentEnd) &&
+                startIndex >= segment->left &&
+                startIndex < segmentEnd &&
+                segmentEnd >= end
+            );
+        };
+        //Find the segment where itemIndex is present or is at the boundary
+        Js::SparseArraySegment<T>* fromSegment = (Js::SparseArraySegment<T>*)fromArray->GetBeginLookupSegment(fromStartIndex, false);
+        if (!isSegmentValid(fromSegment, fromStartIndex))
         {
             return false;
         }
-        Assert(fromArray->head);
-        Assert(fromArray->length >= (fromStartIndex + length));
 
-        //Find the segment where itemIndex is present or is at the boundary
-        SparseArraySegmentBase* current = fromArray->GetBeginLookupSegment(fromStartIndex, false);
-        Assert(current);
-        Assert(GetSegmentMap() == nullptr  && fromArray->GetSegmentMap() == nullptr);
-
-        while (current && length)
+        // Check the from segment first so we don't prepare the toSegment in case it is invalid
+        SparseArraySegment<T> *toSegment = PrepareSegmentForMemOp<T>(toStartIndex, length);
+        if (!isSegmentValid(toSegment, toStartIndex))
         {
-            int memcopySize = length;
-            int startOffset;
-            if (fromStartIndex >= current->left && fromStartIndex < (current->left + current->length))
-            {
-                startOffset = fromStartIndex - current->left;
-                if ((startOffset + length) > current->length)
-                {
-                    memcopySize = current->length - startOffset;
-                }
-
-
-                js_memcpy_s(toSegment->elements + toStartIndex, memcopySize * sizeof(T), (((Js::SparseArraySegment<T>*)current)->elements + startOffset), memcopySize * sizeof(T));
-
-                fromArray->SetLastUsedSegment(current);
-                fromStartIndex = fromStartIndex + memcopySize;
-                toStartIndex = toStartIndex + memcopySize;
-                length = length - memcopySize;
-
-            }
-            current = current->next;
+            return false;
         }
+        Assert(GetSegmentMap() == nullptr && fromArray->GetSegmentMap() == nullptr);
 
-        Assert(length == 0);
+        int memcopySize = length;
+        int toStartOffset = toStartIndex - toSegment->left;
+        int fromStartOffset = fromStartIndex - fromSegment->left;
+        Assert((fromStartOffset + length) <= fromSegment->length);
 
+        js_memcpy_s(
+            toSegment->elements + toStartOffset,
+            (toSegment->size - toStartOffset) * sizeof(T),
+            fromSegment->elements + fromStartOffset,
+            memcopySize * sizeof(T)
+        );
+
+        fromArray->SetLastUsedSegment(fromSegment);
         this->SetLastUsedSegment(toSegment);
 #if DBG
         if (Js::Configuration::Global.flags.MemOpMissingValueValidate)
@@ -1009,6 +1017,20 @@ SECOND_PASS:
     template<typename T>
     bool JavascriptArray::DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue)
     {
+        bool isBtree = false;
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        isBtree = Js::Configuration::Global.flags.ForceArrayBTree;
+#endif
+        if (GetSegmentMap() || isBtree)
+        {
+            for (uint i = startIndex; i < startIndex + length; i++)
+            {
+                DirectSetItem_Full<T>(i, newValue);
+            }
+            return true;
+        }
+
         if (startIndex == 0 && head != EmptySegment && length < head->size)
         {
             if (newValue == (T)0 || newValue == (T)(-1))
@@ -1087,20 +1109,7 @@ SECOND_PASS:
         {
             return true;
         }
-
-        bool isBtree = false;
-
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        isBtree = Js::Configuration::Global.flags.ForceArrayBTree;
-#endif
-        if (GetSegmentMap() || isBtree)
-        {
-            for (uint i = startIndex; i < startIndex + length; i++)
-            {
-                DirectSetItem_Full<T>(i, newValue);
-            }
-            return true;
-        }
+        Assert(!GetSegmentMap());
 
         SparseArraySegment<T> *current = PrepareSegmentForMemOp<T>(startIndex, length);
         if (current == nullptr)
@@ -1209,23 +1218,22 @@ SECOND_PASS:
             {
                 Assert(current == head);
             }
-
+        }
 
 #ifdef VALIDATE_ARRAY
 SECOND_PASS:
-            if (!first_pass)
+        if (!first_pass)
+        {
+            current = (SparseArraySegment<T>*)this->GetBeginLookupSegment(itemIndex, false);
+            // If it doesn't fit in current chunk (watch for overflow), start from beginning as we'll
+            // need the prev
+            if (current->left + current->size > current->left || itemIndex >= current->left + current->size)
             {
-                current = (SparseArraySegment<T>*)this->GetBeginLookupSegment(itemIndex, false);
-                // If it doesn't fit in current chunk (watch for overflow), start from beginning as we'll
-                // need the prev
-                if (current->left + current->size > current->left || itemIndex >= current->left + current->size)
-                {
-                    current = (SparseArraySegment<T>*)head;
-                }
-                prev = nullptr;
+                current = (SparseArraySegment<T>*)head;
             }
-#endif
+            prev = nullptr;
         }
+#endif
 
         uint probeCost = 0;
         while(current != nullptr)
@@ -1659,7 +1667,7 @@ SECOND_PASS:
     }
 
     template<class T, uint InlinePropertySlots>
-    __inline size_t JavascriptArray::DetermineAllocationSize(
+    inline size_t JavascriptArray::DetermineAllocationSize(
         const uint inlineElementSlots,
         size_t *const allocationPlusSizeRef,
         uint *const alignedInlineElementSlotsRef)
@@ -1698,7 +1706,7 @@ SECOND_PASS:
     }
 
     template<class T, uint InlinePropertySlots>
-    __inline uint JavascriptArray::DetermineAvailableInlineElementSlots(
+    inline uint JavascriptArray::DetermineAvailableInlineElementSlots(
         const size_t allocationSize,
         bool *const isSufficientSpaceForInlinePropertySlotsRef)
     {
@@ -1725,7 +1733,7 @@ SECOND_PASS:
     }
 
     template<class T, uint ConstInlinePropertySlots, bool UseDynamicInlinePropertySlots>
-    __inline SparseArraySegment<typename T::TElement> *JavascriptArray::DetermineInlineHeadSegmentPointer(T *const array)
+    inline SparseArraySegment<typename T::TElement> *JavascriptArray::DetermineInlineHeadSegmentPointer(T *const array)
     {
         Assert(array);
         Assert(VirtualTableInfo<T>::HasVirtualTable(array) || VirtualTableInfo<CrossSiteObject<T>>::HasVirtualTable(array));

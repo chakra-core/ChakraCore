@@ -27,6 +27,8 @@
         $(MSBuildThisFileDirectory)..\JITClient;
         $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\Common;
+        $(MSBuildThisFileDirectory)..\Runtime\Base;
+        $(MSBuildThisFileDirectory)..\Runtime\Debug;
         $(MSBuildThisFileDirectory)..\Parser;
         $(MSBuildThisFileDirectory)..\Backend;
         $(IntDir);
@@ -39,6 +41,11 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Jsrt.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtContext.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtDebugManager.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtDebugEventObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtDebuggerObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtDebugUtils.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtDiag.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtExternalArrayBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtExternalObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtRuntime.cpp" />
@@ -47,13 +54,21 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtSourceHolder.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="chakracommon.h" />
+    <ClInclude Include="ChakraCommon.h" />
     <ClInclude Include="ChakraCore.h" />
+    <ClInclude Include="ChakraDebug.h" />
     <ClInclude Include="JsrtContext.h" />
+    <ClInclude Include="JsrtDebugManager.h" />
+    <ClInclude Include="JsrtDebugEventObject.h" />
+    <ClInclude Include="JsrtDebuggerObject.h" />
+    <ClInclude Include="JsrtDebugPropertiesEnum.h" />
+    <ClInclude Include="JsrtDebugUtils.h" />
     <ClInclude Include="JsrtExternalArrayBuffer.h" />
     <ClInclude Include="JsrtExternalObject.h" />
+    <ClInclude Include="JsrtHelper.h" />
     <ClInclude Include="JsrtRuntime.h" />
     <ClInclude Include="JsrtSourceHolder.h" />
     <ClInclude Include="JsrtThreadService.h" />

@@ -6,7 +6,7 @@
 import "wtypes.idl";
 
 // TODO: OOP JIT, how do we make this better?
-const int VTABLE_COUNT = 40;
+const int VTABLE_COUNT = 47;
 const int EQUIVALENT_TYPE_CACHE_SIZE_IDL = 8;
 
 typedef struct TypeHandlerIDL
@@ -142,8 +142,6 @@ typedef struct ProfileDataIDL
 {
     byte implicitCallFlags;
 
-    int flags;
-
     ThisIDL thisData;
 
     BVFixedIDL * loopFlags;
@@ -183,6 +181,7 @@ typedef struct ProfileDataIDL
     [size_is(loopCount)] byte * loopImplicitCallFlags;
 
     __int3264 arrayCallSiteDataAddr;
+    __int64 flags;
 } ProfileDataIDL;
 
 typedef struct ThreadContextDataIDL
@@ -290,6 +289,15 @@ typedef struct FunctionJITRuntimeIDL
     [size_is(clonedCacheCount)] __int3264 * clonedInlineCaches;
 } FunctionJITRuntimeIDL;
 
+typedef struct PropertyIdArrayIDL
+{
+    unsigned int count;
+    boolean hadDuplicates;
+    boolean has__proto__;
+    boolean hasNonSimpleParams;
+    [size_is(count)] int elements[*];
+} PropertyIdArrayIDL;
+
 // FunctionBody fields, read only in JIT, gathered in foreground
 typedef struct FunctionBodyDataIDL
 {
@@ -312,6 +320,7 @@ typedef struct FunctionBodyDataIDL
     boolean disableInlineSpread;
     boolean hasNestedLoop;
     boolean hasNonBuiltInCallee;
+    boolean isParamAndBodyScopeMerged;
 
     unsigned short envDepth;
     unsigned short inParamCount;
@@ -323,11 +332,13 @@ typedef struct FunctionBodyDataIDL
     unsigned int sourceContextId;
     unsigned int nestedCount;
     unsigned int scopeSlotArraySize;
+    unsigned int paramScopeSlotArraySize;
     unsigned int attributes;
     unsigned int byteCodeCount;
     unsigned int byteCodeInLoopCount;
     unsigned int nonLoadByteCodeCount;
     unsigned int localFrameDisplayReg;
+    unsigned int paramClosureReg;
     unsigned int localClosureReg;
     unsigned int envReg;
     unsigned int firstTmpReg;
@@ -376,6 +387,8 @@ typedef struct FunctionBodyDataIDL
 
     AsmJsDataIDL * asmJsData;
 
+    PropertyIdArrayIDL * formalsPropIdArray;
+
     __int3264 loopHeaderArrayAddr;
     __int3264 functionBodyAddr;
     __int3264 scriptIdAddr;
@@ -387,6 +400,7 @@ typedef struct FunctionBodyDataIDL
     __int3264 nestedFuncArrayAddr;
     __int3264 auxDataBufferAddr;
     __int3264 objectLiteralTypesAddr;
+    __int3264 formalsPropIdArrayAddr;
 } FunctionBodyDataIDL;
 
 // EntryPointInfo fields, read/write in JIT
@@ -462,6 +476,7 @@ typedef struct CodeGenWorkItemIDL
     XProcNumberPageSegment xProcNumberPageSegment;
 
     FunctionJITTimeDataIDL * jitData;
+    __int3264 jittedLoopIterationsSinceLastBailoutAddr;
     __int3264 nativeDataAddr;
 } CodeGenWorkItemIDL;
 

@@ -187,25 +187,25 @@ template <class TBlockAttributes> class SmallNormalWithBarrierHeapBlockT;
 template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
 
 #define EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(TemplateType) \
-    template class TemplateType<SmallNormalHeapBlock>; \
-    template class TemplateType<SmallLeafHeapBlock>; \
-    template class TemplateType<SmallFinalizableHeapBlock>; \
-    template class TemplateType<SmallNormalWithBarrierHeapBlock>; \
-    template class TemplateType<SmallFinalizableWithBarrierHeapBlock>; \
-    template class TemplateType<MediumNormalHeapBlock>; \
-    template class TemplateType<MediumLeafHeapBlock>; \
-    template class TemplateType<MediumFinalizableHeapBlock>; \
-    template class TemplateType<MediumNormalWithBarrierHeapBlock>; \
-    template class TemplateType<MediumFinalizableWithBarrierHeapBlock>; \
+    template class TemplateType<Memory::SmallNormalHeapBlock>;        \
+    template class TemplateType<Memory::SmallLeafHeapBlock>; \
+    template class TemplateType<Memory::SmallFinalizableHeapBlock>; \
+    template class TemplateType<Memory::SmallNormalWithBarrierHeapBlock>; \
+    template class TemplateType<Memory::SmallFinalizableWithBarrierHeapBlock>; \
+    template class TemplateType<Memory::MediumNormalHeapBlock>; \
+    template class TemplateType<Memory::MediumLeafHeapBlock>; \
+    template class TemplateType<Memory::MediumFinalizableHeapBlock>; \
+    template class TemplateType<Memory::MediumNormalWithBarrierHeapBlock>; \
+    template class TemplateType<Memory::MediumFinalizableWithBarrierHeapBlock>; \
 
 #else
 #define EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(TemplateType) \
-    template class TemplateType<SmallNormalHeapBlock>; \
-    template class TemplateType<SmallLeafHeapBlock>; \
-    template class TemplateType<SmallFinalizableHeapBlock>; \
-    template class TemplateType<MediumNormalHeapBlock>; \
-    template class TemplateType<MediumLeafHeapBlock>; \
-    template class TemplateType<MediumFinalizableHeapBlock>; \
+    template class TemplateType<Memory::SmallNormalHeapBlock>; \
+    template class TemplateType<Memory::SmallLeafHeapBlock>; \
+    template class TemplateType<Memory::SmallFinalizableHeapBlock>; \
+    template class TemplateType<Memory::MediumNormalHeapBlock>;     \
+    template class TemplateType<Memory::MediumLeafHeapBlock>; \
+    template class TemplateType<Memory::MediumFinalizableHeapBlock>; \
 
 #endif
 
@@ -281,19 +281,6 @@ protected:
     bool isPendingConcurrentSweep;
 #endif
 
-#ifdef RECYCLER_PAGE_HEAP
-    PageHeapMode pageHeapMode;
-    DWORD guardPageOldProtectFlags;
-    char* guardPageAddress;
-    StackBackTrace* pageHeapAllocStack;
-    StackBackTrace* pageHeapFreeStack;
-
-public:
-    __inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
-    void CapturePageHeapAllocStack();
-    void CapturePageHeapFreeStack();
-#endif
-
 public:
     template <typename Fn>
     bool UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn);
@@ -302,9 +289,6 @@ public:
     HeapBlock(HeapBlockType heapBlockType) :
         heapBlockType(heapBlockType),
         needOOMRescan(false)
-#ifdef RECYCLER_PAGE_HEAP
-        , pageHeapAllocStack(nullptr), pageHeapFreeStack(nullptr)
-#endif
     {
         Assert(GetHeapBlockType() <= HeapBlock::HeapBlockType::BlockTypeCount);
     }
@@ -391,7 +375,7 @@ template <class TBlockAttributes>
 class SmallHeapBlockT : public HeapBlock
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
 
     template <typename TBlockType>
@@ -460,6 +444,13 @@ public:
 public:
     ~SmallHeapBlockT();
 
+    void ProtectUnusablePages() {}
+    void RestoreUnusablePages() {}
+    
+    uint GetUnusablePageCount() 
+    {
+        return 0; 
+    }
 
 #ifdef RECYCLER_WRITE_BARRIER
     bool IsWithBarrier() const;
@@ -473,17 +464,6 @@ public:
     template<bool checkPageHeap=true>
     bool HasFreeObject() const
     {
-#ifdef RECYCLER_PAGE_HEAP
-        // in pageheap, we point freeObjectList to end of the allocable block to cheat the system.
-        // but sometimes we need to know if it's really no free block or not.
-        if (checkPageHeap)
-        {
-            if (this->pageHeapMode != PageHeapMode::PageHeapModeOff)
-            {
-                return false;
-            }
-        }
-#endif
         return freeObjectList != nullptr;
     }
 
@@ -572,17 +552,9 @@ public:
     void SetObjectMarkedBit(void* objectAddress) override;
     virtual size_t GetObjectSize(void* object) override { return objectSize; }
 
-#ifdef RECYCLER_PAGE_HEAP
-    char * GetPageHeapObjectAddress();
-#endif
-
-    template <bool pageheap>
     uint GetMarkCountForSweep();
-
-    template <bool pageheap>
     SweepState Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount = 0, bool hasPendingDispose = false);
-
-    template <bool pageheap, SweepMode mode>
+    template <SweepMode mode>
     void SweepObjects(Recycler * recycler);
 
     uint GetAndClearLastFreeCount();
@@ -596,27 +568,16 @@ public:
 #endif
 #endif
     void TransferProcessedObjects(FreeObject * list, FreeObject * tail);
-
-    template<bool pageheap>
     BOOL ReassignPages(Recycler * recycler);
-
-    template<bool pageheap>
-    __inline const uint GetPageHeapModePageCount() const;
-
-#ifdef RECYCLER_PAGE_HEAP
-    void ClearPageHeapState();
-#endif
-
-    template<bool pageheap>
     BOOL SetPage(__in_ecount_pagesize char * baseAddress, PageSegment * pageSegment, Recycler * recycler);
 
-    template<bool pageheap>
     void ReleasePages(Recycler * recycler);
-    template<bool pageheap>
     void ReleasePagesSweep(Recycler * recycler);
     void ReleasePagesShutdown(Recycler * recycler);
-    template<bool pageheap>
+
+#if ENABLE_BACKGROUND_PAGE_FREEING
     void BackgroundReleasePagesSweep(Recycler* recycler);
+#endif
 
     void Reset();
 
@@ -629,11 +590,6 @@ public:
 
 #ifdef RECYCLER_SLOW_CHECK_ENABLED
     void Check(bool expectFull, bool expectPending);
-#endif
-#ifdef RECYCLER_PAGE_HEAP
-    void VerifyPageHeapAllocation(_In_ char* allocation, PageHeapMode mode);
-    void EnablePageHeap();
-    void ClearPageHeap();
 #endif
 #ifdef RECYCLER_MEMORY_VERIFY
     void Verify(bool pendingDispose = false);
@@ -656,7 +612,7 @@ public:
 
 protected:
     static size_t GetAllocPlusSize(uint objectCount);
-    __inline void SetAttributes(void * address, unsigned char attributes);
+    inline void SetAttributes(void * address, unsigned char attributes);
 
     SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
 
@@ -688,7 +644,7 @@ protected:
     void ClearObjectInfoList();
     byte& ObjectInfo(uint index);
 
-    __inline void FillFreeMemory(__in_bcount(size) void * address, size_t size);
+    inline void FillFreeMemory(__in_bcount(size) void * address, size_t size);
 
     template <typename TBlockType>
     bool FindHeapObjectImpl(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject);
@@ -719,6 +675,26 @@ private:
     void ** GetTrackerDataArray();
 #endif
 };
+
+// Forward declare specializations
+template<>
+SmallHeapBlockT<MediumAllocationBlockAttributes>::SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
+
+template <>
+uint
+SmallHeapBlockT<MediumAllocationBlockAttributes>::GetObjectBitDeltaForBucketIndex(uint bucketIndex);
+
+template <>
+uint
+SmallHeapBlockT<MediumAllocationBlockAttributes>::GetUnusablePageCount();
+
+template <>
+void
+SmallHeapBlockT<MediumAllocationBlockAttributes>::ProtectUnusablePages();
+
+template <>
+void
+SmallHeapBlockT<MediumAllocationBlockAttributes>::RestoreUnusablePages();
 
 // Declare the class templates
 typedef SmallHeapBlockT<SmallAllocationBlockAttributes>  SmallHeapBlock;

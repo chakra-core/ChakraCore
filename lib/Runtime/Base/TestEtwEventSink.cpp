@@ -5,14 +5,14 @@
 #include "RuntimeBasePch.h"
 
 #ifdef TEST_ETW_EVENTS
-#include "Base\EtwTrace.h"
+#include "Base/EtwTrace.h"
 
 char const * const TestEtwEventSink::CreateEventSinkProcName = STRINGIZE(CREATE_EVENTSINK_PROC_NAME);
 TestEtwEventSink* TestEtwEventSink::Instance = NULL;
 
 bool TestEtwEventSink::Load()
 {
-    wchar_t const * dllname = Js::Configuration::Global.flags.TestEtwDll;
+    char16 const * dllname = Js::Configuration::Global.flags.TestEtwDll;
     if(!dllname)
     {
         return false;
@@ -20,7 +20,7 @@ bool TestEtwEventSink::Load()
     HMODULE hModule = ::LoadLibraryW(dllname);
     if (hModule == nullptr)
     {
-        Output::Print(L"ERROR: Unable to load ETW event sink %s\n", dllname);
+        Output::Print(_u("ERROR: Unable to load ETW event sink %s\n"), dllname);
         Js::Throw::FatalInternalError();
     }
 
@@ -28,7 +28,7 @@ bool TestEtwEventSink::Load()
 
     if (procAddress == nullptr)
     {
-        Output::Print(L"ERROR: Unable to get function %S from dll %s\n", CreateEventSinkProcName, dllname);
+        Output::Print(_u("ERROR: Unable to get function %S from dll %s\n"), CreateEventSinkProcName, dllname);
         Js::Throw::FatalInternalError();
     }
 
@@ -36,7 +36,7 @@ bool TestEtwEventSink::Load()
     Instance = procAddress(&EtwTrace::PerformRundown, PHASE_TRACE1(Js::EtwPhase));
     if (Instance == nullptr)
     {
-        Output::Print(L"ERROR: Failed to create ETW event sink from dll %s\n", dllname);
+        Output::Print(_u("ERROR: Failed to create ETW event sink from dll %s\n"), dllname);
         Js::Throw::FatalInternalError();
     }
     return true;

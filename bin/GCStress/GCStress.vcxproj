@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{73CE5C59-E0BA-413D-A73C-3EECE067891B}</ProjectGuid>
+    <RootNamespace>Js</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ChakraCoreRootDirectory)\lib\Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>
+        %(DisableSpecificWarnings);
+        4458; <!-- Declaration hides class member -->
+        4477; <!-- TODO: Format string specifier incorrect on x64 --></DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>
+        $(ChakraCommonMemoryLib);
+        $(ChakraCommonLinkDependencies);
+        %(AdditionalDependencies);
+      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="GCStress.cpp" />
+    <ClCompile Include="RecyclerTestObject.cpp" />
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="StubExternalApi.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\lib\Common\Common\Chakra.Common.Common.vcxproj">
+      <Project>{bb4153ff-ac3e-4734-b562-cc23812df31b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\lib\Common\Core\Chakra.Common.Core.vcxproj">
+      <Project>{cc4153ff-ac3e-4734-b562-cc23812df31b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\lib\Common\DataStructures\Chakra.Common.DataStructures.vcxproj">
+      <Project>{5643d42a-c38d-4d82-9662-58470b3ac9f7}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\lib\Common\Exceptions\Chakra.Common.Exceptions.vcxproj">
+      <Project>{fd8eec40-4141-448a-bf4b-1589fbe4f60d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\lib\Common\Memory\Chakra.Common.Memory.vcxproj">
+      <Project>{bb4153ff-ac3e-4734-b562-ff23812df31b}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GCStress.h" />
+    <ClInclude Include="RecyclerTestObject.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="WeightedTable.h" />
+  </ItemGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

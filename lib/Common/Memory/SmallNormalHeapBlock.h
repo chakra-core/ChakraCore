@@ -9,8 +9,11 @@ namespace Memory
 template <class TBlockAttributes>
 class SmallNormalHeapBlockT : public SmallHeapBlockT<TBlockAttributes>
 {
+    typedef SmallHeapBlockT<TBlockAttributes> Base;
     friend class HeapBucketT<SmallNormalHeapBlockT>;
 public:
+    typedef typename Base::HeapBlockType HeapBlockType;
+    typedef typename Base::SmallHeapBlockBitVector SmallHeapBlockBitVector;
     typedef TBlockAttributes HeapBlockAttributes;
     static const ObjectInfoBits RequiredAttributes = NoBit;
     static const bool IsLeafOnly = false;
@@ -18,8 +21,8 @@ public:
     static SmallNormalHeapBlockT * New(HeapBucketT<SmallNormalHeapBlockT> * bucket);
     static void Delete(SmallNormalHeapBlockT * block);
 
-    SmallNormalHeapBlockT * GetNextBlock() const { return __super::GetNextBlock()->AsNormalBlock<TBlockAttributes>(); }
-    void SetNextBlock(SmallNormalHeapBlockT * next) { __super::SetNextBlock(next); }
+    SmallNormalHeapBlockT * GetNextBlock() const { return Base::GetNextBlock()->template AsNormalBlock<TBlockAttributes>(); }
+    void SetNextBlock(SmallNormalHeapBlockT * next) { Base::SetNextBlock(next); }
 
     void ScanInitialImplicitRoots(Recycler * recycler);
     void ScanNewImplicitRoots(Recycler * recycler);
@@ -38,7 +41,7 @@ public:
 
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override
     {
-        return FindHeapObjectImpl<SmallNormalHeapBlockT>(objectAddress, recycler, flags, heapObject);
+        return this->template FindHeapObjectImpl<SmallNormalHeapBlockT<TBlockAttributes>>(objectAddress, recycler, flags, heapObject);
     }
 protected:
     SmallNormalHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
@@ -52,6 +55,8 @@ private:
 template <class TBlockAttributes>
 class SmallNormalWithBarrierHeapBlockT : public SmallNormalHeapBlockT<TBlockAttributes>
 {
+    typedef SmallNormalHeapBlockT<TBlockAttributes> Base;
+    typedef typename Base::HeapBlockType HeapBlockType;
     friend class HeapBucketT<SmallNormalWithBarrierHeapBlockT>;
 public:
     typedef TBlockAttributes HeapBlockAttributes;
@@ -65,26 +70,20 @@ public:
 
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override sealed
     {
-        return FindHeapObjectImpl<SmallNormalWithBarrierHeapBlockT>(objectAddress, recycler, flags, heapObject);
+        return this->template FindHeapObjectImpl<SmallNormalWithBarrierHeapBlockT<TBlockAttributes>>(objectAddress, recycler, flags, heapObject);
     }
 protected:
     SmallNormalWithBarrierHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType) :
-        SmallNormalHeapBlockT(bucket, objectSize, objectCount, heapBlockType)
+        SmallNormalHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, heapBlockType)
     {}
 
 };
 #endif
 
-extern template class SmallNormalHeapBlockT<SmallAllocationBlockAttributes>;
-extern template class SmallNormalHeapBlockT<MediumAllocationBlockAttributes>;
-
 typedef SmallNormalHeapBlockT<SmallAllocationBlockAttributes> SmallNormalHeapBlock;
 typedef SmallNormalHeapBlockT<MediumAllocationBlockAttributes> MediumNormalHeapBlock;
 
 #ifdef RECYCLER_WRITE_BARRIER
-extern template class SmallNormalWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;
-extern template class SmallNormalWithBarrierHeapBlockT<MediumAllocationBlockAttributes>;
-
 typedef SmallNormalWithBarrierHeapBlockT<SmallAllocationBlockAttributes> SmallNormalWithBarrierHeapBlock;
 typedef SmallNormalWithBarrierHeapBlockT<MediumAllocationBlockAttributes> MediumNormalWithBarrierHeapBlock;
 #endif

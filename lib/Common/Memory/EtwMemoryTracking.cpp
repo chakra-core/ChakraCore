@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
+// xplat-todo: Need to figure out equivalent method for allocation tracing
+// on platforms other than Windows
 #ifdef ETW_MEMORY_TRACKING
 #include "microsoft-scripting-jscript9.internalevents.h"
 

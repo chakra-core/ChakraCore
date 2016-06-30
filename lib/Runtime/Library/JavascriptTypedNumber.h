@@ -11,7 +11,7 @@ namespace Js
     {
     private:
         T m_value;
-        __inline JavascriptTypedNumber(T value, StaticType * type) : RecyclableObject(type), m_value(value)
+        inline JavascriptTypedNumber(T value, StaticType * type) : RecyclableObject(type), m_value(value)
         {
 #if DBG
             AssertMsg(type->GetTypeId() == TypeIds_Int64Number ||
@@ -54,7 +54,7 @@ namespace Js
 
         BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override
         {
-            stringBuilder->AppendCppLiteral(L"Number, (Object)");
+            stringBuilder->AppendCppLiteral(_u("Number, (Object)"));
             return TRUE;
         }
 

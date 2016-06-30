@@ -9,7 +9,7 @@ namespace IR
     class LabelInstr;
 }
 
-enum JsNativeValueType;
+enum JsNativeValueType: int;
 
 namespace Js
 {
@@ -28,10 +28,10 @@ namespace Js
         if (errorObject != nullptr && Js::JavascriptError::Is(errorObject)) \
         { \
             HRESULT hr = Js::JavascriptError::GetRuntimeError(Js::RecyclableObject::FromVar(errorObject), nullptr); \
-            if (JavascriptError::GetErrorNumberFromResourceID(JSERR_Property_CannotGet_NullOrUndefined) == (long)hr \
-                || JavascriptError::GetErrorNumberFromResourceID(JSERR_UseBeforeDeclaration) == (long)hr) \
+            if (JavascriptError::GetErrorNumberFromResourceID(JSERR_Property_CannotGet_NullOrUndefined) == (int32)hr \
+                || JavascriptError::GetErrorNumberFromResourceID(JSERR_UseBeforeDeclaration) == (int32)hr) \
             { \
-                if (scriptContext->IsInDebugMode()) \
+                if (scriptContext->IsScriptContextInDebugMode()) \
                 { \
                     JavascriptExceptionOperators::ThrowExceptionObject(exceptionObject, scriptContext, true); \
                 } \
@@ -60,14 +60,14 @@ namespace Js
     public: \
         AutoCleanup(ScriptContext *const scriptContext) : scriptContext(scriptContext) \
         { \
-            if (scriptContext->IsInDebugMode()) \
+            if (scriptContext->IsScriptContextInDebugMode()) \
             { \
                 scriptContext->GetDebugContext()->GetProbeContainer()->SetThrowIsInternal(true); \
             } \
         } \
         ~AutoCleanup() \
         { \
-            if (scriptContext->IsInDebugMode()) \
+            if (scriptContext->IsScriptContextInDebugMode()) \
             { \
                 scriptContext->GetDebugContext()->GetProbeContainer()->SetThrowIsInternal(false); \
             } \
@@ -141,6 +141,7 @@ namespace Js
         static BOOL StrictEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
         static BOOL StrictEqualString(Var aLeft, Var aRight);
         static BOOL StrictEqualEmptyString(Var aLeft);
+        static BOOL StrictEqualSIMD(Var aLeft, Var aRight, ScriptContext* scriptContext);
         static BOOL NotStrictEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
 
         static BOOL HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext * requestContext);
@@ -201,8 +202,10 @@ namespace Js
         static BOOL IsExposedType(TypeId typeId);
         static BOOL IsObjectType(TypeId typeId);
         static BOOL IsObjectOrNull(Var instance);
+        static BOOL IsUndefined(Var instance);
         static BOOL IsUndefinedOrNullType(TypeId);
         static BOOL IsUndefinedOrNull(Var instance);
+        static BOOL IsNull(Var instance);
         static BOOL IsSpecialObjectType(TypeId typeId);
         static BOOL IsJsNativeObject(Var instance);
         static BOOL IsUndefinedObject(Var instance);
@@ -210,13 +213,18 @@ namespace Js
         static BOOL IsUndefinedObject(Var instance, RecyclableObject *libraryUndefined);
         static BOOL IsUndefinedObject(Var instance, JavascriptLibrary* library);
         static BOOL IsAnyNumberValue(Var instance);
-        static BOOL IsIterable(RecyclableObject* instance, ScriptContext* scriptContext);
         static BOOL IsClassConstructor(Var instance);
+
+        static bool CanShortcutOnUnknownPropertyName(RecyclableObject * instance);
+        static bool CanShortcutInstanceOnUnknownPropertyName(RecyclableObject *instance);
+        static bool CanShortcutPrototypeChainOnUnknownPropertyName(RecyclableObject *instance);
 
         static BOOL HasOwnItem(RecyclableObject* instance, uint32 index);
         static BOOL HasItem(RecyclableObject* instance, uint32 index);
         static BOOL HasItem(RecyclableObject* instance, uint64 index);
         static BOOL GetOwnItem(RecyclableObject* instance, uint32 index, Var* value, ScriptContext* requestContext);
+        static Var GetItem(RecyclableObject* instance, uint64 index, ScriptContext* requestContext);
+        static Var GetItem(RecyclableObject* instance, uint32 index, ScriptContext* requestContext);
         static BOOL GetItem(RecyclableObject* instance, uint64 index, Var* value, ScriptContext* requestContext);
         static BOOL GetItem(RecyclableObject* instance, uint32 index, Var* value, ScriptContext* requestContext);
         static BOOL GetItem(Var instance, RecyclableObject* propertyObject, uint32 index, Var* value, ScriptContext* requestContext);
@@ -243,7 +251,7 @@ namespace Js
         static DescriptorFlags GetterSetter(RecyclableObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* scriptContext);
         static DescriptorFlags GetterSetter(RecyclableObject* instance, JavascriptString * propertyName, Var* setterValue, PropertyValueInfo* info, ScriptContext* scriptContext);
         static void OP_InvalidateProtoCaches(PropertyId propertyId, ScriptContext *scriptContext);
-        static BOOL SetGlobalPropertyNoHost(wchar_t const * propertyName, charcount_t propertyLength, Var value, ScriptContext * scriptContext);
+        static BOOL SetGlobalPropertyNoHost(char16 const * propertyName, charcount_t propertyLength, Var value, ScriptContext * scriptContext);
         static RecyclableObject* GetPrototype(RecyclableObject* instance);
         static RecyclableObject* OP_GetPrototype(Var instance, ScriptContext* scriptContext);
 
@@ -276,6 +284,11 @@ namespace Js
         static void OP_InitClassMemberGetComputedName(Var object, Var elementName, Var getter, ScriptContext* scriptContext, PropertyOperationFlags flags = PropertyOperation_None);
         static void OP_InitClassMemberSet(Var object, PropertyId propertyId, Var setter);
         static void OP_InitClassMemberSetComputedName(Var object, Var elementName, Var getter, ScriptContext* scriptContext, PropertyOperationFlags flags = PropertyOperation_None);
+
+        static Var* OP_GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
+        static Var* OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
+        static Var OP_LdModuleSlot(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
+        static void OP_StModuleSlot(uint moduleIndex, uint slotIndex, Var value, ScriptContext* scriptContext);
 
         static Js::PropertyId GetPropertyId(Var propertyName, ScriptContext* scriptContext);
 
@@ -390,18 +403,23 @@ namespace Js
         static void AddFloatsToArraySegment(SparseArraySegment<double> * segment, const Js::AuxArray<double> *doubles);
         static void UpdateNewScObjectCache(Var function, Var instance, ScriptContext* requestContext);
 
-        static RecyclableObject* GetIteratorFunction(Var iterable, ScriptContext* scriptContext);
-        static RecyclableObject* GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext);
-        static RecyclableObject* GetIterator(Var instance, ScriptContext* scriptContext);
-        static RecyclableObject* GetIterator(RecyclableObject* instance, ScriptContext* scriptContext);
+        static RecyclableObject* GetIteratorFunction(Var iterable, ScriptContext* scriptContext, bool optional = false);
+        static RecyclableObject* GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext, bool optional = false);
+        static RecyclableObject* GetIterator(Var instance, ScriptContext* scriptContext, bool optional = false);
+        static RecyclableObject* GetIterator(RecyclableObject* instance, ScriptContext* scriptContext, bool optional = false);
         static RecyclableObject* IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, Var value = nullptr);
+        static void IteratorClose(RecyclableObject* iterator, ScriptContext* scriptContext);
+
+        template <typename THandler>
+        static void DoIteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, THandler handler);
+
         static bool IteratorComplete(RecyclableObject* iterResult, ScriptContext* scriptContext);
         static Var IteratorValue(RecyclableObject* iterResult, ScriptContext* scriptContext);
         static bool IteratorStep(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject** result);
         static bool IteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, Var* resultValue);
 
         static void TraceUseConstructorCache(const ConstructorCache* ctorCache, const JavascriptFunction* ctor, bool isHit);
-        static void TraceUpdateConstructorCache(const ConstructorCache* ctorCache, const FunctionBody* ctorBody, bool updated, const wchar_t* reason);
+        static void TraceUpdateConstructorCache(const ConstructorCache* ctorCache, const FunctionBody* ctorBody, bool updated, const char16* reason);
         static Var ConvertToUnmappedArguments(HeapArgumentsObject *argumentsObject, uint32 paramCount, Var *paramAddr, DynamicObject* frameObject, Js::PropertyIdArray *propIds, uint32 formalsCount, ScriptContext* scriptContext);
 
         static Js::GlobalObject * OP_LdRoot(ScriptContext* scriptContext);
@@ -423,6 +441,7 @@ namespace Js
         static void CheckInnerFrameDisplayArgument(void *argHead);
         static Var LoadHeapArguments(JavascriptFunction *funcCallee, unsigned int count, Var *pParams, Var frameObj, Var vArray, ScriptContext* scriptContext, bool nonSimpleParamList);
         static Var LoadHeapArgsCached(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var *pParams, Var frameObj, ScriptContext* scriptContext, bool nonSimpleParamList);
+        static Var FillScopeObject(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, Var * paramAddr, Js::PropertyIdArray *propIds, HeapArgumentsObject * argsObj, ScriptContext * scriptContext, bool nonSimpleParamList, bool useCachedScope);
         static HeapArgumentsObject *CreateHeapArguments(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, ScriptContext* scriptContext);
         static Var OP_InitCachedScope(Var varFunc, const PropertyIdArray *propIds, DynamicType ** literalType, bool formalsAreLetDecls, ScriptContext *scriptContext);
         static void OP_InvalidateCachedScope(Var varEnv, int32 envIndex);
@@ -493,7 +512,7 @@ namespace Js
 
         static void GetPropertyIdForInt(uint64 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
         static void GetPropertyIdForInt(uint32 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
-        static BOOL TryConvertToUInt32(const wchar_t* str, int length, uint32* value);
+        static BOOL TryConvertToUInt32(const char16* str, int length, uint32* value);
 
         static BOOL ToPropertyDescriptor(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext);
 
@@ -530,6 +549,7 @@ namespace Js
         static bool CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* object);
         static bool CheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype);
         static bool DoCheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype);
+        static bool CheckIfPrototypeChainContainsProxyObject(RecyclableObject* prototype);
         static void OP_SetComputedNameVar(Var method, Var computedNameVar);
         static void OP_SetHomeObj(Var method, Var homeObj);
         static Var OP_LdSuper(Var scriptFunction, ScriptContext * scriptContext);
@@ -610,7 +630,7 @@ namespace Js
         static Var NewScObjectHostDispatchOrProxy(RecyclableObject * function, ScriptContext * requestContext);
         static Var NewScObjectCommon(RecyclableObject * functionObject, FunctionInfo * functionInfo, ScriptContext * scriptContext, bool isBaseClassConstructorNewScObject = false);
 
-        static BOOL Reject(bool throwOnError, ScriptContext* scriptContext, long errorCode, PropertyId propertyId);
+        static BOOL Reject(bool throwOnError, ScriptContext* scriptContext, int32 errorCode, PropertyId propertyId);
         static bool AreSamePropertyDescriptors(const PropertyDescriptor* x, const PropertyDescriptor* y, ScriptContext* scriptContext);
         static Var CanonicalizeAccessor(Var accessor, ScriptContext* scriptContext);
 

@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
-#include "Library\JavascriptSymbol.h"
-#include "Library\JavascriptSymbolObject.h"
+#include "Library/JavascriptSymbol.h"
+#include "Library/JavascriptSymbolObject.h"
 
 DEFINE_VALIDATE_HAS_VTABLE_CTOR(Js::RecyclableObject);
 
@@ -205,12 +205,6 @@ namespace Js
         return this->GetType()->SkipsPrototype();
     }
 
-    uint32
-    RecyclableObject::GetOffsetOfType()
-    {
-        return offsetof(RecyclableObject, type);
-    }
-
     RecyclableObject * RecyclableObject::CloneToScriptContext(ScriptContext* requestContext)
     {
         switch (JavascriptOperators::GetTypeId(this))
@@ -236,8 +230,20 @@ namespace Js
             return false;
         }
 
-        Output::Print(L"%S{%x} %p", typeinfo->name(), ((RecyclableObject *)objectAddress)->GetTypeId(), objectAddress);
+        Output::Print(_u("%S{%x} %p"), typeinfo->name(), ((RecyclableObject *)objectAddress)->GetTypeId(), objectAddress);
         return true;
+    }
+#endif
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType RecyclableObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void RecyclableObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(false, "Missing subtype implementation.");
     }
 #endif
 
@@ -457,7 +463,9 @@ namespace Js
         {
             //In ES5 mode strict equals (===) on same instance of object type VariantDate succeeds.
             //Hence equals needs to succeed.
-            goto ReturnTrue;
+            //goto ReturnTrue;
+            *value = TRUE;
+            return TRUE;
         }
 
         double dblLeft, dblRight;
@@ -780,6 +788,6 @@ namespace Js
 
     BOOL RecyclableObject::HasInstance(Var instance, ScriptContext* scriptContext, IsInstInlineCache* inlineCache)
     {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedFunction, L"instanceof" /* TODO-ERROR: get arg name - aClass */);
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedFunction, _u("instanceof") /* TODO-ERROR: get arg name - aClass */);
     }
 } // namespace Js

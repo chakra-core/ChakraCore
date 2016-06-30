@@ -49,11 +49,11 @@ public:
 #endif
         size_t sizeCat = GetAlignedAllocSize();
         Assert(HeapInfo::IsSmallObject(sizeCat));
-        char * memBlock = allocator.InlinedAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask)>(recycler, sizeCat);
+        char * memBlock = allocator.template InlinedAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask)>(recycler, sizeCat);
 
         if (memBlock == nullptr)
         {
-            memBlock = recycler->SmallAllocatorAlloc<attributes>(&allocator, sizeCat);
+            memBlock = recycler->SmallAllocatorAlloc<attributes>(&allocator, sizeCat, size);
             Assert(memBlock != nullptr);
         }
 
@@ -71,6 +71,9 @@ public:
 
 #ifdef RECYCLER_MEMORY_VERIFY
         recycler->FillCheckPad(memBlock, sizeof(T), sizeCat);
+#endif
+#if DBG
+        recycler->VerifyPageHeapFillAfterAlloc<attributes>(memBlock, size);
 #endif
         return memBlock;
     };

@@ -94,6 +94,7 @@ namespace Js
 
     struct DebuggerOptionsCallback
     {
+        virtual bool IsExceptionReportingEnabled() { return true; }
         virtual bool IsFirstChanceExceptionEnabled() { return false; }
         virtual bool IsNonUserCodeSupportEnabled() { return false; }
         virtual bool IsLibraryStackFrameSupportEnabled() { return false; }

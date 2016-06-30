@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 template class EmitBufferManager<FakeCriticalSection>;
 template class EmitBufferManager<CriticalSection>;
@@ -12,9 +12,9 @@ template class EmitBufferManager<CriticalSection>;
 //      Constructor
 //----------------------------------------------------------------------------
 template <typename SyncObject>
-EmitBufferManager<SyncObject>::EmitBufferManager(AllocationPolicyManager * policyManager, ArenaAllocator * allocator,
-    Js::ScriptContext * scriptContext, LPCWSTR name, bool allocXdata, HANDLE processHandle) :
-    allocationHeap(policyManager, allocator, allocXdata, processHandle),
+EmitBufferManager<SyncObject>::EmitBufferManager(ArenaAllocator * allocator, CustomHeap::CodePageAllocators * codePageAllocators,
+    Js::ScriptContext * scriptContext, LPCWSTR name, HANDLE processHandle) :
+    allocationHeap(allocator, codePageAllocators, processHandle),
     allocator(allocator),
     allocations(nullptr),
     scriptContext(scriptContext),
@@ -69,13 +69,6 @@ EmitBufferManager<SyncObject>::FreeAllocations(bool release)
     EmitBufferAllocation * allocation = this->allocations;
     while (allocation != nullptr)
     {
-        BOOL isFreed;
-        // In case of ThunkEmitter the script context would be null and we don't want to track that as code size.
-        if (!release && (scriptContext != nullptr) && allocation->recorded)
-        {
-            this->scriptContext->GetThreadContext()->SubCodeSize(allocation->bytesCommitted);
-            allocation->recorded = false;
-        }
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if(CONFIG_FLAG(CheckEmitBufferPermissions))
         {
@@ -84,21 +77,32 @@ EmitBufferManager<SyncObject>::FreeAllocations(bool release)
 #endif
         if (release)
         {
-            isFreed = this->allocationHeap.Free(allocation->allocation);
+            this->allocationHeap.Free(allocation->allocation);
         }
-        else
+        else if ((scriptContext != nullptr) && allocation->recorded)
         {
-            isFreed = this->allocationHeap.Decommit(allocation->allocation);
+            // In case of ThunkEmitter the script context would be null and we don't want to track that as code size.
+            this->scriptContext->GetThreadContext()->SubCodeSize(allocation->bytesCommitted);
+            allocation->recorded = false;
         }
 
-        Assert(isFreed);
         allocation = allocation->nextAllocation;
     }
     if (release)
     {
         this->allocations = nullptr;
     }
+    else
+    {
+        this->allocationHeap.DecommitAll();
+    }
+}
 
+template <typename SyncObject>
+bool EmitBufferManager<SyncObject>::IsInHeap(__in void* address)
+{
+    AutoRealOrFakeCriticalSection<SyncObject> autocs(&this->criticalSection);
+    return this->allocationHeap.IsInHeap(address);
 }
 
 class AutoCustomHeapPointer
@@ -139,18 +143,9 @@ template <typename SyncObject>
 EmitBufferAllocation *
 EmitBufferManager<SyncObject>::NewAllocation(size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode)
 {
-    FAULTINJECT_MEMORY_THROW(L"JIT", bytes);
+    FAULTINJECT_MEMORY_THROW(_u("JIT"), bytes);
 
     Assert(this->criticalSection.IsLocked());
-
-    PreReservedVirtualAllocWrapper  * preReservedVirtualAllocator = nullptr;
-
-    if (canAllocInPreReservedHeapPageSegment)
-    {
-        Assert(scriptContext && scriptContext->GetThreadContext());
-        preReservedVirtualAllocator = this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator();
-        this->EnsurePreReservedPageAllocation(preReservedVirtualAllocator);
-    }
 
     bool isAllJITCodeInPreReservedRegion = true;
     CustomHeap::Allocation* heapAllocation = this->allocationHeap.Alloc(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, &isAllJITCodeInPreReservedRegion);
@@ -169,7 +164,7 @@ EmitBufferManager<SyncObject>::NewAllocation(size_t bytes, ushort pdataCount, us
     }
 
     AutoCustomHeapPointer allocatedMemory(&this->allocationHeap, heapAllocation);
-    VerboseHeapTrace(L"New allocation: 0x%p, size: %p\n", heapAllocation->address, heapAllocation->size);
+    VerboseHeapTrace(_u("New allocation: 0x%p, size: %p\n"), heapAllocation->address, heapAllocation->size);
     EmitBufferAllocation * allocation = AnewStruct(this->allocator, EmitBufferAllocation);
 
     allocation->bytesCommitted = heapAllocation->size;
@@ -218,7 +213,7 @@ EmitBufferManager<SyncObject>::FreeAllocation(void* address)
                 this->scriptContext->GetThreadContext()->SubCodeSize(allocation->bytesCommitted);
             }
 
-            VerboseHeapTrace(L"Freeing 0x%p, allocation: 0x%p\n", address, allocation->allocation->address);
+            VerboseHeapTrace(_u("Freeing 0x%p, allocation: 0x%p\n"), address, allocation->allocation->address);
 
             this->allocationHeap.Free(allocation->allocation);
             this->allocator->Free(allocation, sizeof(EmitBufferAllocation));
@@ -317,7 +312,7 @@ bool EmitBufferManager<SyncObject>::CheckCommitFaultInjection()
 
     if (Js::Configuration::Global.flags.ForceOOMOnEBCommit == -1)
     {
-        Output::Print(L"Commit count: %d\n", commitCount);
+        Output::Print(_u("Commit count: %d\n"), commitCount);
     }
     else if (commitCount == Js::Configuration::Global.flags.ForceOOMOnEBCommit)
     {
@@ -327,6 +322,17 @@ bool EmitBufferManager<SyncObject>::CheckCommitFaultInjection()
     return false;
 }
 
+#endif
+
+#if DBG
+template <typename SyncObject>
+bool EmitBufferManager<SyncObject>::IsBufferExecuteReadOnly(EmitBufferAllocation * allocation)
+{
+    AutoRealOrFakeCriticalSection<SyncObject> autoCs(&this->criticalSection);
+    MEMORY_BASIC_INFORMATION memBasicInfo;
+    size_t resultBytes = VirtualQuery(allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
+    return resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE;
+}
 #endif
 
 template <typename SyncObject>
@@ -350,7 +356,7 @@ bool EmitBufferManager<SyncObject>::CommitReadWriteBufferForInterpreter(EmitBuff
     this->totalBytesCode += bufferSize;
 #endif
 
-    VerboseHeapTrace(L"Setting execute permissions on 0x%p, allocation: 0x%p\n", pBuffer, allocation->allocation->address);
+    VerboseHeapTrace(_u("Setting execute permissions on 0x%p, allocation: 0x%p\n"), pBuffer, allocation->allocation->address);
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     if (CheckCommitFaultInjection())
@@ -498,7 +504,7 @@ EmitBufferManager<SyncObject>::CheckBufferPermissions(EmitBufferAllocation *allo
         }
         else if(memInfo.Protect == PAGE_EXECUTE_READWRITE)
         {
-            Output::Print(L"ERROR: Found PAGE_EXECUTE_READWRITE page!\n");
+            Output::Print(_u("ERROR: Found PAGE_EXECUTE_READWRITE page!\n"));
 #ifdef DEBUG
             AssertMsg(FALSE, "Page was marked PAGE_EXECUTE_READWRITE");
 #else
@@ -529,22 +535,22 @@ EmitBufferManager<SyncObject>::CheckBufferPermissions(EmitBufferAllocation *allo
 #if DBG_DUMP
 template <typename SyncObject>
 void
-EmitBufferManager<SyncObject>::DumpAndResetStats(wchar_t const * filename)
+EmitBufferManager<SyncObject>::DumpAndResetStats(char16 const * filename)
 {
     if (this->totalBytesCommitted != 0)
     {
         size_t wasted = this->totalBytesCommitted - this->totalBytesCode - this->totalBytesAlignment;
-        Output::Print(L"Stats for %s: %s \n", name, filename);
-        Output::Print(L"  Total code size      : %10d (%6.2f%% of committed)\n", this->totalBytesCode,
+        Output::Print(_u("Stats for %s: %s \n"), name, filename);
+        Output::Print(_u("  Total code size      : %10d (%6.2f%% of committed)\n"), this->totalBytesCode,
             (float)this->totalBytesCode * 100 / this->totalBytesCommitted);
-        Output::Print(L"  Total LoopBody code  : %10d\n", this->totalBytesLoopBody);
-        Output::Print(L"  Total alignment size : %10d (%6.2f%% of committed)\n", this->totalBytesAlignment,
+        Output::Print(_u("  Total LoopBody code  : %10d\n"), this->totalBytesLoopBody);
+        Output::Print(_u("  Total alignment size : %10d (%6.2f%% of committed)\n"), this->totalBytesAlignment,
             (float)this->totalBytesAlignment * 100 / this->totalBytesCommitted);
-        Output::Print(L"  Total wasted size    : %10d (%6.2f%% of committed)\n", wasted,
+        Output::Print(_u("  Total wasted size    : %10d (%6.2f%% of committed)\n"), wasted,
             (float)wasted * 100 / this->totalBytesCommitted);
-        Output::Print(L"  Total committed size : %10d (%6.2f%% of reserved)\n", this->totalBytesCommitted,
+        Output::Print(_u("  Total committed size : %10d (%6.2f%% of reserved)\n"), this->totalBytesCommitted,
             (float)this->totalBytesCommitted * 100 / this->totalBytesReserved);
-        Output::Print(L"  Total reserved size  : %10d\n", this->totalBytesReserved);
+        Output::Print(_u("  Total reserved size  : %10d\n"), this->totalBytesReserved);
     }
     this->totalBytesCode = 0;
     this->totalBytesLoopBody = 0;

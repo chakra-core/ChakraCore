@@ -121,7 +121,7 @@ private:
     void                Build##layout(Js::OpCode newOpcode, uint32 offset);
 #define LAYOUT_TYPE_WMS(layout) \
     template <typename SizePolicy> void Build##layout(Js::OpCode newOpcode, uint32 offset);
-#include "ByteCode\LayoutTypes.h"
+#include "ByteCode/LayoutTypes.h"
 
     void                BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0);
     void                BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::RegSlot R1, uint32 nextOffset);
@@ -197,7 +197,7 @@ private:
     IR::IndirOpnd *     BuildIndirOpnd(IR::RegOpnd *baseReg, IR::RegOpnd *indexReg);
     IR::IndirOpnd *     BuildIndirOpnd(IR::RegOpnd *baseReg, uint32 offset);
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    IR::IndirOpnd *     BuildIndirOpnd(IR::RegOpnd *baseReg, uint32 offset, const wchar_t *desc);
+    IR::IndirOpnd *     BuildIndirOpnd(IR::RegOpnd *baseReg, uint32 offset, const char16 *desc);
 #endif
     IR::SymOpnd *       BuildFieldOpnd(Js::OpCode newOpCode, Js::RegSlot reg, Js::PropertyId propertyId, Js::PropertyIdIndexType propertyIdIndex, PropertyKind propertyKind, uint inlineCacheIndex = -1);
     PropertySym *       BuildFieldSym(Js::RegSlot reg, Js::PropertyId propertyId, Js::PropertyIdIndexType propertyIdIndex, uint inlineCacheIndex, PropertyKind propertyKind);

@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -39,21 +39,7 @@ namespace Js
         {
             return args[1];
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"Float64x2");
-    }
-
-    Var SIMDFloat64x2Lib::EntryZero(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        SIMDValue lanes = SIMDFloat64x2Operation::OpZero();
-
-        return JavascriptSIMDFloat64x2::New(&lanes, scriptContext);
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("Float64x2"));
     }
 
     Var SIMDFloat64x2Lib::EntrySplat(RecyclableObject* function, CallInfo callInfo, ...)
@@ -90,7 +76,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::FromFloat32x4(instance, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, L"fromFloat32x4");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("fromFloat32x4"));
     }
 
     Var SIMDFloat64x2Lib::EntryFromFloat32x4Bits(RecyclableObject* function, CallInfo callInfo, ...)
@@ -107,10 +93,10 @@ namespace Js
             JavascriptSIMDFloat32x4 *instance = JavascriptSIMDFloat32x4::FromVar(args[1]);
             Assert(instance);
 
-            return SIMDConvertTypeFromBits<JavascriptSIMDFloat32x4, JavascriptSIMDFloat64x2>(instance, scriptContext);
+            return SIMDUtils::SIMDConvertTypeFromBits<JavascriptSIMDFloat32x4, JavascriptSIMDFloat64x2>(*instance, *scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, L"fromFloat32x4Bits");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("fromFloat32x4Bits"));
     }
 
     Var SIMDFloat64x2Lib::EntryFromInt32x4(RecyclableObject* function, CallInfo callInfo, ...)
@@ -130,7 +116,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::FromInt32x4(instance, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, L"fromInt32x4");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("fromInt32x4"));
     }
 
     Var SIMDFloat64x2Lib::EntryFromInt32x4Bits(RecyclableObject* function, CallInfo callInfo, ...)
@@ -147,10 +133,10 @@ namespace Js
             JavascriptSIMDInt32x4 *instance = JavascriptSIMDInt32x4::FromVar(args[1]);
             Assert(instance);
 
-            return SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDFloat64x2>(instance, scriptContext);
+            return SIMDUtils::SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDFloat64x2>(*instance, *scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, L"fromInt32x4Bits");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("fromInt32x4Bits"));
     }
 
     Var SIMDFloat64x2Lib::EntryNot(RecyclableObject* function, CallInfo callInfo, ...)
@@ -175,7 +161,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"not");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("not"));
     }
 
     Var SIMDFloat64x2Lib::EntryAbs(RecyclableObject* function, CallInfo callInfo, ...)
@@ -200,7 +186,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"abs");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("abs"));
     }
 
     Var SIMDFloat64x2Lib::EntryNeg(RecyclableObject* function, CallInfo callInfo, ...)
@@ -225,7 +211,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"neg");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("neg"));
     }
 
     Var SIMDFloat64x2Lib::EntrySqrt(RecyclableObject* function, CallInfo callInfo, ...)
@@ -250,7 +236,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"sqrt");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("sqrt"));
     }
 
     Var SIMDFloat64x2Lib::EntryReciprocal(RecyclableObject* function, CallInfo callInfo, ...)
@@ -275,7 +261,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"reciprocal");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("reciprocal"));
     }
 
     Var SIMDFloat64x2Lib::EntryReciprocalSqrt(RecyclableObject* function, CallInfo callInfo, ...)
@@ -300,7 +286,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"reciprocalSqrt");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("reciprocalSqrt"));
     }
 
     Var SIMDFloat64x2Lib::EntryAdd(RecyclableObject* function, CallInfo callInfo, ...)
@@ -330,7 +316,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"add");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("add"));
     }
 
     Var SIMDFloat64x2Lib::EntrySub(RecyclableObject* function, CallInfo callInfo, ...)
@@ -360,7 +346,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"sub");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("sub"));
     }
 
     Var SIMDFloat64x2Lib::EntryMul(RecyclableObject* function, CallInfo callInfo, ...)
@@ -390,7 +376,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"mul");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("mul"));
     }
 
     Var SIMDFloat64x2Lib::EntryDiv(RecyclableObject* function, CallInfo callInfo, ...)
@@ -420,7 +406,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"div");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("div"));
     }
 
     Var SIMDFloat64x2Lib::EntryAnd(RecyclableObject* function, CallInfo callInfo, ...)
@@ -450,7 +436,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"and");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("and"));
     }
 
     Var SIMDFloat64x2Lib::EntryOr(RecyclableObject* function, CallInfo callInfo, ...)
@@ -480,7 +466,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"or");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("or"));
     }
 
     Var SIMDFloat64x2Lib::EntryXor(RecyclableObject* function, CallInfo callInfo, ...)
@@ -510,7 +496,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"xor");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("xor"));
     }
 
     Var SIMDFloat64x2Lib::EntryMin(RecyclableObject* function, CallInfo callInfo, ...)
@@ -540,7 +526,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"min");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("min"));
     }
 
     Var SIMDFloat64x2Lib::EntryMax(RecyclableObject* function, CallInfo callInfo, ...)
@@ -570,7 +556,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"max");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("max"));
     }
 
     Var SIMDFloat64x2Lib::EntryScale(RecyclableObject* function, CallInfo callInfo, ...)
@@ -598,7 +584,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"scale");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("scale"));
     }
 
     Var SIMDFloat64x2Lib::EntryLessThan(RecyclableObject* function, CallInfo callInfo, ...)
@@ -628,7 +614,7 @@ namespace Js
             return JavascriptSIMDInt32x4::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"lessThan");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("lessThan"));
     }
 
     Var SIMDFloat64x2Lib::EntryLessThanOrEqual(RecyclableObject* function, CallInfo callInfo, ...)
@@ -658,7 +644,7 @@ namespace Js
             return JavascriptSIMDInt32x4::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"lessThanOrEqual");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("lessThanOrEqual"));
     }
 
     Var SIMDFloat64x2Lib::EntryEqual(RecyclableObject* function, CallInfo callInfo, ...)
@@ -688,7 +674,7 @@ namespace Js
             return JavascriptSIMDInt32x4::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"equal");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("equal"));
     }
 
     Var SIMDFloat64x2Lib::EntryNotEqual(RecyclableObject* function, CallInfo callInfo, ...)
@@ -718,7 +704,7 @@ namespace Js
             return JavascriptSIMDInt32x4::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"notEqual");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("notEqual"));
     }
 
     Var SIMDFloat64x2Lib::EntryGreaterThan(RecyclableObject* function, CallInfo callInfo, ...)
@@ -748,7 +734,7 @@ namespace Js
             return JavascriptSIMDInt32x4::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"greaterThan");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("greaterThan"));
     }
 
     Var SIMDFloat64x2Lib::EntryGreaterThanOrEqual(RecyclableObject* function, CallInfo callInfo, ...)
@@ -778,7 +764,7 @@ namespace Js
             return JavascriptSIMDInt32x4::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"greaterThanOrEqual");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("greaterThanOrEqual"));
     }
 
     Var SIMDFloat64x2Lib::EntrySwizzle(RecyclableObject* function, CallInfo callInfo, ...)
@@ -799,14 +785,14 @@ namespace Js
             if (args.Info.Count < 4)
             {
                 // missing lane args
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, L"Lane index");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, _u("Lane index"));
             }
             Var lane0 = args[2];
             Var lane1 = args[3];
 
-            return SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[1], lane0, lane1, NULL, NULL, 2, scriptContext);
+            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[1], lane0, lane1, NULL, NULL, 2, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"swizzle");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("swizzle"));
     }
 
     Var SIMDFloat64x2Lib::EntryShuffle(RecyclableObject* function, CallInfo callInfo, ...)
@@ -827,49 +813,14 @@ namespace Js
             if (args.Info.Count < 5)
             {
                 // missing lane args
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, L"Lane index");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, _u("Lane index"));
             }
             Var lane0 = args[3];
             Var lane1 = args[4];
 
-            return SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[2], lane0, lane1, NULL, NULL, 4, scriptContext);
+            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2>(args[1], args[2], lane0, lane1, NULL, NULL, 4, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"shuffle");
-    }
-
-    Var SIMDFloat64x2Lib::EntryClamp(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        // we expect at least 3 explicit args with Float64x2 type
-        if (args.Info.Count >= 4 &&
-            JavascriptSIMDFloat64x2::Is(args[1]) &&
-            JavascriptSIMDFloat64x2::Is(args[2]) &&
-            JavascriptSIMDFloat64x2::Is(args[3]))
-        {
-            JavascriptSIMDFloat64x2 *t     = JavascriptSIMDFloat64x2::FromVar(args[1]);
-            JavascriptSIMDFloat64x2 *lower = JavascriptSIMDFloat64x2::FromVar(args[2]);
-            JavascriptSIMDFloat64x2 *upper = JavascriptSIMDFloat64x2::FromVar(args[3]);
-            Assert(t && lower && upper);
-
-            SIMDValue tValue, lowerValue, upperValue, resultValue;
-
-            tValue = t->GetValue();
-            lowerValue = lower->GetValue();
-            upperValue = upper->GetValue();
-
-            resultValue = SIMDFloat64x2Operation::OpClamp(tValue, lowerValue, upperValue);
-
-            return JavascriptSIMDFloat64x2::New(&resultValue, scriptContext);
-        }
-
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"clamp");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("shuffle"));
     }
 
     Var SIMDFloat64x2Lib::EntrySelect(RecyclableObject* function, CallInfo callInfo, ...)
@@ -892,7 +843,7 @@ namespace Js
             JavascriptSIMDInt32x4 *mask = JavascriptSIMDInt32x4::FromVar(args[1]);
             Assert(mask);
 
-            JavascriptSIMDFloat64x2 *fmask = (JavascriptSIMDFloat64x2*)SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDFloat64x2>(mask, scriptContext);
+            JavascriptSIMDFloat64x2 *fmask = (JavascriptSIMDFloat64x2*)SIMDUtils::SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDFloat64x2>(*mask, *scriptContext);
             JavascriptSIMDFloat64x2 *tvalue = JavascriptSIMDFloat64x2::FromVar(args[2]);
             JavascriptSIMDFloat64x2 *fvalue = JavascriptSIMDFloat64x2::FromVar(args[3]);
             Assert(fmask && tvalue && fvalue);
@@ -908,7 +859,7 @@ namespace Js
             return JavascriptSIMDFloat64x2::New(&resultValue, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, L"select");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("select"));
     }
 
 
@@ -922,7 +873,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDFloat64x2>(args[1], args[2], 2 * FLOAT64_SIZE, scriptContext);
+        return SIMDUtils::SIMD128TypedArrayLoad<JavascriptSIMDFloat64x2>(args[1], args[2], 2 * FLOAT64_SIZE, scriptContext);
     }
 
     Var SIMDFloat64x2Lib::EntryLoad1(RecyclableObject* function, CallInfo callInfo, ...)
@@ -935,7 +886,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDFloat64x2>(args[1], args[2], 1 * FLOAT64_SIZE, scriptContext);
+        return SIMDUtils::SIMD128TypedArrayLoad<JavascriptSIMDFloat64x2>(args[1], args[2], 1 * FLOAT64_SIZE, scriptContext);
     }
 
     Var SIMDFloat64x2Lib::EntryStore(RecyclableObject* function, CallInfo callInfo, ...)
@@ -950,10 +901,10 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDFloat64x2::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDFloat64x2>(args[1], args[2], args[3], 2 * FLOAT64_SIZE, scriptContext);
+            SIMDUtils::SIMD128TypedArrayStore<JavascriptSIMDFloat64x2>(args[1], args[2], args[3], 2 * FLOAT64_SIZE, scriptContext);
             return NULL;
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.Float64x2.store");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Float64x2.store"));
 
     }
 
@@ -969,10 +920,10 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDFloat64x2::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDFloat64x2>(args[1], args[2], args[3], 1 * FLOAT64_SIZE, scriptContext);
+            SIMDUtils::SIMD128TypedArrayStore<JavascriptSIMDFloat64x2>(args[1], args[2], args[3], 1 * FLOAT64_SIZE, scriptContext);
             return NULL;
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.Float64x2.store");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Float64x2.store"));
 
     }
 

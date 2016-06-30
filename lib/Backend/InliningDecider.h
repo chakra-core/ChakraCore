@@ -69,7 +69,7 @@ public:
         ValueType *const returnType);
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-    static void TraceInlining(Js::FunctionBody *const inliner, const wchar_t* inlineeName, const wchar_t* inlineeFunctionIdandNumberString, uint inlineeByteCodeCount,
+    static void TraceInlining(Js::FunctionBody *const inliner, const char16* inlineeName, const char16* inlineeFunctionIdandNumberString, uint inlineeByteCodeCount,
         Js::FunctionBody* topFunc, uint inlinedByteCodeCount, Js::FunctionBody *const inlinee, uint callSiteId, uint builtIn = -1);
 #endif
 

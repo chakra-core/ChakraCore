@@ -71,12 +71,12 @@ class ObjTypeGuardBucket
 {
 private:
     BVSparse<JitArenaAllocator>* guardedPropertyOps;
-    bool needsMonoCheck;
+    JITType *                   monoGuardType;
 
 public:
-    ObjTypeGuardBucket() : guardedPropertyOps(nullptr), needsMonoCheck(false) {}
+    ObjTypeGuardBucket() : guardedPropertyOps(nullptr), monoGuardType(nullptr) {}
 
-    ObjTypeGuardBucket(BVSparse<JitArenaAllocator>* guardedPropertyOps) : needsMonoCheck(false)
+    ObjTypeGuardBucket(BVSparse<JitArenaAllocator>* guardedPropertyOps) : monoGuardType(nullptr)
     {
         this->guardedPropertyOps = (guardedPropertyOps != nullptr ? guardedPropertyOps->CopyNew() : nullptr);
     }
@@ -84,15 +84,16 @@ public:
     void Copy(ObjTypeGuardBucket *pNew) const
     {
         pNew->guardedPropertyOps = this->guardedPropertyOps ? this->guardedPropertyOps->CopyNew() : nullptr;
-        pNew->needsMonoCheck = this->needsMonoCheck;
+        pNew->monoGuardType = this->monoGuardType;
     }
 
     BVSparse<JitArenaAllocator> *GetGuardedPropertyOps() const  { return this->guardedPropertyOps; }
     void SetGuardedPropertyOps(BVSparse<JitArenaAllocator> *guardedPropertyOps) { this->guardedPropertyOps = guardedPropertyOps; }
     void AddToGuardedPropertyOps(uint propertyOpId) { Assert(this->guardedPropertyOps != nullptr); this->guardedPropertyOps->Set(propertyOpId); }
 
-    bool NeedsMonoCheck() const { return this->needsMonoCheck; }
-    void SetNeedsMonoCheck(bool value) { this->needsMonoCheck = value; }
+    bool NeedsMonoCheck() const { return this->monoGuardType != nullptr; }
+    void SetMonoGuardType(JITType *type) { this->monoGuardType = type; }
+    JITType * GetMonoGuardType() const { return this->monoGuardType; }
 
 #if DBG_DUMP
     void Dump() const;
@@ -168,7 +169,7 @@ public:
 
 #if DBG_DUMP
     void         Dump();
-    void         Dump(bool verbose, const wchar_t *form);
+    void         Dump(bool verbose, const char16 *form);
 #endif
 
     JitArenaAllocator *       alloc;
@@ -374,6 +375,7 @@ public:
     BVSparse<JitArenaAllocator> *           noImplicitCallJsArrayHeadSegmentSymUses;
     BVSparse<JitArenaAllocator> *           noImplicitCallArrayLengthSymUses;
     BVSparse<JitArenaAllocator> *           cloneStrCandidates;
+    BVSparse<JitArenaAllocator> *           couldRemoveNegZeroBailoutForDef; // Deadstore pass only
     Loop * backwardPassCurrentLoop;
 
     // Global optimizer data
@@ -416,6 +418,7 @@ private:
         noImplicitCallJsArrayHeadSegmentSymUses(nullptr),
         noImplicitCallArrayLengthSymUses(nullptr),
         cloneStrCandidates(nullptr),
+        couldRemoveNegZeroBailoutForDef(nullptr),
         byteCodeUpwardExposedUsed(nullptr),
         isAirLockCompensationBlock(false),
 #if DBG
@@ -661,7 +664,6 @@ public:
     typedef struct
     {
         MemOpList *candidates;
-        bool doMemOp : 1;
         BVSparse<JitArenaAllocator> *inductionVariablesUsedAfterLoop;
         InductionVariableChangeInfoMap *inductionVariableChangeInfoMap;
         InductionVariableOpndPerUnrollMap *inductionVariableOpndPerUnrollMap;
@@ -671,6 +673,7 @@ public:
         IR::RegOpnd* startIndexOpndCache[4];
     } MemOpInfo;
 
+    bool doMemOp : 1;
     MemOpInfo *memOpInfo;
 
     struct RegAlloc
@@ -726,7 +729,7 @@ public:
     BasicBlock *        GetHeadBlock() const { Assert(headBlock == blockList.Head()); return headBlock; }
     bool                IsDescendentOrSelf(Loop const * loop) const;
 
-    bool                EnsureMemOpVariablesInitialized();
+    void                EnsureMemOpVariablesInitialized();
 
     Js::ImplicitCallFlags GetImplicitCallFlags();
     void                SetImplicitCallFlags(Js::ImplicitCallFlags flags);

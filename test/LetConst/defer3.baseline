@@ -1,14 +1,14 @@
 Syntax check succeeded
 Syntax check succeeded
-SyntaxError: Assignment to const
-SyntaxError: Assignment to const
-SyntaxError: Assignment to const
-SyntaxError: Assignment to const
-Syntax check succeeded
-SyntaxError: Assignment to const
 Syntax check succeeded
 Syntax check succeeded
-SyntaxError: Assignment to const
+Syntax check succeeded
+Syntax check succeeded
+Syntax check succeeded
+Syntax check succeeded
+Syntax check succeeded
+Syntax check succeeded
+Syntax check succeeded
 SyntaxError: Const must be initialized
 SyntaxError: Const must be initialized
 SyntaxError: Const must be initialized

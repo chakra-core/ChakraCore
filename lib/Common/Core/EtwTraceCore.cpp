@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
-#include "core\EtwTraceCore.h"
+#include "Core/EtwTraceCore.h"
 
 #ifdef ENABLE_JS_ETW
 extern "C" {

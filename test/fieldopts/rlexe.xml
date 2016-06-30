@@ -836,4 +836,44 @@
       <compile-flags>-force:fieldhoist -off:inlinegetters -off:fixedmethods</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck.js</files>
+      <compile-flags>-force:fixdataprops</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck2.js</files>
+      <compile-flags>-force:deferparse -force:inline -force:scriptfunctionwithinlinecache</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck3.js</files>
+      <compile-flags>-maxinterpretcount:2 -force:jitloopbody -force:rejit -off:bailonnoprofile</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck4.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck5.js</files>
+      <compile-flags>-maxinterpretcount:2 -maxsimplejitruncount:6</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck6.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>add-prop-to-dictionary.js</files>
+      <baseline>add-prop-to-dictionary.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

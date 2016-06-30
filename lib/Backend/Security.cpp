@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 void
 Security::EncodeLargeConstants()
@@ -285,12 +285,7 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
             instr->UnlinkSrc1();
         }
 
-#ifdef _M_X64
-        addrOpnd->SetEncodedValue((Js::Var)this->EncodeAddress(instr, addrOpnd, (size_t)addrOpnd->m_address, &newOpnd), addrOpnd->GetAddrOpndKind());
-#else
-
         addrOpnd->SetEncodedValue((Js::Var)this->EncodeValue(instr, addrOpnd, (IntConstType)addrOpnd->m_address, &newOpnd), addrOpnd->GetAddrOpndKind());
-#endif
     }
     break;
 
@@ -361,7 +356,7 @@ Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue,
         IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, TyInt32, instr->m_func);
 
 #if DBG_DUMP
-        cookieOpnd->name = L"cookie";
+        cookieOpnd->name = _u("cookie");
 #endif
 
         instrNew = IR::Instr::New(Js::OpCode::Xor_I4, regOpnd, regOpnd, cookieOpnd, instr->m_func);
@@ -390,7 +385,7 @@ Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue,
         IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, TyUint32, instr->m_func);
 
 #if DBG_DUMP
-        cookieOpnd->name = L"cookie";
+        cookieOpnd->name = _u("cookie");
 #endif
 
         instrNew = IR::Instr::New(Js::OpCode::Xor_I4, regOpnd, regOpnd, cookieOpnd, instr->m_func);

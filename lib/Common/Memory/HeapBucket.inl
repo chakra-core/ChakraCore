@@ -6,25 +6,18 @@
 
 template <typename TBlockType>
 template <ObjectInfoBits attributes, bool nothrow>
-__inline char *
-HeapBucketT<TBlockType>::RealAlloc(Recycler * recycler, size_t sizeCat)
+
+inline char *
+HeapBucketT<TBlockType>::RealAlloc(Recycler * recycler, size_t sizeCat, size_t size)
 {
     Assert(sizeCat == this->sizeCat);
 
-    char * memBlock = allocatorHead.InlinedAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask)>(recycler, sizeCat);
+    char * memBlock = allocatorHead.template InlinedAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask)>(recycler, sizeCat);
 
     if (memBlock == nullptr)
     {
-        memBlock = SnailAlloc(recycler, &allocatorHead, sizeCat, attributes, nothrow);
+        memBlock = SnailAlloc(recycler, &allocatorHead, sizeCat, size, attributes, nothrow);
         Assert(memBlock != nullptr || nothrow);
-    }
-    else
-    {
-#ifdef RECYCLER_PAGE_HEAP
-        Assert(allocatorHead.heapBlock == nullptr || !allocatorHead.heapBlock->InPageHeapMode());
-#else
-        Assert(allocatorHead.heapBlock == nullptr);
-#endif
     }
 
     // If this API is called and throwing is not allowed,
@@ -46,9 +39,17 @@ HeapBucketT<TBlockType>::RealAlloc(Recycler * recycler, size_t sizeCat)
 #endif
         )
     {
-        // Skip the first and the last pointer objects- the first may have next pointer for the free list
-        // the last might have the old size of the object if this was allocated from an explicit free list
-        recycler->VerifyZeroFill(memBlock + sizeof(FreeObject), sizeCat - (2 * sizeof(FreeObject)));
+        if (this->IsPageHeapEnabled(attributes))
+        {
+            // in page heap there's no free list, and using size instead of sizeCat
+            recycler->VerifyZeroFill(memBlock, size);
+        }
+        else
+        {
+            // Skip the first and the last pointer objects- the first may have next pointer for the free list
+            // the last might have the old size of the object if this was allocated from an explicit free list
+            recycler->VerifyZeroFill(memBlock + sizeof(FreeObject), sizeCat - (2 * sizeof(FreeObject)));
+        }
     }
 #endif
 

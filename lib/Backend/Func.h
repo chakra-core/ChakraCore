@@ -52,6 +52,36 @@ struct Cloner
     bool clonedInstrGetOrigArgSlotSym;
 };
 
+/*
+* This class keeps track of various information required for Stack Arguments optimization with formals.
+*/
+class StackArgWithFormalsTracker
+{
+private:
+    BVSparse<JitArenaAllocator> *  formalsArraySyms;    //Tracks Formal parameter Array - Is this Bv required explicitly?
+    StackSym**                     formalsIndexToStackSymMap; //Tracks the stack sym for each formal
+    StackSym*                      m_scopeObjSym;   // Tracks the stack sym for the scope object that is created.
+    JitArenaAllocator*             alloc;
+
+public:
+    StackArgWithFormalsTracker(JitArenaAllocator *alloc):
+        formalsArraySyms(nullptr), 
+        formalsIndexToStackSymMap(nullptr), 
+        m_scopeObjSym(nullptr),
+        alloc(alloc)
+    {    
+    }
+
+    BVSparse<JitArenaAllocator> * GetFormalsArraySyms();
+    void SetFormalsArraySyms(SymID symId);
+
+    StackSym ** GetFormalsIndexToStackSymMap();
+    void SetStackSymInFormalsIndexMap(StackSym * sym, Js::ArgSlot formalsIndex, Js::ArgSlot formalsCount);
+
+    void SetScopeObjSym(StackSym * sym);
+    StackSym * GetScopeObjSym();
+};
+
 typedef JsUtil::Pair<uint32, IR::LabelInstr*> YieldOffsetResumeLabel;
 typedef JsUtil::List<YieldOffsetResumeLabel, JitArenaAllocator> YieldOffsetResumeLabelList;
 typedef HashTable<uint32, JitArenaAllocator> SlotArrayCheckTable;
@@ -79,7 +109,6 @@ public:
         Js::RegSlot returnValueRegSlot = Js::Constants::NoRegister, const bool isInlinedConstructor = false,
         Js::ProfileId callSiteIdInParentFunc = UINT16_MAX, bool isGetterSetter = false);
 public:
-    ArenaAllocator *GetCodeGenAllocator() const { return &this->m_codeGenAllocators->allocator; }
     CodeGenAllocators * const GetCodeGenAllocators()
     {
         return this->GetTopFunc()->m_codeGenAllocators;
@@ -326,9 +355,13 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     StackSym *GetLocalClosureSym() const { return m_localClosureSym; }
     void SetLocalClosureSym(StackSym *sym) { m_localClosureSym = sym; }
 
+    StackSym *GetParamClosureSym() const { return m_paramClosureSym; }
+    void SetParamClosureSym(StackSym *sym) { m_paramClosureSym = sym; }
+
     StackSym *GetLocalFrameDisplaySym() const { return m_localFrameDisplaySym; }
     void SetLocalFrameDisplaySym(StackSym *sym) { m_localFrameDisplaySym = sym; }
 
+    intptr_t GetJittedLoopIterationsSinceLastBailoutAddress() const;
     void EnsurePinnedTypeRefs();
     void PinTypeRef(void* typeRef);
 
@@ -534,6 +567,7 @@ public:
     StackSym *          m_scriptContextSym;
     StackSym *          m_functionBodySym;
     StackSym *          m_localClosureSym;
+    StackSym *          m_paramClosureSym;
     StackSym *          m_localFrameDisplaySym;
     StackSym *          m_bailoutReturnValueSym;
     StackSym *          m_hasBailedOutSym;
@@ -638,8 +672,28 @@ public:
 
     bool                GetThisOrParentInlinerHasArguments() const { return thisOrParentInlinerHasArguments; }
 
-    bool                GetHasStackArgs() const { return this->hasStackArgs;}
+    bool                GetHasStackArgs()
+    {
+                        bool isStackArgOptDisabled = false;
+                        if (HasProfileInfo())
+                        {
+                            isStackArgOptDisabled = GetProfileInfo()->IsStackArgOptDisabled();
+                        }
+                        return this->hasStackArgs && !isStackArgOptDisabled && !PHASE_OFF1(Js::StackArgOptPhase);
+    }
     void                SetHasStackArgs(bool has) { this->hasStackArgs = has;}
+
+    bool                IsStackArgsEnabled()
+    {
+                        Func* curFunc = this;
+                        bool isStackArgsEnabled = this->hasArgumentObject && curFunc->GetHasStackArgs();
+                        Func * topFunc = curFunc->GetTopFunc();
+                        if (topFunc != nullptr)
+                        {
+                            isStackArgsEnabled = isStackArgsEnabled && topFunc->GetHasStackArgs();
+                        }
+                        return isStackArgsEnabled;
+    }
 
     bool                GetHasArgumentObject() const { return this->hasArgumentObject;}
     void                SetHasArgumentObject() { this->hasArgumentObject = true;}
@@ -680,6 +734,9 @@ public:
 
     bool                GetHasMarkTempObjects() const { return this->hasMarkTempObjects; }
     void                SetHasMarkTempObjects() { this->hasMarkTempObjects = true; }
+
+    bool                GetHasNonSimpleParams() const { return this->hasNonSimpleParams; }
+    void                SetHasNonSimpleParams() { this->hasNonSimpleParams = true; }
 
     bool                GetHasImplicitCalls() const { return this->hasImplicitCalls;}
     void                SetHasImplicitCalls(bool has) { this->hasImplicitCalls = has;}
@@ -792,6 +849,18 @@ public:
     void AddSlotArrayCheck(IR::SymOpnd *fieldOpnd);
     void AddFrameDisplayCheck(IR::SymOpnd *fieldOpnd, uint32 slotId = (uint32)-1);
 
+    void EnsureStackArgWithFormalsTracker();
+
+    BOOL IsFormalsArraySym(SymID symId);
+    void TrackFormalsArraySym(SymID symId);
+
+    void TrackStackSymForFormalIndex(Js::ArgSlot formalsIndex, StackSym * sym);
+    StackSym* GetStackSymForFormal(Js::ArgSlot formalsIndex);
+    bool HasStackSymForFormal(Js::ArgSlot formalsIndex);
+
+    void SetScopeObjSym(StackSym * sym);
+    StackSym * GetScopeObjSym();
+
 #if DBG
     bool                allowRemoveBailOutArgInstr;
 #endif
@@ -812,6 +881,8 @@ public:
     BVSparse<JitArenaAllocator> *  argObjSyms;
     BVSparse<JitArenaAllocator> *  m_nonTempLocalVars;  // Only populated in debug mode as part of IRBuilder. Used in GlobOpt and BackwardPass.
     InlineeFrameInfo*              frameInfo;
+    Js::ArgSlot argInsCount;        // This count doesn't include the ArgIn instr for "this".
+
     uint32 m_inlineeId;
 
     IR::LabelInstr *    m_bailOutNoSaveLabel;
@@ -835,6 +906,7 @@ private:
     bool                stackClosure;
     bool                hasAnyStackNestedFunc;
     bool                hasMarkTempObjects;
+    bool                hasNonSimpleParams;
     Cloner *            m_cloner;
     InstrMap *          m_cloneMap;
     NativeCodeData::Allocator       nativeCodeDataAllocator;
@@ -844,6 +916,7 @@ private:
     int32           m_hasLocalVarChangedOffset;    // Offset on stack of 1 byte which indicates if any local var has changed.
     CodeGenAllocators *const m_codeGenAllocators;
     YieldOffsetResumeLabelList * m_yieldOffsetResumeLabelList;
+    StackArgWithFormalsTracker * stackArgWithFormalsTracker;
 
     StackSym *CreateInlineeStackSym();
     IR::SymOpnd *GetInlineeOpndAtOffset(int32 offset);

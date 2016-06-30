@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-#include "Base\ScriptMemoryDumper.h"
+#include "Base/ScriptMemoryDumper.h"
 
 ScriptMemoryDumper::ScriptMemoryDumper(Js::ScriptContext* scriptContext)
     :scriptContext(scriptContext)
@@ -17,16 +17,16 @@ ScriptMemoryDumper::ScriptMemoryDumper(Js::ScriptContext* scriptContext)
 
 void ScriptMemoryDumper::Init()
 {
-    pageCountId = scriptContext->GetOrAddPropertyIdTracked(L"pageCount");
-    objectSizeId = scriptContext->GetOrAddPropertyIdTracked(L"objectSize");
-    freeObjectCountId = scriptContext->GetOrAddPropertyIdTracked(L"freeObjectCount");
-    activeObjectCountId = scriptContext->GetOrAddPropertyIdTracked(L"activeObjectCount");
-    totalByteCountId = scriptContext->GetOrAddPropertyIdTracked(L"totalByteCount");
-    finalizeCountId = scriptContext->GetOrAddPropertyIdTracked(L"finalizeCount");
-    weakReferenceCountId = scriptContext->GetOrAddPropertyIdTracked(L"weakReferenceCount");
-    largeObjectsId = scriptContext->GetOrAddPropertyIdTracked(L"largeObjects");
-    activeObjectByteSizeId = scriptContext->GetOrAddPropertyIdTracked(L"activeObjectByteSize");
-    summaryId = scriptContext->GetOrAddPropertyIdTracked(L"summary");
+    pageCountId = scriptContext->GetOrAddPropertyIdTracked(_u("pageCount"));
+    objectSizeId = scriptContext->GetOrAddPropertyIdTracked(_u("objectSize"));
+    freeObjectCountId = scriptContext->GetOrAddPropertyIdTracked(_u("freeObjectCount"));
+    activeObjectCountId = scriptContext->GetOrAddPropertyIdTracked(_u("activeObjectCount"));
+    totalByteCountId = scriptContext->GetOrAddPropertyIdTracked(_u("totalByteCount"));
+    finalizeCountId = scriptContext->GetOrAddPropertyIdTracked(_u("finalizeCount"));
+    weakReferenceCountId = scriptContext->GetOrAddPropertyIdTracked(_u("weakReferenceCount"));
+    largeObjectsId = scriptContext->GetOrAddPropertyIdTracked(_u("largeObjects"));
+    activeObjectByteSizeId = scriptContext->GetOrAddPropertyIdTracked(_u("activeObjectByteSize"));
+    summaryId = scriptContext->GetOrAddPropertyIdTracked(_u("summary"));
     dumpObject = scriptContext->GetLibrary()->CreateObject();
 }
 
@@ -127,7 +127,7 @@ void ScriptMemoryDumper::DumpSmallHeapBlock(SmallHeapBlockT<TBlockAttributes>* h
     current.activeObjectCount += heapBlock->objectCount - heapBlock->freeCount;
     if (heapBlock->IsAnyFinalizableBlock())
     {
-        current.finalizeCount += heapBlock->AsFinalizableBlock<TBlockAttributes>()->finalizeCount;
+        current.finalizeCount += heapBlock->template AsFinalizableBlock<TBlockAttributes>()->finalizeCount;
     }
     current.pageCount += heapBlock->GetPageCount();
     current.totalByteCount += heapBlock->GetPageCount() * AutoSystemInfo::PageSize;
@@ -152,7 +152,7 @@ void ScriptMemoryDumper::DumpLargeBucket(LargeHeapBucket* heapBucket)
     DumpLargeHeapBlockList(heapBucket->pendingDisposeLargeBlockList);
 #if ENABLE_CONCURRENT_GC
     DumpLargeHeapBlockList(heapBucket->pendingSweepLargeBlockList);
-#if ENABLE_PARTIAL_GC 
+#if ENABLE_PARTIAL_GC
     DumpLargeHeapBlockList(heapBucket->partialSweptLargeBlockList);
 #endif
 #endif

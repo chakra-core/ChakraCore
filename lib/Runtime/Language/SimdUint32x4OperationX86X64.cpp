@@ -1,14 +1,15 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 
 #if _M_IX86 || _M_AMD64
 
 namespace Js
 {
-    SIMDValue SIMDUint32x4Operation::OpUInt32x4(unsigned int x, unsigned int y, unsigned int z, unsigned int w)
+    SIMDValue SIMDUint32x4Operation::OpUint32x4(unsigned int x, unsigned int y, unsigned int z, unsigned int w)
     {
         X86SIMDValue x86Result;
         x86Result.m128i_value = _mm_set_epi32(w, z, y, x);
@@ -29,7 +30,7 @@ namespace Js
         X86SIMDValue x86Result;
         X86SIMDValue tmpValue = X86SIMDValue::ToX86SIMDValue(value);
         // Shifts the 4 signed 32-bit integers right by count bits while shifting in zeros
-        x86Result.m128i_value = _mm_srli_epi32(tmpValue.m128i_value, count);
+        x86Result.m128i_value = _mm_srli_epi32(tmpValue.m128i_value, count & SIMDUtils::SIMDGetShiftAmountMask(4));
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -42,8 +43,8 @@ namespace Js
         X86SIMDValue two_31_f4, two_31_i4;
         int mask = 0;
 
-        // any lanes < 0 ?
-        temp.m128_value = _mm_cmplt_ps(v.m128_value, X86_ALL_ZEROS.m128_value);
+        // any lanes <= -1.0 ?
+        temp.m128_value = _mm_cmple_ps(v.m128_value, X86_ALL_NEG_ONES_F4.m128_value);
         mask = _mm_movemask_ps(temp.m128_value);
         // negative value are out of range, caller should throw Range Error
         if (mask)
@@ -53,7 +54,7 @@ namespace Js
         }
         // CVTTPS2DQ does a range check over signed range [-2^31, 2^31-1], so will fail to convert values >= 2^31.
         // To fix this, subtract 2^31 from values >= 2^31, do CVTTPS2DQ, then add 2^31 back.
-        _mm_store_ps(two_31_f4.simdValue.f32, X86_TWO_31_F4.m128_value);
+        _mm_store_ps(two_31_f4.f32, X86_TWO_31_F4.m128_value);
         // any lanes >= 2^31 ?
         temp.m128_value = _mm_cmpge_ps(v.m128_value, two_31_f4.m128_value);
         // two_31_f4 has f32(2^31) for lanes >= 2^31, 0 otherwise
@@ -77,7 +78,7 @@ namespace Js
         // add 2^31 values back to adjusted values.
         // Use first bit from the 2^31 float mask (0x4f000...0 << 1)
         // and result with 2^31 int mask (0x8000..0) setting first bit to zero if lane hasn't been adjusted
-        _mm_store_ps(two_31_i4.simdValue.f32, X86_TWO_31_I4.m128_value);
+        _mm_store_ps(two_31_i4.f32, X86_TWO_31_I4.m128_value);
         two_31_f4.m128i_value = _mm_slli_epi32(two_31_f4.m128i_value, 1);
         two_31_i4.m128i_value = _mm_and_si128(two_31_i4.m128i_value, two_31_f4.m128i_value);
         // add 2^31 back to adjusted values
@@ -88,10 +89,6 @@ namespace Js
     }
 
     // Unary Ops
-    SIMDValue SIMDUint32x4Operation::OpMul(const SIMDValue& aValue, const SIMDValue& bValue)
-    {
-        return SIMDInt32x4Operation::OpMul(aValue, bValue);
-    }
 
     SIMDValue SIMDUint32x4Operation::OpMin(const SIMDValue& aValue, const SIMDValue& bValue)
     {
@@ -152,6 +149,23 @@ namespace Js
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
+
+    SIMDValue SIMDUint32x4Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        result = SIMDUint32x4Operation::OpLessThan(aValue, bValue);
+        result = SIMDInt32x4Operation::OpNot(result);
+        return result;
+    }
+
+    SIMDValue SIMDUint32x4Operation::OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        result = SIMDUint32x4Operation::OpLessThanOrEqual(aValue, bValue);
+        result = SIMDInt32x4Operation::OpNot(result);
+        return result;
+    }
+    
 }
 
 #endif

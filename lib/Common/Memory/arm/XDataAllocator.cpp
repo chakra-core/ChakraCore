@@ -9,7 +9,7 @@ CompileAssert(false)
 #endif
 
 #include "XDataAllocator.h"
-#include "core\DelayLoadLibrary.h"
+#include "Core/DelayLoadLibrary.h"
 
 XDataAllocator::XDataAllocator(BYTE* address, uint size)
 {

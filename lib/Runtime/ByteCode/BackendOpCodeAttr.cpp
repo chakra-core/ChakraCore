@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
-#include "BackEndOpcodeAttr.h"
+#include "BackendOpCodeAttr.h"
 
 namespace OpCodeAttr
 {
@@ -18,7 +18,7 @@ namespace OpCodeAttr
 enum OpCodeAttrEnum
 {
     None                        = 0x00000000,
-    OpSideEffect                = 0x00000001, // If dst is unused and src can’t call implicitcalls, it still can not be dead-stored (Could throw an exception, etc)
+    OpSideEffect                = 0x00000001, // If dst is unused and src can't call implicitcalls, it still can not be dead-stored (Could throw an exception, etc)
     OpUseAllFields              = 0x00000002,
 
     OpTempNumberSources         = 0x00000004, // OpCode does support temp values as source
@@ -31,10 +31,10 @@ enum OpCodeAttrEnum
     OpTempObjectCanStoreTemp    = 0x00000100 | OpTempObjectProducing,  // OpCode can produce a temp value, and once marked, it will always produce a temp value so we can store other temp value in the object
 
     OpInlineCallInstr           = 0x00000200,
-    OpCallsValueOf              = 0x00000400, // Could have valueOf/ToString side-effect
+    OpOpndHasImplicitCall       = 0x00000400, // Evaluation/read/write of opnd may cause implicit call
     OpCallInstr                 = 0x00000800,
     OpDoNotTransfer             = 0x00001000,
-    OpHasImplicitCall           = 0x00002000, // Evaluating the src may call JS user code implicitly (getters/setters/valueof/tostring/DOM callbacks/etc)
+    OpHasImplicitCall           = 0x00002000, // Operation may cause implicit call not related to opnd evaluation
     OpFastFldInstr              = 0x00004000,
     OpBailOutRec                = 0x00008000,
 
@@ -60,14 +60,14 @@ enum OpCodeAttrEnum
 static const int OpcodeAttributes[] =
 {
 #define DEF_OP(name, jnLayout, attrib, ...) attrib,
-#include "ByteCode\OpCodeList.h"
+#include "ByteCode/OpCodeList.h"
 #undef DEF_OP
 };
 
 static const int ExtendedOpcodeAttributes[] =
 {
 #define DEF_OP(name, jnLayout, attrib, ...) attrib,
-#include "ByteCode\ExtendedOpCodeList.h"
+#include "ByteCode/ExtendedOpCodeList.h"
 #undef DEF_OP
 };
 
@@ -150,9 +150,9 @@ bool InlineCallInstr(Js::OpCode opcode)
 {
     return ((GetOpCodeAttributes(opcode) & OpInlineCallInstr) != 0);
 }
-bool CallsValueOf(Js::OpCode opcode)
+bool OpndHasImplicitCall(Js::OpCode opcode)
 {
-    return ((GetOpCodeAttributes(opcode) & OpCallsValueOf) != 0);
+    return ((GetOpCodeAttributes(opcode) & OpOpndHasImplicitCall) != 0);
 }
 bool FastFldInstr(Js::OpCode opcode)
 {

@@ -3,11 +3,40 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "Common\UInt32Math.h"
-#include "common\NumberUtilities.inl"
+#include "Common/UInt32Math.h"
+#include "Common/NumberUtilities.inl"
+#include <intsafe.h>
 
 namespace Js
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    // Redeclare static constants
+    const UINT64 NumberConstantsBase::k_Nan;
+    const INT64 NumberUtilitiesBase::Pos_InvalidInt64;
+    const INT64 NumberUtilitiesBase::Neg_InvalidInt64;
+    const uint64 NumberConstants::k_PosInf;
+    const uint64 NumberConstants::k_NegInf;
+    const uint64 NumberConstants::k_PosMin;
+    const uint64 NumberConstants::k_PosMax;
+    const uint64 NumberConstants::k_NegZero;
+    const uint64 NumberConstants::k_Zero;
+    const uint64 NumberConstants::k_PointFive;
+    const uint64 NumberConstants::k_NegPointFive;
+    const uint64 NumberConstants::k_NegOne;
+    const uint64 NumberConstants::k_OnePointZero;
+    const uint64 NumberConstants::k_TwoToFraction;
+    const uint64 NumberConstants::k_NegTwoToFraction;
+    const uint32 NumberConstants::k_Float32Zero;
+    const uint32 NumberConstants::k_Float32PointFive;
+    const uint32 NumberConstants::k_Float32NegPointFive;
+    const uint32 NumberConstants::k_Float32NegZero;
+    const uint32 NumberConstants::k_Float32TwoToFraction;
+    const uint32 NumberConstants::k_Float32NegTwoToFraction;
+#endif
+
     const double NumberConstants::MAX_VALUE = *(double*)(&NumberConstants::k_PosMax);
     const double NumberConstants::MIN_VALUE = *(double*)(&NumberConstants::k_PosMin);
     const double NumberConstants::NaN = *(double*)(&NumberConstants::k_Nan);
@@ -36,7 +65,7 @@ namespace Js
         return ch >= '0' && ch <= '9';
     }
 
-    BOOL NumberUtilities::FHexDigit(wchar_t ch, int *pw)
+    BOOL NumberUtilities::FHexDigit(char16 ch, int *pw)
     {
         if ((ch -= '0') <= 9)
         {
@@ -52,15 +81,13 @@ namespace Js
     }
 
     /***************************************************************************
-    Multiply two unsigned longs. Return the low ulong and fill *pluHi with
-    the high ulong.
+    Multiply two unsigned longs. Return the low uint32 and fill *pluHi with
+    the high uint32.
     ***************************************************************************/
 #pragma warning(push)
 #pragma warning(disable:4035)   // Turn off warning that there is no return value
-    ulong NumberUtilities::MulLu(ulong lu1, ulong lu2, ulong *pluHi)
+    uint32 NumberUtilities::MulLu(uint32 lu1, uint32 lu2, uint32 *pluHi)
     {
-#if _WIN32 || _WIN64
-
 #if I386_ASM
         __asm
         {
@@ -72,20 +99,16 @@ namespace Js
 #else //!I386_ASM
         DWORDLONG llu = UInt32x32To64(lu1, lu2);
 
-        *pluHi = (ulong)(llu >> 32);
-        return (ulong)llu;
+        *pluHi = (uint32)(llu >> 32);
+        return (uint32)llu;
 #endif //!I386_ASM
-
-#else
-#error Neither _WIN32, nor _WIN64 is defined
-#endif
     }
 #pragma warning(pop)
 
     /***************************************************************************
     Add two unsigned longs and return the carry bit.
     ***************************************************************************/
-    int NumberUtilities::AddLu(ulong *plu1, ulong lu2)
+    int NumberUtilities::AddLu(uint32 *plu1, uint32 lu2)
     {
         *plu1 += lu2;
         return *plu1 < lu2;
@@ -100,7 +123,7 @@ namespace Js
 #endif
     }
 
-    int NumberUtilities::CbitZeroLeft(ulong lu)
+    int NumberUtilities::CbitZeroLeft(uint32 lu)
     {
         int cbit = 0;
 
@@ -149,13 +172,13 @@ namespace Js
             {
                 digit = integer / 10000;
                 integer %= 10000;
-                *outBuffer = digit + L'0';
+                *outBuffer = digit + _u('0');
                 outBuffer++;
                 cchWritten++;
             }
             else if( widthForPaddingZerosInsteadSpaces > 4 )
             {
-                *outBuffer = L'0';
+                *outBuffer = _u('0');
                 outBuffer++;
                 cchWritten++;
             }
@@ -168,13 +191,13 @@ namespace Js
             {
                 digit = integer / 1000;
                 integer %= 1000;
-                *outBuffer = digit + L'0';
+                *outBuffer = digit + _u('0');
                 outBuffer++;
                 cchWritten++;
             }
             else if( widthForPaddingZerosInsteadSpaces > 3 )
             {
-                *outBuffer = L'0';
+                *outBuffer = _u('0');
                 outBuffer++;
                 cchWritten++;
             }
@@ -187,13 +210,13 @@ namespace Js
             {
                 digit = integer / 100;
                 integer %= 100;
-                *outBuffer = digit + L'0';
+                *outBuffer = digit + _u('0');
                 outBuffer++;
                 cchWritten++;
             }
             else if( widthForPaddingZerosInsteadSpaces > 2 )
             {
-                *outBuffer = L'0';
+                *outBuffer = _u('0');
                 outBuffer++;
                 cchWritten++;
             }
@@ -206,13 +229,13 @@ namespace Js
             {
                 digit = integer / 10;
                 integer %= 10;
-                *outBuffer = digit + L'0';
+                *outBuffer = digit + _u('0');
                 outBuffer++;
                 cchWritten++;
             }
             else if( widthForPaddingZerosInsteadSpaces > 1 )
             {
-                *outBuffer = L'0';
+                *outBuffer = _u('0');
                 outBuffer++;
                 cchWritten++;
             }
@@ -221,7 +244,7 @@ namespace Js
         Assert(cchWritten < outBufferSize);
         if (cchWritten < outBufferSize)
         {
-            *outBuffer = integer + L'0';
+            *outBuffer = integer + _u('0');
             outBuffer++;
             cchWritten++;
         }
@@ -236,7 +259,7 @@ namespace Js
         return cchWritten;
     }
 
-    BOOL NumberUtilities::TryConvertToUInt32(const wchar_t* str, int length, uint32* intVal)
+    BOOL NumberUtilities::TryConvertToUInt32(const char16* str, int length, uint32* intVal)
     {
         if (length <= 0 || length > 10)
         {
@@ -244,9 +267,9 @@ namespace Js
         }
         if (length == 1)
         {
-            if (str[0] >= L'0' && str[0] <= L'9')
+            if (str[0] >= _u('0') && str[0] <= _u('9'))
             {
-                *intVal = (uint32)(str[0] - L'0');
+                *intVal = (uint32)(str[0] - _u('0'));
                 return true;
             }
             else
@@ -254,26 +277,26 @@ namespace Js
                 return false;
             }
         }
-        if (str[0] < L'1' || str[0] > L'9')
+        if (str[0] < _u('1') || str[0] > _u('9'))
         {
             return false;
         }
-        uint32 val = (uint32)(str[0] - L'0');
+        uint32 val = (uint32)(str[0] - _u('0'));
         int calcLen = min(length, 9);
         for (int i = 1; i < calcLen; i++)
         {
-            if ((str[i] < L'0')|| (str[i] > L'9'))
+            if ((str[i] < _u('0'))|| (str[i] > _u('9')))
             {
                 return false;
             }
-            val = (val * 10) + (uint32)(str[i] - L'0');
+            val = (val * 10) + (uint32)(str[i] - _u('0'));
         }
         if (length == 10)
         {
             // check for overflow 4294967295
-            if (str[9] < L'0' || str[9] > L'9' ||
+            if (str[9] < _u('0') || str[9] > _u('9') ||
                 UInt32Math::Mul(val, 10, &val) ||
-                UInt32Math::Add(val, (uint32)(str[9] - L'0'), &val))
+                UInt32Math::Add(val, (uint32)(str[9] - _u('0')), &val))
             {
                 return false;
             }
@@ -314,34 +337,34 @@ namespace Js
     }
 
 
-    long NumberUtilities::LwFromDblNearest(double dbl)
+    int32 NumberUtilities::LwFromDblNearest(double dbl)
     {
         if (Js::NumberUtilities::IsNan(dbl))
             return 0;
         if (dbl > 0x7FFFFFFFL)
             return 0x7FFFFFFFL;
-        if (dbl < (long)0x80000000L)
-            return (long)0x80000000L;
-        return (long)dbl;
+        if (dbl < (int32)0x80000000L)
+            return (int32)0x80000000L;
+        return (int32)dbl;
     }
 
-    ulong NumberUtilities::LuFromDblNearest(double dbl)
+    uint32 NumberUtilities::LuFromDblNearest(double dbl)
     {
         if (Js::NumberUtilities::IsNan(dbl))
             return 0;
-        if (dbl >(ulong)0xFFFFFFFFUL)
-            return (ulong)0xFFFFFFFFUL;
+        if (dbl >(uint32)0xFFFFFFFFUL)
+            return (uint32)0xFFFFFFFFUL;
         if (dbl < 0)
             return 0;
-        return (ulong)dbl;
+        return (uint32)dbl;
     }
 
-    BOOL NumberUtilities::FDblIsLong(double dbl, long *plw)
+    BOOL NumberUtilities::FDblIsInt32(double dbl, int32 *plw)
     {
         AssertMem(plw);
         double dblT;
 
-        *plw = (long)dbl;
+        *plw = (int32)dbl;
         dblT = (double)*plw;
         return Js::NumberUtilities::LuHiDbl(dblT) == Js::NumberUtilities::LuHiDbl(dbl) && Js::NumberUtilities::LuLoDbl(dblT) == Js::NumberUtilities::LuLoDbl(dbl);
     }
@@ -379,17 +402,17 @@ namespace Js
         if (uT & 0x08)
         {
             cbit = 4;
-            Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)(uT & 0x07) << 17;
+            Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)(uT & 0x07) << 17;
         }
         else if (uT & 0x04)
         {
             cbit = 3;
-            Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)(uT & 0x03) << 18;
+            Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)(uT & 0x03) << 18;
         }
         else if (uT & 0x02)
         {
             cbit = 2;
-            Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)(uT & 0x01) << 19;
+            Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)(uT & 0x01) << 19;
         }
         else
         {
@@ -409,17 +432,17 @@ namespace Js
             }
 
             if (cbit <= 17)
-                Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)uT << (17 - cbit);
+                Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT << (17 - cbit);
             else if (cbit < 21)
             {
-                Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)uT >> (cbit - 17);
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT << (49 - cbit);
+                Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT >> (cbit - 17);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT << (49 - cbit);
             }
             else if (cbit <= 49)
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT << (49 - cbit);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT << (49 - cbit);
             else if (cbit <= 53)
             {
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT >> (cbit - 49);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT >> (cbit - 49);
                 bExtra = (byte)(uT << (57 - cbit));
             }
             else if (0 != uT)
@@ -439,7 +462,7 @@ namespace Js
             Js::NumberUtilities::LuLoDbl(dbl) = 0;
             return dbl;
         }
-        Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)cbit << 20;
+        Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)cbit << 20;
 
         // Use bExtra to round.
         if ((bExtra & 0x80) && ((bExtra & 0x7F) || (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
@@ -491,16 +514,16 @@ namespace Js
         {
             if (cbit <= rightShiftValue)
             {
-                Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)uT << (rightShiftValue - cbit);
+                Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT << (rightShiftValue - cbit);
 
             }
             else if (cbit <= leftShiftValue)
             {
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT << (leftShiftValue - cbit);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT << (leftShiftValue - cbit);
             }
             else if (cbit == leftShiftValue + 1)//53 bits
             {
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT >> (cbit - leftShiftValue);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT >> (cbit - leftShiftValue);
                 bExtra = (byte)(uT << (60 - cbit));
             }
             else if (0 != uT)
@@ -522,7 +545,7 @@ namespace Js
             return dbl;
         }
 
-        Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)cbit << 20;
+        Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)cbit << 20;
 
         // Use bExtra to round.
         if ((bExtra & 0x80) && ((bExtra & 0x7F) || (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
@@ -563,12 +586,12 @@ namespace Js
         if (uT & 0x04)//is the 3rd bit set
         {
             cbit = 3;
-            Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)(uT & 0x03) << 18;
+            Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)(uT & 0x03) << 18;
         }
         else if (uT & 0x02)//is the 2nd bit set
         {
             cbit = 2;
-            Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)(uT & 0x01) << 19;
+            Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)(uT & 0x01) << 19;
         }
         else// then is the first bit set
         {
@@ -580,17 +603,17 @@ namespace Js
         for (; (uT = (*psz - '0')) <= 7; psz++)
         {
             if (cbit <= 18)
-                Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)uT << (18 - cbit);
+                Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT << (18 - cbit);
             else if (cbit < 21)
             {
-                Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)uT >> (cbit - 18);
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT << (50 - cbit);
+                Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT >> (cbit - 18);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT << (50 - cbit);
             }
             else if (cbit <= 50)
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT << (50 - cbit);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT << (50 - cbit);
             else if (cbit <= 53)
             {
-                Js::NumberUtilities::LuLoDbl(dbl) |= (ulong)uT >> (cbit - 50);
+                Js::NumberUtilities::LuLoDbl(dbl) |= (uint32)uT >> (cbit - 50);
                 bExtra = (byte)(uT << (58 - cbit));
             }
             else if (0 != uT)
@@ -611,7 +634,7 @@ namespace Js
             return dbl;
 
         }
-        Js::NumberUtilities::LuHiDbl(dbl) |= (ulong)cbit << 20;
+        Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)cbit << 20;
 
         // Use bExtra to round.
         if ((bExtra & 0x80) && ((bExtra & 0x7F) || (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
@@ -633,12 +656,12 @@ namespace Js
         return Js::NumberUtilities::StrToDbl<EncodedChar>(psz, ppchLim, likelyInt);
     }
 
-    template double NumberUtilities::StrToDbl<wchar_t>(const wchar_t * psz, const wchar_t **ppchLim, Js::ScriptContext *const scriptContext);
+    template double NumberUtilities::StrToDbl<char16>(const char16 * psz, const char16 **ppchLim, Js::ScriptContext *const scriptContext);
     template double NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz, const utf8char_t **ppchLim, Js::ScriptContext *const scriptContext);
-    template double NumberUtilities::DblFromHex<wchar_t>(const wchar_t *psz, const wchar_t **ppchLim);
+    template double NumberUtilities::DblFromHex<char16>(const char16 *psz, const char16 **ppchLim);
     template double NumberUtilities::DblFromHex<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
-    template double NumberUtilities::DblFromBinary<wchar_t>(const wchar_t *psz, const wchar_t **ppchLim);
+    template double NumberUtilities::DblFromBinary<char16>(const char16 *psz, const char16 **ppchLim);
     template double NumberUtilities::DblFromBinary<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
-    template double NumberUtilities::DblFromOctal<wchar_t>(const wchar_t *psz, const wchar_t **ppchLim);
+    template double NumberUtilities::DblFromOctal<char16>(const char16 *psz, const char16 **ppchLim);
     template double NumberUtilities::DblFromOctal<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
 }

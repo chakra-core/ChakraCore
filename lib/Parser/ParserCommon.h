@@ -37,16 +37,7 @@ typedef ParseNode *ParseNodePtr;
 struct Ident;
 typedef Ident *IdentPtr;
 
-struct ModuleImportEntry
-{
-    IdentPtr moduleRequest;
-    IdentPtr importName;
-    IdentPtr localName;
-
-    ParseNodePtr varDecl;
-};
-
-struct ModuleExportEntry
+struct ModuleImportOrExportEntry
 {
     IdentPtr moduleRequest;
     IdentPtr importName;
@@ -54,8 +45,7 @@ struct ModuleExportEntry
     IdentPtr exportName;
 };
 
-typedef SList<ModuleImportEntry, ArenaAllocator> ModuleImportEntryList;
-typedef SList<ModuleExportEntry, ArenaAllocator> ModuleExportEntryList;
+typedef SList<ModuleImportOrExportEntry, ArenaAllocator> ModuleImportOrExportEntryList;
 typedef SList<IdentPtr, ArenaAllocator> IdentPtrList;
 
 //

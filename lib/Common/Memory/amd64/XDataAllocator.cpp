@@ -10,7 +10,7 @@ CompileAssert(false)
 #endif
 
 #include "XDataAllocator.h"
-#include "core\DelayLoadLibrary.h"
+#include "Core/DelayLoadLibrary.h"
 
 XDataAllocator::XDataAllocator(BYTE* address, uint size, HANDLE processHandle) :
     freeList(nullptr),
@@ -19,7 +19,7 @@ XDataAllocator::XDataAllocator(BYTE* address, uint size, HANDLE processHandle) :
     size(size),
     processHandle(processHandle)
 {
-#if DBG
+#ifdef RECYCLER_MEMORY_VERIFY
     ChakraMemSet(this->start, Recycler::VerifyMemFill, this->size, this->processHandle);
 #endif
     Assert(size > 0);
@@ -49,7 +49,7 @@ bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort p
     Assert(current != nullptr);
     Assert(current >= start);
     Assert(xdataSize <= XDATA_SIZE);
-    Assert(AutoSystemInfo::Data.IsWin8OrLater() || pdataCount == 1);
+    Assert(pdataCount == 1);
 
     // Allocate a new xdata entry
     if((End() - current) >= XDATA_SIZE)
@@ -66,7 +66,7 @@ bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort p
     }
     else
     {
-        OUTPUT_TRACE(Js::XDataAllocatorPhase, L"No space for XDATA.\n");
+        OUTPUT_TRACE(Js::XDataAllocatorPhase, _u("No space for XDATA.\n"));
     }
 
     return xdata->address != nullptr;

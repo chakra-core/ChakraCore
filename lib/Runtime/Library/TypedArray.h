@@ -137,8 +137,11 @@ namespace Js
         // Returns false if this is not a TypedArray or it's not detached
         static BOOL IsDetachedTypedArray(Var aValue);
         static HRESULT GetBuffer(Var aValue, ArrayBuffer** outBuffer, uint32* outOffset, uint32* outLength);
+        static Var ValidateTypedArray(Var aValue, ScriptContext *scriptContext);
+        static Var TypedArrayCreate(Var constructor, Arguments *args, uint32 length, ScriptContext *scriptContext);
 
-        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetItem) = 0;
+        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) = 0;
+        virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) = 0;
         virtual Var  DirectGetItem(__in uint32 index) = 0;
 
         uint32 GetByteLength() const { return length * BYTES_PER_ELEMENT; }
@@ -156,8 +159,8 @@ namespace Js
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
         static bool TryGetLengthForOptimizedTypedArray(const Var var, uint32 *const lengthRef, TypeId *const typeIdRef);
-        BOOL ValidateIndexAndDirectSetItem(__in Js::Var index, __in Js::Var value, __in bool * isNumericIndex);
-        uint32 ValidateAndReturnIndex(__in Js::Var index, __in bool * skipOperation, __in bool * isNumericIndex);
+        BOOL ValidateIndexAndDirectSetItem(__in Js::Var index, __in Js::Var value, __out bool * isNumericIndex);
+        uint32 ValidateAndReturnIndex(__in Js::Var index, __out bool * skipOperation, __out bool * isNumericIndex);
 
         // objectArray support
         virtual BOOL SetItemWithAttributes(uint32 index, Var value, PropertyAttributes attributes) override;
@@ -167,11 +170,13 @@ namespace Js
 
     protected:
         inline BOOL IsBuiltinProperty(PropertyId);
-        static Var CreateNewInstanceFromIterableObj(RecyclableObject *object, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray);
+        static Var CreateNewInstanceFromIterator(RecyclableObject *iterator, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray);
         static Var CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray );
         static int32 ToLengthChecked(Var lengthVar, uint32 elementSize, ScriptContext* scriptContext);
+        static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
 
-        virtual void* GetCompareElementsFunction() = 0;
+        typedef int(__cdecl* CompareElementsFunction)(void*, const void*, const void*);
+        virtual CompareElementsFunction GetCompareElementsFunction() = 0;
 
         virtual Var Subarray(uint32 begin, uint32 end) = 0;
         int32 BYTES_PER_ELEMENT;
@@ -181,6 +186,12 @@ namespace Js
     public:
         static uint32 GetOffsetOfBuffer()  { return offsetof(TypedArrayBase, buffer); }
         static uint32 GetOffsetOfLength()  { return offsetof(TypedArrayBase, length); }
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     template <typename TypeName, bool clamped = false, bool virtualAllocated = false>
@@ -224,7 +235,7 @@ namespace Js
         static BOOL Is(Var aValue);
         static TypedArray<TypeName, clamped, virtualAllocated>* FromVar(Var aValue);
 
-        __inline Var BaseTypedDirectGetItem(__in uint32 index)
+        inline Var BaseTypedDirectGetItem(__in uint32 index)
         {
             if (this->IsDetachedBuffer()) // 9.4.5.8 IntegerIndexedElementGet
             {
@@ -240,7 +251,7 @@ namespace Js
             return GetLibrary()->GetUndefined();
         }
 
-        __inline Var TypedDirectGetItemWithCheck(__in uint32 index)
+        inline Var TypedDirectGetItemWithCheck(__in uint32 index)
         {
             if (this->IsDetachedBuffer()) // 9.4.5.8 IntegerIndexedElementGet
             {
@@ -256,7 +267,7 @@ namespace Js
             return GetLibrary()->GetUndefined();
         }
 
-        __inline BOOL DirectSetItemAtRange(TypedArray *fromArray, __in int32 iSrcStart, __in int32 iDstStart, __in uint32 length, TypeName(*convFunc)(Var value, ScriptContext* scriptContext))
+        inline BOOL DirectSetItemAtRange(TypedArray *fromArray, __in int32 iSrcStart, __in int32 iDstStart, __in uint32 length, TypeName(*convFunc)(Var value, ScriptContext* scriptContext))
         {
             TypeName* dstBuffer = (TypeName*)buffer;
             TypeName* srcBuffer = (TypeName*)fromArray->buffer;
@@ -306,7 +317,7 @@ namespace Js
             return true;
         }
 
-        __inline BOOL DirectSetItemAtRange(__in int32 start, __in uint32 length, __in Js::Var value, TypeName(*convFunc)(Var value, ScriptContext* scriptContext))
+        inline BOOL DirectSetItemAtRange(__in int32 start, __in uint32 length, __in Js::Var value, TypeName(*convFunc)(Var value, ScriptContext* scriptContext))
         {
             if (CrossSite::IsCrossSiteObjectTyped(this))
             {
@@ -336,7 +347,6 @@ namespace Js
                 // If we want to start copying past the length of the array, all index are no-op
                 return true;
             }
-
             if (UInt32Math::Add(newStart, newLength) > GetLength())
             {
                 newLength = GetLength() - newStart;
@@ -361,7 +371,7 @@ namespace Js
             return TRUE;
         }
 
-        __inline BOOL BaseTypedDirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetElement, TypeName (*convFunc)(Var value, ScriptContext* scriptContext))
+        inline BOOL BaseTypedDirectSetItem(__in uint32 index, __in Js::Var value, TypeName (*convFunc)(Var value, ScriptContext* scriptContext))
         {
             // This call can potentially invoke user code, and may end up detaching the underlying array (this).
             // Therefore it was brought out and above the IsDetached check
@@ -372,7 +382,7 @@ namespace Js
                 JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_DetachedTypedArray);
             }
 
-            if (skipSetElement)
+            if (index >= GetLength())
             {
                 return FALSE;
             }
@@ -384,9 +394,24 @@ namespace Js
             typedBuffer[index] = typedValue;
 
             return TRUE;
+        }
+
+        inline BOOL BaseTypedDirectSetItemNoSet(__in uint32 index, __in Js::Var value, TypeName (*convFunc)(Var value, ScriptContext* scriptContext))
+        {
+            // This call can potentially invoke user code, and may end up detaching the underlying array (this).
+            // Therefore it was brought out and above the IsDetached check
+            convFunc(value, GetScriptContext());
+
+            if (this->IsDetachedBuffer()) // 9.4.5.9 IntegerIndexedElementSet
+            {
+                JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_DetachedTypedArray);
             }
 
-        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetItem) override sealed;
+            return FALSE;
+        }
+
+        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) override sealed;
+        virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) override sealed;
         virtual Var  DirectGetItem(__in uint32 index) override sealed;
 
 
@@ -394,17 +419,17 @@ namespace Js
         {
             AssertMsg(arr != nullptr, "Array shouldn't be nullptr.");
 
-            return arr->DirectSetItem(index, value, index >= arr->GetLength());
+            return arr->DirectSetItem(index, value);
         }
 
     protected:
-        void* GetCompareElementsFunction()
+        CompareElementsFunction GetCompareElementsFunction()
         {
             return &TypedArrayCompareElementsHelper<TypeName>;
         }
     };
 
-    // in windows build environment, wchar_t is not an intrinsic type, and we cannot do the type
+    // in windows build environment, char16 is not an intrinsic type, and we cannot do the type
     // specialization
     class CharArray : public TypedArrayBase
     {
@@ -425,10 +450,10 @@ namespace Js
         static Var EntrySubarray(RecyclableObject* function, CallInfo callInfo, ...);
 
         CharArray(ArrayBuffer* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type) :
-        TypedArrayBase(arrayBuffer, byteOffset, mappedLength, sizeof(wchar_t), type)
+        TypedArrayBase(arrayBuffer, byteOffset, mappedLength, sizeof(char16), type)
         {
             AssertMsg(arrayBuffer->GetByteLength() >= byteOffset, "invalid offset");
-            AssertMsg(mappedLength*sizeof(wchar_t)+byteOffset <= GetArrayBuffer()->GetByteLength(), "invalid length");
+            AssertMsg(mappedLength*sizeof(char16)+byteOffset <= GetArrayBuffer()->GetByteLength(), "invalid length");
             buffer = arrayBuffer->GetBuffer() + byteOffset;
         }
 
@@ -439,13 +464,14 @@ namespace Js
         Var Subarray(uint32 begin, uint32 end);
         static CharArray* FromVar(Var aValue);
 
-        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value, __in bool skipSetItem) override;
+        virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) override;
+        virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) override;
         virtual Var  DirectGetItem(__in uint32 index) override;
 
     protected:
-        void* GetCompareElementsFunction()
+        CompareElementsFunction GetCompareElementsFunction()
         {
-            return &TypedArrayCompareElementsHelper<wchar_t>;
+            return &TypedArrayCompareElementsHelper<char16>;
         }
     };
 

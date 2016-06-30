@@ -49,7 +49,7 @@ LIBRARY_FUNCTION(Math,          Floor,              1,    BIF_TypeSpecDstToInt |
 LIBRARY_FUNCTION(Math,          Log,                1,    BIF_TypeSpecUnaryToFloat                          , Math::EntryInfo::Log)
 LIBRARY_FUNCTION(Math,          Max,                2,    BIF_TypeSpecSrcAndDstToFloatOrInt                 , Math::EntryInfo::Max)
 LIBRARY_FUNCTION(Math,          Min,                2,    BIF_TypeSpecSrcAndDstToFloatOrInt                 , Math::EntryInfo::Min)
-LIBRARY_FUNCTION(Math,          Pow,                2,    BIF_TypeSpecAllToFloat                            , Math::EntryInfo::Pow)
+LIBRARY_FUNCTION(Math,          Pow,                2,    BIF_TypeSpecSrcAndDstToFloatOrInt                 , Math::EntryInfo::Pow)
 LIBRARY_FUNCTION(Math,          Imul,               2,    BIF_TypeSpecAllToInt                              , Math::EntryInfo::Imul)
 LIBRARY_FUNCTION(Math,          Clz32,              1,    BIF_TypeSpecAllToInt                              , Math::EntryInfo::Clz32)
 LIBRARY_FUNCTION(JavascriptArray,         Push,               2,    BIF_UseSrc0 | BIF_IgnoreDst | BIF_TypeSpecSrc1ToFloatOrInt, JavascriptArray::EntryInfo::Push)
@@ -82,6 +82,7 @@ LIBRARY_FUNCTION(JavascriptString,        PadEnd,             2,    BIF_UseSrc0 
 // Note: 1st column is currently used only for debug tracing.
 
 // SIMD_JS
+#ifdef ENABLE_SIMDJS
 LIBRARY_FUNCTION(SIMDFloat32x4Lib,    Float32x4,         4, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Float32x4)
 LIBRARY_FUNCTION(SIMDFloat32x4Lib,    Check,             1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Check)
 LIBRARY_FUNCTION(SIMDFloat32x4Lib,    Splat,             1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Splat)
@@ -152,3 +153,15 @@ LIBRARY_FUNCTION(SIMDInt32x4Lib,    Store,             3, BIF_IgnoreDst         
 LIBRARY_FUNCTION(SIMDInt32x4Lib,    Store1,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store1)
 LIBRARY_FUNCTION(SIMDInt32x4Lib,    Store2,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store2)
 LIBRARY_FUNCTION(SIMDInt32x4Lib,    Store3,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store3)
+
+LIBRARY_FUNCTION(SIMDInt16x8Lib,    Int16x8,           8, BIF_IgnoreDst                                                 , SIMDInt16x8Lib::EntryInfo::Int16x8)
+LIBRARY_FUNCTION(SIMDInt8x16Lib,    Int8x16,          16, BIF_IgnoreDst                                                 , SIMDInt8x16Lib::EntryInfo::Int8x16)
+
+LIBRARY_FUNCTION(SIMDUint32x4Lib,    Uint32x4,         4, BIF_IgnoreDst                                                 , SIMDUint32x4Lib::EntryInfo::Uint32x4)
+LIBRARY_FUNCTION(SIMDUint16x8Lib,    Uint16x8,         8, BIF_IgnoreDst                                                 , SIMDUint16x8Lib::EntryInfo::Uint16x8)
+LIBRARY_FUNCTION(SIMDUint8x16Lib,    Uint8x16,        16, BIF_IgnoreDst                                                 , SIMDUint8x16Lib::EntryInfo::Uint8x16)
+
+LIBRARY_FUNCTION(SIMDBool32x4Lib,    Bool32x4,         4, BIF_IgnoreDst                                                 , SIMDBool32x4Lib::EntryInfo::Bool32x4)
+LIBRARY_FUNCTION(SIMDBool16x8Lib,    Bool16x8,         8, BIF_IgnoreDst                                                 , SIMDBool16x8Lib::EntryInfo::Bool16x8)
+LIBRARY_FUNCTION(SIMDBool8x16Lib,    Bool8x16,        16, BIF_IgnoreDst                                                 , SIMDBool8x16Lib::EntryInfo::Bool8x16)
+#endif

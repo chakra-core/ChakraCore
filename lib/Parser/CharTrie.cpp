@@ -6,10 +6,17 @@
 
 namespace UnifiedRegex
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    const int CharTrie::initCapacity;
+#endif
+
     // ----------------------------------------------------------------------
     // CharTrie
     // ----------------------------------------------------------------------
-    __inline bool CharTrie::Find(Char c, int& outi)
+    inline bool CharTrie::Find(Char c, int& outi)
     {
         if (count == 0)
         {
@@ -107,7 +114,7 @@ namespace UnifiedRegex
     {
         w->Indent();
         if (isAccepting)
-            w->PrintEOL(L"<accept>");
+            w->PrintEOL(_u("<accept>"));
         for (int i = 0; i < count; i++)
         {
             w->PrintQuotedChar(children[i].c);

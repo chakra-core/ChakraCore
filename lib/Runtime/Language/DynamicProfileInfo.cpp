@@ -37,19 +37,19 @@ namespace Js
 
     void ArrayCallSiteInfo::SetIsNotNativeIntArray()
     {
-        OUTPUT_TRACE_WITH_STACK(Js::NativeArrayConversionPhase, L"SetIsNotNativeIntArray \n");
+        OUTPUT_TRACE_WITH_STACK(Js::NativeArrayConversionPhase, _u("SetIsNotNativeIntArray \n"));
         bits |= NotNativeIntBit;
     }
 
     void ArrayCallSiteInfo::SetIsNotNativeFloatArray()
     {
-        OUTPUT_TRACE_WITH_STACK(Js::NativeArrayConversionPhase, L"SetIsNotNativeFloatArray \n");
+        OUTPUT_TRACE_WITH_STACK(Js::NativeArrayConversionPhase, _u("SetIsNotNativeFloatArray \n"));
         bits |= NotNativeFloatBit;
     }
 
     void ArrayCallSiteInfo::SetIsNotNativeArray()
     {
-        OUTPUT_TRACE_WITH_STACK(Js::NativeArrayConversionPhase, L"SetIsNotNativeArray \n");
+        OUTPUT_TRACE_WITH_STACK(Js::NativeArrayConversionPhase, _u("SetIsNotNativeArray \n"));
         bits = NotNativeIntBit | NotNativeFloatBit;
     }
 
@@ -187,6 +187,8 @@ namespace Js
         {
             returnTypeInfo[i] = ValueType::Uninitialized;
         }
+
+        this->rejitCount = 0;
 #if DBG
         for (ProfileId i = 0; i < functionBody->GetProfiledArrayCallSiteCount(); ++i)
         {
@@ -220,7 +222,7 @@ namespace Js
                 Js::Configuration::Global.flags.ForceDynamicProfile ||
 #endif
                 !scriptContext->GetConfig()->IsNoNative() ||
-                scriptContext->IsInDebugMode()
+                functionBody->IsInDebugMode()
 #ifdef DYNAMIC_PROFILE_STORAGE
                 || DynamicProfileStorage::DoCollectInfo()
 #endif
@@ -317,7 +319,7 @@ namespace Js
         Assert(entryPoint == function->GetEntryPointInfo());
         Assert(entryPoint->IsCodeGenDone());
 
-        JavascriptMethod directEntryPoint = (JavascriptMethod)entryPoint->address;
+        JavascriptMethod directEntryPoint = entryPoint->jsMethod;
 
         // Check if it has changed already
         if (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk)
@@ -332,11 +334,11 @@ namespace Js
                 directEntryPoint = (JavascriptMethod)entryPoint->GetNativeAddress();
             }
 
-            entryPoint->address = directEntryPoint;
+            entryPoint->jsMethod = directEntryPoint;
         }
         else
         {
-            Assert(directEntryPoint == ProfileEntryThunk || IsNativeFunctionAddr(functionBody->GetScriptContext(), directEntryPoint));
+            Assert(directEntryPoint == ProfileEntryThunk || functionBody->GetScriptContext()->IsNativeAddress(directEntryPoint));
             Assert(functionBody->HasExecutionDynamicProfileInfo());
         }
 
@@ -593,9 +595,9 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::PolymorphicInlinePhase))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-            Output::Print(L"INLINING (Polymorphic): More than 4 functions at this call site \t callSiteId: %d\t calleeFunctionId: %d TopFunc %s (%s)\n",
+            Output::Print(_u("INLINING (Polymorphic): More than 4 functions at this call site \t callSiteId: %d\t calleeFunctionId: %d TopFunc %s (%s)\n"),
                 callSiteId,
                 curFunctionId,
                 inliner->GetDisplayName(),
@@ -839,12 +841,7 @@ namespace Js
         return &arrayCallSiteInfo[index];
     }
 
-    ArrayCallSiteInfo * DynamicProfileInfo::GetArrayCallSiteInfo() const
-    {
-        return arrayCallSiteInfo;
-    }
-
-    __inline void DynamicProfileInfo::RecordFieldAccess(FunctionBody* functionBody, uint fieldAccessId, Var object, FldInfoFlags flags)
+    inline void DynamicProfileInfo::RecordFieldAccess(FunctionBody* functionBody, uint fieldAccessId, Var object, FldInfoFlags flags)
     {
         Assert(fieldAccessId < functionBody->GetProfiledFldCount());
         FldInfoFlags oldFlags = fldInfo[fieldAccessId].flags;
@@ -884,7 +881,7 @@ namespace Js
         }
     }
 
-    __inline void DynamicProfileInfo::RecordDivideResultType(FunctionBody* body, ProfileId divideId, Var object)
+    inline void DynamicProfileInfo::RecordDivideResultType(FunctionBody* body, ProfileId divideId, Var object)
     {
         Assert(divideId < body->GetProfiledDivOrRemCount());
         divideTypeInfo[divideId] = divideTypeInfo[divideId].Merge(object);
@@ -892,7 +889,7 @@ namespace Js
 
     // We are overloading the value types to store whether it is a mod by power of 2.
     // TaggedInt:
-    __inline void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2)
+    inline void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2)
     {
         Assert(profileId < body->GetProfiledDivOrRemCount());
         // allow one op of the modulus to be optimized - anyway
@@ -925,7 +922,7 @@ namespace Js
         return divideTypeInfo[divideId];
     }
 
-    __inline void DynamicProfileInfo::RecordSwitchType(FunctionBody* body, ProfileId switchId, Var object)
+    inline void DynamicProfileInfo::RecordSwitchType(FunctionBody* body, ProfileId switchId, Var object)
     {
         Assert(switchId < body->GetProfiledSwitchCount());
         switchTypeInfo[switchId] = switchTypeInfo[switchId].Merge(object);
@@ -943,15 +940,15 @@ namespace Js
 
         PHASE_PRINT_TRACE(
             Js::ObjTypeSpecPhase, functionBody,
-            L"New profile cache state: %d\n", this->polymorphicCacheState);
+            _u("New profile cache state: %d\n"), this->polymorphicCacheState);
     }
 
-    __inline void DynamicProfileInfo::RecordPolymorphicFieldAccess(FunctionBody* functionBody, uint fieldAccessId)
+    inline void DynamicProfileInfo::RecordPolymorphicFieldAccess(FunctionBody* functionBody, uint fieldAccessId)
     {
         this->RecordFieldAccess(functionBody, fieldAccessId, nullptr, FldInfo_Polymorphic);
     }
 
-    __inline void DynamicProfileInfo::RecordSlotLoad(FunctionBody* functionBody, ProfileId slotLoadId, Var object)
+    inline void DynamicProfileInfo::RecordSlotLoad(FunctionBody* functionBody, ProfileId slotLoadId, Var object)
     {
         Assert(slotLoadId < functionBody->GetProfiledSlotCount());
         slotInfo[slotLoadId] = slotInfo[slotLoadId].Merge(object);
@@ -962,7 +959,7 @@ namespace Js
         return static_cast<FldInfoFlags>(oldFlags | newFlags);
     }
 
-    __inline void DynamicProfileInfo::RecordParameterInfo(FunctionBody *functionBody, ArgSlot index, Var object)
+    inline void DynamicProfileInfo::RecordParameterInfo(FunctionBody *functionBody, ArgSlot index, Var object)
     {
         Assert(this->parameterInfo != nullptr);
         Assert(index < functionBody->GetProfiledInParamsCount());
@@ -976,13 +973,13 @@ namespace Js
         return parameterInfo[index];
     }
 
-    __inline void DynamicProfileInfo::RecordReturnTypeOnCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, Var object)
+    inline void DynamicProfileInfo::RecordReturnTypeOnCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, Var object)
     {
         Assert(callSiteId < functionBody->GetProfiledCallSiteCount());
         this->callSiteInfo[callSiteId].returnType = this->callSiteInfo[callSiteId].returnType.Merge(object);
     }
 
-    __inline void DynamicProfileInfo::RecordReturnType(FunctionBody* functionBody, ProfileId callSiteId, Var object)
+    inline void DynamicProfileInfo::RecordReturnType(FunctionBody* functionBody, ProfileId callSiteId, Var object)
     {
         Assert(callSiteId < functionBody->GetProfiledReturnTypeCount());
         this->returnTypeInfo[callSiteId] = this->returnTypeInfo[callSiteId].Merge(object);
@@ -1001,7 +998,7 @@ namespace Js
         return this->returnTypeInfo[callSiteId];
     }
 
-    __inline void DynamicProfileInfo::RecordThisInfo(Var object, ThisType thisType)
+    inline void DynamicProfileInfo::RecordThisInfo(Var object, ThisType thisType)
     {
         this->thisInfo.valueType = this->thisInfo.valueType.Merge(object);
         this->thisInfo.thisType = max(this->thisInfo.thisType, thisType);
@@ -1170,39 +1167,39 @@ namespace Js
     }
 
 #if DBG_DUMP
-    void DynamicProfileInfo::DumpProfiledValue(wchar_t const * name, CallSiteInfo * callSiteInfo, uint count)
+    void DynamicProfileInfo::DumpProfiledValue(char16 const * name, CallSiteInfo * callSiteInfo, uint count)
     {
         if (count != 0)
         {
-            Output::Print(L"    %-16s(%2d):", name, count);
+            Output::Print(_u("    %-16s(%2d):"), name, count);
             for (uint i = 0; i < count; i++)
             {
-                Output::Print(i != 0 && (i % 10) == 0 ? L"\n                          " : L" ");
-                Output::Print(L"%2d:", i);
+                Output::Print(i != 0 && (i % 10) == 0 ? _u("\n                          ") : _u(" "));
+                Output::Print(_u("%2d:"), i);
                 if (!callSiteInfo[i].isPolymorphic)
                 {
                     switch (callSiteInfo[i].u.functionData.sourceId)
                     {
                     case NoSourceId:
-                        Output::Print(L" ????");
+                        Output::Print(_u(" ????"));
                         break;
 
                     case BuiltInSourceId:
-                        Output::Print(L" b%03d", callSiteInfo[i].u.functionData.functionId);
+                        Output::Print(_u(" b%03d"), callSiteInfo[i].u.functionData.functionId);
                         break;
 
                     case InvalidSourceId:
                         if (callSiteInfo[i].u.functionData.functionId == CallSiteMixed)
                         {
-                            Output::Print(L"  mix");
+                            Output::Print(_u("  mix"));
                         }
                         else if (callSiteInfo[i].u.functionData.functionId == CallSiteCrossContext)
                         {
-                            Output::Print(L"    x");
+                            Output::Print(_u("    x"));
                         }
                         else if (callSiteInfo[i].u.functionData.functionId == CallSiteNonFunction)
                         {
-                            Output::Print(L"  !fn");
+                            Output::Print(_u("  !fn"));
                         }
                         else
                         {
@@ -1211,105 +1208,105 @@ namespace Js
                         break;
 
                     default:
-                        Output::Print(L" %4d:%4d", callSiteInfo[i].u.functionData.sourceId, callSiteInfo[i].u.functionData.functionId);
+                        Output::Print(_u(" %4d:%4d"), callSiteInfo[i].u.functionData.sourceId, callSiteInfo[i].u.functionData.functionId);
                         break;
                     };
                 }
                 else
                 {
-                    Output::Print(L" poly");
+                    Output::Print(_u(" poly"));
                     for (int j = 0; j < DynamicProfileInfo::maxPolymorphicInliningSize; j++)
                     {
                         if (callSiteInfo[i].u.polymorphicCallSiteInfo->functionIds[j] != CallSiteNoInfo)
                         {
-                            Output::Print(L" %4d:%4d", callSiteInfo[i].u.polymorphicCallSiteInfo->sourceIds[j], callSiteInfo[i].u.polymorphicCallSiteInfo->functionIds[j]);
+                            Output::Print(_u(" %4d:%4d"), callSiteInfo[i].u.polymorphicCallSiteInfo->sourceIds[j], callSiteInfo[i].u.polymorphicCallSiteInfo->functionIds[j]);
                         }
                     }
                 }
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
 
-            Output::Print(L"    %-16s(%2d):", L"Callsite RetType", count);
+            Output::Print(_u("    %-16s(%2d):"), _u("Callsite RetType"), count);
             for (uint i = 0; i < count; i++)
             {
-                Output::Print(i != 0 && (i % 10) == 0 ? L"\n                          " : L" ");
-                Output::Print(L"%2d:", i);
+                Output::Print(i != 0 && (i % 10) == 0 ? _u("\n                          ") : _u(" "));
+                Output::Print(_u("%2d:"), i);
                 char returnTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                 callSiteInfo[i].returnType.ToString(returnTypeStr);
-                Output::Print(L"  %S", returnTypeStr);
+                Output::Print(_u("  %S"), returnTypeStr);
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
-    void DynamicProfileInfo::DumpProfiledValue(wchar_t const * name, ArrayCallSiteInfo * arrayCallSiteInfo, uint count)
+    void DynamicProfileInfo::DumpProfiledValue(char16 const * name, ArrayCallSiteInfo * arrayCallSiteInfo, uint count)
     {
         if (count != 0)
         {
-            Output::Print(L"    %-16s(%2d):", name, count);
-            Output::Print(L"\n");
+            Output::Print(_u("    %-16s(%2d):"), name, count);
+            Output::Print(_u("\n"));
             for (uint i = 0; i < count; i++)
             {
-                Output::Print(i != 0 && (i % 10) == 0 ? L"\n                          " : L" ");
-                Output::Print(L"%4d:", i);
-                Output::Print(L"  Function Number:  %2d, CallSite Number:  %2d, IsNativeIntArray:  %2d, IsNativeFloatArray:  %2d",
+                Output::Print(i != 0 && (i % 10) == 0 ? _u("\n                          ") : _u(" "));
+                Output::Print(_u("%4d:"), i);
+                Output::Print(_u("  Function Number:  %2d, CallSite Number:  %2d, IsNativeIntArray:  %2d, IsNativeFloatArray:  %2d"),
                     arrayCallSiteInfo[i].functionNumber, arrayCallSiteInfo[i].callSiteNumber, !arrayCallSiteInfo[i].isNotNativeInt, !arrayCallSiteInfo[i].isNotNativeFloat);
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
-    void DynamicProfileInfo::DumpProfiledValue(wchar_t const * name, ValueType * value, uint count)
+    void DynamicProfileInfo::DumpProfiledValue(char16 const * name, ValueType * value, uint count)
     {
         if (count != 0)
         {
-            Output::Print(L"    %-16s(%2d):", name, count);
+            Output::Print(_u("    %-16s(%2d):"), name, count);
             for (uint i = 0; i < count; i++)
             {
-                Output::Print(i != 0 && (i % 10) == 0 ? L"\n                          " : L" ");
-                Output::Print(L"%2d:", i);
+                Output::Print(i != 0 && (i % 10) == 0 ? _u("\n                          ") : _u(" "));
+                Output::Print(_u("%2d:"), i);
                 char valueStr[VALUE_TYPE_MAX_STRING_SIZE];
                 value[i].ToString(valueStr);
-                Output::Print(L"  %S", valueStr);
+                Output::Print(_u("  %S"), valueStr);
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
-    void DynamicProfileInfo::DumpProfiledValue(wchar_t const * name, uint * value, uint count)
+    void DynamicProfileInfo::DumpProfiledValue(char16 const * name, uint * value, uint count)
     {
         if (count != 0)
         {
-            Output::Print(L"    %-16s(%2d):", name, count);
+            Output::Print(_u("    %-16s(%2d):"), name, count);
             for (uint i = 0; i < count; i++)
             {
-                Output::Print(i != 0 && (i % 10) == 0 ? L"\n                          " : L" ");
-                Output::Print(L"%2d:%-4d", i, value[i]);
+                Output::Print(i != 0 && (i % 10) == 0 ? _u("\n                          ") : _u(" "));
+                Output::Print(_u("%2d:%-4d"), i, value[i]);
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
-    wchar_t const * DynamicProfileInfo::GetImplicitCallFlagsString(ImplicitCallFlags flags)
+    char16 const * DynamicProfileInfo::GetImplicitCallFlagsString(ImplicitCallFlags flags)
     {
         // Mask out the dispose implicit call. We would bailout on reentrant dispose,
         // but it shouldn't affect optimization
         flags = (ImplicitCallFlags)(flags & ImplicitCall_All);
-        return flags == ImplicitCall_HasNoInfo ? L"???" : flags == ImplicitCall_None ? L"no" : L"yes";
+        return flags == ImplicitCall_HasNoInfo ? _u("???") : flags == ImplicitCall_None ? _u("no") : _u("yes");
     }
 
-    void DynamicProfileInfo::DumpProfiledValue(wchar_t const * name, ImplicitCallFlags * loopImplicitCallFlags, uint count)
+    void DynamicProfileInfo::DumpProfiledValue(char16 const * name, ImplicitCallFlags * loopImplicitCallFlags, uint count)
     {
         if (count != 0)
         {
-            Output::Print(L"    %-16s(%2d):", name, count);
+            Output::Print(_u("    %-16s(%2d):"), name, count);
             for (uint i = 0; i < count; i++)
             {
-                Output::Print(i != 0 && (i % 10) == 0 ? L"\n                          " : L" ");
-                Output::Print(L"%2d:%-4s", i, GetImplicitCallFlagsString(loopImplicitCallFlags[i]));
+                Output::Print(i != 0 && (i % 10) == 0 ? _u("\n                          ") : _u(" "));
+                Output::Print(_u("%2d:%-4s"), i, GetImplicitCallFlagsString(loopImplicitCallFlags[i]));
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
@@ -1325,7 +1322,7 @@ namespace Js
 
     template<class TData, class FGetValueType>
     void DynamicProfileInfo::DumpProfiledValuesGroupedByValue(
-        const wchar_t *const name,
+        const char16 *const name,
         const TData *const data,
         const uint count,
         const FGetValueType GetValueType,
@@ -1355,13 +1352,13 @@ namespace Js
                         {
                             char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                             valueType.ToString(valueTypeStr);
-                            Output::Print(L"    %s %S", name, valueTypeStr);
+                            Output::Print(_u("    %s %S"), name, valueTypeStr);
                             Output::SkipToColumn(24);
-                            Output::Print(L": %d", i);
+                            Output::Print(_u(": %d"), i);
                         }
                         else
                         {
-                            Output::Print(L", %d", i);
+                            Output::Print(_u(", %d"), i);
                         }
                         header = false;
                         lastTempFld = i;
@@ -1373,7 +1370,7 @@ namespace Js
                     {
                         if (lastTempFld != i - 1)
                         {
-                            Output::Print(L"-%d", i - 1);
+                            Output::Print(_u("-%d"), i - 1);
                         }
                         lastTempFld = (uint)-1;
                     }
@@ -1381,16 +1378,16 @@ namespace Js
             }
             if (lastTempFld != (uint)-1 && lastTempFld != count - 1)
             {
-                Output::Print(L"-%d\n", count - 1);
+                Output::Print(_u("-%d\n"), count - 1);
             }
             else if (!header)
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         });
     }
 
-    void DynamicProfileInfo::DumpFldInfoFlags(wchar_t const * name, FldInfo * fldInfo, uint count, FldInfoFlags value, wchar_t const * valueName)
+    void DynamicProfileInfo::DumpFldInfoFlags(char16 const * name, FldInfo * fldInfo, uint count, FldInfoFlags value, char16 const * valueName)
     {
         bool header = true;
         uint lastTempFld = (uint)-1;
@@ -1402,13 +1399,13 @@ namespace Js
                 {
                     if (header)
                     {
-                        Output::Print(L"    %s %s", name, valueName);
+                        Output::Print(_u("    %s %s"), name, valueName);
                         Output::SkipToColumn(24);
-                        Output::Print(L": %d", i);
+                        Output::Print(_u(": %d"), i);
                     }
                     else
                     {
-                        Output::Print(L", %d", i);
+                        Output::Print(_u(", %d"), i);
                     }
                     header = false;
                     lastTempFld = i;
@@ -1420,7 +1417,7 @@ namespace Js
                 {
                     if (lastTempFld != i - 1)
                     {
-                        Output::Print(L"-%d", i - 1);
+                        Output::Print(_u("-%d"), i - 1);
                     }
                     lastTempFld = (uint)-1;
                 }
@@ -1428,11 +1425,11 @@ namespace Js
         }
         if (lastTempFld != (uint)-1 && lastTempFld != count - 1)
         {
-            Output::Print(L"-%d\n", count - 1);
+            Output::Print(_u("-%d\n"), count - 1);
         }
         else if (!header)
         {
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
@@ -1441,21 +1438,21 @@ namespace Js
         if (fbody->DoJITLoopBody())
         {
             uint count = fbody->GetLoopCount();
-            Output::Print(L"    %-16s(%2d):", L"Loops", count);
+            Output::Print(_u("    %-16s(%2d):"), _u("Loops"), count);
             for (uint i = 0; i < count; i++)
             {
-                Output::Print(i != 0 && (i % 10) == 0 ? L"\n                          " : L" ");
-                Output::Print(L"%2d:%-4d", i, fbody->GetLoopHeader(i)->interpretCount);
+                Output::Print(i != 0 && (i % 10) == 0 ? _u("\n                          ") : _u(" "));
+                Output::Print(_u("%2d:%-4d"), i, fbody->GetLoopHeader(i)->interpretCount);
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
 
-            Output::Print(L"    %-16s(%2d):", L"Loops JIT", count);
+            Output::Print(_u("    %-16s(%2d):"), _u("Loops JIT"), count);
             for (uint i = 0; i < count; i++)
             {
-                Output::Print(i != 0 && (i % 10) == 0 ? L"\n                          " : L" ");
-                Output::Print(L"%2d:%-4d", i, fbody->GetLoopHeader(i)->nativeCount);
+                Output::Print(i != 0 && (i % 10) == 0 ? _u("\n                          ") : _u(" "));
+                Output::Print(_u("%2d:%-4d"), i, fbody->GetLoopHeader(i)->nativeCount);
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
@@ -1463,8 +1460,8 @@ namespace Js
     {
         functionBody->DumpFunctionId(true);
         Js::ArgSlot paramcount = functionBody->GetProfiledInParamsCount();
-        Output::Print(L": %-20s Interpreted:%6d, Param:%2d, ImpCall:%s, Callsite:%3d, ReturnType:%3d, LdElem:%3d, StElem:%3d, Fld%3d\n",
-            functionBody->GetDisplayName(), functionBody->interpretedCount, paramcount, DynamicProfileInfo::GetImplicitCallFlagsString(this->GetImplicitCallFlags()),
+        Output::Print(_u(": %-20s Interpreted:%6d, Param:%2d, ImpCall:%s, Callsite:%3d, ReturnType:%3d, LdElem:%3d, StElem:%3d, Fld%3d\n"),
+            functionBody->GetDisplayName(), functionBody->GetInterpretedCount(), paramcount, DynamicProfileInfo::GetImplicitCallFlagsString(this->GetImplicitCallFlags()),
             functionBody->GetProfiledCallSiteCount(),
             functionBody->GetProfiledReturnTypeCount(),
             functionBody->GetProfiledLdElemCount(),
@@ -1473,16 +1470,16 @@ namespace Js
 
         if (Configuration::Global.flags.Verbose)
         {
-            DumpProfiledValue(L"Div result type", this->divideTypeInfo, functionBody->GetProfiledDivOrRemCount());
-            DumpProfiledValue(L"Switch opt type", this->switchTypeInfo, functionBody->GetProfiledSwitchCount());
-            DumpProfiledValue(L"Param type", this->parameterInfo, paramcount);
-            DumpProfiledValue(L"Callsite", this->callSiteInfo, functionBody->GetProfiledCallSiteCount());
-            DumpProfiledValue(L"ArrayCallSite", this->arrayCallSiteInfo, functionBody->GetProfiledArrayCallSiteCount());
-            DumpProfiledValue(L"Return type", this->returnTypeInfo, functionBody->GetProfiledReturnTypeCount());
+            DumpProfiledValue(_u("Div result type"), this->divideTypeInfo, functionBody->GetProfiledDivOrRemCount());
+            DumpProfiledValue(_u("Switch opt type"), this->switchTypeInfo, functionBody->GetProfiledSwitchCount());
+            DumpProfiledValue(_u("Param type"), this->parameterInfo, paramcount);
+            DumpProfiledValue(_u("Callsite"), this->callSiteInfo, functionBody->GetProfiledCallSiteCount());
+            DumpProfiledValue(_u("ArrayCallSite"), this->arrayCallSiteInfo, functionBody->GetProfiledArrayCallSiteCount());
+            DumpProfiledValue(_u("Return type"), this->returnTypeInfo, functionBody->GetProfiledReturnTypeCount());
             if (dynamicProfileInfoAllocator)
             {
                 DumpProfiledValuesGroupedByValue(
-                    L"Element load",
+                    _u("Element load"),
                     this->ldElemInfo,
                     this->functionBody->GetProfiledLdElemCount(),
                     [](const LdElemInfo *const ldElemInfo, const uint i) -> ValueType
@@ -1491,7 +1488,7 @@ namespace Js
                 },
                     dynamicProfileInfoAllocator);
                 DumpProfiledValuesGroupedByValue(
-                    L"Fld",
+                    _u("Fld"),
                     this->fldInfo,
                     functionBody->GetProfiledFldCount(),
                     [](const FldInfo *const fldInfos, const uint i) -> ValueType
@@ -1500,68 +1497,70 @@ namespace Js
                 },
                     dynamicProfileInfoAllocator);
             }
-            DumpFldInfoFlags(L"Fld", this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromLocal, L"FldInfo_FromLocal");
-            DumpFldInfoFlags(L"Fld", this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromProto, L"FldInfo_FromProto");
-            DumpFldInfoFlags(L"Fld", this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromLocalWithoutProperty, L"FldInfo_FromLocalWithoutProperty");
-            DumpFldInfoFlags(L"Fld", this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromAccessor, L"FldInfo_FromAccessor");
-            DumpFldInfoFlags(L"Fld", this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_Polymorphic, L"FldInfo_Polymorphic");
-            DumpFldInfoFlags(L"Fld", this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromInlineSlots, L"FldInfo_FromInlineSlots");
-            DumpFldInfoFlags(L"Fld", this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromAuxSlots, L"FldInfo_FromAuxSlots");
+            DumpFldInfoFlags(_u("Fld"), this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromLocal, _u("FldInfo_FromLocal"));
+            DumpFldInfoFlags(_u("Fld"), this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromProto, _u("FldInfo_FromProto"));
+            DumpFldInfoFlags(_u("Fld"), this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromLocalWithoutProperty, _u("FldInfo_FromLocalWithoutProperty"));
+            DumpFldInfoFlags(_u("Fld"), this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromAccessor, _u("FldInfo_FromAccessor"));
+            DumpFldInfoFlags(_u("Fld"), this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_Polymorphic, _u("FldInfo_Polymorphic"));
+            DumpFldInfoFlags(_u("Fld"), this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromInlineSlots, _u("FldInfo_FromInlineSlots"));
+            DumpFldInfoFlags(_u("Fld"), this->fldInfo, functionBody->GetProfiledFldCount(), FldInfo_FromAuxSlots, _u("FldInfo_FromAuxSlots"));
             DumpLoopInfo(functionBody);
             if (DynamicProfileInfo::EnableImplicitCallFlags(functionBody))
             {
-                DumpProfiledValue(L"Loop Imp Call", this->loopImplicitCallFlags, functionBody->GetLoopCount());
+                DumpProfiledValue(_u("Loop Imp Call"), this->loopImplicitCallFlags, functionBody->GetLoopCount());
             }
             if (functionBody->GetLoopCount())
             {
-                Output::Print(L"    Loop Flags:\n");
+                Output::Print(_u("    Loop Flags:\n"));
                 for (uint i = 0; i < functionBody->GetLoopCount(); ++i)
                 {
-                    Output::Print(L"      Loop %d:\n", i);
+                    Output::Print(_u("      Loop %d:\n"), i);
                     LoopFlags lf = this->GetLoopFlags(i);
                     Output::Print(
-                        L"        isInterpreted        : %s\n"
-                        L"        memopMinCountReached : %s\n",
+                        _u("        isInterpreted        : %s\n")
+                        _u("        memopMinCountReached : %s\n"),
                         IsTrueOrFalse(lf.isInterpreted),
                         IsTrueOrFalse(lf.memopMinCountReached)
                         );
                 }
             }
             Output::Print(
-                L"    Settings:"
-                L" disableAggressiveIntTypeSpec : %s"
-                L" disableAggressiveIntTypeSpec_jitLoopBody : %s"
-                L" disableAggressiveMulIntTypeSpec : %s"
-                L" disableAggressiveMulIntTypeSpec_jitLoopBody : %s"
-                L" disableDivIntTypeSpec : %s"
-                L" disableDivIntTypeSpec_jitLoopBody : %s"
-                L" disableLossyIntTypeSpec : %s"
-                L" disableMemOp : %s"
-                L" disableTrackIntOverflow : %s"
-                L" disableFloatTypeSpec : %s"
-                L" disableCheckThis : %s"
-                L" disableArrayCheckHoist : %s"
-                L" disableArrayCheckHoist_jitLoopBody : %s"
-                L" disableArrayMissingValueCheckHoist : %s"
-                L" disableArrayMissingValueCheckHoist_jitLoopBody : %s"
-                L" disableJsArraySegmentHoist : %s"
-                L" disableJsArraySegmentHoist_jitLoopBody : %s"
-                L" disableArrayLengthHoist : %s"
-                L" disableArrayLengthHoist_jitLoopBody : %s"
-                L" disableTypedArrayTypeSpec: %s"
-                L" disableTypedArrayTypeSpec_jitLoopBody: %s"
-                L" disableLdLenIntSpec: %s"
-                L" disableBoundCheckHoist : %s"
-                L" disableBoundCheckHoist_jitLoopBody : %s"
-                L" disableLoopCountBasedBoundCheckHoist : %s"
-                L" disableLoopCountBasedBoundCheckHoist_jitLoopBody : %s"
-                L" hasPolymorphicFldAccess : %s"
-                L" hasLdFldCallSite: %s"
-                L" disableFloorInlining: %s"
-                L" disableNoProfileBailouts: %s"
-                L" disableSwitchOpt : %s"
-                L" disableEquivalentObjTypeSpec : %s\n"
-                L" disableObjTypeSpec_jitLoopBody : %s\n",
+                _u("    Settings:")
+                _u(" disableAggressiveIntTypeSpec : %s")
+                _u(" disableAggressiveIntTypeSpec_jitLoopBody : %s")
+                _u(" disableAggressiveMulIntTypeSpec : %s")
+                _u(" disableAggressiveMulIntTypeSpec_jitLoopBody : %s")
+                _u(" disableDivIntTypeSpec : %s")
+                _u(" disableDivIntTypeSpec_jitLoopBody : %s")
+                _u(" disableLossyIntTypeSpec : %s")
+                _u(" disableMemOp : %s")
+                _u(" disableTrackIntOverflow : %s")
+                _u(" disableFloatTypeSpec : %s")
+                _u(" disableCheckThis : %s")
+                _u(" disableArrayCheckHoist : %s")
+                _u(" disableArrayCheckHoist_jitLoopBody : %s")
+                _u(" disableArrayMissingValueCheckHoist : %s")
+                _u(" disableArrayMissingValueCheckHoist_jitLoopBody : %s")
+                _u(" disableJsArraySegmentHoist : %s")
+                _u(" disableJsArraySegmentHoist_jitLoopBody : %s")
+                _u(" disableArrayLengthHoist : %s")
+                _u(" disableArrayLengthHoist_jitLoopBody : %s")
+                _u(" disableTypedArrayTypeSpec: %s")
+                _u(" disableTypedArrayTypeSpec_jitLoopBody: %s")
+                _u(" disableLdLenIntSpec: %s")
+                _u(" disableBoundCheckHoist : %s")
+                _u(" disableBoundCheckHoist_jitLoopBody : %s")
+                _u(" disableLoopCountBasedBoundCheckHoist : %s")
+                _u(" disableLoopCountBasedBoundCheckHoist_jitLoopBody : %s")
+                _u(" hasPolymorphicFldAccess : %s")
+                _u(" hasLdFldCallSite: %s")
+                _u(" disableFloorInlining: %s")
+                _u(" disableNoProfileBailouts: %s")
+                _u(" disableSwitchOpt : %s")
+                _u(" disableEquivalentObjTypeSpec : %s\n")
+                _u(" disableObjTypeSpec_jitLoopBody : %s\n"),
+                _u(" disablePowIntTypeSpec : %s\n"),
+                _u(" disableStackArgOpt : %s\n"),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec_jitLoopBody),
                 IsTrueOrFalse(this->bits.disableAggressiveMulIntTypeSpec),
@@ -1594,7 +1593,9 @@ namespace Js
                 IsTrueOrFalse(this->bits.disableNoProfileBailouts),
                 IsTrueOrFalse(this->bits.disableSwitchOpt),
                 IsTrueOrFalse(this->bits.disableEquivalentObjTypeSpec),
-                IsTrueOrFalse(this->bits.disableObjTypeSpec_jitLoopBody));
+                IsTrueOrFalse(this->bits.disableObjTypeSpec_jitLoopBody),
+                IsTrueOrFalse(this->bits.disablePowIntIntTypeSpec),
+                IsTrueOrFalse(this->bits.disableStackArgOpt));
         }
     }
 
@@ -1620,7 +1621,7 @@ namespace Js
                 if (info->functionBody->GetLoopCount() > 0)
                 {
                     info->functionBody->DumpFunctionId(true);
-                    Output::Print(L": %-20s\n", info->functionBody->GetDisplayName());
+                    Output::Print(_u(": %-20s\n"), info->functionBody->GetDisplayName());
                     DumpLoopInfo(info->functionBody);
                 }
             }
@@ -1651,7 +1652,7 @@ namespace Js
                     }
                 }
 
-                if (hasHotLoop || info->functionBody->interpretedCount >= 10)
+                if (hasHotLoop || info->functionBody->GetInterpretedCount() >= 10)
                 {
                     functionSaved++;
                     loopSaved += info->functionBody->GetLoopCount();
@@ -1679,7 +1680,7 @@ namespace Js
 
             if (estimatedSavedBytes != sizeof(uint))
             {
-                Output::Print(L"Estimated save size (Memory used): %6d (%6d): %3d %3d %4d %4d %3d\n",
+                Output::Print(_u("Estimated save size (Memory used): %6d (%6d): %3d %3d %4d %4d %3d\n"),
                     estimatedSavedBytes, dynamicProfileInfoAllocator->Size(), functionSaved, loopSaved, callSiteSaved,
                     elementAccessSaved, fldAccessSaved);
             }
@@ -1690,14 +1691,14 @@ namespace Js
     {
         if (Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase))
         {
-            Output::Print(L"Sources:\n");
+            Output::Print(_u("Sources:\n"));
             if (scriptContext->GetSourceContextInfoMap() != nullptr)
             {
                 scriptContext->GetSourceContextInfoMap()->Map([&](DWORD_PTR dwHostSourceContext, SourceContextInfo * sourceContextInfo)
                 {
                     if (sourceContextInfo->sourceContextId != Js::Constants::NoSourceContext)
                     {
-                        Output::Print(L"%2d: %s (Function count: %d)\n", sourceContextInfo->sourceContextId, sourceContextInfo->url, sourceContextInfo->nextLocalFunctionId);
+                        Output::Print(_u("%2d: %s (Function count: %d)\n"), sourceContextInfo->sourceContextId, sourceContextInfo->url, sourceContextInfo->nextLocalFunctionId);
                     }
                 });
             }
@@ -1706,7 +1707,7 @@ namespace Js
             {
                 scriptContext->GetDynamicSourceContextInfoMap()->Map([&](DWORD_PTR dwHostSourceContext, SourceContextInfo * sourceContextInfo)
                 {
-                    Output::Print(L"%2d: %d (Dynamic) (Function count: %d)\n", sourceContextInfo->sourceContextId, sourceContextInfo->hash, sourceContextInfo->nextLocalFunctionId);
+                    Output::Print(_u("%2d: %d (Dynamic) (Function count: %d)\n"), sourceContextInfo->sourceContextId, sourceContextInfo->hash, sourceContextInfo->nextLocalFunctionId);
                 });
             }
         }
@@ -1721,7 +1722,7 @@ namespace Js
     {
         if (Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase, info->GetFunctionBody()->GetSourceContextId(), info->GetFunctionBody()->GetLocalFunctionId()))
         {
-            Output::Print(L"Saving:");
+            Output::Print(_u("Saving:"));
             info->Dump(info->GetFunctionBody());
         }
     }
@@ -2060,7 +2061,7 @@ namespace Js
     }
 
     template <>
-    void DynamicProfileInfo::WriteData<wchar_t const *>(wchar_t const * sz, FILE * file)
+    void DynamicProfileInfo::WriteData<char16 const *>(char16 const * sz, FILE * file)
     {
         if (sz)
         {
@@ -2104,7 +2105,7 @@ namespace Js
 
         AutoCriticalSection autocs(&s_csOutput);
         FILE * file;
-        if (_wfopen_s(&file, Configuration::Global.flags.RuntimeDataOutputFile, L"ab+") != 0 || file == nullptr)
+        if (_wfopen_s(&file, Configuration::Global.flags.RuntimeDataOutputFile, _u("ab+")) != 0 || file == nullptr)
         {
             return;
         }
@@ -2129,7 +2130,7 @@ namespace Js
             WriteData((byte)1, file);
             WriteData(info->functionBody, file);
             WriteData(info->functionBody->GetDisplayName(), file);
-            WriteData(info->functionBody->interpretedCount, file);
+            WriteData(info->functionBody->GetInterpretedCount(), file);
             uint loopCount = info->functionBody->GetLoopCount();
             WriteData(loopCount, file);
             for (uint i = 0; i < loopCount; i++)
@@ -2300,6 +2301,12 @@ const char* GetBailOutKindName(IR::BailOutKind kind)
         position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
     }
     ++offset;
+    if (kind & BailOutOnPowIntIntOverflow)
+    {
+        kind ^= BailOutOnPowIntIntOverflow;
+        position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
+    }
+    ++offset;
     // BailOutOnResultConditions
 
     ++offset;
@@ -2336,6 +2343,12 @@ const char* GetBailOutKindName(IR::BailOutKind kind)
     if (kind & BailOutOnInvalidatedArrayLength)
     {
         kind ^= BailOutOnInvalidatedArrayLength;
+        position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
+    }
+    ++offset;
+    if (kind & BailOnStackArgsOutOfActualsRange)
+    {
+        kind ^= BailOnStackArgsOutOfActualsRange;
         position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
     }
     ++offset;

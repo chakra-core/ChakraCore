@@ -4,7 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonExceptionsPch.h"
 
-__inline void ReportFatalException(
+#ifdef _MSC_VER
+inline
+#endif
+void ReportFatalException(
     __in ULONG_PTR context,
     __in HRESULT exceptionCode,
     __in ErrorReason reasonCode,
@@ -17,6 +20,10 @@ __inline void ReportFatalException(
     {
         DebugBreak();
     }
+
+#ifdef DISABLE_SEH
+    TerminateProcess(GetCurrentProcess(), (UINT)DBG_TERMINATE_PROCESS);
+#else
     __try
     {
         ULONG_PTR ExceptionInformation[2];
@@ -27,6 +34,7 @@ __inline void ReportFatalException(
     __except(FatalExceptionFilter(GetExceptionInformation()))
     {
     }
+#endif // DISABLE_SEH
 }
 
 // Disable optimization make sure all the frames are still available in Dr. Watson bug reports.
@@ -104,6 +112,24 @@ __declspec(noinline) void FromDOM_NoScriptScope_fatal_error()
 {
     int scenario = 5;
     ReportFatalException(NULL, E_UNEXPECTED, EnterScript_FromDOM_NoScriptScope, scenario);
+}
+
+__declspec(noinline) void Debugger_AttachDetach_fatal_error()
+{
+    int scenario = 5;
+    ReportFatalException(NULL, E_UNEXPECTED, Fatal_Debugger_AttachDetach_Failure, scenario);
+}
+
+__declspec(noinline) void EntryExitRecord_Corrupted_fatal_error()
+{
+    int scenario = 6;
+    ReportFatalException(NULL, E_UNEXPECTED, Fatal_EntryExitRecordCorruption, scenario);
+}
+
+__declspec(noinline) void UnexpectedExceptionHandling_fatal_error(EXCEPTION_POINTERS * originalException)
+{
+    int scenario = 7;
+    ReportFatalException(NULL, E_UNEXPECTED, Fatal_UnexpectedExceptionHandling, scenario);
 }
 
 #pragma optimize("",on)

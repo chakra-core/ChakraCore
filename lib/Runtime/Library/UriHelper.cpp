@@ -54,9 +54,9 @@ namespace Js
     // the number of characters in the output array.
     // This routine assumes that it's input 'uVal' is a valid Unicode code-point value
     // and does no error checking.
-    ulong UriHelper::ToUTF8( ulong uVal, BYTE bUTF8[MaxUTF8Len])
+    uint32 UriHelper::ToUTF8( uint32 uVal, BYTE bUTF8[MaxUTF8Len])
     {
-        ulong uRet;
+        uint32 uRet;
         if( uVal <= 0x007F )
         {
             bUTF8[0] = (BYTE)uVal;
@@ -64,8 +64,8 @@ namespace Js
         }
         else if( uVal <= 0x07FF )
         {
-            ulong z = uVal & 0x3F;
-            ulong y = uVal >> 6;
+            uint32 z = uVal & 0x3F;
+            uint32 y = uVal >> 6;
             bUTF8[0] = (BYTE) (0xC0 | y);
             bUTF8[1] = (BYTE) (0x80 | z);
             uRet = 2;
@@ -73,9 +73,9 @@ namespace Js
         else if( uVal <= 0xFFFF )
         {
             Assert( uVal <= 0xD7FF || uVal >= 0xE000 );
-            ulong z = uVal & 0x3F;
-            ulong y = (uVal >> 6) & 0x3F;
-            ulong x = (uVal >> 12);
+            uint32 z = uVal & 0x3F;
+            uint32 y = (uVal >> 6) & 0x3F;
+            uint32 x = (uVal >> 12);
             bUTF8[0] = (BYTE) (0xE0 | x);
             bUTF8[1] = (BYTE) (0x80 | y);
             bUTF8[2] = (BYTE) (0x80 | z);
@@ -83,10 +83,10 @@ namespace Js
         }
         else
         {
-            ulong z = uVal & 0x3F;
-            ulong y = (uVal >> 6) &0x3F;
-            ulong x = (uVal >> 12) &0x3F;
-            ulong w = (uVal >> 18);
+            uint32 z = uVal & 0x3F;
+            uint32 y = (uVal >> 6) &0x3F;
+            uint32 x = (uVal >> 12) &0x3F;
+            uint32 w = (uVal >> 18);
             bUTF8[0] = (BYTE) (0xF0 | w);
             bUTF8[1] = (BYTE) (0x80 | x);
             bUTF8[2] = (BYTE) (0x80 | y);
@@ -101,7 +101,7 @@ namespace Js
     // array 'bUTF8'. uLen is the number of characters in the UTF-8 encoding.
     // This routine assumes that a valid UTF-8 encoding of a character is passed in
     // and does no error checking.
-    unsigned long UriHelper::FromUTF8( BYTE bUTF8[MaxUTF8Len], ulong uLen )
+    uint32 UriHelper::FromUTF8( BYTE bUTF8[MaxUTF8Len], uint32 uLen )
     {
         Assert( 1 <= uLen && uLen <= MaxUTF8Len );
         if( uLen == 1 )
@@ -126,16 +126,16 @@ namespace Js
     // The Encode algorithm described in sec. 15.1.3 of the spec. The input string is
     // 'pSz' and the Unescaped set is described by the flags 'unescapedFlags'. The
     // output is a string var.
-    Var UriHelper::Encode(__in_ecount(len) const  wchar_t* pSz, ulong len, unsigned char unescapedFlags, ScriptContext* scriptContext )
+    Var UriHelper::Encode(__in_ecount(len) const  char16* pSz, uint32 len, unsigned char unescapedFlags, ScriptContext* scriptContext )
     {
         BYTE bUTF8[MaxUTF8Len];
 
         // pass 1 calculate output length and error check
-        ulong outputLen = 0;
-        for( ulong k = 0; k < len; k++ )
+        uint32 outputLen = 0;
+        for( uint32 k = 0; k < len; k++ )
         {
-            wchar_t c = pSz[k];
-            ulong uVal;
+            char16 c = pSz[k];
+            uint32 uVal;
             if( InURISet(c, unescapedFlags) )
             {
                 outputLen = UInt32Math::Add(outputLen, 1);
@@ -144,28 +144,28 @@ namespace Js
             {
                 if( c >= 0xDC00 && c <= 0xDFFF )
                 {
-                    JavascriptError::ThrowURIError(scriptContext, JSERR_URIEncodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                    JavascriptError::ThrowURIError(scriptContext, JSERR_URIEncodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                 }
                 else if( c < 0xD800 || c > 0xDBFF )
                 {
-                    uVal = (ulong)c;
+                    uVal = (uint32)c;
                 }
                 else
                 {
                     ++k;
                     if(k == len)
                     {
-                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIEncodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIEncodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
                     __analysis_assume(k < len); // because we throw exception if k==len
-                    wchar_t c1 = pSz[k];
+                    char16 c1 = pSz[k];
                     if( c1 < 0xDC00 || c1 > 0xDFFF )
                     {
-                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIEncodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIEncodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
                     uVal = (c - 0xD800) * 0x400 + (c1 - 0xDC00) + 0x10000;
                 }
-                ulong utfLen = ToUTF8(uVal, bUTF8);
+                uint32 utfLen = ToUTF8(uVal, bUTF8);
                 utfLen = UInt32Math::Mul(utfLen, 3);
                 outputLen = UInt32Math::Add(outputLen, utfLen);
             }
@@ -174,13 +174,13 @@ namespace Js
         //pass 2 generate the encoded URI
 
         uint32 allocSize = UInt32Math::Add(outputLen, 1);
-        wchar_t* outURI = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, allocSize);
-        wchar_t* outCurrent = outURI;
+        char16* outURI = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, allocSize);
+        char16* outCurrent = outURI;
 
-        for( ulong k = 0; k < len; k++ )
+        for( uint32 k = 0; k < len; k++ )
         {
-            wchar_t c = pSz[k];
-            ulong uVal;
+            char16 c = pSz[k];
+            uint32 uVal;
             if( InURISet(c, unescapedFlags) )
             {
                 __analysis_assume(outCurrent < outURI + allocSize);
@@ -191,12 +191,12 @@ namespace Js
 #if DBG
                 if( c >= 0xDC00 && c <= 0xDFFF )
                 {
-                    JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                    JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                 }
 #endif
                 if( c < 0xD800 || c > 0xDBFF )
                 {
-                    uVal = (ulong)c;
+                    uVal = (uint32)c;
                 }
                 else
                 {
@@ -204,26 +204,26 @@ namespace Js
 #if DBG
                     if(k == len)
                     {
-                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
 #endif
                     __analysis_assume(k < len);// because we throw exception if k==len
-                    wchar_t c1 = pSz[k];
+                    char16 c1 = pSz[k];
 
 #if DBG
                     if( c1 < 0xDC00 || c1 > 0xDFFF )
                     {
-                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
 #endif
                     uVal = (c - 0xD800) * 0x400 + (c1 - 0xDC00) + 0x10000;
                 }
 
-                ulong utfLen = ToUTF8(uVal, bUTF8);
-                for( ulong j = 0; j < utfLen; j++ )
+                uint32 utfLen = ToUTF8(uVal, bUTF8);
+                for( uint32 j = 0; j < utfLen; j++ )
                 {
 #pragma prefast(suppress: 26014, "buffer length was calculated earlier");
-                    swprintf_s(outCurrent, 4, L"%%%02X", (int)bUTF8[j] );
+                    swprintf_s(outCurrent, 4, _u("%%%02X"), (int)bUTF8[j] );
                     outCurrent +=3;
 #pragma prefast(default: 26014);
                 }
@@ -231,7 +231,7 @@ namespace Js
         }
         AssertMsg(outURI + outputLen == outCurrent, " URI out buffer out of sync");
         __analysis_assume(outputLen + 1 == allocSize);
-        outURI[outputLen] = L'\0';
+        outURI[outputLen] = _u('\0');
 
         return JavascriptString::NewCopyBuffer(outURI, outputLen, scriptContext);
     }
@@ -263,22 +263,22 @@ namespace Js
     // The Decode algorithm described in sec. 15.1.3 of the spec. The input string is
     // 'pSZ' and the Reserved set is described by the flags 'reservedFlags'. The
     // output is a string var.
-    Var UriHelper::Decode(__in_ecount(len) const wchar_t* pSz, ulong len, unsigned char reservedFlags, ScriptContext* scriptContext)
+    Var UriHelper::Decode(__in_ecount(len) const char16* pSz, uint32 len, unsigned char reservedFlags, ScriptContext* scriptContext)
     {
-        wchar_t c1;
-        wchar_t c;
+        char16 c1;
+        char16 c;
         // pass 1 calculate output length and error check
-        ulong outputLen = 0;
-        for( ulong k = 0; k < len; k++ )
+        uint32 outputLen = 0;
+        for( uint32 k = 0; k < len; k++ )
         {
             c = pSz[k];
 
             if( c == '%')
             {
-                ulong start = k;
+                uint32 start = k;
                 if( k + 2 >= len )
                 {
-                    JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                    JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                 }
 
                 // %-encoded components in a URI may only contain hexadecimal digits from the ASCII character set. 'swscanf_s'
@@ -306,7 +306,7 @@ namespace Js
 
                     if( n == 1 || n > UriHelper::MaxUTF8Len )
                     {
-                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
 
                     BYTE bOctets[UriHelper::MaxUTF8Len];
@@ -314,44 +314,44 @@ namespace Js
 
                     if( k + 3 * (n-1) >= len )
                     {
-                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
 
                     for( int j = 1; j < n; j++ )
                     {
                         if( pSz[++k] != '%' )
                         {
-                            JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                            JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                         }
 
                         if(!DecodeByteFromHex(pSz[k + 1], pSz[k + 2], b))
                         {
-                            JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                            JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                         }
 
                         // The two leading bits should be 10 for a valid UTF-8 encoding
                         if( (b & 0xC0) != 0x80)
                         {
-                            JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                            JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                         }
                         k += 2;
 
                         bOctets[j] = b;
                     }
 
-                    ulong uVal = UriHelper::FromUTF8( bOctets, n );
+                    uint32 uVal = UriHelper::FromUTF8( bOctets, n );
 
                     if( uVal >= 0xD800 && uVal <= 0xDFFF)
                     {
-                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
                     if( uVal < 0x10000 )
                     {
-                        c1 = (wchar_t)uVal;
+                        c1 = (char16)uVal;
                     }
                     else if( uVal > 0x10ffff )
                     {
-                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
                     else
                     {
@@ -377,21 +377,21 @@ namespace Js
 
         //pass 2 generate the decoded URI
         uint32 allocSize = UInt32Math::Add(outputLen, 1);
-        wchar_t* outURI = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, allocSize);
-        wchar_t* outCurrent = outURI;
+        char16* outURI = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, allocSize);
+        char16* outCurrent = outURI;
 
 
-        for( ulong k = 0; k < len; k++ )
+        for( uint32 k = 0; k < len; k++ )
         {
             c = pSz[k];
             if( c == '%')
             {
-                ulong start = k;
+                uint32 start = k;
 #if DBG
                 Assert(!(k + 2 >= len));
                 if( k + 2 >= len )
                 {
-                    JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                    JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                 }
 #endif
                 // Let OACR know some things about 'k' that we checked just above, to let it know that we are not going to
@@ -404,7 +404,7 @@ namespace Js
                 {
 #if DBG
                     AssertMsg(false, "!DecodeByteFromHex(pSz[k + 1], pSz[k + 2], b)");
-                    JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                    JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
 #endif
                 }
 
@@ -422,7 +422,7 @@ namespace Js
 
                     if( n == 1 || n > UriHelper::MaxUTF8Len )
                     {
-                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
 
                     BYTE bOctets[UriHelper::MaxUTF8Len];
@@ -432,7 +432,7 @@ namespace Js
                     Assert(!(k + 3 * (n-1) >= len));
                     if( k + 3 * (n-1) >= len )
                     {
-                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
 #endif
                     // Let OACR know some things about 'k' that we checked just above, to let it know that we are not going to
@@ -448,7 +448,7 @@ namespace Js
                         Assert(!(pSz[k] != '%'));
                         if( pSz[k] != '%' )
                         {
-                            JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                            JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                         }
 #endif
 
@@ -456,7 +456,7 @@ namespace Js
                         {
 #if DBG
                             AssertMsg(false, "!DecodeByteFromHex(pSz[k + 1], pSz[k + 2], b)");
-                            JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                            JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
 #endif
                         }
 
@@ -465,7 +465,7 @@ namespace Js
                         Assert(!((b & 0xC0) != 0x80));
                         if( (b & 0xC0) != 0x80)
                         {
-                            JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                            JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                         }
 #endif
 
@@ -474,36 +474,36 @@ namespace Js
                         bOctets[j] = b;
                     }
 
-                    ulong uVal = UriHelper::FromUTF8( bOctets, n );
+                    uint32 uVal = UriHelper::FromUTF8( bOctets, n );
 
 #if DBG
                     Assert(!(uVal >= 0xD800 && uVal <= 0xDFFF));
                     if( uVal >= 0xD800 && uVal <= 0xDFFF)
                     {
-                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
 #endif
 
                     if( uVal < 0x10000 )
                     {
-                        c1 = (wchar_t)uVal;
+                        c1 = (char16)uVal;
                     }
 
 #if DBG
                     else if( uVal > 0x10ffff )
                     {
                         AssertMsg(false, "uVal > 0x10ffff");
-                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: L"NEED MESSAGE" */);
+                        JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
 #endif
                     else
                     {
-                        ulong l = (( uVal - 0x10000) & 0x3ff) + 0xdc00;
-                        ulong h = ((( uVal - 0x10000) >> 10) & 0x3ff) + 0xd800;
+                        uint32 l = (( uVal - 0x10000) & 0x3ff) + 0xdc00;
+                        uint32 h = ((( uVal - 0x10000) >> 10) & 0x3ff) + 0xd800;
 
                         __analysis_assume(outCurrent + 2 <= outURI + allocSize);
-                        *outCurrent++ = (wchar_t)h;
-                        *outCurrent++ = (wchar_t)l;
+                        *outCurrent++ = (char16)h;
+                        *outCurrent++ = (char16)l;
                         continue;
                     }
                 }
@@ -515,7 +515,7 @@ namespace Js
                 }
                 else
                 {
-                    js_memcpy_s(outCurrent, (allocSize - (outCurrent - outURI)) * sizeof(wchar_t), &pSz[start], (k - start + 1)*sizeof(wchar_t));
+                    js_memcpy_s(outCurrent, (allocSize - (outCurrent - outURI)) * sizeof(char16), &pSz[start], (k - start + 1)*sizeof(char16));
                     outCurrent += k - start + 1;
                 }
             }
@@ -528,13 +528,13 @@ namespace Js
 
         AssertMsg(outURI + outputLen == outCurrent, " URI out buffer out of sync");
         __analysis_assume(outputLen + 1 == allocSize);
-        outURI[outputLen] = L'\0';
+        outURI[outputLen] = _u('\0');
 
         return JavascriptString::NewCopyBuffer(outURI, outputLen, scriptContext);
     }
 
     // Decodes a two-hexadecimal-digit wide character pair into the byte value it represents
-    bool UriHelper::DecodeByteFromHex(const wchar_t digit1, const wchar_t digit2, unsigned char &value)
+    bool UriHelper::DecodeByteFromHex(const char16 digit1, const char16 digit2, unsigned char &value)
     {
         int x;
         if(!Js::NumberUtilities::FHexDigit(digit1, &x))

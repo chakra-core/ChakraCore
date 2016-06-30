@@ -55,16 +55,16 @@ namespace Js
     {
     public:
         static bool IsDigit(int ch);
-        static BOOL NumberUtilities::FHexDigit(wchar_t ch, int *pw);
-        static ulong MulLu(ulong lu1, ulong lu2, ulong *pluHi);
-        static int AddLu(ulong *plu1, ulong lu2);
+        static BOOL NumberUtilities::FHexDigit(char16 ch, int *pw);
+        static uint32 MulLu(uint32 lu1, uint32 lu2, uint32 *pluHi);
+        static int AddLu(uint32 *plu1, uint32 lu2);
 
-        static ulong &LuHiDbl(double &dbl);
-        static ulong &LuLoDbl(double &dbl);
+        static uint32 &LuHiDbl(double &dbl);
+        static uint32 &LuLoDbl(double &dbl);
         static INT64 TryToInt64(double d);
         static bool IsValidTryToInt64(__int64 value);   // Whether TryToInt64 resulted in a valid value.
 
-        static int CbitZeroLeft(ulong lu);
+        static int CbitZeroLeft(uint32 lu);
 
         static bool IsFinite(double value);
         static bool IsNan(double value);
@@ -79,7 +79,7 @@ namespace Js
         static charcount_t UInt16ToString(uint16 integer, __out __ecount(outBufferSize) WCHAR* outBuffer, charcount_t outBufferSize, char widthForPaddingZerosInsteadSpaces);
 
         // Try to parse an integer string to find out if the string contains an index property name.
-        static BOOL TryConvertToUInt32(const wchar_t* str, int length, uint32* intVal);
+        static BOOL TryConvertToUInt32(const char16* str, int length, uint32* intVal);
 
         static double Modulus(double dblLeft, double dblRight);
 
@@ -94,15 +94,15 @@ namespace Js
         template<typename EncodedChar>
         static double StrToDbl(const EncodedChar *psz, const EncodedChar **ppchLim, bool& likelyInt);
 
-        static BOOL FDblToStr(double dbl, __out_ecount(nDstBufSize) wchar_t *psz, int nDstBufSize);
-        static int FDblToStr(double dbl, NumberUtilities::FormatType ft, int nDigits, __out_ecount(cchDst) wchar_t *pchDst, int cchDst);
+        static BOOL FDblToStr(double dbl, __out_ecount(nDstBufSize) char16 *psz, int nDstBufSize);
+        static int FDblToStr(double dbl, NumberUtilities::FormatType ft, int nDigits, __out_ecount(cchDst) char16 *pchDst, int cchDst);
 
         static BOOL FNonZeroFiniteDblToStr(double dbl, _Out_writes_(nDstBufSize) WCHAR* psz, int nDstBufSize);
         _Success_(return) static BOOL FNonZeroFiniteDblToStr(double dbl, _In_range_(2, 36) int radix, _Out_writes_(nDstBufSize) WCHAR* psz, int nDstBufSize);
 
         static double DblFromDecimal(DECIMAL * pdecIn);
 
-        static void CodePointAsSurrogatePair(codepoint_t codePointValue, __out wchar_t* first, __out wchar_t* second);
+        static void CodePointAsSurrogatePair(codepoint_t codePointValue, __out char16* first, __out char16* second);
         static codepoint_t SurrogatePairAsCodePoint(codepoint_t first, codepoint_t second);
 
         static bool IsSurrogateUpperPart(codepoint_t codePointValue);
@@ -110,9 +110,9 @@ namespace Js
 
         static bool IsInSupplementaryPlane(codepoint_t codePointValue);
 
-        static long LwFromDblNearest(double dbl);
-        static ulong LuFromDblNearest(double dbl);
-        static BOOL FDblIsLong(double dbl, long *plw);
+        static int32 LwFromDblNearest(double dbl);
+        static uint32 LuFromDblNearest(double dbl);
+        static BOOL FDblIsInt32(double dbl, int32 *plw);
 
         template<typename EncodedChar>
         static double DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim);

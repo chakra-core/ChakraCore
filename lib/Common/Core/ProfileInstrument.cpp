@@ -5,7 +5,7 @@
 #include "CommonCorePch.h"
 
 #ifdef PROFILE_EXEC
-#include "core\ProfileInstrument.h"
+#include "Core/ProfileInstrument.h"
 
 #define HIRES_PROFILER
 namespace Js
@@ -80,7 +80,6 @@ namespace Js
             this->inclSumAtLevel[i] = 0;
         }
     }
-
 
     ///----------------------------------------------------------------------------
     ///
@@ -315,7 +314,7 @@ namespace Js
 
                     Output::SkipToColumn(column);
 
-                    Output::Print(L"%-*s %7.1f %5d %7.1f %5d %7.1f %7.1f %5d\n",
+                    Output::Print(_u("%-*s %7.1f %5d %7.1f %5d %7.1f %7.1f %5d\n"),
                             (Profiler::PhaseNameWidth-column), PhaseNames[i],
                             (double)data->incl / freq ,                    // incl
                             int(data->incl * 100 / base->incl ),        // incl %
@@ -355,25 +354,25 @@ namespace Js
             if(!foundNode)
             {
                 foundNode = true;
-                Output::Print(L"%-*s:%7s %5s %7s %5s %7s %7s %5s\n",
+                Output::Print(_u("%-*s:%7s %5s %7s %5s %7s %7s %5s\n"),
                                 (Profiler::PhaseNameWidth-0),
-                                L"Profiler Report",
-                                L"Incl",
-                                L"(%)",
-                                L"Excl",
-                                L"(%)",
-                                L"Max",
-                                L"Mean",
-                                L"Count"
+                                _u("Profiler Report"),
+                                _u("Incl"),
+                                _u("(%)"),
+                                _u("Excl"),
+                                _u("(%)"),
+                                _u("Max"),
+                                _u("Mean"),
+                                _u("Count")
                                 );
-                Output::Print(L"-------------------------------------------------------------------------------\n");
+                Output::Print(_u("-------------------------------------------------------------------------------\n"));
             }
 
             UnitData *data      = baseNode->GetValue();
 
             if(0 == data->count)
             {
-                Output::Print(L"The phase : %s was never started", PhaseNames[baseTag]);
+                Output::Print(_u("The phase : %s was never started"), PhaseNames[baseTag]);
                 return;
             }
 
@@ -384,7 +383,7 @@ namespace Js
                 TypeNode *const parentNode = baseNode->GetParent();
                 Assert(parentNode);
 
-                Output::Print(L"%-*s\n", (Profiler::PhaseNameWidth-0), PhaseNames[parentTag]);
+                Output::Print(_u("%-*s\n"), (Profiler::PhaseNameWidth-0), PhaseNames[parentTag]);
                 indent += Profiler::TabWidth;
             }
 
@@ -392,7 +391,7 @@ namespace Js
             {
                 Output::SkipToColumn(indent);
             }
-            Output::Print(L"%-*s %7.1f %5d %7.1f %5d %7.1f %7.1f %5d\n",
+            Output::Print(_u("%-*s %7.1f %5d %7.1f %5d %7.1f %7.1f %5d\n"),
                     (Profiler::PhaseNameWidth-indent),
                     PhaseNames[baseTag],
                     (double)data->incl / freq ,                 // incl
@@ -410,7 +409,7 @@ namespace Js
 
         if(foundNode)
         {
-            Output::Print(L"-------------------------------------------------------------------------------\n");
+            Output::Print(_u("-------------------------------------------------------------------------------\n"));
             Output::Flush();
         }
     }

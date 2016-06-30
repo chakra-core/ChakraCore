@@ -408,6 +408,7 @@ CProtectedLong CntDeleteFileFatals;
 CHandle heventDirsEnumerated;
 
 CDirectoryQueue DirectoryQueue;
+CDirectoryQueue DirectoryTestQueue;
 CDirectoryAndTestCaseQueue DirectoryAndTestCaseQueue;
 CThreadInfo*    ThreadInfo = NULL;
 
@@ -964,22 +965,22 @@ FormatString(
       else {
          switch (*++format) {
             case 'd':
-               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (long)NumDiffsTotal[RLS_TOTAL]);
+               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (int32)NumDiffsTotal[RLS_TOTAL]);
                break;
             case 'f':
-               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (long)NumFailuresTotal[RLS_TOTAL]);
+               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (int32)NumFailuresTotal[RLS_TOTAL]);
                break;
             case 't':
-               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (long)NumVariationsRun[RLS_TOTAL]);
+               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (int32)NumVariationsRun[RLS_TOTAL]);
                break;
             case 'T':
-               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (long)NumVariationsTotal[RLS_TOTAL]);
+               i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d", (int32)NumVariationsTotal[RLS_TOTAL]);
                break;
             case 'p':
-               if ((long)NumVariationsTotal[RLS_TOTAL]) {
+               if ((int32)NumVariationsTotal[RLS_TOTAL]) {
                   i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "%d",
-                     100 * (long)NumVariationsRun[RLS_TOTAL] /
-                     (long)NumVariationsTotal[RLS_TOTAL]);
+                     100 * (int32)NumVariationsRun[RLS_TOTAL] /
+                     (int32)NumVariationsTotal[RLS_TOTAL]);
                }
                else {
                   i += sprintf_s(&buf[i], BUFFER_SIZE + 32 - i, "--");
@@ -3037,8 +3038,6 @@ ParseCommandLine(
       // The user didn't specify a log filename, so create one.
 
       if (!FUserSpecifiedDirs || (DirList.first != NULL)) {
-         char tempBuf[MAX_PATH];
-
          strcpy_s(tempBuf, REGRESS);
          strcat_s(tempBuf, "\\logs\\");
          strcat_s(tempBuf, DEFAULT_LOG_FILE);
@@ -3052,8 +3051,6 @@ ParseCommandLine(
       // The user didn't specify a full log filename, so create one.
 
       if (!FUserSpecifiedDirs || (DirList.first != NULL)) {
-         char tempBuf[MAX_PATH];
-
          strcpy_s(tempBuf, REGRESS);
          strcat_s(tempBuf, "\\logs\\");
          strcat_s(tempBuf, DEFAULT_FULL_LOG_FILE);
@@ -3067,8 +3064,6 @@ ParseCommandLine(
       // The user didn't specify a results log filename, so create one.
 
       if (!FUserSpecifiedDirs || (DirList.first != NULL)) {
-         char tempBuf[MAX_PATH];
-
          strcpy_s(tempBuf, REGRESS);
          strcat_s(tempBuf, "\\logs\\");
          strcat_s(tempBuf, DEFAULT_RESULTS_LOG_FILE);
@@ -3377,7 +3372,7 @@ IsTimeoutStringValid(char *strTimeout) {
    char *end;
    _set_errno(0);
 
-   unsigned long secTimeout = strtoul(strTimeout, &end, 10);
+   uint32 secTimeout = strtoul(strTimeout, &end, 10);
 
    if (errno != 0 || *end != 0) {
       return FALSE;
@@ -4602,9 +4597,9 @@ RegressDirectory(
    if (FBaseDiff && !pDir->IsBaseline())
       pDir->InitStats(0);
 
-   ASSERTNR((long)pDir->NumVariationsRun == 0);
-   ASSERTNR((long)pDir->NumDiffs == 0);
-   ASSERTNR((long)pDir->NumFailures == 0);
+   ASSERTNR((int32)pDir->NumVariationsRun == 0);
+   ASSERTNR((int32)pDir->NumDiffs == 0);
+   ASSERTNR((int32)pDir->NumFailures == 0);
 
    if (!FNoDirName)
       WriteLog("*** %s ***", dir);
@@ -4709,49 +4704,49 @@ ThreadWorker( void *arg )
       TargetVM = NULL;
    }
 
-   while (TRUE) {
-      if (bThreadStop)
-         break;
+   while(TRUE) {
+       if(bThreadStop)
+           break;
 
-      // Poll for new stuff. If the thread is set to stop, then go away.
+       // Poll for new stuff. If the thread is set to stop, then go away.
 
-      if (FSingleThreadPerDir)
-      {
-          // Use DirectoryQueue and schedule each directory on a single thread.
-          pDir = DirectoryQueue.GetNextItem();
+       // Use DirectoryQueue and schedule each directory on a single thread.
+       pDir = DirectoryTestQueue.GetNextItem_NoBlock(1000);
+       if(pDir == NULL)
+           break;
 
-          if (pDir == NULL)
-             break;
+       while(TRUE) {
+           RegressDirectory(pDir);
 
-          while (TRUE) {
-             RegressDirectory(pDir);
+           // We're done with this directory.  If we are doing both
+           // baselines and diffs, and it was a baseline directory,
+           // changed to diffs and run again.
 
-             // We're done with this directory.  If we are doing both
-             // baselines and diffs, and it was a baseline directory,
-             // changed to diffs and run again.
+           if(FBaseDiff && pDir->IsBaseline())
+               pDir->SetDiffFlag();
+           else
+               break;
+       }
 
-             if (FBaseDiff && pDir->IsBaseline())
-                pDir->SetDiffFlag();
-             else
-                break;
-          }
+       delete pDir;
+       pDir = NULL;
+   }
 
-          delete pDir;
-          pDir = NULL;
-      }
-      else
-      {
-          // Use DirectoryAndTestCaseQueue and schedule each test on it's own thread.
-          pDirAndTest = DirectoryAndTestCaseQueue.GetNextItem();
+   while(TRUE) {
+       if(bThreadStop)
+           break;
 
-          if (pDirAndTest == NULL)
-             break;
+       // Poll for new stuff. If the thread is set to stop, then go away.
 
-          PerformSingleRegression(pDirAndTest->_pDir, pDirAndTest->_pTest);
+       // Use DirectoryAndTestCaseQueue and schedule each test on it's own thread.
+       pDirAndTest = DirectoryAndTestCaseQueue.GetNextItem_NoBlock(1000);
+       if(pDirAndTest == NULL)
+           break;
 
-          delete pDirAndTest;
-          pDirAndTest = NULL;
-      }
+       PerformSingleRegression(pDirAndTest->_pDir, pDirAndTest->_pTest);
+
+       delete pDirAndTest;
+       pDirAndTest = NULL;
    }
 
    // Make sure we've flushed all the output, especially if we're stopping
@@ -4793,6 +4788,7 @@ main(int argc, char *argv[])
    DWORD err;
    time_t start_total;
    UINT elapsed_total;
+   char flagBuff[64];
 
    start_total = time(NULL);
 
@@ -4964,11 +4960,6 @@ main(int argc, char *argv[])
             if (!FBaseline)
                pDirectory->SetDiffFlag();
 
-            // Always put the directory into the DirectoryQueue.
-            // We will use this queue to clean up the CDirectory objects if FSingleThreadPerDir is
-            // turned off.
-            DirectoryQueue.Append(pDirectory);
-
             if (FRLFE) {
                if (Mode == RM_EXE) {
                   RLFEAddTest(RLS_EXE, pDirectory);
@@ -4981,8 +4972,20 @@ main(int argc, char *argv[])
                }
             }
 
-            if (!FSingleThreadPerDir)
+            strcpy_s(flagBuff, "sequential");
+            BOOL isSerialDirectory = HasInfoList(pDir->defaultTestInfo.data[TIK_TAGS], XML_DELIM, flagBuff, XML_DELIM, false);
+
+            if(isSerialDirectory)
             {
+                DirectoryTestQueue.Append(pDirectory);
+            }
+            else
+            {
+                // Always put the directory into the DirectoryQueue.
+                // We will use this queue to clean up the CDirectory objects if FSingleThreadPerDir is
+                // turned off.
+                DirectoryQueue.Append(pDirectory);
+
                 // Keep track of tests as a flat list so we can split tests
                 // in the same directory across multiple threads.
 
@@ -5008,16 +5011,16 @@ main(int argc, char *argv[])
 
    if (FRLFE) {
       if (Mode == RM_EXE) {
-         RLFEAddRoot(RLS_EXE, (long)NumVariationsTotal[RLS_EXE]);
+         RLFEAddRoot(RLS_EXE, (int32)NumVariationsTotal[RLS_EXE]);
       }
       else {
          if (FBaseline)
-            RLFEAddRoot(RLS_BASELINES, (long)NumVariationsTotal[RLS_BASELINES]);
+            RLFEAddRoot(RLS_BASELINES, (int32)NumVariationsTotal[RLS_BASELINES]);
          if (FDiff)
-            RLFEAddRoot(RLS_DIFFS, (long)NumVariationsTotal[RLS_DIFFS]);
+            RLFEAddRoot(RLS_DIFFS, (int32)NumVariationsTotal[RLS_DIFFS]);
       }
 
-      RLFEAddRoot(RLS_TOTAL, (long)NumVariationsTotal[RLS_TOTAL]);
+      RLFEAddRoot(RLS_TOTAL, (int32)NumVariationsTotal[RLS_TOTAL]);
    }
 
    DirectoryQueue.AdjustWaitForThreadCount();
@@ -5073,5 +5076,5 @@ main(int argc, char *argv[])
    // The return code from RL is 0 for complete success, 1 for any failure.
    // Note that diffs don't count as failures.
 
-   return ((long)NumFailuresTotal[RLS_TOTAL] == 0L) ? 0 : 1;
+   return ((int32)NumFailuresTotal[RLS_TOTAL] == 0L) ? 0 : 1;
 }

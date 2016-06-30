@@ -13,7 +13,6 @@ protected:
     template <class TBlockAttributes>
     friend class HeapBucketGroup;
 
-    template<bool pageheap>
     void Sweep(RecyclerSweep& recyclerSweep);
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
@@ -30,7 +29,7 @@ protected:
     void VerifyMark();
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
 };
 

@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 NativeCodeGenerator *
 NewNativeCodeGenerator(Js::ScriptContext * scriptContext)
@@ -105,6 +105,18 @@ CheckCodeGenFunction GetCheckCodeGenFunction(Js::JavascriptMethod codeAddress)
 {
     return NativeCodeGenerator::GetCheckCodeGenFunction(codeAddress);
 }
+
+Js::JavascriptMethod GetCheckCodeGenThunk()
+{
+    return NativeCodeGenerator::CheckCodeGenThunk;
+}
+
+#ifdef ASMJS_PLAT
+Js::JavascriptMethod GetCheckAsmJsCodeGenThunk()
+{
+    return NativeCodeGenerator::CheckAsmJsCodeGenThunk;
+}
+#endif
 
 uint GetBailOutRegisterSaveSlotCount()
 {

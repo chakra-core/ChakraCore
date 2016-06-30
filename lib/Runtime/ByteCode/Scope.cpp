@@ -14,33 +14,12 @@ bool Scope::IsBlockScope(FuncInfo *funcInfo)
     return this != funcInfo->GetBodyScope() && this != funcInfo->GetParamScope();
 }
 
-void Scope::SetHasLocalInClosure(bool has)
-{
-    // (Note: if any catch var is closure-captured, we won't merge the catch scope with the function scope.
-    // So don't mark the function scope "has local in closure".)
-    // Do not mark the entire function if the closure is just inside the param scope and is not merged.
-    bool isMergedParamScope = this == func->GetParamScope() && func->GetParamScope()->GetCanMergeWithBodyScope();
-    bool notCatch = this->scopeType != ScopeType_Catch && this->scopeType != ScopeType_CatchParamPattern;
-    if (has && (this == func->GetBodyScope() || isMergedParamScope) || (GetCanMerge() && notCatch))
-    {
-        func->SetHasLocalInClosure(true);
-    }
-    else
-    {
-        if (hasCrossScopeFuncAssignment)
-        {
-            func->SetHasMaybeEscapedNestedFunc(DebugOnly(L"InstantiateScopeWithCrossScopeAssignment"));
-        }
-        SetMustInstantiate(true);
-    }
-}
-
 int Scope::AddScopeSlot()
 {
     int slot = scopeSlotCount++;
     if (scopeSlotCount == Js::ScopeSlots::MaxEncodedSlotCount)
     {
-        this->GetEnclosingFunc()->SetHasMaybeEscapedNestedFunc(DebugOnly(L"TooManySlots"));
+        this->GetEnclosingFunc()->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("TooManySlots")));
     }
     return slot;
 }
@@ -51,7 +30,8 @@ void Scope::ForceAllSymbolNonLocalReference(ByteCodeGenerator *byteCodeGenerator
     {
         if (!sym->GetIsArguments())
         {
-            sym->SetHasNonLocalReference(true, byteCodeGenerator);
+            sym->SetHasNonLocalReference();
+            byteCodeGenerator->ProcessCapturedSym(sym);
             this->GetFunc()->SetHasLocalInClosure(true);
         }
     });
@@ -89,7 +69,7 @@ void Scope::SetIsObject()
         {
             if (sym->GetHasFuncAssignment())
             {
-                funcInfo->SetHasMaybeEscapedNestedFunc(DebugOnly(L"DelayedObjectScopeAssignment"));
+                funcInfo->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("DelayedObjectScopeAssignment")));
                 return true;
             }
             return false;
@@ -97,60 +77,23 @@ void Scope::SetIsObject()
     }
 }
 
-void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *byteCodeGenerator)
+void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope)
 {
     Assert(pnodeScope->sxFnc.funcInfo);
     Scope *paramScope = pnodeScope->sxFnc.pnodeScopes->sxBlock.scope;
     Scope *bodyScope = pnodeScope->sxFnc.pnodeBodyScope->sxBlock.scope;
 
-    Assert(paramScope->m_symList == nullptr || paramScope->symbolTable == nullptr);
-    Assert(bodyScope->m_symList == nullptr || bodyScope->symbolTable == nullptr);
-
     if (paramScope->Count() == 0)
     {
-        // Once the scopes are merged, there's no reason to instantiate the param scope.
-        paramScope->SetMustInstantiate(false);
-
-        // Scopes are already merged or we don't have an arguments object. Go ahead and
-        // remove the param scope from the scope chain.
-        bodyScope->SetEnclosingScope(paramScope->GetEnclosingScope());
         return;
     }
 
-    bodyScope->ForEachSymbol([&](Symbol * sym)
-    {
-        // Duplicate 'arguments' - param scope arguments wins.
-        if (byteCodeGenerator->UseParserBindings()
-            && sym->GetDecl()->sxVar.pid == byteCodeGenerator->GetParser()->names()->arguments)
-        {
-            return;
-        }
-
-        Assert(paramScope->m_symList == nullptr || paramScope->FindLocalSymbol(sym->GetName()) == nullptr);
-        paramScope->AddNewSymbol(sym);
-    });
-
-    // Reassign non-formal slot positions. Formals need to keep their slot positions to ensure
-    // the argument object works properly. Other symbols need to be reassigned slot positions.
+    bodyScope->scopeSlotCount = paramScope->scopeSlotCount;
     paramScope->ForEachSymbol([&](Symbol * sym)
     {
-        if (sym->GetSymbolType() != STFormal && sym->GetScopeSlot() != Js::Constants::NoProperty)
-        {
-            sym->SetScopeSlot(Js::Constants::NoProperty);
-            sym->EnsureScopeSlot(pnodeScope->sxFnc.funcInfo);
-        }
-        sym->SetScope(bodyScope);
+        bodyScope->AddNewSymbol(sym);
     });
 
-    bodyScope->m_count = paramScope->m_count;
-    bodyScope->m_symList = paramScope->m_symList;
-    bodyScope->scopeSlotCount = paramScope->scopeSlotCount;
-    if (bodyScope->symbolTable != nullptr)
-    {
-        Adelete(byteCodeGenerator->GetAllocator(), bodyScope->symbolTable);
-        bodyScope->symbolTable = nullptr;
-    }
-    bodyScope->symbolTable = paramScope->symbolTable;
     if (paramScope->GetIsObject())
     {
         bodyScope->SetIsObject();
@@ -159,6 +102,17 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *by
     {
         bodyScope->SetMustInstantiate(true);
     }
+    if (paramScope->GetHasOwnLocalInClosure())
+    {
+        bodyScope->SetHasOwnLocalInClosure(true);
+    }
+}
+
+void Scope::RemoveParamScope(ParseNode *pnodeScope)
+{
+    Assert(pnodeScope->sxFnc.funcInfo);
+    Scope *paramScope = pnodeScope->sxFnc.pnodeScopes->sxBlock.scope;
+    Scope *bodyScope = pnodeScope->sxFnc.pnodeBodyScope->sxBlock.scope;
 
     // Once the scopes are merged, there's no reason to instantiate the param scope.
     paramScope->SetMustInstantiate(false);
@@ -166,8 +120,7 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator *by
     paramScope->m_count = 0;
     paramScope->scopeSlotCount = 0;
     paramScope->m_symList = nullptr;
-    paramScope->symbolTable = nullptr;
-
     // Remove the parameter scope from the scope chain.
+
     bodyScope->SetEnclosingScope(paramScope->GetEnclosingScope());
 }

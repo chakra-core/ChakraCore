@@ -3,12 +3,12 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#include "BackEnd.h"
-#include "Language\JavascriptFunctionArgIndex.h"
-#include "Types\DynamicObjectEnumerator.h"
-#include "Types\DynamicObjectSnapshotEnumerator.h"
-#include "Types\DynamicObjectSnapshotEnumeratorWPCache.h"
-#include "Library\ForInObjectEnumerator.h"
+#include "Backend.h"
+#include "Language/JavascriptFunctionArgIndex.h"
+#include "Types/DynamicObjectEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
+#include "Library/ForInObjectEnumerator.h"
 
 const Js::OpCode LowererMD::MDUncondBranchOpcode = Js::OpCode::B;
 const Js::OpCode LowererMD::MDTestOpcode = Js::OpCode::TST;
@@ -199,6 +199,7 @@ IR::Instr *
 LowererMD::LowerCallHelper(IR::Instr *instrCall)
 {
     IR::Opnd *argOpnd = instrCall->UnlinkSrc2();
+    IR::Instr          *prevInstr = instrCall;
     IR::JnHelperMethod helperMethod = instrCall->GetSrc1()->AsHelperCallOpnd()->m_fnHelper;
     instrCall->FreeSrc1();
 
@@ -210,17 +211,22 @@ LowererMD::LowerCallHelper(IR::Instr *instrCall)
         Assert(regArg->m_sym->m_isSingleDef);
         IR::Instr *instrArg = regArg->m_sym->m_instrDef;
 
-        Assert(instrArg->m_opcode == Js::OpCode::ArgOut_A);
-        this->LoadHelperArgument(instrArg, instrArg->UnlinkSrc1());
+        Assert(instrArg->m_opcode == Js::OpCode::ArgOut_A ||
+            (helperMethod == IR::JnHelperMethod::HelperOP_InitCachedScope && instrArg->m_opcode == Js::OpCode::ExtendArg_A));
+        prevInstr = this->LoadHelperArgument(prevInstr, instrArg->GetSrc1());
 
-        regArg->Free(this->m_func);
         argOpnd = instrArg->GetSrc2();
 
-        if (argOpnd)
+        if (instrArg->m_opcode == Js::OpCode::ArgOut_A)
         {
-            instrArg->UnlinkSrc2();
+            instrArg->UnlinkSrc1();
+            if (argOpnd)
+            {
+                instrArg->UnlinkSrc2();
+            }
+            regArg->Free(this->m_func);
+            instrArg->Remove();
         }
-        instrArg->Remove();
     }
 
     this->m_lowerer->LoadScriptContext(instrCall);
@@ -1478,7 +1484,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         //R12 acts a dummy zero register which we push to arguments slot
         //mov r12, 0
         Assert(r12Opnd == nullptr);
-        IR::RegOpnd* r12Opnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
+        r12Opnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
         IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV, r12Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instrMov);
         IR::LabelInstr *prologStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
@@ -2164,27 +2170,30 @@ LowererMD::LoadHeapArguments(IR::Instr * instrArgs, bool force /* = false */, IR
 {
     ASSERT_INLINEE_FUNC(instrArgs);
     Func *func = instrArgs->m_func;
-
-    // s7 = formals are let decls
-    // s6 = memory context
-    // s5 = array of property ID's
-    // s4 = local frame instance
-    // s3 = address of first actual argument (after "this")
-    // s2 = actual argument count
-    // s1 = current function
-    // dst = JavascriptOperators::LoadHeapArguments(s1, s2, s3, s4, s5, s6, s7)
-
     IR::Instr * instrPrev = instrArgs->m_prev;
 
-    if (!force && func->GetHasStackArgs() && this->m_func->GetHasStackArgs())
+    if (!force && func->IsStackArgsEnabled())
     {
         // The initial args slot value is zero.
         instrArgs->m_opcode = Js::OpCode::MOV;
         instrArgs->ReplaceSrc1(IR::AddrOpnd::NewNull(func));
-        instrArgs->FreeSrc2();
+        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJnFunction()->GetInParamsCount() > 1)
+        {
+            Output::Print(_u("StackArgFormals : %s (%d) :Removing Heap Arguments object creation in Lowerer. \n"), instrArgs->m_func->GetJnFunction()->GetDisplayName(), instrArgs->m_func->GetJnFunction()->GetFunctionNumber());
+            Output::Flush();
+        }
     }
     else
     {
+        // s7 = formals are let decls
+        // s6 = memory context
+        // s5 = array of property ID's
+        // s4 = local frame instance
+        // s3 = address of first actual argument (after "this")
+        // s2 = actual argument count
+        // s1 = current function
+        // dst = JavascriptOperators::LoadHeapArguments(s1, s2, s3, s4, s5, s6, s7)
+
         // s7 = formals are let decls
         this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(instrArgs->m_opcode == Js::OpCode::LdLetHeapArguments ? TRUE : FALSE, TyUint8, func));
 
@@ -2192,7 +2201,7 @@ LowererMD::LoadHeapArguments(IR::Instr * instrArgs, bool force /* = false */, IR
         this->m_lowerer->LoadScriptContext(instrArgs);
 
         // s5 = array of property ID's
-        IR::Opnd * argArray = instrArgs->UnlinkSrc2();
+        IR::Opnd * argArray = IR::AddrOpnd::New(instrArgs->m_func->GetJnFunction()->GetFormalsPropIdArrayOrNullObj(), IR::AddrOpndKindDynamicMisc, m_func);
         this->LoadHelperArgument(instrArgs, argArray);
 
         // s4 = local frame instance
@@ -2262,81 +2271,95 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
     Assert(!this->m_func->GetJITFunctionBody()->IsGenerator());
     ASSERT_INLINEE_FUNC(instrArgs);
     Func *func = instrArgs->m_func;
-
-    // s7 = formals are let decls
-    // s6 = memory context
-    // s5 = local frame instance
-    // s4 = address of first actual argument (after "this")
-    // s3 = formal argument count
-    // s2 = actual argument count
-    // s1 = current function
-    // dst = JavascriptOperators::LoadHeapArgsCached(s1, s2, s3, s4, s5, s6, s7)
-
     IR::Instr * instrPrev = instrArgs->m_prev;
 
-    // s7 = formals are let decls
-    IR::Opnd * formalsAreLetDecls = IR::IntConstOpnd::New((IntConstType)(instrArgs->m_opcode == Js::OpCode::LdLetHeapArgsCached), TyUint8, func);
-    this->LoadHelperArgument(instrArgs, formalsAreLetDecls);
-
-    // s6 = memory context
-    this->m_lowerer->LoadScriptContext(instrArgs);
-
-    // s5 = local frame instance
-    IR::Opnd * frameObj = instrArgs->UnlinkSrc1();
-    this->LoadHelperArgument(instrArgs, frameObj);
-
-    if (func->IsInlinee())
+    if (instrArgs->m_func->IsStackArgsEnabled())
     {
-        // s4 = address of first actual argument (after "this").
-        StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
-        this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
+        instrArgs->m_opcode = Js::OpCode::MOV;
+        instrArgs->ReplaceSrc1(IR::AddrOpnd::NewNull(func));
 
-        IR::Instr *instr = this->LoadStackAddress(firstRealArgSlotSym);
-        instrArgs->InsertBefore(instr);
-        this->LoadHelperArgument(instrArgs, instr->GetDst());
-
-        // s3 = formal argument count (without counting "this").
-        uint32 formalsCount = func->GetJITFunctionBody()->GetInParamsCount() - 1;
-        this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(formalsCount, TyUint32, func));
-
-        // s2 = actual argument count (without counting "this").
-        this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(func->actualCount - 1, TyUint32, func));
-
-        // s1 = current function.
-        this->LoadHelperArgument(instrArgs, func->GetInlineeFunctionObjectSlotOpnd());
-
-        // Save the newly-created args object to its dedicated stack slot.
-        IR::SymOpnd *argObjSlotOpnd = func->GetInlineeArgumentsObjectSlotOpnd();
-        LowererMD::CreateAssign(argObjSlotOpnd, instrArgs->GetDst(), instrArgs->m_next);
+        if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJITFunctionBody()->GetInParamsCount() > 1)
+        {
+            Output::Print(_u("StackArgFormals : %s (%d) :Removing Heap Arguments object creation in Lowerer. \n"), instrArgs->m_func->GetJITFunctionBody()->GetDisplayName(), instrArgs->m_func->GetFunctionNumber());
+            Output::Flush();
+        }
     }
     else
     {
+        // s7 = formals are let decls
+        // s6 = memory context
+        // s5 = local frame instance
         // s4 = address of first actual argument (after "this")
-        IR::Instr * instr = this->LoadInputParamPtr(instrArgs);
-        this->LoadHelperArgument(instrArgs, instr->GetDst());
-
-        // s3 = formal argument count (without counting "this")
-        uint32 formalsCount = func->GetInParamsCount() - 1;
-        this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(formalsCount, TyMachReg, func));
-
-        // s2 = actual argument count (without counting "this")
-        instr = this->LoadInputParamCount(instrArgs, -1);
-        this->LoadHelperArgument(instrArgs, instr->GetDst());
-
+        // s3 = formal argument count
+        // s2 = actual argument count
         // s1 = current function
-        StackSym * paramSym = GetImplicitParamSlotSym(0);
-        IR::Opnd * srcOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
-        this->LoadHelperArgument(instrArgs, srcOpnd);
+        // dst = JavascriptOperators::LoadHeapArgsCached(s1, s2, s3, s4, s5, s6, s7)
 
 
-        // Save the newly-created args object to its dedicated stack slot.
-        IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, FRAME_REG , TyMachReg, func),
-            -MachArgsSlotOffset, TyMachPtr, m_func);
-        LowererMD::CreateAssign(indirOpnd, instrArgs->GetDst(), instrArgs->m_next);
+        // s7 = formals are let decls
+        IR::Opnd * formalsAreLetDecls = IR::IntConstOpnd::New((IntConstType)(instrArgs->m_opcode == Js::OpCode::LdLetHeapArgsCached), TyUint8, func);
+        this->LoadHelperArgument(instrArgs, formalsAreLetDecls);
 
+        // s6 = memory context
+        this->m_lowerer->LoadScriptContext(instrArgs);
+
+        // s5 = local frame instance
+        IR::Opnd * frameObj = instrArgs->UnlinkSrc1();
+        this->LoadHelperArgument(instrArgs, frameObj);
+
+        if (func->IsInlinee())
+        {
+            // s4 = address of first actual argument (after "this").
+            StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
+            this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
+
+            IR::Instr *instr = this->LoadStackAddress(firstRealArgSlotSym);
+            instrArgs->InsertBefore(instr);
+            this->LoadHelperArgument(instrArgs, instr->GetDst());
+
+            // s3 = formal argument count (without counting "this").
+        uint32 formalsCount = func->GetJITFunctionBody()->GetInParamsCount() - 1;
+            this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(formalsCount, TyUint32, func));
+
+            // s2 = actual argument count (without counting "this").
+            this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(func->actualCount - 1, TyUint32, func));
+
+            // s1 = current function.
+            this->LoadHelperArgument(instrArgs, func->GetInlineeFunctionObjectSlotOpnd());
+
+            // Save the newly-created args object to its dedicated stack slot.
+            IR::SymOpnd *argObjSlotOpnd = func->GetInlineeArgumentsObjectSlotOpnd();
+            LowererMD::CreateAssign(argObjSlotOpnd, instrArgs->GetDst(), instrArgs->m_next);
+        }
+        else
+        {
+            // s4 = address of first actual argument (after "this")
+            IR::Instr * instr = this->LoadInputParamPtr(instrArgs);
+            this->LoadHelperArgument(instrArgs, instr->GetDst());
+
+            // s3 = formal argument count (without counting "this")
+            uint32 formalsCount = func->GetInParamsCount() - 1;
+            this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(formalsCount, TyMachReg, func));
+
+            // s2 = actual argument count (without counting "this")
+            instr = this->LoadInputParamCount(instrArgs, -1);
+            this->LoadHelperArgument(instrArgs, instr->GetDst());
+
+            // s1 = current function
+            StackSym * paramSym = GetImplicitParamSlotSym(0);
+            IR::Opnd * srcOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
+            this->LoadHelperArgument(instrArgs, srcOpnd);
+
+
+            // Save the newly-created args object to its dedicated stack slot.
+            IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, FRAME_REG, TyMachReg, func),
+                -MachArgsSlotOffset, TyMachPtr, m_func);
+            LowererMD::CreateAssign(indirOpnd, instrArgs->GetDst(), instrArgs->m_next);
+
+        }
+
+        this->ChangeToHelperCall(instrArgs, IR::HelperOp_LoadHeapArgsCached);
     }
-
-    this->ChangeToHelperCall(instrArgs, IR::HelperOp_LoadHeapArgsCached);
     return instrPrev;
 }
 
@@ -2377,15 +2400,13 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMe
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        if (callInstr->GetBailOutKind() == IR::BailOutExpectingObject ||
-            callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
+        if (callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
         {
             callInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
             bailOutInstr->TransferTo(callInstr);
             bailOutInstr->InsertBefore(callInstr);
 
-            IR::BailOutKind bailOutKind = bailOutInstr->GetBailOutKind();
-            bailOutInstr->m_opcode = bailOutKind == IR::BailOutExpectingObject ? Js::OpCode::BailOnNotObject : Js::OpCode::BailOnNotPrimitive;
+            bailOutInstr->m_opcode = Js::OpCode::BailOnNotPrimitive;
             bailOutInstr->SetSrc1(opndInstance);
         }
         else
@@ -2808,6 +2829,7 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
         case Js::OpCode::BrOnNotEmpty:
         case Js::OpCode::BrNotNull_A:
         case Js::OpCode::BrOnObject_A:
+        case Js::OpCode::BrOnClassConstructor:
             Assert(!opndSrc1->IsFloat64());
             AssertMsg(opndSrc1->IsRegOpnd(),"NYI for other operands");
             AssertMsg(instr->GetSrc2() == nullptr, "Expected 1 src on boolean branch");
@@ -6890,7 +6912,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
         insertInstr->InsertBefore(instr);
 
         // indir = [psz + index32 * 2]
-        indirOpnd = IR::IndirOpnd::New(psz, constIndex * sizeof(wchar_t), TyUint16, this->m_func);
+        indirOpnd = IR::IndirOpnd::New(psz, constIndex * sizeof(char16), TyUint16, this->m_func);
     }
     else
     {
@@ -6918,7 +6940,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
         insertInstr->InsertBefore(instr);
 
         // indir = [psz + index32 * 2]
-        indirOpnd = IR::IndirOpnd::New(psz, index32, (byte)Math::Log2(sizeof(wchar_t)), TyUint16, this->m_func);
+        indirOpnd = IR::IndirOpnd::New(psz, index32, (byte)Math::Log2(sizeof(char16)), TyUint16, this->m_func);
     }
 
     // char = LDRH [regSrc + index32, LSL #1]
@@ -7437,7 +7459,7 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
             labelToVar = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
             if (!isFromUint32)
             {
-                // TEQ src1,src1 LSL#1 - TIOFLW is an alias for this pattern.
+                // TEQ src1,src1 LS_u(#1) - TIOFLW is an alias for this pattern.
                 // XOR the src with itself shifted left one. If there's no overflow,
                 // the result should be positive (top bit clear).
                 instr = IR::Instr::New(Js::OpCode::TIOFLW, this->m_func);
@@ -7673,9 +7695,7 @@ LowererMD::LowerCommitScope(IR::Instr *instrCommit)
     instrCommit->SetSrc1(IR::IntConstOpnd::New(1, TyInt8, this->m_func));
     LowererMD::ChangeToAssign(instrCommit);
 
-    IR::IntConstOpnd *intConstOpnd = instrCommit->UnlinkSrc2()->AsIntConstOpnd();
-    const Js::PropertyIdArray *propIds = m_func->GetJITFunctionBody()->ReadAuxArray(intConstOpnd->GetValue());
-    intConstOpnd->Free(this->m_func);
+    const Js::PropertyIdArray *propIds = instrCommit->m_func->GetJITFunctionBody()->GetFormalsPropIdArray();
 
     uint firstVarSlot = (uint)Js::ActivationObjectEx::GetFirstVarSlot(propIds);
     if (firstVarSlot < propIds->count)
@@ -8401,17 +8421,9 @@ LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
     IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
     this->m_lowerer->InsertMove(floatOpnd, src, instr);
 
-    IR::LabelInstr * bailoutLabel;
+    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);;
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-    if(sharedBailout)
-    {
-        bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
-    }
-    else
-    {
-        bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    }
-
+    
     // NaN check
     IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::VCMPF64, this->m_func);
     instrCmp->SetSrc1(floatOpnd);
@@ -8483,7 +8495,10 @@ LowererMD::GenerateFastInlineBuiltInMathFloor(IR::Instr* instr)
     {
         instr->InsertBefore(bailoutLabel);
     }
-    this->m_lowerer->GenerateBailOut(instr);
+
+    // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
+    // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
+    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
 
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
@@ -8504,16 +8519,8 @@ LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
     IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
     this->m_lowerer->InsertMove(floatOpnd, src, instr);
 
-    IR::LabelInstr * bailoutLabel;
+    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);;
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-    if(sharedBailout)
-    {
-        bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
-    }
-    else
-    {
-        bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    }
 
     // NaN check
     IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::VCMPF64, this->m_func);
@@ -8591,7 +8598,10 @@ LowererMD::GenerateFastInlineBuiltInMathCeil(IR::Instr* instr)
     {
         instr->InsertBefore(bailoutLabel);
     }
-    this->m_lowerer->GenerateBailOut(instr);
+
+    // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
+    // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
+    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
 
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
@@ -8612,17 +8622,9 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
     this->m_lowerer->InsertMove(floatOpnd, src, instr);
 
-    IR::LabelInstr * bailoutLabel;
+    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/true);;
     bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
-    if(sharedBailout)
-    {
-        bailoutLabel = instr->GetBailOutInfo()->bailOutInstr->AsLabelInstr();
-    }
-    else
-    {
-        bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    }
-
+    
     // NaN check
     IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::VCMPF64, this->m_func);
     instrCmp->SetSrc1(floatOpnd);
@@ -8703,7 +8705,10 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     {
         instr->InsertBefore(bailoutLabel);
     }
-    this->m_lowerer->GenerateBailOut(instr);
+
+    // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
+    // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
+    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
 
     // MOV dst, intOpnd
     IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
@@ -9170,7 +9175,7 @@ template void LowererMD::Legalize<true>(IR::Instr *const instr, bool fPostRegall
 void
 LowererMD::FinalLower()
 {
-    NoRecoverMemoryArenaAllocator tempAlloc(L"BE-ARMFinalLower", m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+    NoRecoverMemoryArenaAllocator tempAlloc(_u("BE-ARMFinalLower"), m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
     EncodeReloc *pRelocList = nullptr;
 
     uint32 instrOffset = 0;
@@ -9233,7 +9238,7 @@ LowererMD::FinalLower()
                 if (canExpand)
                 {
                     uint32 expandedInstrCount = 0;   // The number of instrs the LDIMM expands into.
-                    FOREACH_INSTR_IN_RANGE(instr, instrPrev->m_next, instrNext)
+                    FOREACH_INSTR_IN_RANGE(instrCount, instrPrev->m_next, instrNext)
                     {
                         ++expandedInstrCount;
                     }

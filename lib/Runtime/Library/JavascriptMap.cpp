@@ -43,10 +43,10 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Map");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Map"));
 
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(MapCount);
 
@@ -58,7 +58,7 @@ namespace Js
         }
         else
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map"), _u("Map"));
         }
         Assert(mapObject != nullptr);
 
@@ -80,18 +80,16 @@ namespace Js
 
         if (mapObject->map != nullptr)
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, L"Map", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Map"), _u("Map"));
         }
 
         mapObject->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler());
 
         if (iter != nullptr)
         {
-            Var nextItem;
             Var undefined = library->GetUndefined();
 
-            while (JavascriptOperators::IteratorStepAndValue(iter, scriptContext, &nextItem))
-            {
+            JavascriptOperators::DoIteratorStepAndValue(iter, scriptContext, [&](Var nextItem) {
                 if (!JavascriptOperators::IsObject(nextItem))
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
@@ -111,8 +109,9 @@ namespace Js
                     value = undefined;
                 }
 
-                adder->GetEntryPoint()(adder, CallInfo(CallFlags_Value, 3), mapObject, key, value);
-            }
+                // CONSIDER: if adder is the default built-in, fast path it and skip the JS call?
+                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 3), mapObject, key, value);
+            });
         }
 
         return isCtorSuperCall ?
@@ -129,7 +128,7 @@ namespace Js
 
         if (!JavascriptMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map.prototype.clear", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.clear"), _u("Map"));
         }
 
         JavascriptMap* map = JavascriptMap::FromVar(args[0]);
@@ -148,7 +147,7 @@ namespace Js
 
         if (!JavascriptMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map.prototype.delete", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.delete"), _u("Map"));
         }
 
         JavascriptMap* map = JavascriptMap::FromVar(args[0]);
@@ -166,18 +165,18 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Map.prototype.forEach");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Map.prototype.forEach"));
 
         if (!JavascriptMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map.prototype.forEach", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.forEach"), _u("Map"));
         }
 
         JavascriptMap* map = JavascriptMap::FromVar(args[0]);
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Map.prototype.forEach");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Map.prototype.forEach"));
         }
         RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
 
@@ -190,7 +189,7 @@ namespace Js
             Var key = iterator.Current().Key();
             Var value = iterator.Current().Value();
 
-            callBackFn->GetEntryPoint()(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, key, map);
+            CALL_FUNCTION(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, key, map);
         }
 
         return scriptContext->GetLibrary()->GetUndefined();
@@ -205,7 +204,7 @@ namespace Js
 
         if (!JavascriptMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map.prototype.get", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.get"), _u("Map"));
         }
 
         JavascriptMap* map = JavascriptMap::FromVar(args[0]);
@@ -230,7 +229,7 @@ namespace Js
 
         if (!JavascriptMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map.prototype.has", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.has"), _u("Map"));
         }
 
         JavascriptMap* map = JavascriptMap::FromVar(args[0]);
@@ -251,7 +250,7 @@ namespace Js
 
         if (!JavascriptMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map.prototype.set", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.set"), _u("Map"));
         }
 
         JavascriptMap* map = JavascriptMap::FromVar(args[0]);
@@ -279,7 +278,7 @@ namespace Js
 
         if (!JavascriptMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map.prototype.size", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.size"), _u("Map"));
         }
 
         JavascriptMap* map = JavascriptMap::FromVar(args[0]);
@@ -298,7 +297,7 @@ namespace Js
 
         if (!JavascriptMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map.prototype.entries", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.entries"), _u("Map"));
         }
 
         JavascriptMap* map = JavascriptMap::FromVar(args[0]);
@@ -315,7 +314,7 @@ namespace Js
 
         if (!JavascriptMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map.prototype.keys", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.keys"), _u("Map"));
         }
 
         JavascriptMap* map = JavascriptMap::FromVar(args[0]);
@@ -332,7 +331,7 @@ namespace Js
 
         if (!JavascriptMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Map.prototype.values", L"Map");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.values"), _u("Map"));
         }
 
         JavascriptMap* map = JavascriptMap::FromVar(args[0]);
@@ -394,7 +393,7 @@ namespace Js
 
     BOOL JavascriptMap::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Map");
+        stringBuilder->AppendCppLiteral(_u("Map"));
         return TRUE;
     }
 
@@ -406,4 +405,54 @@ namespace Js
 
         return args[0];
     }
+
+#if ENABLE_TTD
+    void JavascriptMap::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        auto iterator = GetIterator();
+        while(iterator.Next())
+        {
+            extractor->MarkVisitVar(iterator.Current().Key());
+            extractor->MarkVisitVar(iterator.Current().Value());
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptMap::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapMapObject;
+    }
+
+    void JavascriptMap::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapMapInfo* smi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapMapInfo>();
+        smi->MapSize = 0;
+
+        if(this->Size() == 0)
+        {
+            smi->MapKeyValueArray = nullptr;
+        }
+        else
+        {
+            smi->MapKeyValueArray = alloc.SlabAllocateArray<TTD::TTDVar>(this->Size() * 2);
+
+            auto iter = this->GetIterator();
+            while(iter.Next())
+            {
+                smi->MapKeyValueArray[smi->MapSize] = iter.Current().Key();
+                smi->MapKeyValueArray[smi->MapSize + 1] = iter.Current().Value();
+                smi->MapSize += 2;
+            }
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapMapInfo*, TTD::NSSnapObjects::SnapObjectType::SnapMapObject>(objData, smi);
+    }
+
+    JavascriptMap* JavascriptMap::CreateForSnapshotRestore(ScriptContext* ctx)
+    {
+        JavascriptMap* res = ctx->GetLibrary()->CreateMap();
+        res->map = RecyclerNew(ctx->GetRecycler(), MapDataMap, ctx->GetRecycler());
+
+        return res;
+    }
+#endif
 }

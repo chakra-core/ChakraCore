@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // This one works only for ARM64
-#include "StdAfx.h"
+#include "stdafx.h"
 #if !defined(_M_ARM64)
 CompileAssert(false)
 #endif

@@ -10,39 +10,37 @@
 // Runtime Includes
 // =================
 #include "Runtime.h"
-#include "ByteCode\StatementReader.h"
-#include "Language\EHBailoutData.h"
-#include "Language\AsmJsTypes.h"
-#include "Language\AsmJsModule.h"
-#include "Language\ProfilingHelpers.h"
-#include "Language\FunctionCodeGenRuntimeData.h"
-#include "Language\ObjTypeSpecFldInfo.h"
-#include "Language\FunctionCodeGenJitTimeData.h"
-#include "Language\JavascriptMathOperators.h"
-#include "Language\JavascriptMathOperators.inl"
-#include "Language\JavascriptStackWalker.h"
-#include "Language\CodeGenRecyclableData.h"
-#include "Library\JavascriptGenerator.h"
-#include "Library\JavascriptRegularExpression.h"
-#include "Library\StackScriptFunction.h"
+#include "ByteCode/StatementReader.h"
+#include "Language/EHBailoutData.h"
+#include "Language/AsmJsTypes.h"
+#include "Language/AsmJsModule.h"
+#include "Language/ProfilingHelpers.h"
+#include "Language/FunctionCodeGenRuntimeData.h"
+#include "Language/ObjTypeSpecFldInfo.h"
+#include "Language/FunctionCodeGenJitTimeData.h"
+#include "Language/JavascriptMathOperators.h"
+#include "Language/JavascriptMathOperators.inl"
+#include "Language/JavascriptStackWalker.h"
+#include "Language/CodeGenRecyclableData.h"
+#include "Library/JavascriptGenerator.h"
+#include "Library/JavascriptRegularExpression.h"
+#include "Library/StackScriptFunction.h"
+#include "Library/JavascriptProxy.h"
+#include "Library/JavascriptGeneratorFunction.h"
 
-#include "Language\InterpreterStackFrame.h"
-#include "Language\ReadOnlyDynamicProfileInfo.h"
+#include "Language/InterpreterStackFrame.h"
 
-#include "Library\StackScriptFunction.h"
-
-#include "Language\InterpreterStackFrame.h"
-#include "Language\ReadOnlyDynamicProfileInfo.h"
+#include "Library/StackScriptFunction.h"
 
 // SIMD_JS
-#include "Library\SimdLib.h"
-#include "Language\SimdOps.h"
+#include "Library/SimdLib.h"
+#include "Language/SimdOps.h"
 
 // =================
 // Common Includes
 // =================
-#include "DataStructures\Pair.h"
-#include "DataStructures\HashTable.h"
+#include "DataStructures/Pair.h"
+#include "DataStructures/HashTable.h"
 // =================
 
 //
@@ -132,8 +130,8 @@ enum IRDumpFlags
 #include "NativeCodeData.h"
 #include "IRType.h"
 #include "md.h"
-#include "..\Runtime\ByteCode\BackEndOpcodeAttr.h"
-#include "BackEndOpCodeAttrAsmJs.h"
+#include "../Runtime/ByteCode/BackendOpCodeAttr.h"
+#include "BackendOpCodeAttrAsmJs.h"
 
 #include "JnHelperMethod.h"
 #include "Reg.h"

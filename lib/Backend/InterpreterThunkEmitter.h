@@ -116,7 +116,7 @@ public:
     static const uint BlockSize;
     static void* ConvertToEntryPoint(PVOID dynamicInterpreterThunk);
 
-    InterpreterThunkEmitter(AllocationPolicyManager * policyManager, ArenaAllocator* allocator, void * interpreterThunk);
+    InterpreterThunkEmitter(ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, void * interpreterThunk);
 
     BYTE* GetNextThunk(PVOID* ppDynamicInterpreterThunk);
 
@@ -124,10 +124,11 @@ public:
 
     void Close();
     void Release(BYTE* thunkAddress, bool addtoFreeList);
+
     // Returns true if the argument falls within the range managed by this buffer.
-    inline bool IsInRange(void* address)
+    inline bool IsInHeap(void* address)
     {
-        return emitBufferManager.IsInRange(address);
+        return emitBufferManager.IsInHeap(address);
     }
     const EmitBufferManager<>* GetEmitBufferManager() const
     {

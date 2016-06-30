@@ -115,6 +115,11 @@ test(/(?:)/g /*lastIndex=0*/ , "axbxcxd", 4);
 true
 r.lastIndex=4
 RegExp.${_,1,...,9}=["axbxcxd","","","","","","","","",""]
+****** lastIndex above MaxCharCount
+test(/x/g /*lastIndex=0*/ , "axbxcxd", 9007199254740991);
+false
+r.lastIndex=0
+RegExp.${_,1,...,9}=["axbxcxd","","","","","","","","",""]
 *************
 *** Match ***
 *************

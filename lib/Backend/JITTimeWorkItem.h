@@ -22,6 +22,7 @@ public:
     bool IsJitInDebugMode() const;
     
     intptr_t GetCallsCountAddress() const;
+    intptr_t GetJittedLoopIterationsSinceLastBailoutAddr() const;
 
     void InitializeReader(
         Js::ByteCodeReader * reader,

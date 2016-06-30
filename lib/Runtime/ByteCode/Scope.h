@@ -2,8 +2,9 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+#pragma once
 
-enum ScopeType
+enum ScopeType: int
 {
     ScopeType_Unknown,
     ScopeType_Global,
@@ -23,7 +24,6 @@ private:
     Scope *enclosingScope;
     Js::RegSlot location;
     FuncInfo *func;
-    SymbolTable *symbolTable;
     Symbol *m_symList;
     int m_count;
     ArenaAllocator *alloc;
@@ -38,11 +38,12 @@ private:
     BYTE hasCrossScopeFuncAssignment : 1;
     BYTE hasDuplicateFormals : 1;
     BYTE canMergeWithBodyScope : 1;
+    BYTE hasLocalInClosure : 1;
 public:
 #if DBG
     BYTE isRestored : 1;
 #endif
-    Scope(ArenaAllocator *alloc, ScopeType scopeType, bool useSymbolTable = false, int capacity = 0) :
+    Scope(ArenaAllocator *alloc, ScopeType scopeType, int capacity = 0) :
         alloc(alloc),
         func(nullptr),
         enclosingScope(nullptr),
@@ -54,8 +55,8 @@ public:
         hasCrossScopeFuncAssignment(false),
         hasDuplicateFormals(false),
         canMergeWithBodyScope(true),
+        hasLocalInClosure(false),
         location(Js::Constants::NoRegister),
-        symbolTable(nullptr),
         m_symList(nullptr),
         m_count(0),
         scopeSlotCount(0),
@@ -65,28 +66,11 @@ public:
         , isRestored(false)
 #endif
     {
-        if (useSymbolTable)
-        {
-            symbolTable = Anew(alloc, SymbolTable, alloc, capacity);
-        }
-    }
-
-    ~Scope()
-    {
-        if (symbolTable)
-        {
-            Adelete(alloc, symbolTable);
-            symbolTable = nullptr;
-        }
     }
 
     Symbol *FindLocalSymbol(SymbolName const& key)
     {
-        Symbol *sym = nullptr;
-        if (symbolTable)
-        {
-            return symbolTable->Lookup(key);
-        }
+        Symbol *sym;
         for (sym = m_symList; sym; sym = sym->GetNext())
         {
             if (sym->GetName() == key)
@@ -100,39 +84,25 @@ public:
     template<class Fn>
     void ForEachSymbol(Fn fn)
     {
-        if (symbolTable)
+        for (Symbol *sym = m_symList; sym;)
         {
-            symbolTable->Map(fn);
-        }
-        else
-        {
-            for (Symbol *sym = m_symList; sym;)
-            {
-                Symbol *next = sym->GetNext();
-                fn(sym);
-                sym = next;
-            }
+            Symbol *next = sym->GetNext();
+            fn(sym);
+            sym = next;
         }
     }
 
     template<class Fn>
     void ForEachSymbolUntil(Fn fn)
     {
-        if (symbolTable)
+        for (Symbol *sym = m_symList; sym;)
         {
-            symbolTable->MapUntil(fn);
-        }
-        else
-        {
-            for (Symbol *sym = m_symList; sym;)
+            Symbol *next = sym->GetNext();
+            if (fn(sym))
             {
-                Symbol *next = sym->GetNext();
-                if (fn(sym))
-                {
-                    return;
-                }
-                sym = next;
+                return;
             }
+            sym = next;
         }
     }
 
@@ -163,23 +133,16 @@ public:
             sym->SetIsGlobal(true);
         }
         sym->SetScope(this);
-        if (symbolTable)
+        for (Symbol *symInList = m_symList; symInList; symInList = symInList->GetNext())
         {
-            symbolTable->AddNew(sym);
-        }
-        else
-        {
-            for (Symbol *symInList = m_symList; symInList; symInList = symInList->GetNext())
+            if (symInList->GetName() == sym->GetName())
             {
-                if (symInList->GetName() == sym->GetName())
-                {
-                    return;
-                }
+                return;
             }
-            sym->SetNext(m_symList);
-            m_symList = sym;
-            m_count++;
         }
+        sym->SetNext(m_symList);
+        m_symList = sym;
+        m_count++;
     }
 
     void AddNewSymbol(Symbol *sym)
@@ -189,16 +152,9 @@ public:
             sym->SetIsGlobal(true);
         }
         sym->SetScope(this);
-        if (symbolTable)
-        {
-            symbolTable->Add(sym);
-        }
-        else
-        {
-            sym->SetNext(m_symList);
-            m_symList = sym;
-            m_count++;
-        }
+        sym->SetNext(m_symList);
+        m_symList = sym;
+        m_count++;
     }
 
     bool HasStaticPathToAncestor(Scope const * target) const
@@ -229,16 +185,11 @@ public:
         return scopeType == ScopeType_Block
             || scopeType == ScopeType_Catch
             || scopeType == ScopeType_CatchParamPattern
-            || scopeType == ScopeType_GlobalEvalBlock
-            || (scopeType == ScopeType_Parameter && !this->GetCanMergeWithBodyScope());
+            || scopeType == ScopeType_GlobalEvalBlock;
     }
 
     int Count() const
     {
-        if (symbolTable)
-        {
-            return symbolTable->Count();
-        }
         return m_count;
     }
 
@@ -283,7 +234,7 @@ public:
     bool GetMustInstantiate() const { return mustInstantiate; }
 
     void SetCanMerge(bool can) { canMerge = can; }
-    bool GetCanMerge() const { return canMerge && !mustInstantiate && !isObject && (this->scopeType != ScopeType::ScopeType_Parameter || this->GetCanMergeWithBodyScope()); }
+    bool GetCanMerge() const { return canMerge && !mustInstantiate && !isObject; }
 
     void SetScopeSlotCount(uint i) { scopeSlotCount = i; }
     uint GetScopeSlotCount() const { return scopeSlotCount; }
@@ -294,7 +245,8 @@ public:
     void SetCannotMergeWithBodyScope() { Assert(this->scopeType == ScopeType_Parameter); canMergeWithBodyScope = false; }
     bool GetCanMergeWithBodyScope() const { return canMergeWithBodyScope; }
 
-    void SetHasLocalInClosure(bool has);
+    void SetHasOwnLocalInClosure(bool has) { hasLocalInClosure = has; }
+    bool GetHasOwnLocalInClosure() const { return hasLocalInClosure; }
 
     bool HasInnerScopeIndex() const { return innerScopeIndex != (uint)-1; }
     uint GetInnerScopeIndex() const { return innerScopeIndex; }
@@ -303,10 +255,12 @@ public:
     int AddScopeSlot();
 
     void SetHasCrossScopeFuncAssignment() { hasCrossScopeFuncAssignment = true; }
+    bool HasCrossScopeFuncAssignment() const { return hasCrossScopeFuncAssignment; }
 
     void ForceAllSymbolNonLocalReference(ByteCodeGenerator *byteCodeGenerator);
 
     bool IsGlobalEvalBlockScope() const;
 
-    static void MergeParamAndBodyScopes(ParseNode *pnodeScope, ByteCodeGenerator * byteCodeGenerator);
+    static void MergeParamAndBodyScopes(ParseNode *pnodeScope);
+    static void RemoveParamScope(ParseNode *pnodeScope);
 };

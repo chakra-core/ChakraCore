@@ -65,10 +65,10 @@ namespace JsUtil
 #ifdef VERBOSE_EVAL_MAP
         void Dump()
         {
-            Output::Print(L"Length: %d, writeIndex: %d, filled: %d\n", size, writeIndex, filled);
+            Output::Print(_u("Length: %d, writeIndex: %d, filled: %d\n"), size, writeIndex, filled);
             for (uint i = 0; i < GetMaxIndex(); i++)
             {
-                Output::Print(L"Item %d: %s\n", i, entries[i].str.GetBuffer());
+                Output::Print(_u("Item %d: %s\n"), i, entries[i].str.GetBuffer());
             }
             Output::Flush();
         }
@@ -138,7 +138,7 @@ namespace JsUtil
         class CacheStore : public TCacheStoreType
         {
         public:
-            CacheStore(AllocatorType* allocator, int capacity) : BaseDictionary(allocator, capacity), inAdd(false) {};
+            CacheStore(AllocatorType* allocator, int capacity) : TCacheStoreType(allocator, capacity), inAdd(false) {};
             bool IsInAdd()
             {
                 return this->inAdd;
@@ -206,7 +206,7 @@ namespace JsUtil
             {
                 // Queue up items to be removed
                 // TODO: Don't use Contains since that's linear- store pointers to the eval map key instead, and set a bit indicating that its in the dictionary?
-                cacheStore->MapAndRemoveIf([this, callback](const CacheStore::EntryType &entry) {
+                cacheStore->MapAndRemoveIf([this, callback](const typename CacheStore::EntryType &entry) {
                     if (this->cachePolicyType.CanEvict(entry.Key()) || CONFIG_FLAG(ForceCleanCacheOnCollect))
                     {
                         callback(entry.Key(), entry.Value());

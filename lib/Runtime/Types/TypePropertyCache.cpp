@@ -104,7 +104,7 @@ namespace Js
         return id & TypePropertyCache_NumElements - 1;
     }
 
-    __inline bool TypePropertyCache::TryGetIndexForLoad(
+    inline bool TypePropertyCache::TryGetIndexForLoad(
         const bool checkMissing,
         const PropertyId id,
         PropertyIndex *const index,
@@ -118,7 +118,7 @@ namespace Js
         Assert(prototypeObjectWithProperty);
 
         const TypePropertyCacheElement &element = elements[ElementIndex(id)];
-        if(element.Id() != id || !checkMissing && element.IsMissing())
+        if(element.Id() != id || (!checkMissing && element.IsMissing()))
             return false;
 
         *index = element.Index();
@@ -128,7 +128,7 @@ namespace Js
         return true;
     }
 
-    __inline bool TypePropertyCache::TryGetIndexForStore(
+    inline bool TypePropertyCache::TryGetIndexForStore(
         const PropertyId id,
         PropertyIndex *const index,
         bool *const isInlineSlot) const
@@ -178,7 +178,7 @@ namespace Js
             {
                 CacheOperators::TraceCache(
                     static_cast<InlineCache *>(nullptr),
-                    L"TypePropertyCache get miss",
+                    _u("TypePropertyCache get miss"),
                     propertyId,
                     requestContext,
                     propertyObject);
@@ -194,7 +194,7 @@ namespace Js
             {
                 CacheOperators::TraceCache(
                     static_cast<InlineCache *>(nullptr),
-                    L"TypePropertyCache get hit",
+                    _u("TypePropertyCache get hit"),
                     propertyId,
                     requestContext,
                     propertyObject);
@@ -251,7 +251,7 @@ namespace Js
         {
             CacheOperators::TraceCache(
                 static_cast<InlineCache *>(nullptr),
-                L"TypePropertyCache get hit prototype",
+                _u("TypePropertyCache get hit prototype"),
                 propertyId,
                 requestContext,
                 propertyObject);
@@ -327,7 +327,7 @@ namespace Js
             {
                 CacheOperators::TraceCache(
                     static_cast<InlineCache *>(nullptr),
-                    L"TypePropertyCache set miss",
+                    _u("TypePropertyCache set miss"),
                     propertyId,
                     requestContext,
                     object);
@@ -341,7 +341,7 @@ namespace Js
         {
             CacheOperators::TraceCache(
                 static_cast<InlineCache *>(nullptr),
-                L"TypePropertyCache set hit",
+                _u("TypePropertyCache set hit"),
                 propertyId,
                 requestContext,
                 object);

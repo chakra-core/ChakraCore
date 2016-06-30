@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
 #include "cmperr.h"
-#include "Language\JavascriptStackWalker.h"
+#include "Language/JavascriptStackWalker.h"
 
 namespace Js
 {
@@ -92,15 +92,27 @@ namespace Js
 
     BOOL ActivationObject::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"{ActivationObject}");
+        stringBuilder->AppendCppLiteral(_u("{ActivationObject}"));
         return TRUE;
     }
 
     BOOL ActivationObject::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Object, (ActivationObject)");
+        stringBuilder->AppendCppLiteral(_u("Object, (ActivationObject)"));
         return TRUE;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ActivationObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapActivationObject;
+    }
+
+    void ActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapActivationObject>(objData, nullptr);
+    }
+#endif
 
     BOOL BlockActivationObject::InitPropertyScoped(PropertyId propertyId, Var value)
     {
@@ -129,6 +141,8 @@ namespace Js
     BlockActivationObject* BlockActivationObject::Clone(ScriptContext *scriptContext)
     {
         DynamicType* type = this->GetDynamicType();
+        type->GetTypeHandler()->ClearSingletonInstance(); //We are going to share the type.
+
         BlockActivationObject* blockScopeClone = DynamicObject::NewObject<BlockActivationObject>(scriptContext->GetRecycler(), type);
         int slotCapacity = this->GetTypeHandler()->GetSlotCapacity();
 
@@ -141,6 +155,18 @@ namespace Js
 
         return blockScopeClone;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType BlockActivationObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapBlockActivationObject;
+    }
+
+    void BlockActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapBlockActivationObject>(objData, nullptr);
+    }
+#endif
 
     BOOL PseudoActivationObject::InitPropertyScoped(PropertyId propertyId, Var value)
     {
@@ -163,6 +189,31 @@ namespace Js
     {
         return false;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType PseudoActivationObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapPseudoActivationObject;
+    }
+
+    void PseudoActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapPseudoActivationObject>(objData, nullptr);
+    }
+#endif
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ConsoleScopeActivationObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapConsoleScopeActivationObject;
+    }
+
+    void ConsoleScopeActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapConsoleScopeActivationObject>(objData, nullptr);
+    }
+
+#endif
 
     /* static */
     const PropertyId * ActivationObjectEx::GetCachedScopeInfo(const PropertyIdArray *propIds)
@@ -244,4 +295,16 @@ namespace Js
         cache[i].func = func;
         cache[i].type = (DynamicType*)func->GetType();
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ActivationObjectEx::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapActivationObjectEx;
+    }
+
+    void ActivationObjectEx::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapActivationObjectEx>(objData, nullptr);
+    }
+#endif
 };

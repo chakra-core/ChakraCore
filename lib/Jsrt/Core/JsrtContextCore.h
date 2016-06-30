@@ -13,7 +13,7 @@ public:
     static JsrtContextCore *New(JsrtRuntime * runtime);
     virtual void Dispose(bool isShutdown) override;
 
-    void OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo);
+    void OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
 private:
     DEFINE_VTABLE_CTOR(JsrtContextCore, JsrtContext);
     JsrtContextCore(JsrtRuntime * runtime);
@@ -156,13 +156,13 @@ public:
         return nullptr;
     }
 
-    Js::JavascriptFunction* InitializeHostPromiseContinuationFunction() override
+    HRESULT EnqueuePromiseTask(Js::Var taskVar) override
     {
         AssertMsg(false, "jsrt should have set the promise callback");
-        return GetScriptContext()->GetLibrary()->GetThrowerFunction();
+        return E_NOTIMPL;
     }
 
-    HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, Js::JavascriptString* specifier, Js::ModuleRecordBase** dependentModuleRecord) override
+    HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) override
     {
         AssertMsg(false, "not implemented");
         return S_FALSE;

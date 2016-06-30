@@ -13,27 +13,35 @@ You can stay up-to-date on progress by following the [MSEdge developer blog](htt
 | __x86__ | [![x86debug][x86dbgicon]][x86dbglink] | [![x86test][x86testicon]][x86testlink] | [![x86release][x86relicon]][x86rellink] |
 | __x64__ | [![x64debug][x64dbgicon]][x64dbglink] | [![x64test][x64testicon]][x64testlink] | [![x64release][x64relicon]][x64rellink] |
 | __arm__ | [![armdebug][armdbgicon]][armdbglink] | [![armtest][armtesticon]][armtestlink] | [![armrelease][armrelicon]][armrellink] |
+| __linux__ | [![linuxdebug][linuxdbgicon]][linuxdbglink] | N/A | [![linuxrelease][linuxrelicon]][linuxrellink] |
 
-[x86dbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x86_debug/badge/icon
-[x86dbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x86_debug/
-[x86testicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x86_test/badge/icon
-[x86testlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x86_test/
-[x86relicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x86_release/badge/icon
-[x86rellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x86_release/
+*If you see badges reading "Build: Unknown" it is likely because a build was skipped due to changes being only in files known not to affect the health of the build.*
 
-[x64dbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x64_debug/badge/icon
-[x64dbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x64_debug/
-[x64testicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x64_test/badge/icon
-[x64testlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x64_test/
-[x64relicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x64_release/badge/icon
-[x64rellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/x64_release/
+[x86dbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/badge/icon
+[x86dbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/
+[x86testicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_test/badge/icon
+[x86testlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_test/
+[x86relicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_release/badge/icon
+[x86rellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_release/
 
-[armdbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/arm_debug/badge/icon
-[armdbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/arm_debug/
-[armtesticon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/arm_test/badge/icon
-[armtestlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/arm_test/
-[armrelicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/arm_release/badge/icon
-[armrellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/arm_release/
+[x64dbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/badge/icon
+[x64dbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/
+[x64testicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_test/badge/icon
+[x64testlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_test/
+[x64relicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_release/badge/icon
+[x64rellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_release/
+
+[armdbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/badge/icon
+[armdbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/
+[armtesticon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_test/badge/icon
+[armtestlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_test/
+[armrelicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_release/badge/icon
+[armrellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_release/
+
+[linuxdbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_debug/badge/icon
+[linuxdbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_debug
+[linuxrelicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release/badge/icon
+[linuxrellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release/
 
 Above is a table of our rolling build status. We run additional builds on a daily basis. See [Build Status](https://github.com/Microsoft/ChakraCore/wiki/Build-Status) for the status of all builds.
 
@@ -63,7 +71,9 @@ More details in [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wi
 
 Once built, you have a few options for how you can use ChakraCore:
 
-* The most basic is to test the engine is running correctly with the *ch.exe* binary.  This app is a lightweight hosting of JSRT that you can use to run small applications.  After building, you can find this binary in: `Build\VcBuild\bin\[platform+output]`  (eg. `Build\VcBuild\bin\x64_debug`)
+* The most basic is to test the engine is running correctly with the *ch.exe* binary.  This app is a lightweight hosting of JSRT that you can use to run small applications.  After building, you can find this binary in:
+  * `Build\VcBuild\bin\${platform}_${configuration}`
+  * (e.g. `Build\VcBuild\bin\x64_debug`)
 * You can [embed ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Embedding-ChakraCore) in your applications - see [documentation](https://github.com/Microsoft/ChakraCore/wiki/Embedding-ChakraCore) and [samples](http://aka.ms/chakracoresamples).
 * Finally, you can also use ChakraCore as the JavaScript engine in Node.  You can learn more by reading how to use [Chakra as Node's JS engine](https://github.com/Microsoft/node)
 

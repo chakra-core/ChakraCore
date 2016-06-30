@@ -2,11 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 #include "ARMEncode.h"
 
 bool
-EncoderMD::EncodeImmediate16(long constant, DWORD * result)
+EncoderMD::EncodeImmediate16(int32 constant, DWORD * result)
 {
     if (constant > 0xFFFF)
     {

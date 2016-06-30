@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Types\DeferredTypeHandler.h"
+#include "Types/DeferredTypeHandler.h"
 namespace Js
 {
     // This is a wrapper class for javascript functions that are added directly to the JS engine via BuildDirectFunction
@@ -135,22 +135,22 @@ namespace Js
                 {
                     Var sourceString = caller->EnsureSourceString();
                     Assert(JavascriptString::Is(sourceString));
-                    const wchar_t* callerString = Js::JavascriptString::FromVar(sourceString)->GetSz();
-                    wchar_t* outString = (wchar_t*)callerString;
+                    const char16* callerString = Js::JavascriptString::FromVar(sourceString)->GetSz();
+                    char16* outString = (char16*)callerString;
                     int length = 0;
-                    if (wcschr(callerString, L'\n') != NULL || wcschr(callerString, L'\n') != NULL)
+                    if (wcschr(callerString, _u('\n')) != NULL || wcschr(callerString, _u('\n')) != NULL)
                     {
                         length = Js::JavascriptString::FromVar(sourceString)->GetLength();
-                        outString = HeapNewArray(wchar_t, length+1);
+                        outString = HeapNewArray(char16, length+1);
                         int j = 0;
                         for (int i = 0; i < length; i++)
                         {
-                            if (callerString[i] != L'\n' && callerString[i] != L'\r')
+                            if (callerString[i] != _u('\n') && callerString[i] != _u('\r'))
                             {
                                 outString[j++] = callerString[i];
                             }
                         }
-                        outString[j] = L'\0';
+                        outString[j] = _u('\0');
                     }
                     JS_ETW(EventWriteJSCRIPT_HOSTING_CALLER_TO_EXTERNAL(scriptContext, this, typeId, outString, callCount));
                     if (outString != callerString)
@@ -160,7 +160,7 @@ namespace Js
 #if DBG_DUMP
                     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostPhase))
                     {
-                        Output::Print(L"Large number of Call to trampoline: methodAddr= %p, Object typeid= %d, caller method= %s, callcount= %d\n",
+                        Output::Print(_u("Large number of Call to trampoline: methodAddr= %p, Object typeid= %d, caller method= %s, callcount= %d\n"),
                             this, typeId, callerString, callCount);
                     }
 #endif
@@ -170,7 +170,7 @@ namespace Js
 #if DBG_DUMP
             if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostPhase))
             {
-                Output::Print(L"Call to trampoline: methodAddr= %p, Object typeid= %d\n", this, typeId);
+                Output::Print(_u("Call to trampoline: methodAddr= %p, Object typeid= %d\n"), this, typeId);
             }
 #endif
         }
@@ -268,6 +268,55 @@ namespace Js
 
         externalFunction->PrepareExternalCall(&args);
 
+#if ENABLE_TTD
+        Var result = nullptr;
+
+        if(scriptContext->ShouldPerformDebugAction())
+        {
+            TTD::TTDReplayExternalFunctionCallActionPopper logPopper(externalFunction);
+
+            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
+        }
+        else if(scriptContext->ShouldPerformRecordAction())
+        {
+            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths -- the increment of nesting is handled by the popper but we need to add 1 to the value we record (so it matches)
+            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
+            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(externalFunction, callEvent);
+
+            BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+            {
+                // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                result = externalFunction->nativeMethod(function, callInfo, args.Values);
+            }
+            END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+
+            //no exception check below so I assume the external call cannot have an exception registered
+            logPopper.NormalReturn(false, result);
+        }
+        else
+        {
+            if(externalFunction->nativeMethod == nullptr)
+            {
+                //
+                //TODO: we really shouldn't be seeing this and should suppress the eval of getters/setters instead to avoid any statefullness.
+                //
+
+                //The only way this should happen is if the debugger is requesting a value to display that is an external accessor.
+                //We don't support this so it should be ok to return a Js string message.
+                LPCWSTR msg = _u("Non-Inspectable External Value");
+                result = Js::JavascriptString::NewCopyBuffer(msg, (charcount_t)wcslen(msg), scriptContext);
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+                {
+                    // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                    result = externalFunction->nativeMethod(function, callInfo, args.Values);
+                }
+                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+            }
+        }
+#else
         Var result = nullptr;
         BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
         {
@@ -275,6 +324,7 @@ namespace Js
             result = externalFunction->nativeMethod(function, callInfo, args.Values);
         }
         END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+#endif
 
         return externalFunction->FinishExternalCall(result);
     }
@@ -289,7 +339,7 @@ namespace Js
         Assert(scriptContext->GetThreadContext()->IsScriptActive());
 
         // Make sure the callee knows we are a wrapped function thunk
-        args.Info.Flags = (Js::CallFlags) (((long) args.Info.Flags) | CallFlags_Wrapped);
+        args.Info.Flags = (Js::CallFlags) (((int32) args.Info.Flags) | CallFlags_Wrapped);
 
         // don't need to leave script here, ExternalFunctionThunk will
         Assert(externalFunction->wrappedMethod->GetFunctionInfo()->GetOriginalEntryPoint() == JavascriptExternalFunction::ExternalFunctionThunk);
@@ -307,11 +357,43 @@ namespace Js
         AnalysisAssert(scriptContext);
         Var result = NULL;
 
+#if ENABLE_TTD
+        if(scriptContext->ShouldPerformDebugAction())
+        {
+            TTD::TTDReplayExternalFunctionCallActionPopper logPopper(externalFunction);
+
+            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
+        }
+        else if(scriptContext->ShouldPerformRecordAction())
+        {
+            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths -- the increment of nesting is handled by the popper but we need to add 1 to the value we record (so it matches)
+            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
+            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(externalFunction, callEvent);
+
+            BEGIN_LEAVE_SCRIPT(scriptContext)
+            {
+                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+            }
+            END_LEAVE_SCRIPT(scriptContext);
+
+            //exception check is done explicitly below call can have an exception registered
+            logPopper.NormalReturn(true, result);
+        }
+        else
+        {
+            BEGIN_LEAVE_SCRIPT(scriptContext)
+            {
+                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+            }
+            END_LEAVE_SCRIPT(scriptContext);
+        }
+#else
         BEGIN_LEAVE_SCRIPT(scriptContext)
         {
             result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
         }
         END_LEAVE_SCRIPT(scriptContext);
+#endif
 
         if (result != nullptr && !Js::TaggedNumber::Is(result))
         {
@@ -323,13 +405,12 @@ namespace Js
             Js::RecyclableObject * obj = Js::RecyclableObject::FromVar(result);
 
             // For JSRT, we could get result marshalled in different context.
-            bool isJSRT = !(scriptContext->GetThreadContext()->GetIsThreadBound());
+            bool isJSRT = scriptContext->GetThreadContext()->IsJSRT();
             if (!isJSRT && obj->GetScriptContext() != scriptContext)
             {
                 Js::Throw::InternalError();
             }
         }
-
 
         if (scriptContext->HasRecordedException())
         {
@@ -357,4 +438,20 @@ namespace Js
         return DynamicObject::SetPropertyWithAttributes(PropertyIds::length, length, PropertyConfigurable, NULL, PropertyOperation_None, SideEffects_None);
     }
 
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptExternalFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapExternalFunctionObject;
+    }
+
+    void JavascriptExternalFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        Js::JavascriptString* nameString = this->GetDisplayName();
+
+        TTD::TTString* snapName = alloc.SlabAllocateStruct<TTD::TTString>();
+        alloc.CopyStringIntoWLength(nameString->GetSz(), nameString->GetLength(), *snapName);
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::TTString*, TTD::NSSnapObjects::SnapObjectType::SnapExternalFunctionObject>(objData, snapName);
+    }
+#endif
 }

@@ -58,7 +58,7 @@ namespace Js
         template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryTypeHandlerBase;
 
         // Explicit non leaf allocator now that the key is non-leaf
-        typedef JsUtil::BaseDictionary<TMapKey, SimpleDictionaryPropertyDescriptor<TPropertyIndex>, RecyclerNonLeafAllocator, DictionarySizePolicy<PowerOf2Policy, 1>, PropertyRecordStringHashComparer, PropertyMapKeyTraits<TMapKey>::Entry>
+        typedef JsUtil::BaseDictionary<TMapKey, SimpleDictionaryPropertyDescriptor<TPropertyIndex>, RecyclerNonLeafAllocator, DictionarySizePolicy<PowerOf2Policy, 1>, PropertyRecordStringHashComparer, PropertyMapKeyTraits<TMapKey>::template Entry>
             SimplePropertyDescriptorMap;
         typedef SimplePropertyDescriptorMap PropertyDescriptorMapType; // alias used by diagnostics
 
@@ -136,7 +136,7 @@ namespace Js
 
         virtual PropertyIndex GetRootPropertyIndex(const PropertyRecord* propertyRecord) override;
 
-        virtual BOOL HasRootProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty = nullptr) override;
+        virtual BOOL HasRootProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty = nullptr, bool *pNonconfigurableProperty = nullptr) override;
         virtual BOOL GetRootProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL SetRootProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual DescriptorFlags GetRootSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -188,7 +188,7 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         virtual void DumpFixedFields() const override;
         static void TraceFixedFieldsBeforeTypeHandlerChange(
-            const wchar_t* oldTypeHandlerName, const wchar_t* newTypeHandlerName,
+            const char16* oldTypeHandlerName, const char16* newTypeHandlerName,
             DynamicObject* instance, DynamicTypeHandler* oldTypeHandler, DynamicType* oldType, RecyclerWeakReference<DynamicObject>* oldSingletonInstanceBefore);
         static void TraceFixedFieldsAfterTypeHandlerChange(
             DynamicObject* instance, DynamicTypeHandler* oldTypeHandler, DynamicTypeHandler* newTypeHandler,
@@ -263,24 +263,24 @@ namespace Js
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
 
         template <bool allowLetConstGlobal>
-        __inline BOOL HasProperty_Internal(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty);
+        inline BOOL HasProperty_Internal(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty, bool *pNonconfigurableProperty);
         template <bool allowLetConstGlobal>
-        __inline PropertyIndex GetPropertyIndex_Internal(const PropertyRecord* propertyRecord);
+        inline PropertyIndex GetPropertyIndex_Internal(const PropertyRecord* propertyRecord);
         template <bool allowLetConstGlobal>
-        __inline BOOL GetProperty_Internal(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
+        inline BOOL GetProperty_Internal(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
         template <bool allowLetConstGlobal>
-        __inline BOOL SetProperty_Internal(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
+        inline BOOL SetProperty_Internal(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
         template <bool allowLetConstGlobal>
-        __inline DescriptorFlags GetSetter_Internal(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext);
+        inline DescriptorFlags GetSetter_Internal(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext);
         template <bool allowLetConstGlobal>
-        __inline BOOL DeleteProperty_Internal(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags flags);
+        inline BOOL DeleteProperty_Internal(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags flags);
 
         template <bool allowLetConstGlobal>
-        __inline BOOL GetPropertyFromDescriptor(DynamicObject* instance, SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor, Var* value, PropertyValueInfo* info);
+        inline BOOL GetPropertyFromDescriptor(DynamicObject* instance, SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor, Var* value, PropertyValueInfo* info);
         template <bool allowLetConstGlobal, typename TPropertyKey>
-        __inline BOOL SetPropertyFromDescriptor(DynamicObject* instance, PropertyId propertyId, TPropertyKey propertyKey, SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor, Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
+        inline BOOL SetPropertyFromDescriptor(DynamicObject* instance, PropertyId propertyId, TPropertyKey propertyKey, SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor, Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
         template <bool allowLetConstGlobal>
-        __inline DescriptorFlags GetSetterFromDescriptor(SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor);
+        inline DescriptorFlags GetSetterFromDescriptor(SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor);
 
         BOOL SetProperty_JavascriptString(DynamicObject* instance, JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info, TemplateParameter::Box<const PropertyRecord*>);
         BOOL SetProperty_JavascriptString(DynamicObject* instance, JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info, TemplateParameter::Box<JavascriptString*>);
@@ -298,6 +298,13 @@ namespace Js
 
         template <bool check__proto__>
         static DynamicType* InternalCreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType);
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override;
+
+        virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override;
+#endif
     };
 
 }

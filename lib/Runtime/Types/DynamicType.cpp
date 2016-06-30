@@ -140,7 +140,7 @@ namespace Js
     BOOL DynamicObject::GetInternalProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         Assert(Js::IsInternalPropertyId(propertyId));
-        return GetTypeHandler()->GetProperty(this, originalInstance, propertyId, value, nullptr, nullptr);
+        return GetTypeHandler()->GetProperty(this, originalInstance, propertyId, value, nullptr, requestContext);
     }
 
     BOOL DynamicObject::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -298,9 +298,9 @@ namespace Js
             {
                 // Stack object should have a pre-op bail on implicit call.  We shouldn't see them here.
                 Assert(!ThreadContext::IsOnStack(this) || threadContext->HasNoSideEffect(toStringFunction));
-                return toStringFunction->GetEntryPoint()(toStringFunction, CallInfo(CallFlags_Value, 1), this);
+                return CALL_FUNCTION(toStringFunction, CallInfo(CallFlags_Value, 1), this);
             });
- 
+
             if (!aResult)
             {
                 // There was an implicit call and implicit calls are disabled. This would typically cause a bailout.
@@ -489,13 +489,13 @@ namespace Js
 
     BOOL DynamicObject::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"{...}");
+        stringBuilder->AppendCppLiteral(_u("{...}"));
         return TRUE;
     }
 
     BOOL DynamicObject::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Object");
+        stringBuilder->AppendCppLiteral(_u("Object"));
         return TRUE;
     }
 

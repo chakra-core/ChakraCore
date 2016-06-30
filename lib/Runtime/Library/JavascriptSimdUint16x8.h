@@ -7,41 +7,38 @@
 
 namespace Js
 {
-    class JavascriptSIMDUint16x8 sealed : public RecyclableObject
+    class JavascriptSIMDUint16x8 sealed : public JavascriptSIMDType
     {
     private:
-        SIMDValue value;
-        DEFINE_VTABLE_CTOR(JavascriptSIMDUint16x8, RecyclableObject);
+        DEFINE_VTABLE_CTOR(JavascriptSIMDUint16x8, JavascriptSIMDType);
+        static const char16 TypeName[];
     public:
         class EntryInfo
         {
         public:
             static FunctionInfo ToString;
+            static FunctionInfo ToLocaleString;
+            static FunctionInfo ValueOf;
+            static FunctionInfo SymbolToPrimitive;
         };
 
+        JavascriptSIMDUint16x8(StaticType *type);
         JavascriptSIMDUint16x8(SIMDValue *val, StaticType *type);
         static JavascriptSIMDUint16x8* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDUint16x8* FromVar(Var aValue);
+        static Var CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue, const Var* args, uint numArgs, CallInfo callInfo);
 
-        __inline SIMDValue GetValue() { return value; }
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
+        {
+            swprintf_s(stringBuffer, countBuffer, _u("SIMD.Uint16x8(%u, %u, %u, %u, %u, %u, %u, %u)"),
+                value.u16[0], value.u16[1], value.u16[2], value.u16[3], value.u16[4], value.u16[5], value.u16[6], value.u16[7]);
+        }
 
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        static const char16* GetTypeName();
+        inline SIMDValue GetValue() { return value; }
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
-        // Entry Points
-        /*
-        There is one toString per SIMD type. The code is entrant from value objects explicitly (e.g. a.toString()) or on overloaded operations.
-        It will also be a property of SIMD.int32x4.prototype for SIMD dynamic objects.
-        */
-        static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
-        // End Entry Points
-
         Var  Copy(ScriptContext* requestContext);
-
-    private:
-        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext);
     };
 }

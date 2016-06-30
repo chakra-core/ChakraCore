@@ -94,6 +94,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->nestedFuncArrayAddr = (intptr_t)functionBody->GetNestedFuncArray();
     }
     jitBody->scopeSlotArraySize = functionBody->scopeSlotArraySize;
+    jitBody->paramScopeSlotArraySize = functionBody->paramScopeSlotArraySize;
     jitBody->attributes = functionBody->GetAttributes();
     jitBody->isInstInlineCacheCount = functionBody->GetIsInstInlineCacheCount();
 
@@ -122,22 +123,22 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         }
     }
 
-    jitBody->localFrameDisplayReg = functionBody->GetLocalFrameDisplayReg();
-    jitBody->localClosureReg = functionBody->GetLocalClosureReg();
-    jitBody->envReg = functionBody->GetEnvReg();
+    jitBody->localFrameDisplayReg = functionBody->GetLocalFrameDisplayRegister();
+    jitBody->localClosureReg = functionBody->GetLocalClosureRegister();
+    jitBody->envReg = functionBody->GetEnvRegister();
     jitBody->firstTmpReg = functionBody->GetFirstTmpReg();
     jitBody->varCount = functionBody->GetVarCount();
     jitBody->innerScopeCount = functionBody->GetInnerScopeCount();
     if (functionBody->GetInnerScopeCount() > 0)
     {
-        jitBody->firstInnerScopeReg = functionBody->FirstInnerScopeReg();
+        jitBody->firstInnerScopeReg = functionBody->GetFirstInnerScopeRegister();
     }
     jitBody->envDepth = functionBody->GetEnvDepth();
     jitBody->profiledIterations = functionBody->GetProfiledIterations();
     jitBody->profiledCallSiteCount = functionBody->GetProfiledCallSiteCount();
     jitBody->inParamCount = functionBody->GetInParamsCount();
-    jitBody->thisRegisterForEventHandler = functionBody->GetThisRegForEventHandler();
-    jitBody->funcExprScopeRegister = functionBody->GetFuncExprScopeReg();
+    jitBody->thisRegisterForEventHandler = functionBody->GetThisRegisterForEventHandler();
+    jitBody->funcExprScopeRegister = functionBody->GetFuncExprScopeRegister();
     jitBody->recursiveCallSiteCount = functionBody->GetNumberOfRecursiveCallSites();
     jitBody->argUsedForBranch = functionBody->m_argUsedForBranch;
 
@@ -158,6 +159,13 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->doInterruptProbe = functionBody->GetScriptContext()->GetThreadContext()->DoInterruptProbe(functionBody);
     jitBody->disableInlineSpread = functionBody->IsInlineSpreadDisabled();
     jitBody->hasNestedLoop = functionBody->GetHasNestedLoop();
+    jitBody->isParamAndBodyScopeMerged = functionBody->IsParamAndBodyScopeMerged();
+    jitBody->paramClosureReg = functionBody->GetParamClosureRegister();
+    
+    //CompileAssert(sizeof(PropertyIdArrayIDL) == sizeof(Js::PropertyIdArray));
+    jitBody->formalsPropIdArray = (PropertyIdArrayIDL*)functionBody->GetFormalsPropIdArray(false);
+    jitBody->formalsPropIdArrayAddr = (intptr_t)functionBody->GetFormalsPropIdArray(false);
+
     if (Js::DynamicProfileInfo::HasCallSiteInfo(functionBody))
     {
         jitBody->hasNonBuiltInCallee = functionBody->HasNonBuiltInCallee();
@@ -245,6 +253,12 @@ uint
 JITTimeFunctionBody::GetScopeSlotArraySize() const
 {
     return m_bodyData.scopeSlotArraySize;
+}
+
+uint
+JITTimeFunctionBody::GetParamScopeSlotArraySize() const
+{
+    return m_bodyData.paramScopeSlotArraySize;
 }
 
 uint
@@ -365,6 +379,12 @@ Js::RegSlot
 JITTimeFunctionBody::GetThisRegForEventHandler() const
 {
     return static_cast<Js::RegSlot>(m_bodyData.thisRegisterForEventHandler);
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetParamClosureReg() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData.paramClosureReg);
 }
 
 Js::RegSlot
@@ -522,6 +542,12 @@ JITTimeFunctionBody::HasNestedLoop() const
 }
 
 bool
+JITTimeFunctionBody::IsParamAndBodyScopeMerged() const
+{
+    return m_bodyData.isParamAndBodyScopeMerged != FALSE;
+}
+
+bool
 JITTimeFunctionBody::IsGenerator() const
 {
     return Js::FunctionInfo::IsGenerator(GetAttributes());
@@ -625,6 +651,24 @@ JITTimeFunctionBody::CanInlineRecursively(uint depth, bool tryAggressive) const
     return depth < maxDepth;
 }
 
+bool
+JITTimeFunctionBody::NeedScopeObjectForArguments(bool hasNonSimpleParams) const
+{
+    // TODO: OOP JIT, enable assert
+    //Assert(HasReferenceableBuiltInArguments());
+    // We can avoid creating a scope object with arguments present if:
+    bool dontNeedScopeObject =
+        // Either we are in strict mode, or have strict mode formal semantics from a non-simple parameter list, and
+        (IsStrictMode() || hasNonSimpleParams)
+        // Neither of the scopes are objects
+        && !HasScopeObject();
+
+    return
+        // Regardless of the conditions above, we won't need a scope object if there aren't any formals.
+        (GetInParamsCount() > 1 || HasRestParameter())
+        && !dontNeedScopeObject;
+}
+
 const byte *
 JITTimeFunctionBody::GetByteCodeBuffer() const
 {
@@ -653,6 +697,12 @@ intptr_t
 JITTimeFunctionBody::GetRegAllocLoadCountAddr() const
 {
     return m_bodyData.regAllocLoadCountAddr;
+}
+
+intptr_t
+JITTimeFunctionBody::GetFormalsPropIdArrayAddr() const
+{
+    return m_bodyData.formalsPropIdArrayAddr;
 }
 
 intptr_t
@@ -830,10 +880,9 @@ JITTimeFunctionBody::ReadAuxArray(uint offset) const
 }
 
 Js::PropertyIdArray *
-JITTimeFunctionBody::ReadAuxPropIds(uint offset) const
+JITTimeFunctionBody::GetFormalsPropIdArray() const
 {
-    Assert(offset < m_bodyData.auxDataCount);
-    return  (Js::PropertyIdArray *)&(m_bodyData.auxData[offset]);
+    return  (Js::PropertyIdArray *)m_bodyData.formalsPropIdArray;
 }
 
 void

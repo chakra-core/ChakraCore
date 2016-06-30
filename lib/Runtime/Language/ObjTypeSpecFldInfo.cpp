@@ -132,7 +132,6 @@ namespace Js
             if (Js::DynamicType::Is(propertyOwnerType->GetTypeId()))
             {
                 Js::DynamicTypeHandler* propertyOwnerTypeHandler = ((Js::DynamicType*)propertyOwnerType)->GetTypeHandler();
-                Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);
                 Js::PropertyRecord const * const fixedPropertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
                 Var fixedProperty = nullptr;
                 Js::JavascriptFunction* functionObject = nullptr;

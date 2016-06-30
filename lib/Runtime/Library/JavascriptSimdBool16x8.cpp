@@ -6,12 +6,14 @@
 
 namespace Js
 {
-    JavascriptSIMDBool16x8::JavascriptSIMDBool16x8(StaticType *type) : RecyclableObject(type)
+    const char16 JavascriptSIMDBool16x8::TypeName[] = _u("SIMD.Bool16x8");
+
+    JavascriptSIMDBool16x8::JavascriptSIMDBool16x8(StaticType *type) : JavascriptSIMDType(type)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDBool16x8);
     }
 
-    JavascriptSIMDBool16x8::JavascriptSIMDBool16x8(SIMDValue *val, StaticType *type) : RecyclableObject(type), value(*val)
+    JavascriptSIMDBool16x8::JavascriptSIMDBool16x8(SIMDValue *val, StaticType *type) : JavascriptSIMDType(val, type)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDBool16x8);
     }
@@ -44,72 +46,10 @@ namespace Js
         return JavascriptSIMDBool16x8::New(&value, requestContext);
     }
 
-    BOOL JavascriptSIMDBool16x8::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    const char16* JavascriptSIMDBool16x8::GetTypeName()
     {
-        return GetPropertyBuiltIns(propertyId, value, requestContext);
+        return JavascriptSIMDBool16x8::TypeName;
     }
-
-    BOOL JavascriptSIMDBool16x8::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
-
-        if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
-        {
-            return true;
-        }
-        return false;
-    }
-
-    BOOL JavascriptSIMDBool16x8::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        return JavascriptSIMDBool16x8::GetProperty(originalInstance, propertyId, value, info, requestContext);
-    }
-
-    bool JavascriptSIMDBool16x8::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
-    {
-        if (propertyId == PropertyIds::toString)
-        {
-            *value = requestContext->GetLibrary()->GetSIMDBool16x8ToStringFunction();
-            return true;
-        }
-        return false;
-    }
-
-    // Entry Points
-
-    Var JavascriptSIMDBool16x8::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        if (args.Info.Count == 0 || !JavascriptSIMDBool16x8::Is(args[0]))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, L"SIMDBool32x4.toString");
-        }
-
-        JavascriptSIMDBool16x8 *instance = JavascriptSIMDBool16x8::FromVar(args[0]);
-        Assert(instance);
-
-        wchar_t stringBuffer[1024];
-        SIMDValue value = instance->GetValue();
-
-        swprintf_s(stringBuffer, 1024, L"SIMD.Bool16x8(%s, %s, %s, %s, %s, %s, %s, %s)", \
-            value.i16[0] ? L"true" : L"false", value.i16[1] ? L"true" : L"false", value.i16[2] ? L"true" : L"false", value.i16[3] ? L"true" : L"false", \
-            value.i16[4] ? L"true" : L"false", value.i16[5] ? L"true" : L"false", value.i16[6] ? L"true" : L"false", value.i16[7] ? L"true" : L"false"
-            );
-
-        JavascriptString* string = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
-
-        return string;
-    }
-
-    // End Entry Points
 
     Var JavascriptSIMDBool16x8::Copy(ScriptContext* requestContext)
     {

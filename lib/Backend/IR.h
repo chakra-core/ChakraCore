@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "Language\JavascriptNativeOperators.h"
+#include "Language/JavascriptNativeOperators.h"
 
 class Func;
 class BasicBlock;
@@ -52,13 +52,6 @@ public:
         void* * jmpTable = JitAnewArrayZ(allocator, void*, tableSize);
         branchTargets->jmpTable = jmpTable;
         return branchTargets;
-    }
-
-    static void Delete(JitArenaAllocator * allocator, BranchJumpTableWrapper * branchTargets)
-    {
-        Assert(allocator != nullptr && branchTargets != nullptr);
-        JitAdeleteArray(allocator, branchTargets->tableSize, branchTargets->jmpTable);
-        JitAdelete(allocator, branchTargets);
     }
 };
 
@@ -192,6 +185,7 @@ public:
     bool            EndsBasicBlock() const;
     bool            HasFallThrough() const;
     bool            DoStackArgsOpt(Func *topFunc) const;
+    bool            HasAnyLoadHeapArgsOpCode();
     bool            IsEqual(IR::Instr *instr) const;
 
     bool            IsCloned() const { return isCloned; }
@@ -257,7 +251,7 @@ public:
     void            TransferDstAttributesTo(Instr * instr);
     IR::Instr *     Copy();
     IR::Instr *     Clone();
-    IR::Instr *     ConvertToBailOutInstr(IR::Instr * bailOutTarget, BailOutKind kind);
+    IR::Instr *     ConvertToBailOutInstr(IR::Instr * bailOutTarget, BailOutKind kind, uint32 bailOutOffset = Js::Constants::NoByteCodeOffset);
     IR::Instr *     ConvertToBailOutInstr(BailOutInfo * bailOutInfo, BailOutKind kind, bool useAuxBailout = false);
     IR::Instr *     GetNextRealInstr() const;
     IR::Instr *     GetNextRealInstrOrLabel() const;
@@ -286,7 +280,7 @@ public:
     virtual void    Dump(IRDumpFlags flags);
             void    Dump();
             void    DumpSimple();
-    wchar_t*        DumpString();
+    char16*        DumpString();
     void            DumpGlobOptInstrString();
     void            Dump(int window);
     void            DumpRange(Instr *instrEnd);
@@ -456,7 +450,7 @@ public:
     Instr *         m_prev;
     Func *          m_func;
 #if DBG_DUMP
-    wchar_t *       globOptInstrString;
+    char16 *       globOptInstrString;
 #endif
     // These should be together to pack into a uint32
     Js::OpCode      m_opcode;
@@ -1004,9 +998,9 @@ typedef BailOutInstrTemplate<BranchInstr> BranchBailOutInstr;
 #define FOREACH_INSTR_IN_RANGE(instr, instrList, instrLast)\
     {\
         INIT_PREV;\
-        IR::Instr *instrStop = instrLast ? ((IR::Instr*)instrLast)->m_next : nullptr; \
+        IR::Instr *instr##Stop = instrLast ? ((IR::Instr*)instrLast)->m_next : nullptr; \
         for ( IR::Instr *instr = instrList;\
-            instr != instrStop;\
+            instr != instr##Stop;\
             instr = instr->m_next)\
         {\
             CHECK_PREV(instr);
@@ -1024,9 +1018,9 @@ typedef BailOutInstrTemplate<BranchInstr> BranchBailOutInstr;
 #define FOREACH_INSTR_BACKWARD_IN_RANGE(instr, instrList, instrLast)\
     {\
         INIT_NEXT;\
-        IR::Instr *instrStop = instrLast ? ((IR::Instr*)instrLast)->m_prev : nullptr; \
+        IR::Instr *instr##Stop = instrLast ? ((IR::Instr*)instrLast)->m_prev : nullptr; \
         for ( IR::Instr *instr = instrList;\
-            instr != instrStop;\
+            instr != instr##Stop;\
             instr = instr->m_prev)\
         {\
             CHECK_NEXT(instr);
@@ -1035,9 +1029,9 @@ typedef BailOutInstrTemplate<BranchInstr> BranchBailOutInstr;
 #define FOREACH_INSTR_EDITING_IN_RANGE(instr, instrNext, instrList, instrLast)\
     {\
         IR::Instr * instrNext;\
-        IR::Instr *instrStop = instrLast ? ((IR::Instr*)instrLast)->m_next : nullptr; \
+        IR::Instr *instr##Stop = instrLast ? ((IR::Instr*)instrLast)->m_next : nullptr; \
         for ( IR::Instr *instr = instrList;\
-            instr != instrStop;\
+            instr != instr##Stop;\
             instr = instrNext)\
         {\
             instrNext = instr->m_next;
@@ -1055,9 +1049,9 @@ typedef BailOutInstrTemplate<BranchInstr> BranchBailOutInstr;
 #define FOREACH_INSTR_BACKWARD_EDITING_IN_RANGE(instr, instrPrev, instrList, instrLast)\
     {\
         IR::Instr * instrPrev;\
-        IR::Instr *instrStop = instrLast ? ((IR::Instr*)instrLast)->m_prev : nullptr; \
+        IR::Instr *instr##Stop = instrLast ? ((IR::Instr*)instrLast)->m_prev : nullptr; \
         for ( IR::Instr *instr = instrList;\
-            instr != instrStop;\
+            instr != instr##Stop;\
             instr = instrPrev)\
         {\
             instrPrev = instr->m_prev;

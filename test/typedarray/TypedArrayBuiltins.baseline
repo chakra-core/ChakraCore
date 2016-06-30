@@ -1,5 +1,0 @@
-*** Running test #1 (0): TypedArray builtin properties can't be overwritten, but writing to them does not throw an error
-PASSED
-*** Running test #2 (1): TypedArray constructed out of an iterable object
-PASSED
-Summary of tests: total executed: 2; passed: 2; failed: 0

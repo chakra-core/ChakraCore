@@ -19,7 +19,9 @@ namespace JsUtil
     class WaitableSingleJobManager;
     class JobProcessor;
     class ForegroundJobProcessor;
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
     class BackgroundJobProcessor;
+#endif
     struct ParallelThreadData;
 
     // -------------------------------------------------------------------------------------------------------------------------
@@ -53,7 +55,9 @@ namespace JsUtil
             NotFailed,
             OOM,
             StackOverflow,
-            Aborted
+            Aborted,
+            ExceedJITLimit,
+            Unknown
         };
         FailureReason failureReason;
 #endif
@@ -75,8 +79,10 @@ namespace JsUtil
         friend WaitableJobManager;
         friend JobProcessor;
         friend ForegroundJobProcessor;
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         friend BackgroundJobProcessor;
-
+#endif
+        
     private:
         JobProcessor *const processor;
         unsigned int numJobsAddedToProcessor;
@@ -189,14 +195,20 @@ namespace JsUtil
 
     class WaitableJobManager : public JobManager
     {
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         friend BackgroundJobProcessor;
-
+#endif
+        
     private:
         Job *jobBeingWaitedUpon;
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         Event jobBeingWaitedUponProcessed;
+#endif
         bool isWaitingForQueuedJobs;
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         Event queuedJobsProcessed;
-
+#endif
+        
     protected:
         WaitableJobManager(JobProcessor *const processor);
     };
@@ -213,8 +225,10 @@ namespace JsUtil
     class SingleJobManager : public JobManager
     {
         friend ForegroundJobProcessor;
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         friend BackgroundJobProcessor;
-
+#endif
+        
     private:
         JsUtil::Job job;
         bool processed;
@@ -244,8 +258,10 @@ namespace JsUtil
     class WaitableSingleJobManager : public WaitableJobManager
     {
         friend ForegroundJobProcessor;
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         friend BackgroundJobProcessor;
-
+#endif
+        
     private:
         JsUtil::Job job;
         bool processed;
@@ -352,8 +368,10 @@ namespace JsUtil
 
     class ForegroundJobProcessor sealed : public JobProcessor
     {
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
         friend BackgroundJobProcessor;
-
+#endif
+        
     public:
         ForegroundJobProcessor();
 
@@ -390,6 +408,7 @@ namespace JsUtil
     // BackgroundJobProcessor
     // -------------------------------------------------------------------------------------------------------------------------
 
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
     struct ParallelThreadData
     {
         HANDLE threadHandle;
@@ -439,7 +458,7 @@ namespace JsUtil
         ParallelThreadData **parallelThreadData;
 
 #if DBG_DUMP
-        static  wchar_t const * const  DebugThreadNames[16];
+        static  char16 const * const  DebugThreadNames[16];
 #endif
 
     public:
@@ -521,4 +540,5 @@ namespace JsUtil
 
         static void CALLBACK ThreadServiceCallback(void * callbackData);
     };
+#endif
 }

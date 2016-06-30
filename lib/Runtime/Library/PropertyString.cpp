@@ -9,14 +9,14 @@ namespace Js
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(PropertyString);
     DEFINE_RECYCLER_TRACKER_WEAKREF_PERF_COUNTER(PropertyString);
 
-    PropertyString::PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord, bool registerScriptContext)
-        : JavascriptString(type, propertyRecord->GetLength(), propertyRecord->GetBuffer()), registerScriptContext(registerScriptContext), m_propertyRecord(propertyRecord)
+    PropertyString::PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord)
+        : JavascriptString(type, propertyRecord->GetLength(), propertyRecord->GetBuffer()), m_propertyRecord(propertyRecord)
     {
     }
 
     PropertyString* PropertyString::New(StaticType* type, const Js::PropertyRecord* propertyRecord, ArenaAllocator *arena)
     {
-        PropertyString * propertyString = Anew(arena, PropertyString, type, propertyRecord, true);
+        PropertyString * propertyString = (PropertyString *)Anew(arena, AreanaAllocPropertyString, type, propertyRecord);
         propertyString->propCache = AllocatorNewStructZ(InlineCacheAllocator, type->GetScriptContext()->GetInlineCacheAllocator(), PropertyCache);
         return propertyString;
     }
@@ -24,7 +24,7 @@ namespace Js
 
     PropertyString* PropertyString::New(StaticType* type, const Js::PropertyRecord* propertyRecord, Recycler *recycler)
     {
-        PropertyString * propertyString =  RecyclerNewPlusZ(recycler, sizeof(PropertyCache), PropertyString, type, propertyRecord, false);
+        PropertyString * propertyString =  RecyclerNewPlusZ(recycler, sizeof(PropertyCache), PropertyString, type, propertyRecord);
         propertyString->propCache = (PropertyCache*)(propertyString + 1);
         return propertyString;
     }
@@ -53,9 +53,10 @@ namespace Js
     void PropertyString::UpdateCache(Type * type, uint16 dataSlotIndex, bool isInlineSlot, bool isStoreFieldEnabled)
     {
         Assert(type && type->GetScriptContext() == this->GetScriptContext());
-        if (registerScriptContext)
+
+        if (this->IsAreanaAllocPropertyString())
         {
-            this->GetScriptContext()->RegisterAsScriptContextWithInlineCaches();
+            this->GetScriptContext()->SetHasUsedInlineCache(true);
         }
 
         this->propCache->type = type;
@@ -65,4 +66,8 @@ namespace Js
         this->propCache->isInlineSlot = isInlineSlot;
         this->propCache->isStoreFieldEnabled = isStoreFieldEnabled;
     }
+
+    AreanaAllocPropertyString::AreanaAllocPropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord)
+        :PropertyString(type, propertyRecord)
+    {}
 }

@@ -57,6 +57,7 @@ public:
     PageAllocator * GetPageAllocator();
     CodeGenAllocators * GetCodeGenAllocators();
     AllocationPolicyManager * GetAllocationPolicyManager();
+    CustomHeap::CodePageAllocators * GetCodePageAllocators();
     HANDLE GetProcessHandle() const;
 
     void ResetIsAllJITCodeInPreReservedRegion();
@@ -76,6 +77,8 @@ private:
     uint m_activeJITCount;
 
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
+    PreReservedVirtualAllocWrapper m_preReservedVirtualAllocator;
+    CustomHeap::CodePageAllocators m_codePageAllocators;
     PageAllocator m_pageAlloc;
     AllocationPolicyManager m_policyManager;
     CodeGenAllocators m_codeGenAlloc;

@@ -32,7 +32,8 @@ HeapBucket::GetMediumBucketIndex() const
     return HeapInfo::GetMediumBucketIndex(this->sizeCat);
 }
 
-EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(HeapBucketT);
+namespace Memory
+{
 
 template <typename TBlockType>
 HeapBucketT<TBlockType>::HeapBucketT() :
@@ -64,6 +65,7 @@ HeapBucketT<TBlockType>::~HeapBucketT()
     DeleteEmptyHeapBlockList(this->emptyBlockList);
     Assert(this->heapBlockCount + this->newHeapBlockCount + this->emptyHeapBlockCount == 0);
 }
+};
 
 template <typename TBlockType>
 void
@@ -101,11 +103,11 @@ HeapBucketT<TBlockType>::Initialize(HeapInfo * heapInfo, uint sizeCat)
 {
     this->heapInfo = heapInfo;
 #ifdef RECYCLER_PAGE_HEAP
-    this->isPageHeapEnabled = heapInfo->IsPageHeapEnabledForBlock<TBlockType::HeapBlockAttributes>(sizeCat);
+    this->isPageHeapEnabled = heapInfo->IsPageHeapEnabledForBlock<typename TBlockType::HeapBlockAttributes>(sizeCat);
 #endif
     this->sizeCat = sizeCat;
     allocatorHead.Initialize();
-#ifdef PROFILE_RECYCLER_ALLOC
+#if defined(PROFILE_RECYCLER_ALLOC) || defined(RECYCLER_MEMORY_VERIFY)
     allocatorHead.bucket = this;
 #endif
     this->lastExplicitFreeListAllocator = &allocatorHead;
@@ -184,7 +186,7 @@ HeapBucketT<TBlockType>::AddAllocator(TBlockAllocatorType * allocator)
     allocator->prev = &this->allocatorHead;
     allocator->next->prev = allocator;
     this->allocatorHead.next = allocator;
-#ifdef PROFILE_RECYCLER_ALLOC
+#if defined(PROFILE_RECYCLER_ALLOC) || defined(RECYCLER_MEMORY_VERIFY)
     allocator->bucket = this;
 #endif
 }
@@ -224,10 +226,7 @@ HeapBucketT<TBlockType>::IntegrateBlock(char * blockAddress, PageSegment * segme
     }
 
     // TODO: Consider supporting guard pages for this codepath
-#ifdef RECYCLER_PAGE_HEAP
-    heapBlock->ClearPageHeap();
-#endif
-    if (!heapBlock->SetPage<false>(blockAddress, segment, recycler))
+    if (!heapBlock->SetPage(blockAddress, segment, recycler))
     {
         FreeHeapBlock(heapBlock);
         return false;
@@ -283,7 +282,8 @@ bool
 HeapBucketT<TBlockType>::HasPendingDisposeHeapBlocks() const
 {
 #ifdef RECYCLER_WRITE_BARRIER
-    return (IsFinalizableBucket || IsFinalizableWriteBarrierBucket) && ((SmallFinalizableHeapBucketT<TBlockType::HeapBlockAttributes> *)this)->pendingDisposeList != nullptr;
+    return (IsFinalizableBucket || IsFinalizableWriteBarrierBucket) &&
+    ((SmallFinalizableHeapBucketT<typename TBlockType::HeapBlockAttributes> *)this)->pendingDisposeList != nullptr;
 #else
     return IsFinalizableBucket && ((SmallFinalizableHeapBucketT<TBlockType::HeapBlockAttributes> *)this)->pendingDisposeList != nullptr;
 #endif
@@ -348,27 +348,27 @@ HeapBucketT<TBlockType>::TryAlloc(Recycler * recycler, TBlockAllocatorType * all
         return nullptr;
     }
     // We just found a block we can allocate on
-    char * memBlock = allocator->SlowAlloc<false /* disallow fault injection */>(recycler, sizeCat, attributes);
+    char * memBlock = allocator->template SlowAlloc<false /* disallow fault injection */>(recycler, sizeCat, attributes);
     Assert(memBlock != nullptr);
     return memBlock;
 }
 
 template <typename TBlockType>
 char *
-HeapBucketT<TBlockType>::TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes)
+HeapBucketT<TBlockType>::TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, size_t size, ObjectInfoBits attributes)
 {
     AUTO_NO_EXCEPTION_REGION;
 
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
 
 #ifdef RECYCLER_PAGE_HEAP
-    if (IsPageHeapEnabled())
+    if (IsPageHeapEnabled(attributes))
     {
-        return this->PageHeapAlloc(recycler, sizeCat, attributes, this->heapInfo->pageHeapMode, true);
+        return this->PageHeapAlloc(recycler, sizeCat, size, attributes, this->heapInfo->pageHeapMode, true);
     }
 #endif
 
-    TBlockType * heapBlock = CreateHeapBlock<false>(recycler);
+    TBlockType * heapBlock = CreateHeapBlock(recycler);
     if (heapBlock == nullptr)
     {
         return nullptr;
@@ -377,7 +377,7 @@ HeapBucketT<TBlockType>::TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAll
     // new heap block added, allocate from that.
     allocator->SetNew(heapBlock);
     // We just created a block we can allocate on
-    char * memBlock = allocator->SlowAlloc<false /* disallow fault injection */>(recycler, sizeCat, attributes);
+    char * memBlock = allocator->template SlowAlloc<false /* disallow fault injection */>(recycler, sizeCat, attributes);
     Assert(memBlock != nullptr || IS_FAULTINJECT_NO_THROW_ON);
     return memBlock;
 }
@@ -385,103 +385,18 @@ HeapBucketT<TBlockType>::TryAllocFromNewHeapBlock(Recycler * recycler, TBlockAll
 #ifdef RECYCLER_PAGE_HEAP
 template <typename TBlockType>
 char *
-HeapBucketT<TBlockType>::PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow)
+HeapBucketT<TBlockType>::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow)
 {
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"In PageHeapAlloc [Size: 0x%x, Attributes: 0x%x]\n", sizeCat, attributes);
-
-    Assert(sizeCat == this->sizeCat);
-    char * memBlock = nullptr;
-    TBlockAllocatorType* allocator = &this->allocatorHead;
-
-    memBlock = allocator->PageHeapAlloc(recycler, sizeCat, attributes, mode);
-    if (memBlock == nullptr)
-    {
-        TBlockType* heapBlock = nullptr;
-
-        allocator->Clear();
-
-        {
-            AUTO_NO_EXCEPTION_REGION;
-
-            heapBlock = CreateHeapBlock<true>(recycler);
-        }
-
-        if (heapBlock != nullptr)
-        {
-            // new heap block added, allocate from that.
-            allocator->SetNew(heapBlock);
-            memBlock = allocator->PageHeapAlloc(recycler, sizeCat, attributes, mode);
-            Assert(memBlock != nullptr || IS_FAULTINJECT_NO_THROW_ON);
-        }
-
-        if (memBlock == nullptr)
-        {
-            recycler->CollectNow<CollectNowForceInThread>();
-            memBlock = allocator->PageHeapAlloc(recycler, sizeCat, attributes, mode);
-
-            if (memBlock == nullptr)
-            {
-                // Although we collected in thread, PostCollectCallback may
-                // allocate memory and populated the allocator again, let's clear it again
-                allocator->Clear();
-
-                TBlockType* heapBlock = nullptr;
-
-                {
-                    AUTO_NO_EXCEPTION_REGION;
-
-                    heapBlock = CreateHeapBlock<true>(recycler);
-                }
-
-                if (heapBlock != nullptr)
-                {
-                    // new heap block added, allocate from that.
-                    allocator->SetNew(heapBlock);
-                    memBlock = allocator->PageHeapAlloc(recycler, sizeCat, attributes, mode);
-                    Assert(memBlock != nullptr || IS_FAULTINJECT_NO_THROW_ON);
-                }
-
-                if (memBlock == nullptr)
-                {
-                    // If nothrow is false, that means throwing is allowed
-                    // Since we have no more memory to allocate here, throw an OOM exception
-                    // If nothrow is true, then simply return null
-                    if (nothrow == false)
-                    {
-                        recycler->OutOfMemory();
-                    }
-                    else
-                    {
-                        return nullptr;
-                    }
-                }
-            }
-        }
-    }
-
-    Assert(memBlock != nullptr);
-#ifdef RECYCLER_ZERO_MEM_CHECK
-    if ((attributes & ObjectInfoBits::LeafBit) == 0
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_THREAD_PAGE
-        && ((attributes & ObjectInfoBits::WithBarrierBit) == 0)
-#endif
-        )
-    {
-        // Skip the first and the last pointer objects- the first may have next pointer for the free list
-        // the last might have the old size of the object if this was allocated from an explicit free list
-        recycler->VerifyZeroFill(memBlock + sizeof(FreeObject), sizeCat - (2 * sizeof(FreeObject)));
-    }
-#endif
-
-    return memBlock;
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("In PageHeapAlloc [Size: 0x%x, Attributes: 0x%x]\n"), size, attributes);
+    return heapInfo->largeObjectBucket.PageHeapAlloc(recycler, sizeCat, size, attributes, mode, nothrow);
 }
 #endif
 
 template <typename TBlockType>
 char *
-HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes, bool nothrow)
+HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow)
 {
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"In SnailAlloc [Size: 0x%x, Attributes: 0x%x]\n", sizeCat, attributes);
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("In SnailAlloc [Size: 0x%x, Attributes: 0x%x]\n"), sizeCat, attributes);
 
     Assert(sizeCat == this->sizeCat);
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
@@ -500,11 +415,23 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
     BOOL collected = recycler->disableCollectOnAllocationHeuristics ? FALSE : recycler->CollectNow<CollectOnAllocation>();
 #endif
 
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"TryAlloc failed, forced collection on allocation [Collected: %d]\n", collected);
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("TryAlloc failed, forced collection on allocation [Collected: %d]\n"), collected);
     if (!collected)
     {
+#if ENABLE_CONCURRENT_GC
+        // wait for background sweeping finish if there are too many pages allocated during background sweeping
+        if (recycler->IsConcurrentSweepExecutingState() && this->heapInfo->uncollectedNewPageCount > (uint)CONFIG_FLAG(NewPagesCapDuringBGSweeping))
+        {
+            recycler->FinishConcurrent<ForceFinishCollection>();
+            memBlock = this->TryAlloc(recycler, allocator, sizeCat, attributes);
+            if (memBlock != nullptr)
+            {
+                return memBlock;
+            }
+        }
+#endif
         // We didn't collect, try to add a new heap block
-        memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, attributes);
+        memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, size, attributes);
         if (memBlock != nullptr)
         {
             return memBlock;
@@ -512,19 +439,19 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
 
         // Can't even allocate a new block, we need force a collection and
         //allocate some free memory, add a new heap block again, or throw out of memory
-        AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"TryAllocFromNewHeapBlock failed, forcing in-thread collection\n");
+        AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("TryAllocFromNewHeapBlock failed, forcing in-thread collection\n"));
         recycler->CollectNow<CollectNowForceInThread>();
     }
 
     // Collection might trigger finalizer, which might allocate memory. So the allocator
     // might have a heap block already, try to allocate from that first
-    memBlock = allocator->SlowAlloc<true /* allow fault injection */>(recycler, sizeCat, attributes);
+    memBlock = allocator->template SlowAlloc<true /* allow fault injection */>(recycler, sizeCat, attributes);
     if (memBlock != nullptr)
     {
         return memBlock;
     }
 
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"SlowAlloc failed\n");
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("SlowAlloc failed\n"));
 
     // do the allocation
     memBlock = this->TryAlloc(recycler, allocator, sizeCat, attributes);
@@ -533,15 +460,15 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
         return memBlock;
     }
 
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"TryAlloc failed\n");
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("TryAlloc failed\n"));
     // add a heap block if there are no preallocated memory left.
-    memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, attributes);
+    memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, size, attributes);
     if (memBlock != nullptr)
     {
         return memBlock;
     }
 
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"TryAllocFromNewHeapBlock failed- triggering OOM handler");
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("TryAllocFromNewHeapBlock failed- triggering OOM handler"));
 
     if (nothrow == false)
     {
@@ -574,11 +501,10 @@ HeapBucketT<TBlockType>::GetUnusedHeapBlock()
 }
 
 template <typename TBlockType>
-template<bool pageheap>
 TBlockType *
 HeapBucketT<TBlockType>::CreateHeapBlock(Recycler * recycler)
 {
-    FAULTINJECT_MEMORY_NOTHROW(L"HeapBlock", sizeof(TBlockType));
+    FAULTINJECT_MEMORY_NOTHROW(_u("HeapBlock"), sizeof(TBlockType));
 
     // Add a new heap block
     TBlockType * heapBlock = GetUnusedHeapBlock();
@@ -587,14 +513,7 @@ HeapBucketT<TBlockType>::CreateHeapBlock(Recycler * recycler)
         return nullptr;
     }
 
-#ifdef RECYCLER_PAGE_HEAP
-    if (pageheap)
-    {
-        heapBlock->EnablePageHeap();
-    }
-#endif
-
-    if (!heapBlock->ReassignPages<pageheap>(recycler))
+    if (!heapBlock->ReassignPages(recycler))
     {
         FreeHeapBlock(heapBlock);
         return nullptr;
@@ -728,7 +647,7 @@ HeapBucketT<TBlockType>::VerifyBlockConsistencyInList(TBlockType * heapBlock, Re
     }
     else if (*expectDispose)
     {
-        Assert(heapBlock->IsAnyFinalizableBlock() && heapBlock->AsFinalizableBlock<TBlockType::HeapBlockAttributes>()->IsPendingDispose());
+        Assert(heapBlock->IsAnyFinalizableBlock() && heapBlock->template AsFinalizableBlock<typename TBlockType::HeapBlockAttributes>()->IsPendingDispose());
         Assert(heapBlock->HasAnyDisposeObjects());
     }
     else
@@ -803,21 +722,7 @@ HeapBucketT<TBlockType>::DoPartialReuseSweep(Recycler * recycler)
 }
 #endif
 
-template void HeapBucketT<SmallLeafHeapBlock>::SweepHeapBlockList<true>(RecyclerSweep&, SmallLeafHeapBlock *, bool);
-template void HeapBucketT<SmallLeafHeapBlock>::SweepHeapBlockList<false>(RecyclerSweep&, SmallLeafHeapBlock *, bool);
-template void HeapBucketT<SmallNormalHeapBlock>::SweepHeapBlockList<true>(RecyclerSweep&, SmallNormalHeapBlock *, bool);
-template void HeapBucketT<SmallNormalHeapBlock>::SweepHeapBlockList<false>(RecyclerSweep&, SmallNormalHeapBlock *, bool);
-template void HeapBucketT<SmallFinalizableHeapBlock>::SweepHeapBlockList<true>(RecyclerSweep&, SmallFinalizableHeapBlock *, bool);
-template void HeapBucketT<SmallFinalizableHeapBlock>::SweepHeapBlockList<false>(RecyclerSweep&, SmallFinalizableHeapBlock *, bool);
-#ifdef RECYCLER_WRITE_BARRIER
-template void HeapBucketT<SmallNormalWithBarrierHeapBlock>::SweepHeapBlockList<true>(RecyclerSweep&, SmallNormalWithBarrierHeapBlock *, bool);
-template void HeapBucketT<SmallNormalWithBarrierHeapBlock>::SweepHeapBlockList<false>(RecyclerSweep&, SmallNormalWithBarrierHeapBlock *, bool);
-template void HeapBucketT<SmallFinalizableWithBarrierHeapBlock>::SweepHeapBlockList<true>(RecyclerSweep&, SmallFinalizableWithBarrierHeapBlock *, bool);
-template void HeapBucketT<SmallFinalizableWithBarrierHeapBlock>::SweepHeapBlockList<false>(RecyclerSweep&, SmallFinalizableWithBarrierHeapBlock *, bool);
-#endif
-
 template <typename TBlockType>
-template <bool pageheap>
 void
 HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlockType * heapBlockList, bool allocable)
 {
@@ -857,7 +762,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
         // The whole list need to be consistent
         DebugOnly(VerifyBlockConsistencyInList(heapBlock, recyclerSweep));
 
-        SweepState state = heapBlock->Sweep<pageheap>(recyclerSweep, queuePendingSweep, allocable);
+        SweepState state = heapBlock->Sweep(recyclerSweep, queuePendingSweep, allocable);
 
         DebugOnly(VerifyBlockConsistencyInList(heapBlock, recyclerSweep, state));
 
@@ -887,7 +792,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
             Assert(IsFinalizableBucket);
 #endif
 
-            DebugOnly(heapBlock->AsFinalizableBlock<TBlockType::HeapBlockAttributes>()->SetIsPendingDispose());
+            DebugOnly(heapBlock->template AsFinalizableBlock<typename TBlockType::HeapBlockAttributes>()->SetIsPendingDispose());
 
             // These are the blocks that have swept finalizable object
 
@@ -895,9 +800,9 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
             // concurrent collection, so we only need to queue up the blocks that have
             // finalizable objects, so that we can go through and call the dispose, and then
             // transfer the finalizable object back to the free list.
-            SmallFinalizableHeapBucketT<TBlockType::HeapBlockAttributes> * finalizableHeapBucket = (SmallFinalizableHeapBucketT<TBlockType::HeapBlockAttributes>*)this;
-            heapBlock->AsFinalizableBlock<TBlockType::HeapBlockAttributes>()->SetNextBlock(finalizableHeapBucket->pendingDisposeList);
-            finalizableHeapBucket->pendingDisposeList = heapBlock->AsFinalizableBlock<TBlockType::HeapBlockAttributes>();
+            SmallFinalizableHeapBucketT<typename TBlockType::HeapBlockAttributes> * finalizableHeapBucket = (SmallFinalizableHeapBucketT<typename TBlockType::HeapBlockAttributes>*)this;
+            heapBlock->template AsFinalizableBlock<typename TBlockType::HeapBlockAttributes>()->SetNextBlock(finalizableHeapBucket->pendingDisposeList);
+            finalizableHeapBucket->pendingDisposeList = heapBlock->template AsFinalizableBlock<typename TBlockType::HeapBlockAttributes>();
             Assert(!recycler->hasPendingTransferDisposedObjects);
             recycler->hasDisposableObject = true;
             break;
@@ -945,14 +850,14 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
 #endif
                 // CONCURRENT-TODO: We will zero heap block even if the number free page pool exceed
                 // the maximum and will get decommitted anyway
-                recyclerSweep.QueueEmptyHeapBlock<TBlockType, pageheap>(this, heapBlock);
+                recyclerSweep.template QueueEmptyHeapBlock<TBlockType>(this, heapBlock);
                 RECYCLER_STATS_INC(recycler, numZeroedOutSmallBlocks);
             }
             else
 #endif
             {
                 // Just free the page in thread (and zero the page)
-                heapBlock->ReleasePagesSweep<pageheap>(recycler);
+                heapBlock->ReleasePagesSweep(recycler);
                 FreeHeapBlock(heapBlock);
                 RECYCLER_SLOW_CHECK(this->heapBlockCount--);
             }
@@ -964,7 +869,6 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
 }
 
 template <typename TBlockType>
-template <bool pageheap>
 void
 HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
 {
@@ -1012,7 +916,7 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
     TBlockType * currentHeapBlockList = heapBlockList;
     this->heapBlockList = nullptr;
     this->fullBlockList = nullptr;
-    this->SweepHeapBlockList<pageheap>(recyclerSweep, currentHeapBlockList, true);
+    this->SweepHeapBlockList(recyclerSweep, currentHeapBlockList, true);
 
 #if DBG
     if (TBlockType::HeapBlockAttributes::IsSmallBlock)
@@ -1029,7 +933,7 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
     }
 #endif
 
-    this->SweepHeapBlockList<pageheap>(recyclerSweep, currentFullBlockList, false);
+    this->SweepHeapBlockList(recyclerSweep, currentFullBlockList, false);
 
     // We shouldn't have allocate from any block yet
     Assert(this->nextAllocableBlockHead == nullptr);
@@ -1121,32 +1025,6 @@ HeapBucketT<TBlockType>::SetupBackgroundSweep(RecyclerSweep& recyclerSweep)
 }
 #endif
 
-#ifdef RECYCLER_PAGE_HEAP
-template <typename TBlockType>
-void
-HeapBucketT<TBlockType>::PageHeapCheckSweepLists(RecyclerSweep& recyclerSweep)
-{
-#if DBG
-    if (IsPageHeapEnabled())
-    {
-        // in page heap mode. both the heapBlockList and pendingSweepList should not contain page heap block
-        // Since all block should be "empty" if there are swept object.
-        // But the list might not be Null because page heap is not enabled for integrated page heapblock
-        HeapBlockList::ForEach(this->heapBlockList, [](TBlockType * heapBlock)
-        {
-            Assert(!heapBlock->InPageHeapMode());
-        });
-#if ENABLE_CONCURRENT_GC
-        HeapBlockList::ForEach(recyclerSweep.GetPendingSweepBlockList(this), [](TBlockType * heapBlock)
-        {
-            Assert(!heapBlock->InPageHeapMode());
-        });
-#endif
-    }
-#endif
-}
-#endif
-
 template <typename TBlockType>
 void
 HeapBucketT<TBlockType>::AppendAllocableHeapBlockList(TBlockType * list)
@@ -1190,7 +1068,7 @@ void
 HeapBucketT<TBlockType>::VerifyHeapBlockCount(bool background)
 {
     // TODO-REFACTOR: GetNonEmptyHeapBlockCount really should be virtual
-    static_cast<SmallHeapBlockType<TBlockType::RequiredAttributes, TBlockType::HeapBlockAttributes>::BucketType *>(this)->GetNonEmptyHeapBlockCount(true);
+    static_cast<typename SmallHeapBlockType<TBlockType::RequiredAttributes, typename TBlockType::HeapBlockAttributes>::BucketType *>(this)->GetNonEmptyHeapBlockCount(true);
     if (!background)
     {
         this->GetEmptyHeapBlockCount();
@@ -1380,40 +1258,26 @@ HeapBucketGroup<TBlockAttributes>::ScanNewImplicitRoots(Recycler * recycler)
     finalizableHeapBucket.ScanNewImplicitRoots(recycler);
 }
 
-// TODO: Fix template args
-template void HeapBucketGroup<SmallAllocationBlockAttributes>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void HeapBucketGroup<SmallAllocationBlockAttributes>::Sweep<false>(RecyclerSweep& recyclerSweep);
-template void HeapBucketGroup<MediumAllocationBlockAttributes>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void HeapBucketGroup<MediumAllocationBlockAttributes>::Sweep<false>(RecyclerSweep& recyclerSweep);
-
 template <class TBlockAttributes>
-template<bool pageheap>
 void
 HeapBucketGroup<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep)
 {
-    heapBucket.Sweep<pageheap>(recyclerSweep);
-    leafHeapBucket.Sweep<pageheap>(recyclerSweep);
+    heapBucket.Sweep(recyclerSweep);
+    leafHeapBucket.Sweep(recyclerSweep);
 #ifdef RECYCLER_WRITE_BARRIER
-    smallNormalWithBarrierHeapBucket.Sweep<pageheap>(recyclerSweep);
+    smallNormalWithBarrierHeapBucket.Sweep(recyclerSweep);
 #endif
 }
-
-
-template void HeapBucketGroup<SmallAllocationBlockAttributes>::SweepFinalizableObjects<true>(RecyclerSweep& recyclerSweep);
-template void HeapBucketGroup<SmallAllocationBlockAttributes>::SweepFinalizableObjects<false>(RecyclerSweep& recyclerSweep);
-template void HeapBucketGroup<MediumAllocationBlockAttributes>::SweepFinalizableObjects<true>(RecyclerSweep& recyclerSweep);
-template void HeapBucketGroup<MediumAllocationBlockAttributes>::SweepFinalizableObjects<false>(RecyclerSweep& recyclerSweep);
 
 // Sweep finalizable objects first to ensure that if they reference any other
 // objects in the finalizer - they are valid
 template <class TBlockAttributes>
-template<bool pageheap>
 void
 HeapBucketGroup<TBlockAttributes>::SweepFinalizableObjects(RecyclerSweep& recyclerSweep)
 {
-    finalizableHeapBucket.Sweep<pageheap>(recyclerSweep);
+    finalizableHeapBucket.Sweep(recyclerSweep);
 #ifdef RECYCLER_WRITE_BARRIER
-    smallFinalizableWithBarrierHeapBucket.Sweep<pageheap>(recyclerSweep);
+    smallFinalizableWithBarrierHeapBucket.Sweep(recyclerSweep);
 #endif
 }
 
@@ -1503,15 +1367,6 @@ template <class TBlockAttributes>
 void
 HeapBucketGroup<TBlockAttributes>::SweepPartialReusePages(RecyclerSweep& recyclerSweep)
 {
-#if DBG && defined(RECYCLER_PAGE_HEAP)
-    this->heapBucket.PageHeapCheckSweepLists(recyclerSweep);
-#ifdef RECYCLER_WRITE_BARRIER
-    this->smallNormalWithBarrierHeapBucket.PageHeapCheckSweepLists(recyclerSweep);
-    this->smallFinalizableWithBarrierHeapBucket.PageHeapCheckSweepLists(recyclerSweep);
-#endif
-    this->finalizableHeapBucket.PageHeapCheckSweepLists(recyclerSweep);
-#endif
-
     // Leaf heap bucket are always reused for allocation and can be done on the concurrent thread
     // WriteBarrier-TODO: Do the same for write barrier buckets
     heapBucket.SweepPartialReusePages(recyclerSweep);
@@ -1659,33 +1514,11 @@ HeapBucketGroup<TBlockAttributes>::AllocatorsAreEmpty()
 }
 #endif
 
-template class HeapBucketGroup<SmallAllocationBlockAttributes>;
-template class HeapBucketGroup<MediumAllocationBlockAttributes>;
+namespace Memory
+{
+    template class HeapBucketGroup<SmallAllocationBlockAttributes>;
+    template class HeapBucketGroup<MediumAllocationBlockAttributes>;
 
+    EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(HeapBucketT);
+};
 
-template void HeapBucketT<SmallFinalizableHeapBlock>::SweepBucket<true>(RecyclerSweep&);
-template void HeapBucketT<SmallFinalizableHeapBlock>::SweepBucket<false>(RecyclerSweep&);
-template void HeapBucketT<SmallNormalHeapBlock>::SweepBucket<true>(RecyclerSweep&);
-template void HeapBucketT<SmallNormalHeapBlock>::SweepBucket<false>(RecyclerSweep&);
-template void HeapBucketT<SmallLeafHeapBlock>::SweepBucket<true>(RecyclerSweep&);
-template void HeapBucketT<SmallLeafHeapBlock>::SweepBucket<false>(RecyclerSweep&);
-#ifdef RECYCLER_WRITE_BARRIER
-template void HeapBucketT<SmallFinalizableWithBarrierHeapBlock>::SweepBucket<true>(RecyclerSweep&);
-template void HeapBucketT<SmallFinalizableWithBarrierHeapBlock>::SweepBucket<false>(RecyclerSweep&);
-template void HeapBucketT<SmallNormalWithBarrierHeapBlock>::SweepBucket<true>(RecyclerSweep&);
-template void HeapBucketT<SmallNormalWithBarrierHeapBlock>::SweepBucket<false>(RecyclerSweep&);
-#endif
-
-template void HeapBucketT<MediumFinalizableHeapBlock>::SweepBucket<true>(RecyclerSweep&);
-template void HeapBucketT<MediumFinalizableHeapBlock>::SweepBucket<false>(RecyclerSweep&);
-
-template void HeapBucketT<MediumNormalHeapBlock>::SweepBucket<true>(RecyclerSweep&);
-template void HeapBucketT<MediumNormalHeapBlock>::SweepBucket<false>(RecyclerSweep&);
-template void HeapBucketT<MediumLeafHeapBlock>::SweepBucket<true>(RecyclerSweep&);
-template void HeapBucketT<MediumLeafHeapBlock>::SweepBucket<false>(RecyclerSweep&);
-#ifdef RECYCLER_WRITE_BARRIER
-template void HeapBucketT<MediumFinalizableWithBarrierHeapBlock>::SweepBucket<true>(RecyclerSweep&);
-template void HeapBucketT<MediumFinalizableWithBarrierHeapBlock>::SweepBucket<false>(RecyclerSweep&);
-template void HeapBucketT<MediumNormalWithBarrierHeapBlock>::SweepBucket<true>(RecyclerSweep&);
-template void HeapBucketT<MediumNormalWithBarrierHeapBlock>::SweepBucket<false>(RecyclerSweep&);
-#endif

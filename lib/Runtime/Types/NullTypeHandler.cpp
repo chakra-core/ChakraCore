@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
 
-#include "Types\NullTypeHandler.h"
-#include "Types\SimpleTypeHandler.h"
+#include "Types/NullTypeHandler.h"
+#include "Types/SimpleTypeHandler.h"
 
 namespace Js
 {
@@ -107,6 +107,7 @@ namespace Js
             return DynamicTypeHandler::GetItem(instance, originalInstance, indexVal, value, requestContext);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 

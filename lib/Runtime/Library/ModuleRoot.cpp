@@ -415,6 +415,7 @@ namespace Js
         {
             return TRUE;
         }
+        *value = requestContext->GetMissingItemResult();
         return FALSE;
     }
 
@@ -442,18 +443,19 @@ namespace Js
         {
             return TRUE;
         }
+        *value = requestContext->GetMissingItemResult();
         return FALSE;
     }
 
     BOOL ModuleRoot::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"{Named Item}");
+        stringBuilder->AppendCppLiteral(_u("{Named Item}"));
         return TRUE;
     }
 
     BOOL ModuleRoot::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Object, (Named Item)");
+        stringBuilder->AppendCppLiteral(_u("Object, (Named Item)"));
         return TRUE;
     }
 }

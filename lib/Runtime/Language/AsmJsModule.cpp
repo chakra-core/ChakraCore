@@ -1,17 +1,18 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 
 #ifndef TEMP_DISABLE_ASMJS
-#include "ByteCode\Symbol.h"
-#include "ByteCode\FuncInfo.h"
-#include "ByteCode\ByteCodeAPI.h"
-#include "ByteCode\ByteCodeWriter.h"
-#include "ByteCode\ByteCodeGenerator.h"
-#include "ByteCode\AsmJsByteCodeWriter.h"
-#include "Language\AsmJsByteCodeGenerator.h"
+#include "ByteCode/Symbol.h"
+#include "ByteCode/FuncInfo.h"
+#include "ByteCode/ByteCodeApi.h"
+#include "ByteCode/ByteCodeWriter.h"
+#include "ByteCode/ByteCodeGenerator.h"
+#include "ByteCode/AsmJsByteCodeWriter.h"
+#include "Language/AsmJsByteCodeGenerator.h"
 
 namespace Js
 {
@@ -98,8 +99,8 @@ namespace Js
                 Assert(asmInfo->GetSimdByteOffset() % sizeof(AsmJsSIMDValue) == 0);
             }
 
-            functionBody->SetOutParamDepth(func->GetMaxArgOutDepth());
-            functionBody->SetVarCount(varCount);
+            functionBody->CheckAndSetOutParamMaxDepth(func->GetMaxArgOutDepth());
+            functionBody->CheckAndSetVarCount(varCount);
             // should be set in EmitOneFunction
             Assert(functionBody->GetIsAsmjsMode());
             Assert(functionBody->GetIsAsmJsFunction());
@@ -128,6 +129,19 @@ namespace Js
         FuncInfo* funcInfo = GetModuleFunctionNode()->sxFnc.funcInfo;
         FunctionBody* functionBody = funcInfo->GetParsedFunctionBody();
         AsmJsModuleInfo* asmInfo = functionBody->AllocateAsmJsModuleInfo();
+
+        if (funcInfo->byteCodeFunction->GetIsNamedFunctionExpression())
+        {
+            Assert(GetModuleFunctionNode()->sxFnc.pnodeName);
+            if (GetModuleFunctionNode()->sxFnc.pnodeName->sxVar.sym->IsInSlot(funcInfo))
+            {
+                ParseNodePtr nameNode = GetModuleFunctionNode()->sxFnc.pnodeName;
+                GetByteCodeGenerator()->AssignPropertyId(nameNode->name());
+                // if module is a named function expression, we may need to restore this for debugger
+                AsmJsFunctionDeclaration* closure = Anew(&mAllocator, AsmJsFunctionDeclaration, nameNode->sxVar.pid, AsmJsSymbol::ClosureFunction, &mAllocator);
+                DefineIdentifier(nameNode->sxVar.pid, closure);
+            }
+        }
 
         int argCount = 0;
         if (mBufferArgName)
@@ -168,9 +182,9 @@ namespace Js
 
         functionBody->SetInParamsCount(4); // Always set 4 inParams so the memory space is the same (globalEnv,stdlib,foreign,buffer)
         functionBody->SetReportedInParamsCount(4);
-        functionBody->SetConstantCount(2); // Return register + Root
+        functionBody->CheckAndSetConstantCount(2); // Return register + Root
         functionBody->CreateConstantTable();
-        functionBody->SetVarCount(varCount);
+        functionBody->CheckAndSetVarCount(varCount);
         functionBody->SetIsAsmjsMode(true);
         functionBody->NewObjectLiteral(); // allocate one object literal for the export object
 
@@ -188,10 +202,10 @@ namespace Js
         }
 
         int iVar = 0, iVarImp = 0, iFunc = 0, iFuncImp = 0;
-        const int size = mModuleEnvironment.Count();
-        asmInfo->InitializeSlotMap(size);
+        const int moduleEnvCount = mModuleEnvironment.Count();
+        asmInfo->InitializeSlotMap(moduleEnvCount);
         auto slotMap = asmInfo->GetAsmJsSlotMap();
-        for (int i = 0; i < size; i++)
+        for (int i = 0; i < moduleEnvCount; i++)
         {
             AsmJsSymbol* sym = mModuleEnvironment.GetValueAt(i);
             if (sym)
@@ -313,6 +327,9 @@ namespace Js
                     slot->builtinSIMDFunc = mathFunc->GetSimdBuiltInFunction();
                     break;
                 }
+                case AsmJsSymbol::ClosureFunction:
+                    // we don't need to store any additional info in this case
+                    break;
                 default:
                     Assume(UNREACHED);
                 }
@@ -602,11 +619,10 @@ namespace Js
         FunctionBody * funcBody;
         ParseNodePtr parseTree;
 
-        Assert(!deferParseFunction->GetIsStrictMode());
         CompileScriptException se;
         funcBody = deferParseFunction->ParseAsmJs(&ps, &se, &parseTree);
 
-        TRACE_BYTECODE(L"\nDeferred parse %s\n", funcBody->GetDisplayName());
+        TRACE_BYTECODE(_u("\nDeferred parse %s\n"), funcBody->GetDisplayName());
         if (parseTree && parseTree->nop == knopProg)
         {
             auto body = parseTree->sxProg.pnodeBody;
@@ -620,11 +636,11 @@ namespace Js
                 }
             }
         }
-        GetByteCodeGenerator()->PushFuncInfo(L"Start asm.js AST prepass", fncNode->sxFnc.funcInfo);
+        GetByteCodeGenerator()->PushFuncInfo(_u("Start asm.js AST prepass"), fncNode->sxFnc.funcInfo);
         fncNode->sxFnc.funcInfo->byteCodeFunction->SetBoundPropertyRecords(GetByteCodeGenerator()->EnsurePropertyRecordList());
         BindArguments(fncNode->sxFnc.pnodeParams);
         ASTPrepass(pnodeBody, func);
-        GetByteCodeGenerator()->PopFuncInfo(L"End asm.js AST prepass");
+        GetByteCodeGenerator()->PopFuncInfo(_u("End asm.js AST prepass"));
 
         fncNode->sxFnc.pnodeBody = pnodeBody;
 
@@ -632,7 +648,7 @@ namespace Js
         {
             // body should never be null if parsing succeeded
             Assert(UNREACHED);
-            return Fail(fncNode, L"Function should always have parse nodes");
+            return Fail(fncNode, _u("Function should always have parse nodes"));
         }
 
         // Check if this function requires a bigger Ast
@@ -675,7 +691,7 @@ namespace Js
 
         if (!func->EnsureArgCount(numArguments))
         {
-            return Fail(argNode, L"Cannot have variable number of arguments");
+            return Fail(argNode, _u("Cannot have variable number of arguments"));
         }
 
         ArgSlot index = 0;
@@ -683,13 +699,13 @@ namespace Js
         {
             if (pnode->nop != knopList)
             {
-                return Fail(pnode, L"Missing assignment statement for argument");
+                return Fail(pnode, _u("Missing assignment statement for argument"));
             }
 
 
             if (!ParserWrapper::IsDefinition(argNode))
             {
-                return Fail(argNode, L"duplicate argument name not allowed");
+                return Fail(argNode, _u("duplicate argument name not allowed"));
             }
 
             PropertyName argName = argNode->name();
@@ -702,13 +718,13 @@ namespace Js
             AsmJsVarBase* var = func->DefineVar(argName, true);
             if (!var)
             {
-                return Fail(argNode, L"Failed to define var");
+                return Fail(argNode, _u("Failed to define var"));
             }
 
             ParseNode* argDefinition = ParserWrapper::GetBinaryLeft(pnode);
             if (argDefinition->nop != knopAsg)
             {
-                return Fail(argDefinition, L"Expecting an assignment");
+                return Fail(argDefinition, _u("Expecting an assignment"));
             }
 
             ParseNode* lhs = ParserWrapper::GetBinaryLeft(argDefinition);
@@ -718,7 +734,7 @@ namespace Js
 
             if (!NodeDefineThisArgument(lhs, var))
             {
-                return Fail(lhs, L"Defining wrong argument");
+                return Fail(lhs, _u("Defining wrong argument"));
             }
 
             if (rhs->nop == knopPos)
@@ -731,7 +747,7 @@ namespace Js
 
                 if (!NodeDefineThisArgument(argSym, var))
                 {
-                    return Fail(lhs, L"Defining wrong argument");
+                    return Fail(lhs, _u("Defining wrong argument"));
                 }
             }
             else if (rhs->nop == knopOr)
@@ -744,30 +760,30 @@ namespace Js
                 // validate stmt
                 if (!NodeDefineThisArgument(argSym, var))
                 {
-                    return Fail(lhs, L"Defining wrong argument");
+                    return Fail(lhs, _u("Defining wrong argument"));
                 }
                 if (intSym->nop != knopInt || intSym->sxInt.lw != 0)
                 {
-                    return Fail(lhs, L"Or value must be 0 when defining arguments");
+                    return Fail(lhs, _u("Or value must be 0 when defining arguments"));
                 }
             }
             else if (rhs->nop == knopCall)
             {
                 if (rhs->sxCall.pnodeTarget->nop != knopName)
                 {
-                    return Fail(rhs, L"call should be for fround");
+                    return Fail(rhs, _u("call should be for fround"));
                 }
                 AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(rhs->sxCall.pnodeTarget->name());
 
                 if (!funcDecl)
-                    return Fail(rhs, L"Cannot resolve function for argument definition, or wrong function");
+                    return Fail(rhs, _u("Cannot resolve function for argument definition, or wrong function"));
 
                 if (funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
                 {
                     AsmJsMathFunction* mathFunc = funcDecl->Cast<AsmJsMathFunction>();
                     if (!(mathFunc && mathFunc->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
                     {
-                        return Fail(rhs, L"call should be for fround");
+                        return Fail(rhs, _u("call should be for fround"));
                     }
                     var->SetVarType(AsmJsVarType::Float);
                     var->SetLocation(func->AcquireRegister<float>());
@@ -778,7 +794,11 @@ namespace Js
                     // x = f4check(x)
                     if (!simdFunc->IsTypeCheck())
                     {
-                       return Fail(rhs, L"Invalid SIMD argument type check. E.g. expected x = f4check(x)");
+                       return Fail(rhs, _u("Invalid SIMD argument type check. E.g. expected x = f4check(x)"));
+                    }
+                    if (simdFunc->IsUnsignedTypeCheck())
+                    {
+                        return Fail(rhs, _u("Invalid SIMD argument type. Expecting Signed arguments."));
                     }
                     var->SetVarType(simdFunc->GetTypeCheckVarType());
                     // We don't set SIMD args reg location here. We defer that after all function locals are processed.
@@ -787,27 +807,27 @@ namespace Js
                 }
                 else
                 {
-                    return Fail(rhs, L"Wrong function used for argument definition");
+                    return Fail(rhs, _u("Wrong function used for argument definition"));
                 }
 
                 if (!NodeDefineThisArgument(rhs->sxCall.pnodeArgs, var))
                 {
-                    return Fail(lhs, L"Defining wrong argument");
+                    return Fail(lhs, _u("Defining wrong argument"));
                 }
             }
             else
             {
-                return Fail(rhs, L"arguments are not casted as valid Asm.js type");
+                return Fail(rhs, _u("arguments are not casted as valid Asm.js type"));
             }
 
             if (PHASE_TRACE1(ByteCodePhase))
             {
-                Output::Print(L"    Argument [%s] Valid", argName->Psz());
+                Output::Print(_u("    Argument [%s] Valid"), argName->Psz());
             }
 
             if (!func->EnsureArgType(var, index++))
             {
-                return Fail(rhs, L"Unexpected argument type");
+                return Fail(rhs, _u("Unexpected argument type"));
             }
 
             argNode = ParserWrapper::NextVar(argNode);
@@ -854,35 +874,40 @@ namespace Js
                 mathFunc = nullptr;
                 simdFunc = nullptr;
 
+                if (!pnodeInit) 
+                {
+                    return Fail(decl, _u("The righthand side of a var declaration missing an initialization (empty)"));
+                }
+
                 if (pnodeInit->nop == knopName)
                 {
                     declSym = LookupIdentifier(pnodeInit->name(), func);
                     if (!declSym || declSym->isMutable() || (declSym->GetSymbolType() != AsmJsSymbol::Variable && declSym->GetSymbolType() != AsmJsSymbol::MathConstant))
                     {
-                        return Fail(decl, L"Var declaration with non-constant");
+                        return Fail(decl, _u("Var declaration with non-constant"));
                     }
                 }
                 else if (pnodeInit->nop == knopCall)
                 {
                     if (pnodeInit->sxCall.pnodeTarget->nop != knopName)
                     {
-                        return Fail(decl, L"Var declaration with something else than a literal value|fround call");
+                        return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                     }
                     AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(pnodeInit->sxCall.pnodeTarget->name());
 
                     if (!funcDecl)
-                        return Fail(pnodeInit, L"Cannot resolve function name");
+                        return Fail(pnodeInit, _u("Cannot resolve function name"));
 
                     if (funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
                     {
                         mathFunc = funcDecl->Cast<AsmJsMathFunction>();
                         if (!(mathFunc && mathFunc->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
                         {
-                            return Fail(decl, L"Var declaration with something else than a literal value|fround call");
+                            return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                         }
                         if (!ParserWrapper::IsFroundNumericLiteral(pnodeInit->sxCall.pnodeArgs))
                         {
-                            return Fail(decl, L"Var declaration with something else than a literal value|fround call");
+                            return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                         }
                     }
                     else if (IsSimdjsEnabled() && funcDecl->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
@@ -891,13 +916,13 @@ namespace Js
                         simdFunc = funcDecl->Cast<AsmJsSIMDFunction>();
                         if (!ValidateSimdConstructor(pnodeInit, simdFunc, simdValue))
                         {
-                            return Fail(varNode, L"Invalid SIMD local declaration");
+                            return Fail(varNode, _u("Invalid SIMD local declaration"));
                         }
                     }
                 }
                 else if (pnodeInit->nop != knopInt && pnodeInit->nop != knopFlt)
                 {
-                    return Fail(decl, L"Var declaration with something else than a literal value|fround call");
+                    return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                 }
                 if (!AsmJSCompiler::CheckIdentifier(*this, decl, decl->name()))
                 {
@@ -908,7 +933,7 @@ namespace Js
                 AsmJsVar* var = (AsmJsVar*)func->DefineVar(decl->name(), false);
                 if (!var)
                 {
-                    return Fail(decl, L"Failed to define var");
+                    return Fail(decl, _u("Failed to define var"));
                 }
                 RegSlot loc = Constants::NoRegister;
                 if (pnodeInit->nop == knopInt)
@@ -936,7 +961,7 @@ namespace Js
                 {
                     if (pnodeInit->sxFlt.maybeInt)
                     {
-                        return Fail(decl, L"Var declaration with integer literal outside range [-2^31, 2^32)");
+                        return Fail(decl, _u("Var declaration with integer literal outside range [-2^31, 2^32)"));
                     }
                     var->SetVarType(AsmJsVarType::Double);
                     var->SetLocation(func->AcquireRegister<double>());
@@ -1029,7 +1054,7 @@ namespace Js
 
                 if (loc == Constants::NoRegister && pnodeInit->nop != knopName)
                 {
-                    return Fail(decl, L"Cannot find Register constant for var");
+                    return Fail(decl, _u("Cannot find Register constant for var"));
                 }
             }
 
@@ -1450,30 +1475,45 @@ namespace Js
         //-------------------
         simdFunctions[AsmJsSIMDBuiltin_Int32x4]                     = SIMDFunc(PropertyIds::Int32x4, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 4, AsmJsSIMDBuiltin_Int32x4, OpCodeAsmJs::Simd128_IntsToI4, AsmJsRetType::Int32x4, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish));
         simdFunctions[AsmJsSIMDBuiltin_int32x4_check]               = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_check, OpCodeAsmJs::Simd128_Ld_I4 /*no dynamic checks*/, AsmJsRetType::Int32x4, AsmJsType::Int32x4));
-        simdFunctions[AsmJsSIMDBuiltin_int32x4_splat]               = SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_splat, OpCodeAsmJs::Simd128_Splat_I4, AsmJsRetType::Int32x4, AsmJsType::Int));
-        // Q: Is this operation supported in ASMJS ? We don't have bool type.
-        //simdFunctions[AsmJsSIMDBuiltin_int32x4_bool]                = SIMDFunc(PropertyIds::bool_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 4, AsmJsSIMDBuiltin_int32x4_bool, OpCodeAsmJs::Simd128_Bool_I4, AsmJsRetType::Int32x4, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_splat]               = SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_splat, OpCodeAsmJs::Simd128_Splat_I4, AsmJsRetType::Int32x4, AsmJsType::Intish));
+#if 0
         simdFunctions[AsmJsSIMDBuiltin_int32x4_fromFloat64x2]       = SIMDFunc(PropertyIds::fromFloat64x2, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_fromFloat64x2, OpCodeAsmJs::Simd128_FromFloat64x2_I4, AsmJsRetType::Int32x4, AsmJsType::Float64x2));
         simdFunctions[AsmJsSIMDBuiltin_int32x4_fromFloat64x2Bits]   = SIMDFunc(PropertyIds::fromFloat64x2Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_fromFloat64x2Bits, OpCodeAsmJs::Simd128_FromFloat64x2Bits_I4, AsmJsRetType::Int32x4, AsmJsType::Float64x2));
+#endif
         simdFunctions[AsmJsSIMDBuiltin_int32x4_fromFloat32x4]       = SIMDFunc(PropertyIds::fromFloat32x4, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_fromFloat32x4, OpCodeAsmJs::Simd128_FromFloat32x4_I4, AsmJsRetType::Int32x4, AsmJsType::Float32x4));
         simdFunctions[AsmJsSIMDBuiltin_int32x4_fromFloat32x4Bits]   = SIMDFunc(PropertyIds::fromFloat32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_fromFloat32x4Bits, OpCodeAsmJs::Simd128_FromFloat32x4Bits_I4, AsmJsRetType::Int32x4, AsmJsType::Float32x4));
+
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_fromInt16x8Bits]     = SIMDFunc(PropertyIds::fromInt16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_fromInt16x8Bits, OpCodeAsmJs::Simd128_FromInt16x8Bits_I4, AsmJsRetType::Int32x4, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_fromInt8x16Bits]     = SIMDFunc(PropertyIds::fromInt8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_fromInt8x16Bits, OpCodeAsmJs::Simd128_FromInt8x16Bits_I4, AsmJsRetType::Int32x4, AsmJsType::Int8x16));
+
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_fromUint32x4Bits]    = SIMDFunc(PropertyIds::fromUint32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_fromUint32x4Bits, OpCodeAsmJs::Simd128_FromUint32x4Bits_I4, AsmJsRetType::Int32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_fromUint16x8Bits]    = SIMDFunc(PropertyIds::fromUint16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_fromUint16x8Bits, OpCodeAsmJs::Simd128_FromUint16x8Bits_I4, AsmJsRetType::Int32x4, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_fromUint8x16Bits]    = SIMDFunc(PropertyIds::fromUint8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_fromUint8x16Bits, OpCodeAsmJs::Simd128_FromUint8x16Bits_I4, AsmJsRetType::Int32x4, AsmJsType::Uint8x16));
+
         simdFunctions[AsmJsSIMDBuiltin_int32x4_neg]                 = SIMDFunc(PropertyIds::neg, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_neg, OpCodeAsmJs::Simd128_Neg_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4));
         simdFunctions[AsmJsSIMDBuiltin_int32x4_add]                 = SIMDFunc(PropertyIds::add, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_add, OpCodeAsmJs::Simd128_Add_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
         simdFunctions[AsmJsSIMDBuiltin_int32x4_sub]                 = SIMDFunc(PropertyIds::sub, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_sub, OpCodeAsmJs::Simd128_Sub_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
         simdFunctions[AsmJsSIMDBuiltin_int32x4_mul]                 = SIMDFunc(PropertyIds::mul, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_mul, OpCodeAsmJs::Simd128_Mul_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
-        // TODO: Enable after fix in lib
+
         simdFunctions[AsmJsSIMDBuiltin_int32x4_swizzle]             = SIMDFunc(PropertyIds::swizzle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 5, AsmJsSIMDBuiltin_int32x4_swizzle, OpCodeAsmJs::Simd128_Swizzle_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
         simdFunctions[AsmJsSIMDBuiltin_int32x4_shuffle]             = SIMDFunc(PropertyIds::shuffle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 6, AsmJsSIMDBuiltin_int32x4_shuffle, OpCodeAsmJs::Simd128_Shuffle_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
         simdFunctions[AsmJsSIMDBuiltin_int32x4_extractLane]         = SIMDFunc(PropertyIds::extractLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_extractLane, OpCodeAsmJs::Simd128_ExtractLane_I4, AsmJsRetType::Signed, AsmJsType::Int32x4, AsmJsType::Int));
-        simdFunctions[AsmJsSIMDBuiltin_int32x4_replaceLane]         = SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_int32x4_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int, AsmJsType::Int));
-        simdFunctions[AsmJsSIMDBuiltin_int32x4_lessThan]            = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_lessThan, OpCodeAsmJs::Simd128_Lt_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
-        simdFunctions[AsmJsSIMDBuiltin_int32x4_equal]               = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_equal, OpCodeAsmJs::Simd128_Eq_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
-        simdFunctions[AsmJsSIMDBuiltin_int32x4_greaterThan]         = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_greaterThan, OpCodeAsmJs::Simd128_Gt_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
-        simdFunctions[AsmJsSIMDBuiltin_int32x4_select]              = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_int32x4_select, OpCodeAsmJs::Simd128_Select_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
-        simdFunctions[AsmJsSIMDBuiltin_int32x4_and]                 = SIMDFunc(PropertyIds::and, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_and, OpCodeAsmJs::Simd128_And_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
-        simdFunctions[AsmJsSIMDBuiltin_int32x4_or]                  = SIMDFunc(PropertyIds::or, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_or, OpCodeAsmJs::Simd128_Or_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
-        simdFunctions[AsmJsSIMDBuiltin_int32x4_xor]                 = SIMDFunc(PropertyIds::xor, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_xor, OpCodeAsmJs::Simd128_Xor_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
-        simdFunctions[AsmJsSIMDBuiltin_int32x4_not]                 = SIMDFunc(PropertyIds::not, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_not, OpCodeAsmJs::Simd128_Not_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4));
+
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_replaceLane]         = SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_int32x4_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_lessThan]            = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_lessThan, OpCodeAsmJs::Simd128_Lt_I4, AsmJsRetType::Bool32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_lessThanOrEqual]     = SIMDFunc(PropertyIds::lessThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_lessThanOrEqual, OpCodeAsmJs::Simd128_LtEq_I4, AsmJsRetType::Bool32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_equal]               = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_equal, OpCodeAsmJs::Simd128_Eq_I4, AsmJsRetType::Bool32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_notEqual]            = SIMDFunc(PropertyIds::notEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_notEqual, OpCodeAsmJs::Simd128_Neq_I4, AsmJsRetType::Bool32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_greaterThan]         = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_greaterThan, OpCodeAsmJs::Simd128_Gt_I4, AsmJsRetType::Bool32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_greaterThanOrEqual]  = SIMDFunc(PropertyIds::greaterThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_greaterThanOrEqual, OpCodeAsmJs::Simd128_GtEq_I4, AsmJsRetType::Bool32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_select]              = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_int32x4_select, OpCodeAsmJs::Simd128_Select_I4, AsmJsRetType::Int32x4, AsmJsType::Bool32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_and]                 = SIMDFunc(PropertyIds::and_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_and, OpCodeAsmJs::Simd128_And_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_or]                  = SIMDFunc(PropertyIds::or_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_or, OpCodeAsmJs::Simd128_Or_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_xor]                 = SIMDFunc(PropertyIds::xor_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_xor, OpCodeAsmJs::Simd128_Xor_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_not]                 = SIMDFunc(PropertyIds::not_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int32x4_not, OpCodeAsmJs::Simd128_Not_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4));
+
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_shiftLeftByScalar]   = SIMDFunc(PropertyIds::shiftLeftByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_shiftLeftByScalar, OpCodeAsmJs::Simd128_ShLtByScalar_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int32x4_shiftRightByScalar]  = SIMDFunc(PropertyIds::shiftRightByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int32x4_shiftRightByScalar, OpCodeAsmJs::Simd128_ShRtByScalar_I4, AsmJsRetType::Int32x4, AsmJsType::Int32x4, AsmJsType::Int));
 
         // Loads and Stores
         // We fill Void for the tarray type. This is ok since we special handle these ops.
@@ -1491,17 +1531,26 @@ namespace Js
         simdFunctions[AsmJsSIMDBuiltin_Float32x4]                   = SIMDFunc(PropertyIds::Float32x4, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 4, AsmJsSIMDBuiltin_Float32x4, OpCodeAsmJs::Simd128_FloatsToF4, AsmJsRetType::Float32x4, AsmJsType::FloatishDoubleLit, AsmJsType::FloatishDoubleLit, AsmJsType::FloatishDoubleLit, AsmJsType::FloatishDoubleLit));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_check]             = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_check, OpCodeAsmJs::Simd128_Ld_F4 /*no dynamic checks*/, AsmJsRetType::Float32x4, AsmJsType::Float32x4));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_splat]             = SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_splat, OpCodeAsmJs::Simd128_Splat_F4, AsmJsRetType::Float32x4, AsmJsType::FloatishDoubleLit));
+#if 0
         simdFunctions[AsmJsSIMDBuiltin_float32x4_fromFloat64x2]     = SIMDFunc(PropertyIds::fromFloat64x2, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_fromFloat64x2, OpCodeAsmJs::Simd128_FromFloat64x2_F4, AsmJsRetType::Float32x4, AsmJsType::Float64x2));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_fromFloat64x2Bits] = SIMDFunc(PropertyIds::fromFloat64x2Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_fromFloat64x2Bits, OpCodeAsmJs::Simd128_FromFloat64x2Bits_F4, AsmJsRetType::Float32x4, AsmJsType::Float64x2));
+#endif
         simdFunctions[AsmJsSIMDBuiltin_float32x4_fromInt32x4]       = SIMDFunc(PropertyIds::fromInt32x4, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_fromInt32x4, OpCodeAsmJs::Simd128_FromInt32x4_F4, AsmJsRetType::Float32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_fromUint32x4]      = SIMDFunc(PropertyIds::fromUint32x4, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_fromUint32x4, OpCodeAsmJs::Simd128_FromUint32x4_F4, AsmJsRetType::Float32x4, AsmJsType::Uint32x4));
+
         simdFunctions[AsmJsSIMDBuiltin_float32x4_fromInt32x4Bits]   = SIMDFunc(PropertyIds::fromInt32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_fromInt32x4Bits, OpCodeAsmJs::Simd128_FromInt32x4Bits_F4, AsmJsRetType::Float32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_fromInt16x8Bits]   = SIMDFunc(PropertyIds::fromInt16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_fromInt16x8Bits, OpCodeAsmJs::Simd128_FromInt16x8Bits_F4, AsmJsRetType::Float32x4, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_fromInt8x16Bits]   = SIMDFunc(PropertyIds::fromInt8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_fromInt8x16Bits, OpCodeAsmJs::Simd128_FromInt8x16Bits_F4, AsmJsRetType::Float32x4, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_fromUint32x4Bits]  = SIMDFunc(PropertyIds::fromUint32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_fromUint32x4Bits, OpCodeAsmJs::Simd128_FromUint32x4Bits_F4, AsmJsRetType::Float32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_fromUint16x8Bits]  = SIMDFunc(PropertyIds::fromUint16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_fromUint16x8Bits, OpCodeAsmJs::Simd128_FromUint16x8Bits_F4, AsmJsRetType::Float32x4, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_fromUint8x16Bits]  = SIMDFunc(PropertyIds::fromUint8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_fromUint8x16Bits, OpCodeAsmJs::Simd128_FromUint8x16Bits_F4, AsmJsRetType::Float32x4, AsmJsType::Uint8x16));
+
         simdFunctions[AsmJsSIMDBuiltin_float32x4_abs]               = SIMDFunc(PropertyIds::abs, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_abs, OpCodeAsmJs::Simd128_Abs_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_neg]               = SIMDFunc(PropertyIds::neg, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_neg, OpCodeAsmJs::Simd128_Neg_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_add]               = SIMDFunc(PropertyIds::add, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_add, OpCodeAsmJs::Simd128_Add_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_sub]               = SIMDFunc(PropertyIds::sub, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_sub, OpCodeAsmJs::Simd128_Sub_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_mul]               = SIMDFunc(PropertyIds::mul, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_mul, OpCodeAsmJs::Simd128_Mul_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_div]               = SIMDFunc(PropertyIds::div, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_div, OpCodeAsmJs::Simd128_Div_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_clamp]             = SIMDFunc(PropertyIds::clamp, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_float32x4_clamp, OpCodeAsmJs::Simd128_Clamp_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_min]               = SIMDFunc(PropertyIds::min, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_min, OpCodeAsmJs::Simd128_Min_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_max]               = SIMDFunc(PropertyIds::max, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_max, OpCodeAsmJs::Simd128_Max_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_reciprocal]        = SIMDFunc(PropertyIds::reciprocalApproximation, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_reciprocal, OpCodeAsmJs::Simd128_Rcp_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4));
@@ -1511,17 +1560,15 @@ namespace Js
         simdFunctions[AsmJsSIMDBuiltin_float32x4_shuffle]           = SIMDFunc(PropertyIds::shuffle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 6, AsmJsSIMDBuiltin_float32x4_shuffle, OpCodeAsmJs::Simd128_Shuffle_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_extractLane]       = SIMDFunc(PropertyIds::extractLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_extractLane, OpCodeAsmJs::Simd128_ExtractLane_F4, AsmJsRetType::Float, AsmJsType::Float32x4, AsmJsType::Int));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_replaceLane]       = SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_float32x4_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Int, AsmJsType::FloatishDoubleLit));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_lessThan]          = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_lessThan, OpCodeAsmJs::Simd128_Lt_F4, AsmJsRetType::Int32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_lessThanOrEqual]   = SIMDFunc(PropertyIds::lessThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_lessThanOrEqual, OpCodeAsmJs::Simd128_LtEq_F4, AsmJsRetType::Int32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_equal]             = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_equal, OpCodeAsmJs::Simd128_Eq_F4, AsmJsRetType::Int32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_notEqual]          = SIMDFunc(PropertyIds::notEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_notEqual, OpCodeAsmJs::Simd128_Neq_F4, AsmJsRetType::Int32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_greaterThan]       = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_greaterThan, OpCodeAsmJs::Simd128_Gt_F4, AsmJsRetType::Int32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_greaterThanOrEqual]= SIMDFunc(PropertyIds::greaterThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_greaterThanOrEqual, OpCodeAsmJs::Simd128_GtEq_F4, AsmJsRetType::Int32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_select]            = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_float32x4_select, OpCodeAsmJs::Simd128_Select_F4, AsmJsRetType::Float32x4, AsmJsType::Int32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_and]               = SIMDFunc(PropertyIds::and, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_and, OpCodeAsmJs::Simd128_And_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_or]                = SIMDFunc(PropertyIds::or, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_or, OpCodeAsmJs::Simd128_Or_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_xor]               = SIMDFunc(PropertyIds::xor, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_xor, OpCodeAsmJs::Simd128_Xor_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
-        simdFunctions[AsmJsSIMDBuiltin_float32x4_not]               = SIMDFunc(PropertyIds::not, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float32x4_not, OpCodeAsmJs::Simd128_Not_F4, AsmJsRetType::Float32x4, AsmJsType::Float32x4));
+
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_lessThan]          = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_lessThan, OpCodeAsmJs::Simd128_Lt_F4, AsmJsRetType::Bool32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_lessThanOrEqual]   = SIMDFunc(PropertyIds::lessThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_lessThanOrEqual, OpCodeAsmJs::Simd128_LtEq_F4, AsmJsRetType::Bool32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_equal]             = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_equal, OpCodeAsmJs::Simd128_Eq_F4, AsmJsRetType::Bool32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_notEqual]          = SIMDFunc(PropertyIds::notEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_notEqual, OpCodeAsmJs::Simd128_Neq_F4, AsmJsRetType::Bool32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_greaterThan]       = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_greaterThan, OpCodeAsmJs::Simd128_Gt_F4, AsmJsRetType::Bool32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_greaterThanOrEqual]= SIMDFunc(PropertyIds::greaterThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_greaterThanOrEqual, OpCodeAsmJs::Simd128_GtEq_F4, AsmJsRetType::Bool32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_float32x4_select]            = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_float32x4_select, OpCodeAsmJs::Simd128_Select_F4, AsmJsRetType::Float32x4, AsmJsType::Bool32x4, AsmJsType::Float32x4, AsmJsType::Float32x4));
+
         simdFunctions[AsmJsSIMDBuiltin_float32x4_load]              = SIMDFunc(PropertyIds::load, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_load, OpCodeAsmJs::Simd128_LdArr_F4, AsmJsRetType::Float32x4, AsmJsType::Void, AsmJsType::Int));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_load1]             = SIMDFunc(PropertyIds::load1, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_load1, OpCodeAsmJs::Simd128_LdArr_F4, AsmJsRetType::Float32x4, AsmJsType::Void, AsmJsType::Int));
         simdFunctions[AsmJsSIMDBuiltin_float32x4_load2]             = SIMDFunc(PropertyIds::load2, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float32x4_load2, OpCodeAsmJs::Simd128_LdArr_F4, AsmJsRetType::Float32x4, AsmJsType::Void, AsmJsType::Int));
@@ -1533,6 +1580,7 @@ namespace Js
 
         /* Float64x2 builtins*/
         //-------------------
+#if 0
         simdFunctions[AsmJsSIMDBuiltin_Float64x2]                   = SIMDFunc(PropertyIds::Float64x2, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_Float64x2, OpCodeAsmJs::Simd128_DoublesToD2, AsmJsRetType::Float64x2, AsmJsType::MaybeDouble, AsmJsType::MaybeDouble));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_check]             = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float64x2_check, OpCodeAsmJs::Simd128_Ld_D2 /*no dynamic checks*/, AsmJsRetType::Float64x2, AsmJsType::Float64x2));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_splat]             = SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float64x2_splat, OpCodeAsmJs::Simd128_Splat_D2, AsmJsRetType::Float64x2, AsmJsType::Double));
@@ -1546,7 +1594,6 @@ namespace Js
         simdFunctions[AsmJsSIMDBuiltin_float64x2_sub]               = SIMDFunc(PropertyIds::sub, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_sub, OpCodeAsmJs::Simd128_Sub_D2, AsmJsRetType::Float64x2, AsmJsType::Float64x2, AsmJsType::Float64x2));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_mul]               = SIMDFunc(PropertyIds::mul, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_mul, OpCodeAsmJs::Simd128_Mul_D2, AsmJsRetType::Float64x2, AsmJsType::Float64x2, AsmJsType::Float64x2));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_div]               = SIMDFunc(PropertyIds::div, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_div, OpCodeAsmJs::Simd128_Div_D2, AsmJsRetType::Float64x2, AsmJsType::Float64x2, AsmJsType::Float64x2));
-        simdFunctions[AsmJsSIMDBuiltin_float64x2_clamp]             = SIMDFunc(PropertyIds::clamp, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_float64x2_clamp, OpCodeAsmJs::Simd128_Clamp_D2, AsmJsRetType::Float64x2, AsmJsType::Float64x2, AsmJsType::Float64x2, AsmJsType::Float64x2));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_min]               = SIMDFunc(PropertyIds::min, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_min, OpCodeAsmJs::Simd128_Min_D2, AsmJsRetType::Float64x2, AsmJsType::Float64x2, AsmJsType::Float64x2));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_max]               = SIMDFunc(PropertyIds::max, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_max, OpCodeAsmJs::Simd128_Max_D2, AsmJsRetType::Float64x2, AsmJsType::Float64x2, AsmJsType::Float64x2));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_reciprocal]        = SIMDFunc(PropertyIds::reciprocalApproximation, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1,  AsmJsSIMDBuiltin_float64x2_reciprocal, OpCodeAsmJs::Simd128_Rcp_D2, AsmJsRetType::Float64x2, AsmJsType::Float64x2));
@@ -1554,37 +1601,324 @@ namespace Js
         simdFunctions[AsmJsSIMDBuiltin_float64x2_sqrt]              = SIMDFunc(PropertyIds::sqrt, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_float64x2_sqrt, OpCodeAsmJs::Simd128_Sqrt_D2, AsmJsRetType::Float64x2, AsmJsType::Float64x2));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_swizzle]           = SIMDFunc(PropertyIds::swizzle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_float64x2_swizzle, OpCodeAsmJs::Simd128_Swizzle_D2, AsmJsRetType::Float64x2, AsmJsType::Float64x2, AsmJsType::Int, AsmJsType::Int));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_shuffle]           = SIMDFunc(PropertyIds::shuffle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 4, AsmJsSIMDBuiltin_float64x2_shuffle, OpCodeAsmJs::Simd128_Shuffle_D2, AsmJsRetType::Float64x2, AsmJsType::Float64x2, AsmJsType::Float64x2, AsmJsType::Int, AsmJsType::Int));
-        simdFunctions[AsmJsSIMDBuiltin_float64x2_lessThan]          = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_lessThan, OpCodeAsmJs::Simd128_Lt_D2, AsmJsRetType::Int32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
-        simdFunctions[AsmJsSIMDBuiltin_float64x2_lessThanOrEqual]   = SIMDFunc(PropertyIds::lessThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_lessThanOrEqual, OpCodeAsmJs::Simd128_LtEq_D2, AsmJsRetType::Int32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
-        simdFunctions[AsmJsSIMDBuiltin_float64x2_equal]             = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_equal, OpCodeAsmJs::Simd128_Eq_D2, AsmJsRetType::Int32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
-        simdFunctions[AsmJsSIMDBuiltin_float64x2_notEqual]          = SIMDFunc(PropertyIds::notEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_notEqual, OpCodeAsmJs::Simd128_Neq_D2, AsmJsRetType::Int32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
-        simdFunctions[AsmJsSIMDBuiltin_float64x2_greaterThan]       = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_greaterThan, OpCodeAsmJs::Simd128_Gt_D2, AsmJsRetType::Int32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
-        simdFunctions[AsmJsSIMDBuiltin_float64x2_greaterThanOrEqual]= SIMDFunc(PropertyIds::greaterThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_greaterThanOrEqual, OpCodeAsmJs::Simd128_GtEq_D2, AsmJsRetType::Int32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
-        simdFunctions[AsmJsSIMDBuiltin_float64x2_select]            = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_float64x2_select, OpCodeAsmJs::Simd128_Select_D2, AsmJsRetType::Float64x2, AsmJsType::Int32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
+        simdFunctions[AsmJsSIMDBuiltin_float64x2_lessThan]          = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_lessThan, OpCodeAsmJs::Simd128_Lt_D2, AsmJsRetType::Bool32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
+        simdFunctions[AsmJsSIMDBuiltin_float64x2_lessThanOrEqual]   = SIMDFunc(PropertyIds::lessThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_lessThanOrEqual, OpCodeAsmJs::Simd128_LtEq_D2, AsmJsRetType::Bool32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
+        simdFunctions[AsmJsSIMDBuiltin_float64x2_equal]             = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_equal, OpCodeAsmJs::Simd128_Eq_D2, AsmJsRetType::Bool32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
+        simdFunctions[AsmJsSIMDBuiltin_float64x2_notEqual]          = SIMDFunc(PropertyIds::notEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_notEqual, OpCodeAsmJs::Simd128_Neq_D2, AsmJsRetType::Bool32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
+        simdFunctions[AsmJsSIMDBuiltin_float64x2_greaterThan]       = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_greaterThan, OpCodeAsmJs::Simd128_Gt_D2, AsmJsRetType::Bool32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
+        simdFunctions[AsmJsSIMDBuiltin_float64x2_greaterThanOrEqual]= SIMDFunc(PropertyIds::greaterThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_greaterThanOrEqual, OpCodeAsmJs::Simd128_GtEq_D2, AsmJsRetType::Bool32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
+        simdFunctions[AsmJsSIMDBuiltin_float64x2_select]            = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_float64x2_select, OpCodeAsmJs::Simd128_Select_D2, AsmJsRetType::Float64x2, AsmJsType::Bool32x4, AsmJsType::Float64x2, AsmJsType::Float64x2));
 
         simdFunctions[AsmJsSIMDBuiltin_float64x2_load]              = SIMDFunc(PropertyIds::load, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_load, OpCodeAsmJs::Simd128_LdArr_D2, AsmJsRetType::Float64x2, AsmJsType::Void, AsmJsType::Int));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_load1]             = SIMDFunc(PropertyIds::load1, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_float64x2_load1, OpCodeAsmJs::Simd128_LdArr_D2, AsmJsRetType::Float64x2, AsmJsType::Void, AsmJsType::Int));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_store]             = SIMDFunc(PropertyIds::store, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_float64x2_store, OpCodeAsmJs::Simd128_StArr_D2, AsmJsRetType::Float64x2, AsmJsType::Void, AsmJsType::Int, AsmJsType::Float64x2));
         simdFunctions[AsmJsSIMDBuiltin_float64x2_store1]            = SIMDFunc(PropertyIds::store1, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_float64x2_store1, OpCodeAsmJs::Simd128_StArr_D2, AsmJsRetType::Float64x2, AsmJsType::Void, AsmJsType::Int, AsmJsType::Float64x2));
+#endif
+        /* Int16x8 */
+        simdFunctions[AsmJsSIMDBuiltin_Int16x8]                     = SIMDFunc(PropertyIds::Int16x8, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 8, AsmJsSIMDBuiltin_Int16x8, OpCodeAsmJs::Simd128_IntsToI8, AsmJsRetType::Int16x8, 
+                                                                               AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_check]               = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int16x8_check, OpCodeAsmJs::Simd128_Ld_I8 /*no dynamic checks*/, AsmJsRetType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_extractLane]         = SIMDFunc(PropertyIds::extractLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_extractLane, OpCodeAsmJs::Simd128_ExtractLane_I8, AsmJsRetType::Signed, AsmJsType::Int16x8, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_swizzle]             = SIMDFunc(PropertyIds::swizzle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 9, AsmJsSIMDBuiltin_int16x8_swizzle, OpCodeAsmJs::Simd128_Swizzle_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int, 
+                                                                              AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_shuffle]             = SIMDFunc(PropertyIds::shuffle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 10, AsmJsSIMDBuiltin_int16x8_shuffle, OpCodeAsmJs::Simd128_Shuffle_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int16x8, 
+                                                                               AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_splat]               = SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int16x8_splat, OpCodeAsmJs::Simd128_Splat_I8, AsmJsRetType::Int16x8, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_replaceLane]         = SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_int16x8_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_and]                 = SIMDFunc(PropertyIds::and_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_and, OpCodeAsmJs::Simd128_And_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_or]                  = SIMDFunc(PropertyIds::or_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_or, OpCodeAsmJs::Simd128_Or_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_xor]                 = SIMDFunc(PropertyIds::xor_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_xor, OpCodeAsmJs::Simd128_Xor_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_not]                 = SIMDFunc(PropertyIds::not_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int16x8_not, OpCodeAsmJs::Simd128_Not_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_add]                 = SIMDFunc(PropertyIds::add, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_add, OpCodeAsmJs::Simd128_Add_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_sub]                 = SIMDFunc(PropertyIds::sub, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_sub, OpCodeAsmJs::Simd128_Sub_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_mul]                 = SIMDFunc(PropertyIds::mul, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_mul, OpCodeAsmJs::Simd128_Mul_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_neg]                 = SIMDFunc(PropertyIds::neg, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int16x8_neg, OpCodeAsmJs::Simd128_Neg_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_shiftLeftByScalar]   = SIMDFunc(PropertyIds::shiftLeftByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_shiftLeftByScalar, OpCodeAsmJs::Simd128_ShLtByScalar_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_shiftRightByScalar]  = SIMDFunc(PropertyIds::shiftRightByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_shiftRightByScalar, OpCodeAsmJs::Simd128_ShRtByScalar_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int));
+
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_lessThan]            = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_lessThan, OpCodeAsmJs::Simd128_Lt_I8, AsmJsRetType::Bool16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_lessThanOrEqual]     = SIMDFunc(PropertyIds::lessThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_lessThanOrEqual, OpCodeAsmJs::Simd128_LtEq_I8, AsmJsRetType::Bool16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_equal]               = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_equal, OpCodeAsmJs::Simd128_Eq_I8, AsmJsRetType::Bool16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_notEqual]            = SIMDFunc(PropertyIds::notEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_notEqual, OpCodeAsmJs::Simd128_Neq_I8, AsmJsRetType::Bool16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_greaterThan]         = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_greaterThan, OpCodeAsmJs::Simd128_Gt_I8, AsmJsRetType::Bool16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_greaterThanOrEqual]  = SIMDFunc(PropertyIds::greaterThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_greaterThanOrEqual, OpCodeAsmJs::Simd128_GtEq_I8, AsmJsRetType::Bool16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_select]              = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_int16x8_select, OpCodeAsmJs::Simd128_Select_I8, AsmJsRetType::Int16x8, AsmJsType::Bool16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_addSaturate]         = SIMDFunc(PropertyIds::addSaturate, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_addSaturate, OpCodeAsmJs::Simd128_AddSaturate_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_subSaturate]        = SIMDFunc(PropertyIds::subSaturate, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_subSaturate, OpCodeAsmJs::Simd128_SubSaturate_I8, AsmJsRetType::Int16x8, AsmJsType::Int16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_load]                = SIMDFunc(PropertyIds::load, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int16x8_load, OpCodeAsmJs::Simd128_LdArr_I8, AsmJsRetType::Int16x8, AsmJsType::Void, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_store]               = SIMDFunc(PropertyIds::store, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_int16x8_store, OpCodeAsmJs::Simd128_StArr_I8, AsmJsRetType::Int16x8, AsmJsType::Void, AsmJsType::Int, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_fromFloat32x4Bits]   = SIMDFunc(PropertyIds::fromFloat32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int16x8_fromFloat32x4Bits, OpCodeAsmJs::Simd128_FromFloat32x4Bits_I8, AsmJsRetType::Int16x8, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_fromInt32x4Bits]     = SIMDFunc(PropertyIds::fromInt32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int16x8_fromInt32x4Bits, OpCodeAsmJs::Simd128_FromInt32x4Bits_I8, AsmJsRetType::Int16x8, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_fromInt8x16Bits]     = SIMDFunc(PropertyIds::fromInt8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int16x8_fromInt8x16Bits, OpCodeAsmJs::Simd128_FromInt8x16Bits_I8, AsmJsRetType::Int16x8, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_fromUint32x4Bits]    = SIMDFunc(PropertyIds::fromUint32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int16x8_fromUint32x4Bits, OpCodeAsmJs::Simd128_FromUint32x4Bits_I8, AsmJsRetType::Int16x8, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_fromUint16x8Bits]    = SIMDFunc(PropertyIds::fromUint16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int16x8_fromUint16x8Bits, OpCodeAsmJs::Simd128_FromUint16x8Bits_I8, AsmJsRetType::Int16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int16x8_fromUint8x16Bits]    = SIMDFunc(PropertyIds::fromUint8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int16x8_fromUint8x16Bits, OpCodeAsmJs::Simd128_FromUint8x16Bits_I8, AsmJsRetType::Int16x8, AsmJsType::Uint8x16));
+
+        /* Int8x16 builtins*/
+        //-------------------
+        simdFunctions[AsmJsSIMDBuiltin_Int8x16]                     = SIMDFunc(PropertyIds::Int8x16, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 16, AsmJsSIMDBuiltin_Int8x16, OpCodeAsmJs::Simd128_IntsToI16, AsmJsRetType::Int8x16, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_check]               = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int8x16_check, OpCodeAsmJs::Simd128_Ld_I16 /*no dynamic checks*/, AsmJsRetType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_splat]               = SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int8x16_splat, OpCodeAsmJs::Simd128_Splat_I16, AsmJsRetType::Int8x16, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_neg]                 = SIMDFunc(PropertyIds::neg, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int8x16_neg, OpCodeAsmJs::Simd128_Neg_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_add]                 = SIMDFunc(PropertyIds::add, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_add, OpCodeAsmJs::Simd128_Add_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_sub]                 = SIMDFunc(PropertyIds::sub, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_sub, OpCodeAsmJs::Simd128_Sub_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_mul]                 = SIMDFunc(PropertyIds::mul, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_mul, OpCodeAsmJs::Simd128_Mul_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_and]                 = SIMDFunc(PropertyIds::and_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_and, OpCodeAsmJs::Simd128_And_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_or]                  = SIMDFunc(PropertyIds:: or_ , Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_or, OpCodeAsmJs::Simd128_Or_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_xor]                 = SIMDFunc(PropertyIds::xor_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_xor, OpCodeAsmJs::Simd128_Xor_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_not]                 = SIMDFunc(PropertyIds::not_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int8x16_not, OpCodeAsmJs::Simd128_Not_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_shiftLeftByScalar]   = SIMDFunc(PropertyIds::shiftLeftByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_shiftLeftByScalar, OpCodeAsmJs::Simd128_ShLtByScalar_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_shiftRightByScalar]  = SIMDFunc(PropertyIds::shiftRightByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_shiftRightByScalar, OpCodeAsmJs::Simd128_ShRtByScalar_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int));
+        
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_lessThan]            = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_lessThan, OpCodeAsmJs::Simd128_Lt_I16, AsmJsRetType::Bool8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_lessThanOrEqual]     = SIMDFunc(PropertyIds::lessThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_lessThanOrEqual, OpCodeAsmJs::Simd128_LtEq_I16, AsmJsRetType::Bool8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_equal]               = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_equal, OpCodeAsmJs::Simd128_Eq_I16, AsmJsRetType::Bool8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_notEqual]            = SIMDFunc(PropertyIds::notEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_notEqual, OpCodeAsmJs::Simd128_Neq_I16, AsmJsRetType::Bool8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_greaterThan]         = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_greaterThan, OpCodeAsmJs::Simd128_Gt_I16, AsmJsRetType::Bool8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_greaterThanOrEqual]  = SIMDFunc(PropertyIds::greaterThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_greaterThanOrEqual, OpCodeAsmJs::Simd128_GtEq_I16, AsmJsRetType::Bool8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_select]              = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_int8x16_select, OpCodeAsmJs::Simd128_Select_I16, AsmJsRetType::Int8x16, AsmJsType::Bool8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+
+
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_addSaturate]         = SIMDFunc(PropertyIds::addSaturate, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_addSaturate, OpCodeAsmJs::Simd128_AddSaturate_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_subSaturate]        = SIMDFunc(PropertyIds::subSaturate, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_subSaturate, OpCodeAsmJs::Simd128_SubSaturate_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_load]                = SIMDFunc(PropertyIds::load, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_load, OpCodeAsmJs::Simd128_LdArr_I16, AsmJsRetType::Int8x16, AsmJsType::Void, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_store]               = SIMDFunc(PropertyIds::store, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_int8x16_store, OpCodeAsmJs::Simd128_StArr_I16, AsmJsRetType::Int8x16, AsmJsType::Void, AsmJsType::Int, AsmJsType::Int8x16));
+        
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_extractLane]         = SIMDFunc(PropertyIds::extractLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_int8x16_extractLane, OpCodeAsmJs::Simd128_ExtractLane_I16, AsmJsRetType::Signed, AsmJsType::Int8x16, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_replaceLane]         = SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_int8x16_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_swizzle]             = SIMDFunc(PropertyIds::swizzle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 17, AsmJsSIMDBuiltin_int8x16_swizzle, OpCodeAsmJs::Simd128_Swizzle_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16,
+            AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int,
+            AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_shuffle]             = SIMDFunc(PropertyIds::shuffle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 18, AsmJsSIMDBuiltin_int8x16_shuffle, OpCodeAsmJs::Simd128_Shuffle_I16, AsmJsRetType::Int8x16, AsmJsType::Int8x16, AsmJsType::Int8x16,
+            AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int,
+            AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_fromFloat32x4Bits]   = SIMDFunc(PropertyIds::fromFloat32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int8x16_fromFloat32x4Bits, OpCodeAsmJs::Simd128_FromFloat32x4Bits_I16, AsmJsRetType::Int8x16, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_fromInt32x4Bits]     = SIMDFunc(PropertyIds::fromInt32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int8x16_fromInt32x4Bits, OpCodeAsmJs::Simd128_FromInt32x4Bits_I16, AsmJsRetType::Int8x16, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_fromInt16x8Bits]     = SIMDFunc(PropertyIds::fromInt16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int8x16_fromInt16x8Bits, OpCodeAsmJs::Simd128_FromInt16x8Bits_I16, AsmJsRetType::Int8x16, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_fromUint32x4Bits]    = SIMDFunc(PropertyIds::fromUint32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int8x16_fromUint32x4Bits, OpCodeAsmJs::Simd128_FromUint32x4Bits_I16, AsmJsRetType::Int8x16, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_fromUint16x8Bits]    = SIMDFunc(PropertyIds::fromUint16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int8x16_fromUint16x8Bits, OpCodeAsmJs::Simd128_FromUint16x8Bits_I16, AsmJsRetType::Int8x16, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_int8x16_fromUint8x16Bits]    = SIMDFunc(PropertyIds::fromUint8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_int8x16_fromUint8x16Bits, OpCodeAsmJs::Simd128_FromUint8x16Bits_I16, AsmJsRetType::Int8x16, AsmJsType::Uint8x16));
+
+
+        /* Uint32x4 */
+        simdFunctions[AsmJsSIMDBuiltin_Uint32x4]                    = SIMDFunc(PropertyIds::Uint32x4, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 4, AsmJsSIMDBuiltin_Uint32x4, OpCodeAsmJs::Simd128_IntsToU4, AsmJsRetType::Uint32x4, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_check]               = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_check, OpCodeAsmJs::Simd128_Ld_U4 /*no dynamic checks*/, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_extractLane         ]= SIMDFunc(PropertyIds::extractLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_extractLane, OpCodeAsmJs::Simd128_ExtractLane_U4, AsmJsRetType::Unsigned, AsmJsType::Uint32x4, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_swizzle             ]= SIMDFunc(PropertyIds::swizzle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 5, AsmJsSIMDBuiltin_uint32x4_swizzle, OpCodeAsmJs::Simd128_Swizzle_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_shuffle             ]= SIMDFunc(PropertyIds::shuffle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 6, AsmJsSIMDBuiltin_uint32x4_shuffle, OpCodeAsmJs::Simd128_Shuffle_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_splat               ]= SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_splat, OpCodeAsmJs::Simd128_Splat_U4, AsmJsRetType::Uint32x4, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_replaceLane         ]= SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint32x4_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Int, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_and                 ]= SIMDFunc(PropertyIds::and_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_and, OpCodeAsmJs::Simd128_And_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_or                  ]= SIMDFunc(PropertyIds::or_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_or, OpCodeAsmJs::Simd128_Or_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_xor                 ]= SIMDFunc(PropertyIds::xor_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_xor, OpCodeAsmJs::Simd128_Xor_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_not                 ]= SIMDFunc(PropertyIds::not_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_not, OpCodeAsmJs::Simd128_Not_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_neg                 ]= SIMDFunc(PropertyIds::neg, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_neg, OpCodeAsmJs::Simd128_Neg_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_add                 ]= SIMDFunc(PropertyIds::add, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_add, OpCodeAsmJs::Simd128_Add_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_sub                 ]= SIMDFunc(PropertyIds::sub, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_sub, OpCodeAsmJs::Simd128_Sub_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_mul                 ]= SIMDFunc(PropertyIds::mul, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_mul, OpCodeAsmJs::Simd128_Mul_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_shiftLeftByScalar   ]= SIMDFunc(PropertyIds::shiftLeftByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_shiftLeftByScalar, OpCodeAsmJs::Simd128_ShLtByScalar_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_shiftRightByScalar  ]= SIMDFunc(PropertyIds::shiftRightByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_shiftRightByScalar, OpCodeAsmJs::Simd128_ShRtByScalar_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint32x4, AsmJsType::Int));
+        
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_lessThan]            = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_lessThan, OpCodeAsmJs::Simd128_Lt_U4, AsmJsRetType::Bool32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_lessThanOrEqual]     = SIMDFunc(PropertyIds::lessThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_lessThanOrEqual, OpCodeAsmJs::Simd128_LtEq_U4, AsmJsRetType::Bool32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_equal]               = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_equal, OpCodeAsmJs::Simd128_Eq_U4, AsmJsRetType::Bool32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_notEqual]            = SIMDFunc(PropertyIds::notEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_notEqual, OpCodeAsmJs::Simd128_Neq_U4, AsmJsRetType::Bool32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_greaterThan]         = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_greaterThan, OpCodeAsmJs::Simd128_Gt_U4, AsmJsRetType::Bool32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_greaterThanOrEqual]  = SIMDFunc(PropertyIds::greaterThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_greaterThanOrEqual, OpCodeAsmJs::Simd128_GtEq_U4, AsmJsRetType::Bool32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_select]              = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint32x4_select, OpCodeAsmJs::Simd128_Select_U4, AsmJsRetType::Uint32x4, AsmJsType::Bool32x4, AsmJsType::Uint32x4, AsmJsType::Uint32x4));
+
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_load                ]= SIMDFunc(PropertyIds::load, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_load, OpCodeAsmJs::Simd128_LdArr_U4, AsmJsRetType::Uint32x4, AsmJsType::Void, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_load1               ]= SIMDFunc(PropertyIds::load1, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_load1, OpCodeAsmJs::Simd128_LdArr_U4, AsmJsRetType::Uint32x4, AsmJsType::Void, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_load2               ]= SIMDFunc(PropertyIds::load2, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_load2, OpCodeAsmJs::Simd128_LdArr_U4, AsmJsRetType::Uint32x4, AsmJsType::Void, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_load3               ]= SIMDFunc(PropertyIds::load3, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint32x4_load3, OpCodeAsmJs::Simd128_LdArr_U4, AsmJsRetType::Uint32x4, AsmJsType::Void, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_store               ]= SIMDFunc(PropertyIds::store, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint32x4_store, OpCodeAsmJs::Simd128_StArr_U4, AsmJsRetType::Uint32x4, AsmJsType::Void, AsmJsType::Int, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_store1              ]= SIMDFunc(PropertyIds::store1, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint32x4_store1, OpCodeAsmJs::Simd128_StArr_U4, AsmJsRetType::Uint32x4, AsmJsType::Void, AsmJsType::Int, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_store2              ]= SIMDFunc(PropertyIds::store2, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint32x4_store2, OpCodeAsmJs::Simd128_StArr_U4, AsmJsRetType::Uint32x4, AsmJsType::Void, AsmJsType::Int, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_store3              ]= SIMDFunc(PropertyIds::store3, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint32x4_store3, OpCodeAsmJs::Simd128_StArr_U4, AsmJsRetType::Uint32x4, AsmJsType::Void, AsmJsType::Int, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_fromFloat32x4       ]= SIMDFunc(PropertyIds::fromFloat32x4, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_fromFloat32x4, OpCodeAsmJs::Simd128_FromFloat32x4_U4, AsmJsRetType::Uint32x4, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_fromFloat32x4Bits   ]= SIMDFunc(PropertyIds::fromFloat32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_fromFloat32x4Bits, OpCodeAsmJs::Simd128_FromFloat32x4Bits_U4, AsmJsRetType::Uint32x4, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_fromInt32x4Bits     ]= SIMDFunc(PropertyIds::fromInt32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_fromInt32x4Bits, OpCodeAsmJs::Simd128_FromInt32x4Bits_U4, AsmJsRetType::Uint32x4, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_fromInt16x8Bits     ]= SIMDFunc(PropertyIds::fromInt16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_fromInt16x8Bits, OpCodeAsmJs::Simd128_FromInt16x8Bits_U4, AsmJsRetType::Uint32x4, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_fromInt8x16Bits     ]= SIMDFunc(PropertyIds::fromInt8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_fromInt8x16Bits, OpCodeAsmJs::Simd128_FromInt8x16Bits_U4, AsmJsRetType::Uint32x4, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_fromUint16x8Bits    ]= SIMDFunc(PropertyIds::fromUint16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_fromUint16x8Bits, OpCodeAsmJs::Simd128_FromUint16x8Bits_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint32x4_fromUint8x16Bits    ]= SIMDFunc(PropertyIds::fromUint8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint32x4_fromUint8x16Bits, OpCodeAsmJs::Simd128_FromUint8x16Bits_U4, AsmJsRetType::Uint32x4, AsmJsType::Uint8x16));
+
+        /* Uint16x8 */
+        simdFunctions[AsmJsSIMDBuiltin_Uint16x8]                    = SIMDFunc(PropertyIds::Uint16x8, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 8, AsmJsSIMDBuiltin_Uint16x8, OpCodeAsmJs::Simd128_IntsToU8, AsmJsRetType::Uint16x8,
+                                                                               AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_check]               = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint16x8_check, OpCodeAsmJs::Simd128_Ld_U8 /*no dynamic checks*/, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_extractLane         ]= SIMDFunc(PropertyIds::extractLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_extractLane, OpCodeAsmJs::Simd128_ExtractLane_U8, AsmJsRetType::Unsigned, AsmJsType::Uint16x8, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_swizzle             ]= SIMDFunc(PropertyIds::swizzle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 9, AsmJsSIMDBuiltin_uint16x8_swizzle, OpCodeAsmJs::Simd128_Swizzle_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8,
+                                                                                AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_shuffle             ]= SIMDFunc(PropertyIds::shuffle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 10, AsmJsSIMDBuiltin_uint16x8_shuffle, OpCodeAsmJs::Simd128_Shuffle_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8, 
+                                                                                AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_splat               ]= SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint16x8_splat, OpCodeAsmJs::Simd128_Splat_U8, AsmJsRetType::Uint16x8, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_replaceLane         ]= SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint16x8_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Int, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_and                 ]= SIMDFunc(PropertyIds::and_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_and, OpCodeAsmJs::Simd128_And_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_or                  ]= SIMDFunc(PropertyIds::or_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_or,   OpCodeAsmJs::Simd128_Or_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_xor                 ]= SIMDFunc(PropertyIds::xor_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_xor, OpCodeAsmJs::Simd128_Xor_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_not                 ]= SIMDFunc(PropertyIds::not_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint16x8_not, OpCodeAsmJs::Simd128_Not_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_neg                 ]= SIMDFunc(PropertyIds::neg, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint16x8_neg, OpCodeAsmJs::Simd128_Neg_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_add                 ]= SIMDFunc(PropertyIds::add, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_add, OpCodeAsmJs::Simd128_Add_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_sub                 ]= SIMDFunc(PropertyIds::sub, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_sub, OpCodeAsmJs::Simd128_Sub_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_mul                 ]= SIMDFunc(PropertyIds::mul, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_mul, OpCodeAsmJs::Simd128_Mul_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_shiftLeftByScalar   ]= SIMDFunc(PropertyIds::shiftLeftByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_shiftLeftByScalar, OpCodeAsmJs::Simd128_ShLtByScalar_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_shiftRightByScalar  ]= SIMDFunc(PropertyIds::shiftRightByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_shiftRightByScalar, OpCodeAsmJs::Simd128_ShRtByScalar_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Int));
+
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_lessThan]            = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_lessThan, OpCodeAsmJs::Simd128_Lt_U8, AsmJsRetType::Bool16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_lessThanOrEqual]     = SIMDFunc(PropertyIds::lessThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_lessThanOrEqual, OpCodeAsmJs::Simd128_LtEq_U8, AsmJsRetType::Bool16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_equal]               = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_equal, OpCodeAsmJs::Simd128_Eq_U8, AsmJsRetType::Bool16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_notEqual]            = SIMDFunc(PropertyIds::notEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_notEqual, OpCodeAsmJs::Simd128_Neq_U8, AsmJsRetType::Bool16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_greaterThan]         = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_greaterThan, OpCodeAsmJs::Simd128_Gt_U8, AsmJsRetType::Bool16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_greaterThanOrEqual]  = SIMDFunc(PropertyIds::greaterThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_greaterThanOrEqual, OpCodeAsmJs::Simd128_GtEq_U8, AsmJsRetType::Bool16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_select]              = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint16x8_select, OpCodeAsmJs::Simd128_Select_U8, AsmJsRetType::Uint16x8, AsmJsType::Bool16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_addSaturate         ]= SIMDFunc(PropertyIds::addSaturate, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_addSaturate, OpCodeAsmJs::Simd128_AddSaturate_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_subSaturate         ]= SIMDFunc(PropertyIds::subSaturate, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_subSaturate, OpCodeAsmJs::Simd128_SubSaturate_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint16x8, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_load                ]= SIMDFunc(PropertyIds::load, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint16x8_load, OpCodeAsmJs::Simd128_LdArr_U8, AsmJsRetType::Uint16x8, AsmJsType::Void, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_store               ]= SIMDFunc(PropertyIds::store, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint16x8_store, OpCodeAsmJs::Simd128_StArr_U8, AsmJsRetType::Uint16x8, AsmJsType::Void, AsmJsType::Int, AsmJsType::Uint16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_fromFloat32x4Bits   ]= SIMDFunc(PropertyIds::fromFloat32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint16x8_fromFloat32x4Bits, OpCodeAsmJs::Simd128_FromFloat32x4Bits_U8, AsmJsRetType::Uint16x8, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_fromInt32x4Bits     ]= SIMDFunc(PropertyIds::fromInt32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint16x8_fromInt32x4Bits, OpCodeAsmJs::Simd128_FromInt32x4Bits_U8, AsmJsRetType::Uint16x8, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_fromInt16x8Bits     ]= SIMDFunc(PropertyIds::fromInt16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint16x8_fromInt16x8Bits, OpCodeAsmJs::Simd128_FromInt16x8Bits_U8, AsmJsRetType::Uint16x8, AsmJsType::Int16x8));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_fromInt8x16Bits     ]= SIMDFunc(PropertyIds::fromInt8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint16x8_fromInt8x16Bits, OpCodeAsmJs::Simd128_FromInt8x16Bits_U8, AsmJsRetType::Uint16x8, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_fromUint32x4Bits    ]= SIMDFunc(PropertyIds::fromUint32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint16x8_fromUint32x4Bits, OpCodeAsmJs::Simd128_FromUint32x4Bits_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint16x8_fromUint8x16Bits    ]= SIMDFunc(PropertyIds::fromUint8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint16x8_fromUint8x16Bits, OpCodeAsmJs::Simd128_FromUint8x16Bits_U8, AsmJsRetType::Uint16x8, AsmJsType::Uint8x16));
+
+
+        /* Uint8x16 */
+        simdFunctions[AsmJsSIMDBuiltin_Uint8x16]                    = SIMDFunc(PropertyIds::Uint8x16, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 16, AsmJsSIMDBuiltin_Uint8x16, OpCodeAsmJs::Simd128_IntsToU16, AsmJsRetType::Uint8x16,
+                                                                               AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish,
+                                                                               AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_check]              = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint8x16_check, OpCodeAsmJs::Simd128_Ld_U16 /*no dynamic checks*/, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_extractLane       ] = SIMDFunc(PropertyIds::extractLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_extractLane, OpCodeAsmJs::Simd128_ExtractLane_U16, AsmJsRetType::Unsigned, AsmJsType::Uint8x16, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_swizzle           ] = SIMDFunc(PropertyIds::swizzle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 17, AsmJsSIMDBuiltin_uint8x16_swizzle, OpCodeAsmJs::Simd128_Swizzle_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16,
+                                                                      AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int,
+                                                                      AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_shuffle]            = SIMDFunc(PropertyIds::shuffle, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 18, AsmJsSIMDBuiltin_uint8x16_shuffle, OpCodeAsmJs::Simd128_Shuffle_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16,
+                                                                      AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int,
+                                                                      AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_splat             ] = SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint8x16_splat, OpCodeAsmJs::Simd128_Splat_U16, AsmJsRetType::Uint8x16, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_replaceLane       ] = SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint8x16_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Int, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_and               ] = SIMDFunc(PropertyIds::and_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_and, OpCodeAsmJs::Simd128_And_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_or                ] = SIMDFunc(PropertyIds::or_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_or,   OpCodeAsmJs::Simd128_Or_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_xor               ] = SIMDFunc(PropertyIds::xor_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_xor, OpCodeAsmJs::Simd128_Xor_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_not               ] = SIMDFunc(PropertyIds::not_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint8x16_not, OpCodeAsmJs::Simd128_Not_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_neg               ] = SIMDFunc(PropertyIds::neg, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint8x16_neg, OpCodeAsmJs::Simd128_Neg_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_add               ] = SIMDFunc(PropertyIds::add, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_add, OpCodeAsmJs::Simd128_Add_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_sub               ] = SIMDFunc(PropertyIds::sub, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_sub, OpCodeAsmJs::Simd128_Sub_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_mul               ] = SIMDFunc(PropertyIds::mul, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_mul, OpCodeAsmJs::Simd128_Mul_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_shiftLeftByScalar ] = SIMDFunc(PropertyIds::shiftLeftByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_shiftLeftByScalar, OpCodeAsmJs::Simd128_ShLtByScalar_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_shiftRightByScalar] = SIMDFunc(PropertyIds::shiftRightByScalar, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_shiftRightByScalar, OpCodeAsmJs::Simd128_ShRtByScalar_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Int));
+
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_lessThan]            = SIMDFunc(PropertyIds::lessThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_lessThan, OpCodeAsmJs::Simd128_Lt_U16, AsmJsRetType::Bool8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_lessThanOrEqual]     = SIMDFunc(PropertyIds::lessThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_lessThanOrEqual, OpCodeAsmJs::Simd128_LtEq_U16, AsmJsRetType::Bool8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_equal]               = SIMDFunc(PropertyIds::equal, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_equal, OpCodeAsmJs::Simd128_Eq_U16, AsmJsRetType::Bool8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_notEqual]            = SIMDFunc(PropertyIds::notEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_notEqual, OpCodeAsmJs::Simd128_Neq_U16, AsmJsRetType::Bool8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_greaterThan]         = SIMDFunc(PropertyIds::greaterThan, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_greaterThan, OpCodeAsmJs::Simd128_Gt_U16, AsmJsRetType::Bool8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_greaterThanOrEqual]  = SIMDFunc(PropertyIds::greaterThanOrEqual, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_greaterThanOrEqual, OpCodeAsmJs::Simd128_GtEq_U16, AsmJsRetType::Bool8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_select]              = SIMDFunc(PropertyIds::select, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint8x16_select, OpCodeAsmJs::Simd128_Select_U16, AsmJsRetType::Uint8x16, AsmJsType::Bool8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+
+
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_addSaturate       ] = SIMDFunc(PropertyIds::addSaturate, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_addSaturate, OpCodeAsmJs::Simd128_AddSaturate_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_subSaturate       ] = SIMDFunc(PropertyIds::subSaturate, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_subSaturate, OpCodeAsmJs::Simd128_SubSaturate_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint8x16, AsmJsType::Uint8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_load              ] = SIMDFunc(PropertyIds::load, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_uint8x16_load, OpCodeAsmJs::Simd128_LdArr_U16, AsmJsRetType::Uint8x16, AsmJsType::Void, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_store             ] = SIMDFunc(PropertyIds::store, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_uint8x16_store, OpCodeAsmJs::Simd128_StArr_U16, AsmJsRetType::Uint8x16, AsmJsType::Void, AsmJsType::Int, AsmJsType::Uint8x16));
+
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_fromFloat32x4Bits ] = SIMDFunc(PropertyIds::fromFloat32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint8x16_fromFloat32x4Bits, OpCodeAsmJs::Simd128_FromFloat32x4Bits_U16, AsmJsRetType::Uint8x16, AsmJsType::Float32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_fromInt32x4Bits   ] = SIMDFunc(PropertyIds::fromInt32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint8x16_fromInt32x4Bits, OpCodeAsmJs::Simd128_FromInt32x4Bits_U16, AsmJsRetType::Uint8x16, AsmJsType::Int32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_fromInt16x8Bits   ] = SIMDFunc(PropertyIds::fromInt16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint8x16_fromInt16x8Bits, OpCodeAsmJs::Simd128_FromInt16x8Bits_U16, AsmJsRetType::Uint8x16, AsmJsType::Int16x8));
+         simdFunctions[AsmJsSIMDBuiltin_uint8x16_fromInt8x16Bits   ] = SIMDFunc(PropertyIds::fromInt8x16Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint8x16_fromInt8x16Bits, OpCodeAsmJs::Simd128_FromInt8x16Bits_U16, AsmJsRetType::Uint8x16, AsmJsType::Int8x16));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_fromUint32x4Bits  ] = SIMDFunc(PropertyIds::fromUint32x4Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint8x16_fromUint32x4Bits, OpCodeAsmJs::Simd128_FromUint32x4Bits_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint32x4));
+        simdFunctions[AsmJsSIMDBuiltin_uint8x16_fromUint16x8Bits  ] = SIMDFunc(PropertyIds::fromUint16x8Bits, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_uint8x16_fromUint16x8Bits, OpCodeAsmJs::Simd128_FromUint16x8Bits_U16, AsmJsRetType::Uint8x16, AsmJsType::Uint16x8));
+
+        /* Bool32x4 builtins*/
+        //-------------------
+        simdFunctions[AsmJsSIMDBuiltin_Bool32x4]                    = SIMDFunc(PropertyIds::Bool32x4, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 4, AsmJsSIMDBuiltin_Bool32x4, OpCodeAsmJs::Simd128_IntsToB4, AsmJsRetType::Bool32x4, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_bool32x4_check]              = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool32x4_check, OpCodeAsmJs::Simd128_Ld_B4 /*no dynamic checks*/, AsmJsRetType::Bool32x4, AsmJsType::Bool32x4));
+        simdFunctions[AsmJsSIMDBuiltin_bool32x4_splat]              = SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool32x4_splat, OpCodeAsmJs::Simd128_Splat_B4, AsmJsRetType::Bool32x4, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_bool32x4_extractLane]        = SIMDFunc(PropertyIds::extractLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool32x4_extractLane, OpCodeAsmJs::Simd128_ExtractLane_B4, AsmJsRetType::Signed, AsmJsType::Bool32x4, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_bool32x4_replaceLane]        = SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_bool32x4_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_B4, AsmJsRetType::Bool32x4, AsmJsType::Bool32x4, AsmJsType::Int, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_bool32x4_and]                = SIMDFunc(PropertyIds::and_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool32x4_and, OpCodeAsmJs::Simd128_And_B4, AsmJsRetType::Bool32x4, AsmJsType::Bool32x4, AsmJsType::Bool32x4));
+        simdFunctions[AsmJsSIMDBuiltin_bool32x4_or]                 = SIMDFunc(PropertyIds::or_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool32x4_or, OpCodeAsmJs::Simd128_Or_B4, AsmJsRetType::Bool32x4, AsmJsType::Bool32x4, AsmJsType::Bool32x4));
+        simdFunctions[AsmJsSIMDBuiltin_bool32x4_xor]                = SIMDFunc(PropertyIds::xor_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool32x4_xor, OpCodeAsmJs::Simd128_Xor_B4, AsmJsRetType::Bool32x4, AsmJsType::Bool32x4, AsmJsType::Bool32x4));
+        simdFunctions[AsmJsSIMDBuiltin_bool32x4_not]                = SIMDFunc(PropertyIds::not_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool32x4_not, OpCodeAsmJs::Simd128_Not_B4, AsmJsRetType::Bool32x4, AsmJsType::Bool32x4));
+        simdFunctions[AsmJsSIMDBuiltin_bool32x4_anyTrue]            = SIMDFunc(PropertyIds::anyTrue, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool32x4_anyTrue, OpCodeAsmJs::Simd128_AnyTrue_B4, AsmJsRetType::Signed, AsmJsType::Bool32x4));
+        simdFunctions[AsmJsSIMDBuiltin_bool32x4_allTrue]            = SIMDFunc(PropertyIds::allTrue, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool32x4_allTrue, OpCodeAsmJs::Simd128_AllTrue_B4, AsmJsRetType::Signed, AsmJsType::Bool32x4));
+
+        /* Bool16x8 builtins*/
+        //-------------------
+        simdFunctions[AsmJsSIMDBuiltin_Bool16x8]                    = SIMDFunc(PropertyIds::Bool16x8, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 8, AsmJsSIMDBuiltin_Bool16x8, OpCodeAsmJs::Simd128_IntsToB8, AsmJsRetType::Bool16x8, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_bool16x8_check]              = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool16x8_check, OpCodeAsmJs::Simd128_Ld_B8 /*no dynamic checks*/, AsmJsRetType::Bool16x8, AsmJsType::Bool16x8));
+        simdFunctions[AsmJsSIMDBuiltin_bool16x8_splat]              = SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool16x8_splat, OpCodeAsmJs::Simd128_Splat_B8, AsmJsRetType::Bool16x8, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_bool16x8_extractLane]        = SIMDFunc(PropertyIds::extractLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool16x8_extractLane, OpCodeAsmJs::Simd128_ExtractLane_B8, AsmJsRetType::Signed, AsmJsType::Bool16x8, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_bool16x8_replaceLane]        = SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_bool16x8_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_B8, AsmJsRetType::Bool16x8, AsmJsType::Bool16x8, AsmJsType::Int, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_bool16x8_and]                = SIMDFunc(PropertyIds::and_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool16x8_and, OpCodeAsmJs::Simd128_And_B8, AsmJsRetType::Bool16x8, AsmJsType::Bool16x8, AsmJsType::Bool16x8));
+        simdFunctions[AsmJsSIMDBuiltin_bool16x8_or]                 = SIMDFunc(PropertyIds::or_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool16x8_or, OpCodeAsmJs::Simd128_Or_B8, AsmJsRetType::Bool16x8, AsmJsType::Bool16x8, AsmJsType::Bool16x8));
+        simdFunctions[AsmJsSIMDBuiltin_bool16x8_xor]                = SIMDFunc(PropertyIds::xor_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool16x8_xor, OpCodeAsmJs::Simd128_Xor_B8, AsmJsRetType::Bool16x8, AsmJsType::Bool16x8, AsmJsType::Bool16x8));
+        simdFunctions[AsmJsSIMDBuiltin_bool16x8_not]                = SIMDFunc(PropertyIds::not_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool16x8_not, OpCodeAsmJs::Simd128_Not_B8, AsmJsRetType::Bool16x8, AsmJsType::Bool16x8));
+        simdFunctions[AsmJsSIMDBuiltin_bool16x8_anyTrue]            = SIMDFunc(PropertyIds::anyTrue, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool16x8_anyTrue, OpCodeAsmJs::Simd128_AnyTrue_B8, AsmJsRetType::Signed, AsmJsType::Bool16x8));
+        simdFunctions[AsmJsSIMDBuiltin_bool16x8_allTrue]            = SIMDFunc(PropertyIds::allTrue, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool16x8_allTrue, OpCodeAsmJs::Simd128_AllTrue_B8, AsmJsRetType::Signed, AsmJsType::Bool16x8));
+        
+        /* Bool8x16 builtins*/
+        //-------------------
+        simdFunctions[AsmJsSIMDBuiltin_Bool8x16]                    = SIMDFunc(PropertyIds::Bool8x16, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 16, AsmJsSIMDBuiltin_Bool8x16, OpCodeAsmJs::Simd128_IntsToB16, AsmJsRetType::Bool8x16, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_bool8x16_check]              = SIMDFunc(PropertyIds::check, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool8x16_check, OpCodeAsmJs::Simd128_Ld_B16 /*no dynamic checks*/, AsmJsRetType::Bool8x16, AsmJsType::Bool8x16));
+        simdFunctions[AsmJsSIMDBuiltin_bool8x16_splat]              = SIMDFunc(PropertyIds::splat, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool8x16_splat, OpCodeAsmJs::Simd128_Splat_B16, AsmJsRetType::Bool8x16, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_bool8x16_extractLane]        = SIMDFunc(PropertyIds::extractLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool8x16_extractLane, OpCodeAsmJs::Simd128_ExtractLane_B16, AsmJsRetType::Signed, AsmJsType::Bool8x16, AsmJsType::Int));
+        simdFunctions[AsmJsSIMDBuiltin_bool8x16_replaceLane]        = SIMDFunc(PropertyIds::replaceLane, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 3, AsmJsSIMDBuiltin_bool8x16_replaceLane, OpCodeAsmJs::Simd128_ReplaceLane_B16, AsmJsRetType::Bool8x16, AsmJsType::Bool8x16, AsmJsType::Int, AsmJsType::Intish));
+        simdFunctions[AsmJsSIMDBuiltin_bool8x16_and]                = SIMDFunc(PropertyIds::and_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool8x16_and, OpCodeAsmJs::Simd128_And_B16, AsmJsRetType::Bool8x16, AsmJsType::Bool8x16, AsmJsType::Bool8x16));
+        simdFunctions[AsmJsSIMDBuiltin_bool8x16_or]                 = SIMDFunc(PropertyIds::or_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool8x16_or, OpCodeAsmJs::Simd128_Or_B16, AsmJsRetType::Bool8x16, AsmJsType::Bool8x16, AsmJsType::Bool8x16));
+        simdFunctions[AsmJsSIMDBuiltin_bool8x16_xor]                = SIMDFunc(PropertyIds::xor_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 2, AsmJsSIMDBuiltin_bool8x16_xor, OpCodeAsmJs::Simd128_Xor_B16, AsmJsRetType::Bool8x16, AsmJsType::Bool8x16, AsmJsType::Bool8x16));
+        simdFunctions[AsmJsSIMDBuiltin_bool8x16_not]                = SIMDFunc(PropertyIds::not_, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool8x16_not, OpCodeAsmJs::Simd128_Not_B16, AsmJsRetType::Bool8x16, AsmJsType::Bool8x16));
+        simdFunctions[AsmJsSIMDBuiltin_bool8x16_anyTrue]            = SIMDFunc(PropertyIds::anyTrue, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool8x16_anyTrue, OpCodeAsmJs::Simd128_AnyTrue_B16, AsmJsRetType::Signed, AsmJsType::Bool8x16));
+        simdFunctions[AsmJsSIMDBuiltin_bool8x16_allTrue]            = SIMDFunc(PropertyIds::allTrue, Anew(&mAllocator, AsmJsSIMDFunction, nullptr, &mAllocator, 1, AsmJsSIMDBuiltin_bool8x16_allTrue, OpCodeAsmJs::Simd128_AllTrue_B16, AsmJsRetType::Signed, AsmJsType::Bool8x16));
 
 
         {
             SIMDNameMap *map = &mStdLibSIMDInt32x4Map;
             for (int i = 0; i < AsmJsSIMDBuiltin_COUNT; i++)
             {
-                if (i == AsmJsSIMDBuiltin_Float32x4)
+                switch (i)
                 {
+                case AsmJsSIMDBuiltin_Float32x4:
                     map = &mStdLibSIMDFloat32x4Map;
-                }
-                if (i == AsmJsSIMDBuiltin_Float64x2)
-                {
+                    break;
+                case AsmJsSIMDBuiltin_Float64x2:
                     map = &mStdLibSIMDFloat64x2Map;
+                    break;
+                case AsmJsSIMDBuiltin_Int16x8:
+                    map = &mStdLibSIMDInt16x8Map;
+                    break;
+                case AsmJsSIMDBuiltin_Int8x16:
+                    map = &mStdLibSIMDInt8x16Map;
+                    break;
+                case AsmJsSIMDBuiltin_Uint32x4:
+                    map = &mStdLibSIMDUint32x4Map;
+                    break;
+                case AsmJsSIMDBuiltin_Uint16x8:
+                    map = &mStdLibSIMDUint16x8Map;
+                    break;
+                case AsmJsSIMDBuiltin_Uint8x16:
+                    map = &mStdLibSIMDUint8x16Map;
+                    break;
+                case AsmJsSIMDBuiltin_Bool32x4:
+                    map = &mStdLibSIMDBool32x4Map;
+                    break;
+                case AsmJsSIMDBuiltin_Bool16x8:
+                    map = &mStdLibSIMDBool16x8Map;
+                    break;
+                case AsmJsSIMDBuiltin_Bool8x16:
+                    map = &mStdLibSIMDBool8x16Map;
+                    break;
                 }
+                
                 if (simdFunctions[i].id && simdFunctions[i].val)
                 {
                     if (!AddStandardLibrarySIMDNameInMap(simdFunctions[i].id, simdFunctions[i].val, map))
                     {
-                        AsmJSCompiler::OutputError(GetScriptContext(), L"Cannot initialize SIMD library");
+                        AsmJSCompiler::OutputError(GetScriptContext(), _u("Cannot initialize SIMD library"));
                         return false;
                     }
                 }
@@ -1596,7 +1930,7 @@ namespace Js
     AsmJsModuleCompiler::AsmJsModuleCompiler( ExclusiveContext *cx, AsmJSParser &parser ) :
         mCx( cx )
         , mCurrentParserNode( parser )
-        , mAllocator( L"Asmjs", cx->scriptContext->GetThreadContext()->GetPageAllocator(), Throw::OutOfMemory )
+        , mAllocator( _u("Asmjs"), cx->scriptContext->GetThreadContext()->GetPageAllocator(), Throw::OutOfMemory )
         , mModuleFunctionName( nullptr )
         , mStandardLibraryMathNames(&mAllocator)
         , mStandardLibraryArrayNames(&mAllocator)
@@ -1624,8 +1958,17 @@ namespace Js
         , mBufferArgNameInit(false)
 #endif
         , mStdLibSIMDInt32x4Map(&mAllocator)
+        , mStdLibSIMDInt16x8Map(&mAllocator)
+        , mStdLibSIMDInt8x16Map(&mAllocator)
+        , mStdLibSIMDUint32x4Map(&mAllocator)
+        , mStdLibSIMDUint16x8Map(&mAllocator)
+        , mStdLibSIMDUint8x16Map(&mAllocator)
+        , mStdLibSIMDBool32x4Map(&mAllocator)
+        , mStdLibSIMDBool16x8Map(&mAllocator)
+        , mStdLibSIMDBool8x16Map(&mAllocator)
         , mStdLibSIMDFloat32x4Map(&mAllocator)
         , mStdLibSIMDFloat64x2Map(&mAllocator)
+        
     {
         InitModuleNode( parser );
     }
@@ -1840,6 +2183,30 @@ namespace Js
                 break;
             }
             Assert(UNREACHED);
+        case Js::AsmJS_Bool32x4:
+            if (IsSimdjsEnabled())
+            {
+                var->SetVarType(AsmJsVarType::Bool32x4);
+                var->SetLocation(mSimdVarSpace.AcquireRegister());
+                break;
+            }
+            Assert(UNREACHED);
+        case Js::AsmJS_Bool16x8:
+            if (IsSimdjsEnabled())
+            {
+                var->SetVarType(AsmJsVarType::Bool16x8);
+                var->SetLocation(mSimdVarSpace.AcquireRegister());
+                break;
+            }
+            Assert(UNREACHED);
+        case Js::AsmJS_Bool8x16:
+            if (IsSimdjsEnabled())
+            {
+                var->SetVarType(AsmJsVarType::Bool8x16);
+                var->SetLocation(mSimdVarSpace.AcquireRegister());
+                break;
+            }
+            Assert(UNREACHED);
         case AsmJS_Float32x4:
             if (IsSimdjsEnabled())
             {
@@ -1852,6 +2219,46 @@ namespace Js
             if (IsSimdjsEnabled())
             {
                 var->SetVarType(AsmJsVarType::Float64x2);
+                var->SetLocation(mSimdVarSpace.AcquireRegister());
+                break;
+            }
+            Assert(UNREACHED);
+        case Js::AsmJS_Int16x8:
+            if (IsSimdjsEnabled())
+            {
+                var->SetVarType(AsmJsVarType::Int16x8);
+                var->SetLocation(mSimdVarSpace.AcquireRegister());
+                break;
+            }
+            Assert(UNREACHED);
+        case Js::AsmJS_Int8x16:
+            if (IsSimdjsEnabled())
+            {
+                var->SetVarType(AsmJsVarType::Int8x16);
+                var->SetLocation(mSimdVarSpace.AcquireRegister());
+                break;
+            }
+            Assert(UNREACHED);
+        case Js::AsmJS_Uint32x4:
+            if (IsSimdjsEnabled())
+            {
+                var->SetVarType(AsmJsVarType::Uint32x4);
+                var->SetLocation(mSimdVarSpace.AcquireRegister());
+                break;
+            }
+            Assert(UNREACHED);
+        case Js::AsmJS_Uint16x8:
+            if (IsSimdjsEnabled())
+            {
+                var->SetVarType(AsmJsVarType::Uint16x8);
+                var->SetLocation(mSimdVarSpace.AcquireRegister());
+                break;
+            }
+            Assert(UNREACHED);
+        case Js::AsmJS_Uint8x16:
+            if (IsSimdjsEnabled())
+            {
+                var->SetVarType(AsmJsVarType::Uint8x16);
                 var->SetLocation(mSimdVarSpace.AcquireRegister());
                 break;
             }
@@ -1977,7 +2384,7 @@ namespace Js
             AsmJsFunctionTable* funcTable = mFunctionTableArray.Item( i );
             if( !funcTable->IsDefined() )
             {
-                AsmJSCompiler::OutputError(GetScriptContext(), L"Function table %s was used in a function but does not appear in the module", funcTable->GetName()->Psz());
+                AsmJSCompiler::OutputError(GetScriptContext(), _u("Function table %s was used in a function but does not appear in the module"), funcTable->GetName()->Psz());
                 return false;
             }
         }
@@ -2046,10 +2453,10 @@ namespace Js
         return mCompileTime.ToMicroseconds();
     }
 
-    static const wchar_t* AsmPhaseNames[AsmJsCompilation::Phases_COUNT] = {
-        L"Module",
-        L"ByteCode",
-        L"TemplateJIT",
+    static const char16* AsmPhaseNames[AsmJsCompilation::Phases_COUNT] = {
+        _u("Module"),
+        _u("ByteCode"),
+        _u("TemplateJIT"),
     };
 
     void AsmJsModuleCompiler::PrintCompileTrace() const
@@ -2057,14 +2464,14 @@ namespace Js
         // for testtrace, don't print time so that it can be used for baselines
         if (PHASE_TESTTRACE1(AsmjsPhase))
         {
-            AsmJSCompiler::OutputMessage(GetScriptContext(), DEIT_ASMJS_SUCCEEDED, L"Successfully compiled asm.js code");
+            AsmJSCompiler::OutputMessage(GetScriptContext(), DEIT_ASMJS_SUCCEEDED, _u("Successfully compiled asm.js code"));
         }
         else
         {
             uint64 us = GetCompileTime();
             uint64 ms = us / 1000;
             us = us % 1000;
-            AsmJSCompiler::OutputMessage(GetScriptContext(), DEIT_ASMJS_SUCCEEDED, L"Successfully compiled asm.js code (total compilation time %llu.%llums)", ms, us);
+            AsmJSCompiler::OutputMessage(GetScriptContext(), DEIT_ASMJS_SUCCEEDED, _u("Successfully compiled asm.js code (total compilation time %llu.%llums)"), ms, us);
         }
 
         if (PHASE_TRACE1(AsmjsPhase))
@@ -2074,7 +2481,7 @@ namespace Js
                 uint64 us = mPhaseCompileTime[i].ToMicroseconds();
                 uint64 ms = us / 1000;
                 us = us % 1000;
-                Output::Print(L"%20s : %llu.%llums\n", AsmPhaseNames[i], ms, us);
+                Output::Print(_u("%20s : %llu.%llums\n"), AsmPhaseNames[i], ms, us);
             }
             Output::Flush();
         }
@@ -2199,7 +2606,7 @@ namespace Js
         scopeSlots.SetScopeMetadata(moduleBody);
 
         auto asmSlotMap = asmModuleInfo->GetAsmJsSlotMap();
-        Assert((uint)asmModuleInfo->GetSlotsCount() == moduleBody->scopeSlotArraySize);
+        Assert((uint)asmModuleInfo->GetSlotsCount() >= moduleBody->scopeSlotArraySize);
 
         Js::ActivationObject* activeScopeObject = nullptr;
         if (moduleBody->GetObjectRegister() != 0)
@@ -2208,7 +2615,8 @@ namespace Js
         }
 
         PropertyId* propertyIdArray = moduleBody->GetPropertyIdsForScopeSlotArray();
-        for (int i = 0; i < asmModuleInfo->GetSlotsCount(); ++i)
+        uint slotsCount = moduleBody->scopeSlotArraySize;
+        for (uint i = 0; i < slotsCount; ++i)
         {
             AsmJsSlot * asmSlot;
             bool found = asmSlotMap->TryGetValue(propertyIdArray[i], &asmSlot);
@@ -2239,6 +2647,30 @@ namespace Js
                     break;
                 case AsmJsVarType::Int32x4:
                     value = JavascriptSIMDInt32x4::New(&asmSIMDVars[asmSlot->location], scriptContext);
+                    break;
+                case AsmJsVarType::Int16x8:
+                    value = JavascriptSIMDInt16x8::New(&asmSIMDVars[asmSlot->location], scriptContext);
+                    break;
+                case AsmJsVarType::Int8x16:
+                    value = JavascriptSIMDInt8x16::New(&asmSIMDVars[asmSlot->location], scriptContext);
+                    break;
+                case AsmJsVarType::Uint32x4:
+                    value = JavascriptSIMDUint32x4::New(&asmSIMDVars[asmSlot->location], scriptContext);
+                    break;
+                case AsmJsVarType::Uint16x8:
+                    value = JavascriptSIMDUint16x8::New(&asmSIMDVars[asmSlot->location], scriptContext);
+                    break;
+                case AsmJsVarType::Uint8x16:
+                    value = JavascriptSIMDUint8x16::New(&asmSIMDVars[asmSlot->location], scriptContext);
+                    break;
+                case AsmJsVarType::Bool32x4:
+                    value = JavascriptSIMDBool32x4::New(&asmSIMDVars[asmSlot->location], scriptContext);
+                    break;
+                case AsmJsVarType::Bool16x8:
+                    value = JavascriptSIMDBool16x8::New(&asmSIMDVars[asmSlot->location], scriptContext);
+                    break;
+                case AsmJsVarType::Bool8x16:
+                    value = JavascriptSIMDBool8x16::New(&asmSIMDVars[asmSlot->location], scriptContext);
                     break;
                 default:
                     Assume(UNREACHED);
@@ -2275,6 +2707,10 @@ namespace Js
                 break;
             case AsmJsSymbol::MathConstant:
                 value = JavascriptNumber::NewWithCheck(asmSlot->mathConstVal, scriptContext);
+                break;
+            case AsmJsSymbol::ClosureFunction:
+                // we can't reference this inside functions but must set to something, so set it to be undefined
+                value = scriptContext->GetLibrary()->GetUndefined();
                 break;
             case AsmJsSymbol::ArrayView:
             {
@@ -2327,7 +2763,7 @@ namespace Js
                         case AsmJSMathBuiltin_##name: \
                             value = JavascriptOperators::OP_GetProperty(asmMathObject, PropertyIds::##propertyName, scriptContext); \
                             break;
-#include "AsmJsBuiltinNames.h"
+#include "AsmJsBuiltInNames.h"
                 default:
                     Assume(UNREACHED);
                 }
@@ -2340,7 +2776,7 @@ namespace Js
                         case AsmJSTypedArrayBuiltin_##name: \
                             value = JavascriptOperators::OP_GetProperty(stdLibObj, PropertyIds::##propertyName, scriptContext); \
                             break;
-#include "AsmJsBuiltinNames.h"
+#include "AsmJsBuiltInNames.h"
                 default:
                     Assume(UNREACHED);
                 }
@@ -2349,11 +2785,11 @@ namespace Js
             case AsmJsSymbol::SIMDBuiltinFunction:
                 switch (asmSlot->builtinSIMDFunc)
                 {
-#define ASMJS_SIMD_NAMES(name, propertyName) \
+#define ASMJS_SIMD_NAMES(name, propertyName, libName, entryPoint) \
                         case AsmJsSIMDBuiltin_##name: \
                             value = JavascriptOperators::OP_GetProperty(stdLibObj, PropertyIds::##propertyName, scriptContext); \
                             break;
-#include "AsmJsBuiltinNames.h"
+#include "AsmJsBuiltInNames.h"
                 default:
                     Assume(UNREACHED);
                 }
@@ -2410,10 +2846,27 @@ namespace Js
         {
         case PropertyIds::Int32x4:
             return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDInt32x4Map);
+        case PropertyIds::Bool32x4:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDBool32x4Map);
+        case PropertyIds::Bool16x8:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDBool16x8Map);
+        case PropertyIds::Bool8x16:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDBool8x16Map);
         case PropertyIds::Float32x4:
             return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDFloat32x4Map);
         case PropertyIds::Float64x2:
             return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDFloat64x2Map);
+        case PropertyIds::Int16x8:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDInt16x8Map);
+        case PropertyIds::Int8x16:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDInt8x16Map);
+        case PropertyIds::Uint32x4:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDUint32x4Map);
+        case PropertyIds::Uint16x8:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDUint16x8Map);
+        case PropertyIds::Uint8x16:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDUint8x16Map);
+        
         default:
             AssertMsg(false, "Invalid SIMD type");
             return false;
@@ -2426,10 +2879,26 @@ namespace Js
         {
         case AsmJsSIMDBuiltin_Int32x4:
             return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDInt32x4Map);
+        case AsmJsSIMDBuiltin_Bool32x4:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDBool32x4Map);
+        case AsmJsSIMDBuiltin_Bool16x8:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDBool16x8Map);
+        case AsmJsSIMDBuiltin_Bool8x16:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDBool8x16Map);
         case AsmJsSIMDBuiltin_Float32x4:
             return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDFloat32x4Map);
         case AsmJsSIMDBuiltin_Float64x2:
             return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDFloat64x2Map);
+        case AsmJsSIMDBuiltin_Int16x8:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDInt16x8Map);
+        case AsmJsSIMDBuiltin_Int8x16:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDInt8x16Map);
+        case AsmJsSIMDBuiltin_Uint32x4:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDUint32x4Map);
+        case AsmJsSIMDBuiltin_Uint16x8:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDUint16x8Map);
+        case AsmJsSIMDBuiltin_Uint8x16:
+            return LookupStdLibSIMDNameInMap(fieldName, simdFunc, &mStdLibSIMDUint8x16Map);
         default:
             AssertMsg(false, "Invalid SIMD type");
             return false;
@@ -2475,8 +2944,17 @@ namespace Js
         }
         AsmJsSIMDFunction *simdFunc = func->Cast<AsmJsSIMDFunction>();
         if (simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Int32x4 &&
+            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Int16x8 &&
+            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Int8x16 &&
             simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Float32x4 &&
-            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Float64x2)
+            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Float64x2 &&
+            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Uint32x4 &&
+            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Uint16x8 &&
+            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Uint8x16 &&
+            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Bool32x4 &&
+            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Bool16x8 &&
+            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Bool8x16
+            )
         {
             return simdFunc;
         }
@@ -2524,7 +3002,7 @@ namespace Js
 
         if (!simdFunc->IsConstructor(argCount))
         {
-            return Fail(pnode, L"Invalid SIMD constructor or wrong number of arguments.");
+            return Fail(pnode, _u("Invalid SIMD constructor or wrong number of arguments."));
         }
 
         switch (simdBuiltin)
@@ -2534,16 +3012,23 @@ namespace Js
             nop = (uint)knopFlt;
             break;
         case AsmJsSIMDBuiltin_Int32x4:
+        case AsmJsSIMDBuiltin_Int16x8:
+        case AsmJsSIMDBuiltin_Int8x16:
+        case AsmJsSIMDBuiltin_Uint32x4:
+        case AsmJsSIMDBuiltin_Uint16x8:
+        case AsmJsSIMDBuiltin_Uint8x16:
+        case AsmJsSIMDBuiltin_Bool32x4:
+        case AsmJsSIMDBuiltin_Bool16x8:
+        case AsmJsSIMDBuiltin_Bool8x16:
             nop = (uint)knopInt;
             break;
         default:
             Assert(UNREACHED);
         }
 
-        Assert(simdBuiltin == AsmJsSIMDBuiltin_Float64x2 || simdBuiltin == AsmJsSIMDBuiltin_Float32x4 || simdBuiltin == AsmJsSIMDBuiltin_Int32x4);
         if (simdFunc->GetArgCount() != argCount)
         {
-            return Fail(pnode, L"Invalid number of arguments to SIMD constructor.");
+            return Fail(pnode, _u("Invalid number of arguments to SIMD constructor."));
         }
 
         for (uint i = 0; i < argCount; i++)
@@ -2560,7 +3045,39 @@ namespace Js
             {
                 if (nop == (uint)knopInt)
                 {
-                    value.i32[i] = arg->sxInt.lw;
+                    switch (simdBuiltin)
+                    {
+                    case AsmJsSIMDBuiltin_Int32x4:
+                        value.i32[i] = arg->sxInt.lw;
+                        break;
+                    case AsmJsSIMDBuiltin_Int16x8:
+                        value.i16[i] = (int16)arg->sxInt.lw;
+                        break;
+                    case AsmJsSIMDBuiltin_Int8x16:
+                        value.i8[i] = (int8)arg->sxInt.lw;
+                        break;
+                    case AsmJsSIMDBuiltin_Uint32x4:
+                        value.u32[i] = (uint32)arg->sxInt.lw;
+                        break;
+                    case AsmJsSIMDBuiltin_Uint16x8:
+                        value.u16[i] = (uint16)arg->sxInt.lw;
+                        break;
+                    case AsmJsSIMDBuiltin_Uint8x16:
+                        value.u8[i] = (uint8)arg->sxInt.lw;
+                        break;
+                    case AsmJsSIMDBuiltin_Bool32x4:
+                        value.i32[i] = (arg->sxInt.lw) ? -1 : 0;
+                        break;
+                    case AsmJsSIMDBuiltin_Bool16x8:
+                        value.i16[i] = (arg->sxInt.lw) ? -1 : 0;
+                        break;
+                    case AsmJsSIMDBuiltin_Bool8x16:
+                        value.i8[i] = (arg->sxInt.lw) ? -1 : 0;
+                        break;
+                    default:
+                        Assert(UNREACHED);
+                    }
+                    
                 }
                 else if (nop == (uint)knopFlt)
                 {
@@ -2576,7 +3093,7 @@ namespace Js
             }
             else
             {
-                return Fail(pnode, L"Invalid argument type to SIMD constructor.");
+                return Fail(pnode, _u("Invalid argument type to SIMD constructor."));
             }
         }
         return true;

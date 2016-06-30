@@ -5,7 +5,7 @@
 #include "RuntimeBasePch.h"
 
 #ifdef PROFILE_EXEC
-#include "Base\ScriptContextProfiler.h"
+#include "Base/ScriptContextProfiler.h"
 
 namespace Js
 {
@@ -39,7 +39,7 @@ namespace Js
     ScriptContextProfiler::Initialize(PageAllocator * pageAllocator, Recycler * recycler)
     {
         Assert(!IsInitialized());
-        profilerArena = HeapNew(ArenaAllocator, L"Profiler", pageAllocator, Js::Throw::OutOfMemory);
+        profilerArena = HeapNew(ArenaAllocator, _u("Profiler"), pageAllocator, Js::Throw::OutOfMemory);
         profiler = Anew(profilerArena, Profiler, profilerArena);
         if (recycler)
         {

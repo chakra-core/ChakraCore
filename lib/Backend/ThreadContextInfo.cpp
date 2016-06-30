@@ -11,7 +11,9 @@ ThreadContextInfo::ThreadContextInfo(ThreadContextDataIDL * data) :
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
             PageAllocator::DefaultLowMaxFreePageCount :
             PageAllocator::DefaultMaxFreePageCount),
-    m_codeGenAlloc(&m_policyManager, nullptr, (HANDLE)data->processHandle),
+    m_preReservedVirtualAllocator(),
+    m_codePageAllocators(&m_policyManager, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
+    m_codeGenAlloc(&m_policyManager, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
     m_isAllJITCodeInPreReservedRegion(true),
     m_jitChakraBaseAddress((intptr_t)GetModuleHandle(L"Chakra.dll")), // TODO: OOP JIT, don't hardcode name
     m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName)),
@@ -198,6 +200,12 @@ PageAllocator *
 ThreadContextInfo::GetPageAllocator()
 {
     return &m_pageAlloc;
+}
+
+CustomHeap::CodePageAllocators * 
+ThreadContextInfo::GetCodePageAllocators()
+{
+    return &m_codePageAllocators;
 }
 
 CodeGenAllocators *

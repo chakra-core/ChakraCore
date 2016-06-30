@@ -40,7 +40,11 @@ namespace Js
         CharCount lastIndexOrFlag;
 
         static JavascriptRegExp * GetJavascriptRegExp(Arguments& args, PCWSTR varName, ScriptContext* scriptContext);
+        static JavascriptRegExp * ToRegExp(Var var, PCWSTR varName, ScriptContext* scriptContext);
+        static RecyclableObject * GetThisObject(Arguments& args, PCWSTR varName, ScriptContext* scriptContext);
         static JavascriptString * GetFirstStringArg(Arguments& args, ScriptContext* scriptContext);
+
+        static bool ShouldApplyPrototypeWebWorkaround(Arguments& args, ScriptContext* scriptContext);
 
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result);
         bool SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, BOOL* result);
@@ -49,8 +53,34 @@ namespace Js
 
         Var GetOptions();
 
-        inline void SetPattern(UnifiedRegex::RegexPattern* pattern);
-        inline void SetSplitPattern(UnifiedRegex::RegexPattern* splitPattern);
+        void SetPattern(UnifiedRegex::RegexPattern* pattern)
+        {
+            this->pattern = pattern;
+        }
+
+        void SetSplitPattern(UnifiedRegex::RegexPattern* splitPattern)
+        {
+            this->splitPattern = splitPattern;
+        }
+
+        static CharCount GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext);
+        static void SetLastIndexProperty(Var instance, CharCount lastIndex, ScriptContext* scriptContext);
+        static void SetLastIndexProperty(Var instance, Var lastIndex, ScriptContext* scriptContext);
+        static bool GetGlobalProperty(RecyclableObject* instance, ScriptContext* scriptContext);
+        static bool GetUnicodeProperty(RecyclableObject* instance, ScriptContext* scriptContext);
+
+        static CharCount AddIndex(CharCount base, CharCount offset);
+        static CharCount GetIndexOrMax(int64 index);
+
+        static bool HasOriginalRegExType(RecyclableObject* instance);
+        static bool HasObservableConstructor(DynamicObject* regexPrototype);
+        static bool HasObservableExec(DynamicObject* regexPrototype);
+        static bool HasObservableFlags(DynamicObject* regexPrototype);
+        static bool HasObservableGlobalFlag(DynamicObject* regexPrototype);
+        static bool HasObservableUnicodeFlag(DynamicObject* regexPrototype);
+
+        static Var CallExec(RecyclableObject* thisObj, JavascriptString* string, PCWSTR varName, ScriptContext* scriptContext);
+        UnifiedRegex::RegexFlags SetRegexFlag(PropertyId propertyId, UnifiedRegex::RegexFlags flags, UnifiedRegex::RegexFlags flag, ScriptContext* scriptContext);
 
         // For boxing stack instance
         JavascriptRegExp(JavascriptRegExp * instance);
@@ -92,16 +122,17 @@ namespace Js
         }
 
         static bool Is(Var aValue);
+        static bool IsRegExpLike(Var aValue, ScriptContext* scriptContext);
         static JavascriptRegExp* FromVar(Var aValue);
 
-        static JavascriptRegExp* CreateRegEx(const wchar_t* pSource, CharCount sourceLen,
+        static JavascriptRegExp* CreateRegEx(const char16* pSource, CharCount sourceLen,
             UnifiedRegex::RegexFlags flags, ScriptContext *scriptContext);
         static JavascriptRegExp* CreateRegEx(Var aValue, Var options, ScriptContext *scriptContext);
         static JavascriptRegExp* CreateRegExNoCoerce(Var aValue, Var options, ScriptContext *scriptContext);
         static UnifiedRegex::RegexPattern* CreatePattern(Var aValue, Var options, ScriptContext *scriptContext);
         static Var OP_NewRegEx(Var aCompiledRegex, ScriptContext* scriptContext);
 
-        JavascriptString *ToString(bool sourceOnly = false, bool useFlagsProperty = false);
+        JavascriptString *ToString(bool sourceOnly = false);
 
         class EntryInfo
         {
@@ -111,7 +142,9 @@ namespace Js
             static FunctionInfo Test;
             static FunctionInfo ToString;
             static FunctionInfo SymbolMatch;
+            static FunctionInfo SymbolReplace;
             static FunctionInfo SymbolSearch;
+            static FunctionInfo SymbolSplit;
             static FunctionInfo GetterSymbolSpecies;
             static FunctionInfo GetterGlobal;
             static FunctionInfo GetterFlags;
@@ -130,10 +163,12 @@ namespace Js
         static Var EntryTest(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolMatch(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntrySymbolReplace(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntrySymbolSplit(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterFlags(RecyclableObject* function, CallInfo callInfo, ...);
-        static void AppendFlagForFlagsProperty(StringBuilder<ArenaAllocator>* builder, RecyclableObject* thisObj, PropertyId propertyId, wchar_t flag, ScriptContext* scriptContext);
+        static void AppendFlagForFlagsProperty(StringBuilder<ArenaAllocator>* builder, RecyclableObject* thisObj, PropertyId propertyId, char16 flag, ScriptContext* scriptContext);
         static Var EntryGetterGlobal(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterIgnoreCase(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterMultiline(RecyclableObject* function, CallInfo callInfo, ...);
@@ -166,6 +201,12 @@ namespace Js
         virtual PropertyId const * GetSpecialPropertyIds() const override;
 
         static Js::JavascriptRegExp * BoxStackInstance(Js::JavascriptRegExp * instance);
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
 } // namespace Js

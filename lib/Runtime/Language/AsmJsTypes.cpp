@@ -1,8 +1,9 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 // Portions of this file are copyright 2014 Mozilla Foundation, available under the Apache 2.0 license.
 //-------------------------------------------------------------------------------------------------------
+
 
 //-------------------------------------------------------------------------------------------------------
 // Copyright 2014 Mozilla Foundation
@@ -23,9 +24,9 @@
 #include "RuntimeLanguagePch.h"
 
 #ifndef TEMP_DISABLE_ASMJS 
-#include "ByteCode\ByteCodeWriter.h"
-#include "ByteCode\AsmJsByteCodeWriter.h"
-#include "Language\AsmJSByteCodeGenerator.h"
+#include "ByteCode/ByteCodeWriter.h"
+#include "ByteCode/AsmJsByteCodeWriter.h"
+#include "Language/AsmJsByteCodeGenerator.h"
 
 namespace Js
 {
@@ -33,82 +34,113 @@ namespace Js
     template<> void PrintTmpRegisterAllocation<double>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"+D%d\n", loc);
+            Output::Print(_u("+D%d\n"), loc);
     }
     template<> void PrintTmpRegisterDeAllocation<double>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"-D%d\n", loc);
+            Output::Print(_u("-D%d\n"), loc);
     }
     template<> void PrintTmpRegisterAllocation<float>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"+F%d\n", loc);
+            Output::Print(_u("+F%d\n"), loc);
     }
     template<> void PrintTmpRegisterDeAllocation<float>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"-F%d\n", loc);
+            Output::Print(_u("-F%d\n"), loc);
     }
     template<> void PrintTmpRegisterAllocation<int>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"+I%d\n", loc);
+            Output::Print(_u("+I%d\n"), loc);
     }
     template<> void PrintTmpRegisterDeAllocation<int>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"-I%d\n", loc);
+            Output::Print(_u("-I%d\n"), loc);
     }
 
     template<> void PrintTmpRegisterAllocation<AsmJsSIMDValue>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"+SIMD%d\n", loc);
+            Output::Print(_u("+SIMD%d\n"), loc);
     }
 
     template<> void PrintTmpRegisterDeAllocation<AsmJsSIMDValue>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"-SIMD%d\n", loc);
+            Output::Print(_u("-SIMD%d\n"), loc);
     }
     template<typename T> void PrintTmpRegisterAllocation(RegSlot loc) {}
     template<typename T> void PrintTmpRegisterDeAllocation(RegSlot loc) {}
 #endif
 
-    const wchar_t * AsmJsType::toChars() const
+    const char16 * AsmJsType::toChars() const
     {
         switch (which_)
         {
-        case Double:      return L"double";
-        case MaybeDouble: return L"double?";
-        case DoubleLit:   return L"doublelit";
-        case Float:       return L"float";
-        case Floatish:    return L"floatish";
-        case FloatishDoubleLit: return L"FloatishDoubleLit";
-        case MaybeFloat:  return L"float?";
-        case Fixnum:      return L"fixnum";
-        case Int:         return L"int";
-        case Signed:      return L"signed";
-        case Unsigned:    return L"unsigned";
-        case Intish:      return L"intish";
-        case Void:        return L"void";
-        case Int32x4:     return L"SIMD.Int32x4";
-        case Float32x4:   return L"SIMD.Float32x4";
-        case Float64x2:   return L"SIMD.Float64x2";
+        case Double:      return _u("double");
+        case MaybeDouble: return _u("double?");
+        case DoubleLit:   return _u("doublelit");
+        case Float:       return _u("float");
+        case Floatish:    return _u("floatish");
+        case FloatishDoubleLit: return _u("FloatishDoubleLit");
+        case MaybeFloat:  return _u("float?");
+        case Fixnum:      return _u("fixnum");
+        case Int:         return _u("int");
+        case Signed:      return _u("signed");
+        case Unsigned:    return _u("unsigned");
+        case Intish:      return _u("intish");
+        case Void:        return _u("void");
+        case Int32x4:     return _u("SIMD.Int32x4");
+        case Bool32x4:    return _u("SIMD.Bool32x4");
+        case Bool16x8:    return _u("SIMD.Bool16x8");
+        case Bool8x16:    return _u("SIMD.Bool8x16");
+        case Float32x4:   return _u("SIMD.Float32x4");
+        case Float64x2:   return _u("SIMD.Float64x2");
+        case Int16x8:     return _u("SIMD.Int16x8");
+        case Int8x16:     return _u("SIMD.Int8x16");
+        case Uint32x4:    return _u("SIMD.Uint32x4");
+        case Uint16x8:    return _u("SIMD.Uint16x8");
+        case Uint8x16:    return _u("SIMD.Uint8x16");
         }
         Assert(false);
-        return L"none";
+        return _u("none");
     }
 
     bool AsmJsType::isSIMDType() const
     {
-        return isSIMDInt32x4() || isSIMDFloat32x4() || isSIMDFloat64x2();
+        return isSIMDInt32x4()  || isSIMDInt16x8()   || isSIMDInt8x16()   || 
+               isSIMDBool32x4() || isSIMDBool16x8()  || isSIMDBool8x16()  ||
+               isSIMDUint32x4() || isSIMDUint16x8()  || isSIMDUint8x16()  ||
+               isSIMDFloat32x4()|| isSIMDFloat64x2();
     }
 
     bool AsmJsType::isSIMDInt32x4() const
     {
         return which_ == Int32x4;
+    }
+    bool AsmJsType::isSIMDBool32x4() const
+    {
+        return which_ == Bool32x4;
+    }
+    bool AsmJsType::isSIMDBool16x8() const
+    {
+        return which_ == Bool16x8;
+    }
+    bool AsmJsType::isSIMDBool8x16() const
+    {
+        return which_ == Bool8x16;
+    }
+    bool AsmJsType::isSIMDInt16x8() const
+    {
+        return which_ == Int16x8;
+    }
+    bool AsmJsType::isSIMDInt8x16() const
+    {
+        return which_ == Int8x16;
     }
     bool AsmJsType::isSIMDFloat32x4() const
     {
@@ -117,6 +149,19 @@ namespace Js
     bool AsmJsType::isSIMDFloat64x2() const
     {
         return which_ == Float64x2;
+    }
+
+    bool AsmJsType::isSIMDUint32x4() const
+    {
+        return which_ == Uint32x4;
+    }
+    bool AsmJsType::isSIMDUint16x8() const
+    {
+        return which_ == Uint16x8;
+    }
+    bool AsmJsType::isSIMDUint8x16() const
+    {
+        return which_ == Uint8x16;
     }
 
     bool AsmJsType::isVarAsmJsType() const
@@ -246,11 +291,35 @@ namespace Js
         case AsmJsType::Int32x4:
             return isSIMDInt32x4();
             break;
+        case AsmJsType::Bool32x4:
+            return isSIMDBool32x4();
+            break;
+        case AsmJsType::Bool16x8:
+            return isSIMDBool16x8();
+            break;
+        case AsmJsType::Bool8x16:
+            return isSIMDBool8x16();
+            break;
         case AsmJsType::Float32x4:
             return isSIMDFloat32x4();
             break;
         case AsmJsType::Float64x2:
             return isSIMDFloat64x2();
+            break;
+        case AsmJsType::Int16x8:
+            return isSIMDInt16x8();
+            break;
+        case AsmJsType::Int8x16:
+            return isSIMDInt8x16();
+            break;
+        case AsmJsType::Uint32x4:
+            return isSIMDUint32x4();
+            break;
+        case AsmJsType::Uint16x8:
+            return isSIMDUint16x8();
+            break;
+        case AsmJsType::Uint8x16:
+            return isSIMDUint8x16();
             break;
         default:
             break;
@@ -305,12 +374,20 @@ namespace Js
     {
         switch (coercion)
         {
-        case AsmJS_ToInt32: which_ = Signed; break;
-        case AsmJS_ToNumber: which_ = Double; break;
-        case AsmJS_FRound: which_ = Float; break;
-        case AsmJS_Int32x4: which_ = Int32x4; break;
+        case AsmJS_ToInt32: which_   = Signed; break;
+        case AsmJS_ToNumber: which_  = Double; break;
+        case AsmJS_FRound: which_    = Float; break;
+        case AsmJS_Int32x4: which_   = Int32x4; break;
+        case AsmJS_Bool32x4: which_ = Bool32x4; break;
+        case AsmJS_Bool16x8: which_ = Bool16x8; break;
+        case AsmJS_Bool8x16: which_ = Bool8x16; break;
         case AsmJS_Float32x4: which_ = Float32x4; break;
         case AsmJS_Float64x2: which_ = Float64x2; break;
+        case AsmJS_Int16x8: which_  = Int16x8; break;
+        case AsmJS_Int8x16: which_  = Int8x16; break;
+        case AsmJS_Uint32x4: which_ = Uint32x4; break;
+        case AsmJS_Uint16x8: which_ = Uint16x8; break;
+        case AsmJS_Uint8x16: which_ = Uint8x16; break;
         }
     }
 
@@ -362,8 +439,16 @@ namespace Js
         case Double:  return AsmJS_ToNumber;
         case Float:   return AsmJS_FRound;
         case Int32x4:   return AsmJS_Int32x4;
+        case Bool32x4:  return AsmJS_Bool32x4;
+        case Bool16x8:  return AsmJS_Bool16x8;
+        case Bool8x16:  return AsmJS_Bool8x16;
         case Float32x4: return AsmJS_Float32x4;
         case Float64x2: return AsmJS_Float64x2;
+        case Int16x8:   return AsmJS_Int16x8;
+        case Int8x16:   return AsmJS_Int8x16;
+        case Uint32x4:   return AsmJS_Uint32x4;
+        case Uint16x8:   return AsmJS_Uint16x8;
+        case Uint8x16:   return AsmJS_Uint8x16;
         }
         Assert(false);
         return AsmJS_ToInt32;
@@ -387,8 +472,16 @@ namespace Js
         case AsmJS_ToNumber: which_ = Double; break;
         case AsmJS_FRound: which_ = Float; break;
         case AsmJS_Int32x4: which_ = Int32x4; break;
+        case AsmJS_Bool32x4: which_ = Bool32x4; break;
+        case AsmJS_Bool16x8: which_ = Bool16x8; break;
+        case AsmJS_Bool8x16: which_ = Bool8x16; break;
         case AsmJS_Float32x4: which_ = Float32x4; break;
         case AsmJS_Float64x2: which_ = Float64x2; break;
+        case AsmJS_Int16x8: which_ = Int16x8; break;
+        case AsmJS_Int8x16: which_ = Int8x16; break;
+        case AsmJS_Uint32x4: which_ = Uint32x4; break;
+        case AsmJS_Uint16x8: which_ = Uint16x8; break;
+        case AsmJS_Uint8x16: which_ = Uint8x16; break;
         }
     }
 
@@ -546,10 +639,14 @@ namespace Js
 
     bool AsmJsFunctionDeclaration::CheckAndSetReturnType(Js::AsmJsRetType val)
     {
-        Assert((val != AsmJsRetType::Fixnum && val != AsmJsRetType::Unsigned && val != AsmJsRetType::Floatish) || GetSymbolType() == AsmJsSymbol::MathBuiltinFunction);
+        Assert((val != AsmJsRetType::Fixnum && val != AsmJsRetType::Unsigned && val != AsmJsRetType::Floatish) ||
+               GetSymbolType() == AsmJsSymbol::MathBuiltinFunction ||
+               GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction);
         if (mReturnTypeKnown)
         {
-            Assert((mReturnType != AsmJsRetType::Fixnum && mReturnType != AsmJsRetType::Unsigned && mReturnType != AsmJsRetType::Floatish) || GetSymbolType() == AsmJsSymbol::MathBuiltinFunction);
+            Assert((mReturnType != AsmJsRetType::Fixnum && mReturnType != AsmJsRetType::Unsigned && mReturnType != AsmJsRetType::Floatish) || 
+                   GetSymbolType() == AsmJsSymbol::MathBuiltinFunction ||
+                   GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction);
             return mReturnType.toType().isSubType(val.toType());
         }
         mReturnType = val;
@@ -779,7 +876,10 @@ namespace Js
         AsmJsVarBase* var = FindVar(name);
         if (var)
         {
-            Output::Print(L"Variable redefinition: %s\n", name->Psz());
+            if (PHASE_TRACE1(AsmjsPhase))
+            {
+                Output::Print(_u("Variable redefinition: %s\n"), name->Psz());
+            }
             return nullptr;
         }
 
@@ -937,18 +1037,18 @@ namespace Js
 
         if (PHASE_TRACE1(AsmjsInterpreterStackPhase))
         {
-            Output::Print(L"ASMFunctionInfo Stack Data\n");
-            Output::Print(L"==========================\n");
-            Output::Print(L"RequiredVarConstants:%d\n", AsmJsFunctionMemory::RequiredVarConstants);
-            Output::Print(L"IntOffset:%d  IntConstCount:%d  IntVarCount:%d  IntTmpCount:%d\n", mIntByteOffset, mIntConstCount, mIntVarCount, mIntTmpCount);
-            Output::Print(L"FloatOffset:%d  FloatConstCount:%d  FloatVarCount:%d FloatTmpCount:%d\n", mFloatByteOffset, mFloatConstCount, mFloatVarCount, mFloatTmpCount);
-            Output::Print(L"DoubleOffset:%d  DoubleConstCount:%d  DoubleVarCount:%d  DoubleTmpCount:%d\n", mDoubleByteOffset, mDoubleConstCount, mDoubleVarCount, mDoubleTmpCount);
+            Output::Print(_u("ASMFunctionInfo Stack Data\n"));
+            Output::Print(_u("==========================\n"));
+            Output::Print(_u("RequiredVarConstants:%d\n"), AsmJsFunctionMemory::RequiredVarConstants);
+            Output::Print(_u("IntOffset:%d  IntConstCount:%d  IntVarCount:%d  IntTmpCount:%d\n"), mIntByteOffset, mIntConstCount, mIntVarCount, mIntTmpCount);
+            Output::Print(_u("FloatOffset:%d  FloatConstCount:%d  FloatVarCount:%d FloatTmpCount:%d\n"), mFloatByteOffset, mFloatConstCount, mFloatVarCount, mFloatTmpCount);
+            Output::Print(_u("DoubleOffset:%d  DoubleConstCount:%d  DoubleVarCount:%d  DoubleTmpCount:%d\n"), mDoubleByteOffset, mDoubleConstCount, mDoubleVarCount, mDoubleTmpCount);
 
             if (isSimdjsEnabled)
             {
-                Output::Print(L"SimdOffset:%d  SimdConstCount:%d  SimdVarCount:%d  SimdTmpCount:%d\n", mSimdByteOffset, mSimdConstCount, mSimdVarCount, mSimdTmpCount);
+                Output::Print(_u("SimdOffset:%d  SimdConstCount:%d  SimdVarCount:%d  SimdTmpCount:%d\n"), mSimdByteOffset, mSimdConstCount, mSimdVarCount, mSimdTmpCount);
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
 
 
@@ -1145,7 +1245,24 @@ namespace Js
 
     bool AsmJsSIMDFunction::IsTypeCheck()
     {
-        return mBuiltIn == AsmJsSIMDBuiltin_int32x4_check || mBuiltIn == AsmJsSIMDBuiltin_float32x4_check || mBuiltIn == AsmJsSIMDBuiltin_float64x2_check;
+        return mBuiltIn == AsmJsSIMDBuiltin_int32x4_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_float32x4_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_float64x2_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_int16x8_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_int8x16_check ||                
+               mBuiltIn == AsmJsSIMDBuiltin_uint32x4_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_uint16x8_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_uint8x16_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_bool32x4_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_bool16x8_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_bool8x16_check;
+    }
+
+    bool AsmJsSIMDFunction::IsUnsignedTypeCheck()
+    {
+        return mBuiltIn == AsmJsSIMDBuiltin_uint32x4_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_uint16x8_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_uint8x16_check;
     }
 
     AsmJsVarType AsmJsSIMDFunction::GetTypeCheckVarType()
@@ -1155,7 +1272,17 @@ namespace Js
     }
     bool AsmJsSIMDFunction::IsConstructor()
     {
-        return mBuiltIn == AsmJsSIMDBuiltin_Int32x4 || mBuiltIn == AsmJsSIMDBuiltin_Float32x4 || mBuiltIn == AsmJsSIMDBuiltin_Float64x2;
+        return mBuiltIn == AsmJsSIMDBuiltin_Int32x4 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Float32x4 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Float64x2 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Int16x8 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Int8x16 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Uint32x4 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Uint16x8 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Uint8x16 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Bool32x4 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Bool16x8 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Bool8x16 ;
     }
 
     // Is a constructor with the correct argCount ?
@@ -1172,7 +1299,17 @@ namespace Js
             return argCount == 2;
         case AsmJsSIMDBuiltin_Float32x4:
         case AsmJsSIMDBuiltin_Int32x4:
+        case AsmJsSIMDBuiltin_Uint32x4:
+        case AsmJsSIMDBuiltin_Bool32x4:
             return argCount == 4;
+        case AsmJsSIMDBuiltin_Int16x8:
+        case AsmJsSIMDBuiltin_Uint16x8:
+        case AsmJsSIMDBuiltin_Bool16x8:
+            return argCount == 8;
+        case AsmJsSIMDBuiltin_Uint8x16:
+        case AsmJsSIMDBuiltin_Int8x16:
+        case AsmJsSIMDBuiltin_Bool8x16:
+            return argCount == 16;
         };
         return false;
     }

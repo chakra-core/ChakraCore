@@ -24,7 +24,6 @@ private:
     Js::RegSlot location;           // register in which the symbol resides
     Js::PropertyId scopeSlot;
     Js::PropertyId moduleIndex;
-    Js::PropertyId moduleExportSlot;
     Symbol *next;
 
     SymbolType symbolType;
@@ -34,7 +33,7 @@ private:
     BYTE isGlobal : 1;
     BYTE isEval : 1;
     BYTE hasNonLocalReference : 1;  // if true, then this symbol needs to be heap-allocated
-    BYTE funcExpr : 1;              // if true, then this symbol is allocated on it's on activation object
+    BYTE isFuncExpr : 1;              // if true, then this symbol is allocated on it's on activation object
     BYTE isCatch : 1;               // if true then this a catch identifier
     BYTE hasInit : 1;
     BYTE isUsed : 1;
@@ -44,6 +43,7 @@ private:
     BYTE hasVisitedCapturingFunc : 1;
     BYTE isTrackedForDebugger : 1; // Whether the sym is tracked for debugger scope. This is fine because a sym can only be added to (not more than) one scope.
     BYTE isModuleExportStorage : 1; // If true, this symbol should be stored in the global scope export storage array.
+    BYTE isModuleImport : 1; // If true, this symbol is the local name of a module import statement
 
     // These are get and set a lot, don't put it in bit fields, we are exceeding the number of bits anyway
     bool hasFuncAssignment;
@@ -62,7 +62,7 @@ public:
         isBlockVar(false),
         isGlobal(false),
         hasNonLocalReference(false),
-        funcExpr(false),
+        isFuncExpr(false),
         isCatch(false),
         hasInit(false),
         isUsed(false),
@@ -77,22 +77,22 @@ public:
         isNonSimpleParameter(false),
         assignmentState(NotAssigned),
         isModuleExportStorage(false),
-        moduleIndex(Js::Constants::NoProperty),
-        moduleExportSlot(Js::Constants::NoProperty)
+        isModuleImport(false),
+        moduleIndex(Js::Constants::NoProperty)
     {
         SetSymbolType(symbolType);
 
         // Set it so we don't have to check it explicitly
-        isEval = MatchName(L"eval", 4);
+        isEval = MatchName(_u("eval"), 4);
 
         if (PHASE_TESTTRACE1(Js::StackFuncPhase) && hasFuncAssignment)
         {
-            Output::Print(L"HasFuncDecl: %s\n", this->GetName().GetBuffer());
+            Output::Print(_u("HasFuncDecl: %s\n"), this->GetName().GetBuffer());
             Output::Flush();
         }
     }
 
-    bool MatchName(const wchar_t *key, int length)
+    bool MatchName(const char16 *key, int length)
     {
         return name == SymbolName(key, length);
     }
@@ -126,16 +126,16 @@ public:
         isGlobal = b;
     }
 
-    void SetHasNonLocalReference(bool b, ByteCodeGenerator *byteCodeGenerator);
+    void SetHasNonLocalReference();
 
     bool GetHasNonLocalReference() const
     {
         return hasNonLocalReference;
     }
 
-    void SetFuncExpr(bool b)
+    void SetIsFuncExpr(bool b)
     {
-        funcExpr = b;
+        isFuncExpr = b;
     }
 
     void SetIsBlockVar(bool is)
@@ -158,6 +158,16 @@ public:
         return isModuleExportStorage;
     }
 
+    void SetIsModuleImport(bool is)
+    {
+        isModuleImport = is;
+    }
+
+    bool GetIsModuleImport() const
+    {
+        return isModuleImport;
+    }
+
     void SetModuleIndex(Js::PropertyId index)
     {
         moduleIndex = index;
@@ -166,16 +176,6 @@ public:
     Js::PropertyId GetModuleIndex()
     {
         return moduleIndex;
-    }
-
-    void SetModuleExportSlot(Js::PropertyId slot)
-    {
-        moduleExportSlot = slot;
-    }
-
-    Js::PropertyId GetModuleExportSlot()
-    {
-        return moduleExportSlot;
     }
 
     void SetIsGlobalCatch(bool is)
@@ -235,9 +235,9 @@ public:
         return needDeclaration;
     }
 
-    bool GetFuncExpr() const
+    bool GetIsFuncExpr() const
     {
-        return funcExpr;
+        return isFuncExpr;
     }
 
     bool GetIsGlobal() const
@@ -376,7 +376,7 @@ public:
     }
 
 #if DBG_DUMP
-    const wchar_t *GetSymbolTypeName();
+    const char16 *GetSymbolTypeName();
 #endif
 
     const JsUtil::CharacterBuffer<WCHAR>& GetName() const
@@ -408,7 +408,7 @@ private:
 
 // specialize toKey to use the name in the symbol as the key
 template <>
-SymbolName JsUtil::ValueToKey<SymbolName, Symbol *>::ToKey(Symbol * const& sym)
+inline SymbolName JsUtil::ValueToKey<SymbolName, Symbol *>::ToKey(Symbol * const& sym)
 {
     return sym->GetName();
 }

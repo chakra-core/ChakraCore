@@ -34,6 +34,7 @@ namespace Js
 
         static JavascriptGeneratorFunction* OP_NewScGenFunc(FrameDisplay* environment, FunctionProxy** proxyRef);
         static Var EntryGeneratorFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...);
+        static DWORD GetOffsetOfScriptFunction() { return offsetof(JavascriptGeneratorFunction, scriptFunction); }
 
         virtual Var GetHomeObj() const override;
         virtual void SetHomeObj(Var homeObj) override;
@@ -69,6 +70,12 @@ namespace Js
         };
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewInstanceRestrictedMode(RecyclableObject* function, CallInfo callInfo, ...);
+
+#if ENABLE_TTD
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class GeneratorVirtualScriptFunction : public ScriptFunction
@@ -87,5 +94,10 @@ namespace Js
         static uint32 GetRealFunctionOffset() { return offsetof(GeneratorVirtualScriptFunction, realFunction); }
 
         virtual JavascriptFunction* GetRealFunctionObject() override { return realFunction; }
+
+#if ENABLE_TTD
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 }

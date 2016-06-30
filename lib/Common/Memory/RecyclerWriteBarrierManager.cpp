@@ -46,15 +46,21 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     // We page in the card table sections for the current threads stack reservation
     // So any writes to stack allocated vars can also have the write barrier set
 
+    // xplat-todo: Replace this on Windows too with GetCurrentThreadStackBounds
+#ifdef _WIN32
     NT_TIB* teb = (NT_TIB*) ::NtCurrentTeb();
 
     char* stackBase = (char*) teb->StackBase;
     char* stackEnd  = (char*) teb->StackLimit;
-
+#else
+    ULONG_PTR stackBase = 0;
+    ULONG_PTR stackEnd = 0;
+    ::GetCurrentThreadStackLimits(&stackEnd, &stackBase);
+#endif
+    
     size_t numPages = (stackBase - stackEnd) / AutoSystemInfo::PageSize;
-
     // stackEnd is the lower boundary
-    return OnSegmentAlloc(stackEnd, numPages);
+    return OnSegmentAlloc((char*) stackEnd, numPages);
 }
 
 bool
@@ -225,11 +231,6 @@ X64WriteBarrierCardTableManager::Initialize()
 
         LPVOID cardTableSpace = ::VirtualAlloc(NULL, _cardTableNumEntries, MEM_RESERVE, PAGE_READWRITE);
 
-        if (cardTableSpace == nullptr)
-        {
-            return false;
-        }
-
         _cardTable = (BYTE*) cardTableSpace;
     }
 
@@ -275,7 +276,7 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address)
     // Global to process, use global configuration here
     if (PHASE_VERBOSE_TRACE1(Js::SWBPhase))
     {
-        Output::Print(L"Writing to 0x%p (CIndex: %u)\n", address, index);
+        Output::Print(_u("Writing to 0x%p (CIndex: %u)\n"), address, index);
     }
 #endif
 }
@@ -290,7 +291,7 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t ptrCount)
     uintptr_t endIndex = GetCardTableIndex(endAddress);
     Assert(startIndex <= endIndex);
     memset(cardTable + startIndex, 1, endIndex - startIndex);
-    GlobalSwbVerboseTrace(L"Writing to 0x%p (CIndex: %u-%u)\n", address, startIndex, endIndex);
+    GlobalSwbVerboseTrace(_u("Writing to 0x%p (CIndex: %u-%u)\n"), address, startIndex, endIndex);
 #else
     uint bitShift = (((uint)address) >> s_BitArrayCardTableShift);
     uint bitMask = 0xFFFFFFFF << bitShift;
@@ -344,7 +345,7 @@ RecyclerWriteBarrierManager::ResetWriteBarrier(void * address, size_t pageCount)
     // Global to process, use global configuration here
     if (PHASE_VERBOSE_TRACE1(Js::SWBPhase))
     {
-        Output::Print(L"Resetting %u pages at CIndex: %u\n", address, pageCount, cardIndex);
+        Output::Print(_u("Resetting %u pages at CIndex: %u\n"), address, pageCount, cardIndex);
     }
 #endif
 }

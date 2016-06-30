@@ -94,7 +94,7 @@ public:
 #if DBG
     uint32 outArgsDepth; // number of calls nested in an expression
 #endif
-    const wchar_t *name; // name of the function
+    const char16 *name; // name of the function
     Js::RegSlot nullConstantRegister; // location, if any, of enregistered null constant
     Js::RegSlot undefinedConstantRegister; // location, if any, of enregistered undefined constant
     Js::RegSlot trueConstantRegister; // location, if any, of enregistered true constant
@@ -108,14 +108,14 @@ private:
 public:
     Js::RegSlot frameObjRegister; // location, if any, of the heap-allocated local frame
     Js::RegSlot frameSlotsRegister; // location, if any, of the heap-allocated local frame
+    Js::RegSlot paramSlotsRegister; // location, if any, of the heap allocated local frame for param scope
     Js::RegSlot frameDisplayRegister; // location, if any, of the display of nested frames
     Js::RegSlot funcObjRegister;
     Js::RegSlot localClosureReg;
     Js::RegSlot yieldRegister;
     Js::RegSlot firstTmpReg;
     Js::RegSlot curTmpReg;
-    int sameNameArgsPlaceHolderSlotCount; // count of place holder slots for same name args
-    int localPropIdOffset;
+    int argsPlaceHolderSlotCount;   // count of place holder slots for same name args and destructuring patterns
     Js::RegSlot firstThunkArgReg;
     short thunkArgCount;
     short staticFuncId;
@@ -124,7 +124,7 @@ public:
     uint childCallsEval : 1;
     uint hasArguments : 1;
     uint hasHeapArguments : 1;
-    uint isEventHandler : 1;
+    uint isTopLevelEventHandler : 1;
     uint hasLocalInClosure : 1;
     uint hasClosureReference : 1;
     uint hasGlobalReference : 1;
@@ -183,7 +183,7 @@ public:
 
     // constRegsCount is set to 2 because R0 is the return register, and R1 is the root object.
     FuncInfo(
-        const wchar_t *name,
+        const char16 *name,
         ArenaAllocator *alloc,
         Scope *paramScope,
         Scope *bodyScope,
@@ -252,7 +252,7 @@ public:
     //    1) new Function code's global code
     //    2) global code generated from the reparsing deferred parse function
 
-    bool IsFakeGlobalFunction(ulong flags) const {
+    bool IsFakeGlobalFunction(uint32 flags) const {
         return IsGlobalFunction() && !(flags & fscrGlobalCode);
     }
 
@@ -315,12 +315,12 @@ public:
         byteCodeFunction->SetDoBackendArgumentsOptimization(optArgInBackend);
     }
 
-    bool GetIsEventHandler() const {
-        return isEventHandler;
+    bool GetIsTopLevelEventHandler() const {
+        return isTopLevelEventHandler;
     }
 
-    void SetIsEventHandler(bool is) {
-        isEventHandler = is;
+    void SetIsTopLevelEventHandler(bool is) {
+        isTopLevelEventHandler = is;
     }
 
     bool GetChildCallsEval() const {
@@ -387,7 +387,7 @@ public:
         return hasEscapedUseNestedFunc;
     }
 
-    void SetHasMaybeEscapedNestedFunc(DebugOnly(wchar_t const * reason));
+    void SetHasMaybeEscapedNestedFunc(DebugOnly(char16 const * reason));
 
     bool IsDeferred() const;
 
@@ -742,10 +742,10 @@ public:
         return profileId;
     }
 
-    void EnsureThisScopeSlot();
-    void EnsureSuperScopeSlot();
-    void EnsureSuperCtorScopeSlot();
-    void EnsureNewTargetScopeSlot();
+    void EnsureThisScopeSlot(Scope* scope);
+    void EnsureSuperScopeSlot(Scope* scope);
+    void EnsureSuperCtorScopeSlot(Scope* scope);
+    void EnsureNewTargetScopeSlot(Scope* scope);
 
     void SetIsThisLexicallyCaptured()
     {
@@ -794,8 +794,8 @@ public:
 
     void OnStartVisitFunction(ParseNode *pnodeFnc);
     void OnEndVisitFunction(ParseNode *pnodeFnc);
-    void OnStartVisitScope(Scope *scope);
-    void OnEndVisitScope(Scope *scope);
+    void OnStartVisitScope(Scope *scope, bool *pisMergedScope);
+    void OnEndVisitScope(Scope *scope, bool isMergedScope = false);
     void AddCapturedSym(Symbol *sym);
     CapturedSymMap *EnsureCapturedSymMap();
 

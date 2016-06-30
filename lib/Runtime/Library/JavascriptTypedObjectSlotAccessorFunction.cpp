@@ -32,7 +32,7 @@ namespace Js
     {
         if (!InstanceOf(thisObj))
         {
-            Js::JavascriptError::ThrowTypeError(GetType()->GetScriptContext(), JSERR_FunctionArgument_NeedObject, L"DOM object");
+            Js::JavascriptError::ThrowTypeError(GetType()->GetScriptContext(), JSERR_FunctionArgument_NeedObject, _u("DOM object"));
         }
     }
 

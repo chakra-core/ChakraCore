@@ -5,7 +5,7 @@
 #include "RuntimeByteCodePch.h"
 
 #if DBG_DUMP
-static const wchar_t * const SymbolTypeNames[] = { L"Function", L"Variable", L"MemberName", L"Formal", L"Unknown" };
+static const char16 * const SymbolTypeNames[] = { _u("Function"), _u("Variable"), _u("MemberName"), _u("Formal"), _u("Unknown") };
 #endif
 
 bool Symbol::GetIsArguments() const
@@ -72,11 +72,7 @@ bool Symbol::IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc)
     }
     if (funcInfo->GetHasHeapArguments() && this->GetIsFormal() && ByteCodeGenerator::NeedScopeObjectForArguments(funcInfo, funcInfo->root))
     {
-        // Rest is a special case - it will be in a register.
-        if (funcInfo->root->sxFnc.pnodeRest != this->decl)
-        {
-            return true;
-        }
+        return true;
     }
     if (this->GetIsGlobalCatch())
     {
@@ -109,58 +105,10 @@ Js::PropertyId Symbol::EnsureScopeSlot(FuncInfo *funcInfo)
     return this->scopeSlot;
 }
 
-void Symbol::SetHasNonLocalReference(bool b, ByteCodeGenerator *byteCodeGenerator)
+void Symbol::SetHasNonLocalReference()
 {
-    this->hasNonLocalReference = b;
-
-    // The symbol's home function will tell us which child function we're currently processing.
-    // This is the one that captures the symbol, from the declaring function's perspective.
-    // So based on that information, note either that, (a.) the symbol is committed to the heap from its
-    // inception, (b.) the symbol must be committed when the capturing function is instantiated.
-
-    FuncInfo *funcHome = this->scope->GetFunc();
-    FuncInfo *funcChild = funcHome->GetCurrentChildFunction();
-
-    // If this is not a local property, or not all its references can be tracked, or
-    // it's not scoped to the function, or we're in debug mode, disable the delayed capture optimization.
-    if (funcHome->IsGlobalFunction() ||
-        funcHome->GetCallsEval() ||
-        funcHome->GetChildCallsEval() ||
-        funcChild == nullptr ||
-        this->GetScope() != funcHome->GetBodyScope() ||
-        byteCodeGenerator->IsInDebugMode() ||
-        PHASE_OFF(Js::DelayCapturePhase, funcHome->byteCodeFunction))
-    {
-        this->SetIsCommittedToSlot();
-    }
-
-    if (this->isCommittedToSlot)
-    {
-        return;
-    }
-
-    AnalysisAssert(funcChild);
-    ParseNode *pnodeChild = funcChild->root;
-
-    Assert(pnodeChild && pnodeChild->nop == knopFncDecl);
-
-    if (pnodeChild->sxFnc.IsDeclaration())
-    {
-        // The capturing function is a declaration but may still be limited to an inner scope.
-        Scope *scopeChild = funcHome->GetCurrentChildScope();
-        if (scopeChild == this->scope || scopeChild->GetScopeType() == ScopeType_FunctionBody)
-        {
-            // The symbol is captured on entry to the scope in which it's declared.
-            // (Check the scope type separately so that we get the special parameter list and
-            // named function expression cases as well.)
-            this->SetIsCommittedToSlot();
-            return;
-        }
-    }
-
-    // There is a chance we can limit the region in which the symbol lives on the heap.
-    // Note which function captures the symbol.
-    funcChild->AddCapturedSym(this);
+    this->hasNonLocalReference = true;
+    this->scope->SetHasOwnLocalInClosure(true);
 }
 
 void Symbol::SetHasMaybeEscapedUse(ByteCodeGenerator * byteCodeGenerator)
@@ -179,13 +127,13 @@ void Symbol::SetHasMaybeEscapedUseInternal(ByteCodeGenerator * byteCodeGenerator
     hasMaybeEscapedUse = true;
     if (PHASE_TESTTRACE(Js::StackFuncPhase, byteCodeGenerator->TopFuncInfo()->byteCodeFunction))
     {
-        Output::Print(L"HasMaybeEscapedUse: %s\n", this->GetName().GetBuffer());
+        Output::Print(_u("HasMaybeEscapedUse: %s\n"), this->GetName().GetBuffer());
         Output::Flush();
     }
     if (this->GetHasFuncAssignment())
     {
         this->GetScope()->GetFunc()->SetHasMaybeEscapedNestedFunc(
-            DebugOnly(this->symbolType == STFunction ? L"MaybeEscapedUseFuncDecl" : L"MaybeEscapedUse"));
+            DebugOnly(this->symbolType == STFunction ? _u("MaybeEscapedUseFuncDecl") : _u("MaybeEscapedUse")));
     }
 }
 
@@ -205,16 +153,16 @@ void Symbol::SetHasFuncAssignmentInternal(ByteCodeGenerator * byteCodeGenerator)
     FuncInfo * top = byteCodeGenerator->TopFuncInfo();
     if (PHASE_TESTTRACE(Js::StackFuncPhase, top->byteCodeFunction))
     {
-        Output::Print(L"HasFuncAssignment: %s\n", this->GetName().GetBuffer());
+        Output::Print(_u("HasFuncAssignment: %s\n"), this->GetName().GetBuffer());
         Output::Flush();
     }
 
     if (this->GetHasMaybeEscapedUse() || this->GetScope()->GetIsObject())
     {
         byteCodeGenerator->TopFuncInfo()->SetHasMaybeEscapedNestedFunc(DebugOnly(
-            this->GetIsFormal() ? L"FormalAssignment" :
-            this->GetScope()->GetIsObject() ? L"ObjectScopeAssignment" :
-            L"MaybeEscapedUse"));
+            this->GetIsFormal() ? _u("FormalAssignment") :
+            this->GetScope()->GetIsObject() ? _u("ObjectScopeAssignment") :
+            _u("MaybeEscapedUse")));
     }
 }
 
@@ -225,7 +173,7 @@ void Symbol::RestoreHasFuncAssignment()
     hasFuncAssignment = true;
     if (PHASE_TESTTRACE1(Js::StackFuncPhase))
     {
-        Output::Print(L"RestoreHasFuncAssignment: %s\n", this->GetName().GetBuffer());
+        Output::Print(_u("RestoreHasFuncAssignment: %s\n"), this->GetName().GetBuffer());
         Output::Flush();
     }
 }
@@ -276,7 +224,7 @@ Symbol * Symbol::GetFuncScopeVarSym() const
 }
 
 #if DBG_DUMP
-const wchar_t * Symbol::GetSymbolTypeName()
+const char16 * Symbol::GetSymbolTypeName()
 {
     return SymbolTypeNames[symbolType];
 }

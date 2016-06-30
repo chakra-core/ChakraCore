@@ -28,7 +28,7 @@ namespace JSON
         }
     }
 
-    void JSONScanner::Init(const wchar_t* input, uint len, Token* pOutToken, Js::ScriptContext* sc, const wchar_t* current, ArenaAllocator* allocator)
+    void JSONScanner::Init(const char16* input, uint len, Token* pOutToken, Js::ScriptContext* sc, const char16* current, ArenaAllocator* allocator)
     {
         // Note that allocator could be nullptr from JSONParser, if we could not reuse an allocator, keep our own
         inputText = input;
@@ -79,18 +79,18 @@ namespace JSON
 
                     // we use StrToDbl() here for compat with the rest of the engine. StrToDbl() accept a larger syntax.
                     // Verify first the JSON grammar.
-                    const wchar_t* saveCurrentChar = currentChar;
+                    const char16* saveCurrentChar = currentChar;
                     if(!IsJSONNumber())
                     {
-                        Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadNumber);
+                       ThrowSyntaxError(JSERR_JsonBadNumber);
                     }
                     currentChar = saveCurrentChar;
                     double val;
-                    const wchar_t* end;
+                    const char16* end;
                     val = Js::NumberUtilities::StrToDbl(currentChar, &end, scriptContext);
                     if(currentChar == end)
                     {
-                        Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadNumber);
+                       ThrowSyntaxError(JSERR_JsonBadNumber);
                     }
                     AssertMsg(!Js::JavascriptNumber::IsNan(val), "Bad result from string to double conversion");
                     pToken->tk = tkFltCon;
@@ -121,7 +121,7 @@ namespace JSON
                     currentChar += 3;
                     return (pToken->tk = tkNULL);
                 }
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+               ThrowSyntaxError(JSERR_JsonIllegalChar);
 
             case 't':
                 //check for 'true'
@@ -130,7 +130,7 @@ namespace JSON
                     currentChar += 3;
                     return (pToken->tk = tkTRUE);
                 }
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+               ThrowSyntaxError(JSERR_JsonIllegalChar);
 
             case 'f':
                 //check for 'false'
@@ -139,7 +139,7 @@ namespace JSON
                     currentChar += 4;
                     return (pToken->tk = tkFALSE);
                 }
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+               ThrowSyntaxError(JSERR_JsonIllegalChar);
 
             case '{':
                 return (pToken->tk = tkLCurly);
@@ -148,7 +148,7 @@ namespace JSON
                 return (pToken->tk = tkRCurly);
 
             default:
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+               ThrowSyntaxError(JSERR_JsonIllegalChar);
             }
 
         }
@@ -193,7 +193,7 @@ namespace JSON
                     // at least one digit after '.'
                     if(currentChar < inputText + inputLen)
                     {
-                        wchar_t nch = ReadNextChar();
+                        char16 nch = ReadNextChar();
                         if('0' <= nch && nch <= '9')
                         {
                             return true;
@@ -222,10 +222,10 @@ namespace JSON
 
     tokens JSONScanner::ScanString()
     {
-        wchar_t ch;
+        char16 ch;
 
         this->currentIndex = 0;
-        this->currentString = const_cast<wchar_t*>(currentChar);
+        this->currentString = const_cast<char16*>(currentChar);
         bool endFound = false;
         bool isStringDirectInputTextMapped = true;
         LPCWSTR bulkStart = currentChar;
@@ -245,12 +245,12 @@ namespace JSON
             else if (ch <= 0x1F)
             {
                 //JSON doesn't accept \u0000 - \u001f range, LS(\u2028) and PS(\u2029) are ok
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+               ThrowSyntaxError(JSERR_JsonIllegalChar);
             }
             else if ( 0 == ch )
             {
                 currentChar--;
-                Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRnoStrEnd);
+               ThrowSyntaxError(JSERR_JsonNoStrEnd);
             }
             else if ('\\' == ch)
             {
@@ -258,7 +258,7 @@ namespace JSON
                 // unlikely V5.8 regular chars are not escaped, i.e '\g'' in a string is illegal not 'g'
                 if (currentChar >= inputText + inputLen )
                 {
-                    Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRnoStrEnd);
+                   ThrowSyntaxError(JSERR_JsonNoStrEnd);
                 }
 
                 ch = ReadNextChar();
@@ -266,7 +266,7 @@ namespace JSON
                 {
                 case 0:
                     currentChar--;
-                    Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRnoStrEnd);
+                   ThrowSyntaxError(JSERR_JsonNoStrEnd);
 
                 case '"':
                 case '/':
@@ -301,40 +301,40 @@ namespace JSON
                         if (currentChar + 3 >= inputText + inputLen)
                         {
                             //no room left for 4 hex chars
-                            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRnoStrEnd);
+                           ThrowSyntaxError(JSERR_JsonNoStrEnd);
 
                         }
                         if (!Js::NumberUtilities::FHexDigit((WCHAR)ReadNextChar(), &tempHex))
                         {
-                            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadHexDigit);
+                           ThrowSyntaxError(JSERR_JsonBadHexDigit);
                         }
                         chcode = tempHex * 0x1000;
 
                         if (!Js::NumberUtilities::FHexDigit((WCHAR)ReadNextChar(), &tempHex))
                         {
-                            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadHexDigit);
+                           ThrowSyntaxError(JSERR_JsonBadHexDigit);
                         }
                         chcode += tempHex * 0x0100;
 
                         if (!Js::NumberUtilities::FHexDigit((WCHAR)ReadNextChar(), &tempHex))
                         {
-                            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadHexDigit);
+                           ThrowSyntaxError(JSERR_JsonBadHexDigit);
                         }
                         chcode += tempHex * 0x0010;
 
                         if (!Js::NumberUtilities::FHexDigit((WCHAR)ReadNextChar(), &tempHex))
                         {
-                            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRbadHexDigit);
+                           ThrowSyntaxError(JSERR_JsonBadHexDigit);
                         }
                         chcode += tempHex;
                         AssertMsg(chcode == (chcode & 0xFFFF), "Bad unicode code");
-                        ch = (wchar_t)chcode;
+                        ch = (char16)chcode;
                     }
                     break;
 
                 default:
                     // Any other '\o' is an error in JSON
-                    Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRillegalChar);
+                   ThrowSyntaxError(JSERR_JsonIllegalChar);
                 }
 
                 // flush
@@ -367,7 +367,7 @@ namespace JSON
         if (!endFound)
         {
             // no ending '"' found
-            Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRnoStrEnd);
+           ThrowSyntaxError(JSERR_JsonNoStrEnd);
         }
 
         if (isStringDirectInputTextMapped == false)
@@ -378,7 +378,7 @@ namespace JSON
             if (bulkLength > 0)
             {
                 shouldSkipLastCharacter = true;
-                this->GetCurrentRangeCharacterPairList()->Add(RangeCharacterPair((uint)(bulkStart - inputText), bulkLength, L'\0'));
+                this->GetCurrentRangeCharacterPairList()->Add(RangeCharacterPair((uint)(bulkStart - inputText), bulkLength, _u('\0')));
                 uint oldIndex = currentIndex;
                 currentIndex += bulkLength;
                 if (currentIndex < oldIndex)
@@ -397,7 +397,7 @@ namespace JSON
             // make currentIndex the length (w/o the \0)
             currentIndex = bulkLength;
 
-            OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, L"ScanString(): direct-mapped string as '%.*s'\n",
+            OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, _u("ScanString(): direct-mapped string as '%.*s'\n"),
                 GetCurrentStringLen(), GetCurrentString());
         }
 
@@ -420,13 +420,13 @@ namespace JSON
                 this->stringBuffer = nullptr;
             }
 
-            this->stringBuffer = AnewArray(this->allocator, wchar_t, requiredSize);
+            this->stringBuffer = AnewArray(this->allocator, char16, requiredSize);
             this->stringBufferLength = requiredSize;
         }
 
         // Step 2: Copy the data to the buffer
         int totalCopied = 0;
-        wchar_t* begin_copy = this->stringBuffer;
+        char16* begin_copy = this->stringBuffer;
         int lastCharacterIndex = this->currentRangeCharacterPairList->Count() - 1;
         for (int i = 0; i <= lastCharacterIndex; i++)
         {
@@ -448,11 +448,11 @@ namespace JSON
 
         if (totalCopied != requiredSize)
         {
-            OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, L"BuildUnescapedString(): allocated size = %d != copying size %d\n", requiredSize, totalCopied);
+            OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, _u("BuildUnescapedString(): allocated size = %d != copying size %d\n"), requiredSize, totalCopied);
             AssertMsg(totalCopied == requiredSize, "BuildUnescapedString(): The allocated size and copying size should match.");
         }
 
-        OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, L"BuildUnescapedString(): unescaped string as '%.*s'\n", GetCurrentStringLen(), this->stringBuffer);
+        OUTPUT_TRACE_DEBUGONLY(Js::JSONPhase, _u("BuildUnescapedString(): unescaped string as '%.*s'\n"), GetCurrentStringLen(), this->stringBuffer);
     }
 
     JSONScanner::RangeCharacterPairList* JSONScanner::GetCurrentRangeCharacterPairList(void)
@@ -461,7 +461,7 @@ namespace JSON
         {
             if (this->allocator == nullptr)
             {
-                this->allocatorObject = this->scriptContext->GetTemporaryGuestAllocator(L"JSONScanner");
+                this->allocatorObject = this->scriptContext->GetTemporaryGuestAllocator(_u("JSONScanner"));
                 this->allocator = this->allocatorObject->GetAllocator();
             }
 

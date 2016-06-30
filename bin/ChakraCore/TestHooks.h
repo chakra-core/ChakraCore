@@ -9,13 +9,19 @@
 HRESULT OnChakraCoreLoaded();
 interface ICustomConfigFlags;
 
+#if defined(_WIN32) || defined(_MSC_VER)
+#define TESTHOOK_CALL __stdcall
+#else
+#define TESTHOOK_CALL
+#endif // defined(_WIN32) || defined(_MSC_VER)
+
 struct TestHooks
 {
-    typedef HRESULT(__stdcall *SetConfigFlagsPtr)(int argc, LPWSTR argv[], ICustomConfigFlags* customConfigFlags);
-    typedef HRESULT(__stdcall *PrintConfigFlagsUsageStringPtr)(void);
-    typedef HRESULT(__stdcall *SetAssertToConsoleFlagPtr)(bool flag);
-    typedef HRESULT(__stdcall *SetEnableCheckMemoryLeakOutputPtr)(bool flag);
-    typedef void(__stdcall * NotifyUnhandledExceptionPtr)(PEXCEPTION_POINTERS exceptionInfo);
+    typedef HRESULT(TESTHOOK_CALL *SetConfigFlagsPtr)(int argc, LPWSTR argv[], ICustomConfigFlags* customConfigFlags);
+    typedef HRESULT(TESTHOOK_CALL *PrintConfigFlagsUsageStringPtr)(void);
+    typedef HRESULT(TESTHOOK_CALL *SetAssertToConsoleFlagPtr)(bool flag);
+    typedef HRESULT(TESTHOOK_CALL *SetEnableCheckMemoryLeakOutputPtr)(bool flag);
+    typedef void(TESTHOOK_CALL * NotifyUnhandledExceptionPtr)(PEXCEPTION_POINTERS exceptionInfo);
 
     SetConfigFlagsPtr pfSetConfigFlags;
     PrintConfigFlagsUsageStringPtr pfPrintConfigFlagsUsageString;
@@ -24,17 +30,17 @@ struct TestHooks
 
 #define FLAG(type, name, description, defaultValue, ...) FLAG_##type##(name)
 #define FLAG_String(name) \
-    bool (__stdcall *pfIsEnabled##name##Flag)(); \
-    HRESULT (__stdcall *pfGet##name##Flag)(BSTR *flag); \
-    HRESULT (__stdcall *pfSet##name##Flag)(BSTR flag);
+    bool (TESTHOOK_CALL *pfIsEnabled##name##Flag)(); \
+    HRESULT (TESTHOOK_CALL *pfGet##name##Flag)(BSTR *flag); \
+    HRESULT (TESTHOOK_CALL *pfSet##name##Flag)(BSTR flag);
 #define FLAG_Boolean(name) \
-    bool (__stdcall *pfIsEnabled##name##Flag)(); \
-    HRESULT (__stdcall *pfGet##name##Flag)(bool *flag); \
-    HRESULT (__stdcall *pfSet##name##Flag)(bool flag);
+    bool (TESTHOOK_CALL *pfIsEnabled##name##Flag)(); \
+    HRESULT (TESTHOOK_CALL *pfGet##name##Flag)(bool *flag); \
+    HRESULT (TESTHOOK_CALL *pfSet##name##Flag)(bool flag);
 #define FLAG_Number(name) \
-    bool (__stdcall *pfIsEnabled##name##Flag)(); \
-    HRESULT (__stdcall *pfGet##name##Flag)(int *flag); \
-    HRESULT (__stdcall *pfSet##name##Flag)(int flag);
+    bool (TESTHOOK_CALL *pfIsEnabled##name##Flag)(); \
+    HRESULT (TESTHOOK_CALL *pfGet##name##Flag)(int *flag); \
+    HRESULT (TESTHOOK_CALL *pfSet##name##Flag)(int flag);
     // skipping other types
 #define FLAG_Phases(name)
 #define FLAG_NumberSet(name)

@@ -65,7 +65,7 @@ namespace Js
         return BreakpointProbeList::New(arena);
     }
 
-    HRESULT DebugDocument::SetBreakPoint(long ibos, BREAKPOINT_STATE breakpointState)
+    HRESULT DebugDocument::SetBreakPoint(int32 ibos, BREAKPOINT_STATE breakpointState)
     {
         ScriptContext* scriptContext = this->utf8SourceInfo->GetScriptContext();
 
@@ -74,28 +74,39 @@ namespace Js
             return E_UNEXPECTED;
         }
 
-        HRESULT hr = NOERROR;
+        StatementLocation statement;
+        if (!this->GetStatementLocation(ibos, &statement))
+        {
+            return E_FAIL;
+        }
 
-        switch (breakpointState)
+        this->SetBreakPoint(statement, breakpointState);
+
+        return S_OK;
+    }
+
+    BreakpointProbe* DebugDocument::SetBreakPoint(StatementLocation statement, BREAKPOINT_STATE bps)
+    {
+        ScriptContext* scriptContext = this->utf8SourceInfo->GetScriptContext();
+
+        if (scriptContext == nullptr || scriptContext->IsClosed())
         {
-        default:
-            AssertMsg(FALSE, "Bad breakpoint state");
-            // fall-through
-        case BREAKPOINT_DISABLED:
-        case BREAKPOINT_DELETED:
+            return nullptr;
+        }
+
+        switch (bps)
         {
-            BEGIN_TRANSLATE_OOM_TO_HRESULT
+            default:
+                AssertMsg(FALSE, "Bad breakpoint state");
+                // Fall thru
+            case BREAKPOINT_DISABLED:
+            case BREAKPOINT_DELETED:
             {
                 BreakpointProbeList* pBreakpointList = this->GetBreakpointList();
                 if (pBreakpointList)
                 {
-                    ArenaAllocator arena(L"TemporaryBreakpointList", scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticPageAllocator(), Throw::OutOfMemory);
+                    ArenaAllocator arena(_u("TemporaryBreakpointList"), scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticPageAllocator(), Throw::OutOfMemory);
                     BreakpointProbeList* pDeleteList = this->NewBreakpointList(&arena);
-                    StatementLocation statement;
-                    if (!this->GetStatementLocation(ibos, &statement))
-                    {
-                        return E_FAIL;
-                    }
 
                     pBreakpointList->Map([&statement, scriptContext, pDeleteList](int index, BreakpointProbe * breakpointProbe)
                     {
@@ -112,32 +123,22 @@ namespace Js
                     });
                     pDeleteList->Clear();
                 }
-            }
-            END_TRANSLATE_OOM_TO_HRESULT(hr);
 
-            break;
-        }
-        case BREAKPOINT_ENABLED:
-        {
-            StatementLocation statement;
-            if (!this->GetStatementLocation(ibos, &statement))
-            {
-                return E_FAIL;
+                break;
             }
-
-            BEGIN_TRANSLATE_OOM_TO_HRESULT
+            case BREAKPOINT_ENABLED:
             {
-                BreakpointProbe* pProbe = Anew(scriptContext->AllocatorForDiagnostics(), BreakpointProbe, this, statement);
+                BreakpointProbe* pProbe = Anew(scriptContext->AllocatorForDiagnostics(), BreakpointProbe, this, statement,
+                    scriptContext->GetThreadContext()->GetDebugManager()->GetNextBreakpointId());
+
                 scriptContext->GetDebugContext()->GetProbeContainer()->AddProbe(pProbe);
                 BreakpointProbeList* pBreakpointList = this->GetBreakpointList();
                 pBreakpointList->Add(pProbe);
+                return pProbe;
+                break;
             }
-            END_TRANSLATE_OOM_TO_HRESULT(hr);
-
-            break;
         }
-        }
-        return hr;
+        return nullptr;
     }
 
     void DebugDocument::RemoveBreakpointProbe(BreakpointProbe *probe)
@@ -158,7 +159,45 @@ namespace Js
         }
     }
 
-    BOOL DebugDocument::GetStatementSpan(long ibos, StatementSpan* pStatement)
+    Js::BreakpointProbe* DebugDocument::FindBreakpoint(StatementLocation statement)
+    {
+        Js::BreakpointProbe* probe = nullptr;
+        if (m_breakpointList != nullptr)
+        {
+            m_breakpointList->MapUntil([&](int index, BreakpointProbe* bpProbe) -> bool
+            {
+                if (bpProbe != nullptr && bpProbe->Matches(statement))
+                {
+                    probe = bpProbe;
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        return probe;
+    }
+
+    bool DebugDocument::FindBPStatementLocation(UINT bpId, StatementLocation * statement)
+    {
+        bool foundStatement = false;
+        if (m_breakpointList != nullptr)
+        {
+            m_breakpointList->MapUntil([&](int index, BreakpointProbe* bpProbe) -> bool
+            {
+                if (bpProbe != nullptr && bpProbe->GetId() == bpId)
+                {
+                    bpProbe->GetStatementLocation(statement);
+                    foundStatement = true;
+                    return true;
+                }
+                return false;
+            });
+        }
+        return foundStatement;
+    }
+
+    BOOL DebugDocument::GetStatementSpan(int32 ibos, StatementSpan* pStatement)
     {
         StatementLocation statement;
         if (GetStatementLocation(ibos, &statement))
@@ -170,7 +209,7 @@ namespace Js
         return FALSE;
     }
 
-    FunctionBody * DebugDocument::GetFunctionBodyAt(long ibos)
+    FunctionBody * DebugDocument::GetFunctionBodyAt(int32 ibos)
     {
         StatementLocation location = {};
         if (GetStatementLocation(ibos, &location))
@@ -181,12 +220,12 @@ namespace Js
         return nullptr;
     }
 
-    BOOL DebugDocument::HasLineBreak(long _start, long _end)
+    BOOL DebugDocument::HasLineBreak(int32 _start, int32 _end)
     {
         return this->functionBody->HasLineBreak(_start, _end);
     }
 
-    BOOL DebugDocument::GetStatementLocation(long ibos, StatementLocation* plocation)
+    BOOL DebugDocument::GetStatementLocation(int32 ibos, StatementLocation* plocation)
     {
         if (ibos < 0)
         {
@@ -199,7 +238,7 @@ namespace Js
             return FALSE;
         }
 
-        ulong ubos = static_cast<ulong>(ibos);
+        uint32 ubos = static_cast<uint32>(ibos);
 
         // Getting the appropriate statement on the asked position works on the heuristic which requires two
         // probable candidates. These candidates will be closest to the ibos where first.range.start < ibos and
@@ -210,8 +249,8 @@ namespace Js
 
         this->utf8SourceInfo->MapFunction([&](FunctionBody* pFuncBody)
         {
-            ulong functionStart = pFuncBody->StartInDocument();
-            ulong functionEnd = functionStart + pFuncBody->LengthInBytes();
+            uint32 functionStart = pFuncBody->StartInDocument();
+            uint32 functionEnd = functionStart + pFuncBody->LengthInBytes();
 
             // For the first candidate, we should allow the current function to participate if its range
             // (instead of just start offset) is closer to the ubos compared to already found candidate1.
@@ -254,12 +293,15 @@ namespace Js
             regex::Interval func2Range(candidateMatch2.function->StartInDocument());
             func2Range.End(func2Range.Begin() + candidateMatch2.function->LengthInBytes());
 
-            if (func1Range.Includes(func2Range) && func2Range.Includes(ibos))
+            // If cursor (ibos) is just after the closing braces of the inner function then we can't
+            // directly choose inner function and have to make line break check, so fallback
+            // function foo(){function bar(){var y=1;}#var x=1;bar();}foo(); - ibos is #
+            if (func1Range.Includes(func2Range) && func2Range.Includes(ibos) && func2Range.End() != ibos)
             {
                 *plocation = candidateMatch2;
                 return TRUE;
             }
-            else if (func2Range.Includes(func1Range) && func1Range.Includes(ibos))
+            else if (func2Range.Includes(func1Range) && func1Range.Includes(ibos) && func1Range.End() != ibos)
             {
                 *plocation = candidateMatch1;
                 return TRUE;

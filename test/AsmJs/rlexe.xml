@@ -14,6 +14,14 @@
       <compile-flags>-testtrace:asmjs -simdjs -maic:0</compile-flags>
     </default>
   </test>
+    <test>
+    <default>
+      <files>BasicBranching.js</files>
+      <baseline>BasicBranchingLinkFail.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -simdjs -maic:0 -forceAsmJsLinkFail</compile-flags>
+    </default>
+  </test>
+  
   <test>
     <default>
       <files>basicComparisonDouble.js</files>
@@ -617,7 +625,7 @@
     <default>
       <files>return1.js</files>
       <baseline>return1.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -bgjit- -lic:1</compile-flags>
+      <compile-flags>-off:deferparse -testtrace:asmjs -simdjs -bgjit- -lic:1</compile-flags>
     </default>
   </test>
   <test>
@@ -769,6 +777,34 @@
       <files>qmarkbug.js</files>
       <baseline>qmarkbug.baseline</baseline>
       <compile-flags>-forcedeferparse -testtrace:asmjs -simdjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>uint.js</files>
+      <baseline>uint.baseline</baseline>
+      <compile-flags>-maic:1 -off:deferparse -testtrace:asmjs -simdjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>asmjscctx.js</files>
+      <baseline>asmjscctx.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>constloads.js</files>
+      <baseline>constloads.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>vardeclnorhs.js</files>
+      <baseline>vardeclnorhs.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
     </default>
   </test>
 </regress-exe>

@@ -7,7 +7,7 @@
 // Turn this on to enable magic constants in byte code (useful for debugging)
 //#define BYTE_CODE_MAGIC_CONSTANTS
 
-#include "ByteCode\ByteCodeSerializeFlags.h"
+#include "ByteCode/ByteCodeSerializeFlags.h"
 
 namespace Js
 {
@@ -32,9 +32,7 @@ namespace Js
         sakPropertyIdArray = 3,
         sakFuncInfoArray = 4,
         sakIntArray = 5,
-        sakFloatArray = 6,
-
-        sakPropertyIdArrayForCachedScope = 7,       // serialization only type, indicate extra slots
+        sakFloatArray = 6
     };
 
 // Tightly pack serialized structures
@@ -156,11 +154,11 @@ namespace Js
     struct ByteCodeSerializer
     {
         // Serialize a function body.
-        static HRESULT SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceCodeLength, LPCUTF8 utf8Source, DWORD dwFunctionTableLength, BYTE * functionTable, FunctionBody * function, SRCINFO const* srcInfo, bool allocateBuffer, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags = 0);
+        static HRESULT SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceCodeLength, LPCUTF8 utf8Source, FunctionBody * function, SRCINFO const* srcInfo, bool allocateBuffer, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags = 0);
 
         // Deserialize a function body. The content of utf8Source must be the same as was originally passed to SerializeToBuffer
-        static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, ulong scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
-        static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, ulong scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
+        static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
+        static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
 
         static FunctionBody* DeserializeFunction(ScriptContext* scriptContext, DeferDeserializeFunctionInfo* deferredFunction);
 
@@ -171,6 +169,6 @@ namespace Js
         static void ReadSourceInfo(const DeferDeserializeFunctionInfo* deferredFunction, int& lineNumber, int& columnNumber, bool& m_isEval, bool& m_isDynamicFunction);
 
     private:
-        static HRESULT DeserializeFromBufferInternal(ScriptContext * scriptContext, ulong scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
+        static HRESULT DeserializeFromBufferInternal(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
     };
 }

@@ -3,8 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "JsrtPch.h"
+#include "jsrtHelper.h"
 #include "JsrtExternalObject.h"
-#include "Types\PathTypeHandler.h"
+#include "Types/PathTypeHandler.h"
 
 JsrtExternalType::JsrtExternalType(Js::ScriptContext* scriptContext, JsFinalizeCallback finalizeCallback)
     : Js::DynamicType(
@@ -12,7 +13,7 @@ JsrtExternalType::JsrtExternalType(Js::ScriptContext* scriptContext, JsFinalizeC
         Js::TypeIds_Object,
         scriptContext->GetLibrary()->GetObjectPrototype(),
         nullptr,
-        Js::SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true),
+        Js::SimplePathTypeHandler::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, 0, 0, true, true),
         true,
         true)
         , jsFinalizeCallback(finalizeCallback)
@@ -47,6 +48,7 @@ void JsrtExternalObject::Finalize(bool isShutdown)
     JsFinalizeCallback finalizeCallback = this->GetExternalType()->GetJsFinalizeCallback();
     if (nullptr != finalizeCallback)
     {
+        JsrtCallbackState scope(nullptr);
         finalizeCallback(this->slot);
     }
 }

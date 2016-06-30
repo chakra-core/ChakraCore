@@ -6,22 +6,24 @@
 
 namespace Js
 {
-    // ModuleRecord need to keep rootFunction etc. alive.
-    class ModuleRecordBase : FinalizableObject
+    class ModuleRecordBase;
+    class ModuleNamespace;
+    typedef SList<PropertyId> ExportedNames;
+    typedef SList<ModuleRecordBase*> ExportModuleRecordList;
+    struct ModuleNameRecord
     {
-    public: 
-        const unsigned long ModuleMagicNumber = *(const unsigned long*)"Mode";
-        typedef SList<PropertyId> ExportedNames;
-        typedef JsUtil::BaseDictionary<ModuleRecordBase, PropertyId, ArenaAllocator, PrimeSizePolicy> ResolutionDictionary;
-        typedef SList<ModuleRecordBase*> ResolveSet;
-        typedef struct ModuleNameRecord 
-        {
-            ModuleRecordBase* module;
-            LiteralString* bindingName;
-        };
+        ModuleRecordBase* module;
+        PropertyId bindingName;
+    };
+    typedef SList<ModuleNameRecord> ResolveSet;
 
-        ModuleRecordBase(JavascriptLibrary* library) : 
-            namespaceObject(nullptr), wasEvaluated(false), 
+    // ModuleRecord need to keep rootFunction etc. alive.
+    class ModuleRecordBase : public FinalizableObject
+    {
+    public:
+        const uint32 ModuleMagicNumber = *(const uint32*)"Mode";
+        ModuleRecordBase(JavascriptLibrary* library) :
+            namespaceObject(nullptr), wasEvaluated(false),
             javascriptLibrary(library),  magicNumber(ModuleMagicNumber){};
         bool WasEvaluated() { return wasEvaluated; }
         void SetWasEvaluated() { Assert(!wasEvaluated); wasEvaluated = true; }
@@ -29,14 +31,16 @@ namespace Js
         ModuleNamespace* GetNamespace() { return namespaceObject; }
         void SetNamespace(ModuleNamespace* moduleNamespace) { namespaceObject = moduleNamespace; }
 
-        virtual ExportedNames* GetExportedNames(ResolveSet* exportStarSet) = 0;
-        // return false when "ambiguous". otherwise exportRecord.
-        virtual bool ResolveExport(PropertyId exportName, ResolutionDictionary* resolveSet, ResolveSet* exportStarSet, ModuleNameRecord* exportRecord) = 0;
+        virtual ExportedNames* GetExportedNames(ExportModuleRecordList* exportStarSet) = 0;
+        // return false when "ambiguous".
+        // otherwise nullptr means "null" where we have circular reference/cannot resolve.
+        virtual bool ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ExportModuleRecordList* exportStarSet, ModuleNameRecord** exportRecord) = 0;
         virtual void ModuleDeclarationInstantiation() = 0;
         virtual Var ModuleEvaluation() = 0;
+        virtual bool IsSourceTextModuleRecord() { return false; }
 
     protected:
-        unsigned long magicNumber;
+        uint32 magicNumber;
         ModuleNamespace* namespaceObject;
         bool wasEvaluated;
         JavascriptLibrary* javascriptLibrary;

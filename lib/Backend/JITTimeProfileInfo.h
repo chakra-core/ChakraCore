@@ -57,9 +57,12 @@ public:
     bool IsFloorInliningDisabled() const;
     bool IsNoProfileBailoutsDisabled() const;
     bool HasLdFldCallSiteInfo() const;
+    bool IsStackArgOptDisabled() const;
+    bool IsLoopImplicitCallInfoDisabled() const;
+    bool IsPowIntIntTypeSpecDisabled() const;
 
 private:
-    enum ProfileDataFlags
+    enum ProfileDataFlags : int64
     {
         Flags_None = 0,
         Flags_disableAggressiveIntTypeSpec = 1,
@@ -93,7 +96,10 @@ private:
         Flags_disableObjTypeSpec_jitLoopBody = 1 << 28,
         Flags_disableMemOp = 1 << 29,
         Flags_disableCheckThis = 1 << 30,
-        Flags_hasLdFldCallSiteInfo = 1 << 31
+        Flags_hasLdFldCallSiteInfo = 1 << 31,
+        Flags_disableStackArgOpt = 1ll << 32,
+        Flags_disableLoopImplicitCallInfo = 1ll << 33,
+        Flags_disablePowIntIntTypeSpec = 1ll << 34
     };
 
     Js::ProfileId GetProfiledArrayCallSiteCount() const;

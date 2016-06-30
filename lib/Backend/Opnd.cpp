@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 namespace IR
 {
@@ -394,6 +394,19 @@ void Opnd::SetValueType(const ValueType valueType)
     m_valueType = valueType;
 }
 
+bool Opnd::IsScopeObjOpnd(Func * func)
+{
+    if (IsRegOpnd())
+    {
+        return this->GetStackSym() == func->GetScopeObjSym();
+    }
+    else if(IsSymOpnd() && AsSymOpnd()->m_sym->IsPropertySym())
+    {
+        return this->AsSymOpnd()->m_sym->AsPropertySym()->m_stackSym == func->GetScopeObjSym();
+    }
+    return false;
+}
+
 ValueType Opnd::FindProfiledValueType()
 {
     if (!this->GetValueType().IsUninitialized())
@@ -485,7 +498,7 @@ void Opnd::DumpValueType(const ValueType valueType)
 
     char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
     valueType.ToString(valueTypeStr);
-    Output::Print(L"[%S]", valueTypeStr);
+    Output::Print(_u("[%S]"), valueTypeStr);
 }
 #endif
 
@@ -715,6 +728,7 @@ PropertySymOpnd::New(PropertySym *propertySym, IRType type, Func *func)
     newOpnd->m_type = type;
     newOpnd->SetObjTypeSpecFldInfo(nullptr);
     newOpnd->finalType = nullptr;
+    newOpnd->monoGuardType = nullptr;
     newOpnd->guardedPropOps = nullptr;
     newOpnd->writeGuards = nullptr;
     newOpnd->objTypeSpecFlags = 0;
@@ -1301,7 +1315,7 @@ IntConstOpnd::New(IntConstType value, IRType type, Func *func, bool dontEncode)
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 IntConstOpnd *
-IntConstOpnd::New(IntConstType value, IRType type, const wchar_t * name, Func *func, bool dontEncode)
+IntConstOpnd::New(IntConstType value, IRType type, const char16 * name, Func *func, bool dontEncode)
 {
     IntConstOpnd * intConstOpnd = IntConstOpnd::New(value, type, func, dontEncode);
     intConstOpnd->name = name;
@@ -2177,7 +2191,7 @@ IndirOpnd::New(RegOpnd *baseOpnd, int32 offset, IRType type, Func *func, bool do
 ///----------------------------------------------------------------------------
 
 IndirOpnd *
-IndirOpnd::New(RegOpnd *baseOpnd, int32 offset, IRType type, const wchar_t *desc, Func *func, bool dontEncode /* = false */)
+IndirOpnd::New(RegOpnd *baseOpnd, int32 offset, IRType type, const char16 *desc, Func *func, bool dontEncode /* = false */)
 {
     IndirOpnd * indirOpnd = IndirOpnd::New(baseOpnd, offset, type, func);
     indirOpnd->m_desc = desc;
@@ -2426,7 +2440,7 @@ IndirOpnd::ReplaceIndexOpnd(RegOpnd *newIndex)
 }
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-const wchar_t *
+const char16 *
 IndirOpnd::GetDescription()
 {
     return this->m_desc;
@@ -2677,38 +2691,38 @@ Opnd::DumpAddress(void *address, bool printToConsole, bool skipMaskedAddress)
         {
             return;
         }
-        Output::Print(L"0xXXXXXXXX");
+        Output::Print(_u("0xXXXXXXXX"));
     }
     else
     {
 #ifdef _M_X64
-        Output::Print(L"0x%012I64X", address);
+        Output::Print(_u("0x%012I64X"), address);
 #else
-        Output::Print(L"0x%08X", address);
+        Output::Print(_u("0x%08X"), address);
 #endif
     }
 }
 
 void
-Opnd::DumpFunctionInfo(_Outptr_result_buffer_(*count) wchar_t ** buffer, size_t * count, Js::FunctionInfo * info, bool printToConsole, _In_opt_z_ wchar_t const * type)
+Opnd::DumpFunctionInfo(_Outptr_result_buffer_(*count) char16 ** buffer, size_t * count, Js::FunctionInfo * info, bool printToConsole, _In_opt_z_ char16 const * type)
 {
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     if (info->HasBody())
     {
         if (type == nullptr)
         {
-            type = L"FunctionBody";
+            type = _u("FunctionBody");
         }
         Js::FunctionProxy * proxy = info->GetFunctionProxy();
-        WriteToBuffer(buffer, count, L" (%s [%s%s])", type, proxy->GetDisplayName(), proxy->GetDebugNumberSet(debugStringBuffer));
+        WriteToBuffer(buffer, count, _u(" (%s [%s%s])"), type, proxy->GetDisplayName(), proxy->GetDebugNumberSet(debugStringBuffer));
     }
     else
     {
         if (type == nullptr)
         {
-            type = L"FunctionInfo";
+            type = _u("FunctionInfo");
         }
-        WriteToBuffer(buffer, count, L" (%s)", type);
+        WriteToBuffer(buffer, count, _u(" (%s)"), type);
     }
 }
 
@@ -2758,67 +2772,67 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                     Assert(static_cast<int>(offset + symOpnd->m_offset) >= offset);
                     offset += symOpnd->m_offset;
                 }
-                Output::Print(L"<%d>", offset);
+                Output::Print(_u("<%d>"), offset);
             }
         }
         else if (symOpnd->IsPropertySymOpnd() && !SimpleForm)
         {
             PropertySymOpnd *propertySymOpnd = symOpnd->AsPropertySymOpnd();
-            Output::Print(L"<");
+            Output::Print(_u("<"));
             if (propertySymOpnd->HasObjTypeSpecFldInfo())
             {
-                Output::Print(L"%u,%s%s%s%s,", propertySymOpnd->GetObjTypeSpecFldId(), propertySymOpnd->IsPoly() ? L"p" : L"m",
-                    propertySymOpnd->IsLoadedFromProto() ? L"~" : L"", propertySymOpnd->UsesFixedValue() ? L"=" : L"",
-                    propertySymOpnd->IsBeingAdded() ? L"+" : L"");
+                Output::Print(_u("%u,%s%s%s%s,"), propertySymOpnd->GetObjTypeSpecFldId(), propertySymOpnd->IsPoly() ? _u("p") : _u("m"),
+                    propertySymOpnd->IsLoadedFromProto() ? _u("~") : _u(""), propertySymOpnd->UsesFixedValue() ? _u("=") : _u(""),
+                    propertySymOpnd->IsBeingAdded() ? _u("+") : _u(""));
             }
             else
             {
-                Output::Print(L"?,,");
+                Output::Print(_u("?,,"));
             }
-            Output::Print(L"%s%s,", propertySymOpnd->MayNeedTypeCheckProtection() ?
-                propertySymOpnd->IsMono() ? L"+" : L"=" :
-                propertySymOpnd->IsRootObjectNonConfigurableFieldLoad() ? L"~" : L"-",
-                propertySymOpnd->IsTypeCheckSeqCandidate() ? L"+" : L"-");
+            Output::Print(_u("%s%s,"), propertySymOpnd->MayNeedTypeCheckProtection() ?
+                propertySymOpnd->IsMono() ? _u("+") : _u("=") :
+                propertySymOpnd->IsRootObjectNonConfigurableFieldLoad() ? _u("~") : _u("-"),
+                propertySymOpnd->IsTypeCheckSeqCandidate() ? _u("+") : _u("-"));
             if (propertySymOpnd->HasObjectTypeSym())
             {
-                Output::Print(L"s%d", propertySymOpnd->GetObjectTypeSym()->m_id);
+                Output::Print(_u("s%d"), propertySymOpnd->GetObjectTypeSym()->m_id);
                 if (propertySymOpnd->IsTypeChecked())
                 {
-                    Output::Print(L"+%s", propertySymOpnd->IsMono() ? L"m" : L"p");
+                    Output::Print(_u("+%s"), propertySymOpnd->IsMono() ? _u("m") : _u("p"));
                 }
                 else if (propertySymOpnd->IsTypeAvailable())
                 {
-                    Output::Print(L"*");
+                    Output::Print(_u("*"));
                 }
                 if (propertySymOpnd->IsTypeDead())
                 {
-                    Output::Print(L"!");
+                    Output::Print(_u("!"));
                 }
             }
             else
             {
-                Output::Print(L"s?");
+                Output::Print(_u("s?"));
             }
             if (propertySymOpnd->m_sym->AsPropertySym()->m_writeGuardSym != nullptr)
             {
-                Output::Print(L",s%d", propertySymOpnd->m_sym->AsPropertySym()->m_writeGuardSym->m_id);
+                Output::Print(_u(",s%d"), propertySymOpnd->m_sym->AsPropertySym()->m_writeGuardSym->m_id);
                 if (propertySymOpnd->IsWriteGuardChecked())
                 {
-                    Output::Print(L"+");
+                    Output::Print(_u("+"));
                 }
             }
             else
             {
-                Output::Print(L",s?");
+                Output::Print(_u(",s?"));
             }
             if (propertySymOpnd->HasFinalType())
             {
-                Output::Print(L",final:");
+                Output::Print(_u(",final:"));
                 this->DumpAddress(propertySymOpnd->GetFinalType(), /* printToConsole */ true, /* skipMaskedAddress */ false);
             }
             if (propertySymOpnd->GetGuardedPropOps() != nullptr)
             {
-                Output::Print(L",{");
+                Output::Print(_u(",{"));
 #if 0 // TODO: OOP JIT, fix this
                 if (func != nullptr)
                 {
@@ -2828,53 +2842,53 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                     {
                         if (i++ > 0)
                         {
-                            Output::Print(L",");
+                            Output::Print(_u(","));
                         }
                         const JITObjTypeSpecFldInfo* propertyOpInfo = func->GetTopFunc()->GetGlobalObjTypeSpecFldInfo(propertyOpId);
-                        Output::Print(L"%s(%u)", func->GetScriptContext()->GetPropertyNameLocked(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
+                        Output::Print(_u("%s(%u)"), func->GetScriptContext()->GetPropertyNameLocked(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
                         if (propertyOpInfo->IsLoadedFromProto())
                         {
-                            Output::Print(L"~");
+                            Output::Print(_u("~"));
                         }
                         if (propertyOpInfo->HasFixedValue())
                         {
-                            Output::Print(L"=");
+                            Output::Print(_u("="));
                         }
                         if (propertyOpInfo->IsBeingAdded())
                         {
-                            Output::Print(L"+");
+                            Output::Print(_u("+"));
                         }
                     }
                     NEXT_BITSET_IN_SPARSEBV;
                 }
                 else
                 {
-                    Output::Print(L"(no func)");
+                    Output::Print(_u("(no func)"));
                 }
 #endif
-                Output::Print(L"}");
+                Output::Print(_u("}"));
             }
             if (propertySymOpnd->GetWriteGuards() != nullptr)
             {
-                Output::Print(L",{");
+                Output::Print(_u(",{"));
                 int i = 0;
                 auto writeGuards = propertySymOpnd->GetWriteGuards();
                 FOREACH_BITSET_IN_SPARSEBV(writeGuardSymId, writeGuards)
                 {
                     if (i++ > 0)
                     {
-                        Output::Print(L",");
+                        Output::Print(_u(","));
                     }
-                    Output::Print(L"s%d", writeGuardSymId);
+                    Output::Print(_u("s%d"), writeGuardSymId);
                 }
                 NEXT_BITSET_IN_SPARSEBV;
-                Output::Print(L"}");
+                Output::Print(_u("}"));
             }
             if (propertySymOpnd->canStoreTemp)
             {
-                Output::Print(L",t");
+                Output::Print(_u(",t"));
             }
-            Output::Print(L">");
+            Output::Print(_u(">"));
         }
 
         break;
@@ -2890,32 +2904,32 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
             //
             // Print no brackets
             //
-            Output::Print(L"%S", RegNames[regOpnd->GetReg()]);
+            Output::Print(_u("%S"), RegNames[regOpnd->GetReg()]);
         }
         else
         {
             if (regOpnd->GetReg() != RegNOREG)
             {
-                Output::Print(L"(%S)", RegNames[regOpnd->GetReg()]);
+                Output::Print(_u("(%S)"), RegNames[regOpnd->GetReg()]);
             }
             if (regOpnd->m_isTempLastUse)
             {
-                Output::Print(L"[isTempLastUse]");
+                Output::Print(_u("[isTempLastUse]"));
             }
             StackSym *sym = regOpnd->GetStackSym();
             if (sym && func)
             {
                 if (sym == func->GetScriptContextSym())
                 {
-                    Output::Print(L"[ScriptContext]");
+                    Output::Print(_u("[ScriptContext]"));
                 }
                 else if (sym == func->GetFuncObjSym())
                 {
-                    Output::Print(L"[FuncObj]");
+                    Output::Print(_u("[FuncObj]"));
                 }
                 else if (sym == func->GetFunctionBodySym())
                 {
-                    Output::Print(L"[FunctionBody]");
+                    Output::Print(_u("[FunctionBody]"));
                 }
             }
             if(regOpnd->IsArrayRegOpnd())
@@ -2930,34 +2944,34 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                 const ArrayRegOpnd *const arrayRegOpnd = regOpnd->AsArrayRegOpnd();
                 if(arrayRegOpnd->HeadSegmentSym())
                 {
-                    Output::Print(L"[seg: ");
+                    Output::Print(_u("[seg: "));
                     arrayRegOpnd->HeadSegmentSym()->Dump();
-                    Output::Print(L"]");
+                    Output::Print(_u("]"));
                 }
                 if(arrayRegOpnd->HeadSegmentLengthSym())
                 {
-                    Output::Print(L"[segLen: ");
+                    Output::Print(_u("[segLen: "));
                     arrayRegOpnd->HeadSegmentLengthSym()->Dump();
-                    Output::Print(L"]");
+                    Output::Print(_u("]"));
                 }
                 if(arrayRegOpnd->LengthSym() && arrayRegOpnd->LengthSym() != arrayRegOpnd->HeadSegmentLengthSym())
                 {
-                    Output::Print(L"[len: ");
+                    Output::Print(_u("[len: "));
                     arrayRegOpnd->LengthSym()->Dump();
-                    Output::Print(L"]");
+                    Output::Print(_u("]"));
                 }
                 if(arrayRegOpnd->EliminatedLowerBoundCheck() || arrayRegOpnd->EliminatedUpperBoundCheck())
                 {
-                    Output::Print(L"[");
+                    Output::Print(_u("["));
                     if(arrayRegOpnd->EliminatedLowerBoundCheck())
                     {
-                        Output::Print(L">");
+                        Output::Print(_u(">"));
                     }
                     if(arrayRegOpnd->EliminatedUpperBoundCheck())
                     {
-                        Output::Print(L"<");
+                        Output::Print(_u("<"));
                     }
-                    Output::Print(L"]");
+                    Output::Print(_u("]"));
                 }
             }
         }
@@ -2970,11 +2984,11 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
         {
             if (!Js::Configuration::Global.flags.DumpIRAddresses)
             {
-                Output::Print(L"<%s>", intConstOpnd->name);
+                Output::Print(_u("<%s>"), intConstOpnd->name);
             }
             else
             {
-                Output::Print(L"<%s> (value: 0x%X)", intConstOpnd->name, intConstOpnd->GetValue());
+                Output::Print(_u("<%s> (value: 0x%X)"), intConstOpnd->name, intConstOpnd->GetValue());
             }
         }
         else
@@ -2983,20 +2997,20 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
             if (intConstOpnd->decodedValue != 0)
             {
                 intValue = intConstOpnd->decodedValue;
-                Output::Print(L"%d (0x%X)", intValue, intValue);
+                Output::Print(_u("%d (0x%X)"), intValue, intValue);
                 if (!Js::Configuration::Global.flags.DumpIRAddresses)
                 {
-                    Output::Print(L" [encoded]");
+                    Output::Print(_u(" [encoded]"));
                 }
                 else
                 {
-                    Output::Print(L" [encoded: 0x%X]", intConstOpnd->GetValue());
+                    Output::Print(_u(" [encoded: 0x%X]"), intConstOpnd->GetValue());
                 }
             }
             else
             {
                 intValue = intConstOpnd->GetValue();
-                Output::Print(L"%d (0x%X)", intValue, intValue);
+                Output::Print(_u("%d (0x%X)"), intValue, intValue);
             }
         }
 
@@ -3012,12 +3026,12 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
 
     case OpndKindHelperCall:
         helperMethod = this->AsHelperCallOpnd()->m_fnHelper;
-        Output::Print(L"%s", IR::GetMethodName(helperMethod));
+        Output::Print(_u("%s"), IR::GetMethodName(helperMethod));
         break;
 
     case OpndKindFloatConst:
         floatValue = this->AsFloatConstOpnd()->m_value;
-        Output::Print(L"%G", floatValue);
+        Output::Print(_u("%G"), floatValue);
         break;
 
     case OpndKindAddr:
@@ -3028,53 +3042,53 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
     {
         IndirOpnd *indirOpnd = this->AsIndirOpnd();
 
-        Output::Print(L"[");
+        Output::Print(_u("["));
         indirOpnd->GetBaseOpnd()->Dump(flags, func);
 
         if (indirOpnd->GetIndexOpnd())
         {
-            Output::Print(L"+");
+            Output::Print(_u("+"));
             indirOpnd->GetIndexOpnd()->Dump(flags, func);
             if (indirOpnd->GetScale() > 0)
             {
-                Output::Print(L"*%d", 1 << indirOpnd->GetScale());
+                Output::Print(_u("*%d"), 1 << indirOpnd->GetScale());
             }
         }
         if (indirOpnd->GetOffset())
         {
             if (!Js::Configuration::Global.flags.DumpIRAddresses && indirOpnd->HasAddrKind())
             {
-                Output::Print(L"+XX");
+                Output::Print(_u("+XX"));
             }
             else
             {
-                const auto sign = indirOpnd->GetOffset() >= 0 ? L"+" : L"";
+                const auto sign = indirOpnd->GetOffset() >= 0 ? _u("+") : _u("");
                 if (AsmDumpMode)
                 {
-                    Output::Print(L"%sXXXX%04d", sign, indirOpnd->GetOffset() & 0xffff);
+                    Output::Print(_u("%sXXXX%04d"), sign, indirOpnd->GetOffset() & 0xffff);
                 }
                 else
                 {
-                    Output::Print(L"%s%d", sign, indirOpnd->GetOffset());
+                    Output::Print(_u("%s%d"), sign, indirOpnd->GetOffset());
                 }
             }
         }
         if (indirOpnd->GetDescription())
         {
-            Output::Print(L" <%s>", indirOpnd->GetDescription());
+            Output::Print(_u(" <%s>"), indirOpnd->GetDescription());
         }
         if (indirOpnd->HasAddrKind())
         {
             INT_PTR address = (INT_PTR)indirOpnd->GetOriginalAddress();
-            Output::Print(L" <");
+            Output::Print(_u(" <"));
             const size_t BUFFER_LEN = 128;
-            wchar_t buffer[BUFFER_LEN];
+            char16 buffer[BUFFER_LEN];
             GetAddrDescription(buffer, BUFFER_LEN, (void *)address, indirOpnd->GetAddrKind(), AsmDumpMode, /*printToConsole */ true, func, /* skipMaskedAddress */true);
-            Output::Print(L"%s", buffer);
-            Output::Print(L">");
+            Output::Print(_u("%s"), buffer);
+            Output::Print(_u(">"));
         }
 
-        Output::Print(L"]");
+        Output::Print(_u("]"));
         break;
     }
     case OpndKindMemRef:
@@ -3088,11 +3102,11 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
         LabelInstr * labelInstr = labelOpnd->GetLabel();
         if (labelInstr == nullptr)
         {
-            Output::Print(L"??");
+            Output::Print(_u("??"));
         }
         else
         {
-            Output::Print(L"&$L%d", labelInstr->m_id);
+            Output::Print(_u("&$L%d"), labelInstr->m_id);
         }
         break;
     }
@@ -3104,12 +3118,12 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
     }
     if (!SimpleForm || this->GetType() != TyVar)
     {
-        Output::Print(L".");
+        Output::Print(_u("."));
         IRType_Dump(this->GetType());
     }
     if (this->m_isDead && !SimpleForm)
     {
-        Output::Print(L"!");
+        Output::Print(_u("!"));
     }
 }
 
@@ -3125,23 +3139,23 @@ void
 Opnd::DumpOpndKindAddr(bool AsmDumpMode, Func *func)
 {
     const size_t BUFFER_LEN = 128;
-    wchar_t buffer[BUFFER_LEN];
+    char16 buffer[BUFFER_LEN];
     GetAddrDescription(buffer, BUFFER_LEN, AsmDumpMode, true, func);
 
-    Output::Print(L"%s", buffer);
+    Output::Print(_u("%s"), buffer);
 }
 
 void
 Opnd::DumpOpndKindMemRef(bool AsmDumpMode, Func *func)
 {
     MemRefOpnd *memRefOpnd = this->AsMemRefOpnd();
-    Output::Print(L"[");
+    Output::Print(_u("["));
     const size_t BUFFER_LEN = 128;
-    wchar_t buffer[BUFFER_LEN];
+    char16 buffer[BUFFER_LEN];
     // TODO: michhol, make this intptr_t
     GetAddrDescription(buffer, BUFFER_LEN, (void*)memRefOpnd->GetMemLoc(), memRefOpnd->GetAddrKind(), AsmDumpMode, true, func);
-    Output::Print(L"%s", buffer);
-    Output::Print(L"]");
+    Output::Print(_u("%s"), buffer);
+    Output::Print(_u("]"));
 }
 
 /**
@@ -3164,7 +3178,7 @@ Opnd::DumpOpndKindMemRef(bool AsmDumpMode, Func *func)
         Additional parameters to be passed to the formatter.
 */
 void
-Opnd::WriteToBuffer(_Outptr_result_buffer_(*count) wchar_t **buffer, size_t *count, const wchar_t *fmt, ...)
+Opnd::WriteToBuffer(_Outptr_result_buffer_(*count) char16 **buffer, size_t *count, const char16 *fmt, ...)
 {
     va_list argptr = nullptr;
     va_start(argptr, fmt);
@@ -3176,10 +3190,10 @@ Opnd::WriteToBuffer(_Outptr_result_buffer_(*count) wchar_t **buffer, size_t *cou
 }
 
 void
-Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const size_t count,
+Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const size_t count,
     void * address, IR::AddrOpndKind addressKind, bool AsmDumpMode, bool printToConsole, Func *func, bool skipMaskedAddress)
 {
-    wchar_t *buffer = description;
+    char16 *buffer = description;
     size_t n = count;
 
     if (address)
@@ -3189,9 +3203,9 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
         case IR::AddrOpndKindConstant:
         {
 #ifdef _M_X64_OR_ARM64
-            wchar_t const * format = L"0x%012I64X";
+            char16 const * format = _u("0x%012I64X");
 #else
-            wchar_t const * format = L"0x%08X";
+            char16 const * format = _u("0x%08X");
 #endif
             WriteToBuffer(&buffer, &n, format, address);
         }
@@ -3200,15 +3214,15 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             if (Js::TaggedInt::Is(address))
             {
 #ifdef _M_X64_OR_ARM64
-                wchar_t const * format = L"0x%012I64X (value: %d)";
+                char16 const * format = _u("0x%012I64X (value: %d)");
 #else
-                wchar_t const * format = L"0x%08X  (value: %d)";
+                char16 const * format = _u("0x%08X  (value: %d)");
 #endif
                 WriteToBuffer(&buffer, &n, format, address, Js::TaggedInt::ToInt32(address));
             }
             else if (Js::JavascriptNumber::Is_NoTaggedIntCheck(address))
             {
-                WriteToBuffer(&buffer, &n, L" (value: %f)", Js::JavascriptNumber::GetValue(address));
+                WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));
             }
             else
             {
@@ -3217,31 +3231,31 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
                 switch (Js::RecyclableObject::FromVar(address)->GetTypeId())
                 {
                 case Js::TypeIds_Boolean:
-                    WriteToBuffer(&buffer, &n, Js::JavascriptBoolean::FromVar(address)->GetValue() ? L" (true)" : L" (false)");
+                    WriteToBuffer(&buffer, &n, Js::JavascriptBoolean::FromVar(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
                     break;
                 case Js::TypeIds_String:
-                    WriteToBuffer(&buffer, &n, L" (\"%s\")", Js::JavascriptString::FromVar(address)->GetSz());
+                    WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::JavascriptString::FromVar(address)->GetSz());
                     break;
                 case Js::TypeIds_Number:
-                    WriteToBuffer(&buffer, &n, L" (value: %f)", Js::JavascriptNumber::GetValue(address));
+                    WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));
                     break;
                 case Js::TypeIds_Undefined:
-                    WriteToBuffer(&buffer, &n, L" (undefined)");
+                    WriteToBuffer(&buffer, &n, _u(" (undefined)"));
                     break;
                 case Js::TypeIds_Null:
-                    WriteToBuffer(&buffer, &n, L" (null)");
+                    WriteToBuffer(&buffer, &n, _u(" (null)"));
                     break;
                 case Js::TypeIds_GlobalObject:
-                    WriteToBuffer(&buffer, &n, L" (GlobalObject)");
+                    WriteToBuffer(&buffer, &n, _u(" (GlobalObject)"));
                     break;
                 case Js::TypeIds_UndeclBlockVar:
-                    WriteToBuffer(&buffer, &n, L" (UndeclBlockVar)");
+                    WriteToBuffer(&buffer, &n, _u(" (UndeclBlockVar)"));
                     break;
                 case Js::TypeIds_Function:
-                    DumpFunctionInfo(&buffer, &n, ((Js::JavascriptFunction *)address)->GetFunctionInfo(), printToConsole, L"FunctionObject");
+                    DumpFunctionInfo(&buffer, &n, ((Js::JavascriptFunction *)address)->GetFunctionInfo(), printToConsole, _u("FunctionObject"));
                     break;
                 default:
-                    WriteToBuffer(&buffer, &n, L" (DynamicObject)");
+                    WriteToBuffer(&buffer, &n, _u(" (DynamicObject)"));
                     break;
                 }
 #endif
@@ -3250,20 +3264,20 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
         case IR::AddrOpndKindConstantVar:
         {
 #ifdef _M_X64_OR_ARM64
-            wchar_t const * format = L"0x%012I64X%s";
+            char16 const * format = _u("0x%012I64X%s");
 #else
-            wchar_t const * format = L"0x%08X%s";
+            char16 const * format = _u("0x%08X%s");
 #endif
-            wchar_t const * addressName = L"";
+            char16 const * addressName = _u("");
 
             if (address == Js::JavascriptArray::MissingItem)
             {
-                addressName = L" (MissingItem)";
+                addressName = _u(" (MissingItem)");
             }
 #if FLOATVAR
             else if (address == (Js::Var)Js::FloatTag_Value)
             {
-                addressName = L" (FloatTag)";
+                addressName = _u(" (FloatTag)");
             }
 #endif
             WriteToBuffer(&buffer, &n, format, address, addressName);
@@ -3273,77 +3287,77 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             Assert(func == nullptr || (intptr_t)address == func->GetScriptContextInfo()->GetAddr());
             // The script context pointer is unstable allocated from the CRT
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (ScriptContext)");
+            WriteToBuffer(&buffer, &n, _u(" (ScriptContext)"));
             break;
         case IR::AddrOpndKindDynamicCharStringCache:
             Assert(func == nullptr || (intptr_t)address == func->GetScriptContextInfo()->GetCharStringCacheAddr());
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (CharStringCache)");
+            WriteToBuffer(&buffer, &n, _u(" (CharStringCache)"));
             break;
 
         case IR::AddrOpndKindDynamicBailOutRecord:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (BailOutRecord)");
+            WriteToBuffer(&buffer, &n, _u(" (BailOutRecord)"));
             break;
 
         case IR::AddrOpndKindDynamicInlineCache:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (InlineCache)");
+            WriteToBuffer(&buffer, &n, _u(" (InlineCache)"));
             break;
 
         case IR::AddrOpndKindDynamicIsInstInlineCacheFunctionRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&IsInstInlineCache.function)");
+            WriteToBuffer(&buffer, &n, _u(" (&IsInstInlineCache.function)"));
             break;
 
         case IR::AddrOpndKindDynamicIsInstInlineCacheTypeRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&IsInstInlineCache.type)");
+            WriteToBuffer(&buffer, &n, _u(" (&IsInstInlineCache.type)"));
             break;
 
         case IR::AddrOpndKindDynamicIsInstInlineCacheResultRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&IsInstInlineCache.result)");
+            WriteToBuffer(&buffer, &n, _u(" (&IsInstInlineCache.result)"));
             break;
 
         case AddrOpndKindDynamicGuardValueRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&GuardValue)");
+            WriteToBuffer(&buffer, &n, _u(" (&GuardValue)"));
             break;
 
         case AddrOpndKindDynamicAuxSlotArrayRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&AuxSlotArray)");
+            WriteToBuffer(&buffer, &n, _u(" (&AuxSlotArray)"));
             break;
 
         case AddrOpndKindDynamicPropertySlotRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&PropertySlot)");
+            WriteToBuffer(&buffer, &n, _u(" (&PropertySlot)"));
             break;
 
         case AddrOpndKindDynamicBailOutKindRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&BailOutKind)");
+            WriteToBuffer(&buffer, &n, _u(" (&BailOutKind)"));
             break;
 
         case AddrOpndKindDynamicArrayCallSiteInfo:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (ArrayCallSiteInfo)");
+            WriteToBuffer(&buffer, &n, _u(" (ArrayCallSiteInfo)"));
             break;
 
         case AddrOpndKindDynamicTypeCheckGuard:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (TypeCheckGuard)");
+            WriteToBuffer(&buffer, &n, _u(" (TypeCheckGuard)"));
             break;
 
         case AddrOpndKindDynamicRecyclerAllocatorEndAddressRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&RecyclerAllocatorEndAddress)");
+            WriteToBuffer(&buffer, &n, _u(" (&RecyclerAllocatorEndAddress)"));
             break;
 
         case AddrOpndKindDynamicRecyclerAllocatorFreeListRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&RecyclerAllocatorFreeList)");
+            WriteToBuffer(&buffer, &n, _u(" (&RecyclerAllocatorFreeList)"));
             break;
 
         case IR::AddrOpndKindDynamicFunctionBody:
@@ -3355,29 +3369,29 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
         case IR::AddrOpndKindDynamicFunctionBodyWeakRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             // TODO: OOP JIT
-            //DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, L"FunctionBodyWeakRef");
+            // DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, _u("FunctionBodyWeakRef"));
             break;
 
         case IR::AddrOpndKindDynamicFunctionEnvironmentRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             DumpFunctionInfo(&buffer, &n, ((Js::ScriptFunction *)((intptr_t)address - Js::ScriptFunction::GetOffsetOfEnvironment()))->GetFunctionInfo(),
-                printToConsole, L"ScriptFunctionEnvironmentRef");
+                printToConsole, _u("ScriptFunctionEnvironmentRef"));
             break;
         case IR::AddrOpndKindDynamicVtable:
             if ((INT_PTR)address == Js::ScriptContextOptimizationOverrideInfo::InvalidVtable)
             {
-                WriteToBuffer(&buffer, &n, L"%d (Invalid Vtable)", Js::ScriptContextOptimizationOverrideInfo::InvalidVtable);
+                WriteToBuffer(&buffer, &n, _u("%d (Invalid Vtable)"), Js::ScriptContextOptimizationOverrideInfo::InvalidVtable);
             }
             else
             {
                 DumpAddress(address, printToConsole, skipMaskedAddress);
-                WriteToBuffer(&buffer, &n, L" (%S Vtable)", func->GetVtableName((INT_PTR)address));
+                WriteToBuffer(&buffer, &n, _u(" (%S Vtable)"), func->GetVtableName((INT_PTR)address));
             }
             break;
 
         case IR::AddrOpndKindDynamicTypeHandler:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (TypeHandler)");
+            WriteToBuffer(&buffer, &n, _u(" (TypeHandler)"));
             break;
 
         case IR::AddrOpndKindDynamicObjectTypeRef:
@@ -3388,12 +3402,12 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
                 if (Js::JavascriptFunction::Is(dynamicObject))
                 {
                     DumpFunctionInfo(&buffer, &n, Js::JavascriptFunction::FromVar((void *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
-                        printToConsole, L"FunctionObjectTypeRef");
+                        printToConsole, _u("FunctionObjectTypeRef"));
                 }
                 else
 #endif
                 {
-                    WriteToBuffer(&buffer, &n, L" (ObjectTypeRef)");
+                    WriteToBuffer(&buffer, &n, _u(" (ObjectTypeRef)"));
                 }
             }
             break;
@@ -3406,28 +3420,28 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
                 switch (typeId)
                 {
                 case Js::TypeIds_Number:
-                    WriteToBuffer(&buffer, &n, L" (Type: StaticNumber)");
+                    WriteToBuffer(&buffer, &n, _u(" (Type: StaticNumber)"));
                     break;
                 case Js::TypeIds_String:
-                    WriteToBuffer(&buffer, &n, L" (Type: StaticString)");
+                    WriteToBuffer(&buffer, &n, _u(" (Type: StaticString)"));
                     break;
                 case Js::TypeIds_Object:
-                    WriteToBuffer(&buffer, &n, L" (Type: Object)");
+                    WriteToBuffer(&buffer, &n, _u(" (Type: Object)"));
                     break;
                 case Js::TypeIds_RegEx:
-                    WriteToBuffer(&buffer, &n, L" (Type: Regex)");
+                    WriteToBuffer(&buffer, &n, _u(" (Type: Regex)"));
                     break;
                 case Js::TypeIds_Array:
-                    WriteToBuffer(&buffer, &n, L" (Type: Array)");
+                    WriteToBuffer(&buffer, &n, _u(" (Type: Array)"));
                     break;
                 case Js::TypeIds_NativeIntArray:
-                    WriteToBuffer(&buffer, &n, L" (Type: NativeIntArray)");
+                    WriteToBuffer(&buffer, &n, _u(" (Type: NativeIntArray)"));
                     break;
                 case Js::TypeIds_NativeFloatArray:
-                    WriteToBuffer(&buffer, &n, L" (Type: NativeFltArray)");
+                    WriteToBuffer(&buffer, &n, _u(" (Type: NativeFltArray)"));
                     break;
                 default:
-                    WriteToBuffer(&buffer, &n, L" (Type: Id %d)", typeId);
+                    WriteToBuffer(&buffer, &n, _u(" (Type: Id %d)"), typeId);
                     break;
                 }
             }
@@ -3437,92 +3451,92 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
         case AddrOpndKindDynamicFrameDisplay:
             {
                 Js::FrameDisplay * frameDisplay = (Js::FrameDisplay *)address;
-                WriteToBuffer(&buffer, &n, (frameDisplay->GetStrictMode() ? L" (StrictFrameDisplay len %d)" : L" (FrameDisplay len %d)"),
+                WriteToBuffer(&buffer, &n, (frameDisplay->GetStrictMode() ? _u(" (StrictFrameDisplay len %d)") : _u(" (FrameDisplay len %d)")),
                     frameDisplay->GetLength());
             }
             break;
         case AddrOpndKindSz:
-            WriteToBuffer(&buffer, &n, wcslen((wchar_t const *)address) > 30 ? L"\"%.30s...\"" : L"\"%.30s\"", address);
+            WriteToBuffer(&buffer, &n, wcslen((char16 const *)address) > 30 ? _u("\"%.30s...\"") : _u("\"%.30s\""), address);
             break;
         case AddrOpndKindDynamicFloatRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&(float)%f)", *(float *)address);
+            WriteToBuffer(&buffer, &n, _u(" (&(float)%f)"), *(float *)address);
             break;
         case AddrOpndKindDynamicDoubleRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&(double)%f)", *(double *)address);
+            WriteToBuffer(&buffer, &n, _u(" (&(double)%f)"), *(double *)address);
             break;
         case AddrOpndKindDynamicNativeCodeDataRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, L" (&NativeCodeData)");
+            WriteToBuffer(&buffer, &n, _u(" (&NativeCodeData)"));
             break;
         default:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             if ((intptr_t)address == func->GetThreadContextInfo()->GetNullFrameDisplayAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (NullFrameDisplay)");
+                WriteToBuffer(&buffer, &n, _u(" (NullFrameDisplay)"));
             }
             else if ((intptr_t)address == func->GetThreadContextInfo()->GetStrictNullFrameDisplayAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (StrictNullFrameDisplay)");
+                WriteToBuffer(&buffer, &n, _u(" (StrictNullFrameDisplay)"));
             }
             else if ((intptr_t)address == func->GetThreadContextInfo()->GetImplicitCallFlagsAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (&ImplicitCallFlags)");
+                WriteToBuffer(&buffer, &n, _u(" (&ImplicitCallFlags)"));
             }
             else if ((intptr_t)address == func->GetThreadContextInfo()->GetDisableImplicitFlagsAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (&DisableImplicitCallFlags)");
+                WriteToBuffer(&buffer, &n, _u(" (&DisableImplicitCallFlags)"));
             }
             else if ((intptr_t)address == func->GetThreadContextInfo()->GetThreadStackLimitAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (&StackLimit)");
+                WriteToBuffer(&buffer, &n, _u(" (&StackLimit)"));
             }
             else if (func->GetWorkItem()->Type() == JsFunctionType && (intptr_t)address == func->GetWorkItem()->GetCallsCountAddress())
             {
-                WriteToBuffer(&buffer, &n, L" (&CallCount)");
+                WriteToBuffer(&buffer, &n, _u(" (&CallCount)"));
             }
             else if ((intptr_t)address == func->GetScriptContextInfo()->GetSideEffectsAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_SideEffects)");
+                WriteToBuffer(&buffer, &n, _u(" (&OptimizationOverrides_SideEffects)"));
             }
             else if ((intptr_t)address == func->GetScriptContextInfo()->GetArraySetElementFastPathVtableAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_ArraySetElementFastPathVtable)");
+                WriteToBuffer(&buffer, &n, _u(" (&OptimizationOverrides_ArraySetElementFastPathVtable)"));
             }
             else if ((intptr_t)address == func->GetScriptContextInfo()->GetIntArraySetElementFastPathVtableAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_IntArraySetElementFastPathVtable)");
+                WriteToBuffer(&buffer, &n, _u(" (&OptimizationOverrides_IntArraySetElementFastPathVtable)"));
             }
             else if ((intptr_t)address == func->GetScriptContextInfo()->GetFloatArraySetElementFastPathVtableAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_FloatArraySetElementFastPathVtable)");
+                WriteToBuffer(&buffer, &n, _u(" (&OptimizationOverrides_FloatArraySetElementFastPathVtable)"));
             }
             else if ((intptr_t)address == func->GetScriptContextInfo()->GetNumberAllocatorAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (NumberAllocator)");
+                WriteToBuffer(&buffer, &n, _u(" (NumberAllocator)"));
             }
             else if ((intptr_t)address == func->GetScriptContextInfo()->GetRecyclerAddr())
             {
-                WriteToBuffer(&buffer, &n, L" (Recycler)");
+                WriteToBuffer(&buffer, &n, _u(" (Recycler)"));
             }
 #if 0 // TODO: michhol reenable dump of addresses
             else if (func->CanAllocInPreReservedHeapPageSegment() &&
                 func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedRegionPresent() &&
                 address == func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->GetPreReservedEndAddress())
             {
-                WriteToBuffer(&buffer, &n, L" (PreReservedCodeSegmentEnd)");
+                WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_FloatArraySetElementFastPathVtable)");
             }
 #endif
             else
             {
-                WriteToBuffer(&buffer, &n, L" (Unknown)");
+                WriteToBuffer(&buffer, &n, _u(" (Unknown)"));
             }
         }
     }
     else
     {
-        WriteToBuffer(&buffer, &n, L"(NULL)");
+        WriteToBuffer(&buffer, &n, _u("(NULL)"));
     }
 }
 
@@ -3542,10 +3556,10 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
     @param func
 */
 void
-Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const size_t count, bool AsmDumpMode,
+Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const size_t count, bool AsmDumpMode,
                          bool printToConsole, Func *func)
 {
-    wchar_t *buffer = description;
+    char16 *buffer = description;
     size_t n = count;
 
     IR::AddrOpnd * addrOpnd = this->AsAddrOpnd();
@@ -3568,11 +3582,11 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
     {
         if (AsmDumpMode)
         {
-            WriteToBuffer(&buffer, &n, L" [encoded]");
+            WriteToBuffer(&buffer, &n, _u(" [encoded]"));
         }
         else
         {
-            WriteToBuffer(&buffer, &n, L" [encoded: 0x%08X", addrOpnd->m_address);
+            WriteToBuffer(&buffer, &n, _u(" [encoded: 0x%08X"), addrOpnd->m_address);
         }
     }
 

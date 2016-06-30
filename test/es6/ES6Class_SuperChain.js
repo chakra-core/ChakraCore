@@ -609,7 +609,7 @@ var tests = [
             class NullExtendsExpression extends null {
             };
 
-            assert.throws(function() { new NullExtendsExpression(); }, TypeError, "Class that extends null throws when we attempt to call super as [[construct]]", "Function 'super' is not a constructor");
+            assert.throws(function() { new NullExtendsExpression(); }, TypeError, "Class that extends null throws when we attempt to call super as [[construct]]");
         }
     },
     {

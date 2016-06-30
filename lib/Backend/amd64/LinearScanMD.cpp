@@ -2,8 +2,8 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
-#include "SCCLiveness.h"
+#include "Backend.h"
+#include "SccLiveness.h"
 
 extern const IRType RegTypes[RegNumCount];
 
@@ -115,6 +115,8 @@ LinearScanMD::LegalizeConstantUse(IR::Instr * instr, IR::Opnd * opnd)
         // we should hoist it and generate xor reg, reg and MOV dst, reg
         BitVector regsBv;
         regsBv.Copy(this->linearScan->activeRegs);
+        regsBv.Or(this->linearScan->callSetupRegs);
+
         regsBv.ComplimentAll();
         regsBv.And(this->linearScan->int32Regs);
         regsBv.Minus(this->linearScan->tempRegs);       // Avoid tempRegs
@@ -229,6 +231,11 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
     Func *const func = instr->m_func;
     BailOutInfo *const bailOutInfo = instr->GetBailOutInfo();
     IR::Instr *firstInstr = instr->m_prev;
+
+    // Code analysis doesn't do inter-procesure analysis and cannot infer the value of registerSaveSymsCount,
+    // but the passed in registerSaveSymsCount is static value RegNumCount-1, so reg-1 in below loop is always a valid index.
+    __analysis_assume(static_cast<int>(registerSaveSymsCount) == static_cast<int>(RegNumCount-1));
+    Assert(static_cast<int>(registerSaveSymsCount) == static_cast<int>(RegNumCount-1));
 
     // Save registers used for parameters, and rax, if necessary, into the shadow space allocated for register parameters:
     //     mov  [rsp + 16], rdx

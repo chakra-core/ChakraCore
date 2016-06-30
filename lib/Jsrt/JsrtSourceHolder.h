@@ -7,13 +7,14 @@
 class ISourceHolder;
 namespace Js
 {
+    template <typename TLoadCallback, typename TUnloadCallback>
     class JsrtSourceHolder sealed : public ISourceHolder
     {
     private:
         enum MapRequestFor { Source = 1, Length = 2 };
 
-        JsSerializedScriptLoadSourceCallback scriptLoadCallback;
-        JsSerializedScriptUnloadCallback scriptUnloadCallback;
+        TLoadCallback scriptLoadCallback;
+        TUnloadCallback scriptUnloadCallback;
         JsSourceContext sourceContext;
 
         utf8char_t const * mappedSource;
@@ -42,8 +43,8 @@ namespace Js
             _In_z_ const wchar_t *script, _Outptr_result_buffer_(*utf8Length) LPUTF8 *utf8Script, _Out_ size_t *utf8Length,
             _Out_ size_t *scriptLength, _Out_opt_ size_t *utf8AllocLength = NULL, _In_ bool heapAlloc = false);
 
-        JsrtSourceHolder(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
-            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
+        JsrtSourceHolder(_In_ TLoadCallback scriptLoadCallback,
+            _In_ TUnloadCallback scriptUnloadCallback,
             _In_ JsSourceContext sourceContext) :
             scriptLoadCallback(scriptLoadCallback),
             scriptUnloadCallback(scriptUnloadCallback),
@@ -92,9 +93,9 @@ namespace Js
         virtual bool Equals(ISourceHolder* other) override
         {
             return this == other ||
-                (this->GetByteLength(L"Equal Comparison") == other->GetByteLength(L"Equal Comparison")
-                    && (this->GetSource(L"Equal Comparison") == other->GetSource(L"Equal Comparison")
-                        || memcmp(this->GetSource(L"Equal Comparison"), other->GetSource(L"Equal Comparison"), this->GetByteLength(L"Equal Comparison")) == 0));
+                (this->GetByteLength(_u("Equal Comparison")) == other->GetByteLength(_u("Equal Comparison"))
+                    && (this->GetSource(_u("Equal Comparison")) == other->GetSource(_u("Equal Comparison"))
+                        || memcmp(this->GetSource(_u("Equal Comparison")), other->GetSource(_u("Equal Comparison")), this->GetByteLength(_u("Equal Comparison"))) == 0));
         }
 
         virtual ISourceHolder* Clone(ScriptContext *scriptContext) override
@@ -104,8 +105,8 @@ namespace Js
 
         virtual int GetHashCode() override
         {
-            LPCUTF8 source = GetSource(L"Hash Code Calculation");
-            size_t byteLength = GetByteLength(L"Hash Code Calculation");
+            LPCUTF8 source = GetSource(_u("Hash Code Calculation"));
+            size_t byteLength = GetByteLength(_u("Hash Code Calculation"));
             Assert(byteLength < MAXUINT32);
             return JsUtil::CharacterBuffer<utf8char_t>::StaticGetHashCode(source, (charcount_t)byteLength);
         }

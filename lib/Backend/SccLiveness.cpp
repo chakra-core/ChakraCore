@@ -1,10 +1,11 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
 
-#include "SCCLiveness.h"
+#include "Backend.h"
+
+#include "SccLiveness.h"
 
 
 // Build SCC liveness.  SCC stands for Strongly Connected Components.  It's a simple
@@ -149,7 +150,7 @@ SCCLiveness::Build()
 
         if (instr->IsLabelInstr())
         {
-            IR::LabelInstr * labelInstr = instr->AsLabelInstr();
+            IR::LabelInstr * const labelInstr = instr->AsLabelInstr();
 
             if (labelInstr->IsUnreferenced())
             {
@@ -190,7 +191,6 @@ SCCLiveness::Build()
             {
                 this->loopNest++;       // used in spill cost calculation.
 
-                IR::LabelInstr * labelInstr = instr->AsLabelInstr();
                 uint32 lastBranchNum = 0;
                 IR::BranchInstr *lastBranchInstr = nullptr;
 
@@ -398,6 +398,13 @@ SCCLiveness::ProcessDst(IR::Opnd *dst, IR::Instr *instr)
             }
         }
     }
+#if defined(_M_X64) || defined(_M_IX86)
+    else if (instr->m_opcode == Js::OpCode::SHUFPS || instr->m_opcode == Js::OpCode::SHUFPD)
+    {
+        // dst is the first src, make sure it gets the same live reg
+        this->ProcessRegUse(dst->AsRegOpnd(), instr);
+    }
+#endif
     else if (dst->IsRegOpnd())
     {
         this->ProcessRegDef(dst->AsRegOpnd(), instr);
@@ -469,11 +476,11 @@ SCCLiveness::ProcessStackSymUse(StackSym * stackSym, IR::Instr * instr, int usag
     if (lifetime == nullptr)
     {
 #if DBG
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"Function: %s (%s)       ", this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer));
-        Output::Print(L"Reg: ");
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        Output::Print(_u("Function: %s (%s)       "), this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(_u("Reg: "));
         stackSym->Dump();
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
         Output::Flush();
 #endif
         AnalysisAssertMsg(UNREACHED, "Uninitialized reg?");
@@ -563,9 +570,17 @@ SCCLiveness::ProcessRegDef(IR::RegOpnd *regDef, IR::Instr *instr)
         lifetime = this->InsertLifetime(stackSym, regDef->GetReg(), instr);
         lifetime->region = this->curRegion;
         lifetime->isFloat = regDef->IsFloat();
-        lifetime->isSimd128F4 = regDef->IsSimd128F4();
-        lifetime->isSimd128I4 = regDef->IsSimd128I4();
-        lifetime->isSimd128D2 = regDef->IsSimd128D2();
+        lifetime->isSimd128F4   = regDef->IsSimd128F4();
+        lifetime->isSimd128I4   = regDef->IsSimd128I4 ();
+        lifetime->isSimd128I8   = regDef->IsSimd128I8 ();
+        lifetime->isSimd128I16  = regDef->IsSimd128I16();
+        lifetime->isSimd128U4   = regDef->IsSimd128U4 ();
+        lifetime->isSimd128U8   = regDef->IsSimd128U8 ();
+        lifetime->isSimd128U16  = regDef->IsSimd128U16();
+        lifetime->isSimd128B4 = regDef->IsSimd128B4();
+        lifetime->isSimd128B8 = regDef->IsSimd128B8();
+        lifetime->isSimd128B16 = regDef->IsSimd128B16();
+        lifetime->isSimd128D2   = regDef->IsSimd128D2();
     }
     else
     {
@@ -656,9 +671,9 @@ SCCLiveness::ExtendLifetime(Lifetime *lifetime, IR::Instr *instr)
         if (isLifetimeExtended)
         {
             // Keep track of the lifetime extended for this loop so we can update the call bits
-            FOREACH_SLISTBASE_ENTRY(Loop *, loop, this->extendedLifetimesLoopList)
+            FOREACH_SLISTBASE_ENTRY(Loop *, currLoop, this->extendedLifetimesLoopList)
             {
-                loop->regAlloc.extendedLifetime->Prepend(lifetime);
+                currLoop->regAlloc.extendedLifetime->Prepend(lifetime);
             }
             NEXT_SLISTBASE_ENTRY
         }
@@ -674,8 +689,8 @@ Lifetime *
 SCCLiveness::InsertLifetime(StackSym *stackSym, RegNum reg, IR::Instr *const currentInstr)
 {
     const uint start = currentInstr->GetNumber(), end = start;
-    Lifetime * lifetime = JitAnew(tempAlloc, Lifetime, tempAlloc, stackSym, reg, start, end, this->func);
-    lifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(currentInstr);
+    Lifetime * newLlifetime = JitAnew(tempAlloc, Lifetime, tempAlloc, stackSym, reg, start, end, this->func);
+    newLlifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(currentInstr);
 
     // Find insertion point
     // This looks like a search, but we should almost exit on the first iteration, except
@@ -689,17 +704,17 @@ SCCLiveness::InsertLifetime(StackSym *stackSym, RegNum reg, IR::Instr *const cur
     }
     NEXT_SLIST_ENTRY_EDITING;
 
-    iter.InsertBefore(lifetime);
+    iter.InsertBefore(newLlifetime);
 
     // let's say 'var a = 10;'. if a is not used in the function, we still want to have the instr, otherwise the write-through will not happen and upon debug bailout
     // we would not be able to restore the values to see in locals window.
     if (this->func->IsJitInDebugMode() && stackSym->HasByteCodeRegSlot() && this->func->IsNonTempLocalVar(stackSym->GetByteCodeRegSlot()))
     {
-        lifetime->isDeadStore = false;
+        newLlifetime->isDeadStore = false;
     }
 
-    stackSym->scratch.linearScan.lifetime = lifetime;
-    return lifetime;
+    stackSym->scratch.linearScan.lifetime = newLlifetime;
+    return newLlifetime;
 }
 
 bool
@@ -794,12 +809,12 @@ void
 SCCLiveness::Dump()
 {
     this->func->DumpHeader();
-    Output::Print(L"************   Liveness   ************\n");
+    Output::Print(_u("************   Liveness   ************\n"));
 
     FOREACH_SLIST_ENTRY(Lifetime *, lifetime, &this->lifetimeList)
     {
         lifetime->sym->Dump();
-        Output::Print(L": live range %3d - %3d (XUserCall: %d, XCall: %d)\n", lifetime->start, lifetime->end,
+        Output::Print(_u(": live range %3d - %3d (XUserCall: %d, XCall: %d)\n"), lifetime->start, lifetime->end,
             lifetime->isLiveAcrossUserCalls,
             lifetime->isLiveAcrossCalls);
     }
@@ -808,7 +823,7 @@ SCCLiveness::Dump()
 
     FOREACH_INSTR_IN_FUNC(instr, func)
     {
-        Output::Print(L"%3d > ", instr->GetNumber());
+        Output::Print(_u("%3d > "), instr->GetNumber());
         instr->Dump();
     } NEXT_INSTR_IN_FUNC;
 }

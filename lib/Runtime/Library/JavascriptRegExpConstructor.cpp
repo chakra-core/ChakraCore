@@ -7,6 +7,13 @@
 
 namespace Js
 {
+    // The VS2013 linker treats this as a redefinition of an already
+    // defined constant and complains. So skip the declaration if we're compiling
+    // with VS2013 or below.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    const int JavascriptRegExpConstructor::NumCtorCaptures;
+#endif
+
     JavascriptRegExpConstructor::JavascriptRegExpConstructor(DynamicType * type) :
         RuntimeFunction(type, &JavascriptRegExp::EntryInfo::NewInstance),
         reset(false),

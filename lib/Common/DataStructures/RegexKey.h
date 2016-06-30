@@ -11,7 +11,7 @@ namespace UnifiedRegex
     class RegexKey
     {
     private:
-        const wchar_t *source;
+        const char16 *source;
         int length;
         RegexFlags flags;
 
@@ -20,7 +20,7 @@ namespace UnifiedRegex
         {
         }
 
-        RegexKey(const wchar_t *const source, const int length, const RegexFlags flags)
+        RegexKey(const char16 *const source, const int length, const RegexFlags flags)
             : source(source), length(length), flags(flags)
         {
             Assert(source);
@@ -38,7 +38,7 @@ namespace UnifiedRegex
             return *this;
         }
 
-        const wchar_t *Source() const
+        const char16 *Source() const
         {
             return source;
         }
@@ -56,7 +56,7 @@ namespace UnifiedRegex
 
     struct RegexKeyComparer
     {
-        __inline static bool Equals(const RegexKey &key1, const RegexKey &key2)
+        inline static bool Equals(const RegexKey &key1, const RegexKey &key2)
         {
             return
                 Js::InternalStringComparer::Equals(
@@ -65,7 +65,7 @@ namespace UnifiedRegex
                 key1.Flags() == key2.Flags();
         }
 
-        __inline static hash_t GetHashCode(const RegexKey &key)
+        inline static hash_t GetHashCode(const RegexKey &key)
         {
             return Js::InternalStringComparer::GetHashCode(Js::InternalString(key.Source(), key.Length()));
         }

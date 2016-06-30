@@ -27,6 +27,7 @@ check(-(Math.PI) / 2, -3, -0);
 
 check(0, 3, +Infinity);
 check((Math.PI), 3, -Infinity);
+check((-Math.PI), -3, -Infinity);
 
 check(-0, -3, +Infinity);
 
@@ -35,6 +36,10 @@ check(-(Math.PI) / 2, -Infinity, 3);
 check((Math.PI) / 2, +Infinity, -3);
 check(-(Math.PI) / 2, -Infinity, -3);
 
+check(Math.PI / 4, +Infinity, +Infinity);
+check(3 * Math.PI / 4, +Infinity, -Infinity);
+check(-Math.PI / 4, -Infinity, +Infinity);
+check(-3 * Math.PI / 4, -Infinity, -Infinity);
 
 check((Math.PI) / 4, 5, 5.0);
 

@@ -29,6 +29,7 @@ namespace Projection
 namespace Js
 {
     class MissingPropertyTypeHandler;
+    class SourceTextModuleRecord;
     typedef RecyclerFastAllocator<JavascriptNumber, LeafBit> RecyclerJavascriptNumberAllocator;
 
     class UndeclaredBlockVariable : public RecyclableObject
@@ -36,6 +37,9 @@ namespace Js
         friend class JavascriptLibrary;
         UndeclaredBlockVariable(Type* type) : RecyclableObject(type) { }
     };
+
+    class SourceTextModuleRecord;
+    typedef JsUtil::List<SourceTextModuleRecord*> ModuleRecordList;
 
 #if ENABLE_COPYONACCESS_ARRAY
     struct CacheForCopyOnAccessArraySegments
@@ -125,7 +129,7 @@ namespace Js
         friend class Projection::WinRTPromiseEngineInterfaceExtensionObject;
         friend class Projection::ProjectionContext;
 #endif
-        static const wchar_t* domBuiltinPropertyNames[];
+        static const char16* domBuiltinPropertyNames[];
 
     public:
 #if ENABLE_COPYONACCESS_ARRAY
@@ -257,6 +261,17 @@ namespace Js
         StaticType  * uint64NumberTypeStatic;
 
         // SIMD_JS
+        DynamicType * simdBool8x16TypeDynamic;
+        DynamicType * simdBool16x8TypeDynamic;
+        DynamicType * simdBool32x4TypeDynamic;
+        DynamicType * simdInt8x16TypeDynamic;
+        DynamicType * simdInt16x8TypeDynamic;
+        DynamicType * simdInt32x4TypeDynamic;
+        DynamicType * simdUint8x16TypeDynamic;
+        DynamicType * simdUint16x8TypeDynamic;
+        DynamicType * simdUint32x4TypeDynamic;
+        DynamicType * simdFloat32x4TypeDynamic;
+
         StaticType * simdFloat32x4TypeStatic;
         StaticType * simdInt32x4TypeStatic;
         StaticType * simdInt8x16TypeStatic;
@@ -272,6 +287,7 @@ namespace Js
         DynamicType * numberTypeDynamic;
         DynamicType * objectTypes[PreInitializedObjectTypeCount];
         DynamicType * objectHeaderInlinedTypes[PreInitializedObjectTypeCount];
+        DynamicType * regexPrototypeType;
         DynamicType * regexType;
         DynamicType * regexResultType;
         StaticType  * stringTypeStatic;
@@ -354,7 +370,6 @@ namespace Js
         JavascriptFunction* arrayPrototypeToLocaleStringFunction;
         JavascriptFunction* identityFunction;
         JavascriptFunction* throwerFunction;
-        JavascriptFunction* hostPromiseContinuationFunction;
         JavascriptFunction* promiseResolveFunction;
 
         JavascriptFunction* objectValueOfFunction;
@@ -377,15 +392,38 @@ namespace Js
 
 
         JavascriptSymbol* symbolMatch;
+        JavascriptSymbol* symbolReplace;
         JavascriptSymbol* symbolSearch;
+        JavascriptSymbol* symbolSplit;
 
         UnifiedRegex::RegexPattern * emptyRegexPattern;
+        JavascriptFunction* regexExecFunction;
+        JavascriptFunction* regexFlagsGetterFunction;
+        JavascriptFunction* regexGlobalGetterFunction;
+        JavascriptFunction* regexStickyGetterFunction;
+        JavascriptFunction* regexUnicodeGetterFunction;
+
+        int regexConstructorSlotIndex;
+        int regexExecSlotIndex;
+        int regexFlagsGetterSlotIndex;
+        int regexGlobalGetterSlotIndex;
+        int regexStickyGetterSlotIndex;
+        int regexUnicodeGetterSlotIndex;
 
         mutable CharStringCache charStringCache;
 
         PromiseContinuationCallback nativeHostPromiseContinuationFunction;
         void *nativeHostPromiseContinuationFunctionState;
 
+        typedef SList<Js::FunctionProxy*, Recycler> FunctionReferenceList;
+
+        void * bindRefChunkBegin;
+        void ** bindRefChunkCurrent;
+        void ** bindRefChunkEnd;
+        TypePath* rootPath;         // this should be in library instead of ScriptContext::Cache
+        void* scriptContextCache;   // forward declaration for point to ScriptContext::Cache such that we don't need to hard pin it.
+        FunctionReferenceList* dynamicFunctionReference;
+        uint dynamicFunctionReferenceDepth;
         FinalizableObject* jsrtContextObject;
 
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<RecyclableObject>*, Recycler, PowerOf2SizePolicy, RecyclerWeakReference<RecyclableObject>*, StringTemplateCallsiteObjectComparer> StringTemplateCallsiteObjectList;
@@ -394,6 +432,8 @@ namespace Js
         // We use the raw strings in the callsite object (or a string template parse node) to identify unique callsite objects in the list.
         // See abstract operation GetTemplateObject in ES6 Spec (RC1) 12.2.8.3
         StringTemplateCallsiteObjectList* stringTemplateCallsiteObjectList;
+
+        ModuleRecordList* moduleRecordList;
 
         // This list contains types ensured to have only writable data properties in it and all objects in its prototype chain
         // (i.e., no readonly properties or accessors). Only prototype objects' types are stored in the list. When something
@@ -417,27 +457,19 @@ namespace Js
         bool inDispatchProfileMode;
         bool arrayObjectHasUserDefinedSpecies;
 
-        JavascriptFunction * AddFunctionToLibraryObjectWithPrototype(GlobalObject * globalObject, PropertyId propertyId, FunctionInfo * functionInfo, int length, DynamicObject * prototype = nullptr, DynamicType * functionType = nullptr);
+        JavascriptFunction * AddFunctionToLibraryObjectWithPrototype(DynamicObject * object, PropertyId propertyId, FunctionInfo * functionInfo, int length, DynamicObject * prototype = nullptr, DynamicType * functionType = nullptr);
         JavascriptFunction * AddFunctionToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * functionInfo, int length, PropertyAttributes attributes = PropertyBuiltInMethodDefaults);
 
         JavascriptFunction * AddFunctionToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * functionInfo, int length);
+        RuntimeFunction* AddGetterToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo* functionInfo);
         void AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo);
-        void AddAccessorsToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo);
+        void AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, RecyclableObject * getterFunction, RecyclableObject * setterFunction);
+        void AddAccessorsToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunction);
+        RuntimeFunction * CreateGetterFunction(PropertyId nameId, FunctionInfo* functionInfo);
+        RuntimeFunction * CreateSetterFunction(PropertyId nameId, FunctionInfo* functionInfo);
 
         template <size_t N>
-        JavascriptFunction * AddFunctionToLibraryObjectWithPropertyName(DynamicObject* object, const wchar_t(&propertyName)[N], FunctionInfo * functionInfo, int length);
-
-        bool isHybridDebugging; // If this library is in hybrid debugging mode
-        bool isLibraryReadyForHybridDebugging; // If this library is ready for hybrid debugging (library objects using deferred type handler have been un-deferred)
-
-        bool IsHybridDebugging() const { return isHybridDebugging; }
-        void EnsureLibraryReadyForHybridDebugging();
-        DynamicObject* EnsureReadyIfHybridDebugging(DynamicObject* obj);
-        template <class T> T* EnsureReadyIfHybridDebugging(T* obj)
-        {
-            DynamicObject * dynamicObject = obj;
-            return (T*)EnsureReadyIfHybridDebugging(dynamicObject);
-        }
+        JavascriptFunction * AddFunctionToLibraryObjectWithPropertyName(DynamicObject* object, const char16(&propertyName)[N], FunctionInfo * functionInfo, int length);
 
         static SimpleTypeHandler<1> SharedPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedFunctionWithoutPrototypeTypeHandler;
@@ -473,15 +505,20 @@ namespace Js
                               identityFunction(nullptr),
                               throwerFunction(nullptr),
                               jsrtContextObject(nullptr),
+                              scriptContextCache(nullptr),
                               externalLibraryList(nullptr),
                               cachedForInEnumerator(nullptr),
 #if ENABLE_COPYONACCESS_ARRAY
                               cacheForCopyOnAccessArraySegments(nullptr),
 #endif
-                              isHybridDebugging(false),
-                              isLibraryReadyForHybridDebugging(false),
                               referencedPropertyRecords(nullptr),
-                              stringTemplateCallsiteObjectList(nullptr)
+                              stringTemplateCallsiteObjectList(nullptr),
+                              moduleRecordList(nullptr),
+                              rootPath(nullptr),
+                              bindRefChunkBegin(nullptr),
+                              bindRefChunkCurrent(nullptr),
+                              bindRefChunkEnd(nullptr),
+                              dynamicFunctionReference(nullptr)
         {
             globalObject = globalObject;
         }
@@ -508,7 +545,9 @@ namespace Js
         JavascriptSymbol* GetSymbolIsConcatSpreadable() { return symbolIsConcatSpreadable; }
         JavascriptSymbol* GetSymbolIterator() { return symbolIterator; }
         JavascriptSymbol* GetSymbolMatch() { return symbolMatch; }
+        JavascriptSymbol* GetSymbolReplace() { return symbolReplace; }
         JavascriptSymbol* GetSymbolSearch() { return symbolSearch; }
+        JavascriptSymbol* GetSymbolSplit() { return symbolSplit; }
         JavascriptSymbol* GetSymbolSpecies() { return symbolSpecies; }
         JavascriptSymbol* GetSymbolToPrimitive() { return symbolToPrimitive; }
         JavascriptSymbol* GetSymbolToStringTag() { return symbolToStringTag; }
@@ -567,7 +606,6 @@ namespace Js
         JavascriptFunction* GetStringConstructor() const {return stringConstructor; }
         JavascriptFunction* GetArrayBufferConstructor() const {return arrayBufferConstructor; }
         JavascriptFunction* GetErrorConstructor() const { return errorConstructor; }
-        JavascriptFunction* GetTypedArrayConstructor() const { return typedArrayConstructor; }
         JavascriptFunction* GetInt8ArrayConstructor() const {return Int8ArrayConstructor; }
         JavascriptFunction* GetUint8ArrayConstructor() const {return Uint8ArrayConstructor; }
         JavascriptFunction* GetInt16ArrayConstructor() const {return Int16ArrayConstructor; }
@@ -581,13 +619,57 @@ namespace Js
         JavascriptFunction* GetSetConstructor() const {return  setConstructor; }
         JavascriptFunction* GetSymbolConstructor() const {return symbolConstructor; }
         JavascriptFunction* GetEvalFunctionObject() { return evalFunctionObject; }
-        JavascriptFunction* GetArrayPrototypeValuesFunction() { return arrayPrototypeValuesFunction; }
+        JavascriptFunction* GetArrayPrototypeValuesFunction() { return EnsureArrayPrototypeValuesFunction(); }
+        JavascriptFunction* GetArrayIteratorPrototypeBuiltinNextFunction() { return arrayIteratorPrototypeBuiltinNextFunction; }
         DynamicObject* GetMathObject() const {return mathObject; }
         DynamicObject* GetJSONObject() const {return JSONObject; }
         DynamicObject* GetReflectObject() const { return reflectObject; }
         const PropertyDescriptor* GetDefaultPropertyDescriptor() const { return &defaultPropertyDescriptor; }
         DynamicObject* GetMissingPropertyHolder() const { return missingPropertyHolder; }
 
+#if ENABLE_TTD
+        Js::PropertyId ExtractPrimitveSymbolId_TTD(Var value);
+        Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::PropertyId pid);
+        Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::JavascriptString* str);
+
+        Js::RecyclableObject* CreateBooleanObject_TTD(Var value);
+        Js::RecyclableObject* CreateNumberObject_TTD(Var value);
+        Js::RecyclableObject* CreateStringObject_TTD(Var value);
+        Js::RecyclableObject* CreateSymbolObject_TTD(Var value);
+
+        Js::RecyclableObject* CreateDate_TTD(double value);
+        Js::RecyclableObject* CreateRegex_TTD(const char16* patternSource, uint32 patternLength, UnifiedRegex::RegexFlags flags, CharCount lastIndex);
+        Js::RecyclableObject* CreateError_TTD();
+
+        Js::RecyclableObject* CreateES5Array_TTD();
+
+        Js::RecyclableObject* CreateSet_TTD();
+        Js::RecyclableObject* CreateWeakSet_TTD();
+        static void AddSetElementInflate_TTD(Js::JavascriptSet* set, Var value);
+        static void AddWeakSetElementInflate_TTD(Js::JavascriptWeakSet* set, Var value);
+
+        Js::RecyclableObject* CreateMap_TTD();
+        Js::RecyclableObject* CreateWeakMap_TTD();
+        static void AddMapElementInflate_TTD(Js::JavascriptMap* map, Var key, Var value);
+        static void AddWeakMapElementInflate_TTD(Js::JavascriptWeakMap* map, Var key, Var value);
+
+        Js::RecyclableObject* CreateExternalFunction_TTD(Js::JavascriptString* fname);
+        Js::RecyclableObject* CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args);
+
+        Js::RecyclableObject* CreateProxy_TTD(RecyclableObject* handler, RecyclableObject* target);
+        Js::RecyclableObject* CreateRevokeFunction_TTD(RecyclableObject* proxy);
+
+        Js::RecyclableObject* CreateHeapArguments_TTD(uint32 numOfArguments, uint32 formalCount, ActivationObject* frameObject, byte* deletedArray);
+        Js::RecyclableObject* CreateES5HeapArguments_TTD(uint32 numOfArguments, uint32 formalCount, ActivationObject* frameObject, byte* deletedArray);
+
+        Js::JavascriptPromiseCapability* CreatePromiseCapability_TTD(Var promise, Var resolve, Var reject);
+        Js::JavascriptPromiseReaction* CreatePromiseReaction_TTD(RecyclableObject* handler, JavascriptPromiseCapability* capabilities);
+
+        Js::RecyclableObject* CreatePromise_TTD(uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions);
+        JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* CreateAlreadyDefinedWrapper_TTD(bool alreadyDefined);
+        Js::RecyclableObject* CreatePromiseResolveOrRejectFunction_TTD(RecyclableObject* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolved);
+        Js::RecyclableObject* CreatePromiseReactionTaskFunction_TTD(JavascriptPromiseReaction* reaction, Var argument);
+#endif
 
 #ifdef ENABLE_INTL_OBJECT
         DynamicObject* GetINTLObject() const { return IntlObject; }
@@ -627,6 +709,17 @@ namespace Js
         DynamicType * GetPromiseType() const { return promiseType; }
 
         // SIMD_JS
+        DynamicType * GetSIMDBool8x16TypeDynamic()  const { return simdBool8x16TypeDynamic;  }
+        DynamicType * GetSIMDBool16x8TypeDynamic()  const { return simdBool16x8TypeDynamic;  }
+        DynamicType * GetSIMDBool32x4TypeDynamic()  const { return simdBool32x4TypeDynamic;  }
+        DynamicType * GetSIMDInt8x16TypeDynamic()   const { return simdInt8x16TypeDynamic;   }
+        DynamicType * GetSIMDInt16x8TypeDynamic()   const { return simdInt16x8TypeDynamic;   }
+        DynamicType * GetSIMDInt32x4TypeDynamic()   const { return simdInt32x4TypeDynamic;   }
+        DynamicType * GetSIMDUint8x16TypeDynamic()  const { return simdUint8x16TypeDynamic;  }
+        DynamicType * GetSIMDUint16x8TypeDynamic()  const { return simdUint16x8TypeDynamic;  }
+        DynamicType * GetSIMDUint32x4TypeDynamic()  const { return simdUint32x4TypeDynamic;  }
+        DynamicType * GetSIMDFloat32x4TypeDynamic() const { return simdFloat32x4TypeDynamic; }
+        
         StaticType* GetSIMDFloat32x4TypeStatic() const { return simdFloat32x4TypeStatic; }
         StaticType* GetSIMDFloat64x2TypeStatic() const { return simdFloat64x2TypeStatic; }
         StaticType* GetSIMDInt32x4TypeStatic()   const { return simdInt32x4TypeStatic; }
@@ -655,6 +748,7 @@ namespace Js
         DynamicType * GetCopyOnAccessNativeIntArrayType() const { return copyOnAccessNativeIntArrayType; }
 #endif
         DynamicType * GetNativeFloatArrayType() const { return nativeFloatArrayType; }
+        DynamicType * GetRegexPrototypeType() const { return regexPrototypeType; }
         DynamicType * GetRegexType() const { return regexType; }
         DynamicType * GetRegexResultType() const { return regexResultType; }
         DynamicType * GetArrayBufferType() const { return arrayBufferType; }
@@ -700,6 +794,25 @@ namespace Js
         JavascriptFunction* GetDebugObjectNonUserSetterFunction() const { return debugObjectNonUserSetterFunction; }
 
         UnifiedRegex::RegexPattern * GetEmptyRegexPattern() const { return emptyRegexPattern; }
+        JavascriptFunction* GetRegexExecFunction() const { return regexExecFunction; }
+        JavascriptFunction* GetRegexFlagsGetterFunction() const { return regexFlagsGetterFunction; }
+        JavascriptFunction* GetRegexGlobalGetterFunction() const { return regexGlobalGetterFunction; }
+        JavascriptFunction* GetRegexStickyGetterFunction() const { return regexStickyGetterFunction; }
+        JavascriptFunction* GetRegexUnicodeGetterFunction() const { return regexUnicodeGetterFunction; }
+
+        int GetRegexConstructorSlotIndex() const { return regexConstructorSlotIndex;  }
+        int GetRegexExecSlotIndex() const { return regexExecSlotIndex;  }
+        int GetRegexFlagsGetterSlotIndex() const { return regexFlagsGetterSlotIndex;  }
+        int GetRegexGlobalGetterSlotIndex() const { return regexGlobalGetterSlotIndex;  }
+        int GetRegexStickyGetterSlotIndex() const { return regexStickyGetterSlotIndex;  }
+        int GetRegexUnicodeGetterSlotIndex() const { return regexUnicodeGetterSlotIndex;  }
+
+        TypePath* GetRootPath() const { return rootPath; }
+        void BindReference(void * addr);
+        void CleanupForClose();
+        void BeginDynamicFunctionReferences();
+        void EndDynamicFunctionReferences();
+        void RegisterDynamicFunctionReference(FunctionProxy* func);
 
         void SetDebugObjectNonUserAccessor(FunctionInfo *funcGetter, FunctionInfo *funcSetter);
 
@@ -717,7 +830,6 @@ namespace Js
         JavascriptFunction* GetIdentityFunction() const { return identityFunction; }
         JavascriptFunction* GetThrowerFunction() const { return throwerFunction; }
 
-        JavascriptFunction* GetHostPromiseContinuationFunction();
         void SetNativeHostPromiseContinuationFunction(PromiseContinuationCallback function, void *state);
 
         void PinJsrtContextObject(FinalizableObject* jsrtContext);
@@ -794,7 +906,7 @@ namespace Js
         JavascriptError* CreateStackOverflowError();
         JavascriptError* CreateOutOfMemoryError();
         JavascriptSymbol* CreateSymbol(JavascriptString* description);
-        JavascriptSymbol* CreateSymbol(const wchar_t* description, int descriptionLength);
+        JavascriptSymbol* CreateSymbol(const char16* description, int descriptionLength);
         JavascriptSymbol* CreateSymbol(const PropertyRecord* propertyRecord);
         JavascriptPromise* CreatePromise();
         JavascriptGenerator* CreateGenerator(Arguments& args, ScriptFunction* scriptFunction, RecyclableObject* prototype);
@@ -870,9 +982,9 @@ namespace Js
         DynamicObject* CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity = 0);
 
         typedef JavascriptString* LibStringType; // used by diagnostics template
-        template< size_t N > JavascriptString* CreateStringFromCppLiteral(const wchar_t (&value)[N]) const;
-        template<> JavascriptString* CreateStringFromCppLiteral(const wchar_t (&value)[1]) const; // Specialization for empty string
-        template<> JavascriptString* CreateStringFromCppLiteral(const wchar_t (&value)[2]) const; // Specialization for single-char strings
+        template< size_t N > JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[N]) const;
+        template<> JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[1]) const; // Specialization for empty string
+        template<> JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[2]) const; // Specialization for single-char strings
         PropertyString* CreatePropertyString(const Js::PropertyRecord* propertyRecord);
         PropertyString* CreatePropertyString(const Js::PropertyRecord* propertyRecord, ArenaAllocator *arena);
 
@@ -882,8 +994,9 @@ namespace Js
         JavascriptBooleanObject* CreateBooleanObject();
         JavascriptNumberObject* CreateNumberObjectWithCheck(double value);
         JavascriptNumberObject* CreateNumberObject(Var number);
+        JavascriptSIMDObject* CreateSIMDObject(Var simdValue, TypeId typeDescriptor);
         JavascriptStringObject* CreateStringObject(JavascriptString* value);
-        JavascriptStringObject* CreateStringObject(const wchar_t* value, charcount_t length);
+        JavascriptStringObject* CreateStringObject(const char16* value, charcount_t length);
         JavascriptSymbolObject* CreateSymbolObject(JavascriptSymbol* value);
         JavascriptArrayIterator* CreateArrayIterator(Var iterable, JavascriptArrayIteratorKind kind);
         JavascriptMapIterator* CreateMapIterator(JavascriptMap* map, JavascriptMapIteratorKind kind);
@@ -924,8 +1037,10 @@ namespace Js
         RecyclableObject* TryGetStringTemplateCallsiteObject(ParseNodePtr pnode);
         RecyclableObject* TryGetStringTemplateCallsiteObject(RecyclableObject* callsite);
 
+        static void CheckAndInvalidateIsConcatSpreadableCache(PropertyId propertyId, ScriptContext *scriptContext);
+
 #if DBG_DUMP
-        static const wchar_t* GetStringTemplateCallsiteObjectKey(Var callsite);
+        static const char16* GetStringTemplateCallsiteObjectKey(Var callsite);
 #endif
 
         JavascriptFunction** GetBuiltinFunctions();
@@ -965,7 +1080,7 @@ namespace Js
             return GetBuiltInArgType(flags, BuiltInArgShift::BIAS_Src1) || GetBuiltInArgType(flags, BuiltInArgShift::BIAS_Src2) || GetBuiltInArgType(flags, BuiltInArgShift::BIAS_Dst);
         }
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-        static wchar_t const * GetNameForBuiltIn(BuiltinFunction index)
+        static char16 const * GetNameForBuiltIn(BuiltinFunction index)
         {
             Assert(index < _countof(JavascriptLibrary::LibraryFunctionName));
             return JavascriptLibrary::LibraryFunctionName[index];
@@ -981,7 +1096,7 @@ namespace Js
         void TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type);
         void NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
 
-        HRESULT EnsureReadyIfHybridDebugging(bool isScriptEngineReady = true);
+        static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
 
         CharStringCache& GetCharStringCache() { return charStringCache;  }
         static JavascriptLibrary * FromCharStringCache(CharStringCache * cache)
@@ -991,6 +1106,9 @@ namespace Js
 
         bool GetArrayObjectHasUserDefinedSpecies() const { return arrayObjectHasUserDefinedSpecies; }
         void SetArrayObjectHasUserDefinedSpecies(bool val) { arrayObjectHasUserDefinedSpecies = val; }
+
+        ModuleRecordList* EnsureModuleRecordList();
+        SourceTextModuleRecord* GetModuleRecord(uint moduleId);
 
     private:
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -1071,6 +1189,21 @@ namespace Js
         static void __cdecl InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeSIMDOpCodeMaps();
 
+        template<typename SIMDTypeName>
+        static void SIMDPrototypeInitHelper(DynamicObject* simdPrototype, JavascriptLibrary* library, JavascriptFunction* constructorFn, JavascriptString* strLiteral);
+
+        static void __cdecl InitializeSIMDBool8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSIMDBool16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSIMDBool32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSIMDInt8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSIMDInt16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSIMDInt32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSIMDUint8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSIMDUint16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSIMDUint32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSIMDFloat32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeSIMDFloat64x2Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+
         static void __cdecl InitializeNumberConstructor(DynamicObject* numberConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeNumberPrototype(DynamicObject* numberPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeObjectConstructor(DynamicObject* objectConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
@@ -1130,10 +1263,11 @@ namespace Js
         static size_t const LibraryFunctionArgC[BuiltinFunction::Count + 1];
         static int const LibraryFunctionFlags[BuiltinFunction::Count + 1];   // returns enum BuiltInFlags.
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-        static wchar_t const * const LibraryFunctionName[BuiltinFunction::Count + 1];
+        static char16 const * const LibraryFunctionName[BuiltinFunction::Count + 1];
 #endif
 
         JavascriptFunction* EnsureArrayPrototypeValuesFunction();
+        
 
     public:
         virtual void Finalize(bool isShutdown) override

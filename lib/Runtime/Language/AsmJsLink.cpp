@@ -1,9 +1,10 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
-#include "Library\BoundFunction.h"
+#include "Library/BoundFunction.h"
 
 #ifndef TEMP_DISABLE_ASMJS
 namespace Js{
@@ -16,32 +17,32 @@ namespace Js{
 
         if (!JavascriptArrayBuffer::Is(bufferView))
         {
-            AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : Buffer parameter is not an Array buffer");
+            AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Buffer parameter is not an Array buffer"));
             return false;
         }
         JavascriptArrayBuffer* buffer = (JavascriptArrayBuffer*)bufferView;
         if (buffer->GetByteLength() <= info->GetMaxHeapAccess())
         {
-            AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : Buffer bytelength is smaller than constant accesses");
+            AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Buffer bytelength is smaller than constant accesses"));
             return false;
         }
         if (info->GetUsesChangeHeap())
         {
             if (buffer->GetByteLength() < 0x1000000)
             {
-                Output::Print(L"Asm.js Runtime Error : Buffer bytelength is not a valid size for asm.js\n");
+                Output::Print(_u("Asm.js Runtime Error : Buffer bytelength is not a valid size for asm.js\n"));
                 return false;
             }
             if (info->GetMaxHeapAccess() >= 0x1000000)
             {
-                Output::Print(L"Asm.js Runtime Error : Cannot have such large constant accesses\n");
+                Output::Print(_u("Asm.js Runtime Error : Cannot have such large constant accesses\n"));
                 return false;
             }
         }
 
         if (!buffer->IsValidAsmJsBufferLength(buffer->GetByteLength(), true))
         {
-            AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : Buffer bytelength is not a valid size for asm.js");
+            AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Buffer bytelength is not a valid size for asm.js"));
             return false;
         }
 
@@ -57,13 +58,13 @@ namespace Js{
         Assert(foreign);
         if (!RecyclableObject::Is(foreign))
         {
-            AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : FFI is not an object");
+            AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : FFI is not an object"));
             return false;
         }
         TypeId foreignObjType = RecyclableObject::FromVar(foreign)->GetTypeId();
         if (StaticType::Is(foreignObjType) || TypeIds_Proxy == foreignObjType)
         {
-            AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : FFI is not an object");
+            AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : FFI is not an object"));
             return false;
         }
         return true;
@@ -73,20 +74,22 @@ namespace Js{
     {
         BVStatic<ASMMATH_BUILTIN_SIZE> mathBuiltinUsed = info->GetAsmMathBuiltinUsed();
         BVStatic<ASMARRAY_BUILTIN_SIZE> arrayBuiltinUsed = info->GetAsmArrayBuiltinUsed();
-        if (mathBuiltinUsed.IsAllClear() && arrayBuiltinUsed.IsAllClear())
+        BVStatic<ASMSIMD_BUILTIN_SIZE> simdBuiltinUsed = info->GetAsmSimdBuiltinUsed();
+
+        if (mathBuiltinUsed.IsAllClear() && arrayBuiltinUsed.IsAllClear() && simdBuiltinUsed.IsAllClear())
         {
             return true;
         }
         Assert(stdlib);
         if (!RecyclableObject::Is(stdlib))
         {
-            AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : StdLib is not an object");
+            AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : StdLib is not an object"));
             return false;
         }
         TypeId stdLibObjType = RecyclableObject::FromVar(stdlib)->GetTypeId();
         if (StaticType::Is(stdLibObjType) || TypeIds_Proxy == stdLibObjType)
         {
-            AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : StdLib is not an object");
+            AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : StdLib is not an object"));
             return false;
         }
 
@@ -96,7 +99,7 @@ namespace Js{
             Var asmInfinityObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::Infinity, scriptContext);
             if (!JavascriptConversion::SameValue(asmInfinityObj, library->GetPositiveInfinite()))
             {
-                AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : Math constant Infinity is invalid");
+                AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Math constant Infinity is invalid"));
                 return false;
             }
         }
@@ -105,7 +108,7 @@ namespace Js{
             Var asmNaNObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::NaN, scriptContext);
             if (!JavascriptConversion::SameValue(asmNaNObj, library->GetNaN()))
             {
-                AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : Math constant NaN is invalid");
+                AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Math constant NaN is invalid"));
                 return false;
             }
         }
@@ -120,7 +123,7 @@ namespace Js{
             AsmJSMathBuiltinFunction mathBuiltinFunc = (AsmJSMathBuiltinFunction)i;
             if (!CheckMathLibraryMethod(scriptContext, asmMathObject, mathBuiltinFunc))
             {
-                AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : Math builtin function is invalid");
+                AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Math builtin function is invalid"));
                 return false;
             }
         }
@@ -134,10 +137,26 @@ namespace Js{
             AsmJSTypedArrayBuiltinFunction arrayBuiltinFunc = (AsmJSTypedArrayBuiltinFunction)i;
             if (!CheckArrayLibraryMethod(scriptContext, stdlib, arrayBuiltinFunc))
             {
-                AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : Array builtin function is invalid");
+                AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Array builtin function is invalid"));
                 return false;
             }
         }
+
+        Var asmSimdObject = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::SIMD, scriptContext);
+        for (int i = 0; i < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_COUNT; i++)
+        {
+            if (!simdBuiltinUsed.Test(i))
+            {
+                continue;
+            }
+            AsmJsSIMDBuiltinFunction simdBuiltinFunc = (AsmJsSIMDBuiltinFunction)i;
+            if (!CheckSimdLibraryMethod(scriptContext, asmSimdObject, simdBuiltinFunc))
+            {
+                AsmJSCompiler::OutputError(scriptContext, L"Asm.js Runtime Error : SIMD builtin function is invalid");
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -547,6 +566,52 @@ namespace Js{
         }
         return false;
     }
+
+    bool ASMLink::CheckSimdLibraryMethod(ScriptContext* scriptContext, const Var asmSimdObject, const AsmJsSIMDBuiltinFunction simdLibMethod)
+    {
+        Var simdConstructorObj, simdFuncObj;
+
+        switch (simdLibMethod)
+        {
+#define ASMJS_SIMD_C_NAMES(builtInId, propertyId, libName, entryPoint) \
+        case  AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_##builtInId: \
+            simdFuncObj = JavascriptOperators::OP_GetProperty(asmSimdObject, PropertyIds::##libName, scriptContext); \
+            if (JavascriptFunction::Is(simdFuncObj)) \
+            { \
+                JavascriptFunction* simdLibFunc = (JavascriptFunction*)simdFuncObj; \
+                if (simdLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&SIMD##libName##Lib::EntryInfo::##entryPoint)->GetOriginalEntryPoint()) \
+                { \
+                    return true; \
+                }\
+            } \
+            break;
+
+
+#define ASMJS_SIMD_O_NAMES(builtInId, propertyId, libName, entryPoint) \
+        case  AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_##builtInId: \
+            simdConstructorObj = JavascriptOperators::OP_GetProperty(asmSimdObject, PropertyIds::##libName, scriptContext); \
+            simdFuncObj = JavascriptOperators::OP_GetProperty(simdConstructorObj, PropertyIds::##propertyId, scriptContext); \
+            if (JavascriptFunction::Is(simdFuncObj)) \
+            { \
+                JavascriptFunction* simdLibFunc = (JavascriptFunction*)simdFuncObj; \
+                if (simdLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&SIMD##libName##Lib::EntryInfo::##entryPoint)->GetOriginalEntryPoint()) \
+                { \
+                    return true; \
+                }\
+            } \
+            break;
+#include "AsmJsBuiltinNames.h"
+
+
+
+        default:
+            Assume(UNREACHED);
+        }
+        return false;
+    }
+
+    
+        
 
     bool ASMLink::CheckParams(ScriptContext* scriptContext, AsmJsModuleInfo* info, const Var stdlib, const Var foreign, const Var bufferView)
     {

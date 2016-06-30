@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 class JavascriptSIMDInt32x4;
@@ -21,6 +22,9 @@ namespace Js
         {
         public:
             static FunctionInfo ToString;
+            static FunctionInfo ToLocaleString;
+            static FunctionInfo ValueOf;
+            static FunctionInfo SymbolToPrimitive;
         };
 
         JavascriptSIMDFloat64x2(SIMDValue *val, StaticType *type);
@@ -32,7 +36,7 @@ namespace Js
         static JavascriptSIMDFloat64x2* FromInt32x4(JavascriptSIMDInt32x4   *instance, ScriptContext* requestContext);
 
 
-        __inline SIMDValue GetValue() { return value; }
+        inline SIMDValue GetValue() { return value; }
 
         virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -45,13 +49,20 @@ namespace Js
         It will also be a property of SIMD.float64x2.prototype for SIMD dynamic objects.
         */
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryToLocaleString(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryValueOf(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntrySymbolToPrimitive(RecyclableObject* function, CallInfo callInfo, ...);
         // End Entry Points
+
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
+        {
+            swprintf_s(stringBuffer, countBuffer, _u("Float64x2(%.1f,%.1f)"), value.f64[SIMD_X], value.f64[SIMD_Y]);
+        }
 
         Var  Copy(ScriptContext* requestContext);
 
     private:
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext);
-        Var  GetSignMask();
 
     };
 }

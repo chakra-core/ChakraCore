@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
 
-#include "Types\NullTypeHandler.h"
-#include "Types\SimpleTypeHandler.h"
+#include "Types/NullTypeHandler.h"
+#include "Types/SimpleTypeHandler.h"
 
 namespace Js
 {
@@ -395,6 +395,7 @@ namespace Js
             {
                 if (descriptors[i].Attributes & PropertyDeleted)
                 {
+                    *value = requestContext->GetMissingPropertyResult();
                     return false;
                 }
                 *value = instance->GetSlot(i);
@@ -411,6 +412,7 @@ namespace Js
             return SimpleTypeHandler<size>::GetItem(instance, originalInstance, indexVal, value, scriptContext);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -427,6 +429,7 @@ namespace Js
             {
                 if (descriptors[i].Attributes & PropertyDeleted)
                 {
+                    *value = requestContext->GetMissingPropertyResult();
                     return false;
                 }
                 *value = instance->GetSlot(i);
@@ -435,6 +438,7 @@ namespace Js
             }
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -443,6 +447,9 @@ namespace Js
     {
         ScriptContext* scriptContext = instance->GetScriptContext();
         int index;
+
+        JavascriptLibrary::CheckAndInvalidateIsConcatSpreadableCache(propertyId, scriptContext);
+
         if (GetDescriptor(propertyId, &index))
         {
             if (descriptors[index].Attributes & PropertyDeleted)
@@ -565,15 +572,22 @@ namespace Js
 
 
             CompileAssert(_countof(descriptors) == size);
-            SetSlotUnchecked(instance, index, nullptr);
-
-            NullTypeHandlerBase* nullTypeHandler = ((this->GetFlags() & IsPrototypeFlag) != 0) ?
-                (NullTypeHandlerBase*)NullTypeHandler<true>::GetDefaultInstance() : (NullTypeHandlerBase*)NullTypeHandler<false>::GetDefaultInstance();
-            if (instance->HasReadOnlyPropertiesInvisibleToTypeHandler())
+            if (size > 1)
             {
-                nullTypeHandler->ClearHasOnlyWritableDataProperties();
+                SetAttribute(instance, index, PropertyDeleted);
             }
-            SetInstanceTypeHandler(instance, nullTypeHandler, false);
+            else
+            {
+                SetSlotUnchecked(instance, index, nullptr);
+
+                NullTypeHandlerBase* nullTypeHandler = ((this->GetFlags() & IsPrototypeFlag) != 0) ?
+                    (NullTypeHandlerBase*)NullTypeHandler<true>::GetDefaultInstance() : (NullTypeHandlerBase*)NullTypeHandler<false>::GetDefaultInstance();
+                if (instance->HasReadOnlyPropertiesInvisibleToTypeHandler())
+                {
+                    nullTypeHandler->ClearHasOnlyWritableDataProperties();
+                }
+                SetInstanceTypeHandler(instance, nullTypeHandler, false);
+            }
 
             return true;
         }
@@ -1065,6 +1079,38 @@ namespace Js
             AssertMsg(false, "Asking about a property this type handler doesn't know about?");
             return false;
         }
+    }
+#endif
+
+#if ENABLE_TTD
+    template<size_t size>
+    void SimpleTypeHandler<size>::MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const
+    {
+        uint32 plength = this->propertyCount;
+
+        for(uint32 index = 0; index < plength; ++index)
+        {
+            Js::PropertyId pid = this->descriptors[index].Id->GetPropertyId();
+
+            if(DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) & !(this->descriptors[index].Attributes & PropertyDeleted))
+            {
+                Js::Var value = obj->GetSlot(index);
+                extractor->MarkVisitVar(value);
+            }
+        }
+    }
+
+    template<size_t size>
+    uint32 SimpleTypeHandler<size>::ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
+    {
+        uint32 plength = this->propertyCount;
+
+        for(uint32 index = 0; index < plength; ++index)
+        {
+            TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + index, this->descriptors[index].Id->GetPropertyId(), this->descriptors[index].Attributes, TTD::NSSnapType::SnapEntryDataKindTag::Data);
+        }
+
+        return plength;
     }
 #endif
 

@@ -10,7 +10,7 @@ namespace Js
     {
     protected:
         DEFINE_VTABLE_CTOR(BoundFunction, JavascriptFunction);
-        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(BoundFunction);
+        virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) override;
 
     private:
         bool GetPropertyBuiltIns(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext, BOOL* result);
@@ -53,6 +53,17 @@ namespace Js
         uint GetArgsCountForHeapEnum() { return count;}
         Var* GetArgsForHeapEnum() { return boundArgs;}
         RecyclableObject* GetBoundThis();
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+        virtual void ProcessCorePaths() override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+
+        static BoundFunction* InflateBoundFunction(ScriptContext* ctx, RecyclableObject* function, Var bThis, uint32 ct, Var* args);
+#endif
 
     private:
         static FunctionInfo        functionInfo;

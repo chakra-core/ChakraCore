@@ -250,6 +250,7 @@ namespace Js
             return str->GetItemAt(index, value);
         }
 
+        *value = requestContext->GetMissingPropertyResult();
         return false;
     }
 
@@ -380,15 +381,35 @@ namespace Js
 
     BOOL JavascriptStringObject::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->Append(L'"');
+        stringBuilder->Append(_u('"'));
         stringBuilder->Append(this->InternalUnwrap()->GetString(), this->InternalUnwrap()->GetLength());
-        stringBuilder->Append(L'"');
+        stringBuilder->Append(_u('"'));
         return TRUE;
     }
 
     BOOL JavascriptStringObject::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"String");
+        stringBuilder->AppendCppLiteral(_u("String"));
         return TRUE;
     }
+
+#if ENABLE_TTD
+    void JavascriptStringObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        if(this->value != nullptr)
+        {
+            extractor->MarkVisitVar(this->value);
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptStringObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapBoxedValueObject;
+    }
+
+    void JavascriptStringObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::TTDVar, TTD::NSSnapObjects::SnapObjectType::SnapBoxedValueObject>(objData, this->value);
+    }
+#endif
 } // namespace Js

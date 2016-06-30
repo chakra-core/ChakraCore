@@ -17,7 +17,7 @@ namespace UnifiedRegex
     // Node
     // ----------------------------------------------------------------------
 
-    struct Node : protected Chars<wchar_t>
+    struct Node : protected Chars<char16>
     {
         // Optimization heuristics
         static const int maxSyncToSetSize = 256;
@@ -572,7 +572,7 @@ namespace UnifiedRegex
     // Compiler
     // ----------------------------------------------------------------------
 
-    class Compiler : private Chars<wchar_t>
+    class Compiler : private Chars<char16>
     {
         friend Node;
         friend SimpleNode;

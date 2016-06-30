@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
-#include "Library\JavascriptProxy.h"
-#include "Library\HostObjectBase.h"
-#include "Types\WithScopeObject.h"
+#include "Library/JavascriptProxy.h"
+#include "Library/HostObjectBase.h"
+#include "Types/WithScopeObject.h"
 
 namespace Js
 {
@@ -123,7 +123,7 @@ namespace Js
     }
 
     // static
-    __inline Var CrossSite::MarshalVar(ScriptContext* scriptContext, Var value, bool fRequestWrapper)
+    Var CrossSite::MarshalVar(ScriptContext* scriptContext, Var value, bool fRequestWrapper)
     {
         // value might be null from disable implicit call
         if (value == nullptr || Js::TaggedNumber::Is(value))
@@ -244,9 +244,14 @@ namespace Js
 
     bool CrossSite::IsThunk(JavascriptMethod thunk)
     {
+#ifdef ENABLE_SCRIPT_PROFILING
         return (thunk == CrossSite::ProfileThunk || thunk == CrossSite::DefaultThunk);
+#else
+        return (thunk == CrossSite::DefaultThunk);
+#endif
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     Var CrossSite::ProfileThunk(RecyclableObject* callable, CallInfo callInfo, ...)
     {
         JavascriptFunction* function = JavascriptFunction::FromVar(callable);
@@ -264,16 +269,15 @@ namespace Js
         if (funcInfo->HasBody())
         {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-            entryPoint = (JavascriptMethod)ScriptFunction::FromVar(function)->GetEntryPointInfo()->address;
+            entryPoint = ScriptFunction::FromVar(function)->GetEntryPointInfo()->jsMethod;
             if (funcInfo->IsDeferred() && scriptContext->IsProfiling())
             {
                 // if the current entrypoint is deferred parse we need to update it appropriately for the profiler mode.
                 entryPoint = Js::ScriptContext::GetProfileModeThunk(entryPoint);
             }
-
-            OUTPUT_TRACE(Js::ScriptProfilerPhase, L"CrossSite::ProfileThunk FunctionNumber : %s, Entrypoint : 0x%08X\n", funcInfo->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer), entryPoint);
+            OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("CrossSite::ProfileThunk FunctionNumber : %s, Entrypoint : 0x%08X\n"), funcInfo->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer), entryPoint);
         }
         else
         {
@@ -283,6 +287,7 @@ namespace Js
 
         return CommonThunk(function, entryPoint, args);
     }
+#endif
 
     Var CrossSite::DefaultThunk(RecyclableObject* callable, CallInfo callInfo, ...)
     {
@@ -300,7 +305,17 @@ namespace Js
 
         if (funcInfo->HasBody())
         {
-            entryPoint = (JavascriptMethod)ScriptFunction::FromVar(function)->GetEntryPointInfo()->address;
+#ifdef ASMJS_PLAT
+            if (funcInfo->GetFunctionProxy()->IsFunctionBody() &&
+                funcInfo->GetFunctionBody()->GetIsAsmJsFunction())
+            {
+                entryPoint = Js::AsmJsExternalEntryPoint;
+            }
+            else
+#endif
+            {
+                entryPoint = ScriptFunction::FromVar(function)->GetEntryPointInfo()->jsMethod;
+            }
         }
         else
         {
@@ -370,7 +385,8 @@ namespace Js
         HRESULT hr = NOERROR;
         Var result = nullptr;
         BOOL wasDispatchExCallerPushed = FALSE, wasCallerSet = FALSE;
-        __try
+
+        TryFinally([&]()
         {
             hr = callerHostScriptContext->GetDispatchExCaller((void**)&sourceCaller);
 
@@ -394,8 +410,8 @@ namespace Js
             result = JavascriptFunction::CallFunction<true>(function, entryPoint, args);
             ScriptContext* callerScriptContext = callerHostScriptContext->GetScriptContext();
             result = CrossSite::MarshalVar(callerScriptContext, result);
-        }
-        __finally
+        },
+        [&](bool hasException)
         {
             if (sourceCaller != nullptr)
             {
@@ -418,7 +434,7 @@ namespace Js
                     originalCaller->Release();
                 }
             }
-        }
+        });
         Assert(result != nullptr);
         return result;
     }

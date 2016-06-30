@@ -13,16 +13,16 @@ namespace Js
     class SingleCharString sealed : public JavascriptString
     {
     public:
-        static SingleCharString* New(wchar_t ch, ScriptContext* scriptContext);
-        static SingleCharString* New(wchar_t ch, ScriptContext* scriptContext, ArenaAllocator* arena);
+        static SingleCharString* New(char16 ch, ScriptContext* scriptContext);
+        static SingleCharString* New(char16 ch, ScriptContext* scriptContext, ArenaAllocator* arena);
 
     protected:
         DEFINE_VTABLE_CTOR(SingleCharString, JavascriptString);
         DECLARE_CONCRETE_STRING_CLASS;
 
     private:
-        SingleCharString(wchar_t ch, StaticType * type);
-        wchar_t m_buff[2]; // the 2nd is always NULL so that GetSz works
+        SingleCharString(char16 ch, StaticType * type);
+        char16 m_buff[2]; // the 2nd is always NULL so that GetSz works
     };
 
 } // namespace Js

@@ -2,9 +2,9 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
-#include "Base\EtwTrace.h"
-#include "Base\ScriptContextProfiler.h"
+#include "Backend.h"
+#include "Base/EtwTrace.h"
+#include "Base/ScriptContextProfiler.h"
 
 Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ThreadContextInfo * threadContextInfo,
@@ -44,6 +44,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_loopParamSym(nullptr),
     m_funcObjSym(nullptr),
     m_localClosureSym(nullptr),
+    m_paramClosureSym(nullptr),
     m_localFrameDisplaySym(nullptr),
     m_bailoutReturnValueSym(nullptr),
     m_hasBailedOutSym(nullptr),
@@ -81,6 +82,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     hasInlinee(false),
     thisOrParentInlinerHasArguments(false),
     hasStackArgs(false),
+    hasNonSimpleParams(false),
     hasArgumentObject(false),
     hasUnoptimizedArgumentsAcccess(false),
     hasApplyTargetInlining(false),
@@ -126,6 +128,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , m_totalJumpTableSizeInBytesForSwitchStatements(0)
     , slotArrayCheckTable(nullptr)
     , frameDisplayCheckTable(nullptr)
+    , stackArgWithFormalsTracker(nullptr)
+    , argInsCount(0)
 {
 
     Assert(this->IsInlined() == !!runtimeInfo);
@@ -274,7 +278,7 @@ Func::Codegen()
         // FlowGraph
         {
             // Scope for FlowGraph arena
-            NoRecoverMemoryJitArenaAllocator fgAlloc(L"BE-FlowGraph", m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+            NoRecoverMemoryJitArenaAllocator fgAlloc(_u("BE-FlowGraph"), m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
 
             BEGIN_CODEGEN_PHASE(this, Js::FGBuildPhase);
 
@@ -827,7 +831,7 @@ bool Func::CanAllocInPreReservedHeapPageSegment ()
 {
 #ifdef _CONTROL_FLOW_GUARD
     return PHASE_FORCE1(Js::PreReservedHeapAllocPhase) || (!PHASE_OFF1(Js::PreReservedHeapAllocPhase) &&
-        !IsJitInDebugMode() && !GetScriptContext()->IsInDebugMode() && GetScriptContext()->GetThreadContext()->IsCFGEnabled()
+        !IsJitInDebugMode() && !GetScriptContext()->IsScriptContextInDebugMode() && GetScriptContext()->GetThreadContext()->IsCFGEnabled()
 #if _M_IX86
         && m_workItem->GetJitMode() == ExecutionMode::FullJit && GetCodeGenAllocators()->canCreatePreReservedSegment);
 #elif _M_X64
@@ -958,18 +962,18 @@ Func::EndPhase(Js::Phase tag, bool dump)
     if(dump && (PHASE_DUMP(tag, this)
         || PHASE_DUMP(Js::BackEndPhase, this)))
     {
-        Output::Print(L"-----------------------------------------------------------------------------\n");
+        Output::Print(_u("-----------------------------------------------------------------------------\n"));
 
         if (IsLoopBody())
         {
-            Output::Print(L"************   IR after %s (%S) Loop %d ************\n",
+            Output::Print(_u("************   IR after %s (%S) Loop %d ************\n"),
                 Js::PhaseNames[tag],
                 ExecutionModeName(m_workItem->GetJitMode()),
                 m_workItem->GetLoopNumber());
         }
         else
         {
-            Output::Print(L"************   IR after %s (%S)  ************\n",
+            Output::Print(_u("************   IR after %s (%S)  ************\n"),
                 Js::PhaseNames[tag],
                 ExecutionModeName(m_workItem->GetJitMode()));
         }
@@ -1112,6 +1116,14 @@ Func::GetArgUsedForBranch() const
 {
     // this value can change while JITing, so or these together
     return GetJITFunctionBody()->GetArgUsedForBranch() | GetJITOutput()->GetArgUsedForBranch();
+}
+
+intptr_t
+Func::GetJittedLoopIterationsSinceLastBailoutAddress() const
+{
+    Assert(this->m_workItem->Type() == JsLoopBodyWorkItemType);
+
+    return m_workItem->GetJittedLoopIterationsSinceLastBailoutAddr();
 }
 
 intptr_t
@@ -1375,6 +1387,127 @@ Func::EnsureFuncEndLabel()
 }
 
 void
+Func::EnsureStackArgWithFormalsTracker()
+{
+    if (stackArgWithFormalsTracker == nullptr)
+    {
+        stackArgWithFormalsTracker = JitAnew(m_alloc, StackArgWithFormalsTracker, m_alloc);
+    }
+}
+
+BOOL
+Func::IsFormalsArraySym(SymID symId)
+{
+    if (stackArgWithFormalsTracker == nullptr || stackArgWithFormalsTracker->GetFormalsArraySyms() == nullptr)
+    {
+        return false;
+    }
+    return stackArgWithFormalsTracker->GetFormalsArraySyms()->Test(symId);
+}
+
+void 
+Func::TrackFormalsArraySym(SymID symId)
+{
+    EnsureStackArgWithFormalsTracker();
+    stackArgWithFormalsTracker->SetFormalsArraySyms(symId);
+}
+
+void 
+Func::TrackStackSymForFormalIndex(Js::ArgSlot formalsIndex, StackSym * sym)
+{
+    EnsureStackArgWithFormalsTracker();
+    Js::ArgSlot formalsCount = GetJnFunction()->GetInParamsCount() - 1;
+    stackArgWithFormalsTracker->SetStackSymInFormalsIndexMap(sym, formalsIndex, formalsCount);
+}
+
+StackSym * 
+Func::GetStackSymForFormal(Js::ArgSlot formalsIndex)
+{
+    if (stackArgWithFormalsTracker == nullptr || stackArgWithFormalsTracker->GetFormalsIndexToStackSymMap() == nullptr)
+    {
+        return nullptr;
+    }
+
+    Js::ArgSlot formalsCount = GetJnFunction()->GetInParamsCount() - 1;
+    StackSym ** formalsIndexToStackSymMap = stackArgWithFormalsTracker->GetFormalsIndexToStackSymMap();
+    AssertMsg(formalsIndex < formalsCount, "OutOfRange ? ");
+    return formalsIndexToStackSymMap[formalsIndex];
+}
+
+bool
+Func::HasStackSymForFormal(Js::ArgSlot formalsIndex)
+{
+    if (stackArgWithFormalsTracker == nullptr || stackArgWithFormalsTracker->GetFormalsIndexToStackSymMap() == nullptr)
+    {
+        return false;
+    }
+    return GetStackSymForFormal(formalsIndex) != nullptr;
+}
+
+void
+Func::SetScopeObjSym(StackSym * sym)
+{
+    EnsureStackArgWithFormalsTracker();
+    stackArgWithFormalsTracker->SetScopeObjSym(sym);
+}
+
+StackSym* 
+Func::GetScopeObjSym()
+{
+    if (stackArgWithFormalsTracker == nullptr)
+    {
+        return nullptr;
+    }
+    return stackArgWithFormalsTracker->GetScopeObjSym();
+}
+
+BVSparse<JitArenaAllocator> * 
+StackArgWithFormalsTracker::GetFormalsArraySyms()
+{
+    return formalsArraySyms;
+}
+
+void
+StackArgWithFormalsTracker::SetFormalsArraySyms(SymID symId)
+{
+    if (formalsArraySyms == nullptr)
+    {
+        formalsArraySyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+    }
+    formalsArraySyms->Set(symId);
+}
+
+StackSym ** 
+StackArgWithFormalsTracker::GetFormalsIndexToStackSymMap()
+{
+    return formalsIndexToStackSymMap;
+}
+
+void 
+StackArgWithFormalsTracker::SetStackSymInFormalsIndexMap(StackSym * sym, Js::ArgSlot formalsIndex, Js::ArgSlot formalsCount)
+{
+    if(formalsIndexToStackSymMap == nullptr)
+    {
+        formalsIndexToStackSymMap = JitAnewArrayZ(alloc, StackSym*, formalsCount);
+    }
+    AssertMsg(formalsIndex < formalsCount, "Out of range ?");
+    formalsIndexToStackSymMap[formalsIndex] = sym;
+}
+
+void 
+StackArgWithFormalsTracker::SetScopeObjSym(StackSym * sym)
+{
+    m_scopeObjSym = sym;
+}
+
+StackSym * 
+StackArgWithFormalsTracker::GetScopeObjSym()
+{
+    return m_scopeObjSym;
+}
+
+
+void
 Cloner::AddInstr(IR::Instr * instrOrig, IR::Instr * instrClone)
 {
     if (!this->instrFirst)
@@ -1528,20 +1661,20 @@ Func::DumpFullFunctionName()
 void
 Func::DumpHeader()
 {
-    Output::Print(L"-----------------------------------------------------------------------------\n");
+    Output::Print(_u("-----------------------------------------------------------------------------\n"));
 
     DumpFullFunctionName();
 
     Output::SkipToColumn(50);
-    Output::Print(L"Instr Count:%d", GetInstrCount());
+    Output::Print(_u("Instr Count:%d"), GetInstrCount());
 
     if(m_codeSize > 0)
     {
-        Output::Print(L"\t\tSize:%d\n\n", m_codeSize);
+        Output::Print(_u("\t\tSize:%d\n\n"), m_codeSize);
     }
     else
     {
-        Output::Print(L"\n\n");
+        Output::Print(_u("\n\n"));
     }
 }
 

@@ -198,5 +198,11 @@ namespace Js
     private:
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
         virtual BigDictionaryTypeHandler* NewBigDictionaryTypeHandler(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) override;
+
+#if ENABLE_TTD
+        //
+        //We let the handler processing fall through -- the snap object extraction will take care of visiting/copying the info from this type into the object representation.
+        //
+#endif
     };
 }

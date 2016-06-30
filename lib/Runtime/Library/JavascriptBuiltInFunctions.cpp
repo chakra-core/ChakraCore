@@ -8,6 +8,7 @@ namespace Js
 {
     // Declare all the entry infos
 #define BUILTIN(c, n, e, i) FunctionInfo c::EntryInfo::n(c::e, (Js::FunctionInfo::Attributes)(i), JavascriptBuiltInFunction:: ## c ## _ ## n);
+#define BUILTIN_TEMPLATE(c, n, e, i) template<> BUILTIN(c, n, e, i)
 #include "JavascriptBuiltInFunctionList.h"
 #undef BUILTIN
 

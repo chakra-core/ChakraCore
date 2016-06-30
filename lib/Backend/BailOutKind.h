@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #if !defined(BAIL_OUT_KIND) || !defined(BAIL_OUT_KIND_LAST) || !defined(BAIL_OUT_KIND_VALUE) || !defined(BAIL_OUT_KIND_VALUE_LAST)
     #error BAIL_OUT_KIND, BAIL_OUT_KIND_LAST, BAIL_OUT_KIND_VALUE, and BAIL_OUT_KIND_VALUE_LAST must be defined before including this file.
 #endif
@@ -19,7 +20,6 @@ BAIL_OUT_KIND(BailOutOnNoProfile,                   0)
 BAIL_OUT_KIND(BailOutOnPolymorphicInlineFunction,   0)
 BAIL_OUT_KIND(BailOutOnFailedPolymorphicInlineTypeCheck,   0)
 BAIL_OUT_KIND(BailOutShared,                        0)
-BAIL_OUT_KIND(BailOutExpectingObject,               0)
 BAIL_OUT_KIND(BailOutOnNotArray,                    IR::BailOutOnMissingValue)
 BAIL_OUT_KIND(BailOutOnNotNativeArray,              IR::BailOutOnMissingValue)
 BAIL_OUT_KIND(BailOutConventionalTypedArrayAccessOnly, IR::BailOutMarkTempObject)
@@ -50,6 +50,14 @@ BAIL_OUT_KIND(BailOutOnException,                   0)
 // SIMD_JS
 BAIL_OUT_KIND(BailOutSimd128F4Only,                 0)
 BAIL_OUT_KIND(BailOutSimd128I4Only,                 0)
+BAIL_OUT_KIND(BailOutSimd128I8Only,                 0)
+BAIL_OUT_KIND(BailOutSimd128I16Only,                 0)
+BAIL_OUT_KIND(BailOutSimd128U4Only,                 0)
+BAIL_OUT_KIND(BailOutSimd128U8Only,                 0)
+BAIL_OUT_KIND(BailOutSimd128U16Only,                0)
+BAIL_OUT_KIND(BailOutSimd128B4Only,                 0)
+BAIL_OUT_KIND(BailOutSimd128B8Only,                 0)
+BAIL_OUT_KIND(BailOutSimd128B16Only,                0)
 BAIL_OUT_KIND(BailOutSimd128D2Only,                 0)
 BAIL_OUT_KIND(BailOutNoSimdTypeSpec,                0)
 
@@ -67,17 +75,19 @@ BAIL_OUT_KIND(BailOutKindBitsStart, 0) // fake bail out kind to indicate start i
 BAIL_OUT_KIND_VALUE(BailOutOnOverflow, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 0))
 BAIL_OUT_KIND_VALUE(BailOutOnMulOverflow, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 1))
 BAIL_OUT_KIND_VALUE(BailOutOnNegativeZero, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 2))
-BAIL_OUT_KIND_VALUE(BailOutOnResultConditions, BailOutOnOverflow | BailOutOnMulOverflow | BailOutOnNegativeZero)
+BAIL_OUT_KIND_VALUE(BailOutOnPowIntIntOverflow, 1 << (BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 3))
+BAIL_OUT_KIND_VALUE(BailOutOnResultConditions, BailOutOnOverflow | BailOutOnMulOverflow | BailOutOnNegativeZero | BailOutOnPowIntIntOverflow)
 // ================
 // Array bits
 // ================
-#define BAIL_OUT_KIND_ARRAY_BIT_START BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 3
+#define BAIL_OUT_KIND_ARRAY_BIT_START BAIL_OUT_KIND_RESULT_CONDITIONS_BIT_START + 4
 BAIL_OUT_KIND_VALUE(BailOutOnMissingValue, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 0))
 BAIL_OUT_KIND_VALUE(BailOutConventionalNativeArrayAccessOnly, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 1))
 BAIL_OUT_KIND_VALUE(BailOutConvertedNativeArray, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 2))
 BAIL_OUT_KIND_VALUE(BailOutOnArrayAccessHelperCall, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 3))
 BAIL_OUT_KIND_VALUE(BailOutOnInvalidatedArrayHeadSegment, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 4))
 BAIL_OUT_KIND_VALUE(BailOutOnInvalidatedArrayLength, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 5))
+BAIL_OUT_KIND_VALUE(BailOnStackArgsOutOfActualsRange, 1 << (BAIL_OUT_KIND_ARRAY_BIT_START + 6))
 BAIL_OUT_KIND_VALUE(
     BailOutForArrayBits,
     (
@@ -86,12 +96,13 @@ BAIL_OUT_KIND_VALUE(
         BailOutConvertedNativeArray |
         BailOutOnArrayAccessHelperCall |
         BailOutOnInvalidatedArrayHeadSegment |
-        BailOutOnInvalidatedArrayLength
+        BailOutOnInvalidatedArrayLength |
+        BailOnStackArgsOutOfActualsRange
     ))
 // ================
 // Debug bits
 // ================
-#define BAIL_OUT_KIND_DEBUG_BIT_START BAIL_OUT_KIND_ARRAY_BIT_START + 6
+#define BAIL_OUT_KIND_DEBUG_BIT_START BAIL_OUT_KIND_ARRAY_BIT_START + 7
 // Forced bailout by ThreadContext::m_forceInterpreter, e.g. for async break when we enter a function.
 BAIL_OUT_KIND_VALUE(BailOutForceByFlag, 1 << (BAIL_OUT_KIND_DEBUG_BIT_START + 0))
 

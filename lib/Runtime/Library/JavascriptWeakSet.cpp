@@ -33,7 +33,7 @@ namespace Js
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(WeakSetCount);
 
@@ -45,7 +45,7 @@ namespace Js
         }
         else
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"WeakSet", L"WeakSet");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakSet"), _u("WeakSet"));
         }
         Assert(weakSetObject != nullptr);
 
@@ -67,12 +67,9 @@ namespace Js
 
         if (iter != nullptr)
         {
-            Var nextItem;
-
-            while (JavascriptOperators::IteratorStepAndValue(iter, scriptContext, &nextItem))
-            {
-                adder->GetEntryPoint()(adder, CallInfo(CallFlags_Value, 2), weakSetObject, nextItem);
-            }
+            JavascriptOperators::DoIteratorStepAndValue(iter, scriptContext, [&](Var nextItem) {
+                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 2), weakSetObject, nextItem);
+            });
         }
 
         return isCtorSuperCall ?
@@ -89,7 +86,7 @@ namespace Js
 
         if (!JavascriptWeakSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"WeakSet.prototype.add", L"WeakSet");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakSet.prototype.add"), _u("WeakSet"));
         }
 
         JavascriptWeakSet* weakSet = JavascriptWeakSet::FromVar(args[0]);
@@ -100,10 +97,21 @@ namespace Js
         {
             // HostDispatch is not expanded so can't have internal property added to it.
             // TODO: Support HostDispatch as WeakSet key
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_WeakMapSetKeyNotAnObject, L"WeakSet.prototype.add");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_WeakMapSetKeyNotAnObject, _u("WeakSet.prototype.add"));
         }
 
         DynamicObject* keyObj = DynamicObject::FromVar(key);
+
+#if ENABLE_TTD
+        //
+        //This makes the set decidedly less weak -- forces it to only release when we clean the tracking set but determinizes the behavior nicely
+        //      We want to improve this.
+        //
+        if(scriptContext->ShouldPerformDebugAction() | scriptContext->ShouldPerformRecordAction())
+        {
+            scriptContext->TTDContextInfo->TTDWeakReferencePinSet->Add(keyObj);
+        }
+#endif
 
         weakSet->Add(keyObj);
 
@@ -119,7 +127,7 @@ namespace Js
 
         if (!JavascriptWeakSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"WeakSet.prototype.delete", L"WeakSet");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakSet.prototype.delete"), _u("WeakSet"));
         }
 
         JavascriptWeakSet* weakSet = JavascriptWeakSet::FromVar(args[0]);
@@ -146,7 +154,7 @@ namespace Js
 
         if (!JavascriptWeakSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"WeakSet.prototype.has", L"WeakSet");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakSet.prototype.has"), _u("WeakSet"));
         }
 
         JavascriptWeakSet* weakSet = JavascriptWeakSet::FromVar(args[0]);
@@ -183,7 +191,43 @@ namespace Js
 
     BOOL JavascriptWeakSet::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"WeakSet");
+        stringBuilder->AppendCppLiteral(_u("WeakSet"));
         return TRUE;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptWeakSet::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapSetObject;
+    }
+
+    void JavascriptWeakSet::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapSetInfo* ssi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapSetInfo>();
+        uint32 setCountEst = this->Size();
+
+        ssi->SetSize = 0;
+        ssi->SetValueArray = alloc.SlabReserveArraySpace<TTD::TTDVar>(setCountEst + 1); //always reserve at least 1 element
+
+        this->Map([&](DynamicObject* key)
+        {
+            AssertMsg(ssi->SetSize < setCountEst, "We are writting junk");
+
+            ssi->SetValueArray[ssi->SetSize] = key;
+            ssi->SetSize++;
+        });
+
+        if(ssi->SetSize == 0)
+        {
+            ssi->SetValueArray = nullptr;
+            alloc.SlabAbortArraySpace<TTD::TTDVar>(setCountEst + 1);
+        }
+        else
+        {
+            alloc.SlabCommitArraySpace<TTD::TTDVar>(ssi->SetSize, setCountEst + 1);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapSetInfo*, TTD::NSSnapObjects::SnapObjectType::SnapSetObject>(objData, ssi);
+    }
+#endif
 }

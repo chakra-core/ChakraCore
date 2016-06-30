@@ -3,18 +3,27 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Runtime.h"
-#include "core\AtomLockGuids.h"
-#include "core\ConfigParser.h"
-#include "Base\ThreadContextTLSEntry.h"
-#include "Base\ThreadBoundThreadContextManager.h"
+#include "Core/AtomLockGuids.h"
+#include "Core/ConfigParser.h"
+#include "Base/ThreadContextTlsEntry.h"
+#include "Base/ThreadBoundThreadContextManager.h"
 #ifdef DYNAMIC_PROFILE_STORAGE
-#include "Language\DynamicProfileStorage.h"
+#include "Language/DynamicProfileStorage.h"
 #endif
-#include "jsrtcontext.h"
+#include "JsrtContext.h"
 #include "TestHooks.h"
 
 extern HANDLE g_hInstance;
+#ifdef _WIN32
 static ATOM  lockedDll = 0;
+#endif
+
+#ifdef _MSC_VER
+#define EXPORT_FUNC
+#else
+#define EXPORT_FUNC __attribute__ ((visibility ("default")))
+#endif
+
 static BOOL AttachProcess(HANDLE hmod)
 {
     if (!ThreadContextTLSEntry::InitializeProcess() || !JsrtContext::Initialize())
@@ -50,12 +59,11 @@ static BOOL AttachProcess(HANDLE hmod)
     ValueType::Initialize();
     ThreadContext::GlobalInitialize();
 
-    wchar_t *engine = szChakraCoreLock;
-    if (::FindAtom(szJScript9Lock) != 0)
-    {
-        AssertMsg(FALSE, "Expecting to load chakracore.dll but process already loaded jscript9.dll");
-        Binary_Inconsistency_fatal_error();
-    }
+    // Needed to make sure that only ChakraCore is loaded into the process
+    // This is unnecessary on Linux since there aren't other flavors of
+    // Chakra binaries that can be loaded into the process
+#ifdef _WIN32
+    char16 *engine = szChakraCoreLock;
     if (::FindAtom(szChakraLock) != 0)
     {
         AssertMsg(FALSE, "Expecting to load chakracore.dll but process already loaded chakra.dll");
@@ -63,6 +71,7 @@ static BOOL AttachProcess(HANDLE hmod)
     }
     lockedDll = ::AddAtom(engine);
     AssertMsg(lockedDll, "Failed to lock chakracore.dll");
+#endif // _WIN32
 
 #ifdef ENABLE_BASIC_TELEMETRY
     g_TraceLoggingClient = NoCheckHeapNewStruct(TraceLoggingClient);
@@ -101,8 +110,7 @@ static void DetachProcess()
 }
 
 /****************************** Public Functions *****************************/
-
-#if _WIN32 || _WIN64
+EXPORT_FUNC
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
 {
     switch (dwReason)
@@ -128,8 +136,10 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
 
     case DLL_PROCESS_DETACH:
 
+#ifdef _WIN32
         lockedDll = ::DeleteAtom(lockedDll);
         AssertMsg(lockedDll == 0, "Failed to release the lock for chakracore.dll");
+#endif
 
 #ifdef DYNAMIC_PROFILE_STORAGE
         DynamicProfileStorage::Uninitialize();
@@ -158,7 +168,6 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
         return FALSE;
     }
 }
-#endif // _WIN32 || _WIN64
 
 void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
 {

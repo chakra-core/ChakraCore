@@ -8,12 +8,12 @@ namespace Js
 {
     DEFINE_RECYCLER_TRACKER_WEAKREF_PERF_COUNTER(Type);
 
-    InternalString Type::ObjectTypeNameString    = InternalString(L"object", 6);
-    InternalString Type::UndefinedTypeNameString = InternalString(L"undefined", 9);
-    InternalString Type::BooleanTypeNameString   = InternalString(L"boolean", 7);
-    InternalString Type::StringTypeNameString    = InternalString(L"string", 6);
-    InternalString Type::NumberTypeNameString    = InternalString(L"number", 6);
-    InternalString Type::FunctionTypeNameString  = InternalString(L"function", 8);
+    InternalString Type::ObjectTypeNameString    = InternalString(_u("object"), 6);
+    InternalString Type::UndefinedTypeNameString = InternalString(_u("undefined"), 9);
+    InternalString Type::BooleanTypeNameString   = InternalString(_u("boolean"), 7);
+    InternalString Type::StringTypeNameString    = InternalString(_u("string"), 6);
+    InternalString Type::NumberTypeNameString    = InternalString(_u("number"), 6);
+    InternalString Type::FunctionTypeNameString  = InternalString(_u("function"), 8);
 
     Type::Type(ScriptContext* scriptContext, TypeId typeId, RecyclableObject* prototype, JavascriptMethod entryPoint) :
         javascriptLibrary(scriptContext->GetLibrary()),
@@ -117,11 +117,6 @@ namespace Js
         return flags & TypeFlagMask_AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties;
     }
 
-    BOOL Type::IsFalsy() const
-    {
-        return flags & TypeFlagMask_IsFalsy;
-    }
-
     void Type::SetIsFalsy(const bool truth)
     {
         if (truth)
@@ -176,8 +171,27 @@ namespace Js
             return false;
         }
 
-        Output::Print(L"%S{%x} %p", typeinfo->name(), ((Type *)objectAddress)->GetTypeId(), objectAddress);
+        Output::Print(_u("%S{%x} %p"), typeinfo->name(), ((Type *)objectAddress)->GetTypeId(), objectAddress);
         return true;
+    }
+#endif
+
+#if ENABLE_TTD
+    void Type::ExtractSnapType(TTD::NSSnapType::SnapType* sType, TTD::NSSnapType::SnapHandler* optHandler, TTD::SlabAllocator& alloc) const
+    {
+        sType->TypePtrId = TTD_CONVERT_TYPEINFO_TO_PTR_ID(this);
+        sType->JsTypeId = this->GetTypeId();
+
+        sType->PrototypeVar = this->GetPrototype();
+
+        sType->ScriptContextLogId = this->GetScriptContext()->ScriptContextLogTag;
+        sType->TypeHandlerInfo = optHandler;
+
+        sType->HasNoEnumerableProperties = false;
+        if(Js::DynamicType::Is(this->typeId))
+        {
+            sType->HasNoEnumerableProperties = static_cast<const Js::DynamicType*>(this)->GetHasNoEnumerableProperties();
+        }
     }
 #endif
 }
