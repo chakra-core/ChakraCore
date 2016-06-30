@@ -27,18 +27,18 @@
 #if !ENABLE_TTD
 #define PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(CTX) false
 
-#define PERFORM_JSRT_TTD_RECORD_ACTION_NORESULT(CTX, ACTION_CODE) 
-#define PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(CTX, ACTION_CODE) 
-#define PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(RESULT) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NORESULT(CTX, ACTION_CODE)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_WRESULT(CTX, ACTION_CODE)
+#define PERFORM_JSRT_TTD_RECORD_ACTION_PROCESS_RESULT(RESULT)
 
 //TODO: find and replace all of the occourences of this in jsrt.cpp
-#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX) 
+#define PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(CTX)
 #endif
 
 struct CodexHeapAllocatorInterface
 {
 public:
-    static void* allocate(size_t size) 
+    static void* allocate(size_t size)
     {
         return HeapNewArray(char, size);
     }
@@ -101,7 +101,7 @@ JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, b
 /////////////////////
 
 //A create runtime function that we can funnel to for regular and record or debug aware creation
-JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ char* optRecordUri, charcount_t optRecordUriCount, _In_opt_ char* optDebugUri, charcount_t optDebugUriCount, _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
+JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ char* optRecordUri, size_t optRecordUriCount, _In_opt_ char* optDebugUri, size_t optDebugUriCount, _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
     VALIDATE_ENTER_CURRENT_THREAD();
 
@@ -2774,7 +2774,7 @@ CHAKRA_API JsGetPropertyNameFromId(_In_ JsPropertyIdRef propertyId, _Outptr_resu
 CHAKRA_API JsGetPropertyNameFromIdUtf8Copy(_In_ JsPropertyIdRef propertyId, _Outptr_result_z_ char **name)
 {
     const wchar_t *wname = nullptr;
- 
+
     JsErrorCode err = JsGetPropertyNameFromId(propertyId, &wname);
 
     if (err == JsNoError)
@@ -3444,8 +3444,8 @@ CHAKRA_API JsStringFree(_In_ char* stringValue)
 
 /////////////////////
 
-CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ char* infoUri, _In_ charcount_t infoUriCount,
-    _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, 
+CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ char* infoUri, _In_ size_t infoUriCount,
+    _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength,
     _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
 #if !ENABLE_TTD
@@ -3455,7 +3455,7 @@ CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ 
 #endif
 }
 
-CHAKRA_API JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ char* infoUri, _In_ charcount_t infoUriCount,
+CHAKRA_API JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes, _In_z_ char* infoUri, _In_ size_t infoUriCount,
     _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
 #if !ENABLE_TTD
@@ -3474,7 +3474,7 @@ CHAKRA_API JsTTDCreateContext(_In_ JsRuntimeHandle runtime, _Out_ JsContextRef *
 #endif
 }
 
-CHAKRA_API JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const char *script, _In_ JsSourceContext sourceContext, 
+CHAKRA_API JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const char *script, _In_ JsSourceContext sourceContext,
     _In_z_ const char *sourceUrl, _Out_ JsValueRef *result)
 {
 #if !ENABLE_TTD
@@ -3484,7 +3484,7 @@ CHAKRA_API JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const char *script, 
 #endif
 }
 
-CHAKRA_API JsTTDCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef function, 
+CHAKRA_API JsTTDCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef function,
     _In_reads_(argumentCount) JsValueRef *arguments, _In_ unsigned short argumentCount, _Out_opt_ JsValueRef *result)
 {
 #if !ENABLE_TTD
@@ -3494,9 +3494,9 @@ CHAKRA_API JsTTDCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef function
 #endif
 }
 
-CHAKRA_API JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime, 
-    _In_ JsTTDInitializeUriCallback ttdInitializeUriFunction, _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, 
-    _In_ JsTTDGetLogStreamCallback getLogStreamInfo, _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, 
+CHAKRA_API JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime,
+    _In_ JsTTDInitializeUriCallback ttdInitializeUriFunction, _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction,
+    _In_ JsTTDGetLogStreamCallback getLogStreamInfo, _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo,
     _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream)
 {
 #if !ENABLE_TTD
@@ -3504,8 +3504,8 @@ CHAKRA_API JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime,
 #else
     ThreadContext* threadContext = JsrtRuntime::FromHandle(runtime)->GetThreadContext();
 
-    if (ttdInitializeUriFunction == nullptr || writeInitializeFunction == nullptr 
-        || getLogStreamInfo == nullptr || getSnapshotStreamInfo == nullptr || getSrcCodeStreamInfo == nullptr 
+    if (ttdInitializeUriFunction == nullptr || writeInitializeFunction == nullptr
+        || getLogStreamInfo == nullptr || getSnapshotStreamInfo == nullptr || getSrcCodeStreamInfo == nullptr
         || readBytesFromStream == nullptr || writeBytesToStream == nullptr || flushAndCloseStream == nullptr)
     {
         return JsErrorNullArgument;
@@ -3704,7 +3704,7 @@ CHAKRA_API JsTTDReStartTimeTravelAfterRuntimeOperation()
 #endif
 }
 
-CHAKRA_API JsTTDNotifyHostCallbackCreatedOrCanceled(_In_ bool isCreated, _In_ bool isCancel, _In_ bool isRepeating, 
+CHAKRA_API JsTTDNotifyHostCallbackCreatedOrCanceled(_In_ bool isCreated, _In_ bool isCancel, _In_ bool isRepeating,
     _In_ JsValueRef function, _In_ INT64 callbackId)
 {
 #if !ENABLE_TTD
