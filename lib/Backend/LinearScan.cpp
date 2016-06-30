@@ -1680,19 +1680,20 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #ifdef _M_IX86
         uint * startCallArgRestoreAdjustCounts = NativeCodeDataNewArray(allocator, uint, startCallCount);
 #endif
-        BVFixed * argOutFloat64Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutLosslessInt32Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        NativeCodeData::AllocatorT<BVFixedWrapper>* allocatorT = (NativeCodeData::AllocatorT<BVFixedWrapper>*)allocator;
+        BVFixed * argOutFloat64Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutLosslessInt32Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
         // SIMD_JS
-        BVFixed * argOutSimd128F4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128I4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128I8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128I16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128U4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128U8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128U16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128B4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128B8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128B16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128F4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128I4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128I8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128I16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128U4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128U8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128U16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128B4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128B8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128B16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
 
         int* outParamOffsets = bailOutInfo->outParamOffsets = NativeCodeDataNewArrayZ(allocator, int, bailOutInfo->totalOutParamCount);
 #ifdef _M_IX86

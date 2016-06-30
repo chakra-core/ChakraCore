@@ -161,6 +161,12 @@ public:
     }
 };
 
+struct BVFixedWrapper
+{
+    BVFixed bv;
+    void Fixup(NativeCodeData::DataChunk* chunkList) {}
+};
+
 class BailOutRecord
 {
 public:
@@ -306,7 +312,15 @@ protected:
             FixupNativeDataPointer(argOutFloat64Syms, chunkList);
             FixupNativeDataPointer(argOutLosslessInt32Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128F4Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128I4Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128I4Syms, chunkList);            
+            FixupNativeDataPointer(argOutSimd128I8Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128I16Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128U4Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128U8Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128U16Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128B4Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128B8Syms, chunkList);
+            FixupNativeDataPointer(argOutSimd128B16Syms, chunkList);
 
             // special handling for startCallOutParamCounts and outParamOffsets, becuase it points to middle of the allocation
             uint* startCallOutParamCountsStart = startCallOutParamCounts - startCallIndex;
