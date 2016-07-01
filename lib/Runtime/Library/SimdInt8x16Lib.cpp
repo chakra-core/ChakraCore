@@ -842,7 +842,7 @@ namespace Js
                 lanes[i] = args[i + 2];
             }
 
-            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDInt8x16, 16>(args[1], args[1], lanes, 16, scriptContext);
+            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDInt8x16>(args[1], args[1], lanes, 16, 16, scriptContext);
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("swizzle"));
     }
@@ -873,7 +873,7 @@ namespace Js
             {
                 lanes[i] = args[i + 3];
             }
-            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDInt8x16, 16>(args[1], args[2], lanes, 32, scriptContext);
+            return SIMDUtils::SIMD128SlowShuffle<JavascriptSIMDInt8x16>(args[1], args[2], lanes, 16, 32, scriptContext);
 
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("shuffle"));
