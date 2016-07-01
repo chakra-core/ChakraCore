@@ -70,6 +70,7 @@ public:
 
     StackSym *      GetTempNumberSym(IR::Opnd * opnd, bool isTempTransferred);
     static bool     HasSideEffects(IR::Instr *instr);
+    static bool     IsArgSaveRequired(Func *func);
 
 #if DBG
     static bool     ValidOpcodeAfterLower(IR::Instr* instr, Func * func);

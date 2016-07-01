@@ -10328,6 +10328,13 @@ Lowerer::HasSideEffects(IR::Instr *instr)
     return instr->HasAnySideEffects();
 }
 
+bool Lowerer::IsArgSaveRequired(Func *func) {
+    return (!func->IsTrueLeaf() || func->IsJitInDebugMode() ||
+        // GetHasImplicitParamLoad covers generators, asmjs,
+        // and other javascript functions that implicitly read from the arg stack slots
+        func->GetHasThrow() || func->GetHasImplicitParamLoad() || func->HasThis() || func->argInsCount > 0);
+}
+
 IR::Instr*
 Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
 {
@@ -10639,6 +10646,7 @@ Lowerer::LoadCallInfo(IR::Instr * instrInsert)
         IR::SymOpnd * generatorSymOpnd = IR::SymOpnd::New(generatorSym, TyMachPtr, func);
         IR::RegOpnd * generatorRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
         LowererMD::CreateAssign(generatorRegOpnd, generatorSymOpnd, instrInsert);
+        func->SetHasImplicitParamLoad();
 
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(generatorRegOpnd, Js::JavascriptGenerator::GetCallInfoOffset(), TyMachPtr, func);
         IR::Instr * instr = LowererMD::CreateAssign(IR::RegOpnd::New(TyMachPtr, func), indirOpnd, instrInsert);
