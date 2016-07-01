@@ -198,18 +198,18 @@ pushd $build_directory > /dev/null
 echo Generating $BUILD_TYPE makefiles
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
 
+_RET=$?
 if [[ $? == 0 ]]; then
     if [[ $MAKE != 0 ]]; then
         $MAKE $MULTICORE_BUILD 2>&1 | tee build.log
+        _RET=${PIPESTATUS[0]}
     else
         echo "Visit given folder above for xcode project file ----^"
     fi
 fi
 
-$MAKE $MULTICORE_BUILD 2>&1 | tee build.log
-_RET=${PIPESTATUS[0]}
 if [[ $_RET != 0 ]]; then
-    echo Error: $MAKE return $_RET
+    echo "See error details above. Exit code was $_RET"
 fi
 
 popd > /dev/null
