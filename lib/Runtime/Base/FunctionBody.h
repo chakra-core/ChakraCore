@@ -87,9 +87,6 @@ namespace Js
         void SetValue(intptr_t value) { Assert(value != 0); this->value = value; }
         intptr_t const* GetAddressOfValue() { return &this->value; }
         void Invalidate() { this->value = 0; }
-        void Fixup(NativeCodeData::DataChunk* chunkList)
-        {
-        }
     };
 
     class PropertyGuardValidator
@@ -109,10 +106,6 @@ namespace Js
             Js::PropertyGuard(value), index(index) {}
 
         int GetIndex() const { return this->index; }
-        void Fixup(NativeCodeData::DataChunk* chunkList)
-        {
-            __super::Fixup(chunkList);
-        }
     };
 
     class JitTypePropertyGuard : public Js::JitIndexedPropertyGuard
@@ -123,10 +116,6 @@ namespace Js
 
         intptr_t GetTypeAddr() const { return this->GetValue(); }
 
-        void Fixup(NativeCodeData::DataChunk* chunkList)
-        {
-            __super::Fixup(chunkList);
-        }
     };
 
     struct TypeGuardTransferEntry
@@ -135,12 +124,6 @@ namespace Js
         JitIndexedPropertyGuard* guards[0];
 
         TypeGuardTransferEntry(): propertyId(Js::Constants::NoProperty) {}
-
-        void Fixup(NativeCodeData::DataChunk* chunkList)
-        {
-            // OOP JIT does not use this data structure to transfer the Guards
-            Assert(false);
-        }
     };
 
     class FakePropertyGuardWeakReference: public RecyclerWeakReference<Js::PropertyGuard>

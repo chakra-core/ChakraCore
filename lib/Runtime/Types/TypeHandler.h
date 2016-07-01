@@ -39,7 +39,6 @@ namespace Js
         Js::PropertyIndex slotIndex;
         bool isAuxSlot;
         bool mustBeWritable;
-        void Fixup(NativeCodeData::DataChunk* chunkList) {}
     };
 
     struct TypeEquivalenceRecord

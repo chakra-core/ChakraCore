@@ -161,12 +161,6 @@ public:
     }
 };
 
-struct BVFixedWrapper
-{
-    BVFixed bv;
-    void Fixup(NativeCodeData::DataChunk* chunkList) {}
-};
-
 class BailOutRecord
 {
 public:
@@ -284,7 +278,6 @@ protected:
     {
         Js::RegSlot regSlot;
         uint initFldCount;
-        void Fixup(NativeCodeData::DataChunk* chunkList) {}
     };
 
     struct ArgOutOffsetInfo
@@ -459,8 +452,6 @@ struct GlobalBailOutRecordDataRow
     unsigned isSimd128U4 : 1;
     unsigned isSimd128U8 : 1;
     unsigned isSimd128U16 : 1;
-
-    void Fixup(NativeCodeData::DataChunk* chunkList) {}
 };
 
 struct GlobalBailOutRecordDataTable

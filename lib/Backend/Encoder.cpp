@@ -463,7 +463,7 @@ Encoder::Encode()
 
             // The extra room for sizeof(Js::TypePropertyGuardEntry) allocated by HeapNewPlus will be used for the terminating invalid propertyId.
             // Review (jedmiad): Skip zeroing?  This is heap allocated so there shouldn't be any false recycler references.
-            Js::TypeGuardTransferEntry* typeGuardTransferRecord = NativeCodeDataNewPlusZ(typeGuardTransferSize, m_func->GetNativeCodeDataAllocator(), Js::TypeGuardTransferEntry);
+            Js::TypeGuardTransferEntry* typeGuardTransferRecord = NativeCodeDataNewPlusZNoFixup(typeGuardTransferSize, m_func->GetNativeCodeDataAllocator(), Js::TypeGuardTransferEntry);
 
             Func* func = this->m_func;
 

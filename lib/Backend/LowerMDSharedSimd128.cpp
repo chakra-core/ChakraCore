@@ -373,7 +373,7 @@ IR::Instr* LowererMD::Simd128LoadConst(IR::Instr* instr)
     AsmJsSIMDValue value = instr->GetSrc1()->AsSimd128ConstOpnd()->m_value;
 
     // MOVUPS dst, [const]
-    AsmJsSIMDValue *pValue = NativeCodeDataNew(instr->m_func->GetNativeCodeDataAllocator(), AsmJsSIMDValue);
+    AsmJsSIMDValue *pValue = NativeCodeDataNewNoFixup(instr->m_func->GetNativeCodeDataAllocator(), AsmJsSIMDValue);
     pValue->SetValue(value);
     IR::Opnd * opnd = IR::MemRefOpnd::New((void *)pValue, instr->GetDst()->GetType(), instr->m_func);
     instr->ReplaceSrc1(opnd);

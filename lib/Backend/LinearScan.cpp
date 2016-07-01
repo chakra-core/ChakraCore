@@ -1676,11 +1676,11 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     {
         Assert(startCallCount != 0);
         uint argOutSlot = 0;
-        uint * startCallOutParamCounts = NativeCodeDataNewArray(allocator, uint, startCallCount);
+        uint * startCallOutParamCounts = (uint*)NativeCodeDataNewArrayNoFixup(allocator, UIntType<DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts>, startCallCount);
 #ifdef _M_IX86
         uint * startCallArgRestoreAdjustCounts = NativeCodeDataNewArray(allocator, uint, startCallCount);
 #endif
-        NativeCodeData::AllocatorT<BVFixedWrapper>* allocatorT = (NativeCodeData::AllocatorT<BVFixedWrapper>*)allocator;
+        NativeCodeData::AllocatorNoFixup<BVFixed>* allocatorT = (NativeCodeData::AllocatorNoFixup<BVFixed>*)allocator;
         BVFixed * argOutFloat64Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
         BVFixed * argOutLosslessInt32Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
         // SIMD_JS
@@ -1695,7 +1695,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         BVFixed * argOutSimd128B8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
         BVFixed * argOutSimd128B16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
 
-        int* outParamOffsets = bailOutInfo->outParamOffsets = NativeCodeDataNewArrayZ(allocator, int, bailOutInfo->totalOutParamCount);
+        int* outParamOffsets = bailOutInfo->outParamOffsets = (int*)NativeCodeDataNewArrayZNoFixup(allocator, IntType<DataDesc_BailoutInfo_CotalOutParamCount>, bailOutInfo->totalOutParamCount);
 #ifdef _M_IX86
         int currentStackOffset = 0;
         bailOutInfo->outParamFrameAdjustArgSlot = JitAnew(this->func->m_alloc, BVSparse<JitArenaAllocator>, this->func->m_alloc);
@@ -2183,7 +2183,7 @@ LinearScan::FillStackLiteralBailOutRecord(IR::Instr * instr, BailOutInfo * bailO
             if (stackLiteralBailOutRecordCount)
             {
                 funcBailOutData[i].bailOutRecord->stackLiteralBailOutRecord =
-                    NativeCodeDataNewArray(allocator, BailOutRecord::StackLiteralBailOutRecord, stackLiteralBailOutRecordCount);
+                    NativeCodeDataNewArrayNoFixup(allocator, BailOutRecord::StackLiteralBailOutRecord, stackLiteralBailOutRecordCount);
                 // reset the count so we can track how much we have filled below
                 funcBailOutData[i].bailOutRecord->stackLiteralBailOutRecordCount = 0;
             }

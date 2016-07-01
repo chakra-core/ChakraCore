@@ -7164,7 +7164,8 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITType* type, IR::
     NEXT_BITSET_IN_SPARSEBV;
 
     cache->record.propertyCount = propIdCount;
-    cache->record.properties = NativeCodeDataNewArray(this->m_func->GetNativeCodeDataAllocator(), Js::EquivalentPropertyEntry, propIdCount);
+    // Js::EquivalentPropertyEntry does not contain pointer, no need to fixup
+    cache->record.properties = NativeCodeDataNewArrayNoFixup(this->m_func->GetNativeCodeDataAllocator(), Js::EquivalentPropertyEntry, propIdCount);
 
     memcpy(cache->record.properties, properties, propIdCount * sizeof(Js::EquivalentPropertyEntry));
 

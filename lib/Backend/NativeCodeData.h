@@ -10,11 +10,11 @@
 #define NativeCodeDataNewArrayZ(alloc, T, count) AllocatorNewArrayZ(NativeCodeData::AllocatorT<NativeCodeData::Array<T>>, alloc, T, count)
 #define NativeCodeDataNewPlusZ(size, alloc, T, ...) AllocatorNewPlusZ(NativeCodeData::AllocatorT<T>, alloc, size, T, __VA_ARGS__)
 
-
 #define NativeCodeDataNewNoFixup(alloc, T, ...) AllocatorNew(NativeCodeData::AllocatorNoFixup<T>, alloc, T, __VA_ARGS__)
 #define NativeCodeDataNewZNoFixup(alloc, T, ...) AllocatorNewZ(NativeCodeData::AllocatorNoFixup<T>, alloc, T, __VA_ARGS__)
 #define NativeCodeDataNewArrayNoFixup(alloc, T, count) AllocatorNewArray(NativeCodeData::AllocatorNoFixup<NativeCodeData::Array<T>>, alloc, T, count)
 #define NativeCodeDataNewArrayZNoFixup(alloc, T, count) AllocatorNewArrayZ(NativeCodeData::AllocatorNoFixup<NativeCodeData::Array<T>>, alloc, T, count)
+#define NativeCodeDataNewPlusZNoFixup(size, alloc, T, ...) AllocatorNewPlusZ(NativeCodeData::AllocatorNoFixup<T>, alloc, size, T, __VA_ARGS__)
 
 #define FixupNativeDataPointer(field, chunkList) NativeCodeData::AddFixupEntry(this->field, &this->field, this, chunkList)
 
@@ -193,91 +193,58 @@ public:
     ~NativeCodeData();
 };
 
-#if DBG
-template<> void NativeCodeData::AllocatorT<double>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList){}
-template<> void NativeCodeData::AllocatorT<float>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList){}
-template<> void NativeCodeData::AllocatorT<AsmJsSIMDValue>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList){}
-template<> void NativeCodeData::AllocatorT<int>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
-template<> void NativeCodeData::AllocatorT<uint>::Fixup(void* pThis, NativeCodeData::DataChunk* chunkList) {}
-#else
-template<>
-char*
-NativeCodeData::AllocatorT<double>::Alloc(size_t requestedBytes)
-{
-    return __super::Alloc(requestedBytes);
-}
-template<>
-char*
-NativeCodeData::AllocatorT<double>::AllocZero(size_t requestedBytes)
-{
-    return __super::AllocZero(requestedBytes);
-}
-template<>
-char*
-NativeCodeData::AllocatorT<float>::Alloc(size_t requestedBytes)
-{
-    return __super::Alloc(requestedBytes);
-}
-template<>
-char*
-NativeCodeData::AllocatorT<float>::AllocZero(size_t requestedBytes)
-{
-    return __super::AllocZero(requestedBytes);
-}
-template<>
-char*
-NativeCodeData::AllocatorT<AsmJsSIMDValue>::Alloc(size_t requestedBytes)
-{
-    return __super::Alloc(requestedBytes);
-}
-template<>
-char*
-NativeCodeData::AllocatorT<AsmJsSIMDValue>::AllocZero(size_t requestedBytes)
-{
-    return __super::AllocZero(requestedBytes);
-}
+char DataDesc_None[]                                        = "";
+char DataDesc_InlineeFrameRecord_ArgOffsets[]               = "";
+char DataDesc_InlineeFrameRecord_Constants[]                = "";
+char DataDesc_BailoutInfo_CotalOutParamCount[]              = "";
+char DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts[]    = "";
+char DataDesc_LowererMD_LoadFloatValue_Float[]              = "";
+char DataDesc_LowererMD_LoadFloatValue_Double[]             = "";
+char DataDesc_LowererMD_EmitLoadFloatCommon_Double[]        = "";
 
-template<>
-char*
-NativeCodeData::AllocatorT<int>::Alloc(size_t requestedBytes)
-{
-    return __super::Alloc(requestedBytes);
-}
-template<>
-char*
-NativeCodeData::AllocatorT<int>::AllocZero(size_t requestedBytes)
-{
-    return __super::AllocZero(requestedBytes);
-}
+template<char const *desc = DataDesc_None>
+struct IntType 
+{ 
+    int data; 
+};
 
+template<char const *desc = DataDesc_None>
+struct UIntType
+{
+    uint data;
+};
+
+template<char const *desc = DataDesc_None>
+struct FloatType
+{
+    FloatType(float val) :data(val) {}
+    float data;
+};
+
+template<char const *desc = DataDesc_None>
+struct DoubleType
+{
+    DoubleType() {}
+    DoubleType(double val) :data(val) {}
+    double data;
+};
+
+template<char const *desc = DataDesc_None>
+struct VarType
+{
+    Js::Var data;
+    void Fixup(NativeCodeData::DataChunk* chunkList)
+    {
+        AssertMsg(false, "Please specialize Fixup method for this Var type or use no-fixup allocator");
+    }
+};
 template<>
-char*
-NativeCodeData::AllocatorT<uint>::Alloc(size_t requestedBytes)
+void VarType<DataDesc_InlineeFrameRecord_Constants>::Fixup(NativeCodeData::DataChunk* chunkList) 
 {
-    return __super::Alloc(requestedBytes);
-}
-template<>
-char*
-NativeCodeData::AllocatorT<uint>::AllocZero(size_t requestedBytes)
-{
-    return __super::AllocZero(requestedBytes);
-}
-#endif
-
-template<> void NativeCodeData::Array<int>::Fixup(NativeCodeData::DataChunk* chunkList)
-{
-}
-
-template<> void NativeCodeData::Array<unsigned int>::Fixup(NativeCodeData::DataChunk* chunkList)
-{
-}
-
-template<> void NativeCodeData::Array<Js::Var>::Fixup(NativeCodeData::DataChunk* chunkList)
-{
+    AssertMsg(false, "InlineeFrameRecord::constants contains Var from main process, should not fixup");
 }
 
 struct GlobalBailOutRecordDataTable;
-
 template<> void NativeCodeData::Array<GlobalBailOutRecordDataTable *>::Fixup(NativeCodeData::DataChunk* chunkList)
 {
     NativeCodeData::AddFixupEntryForPointerArray(this, chunkList);
