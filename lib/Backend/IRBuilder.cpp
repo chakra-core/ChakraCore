@@ -1428,8 +1428,21 @@ IRBuilder::BuildConstantLoads()
         IR::RegOpnd *dstOpnd = this->BuildDstOpnd(reg);
         Assert(this->RegIsConstant(reg));
         dstOpnd->m_sym->SetIsFromByteCodeConstantTable();
-
-        IR::Instr *instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, ValueType::FromTypeId(type, false), m_func);
+        // TODO: be more precise about this
+        ValueType valueType;
+        switch (type)
+        {
+        case Js::TypeIds_Number:
+            valueType = ValueType::Number;
+            break;
+        case Js::TypeIds_String:
+            valueType = ValueType::String;
+            break;
+        default:
+            valueType = ValueType::FromTypeId(type, false);
+            break;
+        }
+        IR::Instr *instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func);
         this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
     }
 

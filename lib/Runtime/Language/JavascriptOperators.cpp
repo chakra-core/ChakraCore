@@ -5369,7 +5369,7 @@ CommonNumber:
         else
         {
             DynamicType* objectType =
-                FunctionBody::DoObjectHeaderInliningForObjectLiteral(propIds, scriptContext)
+                FunctionBody::DoObjectHeaderInliningForObjectLiteral(propIds)
                     ?   scriptContext->GetLibrary()->GetObjectHeaderInlinedLiteralType((uint16)propIds->count)
                     :   scriptContext->GetLibrary()->GetObjectLiteralType(
                             static_cast<PropertyIndex>(
@@ -5378,9 +5378,10 @@ CommonNumber:
             *literalType = newType;
         }
 
-        Assert(GetLiteralInlineSlotCapacity(propIds, scriptContext) == newType->GetTypeHandler()->GetInlineSlotCapacity());
+        Assert(scriptContext);
+        Assert(GetLiteralInlineSlotCapacity(propIds) == newType->GetTypeHandler()->GetInlineSlotCapacity());
         Assert(newType->GetTypeHandler()->GetSlotCapacity() >= 0);
-        Assert(GetLiteralSlotCapacity(propIds, scriptContext) == (uint)newType->GetTypeHandler()->GetSlotCapacity());
+        Assert(GetLiteralSlotCapacity(propIds) == (uint)newType->GetTypeHandler()->GetSlotCapacity());
         return newType;
     }
 
@@ -5416,15 +5417,14 @@ CommonNumber:
         return instance;
     }
 
-    uint JavascriptOperators::GetLiteralSlotCapacity(Js::PropertyIdArray const * propIds, ScriptContext *const scriptContext)
+    uint JavascriptOperators::GetLiteralSlotCapacity(Js::PropertyIdArray const * propIds)
     {
-        const uint inlineSlotCapacity = GetLiteralInlineSlotCapacity(propIds, scriptContext);
+        const uint inlineSlotCapacity = GetLiteralInlineSlotCapacity(propIds);
         return DynamicTypeHandler::RoundUpSlotCapacity(propIds->count, static_cast<PropertyIndex>(inlineSlotCapacity));
     }
 
     uint JavascriptOperators::GetLiteralInlineSlotCapacity(
-        Js::PropertyIdArray const * propIds,
-        ScriptContext *const scriptContext)
+        Js::PropertyIdArray const * propIds)
     {
         if (propIds->hadDuplicates)
         {
@@ -5432,7 +5432,7 @@ CommonNumber:
         }
 
         return
-            FunctionBody::DoObjectHeaderInliningForObjectLiteral(propIds, scriptContext)
+            FunctionBody::DoObjectHeaderInliningForObjectLiteral(propIds)
                 ?   DynamicTypeHandler::RoundUpObjectHeaderInlinedInlineSlotCapacity(static_cast<PropertyIndex>(propIds->count))
                 :   DynamicTypeHandler::RoundUpInlineSlotCapacity(
                         static_cast<PropertyIndex>(

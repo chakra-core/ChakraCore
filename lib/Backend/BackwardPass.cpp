@@ -261,12 +261,12 @@ BackwardPass::CleanupBackwardPassInfoInFlowGraph()
 void
 BackwardPass::InsertArgInsForFormals()
 {
-    if (func->IsStackArgsEnabled() && !func->GetJnFunction()->GetHasImplicitArgIns())
+    if (func->IsStackArgsEnabled() && !func->GetJITFunctionBody()->HasImplicitArgIns())
     {
         IR::Instr * insertAfterInstr = func->m_headInstr->m_next;
         AssertMsg(insertAfterInstr->IsLabelInstr(), "First Instr of the first block should always have a label");
 
-        Js::ArgSlot paramsCount = insertAfterInstr->m_func->GetJnFunction()->GetInParamsCount() - 1;
+        Js::ArgSlot paramsCount = insertAfterInstr->m_func->GetJITFunctionBody()->GetInParamsCount() - 1;
         IR::Instr *     argInInstr = nullptr;
         for (Js::ArgSlot argumentIndex = 1; argumentIndex <= paramsCount; argumentIndex++)
         {

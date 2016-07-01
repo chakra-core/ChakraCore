@@ -123,7 +123,11 @@ NativeCodeData::GetDataDescription(void* data, JitArenaAllocator * alloc)
 {
     auto chunk = GetDataChunk(data);
     wchar_t buf[1024] = { 0 };
+#if DBG
     swprintf_s(buf, L"%hs, NativeCodeData: index: %x, len: %x, offset: +%x", chunk->dataType, chunk->allocIndex, chunk->len, chunk->offset);
+#else
+    swprintf_s(buf, L"NativeCodeData: index: %x, len: %x, offset: +%x", chunk->allocIndex, chunk->len, chunk->offset);
+#endif
     auto len = wcslen(buf) + 1;
     auto desc = JitAnewArray(alloc, wchar_t, len);
     wcscpy(desc, buf);

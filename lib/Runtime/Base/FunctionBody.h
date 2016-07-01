@@ -2361,7 +2361,7 @@ namespace Js
         static bool DoObjectHeaderInliningForObjectLiterals();
     public:
         static bool DoObjectHeaderInliningForObjectLiteral(const uint32 inlineSlotCapacity);
-        static bool DoObjectHeaderInliningForObjectLiteral(const PropertyIdArray *const propIds, ScriptContext *const scriptContext);
+        static bool DoObjectHeaderInliningForObjectLiteral(const PropertyIdArray *const propIds);
         static bool DoObjectHeaderInliningForEmptyObjects();
 
     public:

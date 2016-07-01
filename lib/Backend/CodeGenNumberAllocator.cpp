@@ -307,7 +307,11 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(HANDLE hProcess
             auto number = tail->allocEndAddress;
             tail->allocEndAddress += sizeCat;
 
-            Js::JavascriptNumber localNumber(value, numberTypeStatic, true);
+            Js::JavascriptNumber localNumber(value, numberTypeStatic
+#if DBG
+                , true
+#endif
+            );
 
             // change vtable to the remote one
             *(void**)&localNumber = javascriptNumberVtbl;

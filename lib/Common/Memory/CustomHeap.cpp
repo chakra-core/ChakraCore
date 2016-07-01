@@ -23,13 +23,13 @@ namespace CustomHeap
 Heap::Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators, HANDLE processHandle):
     auxiliaryAllocator(alloc),
     codePageAllocators(codePageAllocators),
-    lastSecondaryAllocStateChangedCount(0)
+    lastSecondaryAllocStateChangedCount(0),
+    processHandle(processHandle)
 #if DBG_DUMP
     , freeObjectSize(0)
     , totalAllocationSize(0)
     , allocationsSinceLastCompact(0)
     , freesSinceLastCompact(0)
-    , processHandle(processHandle)
 #endif
 #if DBG
     , inDtor(false)

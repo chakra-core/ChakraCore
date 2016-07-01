@@ -319,8 +319,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     bool HasFinally() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->GetHasFinally();
+        return this->GetJITFunctionBody()->HasFinally();
     }
     Js::ArgSlot GetInParamsCount() const
     {
@@ -474,7 +473,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
         return this->isTJLoopBody;
     }
 
-    Js::JavascriptNumber* AllocateOOPNumber(double value);
+    Js::Var AllocateNumber(double value);
 
     JITObjTypeSpecFldInfo* GetObjTypeSpecFldInfo(const uint index) const;
     JITObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const;

@@ -1941,17 +1941,7 @@ AddrOpnd::NewFromNumber(int32 value, Func *func, bool dontEncode /* = false */)
     }
     else
     {
-        Js::Var number = nullptr;
-        if (!func->IsOOPJIT()) // in-proc jit
-        {
-            number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
-        }
-        else // OOP JIT
-        {
-            number = func->AllocateOOPNumber((double)value);
-        }
-
-        return New(number, AddrOpndKindDynamicVar, func, dontEncode);
+        return New(func->AllocateNumber((double)value), AddrOpndKindDynamicVar, func, dontEncode);
     }
 }
 
@@ -1964,17 +1954,7 @@ AddrOpnd::NewFromNumber(int64 value, Func *func, bool dontEncode /* = false */)
     }
     else
     {
-        Js::Var number = nullptr;
-        if (!func->IsOOPJIT()) // in-proc jit
-        {
-            number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
-        }
-        else // OOP JIT
-        {
-            number = func->AllocateOOPNumber((double)value);
-        }
-
-        return New(number, AddrOpndKindDynamicVar, func, dontEncode);
+        return New(func->AllocateNumber((double)value), AddrOpndKindDynamicVar, func, dontEncode);
     }
 }
 
@@ -2011,17 +1991,7 @@ AddrOpnd::NewFromNumber(double value, Func *func, bool dontEncode /* = false */)
         return New(Js::TaggedInt::ToVarUnchecked(nValue), AddrOpndKindConstantVar, func, dontEncode);
     }
 
-    Js::Var number = nullptr;
-    if (!func->IsOOPJIT()) // in-proc jit
-    {
-        number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
-    }
-    else // OOP JIT
-    {
-        number = func->AllocateOOPNumber((double)value);
-    }
-
-    return New(number, AddrOpndKindDynamicVar, func, dontEncode);
+    return New(func->AllocateNumber((double)value), AddrOpndKindDynamicVar, func, dontEncode);
 }
 
 AddrOpnd *

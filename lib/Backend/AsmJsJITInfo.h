@@ -36,6 +36,7 @@ public:
 
     bool IsHeapBufferConst() const;
     bool UsesHeapBuffer() const;
+    bool AccessNeedsBoundCheck(uint offset) const;
 
 private:
     AsmJsDataIDL m_data;

@@ -187,12 +187,11 @@ JITTimeFunctionBody::InitializeJITFunctionData(
 
     jitBody->referencedPropertyIdCount = functionBody->GetReferencedPropertyIdCount();
     jitBody->referencedPropertyIdMap = functionBody->GetReferencedPropertyIdMap();
+    jitBody->hasFinally = functionBody->GetHasFinally();
 
     jitBody->nameLength = functionBody->GetDisplayNameLength();
     jitBody->displayName = (wchar_t *)functionBody->GetDisplayName();
     jitBody->objectLiteralTypesAddr = (intptr_t)functionBody->GetObjectLiteralTypes();
-    auto test = functionBody->GetObjLiteralCount() >= 322 ? functionBody->GetObjectLiteralTypeRef(322) : nullptr;
-    Assert(test || !test);
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
     jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexes();
 
@@ -492,6 +491,12 @@ bool
 JITTimeFunctionBody::HasTry() const
 {
     return Js::FunctionBody::GetHasTry(GetFlags());
+}
+
+bool
+JITTimeFunctionBody::HasFinally() const
+{
+    return m_bodyData.hasFinally != FALSE;
 }
 
 bool
@@ -874,9 +879,14 @@ JITTimeFunctionBody::GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlin
 intptr_t
 JITTimeFunctionBody::ReadAuxArray(uint offset) const
 {
-    intptr_t auxArray = m_bodyData.auxDataBufferAddr + offset;
-    // TODO: OOP JIT, add this assert back
-    //Assert(offset + auxArray->GetDataSize() <= functionBody->GetAuxiliaryData()->GetLength());
+    return m_bodyData.auxDataBufferAddr + offset;
+}
+
+const Js::PropertyIdArray *
+JITTimeFunctionBody::ReadPropertyIdArrayFromAuxData(uint offset) const
+{
+    Js::PropertyIdArray * auxArray = (Js::PropertyIdArray *)(m_bodyData.auxData + offset);
+    Assert(offset + auxArray->GetDataSize() <= m_bodyData.auxDataCount);
     return auxArray;
 }
 

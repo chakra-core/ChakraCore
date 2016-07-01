@@ -322,6 +322,7 @@ typedef struct FunctionBodyDataIDL
     boolean hasNestedLoop;
     boolean hasNonBuiltInCallee;
     boolean isParamAndBodyScopeMerged;
+    boolean hasFinally;
 
     unsigned short envDepth;
     unsigned short inParamCount;

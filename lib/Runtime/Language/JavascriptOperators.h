@@ -386,8 +386,8 @@ namespace Js
         static Var NewVarFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library);
         static Var NewScObjectLiteral(ScriptContext* scriptContext, const Js::PropertyIdArray *propIds, DynamicType ** literalType);
         static DynamicType * EnsureObjectLiteralType(ScriptContext* scriptContext, const Js::PropertyIdArray *propIds, DynamicType ** literalType);
-        static uint GetLiteralSlotCapacity(Js::PropertyIdArray const * propIds, ScriptContext *const scriptContext);
-        static uint GetLiteralInlineSlotCapacity(Js::PropertyIdArray const * propIds, ScriptContext *const scriptContext);
+        static uint GetLiteralSlotCapacity(Js::PropertyIdArray const * propIds);
+        static uint GetLiteralInlineSlotCapacity(Js::PropertyIdArray const * propIds);
         static Var NewJavascriptObjectNoArg(ScriptContext* requestContext);
         static Var NewJavascriptArrayNoArg(ScriptContext* requestContext);
         static Var NewScObjectNoCtorCommon(Var instance, ScriptContext* requestContext, bool isBaseClassConstructorNewScObject = false);

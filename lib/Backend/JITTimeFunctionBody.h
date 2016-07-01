@@ -66,6 +66,7 @@ public:
     bool DoBackendArgumentsOptimization() const;
     bool IsLibraryCode() const;
     bool HasTry() const;
+    bool HasFinally() const;
     bool HasOrParentHasArguments() const;
     bool IsGenerator() const;
     bool IsAsmJsMode() const;
@@ -121,6 +122,7 @@ public:
     wchar_t* GetDisplayName() const;
 
     intptr_t ReadAuxArray(uint offset) const;
+    const Js::PropertyIdArray * ReadPropertyIdArrayFromAuxData(uint offset) const;
     Js::PropertyIdArray * GetFormalsPropIdArray() const;
     const FunctionJITRuntimeInfo *GetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId) const;
     const FunctionJITRuntimeInfo *GetLdFldInlineeRuntimeData(const Js::InlineCacheIndex inlineCacheIndex) const;

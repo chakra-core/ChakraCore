@@ -3429,8 +3429,7 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
 {
     Func * func = m_func;
     IR::IntConstOpnd * literalObjectIdOpnd = newObjInstr->UnlinkSrc2()->AsIntConstOpnd();
-    Js::DynamicType ** literalTypeRef = newObjInstr->m_func->GetJnFunction()->GetObjectLiteralTypeRefWithLock(literalObjectIdOpnd->AsUint32());
-    Js::DynamicType * literalType = *literalTypeRef;
+    intptr_t literalTypeRef = newObjInstr->m_func->GetJITFunctionBody()->GetObjectLiteralTypeRef(literalObjectIdOpnd->AsUint32());
 
     IR::LabelInstr * helperLabel = nullptr;
     IR::LabelInstr * allocLabel = nullptr;
@@ -3439,17 +3438,19 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
     IR::Opnd * propertyArrayOpnd;
 
     IR::IntConstOpnd * propertyArrayIdOpnd = newObjInstr->UnlinkSrc1()->AsIntConstOpnd();
-    const Js::PropertyIdArray * propIds = Js::ByteCodeReader::ReadPropertyIdArrayWithLock(propertyArrayIdOpnd->AsUint32(), newObjInstr->m_func->GetJnFunction());
-    Js::ScriptContext *const scriptContext = newObjInstr->m_func->GetJnFunction()->GetScriptContext();
-    uint inlineSlotCapacity = Js::JavascriptOperators::GetLiteralInlineSlotCapacity(propIds, scriptContext);
-    uint slotCapacity = Js::JavascriptOperators::GetLiteralSlotCapacity(propIds, scriptContext);
+    const Js::PropertyIdArray * propIds = newObjInstr->m_func->GetJITFunctionBody()->ReadPropertyIdArrayFromAuxData(propertyArrayIdOpnd->AsUint32());
+    uint inlineSlotCapacity = Js::JavascriptOperators::GetLiteralInlineSlotCapacity(propIds);
+    uint slotCapacity = Js::JavascriptOperators::GetLiteralSlotCapacity(propIds);
     IR::RegOpnd * dstOpnd;
 
     literalTypeRefOpnd = IR::AddrOpnd::New(literalTypeRef, IR::AddrOpndKindDynamicMisc, this->m_func);
     propertyArrayOpnd = IR::AddrOpnd::New((Js::Var)propIds, IR::AddrOpndKindDynamicMisc, this->m_func);
 
+#if 0 // TODO: OOP JIT, obj literal types
+    Js::DynamicType * literalType = *literalTypeRef;
     if (literalType == nullptr || !literalType->GetIsShared())
     {
+#endif
         helperLabel = IR::LabelInstr::New(Js::OpCode::Label, func, true);
         allocLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
 
@@ -3461,6 +3462,7 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
             IR::IntConstOpnd::New(1, TyInt8, func, true), Js::OpCode::BrEq_A, helperLabel, newObjInstr);
 
         dstOpnd = newObjInstr->GetDst()->AsRegOpnd();
+#if 0 // TODO: OOP JIT, obj literal types
     }
     else
     {
@@ -3469,6 +3471,7 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
         Assert(inlineSlotCapacity == literalType->GetTypeHandler()->GetInlineSlotCapacity());
         Assert(slotCapacity == (uint)literalType->GetTypeHandler()->GetSlotCapacity());
     }
+#endif
 
     if (helperLabel)
     {
@@ -3496,7 +3499,7 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
     // For the next call:
     //     inlineSlotCapacity == Number of slots to allocate beyond the DynamicObject header
     //     slotCapacity - inlineSlotCapacity == Number of aux slots to allocate
-    if(Js::FunctionBody::DoObjectHeaderInliningForObjectLiteral(propIds, scriptContext))
+    if(Js::FunctionBody::DoObjectHeaderInliningForObjectLiteral(propIds))
     {
         Assert(inlineSlotCapacity >= Js::DynamicTypeHandler::GetObjectHeaderInlinableSlotCapacity());
         Assert(inlineSlotCapacity == slotCapacity);
@@ -8400,7 +8403,7 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
     IR::Opnd * src2 = instr->GetSrc2();
 
     IR::Instr * done;
-    if (indexOpnd || m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->AccessNeedsBoundCheck((uint32)src1->AsIndirOpnd()->GetOffset()))
+    if (indexOpnd || m_func->GetJITFunctionBody()->GetAsmJsInfo()->AccessNeedsBoundCheck((uint32)src1->AsIndirOpnd()->GetOffset()))
     {
         // CMP indexOpnd, src2(arrSize)
         // JA $helper
@@ -8613,7 +8616,7 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
     Assert(!dst->IsFloat64() || src1->IsFloat64());
 
     IR::Instr * done;
-    if (indexOpnd || m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->AccessNeedsBoundCheck((uint32)dst->AsIndirOpnd()->GetOffset()))
+    if (indexOpnd || m_func->GetJITFunctionBody()->GetAsmJsInfo()->AccessNeedsBoundCheck((uint32)dst->AsIndirOpnd()->GetOffset()))
     {
         // CMP indexOpnd, src2(arrSize)
         // JA $helper
@@ -12314,8 +12317,15 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
 
         if (bailOutInfo->bailOutRecord->GetType() == BailOutRecord::BailoutRecordType::Shared)
         {
-            IR::MemRefOpnd *functionBodyOpnd =
-                IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + SharedBailOutRecord::GetOffsetOfFunctionBody(), TyMachPtr, this->m_func);
+            IR::Opnd *functionBodyOpnd;
+            if (this->m_func->IsOOPJIT())
+            {
+                functionBodyOpnd = IR::IndirOpnd::New(addressRegOpnd, (int)(bailOutRecordOffset + SharedBailOutRecord::GetOffsetOfFunctionBody()), TyMachPtr, m_func);
+            }
+            else
+            {
+                functionBodyOpnd = IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + SharedBailOutRecord::GetOffsetOfFunctionBody(), TyMachPtr, this->m_func);
+            }
             m_lowererMD.CreateAssign(
                 functionBodyOpnd, CreateFunctionBodyOpnd(instr->m_func), instr);
         }

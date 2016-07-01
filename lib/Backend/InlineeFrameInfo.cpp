@@ -42,29 +42,15 @@ Js::Var BailoutConstantValue::ToVar(Func* func, Js::ScriptContext* scriptContext
     }
     else if (this->type == TyFloat64)
     {
-        if (!func->IsOOPJIT()) // in-proc jit
-        {
-            varValue = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)this->u.floatConst.value, scriptContext);
-        }
-        else // OOP JIT
-        {
-            varValue = func->AllocateOOPNumber((double)this->u.floatConst.value);
-        }
+        varValue = func->AllocateNumber((double)this->u.floatConst.value);
     }
     else if (IRType_IsSignedInt(this->type) && TySize[this->type] <= 4 && !Js::TaggedInt::IsOverflow((int32)this->u.intConst.value))
     {
         varValue = Js::TaggedInt::ToVarUnchecked((int32)this->u.intConst.value);
     }
     else
-    {       
-        if (!func->IsOOPJIT()) // in-proc jit
-        {
-            varValue = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)this->u.intConst.value, scriptContext);
-        }
-        else // OOP JIT
-        {
-            varValue = func->AllocateOOPNumber((double)this->u.intConst.value);
-        }
+    {
+        varValue = func->AllocateNumber((double)this->u.intConst.value);
     }
     return varValue;
 

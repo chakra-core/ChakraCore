@@ -7359,15 +7359,13 @@ namespace Js
     }
 
     bool FunctionBody::DoObjectHeaderInliningForObjectLiteral(
-        const PropertyIdArray *const propIds,
-        ScriptContext *const scriptContext)
+        const PropertyIdArray *const propIds)
     {
         Assert(propIds);
-        Assert(scriptContext);
 
         return
             DoObjectHeaderInliningForObjectLiteral(propIds->count) &&
-            PathTypeHandlerBase::UsePathTypeHandlerForObjectLiteral(propIds, scriptContext);
+            PathTypeHandlerBase::UsePathTypeHandlerForObjectLiteral(propIds);
     }
 
     bool FunctionBody::DoObjectHeaderInliningForEmptyObjects()

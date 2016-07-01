@@ -9087,6 +9087,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             result = instr->m_opcode == Js::OpCode::BrTrue_A;
             break;
         }
+#if 0   // TODO: OOP JIT, const folding
         if (!src1Var)
         {
             return false;
@@ -9097,6 +9098,9 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             result = !result;
         }
         break;
+#else
+        return false;
+#endif
     }
     case Js::OpCode::BrFalse_I4:
         // this path would probably work outside of asm.js, but we should verify that if we ever hit this scenario

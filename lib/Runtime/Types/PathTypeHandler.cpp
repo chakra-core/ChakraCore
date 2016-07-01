@@ -894,11 +894,9 @@ namespace Js
 
     bool PathTypeHandlerBase::UsePathTypeHandlerForObjectLiteral(
         const PropertyIdArray *const propIds,
-        ScriptContext *const scriptContext,
         bool *const check__proto__Ref)
     {
         Assert(propIds);
-        Assert(scriptContext);
 
         // Always check __proto__ entry, now that object literals always honor __proto__
         const bool check__proto__ = propIds->has__proto__;
@@ -912,10 +910,11 @@ namespace Js
 
     DynamicType* PathTypeHandlerBase::CreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType)
     {
+        Assert(scriptContext);
         uint count = propIds->count;
 
         bool check__proto__;
-        if (UsePathTypeHandlerForObjectLiteral(propIds, scriptContext, &check__proto__))
+        if (UsePathTypeHandlerForObjectLiteral(propIds, &check__proto__))
         {
 #ifdef PROFILE_OBJECT_LITERALS
             scriptContext->objectLiteralCount[count]++;

@@ -1633,13 +1633,27 @@ Func::GetFunctionEntryInsertionPoint()
     return insertInsert->m_next;
 }
 
-Js::JavascriptNumber* 
-Func::AllocateOOPNumber(double value)
+Js::Var
+Func::AllocateNumber(double value)
 {
-    return this->GetXProcNumberAllocator()->AllocateNumber(this->GetThreadContextInfo()->GetProcessHandle(), 
-        value, 
-        (Js::StaticType*)this->GetScriptContextInfo()->GetNumberTypeStaticAddr(),
-        (void*)this->GetScriptContextInfo()->GetVTableAddress(VTableValue::VtableJavascriptNumber));
+    Js::Var number = nullptr;
+#if FLOATVAR
+    number = Js::JavascriptNumber::NewCodeGenInstance(GetNumberAllocator(), (double)value, GetScriptContext());
+#else
+    if (!IsOOPJIT()) // in-proc jit
+    {
+        number = Js::JavascriptNumber::NewCodeGenInstance(GetNumberAllocator(), (double)value, GetScriptContext());
+    }
+    else // OOP JIT
+    {
+        GetXProcNumberAllocator()->AllocateNumber(this->GetThreadContextInfo()->GetProcessHandle(),
+            value,
+            (Js::StaticType*)this->GetScriptContextInfo()->GetNumberTypeStaticAddr(),
+            (void*)this->GetScriptContextInfo()->GetVTableAddress(VTableValue::VtableJavascriptNumber));
+    }
+#endif
+
+    return number;
 }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
