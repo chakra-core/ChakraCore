@@ -18,6 +18,8 @@
 #ifndef __PAL_MSTYPES_H__
 #define __PAL_MSTYPES_H__
 
+#define __MSTYPES_DEFINED
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
