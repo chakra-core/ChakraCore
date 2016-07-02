@@ -21,7 +21,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     add_definitions(
         -DPLATFORM_UNIX
-        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu 
+        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
     )
 
     set(CLR_CMAKE_PLATFORM_UNIX 1)
@@ -84,7 +84,7 @@ if(CLR_CMAKE_PLATFORM_UNIX)
     )
 
     # todo: fix general visibility of the interface
-    # do not set to `fvisibility=hidden` as it is going to 
+    # do not set to `fvisibility=hidden` as it is going to
     # prevent the required interface is being exported
     # clang by default sets fvisibility=default
 
@@ -139,7 +139,7 @@ endif()
         -fno-optimize-sibling-calls\
         -mno-omit-leaf-frame-pointer" # this is for compat reasons. i.e. It is a noop with gcc
     )
-  
+
     # CXX / CC COMPILER FLAGS
     add_compile_options(
         -fms-extensions
@@ -176,6 +176,10 @@ endif(IS_64BIT_BUILD)
 if(CLR_CMAKE_PLATFORM_UNIX)
    add_definitions(-DFEATURE_PAL)
 endif(CLR_CMAKE_PLATFORM_UNIX)
+
+if(WITHOUT_FEATURES)
+   add_definitions(${WITHOUT_FEATURES})
+endif(WITHOUT_FEATURES)
 
 enable_language(ASM)
 

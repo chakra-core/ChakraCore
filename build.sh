@@ -31,6 +31,9 @@ PRINT_USAGE() {
     echo "  -t, --test-build    Test build (by default Release build)"
     echo "      --static        Build as static library (by default shared library)"
     echo "  -v, --verbose       Display verbose output including all options"
+    echo "      --without=FEATURE,FEATURE,..."
+    echo "                      Disable FEATUREs from JSRT experimental"
+    echo "                      features."
     echo ""
     echo "example:"
     echo "  ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j"
@@ -49,6 +52,7 @@ MAKE=make
 MULTICORE_BUILD=""
 ICU_PATH=""
 STATIC_LIBRARY=""
+WITHOUT_FEATURES=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -114,6 +118,20 @@ while [[ $# -gt 0 ]]; do
 
     --static)
         STATIC_LIBRARY="-DSTATIC_LIBRARY=1"
+        ;;
+
+    --without=*)
+        FEATURES=$1
+        FEATURES=${FEATURES:10}    # value after --without=
+        for x in ${FEATURES//,/ }  # replace comma with space then split
+        do
+            if [[ "$WITHOUT_FEATURES" == "" ]]; then
+                WITHOUT_FEATURES="-DWITHOUT_FEATURES="
+            else
+                WITHOUT_FEATURES="$WITHOUT_FEATURES;"
+            fi
+            WITHOUT_FEATURES="${WITHOUT_FEATURES}-DCOMPILE_DISABLE_${x}=1"
+        done
         ;;
 
     *)
@@ -196,7 +214,7 @@ fi
 pushd $build_directory > /dev/null
 
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../..
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY -DCMAKE_BUILD_TYPE=$BUILD_TYPE $WITHOUT_FEATURES ../..
 
 _RET=$?
 if [[ $? == 0 ]]; then
