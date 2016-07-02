@@ -357,7 +357,119 @@ namespace Js
         return ToStringHelper(args[0], scriptContext);
     }
 
-    JavascriptString* JavascriptObject::ToStringTagHelper(Var thisArg, ScriptContext* scriptContext, TypeId type)
+    // ES2017 19.1.3.6 Object.prototype.toString()
+    JavascriptString* JavascriptObject::ToStringTagHelper(Var thisArg, ScriptContext *scriptContext, TypeId type)
+    {
+        JavascriptLibrary *library = scriptContext->GetLibrary();
+
+        // 1. If the this value is undefined, return "[object Undefined]".
+        if (type == TypeIds_Undefined)
+        {
+            return library->CreateStringFromCppLiteral(_u("[object Undefined]"));
+        }
+        // 2. If the this value is null, return "[object Null]".
+        if (type == TypeIds_Null)
+        {
+            return library->CreateStringFromCppLiteral(_u("[object Null]"));
+        }
+
+        // 3. Let O be ToObject(this value).
+        RecyclableObject *thisArgAsObject = RecyclableObject::FromVar(JavascriptOperators::ToObject(thisArg, scriptContext));
+
+        // 4. Let isArray be ? IsArray(O).
+        // There is an implicit check for a null proxy handler in IsArray, so use the operator.
+        BOOL isArray = JavascriptOperators::IsArray(thisArgAsObject);
+
+        // 15. Let tag be ? Get(O, @@toStringTag).
+        Var tag = JavascriptOperators::GetProperty(thisArgAsObject, PropertyIds::_symbolToStringTag, scriptContext); // Let tag be the result of Get(O, @@toStringTag).
+
+        // 17. Return the String that is the result of concatenating "[object ", tag, and "]". 
+        if (tag != nullptr && JavascriptString::Is(tag))
+        {
+            JavascriptString *tagStr = JavascriptString::FromVar(tag);
+
+            CompoundString::Builder<32> stringBuilder(scriptContext);
+
+            stringBuilder.AppendChars(_u("[object "));
+
+            stringBuilder.AppendChars(tagStr);
+            stringBuilder.AppendChars(_u(']'));
+
+            return stringBuilder.ToString();
+        }
+
+        // If we don't have a tag or it's not a string, use the 'built in tag'.
+        if (isArray)
+        {
+            // 5. If isArray is true, let builtinTag be "Array".
+            return library->CreateStringFromCppLiteral(_u("[object Array]"));
+        }
+
+        JavascriptString* builtInTag = nullptr;
+        switch (type)
+        {
+            // 6. Else if O is an exotic String object, let builtinTag be "String".
+        case TypeIds_String:
+        case TypeIds_StringObject:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object String]"));
+            break;
+
+            // 7. Else if O has an[[ParameterMap]] internal slot, let builtinTag be "Arguments".
+        case TypeIds_Arguments:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object Arguments]"));
+            break;
+
+            // 8. Else if O has a [[Call]] internal method, let builtinTag be "Function".
+        case TypeIds_Function:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object Function]"));
+            break;
+
+            // 9. Else if O has an [[ErrorData]] internal slot, let builtinTag be "Error".
+        case TypeIds_Error:
+            builtInTag = library->GetErrorDisplayString();
+            break;
+
+            // 10. Else if O has a [[BooleanData]] internal slot, let builtinTag be "Boolean".
+        case TypeIds_Boolean:
+        case TypeIds_BooleanObject:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object Boolean]"));
+            break;
+
+            // 11. Else if O has a [[NumberData]] internal slot, let builtinTag be "Number".
+        case TypeIds_Number:
+        case TypeIds_Int64Number:
+        case TypeIds_UInt64Number:
+        case TypeIds_Integer:
+        case TypeIds_NumberObject:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object Number]"));
+            break;
+
+            // 12. Else if O has a [[DateValue]] internal slot, let builtinTag be "Date".
+        case TypeIds_Date:
+        case TypeIds_WinRTDate:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object Date]"));
+            break;
+
+            // 13. Else if O has a [[RegExpMatcher]] internal slot, let builtinTag be "RegExp".
+        case TypeIds_RegEx:
+            builtInTag = library->CreateStringFromCppLiteral(_u("[object RegExp]"));
+            break;
+
+            // 14. Else, let builtinTag be "Object".
+        default:
+            builtInTag = library->GetObjectDisplayString(); // [object Object]
+            break;
+        }
+
+        Assert(builtInTag != nullptr);
+
+        return builtInTag;
+    }
+
+    // This is the previous implementation of @@toStringTag, which is used in some cases even when the feature is disabled.
+    // Leaving this here for now due to the fragility.
+    // TODO(tcare): Remove when @@toStringTag is enabled by default.
+    JavascriptString* JavascriptObject::ToStringTagHelperOld(Var thisArg, ScriptContext* scriptContext, TypeId type)
     {
         JavascriptString* tag = nullptr;
         bool addTilde = true;
@@ -397,121 +509,121 @@ namespace Js
         // SameValue(tag, builtinTag) is false, then let tag be the string value "~" concatenated with the current value of tag.
         switch (type)
         {
-            case TypeIds_Arguments:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Arguments")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Arguments]"));
-                }
-                break;
-            case TypeIds_Array:
-            case TypeIds_ES5Array:
-            case TypeIds_NativeIntArray:
+        case TypeIds_Arguments:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Arguments")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object Arguments]"));
+            }
+            break;
+        case TypeIds_Array:
+        case TypeIds_ES5Array:
+        case TypeIds_NativeIntArray:
 #if ENABLE_COPYONACCESS_ARRAY
-            case TypeIds_CopyOnAccessNativeIntArray:
+        case TypeIds_CopyOnAccessNativeIntArray:
 #endif
-            case TypeIds_NativeFloatArray:
+        case TypeIds_NativeFloatArray:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Array")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object Array]"));
+            }
+            break;
+        case TypeIds_Boolean:
+        case TypeIds_BooleanObject:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Boolean")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object Boolean]"));
+            }
+            break;
+        case TypeIds_DataView:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("DataView")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object DataView]"));
+            }
+            break;
+        case TypeIds_Date:
+        case TypeIds_WinRTDate:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Date")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object Date]"));
+            }
+            break;
+        case TypeIds_Error:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Error")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object Error]"));
+            }
+            break;
+
+        case TypeIds_Function:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Function")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object Function]"));
+            }
+            break;
+        case TypeIds_Number:
+        case TypeIds_Int64Number:
+        case TypeIds_UInt64Number:
+        case TypeIds_Integer:
+        case TypeIds_NumberObject:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Number")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object Number]"));
+            }
+            break;
+        case TypeIds_Promise:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Promise")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object Promise]"));
+            }
+            break;
+        case TypeIds_SIMDObject:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("SIMD")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object SIMD]"));
+            }
+            break;
+
+        case TypeIds_RegEx:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("RegExp")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object RegExp]"));
+            }
+            break;
+
+        case TypeIds_String:
+        case TypeIds_StringObject:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("String")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object String]"));
+            }
+            break;
+
+        case TypeIds_ModuleNamespace:
+            if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Module")) == 0)
+            {
+                return library->CreateStringFromCppLiteral(_u("[object Module]"));
+            }
+            break;
+
+        case TypeIds_Proxy:
+            if (JavascriptOperators::IsArray(thisArg))
+            {
                 if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Array")) == 0)
                 {
                     return library->CreateStringFromCppLiteral(_u("[object Array]"));
                 }
-                break;
-            case TypeIds_Boolean:
-            case TypeIds_BooleanObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Boolean")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Boolean]"));
-                }
-                break;
-            case TypeIds_DataView:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("DataView")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object DataView]"));
-                }
-                break;
-            case TypeIds_Date:
-            case TypeIds_WinRTDate:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Date")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Date]"));
-                }
-                break;
-            case TypeIds_Error:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Error")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Error]"));
-                }
-                break;
-
-            case TypeIds_Function:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Function")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Function]"));
-                }
-                break;
-            case TypeIds_Number:
-            case TypeIds_Int64Number:
-            case TypeIds_UInt64Number:
-            case TypeIds_Integer:
-            case TypeIds_NumberObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Number")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Number]"));
-                }
-                break;
-            case TypeIds_Promise:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Promise")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Promise]"));
-                }
-                break;
-            case TypeIds_SIMDObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("SIMD")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object SIMD]"));
-                }
-                break;
-
-            case TypeIds_RegEx:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("RegExp")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object RegExp]"));
-                }
-                break;
-
-            case TypeIds_String:
-            case TypeIds_StringObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("String")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object String]"));
-                }
-                break;
-
-            case TypeIds_ModuleNamespace:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Module")) == 0)
-                {
-                    return library->CreateStringFromCppLiteral(_u("[object Module]"));
-                }
-                break;
-
-            case TypeIds_Proxy:
-                if (JavascriptOperators::IsArray(thisArg))
-                {
-                    if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Array")) == 0)
-                    {
-                        return library->CreateStringFromCppLiteral(_u("[object Array]"));
-                    }
-                }
-                //otherwise, fall though
-            case TypeIds_Object:
-            default:
-                if (tag == nullptr)
-                {
-                    // Else, let builtinTag be "Object".
-                    // If hasTag is false, then let tag be builtinTag.
-                    return library->GetObjectDisplayString(); // "[object Object]"
-                }
-                addTilde = false;
-                break;
+            }
+            //otherwise, fall though
+        case TypeIds_Object:
+        default:
+            if (tag == nullptr)
+            {
+                // Else, let builtinTag be "Object".
+                // If hasTag is false, then let tag be builtinTag.
+                return library->GetObjectDisplayString(); // "[object Object]"
+            }
+            addTilde = false;
+            break;
         }
 
         Assert(tag != nullptr);
@@ -535,49 +647,88 @@ namespace Js
         JavascriptLibrary* library = scriptContext->GetLibrary();
         switch (type)
         {
-            case TypeIds_ArrayBuffer:
-                return library->CreateStringFromCppLiteral(_u("[object ArrayBuffer]"));
-            case TypeIds_Int8Array:
-                return library->CreateStringFromCppLiteral(_u("[object Int8Array]"));
-            case TypeIds_Uint8Array:
-                return library->CreateStringFromCppLiteral(_u("[object Uint8Array]"));
-            case TypeIds_Uint8ClampedArray:
-                return library->CreateStringFromCppLiteral(_u("[object Uint8ClampedArray]"));
-            case TypeIds_Int16Array:
-                return library->CreateStringFromCppLiteral(_u("[object Int16Array]"));
-            case TypeIds_Uint16Array:
-                return library->CreateStringFromCppLiteral(_u("[object Uint16Array]"));
-            case TypeIds_Int32Array:
-                return library->CreateStringFromCppLiteral(_u("[object Int32Array]"));
-            case TypeIds_Uint32Array:
-                return library->CreateStringFromCppLiteral(_u("[object Uint32Array]"));
-            case TypeIds_Float32Array:
-                return library->CreateStringFromCppLiteral(_u("[object Float32Array]"));
-            case TypeIds_Float64Array:
-                return library->CreateStringFromCppLiteral(_u("[object Float64Array]"));
-            case TypeIds_Symbol:
-            case TypeIds_SymbolObject:
-                return library->CreateStringFromCppLiteral(_u("[object Symbol]"));
-            case TypeIds_Map:
-                return library->CreateStringFromCppLiteral(_u("[object Map]"));
-            case TypeIds_Set:
-                return library->CreateStringFromCppLiteral(_u("[object Set]"));
-            case TypeIds_WeakMap:
-                return library->CreateStringFromCppLiteral(_u("[object WeakMap]"));
-            case TypeIds_WeakSet:
-                return library->CreateStringFromCppLiteral(_u("[object WeakSet]"));
-            case TypeIds_Generator:
-                return library->CreateStringFromCppLiteral(_u("[object Generator]"));
-            default:
-                AssertMsg(false, "We should never be here");
-                return library->GetUndefined();
+        case TypeIds_ArrayBuffer:
+            return library->CreateStringFromCppLiteral(_u("[object ArrayBuffer]"));
+        case TypeIds_Int8Array:
+            return library->CreateStringFromCppLiteral(_u("[object Int8Array]"));
+        case TypeIds_Uint8Array:
+            return library->CreateStringFromCppLiteral(_u("[object Uint8Array]"));
+        case TypeIds_Uint8ClampedArray:
+            return library->CreateStringFromCppLiteral(_u("[object Uint8ClampedArray]"));
+        case TypeIds_Int16Array:
+            return library->CreateStringFromCppLiteral(_u("[object Int16Array]"));
+        case TypeIds_Uint16Array:
+            return library->CreateStringFromCppLiteral(_u("[object Uint16Array]"));
+        case TypeIds_Int32Array:
+            return library->CreateStringFromCppLiteral(_u("[object Int32Array]"));
+        case TypeIds_Uint32Array:
+            return library->CreateStringFromCppLiteral(_u("[object Uint32Array]"));
+        case TypeIds_Float32Array:
+            return library->CreateStringFromCppLiteral(_u("[object Float32Array]"));
+        case TypeIds_Float64Array:
+            return library->CreateStringFromCppLiteral(_u("[object Float64Array]"));
+        case TypeIds_Symbol:
+        case TypeIds_SymbolObject:
+            return library->CreateStringFromCppLiteral(_u("[object Symbol]"));
+        case TypeIds_Map:
+            return library->CreateStringFromCppLiteral(_u("[object Map]"));
+        case TypeIds_Set:
+            return library->CreateStringFromCppLiteral(_u("[object Set]"));
+        case TypeIds_WeakMap:
+            return library->CreateStringFromCppLiteral(_u("[object WeakMap]"));
+        case TypeIds_WeakSet:
+            return library->CreateStringFromCppLiteral(_u("[object WeakSet]"));
+        case TypeIds_Generator:
+            return library->CreateStringFromCppLiteral(_u("[object Generator]"));
+        default:
+            AssertMsg(false, "We should never be here");
+            return library->GetUndefined();
         }
     }
 
     Var JavascriptObject::ToStringHelper(Var thisArg, ScriptContext* scriptContext)
     {
         TypeId type = JavascriptOperators::GetTypeId(thisArg);
-        JavascriptLibrary* library = scriptContext->GetLibrary();
+
+        // We first need to make sure we are in the right context.
+        if (type == TypeIds_HostDispatch)
+        {
+            RecyclableObject* hostDispatchObject = RecyclableObject::FromVar(thisArg);
+            DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
+            if (!remoteObject)
+            {
+                Var result = nullptr;
+                Js::Var values[1];
+                Js::CallInfo info(Js::CallFlags_Value, 1);
+                Js::Arguments args(info, values);
+                values[0] = thisArg;
+                if (hostDispatchObject->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
+                {
+                    return result;
+                }
+            }
+        }
+
+        // Dispatch to @@toStringTag implementation.
+        if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
+        {
+            if (type >= TypeIds_TypedArrayMin && type <= TypeIds_TypedArrayMax && !scriptContext->GetThreadContext()->IsScriptActive())
+            {
+                // Use external call for typedarray in the debugger.
+                Var toStringValue = nullptr;
+                BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false);
+                toStringValue = ToStringTagHelper(thisArg, scriptContext, type);
+                END_JS_RUNTIME_CALL(scriptContext);
+                return toStringValue;
+            }
+
+            // By this point, we should be in the correct context, but the thisArg may still need to be marshalled (for to the implicit ToObject conversion call.)
+            return ToStringTagHelper(CrossSite::MarshalVar(scriptContext, thisArg), scriptContext, type);
+        }
+
+        // The following uses the told hybrid legacy/@@toStringTag implementation,
+        // and will be removed when the new implementation is on by default.
+        JavascriptLibrary *library = scriptContext->GetLibrary();
         switch (type)
         {
         case TypeIds_Undefined:
@@ -590,7 +741,7 @@ namespace Js
             if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
             {
                 // Math, Object and JSON handled by toStringTag now,
-                return ToStringTagHelper(thisArg, scriptContext, type);
+                return ToStringTagHelperOld(thisArg, scriptContext, type);
             }
 
             if (thisArg == scriptContext->GetLibrary()->GetMathObject())
@@ -652,45 +803,33 @@ namespace Js
         case TypeIds_String:
         case TypeIds_StringObject:
         case TypeIds_Arguments:
-            return ToStringTagHelper(thisArg, scriptContext, type);
+            return ToStringTagHelperOld(thisArg, scriptContext, type);
 
         case TypeIds_GlobalObject:
-            {
-                GlobalObject* globalObject = static_cast<Js::GlobalObject*>(thisArg);
-                AssertMsg(globalObject == thisArg, "Should be the global object");
+        {
+            GlobalObject* globalObject = static_cast<Js::GlobalObject*>(thisArg);
+            AssertMsg(globalObject == thisArg, "Should be the global object");
 
-                Var toThis = globalObject->ToThis();
-                if (toThis == globalObject)
-                {
-                    return library->GetObjectDisplayString();
-                }
-                else
-                {
-                    return ToStringHelper(toThis, scriptContext);
-                }
-            }
-        case TypeIds_HostDispatch:
+            Var toThis = globalObject->ToThis();
+            if (toThis == globalObject)
             {
-                RecyclableObject* hostDispatchObject = RecyclableObject::FromVar(thisArg);
-                DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
-                if (remoteObject)
-                {
-                    return ToStringHelper(remoteObject, scriptContext);
-                }
-                else
-                {
-                    Var result;
-                    Js::Var values[1];
-                    Js::CallInfo info(Js::CallFlags_Value, 1);
-                    Js::Arguments args(info, values);
-                    values[0] = thisArg;
-                    if (hostDispatchObject->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
-                    {
-                        return result;
-                    }
-                }
                 return library->GetObjectDisplayString();
             }
+            else
+            {
+                return ToStringTagHelperOld(toThis, scriptContext, type);
+            }
+        }
+        case TypeIds_HostDispatch:
+        {
+            RecyclableObject* hostDispatchObject = RecyclableObject::FromVar(thisArg);
+            DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
+            if (remoteObject)
+            {
+                return ToStringTagHelperOld(remoteObject, scriptContext, type);
+            }
+            return library->GetObjectDisplayString();
+        }
 
         case TypeIds_ArrayBuffer:
         case TypeIds_Int8Array:
@@ -709,28 +848,7 @@ namespace Js
         case TypeIds_WeakMap:
         case TypeIds_WeakSet:
         case TypeIds_Generator:
-            if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
-            {
-                JavascriptString* toStringValue = nullptr;
-                if (!scriptContext->GetThreadContext()->IsScriptActive())
-                {
-                    // Note we need this for typed Arrays in the debugger b/c they invoke a function call to get the toStringTag
-                    BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false);
-                    toStringValue = ToStringTagHelper(thisArg, scriptContext, type);
-                    END_JS_RUNTIME_CALL(scriptContext);
-                }
-                else
-                {
-                    toStringValue = ToStringTagHelper(thisArg, scriptContext, type);
-                }
-                return toStringValue;
-
-            }
-            else
-            {
-                return LegacyToStringHelper(scriptContext, type);
-            }
-
+            return LegacyToStringHelper(scriptContext, type);
         }
     }
 

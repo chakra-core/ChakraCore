@@ -101,15 +101,13 @@
       <tags>BugFix</tags>
     </default>
   </test>
-  <!-- OS BUG 7117880
   <test>
     <default>
       <files>toStringTag.js</files>
-      <compile-flags> -nonative -es6classes -es6generators -es6tostringtag -args summary -endargs</compile-flags>
+      <compile-flags>-es6tostringtag -args summary -endargs</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
-  -->
   <test>
     <default>
       <files>proto_basic.js</files>

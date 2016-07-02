@@ -1394,6 +1394,7 @@ namespace Js
         return args[0];
     }
 
+    // ES2017 22.2.3.32 get %TypedArray%.prototype[@@toStringTag]
     Var TypedArrayBase::EntryGetterSymbolToStringTag(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -1404,13 +1405,25 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
+        // 1. Let O be the this value.
+        // 2. If Type(O) is not Object, return undefined.
+        // 3. If O does not have a[[TypedArrayName]] internal slot, return undefined.
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray);
+            if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
+            {
+                return library->GetUndefined();
+            }
+            else
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray);
+            }
         }
 
+        // 4. Let name be O.[[TypedArrayName]].
+        // 5. Assert: name is a String value.
+        // 6. Return name.
         Var name;
-
         switch (JavascriptOperators::GetTypeId(args[0]))
         {
         case TypeIds_Int8Array:

@@ -1911,6 +1911,10 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
+            // ES2017 22.2.3.32 get %TypedArray%.prototype[@@toStringTag]
+            // %TypedArray%.prototype[@@toStringTag] is an accessor property whose set accessor function is undefined.
+            // This property has the attributes { [[Enumerable]]: false, [[Configurable]]: true }.
+            // The initial value of the name property of this function is "get [Symbol.toStringTag]".
             library->AddAccessorsToLibraryObjectWithName(typedarrayPrototype, PropertyIds::_symbolToStringTag,
                 PropertyIds::_RuntimeFunctionNameId_toStringTag, &TypedArrayBase::EntryInfo::GetterSymbolToStringTag, nullptr);
         }
@@ -2125,7 +2129,6 @@ namespace Js
             library->AddFunctionToLibraryObject(booleanPrototype, PropertyIds::valueOf, &JavascriptBoolean::EntryInfo::ValueOf, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptBoolean::EntryInfo::ToString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(booleanPrototype, PropertyIds::toString, &JavascriptBoolean::EntryInfo::ToString, 0));
-
         booleanPrototype->SetHasNoEnumerableProperties(true);
     }
 
