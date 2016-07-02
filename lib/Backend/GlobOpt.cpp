@@ -20664,7 +20664,7 @@ GlobOpt::TrackTempObjectSyms(IR::Instr * instr, IR::RegOpnd * opnd)
                 // to disappear. Do it is flow base make it easier to stop propagate those entries.
 
                 IR::IntConstOpnd * propertyArrayIdOpnd = instr->GetSrc1()->AsIntConstOpnd();
-                const Js::PropertyIdArray * propIds = Js::ByteCodeReader::ReadPropertyIdArrayWithLock(propertyArrayIdOpnd->AsUint32(), instr->m_func->GetJnFunction());
+                const Js::PropertyIdArray * propIds = instr->m_func->GetJITFunctionBody()->ReadPropertyIdArrayFromAuxData(propertyArrayIdOpnd->AsUint32());
 
                 // Duplicates are removed by parser
                 Assert(!propIds->hadDuplicates);
@@ -20781,7 +20781,7 @@ GlobOpt::GenerateBailOutMarkTempObjectIfNeeded(IR::Instr * instr, IR::Opnd * opn
                     const Js::PropertyId propertyId = propertySymOpnd->m_sym->AsPropertySym()->m_propertyId;
 
                     // We don't need to track numeric properties init
-                    if (!this->func->GetScriptContext()->GetPropertyNameLocked(propertyId)->IsNumeric())
+                    if (!this->func->GetThreadContextInfo()->GetPropertyRecord(propertyId)->IsNumeric())
                     {
                         DebugOnly(bool found = false);
                         globOptData.stackLiteralInitFldDataMap->RemoveIf(stackSym,

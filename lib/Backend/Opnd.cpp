@@ -2815,7 +2815,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                             Output::Print(_u(","));
                         }
                         const JITObjTypeSpecFldInfo* propertyOpInfo = func->GetTopFunc()->GetGlobalObjTypeSpecFldInfo(propertyOpId);
-                        Output::Print(_u("%s(%u)"), func->GetScriptContext()->GetPropertyNameLocked(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
+                        Output::Print(_u("%s(%u)"), func->GetThreadContextInfo()->GetPropertyRecord(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
                         if (propertyOpInfo->IsLoadedFromProto())
                         {
                             Output::Print(_u("~"));

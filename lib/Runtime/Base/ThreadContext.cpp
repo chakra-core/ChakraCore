@@ -1021,6 +1021,13 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     // Add to the map
     propertyMap->Add(propertyRecord);
 
+    //CompileAssert(sizeof(PropertyRecordIDL) == sizeof(Js::PropertyRecord));
+
+    if (m_remoteThreadContextInfo)
+    {
+        CompileAssert(sizeof(PropertyRecordIDL) == sizeof(Js::PropertyRecord));
+        m_codeGenManager.AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)propertyRecord);
+    }
     PropertyRecordTrace(_u("Added property '%s' at 0x%08x, pid = %d\n"), propertyName, propertyRecord, propertyId);
 
     // Do not store the pid for symbols in the direct property name table.
@@ -1880,6 +1887,15 @@ ThreadContext::SetJITConnectionInfo(DWORD processId, UUID connectionId)
     contextData.scriptStackLimit = reinterpret_cast<size_t>(GetScriptStackLimit());
     contextData.isThreadBound = GetIsThreadBound();
     m_codeGenManager.InitializeThreadContext(&contextData, &m_remoteThreadContextInfo);
+
+    // we may have populated propertyMap prior to initializing JIT connection
+    if (propertyMap != nullptr)
+    {
+        propertyMap->Map([=](const Js::PropertyRecord * record)
+        {
+            m_codeGenManager.AddPropertyRecord(m_remoteThreadContextInfo, (PropertyRecordIDL*)record);
+        });
+    }
 }
 #if ENABLE_TTD
 

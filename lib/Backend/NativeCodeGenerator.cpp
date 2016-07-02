@@ -905,8 +905,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 &jitWriteData);
             if (hr != S_OK)
             {
-                __debugbreak();
-                __fastfail((uint)-1);
+                return;
             }
 
             workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.writeableEPData.frameHeight);

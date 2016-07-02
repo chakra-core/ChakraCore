@@ -10,7 +10,7 @@ class ThreadContextInfo
 {
 public:
     ThreadContextInfo(ThreadContextDataIDL * data);
-
+    ~ThreadContextInfo();
     intptr_t GetNullFrameDisplayAddr() const;
     intptr_t GetStrictNullFrameDisplayAddr() const;
     intptr_t GetThreadStackLimitAddr() const;
@@ -66,11 +66,14 @@ public:
     ptrdiff_t GetChakraBaseAddressDifference() const;
     ptrdiff_t GetCRTBaseAddressDifference() const;
 
-    bool IsCFGEnabled();
+    Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId);
 
+    bool IsCFGEnabled();
+    void AddToPropertyMap(const Js::PropertyRecord * propertyRecord);
     void BeginJIT();
     void EndJIT();
     bool IsJITActive();
+
 private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
@@ -85,6 +88,7 @@ private:
 
     ThreadContextDataIDL m_threadContextData;
 
+    ThreadContext::PropertyMap * m_propertyMap;
     intptr_t m_jitChakraBaseAddress;
     intptr_t m_jitCRTBaseAddress;
     bool m_isAllJITCodeInPreReservedRegion;

@@ -265,7 +265,7 @@ TempTracker<T>::ProcessUse(StackSym * sym, BackwardPass * backwardPass)
         {
             Output::Print(_u("%s: %8s (PropId:%d %s)+[] -> s%d: "), T::GetTraceName(),
                 backwardPass->IsPrePass() ? _u("Prepass ") : _u(""), propertySym->m_propertyId,
-                backwardPass->func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(), usedSymID);
+                backwardPass->func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer(), usedSymID);
             BVSparse<JitArenaAllocator> ** transferDependencies = this->tempTransferDependencies->Get(usedSymID);
             if (transferDependencies)
             {
@@ -712,7 +712,7 @@ NumberTemp::IsTempPropertyTransferStore(IR::Instr * instr, BackwardPass * backwa
                 PropertySym *propertySym = dst->AsSymOpnd()->m_sym->AsPropertySym();
                 SymID propertySymId = this->GetRepresentativePropertySymId(propertySym, backwardPass);
                 return !this->nonTempSyms.Test(propertySymId) &&
-                    !instr->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->IsNumeric();
+                    !instr->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->IsNumeric();
             }
         };
 
@@ -916,7 +916,7 @@ NumberTemp::ProcessPropertySymUse(IR::SymOpnd * symOpnd, IR::Instr * instr, Back
         {
             Output::Print(_u("%s: %8s s%d -> PropId:%d %s: "), NumberTemp::GetTraceName(),
                 backwardPass->IsPrePass() ? _u("Prepass ") : _u(""), dstSymID, propertySym->m_propertyId,
-                backwardPass->func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer());
+                backwardPass->func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer());
             (*this->propertyIdsTempTransferDependencies->Get(propertySym->m_propertyId))->Dump();
         }
 #endif
@@ -927,7 +927,7 @@ NumberTemp::ProcessPropertySymUse(IR::SymOpnd * symOpnd, IR::Instr * instr, Back
     {
         Output::Print(_u("%s: %8s%4sTemp Use (PropId:%d %s)"), NumberTemp::GetTraceName(),
             backwardPass->IsPrePass() ? _u("Prepass ") : _u(""), isTempUse ? _u("") : _u("Non "), propertySym->m_propertyId,
-            backwardPass->func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer());
+            backwardPass->func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId)->GetBuffer());
         instr->DumpSimple();
     }
 #endif

@@ -283,6 +283,18 @@ typedef struct AsmJsDataIDL
     int totalSizeInBytes;
 } AsmJsDataIDL;
 
+typedef struct PropertyRecordIDL
+{
+    int vTable;
+    int pid;
+    unsigned int hash;
+    boolean isNumeric;
+    boolean isBound;
+    boolean isSymbol;
+    unsigned int byteCount;
+    [size_is(byteCount + sizeof(wchar_t) + (isNumeric ? sizeof(unsigned int) : 0))] byte buffer[*];
+} PropertyRecordIDL;
+
 typedef struct FunctionJITRuntimeIDL
 {
     unsigned int clonedCacheCount;
@@ -578,6 +590,11 @@ interface IChakraJIT
     HRESULT CleanupThreadContext(
         [in] handle_t binding,
         [in] __int3264 threadContextInfoAddress);
+
+    HRESULT AddPropertyRecord(
+        [in] handle_t binding,
+        [in] __int3264 threadContextInfoAddress,
+        [in] PropertyRecordIDL * propertyRecord);
 
     HRESULT InitializeScriptContext(
         [in] handle_t binding,

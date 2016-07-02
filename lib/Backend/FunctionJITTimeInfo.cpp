@@ -107,7 +107,7 @@ FunctionJITTimeInfo::BuildJITTimeData(ArenaAllocator * alloc, const Js::Function
             JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(alloc, globObjTypeSpecInfo, jitData->globalObjTypeSpecFldInfoCount, jitData->globalObjTypeSpecFldInfoArray);
         }
 
-        auto codegenRuntimeData = functionBody->GetCodeGenRuntimeData();
+        auto codegenRuntimeData = functionBody->GetCodeGenRuntimeDataWithLock();
         if (codegenRuntimeData)
         {
             jitData->bodyData->runtimeDataCount = jitData->bodyData->profiledCallSiteCount;

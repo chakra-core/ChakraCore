@@ -20,6 +20,13 @@ ThreadContextInfo::ThreadContextInfo(ThreadContextDataIDL * data) :
     m_delayLoadWinCoreProcessThreads(),
     m_activeJITCount(0)
 {
+    m_propertyMap = HeapNew(ThreadContext::PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
+}
+
+ThreadContextInfo::~ThreadContextInfo()
+{
+    // TODO: OOP JIT, clear out elements of map. maybe should arena alloc?
+    HeapDelete(m_propertyMap);
 }
 
 intptr_t
@@ -334,6 +341,54 @@ ThreadContextInfo::EndJIT()
 {
     InterlockedExchangeSubtract(&m_activeJITCount, 1);
 }
+
+void
+ThreadContextInfo::AddToPropertyMap(const Js::PropertyRecord * origRecord)
+{
+
+    size_t allocLength = origRecord->byteCount + sizeof(char16) + (origRecord->isNumeric ? sizeof(uint32) : 0);
+    Js::PropertyRecord * record = HeapNewPlus(allocLength, Js::PropertyRecord, origRecord->byteCount, origRecord->isNumeric, origRecord->hash, origRecord->isSymbol);
+    record->isBound = origRecord->isBound;
+
+    char16* buffer = (char16 *)(record + 1);
+    js_memcpy_s(buffer, origRecord->byteCount, origRecord->GetBuffer(), origRecord->byteCount);
+
+    buffer[record->GetLength()] = _u('\0');
+
+    if (record->isNumeric)
+    {
+        *(uint32 *)(buffer + record->GetLength() + 1) = origRecord->GetNumericValue();
+        Assert(record->GetNumericValue() == origRecord->GetNumericValue());
+    }
+    record->pid = origRecord->pid;
+
+    m_propertyMap->Add(record);
+}
+
+Js::PropertyRecord const *
+ThreadContextInfo::GetPropertyRecord(Js::PropertyId propertyId)
+{
+    if (propertyId >= 0 && Js::IsInternalPropertyId(propertyId))
+    {
+        return Js::InternalPropertyRecords::GetInternalPropertyName(propertyId);
+    }
+
+    int propertyIndex = propertyId - Js::PropertyIds::_none;
+
+    if (propertyIndex < 0 || propertyIndex > m_propertyMap->GetLastIndex())
+    {
+        propertyIndex = 0;
+    }
+
+    const Js::PropertyRecord * propertyRecord = nullptr;
+    m_propertyMap->LockResize();
+    bool found = m_propertyMap->TryGetValueAt(propertyIndex, &propertyRecord);
+    m_propertyMap->UnlockResize();
+
+    AssertMsg(found && propertyRecord != nullptr, "using invalid propertyid");
+    return propertyRecord;
+}
+
 
 bool
 ThreadContextInfo::IsJITActive()

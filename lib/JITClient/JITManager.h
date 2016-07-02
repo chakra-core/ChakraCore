@@ -19,6 +19,10 @@ public:
     HRESULT CleanupThreadContext(
         __in intptr_t threadContextInfoAddress);
 
+    HRESULT AddPropertyRecord(
+        __in intptr_t threadContextInfoAddress,
+        __in PropertyRecordIDL * propertyRecord);
+
     HRESULT InitializeScriptContext(
         __in ScriptContextDataIDL * data,
         __out intptr_t *scriptContextInfoAddress);

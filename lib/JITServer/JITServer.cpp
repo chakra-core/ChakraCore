@@ -114,6 +114,20 @@ ServerCleanupThreadContext(
 }
 
 HRESULT
+ServerAddPropertyRecord(
+    /* [in] */ handle_t binding,
+    /* [in] */ __int3264 threadContextRoot,
+    /* [in] */ PropertyRecordIDL * propertyRecord)
+{
+    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+
+    ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextRoot);
+    threadContextInfo->AddToPropertyMap((Js::PropertyRecord *)propertyRecord);
+
+    return S_OK;
+}
+
+HRESULT
 ServerInitializeScriptContext(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in ScriptContextDataIDL * scriptContextData,
@@ -143,6 +157,7 @@ ServerFreeAllocation(
     /* [in] */ __int3264 threadContextInfo,
     /* [in] */ __int3264 address)
 {
+    AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
     ThreadContextInfo * context = reinterpret_cast<ThreadContextInfo*>(threadContextInfo);
     bool succeeded = context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)address);
     return succeeded ? S_OK : E_FAIL;

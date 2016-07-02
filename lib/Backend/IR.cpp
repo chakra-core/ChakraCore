@@ -3887,9 +3887,7 @@ Instr::DumpTestTrace()
         {
         case PropertyKindData:
             {
-                Js::ScriptContext* scriptContext;
-                scriptContext = propertySym->GetFunc()->GetScriptContext();
-                Js::PropertyRecord const* fieldName = scriptContext->GetPropertyNameLocked(propertySym->m_propertyId);
+                Js::PropertyRecord const* fieldName = propertySym->GetFunc()->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId);
                 Output::Print(_u("field: %s "), fieldName->GetBuffer());
                 break;
             }

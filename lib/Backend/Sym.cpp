@@ -956,7 +956,7 @@ const char16* PropertySym::GetName() const
 {
     if (this->m_fieldKind == PropertyKindData)
     {
-        return m_func->GetJnFunction()->GetScriptContext()->GetPropertyNameLocked(this->m_propertyId)->GetBuffer();
+        return m_func->GetThreadContextInfo()->GetPropertyRecord(this->m_propertyId)->GetBuffer();
     }
     Assert(false);
     return _u("");
@@ -1023,7 +1023,7 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
                         {
                             uint index = sym->GetByteCodeRegSlot() - sym->GetByteCodeFunc()->GetJITFunctionBody()->GetConstCount();
                             Js::PropertyId propertyId = functionBody->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots[index];
-                            Output::Print(_u("(%s)"), functionBody->GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer());
+                            Output::Print(_u("(%s)"), sym->GetByteCodeFunc()->GetThreadContextInfo()->GetPropertyRecord(propertyId)->GetBuffer());
                         }
                     }
                 }
@@ -1071,11 +1071,8 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
         case PropertyKindData:
         {
             propertySym->m_stackSym->Dump(flags, valueType);
-#if 0 // TODO: OOP JIT
-            scriptContext = propertySym->m_func->GetScriptContext();
-            Js::PropertyRecord const* fieldName = scriptContext->GetPropertyNameLocked(propertySym->m_propertyId);
+            Js::PropertyRecord const* fieldName = propertySym->m_func->GetThreadContextInfo()->GetPropertyRecord(propertySym->m_propertyId);
             Output::Print(_u("->%s"), fieldName->GetBuffer());
-#endif
             break;
         }
         case PropertyKindSlots:

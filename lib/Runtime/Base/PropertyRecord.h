@@ -16,12 +16,14 @@
 #endif
 
 class ThreadContext;
+class ThreadContextInfo;
 
 namespace Js
 {
     class PropertyRecord : public FinalizableObject
     {
         friend class ::ThreadContext;
+        friend class ::ThreadContextInfo;
         template <int LEN>
         friend struct BuiltInPropertyRecord;
         friend class InternalPropertyRecords;
@@ -48,7 +50,6 @@ namespace Js
 #ifdef DEBUG
         static bool IsPropertyNameNumeric(const char16* str, int length);
 #endif
-        static PropertyRecord * New(Recycler * recycler, JsUtil::CharacterBuffer<WCHAR> const& propertyName);
 
         static PropertyAttributes DefaultAttributesForPropertyId(PropertyId propertyId, bool __proto__AsDeleted);
 
