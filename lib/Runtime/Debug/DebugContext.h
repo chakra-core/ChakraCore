@@ -60,6 +60,17 @@ namespace Js
 
         HostDebugContext * GetHostDebugContext() const { return hostDebugContext; }
 
+#if ENABLE_TTD_DEBUGGING
+        bool IsJustMyCode() const
+        {
+            //
+            //TODO: This is experimental for running TTD with just tracking for user-code
+            //
+
+            return false;
+        }
+#endif
+
     private:
         ScriptContext * scriptContext;
         HostDebugContext* hostDebugContext;

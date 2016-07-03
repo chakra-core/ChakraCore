@@ -15,6 +15,13 @@
 
 namespace TTD
 {
+    //This struct stores the info for pending async mutations to array buffer objects
+    struct TTDPendingAsyncBufferModification
+    {
+        Js::Var ArrayBufferVar; //the actual array buffer that is pending
+        uint32 Index; //the start index that we are monitoring from
+    };
+
     //This class implements the data structures and algorithms needed to manage the ScriptContext TTD runtime info -- it is a friend of ScriptContext
     //Basically we don't want to add a lot of size/complexity to the ScriptContext object/class if it isn't perf critical
     class ScriptContextTTD
@@ -26,6 +33,9 @@ namespace TTD
         ObjectPinSet* m_ttdRootSet;
         ObjectPinSet* m_ttdLocalRootSet;
         JsUtil::BaseDictionary<TTD_LOG_PTR_ID, Js::RecyclableObject*, HeapAllocator> m_ttdRootTagIdMap;
+
+        //List of pending async modifications to array buffers
+        JsUtil::List<TTDPendingAsyncBufferModification, HeapAllocator> m_ttdPendingAsyncModList;
 
         //The lists containing the top-level code that is loaded in this context
         JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator> m_ttdTopLevelScriptLoad;
@@ -60,6 +70,13 @@ namespace TTD
         Js::RecyclableObject* LookupObjectForLogID(TTD_LOG_PTR_ID origId);
         void ClearRootsForSnapRestore();
 
+        //Keep track of pending async ArrayBuffer modification
+        void AddToAsyncPendingList(Js::ArrayBuffer* trgt, uint32 index);
+        void GetFromAsyncPendingList(TTDPendingAsyncBufferModification* pendingInfo, byte* finalModPos);
+
+        const JsUtil::List<TTDPendingAsyncBufferModification, HeapAllocator>& GetPendingAsyncModListForSnapshot() const;
+        void ClearPendingAsyncModListForSnapRestore();
+
         //Get all of the root level sources evaluated in this script context (source text & root function returned)
         void GetLoadedSources(JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::TopLevelFunctionInContextRelation, HeapAllocator>& topLevelEval);
 
@@ -80,6 +97,8 @@ namespace TTD
         //
         //Find the body with the filename from our top-level function bodies
         Js::FunctionBody* FindFunctionBodyByFileName(LPCWSTR filename) const;
+
+        void ClearLoadedSourcesForSnapshotRestore();
     };
 
     //////////////////

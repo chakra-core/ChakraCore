@@ -194,6 +194,8 @@ namespace TTD
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::FunctionBodyResolveInfo*, HeapAllocator> H1FunctionBodyMap;
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapObjects::SnapObject*, HeapAllocator> H1ObjectMap;
 
+        JsUtil::BaseHashSet<TTD_PTR_ID, HeapAllocator> H1PendingAsyncModBufferSet;
+
         ////
         //H2 Maps
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::SnapPrimitiveValue*, HeapAllocator> H2ValueMap;
@@ -205,6 +207,8 @@ namespace TTD
         JsUtil::BaseDictionary<TTD_PTR_ID, uint64, HeapAllocator> H2FunctionTopLevelEvalMap;
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::FunctionBodyResolveInfo*, HeapAllocator> H2FunctionBodyMap;
         JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapObjects::SnapObject*, HeapAllocator> H2ObjectMap;
+
+        JsUtil::BaseHashSet<TTD_PTR_ID, HeapAllocator> H2PendingAsyncModBufferSet;
 
         ////
         //Code

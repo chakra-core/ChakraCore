@@ -21,6 +21,7 @@ BOOL doTTDebug = false;
 char16* ttUri = nullptr;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;
+UINT32 startEventCount = 1;
 
 const char16* dbgIPAddr = nullptr;
 unsigned short dbgPort = 0;
@@ -240,16 +241,33 @@ HRESULT RunScript(const char* fileName, LPCWSTR fileContents, BYTE *bcBuffer, ch
 
         try
         {
+            JsTTDMoveMode moveMode = (JsTTDMoveMode)(JsTTDMoveMode::JsTTDMoveKthEvent | ((uint64) startEventCount) << 32);
             INT64 snapEventTime = -1;
             INT64 nextEventTime = -2;
 
             while(true)
             {
-                IfJsErrorFailLog(ChakraRTInterface::JsTTDPrepContextsForTopLevelEventMove(chRuntime, nextEventTime, &snapEventTime));
+                bool needFreshCtxs = false;
+                JsErrorCode error = ChakraRTInterface::JsTTDGetSnapTimeTopLevelEventMove(chRuntime, moveMode, &nextEventTime, &needFreshCtxs, &snapEventTime, nullptr);
 
-                ChakraRTInterface::JsTTDMoveToTopLevelEvent(snapEventTime, nextEventTime);
+                if(error != JsNoError)
+                {
+                    if(error == JsErrorCategoryUsage)
+                    {
+                        wprintf(_u("Start time not in log range.\n"));
+                        break;
+                    }
+                    else
+                    {
+                        wprintf(_u("Fatal Error in Move!!!\n"));
+                        break;
+                    }
+                }
 
-                JsErrorCode res = ChakraRTInterface::JsTTDReplayExecution(&nextEventTime);
+                ChakraRTInterface::JsTTDPrepContextsForTopLevelEventMove(chRuntime, needFreshCtxs);
+                ChakraRTInterface::JsTTDMoveToTopLevelEvent(moveMode, snapEventTime, nextEventTime);
+
+                JsErrorCode res = ChakraRTInterface::JsTTDReplayExecution(&moveMode, &nextEventTime);
 
                 //handle any uncaught exception by immediately time-traveling to the throwing line
                 if(res == JsErrorCategoryScript)
@@ -268,7 +286,7 @@ HRESULT RunScript(const char* fileName, LPCWSTR fileContents, BYTE *bcBuffer, ch
         }
         catch(...)
         {
-            wprintf(_u("Terminal exception in Replay -- exiting."));
+            wprintf(_u("Terminal exception in Replay -- exiting.\n"));
             ExitProcess(0);
         }
 #endif
@@ -404,7 +422,7 @@ HRESULT ExecuteTest(const char* fileName)
         ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::GetTTDDirectory, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTGetLogStreamCallback, &Helpers::TTGetSnapshotStreamCallback, &Helpers::TTGetSrcCodeStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
 
         JsContextRef context = JS_INVALID_REFERENCE;
-        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
+        IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
         IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr));
@@ -632,6 +650,11 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         {
             LPCWSTR historyStr = argv[i] + wcslen(_u("-TTHistoryLength:"));
             snapHistoryLength = (UINT32)_wtoi(historyStr);
+        }
+        else if(wcsstr(argv[i], _u("-TTDStartEvent:")) == argv[i])
+        {
+            LPCWSTR startEventStr = argv[i] + wcslen(_u("-TTDStartEvent:"));
+            startEventCount = (UINT32)_wtoi(startEventStr);
         }
         else if(wcsstr(argv[i], _u("--debug-brk=")) == argv[i])
         {

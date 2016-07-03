@@ -92,7 +92,11 @@
         /// <summary>
         ///     Perform a single step over after a debug break if the next statement is a function call, else behaves as a stepin.
         /// </summary>
-        JsDiagStepTypeStepOver = 2
+        JsDiagStepTypeStepOver = 2,
+        /// <summary>  
+        ///     Perform a single step back to the previous statement.  
+        /// </summary>  
+        JsDiagStepTypeStepBack = 3
     } JsDiagStepType;
 
     /// <summary>
@@ -586,6 +590,43 @@
     /////////////////////
 
     /// <summary>
+    ///     TimeTravel move options as bit flag enum.
+    /// </summary>
+    typedef enum _JsTTDMoveModes : UINT64
+    {
+        /// <summary>
+        ///     Indicates no special actions needed for move.
+        /// </summary>
+        JsTTDMoveNone = 0x0,
+
+        /// <summary>
+        ///     Indicates that we want to move to the first/last event.
+        /// </summary>
+        JsTTDMoveFirstEvent = 0x1,
+        JsTTDMoveLastEvent = 0x2,
+
+        /// <summary>
+        ///     Indicates that we want to move to the kth event -- top 32 bits are event count.
+        /// </summary>
+        JsTTDMoveKthEvent = 0x4,
+
+        /// <summary>
+        ///     Indicates if we want to scan the snapshot interval containing the event to populate debug info before moving to execute event.
+        /// </summary>
+        JsTTDMoveScanIntervalBeforeDebugExecute = 0x10,
+
+        /// <summary>
+        ///     Indicates if we are doing the scan for a continue operation
+        /// </summary>
+        JsTTDMoveScanIntervalForContinue = 0x20,
+
+        /// <summary>
+        ///     Indicates if we want to set break on entry or just run and let something else trigger breakpoints.
+        /// </summary>
+        JsTTDMoveBreakOnEntry = 0x100
+    } JsTTDMoveMode;
+
+    /// <summary>
     ///     TTD API -- may change in future versions:
     ///     Given the uri location specified for the TTD output data, which may be relative or contain other implcit information, 
     ///     convert it into a fully normalized location descriptor. This fully resolved location will be passed to the later callbacks 
@@ -893,29 +934,114 @@
 
     /// <summary>
     ///     TTD API -- may change in future versions:
+    ///     Notify the event log that the contents of one buffer have been copied to a second buffer.
+    /// </summary>
+    /// <param name="dst">The buffer that was written into.</param>
+    /// <param name="dstIndex">The first index modified.</param>
+    /// <param name="src">The buffer that was copied from.</param>
+    /// <param name="srcIndex">The first index copied.</param>
+    /// <param name="count">The number of bytes copied.</param>
+    CHAKRA_API
+        JsTTDRawBufferCopySyncIndirect(
+            _In_ JsValueRef dst,
+            _In_ UINT32 dstIndex,
+            _In_ JsValueRef src,
+            _In_ UINT32 srcIndex,
+            _In_ UINT32 count);
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     Notify the event log that the contents of a naked byte* buffer passed to the host have been modified synchronously.
+    /// </summary>
+    /// <param name="buffer">The buffer that was modified.</param>
+    /// <param name="index">The first index modified.</param>
+    /// <param name="count">The number of bytes written.</param>
+    CHAKRA_API
+        JsTTDRawBufferModifySyncIndirect(
+            _In_ JsValueRef buffer,
+            _In_ UINT32 index,
+            _In_ UINT32 count);
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     Get info for notifying the TTD system that a raw buffer it shares with the host has been modified.
+    /// </summary>
+    /// <param name="instance">The array buffer we want to monitor for contents modification.</param>
+    /// <param name="initialModPos">The first position in the buffer that may be modified.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
+    CHAKRA_API
+        JsTTDRawBufferAsyncModificationRegister(
+            _In_ JsValueRef instance,
+            _In_ byte* initialModPos);
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     Notify the event log that the contents of a naked byte* buffer passed to the host have been modified asynchronously.
+    /// </summary>
+    /// <param name="finalModPos">One past the last modified position in the buffer.</param>
+    CHAKRA_API
+        JsTTDRawBufferAsyncModifyComplete(
+            _In_ byte* finalModPos);
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     Before calling JsTTDMoveToTopLevelEvent (which inflates a snapshot and replays) check to see if we want to reset the script context.
     ///     We reset the script context if the move will require inflating from a different snapshot that the last one.
     /// </summary>
     /// <param name="runtimeHandle">The runtime handle that the script is executing in.</param>
-    /// <param name="targetEventTime">The event that we are planning to move to.</param>
-    /// <param name="targetStartSnapTime">Gets the event time that we will start executing from to move to the given target time.</param>
+    /// <param name="moveMode">Flags controlling the way the move it performed and how other parameters are interpreted.</param>
+    /// <param name="targetEventTime">The event time we want to move to or -1 if not relevant.</param>
+    /// <param name="createFreshCxts">Out parameter that indicates if new script contexts need to be created for this move.</param>
+    /// <param name="targetStartSnapTime">Out parameter with the event time of the snapshot that we should inflate from.</param>
+    /// <param name="targetEndSnapTime">Optional Out parameter with the snapshot time following the event.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
+    CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(
+        _In_ JsRuntimeHandle runtimeHandle,
+        _In_ JsTTDMoveMode moveMode,
+        _Inout_ INT64* targetEventTime,
+        _Out_ bool* createFreshCxts,
+        _Out_ INT64* targetStartSnapTime,
+        _Out_opt_ INT64* targetEndSnapTime);
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     Before calling JsTTDMoveToTopLevelEvent (which inflates a snapshot and replays) check to see if we want to reset the script context.
+    ///     We reset the script context if the move will require inflating from a different snapshot that the last one.
+    /// </summary>
+    /// <param name="runtimeHandle">The runtime handle that the script is executing in.</param>
+    /// <param name="createFreshCtxs">Indicates if new script contexts need to be created for this move.</param>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
         JsTTDPrepContextsForTopLevelEventMove(
             _In_ JsRuntimeHandle runtimeHandle,
-            _In_ INT64 targetEventTime,
-            _Out_ INT64* targetStartSnapTime);
+            _In_ bool createFreshCtxs);
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     During debug operations some additional information is populated during replay. This runs the code between the given 
+    ///     snapshots to poulate this information which may be needed by the debugger to determine time-travel jump targets.
+    /// </summary>
+    ///<param name = "startSnapTime">The snapshot time that we will start executing from.< / param>
+    ///<param name = "endSnapTime">The snapshot time that we will stop at (or -1 if we want to run to the end).< / param>
+    /// <param name="moveMode">Additional flags for controling how the move is done.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
+    CHAKRA_API JsTTDPreExecuteSnapShotInterval(
+        _In_ INT64 startSnapTime,
+        _In_ INT64 endSnapTime,
+        _In_ JsTTDMoveMode moveMode);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
     ///     Move to the given top-level call event time (assuming JsTTDPrepContextsForTopLevelEventMove) was called previously to reset any script contexts.
     ///     This also computes the ready-to-run snapshot if needed.
     /// </summary>
-    /// <param name="targetEventTime">The event that we want to move to.</param>
-    /// <param name="targetStartSnapTime">The event time that we will start executing from to move to the given target time.</param>
+    /// <param name="moveMode">Additional flags for controling how the move is done.</param>
+    /// <param name="snapshotTime">The event time that we will start executing from to move to the given target time.</param>
+    /// <param name="eventTime">The event that we want to move to.</param>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
         JsTTDMoveToTopLevelEvent(
+            _In_ JsTTDMoveMode moveMode,
             _In_ INT64 snapshotTime,
             _In_ INT64 eventTime);
 
@@ -923,6 +1049,7 @@
     ///     TTD API -- may change in future versions:
     ///     Execute from the current point in the log to the end returning the error code.
     /// </summary>
+    /// <param name="moveMode">Additional flags for controling how the move is done.</param>
     /// <param name="rootEventTime">The event time that we should move to next or notification (-1) that replay has ended.</param>
     /// <returns>
     ///     If the debugger requested an abort the code is JsNoError -- rootEventTime is the target event time we need to move to and re - execute from.
@@ -931,6 +1058,7 @@
     /// </returns>
     CHAKRA_API
         JsTTDReplayExecution(
-            _Out_ INT64* rootEventTime);
+            _Inout_ JsTTDMoveMode* moveMode,
+            _Inout_ INT64* rootEventTime);
 
 #endif // _CHAKRADEBUG_H_

@@ -8,8 +8,8 @@
 
 namespace TTD
 {
-    TTDebuggerAbortException::TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, LPCWSTR staticAbortMessage)
-        : m_abortCode(abortCode), m_optEventTime(optEventTime), m_staticAbortMessage(staticAbortMessage)
+    TTDebuggerAbortException::TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, int64 optMoveMode, LPCWSTR staticAbortMessage)
+        : m_abortCode(abortCode), m_optEventTime(optEventTime), m_optMoveMode(optMoveMode), m_staticAbortMessage(staticAbortMessage)
     {
         ;
     }
@@ -21,17 +21,17 @@ namespace TTD
 
     TTDebuggerAbortException TTDebuggerAbortException::CreateAbortEndOfLog(LPCWSTR staticMessage)
     {
-        return TTDebuggerAbortException(1, -1, staticMessage);
+        return TTDebuggerAbortException(1, -1, 0, staticMessage);
     }
 
-    TTDebuggerAbortException TTDebuggerAbortException::CreateTopLevelAbortRequest(int64 targetEventTime, LPCWSTR staticMessage)
+    TTDebuggerAbortException TTDebuggerAbortException::CreateTopLevelAbortRequest(int64 targetEventTime, int64 moveMode, LPCWSTR staticMessage)
     {
-        return TTDebuggerAbortException(2, targetEventTime, staticMessage);
+        return TTDebuggerAbortException(2, targetEventTime, moveMode, staticMessage);
     }
 
     TTDebuggerAbortException TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(int64 targetEventTime, LPCWSTR staticMessage)
     {
-        return TTDebuggerAbortException(3, targetEventTime, staticMessage);;
+        return TTDebuggerAbortException(3, targetEventTime, 0, staticMessage);;
     }
 
     bool TTDebuggerAbortException::IsEndOfLog() const
@@ -54,6 +54,11 @@ namespace TTD
         return this->m_optEventTime;
     }
 
+    int64 TTDebuggerAbortException::GetMoveMode() const
+    {
+        return this->m_optMoveMode;
+    }
+
     LPCWSTR TTDebuggerAbortException::GetStaticAbortMessage() const
     {
         return this->m_staticAbortMessage;
@@ -63,6 +68,12 @@ namespace TTD
         : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
     {
         ;
+    }
+
+    TTDebuggerSourceLocation::TTDebuggerSourceLocation(const SingleCallCounter& callFrame)
+        : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
+    {
+        this->SetLocation(callFrame);
     }
 
     TTDebuggerSourceLocation::TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other)
@@ -82,6 +93,35 @@ namespace TTD
     {
         this->Clear();
     }
+
+    TTDebuggerSourceLocation& TTDebuggerSourceLocation::operator= (const TTDebuggerSourceLocation& other)
+    {
+        if(this != &other)
+        {
+            this->SetLocation(other);
+        }
+
+        return *this;
+    }
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+    void TTDebuggerSourceLocation::PrintToConsole(bool newline) const
+    {
+        if(!this->HasValue())
+        {
+            wprintf(_u("undef"));
+        }
+        else
+        {
+            wprintf(_u("%ls l:%I32u c:%I32u (%I64i, %I64i, %I64i)"), this->m_sourceFile, this->m_line, this->m_column, this->m_etime, this->m_ftime, this->m_ltime);
+        }
+
+        if(newline)
+        {
+            wprintf(_u("\n"));
+        }
+    }
+#endif
 
     void TTDebuggerSourceLocation::Initialize()
     {
@@ -225,7 +265,7 @@ namespace TTD
         return this->m_ltime;
     }
 
-    Js::FunctionBody* TTDebuggerSourceLocation::ResolveAssociatedSourceInfo(Js::ScriptContext* ctx)
+    Js::FunctionBody* TTDebuggerSourceLocation::ResolveAssociatedSourceInfo(Js::ScriptContext* ctx) const
     {
         Js::FunctionBody* resBody = ctx->TTDContextInfo->FindFunctionBodyByFileName(this->m_sourceFile);
 
@@ -277,6 +317,42 @@ namespace TTD
         return this->m_column;
     }
 
+    bool TTDebuggerSourceLocation::IsBefore(const TTDebuggerSourceLocation& other) const
+    {
+        AssertMsg(this->m_ftime != -1 && other.m_ftime != -1, "These aren't orderable!!!");
+        AssertMsg(this->m_ltime != -1 && other.m_ltime != -1, "These aren't orderable!!!");
+
+        //first check the order of the time parts
+        if(this->m_etime != other.m_etime)
+        {
+            return this->m_etime < other.m_etime;
+        }
+
+        if(this->m_ftime != other.m_ftime)
+        {
+            return this->m_ftime < other.m_ftime;
+        }
+
+        if(this->m_ltime != other.m_ltime)
+        {
+            return this->m_ltime < other.m_ltime;
+        }
+
+        //so all times are the same => min column/min row decide
+        if(this->m_functionLine != other.m_functionLine)
+        {
+            return this->m_functionLine < other.m_functionLine;
+        }
+
+        if(this->m_functionColumn != other.m_functionColumn)
+        {
+            return this->m_functionColumn < other.m_functionColumn;
+        }
+
+        //they are refering to the same location so this is *not* stricly before
+        return false;
+    }
+
     //////////////////
 
     namespace NSLogEvents
@@ -288,7 +364,14 @@ namespace TTD
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             if(replayVar == nullptr || TTD::JsSupport::IsVarTaggedInline(replayVar))
             {
-                AssertMsg(origVar == replayVar, "Should be same bit pattern.");
+                //AssertMsg(origVar == replayVar, "Should be same bit pattern.");
+
+                //Temp workaround for exit(code) not terminating in replay!!!
+                if(origVar != replayVar)
+                {
+                    printf("Should be same bit pattern -- possible error or need to special case replay of process.exit");
+                    throw TTDebuggerAbortException::CreateAbortEndOfLog(_u("End of log reached (with odd tail) -- returning to top-level."));
+                }
             }
 #endif
 
@@ -402,7 +485,7 @@ namespace TTD
 
             if(snapEvt->Snap != nullptr)
             {
-                HeapDelete(snapEvt->Snap);
+                TT_HEAP_DELETE(SnapShot, snapEvt->Snap);
                 snapEvt->Snap = nullptr;
             }
         }

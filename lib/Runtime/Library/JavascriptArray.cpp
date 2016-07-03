@@ -796,11 +796,16 @@ namespace Js
         if (arrayInfo->IsNativeIntArray())
         {
             JavascriptNativeIntArray *arr;
-            FunctionBody *functionBody = weakFuncRef->Get();
-            JavascriptLibrary *lib = scriptContext->GetLibrary();
 
 #if ENABLE_COPYONACCESS_ARRAY
+            JavascriptLibrary *lib = scriptContext->GetLibrary();
+            FunctionBody *functionBody = weakFuncRef->Get();
+
+#if TTD_DISABLE_COPYONACCESS_ARRAY_WORK_AROUNDS
+            if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, count) && Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::CopyOnAccessArrayPhase))
+#else
             if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, count))
+#endif
             {
                 Assert(lib->cacheForCopyOnAccessArraySegments);
                 arr = scriptContext->GetLibrary()->CreateCopyOnAccessNativeIntArrayLiteral(arrayInfo, functionBody, ints);
