@@ -109,7 +109,7 @@ endif()
         -Wno-inconsistent-missing-override\
         -Wno-c++14-extensions\
         -Wno-macro-redefined\
-        -Wno-ignored-pragmas\
+        -Wno-pragmas\
         -Wno-invalid-token-paste\
         -Wno-format\
         -Wno-invalid-noreturn\

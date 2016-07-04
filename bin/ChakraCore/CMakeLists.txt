@@ -36,12 +36,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     Chakra.Jsrt
     Chakra.Jsrt.Core
     -Wl,--no-whole-archive
+    Chakra.Pal
     )
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(lib_target
     -Wl,-undefined,error
     Chakra.Jsrt
     Chakra.Jsrt.Core
+    Chakra.Pal
     )
 else()
   message("This platform is not yet supported")
@@ -70,7 +72,6 @@ set(lib_target "${lib_target}"
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(lib_target "${lib_target}"
     -Wl,--end-group
-    Chakra.Pal
     pthread
     stdc++
     dl
@@ -78,7 +79,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     )
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(lib_target "${lib_target}"
-    Chakra.Pal
     pthread
     stdc++
     dl

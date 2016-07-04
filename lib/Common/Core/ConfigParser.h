@@ -31,8 +31,11 @@ private:
     static const int MaxRegSize = 2048;
     static const LPWSTR featureKeyName ;
     bool _hasReadConfig;
+
+    CLANG_WNO_BEGIN("-Wunused-private-field")
     Js::ConfigFlagsTable& _flags;
     const LPCWSTR _configFileName;
+    CLANG_WNO_END
 
     // NT version of CRT has the "backward compat" behavior that returns 0 instead of EOF
     // for unicode version of fwscanf.
