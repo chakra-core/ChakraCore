@@ -47,6 +47,13 @@ else()
   message("This platform is not yet supported")
 endif() # Linux ?
 
+# make sure to include Common.Core before others
+# this will help linker on some platforms for correct
+# initialization order
+set(lib_target "${lib_target}"
+  Chakra.Common.Core
+  )
+
 # common link deps
 set(lib_target "${lib_target}"
   Chakra.Runtime.Types
@@ -61,7 +68,6 @@ set(lib_target "${lib_target}"
   Chakra.Common.Util
   Chakra.Common.Memory
   Chakra.Common.Common
-  Chakra.Common.Core
   Chakra.Common.DataStructures
   Chakra.Common.Exceptions
   Chakra.Common.Codex
