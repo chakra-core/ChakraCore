@@ -6,29 +6,21 @@ undefined
 V:0, W:false, E:false, C:false, get:false, set:false
 ***************** g.caller ***************** 
 [object Object]
-
 function() {
     [native code]
 }
-
-
 function() {
     [native code]
 }
-
 V:undefined, W:undefined, E:false, C:false, get:true, set:true
 ***************** g.arguments ***************** 
 [object Object]
-
 function() {
     [native code]
 }
-
-
 function() {
     [native code]
 }
-
 V:undefined, W:undefined, E:false, C:false, get:true, set:true
 ***************** try to set/get the caller/arguments *****************
 Set caller passed

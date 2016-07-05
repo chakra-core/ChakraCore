@@ -1,14 +1,10 @@
 *** Running test #1 (0): Test Object.prototype.__proto__ attributes
-get: 
-function() {
+get: function() {
     [native code]
 }
-
-set: 
-function() {
+set: function() {
     [native code]
 }
-
 enumerable: false
 configurable: true
 PASSED
